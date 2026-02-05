@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
 use dashmap::DashMap;
+use s3::bucket::Bucket;
+use s3::creds::Credentials;
+use s3::region::Region;
 use sqlx::PgPool;
 use tokio::sync::broadcast;
 use uuid::Uuid;
@@ -13,7 +16,7 @@ pub struct AppState {
     pub config: Arc<Config>,
     pub redis: redis::aio::ConnectionManager,
     pub board_channels: Arc<DashMap<Uuid, broadcast::Sender<String>>>,
-    pub s3_client: aws_sdk_s3::Client,
+    pub s3_bucket: Arc<Bucket>,
 }
 
 impl AppState {
@@ -32,20 +35,22 @@ impl AppState {
         let redis = redis_client.get_connection_manager().await?;
         tracing::info!("Redis connected");
 
-        // Set up S3 client for MinIO
-        let s3_config = aws_sdk_s3::config::Builder::new()
-            .endpoint_url(&config.minio_endpoint)
-            .region(aws_sdk_s3::config::Region::new("us-east-1"))
-            .credentials_provider(aws_sdk_s3::config::Credentials::new(
-                &config.minio_access_key,
-                &config.minio_secret_key,
-                None,
-                None,
-                "minio",
-            ))
-            .force_path_style(true)
-            .build();
-        let s3_client = aws_sdk_s3::Client::from_conf(s3_config);
+        // Set up S3 bucket for MinIO using rust-s3
+        let credentials = Credentials::new(
+            Some(&config.minio_access_key),
+            Some(&config.minio_secret_key),
+            None,
+            None,
+            None,
+        )?;
+
+        let region = Region::Custom {
+            region: "us-east-1".to_string(),
+            endpoint: config.minio_endpoint.clone(),
+        };
+
+        let s3_bucket = Bucket::new(&config.minio_bucket, region, credentials)?
+            .with_path_style();
 
         let board_channels = Arc::new(DashMap::new());
 
@@ -54,7 +59,7 @@ impl AppState {
             config: Arc::new(config),
             redis,
             board_channels,
-            s3_client,
+            s3_bucket: Arc::new(s3_bucket),
         })
     }
 

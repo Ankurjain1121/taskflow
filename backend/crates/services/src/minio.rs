@@ -1,12 +1,12 @@
 //! MinIO service for S3-compatible object storage operations
 //!
 //! Provides presigned URL generation, object management, and bucket operations
-//! for file attachments using the aws-sdk-s3 crate.
+//! for file attachments using the rust-s3 crate.
 
-use aws_sdk_s3::config::{Credentials, Region};
-use aws_sdk_s3::presigning::PresigningConfig;
-use aws_sdk_s3::Client;
-use std::time::Duration;
+use s3::bucket::Bucket;
+use s3::creds::Credentials;
+use s3::region::Region;
+use std::sync::Arc;
 use thiserror::Error;
 
 /// Errors that can occur during MinIO operations
@@ -20,6 +20,8 @@ pub enum MinioError {
     NotFound(String),
     #[error("Bucket creation failed: {0}")]
     BucketCreationFailed(String),
+    #[error("Credentials error: {0}")]
+    CredentialsError(String),
 }
 
 /// Configuration for MinIO service
@@ -40,89 +42,84 @@ pub struct MinioConfig {
 /// MinIO service for S3-compatible object storage
 #[derive(Clone)]
 pub struct MinioService {
-    /// Internal client for bucket operations and object management
-    internal_client: Client,
-    /// Client configured with public URL for presigned URL generation
-    public_client: Client,
-    /// Bucket name
-    bucket: String,
+    /// Internal bucket for bucket operations and object management
+    internal_bucket: Arc<Bucket>,
+    /// Bucket configured with public URL for presigned URL generation
+    public_bucket: Arc<Bucket>,
     /// Public URL for presigned URLs
     public_url: String,
 }
 
 impl MinioService {
     /// Create a new MinioService with the given configuration
-    pub async fn new(config: MinioConfig) -> Self {
-        // Build internal client (uses Docker internal endpoint)
-        let internal_creds = Credentials::new(
-            &config.access_key,
-            &config.secret_key,
+    pub async fn new(config: MinioConfig) -> Result<Self, MinioError> {
+        let credentials = Credentials::new(
+            Some(&config.access_key),
+            Some(&config.secret_key),
             None,
             None,
-            "minio-internal",
-        );
-        let internal_s3_config = aws_sdk_s3::config::Builder::new()
-            .endpoint_url(&config.endpoint)
-            .region(Region::new("us-east-1"))
-            .credentials_provider(internal_creds)
-            .force_path_style(true)
-            .build();
-        let internal_client = Client::from_conf(internal_s3_config);
+            None,
+        )
+        .map_err(|e| MinioError::CredentialsError(e.to_string()))?;
 
-        // Build public client (uses public URL for presigned URLs)
-        let public_creds = Credentials::new(
-            &config.access_key,
-            &config.secret_key,
-            None,
-            None,
-            "minio-public",
-        );
-        let public_s3_config = aws_sdk_s3::config::Builder::new()
-            .endpoint_url(&config.public_url)
-            .region(Region::new("us-east-1"))
-            .credentials_provider(public_creds)
-            .force_path_style(true)
-            .build();
-        let public_client = Client::from_conf(public_s3_config);
+        // Internal region for bucket operations
+        let internal_region = Region::Custom {
+            region: "us-east-1".to_string(),
+            endpoint: config.endpoint.clone(),
+        };
 
-        Self {
-            internal_client,
-            public_client,
-            bucket: config.bucket,
+        // Public region for presigned URLs
+        let public_region = Region::Custom {
+            region: "us-east-1".to_string(),
+            endpoint: config.public_url.clone(),
+        };
+
+        // Create internal bucket
+        let internal_bucket = Bucket::new(&config.bucket, internal_region, credentials.clone())
+            .map_err(|e| MinioError::S3Error(e.to_string()))?
+            .with_path_style();
+
+        // Create public bucket for presigned URLs
+        let public_bucket = Bucket::new(&config.bucket, public_region, credentials)
+            .map_err(|e| MinioError::S3Error(e.to_string()))?
+            .with_path_style();
+
+        Ok(Self {
+            internal_bucket: Arc::new(internal_bucket),
+            public_bucket: Arc::new(public_bucket),
             public_url: config.public_url,
-        }
+        })
     }
 
     /// Ensure the bucket exists, creating it if necessary
     pub async fn ensure_bucket(&self) -> Result<(), MinioError> {
-        // Check if bucket exists using head_bucket
-        let head_result = self
-            .internal_client
-            .head_bucket()
-            .bucket(&self.bucket)
-            .send()
-            .await;
-
-        match head_result {
+        // Try to list objects to check if bucket exists
+        match self.internal_bucket.list("".to_string(), Some("/".to_string())).await {
             Ok(_) => {
-                tracing::info!("MinIO bucket '{}' already exists", self.bucket);
+                tracing::info!("MinIO bucket '{}' already exists", self.internal_bucket.name());
                 Ok(())
             }
             Err(_) => {
                 // Bucket doesn't exist, create it
-                tracing::info!("Creating MinIO bucket '{}'", self.bucket);
-                self.internal_client
-                    .create_bucket()
-                    .bucket(&self.bucket)
-                    .send()
-                    .await
-                    .map_err(|e| {
-                        MinioError::BucketCreationFailed(format!(
-                            "Failed to create bucket '{}': {}",
-                            self.bucket, e
-                        ))
-                    })?;
-                tracing::info!("MinIO bucket '{}' created successfully", self.bucket);
+                tracing::info!("Creating MinIO bucket '{}'", self.internal_bucket.name());
+                Bucket::create_with_path_style(
+                    self.internal_bucket.name(),
+                    self.internal_bucket.region().clone(),
+                    self.internal_bucket.credentials().clone(),
+                    s3::bucket::BucketConfiguration::default(),
+                )
+                .await
+                .map_err(|e| {
+                    MinioError::BucketCreationFailed(format!(
+                        "Failed to create bucket '{}': {}",
+                        self.internal_bucket.name(),
+                        e
+                    ))
+                })?;
+                tracing::info!(
+                    "MinIO bucket '{}' created successfully",
+                    self.internal_bucket.name()
+                );
                 Ok(())
             }
         }
@@ -140,24 +137,17 @@ impl MinioService {
     pub async fn presigned_put_url(
         &self,
         key: &str,
-        content_type: &str,
+        _content_type: &str,
         expires_secs: u64,
     ) -> Result<String, MinioError> {
-        let presigning_config = PresigningConfig::expires_in(Duration::from_secs(expires_secs))
-            .map_err(|e| MinioError::PresigningError(e.to_string()))?;
-
-        // Use public_client to generate URLs with public endpoint
-        let presigned_request = self
-            .public_client
-            .put_object()
-            .bucket(&self.bucket)
-            .key(key)
-            .content_type(content_type)
-            .presigned(presigning_config)
+        // Use public_bucket to generate URLs with public endpoint
+        let url = self
+            .public_bucket
+            .presign_put(key, expires_secs as u32, None, None)
             .await
             .map_err(|e| MinioError::PresigningError(e.to_string()))?;
 
-        Ok(presigned_request.uri().to_string())
+        Ok(url)
     }
 
     /// Generate a presigned GET URL for downloading a file
@@ -173,20 +163,14 @@ impl MinioService {
         key: &str,
         expires_secs: u64,
     ) -> Result<String, MinioError> {
-        let presigning_config = PresigningConfig::expires_in(Duration::from_secs(expires_secs))
-            .map_err(|e| MinioError::PresigningError(e.to_string()))?;
-
-        // Use public_client to generate URLs with public endpoint
-        let presigned_request = self
-            .public_client
-            .get_object()
-            .bucket(&self.bucket)
-            .key(key)
-            .presigned(presigning_config)
+        // Use public_bucket to generate URLs with public endpoint
+        let url = self
+            .public_bucket
+            .presign_get(key, expires_secs as u32, None)
             .await
             .map_err(|e| MinioError::PresigningError(e.to_string()))?;
 
-        Ok(presigned_request.uri().to_string())
+        Ok(url)
     }
 
     /// Check if an object exists (verify upload completed)
@@ -197,11 +181,8 @@ impl MinioService {
     /// # Returns
     /// Ok(()) if the object exists, Err(NotFound) otherwise
     pub async fn stat_object(&self, key: &str) -> Result<(), MinioError> {
-        self.internal_client
-            .head_object()
-            .bucket(&self.bucket)
-            .key(key)
-            .send()
+        self.internal_bucket
+            .head_object(key)
             .await
             .map_err(|e| MinioError::NotFound(format!("Object '{}' not found: {}", key, e)))?;
 
@@ -216,15 +197,16 @@ impl MinioService {
     /// # Note
     /// This operation is idempotent - deleting a non-existent object succeeds
     pub async fn delete_object(&self, key: &str) -> Result<(), MinioError> {
-        self.internal_client
-            .delete_object()
-            .bucket(&self.bucket)
-            .key(key)
-            .send()
+        self.internal_bucket
+            .delete_object(key)
             .await
             .map_err(|e| MinioError::S3Error(format!("Failed to delete '{}': {}", key, e)))?;
 
-        tracing::info!("Deleted object '{}' from bucket '{}'", key, self.bucket);
+        tracing::info!(
+            "Deleted object '{}' from bucket '{}'",
+            key,
+            self.internal_bucket.name()
+        );
         Ok(())
     }
 
@@ -235,7 +217,7 @@ impl MinioService {
 
     /// Get the bucket name
     pub fn bucket(&self) -> &str {
-        &self.bucket
+        self.internal_bucket.name()
     }
 }
 

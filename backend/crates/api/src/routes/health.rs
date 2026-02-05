@@ -103,15 +103,11 @@ async fn check_redis(state: &AppState) -> ServiceStatus {
     }
 }
 
-/// Check MinIO connectivity by listing buckets
+/// Check MinIO connectivity by listing objects (empty prefix)
 async fn check_minio(state: &AppState) -> ServiceStatus {
     let result = timeout(
         HEALTH_CHECK_TIMEOUT,
-        state
-            .s3_client
-            .head_bucket()
-            .bucket(&state.config.minio_bucket)
-            .send(),
+        state.s3_bucket.list("".to_string(), Some("/".to_string())),
     )
     .await;
 
