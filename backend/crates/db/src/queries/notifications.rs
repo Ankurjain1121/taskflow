@@ -210,7 +210,7 @@ pub async fn delete_old_notifications(
         DELETE FROM notifications
         WHERE created_at < NOW() - $1 * interval '1 day'
         "#,
-        days_to_keep
+        days_to_keep as f64
     )
     .execute(pool)
     .await?;
