@@ -20,6 +20,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatDividerModule } from '@angular/material/divider';
 import { AdminService, AdminUser } from '../../../core/services/admin.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { AdminConfirmDialogComponent } from '../shared/confirm-dialog.component';
@@ -40,6 +41,7 @@ import { AdminConfirmDialogComponent } from '../shared/confirm-dialog.component'
     MatTooltipModule,
     MatProgressSpinnerModule,
     MatDialogModule,
+    MatDividerModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
