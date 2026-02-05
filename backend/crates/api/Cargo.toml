@@ -39,6 +39,10 @@ futures-util = "0.3"
 regex.workspace = true
 once_cell.workspace = true
 
+# Pin transitive dependencies to Rust 1.85-compatible versions
+time.workspace = true
+home.workspace = true
+
 # Local crates
 taskflow-db = { path = "../db" }
 taskflow-auth = { path = "../auth" }
