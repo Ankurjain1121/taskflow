@@ -93,32 +93,34 @@ impl MinioService {
 
     /// Ensure the bucket exists, creating it if necessary
     pub async fn ensure_bucket(&self) -> Result<(), MinioError> {
+        let bucket_name = self.internal_bucket.name();
         // Try to list objects to check if bucket exists
         match self.internal_bucket.list("".to_string(), Some("/".to_string())).await {
             Ok(_) => {
-                tracing::info!("MinIO bucket '{}' already exists", self.internal_bucket.name());
+                tracing::info!("MinIO bucket '{}' already exists", bucket_name);
                 Ok(())
             }
             Err(_) => {
                 // Bucket doesn't exist, create it
-                tracing::info!("Creating MinIO bucket '{}'", self.internal_bucket.name());
+                tracing::info!("Creating MinIO bucket '{}'", bucket_name);
                 Bucket::create_with_path_style(
-                    self.internal_bucket.name(),
+                    &bucket_name,
                     self.internal_bucket.region().clone(),
-                    self.internal_bucket.credentials().clone(),
+                    self.internal_bucket.credentials().await
+                        .map_err(|e| MinioError::CredentialsError(e.to_string()))?,
                     s3::bucket::BucketConfiguration::default(),
                 )
                 .await
                 .map_err(|e| {
                     MinioError::BucketCreationFailed(format!(
                         "Failed to create bucket '{}': {}",
-                        self.internal_bucket.name(),
+                        bucket_name,
                         e
                     ))
                 })?;
                 tracing::info!(
                     "MinIO bucket '{}' created successfully",
-                    self.internal_bucket.name()
+                    bucket_name
                 );
                 Ok(())
             }
@@ -216,7 +218,7 @@ impl MinioService {
     }
 
     /// Get the bucket name
-    pub fn bucket(&self) -> &str {
+    pub fn bucket(&self) -> String {
         self.internal_bucket.name()
     }
 }
