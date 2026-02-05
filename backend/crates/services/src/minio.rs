@@ -85,8 +85,8 @@ impl MinioService {
             .with_path_style();
 
         Ok(Self {
-            internal_bucket: Arc::new(internal_bucket),
-            public_bucket: Arc::new(public_bucket),
+            internal_bucket: Arc::new(*internal_bucket),
+            public_bucket: Arc::new(*public_bucket),
             public_url: config.public_url,
         })
     }
