@@ -31,17 +31,14 @@ reqwest.workspace = true
 validator.workspace = true
 dotenvy.workspace = true
 dashmap.workspace = true
-rust-s3.workspace = true
+aws-sdk-s3.workspace = true
+aws-config.workspace = true
 sha2.workspace = true
 futures-util = "0.3"
 
 # Regex
 regex.workspace = true
 once_cell.workspace = true
-
-# Pin transitive dependencies to Rust 1.85-compatible versions
-time.workspace = true
-home.workspace = true
 
 # Local crates
 taskflow-db = { path = "../db" }

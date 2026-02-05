@@ -28,7 +28,7 @@ sha2 = "0.10"
 
 # Types
 uuid = { version = "1", features = ["v4", "serde"] }
-chrono = { version = "=0.4.38", features = ["serde"] }  # Exact version compatible with sqlx and Rust 1.85
+chrono = { version = "0.4", features = ["serde"] }
 
 # Error handling
 thiserror = "2"
@@ -56,15 +56,10 @@ dotenvy = "0.15"
 # Concurrency
 dashmap = "6"
 
-# S3/MinIO using rust-s3 (lightweight, stable, compatible with Rust 1.85)
-rust-s3 = { version = "0.35", default-features = false, features = ["tokio-rustls-tls", "fail-on-err"] }
+# S3/MinIO
+aws-sdk-s3 = "1"
+aws-config = "1"
 
 # Regex
 regex = "1"
 once_cell = "1"
-
-# Pin transitive dependencies to versions compatible with Rust 1.85
-# These are pulled in by sqlx, chrono, rust-s3, and other deps but have released
-# versions requiring Rust 1.88 which doesn't exist yet
-time = "=0.3.36"
-home = "=0.5.9"
