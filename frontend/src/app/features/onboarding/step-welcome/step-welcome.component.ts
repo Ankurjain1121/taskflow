@@ -42,13 +42,8 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
             type="button"
             (click)="exploreExisting()"
             [disabled]="isLoading"
-            class="p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl
-                   hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20
-                   transition-all text-left group"
-            [class.border-blue-500]="selectedOption === 'explore'"
-            [class.bg-blue-50]="selectedOption === 'explore'"
-            [class.dark:border-blue-400]="selectedOption === 'explore'"
-            [class.dark:bg-blue-900/20]="selectedOption === 'explore'"
+            class="p-6 border-2 rounded-xl hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left group"
+            [ngClass]="selectedOption === 'explore' ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700'"
           >
             <div class="flex items-start">
               <div
@@ -86,13 +81,8 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
           type="button"
           (click)="createSample()"
           [disabled]="isLoading"
-          class="p-6 border-2 border-gray-200 dark:border-gray-700 rounded-xl
-                 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20
-                 transition-all text-left group"
-          [class.border-blue-500]="selectedOption === 'sample'"
-          [class.bg-blue-50]="selectedOption === 'sample'"
-          [class.dark:border-blue-400]="selectedOption === 'sample'"
-          [class.dark:bg-blue-900/20]="selectedOption === 'sample'"
+          class="p-6 border-2 rounded-xl hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left group"
+          [ngClass]="selectedOption === 'sample' ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700'"
         >
           <div class="flex items-start">
             <div
