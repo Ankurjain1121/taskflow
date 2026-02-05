@@ -42,6 +42,9 @@ RUN cargo chef cook --release --recipe-path recipe.json
 
 # Copy full source and build application
 COPY . .
+# Set SQLX_OFFLINE=true to skip compile-time query verification
+# This trusts that the queries are correct without needing a database connection
+ENV SQLX_OFFLINE=true
 RUN cargo build --release --bin taskflow-api
 
 # Stage 4: Runner - Minimal runtime image
