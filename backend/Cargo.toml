@@ -28,7 +28,7 @@ sha2 = "0.10"
 
 # Types
 uuid = { version = "1", features = ["v4", "serde"] }
-chrono = { version = "=0.4.31", features = ["serde"] }  # Exact version to avoid time 0.3.47+
+chrono = { version = "=0.4.38", features = ["serde"] }  # Exact version compatible with sqlx and Rust 1.85
 
 # Error handling
 thiserror = "2"
