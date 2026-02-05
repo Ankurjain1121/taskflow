@@ -1,0 +1,90 @@
+# =============================================================================
+# TaskFlow - VPS Production Deployment with Caddy
+# =============================================================================
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.vps.yml up -d
+#
+# This overlay:
+#   - Adds Caddy for automatic HTTPS
+#   - Removes port exposures (Caddy handles all traffic)
+#   - Sets production-ready configurations
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # Caddy - Reverse Proxy with Automatic HTTPS
+  # ===========================================================================
+  caddy:
+    image: caddy:2-alpine
+    container_name: taskflow-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      DOMAIN: ${DOMAIN:-taskflow.localhost}
+    networks:
+      - taskflow-network
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+
+  # ===========================================================================
+  # Override Services - Remove Direct Port Exposures
+  # ===========================================================================
+
+  # Frontend: Remove port 80 exposure (Caddy handles it)
+  frontend:
+    ports: []
+
+  # Backend: Remove port 8080 exposure (Caddy handles it)
+  backend:
+    ports: []
+    environment:
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-taskflow}
+      APP_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-taskflow}
+      # Server
+      HOST: 0.0.0.0
+      PORT: 8080
+      RUST_LOG: ${RUST_LOG:-info,sqlx=warn}
+      # Auth
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      # Redis
+      REDIS_URL: redis://redis:6379/0
+      # MinIO - Internal
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_PUBLIC_URL: https://files.paraslace.in
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET: ${MINIO_BUCKET:-task-attachments}
+      # App
+      APP_URL: https://taskflow.paraslace.in
+
+  # PostgreSQL: Remove port exposure (internal only)
+  postgres:
+    ports: []
+
+  # Redis: Remove port exposure (internal only)
+  redis:
+    ports: []
+
+  # MongoDB: Remove port exposure (internal only)
+  mongodb:
+    ports: []
+
+  # MinIO: Remove direct port exposures (Caddy handles it)
+  minio:
+    ports: []
+
+volumes:
+  caddy-data:
+  caddy-config:

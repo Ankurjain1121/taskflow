@@ -1,0 +1,577 @@
+import {
+  Component,
+  signal,
+  inject,
+  OnInit,
+  OnDestroy,
+  ChangeDetectionStrategy,
+  computed,
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
+import { MatTableModule } from '@angular/material/table';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import {
+  AdminService,
+  AuditLogEntry,
+  AuditLogParams,
+} from '../../../core/services/admin.service';
+
+@Component({
+  selector: 'app-audit-log',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    MatTableModule,
+    MatButtonModule,
+    MatSelectModule,
+    MatInputModule,
+    MatFormFieldModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
+    MatTooltipModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div class="min-h-screen bg-gray-50">
+      <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold text-gray-900">Audit Log</h1>
+          <p class="text-sm text-gray-500 mt-1">
+            Track all system activities and user actions
+          </p>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-lg shadow mb-6 p-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <!-- Search -->
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Search</mat-label>
+              <input
+                matInput
+                [(ngModel)]="searchQuery"
+                (ngModelChange)="onSearchChange($event)"
+                placeholder="Search activities..."
+              />
+              <mat-icon matPrefix>search</mat-icon>
+            </mat-form-field>
+
+            <!-- Action Filter -->
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Action</mat-label>
+              <mat-select [(ngModel)]="selectedAction" (ngModelChange)="loadAuditLog()">
+                <mat-option [value]="''">All Actions</mat-option>
+                @for (action of availableActions(); track action) {
+                  <mat-option [value]="action">{{ formatAction(action) }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <!-- Entity Type Filter -->
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Entity Type</mat-label>
+              <mat-select [(ngModel)]="selectedEntityType" (ngModelChange)="loadAuditLog()">
+                <mat-option [value]="''">All Types</mat-option>
+                <mat-option value="task">Task</mat-option>
+                <mat-option value="board">Board</mat-option>
+                <mat-option value="workspace">Workspace</mat-option>
+                <mat-option value="user">User</mat-option>
+                <mat-option value="comment">Comment</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <!-- Date From -->
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>From Date</mat-label>
+              <input matInput [matDatepicker]="dateFromPicker" [(ngModel)]="dateFrom" (dateChange)="loadAuditLog()" />
+              <mat-datepicker-toggle matIconSuffix [for]="dateFromPicker"></mat-datepicker-toggle>
+              <mat-datepicker #dateFromPicker></mat-datepicker>
+            </mat-form-field>
+
+            <!-- Date To -->
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>To Date</mat-label>
+              <input matInput [matDatepicker]="dateToPicker" [(ngModel)]="dateTo" (dateChange)="loadAuditLog()" />
+              <mat-datepicker-toggle matIconSuffix [for]="dateToPicker"></mat-datepicker-toggle>
+              <mat-datepicker #dateToPicker></mat-datepicker>
+            </mat-form-field>
+          </div>
+
+          <!-- Clear Filters -->
+          @if (hasActiveFilters()) {
+            <div class="mt-4 flex justify-end">
+              <button
+                mat-button
+                color="primary"
+                (click)="clearFilters()"
+              >
+                Clear Filters
+              </button>
+            </div>
+          }
+        </div>
+
+        <!-- Loading State -->
+        @if (loading() && entries().length === 0) {
+          <div class="flex items-center justify-center py-12">
+            <mat-spinner diameter="40"></mat-spinner>
+          </div>
+        }
+
+        <!-- Error State -->
+        @if (error()) {
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 mb-6">
+            <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clip-rule="evenodd" />
+            </svg>
+            <div>
+              <p class="text-sm font-medium text-red-800">{{ error() }}</p>
+              <button
+                (click)="loadAuditLog()"
+                class="text-sm text-red-600 hover:text-red-800 underline mt-1"
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Empty State -->
+        @if (!loading() && !error() && entries().length === 0) {
+          <div class="bg-white rounded-lg shadow p-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No audit entries</h3>
+            <p class="mt-1 text-sm text-gray-500">
+              No activities match your current filters.
+            </p>
+          </div>
+        }
+
+        <!-- Audit Table -->
+        @if (entries().length > 0) {
+          <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Timestamp
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      User
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Action
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Entity
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      IP Address
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Details
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  @for (entry of entries(); track entry.id) {
+                    <tr class="hover:bg-gray-50">
+                      <!-- Timestamp -->
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span
+                          [matTooltip]="formatAbsoluteDate(entry.created_at)"
+                          class="cursor-help"
+                        >
+                          {{ formatRelativeDate(entry.created_at) }}
+                        </span>
+                      </td>
+
+                      <!-- User -->
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600 overflow-hidden">
+                            @if (entry.actor.avatar_url) {
+                              <img
+                                [src]="entry.actor.avatar_url"
+                                [alt]="entry.actor.display_name"
+                                class="w-full h-full object-cover"
+                              />
+                            } @else {
+                              {{ getInitials(entry.actor.display_name) }}
+                            }
+                          </div>
+                          <div>
+                            <p class="text-sm font-medium text-gray-900">
+                              {{ entry.actor.display_name }}
+                            </p>
+                            <p class="text-xs text-gray-500">{{ entry.actor.email }}</p>
+                          </div>
+                        </div>
+                      </td>
+
+                      <!-- Action -->
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span [class]="getActionBadgeClass(entry.action)">
+                          {{ formatAction(entry.action) }}
+                        </span>
+                      </td>
+
+                      <!-- Entity -->
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center gap-2">
+                          <span [class]="getEntityTypeBadgeClass(entry.entity_type)">
+                            {{ formatEntityType(entry.entity_type) }}
+                          </span>
+                          <span class="text-xs text-gray-400 font-mono">
+                            {{ entry.entity_id.slice(0, 8) }}...
+                          </span>
+                        </div>
+                      </td>
+
+                      <!-- IP Address -->
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                        {{ entry.ip_address || '-' }}
+                      </td>
+
+                      <!-- Details -->
+                      <td class="px-6 py-4">
+                        @if (entry.details && Object.keys(entry.details).length > 0) {
+                          <button
+                            mat-icon-button
+                            (click)="toggleDetails(entry.id)"
+                            [matTooltip]="expandedDetails().has(entry.id) ? 'Hide details' : 'Show details'"
+                          >
+                            <mat-icon>
+                              {{ expandedDetails().has(entry.id) ? 'expand_less' : 'expand_more' }}
+                            </mat-icon>
+                          </button>
+                        } @else {
+                          <span class="text-gray-400 text-sm">-</span>
+                        }
+                      </td>
+                    </tr>
+
+                    <!-- Expanded Details Row -->
+                    @if (expandedDetails().has(entry.id) && entry.details) {
+                      <tr class="bg-gray-50">
+                        <td colspan="6" class="px-6 py-4">
+                          <pre class="text-xs bg-gray-100 p-3 rounded overflow-x-auto max-w-full">{{ formatDetails(entry.details) }}</pre>
+                        </td>
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Load More -->
+            @if (nextCursor()) {
+              <div class="px-6 py-4 border-t border-gray-200 flex justify-center">
+                <button
+                  mat-stroked-button
+                  color="primary"
+                  (click)="loadMore()"
+                  [disabled]="loadingMore()"
+                >
+                  @if (loadingMore()) {
+                    <mat-spinner diameter="20" class="inline-block mr-2"></mat-spinner>
+                  }
+                  Load More
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  `,
+  styles: [`
+    :host {
+      display: block;
+    }
+
+    mat-form-field {
+      font-size: 14px;
+    }
+
+    .mat-mdc-form-field {
+      --mdc-outlined-text-field-container-shape: 8px;
+    }
+  `],
+})
+export class AuditLogComponent implements OnInit, OnDestroy {
+  private adminService = inject(AdminService);
+  private destroy$ = new Subject<void>();
+  private searchSubject$ = new Subject<string>();
+
+  // State
+  loading = signal(true);
+  loadingMore = signal(false);
+  error = signal<string | null>(null);
+  entries = signal<AuditLogEntry[]>([]);
+  nextCursor = signal<string | null>(null);
+  availableActions = signal<string[]>([]);
+  expandedDetails = signal<Set<string>>(new Set());
+
+  // Filters
+  searchQuery = '';
+  selectedAction = '';
+  selectedEntityType = '';
+  dateFrom: Date | null = null;
+  dateTo: Date | null = null;
+
+  // Helper for template
+  Object = Object;
+
+  ngOnInit(): void {
+    this.loadAuditActions();
+    this.loadAuditLog();
+
+    // Debounced search
+    this.searchSubject$
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => {
+        this.loadAuditLog();
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  loadAuditActions(): void {
+    this.adminService
+      .getAuditActions()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (actions) => {
+          this.availableActions.set(actions);
+        },
+        error: (err) => {
+          console.error('Failed to load audit actions:', err);
+        },
+      });
+  }
+
+  loadAuditLog(): void {
+    this.loading.set(true);
+    this.error.set(null);
+
+    const params = this.buildParams();
+
+    this.adminService
+      .getAuditLog(params)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.entries.set(response.items);
+          this.nextCursor.set(response.next_cursor);
+          this.loading.set(false);
+        },
+        error: (err) => {
+          console.error('Failed to load audit log:', err);
+          this.error.set('Failed to load audit log. Please try again.');
+          this.loading.set(false);
+        },
+      });
+  }
+
+  loadMore(): void {
+    if (!this.nextCursor() || this.loadingMore()) return;
+
+    this.loadingMore.set(true);
+
+    const params = this.buildParams();
+    params.cursor = this.nextCursor()!;
+
+    this.adminService
+      .getAuditLog(params)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.entries.update((current) => [...current, ...response.items]);
+          this.nextCursor.set(response.next_cursor);
+          this.loadingMore.set(false);
+        },
+        error: (err) => {
+          console.error('Failed to load more entries:', err);
+          this.loadingMore.set(false);
+        },
+      });
+  }
+
+  onSearchChange(query: string): void {
+    this.searchSubject$.next(query);
+  }
+
+  hasActiveFilters(): boolean {
+    return !!(
+      this.searchQuery ||
+      this.selectedAction ||
+      this.selectedEntityType ||
+      this.dateFrom ||
+      this.dateTo
+    );
+  }
+
+  clearFilters(): void {
+    this.searchQuery = '';
+    this.selectedAction = '';
+    this.selectedEntityType = '';
+    this.dateFrom = null;
+    this.dateTo = null;
+    this.loadAuditLog();
+  }
+
+  toggleDetails(entryId: string): void {
+    this.expandedDetails.update((current) => {
+      const next = new Set(current);
+      if (next.has(entryId)) {
+        next.delete(entryId);
+      } else {
+        next.add(entryId);
+      }
+      return next;
+    });
+  }
+
+  private buildParams(): AuditLogParams {
+    const params: AuditLogParams = {
+      page_size: 25,
+    };
+
+    if (this.searchQuery) {
+      params.search = this.searchQuery;
+    }
+    if (this.selectedAction) {
+      params.action = this.selectedAction;
+    }
+    if (this.selectedEntityType) {
+      params.entity_type = this.selectedEntityType;
+    }
+    if (this.dateFrom) {
+      params.date_from = this.dateFrom.toISOString();
+    }
+    if (this.dateTo) {
+      params.date_to = this.dateTo.toISOString();
+    }
+
+    return params;
+  }
+
+  // Formatting helpers
+  formatRelativeDate(dateString: string): string {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+
+  formatAbsoluteDate(dateString: string): string {
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  }
+
+  formatAction(action: string): string {
+    return action
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
+  formatEntityType(entityType: string): string {
+    return entityType.charAt(0).toUpperCase() + entityType.slice(1);
+  }
+
+  formatDetails(details: Record<string, unknown>): string {
+    return JSON.stringify(details, null, 2);
+  }
+
+  getInitials(name: string): string {
+    if (!name) return '?';
+    return name
+      .split(' ')
+      .map((n) => n.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  }
+
+  getActionBadgeClass(action: string): string {
+    const baseClasses = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
+
+    const actionColors: Record<string, string> = {
+      created: 'bg-green-100 text-green-800',
+      updated: 'bg-blue-100 text-blue-800',
+      deleted: 'bg-red-100 text-red-800',
+      restored: 'bg-purple-100 text-purple-800',
+      moved: 'bg-yellow-100 text-yellow-800',
+      assigned: 'bg-indigo-100 text-indigo-800',
+      unassigned: 'bg-gray-100 text-gray-800',
+      commented: 'bg-cyan-100 text-cyan-800',
+      login: 'bg-emerald-100 text-emerald-800',
+      logout: 'bg-orange-100 text-orange-800',
+    };
+
+    return `${baseClasses} ${actionColors[action] || 'bg-gray-100 text-gray-800'}`;
+  }
+
+  getEntityTypeBadgeClass(entityType: string): string {
+    const baseClasses = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium';
+
+    const typeColors: Record<string, string> = {
+      task: 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20',
+      board: 'bg-purple-50 text-purple-700 ring-1 ring-purple-600/20',
+      workspace: 'bg-green-50 text-green-700 ring-1 ring-green-600/20',
+      user: 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20',
+      comment: 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-600/20',
+    };
+
+    return `${baseClasses} ${typeColors[entityType] || 'bg-gray-50 text-gray-700 ring-1 ring-gray-600/20'}`;
+  }
+}

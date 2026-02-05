@@ -1,0 +1,45 @@
+# Rust
+/backend/target/
+**/*.rs.bk
+
+# Angular / Node
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.angular/
+/frontend/.sass-cache/
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# SQLx offline query data
+# backend/crates/db/.sqlx/  # keep for offline compilation
+
+# Generated types
+# frontend/src/app/shared/types/*.ts  # keep for type sharing
+
+# Docker volumes
+docker-data/
+
+# Logs
+*.log
+
+# Test coverage
+coverage/
+*.lcov
+
+# Ultraplan (keep for reference)
+# .ultraplan/

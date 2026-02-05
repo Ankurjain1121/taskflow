@@ -1,0 +1,666 @@
+import {
+  Component,
+  signal,
+  computed,
+  inject,
+  OnInit,
+  OnDestroy,
+  ChangeDetectionStrategy,
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ActivatedRoute, RouterModule } from '@angular/router';
+import { Subject, takeUntil, forkJoin } from 'rxjs';
+import { CdkDropListGroup } from '@angular/cdk/drag-drop';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { generateKeyBetween } from 'fractional-indexing';
+
+import { BoardService, Board, Column } from '../../../core/services/board.service';
+import { TaskService, Task, Assignee } from '../../../core/services/task.service';
+import {
+  CreateTaskDialogComponent,
+  CreateTaskDialogResult,
+} from './create-task-dialog.component';
+import {
+  CreateColumnDialogComponent,
+  CreateColumnDialogResult,
+} from './create-column-dialog.component';
+import { WebSocketService } from '../../../core/services/websocket.service';
+import { AuthService } from '../../../core/services/auth.service';
+
+import {
+  KanbanColumnComponent,
+  TaskMoveEvent,
+} from '../kanban-column/kanban-column.component';
+import {
+  BoardToolbarComponent,
+  TaskFilters,
+} from '../board-toolbar/board-toolbar.component';
+import { TaskDetailComponent } from '../task-detail/task-detail.component';
+
+@Component({
+  selector: 'app-board-view',
+  standalone: true,
+  imports: [
+    CommonModule,
+    RouterModule,
+    CdkDropListGroup,
+    MatDialogModule,
+    KanbanColumnComponent,
+    BoardToolbarComponent,
+    TaskDetailComponent,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div class="h-screen flex flex-col bg-gray-50">
+      <!-- Header -->
+      <div class="bg-white border-b border-gray-200 px-6 py-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">
+              {{ board()?.name || 'Loading...' }}
+            </h1>
+            @if (board()?.description) {
+              <p class="text-sm text-gray-500 mt-1">
+                {{ board()?.description }}
+              </p>
+            }
+          </div>
+          <div class="flex items-center gap-3">
+            <!-- Settings Button -->
+            <a
+              [routerLink]="[
+                '/workspace',
+                workspaceId,
+                'board',
+                boardId,
+                'settings'
+              ]"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              Settings
+            </a>
+
+            <!-- New Task Button -->
+            <button
+              (click)="onCreateTask()"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+            >
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              New Task
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <app-board-toolbar
+        [assignees]="allAssignees()"
+        (filtersChanged)="onFiltersChanged($event)"
+      ></app-board-toolbar>
+
+      <!-- Board Content -->
+      @if (loading()) {
+        <div class="flex-1 flex items-center justify-center">
+          <svg
+            class="animate-spin h-8 w-8 text-indigo-600"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+        </div>
+      } @else {
+        <!-- Kanban Board -->
+        <div
+          class="flex-1 overflow-x-auto p-4"
+          cdkDropListGroup
+        >
+          <div class="flex gap-4 h-full">
+            @for (column of columns(); track column.id) {
+              <app-kanban-column
+                [column]="column"
+                [tasks]="getFilteredTasksForColumn(column.id)"
+                [connectedLists]="connectedColumnIds()"
+                (taskMoved)="onTaskMoved($event)"
+                (taskClicked)="onTaskClicked($event)"
+                (addTaskClicked)="onAddTaskToColumn($event)"
+              ></app-kanban-column>
+            }
+
+            <!-- Add Column Button -->
+            <div class="flex-shrink-0">
+              <button
+                (click)="onAddColumn()"
+                class="w-72 h-12 flex items-center justify-center gap-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-600 transition-colors"
+              >
+                <svg
+                  class="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Add Column
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Task Detail Panel -->
+      @if (selectedTaskId()) {
+        <app-task-detail
+          [taskId]="selectedTaskId()!"
+          [workspaceId]="workspaceId"
+          (closed)="closeTaskDetail()"
+          (taskUpdated)="onTaskUpdated($event)"
+        ></app-task-detail>
+      }
+
+      <!-- Snackbar for errors -->
+      @if (errorMessage()) {
+        <div
+          class="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3"
+        >
+          <span>{{ errorMessage() }}</span>
+          <button (click)="clearError()" class="hover:text-red-200">
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+      }
+    </div>
+  `,
+})
+export class BoardViewComponent implements OnInit, OnDestroy {
+  private route = inject(ActivatedRoute);
+  private boardService = inject(BoardService);
+  private taskService = inject(TaskService);
+  private wsService = inject(WebSocketService);
+  private authService = inject(AuthService);
+  private dialog = inject(MatDialog);
+  private destroy$ = new Subject<void>();
+
+  workspaceId = '';
+  boardId = '';
+
+  loading = signal(true);
+  board = signal<Board | null>(null);
+  columns = signal<Column[]>([]);
+  boardState = signal<Record<string, Task[]>>({});
+  filters = signal<TaskFilters>({
+    search: '',
+    priorities: [],
+    assigneeIds: [],
+    dueDateStart: null,
+    dueDateEnd: null,
+    labelIds: [],
+  });
+  selectedTaskId = signal<string | null>(null);
+  errorMessage = signal<string | null>(null);
+
+  // Computed: filtered board state
+  filteredBoardState = computed(() => {
+    const state = this.boardState();
+    const f = this.filters();
+
+    const result: Record<string, Task[]> = {};
+
+    for (const [columnId, tasks] of Object.entries(state)) {
+      result[columnId] = this.filterTasks(tasks, f);
+    }
+
+    return result;
+  });
+
+  // Computed: all unique assignees across tasks
+  allAssignees = computed(() => {
+    const assigneeMap = new Map<string, Assignee>();
+    const state = this.boardState();
+
+    for (const tasks of Object.values(state)) {
+      for (const task of tasks) {
+        if (task.assignees) {
+          for (const assignee of task.assignees) {
+            assigneeMap.set(assignee.id, assignee);
+          }
+        }
+      }
+    }
+
+    return Array.from(assigneeMap.values());
+  });
+
+  // Computed: connected column IDs for drag-drop
+  connectedColumnIds = computed(() => {
+    return this.columns().map((col) => 'column-' + col.id);
+  });
+
+  ngOnInit(): void {
+    this.route.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
+      this.workspaceId = params['workspaceId'];
+      this.boardId = params['boardId'];
+      this.loadBoard();
+    });
+
+    // Connect to WebSocket for real-time updates
+    this.wsService.connect();
+    this.wsService.messages$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((message) => {
+        this.handleWebSocketMessage(message);
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    // Unsubscribe from board channel
+    this.wsService.send('unsubscribe', { channel: `board:${this.boardId}` });
+  }
+
+  getFilteredTasksForColumn(columnId: string): Task[] {
+    return this.filteredBoardState()[columnId] || [];
+  }
+
+  onFiltersChanged(filters: TaskFilters): void {
+    this.filters.set(filters);
+  }
+
+  onTaskMoved(event: TaskMoveEvent): void {
+    const snapshot = structuredClone(this.boardState());
+
+    // Get tasks in target column
+    const targetTasks = this.boardState()[event.targetColumnId] || [];
+
+    // Calculate new position
+    const beforeTask = targetTasks[event.currentIndex - 1];
+    const afterTask = targetTasks[event.currentIndex + 1];
+
+    const beforePos = beforeTask?.position || null;
+    const afterPos = afterTask?.position || null;
+
+    let newPosition: string;
+    try {
+      newPosition = generateKeyBetween(beforePos, afterPos);
+    } catch {
+      // Fallback if fractional indexing fails
+      newPosition = Date.now().toString();
+    }
+
+    // Optimistic update already done by CDK
+    // Update the task's position and column_id in our state
+    this.boardState.update((state) => {
+      const newState = { ...state };
+
+      // Update task in target column
+      if (newState[event.targetColumnId]) {
+        newState[event.targetColumnId] = newState[event.targetColumnId].map(
+          (t) =>
+            t.id === event.task.id
+              ? { ...t, column_id: event.targetColumnId, position: newPosition }
+              : t
+        );
+      }
+
+      return newState;
+    });
+
+    // Call API
+    this.taskService
+      .moveTask(event.task.id, {
+        column_id: event.targetColumnId,
+        position: newPosition,
+      })
+      .subscribe({
+        error: (err) => {
+          console.error('Failed to move task:', err);
+          // Rollback on error
+          this.boardState.set(snapshot);
+          this.showError('Failed to move task. Reverted.');
+        },
+      });
+  }
+
+  onTaskClicked(task: Task): void {
+    this.selectedTaskId.set(task.id);
+  }
+
+  closeTaskDetail(): void {
+    this.selectedTaskId.set(null);
+  }
+
+  onTaskUpdated(task: Task): void {
+    this.boardState.update((state) => {
+      const newState = { ...state };
+      const columnTasks = newState[task.column_id];
+      if (columnTasks) {
+        newState[task.column_id] = columnTasks.map((t) =>
+          t.id === task.id ? task : t
+        );
+      }
+      return newState;
+    });
+  }
+
+  onCreateTask(): void {
+    // Open create task dialog with first column selected
+    const firstColumn = this.columns()[0];
+    if (firstColumn) {
+      this.onAddTaskToColumn(firstColumn.id);
+    }
+  }
+
+  onAddTaskToColumn(columnId: string): void {
+    const column = this.columns().find((c) => c.id === columnId);
+    if (!column) return;
+
+    const dialogRef = this.dialog.open(CreateTaskDialogComponent, {
+      width: '500px',
+      data: {
+        columnId,
+        columnName: column.name,
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((result: CreateTaskDialogResult | undefined) => {
+      if (result) {
+        this.createTask(columnId, result);
+      }
+    });
+  }
+
+  private createTask(columnId: string, taskData: CreateTaskDialogResult): void {
+    this.taskService
+      .createTask(columnId, {
+        title: taskData.title,
+        description: taskData.description,
+        priority: taskData.priority,
+        due_date: taskData.due_date,
+      })
+      .subscribe({
+        next: (task) => {
+          // Add task to the board state
+          this.boardState.update((state) => {
+            const newState = { ...state };
+            const columnTasks = newState[columnId] || [];
+            newState[columnId] = [...columnTasks, task].sort((a, b) =>
+              a.position.localeCompare(b.position)
+            );
+            return newState;
+          });
+        },
+        error: (err) => {
+          console.error('Failed to create task:', err);
+          this.showError('Failed to create task');
+        },
+      });
+  }
+
+  onAddColumn(): void {
+    const dialogRef = this.dialog.open(CreateColumnDialogComponent, {
+      width: '500px',
+    });
+
+    dialogRef.afterClosed().subscribe((result: CreateColumnDialogResult | undefined) => {
+      if (result) {
+        this.createColumn(result);
+      }
+    });
+  }
+
+  private createColumn(columnData: CreateColumnDialogResult): void {
+    const columns = this.columns();
+    const lastColumn = columns[columns.length - 1];
+
+    this.boardService
+      .createColumn(this.boardId, {
+        name: columnData.name,
+        color: columnData.color,
+        status_mapping: columnData.isDone ? { done: true } : undefined,
+      })
+      .subscribe({
+        next: (column) => {
+          this.columns.update((cols) =>
+            [...cols, column].sort((a, b) => a.position.localeCompare(b.position))
+          );
+          // Initialize empty task array for new column
+          this.boardState.update((state) => ({
+            ...state,
+            [column.id]: [],
+          }));
+        },
+        error: (err) => {
+          console.error('Failed to create column:', err);
+          this.showError('Failed to create column');
+        },
+      });
+  }
+
+  clearError(): void {
+    this.errorMessage.set(null);
+  }
+
+  private loadBoard(): void {
+    this.loading.set(true);
+
+    forkJoin({
+      board: this.boardService.getBoard(this.boardId),
+      columns: this.boardService.listColumns(this.boardId),
+      tasks: this.taskService.listByBoard(this.boardId),
+    }).subscribe({
+      next: ({ board, columns, tasks }) => {
+        this.board.set(board);
+        this.columns.set(columns.sort((a, b) => a.position.localeCompare(b.position)));
+        this.boardState.set(tasks);
+        this.loading.set(false);
+
+        // Subscribe to board updates
+        this.wsService.send('subscribe', { channel: `board:${this.boardId}` });
+      },
+      error: (err) => {
+        console.error('Failed to load board:', err);
+        this.loading.set(false);
+        this.showError('Failed to load board');
+      },
+    });
+  }
+
+  private filterTasks(tasks: Task[], filters: TaskFilters): Task[] {
+    return tasks.filter((task) => {
+      // Search filter
+      if (
+        filters.search &&
+        !task.title.toLowerCase().includes(filters.search.toLowerCase())
+      ) {
+        return false;
+      }
+
+      // Priority filter
+      if (
+        filters.priorities.length > 0 &&
+        !filters.priorities.includes(task.priority)
+      ) {
+        return false;
+      }
+
+      // Assignee filter
+      if (filters.assigneeIds.length > 0) {
+        const taskAssigneeIds = task.assignees?.map((a) => a.id) || [];
+        const hasMatchingAssignee = filters.assigneeIds.some((id) =>
+          taskAssigneeIds.includes(id)
+        );
+        if (!hasMatchingAssignee) {
+          return false;
+        }
+      }
+
+      // Due date filter
+      if (filters.dueDateStart || filters.dueDateEnd) {
+        if (!task.due_date) {
+          return false;
+        }
+        const dueDate = new Date(task.due_date);
+        if (filters.dueDateStart && dueDate < new Date(filters.dueDateStart)) {
+          return false;
+        }
+        if (filters.dueDateEnd && dueDate > new Date(filters.dueDateEnd)) {
+          return false;
+        }
+      }
+
+      // Label filter
+      if (filters.labelIds.length > 0) {
+        const taskLabelIds = task.labels?.map((l) => l.id) || [];
+        const hasMatchingLabel = filters.labelIds.some((id) =>
+          taskLabelIds.includes(id)
+        );
+        if (!hasMatchingLabel) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }
+
+  private handleWebSocketMessage(message: { type: string; payload: unknown }): void {
+    const currentUserId = this.authService.currentUser()?.id;
+
+    // Skip own updates to avoid double-applying
+    const payload = message.payload as { userId?: string; task?: Task };
+    if (payload.userId === currentUserId) {
+      return;
+    }
+
+    switch (message.type) {
+      case 'task:created':
+        this.handleTaskCreated(payload.task!);
+        break;
+      case 'task:updated':
+        this.handleTaskUpdated(payload.task!);
+        break;
+      case 'task:moved':
+        this.handleTaskMoved(payload.task!);
+        break;
+      case 'task:deleted':
+        this.handleTaskDeleted(payload.task!);
+        break;
+    }
+  }
+
+  private handleTaskCreated(task: Task): void {
+    this.boardState.update((state) => {
+      const newState = { ...state };
+      const columnTasks = newState[task.column_id] || [];
+      newState[task.column_id] = [...columnTasks, task].sort((a, b) =>
+        a.position.localeCompare(b.position)
+      );
+      return newState;
+    });
+  }
+
+  private handleTaskUpdated(task: Task): void {
+    this.boardState.update((state) => {
+      const newState = { ...state };
+      for (const [columnId, tasks] of Object.entries(newState)) {
+        newState[columnId] = tasks.map((t) => (t.id === task.id ? task : t));
+      }
+      return newState;
+    });
+  }
+
+  private handleTaskMoved(task: Task): void {
+    this.boardState.update((state) => {
+      const newState = { ...state };
+
+      // Remove from all columns
+      for (const [columnId, tasks] of Object.entries(newState)) {
+        newState[columnId] = tasks.filter((t) => t.id !== task.id);
+      }
+
+      // Add to target column
+      const columnTasks = newState[task.column_id] || [];
+      newState[task.column_id] = [...columnTasks, task].sort((a, b) =>
+        a.position.localeCompare(b.position)
+      );
+
+      return newState;
+    });
+  }
+
+  private handleTaskDeleted(task: Task): void {
+    this.boardState.update((state) => {
+      const newState = { ...state };
+      for (const [columnId, tasks] of Object.entries(newState)) {
+        newState[columnId] = tasks.filter((t) => t.id !== task.id);
+      }
+      return newState;
+    });
+  }
+
+  private showError(message: string): void {
+    this.errorMessage.set(message);
+    setTimeout(() => this.clearError(), 5000);
+  }
+}

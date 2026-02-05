@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Git
+.git/
+.gitignore
+
+# Angular cache
+.angular/
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# Documentation
+*.md
+LICENSE
+
+# Test files
+coverage/
+*.spec.ts
+karma.conf.js
+
+# Environment files (should be injected at runtime)
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db

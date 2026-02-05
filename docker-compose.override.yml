@@ -1,0 +1,75 @@
+# =============================================================================
+# TaskFlow - Docker Compose Override (Development)
+# =============================================================================
+# This file is automatically loaded with docker-compose.yml
+# Provides development-specific overrides:
+#   - Volume mounts for hot reload
+#   - cargo-watch for Rust backend
+#   - ng serve for Angular frontend
+#
+# Usage:
+#   docker compose up -d              # Uses both docker-compose.yml and this file
+#   docker compose -f docker-compose.yml up -d  # Production only (ignores override)
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # Backend Development - cargo-watch for hot reload
+  # ===========================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      # Mount source code for hot reload
+      - ./backend:/app
+      # Preserve cargo cache for faster rebuilds
+      - backend-cargo-cache:/usr/local/cargo/registry
+      - backend-target-cache:/app/target
+    environment:
+      RUST_LOG: debug,sqlx=info,tower_http=debug
+      RUST_BACKTRACE: 1
+    # Override healthcheck for development (more lenient)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s  # Longer start period for compilation
+
+  # ===========================================================================
+  # Frontend Development - ng serve with hot reload
+  # ===========================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      # Mount source code for hot reload
+      - ./frontend/src:/app/src
+      - ./frontend/angular.json:/app/angular.json
+      - ./frontend/tsconfig.json:/app/tsconfig.json
+      - ./frontend/tsconfig.app.json:/app/tsconfig.app.json
+      # Don't mount node_modules - use container's version
+    environment:
+      NODE_ENV: development
+    ports:
+      - "${FRONTEND_PORT:-4200}:4200"
+    # Override healthcheck for development
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4200"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # ===========================================================================
+  # Development doesn't need to wait for full health checks
+  # ===========================================================================
+  migrate:
+    # In dev, we might want to see output
+    tty: true
+
+volumes:
+  backend-cargo-cache:
+  backend-target-cache:

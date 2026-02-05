@@ -1,0 +1,265 @@
+//! Audit middleware for recording activity events
+//!
+//! Tower middleware that records audit events after successful mutations (POST/PUT/DELETE).
+
+use axum::{
+    body::Body,
+    extract::State,
+    http::{Method, Request, StatusCode},
+    middleware::Next,
+    response::Response,
+};
+use uuid::Uuid;
+
+use crate::middleware::auth::AuthUser;
+use crate::state::AppState;
+use taskflow_db::models::ActivityAction;
+use taskflow_services::audit::{record_audit_event, ROUTE_ACTION_MAP};
+
+/// Extension to mark a route with its identifier for audit logging
+#[derive(Debug, Clone)]
+pub struct AuditRouteId(pub &'static str);
+
+/// Extension to provide entity information for audit logging
+#[derive(Debug, Clone)]
+pub struct AuditEntity {
+    pub entity_type: String,
+    pub entity_id: Uuid,
+}
+
+/// Extract IP address from request headers
+fn extract_ip_address(req: &Request<Body>) -> Option<String> {
+    // Try X-Forwarded-For first (for proxied requests)
+    if let Some(forwarded) = req.headers().get("X-Forwarded-For") {
+        if let Ok(s) = forwarded.to_str() {
+            // X-Forwarded-For can contain multiple IPs, take the first one
+            return Some(s.split(',').next().unwrap_or(s).trim().to_string());
+        }
+    }
+
+    // Try X-Real-IP
+    if let Some(real_ip) = req.headers().get("X-Real-IP") {
+        if let Ok(s) = real_ip.to_str() {
+            return Some(s.to_string());
+        }
+    }
+
+    None
+}
+
+/// Extract user agent from request headers
+fn extract_user_agent(req: &Request<Body>) -> Option<String> {
+    req.headers()
+        .get("User-Agent")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string())
+}
+
+/// Audit middleware that records events after successful mutations
+///
+/// This middleware:
+/// 1. Only processes mutation methods (POST, PUT, PATCH, DELETE)
+/// 2. Only records on successful responses (2xx status codes)
+/// 3. Extracts route identifier from AuditRouteId extension
+/// 4. Gets entity info from AuditEntity extension or path parameters
+/// 5. Records to activity_log table
+pub async fn audit_middleware(
+    State(state): State<AppState>,
+    request: Request<Body>,
+    next: Next,
+) -> Response {
+    let method = request.method().clone();
+
+    // Only audit mutations
+    let is_mutation = matches!(method, Method::POST | Method::PUT | Method::PATCH | Method::DELETE);
+
+    if !is_mutation {
+        return next.run(request).await;
+    }
+
+    // Extract info before passing request
+    let auth_user = request.extensions().get::<AuthUser>().cloned();
+    let route_id = request.extensions().get::<AuditRouteId>().cloned();
+    let audit_entity = request.extensions().get::<AuditEntity>().cloned();
+    let ip_address = extract_ip_address(&request);
+    let user_agent = extract_user_agent(&request);
+    let path = request.uri().path().to_string();
+
+    // Run the actual handler
+    let response = next.run(request).await;
+
+    // Only audit successful responses
+    let status = response.status();
+    if !status.is_success() {
+        return response;
+    }
+
+    // Need auth user for audit
+    let auth_user = match auth_user {
+        Some(u) => u,
+        None => return response,
+    };
+
+    // Get route identifier
+    let route_id = match route_id {
+        Some(id) => id.0,
+        None => {
+            // Try to infer from path and method
+            infer_route_id(&path, &method).unwrap_or_else(|| {
+                tracing::debug!(path = %path, method = %method, "Could not infer audit route ID");
+                return response;
+            });
+            return response;
+        }
+    };
+
+    // Get action from route map
+    let action = match ROUTE_ACTION_MAP.get(route_id) {
+        Some(a) => a.clone(),
+        None => {
+            tracing::debug!(route_id = route_id, "No action mapping for route");
+            return response;
+        }
+    };
+
+    // Get entity info
+    let (entity_type, entity_id) = match audit_entity {
+        Some(e) => (e.entity_type, e.entity_id),
+        None => {
+            // Try to extract from path
+            match extract_entity_from_path(&path) {
+                Some((t, id)) => (t, id),
+                None => {
+                    tracing::debug!(path = %path, "Could not extract entity from path");
+                    return response;
+                }
+            }
+        }
+    };
+
+    // Record the audit event (fire and forget - don't block response)
+    let pool = state.db.clone();
+    let tenant_id = auth_user.tenant_id;
+    let user_id = auth_user.user_id;
+
+    tokio::spawn(async move {
+        if let Err(e) = record_audit_event(
+            &pool,
+            action,
+            &entity_type,
+            entity_id,
+            user_id,
+            tenant_id,
+            None,
+            ip_address.as_deref(),
+            user_agent.as_deref(),
+        )
+        .await
+        {
+            tracing::error!(error = %e, "Failed to record audit event");
+        }
+    });
+
+    response
+}
+
+/// Try to infer route ID from path and method
+fn infer_route_id(path: &str, method: &Method) -> Option<&'static str> {
+    let parts: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+
+    // Match common patterns
+    match (method, parts.as_slice()) {
+        // Tasks
+        (Method::POST, ["api", "boards", _, "tasks"]) => Some("tasks.create"),
+        (Method::PUT, ["api", "tasks", _]) => Some("tasks.update"),
+        (Method::DELETE, ["api", "tasks", _]) => Some("tasks.delete"),
+        (Method::POST, ["api", "tasks", _, "move"]) => Some("tasks.move"),
+        (Method::POST, ["api", "tasks", _, "assign"]) => Some("tasks.assign"),
+        (Method::DELETE, ["api", "tasks", _, "assignees", _]) => Some("tasks.unassign"),
+
+        // Boards
+        (Method::POST, ["api", "workspaces", _, "boards"]) => Some("boards.create"),
+        (Method::PUT, ["api", "boards", _]) => Some("boards.update"),
+        (Method::DELETE, ["api", "boards", _]) => Some("boards.delete"),
+
+        // Comments
+        (Method::POST, ["api", "tasks", _, "comments"]) => Some("comments.create"),
+        (Method::PUT, ["api", "comments", _]) => Some("comments.update"),
+        (Method::DELETE, ["api", "comments", _]) => Some("comments.delete"),
+
+        // Attachments
+        (Method::POST, ["api", "tasks", _, "attachments"]) => Some("attachments.upload"),
+        (Method::DELETE, ["api", "attachments", _]) => Some("attachments.delete"),
+
+        // Workspaces
+        (Method::POST, ["api", "workspaces"]) => Some("workspaces.create"),
+        (Method::PUT, ["api", "workspaces", _]) => Some("workspaces.update"),
+        (Method::DELETE, ["api", "workspaces", _]) => Some("workspaces.delete"),
+
+        // Admin
+        (Method::PUT, ["api", "admin", "users", _, "role"]) => Some("admin.update_role"),
+        (Method::DELETE, ["api", "admin", "users", _]) => Some("admin.delete_user"),
+
+        // Trash
+        (Method::POST, ["api", "admin", "trash", "restore"]) => Some("trash.restore"),
+        (Method::DELETE, ["api", "admin", "trash", _, _]) => Some("trash.permanent_delete"),
+
+        _ => None,
+    }
+}
+
+/// Extract entity type and ID from path
+fn extract_entity_from_path(path: &str) -> Option<(String, Uuid)> {
+    let parts: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+
+    // Look for patterns like /api/{entity_type}/{uuid}
+    for i in 0..parts.len().saturating_sub(1) {
+        if let Ok(uuid) = Uuid::parse_str(parts[i + 1]) {
+            let entity_type = match parts[i] {
+                "tasks" => "task",
+                "boards" => "board",
+                "workspaces" => "workspace",
+                "comments" => "comment",
+                "attachments" => "attachment",
+                "columns" => "column",
+                "users" => "user",
+                _ => parts[i],
+            };
+            return Some((entity_type.to_string(), uuid));
+        }
+    }
+
+    None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_infer_route_id() {
+        assert_eq!(
+            infer_route_id("/api/boards/123/tasks", &Method::POST),
+            Some("tasks.create")
+        );
+        assert_eq!(
+            infer_route_id("/api/tasks/123", &Method::DELETE),
+            Some("tasks.delete")
+        );
+        assert_eq!(
+            infer_route_id("/api/unknown/path", &Method::POST),
+            None
+        );
+    }
+
+    #[test]
+    fn test_extract_entity_from_path() {
+        let uuid = Uuid::new_v4();
+        let path = format!("/api/tasks/{}", uuid);
+        let result = extract_entity_from_path(&path);
+        assert!(result.is_some());
+        let (entity_type, entity_id) = result.unwrap();
+        assert_eq!(entity_type, "task");
+        assert_eq!(entity_id, uuid);
+    }
+}
