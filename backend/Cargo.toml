@@ -28,7 +28,7 @@ sha2 = "0.10"
 
 # Types
 uuid = { version = "1", features = ["v4", "serde"] }
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4.38", features = ["serde"] }  # Pinned to avoid time 0.3.47+
 
 # Error handling
 thiserror = "2"
@@ -56,9 +56,9 @@ dotenvy = "0.15"
 # Concurrency
 dashmap = "6"
 
-# S3/MinIO
-aws-sdk-s3 = "1"
-aws-config = "1"
+# S3/MinIO (pinned to versions compatible with Rust 1.85)
+aws-sdk-s3 = "1.40"
+aws-config = "1.5"
 
 # Regex
 regex = "1"

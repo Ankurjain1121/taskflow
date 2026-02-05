@@ -12,7 +12,9 @@ WORKDIR /app
 
 # Stage 2: Planner - Analyze dependencies
 FROM chef AS planner
-COPY Cargo.toml Cargo.lock ./
+COPY Cargo.toml ./
+# Cargo.lock is optional - will be regenerated if missing
+COPY Cargo.loc[k] ./
 COPY crates/api/Cargo.toml crates/api/
 COPY crates/db/Cargo.toml crates/db/
 COPY crates/auth/Cargo.toml crates/auth/
