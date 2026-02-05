@@ -108,7 +108,7 @@ impl MinioService {
                     self.internal_bucket.region().clone(),
                     self.internal_bucket.credentials().await
                         .map_err(|e| MinioError::CredentialsError(e.to_string()))?,
-                    s3::bucket::BucketConfiguration::default(),
+                    s3::BucketConfiguration::default(),
                 )
                 .await
                 .map_err(|e| {

@@ -97,7 +97,7 @@ pub async fn record_audit_event(
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         "#,
         id,
-        action as ActivityAction,
+        action.clone() as ActivityAction,
         entity_type,
         entity_id,
         user_id,
