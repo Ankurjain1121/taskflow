@@ -320,8 +320,8 @@ pub async fn list_my_tasks(
             let is_done = row
                 .status_mapping
                 .as_ref()
-                .and_then(|sm| sm.get("done"))
-                .and_then(|v| v.as_bool())
+                .and_then(|sm: &serde_json::Value| sm.get("done"))
+                .and_then(|v: &serde_json::Value| v.as_bool())
                 .unwrap_or(false);
 
             MyTaskItem {
