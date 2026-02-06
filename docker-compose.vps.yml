@@ -42,11 +42,11 @@ services:
 
   # Frontend: Remove port 80 exposure (Caddy handles it)
   frontend:
-    ports: []
+    ports: !override []
 
   # Backend: Remove port 8080 exposure (Caddy handles it)
   backend:
-    ports: []
+    ports: !override []
     environment:
       # Database
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-taskflow}
@@ -71,19 +71,19 @@ services:
 
   # PostgreSQL: Remove port exposure (internal only)
   postgres:
-    ports: []
+    ports: !override []
 
   # Redis: Remove port exposure (internal only)
   redis:
-    ports: []
+    ports: !override []
 
   # MongoDB: Remove port exposure (internal only)
   mongodb:
-    ports: []
+    ports: !override []
 
   # MinIO: Remove direct port exposures (Caddy handles it)
   minio:
-    ports: []
+    ports: !override []
 
 volumes:
   caddy-data:
