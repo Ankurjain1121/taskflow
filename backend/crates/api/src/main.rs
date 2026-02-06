@@ -11,7 +11,8 @@ use axum::http::Method;
 use axum::middleware::from_fn_with_state;
 use axum::{Router, routing::get};
 use tower_http::compression::CompressionLayer;
-use tower_http::cors::{AllowOrigin, Any, CorsLayer};
+use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
+use tower_http::cors::{AllowOrigin, CorsLayer};
 use tower_http::trace::TraceLayer;
 
 use crate::config::Config;
@@ -59,7 +60,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Method::DELETE,
             Method::OPTIONS,
         ])
-        .allow_headers(Any)
+        .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE])
         .allow_credentials(true);
 
     // Build protected routes (require auth)
