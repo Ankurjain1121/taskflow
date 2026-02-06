@@ -4,7 +4,7 @@
 //! They are protected by a shared secret header, not user authentication.
 
 use axum::{
-    extract::{Request, State},
+    extract::State,
     http::HeaderMap,
     routing::get,
     Json, Router,

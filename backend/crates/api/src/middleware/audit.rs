@@ -5,7 +5,7 @@
 use axum::{
     body::Body,
     extract::State,
-    http::{Method, Request, StatusCode},
+    http::{Method, Request},
     middleware::Next,
     response::Response,
 };
@@ -13,7 +13,6 @@ use uuid::Uuid;
 
 use crate::middleware::auth::AuthUser;
 use crate::state::AppState;
-use taskflow_db::models::ActivityAction;
 use taskflow_services::audit::{record_audit_event, ROUTE_ACTION_MAP};
 
 /// Extension to mark a route with its identifier for audit logging

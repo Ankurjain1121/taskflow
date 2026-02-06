@@ -13,7 +13,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::errors::{AppError, Result};
+use crate::errors::Result;
 use crate::extractors::AdminUser;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
