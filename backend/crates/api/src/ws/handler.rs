@@ -6,7 +6,6 @@ use axum::{
     response::Response,
 };
 use futures_util::{SinkExt, StreamExt};
-use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use tokio::sync::mpsc;

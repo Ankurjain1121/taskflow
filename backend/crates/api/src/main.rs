@@ -18,8 +18,8 @@ use crate::config::Config;
 use crate::middleware::auth_middleware;
 use crate::routes::{
     activity_log_router, admin_audit_router, admin_trash_router, admin_users_router,
-    attachment_router, auth_router, board_columns_router, board_router, column_router,
-    comment_router, cron_router, health_handler, invitation_router, liveness_handler,
+    attachment_router, board_columns_router, board_router, column_router,
+    comment_router, cron_router, health_handler, liveness_handler,
     my_tasks_router, notification_preferences_router, notification_router, onboarding_router,
     readiness_handler, task_router, team_overview_router, workspace_boards_router,
     workspace_router,

@@ -64,7 +64,7 @@ pub struct AssignUserRequest {
 async fn get_workspace_id_for_board(
     pool: &sqlx::PgPool,
     board_id: Uuid,
-) -> Result<Option<Uuid>, sqlx::Error> {
+) -> std::result::Result<Option<Uuid>, sqlx::Error> {
     sqlx::query_scalar!(
         r#"
         SELECT workspace_id FROM boards WHERE id = $1 AND deleted_at IS NULL
