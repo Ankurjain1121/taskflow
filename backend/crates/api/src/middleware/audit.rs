@@ -170,39 +170,39 @@ fn infer_route_id(path: &str, method: &Method) -> Option<&'static str> {
     // Match common patterns
     match (method, parts.as_slice()) {
         // Tasks
-        (Method::POST, ["api", "boards", _, "tasks"]) => Some("tasks.create"),
-        (Method::PUT, ["api", "tasks", _]) => Some("tasks.update"),
-        (Method::DELETE, ["api", "tasks", _]) => Some("tasks.delete"),
-        (Method::POST, ["api", "tasks", _, "move"]) => Some("tasks.move"),
-        (Method::POST, ["api", "tasks", _, "assign"]) => Some("tasks.assign"),
-        (Method::DELETE, ["api", "tasks", _, "assignees", _]) => Some("tasks.unassign"),
+        (&Method::POST, ["api", "boards", _, "tasks"]) => Some("tasks.create"),
+        (&Method::PUT, ["api", "tasks", _]) => Some("tasks.update"),
+        (&Method::DELETE, ["api", "tasks", _]) => Some("tasks.delete"),
+        (&Method::POST, ["api", "tasks", _, "move"]) => Some("tasks.move"),
+        (&Method::POST, ["api", "tasks", _, "assign"]) => Some("tasks.assign"),
+        (&Method::DELETE, ["api", "tasks", _, "assignees", _]) => Some("tasks.unassign"),
 
         // Boards
-        (Method::POST, ["api", "workspaces", _, "boards"]) => Some("boards.create"),
-        (Method::PUT, ["api", "boards", _]) => Some("boards.update"),
-        (Method::DELETE, ["api", "boards", _]) => Some("boards.delete"),
+        (&Method::POST, ["api", "workspaces", _, "boards"]) => Some("boards.create"),
+        (&Method::PUT, ["api", "boards", _]) => Some("boards.update"),
+        (&Method::DELETE, ["api", "boards", _]) => Some("boards.delete"),
 
         // Comments
-        (Method::POST, ["api", "tasks", _, "comments"]) => Some("comments.create"),
-        (Method::PUT, ["api", "comments", _]) => Some("comments.update"),
-        (Method::DELETE, ["api", "comments", _]) => Some("comments.delete"),
+        (&Method::POST, ["api", "tasks", _, "comments"]) => Some("comments.create"),
+        (&Method::PUT, ["api", "comments", _]) => Some("comments.update"),
+        (&Method::DELETE, ["api", "comments", _]) => Some("comments.delete"),
 
         // Attachments
-        (Method::POST, ["api", "tasks", _, "attachments"]) => Some("attachments.upload"),
-        (Method::DELETE, ["api", "attachments", _]) => Some("attachments.delete"),
+        (&Method::POST, ["api", "tasks", _, "attachments"]) => Some("attachments.upload"),
+        (&Method::DELETE, ["api", "attachments", _]) => Some("attachments.delete"),
 
         // Workspaces
-        (Method::POST, ["api", "workspaces"]) => Some("workspaces.create"),
-        (Method::PUT, ["api", "workspaces", _]) => Some("workspaces.update"),
-        (Method::DELETE, ["api", "workspaces", _]) => Some("workspaces.delete"),
+        (&Method::POST, ["api", "workspaces"]) => Some("workspaces.create"),
+        (&Method::PUT, ["api", "workspaces", _]) => Some("workspaces.update"),
+        (&Method::DELETE, ["api", "workspaces", _]) => Some("workspaces.delete"),
 
         // Admin
-        (Method::PUT, ["api", "admin", "users", _, "role"]) => Some("admin.update_role"),
-        (Method::DELETE, ["api", "admin", "users", _]) => Some("admin.delete_user"),
+        (&Method::PUT, ["api", "admin", "users", _, "role"]) => Some("admin.update_role"),
+        (&Method::DELETE, ["api", "admin", "users", _]) => Some("admin.delete_user"),
 
         // Trash
-        (Method::POST, ["api", "admin", "trash", "restore"]) => Some("trash.restore"),
-        (Method::DELETE, ["api", "admin", "trash", _, _]) => Some("trash.permanent_delete"),
+        (&Method::POST, ["api", "admin", "trash", "restore"]) => Some("trash.restore"),
+        (&Method::DELETE, ["api", "admin", "trash", _, _]) => Some("trash.permanent_delete"),
 
         _ => None,
     }
@@ -238,12 +238,14 @@ mod tests {
 
     #[test]
     fn test_infer_route_id() {
+        // Use a valid UUID in place of 123
+        let uuid = "12345678-1234-1234-1234-123456789abc";
         assert_eq!(
-            infer_route_id("/api/boards/123/tasks", &Method::POST),
+            infer_route_id(&format!("/api/boards/{}/tasks", uuid), &Method::POST),
             Some("tasks.create")
         );
         assert_eq!(
-            infer_route_id("/api/tasks/123", &Method::DELETE),
+            infer_route_id(&format!("/api/tasks/{}", uuid), &Method::DELETE),
             Some("tasks.delete")
         );
         assert_eq!(
