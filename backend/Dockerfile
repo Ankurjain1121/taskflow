@@ -36,6 +36,9 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Install sqlx-cli for running migrations
+RUN cargo install sqlx-cli --no-default-features --features rustls,postgres
+
 # Copy recipe and build dependencies (cached layer)
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
