@@ -37,6 +37,7 @@ export const routes: Routes = [
       import('./features/dashboard/dashboard.component').then(
         (m) => m.DashboardComponent
       ),
+    canActivate: [authGuard],
   },
   {
     path: 'my-tasks',
@@ -44,9 +45,11 @@ export const routes: Routes = [
       import('./features/my-tasks/my-tasks/my-tasks.component').then(
         (m) => m.MyTasksComponent
       ),
+    canActivate: [authGuard],
   },
   {
     path: 'workspace/:workspaceId',
+    canActivate: [authGuard],
     children: [
       {
         path: '',
@@ -87,6 +90,7 @@ export const routes: Routes = [
   },
   {
     path: 'settings',
+    canActivate: [authGuard],
     children: [
       {
         path: 'profile',
