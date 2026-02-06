@@ -128,7 +128,7 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
-    this.userName.set(user.name?.split(' ')[0] || null);
+    this.userName.set(user.display_name?.split(' ')[0] || null);
     this.loadWorkspaces();
   }
 
