@@ -208,7 +208,7 @@ async fn create_task_handler(
             priority: task.priority.clone(),
             column_id: task.column_id,
             position: task.position.clone(),
-            assignee_ids,
+            assignee_ids: assignee_ids.clone(),
             updated_at: task.updated_at,
         },
         origin_user_id: tenant.user_id,
@@ -290,7 +290,7 @@ async fn update_task_handler(
             priority: task.priority.clone(),
             column_id: task.column_id,
             position: task.position.clone(),
-            assignee_ids,
+            assignee_ids: assignee_ids.clone(),
             updated_at: task.updated_at,
         },
         origin_user_id: tenant.user_id,
@@ -550,7 +550,7 @@ async fn assign_user_handler(
             priority: task.priority,
             column_id: task.column_id,
             position: task.position,
-            assignee_ids,
+            assignee_ids: assignee_ids.clone(),
             updated_at: task.updated_at,
         },
         origin_user_id: tenant.user_id,
@@ -665,7 +665,7 @@ async fn unassign_user_handler(
             priority: task.priority,
             column_id: task.column_id,
             position: task.position,
-            assignee_ids,
+            assignee_ids: assignee_ids.clone(),
             updated_at: task.updated_at,
         },
         origin_user_id: tenant.user_id,
@@ -678,7 +678,7 @@ async fn unassign_user_handler(
     // Broadcast workspace update for team overview (unassign affects workload)
     if let Ok(Some(workspace_id)) = get_workspace_id_for_board(&state.db, board_id).await {
         // Include the removed user in the notification
-        let mut all_affected = assignee_ids.clone();
+        let mut all_affected = assignee_ids;
         all_affected.push(user_id);
         broadcast_workspace_task_update(
             &broadcast_service,
