@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        DELETE FROM board_members\n        WHERE user_id = $1\n          AND board_id IN (\n              SELECT id FROM boards\n              WHERE workspace_id = $2 AND deleted_at IS NULL\n          )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "42dbe01155ea71d566deae867978a6f8e20d291d01dcf0e594820eec79f9e8ec"
+}

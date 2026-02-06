@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO activity_log (id, action, entity_type, entity_id, user_id, tenant_id, metadata, ip_address, user_agent)\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        {
+          "Custom": {
+            "name": "activity_action",
+            "kind": {
+              "Enum": [
+                "created",
+                "updated",
+                "moved",
+                "assigned",
+                "unassigned",
+                "commented",
+                "attached",
+                "status_changed",
+                "priority_changed",
+                "deleted"
+              ]
+            }
+          }
+        },
+        "Varchar",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Jsonb",
+        "Varchar",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "85ce41c9667c0f50418362e9b20c9b7ceffb8a6a12d3ca5662e8ea70665cd80d"
+}

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT position\n        FROM tasks\n        WHERE column_id = $1 AND deleted_at IS NULL\n        ORDER BY position DESC\n        LIMIT 1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "position",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "7bf07bd84b5228011edec27248bee9af21e6a8fcfd1aed2a3cc976a6ebd4ffd7"
+}

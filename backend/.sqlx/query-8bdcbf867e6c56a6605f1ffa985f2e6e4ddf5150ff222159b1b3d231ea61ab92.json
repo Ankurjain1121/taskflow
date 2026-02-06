@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            a.id,\n            a.file_name,\n            a.file_size,\n            a.mime_type,\n            a.storage_key,\n            a.task_id,\n            a.uploaded_by_id,\n            a.created_at,\n            u.name as uploader_name,\n            u.avatar_url as uploader_avatar_url\n        FROM attachments a\n        JOIN users u ON u.id = a.uploaded_by_id\n        WHERE a.id = $1 AND a.deleted_at IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "file_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "file_size",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "mime_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "storage_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "task_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "uploaded_by_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "uploader_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "uploader_avatar_url",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "8bdcbf867e6c56a6605f1ffa985f2e6e4ddf5150ff222159b1b3d231ea61ab92"
+}

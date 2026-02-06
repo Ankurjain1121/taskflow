@@ -1,0 +1,127 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            al.id,\n            al.action as \"action: ActivityAction\",\n            al.entity_type,\n            al.entity_id,\n            al.user_id,\n            u.name as user_name,\n            u.email as user_email,\n            al.metadata,\n            al.ip_address,\n            al.user_agent,\n            al.created_at\n        FROM activity_log al\n        JOIN users u ON u.id = al.user_id\n        WHERE al.tenant_id = $1\n          AND ($2::uuid IS NULL OR al.user_id = $2)\n          AND ($3::activity_action IS NULL OR al.action = $3)\n          AND ($4::text IS NULL OR al.entity_type = $4)\n          AND ($5::timestamptz IS NULL OR al.created_at >= $5)\n          AND ($6::timestamptz IS NULL OR al.created_at <= $6)\n          AND ($7::text IS NULL OR al.metadata::text ILIKE '%' || $7 || '%')\n          AND ($8::timestamptz IS NULL OR al.created_at < $8 OR (al.created_at = $8 AND al.id < $9))\n        ORDER BY al.created_at DESC, al.id DESC\n        LIMIT $10\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "action: ActivityAction",
+        "type_info": {
+          "Custom": {
+            "name": "activity_action",
+            "kind": {
+              "Enum": [
+                "created",
+                "updated",
+                "moved",
+                "assigned",
+                "unassigned",
+                "commented",
+                "attached",
+                "status_changed",
+                "priority_changed",
+                "deleted"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "entity_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "entity_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "user_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "user_email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "metadata",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "ip_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "user_agent",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        {
+          "Custom": {
+            "name": "activity_action",
+            "kind": {
+              "Enum": [
+                "created",
+                "updated",
+                "moved",
+                "assigned",
+                "unassigned",
+                "commented",
+                "attached",
+                "status_changed",
+                "priority_changed",
+                "deleted"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Text",
+        "Timestamptz",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "2a883896f24235da140f2fcebfdab1f3f902011078c1574d22f75b484092bf1e"
+}

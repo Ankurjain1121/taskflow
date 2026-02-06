@@ -1,0 +1,122 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE tasks\n        SET\n            title = COALESCE($2, title),\n            description = COALESCE($3, description),\n            priority = COALESCE($4, priority),\n            due_date = COALESCE($5, due_date),\n            updated_at = NOW()\n        WHERE id = $1 AND deleted_at IS NULL\n        RETURNING\n            id,\n            title,\n            description,\n            priority as \"priority: TaskPriority\",\n            due_date,\n            board_id,\n            column_id,\n            position,\n            tenant_id,\n            created_by_id,\n            deleted_at,\n            created_at,\n            updated_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "priority: TaskPriority",
+        "type_info": {
+          "Custom": {
+            "name": "task_priority",
+            "kind": {
+              "Enum": [
+                "urgent",
+                "high",
+                "medium",
+                "low"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "due_date",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "board_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "column_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "position",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "tenant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_by_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "deleted_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Text",
+        {
+          "Custom": {
+            "name": "task_priority",
+            "kind": {
+              "Enum": [
+                "urgent",
+                "high",
+                "medium",
+                "low"
+              ]
+            }
+          }
+        },
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "53ff5d7ae86f376370d2ea3b27261aa9e781cd3b02db69d60b72b1b7514f8782"
+}

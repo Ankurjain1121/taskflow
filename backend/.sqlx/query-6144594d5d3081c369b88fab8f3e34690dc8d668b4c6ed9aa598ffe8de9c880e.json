@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            u.id as user_id,\n            u.name as user_name,\n            u.avatar_url as user_avatar,\n            COUNT(DISTINCT t.id) FILTER (\n                WHERE t.deleted_at IS NULL\n                AND (bc.status_mapping IS NULL OR NOT (bc.status_mapping->>'done')::boolean)\n            ) as \"active_tasks!\"\n        FROM workspace_members wm\n        INNER JOIN users u ON u.id = wm.user_id\n        LEFT JOIN task_assignees ta ON ta.user_id = u.id\n        LEFT JOIN tasks t ON t.id = ta.task_id AND t.deleted_at IS NULL\n        LEFT JOIN board_columns bc ON bc.id = t.column_id\n        LEFT JOIN boards b ON b.id = t.board_id AND b.workspace_id = $1\n        WHERE wm.workspace_id = $1\n          AND u.tenant_id = $2\n          AND u.deleted_at IS NULL\n        GROUP BY u.id, u.name, u.avatar_url\n        HAVING COUNT(DISTINCT t.id) FILTER (\n            WHERE t.deleted_at IS NULL\n            AND (bc.status_mapping IS NULL OR NOT (bc.status_mapping->>'done')::boolean)\n        ) >= $3\n        ORDER BY \"active_tasks!\" DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "user_avatar",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "active_tasks!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "6144594d5d3081c369b88fab8f3e34690dc8d668b4c6ed9aa598ffe8de9c880e"
+}

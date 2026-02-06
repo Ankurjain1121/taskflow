@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE workspaces\n                SET deleted_at = NULL, updated_at = NOW()\n                WHERE id = $1 AND deleted_at IS NOT NULL\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d64b372c7a84faf058eb3caa3679776f99438cb3185df57bf8c61b1613b40bd8"
+}
