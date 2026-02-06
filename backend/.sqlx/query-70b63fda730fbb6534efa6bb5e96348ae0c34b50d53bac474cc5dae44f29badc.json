@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, user_id, event_type, in_app, email, slack, whatsapp, created_at, updated_at\n        FROM notification_preferences\n        WHERE user_id = $1 AND event_type = $2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "event_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "in_app",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "email",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "slack",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "whatsapp",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "70b63fda730fbb6534efa6bb5e96348ae0c34b50d53bac474cc5dae44f29badc"
+}

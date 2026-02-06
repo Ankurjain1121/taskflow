@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO board_members (id, board_id, user_id, role)\n        VALUES ($1, $2, $3, 'editor')\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "de8c68cf2ef4c996a9e5e446f9e498869bd69d7a5217ca06996549821cf3d7ee"
+}

@@ -1,0 +1,78 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH updated AS (\n            UPDATE comments\n            SET content = $2, mentioned_user_ids = $3, updated_at = NOW()\n            WHERE id = $1 AND deleted_at IS NULL\n            RETURNING id, content, task_id, author_id, parent_id, mentioned_user_ids, created_at, updated_at\n        )\n        SELECT\n            u.id,\n            u.content,\n            u.task_id,\n            u.author_id,\n            u.parent_id,\n            u.mentioned_user_ids,\n            u.created_at,\n            u.updated_at,\n            usr.name as author_name,\n            usr.avatar_url as author_avatar_url\n        FROM updated u\n        JOIN users usr ON usr.id = u.author_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "task_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "author_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "parent_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "mentioned_user_ids",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "author_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "author_avatar_url",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "ba9c78478117e18c7b7e90cf1020e3202507b8d05338364cc0490474215b51e0"
+}

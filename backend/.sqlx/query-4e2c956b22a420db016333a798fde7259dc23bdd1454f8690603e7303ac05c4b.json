@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO board_columns (id, name, board_id, position, color, status_mapping)\n        VALUES ($1, 'In Progress', $2, 'a2', '#3b82f6', NULL)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4e2c956b22a420db016333a798fde7259dc23bdd1454f8690603e7303ac05c4b"
+}

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO boards (id, name, description, workspace_id, tenant_id, created_by_id)\n        VALUES ($1, 'Getting Started', 'Your first Kanban board to help you learn TaskFlow', $2, $3, $4)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cefa7ff3df84fa5dd448678b142b63c2e411762bd7ee28e876d6ec6bcc0690b3"
+}

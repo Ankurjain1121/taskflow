@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO board_members (board_id, user_id, role)\n        VALUES ($1, $2, $3)\n        ON CONFLICT (board_id, user_id) DO UPDATE SET role = $3\n        RETURNING id, board_id, user_id, role AS \"role: _\", joined_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "board_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "role: _",
+        "type_info": {
+          "Custom": {
+            "name": "board_member_role",
+            "kind": {
+              "Enum": [
+                "viewer",
+                "editor"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "joined_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        {
+          "Custom": {
+            "name": "board_member_role",
+            "kind": {
+              "Enum": [
+                "viewer",
+                "editor"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "805d6e00c17446371614a1e27549fe891e83e72a180e088ee152eb00281154dc"
+}
