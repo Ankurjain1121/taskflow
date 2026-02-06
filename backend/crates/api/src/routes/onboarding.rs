@@ -9,6 +9,7 @@
 
 use axum::{
     extract::{Query, State},
+    middleware::from_fn_with_state,
     routing::{get, post},
     Json, Router,
 };
@@ -332,14 +333,14 @@ async fn complete_onboarding(
 /// - POST /invite-members
 /// - POST /generate-sample-board
 /// - POST /complete
-pub fn onboarding_router() -> Router<AppState> {
+pub fn onboarding_router(state: AppState) -> Router<AppState> {
     // Protected routes
     let protected = Router::new()
         .route("/create-workspace", post(create_workspace))
         .route("/invite-members", post(invite_members))
         .route("/generate-sample-board", post(generate_sample_board_handler))
         .route("/complete", post(complete_onboarding))
-        .layer(axum::middleware::from_fn(auth_middleware));
+        .layer(from_fn_with_state(state.clone(), auth_middleware));
 
     // Public routes
     let public = Router::new()

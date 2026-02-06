@@ -1,5 +1,6 @@
 use axum::{
     extract::{Path, State},
+    middleware::from_fn_with_state,
     routing::{delete, get, post, put},
     Json, Router,
 };
@@ -693,7 +694,7 @@ async fn unassign_user_handler(
 }
 
 /// Create the task router
-pub fn task_router() -> Router<AppState> {
+pub fn task_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Board-scoped task routes
         .route("/boards/{board_id}/tasks", get(list_tasks))
@@ -708,5 +709,5 @@ pub fn task_router() -> Router<AppState> {
             "/tasks/{id}/assignees/{user_id}",
             delete(unassign_user_handler),
         )
-        .layer(axum::middleware::from_fn(auth_middleware))
+        .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

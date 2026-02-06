@@ -4,6 +4,7 @@
 
 use axum::{
     extract::{Path, State},
+    middleware::from_fn_with_state,
     routing::{delete, get, post, put},
     Json, Router,
 };
@@ -402,20 +403,20 @@ async fn delete_column(
 
 /// Build the columns router for board-scoped routes
 /// Routes: /api/boards/:board_id/columns
-pub fn board_columns_router() -> Router<AppState> {
+pub fn board_columns_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(list_columns).post(create_column))
-        .layer(axum::middleware::from_fn(auth_middleware))
+        .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
 /// Build the columns router for direct column routes
 /// Routes: /api/columns/:id
-pub fn column_router() -> Router<AppState> {
+pub fn column_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/{id}", delete(delete_column))
         .route("/{id}/name", put(rename_column))
         .route("/{id}/position", put(reorder_column))
         .route("/{id}/status-mapping", put(update_status_mapping))
         .route("/{id}/color", put(update_color))
-        .layer(axum::middleware::from_fn(auth_middleware))
+        .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

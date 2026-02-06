@@ -4,6 +4,7 @@
 
 use axum::{
     extract::{Query, State},
+    middleware::from_fn_with_state,
     routing::get,
     Json, Router,
 };
@@ -76,9 +77,9 @@ async fn get_my_tasks_summary(
 /// Routes:
 /// - GET / - List my tasks with pagination
 /// - GET /summary - Get task summary statistics
-pub fn my_tasks_router() -> Router<AppState> {
+pub fn my_tasks_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(list_my_tasks_handler))
         .route("/summary", get(get_my_tasks_summary))
-        .layer(axum::middleware::from_fn(auth_middleware))
+        .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

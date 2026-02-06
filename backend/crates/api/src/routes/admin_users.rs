@@ -5,6 +5,7 @@
 
 use axum::{
     extract::{Path, Query, State},
+    middleware::from_fn_with_state,
     routing::{delete, get, put},
     Json, Router,
 };
@@ -354,12 +355,12 @@ async fn delete_user(
 }
 
 /// Create the admin users router
-pub fn admin_users_router() -> Router<AppState> {
+pub fn admin_users_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/admin/users", get(list_users))
         .route("/admin/users/{id}/role", put(update_user_role))
         .route("/admin/users/{id}", delete(delete_user))
-        .layer(axum::middleware::from_fn(auth_middleware))
+        .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
 #[cfg(test)]

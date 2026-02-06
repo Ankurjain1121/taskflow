@@ -5,6 +5,7 @@
 
 use axum::{
     extract::{Query, State},
+    middleware::from_fn_with_state,
     routing::get,
     Json, Router,
 };
@@ -215,11 +216,11 @@ async fn list_audit_actions(
 }
 
 /// Create the admin audit log router
-pub fn admin_audit_router() -> Router<AppState> {
+pub fn admin_audit_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/admin/audit-log", get(list_audit_log))
         .route("/admin/audit-log/actions", get(list_audit_actions))
-        .layer(axum::middleware::from_fn(auth_middleware))
+        .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
 #[cfg(test)]

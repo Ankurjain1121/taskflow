@@ -5,6 +5,7 @@
 use axum::{
     extract::{Path, State},
     http::StatusCode,
+    middleware::from_fn_with_state,
     routing::{delete, get, post, put},
     Json, Router,
 };
@@ -367,7 +368,7 @@ async fn verify_board_membership(
 }
 
 /// Create the comment router
-pub fn comment_router() -> Router<AppState> {
+pub fn comment_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Task-scoped comment routes
         .route("/tasks/{task_id}/comments", get(list_comments_handler))
@@ -375,7 +376,7 @@ pub fn comment_router() -> Router<AppState> {
         // Comment-specific routes
         .route("/comments/{id}", put(update_comment_handler))
         .route("/comments/{id}", delete(delete_comment_handler))
-        .layer(axum::middleware::from_fn(auth_middleware))
+        .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
 #[cfg(test)]

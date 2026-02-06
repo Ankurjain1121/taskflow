@@ -5,6 +5,7 @@
 
 use axum::{
     extract::{Path, Query, State},
+    middleware::from_fn_with_state,
     routing::{get, put},
     Json, Router,
 };
@@ -129,11 +130,11 @@ async fn mark_all_read_handler(
 }
 
 /// Create the notification router
-pub fn notification_router() -> Router<AppState> {
+pub fn notification_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/notifications", get(list_notifications_handler))
         .route("/notifications/unread-count", get(get_unread_count_handler))
         .route("/notifications/{id}/read", put(mark_read_handler))
         .route("/notifications/read-all", put(mark_all_read_handler))
-        .layer(axum::middleware::from_fn(auth_middleware))
+        .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

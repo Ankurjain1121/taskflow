@@ -4,6 +4,7 @@
 
 use axum::{
     extract::{Path, Query, State},
+    middleware::from_fn_with_state,
     routing::{delete, get, post, put},
     Json, Router,
 };
@@ -350,12 +351,12 @@ async fn remove_member(
 // ============================================================================
 
 /// Build the workspace router
-pub fn workspace_router() -> Router<AppState> {
+pub fn workspace_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(list_workspaces).post(create_workspace))
         .route("/{id}", get(get_workspace).put(update_workspace).delete(delete_workspace))
         .route("/{id}/members/search", get(search_members))
         .route("/{id}/members", post(add_member))
         .route("/{id}/members/{user_id}", delete(remove_member))
-        .layer(axum::middleware::from_fn(auth_middleware))
+        .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

@@ -4,6 +4,7 @@
 
 use axum::{
     extract::State,
+    middleware::from_fn_with_state,
     routing::{delete, get, put},
     Json, Router,
 };
@@ -101,10 +102,10 @@ async fn reset_preferences(
 }
 
 /// Create the notification preferences router
-pub fn notification_preferences_router() -> Router<AppState> {
+pub fn notification_preferences_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/notification-preferences", get(list_preferences))
         .route("/notification-preferences", put(update_preference))
         .route("/notification-preferences", delete(reset_preferences))
-        .layer(axum::middleware::from_fn(auth_middleware))
+        .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

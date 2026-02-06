@@ -4,6 +4,7 @@
 
 use axum::{
     extract::{Path, Query, State},
+    middleware::from_fn_with_state,
     routing::get,
     Json, Router,
 };
@@ -92,10 +93,10 @@ async fn verify_board_membership(state: &AppState, board_id: Uuid, user_id: Uuid
 }
 
 /// Create the activity log router
-pub fn activity_log_router() -> Router<AppState> {
+pub fn activity_log_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/tasks/{task_id}/activity", get(list_activity_handler))
-        .layer(axum::middleware::from_fn(auth_middleware))
+        .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
 #[cfg(test)]

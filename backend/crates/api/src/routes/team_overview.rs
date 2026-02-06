@@ -5,6 +5,7 @@
 
 use axum::{
     extract::{Path, Query, State},
+    middleware::from_fn_with_state,
     routing::get,
     Json, Router,
 };
@@ -79,9 +80,9 @@ async fn get_overloaded_members_handler(
 /// Routes:
 /// - GET /team-workload - Get workload for all members
 /// - GET /overloaded-members - Get members with high task counts
-pub fn team_overview_router() -> Router<AppState> {
+pub fn team_overview_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/team-workload", get(get_team_workload))
         .route("/overloaded-members", get(get_overloaded_members_handler))
-        .layer(axum::middleware::from_fn(auth_middleware))
+        .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

@@ -5,6 +5,7 @@
 
 use axum::{
     extract::{Path, Query, State},
+    middleware::from_fn_with_state,
     routing::{delete, get, post},
     Json, Router,
 };
@@ -286,13 +287,13 @@ async fn verify_entity_tenant(
 }
 
 /// Create the admin trash router
-pub fn admin_trash_router() -> Router<AppState> {
+pub fn admin_trash_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/admin/trash", get(list_trash))
         .route("/admin/trash/restore", post(restore_item))
         .route("/admin/trash/{entity_type}/{entity_id}", delete(delete_item))
         .route("/admin/trash/empty", delete(empty_trash))
-        .layer(axum::middleware::from_fn(auth_middleware))
+        .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
 #[cfg(test)]

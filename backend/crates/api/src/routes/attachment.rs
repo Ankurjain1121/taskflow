@@ -5,6 +5,7 @@
 
 use axum::{
     extract::{Path, State},
+    middleware::from_fn_with_state,
     routing::{delete, get, post},
     Json, Router,
 };
@@ -349,7 +350,7 @@ async fn record_attachment_activity(
 }
 
 /// Create the attachment router
-pub fn attachment_router() -> Router<AppState> {
+pub fn attachment_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Task-scoped attachment routes
         .route(
@@ -367,5 +368,5 @@ pub fn attachment_router() -> Router<AppState> {
             get(get_download_url),
         )
         .route("/attachments/{id}", delete(delete_attachment_handler))
-        .layer(axum::middleware::from_fn(auth_middleware))
+        .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
