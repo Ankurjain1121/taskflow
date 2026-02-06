@@ -9,7 +9,6 @@
 
 use axum::{extract::State, http::StatusCode, Json};
 use chrono::{DateTime, Utc};
-use redis::AsyncCommands;
 use serde::Serialize;
 use std::time::Duration;
 use tokio::time::timeout;

@@ -105,11 +105,13 @@ pub async fn audit_middleware(
         Some(id) => id.0,
         None => {
             // Try to infer from path and method
-            infer_route_id(&path, &method).unwrap_or_else(|| {
-                tracing::debug!(path = %path, method = %method, "Could not infer audit route ID");
-                return response;
-            });
-            return response;
+            match infer_route_id(&path, &method) {
+                Some(inferred) => inferred,
+                None => {
+                    tracing::debug!(path = %path, method = %method, "Could not infer audit route ID");
+                    return response;
+                }
+            }
         }
     };
 

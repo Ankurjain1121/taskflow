@@ -145,7 +145,8 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
         loop {
             let msg = {
                 let mut guard = pubsub_clone.lock().await;
-                guard.on_message().next().await
+                let next_msg = guard.on_message().next().await;
+                next_msg
             };
 
             match msg {

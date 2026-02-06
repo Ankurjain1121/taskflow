@@ -185,17 +185,7 @@ pub async fn delete_attachment(
     Ok(deleted)
 }
 
-/// Get the board_id for a task (for authorization checks)
-pub async fn get_task_board_id(pool: &PgPool, task_id: Uuid) -> Result<Option<Uuid>, sqlx::Error> {
-    sqlx::query_scalar!(
-        r#"
-        SELECT board_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
-        "#,
-        task_id
-    )
-    .fetch_optional(pool)
-    .await
-}
+// Note: get_task_board_id is defined in tasks.rs and re-exported from the queries module
 
 /// Verify user is a member of the board that contains the task
 pub async fn verify_task_board_membership(
