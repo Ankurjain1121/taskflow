@@ -134,7 +134,7 @@ export class DashboardComponent implements OnInit {
 
   private loadWorkspaces(): void {
     this.workspaceService.getWorkspaces().subscribe({
-      next: (workspaces) => {
+      next: (workspaces: Workspace[]) => {
         this.workspaces.set(workspaces);
         this.loading.set(false);
       },
