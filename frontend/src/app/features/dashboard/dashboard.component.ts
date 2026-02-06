@@ -133,9 +133,15 @@ export class DashboardComponent implements OnInit {
   }
 
   private loadWorkspaces(): void {
-    this.workspaceService.getWorkspaces().subscribe({
-      next: (workspaces: Workspace[]) => {
-        this.workspaces.set(workspaces);
+    this.workspaceService.list().subscribe({
+      next: (workspaces) => {
+        // Map to local interface (service Workspace may have different fields)
+        this.workspaces.set(workspaces.map(w => ({
+          id: w.id,
+          name: w.name,
+          description: undefined,
+          boards: undefined,
+        })));
         this.loading.set(false);
       },
       error: () => {
