@@ -332,7 +332,7 @@ async fn record_attachment_activity(
 
     if let Err(e) = sqlx::query!(
         r#"
-        INSERT INTO activity_logs (id, action, entity_type, entity_id, user_id, metadata, tenant_id)
+        INSERT INTO activity_log (id, action, entity_type, entity_id, user_id, metadata, tenant_id)
         VALUES ($1, $2, 'attachment', $3, $4, $5, $6)
         "#,
         Uuid::new_v4(),
