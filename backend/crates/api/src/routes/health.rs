@@ -226,14 +226,13 @@ pub async fn health_handler(State(state): State<AppState>) -> (StatusCode, Json<
         lago,
     };
 
-    // Determine overall status
-    let all_up = postgres == ServiceStatus::Up
+    // Determine overall status - only core services are required
+    // Novu and Lago are optional (deployed via docker-compose profiles)
+    let core_services_up = postgres == ServiceStatus::Up
         && redis == ServiceStatus::Up
-        && minio == ServiceStatus::Up
-        && novu == ServiceStatus::Up
-        && lago == ServiceStatus::Up;
+        && minio == ServiceStatus::Up;
 
-    let status = if all_up {
+    let status = if core_services_up {
         HealthStatus::Healthy
     } else {
         HealthStatus::Degraded
@@ -245,7 +244,7 @@ pub async fn health_handler(State(state): State<AppState>) -> (StatusCode, Json<
         timestamp: Utc::now(),
     };
 
-    let status_code = if all_up {
+    let status_code = if core_services_up {
         StatusCode::OK
     } else {
         StatusCode::SERVICE_UNAVAILABLE
