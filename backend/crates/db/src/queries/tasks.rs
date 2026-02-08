@@ -524,11 +524,10 @@ pub async fn list_tasks_flat(
         return Err(TaskQueryError::NotBoardMember);
     }
 
-    let tasks = sqlx::query_as!(
-        TaskListItem,
+    let tasks = sqlx::query_as::<_, TaskListItem>(
         r#"
         SELECT t.id, t.title, t.description,
-               t.priority as "priority: TaskPriority",
+               t.priority,
                t.due_date, t.column_id,
                bc.name as column_name,
                t.position, t.created_by_id,
@@ -538,8 +537,8 @@ pub async fn list_tasks_flat(
         WHERE t.board_id = $1 AND t.deleted_at IS NULL
         ORDER BY t.created_at DESC
         "#,
-        board_id
     )
+    .bind(board_id)
     .fetch_all(pool)
     .await?;
 

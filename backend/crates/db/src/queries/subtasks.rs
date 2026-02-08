@@ -26,8 +26,7 @@ pub async fn list_subtasks_by_task(
     pool: &PgPool,
     task_id: Uuid,
 ) -> Result<Vec<Subtask>, SubtaskQueryError> {
-    let subtasks = sqlx::query_as!(
-        Subtask,
+    let subtasks = sqlx::query_as::<_, Subtask>(
         r#"
         SELECT
             id,
@@ -43,8 +42,8 @@ pub async fn list_subtasks_by_task(
         WHERE task_id = $1
         ORDER BY position ASC
         "#,
-        task_id
     )
+    .bind(task_id)
     .fetch_all(pool)
     .await?;
 
@@ -59,7 +58,7 @@ pub async fn create_subtask(
     created_by_id: Uuid,
 ) -> Result<Subtask, SubtaskQueryError> {
     // Get the last position to calculate the new one
-    let last_position = sqlx::query_scalar!(
+    let last_position = sqlx::query_scalar::<_, String>(
         r#"
         SELECT position
         FROM subtasks
@@ -67,8 +66,8 @@ pub async fn create_subtask(
         ORDER BY position DESC
         LIMIT 1
         "#,
-        task_id
     )
+    .bind(task_id)
     .fetch_optional(pool)
     .await?;
 
@@ -76,8 +75,7 @@ pub async fn create_subtask(
 
     let subtask_id = Uuid::new_v4();
 
-    let subtask = sqlx::query_as!(
-        Subtask,
+    let subtask = sqlx::query_as::<_, Subtask>(
         r#"
         INSERT INTO subtasks (id, title, position, task_id, created_by_id)
         VALUES ($1, $2, $3, $4, $5)
@@ -92,12 +90,12 @@ pub async fn create_subtask(
             created_at,
             updated_at
         "#,
-        subtask_id,
-        title,
-        position,
-        task_id,
-        created_by_id
     )
+    .bind(subtask_id)
+    .bind(title)
+    .bind(&position)
+    .bind(task_id)
+    .bind(created_by_id)
     .fetch_one(pool)
     .await?;
 
@@ -110,8 +108,7 @@ pub async fn update_subtask(
     subtask_id: Uuid,
     title: &str,
 ) -> Result<Subtask, SubtaskQueryError> {
-    let subtask = sqlx::query_as!(
-        Subtask,
+    let subtask = sqlx::query_as::<_, Subtask>(
         r#"
         UPDATE subtasks
         SET title = $2, updated_at = NOW()
@@ -127,9 +124,9 @@ pub async fn update_subtask(
             created_at,
             updated_at
         "#,
-        subtask_id,
-        title
     )
+    .bind(subtask_id)
+    .bind(title)
     .fetch_optional(pool)
     .await?
     .ok_or(SubtaskQueryError::NotFound)?;
@@ -142,8 +139,7 @@ pub async fn toggle_subtask(
     pool: &PgPool,
     subtask_id: Uuid,
 ) -> Result<Subtask, SubtaskQueryError> {
-    let subtask = sqlx::query_as!(
-        Subtask,
+    let subtask = sqlx::query_as::<_, Subtask>(
         r#"
         UPDATE subtasks
         SET
@@ -162,8 +158,8 @@ pub async fn toggle_subtask(
             created_at,
             updated_at
         "#,
-        subtask_id
     )
+    .bind(subtask_id)
     .fetch_optional(pool)
     .await?
     .ok_or(SubtaskQueryError::NotFound)?;
@@ -176,13 +172,13 @@ pub async fn delete_subtask(
     pool: &PgPool,
     subtask_id: Uuid,
 ) -> Result<(), SubtaskQueryError> {
-    let rows_affected = sqlx::query!(
+    let rows_affected = sqlx::query(
         r#"
         DELETE FROM subtasks
         WHERE id = $1
         "#,
-        subtask_id
     )
+    .bind(subtask_id)
     .execute(pool)
     .await?
     .rows_affected();
@@ -200,8 +196,7 @@ pub async fn reorder_subtask(
     subtask_id: Uuid,
     new_position: &str,
 ) -> Result<Subtask, SubtaskQueryError> {
-    let subtask = sqlx::query_as!(
-        Subtask,
+    let subtask = sqlx::query_as::<_, Subtask>(
         r#"
         UPDATE subtasks
         SET position = $2, updated_at = NOW()
@@ -217,9 +212,9 @@ pub async fn reorder_subtask(
             created_at,
             updated_at
         "#,
-        subtask_id,
-        new_position
     )
+    .bind(subtask_id)
+    .bind(new_position)
     .fetch_optional(pool)
     .await?
     .ok_or(SubtaskQueryError::NotFound)?;
@@ -232,25 +227,25 @@ pub async fn get_subtask_progress(
     pool: &PgPool,
     task_id: Uuid,
 ) -> Result<SubtaskProgress, SubtaskQueryError> {
-    let total = sqlx::query_scalar!(
+    let total: i64 = sqlx::query_scalar::<_, i64>(
         r#"
-        SELECT COUNT(*) as "count!"
+        SELECT COUNT(*)
         FROM subtasks
         WHERE task_id = $1
         "#,
-        task_id
     )
+    .bind(task_id)
     .fetch_one(pool)
     .await?;
 
-    let completed = sqlx::query_scalar!(
+    let completed: i64 = sqlx::query_scalar::<_, i64>(
         r#"
-        SELECT COUNT(*) as "count!"
+        SELECT COUNT(*)
         FROM subtasks
         WHERE task_id = $1 AND is_completed = true
         "#,
-        task_id
     )
+    .bind(task_id)
     .fetch_one(pool)
     .await?;
 
@@ -259,12 +254,12 @@ pub async fn get_subtask_progress(
 
 /// Get the task_id for a subtask (for authorization checks)
 pub async fn get_subtask_task_id(pool: &PgPool, subtask_id: Uuid) -> Result<Option<Uuid>, sqlx::Error> {
-    sqlx::query_scalar!(
+    sqlx::query_scalar::<_, Uuid>(
         r#"
         SELECT task_id FROM subtasks WHERE id = $1
         "#,
-        subtask_id
     )
+    .bind(subtask_id)
     .fetch_optional(pool)
     .await
 }
