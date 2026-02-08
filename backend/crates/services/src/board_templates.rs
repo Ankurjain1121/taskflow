@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct BoardTemplate {
     pub id: &'static str,
     pub name: &'static str,
@@ -8,7 +8,7 @@ pub struct BoardTemplate {
     pub columns: &'static [TemplateColumn],
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct TemplateColumn {
     pub name: &'static str,
     pub color: &'static str,
