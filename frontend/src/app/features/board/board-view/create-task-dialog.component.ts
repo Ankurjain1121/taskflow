@@ -25,6 +25,8 @@ export interface CreateTaskDialogResult {
   description?: string;
   priority: TaskPriority;
   due_date?: string;
+  start_date?: string;
+  estimated_hours?: number;
 }
 
 @Component({
@@ -96,17 +98,53 @@ export interface CreateTaskDialogResult {
           </mat-select>
         </mat-form-field>
 
-        <!-- Due Date -->
+        <!-- Date Row: Start Date and Due Date side by side -->
+        <div class="grid grid-cols-2 gap-4">
+          <!-- Start Date -->
+          <mat-form-field appearance="outline">
+            <mat-label>Start Date</mat-label>
+            <input
+              matInput
+              [matDatepicker]="startPicker"
+              formControlName="startDate"
+              placeholder="Select start date"
+            />
+            <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
+            <mat-datepicker #startPicker></mat-datepicker>
+          </mat-form-field>
+
+          <!-- Due Date -->
+          <mat-form-field appearance="outline">
+            <mat-label>Due Date</mat-label>
+            <input
+              matInput
+              [matDatepicker]="duePicker"
+              formControlName="dueDate"
+              placeholder="Select due date"
+            />
+            <mat-datepicker-toggle matIconSuffix [for]="duePicker"></mat-datepicker-toggle>
+            <mat-datepicker #duePicker></mat-datepicker>
+          </mat-form-field>
+        </div>
+
+        <!-- Estimated Hours -->
         <mat-form-field appearance="outline">
-          <mat-label>Due Date</mat-label>
+          <mat-label>Estimated Hours</mat-label>
           <input
             matInput
-            [matDatepicker]="picker"
-            formControlName="dueDate"
-            placeholder="Select a due date (optional)"
+            type="number"
+            formControlName="estimatedHours"
+            placeholder="e.g., 4"
+            min="0"
+            step="0.5"
           />
-          <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
-          <mat-datepicker #picker></mat-datepicker>
+          <span matTextSuffix>hrs</span>
+          @if (form.controls.estimatedHours.hasError('min')) {
+            <mat-error>Hours must be 0 or greater</mat-error>
+          }
+          @if (form.controls.estimatedHours.hasError('max')) {
+            <mat-error>Hours must be less than 10,000</mat-error>
+          }
         </mat-form-field>
       </form>
     </mat-dialog-content>
@@ -150,7 +188,7 @@ export interface CreateTaskDialogResult {
   styles: [
     `
       mat-dialog-content {
-        min-width: 400px;
+        min-width: 480px;
       }
     `,
   ],
@@ -173,7 +211,9 @@ export class CreateTaskDialogComponent {
     title: ['', [Validators.required, Validators.maxLength(200)]],
     description: [''],
     priority: ['medium' as TaskPriority],
+    startDate: [null as Date | null],
     dueDate: [null as Date | null],
+    estimatedHours: [null as number | null, [Validators.min(0), Validators.max(9999)]],
   });
 
   onCancel(): void {
@@ -193,8 +233,16 @@ export class CreateTaskDialogComponent {
       result.description = values.description.trim();
     }
 
+    if (values.startDate) {
+      result.start_date = values.startDate.toISOString().split('T')[0];
+    }
+
     if (values.dueDate) {
       result.due_date = values.dueDate.toISOString().split('T')[0];
+    }
+
+    if (values.estimatedHours != null && values.estimatedHours > 0) {
+      result.estimated_hours = values.estimatedHours;
     }
 
     this.dialogRef.close(result);

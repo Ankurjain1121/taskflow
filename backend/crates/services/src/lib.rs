@@ -1,4 +1,5 @@
 pub mod audit;
+pub mod board_templates;
 pub mod broadcast;
 pub mod jobs;
 pub mod minio;
@@ -8,6 +9,7 @@ pub mod sample_board;
 pub mod trash_bin;
 
 pub use audit::{record_audit_event, get_action_for_route, AuditError, ROUTE_ACTION_MAP};
+pub use board_templates::{BoardTemplate, TEMPLATES as BOARD_TEMPLATES, get_template};
 pub use broadcast::{BroadcastError, BroadcastService};
 pub use jobs::{
     cleanup_expired_trash, scan_deadlines, send_weekly_digests,

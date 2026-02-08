@@ -125,3 +125,84 @@ pub async fn add_workspace_member(
 
     Ok(())
 }
+
+/// List ALL invitations (pending, accepted, expired) for a workspace
+pub async fn list_all_invitations(
+    pool: &PgPool,
+    workspace_id: Uuid,
+) -> Result<Vec<Invitation>, sqlx::Error> {
+    sqlx::query_as::<_, Invitation>(
+        r#"
+        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at
+        FROM invitations
+        WHERE workspace_id = $1
+        ORDER BY created_at DESC
+        "#,
+    )
+    .bind(workspace_id)
+    .fetch_all(pool)
+    .await
+}
+
+/// Delete a pending invitation by ID
+pub async fn delete_invitation(
+    pool: &PgPool,
+    id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query(
+        r#"
+        DELETE FROM invitations
+        WHERE id = $1 AND accepted_at IS NULL
+        "#,
+    )
+    .bind(id)
+    .execute(pool)
+    .await?;
+
+    Ok(result.rows_affected() > 0)
+}
+
+/// Resend an invitation: generates a new token and resets expiry to 7 days from now
+pub async fn resend_invitation(
+    pool: &PgPool,
+    id: Uuid,
+    new_expires_at: DateTime<Utc>,
+) -> Result<Option<Invitation>, sqlx::Error> {
+    let new_token = Uuid::new_v4();
+
+    sqlx::query_as::<_, Invitation>(
+        r#"
+        UPDATE invitations
+        SET token = $1, expires_at = $2, accepted_at = NULL
+        WHERE id = $3
+        RETURNING id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at
+        "#,
+    )
+    .bind(new_token)
+    .bind(new_expires_at)
+    .bind(id)
+    .fetch_optional(pool)
+    .await
+}
+
+/// Check if a pending invitation already exists for the given email and workspace
+pub async fn get_pending_invitation_by_email(
+    pool: &PgPool,
+    email: &str,
+    workspace_id: Uuid,
+) -> Result<Option<Invitation>, sqlx::Error> {
+    sqlx::query_as::<_, Invitation>(
+        r#"
+        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at
+        FROM invitations
+        WHERE email = $1
+          AND workspace_id = $2
+          AND accepted_at IS NULL
+          AND expires_at > NOW()
+        "#,
+    )
+    .bind(email)
+    .bind(workspace_id)
+    .fetch_optional(pool)
+    .await
+}

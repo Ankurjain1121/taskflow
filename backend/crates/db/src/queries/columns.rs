@@ -203,6 +203,22 @@ pub async fn get_column_by_id(
     .await
 }
 
+/// Force delete a column without checking for tasks.
+/// Used internally when replacing default columns with template columns on a freshly created board.
+pub async fn force_delete_column(pool: &PgPool, id: Uuid) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query!(
+        r#"
+        DELETE FROM board_columns
+        WHERE id = $1
+        "#,
+        id
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(result.rows_affected() > 0)
+}
+
 /// Get adjacent columns for position calculation
 pub async fn get_adjacent_columns(
     pool: &PgPool,

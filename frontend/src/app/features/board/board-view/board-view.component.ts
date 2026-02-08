@@ -15,7 +15,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { generateKeyBetween } from 'fractional-indexing';
 
 import { BoardService, Board, Column } from '../../../core/services/board.service';
-import { TaskService, Task, Assignee } from '../../../core/services/task.service';
+import { TaskService, Task, Assignee, TaskListItem } from '../../../core/services/task.service';
 import {
   CreateTaskDialogComponent,
   CreateTaskDialogResult,
@@ -34,8 +34,10 @@ import {
 import {
   BoardToolbarComponent,
   TaskFilters,
+  ViewMode,
 } from '../board-toolbar/board-toolbar.component';
 import { TaskDetailComponent } from '../task-detail/task-detail.component';
+import { ListViewComponent } from '../list-view/list-view.component';
 
 @Component({
   selector: 'app-board-view',
@@ -48,6 +50,7 @@ import { TaskDetailComponent } from '../task-detail/task-detail.component';
     KanbanColumnComponent,
     BoardToolbarComponent,
     TaskDetailComponent,
+    ListViewComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -126,7 +129,9 @@ import { TaskDetailComponent } from '../task-detail/task-detail.component';
       <!-- Toolbar -->
       <app-board-toolbar
         [assignees]="allAssignees()"
+        [viewMode]="viewMode()"
         (filtersChanged)="onFiltersChanged($event)"
+        (viewModeChanged)="onViewModeChanged($event)"
       ></app-board-toolbar>
 
       <!-- Board Content -->
@@ -151,6 +156,15 @@ import { TaskDetailComponent } from '../task-detail/task-detail.component';
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             ></path>
           </svg>
+        </div>
+      } @else if (viewMode() === 'list') {
+        <!-- List View -->
+        <div class="flex-1 overflow-y-auto">
+          <app-list-view
+            [tasks]="flatTasks()"
+            [loading]="listLoading()"
+            (taskClicked)="onListTaskClicked($event)"
+          ></app-list-view>
         </div>
       } @else {
         <!-- Kanban Board -->
@@ -248,6 +262,9 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   board = signal<Board | null>(null);
   columns = signal<Column[]>([]);
   boardState = signal<Record<string, Task[]>>({});
+  viewMode = signal<ViewMode>('kanban');
+  flatTasks = signal<TaskListItem[]>([]);
+  listLoading = signal(false);
   filters = signal<TaskFilters>({
     search: '',
     priorities: [],
@@ -325,6 +342,17 @@ export class BoardViewComponent implements OnInit, OnDestroy {
 
   onFiltersChanged(filters: TaskFilters): void {
     this.filters.set(filters);
+  }
+
+  onViewModeChanged(mode: ViewMode): void {
+    this.viewMode.set(mode);
+    if (mode === 'list') {
+      this.loadFlatTasks();
+    }
+  }
+
+  onListTaskClicked(taskId: string): void {
+    this.selectedTaskId.set(taskId);
   }
 
   onTaskMoved(event: TaskMoveEvent): void {
@@ -499,6 +527,24 @@ export class BoardViewComponent implements OnInit, OnDestroy {
 
   clearError(): void {
     this.errorMessage.set(null);
+  }
+
+  private loadFlatTasks(): void {
+    this.listLoading.set(true);
+    this.taskService
+      .listFlat(this.boardId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (tasks) => {
+          this.flatTasks.set(tasks);
+          this.listLoading.set(false);
+        },
+        error: (err) => {
+          console.error('Failed to load flat task list:', err);
+          this.listLoading.set(false);
+          this.showError('Failed to load task list');
+        },
+      });
   }
 
   private loadBoard(): void {

@@ -166,6 +166,7 @@ export class WorkspaceItemComponent implements OnInit {
           .createBoard(this.workspace().id, {
             name: result.name,
             description: result.description,
+            template: result.template,
           })
           .subscribe({
             next: (board) => {

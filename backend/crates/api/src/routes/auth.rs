@@ -32,6 +32,13 @@ pub struct SignInRequest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct SignUpRequest {
+    pub name: String,
+    pub email: String,
+    pub password: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct RefreshRequest {
     pub refresh_token: String,
 }
@@ -57,6 +64,17 @@ pub struct UserResponse {
 #[derive(Debug, Serialize)]
 pub struct MessageResponse {
     pub message: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ForgotPasswordRequest {
+    pub email: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ResetPasswordRequest {
+    pub token: String,
+    pub new_password: String,
 }
 
 // ============================================================================
@@ -116,6 +134,84 @@ pub async fn sign_in_handler(
     )?;
 
     // Hash the refresh token and store it
+    let token_hash = hash_token(&tokens.refresh_token);
+    sqlx::query("UPDATE refresh_tokens SET token_hash = $1 WHERE id = $2")
+        .bind(&token_hash)
+        .bind(token_id)
+        .execute(&state.db)
+        .await?;
+
+    Ok(Json(AuthResponse {
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        user: UserResponse {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            tenant_id: user.tenant_id,
+            avatar_url: user.avatar_url,
+            onboarding_completed: user.onboarding_completed,
+        },
+    }))
+}
+
+/// POST /api/auth/sign-up
+///
+/// Register a new user with a new tenant.
+/// Returns access token, refresh token, and user profile.
+pub async fn sign_up_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<SignUpRequest>,
+) -> Result<Json<AuthResponse>> {
+    // Validate
+    if payload.name.trim().is_empty() {
+        return Err(AppError::BadRequest("Name is required".into()));
+    }
+    if payload.email.trim().is_empty() || !payload.email.contains('@') {
+        return Err(AppError::BadRequest("Valid email is required".into()));
+    }
+    if payload.password.len() < 8 {
+        return Err(AppError::BadRequest(
+            "Password must be at least 8 characters".into(),
+        ));
+    }
+
+    // Check if email already exists
+    if auth::get_user_by_email(&state.db, &payload.email)
+        .await?
+        .is_some()
+    {
+        return Err(AppError::Conflict(
+            "An account with this email already exists".into(),
+        ));
+    }
+
+    // Hash password
+    let password_hash = taskflow_auth::password::hash_password(&payload.password)
+        .map_err(|_| AppError::InternalError("Failed to hash password".into()))?;
+
+    // Create user with tenant
+    let user =
+        auth::create_user_with_tenant(&state.db, &payload.email, &payload.name, &password_hash)
+            .await?;
+
+    // Issue tokens (same as sign-in)
+    let refresh_expiry = Utc::now() + Duration::seconds(state.config.jwt_refresh_expiry_secs);
+    let token_id =
+        auth::create_refresh_token(&state.db, user.id, "pending", refresh_expiry).await?;
+
+    let tokens = issue_tokens(
+        user.id,
+        user.tenant_id,
+        user.role.clone(),
+        token_id,
+        &state.config.jwt_secret,
+        &state.config.jwt_refresh_secret,
+        state.config.jwt_access_expiry_secs,
+        state.config.jwt_refresh_expiry_secs,
+    )?;
+
     let token_hash = hash_token(&tokens.refresh_token);
     sqlx::query("UPDATE refresh_tokens SET token_hash = $1 WHERE id = $2")
         .bind(&token_hash)
@@ -264,6 +360,83 @@ pub async fn me_handler(
         tenant_id: user.tenant_id,
         avatar_url: user.avatar_url,
         onboarding_completed: user.onboarding_completed,
+    }))
+}
+
+/// POST /api/auth/forgot-password
+///
+/// Request a password reset link. Always returns success to prevent email enumeration.
+pub async fn forgot_password_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<ForgotPasswordRequest>,
+) -> Result<Json<MessageResponse>> {
+    // Always return success to prevent email enumeration
+    let user = auth::get_user_by_email(&state.db, &payload.email).await?;
+
+    if let Some(user) = user {
+        // Generate a random token
+        let raw_token = Uuid::new_v4().to_string();
+        let token_hash = hash_token(&raw_token);
+        let expires_at = Utc::now() + Duration::hours(1);
+
+        auth::create_password_reset_token(&state.db, user.id, &token_hash, expires_at).await?;
+
+        // Send email (best effort - don't fail if email sending fails)
+        let reset_url = format!(
+            "{}/auth/reset-password?token={}",
+            state.config.app_url, raw_token
+        );
+        tracing::info!(
+            email = %payload.email,
+            reset_url = %reset_url,
+            "Password reset requested"
+        );
+
+        // TODO: Send actual email via PostalClient when configured
+        // For now, log the reset URL for development
+    }
+
+    Ok(Json(MessageResponse {
+        message: "If an account with that email exists, a password reset link has been sent."
+            .into(),
+    }))
+}
+
+/// POST /api/auth/reset-password
+///
+/// Reset password using a valid reset token.
+pub async fn reset_password_handler(
+    State(state): State<AppState>,
+    Json(payload): Json<ResetPasswordRequest>,
+) -> Result<Json<MessageResponse>> {
+    if payload.new_password.len() < 8 {
+        return Err(AppError::BadRequest(
+            "Password must be at least 8 characters".into(),
+        ));
+    }
+
+    let token_hash = hash_token(&payload.token);
+
+    let (token_id, user_id) = auth::get_valid_reset_token(&state.db, &token_hash)
+        .await?
+        .ok_or_else(|| AppError::BadRequest("Invalid or expired reset token".into()))?;
+
+    // Hash new password
+    let password_hash = taskflow_auth::password::hash_password(&payload.new_password)
+        .map_err(|_| AppError::InternalError("Failed to hash password".into()))?;
+
+    // Update password
+    auth::update_user_password(&state.db, user_id, &password_hash).await?;
+
+    // Mark token as used
+    auth::mark_reset_token_used(&state.db, token_id).await?;
+
+    // Revoke all refresh tokens
+    auth::revoke_all_user_tokens(&state.db, user_id).await?;
+
+    Ok(Json(MessageResponse {
+        message: "Password has been reset successfully. Please sign in with your new password."
+            .into(),
     }))
 }
 

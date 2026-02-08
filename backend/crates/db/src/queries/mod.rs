@@ -11,6 +11,8 @@ pub mod notifications;
 pub mod notification_preferences;
 pub mod team_overview;
 pub mod my_tasks;
+pub mod subtasks;
+pub mod search;
 
 pub use tasks::*;
 pub use workspaces::*;
@@ -23,3 +25,4 @@ pub use notifications::*;
 pub use notification_preferences::*;
 pub use team_overview::*;
 pub use my_tasks::*;
+pub use subtasks::*;

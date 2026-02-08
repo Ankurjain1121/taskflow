@@ -498,6 +498,54 @@ pub async fn get_task_assignee_ids(pool: &PgPool, task_id: Uuid) -> Result<Vec<U
     .await
 }
 
+/// Flat list of tasks for list view (with enriched data)
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct TaskListItem {
+    pub id: Uuid,
+    pub title: String,
+    pub description: Option<String>,
+    pub priority: TaskPriority,
+    pub due_date: Option<DateTime<Utc>>,
+    pub column_id: Uuid,
+    pub column_name: String,
+    pub position: String,
+    pub created_by_id: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// List all tasks for a board as a flat list with column names
+pub async fn list_tasks_flat(
+    pool: &PgPool,
+    board_id: Uuid,
+    user_id: Uuid,
+) -> Result<Vec<TaskListItem>, TaskQueryError> {
+    if !verify_board_membership(pool, board_id, user_id).await? {
+        return Err(TaskQueryError::NotBoardMember);
+    }
+
+    let tasks = sqlx::query_as!(
+        TaskListItem,
+        r#"
+        SELECT t.id, t.title, t.description,
+               t.priority as "priority: TaskPriority",
+               t.due_date, t.column_id,
+               bc.name as column_name,
+               t.position, t.created_by_id,
+               t.created_at, t.updated_at
+        FROM tasks t
+        JOIN board_columns bc ON bc.id = t.column_id
+        WHERE t.board_id = $1 AND t.deleted_at IS NULL
+        ORDER BY t.created_at DESC
+        "#,
+        board_id
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(tasks)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

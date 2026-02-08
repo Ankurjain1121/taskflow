@@ -12,7 +12,10 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use taskflow_db::models::BoardMemberRole;
-use taskflow_db::queries::{boards, workspaces};
+use taskflow_db::queries::{boards, columns, workspaces};
+use taskflow_db::utils::generate_key_between;
+
+use taskflow_services::board_templates;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
@@ -27,6 +30,7 @@ use crate::state::AppState;
 pub struct CreateBoardRequest {
     pub name: String,
     pub description: Option<String>,
+    pub template: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -201,6 +205,52 @@ async fn create_board(
     )
     .await?;
 
+    // If a template was specified (and it's not the default kanban that create_board already creates),
+    // replace the default columns with template columns
+    let mut final_columns = board.columns;
+
+    if let Some(ref template_id) = payload.template {
+        if let Some(template) = board_templates::get_template(template_id) {
+            // Delete the default columns that were auto-created
+            for col in &final_columns {
+                let _ = columns::force_delete_column(&state.db, col.id).await;
+            }
+            final_columns.clear();
+
+            if template_id == "blank" {
+                // Blank template: no columns
+            } else {
+                // Create columns from the template
+                let mut prev_pos: Option<String> = None;
+                for template_col in template.columns {
+                    let position = generate_key_between(
+                        prev_pos.as_deref(),
+                        None,
+                    );
+
+                    let status_mapping = if template_col.is_done {
+                        Some(serde_json::json!({"done": true}))
+                    } else {
+                        None
+                    };
+
+                    let col = columns::add_column(
+                        &state.db,
+                        board.board.id,
+                        template_col.name,
+                        Some(template_col.color),
+                        status_mapping,
+                        &position,
+                    )
+                    .await?;
+
+                    prev_pos = Some(position);
+                    final_columns.push(col);
+                }
+            }
+        }
+    }
+
     Ok(Json(BoardDetailResponse {
         id: board.board.id,
         name: board.board.name,
@@ -211,8 +261,7 @@ async fn create_board(
         created_by_id: board.board.created_by_id,
         created_at: board.board.created_at,
         updated_at: board.board.updated_at,
-        columns: board
-            .columns
+        columns: final_columns
             .into_iter()
             .map(|c| ColumnResponse {
                 id: c.id,
@@ -388,6 +437,13 @@ async fn remove_board_member(
     }
 }
 
+/// GET /api/board-templates
+///
+/// List available board templates.
+async fn list_board_templates() -> Json<Vec<board_templates::BoardTemplate>> {
+    Json(board_templates::TEMPLATES.to_vec())
+}
+
 // ============================================================================
 // Routers
 // ============================================================================
@@ -407,5 +463,13 @@ pub fn board_router(state: AppState) -> Router<AppState> {
         .route("/{id}", get(get_board).put(update_board).delete(delete_board))
         .route("/{id}/members", get(list_board_members).post(add_board_member))
         .route("/{id}/members/{user_id}", delete(remove_board_member))
+        .layer(from_fn_with_state(state.clone(), auth_middleware))
+}
+
+/// Build the board templates router
+/// Routes: /api/board-templates
+pub fn board_templates_router(state: AppState) -> Router<AppState> {
+    Router::new()
+        .route("/", get(list_board_templates))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

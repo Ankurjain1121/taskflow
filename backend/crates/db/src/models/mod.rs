@@ -10,6 +10,7 @@ pub mod activity;
 pub mod notification;
 pub mod invitation;
 pub mod subscription;
+pub mod subtask;
 pub mod ws_events;
 
 pub use common::*;
@@ -24,4 +25,5 @@ pub use activity::*;
 pub use notification::*;
 pub use invitation::*;
 pub use subscription::*;
+pub use subtask::*;
 pub use ws_events::*;

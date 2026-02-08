@@ -4,6 +4,7 @@ import {
   output,
   signal,
   inject,
+  OnInit,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -12,6 +13,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import {
   WorkspaceService,
   WorkspaceMember,
+  InvitationWithStatus,
 } from '../../../core/services/workspace.service';
 import { AuthService } from '../../../core/services/auth.service';
 import {
@@ -170,9 +172,126 @@ export interface MemberWithDetails extends WorkspaceMember {
         </div>
       }
     </div>
+
+    <!-- Pending Invitations Section -->
+    @if (isAdmin()) {
+      <div class="bg-white rounded-lg shadow mt-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-medium text-gray-900">Pending Invitations</h3>
+            @if (loadingInvitations()) {
+              <span class="text-sm text-gray-400">Loading...</span>
+            }
+          </div>
+        </div>
+
+        @if (pendingAndExpiredInvitations().length > 0) {
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Email
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Role
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Sent
+                  </th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                @for (invitation of pendingAndExpiredInvitations(); track invitation.id) {
+                  <tr class="hover:bg-gray-50">
+                    <!-- Email -->
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="flex items-center gap-3">
+                        <div
+                          class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-500"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <span class="text-sm text-gray-900">{{ invitation.email }}</span>
+                      </div>
+                    </td>
+
+                    <!-- Role -->
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span
+                        [class]="
+                          'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' +
+                          getRoleBadgeClass(invitation.role)
+                        "
+                      >
+                        {{ getRoleLabel(invitation.role) }}
+                      </span>
+                    </td>
+
+                    <!-- Status -->
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span
+                        [class]="
+                          'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' +
+                          getStatusBadgeClass(invitation.status)
+                        "
+                      >
+                        {{ getStatusLabel(invitation.status) }}
+                      </span>
+                    </td>
+
+                    <!-- Sent Date -->
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {{ formatDate(invitation.created_at) }}
+                    </td>
+
+                    <!-- Actions -->
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div class="flex items-center justify-end gap-2">
+                        @if (invitation.status === 'expired') {
+                          <button
+                            (click)="onResendInvitation(invitation)"
+                            [disabled]="actionInProgress() === invitation.id"
+                            class="text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
+                          >
+                            Resend
+                          </button>
+                        }
+                        @if (invitation.status === 'pending' || invitation.status === 'expired') {
+                          <button
+                            (click)="onCancelInvitation(invitation)"
+                            [disabled]="actionInProgress() === invitation.id"
+                            class="text-red-600 hover:text-red-900 disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else if (!loadingInvitations()) {
+          <div class="px-6 py-8 text-center text-gray-500">
+            No pending invitations
+          </div>
+        }
+      </div>
+    }
   `,
 })
-export class MembersListComponent {
+export class MembersListComponent implements OnInit {
   private workspaceService = inject(WorkspaceService);
   private authService = inject(AuthService);
   private dialog = inject(MatDialog);
@@ -183,9 +302,36 @@ export class MembersListComponent {
 
   memberRemoved = output<string>();
   memberRoleChanged = output<{ userId: string; role: string }>();
-  memberInvited = output<{ email: string; role: 'admin' | 'member' }>();
+  memberInvited = output<{ emails: string[]; role: 'admin' | 'member' }>();
 
   updatingMember = signal<string | null>(null);
+  allInvitations = signal<InvitationWithStatus[]>([]);
+  loadingInvitations = signal(false);
+  actionInProgress = signal<string | null>(null);
+
+  ngOnInit(): void {
+    this.loadInvitations();
+  }
+
+  pendingAndExpiredInvitations(): InvitationWithStatus[] {
+    return this.allInvitations().filter(
+      (inv) => inv.status === 'pending' || inv.status === 'expired'
+    );
+  }
+
+  loadInvitations(): void {
+    this.loadingInvitations.set(true);
+    this.workspaceService.listAllInvitations(this.workspaceId()).subscribe({
+      next: (invitations) => {
+        this.allInvitations.set(invitations);
+        this.loadingInvitations.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load invitations:', err);
+        this.loadingInvitations.set(false);
+      },
+    });
+  }
 
   isAdmin(): boolean {
     const user = this.authService.currentUser();
@@ -231,6 +377,24 @@ export class MembersListComponent {
     return classes[role] || 'bg-gray-100 text-gray-800';
   }
 
+  getStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      pending: 'Pending',
+      accepted: 'Accepted',
+      expired: 'Expired',
+    };
+    return labels[status] || status;
+  }
+
+  getStatusBadgeClass(status: string): string {
+    const classes: Record<string, string> = {
+      pending: 'bg-yellow-100 text-yellow-800',
+      accepted: 'bg-green-100 text-green-800',
+      expired: 'bg-red-100 text-red-800',
+    };
+    return classes[status] || 'bg-gray-100 text-gray-800';
+  }
+
   formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -250,16 +414,61 @@ export class MembersListComponent {
     dialogRef.afterClosed().subscribe((result: InviteMemberDialogResult | undefined) => {
       if (result) {
         this.workspaceService
-          .inviteMember(this.workspaceId(), result.email, result.role)
+          .bulkInviteMembers(this.workspaceId(), result.emails, result.role, result.message)
           .subscribe({
-            next: () => {
-              this.memberInvited.emit({ email: result.email, role: result.role });
+            next: (response) => {
+              this.memberInvited.emit({ emails: result.emails, role: result.role });
+              // Reload invitations to show the newly created ones
+              this.loadInvitations();
+
+              if (response.errors && response.errors.length > 0) {
+                const errorMessages = response.errors
+                  .map((e) => `${e.email}: ${e.reason}`)
+                  .join('\n');
+                console.warn('Some invitations failed:', errorMessages);
+              }
             },
             error: (err) => {
-              console.error('Failed to invite member:', err);
+              console.error('Failed to invite members:', err);
             },
           });
       }
+    });
+  }
+
+  onResendInvitation(invitation: InvitationWithStatus): void {
+    this.actionInProgress.set(invitation.id);
+
+    this.workspaceService.resendInvitation(invitation.id).subscribe({
+      next: () => {
+        this.loadInvitations();
+        this.actionInProgress.set(null);
+      },
+      error: (err) => {
+        console.error('Failed to resend invitation:', err);
+        this.actionInProgress.set(null);
+      },
+    });
+  }
+
+  onCancelInvitation(invitation: InvitationWithStatus): void {
+    if (!confirm(`Cancel the invitation sent to ${invitation.email}?`)) {
+      return;
+    }
+
+    this.actionInProgress.set(invitation.id);
+
+    this.workspaceService.cancelInvitation(invitation.id).subscribe({
+      next: () => {
+        this.allInvitations.update((invitations) =>
+          invitations.filter((inv) => inv.id !== invitation.id)
+        );
+        this.actionInProgress.set(null);
+      },
+      error: (err) => {
+        console.error('Failed to cancel invitation:', err);
+        this.actionInProgress.set(null);
+      },
     });
   }
 

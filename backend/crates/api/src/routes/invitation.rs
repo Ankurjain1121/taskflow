@@ -32,6 +32,26 @@ pub struct CreateInvitationRequest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct BulkCreateInvitationRequest {
+    pub emails: Vec<String>,
+    pub workspace_id: Uuid,
+    pub role: UserRole,
+    pub message: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BulkInvitationError {
+    pub email: String,
+    pub reason: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BulkCreateInvitationResponse {
+    pub created: Vec<InvitationResponse>,
+    pub errors: Vec<BulkInvitationError>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct AcceptInvitationRequest {
     pub token: Uuid,
     pub name: String,
@@ -52,6 +72,18 @@ pub struct InvitationResponse {
     pub token: Uuid,
     pub expires_at: chrono::DateTime<chrono::Utc>,
     pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct InvitationWithStatusResponse {
+    pub id: Uuid,
+    pub email: String,
+    pub workspace_id: Uuid,
+    pub role: UserRole,
+    pub token: Uuid,
+    pub expires_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub status: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -299,6 +331,179 @@ pub async fn list_handler(
     Ok(Json(invitations.into_iter().map(Into::into).collect()))
 }
 
+/// POST /api/invitations/bulk
+///
+/// Create multiple invitations at once.
+/// Skips emails that already have a user account or pending invitation, tracking per-email errors.
+/// Requires authentication.
+pub async fn bulk_create_handler(
+    State(state): State<AppState>,
+    auth: AuthUserExtractor,
+    Json(payload): Json<BulkCreateInvitationRequest>,
+) -> Result<Json<BulkCreateInvitationResponse>> {
+    if payload.emails.is_empty() {
+        return Err(AppError::BadRequest("At least one email is required".into()));
+    }
+
+    if payload.emails.len() > 50 {
+        return Err(AppError::BadRequest("Cannot invite more than 50 emails at once".into()));
+    }
+
+    let expires_at = Utc::now() + Duration::days(7);
+    let mut created = Vec::new();
+    let mut errors = Vec::new();
+
+    for raw_email in &payload.emails {
+        let email = raw_email.trim().to_lowercase();
+
+        // Validate email format
+        if email.is_empty() || !email.contains('@') {
+            errors.push(BulkInvitationError {
+                email: email.clone(),
+                reason: "Invalid email address".into(),
+            });
+            continue;
+        }
+
+        // Check if user already exists
+        match auth::get_user_by_email(&state.db, &email).await {
+            Ok(Some(_)) => {
+                errors.push(BulkInvitationError {
+                    email: email.clone(),
+                    reason: "User with this email already exists".into(),
+                });
+                continue;
+            }
+            Ok(None) => {}
+            Err(e) => {
+                errors.push(BulkInvitationError {
+                    email: email.clone(),
+                    reason: format!("Database error: {}", e),
+                });
+                continue;
+            }
+        }
+
+        // Check if a pending invitation already exists
+        match invitations::get_pending_invitation_by_email(&state.db, &email, payload.workspace_id).await {
+            Ok(Some(_)) => {
+                errors.push(BulkInvitationError {
+                    email: email.clone(),
+                    reason: "A pending invitation already exists for this email".into(),
+                });
+                continue;
+            }
+            Ok(None) => {}
+            Err(e) => {
+                errors.push(BulkInvitationError {
+                    email: email.clone(),
+                    reason: format!("Database error: {}", e),
+                });
+                continue;
+            }
+        }
+
+        // Create the invitation
+        match invitations::create_invitation(
+            &state.db,
+            &email,
+            payload.workspace_id,
+            payload.role,
+            auth.0.user_id,
+            expires_at,
+        )
+        .await
+        {
+            Ok(invitation) => {
+                created.push(invitation.into());
+            }
+            Err(e) => {
+                errors.push(BulkInvitationError {
+                    email: email.clone(),
+                    reason: format!("Failed to create invitation: {}", e),
+                });
+            }
+        }
+    }
+
+    Ok(Json(BulkCreateInvitationResponse { created, errors }))
+}
+
+/// GET /api/invitations/all?workspace_id=<uuid>
+///
+/// List ALL invitations (pending, accepted, expired) for a workspace with status.
+/// Requires authentication.
+pub async fn list_all_handler(
+    State(state): State<AppState>,
+    _auth: AuthUserExtractor,
+    Query(query): Query<ListInvitationsQuery>,
+) -> Result<Json<Vec<InvitationWithStatusResponse>>> {
+    let all_invitations = invitations::list_all_invitations(&state.db, query.workspace_id).await?;
+    let now = Utc::now();
+
+    let responses: Vec<InvitationWithStatusResponse> = all_invitations
+        .into_iter()
+        .map(|inv| {
+            let status = if inv.accepted_at.is_some() {
+                "accepted".to_string()
+            } else if inv.expires_at < now {
+                "expired".to_string()
+            } else {
+                "pending".to_string()
+            };
+
+            InvitationWithStatusResponse {
+                id: inv.id,
+                email: inv.email,
+                workspace_id: inv.workspace_id,
+                role: inv.role,
+                token: inv.token,
+                expires_at: inv.expires_at,
+                created_at: inv.created_at,
+                status,
+            }
+        })
+        .collect();
+
+    Ok(Json(responses))
+}
+
+/// DELETE /api/invitations/{id}
+///
+/// Delete a pending invitation.
+/// Requires authentication.
+pub async fn delete_handler(
+    State(state): State<AppState>,
+    _auth: AuthUserExtractor,
+    Path(id): Path<Uuid>,
+) -> Result<Json<serde_json::Value>> {
+    let deleted = invitations::delete_invitation(&state.db, id).await?;
+
+    if !deleted {
+        return Err(AppError::NotFound("Invitation not found or already accepted".into()));
+    }
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+/// POST /api/invitations/{id}/resend
+///
+/// Resend an invitation by generating a new token and extending the expiry.
+/// Requires authentication.
+pub async fn resend_handler(
+    State(state): State<AppState>,
+    _auth: AuthUserExtractor,
+    Path(id): Path<Uuid>,
+) -> Result<Json<InvitationResponse>> {
+    let new_expires_at = Utc::now() + Duration::days(7);
+
+    let invitation = invitations::resend_invitation(&state.db, id, new_expires_at)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Invitation not found".into()))?;
+
+    Ok(Json(invitation.into()))
+}
+
 // ============================================================================
 // Router
 // ============================================================================
@@ -312,6 +517,10 @@ pub async fn list_handler(
 /// Protected routes (require auth middleware):
 /// - POST /
 /// - GET / (with workspace_id query param)
+/// - POST /bulk
+/// - GET /all (with workspace_id query param)
+/// - DELETE /{id}
+/// - POST /{id}/resend
 pub fn invitation_router() -> Router<AppState> {
     Router::new()
         .route("/", post(create_handler))

@@ -41,6 +41,8 @@ export interface Task {
   updated_at: string;
   assignees?: Assignee[];
   labels?: Label[];
+  subtask_completed?: number;
+  subtask_total?: number;
 }
 
 export interface TaskLabel {
@@ -55,6 +57,20 @@ export interface Label {
   name: string;
   color: string;
   created_at: string;
+}
+
+export interface TaskListItem {
+  id: string;
+  title: string;
+  description: string | null;
+  priority: TaskPriority;
+  due_date: string | null;
+  column_id: string;
+  column_name: string;
+  position: string;
+  created_by_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreateTaskRequest {
@@ -125,6 +141,12 @@ export class TaskService {
   listByBoard(boardId: string): Observable<Record<string, Task[]>> {
     return this.http.get<Record<string, Task[]>>(
       `${this.apiUrl}/boards/${boardId}/tasks`
+    );
+  }
+
+  listFlat(boardId: string): Observable<TaskListItem[]> {
+    return this.http.get<TaskListItem[]>(
+      `${this.apiUrl}/boards/${boardId}/tasks/list`
     );
   }
 

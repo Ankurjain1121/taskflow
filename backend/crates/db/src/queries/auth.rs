@@ -92,6 +92,59 @@ pub async fn revoke_refresh_token(pool: &PgPool, token_id: Uuid) -> Result<(), s
     Ok(())
 }
 
+/// Create a new user with a new tenant (for self-registration)
+pub async fn create_user_with_tenant(
+    pool: &PgPool,
+    email: &str,
+    name: &str,
+    password_hash: &str,
+) -> Result<User, sqlx::Error> {
+    let tenant_id = Uuid::new_v4();
+    let slug = format!(
+        "{}-{}",
+        name.to_lowercase().replace(' ', "-"),
+        &tenant_id.to_string()[..8]
+    );
+
+    // Create tenant
+    sqlx::query(
+        r#"INSERT INTO tenants (id, name, slug) VALUES ($1, $2, $3)"#,
+    )
+    .bind(tenant_id)
+    .bind(format!("{}'s Team", name))
+    .bind(&slug)
+    .execute(pool)
+    .await?;
+
+    // Create user as admin of the new tenant
+    sqlx::query_as::<_, User>(
+        r#"
+        INSERT INTO users (id, email, name, password_hash, role, tenant_id, onboarding_completed, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, 'admin', $5, false, NOW(), NOW())
+        RETURNING id, email, name, password_hash, avatar_url, phone_number, role,
+                  tenant_id, onboarding_completed, deleted_at, created_at, updated_at
+        "#,
+    )
+    .bind(Uuid::new_v4())
+    .bind(email)
+    .bind(name)
+    .bind(password_hash)
+    .bind(tenant_id)
+    .fetch_one(pool)
+    .await
+}
+
+/// Revoke all refresh tokens for a user
+pub async fn revoke_all_user_tokens(pool: &PgPool, user_id: Uuid) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL"#,
+    )
+    .bind(user_id)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
 /// Create a new user (used during invitation acceptance)
 pub async fn create_user(
     pool: &PgPool,
@@ -117,4 +170,68 @@ pub async fn create_user(
     .bind(tenant_id)
     .fetch_one(pool)
     .await
+}
+
+/// Create a password reset token
+pub async fn create_password_reset_token(
+    pool: &PgPool,
+    user_id: Uuid,
+    token_hash: &str,
+    expires_at: DateTime<Utc>,
+) -> Result<Uuid, sqlx::Error> {
+    let id = Uuid::new_v4();
+    sqlx::query(
+        r#"
+        INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at)
+        VALUES ($1, $2, $3, $4)
+        "#,
+    )
+    .bind(id)
+    .bind(user_id)
+    .bind(token_hash)
+    .bind(expires_at)
+    .execute(pool)
+    .await?;
+    Ok(id)
+}
+
+/// Find a valid (unexpired, unused) password reset token by hash
+pub async fn get_valid_reset_token(
+    pool: &PgPool,
+    token_hash: &str,
+) -> Result<Option<(Uuid, Uuid)>, sqlx::Error> {
+    // Returns (token_id, user_id)
+    let row = sqlx::query_as::<_, (Uuid, Uuid)>(
+        r#"
+        SELECT id, user_id FROM password_reset_tokens
+        WHERE token_hash = $1 AND expires_at > NOW() AND used_at IS NULL
+        "#,
+    )
+    .bind(token_hash)
+    .fetch_optional(pool)
+    .await?;
+    Ok(row)
+}
+
+/// Mark a password reset token as used
+pub async fn mark_reset_token_used(pool: &PgPool, token_id: Uuid) -> Result<(), sqlx::Error> {
+    sqlx::query("UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1")
+        .bind(token_id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+/// Update a user's password hash
+pub async fn update_user_password(
+    pool: &PgPool,
+    user_id: Uuid,
+    new_password_hash: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query("UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2")
+        .bind(new_password_hash)
+        .bind(user_id)
+        .execute(pool)
+        .await?;
+    Ok(())
 }

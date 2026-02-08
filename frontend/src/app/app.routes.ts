@@ -14,6 +14,27 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'sign-up',
+        loadComponent: () =>
+          import('./features/auth/sign-up/sign-up.component').then(
+            (m) => m.SignUpComponent
+          ),
+      },
+      {
+        path: 'forgot-password',
+        loadComponent: () =>
+          import('./features/auth/forgot-password/forgot-password.component').then(
+            (m) => m.ForgotPasswordComponent
+          ),
+      },
+      {
+        path: 'reset-password',
+        loadComponent: () =>
+          import('./features/auth/reset-password/reset-password.component').then(
+            (m) => m.ResetPasswordComponent
+          ),
+      },
+      {
         path: 'accept-invite',
         loadComponent: () =>
           import('./features/auth/accept-invite/accept-invite.component').then(

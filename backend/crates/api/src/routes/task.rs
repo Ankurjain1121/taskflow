@@ -15,8 +15,8 @@ use crate::state::AppState;
 use taskflow_db::models::{Task, TaskBroadcast, TaskPriority, WsBoardEvent};
 use taskflow_db::queries::{
     assign_user, create_task, get_task_assignee_ids, get_task_board_id, get_task_by_id,
-    list_tasks_by_board, move_task, soft_delete_task, unassign_user, update_task,
-    CreateTaskInput, TaskQueryError, TaskWithDetails, UpdateTaskInput,
+    list_tasks_by_board, list_tasks_flat, move_task, soft_delete_task, unassign_user, update_task,
+    CreateTaskInput, TaskListItem, TaskQueryError, TaskWithDetails, UpdateTaskInput,
 };
 use taskflow_services::broadcast::events;
 use taskflow_services::BroadcastService;
@@ -693,11 +693,29 @@ async fn unassign_user_handler(
     Ok(Json(json!({ "success": true })))
 }
 
+/// GET /api/boards/:board_id/tasks/list
+/// List all tasks for a board as a flat list with column names
+async fn list_tasks_flat_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+    Path(board_id): Path<Uuid>,
+) -> Result<Json<Vec<TaskListItem>>> {
+    let tasks = list_tasks_flat(&state.db, board_id, tenant.user_id)
+        .await
+        .map_err(|e| match e {
+            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
+            TaskQueryError::Database(e) => AppError::SqlxError(e),
+        })?;
+    Ok(Json(tasks))
+}
+
 /// Create the task router
 pub fn task_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Board-scoped task routes
         .route("/boards/{board_id}/tasks", get(list_tasks))
+        .route("/boards/{board_id}/tasks/list", get(list_tasks_flat_handler))
         .route("/boards/{board_id}/tasks", post(create_task_handler))
         // Task-specific routes
         .route("/tasks/{id}", get(get_task))

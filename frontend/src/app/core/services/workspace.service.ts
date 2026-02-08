@@ -86,6 +86,37 @@ export class WorkspaceService {
       { params: { q: query, limit: limit.toString() } }
     );
   }
+
+  bulkInviteMembers(
+    workspaceId: string,
+    emails: string[],
+    role: 'admin' | 'member',
+    message?: string
+  ): Observable<BulkInviteResponse> {
+    return this.http.post<BulkInviteResponse>('/api/v1/invitations/bulk', {
+      emails,
+      workspace_id: workspaceId,
+      role,
+      message,
+    });
+  }
+
+  listAllInvitations(workspaceId: string): Observable<InvitationWithStatus[]> {
+    return this.http.get<InvitationWithStatus[]>('/api/v1/invitations/all', {
+      params: { workspace_id: workspaceId },
+    });
+  }
+
+  cancelInvitation(invitationId: string): Observable<void> {
+    return this.http.delete<void>(`/api/v1/invitations/${invitationId}`);
+  }
+
+  resendInvitation(invitationId: string): Observable<InvitationWithStatus> {
+    return this.http.post<InvitationWithStatus>(
+      `/api/v1/invitations/${invitationId}/resend`,
+      {}
+    );
+  }
 }
 
 export interface MemberSearchResult {
@@ -93,4 +124,20 @@ export interface MemberSearchResult {
   name: string;
   email: string;
   avatar_url: string | null;
+}
+
+export interface InvitationWithStatus {
+  id: string;
+  email: string;
+  workspace_id: string;
+  role: string;
+  token: string;
+  expires_at: string;
+  created_at: string;
+  status: 'pending' | 'accepted' | 'expired';
+}
+
+export interface BulkInviteResponse {
+  created: InvitationWithStatus[];
+  errors: { email: string; reason: string }[];
 }

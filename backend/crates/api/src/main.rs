@@ -19,11 +19,11 @@ use crate::config::Config;
 use crate::middleware::auth_middleware;
 use crate::routes::{
     activity_log_router, admin_audit_router, admin_trash_router, admin_users_router,
-    attachment_router, board_columns_router, board_router, column_router,
+    attachment_router, board_columns_router, board_router, board_templates_router, column_router,
     comment_router, cron_router, health_handler, liveness_handler,
     my_tasks_router, notification_preferences_router, notification_router, onboarding_router,
-    readiness_handler, task_router, team_overview_router, workspace_boards_router,
-    workspace_router,
+    readiness_handler, search_router, subtask_router, task_router, team_overview_router,
+    workspace_boards_router, workspace_router,
 };
 use crate::state::AppState;
 use crate::ws::ws_handler;
@@ -69,12 +69,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/auth/me", get(routes::auth::me_handler))
         .route("/invitations", axum::routing::post(routes::invitation::create_handler))
         .route("/invitations", get(routes::invitation::list_handler))
+        .route("/invitations/bulk", axum::routing::post(routes::invitation::bulk_create_handler))
+        .route("/invitations/all", get(routes::invitation::list_all_handler))
+        .route("/invitations/{id}", axum::routing::delete(routes::invitation::delete_handler))
+        .route("/invitations/{id}/resend", axum::routing::post(routes::invitation::resend_handler))
         .layer(from_fn_with_state(state.clone(), auth_middleware));
 
     // Build public routes
     let public_routes = Router::new()
         .route("/auth/sign-in", axum::routing::post(routes::auth::sign_in_handler))
+        .route("/auth/sign-up", axum::routing::post(routes::auth::sign_up_handler))
         .route("/auth/refresh", axum::routing::post(routes::auth::refresh_handler))
+        .route("/auth/forgot-password", axum::routing::post(routes::auth::forgot_password_handler))
+        .route("/auth/reset-password", axum::routing::post(routes::auth::reset_password_handler))
         .route("/invitations/validate/{token}", get(routes::invitation::validate_handler))
         .route("/invitations/accept", axum::routing::post(routes::invitation::accept_handler))
         .route("/ws", get(ws_handler));
@@ -88,6 +95,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", protected_routes)
         .nest("/api", public_routes)
         .nest("/api", task_router(state.clone()))
+        .nest("/api", subtask_router(state.clone()))
         .nest("/api", attachment_router(state.clone()))
         // Comment routes
         .nest("/api", comment_router(state.clone()))
@@ -97,6 +105,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api/workspaces", workspace_router(state.clone()))
         .nest("/api/workspaces/{workspace_id}/boards", workspace_boards_router(state.clone()))
         // Board routes
+        .nest("/api/board-templates", board_templates_router(state.clone()))
         .nest("/api/boards", board_router(state.clone()))
         .nest("/api/boards/{board_id}/columns", board_columns_router(state.clone()))
         // Column routes
@@ -116,6 +125,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", admin_audit_router(state.clone()))
         .nest("/api", admin_users_router(state.clone()))
         .nest("/api", admin_trash_router(state.clone()))
+        // Search routes
+        .nest("/api", search_router(state.clone()))
         .layer(TraceLayer::new_for_http())
         .layer(CompressionLayer::new())
         .layer(cors)

@@ -80,6 +80,12 @@ import { AuthService } from '../../../core/services/auth.service';
               }
             </mat-form-field>
 
+            <div class="flex justify-end mb-4 -mt-2">
+              <a routerLink="/auth/forgot-password" class="text-sm text-blue-600 hover:underline">
+                Forgot password?
+              </a>
+            </div>
+
             @if (errorMessage) {
               <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
                 {{ errorMessage }}

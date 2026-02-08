@@ -15,6 +15,8 @@ import { Subject, debounceTime, takeUntil } from 'rxjs';
 import { TaskPriority, Assignee } from '../../../core/services/task.service';
 import { PRIORITY_COLORS, getPriorityLabel } from '../../../shared/utils/task-colors';
 
+export type ViewMode = 'kanban' | 'list';
+
 export interface TaskFilters {
   search: string;
   priorities: TaskPriority[];
@@ -218,6 +220,40 @@ const DEFAULT_FILTERS: TaskFilters = {
           />
         </div>
 
+        <!-- View Toggle -->
+        <div class="flex items-center border border-gray-300 rounded-md overflow-hidden ml-auto">
+          <button
+            (click)="viewModeChanged.emit('kanban')"
+            class="px-3 py-2 text-sm transition-colors"
+            [class.bg-indigo-600]="viewMode() === 'kanban'"
+            [class.text-white]="viewMode() === 'kanban'"
+            [class.bg-white]="viewMode() !== 'kanban'"
+            [class.text-gray-600]="viewMode() !== 'kanban'"
+            [class.hover:bg-gray-50]="viewMode() !== 'kanban'"
+            title="Kanban View"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+            </svg>
+          </button>
+          <button
+            (click)="viewModeChanged.emit('list')"
+            class="px-3 py-2 text-sm transition-colors"
+            [class.bg-indigo-600]="viewMode() === 'list'"
+            [class.text-white]="viewMode() === 'list'"
+            [class.bg-white]="viewMode() !== 'list'"
+            [class.text-gray-600]="viewMode() !== 'list'"
+            [class.hover:bg-gray-50]="viewMode() !== 'list'"
+            title="List View"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+
         <!-- Clear Filters -->
         @if (activeFilterCount() > 0) {
           <button
@@ -254,8 +290,10 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
   private searchSubject = new Subject<string>();
 
   assignees = input<Assignee[]>([]);
+  viewMode = input<ViewMode>('kanban');
 
   filtersChanged = output<TaskFilters>();
+  viewModeChanged = output<ViewMode>();
 
   searchTerm = signal('');
   filters = signal<TaskFilters>({ ...DEFAULT_FILTERS });

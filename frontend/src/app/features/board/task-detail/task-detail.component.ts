@@ -25,11 +25,12 @@ import {
   getPriorityLabel,
   getDueDateColor,
 } from '../../../shared/utils/task-colors';
+import { SubtaskListComponent } from '../subtask-list/subtask-list.component';
 
 @Component({
   selector: 'app-task-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SubtaskListComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Backdrop -->
@@ -321,6 +322,11 @@ import {
                   <span class="text-sm text-gray-400">No labels</span>
                 }
               </div>
+            </div>
+
+            <!-- Subtasks / Checklist -->
+            <div class="border-t border-gray-200 pt-6">
+              <app-subtask-list [taskId]="taskId()" />
             </div>
 
             <!-- Comments Placeholder -->

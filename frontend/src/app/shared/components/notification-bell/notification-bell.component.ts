@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,9 +7,19 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatChipsModule } from '@angular/material/chips';
 import { CdkScrollableModule } from '@angular/cdk/scrolling';
-import { NotificationService, Notification } from '../../../core/services/notification.service';
+import { NotificationService, Notification, NotificationEventType } from '../../../core/services/notification.service';
 import { NotificationItemComponent } from './notification-item.component';
+
+type NotificationTab = 'all' | 'assignments' | 'comments' | 'mentions' | 'deadlines';
+
+const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEventType[]> = {
+  assignments: ['task_assigned', 'task_completed'],
+  comments: ['task_commented'],
+  mentions: ['mention_in_comment'],
+  deadlines: ['task_due_soon', 'task_overdue'],
+};
 
 @Component({
   selector: 'app-notification-bell',
@@ -22,6 +32,7 @@ import { NotificationItemComponent } from './notification-item.component';
     MatMenuModule,
     MatDividerModule,
     MatProgressSpinnerModule,
+    MatChipsModule,
     CdkScrollableModule,
     NotificationItemComponent,
   ],
@@ -63,6 +74,22 @@ import { NotificationItemComponent } from './notification-item.component';
           </button>
         </div>
 
+        <!-- Filter tabs -->
+        <div class="px-3 py-2 border-b overflow-x-auto">
+          <mat-chip-listbox
+            [value]="activeTab()"
+            (change)="onTabChange($event.value)"
+            class="flex gap-1"
+            aria-label="Filter notifications"
+          >
+            <mat-chip-option value="all" class="text-xs">All</mat-chip-option>
+            <mat-chip-option value="assignments" class="text-xs">Assignments</mat-chip-option>
+            <mat-chip-option value="comments" class="text-xs">Comments</mat-chip-option>
+            <mat-chip-option value="mentions" class="text-xs">Mentions</mat-chip-option>
+            <mat-chip-option value="deadlines" class="text-xs">Deadlines</mat-chip-option>
+          </mat-chip-listbox>
+        </div>
+
         <!-- Notification list -->
         <div
           #scrollContainer
@@ -71,11 +98,13 @@ import { NotificationItemComponent } from './notification-item.component';
         >
           <!-- Empty state -->
           <div
-            *ngIf="notificationService.notifications().length === 0 && !isInitialLoading()"
+            *ngIf="filteredNotifications().length === 0 && !isInitialLoading()"
             class="flex flex-col items-center justify-center py-8 px-4"
           >
             <mat-icon class="text-gray-300 text-5xl mb-2">notifications_none</mat-icon>
-            <p class="text-gray-500 text-sm">No notifications yet</p>
+            <p class="text-gray-500 text-sm">
+              {{ activeTab() === 'all' ? 'No notifications yet' : 'No ' + activeTab() + ' notifications' }}
+            </p>
           </div>
 
           <!-- Initial loading -->
@@ -89,7 +118,7 @@ import { NotificationItemComponent } from './notification-item.component';
           <!-- Notification items -->
           <div *ngIf="!isInitialLoading()">
             <app-notification-item
-              *ngFor="let notification of notificationService.notifications()"
+              *ngFor="let notification of filteredNotifications()"
               [notification]="notification"
               (notificationClick)="onNotificationClick($event)"
             ></app-notification-item>
@@ -104,7 +133,7 @@ import { NotificationItemComponent } from './notification-item.component';
 
             <!-- End of list -->
             <div
-              *ngIf="!notificationService.hasMore() && notificationService.notifications().length > 0"
+              *ngIf="!notificationService.hasMore() && filteredNotifications().length > 0"
               class="text-center py-3 text-gray-400 text-sm"
             >
               No more notifications
@@ -147,8 +176,19 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
   @ViewChild(MatMenuTrigger) menuTrigger!: MatMenuTrigger;
 
+  activeTab = signal<NotificationTab>('all');
   isInitialLoading = signal(false);
   private hasLoadedInitial = false;
+
+  filteredNotifications = computed(() => {
+    const tab = this.activeTab();
+    const notifications = this.notificationService.notifications();
+    if (tab === 'all') {
+      return notifications;
+    }
+    const allowedTypes = TAB_EVENT_TYPES[tab];
+    return notifications.filter((n) => allowedTypes.includes(n.event_type));
+  });
 
   constructor(
     public notificationService: NotificationService,
@@ -222,6 +262,12 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
 
   markAllRead(): void {
     this.notificationService.markAllRead().subscribe();
+  }
+
+  onTabChange(tab: NotificationTab): void {
+    if (tab) {
+      this.activeTab.set(tab);
+    }
   }
 
   goToSettings(): void {

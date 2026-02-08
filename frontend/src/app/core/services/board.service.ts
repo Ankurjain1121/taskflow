@@ -32,6 +32,7 @@ export interface Column {
 export interface CreateBoardRequest {
   name: string;
   description?: string;
+  template?: string;
 }
 
 export interface UpdateBoardRequest {

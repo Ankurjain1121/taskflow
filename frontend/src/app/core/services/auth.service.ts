@@ -26,6 +26,12 @@ export interface SignInRequest {
   password: string;
 }
 
+export interface SignUpRequest {
+  name: string;
+  email: string;
+  password: string;
+}
+
 const ACCESS_TOKEN_KEY = 'taskflow_access_token';
 const REFRESH_TOKEN_KEY = 'taskflow_refresh_token';
 const USER_KEY = 'taskflow_user';
@@ -53,6 +59,18 @@ export class AuthService {
         tap((response) => this.handleAuthSuccess(response)),
         catchError((error) => {
           console.error('Sign in failed:', error);
+          return throwError(() => error);
+        })
+      );
+  }
+
+  signUp(request: SignUpRequest): Observable<TokenResponse> {
+    return this.http
+      .post<TokenResponse>(`${this.apiUrl}/sign-up`, request)
+      .pipe(
+        tap((response) => this.handleAuthSuccess(response)),
+        catchError((error) => {
+          console.error('Sign up failed:', error);
           return throwError(() => error);
         })
       );
@@ -99,6 +117,17 @@ export class AuthService {
 
   isRefreshInProgress(): boolean {
     return this.refreshInProgress$.value;
+  }
+
+  forgotPassword(email: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.apiUrl}/forgot-password`, { email });
+  }
+
+  resetPassword(token: string, newPassword: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.apiUrl}/reset-password`, {
+      token,
+      new_password: newPassword,
+    });
   }
 
   private handleAuthSuccess(response: TokenResponse): void {

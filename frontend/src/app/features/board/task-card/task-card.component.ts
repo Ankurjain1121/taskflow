@@ -2,6 +2,9 @@ import {
   Component,
   input,
   output,
+  signal,
+  inject,
+  OnInit,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -14,6 +17,7 @@ import {
   isOverdue,
   isToday,
 } from '../../../shared/utils/task-colors';
+import { SubtaskService, SubtaskProgress } from '../../../core/services/subtask.service';
 
 @Component({
   selector: 'app-task-card',
@@ -92,6 +96,30 @@ import {
                 {{ formatDueDate(task().due_date!) }}
               </span>
             }
+
+            <!-- Subtask Progress -->
+            @if (subtaskProgress() && subtaskProgress()!.total > 0) {
+              <span
+                class="flex items-center gap-1 text-xs"
+                [class.text-green-600]="subtaskProgress()!.completed === subtaskProgress()!.total"
+                [class.text-gray-500]="subtaskProgress()!.completed !== subtaskProgress()!.total"
+              >
+                <svg
+                  class="w-3 h-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                {{ subtaskProgress()!.completed }}/{{ subtaskProgress()!.total }}
+              </span>
+            }
           </div>
 
           <!-- Assignees -->
@@ -159,10 +187,18 @@ import {
     `,
   ],
 })
-export class TaskCardComponent {
+export class TaskCardComponent implements OnInit {
+  private subtaskService = inject(SubtaskService);
+
   task = input.required<Task>();
 
   taskClicked = output<Task>();
+
+  subtaskProgress = signal<SubtaskProgress | null>(null);
+
+  ngOnInit(): void {
+    this.loadSubtaskProgress();
+  }
 
   get priorityColors() {
     return getPriorityColor(this.task().priority);
@@ -228,5 +264,18 @@ export class TaskCardComponent {
     if (!(event.target as HTMLElement).closest('.cdk-drag-preview')) {
       this.taskClicked.emit(this.task());
     }
+  }
+
+  private loadSubtaskProgress(): void {
+    this.subtaskService.list(this.task().id).subscribe({
+      next: (response) => {
+        if (response.progress.total > 0) {
+          this.subtaskProgress.set(response.progress);
+        }
+      },
+      error: () => {
+        // Silently ignore - subtask progress is optional
+      },
+    });
   }
 }

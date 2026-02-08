@@ -1,8 +1,10 @@
-import { Injectable, signal, computed, OnDestroy } from '@angular/core';
+import { Injectable, signal, computed, OnDestroy, inject } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, interval, Subscription, tap, switchMap, filter, startWith } from 'rxjs';
 import { WebSocketService, WebSocketMessage } from './websocket.service';
 import { AuthService } from './auth.service';
+import { ToastService } from '../../shared/components/toast/toast.service';
 
 export type NotificationEventType =
   | 'task_assigned'
@@ -61,6 +63,9 @@ export class NotificationService implements OnDestroy {
     return count.toString();
   });
 
+  private toastService = inject(ToastService);
+  private document = inject(DOCUMENT);
+
   constructor(
     private http: HttpClient,
     private wsService: WebSocketService,
@@ -85,6 +90,17 @@ export class NotificationService implements OnDestroy {
         const notification = message.payload as Notification;
         this._notifications.update((notifications) => [notification, ...notifications]);
         this._unreadCount.update((count) => count + 1);
+
+        // Show toast only when the page is visible
+        if (!this.document.hidden) {
+          this.toastService.show({
+            id: notification.id,
+            event_type: notification.event_type,
+            title: notification.title,
+            body: notification.body,
+            link_url: notification.link_url,
+          });
+        }
       });
 
     // Connect WebSocket if not already connected
