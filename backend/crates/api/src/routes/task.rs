@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
     Json, Router,
@@ -14,9 +14,11 @@ use crate::middleware::auth_middleware;
 use crate::state::AppState;
 use taskflow_db::models::{Task, TaskBroadcast, TaskPriority, WsBoardEvent};
 use taskflow_db::queries::{
-    assign_user, create_task, get_task_assignee_ids, get_task_board_id, get_task_by_id,
-    list_tasks_by_board, list_tasks_flat, move_task, soft_delete_task, unassign_user, update_task,
-    CreateTaskInput, TaskListItem, TaskQueryError, TaskWithDetails, UpdateTaskInput,
+    assign_user, bulk_delete_tasks, bulk_update_tasks, create_task, get_task_assignee_ids,
+    get_task_board_id, get_task_by_id, list_tasks_by_board, list_tasks_flat,
+    list_tasks_for_calendar, list_tasks_for_gantt, move_task, soft_delete_task, unassign_user,
+    update_task, BulkUpdateInput, CalendarTask, CreateTaskInput, GanttTask, TaskListItem,
+    TaskQueryError, TaskWithDetails, UpdateTaskInput,
 };
 use taskflow_services::broadcast::events;
 use taskflow_services::BroadcastService;
@@ -34,8 +36,12 @@ pub struct CreateTaskRequest {
     pub description: Option<String>,
     pub priority: TaskPriority,
     pub due_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub start_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub estimated_hours: Option<f64>,
     pub column_id: Uuid,
+    pub milestone_id: Option<Uuid>,
     pub assignee_ids: Option<Vec<Uuid>>,
+    pub label_ids: Option<Vec<Uuid>>,
 }
 
 /// Request body for updating a task
@@ -45,6 +51,9 @@ pub struct UpdateTaskRequest {
     pub description: Option<String>,
     pub priority: Option<TaskPriority>,
     pub due_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub start_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub estimated_hours: Option<f64>,
+    pub milestone_id: Option<Uuid>,
 }
 
 /// Request body for moving a task
@@ -185,8 +194,12 @@ async fn create_task_handler(
         description: body.description,
         priority: body.priority,
         due_date: body.due_date,
+        start_date: body.start_date,
+        estimated_hours: body.estimated_hours,
         column_id: body.column_id,
+        milestone_id: body.milestone_id,
         assignee_ids: body.assignee_ids.clone(),
+        label_ids: body.label_ids,
     };
 
     let task = create_task(&state.db, board_id, input, tenant.tenant_id, tenant.user_id)
@@ -269,6 +282,9 @@ async fn update_task_handler(
         description: body.description,
         priority: body.priority,
         due_date: body.due_date,
+        start_date: body.start_date,
+        estimated_hours: body.estimated_hours,
+        milestone_id: body.milestone_id,
     };
 
     let task = update_task(&state.db, task_id, input)
@@ -525,9 +541,12 @@ async fn assign_user_handler(
             description,
             priority as "priority: TaskPriority",
             due_date,
+            start_date,
+            estimated_hours,
             board_id,
             column_id,
             position,
+            milestone_id,
             tenant_id,
             created_by_id,
             deleted_at,
@@ -640,9 +659,12 @@ async fn unassign_user_handler(
             description,
             priority as "priority: TaskPriority",
             due_date,
+            start_date,
+            estimated_hours,
             board_id,
             column_id,
             position,
+            milestone_id,
             tenant_id,
             created_by_id,
             deleted_at,
@@ -710,12 +732,116 @@ async fn list_tasks_flat_handler(
     Ok(Json(tasks))
 }
 
+/// Query params for calendar endpoint
+#[derive(Deserialize)]
+pub struct CalendarQuery {
+    pub start: chrono::DateTime<chrono::Utc>,
+    pub end: chrono::DateTime<chrono::Utc>,
+}
+
+/// GET /api/boards/{board_id}/tasks/calendar?start=&end=
+async fn list_calendar_tasks_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+    Path(board_id): Path<Uuid>,
+    Query(query): Query<CalendarQuery>,
+) -> Result<Json<Vec<CalendarTask>>> {
+    let tasks = list_tasks_for_calendar(&state.db, board_id, tenant.user_id, query.start, query.end)
+        .await
+        .map_err(|e| match e {
+            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
+            TaskQueryError::Database(e) => AppError::SqlxError(e),
+        })?;
+    Ok(Json(tasks))
+}
+
+/// GET /api/boards/{board_id}/tasks/gantt
+async fn list_gantt_tasks_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+    Path(board_id): Path<Uuid>,
+) -> Result<Json<Vec<GanttTask>>> {
+    let tasks = list_tasks_for_gantt(&state.db, board_id, tenant.user_id)
+        .await
+        .map_err(|e| match e {
+            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
+            TaskQueryError::Database(e) => AppError::SqlxError(e),
+        })?;
+    Ok(Json(tasks))
+}
+
 /// Create the task router
+/// Request body for bulk update
+#[derive(Deserialize)]
+pub struct BulkUpdateRequest {
+    pub task_ids: Vec<Uuid>,
+    pub column_id: Option<Uuid>,
+    pub priority: Option<TaskPriority>,
+    pub milestone_id: Option<Uuid>,
+    pub clear_milestone: Option<bool>,
+}
+
+/// Request body for bulk delete
+#[derive(Deserialize)]
+pub struct BulkDeleteRequest {
+    pub task_ids: Vec<Uuid>,
+}
+
+/// POST /boards/{board_id}/tasks/bulk-update
+async fn bulk_update_handler(
+    State(state): State<AppState>,
+    ctx: TenantContext,
+    Path(board_id): Path<Uuid>,
+    Json(req): Json<BulkUpdateRequest>,
+) -> Result<Json<serde_json::Value>> {
+    let input = BulkUpdateInput {
+        task_ids: req.task_ids,
+        column_id: req.column_id,
+        priority: req.priority,
+        milestone_id: req.milestone_id,
+        clear_milestone: req.clear_milestone,
+    };
+
+    let updated = bulk_update_tasks(&state.db, board_id, ctx.user_id, input)
+        .await
+        .map_err(|e| match e {
+            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::Database(e) => AppError::SqlxError(e),
+            _ => AppError::InternalError(format!("{}", e)),
+        })?;
+
+    Ok(Json(json!({ "updated": updated })))
+}
+
+/// POST /boards/{board_id}/tasks/bulk-delete
+async fn bulk_delete_handler(
+    State(state): State<AppState>,
+    ctx: TenantContext,
+    Path(board_id): Path<Uuid>,
+    Json(req): Json<BulkDeleteRequest>,
+) -> Result<Json<serde_json::Value>> {
+    let deleted = bulk_delete_tasks(&state.db, board_id, ctx.user_id, &req.task_ids)
+        .await
+        .map_err(|e| match e {
+            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::Database(e) => AppError::SqlxError(e),
+            _ => AppError::InternalError(format!("{}", e)),
+        })?;
+
+    Ok(Json(json!({ "deleted": deleted })))
+}
+
 pub fn task_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Board-scoped task routes
         .route("/boards/{board_id}/tasks", get(list_tasks))
         .route("/boards/{board_id}/tasks/list", get(list_tasks_flat_handler))
+        .route("/boards/{board_id}/tasks/calendar", get(list_calendar_tasks_handler))
+        .route("/boards/{board_id}/tasks/gantt", get(list_gantt_tasks_handler))
+        .route("/boards/{board_id}/tasks/bulk-update", post(bulk_update_handler))
+        .route("/boards/{board_id}/tasks/bulk-delete", post(bulk_delete_handler))
         .route("/boards/{board_id}/tasks", post(create_task_handler))
         // Task-specific routes
         .route("/tasks/{id}", get(get_task))

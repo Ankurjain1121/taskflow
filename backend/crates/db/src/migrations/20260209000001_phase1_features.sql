@@ -41,7 +41,7 @@ CREATE TRIGGER update_subtasks_updated_at BEFORE UPDATE ON subtasks FOR EACH ROW
 -- ============================================
 
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS start_date TIMESTAMPTZ;
-ALTER TABLE tasks ADD COLUMN IF NOT EXISTS estimated_hours DECIMAL;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS estimated_hours DOUBLE PRECISION;
 
 -- ============================================
 -- Invitation Extensions

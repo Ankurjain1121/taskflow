@@ -18,15 +18,18 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 
 export interface InviteMemberDialogData {
   workspaceId: string;
   workspaceName: string;
+  boards: { id: string; name: string }[];
 }
 
 export interface InviteMemberDialogResult {
   emails: string[];
-  role: 'admin' | 'member';
+  role: 'admin' | 'manager' | 'member';
+  boardIds: string[];
   message?: string;
 }
 
@@ -50,6 +53,7 @@ interface EmailValidation {
     MatProgressSpinnerModule,
     MatChipsModule,
     MatIconModule,
+    MatCheckboxModule,
   ],
   template: `
     <h2 mat-dialog-title>Invite Members</h2>
@@ -118,6 +122,12 @@ interface EmailValidation {
                 <span class="text-xs text-gray-500">Can view and edit boards</span>
               </div>
             </mat-option>
+            <mat-option value="manager">
+              <div class="flex flex-col">
+                <span class="font-medium">Manager</span>
+                <span class="text-xs text-gray-500">Can manage boards and assign tasks</span>
+              </div>
+            </mat-option>
             <mat-option value="admin">
               <div class="flex flex-col">
                 <span class="font-medium">Admin</span>
@@ -126,6 +136,46 @@ interface EmailValidation {
             </mat-option>
           </mat-select>
         </mat-form-field>
+
+        <!-- Board Access Selection -->
+        @if (data.boards && data.boards.length > 0) {
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Board Access
+            </label>
+            <p class="text-xs text-gray-500 mb-2">
+              Select which boards the invited members should have access to
+            </p>
+            <div class="border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto space-y-1">
+              <div class="mb-2">
+                <mat-checkbox
+                  [checked]="allBoardsSelected()"
+                  [indeterminate]="someBoardsSelected() && !allBoardsSelected()"
+                  (change)="toggleAllBoards($event.checked)"
+                  color="primary"
+                >
+                  <span class="text-sm font-medium text-gray-700">Select All</span>
+                </mat-checkbox>
+              </div>
+              @for (board of data.boards; track board.id) {
+                <div>
+                  <mat-checkbox
+                    [checked]="isBoardSelected(board.id)"
+                    (change)="toggleBoard(board.id, $event.checked)"
+                    color="primary"
+                  >
+                    <span class="text-sm text-gray-700">{{ board.name }}</span>
+                  </mat-checkbox>
+                </div>
+              }
+            </div>
+            @if (selectedBoardIds().length > 0) {
+              <p class="text-xs text-gray-500 mt-1">
+                {{ selectedBoardIds().length }} board{{ selectedBoardIds().length !== 1 ? 's' : '' }} selected
+              </p>
+            }
+          </div>
+        }
 
         <!-- Welcome Message -->
         <mat-form-field appearance="outline" class="w-full">
@@ -154,7 +204,7 @@ interface EmailValidation {
           <mat-spinner diameter="20" class="inline-block mr-2"></mat-spinner>
           Sending...
         } @else {
-          Send Invite{{ validEmailCount() > 1 ? 's' : '' }}
+          Send Invitation{{ validEmailCount() > 1 ? 's' : '' }}
           @if (validEmailCount() > 0) {
             ({{ validEmailCount() }})
           }
@@ -187,6 +237,7 @@ export class InviteMemberDialogComponent {
   });
 
   parsedEmails = signal<EmailValidation[]>([]);
+  selectedBoardIds = signal<string[]>([]);
   isSubmitting = false;
 
   private readonly emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -204,6 +255,35 @@ export class InviteMemberDialogComponent {
       this.form.get('role')?.valid === true &&
       this.validEmailCount() > 0
     );
+  }
+
+  isBoardSelected(boardId: string): boolean {
+    return this.selectedBoardIds().includes(boardId);
+  }
+
+  allBoardsSelected(): boolean {
+    return (
+      this.data.boards?.length > 0 &&
+      this.selectedBoardIds().length === this.data.boards.length
+    );
+  }
+
+  someBoardsSelected(): boolean {
+    return this.selectedBoardIds().length > 0;
+  }
+
+  toggleBoard(boardId: string, checked: boolean): void {
+    this.selectedBoardIds.update((ids) =>
+      checked ? [...ids, boardId] : ids.filter((id) => id !== boardId)
+    );
+  }
+
+  toggleAllBoards(checked: boolean): void {
+    if (checked) {
+      this.selectedBoardIds.set(this.data.boards.map((b) => b.id));
+    } else {
+      this.selectedBoardIds.set([]);
+    }
   }
 
   validateEmails(): void {
@@ -245,6 +325,7 @@ export class InviteMemberDialogComponent {
     const result: InviteMemberDialogResult = {
       emails: validEmails,
       role: this.form.value.role,
+      boardIds: this.selectedBoardIds(),
       message: this.form.value.message?.trim() || undefined,
     };
 

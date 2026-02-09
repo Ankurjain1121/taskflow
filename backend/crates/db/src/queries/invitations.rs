@@ -13,14 +13,28 @@ pub async fn create_invitation(
     invited_by_id: Uuid,
     expires_at: DateTime<Utc>,
 ) -> Result<Invitation, sqlx::Error> {
+    create_invitation_with_details(pool, email, workspace_id, role, invited_by_id, expires_at, None, None).await
+}
+
+/// Create a new invitation with optional message and board_ids
+pub async fn create_invitation_with_details(
+    pool: &PgPool,
+    email: &str,
+    workspace_id: Uuid,
+    role: UserRole,
+    invited_by_id: Uuid,
+    expires_at: DateTime<Utc>,
+    message: Option<&str>,
+    board_ids: Option<&serde_json::Value>,
+) -> Result<Invitation, sqlx::Error> {
     let id = Uuid::new_v4();
     let token = Uuid::new_v4();
 
     sqlx::query_as::<_, Invitation>(
         r#"
-        INSERT INTO invitations (id, email, workspace_id, role, token, invited_by_id, expires_at, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-        RETURNING id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at
+        INSERT INTO invitations (id, email, workspace_id, role, token, invited_by_id, expires_at, message, board_ids, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+        RETURNING id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids
         "#,
     )
     .bind(id)
@@ -30,6 +44,8 @@ pub async fn create_invitation(
     .bind(token)
     .bind(invited_by_id)
     .bind(expires_at)
+    .bind(message)
+    .bind(board_ids)
     .fetch_one(pool)
     .await
 }
@@ -41,7 +57,7 @@ pub async fn get_invitation_by_token(
 ) -> Result<Option<Invitation>, sqlx::Error> {
     sqlx::query_as::<_, Invitation>(
         r#"
-        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at
+        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids
         FROM invitations
         WHERE token = $1
         "#,
@@ -74,7 +90,7 @@ pub async fn list_pending_invitations(
 ) -> Result<Vec<Invitation>, sqlx::Error> {
     sqlx::query_as::<_, Invitation>(
         r#"
-        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at
+        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids
         FROM invitations
         WHERE workspace_id = $1
           AND accepted_at IS NULL
@@ -133,7 +149,7 @@ pub async fn list_all_invitations(
 ) -> Result<Vec<Invitation>, sqlx::Error> {
     sqlx::query_as::<_, Invitation>(
         r#"
-        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at
+        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids
         FROM invitations
         WHERE workspace_id = $1
         ORDER BY created_at DESC
@@ -175,7 +191,7 @@ pub async fn resend_invitation(
         UPDATE invitations
         SET token = $1, expires_at = $2, accepted_at = NULL
         WHERE id = $3
-        RETURNING id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at
+        RETURNING id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids
         "#,
     )
     .bind(new_token)
@@ -193,7 +209,7 @@ pub async fn get_pending_invitation_by_email(
 ) -> Result<Option<Invitation>, sqlx::Error> {
     sqlx::query_as::<_, Invitation>(
         r#"
-        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at
+        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids
         FROM invitations
         WHERE email = $1
           AND workspace_id = $2

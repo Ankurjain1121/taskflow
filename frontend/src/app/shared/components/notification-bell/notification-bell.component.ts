@@ -8,8 +8,10 @@ import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { CdkScrollableModule } from '@angular/cdk/scrolling';
 import { NotificationService, Notification, NotificationEventType } from '../../../core/services/notification.service';
+import { NotificationSoundService } from '../../../core/services/notification-sound.service';
 import { NotificationItemComponent } from './notification-item.component';
 
 type NotificationTab = 'all' | 'assignments' | 'comments' | 'mentions' | 'deadlines';
@@ -33,6 +35,7 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
     MatDividerModule,
     MatProgressSpinnerModule,
     MatChipsModule,
+    MatTooltipModule,
     CdkScrollableModule,
     NotificationItemComponent,
   ],
@@ -63,15 +66,27 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
         <!-- Header -->
         <div class="flex items-center justify-between px-4 py-3 border-b">
           <h3 class="text-lg font-semibold text-gray-900">Notifications</h3>
-          <button
-            *ngIf="notificationService.unreadCount() > 0"
-            mat-button
-            color="primary"
-            class="text-sm"
-            (click)="markAllRead()"
-          >
-            Mark all read
-          </button>
+          <div class="flex items-center gap-1">
+            <button
+              mat-icon-button
+              class="scale-75"
+              [matTooltip]="soundService.soundEnabled() ? 'Mute notifications' : 'Unmute notifications'"
+              (click)="toggleSound()"
+            >
+              <mat-icon class="text-gray-500 text-lg">
+                {{ soundService.soundEnabled() ? 'volume_up' : 'volume_off' }}
+              </mat-icon>
+            </button>
+            <button
+              *ngIf="notificationService.unreadCount() > 0"
+              mat-button
+              color="primary"
+              class="text-sm"
+              (click)="markAllRead()"
+            >
+              Mark all read
+            </button>
+          </div>
         </div>
 
         <!-- Filter tabs -->
@@ -115,13 +130,31 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
             <mat-spinner diameter="32"></mat-spinner>
           </div>
 
-          <!-- Notification items -->
+          <!-- Notification items grouped by time -->
           <div *ngIf="!isInitialLoading()">
-            <app-notification-item
-              *ngFor="let notification of filteredNotifications()"
-              [notification]="notification"
-              (notificationClick)="onNotificationClick($event)"
-            ></app-notification-item>
+            <!-- Today section -->
+            <ng-container *ngIf="todayNotifications().length > 0">
+              <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
+                Today
+              </div>
+              <app-notification-item
+                *ngFor="let notification of todayNotifications()"
+                [notification]="notification"
+                (notificationClick)="onNotificationClick($event)"
+              ></app-notification-item>
+            </ng-container>
+
+            <!-- Earlier section -->
+            <ng-container *ngIf="earlierNotifications().length > 0">
+              <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
+                Earlier
+              </div>
+              <app-notification-item
+                *ngFor="let notification of earlierNotifications()"
+                [notification]="notification"
+                (notificationClick)="onNotificationClick($event)"
+              ></app-notification-item>
+            </ng-container>
 
             <!-- Load more spinner -->
             <div
@@ -190,8 +223,25 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     return notifications.filter((n) => allowedTypes.includes(n.event_type));
   });
 
+  todayNotifications = computed(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return this.filteredNotifications().filter(
+      (n) => new Date(n.created_at) >= today
+    );
+  });
+
+  earlierNotifications = computed(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return this.filteredNotifications().filter(
+      (n) => new Date(n.created_at) < today
+    );
+  });
+
   constructor(
     public notificationService: NotificationService,
+    public soundService: NotificationSoundService,
     private router: Router
   ) {}
 
@@ -268,6 +318,10 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     if (tab) {
       this.activeTab.set(tab);
     }
+  }
+
+  toggleSound(): void {
+    this.soundService.toggleSound();
   }
 
   goToSettings(): void {

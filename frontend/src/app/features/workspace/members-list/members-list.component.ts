@@ -18,6 +18,7 @@ import {
 import { AuthService } from '../../../core/services/auth.service';
 import {
   InviteMemberDialogComponent,
+  InviteMemberDialogData,
   InviteMemberDialogResult,
 } from '../../../shared/components/dialogs/invite-member-dialog.component';
 
@@ -127,6 +128,7 @@ export interface MemberWithDetails extends WorkspaceMember {
                       class="text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     >
                       <option value="admin">Admin</option>
+                      <option value="manager">Manager</option>
                       <option value="member">Member</option>
                     </select>
                   } @else {
@@ -299,10 +301,11 @@ export class MembersListComponent implements OnInit {
   members = input.required<MemberWithDetails[]>();
   workspaceId = input.required<string>();
   workspaceName = input<string>('this workspace');
+  boards = input<{ id: string; name: string }[]>([]);
 
   memberRemoved = output<string>();
   memberRoleChanged = output<{ userId: string; role: string }>();
-  memberInvited = output<{ emails: string[]; role: 'admin' | 'member' }>();
+  memberInvited = output<{ emails: string[]; role: 'admin' | 'manager' | 'member' }>();
 
   updatingMember = signal<string | null>(null);
   allInvitations = signal<InvitationWithStatus[]>([]);
@@ -363,6 +366,7 @@ export class MembersListComponent implements OnInit {
     const labels: Record<string, string> = {
       owner: 'Owner',
       admin: 'Admin',
+      manager: 'Manager',
       member: 'Member',
     };
     return labels[role] || role;
@@ -372,6 +376,7 @@ export class MembersListComponent implements OnInit {
     const classes: Record<string, string> = {
       owner: 'bg-purple-100 text-purple-800',
       admin: 'bg-blue-100 text-blue-800',
+      manager: 'bg-indigo-100 text-indigo-800',
       member: 'bg-gray-100 text-gray-800',
     };
     return classes[role] || 'bg-gray-100 text-gray-800';
@@ -404,17 +409,26 @@ export class MembersListComponent implements OnInit {
   }
 
   onInviteMember(): void {
+    const dialogData: InviteMemberDialogData = {
+      workspaceId: this.workspaceId(),
+      workspaceName: this.workspaceName(),
+      boards: this.boards(),
+    };
+
     const dialogRef = this.dialog.open(InviteMemberDialogComponent, {
-      data: {
-        workspaceId: this.workspaceId(),
-        workspaceName: this.workspaceName(),
-      },
+      data: dialogData,
     });
 
     dialogRef.afterClosed().subscribe((result: InviteMemberDialogResult | undefined) => {
       if (result) {
         this.workspaceService
-          .bulkInviteMembers(this.workspaceId(), result.emails, result.role, result.message)
+          .bulkInviteMembers(
+            this.workspaceId(),
+            result.emails,
+            result.role,
+            result.message,
+            result.boardIds
+          )
           .subscribe({
             next: (response) => {
               this.memberInvited.emit({ emails: result.emails, role: result.role });
@@ -474,7 +488,7 @@ export class MembersListComponent implements OnInit {
 
   onRoleChange(
     member: MemberWithDetails,
-    newRole: 'admin' | 'member'
+    newRole: 'admin' | 'manager' | 'member'
   ): void {
     if (member.role === newRole) return;
 

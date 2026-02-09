@@ -25,8 +25,12 @@ pub struct CreateTaskInput {
     pub description: Option<String>,
     pub priority: TaskPriority,
     pub due_date: Option<DateTime<Utc>>,
+    pub start_date: Option<DateTime<Utc>>,
+    pub estimated_hours: Option<f64>,
     pub column_id: Uuid,
+    pub milestone_id: Option<Uuid>,
     pub assignee_ids: Option<Vec<Uuid>>,
+    pub label_ids: Option<Vec<Uuid>>,
 }
 
 /// Input for updating an existing task
@@ -36,6 +40,9 @@ pub struct UpdateTaskInput {
     pub description: Option<String>,
     pub priority: Option<TaskPriority>,
     pub due_date: Option<DateTime<Utc>>,
+    pub start_date: Option<DateTime<Utc>>,
+    pub estimated_hours: Option<f64>,
+    pub milestone_id: Option<Uuid>,
 }
 
 /// Task with all associated details
@@ -102,9 +109,12 @@ pub async fn list_tasks_by_board(
             description,
             priority as "priority: TaskPriority",
             due_date,
+            start_date,
+            estimated_hours,
             board_id,
             column_id,
             position,
+            milestone_id,
             tenant_id,
             created_by_id,
             deleted_at,
@@ -144,9 +154,12 @@ pub async fn get_task_by_id(
             description,
             priority as "priority: TaskPriority",
             due_date,
+            start_date,
+            estimated_hours,
             board_id,
             column_id,
             position,
+            milestone_id,
             tenant_id,
             created_by_id,
             deleted_at,
@@ -265,17 +278,20 @@ pub async fn create_task(
     let task = sqlx::query_as!(
         Task,
         r#"
-        INSERT INTO tasks (id, title, description, priority, due_date, board_id, column_id, position, tenant_id, created_by_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        INSERT INTO tasks (id, title, description, priority, due_date, start_date, estimated_hours, board_id, column_id, position, milestone_id, tenant_id, created_by_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         RETURNING
             id,
             title,
             description,
             priority as "priority: TaskPriority",
             due_date,
+            start_date,
+            estimated_hours,
             board_id,
             column_id,
             position,
+            milestone_id,
             tenant_id,
             created_by_id,
             deleted_at,
@@ -287,9 +303,12 @@ pub async fn create_task(
         input.description,
         input.priority as TaskPriority,
         input.due_date,
+        input.start_date,
+        input.estimated_hours,
         board_id,
         input.column_id,
         position,
+        input.milestone_id,
         tenant_id,
         created_by_id
     )
@@ -314,6 +333,24 @@ pub async fn create_task(
         }
     }
 
+    // Insert labels if provided
+    if let Some(label_ids) = input.label_ids {
+        for label_id in label_ids {
+            sqlx::query!(
+                r#"
+                INSERT INTO task_labels (id, task_id, label_id)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (task_id, label_id) DO NOTHING
+                "#,
+                Uuid::new_v4(),
+                task_id,
+                label_id
+            )
+            .execute(pool)
+            .await?;
+        }
+    }
+
     Ok(task)
 }
 
@@ -332,6 +369,9 @@ pub async fn update_task(
             description = COALESCE($3, description),
             priority = COALESCE($4, priority),
             due_date = COALESCE($5, due_date),
+            start_date = COALESCE($6, start_date),
+            estimated_hours = COALESCE($7, estimated_hours),
+            milestone_id = COALESCE($8, milestone_id),
             updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
         RETURNING
@@ -340,9 +380,12 @@ pub async fn update_task(
             description,
             priority as "priority: TaskPriority",
             due_date,
+            start_date,
+            estimated_hours,
             board_id,
             column_id,
             position,
+            milestone_id,
             tenant_id,
             created_by_id,
             deleted_at,
@@ -353,7 +396,10 @@ pub async fn update_task(
         input.title,
         input.description,
         input.priority as Option<TaskPriority>,
-        input.due_date
+        input.due_date,
+        input.start_date,
+        input.estimated_hours,
+        input.milestone_id
     )
     .fetch_optional(pool)
     .await?
@@ -405,9 +451,12 @@ pub async fn move_task(
             description,
             priority as "priority: TaskPriority",
             due_date,
+            start_date,
+            estimated_hours,
             board_id,
             column_id,
             position,
+            milestone_id,
             tenant_id,
             created_by_id,
             deleted_at,
@@ -543,6 +592,242 @@ pub async fn list_tasks_flat(
     .await?;
 
     Ok(tasks)
+}
+
+/// Calendar task for date-based views
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct CalendarTask {
+    pub id: Uuid,
+    pub title: String,
+    pub priority: TaskPriority,
+    pub due_date: DateTime<Utc>,
+    pub start_date: Option<DateTime<Utc>>,
+    pub column_id: Uuid,
+    pub column_name: String,
+    pub is_done: bool,
+    pub milestone_id: Option<Uuid>,
+}
+
+/// List tasks for a board filtered by date range (for calendar view)
+pub async fn list_tasks_for_calendar(
+    pool: &PgPool,
+    board_id: Uuid,
+    user_id: Uuid,
+    start: DateTime<Utc>,
+    end: DateTime<Utc>,
+) -> Result<Vec<CalendarTask>, TaskQueryError> {
+    if !verify_board_membership(pool, board_id, user_id).await? {
+        return Err(TaskQueryError::NotBoardMember);
+    }
+
+    let tasks = sqlx::query_as::<_, CalendarTask>(
+        r#"
+        SELECT
+            t.id, t.title, t.priority,
+            t.due_date as "due_date!",
+            t.start_date,
+            t.column_id,
+            bc.name as column_name,
+            COALESCE(bc.status_mapping->>'done' = 'true', false) as "is_done!",
+            t.milestone_id
+        FROM tasks t
+        JOIN board_columns bc ON bc.id = t.column_id
+        WHERE t.board_id = $1
+            AND t.deleted_at IS NULL
+            AND t.due_date IS NOT NULL
+            AND t.due_date >= $2
+            AND t.due_date <= $3
+        ORDER BY t.due_date ASC
+        "#,
+    )
+    .bind(board_id)
+    .bind(start)
+    .bind(end)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(tasks)
+}
+
+/// Gantt task for timeline views
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct GanttTask {
+    pub id: Uuid,
+    pub title: String,
+    pub priority: TaskPriority,
+    pub start_date: Option<DateTime<Utc>>,
+    pub due_date: Option<DateTime<Utc>>,
+    pub column_id: Uuid,
+    pub column_name: String,
+    pub is_done: bool,
+    pub milestone_id: Option<Uuid>,
+}
+
+/// List tasks for a board that have dates (for Gantt chart)
+pub async fn list_tasks_for_gantt(
+    pool: &PgPool,
+    board_id: Uuid,
+    user_id: Uuid,
+) -> Result<Vec<GanttTask>, TaskQueryError> {
+    if !verify_board_membership(pool, board_id, user_id).await? {
+        return Err(TaskQueryError::NotBoardMember);
+    }
+
+    let tasks = sqlx::query_as::<_, GanttTask>(
+        r#"
+        SELECT
+            t.id, t.title, t.priority,
+            t.start_date,
+            t.due_date,
+            t.column_id,
+            bc.name as column_name,
+            COALESCE(bc.status_mapping->>'done' = 'true', false) as "is_done!",
+            t.milestone_id
+        FROM tasks t
+        JOIN board_columns bc ON bc.id = t.column_id
+        WHERE t.board_id = $1
+            AND t.deleted_at IS NULL
+            AND (t.start_date IS NOT NULL OR t.due_date IS NOT NULL)
+        ORDER BY COALESCE(t.start_date, t.due_date) ASC
+        "#,
+    )
+    .bind(board_id)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(tasks)
+}
+
+/// Input for bulk updating tasks
+#[derive(Debug, Deserialize)]
+pub struct BulkUpdateInput {
+    pub task_ids: Vec<Uuid>,
+    pub column_id: Option<Uuid>,
+    pub priority: Option<TaskPriority>,
+    pub milestone_id: Option<Uuid>,
+    pub clear_milestone: Option<bool>,
+}
+
+/// Bulk update multiple tasks at once
+pub async fn bulk_update_tasks(
+    pool: &PgPool,
+    board_id: Uuid,
+    user_id: Uuid,
+    input: BulkUpdateInput,
+) -> std::result::Result<u64, TaskQueryError> {
+    // Verify board membership
+    let is_member = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)",
+    )
+    .bind(board_id)
+    .bind(user_id)
+    .fetch_one(pool)
+    .await?;
+
+    if !is_member {
+        return Err(TaskQueryError::NotBoardMember);
+    }
+
+    if input.task_ids.is_empty() {
+        return Ok(0);
+    }
+
+    let mut updated: u64 = 0;
+
+    // Update column if specified
+    if let Some(column_id) = input.column_id {
+        let result = sqlx::query(
+            r#"
+            UPDATE tasks SET column_id = $1, updated_at = now()
+            WHERE id = ANY($2) AND board_id = $3 AND deleted_at IS NULL
+            "#,
+        )
+        .bind(column_id)
+        .bind(&input.task_ids)
+        .bind(board_id)
+        .execute(pool)
+        .await?;
+        updated = result.rows_affected();
+    }
+
+    // Update priority if specified
+    if let Some(ref priority) = input.priority {
+        let result = sqlx::query(
+            r#"
+            UPDATE tasks SET priority = $1, updated_at = now()
+            WHERE id = ANY($2) AND board_id = $3 AND deleted_at IS NULL
+            "#,
+        )
+        .bind(priority)
+        .bind(&input.task_ids)
+        .bind(board_id)
+        .execute(pool)
+        .await?;
+        updated = result.rows_affected();
+    }
+
+    // Update milestone if specified
+    if input.clear_milestone == Some(true) {
+        let result = sqlx::query(
+            r#"
+            UPDATE tasks SET milestone_id = NULL, updated_at = now()
+            WHERE id = ANY($1) AND board_id = $2 AND deleted_at IS NULL
+            "#,
+        )
+        .bind(&input.task_ids)
+        .bind(board_id)
+        .execute(pool)
+        .await?;
+        updated = result.rows_affected();
+    } else if let Some(milestone_id) = input.milestone_id {
+        let result = sqlx::query(
+            r#"
+            UPDATE tasks SET milestone_id = $1, updated_at = now()
+            WHERE id = ANY($2) AND board_id = $3 AND deleted_at IS NULL
+            "#,
+        )
+        .bind(milestone_id)
+        .bind(&input.task_ids)
+        .bind(board_id)
+        .execute(pool)
+        .await?;
+        updated = result.rows_affected();
+    }
+
+    Ok(updated)
+}
+
+/// Bulk delete (soft) multiple tasks
+pub async fn bulk_delete_tasks(
+    pool: &PgPool,
+    board_id: Uuid,
+    user_id: Uuid,
+    task_ids: &[Uuid],
+) -> std::result::Result<u64, TaskQueryError> {
+    let is_member = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)",
+    )
+    .bind(board_id)
+    .bind(user_id)
+    .fetch_one(pool)
+    .await?;
+
+    if !is_member {
+        return Err(TaskQueryError::NotBoardMember);
+    }
+
+    let result = sqlx::query(
+        r#"
+        UPDATE tasks SET deleted_at = now(), updated_at = now()
+        WHERE id = ANY($1) AND board_id = $2 AND deleted_at IS NULL
+        "#,
+    )
+    .bind(task_ids)
+    .bind(board_id)
+    .execute(pool)
+    .await?;
+
+    Ok(result.rows_affected())
 }
 
 #[cfg(test)]

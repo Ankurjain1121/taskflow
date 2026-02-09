@@ -20,10 +20,13 @@ use crate::middleware::auth_middleware;
 use crate::routes::{
     activity_log_router, admin_audit_router, admin_trash_router, admin_users_router,
     attachment_router, board_columns_router, board_router, board_templates_router, column_router,
-    comment_router, cron_router, health_handler, liveness_handler,
-    my_tasks_router, notification_preferences_router, notification_router, onboarding_router,
-    readiness_handler, search_router, subtask_router, task_router, team_overview_router,
-    workspace_boards_router, workspace_router,
+    comment_router, cron_router, custom_field_router, dashboard_router, health_handler,
+    liveness_handler, my_tasks_router, notification_preferences_router, notification_router,
+    onboarding_router, readiness_handler, recurring_router, reports_router, search_router,
+    subtask_router, dependency_router, milestone_router, task_router, team_overview_router,
+    time_entry_router, workspace_boards_router, workspace_router,
+    project_template_router, automation_router, import_export_router,
+    board_share_router, shared_board_public_router, webhook_router,
 };
 use crate::state::AppState;
 use crate::ws::ws_handler;
@@ -96,6 +99,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", public_routes)
         .nest("/api", task_router(state.clone()))
         .nest("/api", subtask_router(state.clone()))
+        .nest("/api", dependency_router(state.clone()))
+        .nest("/api", milestone_router(state.clone()))
         .nest("/api", attachment_router(state.clone()))
         // Comment routes
         .nest("/api", comment_router(state.clone()))
@@ -121,12 +126,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api/workspaces/{workspace_id}", team_overview_router(state.clone()))
         // My tasks routes
         .nest("/api/my-tasks", my_tasks_router(state.clone()))
+        // Dashboard routes
+        .nest("/api/dashboard", dashboard_router(state.clone()))
         // Admin routes (require Admin role)
         .nest("/api", admin_audit_router(state.clone()))
         .nest("/api", admin_users_router(state.clone()))
         .nest("/api", admin_trash_router(state.clone()))
+        // Reports routes
+        .nest("/api", reports_router(state.clone()))
         // Search routes
         .nest("/api", search_router(state.clone()))
+        // Phase 3: Recurring tasks
+        .nest("/api", recurring_router(state.clone()))
+        // Phase 3: Custom fields
+        .nest("/api", custom_field_router(state.clone()))
+        // Phase 3: Time tracking
+        .nest("/api", time_entry_router(state.clone()))
+        // Phase 4: Project templates
+        .nest("/api", project_template_router(state.clone()))
+        // Phase 4: Workflow automation
+        .nest("/api", automation_router(state.clone()))
+        // Phase 4: Import/export
+        .nest("/api", import_export_router(state.clone()))
+        // Phase 4: Client portal (board shares)
+        .nest("/api", board_share_router(state.clone()))
+        .nest("/api", shared_board_public_router())
+        // Phase 4: Webhooks
+        .nest("/api", webhook_router(state.clone()))
         .layer(TraceLayer::new_for_http())
         .layer(CompressionLayer::new())
         .layer(cors)

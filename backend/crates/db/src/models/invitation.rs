@@ -16,4 +16,6 @@ pub struct Invitation {
     pub expires_at: DateTime<Utc>,
     pub accepted_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
+    pub message: Option<String>,
+    pub board_ids: Option<serde_json::Value>,
 }

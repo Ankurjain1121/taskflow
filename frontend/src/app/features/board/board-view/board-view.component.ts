@@ -14,8 +14,9 @@ import { CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { generateKeyBetween } from 'fractional-indexing';
 
-import { BoardService, Board, Column } from '../../../core/services/board.service';
-import { TaskService, Task, Assignee, TaskListItem } from '../../../core/services/task.service';
+import { BoardService, Board, Column, BoardMember } from '../../../core/services/board.service';
+import { TaskService, Task, Assignee, TaskListItem, Label, BulkUpdateRequest } from '../../../core/services/task.service';
+import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
 import {
   CreateTaskDialogComponent,
   CreateTaskDialogResult,
@@ -26,6 +27,7 @@ import {
 } from './create-column-dialog.component';
 import { WebSocketService } from '../../../core/services/websocket.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { MilestoneService, Milestone } from '../../../core/services/milestone.service';
 
 import {
   KanbanColumnComponent,
@@ -38,6 +40,13 @@ import {
 } from '../board-toolbar/board-toolbar.component';
 import { TaskDetailComponent } from '../task-detail/task-detail.component';
 import { ListViewComponent } from '../list-view/list-view.component';
+import { CalendarViewComponent } from '../calendar-view/calendar-view.component';
+import { GanttViewComponent, GanttTask, GanttDependency } from '../gantt-view/gantt-view.component';
+import { ReportsViewComponent } from '../reports-view/reports-view.component';
+import { TimeReportComponent } from '../time-report/time-report.component';
+import { BulkActionsBarComponent, BulkAction } from '../bulk-actions/bulk-actions-bar.component';
+import { ShortcutHelpComponent } from '../../../shared/components/shortcut-help/shortcut-help.component';
+import { DependencyService } from '../../../core/services/dependency.service';
 
 @Component({
   selector: 'app-board-view',
@@ -51,6 +60,12 @@ import { ListViewComponent } from '../list-view/list-view.component';
     BoardToolbarComponent,
     TaskDetailComponent,
     ListViewComponent,
+    CalendarViewComponent,
+    GanttViewComponent,
+    ReportsViewComponent,
+    TimeReportComponent,
+    BulkActionsBarComponent,
+    ShortcutHelpComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -166,6 +181,37 @@ import { ListViewComponent } from '../list-view/list-view.component';
             (taskClicked)="onListTaskClicked($event)"
           ></app-list-view>
         </div>
+      } @else if (viewMode() === 'calendar') {
+        <!-- Calendar View -->
+        <div class="flex-1 overflow-hidden">
+          <app-calendar-view
+            [boardId]="boardId"
+            (taskClicked)="onListTaskClicked($event)"
+          ></app-calendar-view>
+        </div>
+      } @else if (viewMode() === 'gantt') {
+        <!-- Gantt Chart View -->
+        <div class="flex-1 overflow-hidden">
+          <app-gantt-view
+            [tasks]="ganttTasks()"
+            [dependencies]="boardDependencies()"
+            (taskClicked)="onListTaskClicked($event)"
+          ></app-gantt-view>
+        </div>
+      } @else if (viewMode() === 'reports') {
+        <!-- Reports View -->
+        <div class="flex-1 overflow-y-auto">
+          <app-reports-view
+            [boardId]="boardId"
+          ></app-reports-view>
+        </div>
+      } @else if (viewMode() === 'time-report') {
+        <!-- Time Report View -->
+        <div class="flex-1 overflow-y-auto">
+          <app-time-report
+            [boardId]="boardId"
+          ></app-time-report>
+        </div>
       } @else {
         <!-- Kanban Board -->
         <div
@@ -215,10 +261,25 @@ import { ListViewComponent } from '../list-view/list-view.component';
         <app-task-detail
           [taskId]="selectedTaskId()!"
           [workspaceId]="workspaceId"
+          [boardId]="boardId"
           (closed)="closeTaskDetail()"
           (taskUpdated)="onTaskUpdated($event)"
         ></app-task-detail>
       }
+
+      <!-- Bulk Actions Bar -->
+      @if (selectedTaskIds().length > 0) {
+        <app-bulk-actions-bar
+          [selectedCount]="selectedTaskIds().length"
+          [columns]="columns()"
+          [milestones]="boardMilestones()"
+          (bulkAction)="onBulkAction($event)"
+          (cancelSelection)="clearSelection()"
+        ></app-bulk-actions-bar>
+      }
+
+      <!-- Keyboard Shortcuts Help -->
+      <app-shortcut-help></app-shortcut-help>
 
       <!-- Snackbar for errors -->
       @if (errorMessage()) {
@@ -252,6 +313,9 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   private taskService = inject(TaskService);
   private wsService = inject(WebSocketService);
   private authService = inject(AuthService);
+  private dependencyService = inject(DependencyService);
+  private milestoneService = inject(MilestoneService);
+  private shortcutsService = inject(KeyboardShortcutsService);
   private dialog = inject(MatDialog);
   private destroy$ = new Subject<void>();
 
@@ -264,6 +328,8 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   boardState = signal<Record<string, Task[]>>({});
   viewMode = signal<ViewMode>('kanban');
   flatTasks = signal<TaskListItem[]>([]);
+  ganttTasks = signal<GanttTask[]>([]);
+  boardDependencies = signal<GanttDependency[]>([]);
   listLoading = signal(false);
   filters = signal<TaskFilters>({
     search: '',
@@ -274,7 +340,11 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     labelIds: [],
   });
   selectedTaskId = signal<string | null>(null);
+  selectedTaskIds = signal<string[]>([]);
+  selectionMode = signal(false);
   errorMessage = signal<string | null>(null);
+  boardMembers = signal<BoardMember[]>([]);
+  boardMilestones = signal<Milestone[]>([]);
 
   // Computed: filtered board state
   filteredBoardState = computed(() => {
@@ -308,6 +378,24 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     return Array.from(assigneeMap.values());
   });
 
+  // Computed: all unique labels across tasks
+  allLabels = computed(() => {
+    const labelMap = new Map<string, Label>();
+    const state = this.boardState();
+
+    for (const tasks of Object.values(state)) {
+      for (const task of tasks) {
+        if (task.labels) {
+          for (const label of task.labels) {
+            labelMap.set(label.id, label);
+          }
+        }
+      }
+    }
+
+    return Array.from(labelMap.values());
+  });
+
   // Computed: connected column IDs for drag-drop
   connectedColumnIds = computed(() => {
     return this.columns().map((col) => 'column-' + col.id);
@@ -327,11 +415,15 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       .subscribe((message) => {
         this.handleWebSocketMessage(message);
       });
+
+    // Register keyboard shortcuts
+    this.registerShortcuts();
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.shortcutsService.unregisterByCategory('Board');
     // Unsubscribe from board channel
     this.wsService.send('unsubscribe', { channel: `board:${this.boardId}` });
   }
@@ -348,7 +440,21 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     this.viewMode.set(mode);
     if (mode === 'list') {
       this.loadFlatTasks();
+    } else if (mode === 'gantt') {
+      this.loadGanttData();
     }
+  }
+
+  private loadGanttData(): void {
+    forkJoin({
+      tasks: this.taskService.listGanttTasks(this.boardId),
+      deps: this.dependencyService.getBoardDependencies(this.boardId),
+    }).subscribe({
+      next: ({ tasks, deps }) => {
+        this.ganttTasks.set(tasks as unknown as GanttTask[]);
+        this.boardDependencies.set(deps as unknown as GanttDependency[]);
+      },
+    });
   }
 
   onListTaskClicked(taskId: string): void {
@@ -443,11 +549,32 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     const column = this.columns().find((c) => c.id === columnId);
     if (!column) return;
 
+    const members = this.boardMembers().map((m) => ({
+      id: m.user_id,
+      name: m.display_name || m.email || 'Unknown',
+      avatar_url: m.avatar_url ?? undefined,
+    }));
+
+    const labels = this.allLabels().map((l) => ({
+      id: l.id,
+      name: l.name,
+      color: l.color,
+    }));
+
+    const milestones = this.boardMilestones().map((m) => ({
+      id: m.id,
+      name: m.name,
+      color: m.color,
+    }));
+
     const dialogRef = this.dialog.open(CreateTaskDialogComponent, {
       width: '500px',
       data: {
         columnId,
         columnName: column.name,
+        members,
+        labels,
+        milestones,
       },
     });
 
@@ -465,6 +592,11 @@ export class BoardViewComponent implements OnInit, OnDestroy {
         description: taskData.description,
         priority: taskData.priority,
         due_date: taskData.due_date,
+        start_date: taskData.start_date,
+        estimated_hours: taskData.estimated_hours,
+        milestone_id: taskData.milestone_id,
+        assignee_ids: taskData.assignee_ids,
+        label_ids: taskData.label_ids,
       })
       .subscribe({
         next: (task) => {
@@ -554,11 +686,15 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       board: this.boardService.getBoard(this.boardId),
       columns: this.boardService.listColumns(this.boardId),
       tasks: this.taskService.listByBoard(this.boardId),
+      members: this.boardService.getBoardMembers(this.boardId),
+      milestones: this.milestoneService.list(this.boardId),
     }).subscribe({
-      next: ({ board, columns, tasks }) => {
+      next: ({ board, columns, tasks, members, milestones }) => {
         this.board.set(board);
         this.columns.set(columns.sort((a, b) => a.position.localeCompare(b.position)));
         this.boardState.set(tasks);
+        this.boardMembers.set(members);
+        this.boardMilestones.set(milestones);
         this.loading.set(false);
 
         // Subscribe to board updates
@@ -708,5 +844,147 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   private showError(message: string): void {
     this.errorMessage.set(message);
     setTimeout(() => this.clearError(), 5000);
+  }
+
+  // === Bulk Operations ===
+
+  toggleTaskSelection(taskId: string): void {
+    const current = this.selectedTaskIds();
+    if (current.includes(taskId)) {
+      this.selectedTaskIds.set(current.filter((id) => id !== taskId));
+    } else {
+      this.selectedTaskIds.set([...current, taskId]);
+    }
+  }
+
+  clearSelection(): void {
+    this.selectedTaskIds.set([]);
+    this.selectionMode.set(false);
+  }
+
+  onBulkAction(action: BulkAction): void {
+    const ids = this.selectedTaskIds();
+    if (ids.length === 0) return;
+
+    if (action.type === 'delete') {
+      this.taskService.bulkDelete(this.boardId, { task_ids: ids }).subscribe({
+        next: () => {
+          this.clearSelection();
+          this.loadBoard();
+        },
+        error: (err) => this.showError('Failed to delete tasks'),
+      });
+      return;
+    }
+
+    const req: BulkUpdateRequest = { task_ids: ids };
+    if (action.type === 'move' && action.column_id) req.column_id = action.column_id;
+    if (action.type === 'priority' && action.priority) req.priority = action.priority;
+    if (action.type === 'milestone') {
+      if (action.clear_milestone) {
+        req.clear_milestone = true;
+      } else if (action.milestone_id) {
+        req.milestone_id = action.milestone_id;
+      }
+    }
+
+    this.taskService.bulkUpdate(this.boardId, req).subscribe({
+      next: () => {
+        this.clearSelection();
+        this.loadBoard();
+      },
+      error: (err) => this.showError('Failed to update tasks'),
+    });
+  }
+
+  // === Keyboard Shortcuts ===
+
+  private registerShortcuts(): void {
+    this.shortcutsService.register('board-new-task', {
+      key: 'n',
+      description: 'Create new task',
+      category: 'Board',
+      action: () => this.onCreateTask(),
+    });
+
+    this.shortcutsService.register('board-search', {
+      key: '/',
+      description: 'Focus search',
+      category: 'Board',
+      action: () => {
+        const searchInput = document.querySelector<HTMLInputElement>('input[placeholder*="Search"]');
+        searchInput?.focus();
+      },
+    });
+
+    this.shortcutsService.register('board-escape', {
+      key: 'Escape',
+      description: 'Close panel / Clear selection',
+      category: 'Board',
+      action: () => {
+        if (this.selectedTaskIds().length > 0) {
+          this.clearSelection();
+        } else if (this.selectedTaskId()) {
+          this.closeTaskDetail();
+        }
+      },
+    });
+
+    this.shortcutsService.register('board-view-kanban', {
+      key: '1',
+      description: 'Kanban view',
+      category: 'Board',
+      action: () => this.viewMode.set('kanban'),
+    });
+
+    this.shortcutsService.register('board-view-list', {
+      key: '2',
+      description: 'List view',
+      category: 'Board',
+      action: () => {
+        this.viewMode.set('list');
+        this.onViewModeChanged('list');
+      },
+    });
+
+    this.shortcutsService.register('board-view-calendar', {
+      key: '3',
+      description: 'Calendar view',
+      category: 'Board',
+      action: () => {
+        this.viewMode.set('calendar');
+        this.onViewModeChanged('calendar');
+      },
+    });
+
+    this.shortcutsService.register('board-view-gantt', {
+      key: '4',
+      description: 'Gantt view',
+      category: 'Board',
+      action: () => {
+        this.viewMode.set('gantt');
+        this.onViewModeChanged('gantt');
+      },
+    });
+
+    this.shortcutsService.register('board-view-reports', {
+      key: '5',
+      description: 'Reports view',
+      category: 'Board',
+      action: () => {
+        this.viewMode.set('reports');
+        this.onViewModeChanged('reports');
+      },
+    });
+
+    this.shortcutsService.register('board-view-time-report', {
+      key: '6',
+      description: 'Time report view',
+      category: 'Board',
+      action: () => {
+        this.viewMode.set('time-report');
+        this.onViewModeChanged('time-report');
+      },
+    });
   }
 }

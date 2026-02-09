@@ -18,6 +18,7 @@ import {
   Workspace,
   WorkspaceMember,
 } from '../../../core/services/workspace.service';
+import { BoardService, Board } from '../../../core/services/board.service';
 import { AuthService } from '../../../core/services/auth.service';
 import {
   MembersListComponent,
@@ -152,6 +153,7 @@ import {
             <app-members-list
               [members]="members()"
               [workspaceId]="workspaceId"
+              [boards]="boards()"
               (memberRemoved)="onMemberRemoved($event)"
               (memberRoleChanged)="onMemberRoleChanged($event)"
             ></app-members-list>
@@ -226,6 +228,7 @@ export class WorkspaceSettingsComponent implements OnInit {
   private router = inject(Router);
   private fb = inject(FormBuilder);
   private workspaceService = inject(WorkspaceService);
+  private boardService = inject(BoardService);
   private authService = inject(AuthService);
 
   workspaceId = '';
@@ -235,6 +238,7 @@ export class WorkspaceSettingsComponent implements OnInit {
   deleting = signal(false);
   workspace = signal<Workspace | null>(null);
   members = signal<MemberWithDetails[]>([]);
+  boards = signal<{ id: string; name: string }[]>([]);
 
   form: FormGroup = this.fb.group({
     name: ['', Validators.required],
@@ -311,7 +315,7 @@ export class WorkspaceSettingsComponent implements OnInit {
     this.members.update((members) =>
       members.map((m) =>
         m.user_id === event.userId
-          ? { ...m, role: event.role as 'admin' | 'member' | 'owner' }
+          ? { ...m, role: event.role as 'admin' | 'manager' | 'member' | 'owner' }
           : m
       )
     );
@@ -328,6 +332,7 @@ export class WorkspaceSettingsComponent implements OnInit {
           slug: workspace.slug,
         });
         this.loadMembers();
+        this.loadBoards();
       },
       error: (err) => {
         console.error('Failed to load workspace:', err);
@@ -353,6 +358,19 @@ export class WorkspaceSettingsComponent implements OnInit {
       error: (err) => {
         console.error('Failed to load members:', err);
         this.loading.set(false);
+      },
+    });
+  }
+
+  private loadBoards(): void {
+    this.boardService.listBoards(this.workspaceId).subscribe({
+      next: (boards) => {
+        this.boards.set(
+          boards.map((b) => ({ id: b.id, name: b.name }))
+        );
+      },
+      error: (err) => {
+        console.error('Failed to load boards:', err);
       },
     });
   }

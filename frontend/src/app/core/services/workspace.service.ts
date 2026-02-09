@@ -24,7 +24,7 @@ export interface UpdateWorkspaceRequest {
 export interface WorkspaceMember {
   user_id: string;
   workspace_id: string;
-  role: 'owner' | 'admin' | 'member';
+  role: 'owner' | 'admin' | 'manager' | 'member';
   joined_at: string;
 }
 
@@ -60,7 +60,7 @@ export class WorkspaceService {
     return this.http.get<WorkspaceMember[]>(`${this.apiUrl}/${workspaceId}/members`);
   }
 
-  inviteMember(workspaceId: string, email: string, role: 'admin' | 'member'): Observable<void> {
+  inviteMember(workspaceId: string, email: string, role: 'admin' | 'manager' | 'member'): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}/${workspaceId}/invites`, { email, role });
   }
 
@@ -71,7 +71,7 @@ export class WorkspaceService {
   updateMemberRole(
     workspaceId: string,
     userId: string,
-    role: 'admin' | 'member'
+    role: 'admin' | 'manager' | 'member'
   ): Observable<void> {
     return this.http.patch<void>(`${this.apiUrl}/${workspaceId}/members/${userId}`, { role });
   }
@@ -90,14 +90,16 @@ export class WorkspaceService {
   bulkInviteMembers(
     workspaceId: string,
     emails: string[],
-    role: 'admin' | 'member',
-    message?: string
+    role: 'admin' | 'manager' | 'member',
+    message?: string,
+    boardIds?: string[]
   ): Observable<BulkInviteResponse> {
     return this.http.post<BulkInviteResponse>('/api/v1/invitations/bulk', {
       emails,
       workspace_id: workspaceId,
       role,
-      message,
+      message: message || undefined,
+      board_ids: boardIds && boardIds.length > 0 ? boardIds : undefined,
     });
   }
 
@@ -135,6 +137,8 @@ export interface InvitationWithStatus {
   expires_at: string;
   created_at: string;
   status: 'pending' | 'accepted' | 'expired';
+  message?: string;
+  board_ids?: string[];
 }
 
 export interface BulkInviteResponse {

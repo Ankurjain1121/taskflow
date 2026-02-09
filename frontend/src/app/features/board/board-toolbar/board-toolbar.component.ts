@@ -15,7 +15,7 @@ import { Subject, debounceTime, takeUntil } from 'rxjs';
 import { TaskPriority, Assignee } from '../../../core/services/task.service';
 import { PRIORITY_COLORS, getPriorityLabel } from '../../../shared/utils/task-colors';
 
-export type ViewMode = 'kanban' | 'list';
+export type ViewMode = 'kanban' | 'list' | 'calendar' | 'gantt' | 'reports' | 'time-report';
 
 export interface TaskFilters {
   search: string;
@@ -250,6 +250,66 @@ const DEFAULT_FILTERS: TaskFilters = {
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+          </button>
+          <button
+            (click)="viewModeChanged.emit('calendar')"
+            class="px-3 py-2 text-sm transition-colors"
+            [class.bg-indigo-600]="viewMode() === 'calendar'"
+            [class.text-white]="viewMode() === 'calendar'"
+            [class.bg-white]="viewMode() !== 'calendar'"
+            [class.text-gray-600]="viewMode() !== 'calendar'"
+            [class.hover:bg-gray-50]="viewMode() !== 'calendar'"
+            title="Calendar View"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </button>
+          <button
+            (click)="viewModeChanged.emit('gantt')"
+            class="px-3 py-2 text-sm transition-colors"
+            [class.bg-indigo-600]="viewMode() === 'gantt'"
+            [class.text-white]="viewMode() === 'gantt'"
+            [class.bg-white]="viewMode() !== 'gantt'"
+            [class.text-gray-600]="viewMode() !== 'gantt'"
+            [class.hover:bg-gray-50]="viewMode() !== 'gantt'"
+            title="Gantt Chart"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 6h10M4 12h14M4 18h8" />
+            </svg>
+          </button>
+          <button
+            (click)="viewModeChanged.emit('reports')"
+            class="px-3 py-2 text-sm transition-colors"
+            [class.bg-indigo-600]="viewMode() === 'reports'"
+            [class.text-white]="viewMode() === 'reports'"
+            [class.bg-white]="viewMode() !== 'reports'"
+            [class.text-gray-600]="viewMode() !== 'reports'"
+            [class.hover:bg-gray-50]="viewMode() !== 'reports'"
+            title="Reports"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </button>
+          <button
+            (click)="viewModeChanged.emit('time-report')"
+            class="px-3 py-2 text-sm transition-colors"
+            [class.bg-indigo-600]="viewMode() === 'time-report'"
+            [class.text-white]="viewMode() === 'time-report'"
+            [class.bg-white]="viewMode() !== 'time-report'"
+            [class.text-gray-600]="viewMode() !== 'time-report'"
+            [class.hover:bg-gray-50]="viewMode() !== 'time-report'"
+            title="Time Report"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </button>
         </div>

@@ -29,6 +29,8 @@ pub struct CreateInvitationRequest {
     pub email: String,
     pub workspace_id: Uuid,
     pub role: UserRole,
+    pub message: Option<String>,
+    pub board_ids: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -37,6 +39,7 @@ pub struct BulkCreateInvitationRequest {
     pub workspace_id: Uuid,
     pub role: UserRole,
     pub message: Option<String>,
+    pub board_ids: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -72,6 +75,8 @@ pub struct InvitationResponse {
     pub token: Uuid,
     pub expires_at: chrono::DateTime<chrono::Utc>,
     pub created_at: chrono::DateTime<chrono::Utc>,
+    pub message: Option<String>,
+    pub board_ids: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize)]
@@ -84,6 +89,8 @@ pub struct InvitationWithStatusResponse {
     pub expires_at: chrono::DateTime<chrono::Utc>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub status: String,
+    pub message: Option<String>,
+    pub board_ids: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize)]
@@ -124,6 +131,8 @@ impl From<Invitation> for InvitationResponse {
             token: inv.token,
             expires_at: inv.expires_at,
             created_at: inv.created_at,
+            message: inv.message,
+            board_ids: inv.board_ids,
         }
     }
 }
@@ -154,14 +163,21 @@ pub async fn create_handler(
     // Set expiry to 7 days from now
     let expires_at = Utc::now() + Duration::days(7);
 
+    // Convert board_ids to JSON value if present
+    let board_ids_json = payload.board_ids.as_ref().map(|ids| {
+        serde_json::to_value(ids).unwrap_or(serde_json::Value::Null)
+    });
+
     // Create the invitation
-    let invitation = invitations::create_invitation(
+    let invitation = invitations::create_invitation_with_details(
         &state.db,
         &payload.email,
         payload.workspace_id,
         payload.role,
         auth.0.user_id,
         expires_at,
+        payload.message.as_deref(),
+        board_ids_json.as_ref(),
     )
     .await?;
 
@@ -353,6 +369,11 @@ pub async fn bulk_create_handler(
     let mut created = Vec::new();
     let mut errors = Vec::new();
 
+    // Convert board_ids to a JSON value if present
+    let board_ids_json = payload.board_ids.as_ref().map(|ids| {
+        serde_json::to_value(ids).unwrap_or(serde_json::Value::Null)
+    });
+
     for raw_email in &payload.emails {
         let email = raw_email.trim().to_lowercase();
 
@@ -403,14 +424,16 @@ pub async fn bulk_create_handler(
             }
         }
 
-        // Create the invitation
-        match invitations::create_invitation(
+        // Create the invitation with message and board_ids
+        match invitations::create_invitation_with_details(
             &state.db,
             &email,
             payload.workspace_id,
             payload.role,
             auth.0.user_id,
             expires_at,
+            payload.message.as_deref(),
+            board_ids_json.as_ref(),
         )
         .await
         {
@@ -461,6 +484,8 @@ pub async fn list_all_handler(
                 expires_at: inv.expires_at,
                 created_at: inv.created_at,
                 status,
+                message: inv.message,
+                board_ids: inv.board_ids,
             }
         })
         .collect();

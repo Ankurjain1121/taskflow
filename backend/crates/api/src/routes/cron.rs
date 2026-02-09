@@ -6,7 +6,7 @@
 use axum::{
     extract::State,
     http::HeaderMap,
-    routing::get,
+    routing::{get, post},
     Json, Router,
 };
 use serde::Serialize;
@@ -22,6 +22,7 @@ use taskflow_services::jobs::{
 use taskflow_services::minio::{MinioConfig, MinioService};
 use taskflow_services::notifications::{NotificationService, PostalClient};
 use taskflow_services::novu::NovuClient;
+use taskflow_db::queries::recurring::{create_recurring_instance, get_due_configs};
 
 /// Validate the X-Cron-Secret header
 fn validate_cron_secret(headers: &HeaderMap) -> Result<()> {
@@ -149,6 +150,51 @@ async fn trash_cleanup_handler(
     Ok(Json(result))
 }
 
+/// Result of processing recurring tasks
+#[derive(Serialize)]
+pub struct RecurringTasksResult {
+    pub processed: usize,
+    pub created_tasks: Vec<String>,
+    pub errors: Vec<String>,
+}
+
+/// POST /api/cron/recurring-tasks
+///
+/// Processes all due recurring task configs.
+/// Creates new task instances for each due config.
+///
+/// Requires X-Cron-Secret header for authentication.
+async fn process_recurring_handler(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<RecurringTasksResult>> {
+    validate_cron_secret(&headers)?;
+
+    let configs = get_due_configs(&state.db)
+        .await
+        .map_err(|e| AppError::InternalError(format!("Failed to get due configs: {}", e)))?;
+
+    let mut created_tasks = Vec::new();
+    let mut errors = Vec::new();
+
+    for config in &configs {
+        match create_recurring_instance(&state.db, config).await {
+            Ok(task_id) => {
+                created_tasks.push(task_id.to_string());
+            }
+            Err(e) => {
+                errors.push(format!("Config {}: {}", config.id, e));
+            }
+        }
+    }
+
+    Ok(Json(RecurringTasksResult {
+        processed: configs.len(),
+        created_tasks,
+        errors,
+    }))
+}
+
 /// Response for health check
 #[derive(Serialize)]
 struct CronHealthResponse {
@@ -166,6 +212,7 @@ async fn cron_health() -> Json<CronHealthResponse> {
             "/api/cron/deadline-scan",
             "/api/cron/weekly-digest",
             "/api/cron/trash-cleanup",
+            "/api/cron/recurring-tasks",
         ],
     })
 }
@@ -180,4 +227,5 @@ pub fn cron_router() -> Router<AppState> {
         .route("/cron/deadline-scan", get(deadline_scan_handler))
         .route("/cron/weekly-digest", get(weekly_digest_handler))
         .route("/cron/trash-cleanup", get(trash_cleanup_handler))
+        .route("/cron/recurring-tasks", post(process_recurring_handler))
 }

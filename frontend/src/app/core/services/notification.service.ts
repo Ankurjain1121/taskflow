@@ -5,6 +5,7 @@ import { Observable, interval, Subscription, tap, switchMap, filter, startWith }
 import { WebSocketService, WebSocketMessage } from './websocket.service';
 import { AuthService } from './auth.service';
 import { ToastService } from '../../shared/components/toast/toast.service';
+import { NotificationSoundService } from './notification-sound.service';
 
 export type NotificationEventType =
   | 'task_assigned'
@@ -64,6 +65,7 @@ export class NotificationService implements OnDestroy {
   });
 
   private toastService = inject(ToastService);
+  private soundService = inject(NotificationSoundService);
   private document = inject(DOCUMENT);
 
   constructor(
@@ -91,7 +93,7 @@ export class NotificationService implements OnDestroy {
         this._notifications.update((notifications) => [notification, ...notifications]);
         this._unreadCount.update((count) => count + 1);
 
-        // Show toast only when the page is visible
+        // Show toast and play sound only when the page is visible
         if (!this.document.hidden) {
           this.toastService.show({
             id: notification.id,
@@ -100,6 +102,7 @@ export class NotificationService implements OnDestroy {
             body: notification.body,
             link_url: notification.link_url,
           });
+          this.soundService.playNotificationSound();
         }
       });
 

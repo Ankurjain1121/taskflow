@@ -5,6 +5,7 @@ import {
   signal,
   inject,
   OnInit,
+  OnDestroy,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -18,6 +19,7 @@ import {
   isToday,
 } from '../../../shared/utils/task-colors';
 import { SubtaskService, SubtaskProgress } from '../../../core/services/subtask.service';
+import { TimeTrackingService } from '../../../core/services/time-tracking.service';
 
 @Component({
   selector: 'app-task-card',
@@ -33,10 +35,32 @@ import { SubtaskService, SubtaskProgress } from '../../../core/services/subtask.
       [style.border-left]="'4px solid ' + getBorderColor()"
     >
       <div class="p-3">
+        <!-- Blocked Indicator -->
+        @if (isBlocked()) {
+          <div class="flex items-center gap-1 mb-2 px-1.5 py-0.5 bg-red-50 rounded text-xs font-medium text-red-600">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            Blocked
+          </div>
+        }
+
         <!-- Title -->
         <h4 class="text-sm font-medium text-gray-900 line-clamp-2 mb-2">
           {{ task().title }}
         </h4>
+
+        <!-- Running Timer Indicator -->
+        @if (hasRunningTimer()) {
+          <div class="flex items-center gap-1.5 mb-2 px-1.5 py-0.5 bg-green-50 rounded text-xs font-medium text-green-700">
+            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {{ timerElapsed() }}
+          </div>
+        }
 
         <!-- Labels -->
         @if (task().labels && task().labels!.length > 0) {
@@ -187,17 +211,30 @@ import { SubtaskService, SubtaskProgress } from '../../../core/services/subtask.
     `,
   ],
 })
-export class TaskCardComponent implements OnInit {
+export class TaskCardComponent implements OnInit, OnDestroy {
   private subtaskService = inject(SubtaskService);
+  private timeTrackingService = inject(TimeTrackingService);
 
   task = input.required<Task>();
+  isBlocked = input<boolean>(false);
 
   taskClicked = output<Task>();
 
   subtaskProgress = signal<SubtaskProgress | null>(null);
+  hasRunningTimer = signal(false);
+  timerElapsed = signal('');
+  private timerInterval: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit(): void {
     this.loadSubtaskProgress();
+    this.checkRunningTimer();
+  }
+
+  ngOnDestroy(): void {
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+    }
   }
 
   get priorityColors() {
@@ -277,5 +314,34 @@ export class TaskCardComponent implements OnInit {
         // Silently ignore - subtask progress is optional
       },
     });
+  }
+
+  private checkRunningTimer(): void {
+    this.timeTrackingService.listEntries(this.task().id).subscribe({
+      next: (entries) => {
+        const running = entries.find((e) => e.is_running);
+        if (running) {
+          this.hasRunningTimer.set(true);
+          this.startTimerDisplay(running.started_at);
+        }
+      },
+      error: () => {
+        // Silently ignore
+      },
+    });
+  }
+
+  private startTimerDisplay(startedAt: string): void {
+    const update = () => {
+      const diffSec = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000);
+      const h = Math.floor(diffSec / 3600);
+      const m = Math.floor((diffSec % 3600) / 60);
+      const s = diffSec % 60;
+      this.timerElapsed.set(
+        `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+      );
+    };
+    update();
+    this.timerInterval = setInterval(update, 1000);
   }
 }

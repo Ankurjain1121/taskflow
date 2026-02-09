@@ -18,6 +18,9 @@ import { TaskPriority } from '../../../core/services/task.service';
 export interface CreateTaskDialogData {
   columnId: string;
   columnName: string;
+  members: { id: string; name: string; avatar_url?: string }[];
+  labels: { id: string; name: string; color: string }[];
+  milestones: { id: string; name: string; color: string }[];
 }
 
 export interface CreateTaskDialogResult {
@@ -27,6 +30,9 @@ export interface CreateTaskDialogResult {
   due_date?: string;
   start_date?: string;
   estimated_hours?: number;
+  milestone_id?: string;
+  assignee_ids?: string[];
+  label_ids?: string[];
 }
 
 @Component({
@@ -146,6 +152,60 @@ export interface CreateTaskDialogResult {
             <mat-error>Hours must be less than 10,000</mat-error>
           }
         </mat-form-field>
+
+        <!-- Assignees -->
+        @if (data.members.length > 0) {
+          <mat-form-field appearance="outline">
+            <mat-label>Assignees</mat-label>
+            <mat-select formControlName="assigneeIds" multiple>
+              @for (member of data.members; track member.id) {
+                <mat-option [value]="member.id">
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-medium">
+                      {{ member.name.charAt(0).toUpperCase() }}
+                    </div>
+                    {{ member.name }}
+                  </div>
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+
+        <!-- Labels -->
+        @if (data.labels.length > 0) {
+          <mat-form-field appearance="outline">
+            <mat-label>Labels</mat-label>
+            <mat-select formControlName="labelIds" multiple>
+              @for (label of data.labels; track label.id) {
+                <mat-option [value]="label.id">
+                  <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full" [style.background-color]="label.color"></span>
+                    {{ label.name }}
+                  </div>
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+
+        <!-- Milestone -->
+        @if (data.milestones && data.milestones.length > 0) {
+          <mat-form-field appearance="outline">
+            <mat-label>Milestone</mat-label>
+            <mat-select formControlName="milestoneId">
+              <mat-option [value]="''">None</mat-option>
+              @for (milestone of data.milestones; track milestone.id) {
+                <mat-option [value]="milestone.id">
+                  <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full" [style.background-color]="milestone.color"></span>
+                    {{ milestone.name }}
+                  </div>
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
@@ -214,6 +274,9 @@ export class CreateTaskDialogComponent {
     startDate: [null as Date | null],
     dueDate: [null as Date | null],
     estimatedHours: [null as number | null, [Validators.min(0), Validators.max(9999)]],
+    assigneeIds: [[] as string[]],
+    labelIds: [[] as string[]],
+    milestoneId: ['' as string],
   });
 
   onCancel(): void {
@@ -243,6 +306,18 @@ export class CreateTaskDialogComponent {
 
     if (values.estimatedHours != null && values.estimatedHours > 0) {
       result.estimated_hours = values.estimatedHours;
+    }
+
+    if (values.assigneeIds?.length) {
+      result.assignee_ids = values.assigneeIds;
+    }
+
+    if (values.labelIds?.length) {
+      result.label_ids = values.labelIds;
+    }
+
+    if (values.milestoneId) {
+      result.milestone_id = values.milestoneId;
     }
 
     this.dialogRef.close(result);

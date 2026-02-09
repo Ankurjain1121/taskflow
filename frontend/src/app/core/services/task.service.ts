@@ -34,6 +34,7 @@ export interface Task {
   description: string | null;
   priority: TaskPriority;
   position: string;
+  milestone_id: string | null;
   assignee_id: string | null;
   due_date: string | null;
   created_by: string;
@@ -79,6 +80,11 @@ export interface CreateTaskRequest {
   priority?: TaskPriority;
   assignee_id?: string;
   due_date?: string;
+  start_date?: string;
+  estimated_hours?: number;
+  milestone_id?: string;
+  assignee_ids?: string[];
+  label_ids?: string[];
 }
 
 export interface UpdateTaskRequest {
@@ -87,11 +93,48 @@ export interface UpdateTaskRequest {
   priority?: TaskPriority;
   assignee_id?: string | null;
   due_date?: string | null;
+  milestone_id?: string | null;
+}
+
+export interface CalendarTask {
+  id: string;
+  title: string;
+  priority: string;
+  due_date: string;
+  start_date: string | null;
+  column_id: string;
+  column_name: string;
+  is_done: boolean;
+  milestone_id: string | null;
+}
+
+export interface GanttTask {
+  id: string;
+  title: string;
+  priority: string;
+  start_date: string | null;
+  due_date: string | null;
+  column_id: string;
+  column_name: string;
+  is_done: boolean;
+  milestone_id: string | null;
 }
 
 export interface MoveTaskRequest {
   column_id: string;
   position: string;
+}
+
+export interface BulkUpdateRequest {
+  task_ids: string[];
+  column_id?: string;
+  priority?: TaskPriority;
+  milestone_id?: string;
+  clear_milestone?: boolean;
+}
+
+export interface BulkDeleteRequest {
+  task_ids: string[];
 }
 
 @Injectable({
@@ -160,6 +203,33 @@ export class TaskService {
   unassignUser(taskId: string, userId: string): Observable<void> {
     return this.http.delete<void>(
       `${this.apiUrl}/tasks/${taskId}/assignees/${userId}`
+    );
+  }
+
+  listCalendarTasks(boardId: string, start: string, end: string): Observable<CalendarTask[]> {
+    return this.http.get<CalendarTask[]>(
+      `${this.apiUrl}/boards/${boardId}/tasks/calendar`,
+      { params: { start, end } }
+    );
+  }
+
+  listGanttTasks(boardId: string): Observable<GanttTask[]> {
+    return this.http.get<GanttTask[]>(
+      `${this.apiUrl}/boards/${boardId}/tasks/gantt`
+    );
+  }
+
+  bulkUpdate(boardId: string, request: BulkUpdateRequest): Observable<{ updated: number }> {
+    return this.http.post<{ updated: number }>(
+      `${this.apiUrl}/boards/${boardId}/tasks/bulk-update`,
+      request
+    );
+  }
+
+  bulkDelete(boardId: string, request: BulkDeleteRequest): Observable<{ deleted: number }> {
+    return this.http.post<{ deleted: number }>(
+      `${this.apiUrl}/boards/${boardId}/tasks/bulk-delete`,
+      request
     );
   }
 }
