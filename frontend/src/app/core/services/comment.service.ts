@@ -31,7 +31,7 @@ export interface UpdateCommentRequest {
   providedIn: 'root',
 })
 export class CommentService {
-  private readonly apiUrl = '/api/v1';
+  private readonly apiUrl = '/api';
 
   constructor(private http: HttpClient) {}
 

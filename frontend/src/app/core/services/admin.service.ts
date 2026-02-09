@@ -83,7 +83,7 @@ export interface TrashParams {
   providedIn: 'root',
 })
 export class AdminService {
-  private readonly apiUrl = '/api/v1/admin';
+  private readonly apiUrl = '/api/admin';
 
   constructor(private http: HttpClient) {}
 

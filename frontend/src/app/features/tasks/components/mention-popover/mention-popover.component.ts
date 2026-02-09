@@ -204,7 +204,7 @@ export class MentionPopoverComponent implements OnDestroy {
 
   private searchMembers(query: string) {
     return this.http.get<MentionableMember[]>(
-      `/api/v1/workspaces/${this.workspaceId()}/members/search`,
+      `/api/workspaces/${this.workspaceId()}/members/search`,
       { params: { search: query } }
     );
   }

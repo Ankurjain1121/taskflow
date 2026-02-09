@@ -26,7 +26,7 @@ export interface OverloadedMember {
   providedIn: 'root',
 })
 export class TeamService {
-  private readonly apiUrl = '/api/v1';
+  private readonly apiUrl = '/api';
 
   constructor(private http: HttpClient) {}
 

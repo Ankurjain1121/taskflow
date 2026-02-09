@@ -40,7 +40,7 @@ const USER_KEY = 'taskflow_user';
   providedIn: 'root',
 })
 export class AuthService {
-  private readonly apiUrl = '/api/v1/auth';
+  private readonly apiUrl = '/api/auth';
   private _currentUser = signal<User | null>(this.loadUserFromStorage());
   private refreshInProgress$ = new BehaviorSubject<boolean>(false);
 

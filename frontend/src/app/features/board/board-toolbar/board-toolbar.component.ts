@@ -41,8 +41,8 @@ const DEFAULT_FILTERS: TaskFilters = {
   imports: [CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white border-b border-gray-200 px-4 py-3">
-      <div class="flex items-center gap-4 flex-wrap">
+    <div class="toolbar-wrapper border-b border-gray-200/80 px-5 py-3">
+      <div class="flex items-center gap-3 flex-wrap">
         <!-- Search Input -->
         <div class="relative flex-1 min-w-[200px] max-w-md">
           <input
@@ -50,7 +50,7 @@ const DEFAULT_FILTERS: TaskFilters = {
             [ngModel]="searchTerm()"
             (ngModelChange)="onSearchChange($event)"
             placeholder="Search tasks..."
-            class="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="search-input w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 placeholder-gray-400"
           />
           <svg
             class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
@@ -71,20 +71,28 @@ const DEFAULT_FILTERS: TaskFilters = {
         <div class="relative">
           <button
             (click)="togglePriorityDropdown()"
-            class="inline-flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
-            [class.ring-2]="filters().priorities.length > 0"
-            [class.ring-indigo-500]="filters().priorities.length > 0"
+            class="filter-btn inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium border rounded-lg"
+            [class.filter-btn--active]="filters().priorities.length > 0"
+            [class.border-gray-200]="filters().priorities.length === 0"
+            [class.text-gray-600]="filters().priorities.length === 0"
+            [class.border-indigo-300]="filters().priorities.length > 0"
+            [class.text-indigo-700]="filters().priorities.length > 0"
+            [class.bg-indigo-50]="filters().priorities.length > 0"
           >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+            </svg>
             <span>Priority</span>
             @if (filters().priorities.length > 0) {
               <span
-                class="inline-flex items-center justify-center w-5 h-5 text-xs font-medium bg-indigo-100 text-indigo-800 rounded-full"
+                class="count-badge inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white rounded-full"
               >
                 {{ filters().priorities.length }}
               </span>
             }
             <svg
-              class="w-4 h-4"
+              class="w-3.5 h-3.5 opacity-50"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -100,12 +108,12 @@ const DEFAULT_FILTERS: TaskFilters = {
 
           @if (showPriorityDropdown()) {
             <div
-              class="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10"
+              class="filter-dropdown absolute top-full left-0 mt-2 w-52 bg-white rounded-xl border border-gray-100 z-10"
             >
-              <div class="p-2 space-y-1">
+              <div class="p-2 space-y-0.5">
                 @for (priority of priorityOptions; track priority) {
                   <label
-                    class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer"
+                    class="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                   >
                     <input
                       type="checkbox"
@@ -115,11 +123,11 @@ const DEFAULT_FILTERS: TaskFilters = {
                     />
                     <span
                       [class]="
-                        'w-2 h-2 rounded-full ' +
+                        'w-2.5 h-2.5 rounded-full ' +
                         getPriorityDotClass(priority)
                       "
                     ></span>
-                    <span class="text-sm">{{ getPriorityLabel(priority) }}</span>
+                    <span class="text-sm font-medium text-gray-700">{{ getPriorityLabel(priority) }}</span>
                   </label>
                 }
               </div>
@@ -131,20 +139,28 @@ const DEFAULT_FILTERS: TaskFilters = {
         <div class="relative">
           <button
             (click)="toggleAssigneeDropdown()"
-            class="inline-flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
-            [class.ring-2]="filters().assigneeIds.length > 0"
-            [class.ring-indigo-500]="filters().assigneeIds.length > 0"
+            class="filter-btn inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium border rounded-lg"
+            [class.filter-btn--active]="filters().assigneeIds.length > 0"
+            [class.border-gray-200]="filters().assigneeIds.length === 0"
+            [class.text-gray-600]="filters().assigneeIds.length === 0"
+            [class.border-indigo-300]="filters().assigneeIds.length > 0"
+            [class.text-indigo-700]="filters().assigneeIds.length > 0"
+            [class.bg-indigo-50]="filters().assigneeIds.length > 0"
           >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
             <span>Assignee</span>
             @if (filters().assigneeIds.length > 0) {
               <span
-                class="inline-flex items-center justify-center w-5 h-5 text-xs font-medium bg-indigo-100 text-indigo-800 rounded-full"
+                class="count-badge inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold text-white rounded-full"
               >
                 {{ filters().assigneeIds.length }}
               </span>
             }
             <svg
-              class="w-4 h-4"
+              class="w-3.5 h-3.5 opacity-50"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -160,12 +176,12 @@ const DEFAULT_FILTERS: TaskFilters = {
 
           @if (showAssigneeDropdown()) {
             <div
-              class="absolute top-full left-0 mt-1 w-56 bg-white rounded-md shadow-lg border border-gray-200 z-10"
+              class="filter-dropdown absolute top-full left-0 mt-2 w-60 bg-white rounded-xl border border-gray-100 z-10"
             >
-              <div class="p-2 space-y-1 max-h-64 overflow-y-auto">
+              <div class="p-2 space-y-0.5 max-h-64 overflow-y-auto">
                 @for (assignee of assignees(); track assignee.id) {
                   <label
-                    class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-50 cursor-pointer"
+                    class="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                   >
                     <input
                       type="checkbox"
@@ -174,7 +190,7 @@ const DEFAULT_FILTERS: TaskFilters = {
                       class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                     />
                     <div
-                      class="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium"
+                      class="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
                     >
                       @if (assignee.avatar_url) {
                         <img
@@ -186,13 +202,13 @@ const DEFAULT_FILTERS: TaskFilters = {
                         {{ getInitials(assignee.display_name) }}
                       }
                     </div>
-                    <span class="text-sm truncate">{{
+                    <span class="text-sm font-medium text-gray-700 truncate">{{
                       assignee.display_name
                     }}</span>
                   </label>
                 }
                 @if (assignees().length === 0) {
-                  <div class="px-2 py-4 text-sm text-gray-500 text-center">
+                  <div class="px-3 py-6 text-sm text-gray-400 text-center">
                     No assignees available
                   </div>
                 }
@@ -207,29 +223,27 @@ const DEFAULT_FILTERS: TaskFilters = {
             type="date"
             [ngModel]="filters().dueDateStart"
             (ngModelChange)="onDueDateStartChange($event)"
-            class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            class="date-input px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400"
             placeholder="Start date"
           />
-          <span class="text-gray-500">to</span>
+          <span class="text-gray-400 text-xs font-medium">to</span>
           <input
             type="date"
             [ngModel]="filters().dueDateEnd"
             (ngModelChange)="onDueDateEndChange($event)"
-            class="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            class="date-input px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400"
             placeholder="End date"
           />
         </div>
 
         <!-- View Toggle -->
-        <div class="flex items-center border border-gray-300 rounded-md overflow-hidden ml-auto">
+        <div class="view-toggle flex items-center border border-gray-200 rounded-lg overflow-hidden ml-auto p-0.5 bg-gray-100/80">
           <button
             (click)="viewModeChanged.emit('kanban')"
-            class="px-3 py-2 text-sm transition-colors"
-            [class.bg-indigo-600]="viewMode() === 'kanban'"
-            [class.text-white]="viewMode() === 'kanban'"
-            [class.bg-white]="viewMode() !== 'kanban'"
-            [class.text-gray-600]="viewMode() !== 'kanban'"
-            [class.hover:bg-gray-50]="viewMode() !== 'kanban'"
+            class="view-toggle-btn px-3 py-1.5 text-sm rounded-md transition-all duration-200"
+            [class.view-toggle-btn--active]="viewMode() === 'kanban'"
+            [class.text-gray-500]="viewMode() !== 'kanban'"
+            [class.hover:text-gray-700]="viewMode() !== 'kanban'"
             title="Kanban View"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -239,12 +253,10 @@ const DEFAULT_FILTERS: TaskFilters = {
           </button>
           <button
             (click)="viewModeChanged.emit('list')"
-            class="px-3 py-2 text-sm transition-colors"
-            [class.bg-indigo-600]="viewMode() === 'list'"
-            [class.text-white]="viewMode() === 'list'"
-            [class.bg-white]="viewMode() !== 'list'"
-            [class.text-gray-600]="viewMode() !== 'list'"
-            [class.hover:bg-gray-50]="viewMode() !== 'list'"
+            class="view-toggle-btn px-3 py-1.5 text-sm rounded-md transition-all duration-200"
+            [class.view-toggle-btn--active]="viewMode() === 'list'"
+            [class.text-gray-500]="viewMode() !== 'list'"
+            [class.hover:text-gray-700]="viewMode() !== 'list'"
             title="List View"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -254,12 +266,10 @@ const DEFAULT_FILTERS: TaskFilters = {
           </button>
           <button
             (click)="viewModeChanged.emit('calendar')"
-            class="px-3 py-2 text-sm transition-colors"
-            [class.bg-indigo-600]="viewMode() === 'calendar'"
-            [class.text-white]="viewMode() === 'calendar'"
-            [class.bg-white]="viewMode() !== 'calendar'"
-            [class.text-gray-600]="viewMode() !== 'calendar'"
-            [class.hover:bg-gray-50]="viewMode() !== 'calendar'"
+            class="view-toggle-btn px-3 py-1.5 text-sm rounded-md transition-all duration-200"
+            [class.view-toggle-btn--active]="viewMode() === 'calendar'"
+            [class.text-gray-500]="viewMode() !== 'calendar'"
+            [class.hover:text-gray-700]="viewMode() !== 'calendar'"
             title="Calendar View"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -269,12 +279,10 @@ const DEFAULT_FILTERS: TaskFilters = {
           </button>
           <button
             (click)="viewModeChanged.emit('gantt')"
-            class="px-3 py-2 text-sm transition-colors"
-            [class.bg-indigo-600]="viewMode() === 'gantt'"
-            [class.text-white]="viewMode() === 'gantt'"
-            [class.bg-white]="viewMode() !== 'gantt'"
-            [class.text-gray-600]="viewMode() !== 'gantt'"
-            [class.hover:bg-gray-50]="viewMode() !== 'gantt'"
+            class="view-toggle-btn px-3 py-1.5 text-sm rounded-md transition-all duration-200"
+            [class.view-toggle-btn--active]="viewMode() === 'gantt'"
+            [class.text-gray-500]="viewMode() !== 'gantt'"
+            [class.hover:text-gray-700]="viewMode() !== 'gantt'"
             title="Gantt Chart"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -284,12 +292,10 @@ const DEFAULT_FILTERS: TaskFilters = {
           </button>
           <button
             (click)="viewModeChanged.emit('reports')"
-            class="px-3 py-2 text-sm transition-colors"
-            [class.bg-indigo-600]="viewMode() === 'reports'"
-            [class.text-white]="viewMode() === 'reports'"
-            [class.bg-white]="viewMode() !== 'reports'"
-            [class.text-gray-600]="viewMode() !== 'reports'"
-            [class.hover:bg-gray-50]="viewMode() !== 'reports'"
+            class="view-toggle-btn px-3 py-1.5 text-sm rounded-md transition-all duration-200"
+            [class.view-toggle-btn--active]="viewMode() === 'reports'"
+            [class.text-gray-500]="viewMode() !== 'reports'"
+            [class.hover:text-gray-700]="viewMode() !== 'reports'"
             title="Reports"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -299,12 +305,10 @@ const DEFAULT_FILTERS: TaskFilters = {
           </button>
           <button
             (click)="viewModeChanged.emit('time-report')"
-            class="px-3 py-2 text-sm transition-colors"
-            [class.bg-indigo-600]="viewMode() === 'time-report'"
-            [class.text-white]="viewMode() === 'time-report'"
-            [class.bg-white]="viewMode() !== 'time-report'"
-            [class.text-gray-600]="viewMode() !== 'time-report'"
-            [class.hover:bg-gray-50]="viewMode() !== 'time-report'"
+            class="view-toggle-btn px-3 py-1.5 text-sm rounded-md transition-all duration-200"
+            [class.view-toggle-btn--active]="viewMode() === 'time-report'"
+            [class.text-gray-500]="viewMode() !== 'time-report'"
+            [class.hover:text-gray-700]="viewMode() !== 'time-report'"
             title="Time Report"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -318,10 +322,10 @@ const DEFAULT_FILTERS: TaskFilters = {
         @if (activeFilterCount() > 0) {
           <button
             (click)="clearFilters()"
-            class="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
+            class="clear-btn inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 border border-transparent hover:border-red-200"
           >
             <svg
-              class="w-4 h-4"
+              class="w-3.5 h-3.5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -333,12 +337,99 @@ const DEFAULT_FILTERS: TaskFilters = {
                 d="M6 18L18 6M6 6l12 12"
               />
             </svg>
-            Clear ({{ activeFilterCount() }})
+            Clear filters ({{ activeFilterCount() }})
           </button>
         }
       </div>
     </div>
   `,
+  styles: [
+    `
+      :host {
+        display: block;
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+
+      .toolbar-wrapper {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px) saturate(180%);
+        -webkit-backdrop-filter: blur(12px) saturate(180%);
+      }
+
+      .search-input {
+        background: rgba(249, 250, 251, 0.8);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        transition: all 0.2s ease;
+      }
+
+      .search-input:focus {
+        background: white;
+        box-shadow: 0 1px 3px rgba(99, 102, 241, 0.1), 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+
+      .filter-btn {
+        background: white;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        transition: all 0.2s ease;
+      }
+
+      .filter-btn:hover {
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        transform: translateY(-1px);
+      }
+
+      .filter-btn--active {
+        box-shadow: 0 1px 3px rgba(99, 102, 241, 0.15);
+      }
+
+      .count-badge {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        box-shadow: 0 1px 3px rgba(99, 102, 241, 0.3);
+      }
+
+      .filter-dropdown {
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08), 0 2px 10px rgba(0, 0, 0, 0.04);
+        animation: dropdown-enter 0.15s ease-out;
+      }
+
+      @keyframes dropdown-enter {
+        from {
+          opacity: 0;
+          transform: translateY(-4px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .date-input {
+        background: rgba(249, 250, 251, 0.8);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        transition: all 0.2s ease;
+      }
+
+      .date-input:focus {
+        background: white;
+      }
+
+      .view-toggle {
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+
+      .view-toggle-btn--active {
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
+        color: white;
+        box-shadow: 0 1px 3px rgba(99, 102, 241, 0.3);
+      }
+
+      .clear-btn {
+        letter-spacing: 0.01em;
+      }
+    `,
+  ],
   host: {
     '(document:click)': 'onDocumentClick($event)',
   },

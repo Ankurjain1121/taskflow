@@ -22,17 +22,60 @@ import {
   standalone: true,
   imports: [CommonModule, RouterModule, MatDialogModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [`
+    :host { display: block; }
+
+    .workspace-header-btn {
+      transition: all 0.15s ease;
+      border-left: 2px solid transparent;
+    }
+    .workspace-header-btn:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-left-color: rgba(99, 102, 241, 0.5);
+    }
+
+    .workspace-icon {
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      box-shadow: 0 1px 3px rgba(79, 70, 229, 0.3);
+      transition: transform 0.15s ease;
+    }
+    .workspace-header-btn:hover .workspace-icon {
+      transform: scale(1.05);
+    }
+
+    .board-link {
+      transition: all 0.15s ease;
+      border-left: 2px solid transparent;
+    }
+    .board-link:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-left-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .board-link-active {
+      background: rgba(99, 102, 241, 0.12) !important;
+      border-left-color: #6366f1 !important;
+      color: #e0e7ff !important;
+    }
+
+    .add-board-btn {
+      transition: all 0.15s ease;
+    }
+    .add-board-btn:hover {
+      background: rgba(99, 102, 241, 0.15);
+    }
+  `],
   template: `
     <div class="mb-1">
       <!-- Workspace Header -->
       <button
         (click)="toggleExpanded()"
-        class="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-200 hover:bg-gray-800 rounded-md transition-colors"
+        class="workspace-header-btn w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-200 rounded-md"
       >
         <!-- Chevron -->
         <svg
           [class]="
-            'w-4 h-4 transition-transform ' + (expanded() ? 'rotate-90' : '')
+            'w-4 h-4 text-gray-500 transition-transform duration-200 ' + (expanded() ? 'rotate-90' : '')
           "
           fill="none"
           stroke="currentColor"
@@ -48,7 +91,7 @@ import {
 
         <!-- Workspace Icon -->
         <span
-          class="w-6 h-6 rounded flex items-center justify-center text-xs font-bold bg-indigo-600 text-white"
+          class="workspace-icon w-6 h-6 rounded flex items-center justify-center text-xs font-bold text-white"
         >
           {{ workspace().name.charAt(0).toUpperCase() }}
         </span>
@@ -60,11 +103,11 @@ import {
         @if (canCreateBoard()) {
           <button
             (click)="onAddBoardClick($event)"
-            class="p-1 hover:bg-gray-700 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+            class="add-board-btn p-1 rounded opacity-0 group-hover:opacity-100"
             title="Add Board"
           >
             <svg
-              class="w-4 h-4"
+              class="w-4 h-4 text-gray-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -86,7 +129,7 @@ import {
           @if (loading()) {
             <div class="px-3 py-2 text-sm text-gray-400">Loading...</div>
           } @else if (boards().length === 0) {
-            <div class="px-3 py-2 text-sm text-gray-500 italic">No boards</div>
+            <div class="px-3 py-2 text-sm text-gray-600 italic">No boards</div>
           } @else {
             @for (board of boards(); track board.id) {
               <a
@@ -96,11 +139,11 @@ import {
                   'board',
                   board.id
                 ]"
-                routerLinkActive="bg-gray-700 text-white"
-                class="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-800 rounded-md transition-colors"
+                routerLinkActive="board-link-active"
+                class="board-link flex items-center gap-2 px-3 py-1.5 text-sm text-gray-300 rounded-md"
               >
                 <svg
-                  class="w-4 h-4 text-gray-400"
+                  class="w-4 h-4 text-gray-500"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

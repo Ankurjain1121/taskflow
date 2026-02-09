@@ -141,7 +141,7 @@ export interface BulkDeleteRequest {
   providedIn: 'root',
 })
 export class TaskService {
-  private readonly apiUrl = '/api/v1';
+  private readonly apiUrl = '/api';
 
   constructor(private http: HttpClient) {}
 

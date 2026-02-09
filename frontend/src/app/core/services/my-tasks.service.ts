@@ -47,7 +47,7 @@ export interface MyTasksSummary {
   providedIn: 'root',
 })
 export class MyTasksService {
-  private readonly apiUrl = '/api/v1';
+  private readonly apiUrl = '/api';
 
   constructor(private http: HttpClient) {}
 

@@ -24,7 +24,7 @@ export interface DashboardActivityEntry {
   providedIn: 'root',
 })
 export class DashboardService {
-  private readonly apiUrl = '/api/v1/dashboard';
+  private readonly apiUrl = '/api/dashboard';
 
   constructor(private http: HttpClient) {}
 

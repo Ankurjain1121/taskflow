@@ -39,7 +39,7 @@ export interface CreateManualEntry {
   providedIn: 'root',
 })
 export class TimeTrackingService {
-  private readonly apiUrl = '/api/v1';
+  private readonly apiUrl = '/api';
 
   constructor(private http: HttpClient) {}
 

@@ -25,7 +25,7 @@ export interface GenerateSampleBoardResponse {
   providedIn: 'root',
 })
 export class OnboardingService {
-  private readonly apiUrl = '/api/v1';
+  private readonly apiUrl = '/api';
 
   constructor(private http: HttpClient) {}
 

@@ -80,7 +80,7 @@ export interface UpdateMemberRoleRequest {
   providedIn: 'root',
 })
 export class BoardService {
-  private readonly apiUrl = '/api/v1';
+  private readonly apiUrl = '/api';
 
   constructor(private http: HttpClient) {}
 

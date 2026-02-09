@@ -49,7 +49,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
   providedIn: 'root',
 })
 export class AttachmentService {
-  private readonly apiUrl = '/api/v1';
+  private readonly apiUrl = '/api';
 
   constructor(private http: HttpClient) {}
 

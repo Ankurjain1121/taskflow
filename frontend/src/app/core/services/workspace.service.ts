@@ -32,7 +32,7 @@ export interface WorkspaceMember {
   providedIn: 'root',
 })
 export class WorkspaceService {
-  private readonly apiUrl = '/api/v1/workspaces';
+  private readonly apiUrl = '/api/workspaces';
 
   constructor(private http: HttpClient) {}
 
@@ -94,7 +94,7 @@ export class WorkspaceService {
     message?: string,
     boardIds?: string[]
   ): Observable<BulkInviteResponse> {
-    return this.http.post<BulkInviteResponse>('/api/v1/invitations/bulk', {
+    return this.http.post<BulkInviteResponse>('/api/invitations/bulk', {
       emails,
       workspace_id: workspaceId,
       role,
@@ -104,18 +104,18 @@ export class WorkspaceService {
   }
 
   listAllInvitations(workspaceId: string): Observable<InvitationWithStatus[]> {
-    return this.http.get<InvitationWithStatus[]>('/api/v1/invitations/all', {
+    return this.http.get<InvitationWithStatus[]>('/api/invitations/all', {
       params: { workspace_id: workspaceId },
     });
   }
 
   cancelInvitation(invitationId: string): Observable<void> {
-    return this.http.delete<void>(`/api/v1/invitations/${invitationId}`);
+    return this.http.delete<void>(`/api/invitations/${invitationId}`);
   }
 
   resendInvitation(invitationId: string): Observable<InvitationWithStatus> {
     return this.http.post<InvitationWithStatus>(
-      `/api/v1/invitations/${invitationId}/resend`,
+      `/api/invitations/${invitationId}/resend`,
       {}
     );
   }

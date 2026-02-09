@@ -217,7 +217,7 @@ export class OnboardingComponent implements OnInit {
   }
 
   private checkOnboardingStatus(): void {
-    this.http.get<{ onboarding_completed: boolean }>('/api/v1/auth/me').subscribe({
+    this.http.get<{ onboarding_completed: boolean }>('/api/auth/me').subscribe({
       next: (response) => {
         if (response.onboarding_completed) {
           // Already completed onboarding, redirect to dashboard

@@ -40,7 +40,7 @@ export interface UnreadCountResponse {
   providedIn: 'root',
 })
 export class NotificationService implements OnDestroy {
-  private readonly apiUrl = '/api/v1/notifications';
+  private readonly apiUrl = '/api/notifications';
   private readonly POLLING_INTERVAL = 30000; // 30 seconds
 
   private _unreadCount = signal<number>(0);

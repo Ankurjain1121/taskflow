@@ -62,8 +62,8 @@ export const EVENT_TYPE_LABELS: Record<string, string> = {
   providedIn: 'root',
 })
 export class ProfileService {
-  private readonly apiUrl = '/api/v1/users/me';
-  private readonly preferencesUrl = '/api/v1/notification-preferences';
+  private readonly apiUrl = '/api/users/me';
+  private readonly preferencesUrl = '/api/notification-preferences';
 
   private _profile = signal<UserProfile | null>(null);
   private _preferences = signal<NotificationPreference[]>([]);
