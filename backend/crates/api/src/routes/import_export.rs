@@ -6,7 +6,7 @@ use axum::{
     extract::{Path, Query, State},
     http::header,
     middleware::from_fn_with_state,
-    response::IntoResponse,
+    response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
@@ -322,7 +322,7 @@ async fn export_handler(
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
     Query(query): Query<ExportQuery>,
-) -> Result<impl IntoResponse> {
+) -> Result<Response> {
     verify_board_membership(&state.db, board_id, tenant.user_id).await?;
 
     match query.format.as_str() {
@@ -334,7 +334,7 @@ async fn export_handler(
     }
 }
 
-async fn export_csv(db: &sqlx::PgPool, board_id: Uuid) -> Result<impl IntoResponse> {
+async fn export_csv(db: &sqlx::PgPool, board_id: Uuid) -> Result<Response> {
     // Fetch tasks with column names
     let tasks: Vec<ExportTaskRow> = sqlx::query_as(
         r#"
@@ -441,7 +441,7 @@ async fn export_csv(db: &sqlx::PgPool, board_id: Uuid) -> Result<impl IntoRespon
         .into_response())
 }
 
-async fn export_json(db: &sqlx::PgPool, board_id: Uuid) -> Result<impl IntoResponse> {
+async fn export_json(db: &sqlx::PgPool, board_id: Uuid) -> Result<Response> {
     // Fetch board
     let board: BoardRow = sqlx::query_as(
         "SELECT id, name, description FROM boards WHERE id = $1 AND deleted_at IS NULL",

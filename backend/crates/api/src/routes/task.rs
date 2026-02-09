@@ -532,8 +532,7 @@ async fn assign_user_handler(
 
     // Broadcast the task updated event
     let broadcast_service = BroadcastService::new(state.redis.clone());
-    let task = sqlx::query_as!(
-        Task,
+    let task = sqlx::query_as::<_, Task>(
         r#"
         SELECT
             id,
@@ -555,8 +554,8 @@ async fn assign_user_handler(
         FROM tasks
         WHERE id = $1
         "#,
-        task_id
     )
+    .bind(task_id)
     .fetch_one(&state.db)
     .await?;
 
@@ -650,8 +649,7 @@ async fn unassign_user_handler(
 
     // Broadcast the task updated event
     let broadcast_service = BroadcastService::new(state.redis.clone());
-    let task = sqlx::query_as!(
-        Task,
+    let task = sqlx::query_as::<_, Task>(
         r#"
         SELECT
             id,
@@ -673,8 +671,8 @@ async fn unassign_user_handler(
         FROM tasks
         WHERE id = $1
         "#,
-        task_id
     )
+    .bind(task_id)
     .fetch_one(&state.db)
     .await?;
 
