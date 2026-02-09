@@ -57,7 +57,7 @@ pub struct TaskWithDetails {
 }
 
 /// Basic assignee information
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct AssigneeInfo {
     pub user_id: Uuid,
     pub name: String,
@@ -71,16 +71,16 @@ async fn verify_board_membership(
     board_id: Uuid,
     user_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query_scalar!(
+    let result = sqlx::query_scalar::<_, bool>(
         r#"
         SELECT EXISTS(
             SELECT 1 FROM board_members
             WHERE board_id = $1 AND user_id = $2
-        ) as "exists!"
+        )
         "#,
-        board_id,
-        user_id
     )
+    .bind(board_id)
+    .bind(user_id)
     .fetch_one(pool)
     .await?;
 
@@ -100,14 +100,13 @@ pub async fn list_tasks_by_board(
     }
 
     // Fetch all tasks for the board
-    let tasks = sqlx::query_as!(
-        Task,
+    let tasks = sqlx::query_as::<_, Task>(
         r#"
         SELECT
             id,
             title,
             description,
-            priority as "priority: TaskPriority",
+            priority,
             due_date,
             start_date,
             estimated_hours,
@@ -124,8 +123,8 @@ pub async fn list_tasks_by_board(
         WHERE board_id = $1 AND deleted_at IS NULL
         ORDER BY position ASC
         "#,
-        board_id
     )
+    .bind(board_id)
     .fetch_all(pool)
     .await?;
 
@@ -145,14 +144,13 @@ pub async fn get_task_by_id(
     user_id: Uuid,
 ) -> Result<Option<TaskWithDetails>, TaskQueryError> {
     // Fetch the task first
-    let task = sqlx::query_as!(
-        Task,
+    let task = sqlx::query_as::<_, Task>(
         r#"
         SELECT
             id,
             title,
             description,
-            priority as "priority: TaskPriority",
+            priority,
             due_date,
             start_date,
             estimated_hours,
@@ -168,8 +166,8 @@ pub async fn get_task_by_id(
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
-        task_id
     )
+    .bind(task_id)
     .fetch_optional(pool)
     .await?;
 
@@ -184,8 +182,7 @@ pub async fn get_task_by_id(
     }
 
     // Fetch assignees with user info
-    let assignees = sqlx::query_as!(
-        AssigneeInfo,
+    let assignees = sqlx::query_as::<_, AssigneeInfo>(
         r#"
         SELECT
             ta.user_id,
@@ -196,46 +193,45 @@ pub async fn get_task_by_id(
         JOIN users u ON u.id = ta.user_id
         WHERE ta.task_id = $1
         "#,
-        task_id
     )
+    .bind(task_id)
     .fetch_all(pool)
     .await?;
 
     // Fetch labels
-    let labels = sqlx::query_as!(
-        Label,
+    let labels = sqlx::query_as::<_, Label>(
         r#"
         SELECT l.id, l.name, l.color, l.board_id
         FROM labels l
         JOIN task_labels tl ON tl.label_id = l.id
         WHERE tl.task_id = $1
         "#,
-        task_id
     )
+    .bind(task_id)
     .fetch_all(pool)
     .await?;
 
     // Get comment count
-    let comment_count = sqlx::query_scalar!(
+    let comment_count: i64 = sqlx::query_scalar::<_, i64>(
         r#"
-        SELECT COUNT(*) as "count!"
+        SELECT COUNT(*)
         FROM comments
         WHERE task_id = $1 AND deleted_at IS NULL
         "#,
-        task_id
     )
+    .bind(task_id)
     .fetch_one(pool)
     .await?;
 
     // Get attachment count
-    let attachment_count = sqlx::query_scalar!(
+    let attachment_count: i64 = sqlx::query_scalar::<_, i64>(
         r#"
-        SELECT COUNT(*) as "count!"
+        SELECT COUNT(*)
         FROM attachments
         WHERE task_id = $1 AND deleted_at IS NULL
         "#,
-        task_id
     )
+    .bind(task_id)
     .fetch_one(pool)
     .await?;
 
@@ -257,7 +253,7 @@ pub async fn create_task(
     created_by_id: Uuid,
 ) -> Result<Task, TaskQueryError> {
     // Get the last position in the column to calculate new position
-    let last_position = sqlx::query_scalar!(
+    let last_position = sqlx::query_scalar::<_, String>(
         r#"
         SELECT position
         FROM tasks
@@ -265,8 +261,8 @@ pub async fn create_task(
         ORDER BY position DESC
         LIMIT 1
         "#,
-        input.column_id
     )
+    .bind(input.column_id)
     .fetch_optional(pool)
     .await?;
 
@@ -275,8 +271,7 @@ pub async fn create_task(
     let task_id = Uuid::new_v4();
 
     // Insert the task
-    let task = sqlx::query_as!(
-        Task,
+    let task = sqlx::query_as::<_, Task>(
         r#"
         INSERT INTO tasks (id, title, description, priority, due_date, start_date, estimated_hours, board_id, column_id, position, milestone_id, tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
@@ -284,7 +279,7 @@ pub async fn create_task(
             id,
             title,
             description,
-            priority as "priority: TaskPriority",
+            priority,
             due_date,
             start_date,
             estimated_hours,
@@ -298,36 +293,36 @@ pub async fn create_task(
             created_at,
             updated_at
         "#,
-        task_id,
-        input.title,
-        input.description,
-        input.priority as TaskPriority,
-        input.due_date,
-        input.start_date,
-        input.estimated_hours,
-        board_id,
-        input.column_id,
-        position,
-        input.milestone_id,
-        tenant_id,
-        created_by_id
     )
+    .bind(task_id)
+    .bind(&input.title)
+    .bind(&input.description)
+    .bind(&input.priority)
+    .bind(input.due_date)
+    .bind(input.start_date)
+    .bind(input.estimated_hours)
+    .bind(board_id)
+    .bind(input.column_id)
+    .bind(&position)
+    .bind(input.milestone_id)
+    .bind(tenant_id)
+    .bind(created_by_id)
     .fetch_one(pool)
     .await?;
 
     // Insert assignees if provided
     if let Some(assignee_ids) = input.assignee_ids {
         for assignee_id in assignee_ids {
-            sqlx::query!(
+            sqlx::query(
                 r#"
                 INSERT INTO task_assignees (id, task_id, user_id)
                 VALUES ($1, $2, $3)
                 ON CONFLICT (task_id, user_id) DO NOTHING
                 "#,
-                Uuid::new_v4(),
-                task_id,
-                assignee_id
             )
+            .bind(Uuid::new_v4())
+            .bind(task_id)
+            .bind(assignee_id)
             .execute(pool)
             .await?;
         }
@@ -336,16 +331,16 @@ pub async fn create_task(
     // Insert labels if provided
     if let Some(label_ids) = input.label_ids {
         for label_id in label_ids {
-            sqlx::query!(
+            sqlx::query(
                 r#"
                 INSERT INTO task_labels (id, task_id, label_id)
                 VALUES ($1, $2, $3)
                 ON CONFLICT (task_id, label_id) DO NOTHING
                 "#,
-                Uuid::new_v4(),
-                task_id,
-                label_id
             )
+            .bind(Uuid::new_v4())
+            .bind(task_id)
+            .bind(label_id)
             .execute(pool)
             .await?;
         }
@@ -360,8 +355,7 @@ pub async fn update_task(
     task_id: Uuid,
     input: UpdateTaskInput,
 ) -> Result<Task, TaskQueryError> {
-    let task = sqlx::query_as!(
-        Task,
+    let task = sqlx::query_as::<_, Task>(
         r#"
         UPDATE tasks
         SET
@@ -378,7 +372,7 @@ pub async fn update_task(
             id,
             title,
             description,
-            priority as "priority: TaskPriority",
+            priority,
             due_date,
             start_date,
             estimated_hours,
@@ -392,15 +386,15 @@ pub async fn update_task(
             created_at,
             updated_at
         "#,
-        task_id,
-        input.title,
-        input.description,
-        input.priority as Option<TaskPriority>,
-        input.due_date,
-        input.start_date,
-        input.estimated_hours,
-        input.milestone_id
     )
+    .bind(task_id)
+    .bind(&input.title)
+    .bind(&input.description)
+    .bind(&input.priority)
+    .bind(input.due_date)
+    .bind(input.start_date)
+    .bind(input.estimated_hours)
+    .bind(input.milestone_id)
     .fetch_optional(pool)
     .await?
     .ok_or(TaskQueryError::NotFound)?;
@@ -410,14 +404,14 @@ pub async fn update_task(
 
 /// Soft delete a task
 pub async fn soft_delete_task(pool: &PgPool, task_id: Uuid) -> Result<(), TaskQueryError> {
-    let rows_affected = sqlx::query!(
+    let rows_affected = sqlx::query(
         r#"
         UPDATE tasks
         SET deleted_at = NOW(), updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
         "#,
-        task_id
     )
+    .bind(task_id)
     .execute(pool)
     .await?
     .rows_affected();
@@ -436,8 +430,7 @@ pub async fn move_task(
     target_column_id: Uuid,
     new_position: String,
 ) -> Result<Task, TaskQueryError> {
-    let task = sqlx::query_as!(
-        Task,
+    let task = sqlx::query_as::<_, Task>(
         r#"
         UPDATE tasks
         SET
@@ -449,7 +442,7 @@ pub async fn move_task(
             id,
             title,
             description,
-            priority as "priority: TaskPriority",
+            priority,
             due_date,
             start_date,
             estimated_hours,
@@ -463,10 +456,10 @@ pub async fn move_task(
             created_at,
             updated_at
         "#,
-        task_id,
-        target_column_id,
-        new_position
     )
+    .bind(task_id)
+    .bind(target_column_id)
+    .bind(&new_position)
     .fetch_optional(pool)
     .await?
     .ok_or(TaskQueryError::NotFound)?;
@@ -480,18 +473,17 @@ pub async fn assign_user(
     task_id: Uuid,
     user_id: Uuid,
 ) -> Result<TaskAssignee, TaskQueryError> {
-    let assignee = sqlx::query_as!(
-        TaskAssignee,
+    let assignee = sqlx::query_as::<_, TaskAssignee>(
         r#"
         INSERT INTO task_assignees (id, task_id, user_id)
         VALUES ($1, $2, $3)
         ON CONFLICT (task_id, user_id) DO UPDATE SET assigned_at = task_assignees.assigned_at
         RETURNING id, task_id, user_id, assigned_at
         "#,
-        Uuid::new_v4(),
-        task_id,
-        user_id
     )
+    .bind(Uuid::new_v4())
+    .bind(task_id)
+    .bind(user_id)
     .fetch_one(pool)
     .await?;
 
@@ -504,14 +496,14 @@ pub async fn unassign_user(
     task_id: Uuid,
     user_id: Uuid,
 ) -> Result<(), TaskQueryError> {
-    let rows_affected = sqlx::query!(
+    let rows_affected = sqlx::query(
         r#"
         DELETE FROM task_assignees
         WHERE task_id = $1 AND user_id = $2
         "#,
-        task_id,
-        user_id
     )
+    .bind(task_id)
+    .bind(user_id)
     .execute(pool)
     .await?
     .rows_affected();
@@ -525,24 +517,24 @@ pub async fn unassign_user(
 
 /// Get task's board_id (for authorization checks)
 pub async fn get_task_board_id(pool: &PgPool, task_id: Uuid) -> Result<Option<Uuid>, sqlx::Error> {
-    sqlx::query_scalar!(
+    sqlx::query_scalar::<_, Uuid>(
         r#"
         SELECT board_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
         "#,
-        task_id
     )
+    .bind(task_id)
     .fetch_optional(pool)
     .await
 }
 
 /// Get assignee IDs for a task
 pub async fn get_task_assignee_ids(pool: &PgPool, task_id: Uuid) -> Result<Vec<Uuid>, sqlx::Error> {
-    sqlx::query_scalar!(
+    sqlx::query_scalar::<_, Uuid>(
         r#"
         SELECT user_id FROM task_assignees WHERE task_id = $1
         "#,
-        task_id
     )
+    .bind(task_id)
     .fetch_all(pool)
     .await
 }
