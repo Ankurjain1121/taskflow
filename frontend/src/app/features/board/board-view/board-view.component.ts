@@ -371,8 +371,9 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     const state = this.boardState();
 
     for (const tasks of Object.values(state)) {
+      if (!Array.isArray(tasks)) continue;
       for (const task of tasks) {
-        if (task.assignees) {
+        if (Array.isArray(task.assignees)) {
           for (const assignee of task.assignees) {
             assigneeMap.set(assignee.id, assignee);
           }
@@ -389,8 +390,9 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     const state = this.boardState();
 
     for (const tasks of Object.values(state)) {
+      if (!Array.isArray(tasks)) continue;
       for (const task of tasks) {
-        if (task.labels) {
+        if (Array.isArray(task.labels)) {
           for (const label of task.labels) {
             labelMap.set(label.id, label);
           }
@@ -779,11 +781,13 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   private handleWebSocketMessage(message: { type: string; payload: unknown }): void {
+    if (!message.payload || typeof message.payload !== 'object') return;
+
     const currentUserId = this.authService.currentUser()?.id;
 
     // Skip own updates to avoid double-applying
     const payload = message.payload as { userId?: string; task?: Task };
-    if (payload.userId === currentUserId) {
+    if (payload.userId && payload.userId === currentUserId) {
       return;
     }
 
