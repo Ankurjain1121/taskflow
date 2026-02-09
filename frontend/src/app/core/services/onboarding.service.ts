@@ -13,8 +13,8 @@ export interface CreateWorkspaceResponse {
 }
 
 export interface InviteMembersResponse {
-  invited: string[];
-  pending: string[];
+  invited: number;
+  pending: number;
 }
 
 export interface GenerateSampleBoardResponse {
@@ -34,7 +34,8 @@ export class OnboardingService {
    */
   getInvitationContext(token: string): Observable<InvitationContext> {
     return this.http.get<InvitationContext>(
-      `${this.apiUrl}/invitations/${token}/context`
+      `${this.apiUrl}/onboarding/invitation-context`,
+      { params: { token } }
     );
   }
 
@@ -46,7 +47,7 @@ export class OnboardingService {
     description?: string
   ): Observable<CreateWorkspaceResponse> {
     return this.http.post<CreateWorkspaceResponse>(
-      `${this.apiUrl}/workspaces`,
+      `${this.apiUrl}/onboarding/create-workspace`,
       { name, description }
     );
   }
@@ -59,8 +60,8 @@ export class OnboardingService {
     emails: string[]
   ): Observable<InviteMembersResponse> {
     return this.http.post<InviteMembersResponse>(
-      `${this.apiUrl}/workspaces/${workspaceId}/invitations`,
-      { emails }
+      `${this.apiUrl}/onboarding/invite-members`,
+      { workspace_id: workspaceId, emails }
     );
   }
 
@@ -71,8 +72,8 @@ export class OnboardingService {
     workspaceId: string
   ): Observable<GenerateSampleBoardResponse> {
     return this.http.post<GenerateSampleBoardResponse>(
-      `${this.apiUrl}/workspaces/${workspaceId}/sample-board`,
-      {}
+      `${this.apiUrl}/onboarding/generate-sample-board`,
+      { workspace_id: workspaceId }
     );
   }
 
@@ -80,6 +81,6 @@ export class OnboardingService {
    * Mark onboarding as complete for the current user
    */
   completeOnboarding(): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/auth/complete-onboarding`, {});
+    return this.http.post<void>(`${this.apiUrl}/onboarding/complete`, {});
   }
 }

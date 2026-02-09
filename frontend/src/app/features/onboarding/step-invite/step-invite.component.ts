@@ -225,11 +225,10 @@ export class StepInviteComponent {
     this.onboardingService.inviteMembers(this.workspaceId(), validEmails).subscribe({
       next: (response) => {
         this.isLoading = false;
-        const invitedCount = response.invited.length;
-        const pendingCount = response.pending.length;
+        const total = response.invited + response.pending;
 
-        if (invitedCount > 0 || pendingCount > 0) {
-          this.successMessage = `Invitations sent to ${invitedCount + pendingCount} team member(s)!`;
+        if (total > 0) {
+          this.successMessage = `Invitations sent to ${total} team member(s)!`;
           setTimeout(() => this.onComplete.emit(), 1500);
         } else {
           this.onComplete.emit();
