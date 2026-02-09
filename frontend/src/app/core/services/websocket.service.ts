@@ -34,17 +34,16 @@ export class WebSocketService implements OnDestroy {
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/api/ws`;
+    // Pass token as query param - the backend supports both query param and message auth.
+    // Using query param avoids the rxjs webSocket timing issue where openObserver fires
+    // before the internal destination is wired, causing message-based auth to silently fail.
+    const wsUrl = `${protocol}//${host}/api/ws?token=${encodeURIComponent(token)}`;
 
     this.socket$ = webSocket<WebSocketMessage>({
       url: wsUrl,
       openObserver: {
         next: () => {
-          // Get a fresh token on each reconnection (may have been refreshed)
-          const currentToken = this.authService.getAccessToken() || token;
-          console.log('WebSocket connected, sending auth...');
-          // Send auth directly on the WebSocketSubject (not via this.socket$ which may be null during retries)
-          this.socket$?.next({ type: 'auth', payload: { token: currentToken } });
+          console.log('WebSocket connected and authenticated');
           this.connectionStatusSubject$.next(true);
         },
       },
@@ -52,10 +51,6 @@ export class WebSocketService implements OnDestroy {
         next: () => {
           console.log('WebSocket disconnected');
           this.connectionStatusSubject$.next(false);
-          // Do NOT set this.socket$ = null here.
-          // The retry operator re-subscribes to the same WebSocketSubject,
-          // and nullifying it breaks auth on reconnections since openObserver
-          // uses this.socket$?.next() to send the auth message.
         },
       },
     });
