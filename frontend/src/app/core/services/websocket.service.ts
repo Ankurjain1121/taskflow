@@ -34,18 +34,17 @@ export class WebSocketService implements OnDestroy {
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    // SECURITY: Connect without token in URL to avoid token exposure in logs/history/referrer
-    // Token is sent as the first message after connection establishes
     const wsUrl = `${protocol}//${host}/api/ws`;
 
     this.socket$ = webSocket<WebSocketMessage>({
       url: wsUrl,
       openObserver: {
         next: () => {
+          // Get a fresh token on each reconnection (may have been refreshed)
+          const currentToken = this.authService.getAccessToken() || token;
           console.log('WebSocket connected, sending auth...');
-          // SECURITY: Send auth token as first message instead of in URL
-          // This prevents token from appearing in server logs, browser history, and Referer headers
-          this.socket$?.next({ type: 'auth', payload: { token } });
+          // Send auth directly on the WebSocketSubject (not via this.socket$ which may be null during retries)
+          this.socket$?.next({ type: 'auth', payload: { token: currentToken } });
           this.connectionStatusSubject$.next(true);
         },
       },
@@ -53,7 +52,10 @@ export class WebSocketService implements OnDestroy {
         next: () => {
           console.log('WebSocket disconnected');
           this.connectionStatusSubject$.next(false);
-          this.socket$ = null;
+          // Do NOT set this.socket$ = null here.
+          // The retry operator re-subscribes to the same WebSocketSubject,
+          // and nullifying it breaks auth on reconnections since openObserver
+          // uses this.socket$?.next() to send the auth message.
         },
       },
     });
