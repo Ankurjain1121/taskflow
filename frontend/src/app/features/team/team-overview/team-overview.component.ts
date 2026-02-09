@@ -42,26 +42,20 @@ import { OverloadBannerComponent } from '../overload-banner/overload-banner.comp
 
         <!-- Loading State -->
         @if (loading()) {
-          <div class="flex items-center justify-center py-12">
-            <svg
-              class="animate-spin h-8 w-8 text-indigo-600"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
+          <div class="space-y-4">
+            @for (i of [1,2,3,4]; track i) {
+              <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-4">
+                <div class="skeleton skeleton-circle w-10 h-10 flex-shrink-0"></div>
+                <div class="flex-1 space-y-2">
+                  <div class="skeleton skeleton-text w-32"></div>
+                  <div class="skeleton skeleton-text w-20" style="height: 0.625rem"></div>
+                </div>
+                <div class="flex gap-2">
+                  <div class="skeleton w-12 h-6 rounded-full"></div>
+                  <div class="skeleton w-12 h-6 rounded-full"></div>
+                </div>
+              </div>
+            }
           </div>
         }
 
@@ -95,25 +89,17 @@ import { OverloadBannerComponent } from '../overload-banner/overload-banner.comp
 
         <!-- Empty State -->
         @if (!loading() && !error() && members().length === 0) {
-          <div class="text-center py-12">
-            <svg
-              class="mx-auto h-12 w-12 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-              />
-            </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">No team members</h3>
-            <p class="mt-1 text-sm text-gray-500">
-              Invite team members to start tracking workload.
-            </p>
-          </div>
+            <div class="animate-fade-in-up text-center py-16">
+              <div class="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-violet-100 via-purple-50 to-indigo-100 dark:from-violet-900/30 dark:via-purple-900/20 dark:to-indigo-900/30 flex items-center justify-center mb-5">
+                <svg class="w-10 h-10 text-violet-500 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
+                </svg>
+              </div>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Build your team</h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+                Invite collaborators to start working together. Great things happen with great teams.
+              </p>
+            </div>
         }
 
         <!-- Team Grid -->

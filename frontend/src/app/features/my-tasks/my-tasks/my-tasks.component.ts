@@ -244,28 +244,19 @@ type SortOrder = 'asc' | 'desc';
           </div>
         </div>
 
-        <!-- Loading State -->
+        <!-- Skeleton Loading State -->
         @if (loading() && tasks().length === 0) {
-          <div class="flex items-center justify-center py-12">
-            <svg
-              class="animate-spin h-8 w-8 text-indigo-600"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
+          <div class="space-y-3">
+            @for (i of [1,2,3,4,5]; track i) {
+              <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-4">
+                <div class="skeleton skeleton-circle w-5 h-5 flex-shrink-0"></div>
+                <div class="flex-1 space-y-2">
+                  <div class="skeleton skeleton-text" [style.width]="(60 + i * 8) + '%'"></div>
+                  <div class="skeleton skeleton-text w-24" style="height: 0.625rem"></div>
+                </div>
+                <div class="skeleton skeleton-circle w-7 h-7 flex-shrink-0"></div>
+              </div>
+            }
           </div>
         }
 
@@ -299,23 +290,15 @@ type SortOrder = 'asc' | 'desc';
 
         <!-- Empty State -->
         @if (!loading() && !error() && tasks().length === 0) {
-          <div class="text-center py-12">
-            <svg
-              class="mx-auto h-12 w-12 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-              />
-            </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">No tasks assigned</h3>
-            <p class="mt-1 text-sm text-gray-500">
-              You don't have any tasks assigned to you yet.
+          <div class="animate-fade-in-up text-center py-16">
+            <div class="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-emerald-100 via-teal-50 to-indigo-100 dark:from-emerald-900/30 dark:via-teal-900/20 dark:to-indigo-900/30 flex items-center justify-center mb-5">
+              <svg class="w-10 h-10 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">You're all caught up!</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+              No tasks assigned to you right now. Enjoy the calm, or jump into a board to pick up some work.
             </p>
           </div>
         }

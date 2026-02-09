@@ -109,19 +109,25 @@ export interface TaskMoveEvent {
         (cdkDropListDropped)="onDrop($event)"
         class="flex-1 px-2 py-2 space-y-2 overflow-y-auto min-h-[200px]"
       >
-        @for (task of tasks(); track task.id) {
-          <app-task-card
-            [task]="task"
-            (taskClicked)="onTaskClicked($event)"
-          ></app-task-card>
+        @for (task of tasks(); track task.id; let i = $index) {
+          <div class="animate-fade-in-up" [style.animation-delay]="(i * 0.04) + 's'"
+               [class.animate-celebrate-pop]="celebratingTaskId() === task.id"
+               [class.animate-celebrate-glow]="celebratingTaskId() === task.id">
+            <app-task-card
+              [task]="task"
+              [isBlocked]="false"
+              [isCelebrating]="celebratingTaskId() === task.id"
+              (taskClicked)="onTaskClicked($event)"
+            ></app-task-card>
+          </div>
         }
 
         <!-- Empty State -->
         @if (tasks().length === 0) {
           <div
-            class="flex items-center justify-center h-24 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-lg"
+            class="flex flex-col items-center justify-center h-24 text-sm border-2 border-dashed border-gray-200 rounded-lg transition-colors"
           >
-            Drop tasks here
+            <span class="text-gray-400">Drop tasks here</span>
           </div>
         }
       </div>
@@ -158,6 +164,7 @@ export class KanbanColumnComponent {
   column = input.required<Column>();
   tasks = input.required<Task[]>();
   connectedLists = input<string[]>([]);
+  celebratingTaskId = input<string | null>(null);
 
   taskMoved = output<TaskMoveEvent>();
   taskClicked = output<Task>();

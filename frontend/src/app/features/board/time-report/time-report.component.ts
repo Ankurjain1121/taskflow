@@ -41,20 +41,27 @@ import {
         </div>
 
         @if (loading()) {
-          <div class="flex items-center justify-center py-12">
-            <svg class="animate-spin h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
+          <div class="space-y-3">
+            @for (i of [1,2,3]; track i) {
+              <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <div class="flex items-center gap-4">
+                  <div class="skeleton skeleton-text w-40"></div>
+                  <div class="flex-1"></div>
+                  <div class="skeleton w-20 h-6 rounded-lg"></div>
+                  <div class="skeleton w-16 h-4 rounded"></div>
+                </div>
+              </div>
+            }
           </div>
         } @else if (reportData().length === 0) {
-          <div class="py-12 text-center text-gray-500">
-            <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p class="text-sm">No time entries recorded yet</p>
+          <div class="animate-fade-in-up py-12 text-center">
+            <div class="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-amber-100 via-orange-50 to-indigo-100 dark:from-amber-900/30 dark:via-orange-900/20 dark:to-indigo-900/30 flex items-center justify-center mb-4">
+              <svg class="w-8 h-8 text-amber-500 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">No time tracked yet</p>
+            <p class="text-xs text-gray-500">Start a timer on any task to see your time report here.</p>
           </div>
         } @else {
           <!-- Bar Chart -->

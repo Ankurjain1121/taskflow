@@ -1,14 +1,32 @@
 import { Component, inject, OnInit, HostListener, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { trigger, transition, style, animate, query, group } from '@angular/animations';
 import { ThemeService } from './core/services/theme.service';
 import { GlobalSearchComponent } from './shared/components/global-search/global-search.component';
 import { ToastContainerComponent } from './shared/components/toast/toast.component';
+
+const routeTransition = trigger('routeAnimations', [
+  transition('* <=> *', [
+    query(':enter', [
+      style({ opacity: 0, transform: 'translateY(8px)' }),
+    ], { optional: true }),
+    group([
+      query(':leave', [
+        animate('150ms ease-out', style({ opacity: 0 })),
+      ], { optional: true }),
+      query(':enter', [
+        animate('300ms 100ms ease-out', style({ opacity: 1, transform: 'translateY(0)' })),
+      ], { optional: true }),
+    ]),
+  ]),
+]);
 
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet, GlobalSearchComponent, ToastContainerComponent],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
+  styleUrl: './app.component.css',
+  animations: [routeTransition],
 })
 export class AppComponent implements OnInit {
   title = 'frontend';
@@ -38,5 +56,9 @@ export class AppComponent implements OnInit {
 
   closeSearch(): void {
     this.searchOpen.set(false);
+  }
+
+  getRouteAnimationData(outlet: RouterOutlet): string {
+    return outlet?.activatedRouteData?.['animation'] || outlet?.activatedRoute?.snapshot?.url?.toString() || '';
   }
 }

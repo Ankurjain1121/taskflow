@@ -218,14 +218,24 @@ import {
       <!-- Workspaces List -->
       <div class="flex-1 overflow-y-auto sidebar-scrollbar px-2 py-3">
         @if (loading()) {
-          <div class="px-3 py-2 text-sm text-gray-400">
-            Loading workspaces...
+          <div class="px-3 py-2 space-y-2">
+            @for (i of [1,2,3]; track i) {
+              <div class="flex items-center gap-2 px-2 py-1.5">
+                <div class="skeleton skeleton-circle w-6 h-6 flex-shrink-0" style="background: linear-gradient(90deg, rgba(148,163,184,0.1) 25%, rgba(148,163,184,0.2) 50%, rgba(148,163,184,0.1) 75%); background-size: 200% 100%; animation: shimmer 1.5s ease-in-out infinite;"></div>
+                <div class="skeleton skeleton-text flex-1" style="background: linear-gradient(90deg, rgba(148,163,184,0.1) 25%, rgba(148,163,184,0.2) 50%, rgba(148,163,184,0.1) 75%); background-size: 200% 100%; animation: shimmer 1.5s ease-in-out infinite;"></div>
+              </div>
+            }
           </div>
         } @else if (workspaces().length === 0) {
-          <div class="px-3 py-4 text-center text-gray-500 text-sm">
-            <p>No workspaces yet</p>
+          <div class="px-3 py-6 text-center">
+            <div class="mx-auto w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center mb-3">
+              <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z"/>
+              </svg>
+            </div>
+            <p class="text-sm text-gray-400">No workspaces yet</p>
             @if (canCreateWorkspace()) {
-              <p class="mt-1 text-gray-600">Create your first workspace above</p>
+              <p class="mt-1 text-xs text-gray-500">Create one above to get started</p>
             }
           </div>
         } @else {

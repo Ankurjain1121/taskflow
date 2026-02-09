@@ -8,18 +8,23 @@
   --card: #ffffff;
   --card-foreground: #0f172a;
   --border: #e2e8f0;
-  --muted: #f1f5f9;
+  --muted: #f8f9fb;
   --muted-foreground: #64748b;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
+  --accent: #fff7ed;
+  --accent-foreground: #9a3412;
+  --accent-warm: #f97316;
+  --accent-warm-light: #fff7ed;
+  --accent-warm-foreground: #9a3412;
+  --success: #10b981;
+  --success-light: #ecfdf5;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --primary: #3b82f6;
+  --primary: #6366f1;
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
-  --ring: #3b82f6;
-  --radius: 0.5rem;
+  --ring: #6366f1;
+  --radius: 0.75rem;
 }
 
 html.dark {
@@ -30,21 +35,26 @@ html.dark {
   --border: #334155;
   --muted: #1e293b;
   --muted-foreground: #94a3b8;
-  --accent: #1e293b;
-  --accent-foreground: #f8fafc;
+  --accent: #431407;
+  --accent-foreground: #fed7aa;
+  --accent-warm: #fb923c;
+  --accent-warm-light: #431407;
+  --accent-warm-foreground: #fed7aa;
+  --success: #34d399;
+  --success-light: #064e3b;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --primary: #3b82f6;
+  --primary: #818cf8;
   --primary-foreground: #ffffff;
   --secondary: #1e293b;
   --secondary-foreground: #f8fafc;
-  --ring: #3b82f6;
+  --ring: #818cf8;
 }
 
 html, body { height: 100%; }
 body {
   margin: 0;
-  font-family: Roboto, "Helvetica Neue", sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background-color: var(--background);
   color: var(--foreground);
   transition: background-color 0.3s ease, color 0.3s ease;
@@ -178,3 +188,182 @@ button:active, [role="button"]:active {
 
 .border-border { border-color: var(--border); }
 .ring-ring { --tw-ring-color: var(--ring); }
+
+/* ============================================
+   Skeleton Loading Shimmer
+   ============================================ */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--muted) 25%, rgba(148, 163, 184, 0.15) 50%, var(--muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+
+.skeleton-text {
+  height: 0.875rem;
+  border-radius: 0.25rem;
+}
+
+.skeleton-heading {
+  height: 1.25rem;
+  border-radius: 0.375rem;
+}
+
+.skeleton-circle {
+  border-radius: 50%;
+}
+
+.skeleton-card {
+  height: 120px;
+  border-radius: var(--radius);
+}
+
+/* ============================================
+   Fade & Slide Entrance Animations
+   ============================================ */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out both;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.4s ease-out both;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out both;
+}
+
+/* Stagger delays for lists */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+.stagger-7 { animation-delay: 0.35s; }
+.stagger-8 { animation-delay: 0.4s; }
+
+/* ============================================
+   Success / Celebration Animations
+   ============================================ */
+@keyframes celebrateCheck {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes celebratePop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.08); }
+  60% { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+
+@keyframes celebrateGlow {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@keyframes confettiFall {
+  0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(30px) rotate(360deg); opacity: 0; }
+}
+
+.animate-celebrate-check {
+  animation: celebrateCheck 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.animate-celebrate-pop {
+  animation: celebratePop 0.4s ease both;
+}
+
+.animate-celebrate-glow {
+  animation: celebrateGlow 0.6s ease both;
+}
+
+/* ============================================
+   Angular Material Theme Overrides (warmer)
+   ============================================ */
+.mat-mdc-form-field {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+}
+
+.mdc-text-field--outlined .mdc-notched-outline__leading,
+.mdc-text-field--outlined .mdc-notched-outline__notch,
+.mdc-text-field--outlined .mdc-notched-outline__trailing {
+  border-color: var(--border) !important;
+}
+
+.mat-mdc-raised-button.mat-primary,
+.mat-mdc-unelevated-button.mat-primary {
+  --mdc-filled-button-container-color: var(--primary) !important;
+}
+
+/* ============================================
+   Route Transition Wrapper
+   ============================================ */
+.route-transition-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+/* ============================================
+   Empty State Illustration Styles
+   ============================================ */
+.empty-state-illustration {
+  max-width: 200px;
+  margin: 0 auto;
+}
+
+.empty-state-gradient {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--muted) 100%);
+  border-radius: 50%;
+}

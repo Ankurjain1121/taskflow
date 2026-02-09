@@ -1,4 +1,6 @@
-<router-outlet />
+<div class="route-transition-wrapper" [@routeAnimations]="getRouteAnimationData(outlet)">
+  <router-outlet #outlet="outlet" />
+</div>
 
 <!-- Global Search Overlay -->
 <app-global-search

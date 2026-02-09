@@ -224,6 +224,7 @@ import { DependencyService } from '../../../core/services/dependency.service';
                 [column]="column"
                 [tasks]="getFilteredTasksForColumn(column.id)"
                 [connectedLists]="connectedColumnIds()"
+                [celebratingTaskId]="celebratingTaskId()"
                 (taskMoved)="onTaskMoved($event)"
                 (taskClicked)="onTaskClicked($event)"
                 (addTaskClicked)="onAddTaskToColumn($event)"
@@ -339,6 +340,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     dueDateEnd: null,
     labelIds: [],
   });
+  celebratingTaskId = signal<string | null>(null);
   selectedTaskId = signal<string | null>(null);
   selectedTaskIds = signal<string[]>([]);
   selectionMode = signal(false);
@@ -499,6 +501,13 @@ export class BoardViewComponent implements OnInit, OnDestroy {
 
       return newState;
     });
+
+    // Celebrate if moved to a done column
+    const targetColumn = this.columns().find(c => c.id === event.targetColumnId);
+    if (targetColumn?.status_mapping?.done && event.previousColumnId !== event.targetColumnId) {
+      this.celebratingTaskId.set(event.task.id);
+      setTimeout(() => this.celebratingTaskId.set(null), 1200);
+    }
 
     // Call API
     this.taskService

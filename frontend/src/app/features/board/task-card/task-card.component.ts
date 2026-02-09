@@ -38,6 +38,17 @@ import { TimeTrackingService } from '../../../core/services/time-tracking.servic
       [class.task-card--medium]="task().priority === 'medium'"
       [class.task-card--low]="task().priority === 'low'"
     >
+      <!-- Celebration Overlay -->
+      @if (isCelebrating()) {
+        <div class="absolute inset-0 bg-emerald-50/80 dark:bg-emerald-900/30 flex items-center justify-center z-10 rounded-lg">
+          <div class="animate-celebrate-check">
+            <svg class="w-10 h-10 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+      }
+
       <div class="p-3.5">
         <!-- Blocked Indicator -->
         @if (isBlocked()) {
@@ -286,6 +297,7 @@ export class TaskCardComponent implements OnInit, OnDestroy {
 
   task = input.required<Task>();
   isBlocked = input<boolean>(false);
+  isCelebrating = input<boolean>(false);
 
   taskClicked = output<Task>();
 

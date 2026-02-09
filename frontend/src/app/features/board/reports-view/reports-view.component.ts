@@ -29,8 +29,19 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
-      <div class="flex items-center justify-center h-64">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      <div class="p-6 space-y-6 max-w-7xl mx-auto">
+        <div class="flex items-center justify-between">
+          <div class="skeleton skeleton-heading w-40"></div>
+          <div class="skeleton w-32 h-8 rounded-lg"></div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          @for (i of [1,2,3,4]; track i) {
+            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <div class="skeleton skeleton-text w-28 mb-4"></div>
+              <div class="skeleton w-full h-40 rounded-lg"></div>
+            </div>
+          }
+        </div>
       </div>
     } @else if (report()) {
       <div class="p-6 space-y-6 max-w-7xl mx-auto">
