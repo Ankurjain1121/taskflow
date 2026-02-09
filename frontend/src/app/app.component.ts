@@ -59,6 +59,7 @@ export class AppComponent implements OnInit {
   }
 
   getRouteAnimationData(outlet: RouterOutlet): string {
-    return outlet?.activatedRouteData?.['animation'] || outlet?.activatedRoute?.snapshot?.url?.toString() || '';
+    if (!outlet?.isActivated) return '';
+    return outlet.activatedRouteData?.['animation'] || outlet.activatedRoute?.snapshot?.url?.toString() || '';
   }
 }
