@@ -151,26 +151,29 @@ import { DependencyService } from '../../../core/services/dependency.service';
 
       <!-- Board Content -->
       @if (loading()) {
-        <div class="flex-1 flex items-center justify-center">
-          <svg
-            class="animate-spin h-8 w-8 text-indigo-600"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            ></circle>
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
+        <div class="flex-1 overflow-x-auto p-4">
+          <div class="flex gap-4 h-full">
+            @for (i of [1,2,3,4]; track i) {
+              <div class="flex-shrink-0 w-72">
+                <div class="bg-white rounded-lg border border-gray-200 p-3">
+                  <div class="skeleton skeleton-text w-24 mb-4" style="height: 14px;"></div>
+                  <div class="space-y-3">
+                    @for (j of [1,2,3]; track j) {
+                      <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                        <div class="skeleton skeleton-text w-full mb-2"></div>
+                        <div class="skeleton skeleton-text w-3/4 mb-3"></div>
+                        <div class="flex items-center gap-2">
+                          <div class="skeleton w-16 h-5 rounded-full"></div>
+                          <div class="flex-1"></div>
+                          <div class="skeleton skeleton-circle w-6 h-6"></div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
         </div>
       } @else if (viewMode() === 'list') {
         <!-- List View -->

@@ -36,7 +36,7 @@ export class WebSocketService implements OnDestroy {
     const host = window.location.host;
     // SECURITY: Connect without token in URL to avoid token exposure in logs/history/referrer
     // Token is sent as the first message after connection establishes
-    const wsUrl = `${protocol}//${host}/ws`;
+    const wsUrl = `${protocol}//${host}/api/ws`;
 
     this.socket$ = webSocket<WebSocketMessage>({
       url: wsUrl,
