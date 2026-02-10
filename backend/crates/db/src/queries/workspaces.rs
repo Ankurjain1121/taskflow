@@ -3,7 +3,7 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::{User, UserPublic, Workspace, WorkspaceMember};
+use crate::models::{UserPublic, Workspace, WorkspaceMember};
 
 /// List workspaces for a user (by membership)
 pub async fn list_workspaces_for_user(

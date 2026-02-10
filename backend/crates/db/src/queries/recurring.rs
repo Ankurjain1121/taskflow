@@ -466,6 +466,7 @@ pub async fn create_recurring_instance(
 /// Internal struct for fetching source task fields
 #[derive(sqlx::FromRow)]
 struct SourceTask {
+    #[allow(dead_code)]
     pub id: Uuid,
     pub title: String,
     pub description: Option<String>,

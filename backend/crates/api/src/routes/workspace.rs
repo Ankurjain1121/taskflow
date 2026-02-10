@@ -5,7 +5,7 @@
 use axum::{
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
-    routing::{delete, get, post, put},
+    routing::{delete, get, post},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};

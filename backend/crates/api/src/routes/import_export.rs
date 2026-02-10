@@ -61,6 +61,7 @@ struct TrelloList {
 
 #[derive(Deserialize)]
 struct TrelloExport {
+    #[allow(dead_code)]
     name: Option<String>,
     lists: Option<Vec<TrelloList>>,
     cards: Option<Vec<TrelloCard>>,
@@ -156,6 +157,7 @@ struct NewColumnRow {
 }
 
 #[derive(sqlx::FromRow)]
+#[allow(dead_code)]
 struct CreatedTaskRow {
     id: Uuid,
 }

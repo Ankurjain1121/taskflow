@@ -114,7 +114,7 @@ impl PostalClient {
     pub async fn send_notification_email(
         &self,
         to: &str,
-        event_type: &str,
+        _event_type: &str,
         title: &str,
         body: &str,
         link_url: Option<&str>,

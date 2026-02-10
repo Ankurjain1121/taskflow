@@ -118,7 +118,7 @@ pub async fn list_my_tasks(
     };
 
     // Build query dynamically based on filters
-    let query = format!(
+    let _query = format!(
         r#"
         SELECT
             t.id,

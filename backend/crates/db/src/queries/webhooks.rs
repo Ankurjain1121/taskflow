@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use serde::Deserialize;
 use sqlx::PgPool;
 use uuid::Uuid;

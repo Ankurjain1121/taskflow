@@ -2,7 +2,7 @@
 //!
 //! Provides queries for fetching team workload and member statistics.
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;

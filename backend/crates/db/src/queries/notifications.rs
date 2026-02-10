@@ -3,7 +3,7 @@
 //! Provides database operations for in-app notifications.
 
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 

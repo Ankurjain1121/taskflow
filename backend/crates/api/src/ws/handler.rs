@@ -427,6 +427,7 @@ async fn validate_channel_access(
 }
 
 /// Validate channel format only (for testing - does not check database)
+#[cfg(test)]
 fn is_valid_channel(channel: &str, user_id: Uuid, _tenant_id: Uuid) -> bool {
     let parts: Vec<&str> = channel.split(':').collect();
     if parts.len() != 2 {

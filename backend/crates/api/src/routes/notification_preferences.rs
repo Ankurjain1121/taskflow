@@ -17,7 +17,7 @@ use crate::middleware::auth_middleware;
 use crate::state::AppState;
 use taskflow_db::models::NotificationPreference;
 use taskflow_db::queries::notification_preferences::{
-    list_by_user, reset_all, upsert, NotificationPreferenceError, UpsertPreferenceInput,
+    list_by_user, reset_all, upsert, NotificationPreferenceError,
 };
 
 /// Response for listing preferences

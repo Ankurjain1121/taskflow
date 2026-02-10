@@ -273,6 +273,7 @@ pub async fn save_board_as_template(
     struct BoardCol {
         id: Uuid,
         name: String,
+        #[allow(dead_code)]
         position: String,
         color: Option<String>,
         status_mapping: Option<serde_json::Value>,
@@ -329,6 +330,7 @@ pub async fn save_board_as_template(
         description: Option<String>,
         priority: TaskPriority,
         column_id: Uuid,
+        #[allow(dead_code)]
         position: String,
     }
 

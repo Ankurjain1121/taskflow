@@ -29,6 +29,7 @@ pub struct WeeklyDigestResult {
 
 /// User stats for the weekly digest
 #[derive(Debug)]
+#[allow(dead_code)]
 struct UserDigestStats {
     user_id: Uuid,
     email: String,
