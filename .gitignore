@@ -24,6 +24,7 @@
 # OS
 .DS_Store
 Thumbs.db
+nul
 
 # SQLx offline query data
 # backend/crates/db/.sqlx/  # keep for offline compilation
