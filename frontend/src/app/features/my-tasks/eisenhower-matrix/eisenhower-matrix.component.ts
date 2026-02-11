@@ -156,6 +156,7 @@ interface QuadrantConfig {
     </div>
   `,
   styles: [`
+    @reference "tailwindcss";
     .skeleton {
       @apply animate-pulse bg-gray-200 rounded;
     }
