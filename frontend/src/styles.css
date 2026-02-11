@@ -1,6 +1,16 @@
 @import "tailwindcss";
 @import "@angular/material/prebuilt-themes/azure-blue.css";
 
+/* Tailwind CSS 4 Animation Utilities */
+@utility animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 /* CSS Custom Properties for Theme System */
 :root {
   --background: #ffffff;
