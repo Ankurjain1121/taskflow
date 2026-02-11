@@ -1,6 +1,22 @@
-<div class="route-transition-wrapper" [@routeAnimations]="getRouteAnimationData(outlet)">
-  <router-outlet #outlet="outlet" />
-</div>
+<!-- Main Layout with Sidebar -->
+@if (showSidebar()) {
+  <div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <app-sidebar (searchOpen)="openSearch()" />
+
+    <!-- Main Content Area -->
+    <div class="flex-1 overflow-auto">
+      <div class="route-transition-wrapper" [@routeAnimations]="getRouteAnimationData(outlet)">
+        <router-outlet #outlet="outlet" />
+      </div>
+    </div>
+  </div>
+} @else {
+  <!-- Auth/Onboarding Pages (No Sidebar) -->
+  <div class="route-transition-wrapper" [@routeAnimations]="getRouteAnimationData(outlet)">
+    <router-outlet #outlet="outlet" />
+  </div>
+}
 
 <!-- Global Search Overlay -->
 <app-global-search

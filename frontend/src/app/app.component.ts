@@ -1,9 +1,12 @@
 import { Component, inject, OnInit, HostListener, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { trigger, transition, style, animate, query, group } from '@angular/animations';
+import { filter } from 'rxjs/operators';
+import { CommonModule } from '@angular/common';
 import { ThemeService } from './core/services/theme.service';
 import { GlobalSearchComponent } from './shared/components/global-search/global-search.component';
 import { ToastContainerComponent } from './shared/components/toast/toast.component';
+import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
 
 const routeTransition = trigger('routeAnimations', [
   transition('* <=> *', [
@@ -23,7 +26,7 @@ const routeTransition = trigger('routeAnimations', [
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, GlobalSearchComponent, ToastContainerComponent],
+  imports: [CommonModule, RouterOutlet, GlobalSearchComponent, ToastContainerComponent, SidebarComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
   animations: [routeTransition],
@@ -32,13 +35,30 @@ export class AppComponent implements OnInit {
   title = 'frontend';
 
   searchOpen = signal(false);
+  showSidebar = signal(false);
 
   // Inject ThemeService to ensure theme is applied on app initialization
   private themeService = inject(ThemeService);
+  private router = inject(Router);
 
   ngOnInit(): void {
     // ThemeService constructor handles theme initialization
     // This ensures the service is instantiated and theme is applied
+
+    // Listen to route changes to determine if sidebar should be shown
+    this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe((event: any) => {
+        const url = event.url;
+        // Hide sidebar on auth and onboarding routes
+        const hideSidebar = url.startsWith('/auth') || url.startsWith('/onboarding');
+        this.showSidebar.set(!hideSidebar);
+      });
+
+    // Set initial sidebar visibility
+    const currentUrl = this.router.url;
+    const hideSidebar = currentUrl.startsWith('/auth') || currentUrl.startsWith('/onboarding');
+    this.showSidebar.set(!hideSidebar);
   }
 
   @HostListener('document:keydown', ['$event'])

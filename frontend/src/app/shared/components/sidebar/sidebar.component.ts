@@ -272,11 +272,11 @@ import {
                 @if (user.avatar_url) {
                   <img
                     [src]="user.avatar_url"
-                    [alt]="user.display_name"
+                    [alt]="user.name"
                     class="w-full h-full rounded-full object-cover"
                   />
                 } @else {
-                  <span class="text-indigo-300">{{ user.display_name?.charAt(0)?.toUpperCase() || 'U' }}</span>
+                  <span class="text-indigo-300">{{ user.name?.charAt(0)?.toUpperCase() || 'U' }}</span>
                 }
               </div>
             </div>
@@ -284,7 +284,7 @@ import {
             @if (!collapsed()) {
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium truncate text-gray-100">
-                  {{ user.display_name }}
+                  {{ user.name }}
                 </p>
                 <p class="text-xs text-gray-500 truncate">{{ user.email }}</p>
               </div>
