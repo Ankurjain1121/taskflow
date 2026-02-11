@@ -41,12 +41,15 @@ import { AuthService } from '../../../core/services/auth.service';
         </div>
 
         <!-- Loading state -->
-        <div *ngIf="isLoading()" class="flex items-center justify-center py-12">
-          <mat-spinner diameter="40"></mat-spinner>
-        </div>
+        @if (isLoading()) {
+          <div class="flex items-center justify-center py-12">
+            <mat-spinner diameter="40"></mat-spinner>
+          </div>
+        }
 
         <!-- Profile form -->
-        <mat-card *ngIf="!isLoading()" class="mb-6">
+        @if (!isLoading()) {
+        <mat-card class="mb-6">
           <mat-card-header>
             <mat-card-title>Personal Information</mat-card-title>
           </mat-card-header>
@@ -58,16 +61,18 @@ import { AuthService } from '../../../core/services/auth.service';
                 <div
                   class="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden"
                 >
-                  <img
-                    *ngIf="avatarPreview()"
-                    [src]="avatarPreview()"
-                    alt="Avatar"
-                    class="w-full h-full object-cover"
-                    (error)="onAvatarError()"
-                  />
-                  <mat-icon *ngIf="!avatarPreview()" class="text-gray-400 !text-4xl">
-                    person
-                  </mat-icon>
+                  @if (avatarPreview()) {
+                    <img
+                      [src]="avatarPreview()"
+                      alt="Avatar"
+                      class="w-full h-full object-cover"
+                      (error)="onAvatarError()"
+                    />
+                  } @else {
+                    <mat-icon class="text-gray-400 !text-4xl">
+                      person
+                    </mat-icon>
+                  }
                 </div>
                 <div>
                   <p class="text-sm font-medium text-gray-900">Profile Picture</p>
@@ -83,12 +88,16 @@ import { AuthService } from '../../../core/services/auth.service';
                   formControlName="displayName"
                   placeholder="Enter your display name"
                 />
-                <mat-error *ngIf="profileForm.get('displayName')?.hasError('required')">
-                  Display name is required
-                </mat-error>
-                <mat-error *ngIf="profileForm.get('displayName')?.hasError('minlength')">
-                  Display name must be at least 2 characters
-                </mat-error>
+                @if (profileForm.get('displayName')?.hasError('required')) {
+                  <mat-error>
+                    Display name is required
+                  </mat-error>
+                }
+                @if (profileForm.get('displayName')?.hasError('minlength')) {
+                  <mat-error>
+                    Display name must be at least 2 characters
+                  </mat-error>
+                }
               </mat-form-field>
 
               <!-- Email (read-only) -->
@@ -114,9 +123,11 @@ import { AuthService } from '../../../core/services/auth.service';
                 <mat-hint>
                   Enter in E.164 format (e.g., +1234567890) for WhatsApp notifications
                 </mat-hint>
-                <mat-error *ngIf="profileForm.get('phoneNumber')?.hasError('pattern')">
-                  Please enter a valid E.164 phone number (e.g., +1234567890)
-                </mat-error>
+                @if (profileForm.get('phoneNumber')?.hasError('pattern')) {
+                  <mat-error>
+                    Please enter a valid E.164 phone number (e.g., +1234567890)
+                  </mat-error>
+                }
               </mat-form-field>
 
               <!-- Avatar URL -->
@@ -129,9 +140,11 @@ import { AuthService } from '../../../core/services/auth.service';
                   (input)="onAvatarUrlChange()"
                 />
                 <mat-hint>Enter a URL to your profile picture</mat-hint>
-                <mat-error *ngIf="profileForm.get('avatarUrl')?.hasError('pattern')">
-                  Please enter a valid URL
-                </mat-error>
+                @if (profileForm.get('avatarUrl')?.hasError('pattern')) {
+                  <mat-error>
+                    Please enter a valid URL
+                  </mat-error>
+                }
               </mat-form-field>
 
               <!-- Submit button -->
@@ -142,20 +155,23 @@ import { AuthService } from '../../../core/services/auth.service';
                   type="submit"
                   [disabled]="!profileForm.valid || !profileForm.dirty || isSaving()"
                 >
-                  <mat-spinner
-                    *ngIf="isSaving()"
-                    diameter="20"
-                    class="inline-block mr-2"
-                  ></mat-spinner>
+                  @if (isSaving()) {
+                    <mat-spinner
+                      diameter="20"
+                      class="inline-block mr-2"
+                    ></mat-spinner>
+                  }
                   {{ isSaving() ? 'Saving...' : 'Save Changes' }}
                 </button>
               </div>
             </form>
           </mat-card-content>
         </mat-card>
+        }
 
         <!-- Notification preferences link -->
-        <mat-card *ngIf="!isLoading()">
+        @if (!isLoading()) {
+        <mat-card>
           <mat-card-content class="!py-4">
             <a
               routerLink="/settings/notifications"
@@ -176,9 +192,11 @@ import { AuthService } from '../../../core/services/auth.service';
             </a>
           </mat-card-content>
         </mat-card>
+        }
 
         <!-- Account info -->
-        <div *ngIf="!isLoading() && profile()" class="mt-6 text-sm text-gray-500">
+        @if (!isLoading() && profile()) {
+        <div class="mt-6 text-sm text-gray-500">
           <p>
             Account created: {{ profile()!.created_at | date:'longDate' }}
           </p>
@@ -186,6 +204,7 @@ import { AuthService } from '../../../core/services/auth.service';
             Last updated: {{ profile()!.updated_at | date:'longDate' }}
           </p>
         </div>
+        }
       </div>
     </div>
   `,

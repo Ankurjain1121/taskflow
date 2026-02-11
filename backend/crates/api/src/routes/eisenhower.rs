@@ -87,7 +87,7 @@ async fn reset_eisenhower(
 pub fn eisenhower_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(get_eisenhower_matrix_handler))
-        .route("/tasks/:id", put(update_task_eisenhower))
+        .route("/tasks/{id}", put(update_task_eisenhower))
         .route("/reset", put(reset_eisenhower))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

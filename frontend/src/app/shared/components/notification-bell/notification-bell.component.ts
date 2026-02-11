@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -27,7 +27,6 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
   selector: 'app-notification-bell',
   standalone: true,
   imports: [
-    CommonModule,
     MatIconModule,
     MatButtonModule,
     MatBadgeModule,
@@ -77,15 +76,16 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
                 {{ soundService.soundEnabled() ? 'volume_up' : 'volume_off' }}
               </mat-icon>
             </button>
-            <button
-              *ngIf="notificationService.unreadCount() > 0"
-              mat-button
-              color="primary"
-              class="text-sm"
-              (click)="markAllRead()"
-            >
-              Mark all read
-            </button>
+            @if (notificationService.unreadCount() > 0) {
+              <button
+                mat-button
+                color="primary"
+                class="text-sm"
+                (click)="markAllRead()"
+              >
+                Mark all read
+              </button>
+            }
           </div>
         </div>
 
@@ -112,66 +112,74 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
           (scroll)="onScroll($event)"
         >
           <!-- Empty state -->
-          <div
-            *ngIf="filteredNotifications().length === 0 && !isInitialLoading()"
-            class="flex flex-col items-center justify-center py-8 px-4"
-          >
-            <mat-icon class="text-gray-300 text-5xl mb-2">notifications_none</mat-icon>
-            <p class="text-gray-500 text-sm">
-              {{ activeTab() === 'all' ? 'No notifications yet' : 'No ' + activeTab() + ' notifications' }}
-            </p>
-          </div>
+          @if (filteredNotifications().length === 0 && !isInitialLoading()) {
+            <div
+              class="flex flex-col items-center justify-center py-8 px-4"
+            >
+              <mat-icon class="text-gray-300 text-5xl mb-2">notifications_none</mat-icon>
+              <p class="text-gray-500 text-sm">
+                {{ activeTab() === 'all' ? 'No notifications yet' : 'No ' + activeTab() + ' notifications' }}
+              </p>
+            </div>
+          }
 
           <!-- Initial loading -->
-          <div
-            *ngIf="isInitialLoading()"
-            class="flex items-center justify-center py-8"
-          >
-            <mat-spinner diameter="32"></mat-spinner>
-          </div>
+          @if (isInitialLoading()) {
+            <div
+              class="flex items-center justify-center py-8"
+            >
+              <mat-spinner diameter="32"></mat-spinner>
+            </div>
+          }
 
           <!-- Notification items grouped by time -->
-          <div *ngIf="!isInitialLoading()">
-            <!-- Today section -->
-            <ng-container *ngIf="todayNotifications().length > 0">
-              <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
-                Today
-              </div>
-              <app-notification-item
-                *ngFor="let notification of todayNotifications()"
-                [notification]="notification"
-                (notificationClick)="onNotificationClick($event)"
-              ></app-notification-item>
-            </ng-container>
+          @if (!isInitialLoading()) {
+            <div>
+              <!-- Today section -->
+              @if (todayNotifications().length > 0) {
+                <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
+                  Today
+                </div>
+                @for (notification of todayNotifications(); track notification.id) {
+                  <app-notification-item
+                    [notification]="notification"
+                    (notificationClick)="onNotificationClick($event)"
+                  ></app-notification-item>
+                }
+              }
 
-            <!-- Earlier section -->
-            <ng-container *ngIf="earlierNotifications().length > 0">
-              <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
-                Earlier
-              </div>
-              <app-notification-item
-                *ngFor="let notification of earlierNotifications()"
-                [notification]="notification"
-                (notificationClick)="onNotificationClick($event)"
-              ></app-notification-item>
-            </ng-container>
+              <!-- Earlier section -->
+              @if (earlierNotifications().length > 0) {
+                <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
+                  Earlier
+                </div>
+                @for (notification of earlierNotifications(); track notification.id) {
+                  <app-notification-item
+                    [notification]="notification"
+                    (notificationClick)="onNotificationClick($event)"
+                  ></app-notification-item>
+                }
+              }
 
-            <!-- Load more spinner -->
-            <div
-              *ngIf="notificationService.isLoading()"
-              class="flex items-center justify-center py-4"
-            >
-              <mat-spinner diameter="24"></mat-spinner>
+              <!-- Load more spinner -->
+              @if (notificationService.isLoading()) {
+                <div
+                  class="flex items-center justify-center py-4"
+                >
+                  <mat-spinner diameter="24"></mat-spinner>
+                </div>
+              }
+
+              <!-- End of list -->
+              @if (!notificationService.hasMore() && filteredNotifications().length > 0) {
+                <div
+                  class="text-center py-3 text-gray-400 text-sm"
+                >
+                  No more notifications
+                </div>
+              }
             </div>
-
-            <!-- End of list -->
-            <div
-              *ngIf="!notificationService.hasMore() && filteredNotifications().length > 0"
-              class="text-center py-3 text-gray-400 text-sm"
-            >
-              No more notifications
-            </div>
-          </div>
+          }
         </div>
 
         <!-- Footer -->

@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { DashboardService, UpcomingDeadline } from '../../../core/services/dashboard.service';
 
 @Component({
@@ -90,7 +91,7 @@ export class UpcomingDeadlinesComponent implements OnInit {
   async loadData() {
     this.loading.set(true);
     try {
-      const data = await this.dashboardService.getUpcomingDeadlines(14).toPromise();
+      const data = await firstValueFrom(this.dashboardService.getUpcomingDeadlines(14));
       this.deadlines.set(data || []);
     } catch (error) {
       console.error('Failed to load upcoming deadlines:', error);

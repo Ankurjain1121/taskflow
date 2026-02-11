@@ -1,5 +1,6 @@
 import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { firstValueFrom } from 'rxjs';
 import { DashboardService, CompletionTrendPoint } from '../../../core/services/dashboard.service';
 
 @Component({
@@ -93,7 +94,7 @@ export class CompletionTrendComponent implements OnInit {
   async loadData() {
     this.loading.set(true);
     try {
-      const data = await this.dashboardService.getCompletionTrend(this.selectedDays()).toPromise();
+      const data = await firstValueFrom(this.dashboardService.getCompletionTrend(this.selectedDays()));
       this.data.set(data || []);
 
       const max = Math.max(...(data?.map(d => d.completed) || [0]));

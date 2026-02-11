@@ -1,5 +1,5 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterLink } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatSlideToggleModule, MatSlideToggleChange } from '@angular/material/slide-toggle';
@@ -30,7 +30,6 @@ interface PreferenceRow {
   selector: 'app-notification-preferences',
   standalone: true,
   imports: [
-    CommonModule,
     RouterLink,
     MatTableModule,
     MatSlideToggleModule,
@@ -58,12 +57,15 @@ interface PreferenceRow {
         </div>
 
         <!-- Loading state -->
-        <div *ngIf="isLoading()" class="flex items-center justify-center py-12">
-          <mat-spinner diameter="40"></mat-spinner>
-        </div>
+        @if (isLoading()) {
+          <div class="flex items-center justify-center py-12">
+            <mat-spinner diameter="40"></mat-spinner>
+          </div>
+        }
 
         <!-- Preferences table -->
-        <mat-card *ngIf="!isLoading()" class="overflow-hidden">
+        @if (!isLoading()) {
+        <mat-card class="overflow-hidden">
           <div class="overflow-x-auto">
             <table mat-table [dataSource]="preferenceRows()" class="w-full">
               <!-- Event Type Column -->
@@ -98,26 +100,30 @@ interface PreferenceRow {
               </ng-container>
 
               <!-- Slack Column -->
-              <ng-container matColumnDef="slack" *ngIf="slackEnabled()">
-                <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-center">Slack</th>
-                <td mat-cell *matCellDef="let row" class="!text-center">
-                  <mat-slide-toggle
-                    [checked]="row.slack"
-                    (change)="onToggleChange(row.eventType, 'slack', $event)"
-                  ></mat-slide-toggle>
-                </td>
-              </ng-container>
+              @if (slackEnabled()) {
+                <ng-container matColumnDef="slack">
+                  <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-center">Slack</th>
+                  <td mat-cell *matCellDef="let row" class="!text-center">
+                    <mat-slide-toggle
+                      [checked]="row.slack"
+                      (change)="onToggleChange(row.eventType, 'slack', $event)"
+                    ></mat-slide-toggle>
+                  </td>
+                </ng-container>
+              }
 
               <!-- WhatsApp Column -->
-              <ng-container matColumnDef="whatsapp" *ngIf="whatsappEnabled()">
-                <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-center">WhatsApp</th>
-                <td mat-cell *matCellDef="let row" class="!text-center">
-                  <mat-slide-toggle
-                    [checked]="row.whatsapp"
-                    (change)="onToggleChange(row.eventType, 'whatsapp', $event)"
-                  ></mat-slide-toggle>
-                </td>
-              </ng-container>
+              @if (whatsappEnabled()) {
+                <ng-container matColumnDef="whatsapp">
+                  <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-center">WhatsApp</th>
+                  <td mat-cell *matCellDef="let row" class="!text-center">
+                    <mat-slide-toggle
+                      [checked]="row.whatsapp"
+                      (change)="onToggleChange(row.eventType, 'whatsapp', $event)"
+                    ></mat-slide-toggle>
+                  </td>
+                </ng-container>
+              }
 
               <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
               <tr mat-row *matRowDef="let row; columns: displayedColumns()"></tr>
@@ -137,6 +143,7 @@ interface PreferenceRow {
             </button>
           </div>
         </mat-card>
+        }
 
         <!-- Help text -->
         <div class="mt-6 text-sm text-gray-500">
@@ -144,10 +151,12 @@ interface PreferenceRow {
             <mat-icon class="text-blue-500 !text-base">info</mat-icon>
             In-app notifications cannot be disabled to ensure you always receive important updates.
           </p>
-          <p *ngIf="!slackEnabled() || !whatsappEnabled()" class="flex items-center gap-2 mt-2">
-            <mat-icon class="text-gray-400 !text-base">visibility_off</mat-icon>
-            Some notification channels may be hidden if not configured for your organization.
-          </p>
+          @if (!slackEnabled() || !whatsappEnabled()) {
+            <p class="flex items-center gap-2 mt-2">
+              <mat-icon class="text-gray-400 !text-base">visibility_off</mat-icon>
+              Some notification channels may be hidden if not configured for your organization.
+            </p>
+          }
         </div>
       </div>
     </div>

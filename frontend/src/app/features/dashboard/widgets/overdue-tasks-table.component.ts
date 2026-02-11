@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { DashboardService, OverdueTask } from '../../../core/services/dashboard.service';
 
 @Component({
@@ -97,7 +98,7 @@ export class OverdueTasksTableComponent implements OnInit {
   async loadData() {
     this.loading.set(true);
     try {
-      const data = await this.dashboardService.getOverdueTasks(10).toPromise();
+      const data = await firstValueFrom(this.dashboardService.getOverdueTasks(10));
       this.tasks.set(data || []);
     } catch (error) {
       console.error('Failed to load overdue tasks:', error);

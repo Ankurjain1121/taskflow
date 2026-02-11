@@ -10,7 +10,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 import {
   MyTasksService,
   MyTask,
@@ -311,13 +311,12 @@ export class MyTasksTimelineComponent implements OnInit, OnDestroy {
   async loadTasks() {
     this.loading.set(true);
     try {
-      const response = await this.myTasksService
+      const response = await firstValueFrom(this.myTasksService
         .getMyTasks({
           sort_by: 'due_date',
           sort_order: 'asc',
           limit: 1000, // Load all tasks for grouping
-        })
-        .toPromise();
+        }));
 
       if (response) {
         this.allTasks.set(response.items);
@@ -331,7 +330,7 @@ export class MyTasksTimelineComponent implements OnInit, OnDestroy {
 
   async loadSummary() {
     try {
-      const summary = await this.myTasksService.getMyTasksSummary().toPromise();
+      const summary = await firstValueFrom(this.myTasksService.getMyTasksSummary());
       this.summary.set(summary || null);
     } catch (error) {
       console.error('Failed to load summary:', error);

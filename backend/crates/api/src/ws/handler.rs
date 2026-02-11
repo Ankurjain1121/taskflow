@@ -3,6 +3,7 @@ use axum::{
         ws::{Message, WebSocket},
         Query, State, WebSocketUpgrade,
     },
+    http::header::COOKIE,
     response::Response,
 };
 use futures_util::{SinkExt, StreamExt};
@@ -62,16 +63,32 @@ pub enum ServerMessage {
 /// GET /api/ws or GET /api/ws?token=<jwt>
 ///
 /// Authentication can be done via:
-/// 1. Query param: ?token=<jwt> (legacy, less secure)
-/// 2. First message: {"type": "auth", "payload": {"token": "<jwt>"}} (preferred)
+/// 1. Cookie header (`access_token` cookie) - preferred for browser clients
+/// 2. Query param: ?token=<jwt> (legacy, less secure)
+/// 3. First message: {"type": "auth", "payload": {"token": "<jwt>"}} (fallback)
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
     Query(query): Query<WsQuery>,
+    headers: axum::http::HeaderMap,
     State(state): State<AppState>,
 ) -> Result<Response> {
+    // Try cookie first (browser automatically sends cookies with WS upgrade)
+    if let Some(token) = extract_cookie_token(&headers) {
+        if let Ok(claims) = verify_access_token(&token, &state.jwt_keys) {
+            tracing::info!(
+                user_id = %claims.sub,
+                "WebSocket connection upgrade requested (token from cookie)"
+            );
+
+            return Ok(ws.on_upgrade(move |socket| {
+                handle_socket(socket, state, Some((claims.sub, claims.tenant_id)))
+            }));
+        }
+    }
+
     // If token provided in query param, validate immediately (legacy method)
     if let Some(token) = &query.token {
-        let claims = verify_access_token(token, &state.config.jwt_secret)
+        let claims = verify_access_token(token, &state.jwt_keys)
             .map_err(|_| AppError::Unauthorized("Invalid or expired token".into()))?;
 
         tracing::info!(
@@ -84,9 +101,24 @@ pub async fn ws_handler(
         }));
     }
 
-    // No token in query - will authenticate via first message
+    // No token in cookie or query - will authenticate via first message
     tracing::info!("WebSocket connection upgrade requested (pending auth via message)");
     Ok(ws.on_upgrade(move |socket| handle_socket(socket, state, None)))
+}
+
+/// Extract the `access_token` cookie value from the Cookie header.
+fn extract_cookie_token(headers: &axum::http::HeaderMap) -> Option<String> {
+    let cookie_header = headers.get(COOKIE)?.to_str().ok()?;
+    for part in cookie_header.split(';') {
+        let part = part.trim();
+        if let Some(value) = part.strip_prefix("access_token") {
+            let value = value.trim_start();
+            if let Some(value) = value.strip_prefix('=') {
+                return Some(value.to_string());
+            }
+        }
+    }
+    None
 }
 
 /// Handle the WebSocket connection
@@ -346,7 +378,7 @@ async fn wait_for_auth(
 
                     match client_msg {
                         ClientMessage::Auth { payload } => {
-                            match verify_access_token(&payload.token, &state.config.jwt_secret) {
+                            match verify_access_token(&payload.token, &state.jwt_keys) {
                                 Ok(claims) => {
                                     let response = ServerMessage::Authenticated;
                                     let _ = tx.send(serde_json::to_string(&response).unwrap()).await;

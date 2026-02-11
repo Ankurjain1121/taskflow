@@ -32,8 +32,6 @@ export interface SignUpRequest {
   password: string;
 }
 
-const ACCESS_TOKEN_KEY = 'taskflow_access_token';
-const REFRESH_TOKEN_KEY = 'taskflow_refresh_token';
 const USER_KEY = 'taskflow_user';
 
 @Injectable({
@@ -77,15 +75,11 @@ export class AuthService {
   }
 
   refresh(): Observable<TokenResponse> {
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) {
-      return throwError(() => new Error('No refresh token available'));
-    }
-
     this.refreshInProgress$.next(true);
 
+    // No need to send refresh_token in body - it's sent automatically as a cookie
     return this.http
-      .post<TokenResponse>(`${this.apiUrl}/refresh`, { refresh_token: refreshToken })
+      .post<TokenResponse>(`${this.apiUrl}/refresh`, {})
       .pipe(
         tap((response) => {
           this.handleAuthSuccess(response);
@@ -100,19 +94,26 @@ export class AuthService {
   }
 
   signOut(): void {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    // Call the logout endpoint to clear server-side cookies
+    this.http.post(`${this.apiUrl}/logout`, {}).subscribe({
+      error: () => {
+        // Ignore errors - clear local state regardless
+      },
+    });
     localStorage.removeItem(USER_KEY);
     this._currentUser.set(null);
     this.router.navigate(['/auth/sign-in']);
   }
 
   getAccessToken(): string | null {
-    return localStorage.getItem(ACCESS_TOKEN_KEY);
+    // Tokens are now in HttpOnly cookies - not accessible from JS.
+    // This method exists for backward compat; returns null.
+    return null;
   }
 
   getRefreshToken(): string | null {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
+    // Tokens are now in HttpOnly cookies - not accessible from JS.
+    return null;
   }
 
   isRefreshInProgress(): boolean {
@@ -131,8 +132,8 @@ export class AuthService {
   }
 
   private handleAuthSuccess(response: TokenResponse): void {
-    localStorage.setItem(ACCESS_TOKEN_KEY, response.access_token);
-    localStorage.setItem(REFRESH_TOKEN_KEY, response.refresh_token);
+    // Tokens are set as HttpOnly cookies by the server - no localStorage needed for tokens.
+    // We still store the user object for quick access on page reload.
     localStorage.setItem(USER_KEY, JSON.stringify(response.user));
     this._currentUser.set(response.user);
   }

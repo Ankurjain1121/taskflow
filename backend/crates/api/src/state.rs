@@ -6,11 +6,13 @@ use tokio::sync::broadcast;
 use uuid::Uuid;
 
 use crate::config::Config;
+use taskflow_auth::jwt::JwtKeys;
 
 #[derive(Clone)]
 pub struct AppState {
     pub db: PgPool,
     pub config: Arc<Config>,
+    pub jwt_keys: Arc<JwtKeys>,
     pub redis: redis::aio::ConnectionManager,
     pub board_channels: Arc<DashMap<Uuid, broadcast::Sender<String>>>,
     pub s3_client: aws_sdk_s3::Client,
@@ -49,9 +51,18 @@ impl AppState {
 
         let board_channels = Arc::new(DashMap::new());
 
+        // Build JWT keys (RS256 if RSA keys provided, else HS256 fallback)
+        let jwt_keys = Arc::new(JwtKeys::from_config(
+            &config.jwt_secret,
+            &config.jwt_refresh_secret,
+            config.jwt_rsa_private_key.as_deref(),
+            config.jwt_rsa_public_key.as_deref(),
+        )?);
+
         Ok(Self {
             db,
             config: Arc::new(config),
+            jwt_keys,
             redis,
             board_channels,
             s3_client,

@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import {
   EisenhowerService,
   EisenhowerMatrixResponse,
@@ -216,7 +217,7 @@ export class EisenhowerMatrixComponent implements OnInit {
   async loadMatrix() {
     this.loading.set(true);
     try {
-      const matrix = await this.eisenhowerService.getMatrix().toPromise();
+      const matrix = await firstValueFrom(this.eisenhowerService.getMatrix());
       this.matrix.set(matrix || null);
     } catch (error) {
       console.error('Failed to load Eisenhower Matrix:', error);
@@ -237,7 +238,7 @@ export class EisenhowerMatrixComponent implements OnInit {
     }
 
     try {
-      const result = await this.eisenhowerService.resetAllOverrides().toPromise();
+      const result = await firstValueFrom(this.eisenhowerService.resetAllOverrides());
       console.log(`Reset ${result?.tasks_reset || 0} tasks`);
       await this.loadMatrix();
     } catch (error) {

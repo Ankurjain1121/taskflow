@@ -1,5 +1,6 @@
 import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { firstValueFrom } from 'rxjs';
 import { DashboardService, TasksByPriority } from '../../../core/services/dashboard.service';
 
 @Component({
@@ -61,7 +62,7 @@ export class TasksByPriorityComponent implements OnInit {
   async loadData() {
     this.loading.set(true);
     try {
-      const data = await this.dashboardService.getTasksByPriority().toPromise();
+      const data = await firstValueFrom(this.dashboardService.getTasksByPriority());
       this.data.set(data || []);
 
       const max = Math.max(...(data?.map(d => d.count) || [0]));

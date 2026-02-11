@@ -1,5 +1,6 @@
 import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { firstValueFrom } from 'rxjs';
 import { DashboardService, TasksByStatus } from '../../../core/services/dashboard.service';
 
 @Component({
@@ -65,7 +66,7 @@ export class TasksByStatusComponent implements OnInit {
   async loadData() {
     this.loading.set(true);
     try {
-      const data = await this.dashboardService.getTasksByStatus().toPromise();
+      const data = await firstValueFrom(this.dashboardService.getTasksByStatus());
       this.data.set(data || []);
 
       // TODO: Initialize Chart.js here once installed

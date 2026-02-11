@@ -6,7 +6,7 @@
 use axum::{
     body::Body,
     extract::State,
-    http::{header::AUTHORIZATION, Request, StatusCode},
+    http::{header::{AUTHORIZATION, COOKIE}, Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
     Json,
@@ -43,44 +43,21 @@ impl AuthErrorResponse {
 
 /// Middleware that validates JWT tokens and extracts user info
 ///
-/// Reads the `Authorization: Bearer <token>` header, validates the JWT,
-/// and inserts an `AuthUser` into request extensions.
+/// Tries to read the access token from:
+/// 1. Cookie header (`access_token` cookie) - preferred for browser clients
+/// 2. Authorization header (`Bearer <token>`) - fallback for API clients
 ///
-/// Returns 401 Unauthorized if:
-/// - No Authorization header is present
-/// - The header format is invalid (not "Bearer <token>")
-/// - The JWT token is invalid or expired
+/// Returns 401 Unauthorized if no valid token is found.
 pub async fn auth_middleware(
     State(state): State<AppState>,
     mut request: Request<Body>,
     next: Next,
 ) -> Response {
-    // Extract Authorization header
-    let auth_header = match request.headers().get(AUTHORIZATION) {
-        Some(header) => header,
-        None => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(AuthErrorResponse::unauthorized()),
-            )
-                .into_response();
-        }
-    };
+    // Try Cookie header first, then Authorization header
+    let token = extract_token_from_cookie(request.headers())
+        .or_else(|| extract_token_from_auth_header(request.headers()));
 
-    // Parse header value to string
-    let auth_str = match auth_header.to_str() {
-        Ok(s) => s,
-        Err(_) => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(AuthErrorResponse::unauthorized()),
-            )
-                .into_response();
-        }
-    };
-
-    // Expect "Bearer <token>" format
-    let token = match auth_str.strip_prefix("Bearer ") {
+    let token = match token {
         Some(t) => t,
         None => {
             return (
@@ -92,7 +69,7 @@ pub async fn auth_middleware(
     };
 
     // Verify JWT token
-    let claims = match verify_access_token(token, &state.config.jwt_secret) {
+    let claims = match verify_access_token(&token, &state.jwt_keys) {
         Ok(c) => c,
         Err(e) => {
             tracing::debug!("JWT verification failed: {:?}", e);
@@ -125,22 +102,42 @@ pub async fn optional_auth_middleware(
     mut request: Request<Body>,
     next: Next,
 ) -> Response {
-    // Try to extract and validate token
-    if let Some(auth_header) = request.headers().get(AUTHORIZATION) {
-        if let Ok(auth_str) = auth_header.to_str() {
-            if let Some(token) = auth_str.strip_prefix("Bearer ") {
-                if let Ok(claims) = verify_access_token(token, &state.config.jwt_secret) {
-                    let auth_user = AuthUser {
-                        user_id: claims.sub,
-                        tenant_id: claims.tenant_id,
-                        role: claims.role,
-                    };
-                    request.extensions_mut().insert(auth_user);
-                }
-            }
+    // Try Cookie header first, then Authorization header
+    let token = extract_token_from_cookie(request.headers())
+        .or_else(|| extract_token_from_auth_header(request.headers()));
+
+    if let Some(token) = token {
+        if let Ok(claims) = verify_access_token(&token, &state.jwt_keys) {
+            let auth_user = AuthUser {
+                user_id: claims.sub,
+                tenant_id: claims.tenant_id,
+                role: claims.role,
+            };
+            request.extensions_mut().insert(auth_user);
         }
     }
 
     // Always continue to next handler
     next.run(request).await
+}
+
+/// Extract the `access_token` cookie value from the Cookie header.
+fn extract_token_from_cookie(headers: &axum::http::HeaderMap) -> Option<String> {
+    let cookie_header = headers.get(COOKIE)?.to_str().ok()?;
+    for part in cookie_header.split(';') {
+        let part = part.trim();
+        if let Some(value) = part.strip_prefix("access_token") {
+            let value = value.trim_start();
+            if let Some(value) = value.strip_prefix('=') {
+                return Some(value.to_string());
+            }
+        }
+    }
+    None
+}
+
+/// Extract the Bearer token from the Authorization header.
+fn extract_token_from_auth_header(headers: &axum::http::HeaderMap) -> Option<String> {
+    let auth_header = headers.get(AUTHORIZATION)?.to_str().ok()?;
+    auth_header.strip_prefix("Bearer ").map(|t| t.to_string())
 }

@@ -299,8 +299,7 @@ pub async fn accept_handler(
         user.tenant_id,
         user.role.clone(),
         token_id,
-        &state.config.jwt_secret,
-        &state.config.jwt_refresh_secret,
+        &state.jwt_keys,
         state.config.jwt_access_expiry_secs,
         state.config.jwt_refresh_expiry_secs,
     )?;

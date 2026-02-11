@@ -10,6 +10,8 @@ pub struct Config {
     pub jwt_refresh_secret: String,
     pub jwt_access_expiry_secs: i64,
     pub jwt_refresh_expiry_secs: i64,
+    pub jwt_rsa_private_key: Option<String>,
+    pub jwt_rsa_public_key: Option<String>,
     pub redis_url: String,
     pub minio_endpoint: String,
     pub minio_public_url: String,
@@ -57,6 +59,8 @@ impl Config {
             jwt_refresh_expiry_secs: env::var("JWT_REFRESH_EXPIRY_SECS")
                 .unwrap_or_else(|_| "604800".into())
                 .parse()?,
+            jwt_rsa_private_key: env::var("JWT_RSA_PRIVATE_KEY").ok().filter(|s| !s.is_empty()),
+            jwt_rsa_public_key: env::var("JWT_RSA_PUBLIC_KEY").ok().filter(|s| !s.is_empty()),
             redis_url: env::var("REDIS_URL")
                 .unwrap_or_else(|_| "redis://localhost:6379".into()),
             minio_endpoint: env::var("MINIO_ENDPOINT")

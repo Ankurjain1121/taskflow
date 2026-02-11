@@ -1,7 +1,6 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { Subject, Observable, Subscription, timer, retry, share } from 'rxjs';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
-import { AuthService } from './auth.service';
 
 export interface WebSocketMessage<T = unknown> {
   type: string;
@@ -20,25 +19,15 @@ export class WebSocketService implements OnDestroy {
   readonly messages$: Observable<WebSocketMessage> = this.messagesSubject$.asObservable();
   readonly connectionStatus$: Observable<boolean> = this.connectionStatusSubject$.asObservable();
 
-  constructor(private authService: AuthService) {}
-
   connect(): void {
     if (this.socket$) {
       return;
     }
 
-    const token = this.authService.getAccessToken();
-    if (!token) {
-      console.error('Cannot connect to WebSocket: no access token');
-      return;
-    }
-
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    // Pass token as query param - the backend supports both query param and message auth.
-    // Using query param avoids the rxjs webSocket timing issue where openObserver fires
-    // before the internal destination is wired, causing message-based auth to silently fail.
-    const wsUrl = `${protocol}//${host}/api/ws?token=${encodeURIComponent(token)}`;
+    // No token in URL - the browser sends HttpOnly cookies automatically with WS upgrade
+    const wsUrl = `${protocol}//${host}/api/ws`;
 
     this.socket$ = webSocket<WebSocketMessage>({
       url: wsUrl,

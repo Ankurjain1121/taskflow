@@ -83,6 +83,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/auth/sign-in", axum::routing::post(routes::auth::sign_in_handler))
         .route("/auth/sign-up", axum::routing::post(routes::auth::sign_up_handler))
         .route("/auth/refresh", axum::routing::post(routes::auth::refresh_handler))
+        .route("/auth/logout", axum::routing::post(routes::auth::logout_handler))
         .route("/auth/forgot-password", axum::routing::post(routes::auth::forgot_password_handler))
         .route("/auth/reset-password", axum::routing::post(routes::auth::reset_password_handler))
         .route("/invitations/validate/{token}", get(routes::invitation::validate_handler))

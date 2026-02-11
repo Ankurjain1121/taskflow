@@ -4,6 +4,7 @@
 
 use axum::{
     extract::State,
+    http::{header::SET_COOKIE, HeaderMap, HeaderValue},
     routing::{get, post},
     Json, Router,
 };
@@ -88,7 +89,7 @@ pub struct ResetPasswordRequest {
 pub async fn sign_in_handler(
     State(state): State<AppState>,
     Json(payload): Json<SignInRequest>,
-) -> Result<Json<AuthResponse>> {
+) -> Result<(HeaderMap, Json<AuthResponse>)> {
     // Validate input
     if payload.email.is_empty() || payload.password.is_empty() {
         return Err(AppError::BadRequest("Email and password are required".into()));
@@ -127,8 +128,7 @@ pub async fn sign_in_handler(
         user.tenant_id,
         user.role.clone(),
         token_id,
-        &state.config.jwt_secret,
-        &state.config.jwt_refresh_secret,
+        &state.jwt_keys,
         state.config.jwt_access_expiry_secs,
         state.config.jwt_refresh_expiry_secs,
     )?;
@@ -141,7 +141,16 @@ pub async fn sign_in_handler(
         .execute(&state.db)
         .await?;
 
-    Ok(Json(AuthResponse {
+    // Set HttpOnly cookies
+    let cookie_headers = build_auth_cookie_headers(
+        &tokens.access_token,
+        &tokens.refresh_token,
+        state.config.jwt_access_expiry_secs,
+        state.config.jwt_refresh_expiry_secs,
+        &state.config.app_url,
+    );
+
+    Ok((cookie_headers, Json(AuthResponse {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
         user: UserResponse {
@@ -153,7 +162,7 @@ pub async fn sign_in_handler(
             avatar_url: user.avatar_url,
             onboarding_completed: user.onboarding_completed,
         },
-    }))
+    })))
 }
 
 /// POST /api/auth/sign-up
@@ -163,7 +172,7 @@ pub async fn sign_in_handler(
 pub async fn sign_up_handler(
     State(state): State<AppState>,
     Json(payload): Json<SignUpRequest>,
-) -> Result<Json<AuthResponse>> {
+) -> Result<(HeaderMap, Json<AuthResponse>)> {
     // Validate
     if payload.name.trim().is_empty() {
         return Err(AppError::BadRequest("Name is required".into()));
@@ -206,8 +215,7 @@ pub async fn sign_up_handler(
         user.tenant_id,
         user.role.clone(),
         token_id,
-        &state.config.jwt_secret,
-        &state.config.jwt_refresh_secret,
+        &state.jwt_keys,
         state.config.jwt_access_expiry_secs,
         state.config.jwt_refresh_expiry_secs,
     )?;
@@ -219,7 +227,16 @@ pub async fn sign_up_handler(
         .execute(&state.db)
         .await?;
 
-    Ok(Json(AuthResponse {
+    // Set HttpOnly cookies
+    let cookie_headers = build_auth_cookie_headers(
+        &tokens.access_token,
+        &tokens.refresh_token,
+        state.config.jwt_access_expiry_secs,
+        state.config.jwt_refresh_expiry_secs,
+        &state.config.app_url,
+    );
+
+    Ok((cookie_headers, Json(AuthResponse {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
         user: UserResponse {
@@ -231,7 +248,7 @@ pub async fn sign_up_handler(
             avatar_url: user.avatar_url,
             onboarding_completed: user.onboarding_completed,
         },
-    }))
+    })))
 }
 
 /// POST /api/auth/refresh
@@ -240,10 +257,16 @@ pub async fn sign_up_handler(
 /// Returns new access and refresh tokens, revokes the old refresh token.
 pub async fn refresh_handler(
     State(state): State<AppState>,
-    Json(payload): Json<RefreshRequest>,
-) -> Result<Json<AuthResponse>> {
+    headers: HeaderMap,
+    payload: Option<Json<RefreshRequest>>,
+) -> Result<(HeaderMap, Json<AuthResponse>)> {
+    // Try to get refresh token from cookie first, then fall back to JSON body
+    let refresh_token_value = extract_cookie(&headers, "refresh_token")
+        .or_else(|| payload.as_ref().map(|p| p.refresh_token.clone()))
+        .ok_or_else(|| AppError::BadRequest("No refresh token provided".into()))?;
+
     // Verify the refresh token JWT
-    let claims = verify_refresh_token(&payload.refresh_token, &state.config.jwt_refresh_secret)
+    let claims = verify_refresh_token(&refresh_token_value, &state.jwt_keys)
         .map_err(|_| AppError::Unauthorized("Invalid refresh token".into()))?;
 
     // Get the refresh token record from DB
@@ -257,7 +280,7 @@ pub async fn refresh_handler(
     }
 
     // Verify token hash matches
-    let provided_hash = hash_token(&payload.refresh_token);
+    let provided_hash = hash_token(&refresh_token_value);
     if stored_token.token_hash != provided_hash {
         return Err(AppError::Unauthorized("Invalid refresh token".into()));
     }
@@ -287,8 +310,7 @@ pub async fn refresh_handler(
         user.tenant_id,
         user.role.clone(),
         new_token_id,
-        &state.config.jwt_secret,
-        &state.config.jwt_refresh_secret,
+        &state.jwt_keys,
         state.config.jwt_access_expiry_secs,
         state.config.jwt_refresh_expiry_secs,
     )?;
@@ -301,7 +323,16 @@ pub async fn refresh_handler(
         .execute(&state.db)
         .await?;
 
-    Ok(Json(AuthResponse {
+    // Set HttpOnly cookies
+    let cookie_headers = build_auth_cookie_headers(
+        &tokens.access_token,
+        &tokens.refresh_token,
+        state.config.jwt_access_expiry_secs,
+        state.config.jwt_refresh_expiry_secs,
+        &state.config.app_url,
+    );
+
+    Ok((cookie_headers, Json(AuthResponse {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
         user: UserResponse {
@@ -313,7 +344,7 @@ pub async fn refresh_handler(
             avatar_url: user.avatar_url,
             onboarding_completed: user.onboarding_completed,
         },
-    }))
+    })))
 }
 
 /// POST /api/auth/sign-out
@@ -323,22 +354,51 @@ pub async fn refresh_handler(
 pub async fn sign_out_handler(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Json(payload): Json<RefreshRequest>,
-) -> Result<Json<MessageResponse>> {
-    // Verify the refresh token belongs to this user
-    let claims = verify_refresh_token(&payload.refresh_token, &state.config.jwt_refresh_secret)
-        .map_err(|_| AppError::Unauthorized("Invalid refresh token".into()))?;
+    headers: HeaderMap,
+    payload: Option<Json<RefreshRequest>>,
+) -> Result<(HeaderMap, Json<MessageResponse>)> {
+    // Try to get refresh token from cookie first, then fall back to JSON body
+    let refresh_token_value = extract_cookie(&headers, "refresh_token")
+        .or_else(|| payload.as_ref().map(|p| p.refresh_token.clone()));
 
-    if claims.sub != auth.0.user_id {
-        return Err(AppError::Forbidden("Token does not belong to authenticated user".into()));
+    if let Some(token) = refresh_token_value {
+        // Verify the refresh token belongs to this user
+        if let Ok(claims) = verify_refresh_token(&token, &state.jwt_keys) {
+            if claims.sub == auth.0.user_id {
+                let _ = auth::revoke_refresh_token(&state.db, claims.token_id).await;
+            }
+        }
     }
 
-    // Revoke the refresh token
-    auth::revoke_refresh_token(&state.db, claims.token_id).await?;
+    // Clear cookies regardless
+    let clear_headers = build_clear_cookie_headers(&state.config.app_url);
 
-    Ok(Json(MessageResponse {
+    Ok((clear_headers, Json(MessageResponse {
         message: "Successfully signed out".into(),
-    }))
+    })))
+}
+
+/// POST /api/auth/logout
+///
+/// Logout by clearing HttpOnly cookies. Does not require authentication
+/// (the cookie itself is the credential). Revokes the refresh token if valid.
+pub async fn logout_handler(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<(HeaderMap, Json<MessageResponse>)> {
+    // Try to revoke the refresh token from cookie if present
+    if let Some(token) = extract_cookie(&headers, "refresh_token") {
+        if let Ok(claims) = verify_refresh_token(&token, &state.jwt_keys) {
+            let _ = auth::revoke_refresh_token(&state.db, claims.token_id).await;
+        }
+    }
+
+    // Clear cookies
+    let clear_headers = build_clear_cookie_headers(&state.config.app_url);
+
+    Ok((clear_headers, Json(MessageResponse {
+        message: "Successfully logged out".into(),
+    })))
 }
 
 /// GET /api/auth/me
@@ -451,6 +511,86 @@ fn hash_token(token: &str) -> String {
     format!("{:x}", hasher.finalize())
 }
 
+/// Extract a named cookie value from the Cookie header.
+fn extract_cookie(headers: &HeaderMap, name: &str) -> Option<String> {
+    let cookie_header = headers.get(axum::http::header::COOKIE)?.to_str().ok()?;
+    for part in cookie_header.split(';') {
+        let part = part.trim();
+        if let Some(value) = part.strip_prefix(name) {
+            let value = value.trim_start();
+            if let Some(value) = value.strip_prefix('=') {
+                return Some(value.to_string());
+            }
+        }
+    }
+    None
+}
+
+/// Build Set-Cookie headers for access and refresh tokens.
+/// Sets HttpOnly, SameSite=Strict. Secure flag is based on whether APP_URL uses https.
+fn build_auth_cookie_headers(
+    access_token: &str,
+    refresh_token: &str,
+    access_expiry_secs: i64,
+    refresh_expiry_secs: i64,
+    app_url: &str,
+) -> HeaderMap {
+    let secure_flag = if app_url.starts_with("https://") {
+        "; Secure"
+    } else {
+        ""
+    };
+
+    let access_cookie = format!(
+        "access_token={}; HttpOnly; SameSite=Strict; Path=/api; Max-Age={}{}",
+        access_token, access_expiry_secs, secure_flag
+    );
+    let refresh_cookie = format!(
+        "refresh_token={}; HttpOnly; SameSite=Strict; Path=/api/auth; Max-Age={}{}",
+        refresh_token, refresh_expiry_secs, secure_flag
+    );
+
+    let mut headers = HeaderMap::new();
+    headers.append(
+        SET_COOKIE,
+        HeaderValue::from_str(&access_cookie).expect("valid cookie value"),
+    );
+    headers.append(
+        SET_COOKIE,
+        HeaderValue::from_str(&refresh_cookie).expect("valid cookie value"),
+    );
+    headers
+}
+
+/// Build Set-Cookie headers that clear both auth cookies.
+fn build_clear_cookie_headers(app_url: &str) -> HeaderMap {
+    let secure_flag = if app_url.starts_with("https://") {
+        "; Secure"
+    } else {
+        ""
+    };
+
+    let clear_access = format!(
+        "access_token=; HttpOnly; SameSite=Strict; Path=/api; Max-Age=0{}",
+        secure_flag
+    );
+    let clear_refresh = format!(
+        "refresh_token=; HttpOnly; SameSite=Strict; Path=/api/auth; Max-Age=0{}",
+        secure_flag
+    );
+
+    let mut headers = HeaderMap::new();
+    headers.append(
+        SET_COOKIE,
+        HeaderValue::from_str(&clear_access).expect("valid cookie value"),
+    );
+    headers.append(
+        SET_COOKIE,
+        HeaderValue::from_str(&clear_refresh).expect("valid cookie value"),
+    );
+    headers
+}
+
 // ============================================================================
 // Router
 // ============================================================================
@@ -469,5 +609,6 @@ pub fn auth_router() -> Router<AppState> {
         .route("/sign-in", post(sign_in_handler))
         .route("/refresh", post(refresh_handler))
         .route("/sign-out", post(sign_out_handler))
+        .route("/logout", post(logout_handler))
         .route("/me", get(me_handler))
 }

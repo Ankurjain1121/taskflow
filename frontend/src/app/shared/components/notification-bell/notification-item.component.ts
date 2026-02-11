@@ -76,20 +76,22 @@ const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
           <p class="text-xs text-gray-400 dark:text-gray-500">
             {{ getRelativeTime() }}
           </p>
-          <span
-            *ngIf="notification.link_url"
-            class="text-xs text-blue-500 dark:text-blue-400"
-          >
-            View
-          </span>
+          @if (notification.link_url) {
+            <span
+              class="text-xs text-blue-500 dark:text-blue-400"
+            >
+              View
+            </span>
+          }
         </div>
       </div>
 
       <!-- Unread indicator dot -->
-      <div
-        *ngIf="!notification.is_read"
-        class="flex-shrink-0 w-2.5 h-2.5 bg-blue-500 rounded-full mt-2 shadow-sm"
-      ></div>
+      @if (!notification.is_read) {
+        <div
+          class="flex-shrink-0 w-2.5 h-2.5 bg-blue-500 rounded-full mt-2 shadow-sm"
+        ></div>
+      }
     </div>
   `,
   styles: [
