@@ -13,7 +13,7 @@ export const adminGuard: CanActivateFn = (): boolean | UrlTree => {
   }
 
   // Check if user has admin role
-  if (user.role === 'admin') {
+  if (user.role === 'Admin') {
     return true;
   }
 

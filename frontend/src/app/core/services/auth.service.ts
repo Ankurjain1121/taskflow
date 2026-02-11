@@ -6,12 +6,11 @@ import { Router } from '@angular/router';
 export interface User {
   id: string;
   email: string;
-  display_name: string;
+  name: string;  // Backend sends 'name', not 'display_name'
   avatar_url: string | null;
-  email_verified: boolean;
-  role?: 'admin' | 'manager' | 'member';
-  created_at: string;
-  updated_at: string;
+  role: 'Admin' | 'Manager' | 'Member';  // Backend uses capitalized role names
+  tenant_id: string;
+  onboarding_completed: boolean;
 }
 
 export interface TokenResponse {

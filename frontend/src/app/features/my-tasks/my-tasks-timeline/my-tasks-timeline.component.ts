@@ -291,7 +291,7 @@ export class MyTasksTimelineComponent implements OnInit, OnDestroy {
 
   userName = computed(() => {
     const user = this.authService.currentUser();
-    return user?.display_name || user?.email?.split('@')[0] || 'there';
+    return user?.name || user?.email?.split('@')[0] || 'there';
   });
 
   ngOnInit() {

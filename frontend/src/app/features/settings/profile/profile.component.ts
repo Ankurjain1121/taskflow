@@ -195,14 +195,16 @@ import { AuthService } from '../../../core/services/auth.service';
         }
 
         <!-- Account info -->
-        @if (!isLoading() && profile()) {
+        @if (!isLoading() && profile() && profile()!.created_at) {
         <div class="mt-6 text-sm text-gray-500">
           <p>
             Account created: {{ profile()!.created_at | date:'longDate' }}
           </p>
+          @if (profile()!.updated_at) {
           <p>
             Last updated: {{ profile()!.updated_at | date:'longDate' }}
           </p>
+          }
         </div>
         }
       </div>
@@ -254,7 +256,7 @@ export class ProfileComponent implements OnInit {
       next: (profile) => {
         this.profile.set(profile);
         this.profileForm.patchValue({
-          displayName: profile.display_name,
+          displayName: profile.name,
           email: profile.email,
           phoneNumber: profile.phone_number || '',
           avatarUrl: profile.avatar_url || '',
@@ -271,15 +273,15 @@ export class ProfileComponent implements OnInit {
           this.profile.set({
             id: currentUser.id,
             email: currentUser.email,
-            display_name: currentUser.display_name,
+            name: currentUser.name,
             phone_number: null,
             avatar_url: currentUser.avatar_url,
-            email_verified: currentUser.email_verified,
-            created_at: currentUser.created_at,
-            updated_at: currentUser.updated_at,
+            role: currentUser.role,
+            tenant_id: currentUser.tenant_id,
+            onboarding_completed: currentUser.onboarding_completed,
           });
           this.profileForm.patchValue({
-            displayName: currentUser.display_name,
+            displayName: currentUser.name,
             email: currentUser.email,
             avatarUrl: currentUser.avatar_url || '',
           });

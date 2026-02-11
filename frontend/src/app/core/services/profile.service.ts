@@ -5,12 +5,14 @@ import { Observable, tap } from 'rxjs';
 export interface UserProfile {
   id: string;
   email: string;
-  display_name: string;
+  name: string;
   phone_number: string | null;
   avatar_url: string | null;
-  email_verified: boolean;
-  created_at: string;
-  updated_at: string;
+  role: 'Admin' | 'Manager' | 'Member';
+  tenant_id: string;
+  onboarding_completed: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface UpdateProfileRequest {
