@@ -4,7 +4,8 @@
 
 use axum::{
     extract::State,
-    http::{header::SET_COOKIE, HeaderMap, HeaderValue},
+    http::{header::SET_COOKIE, HeaderMap, HeaderValue, StatusCode},
+    response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
@@ -89,7 +90,7 @@ pub struct ResetPasswordRequest {
 pub async fn sign_in_handler(
     State(state): State<AppState>,
     Json(payload): Json<SignInRequest>,
-) -> Result<(HeaderMap, Json<AuthResponse>)> {
+) -> Result<Response> {
     // Validate input
     if payload.email.is_empty() || payload.password.is_empty() {
         return Err(AppError::BadRequest("Email and password are required".into()));
@@ -150,7 +151,7 @@ pub async fn sign_in_handler(
         &state.config.app_url,
     );
 
-    Ok((cookie_headers, Json(AuthResponse {
+    let response_body = AuthResponse {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
         user: UserResponse {
@@ -162,7 +163,11 @@ pub async fn sign_in_handler(
             avatar_url: user.avatar_url,
             onboarding_completed: user.onboarding_completed,
         },
-    })))
+    };
+
+    let mut response = Json(response_body).into_response();
+    response.headers_mut().extend(cookie_headers);
+    Ok(response)
 }
 
 /// POST /api/auth/sign-up
@@ -172,7 +177,7 @@ pub async fn sign_in_handler(
 pub async fn sign_up_handler(
     State(state): State<AppState>,
     Json(payload): Json<SignUpRequest>,
-) -> Result<(HeaderMap, Json<AuthResponse>)> {
+) -> Result<Response> {
     // Validate
     if payload.name.trim().is_empty() {
         return Err(AppError::BadRequest("Name is required".into()));
@@ -236,7 +241,7 @@ pub async fn sign_up_handler(
         &state.config.app_url,
     );
 
-    Ok((cookie_headers, Json(AuthResponse {
+    let response_body = AuthResponse {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
         user: UserResponse {
@@ -248,7 +253,11 @@ pub async fn sign_up_handler(
             avatar_url: user.avatar_url,
             onboarding_completed: user.onboarding_completed,
         },
-    })))
+    };
+
+    let mut response = Json(response_body).into_response();
+    response.headers_mut().extend(cookie_headers);
+    Ok(response)
 }
 
 /// POST /api/auth/refresh
@@ -259,7 +268,7 @@ pub async fn refresh_handler(
     State(state): State<AppState>,
     headers: HeaderMap,
     payload: Option<Json<RefreshRequest>>,
-) -> Result<(HeaderMap, Json<AuthResponse>)> {
+) -> Result<Response> {
     // Try to get refresh token from cookie first, then fall back to JSON body
     let refresh_token_value = extract_cookie(&headers, "refresh_token")
         .or_else(|| payload.as_ref().map(|p| p.refresh_token.clone()))
@@ -332,7 +341,7 @@ pub async fn refresh_handler(
         &state.config.app_url,
     );
 
-    Ok((cookie_headers, Json(AuthResponse {
+    let response_body = AuthResponse {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
         user: UserResponse {
@@ -344,7 +353,11 @@ pub async fn refresh_handler(
             avatar_url: user.avatar_url,
             onboarding_completed: user.onboarding_completed,
         },
-    })))
+    };
+
+    let mut response = Json(response_body).into_response();
+    response.headers_mut().extend(cookie_headers);
+    Ok(response)
 }
 
 /// POST /api/auth/sign-out
