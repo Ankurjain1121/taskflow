@@ -294,7 +294,7 @@ export class ImportDialogComponent {
         return;
       }
       const valid = parsed.filter(
-        (item: Record<string, unknown>) => item && typeof item.title === 'string' && item.title.trim()
+        (item: Record<string, unknown>) => item && typeof item['title'] === 'string' && item['title'].trim()
       );
       this.jsonPreviewCount.set(valid.length);
       if (valid.length === 0 && parsed.length > 0) {

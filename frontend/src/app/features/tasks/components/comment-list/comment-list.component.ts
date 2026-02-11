@@ -285,7 +285,7 @@ export class CommentListComponent implements OnDestroy {
         ),
         takeUntil(this.destroy$)
       )
-      .subscribe((message: WebSocketMessage<CommentCreatedPayload>) => {
+      .subscribe((message: WebSocketMessage) => {
         const payload = message.payload as CommentCreatedPayload;
 
         // Only add if it's for this task and not already in the list

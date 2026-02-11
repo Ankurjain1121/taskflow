@@ -1,5 +1,11 @@
 import '@angular/compiler';
-import '@analogjs/vitest-angular/setup-zone';
-import { setupTestBed } from '@analogjs/vitest-angular/setup-testbed';
+import { getTestBed } from '@angular/core/testing';
+import {
+  BrowserDynamicTestingModule,
+  platformBrowserDynamicTesting,
+} from '@angular/platform-browser-dynamic/testing';
 
-setupTestBed({ zoneless: false });
+getTestBed().initTestEnvironment(
+  BrowserDynamicTestingModule,
+  platformBrowserDynamicTesting()
+);
