@@ -539,8 +539,40 @@ fn extract_cookie(headers: &HeaderMap, name: &str) -> Option<String> {
     None
 }
 
+/// Extract domain from APP_URL for cookie Domain attribute.
+/// Returns empty string for localhost/local IPs (browser default behavior).
+fn extract_domain_from_url(app_url: &str) -> String {
+    // Extract domain using simple string parsing
+    let url_without_protocol = app_url
+        .trim_start_matches("http://")
+        .trim_start_matches("https://");
+
+    let domain = url_without_protocol
+        .split('/')
+        .next()
+        .unwrap_or("");
+
+    let domain = domain.split(':').next().unwrap_or("");
+
+    // Skip localhost and local IPs
+    if domain == "localhost"
+        || domain.starts_with("127.")
+        || domain.starts_with("192.168.")
+        || domain.starts_with("10.") {
+        return String::new();
+    }
+
+    // Return domain attribute
+    if !domain.is_empty() {
+        format!("; Domain={}", domain)
+    } else {
+        String::new()
+    }
+}
+
 /// Build Set-Cookie headers for access and refresh tokens.
 /// Sets HttpOnly, SameSite=Strict. Secure flag is based on whether APP_URL uses https.
+/// Domain attribute is set for production domains (not localhost/local IPs).
 fn build_auth_cookie_headers(
     access_token: &str,
     refresh_token: &str,
@@ -554,13 +586,16 @@ fn build_auth_cookie_headers(
         ""
     };
 
+    // Extract domain from APP_URL
+    let domain_attr = extract_domain_from_url(app_url);
+
     let access_cookie = format!(
-        "access_token={}; HttpOnly; SameSite=Strict; Path=/api; Max-Age={}{}",
-        access_token, access_expiry_secs, secure_flag
+        "access_token={}; HttpOnly; SameSite=Strict; Path=/api{}; Max-Age={}{}",
+        access_token, domain_attr, access_expiry_secs, secure_flag
     );
     let refresh_cookie = format!(
-        "refresh_token={}; HttpOnly; SameSite=Strict; Path=/api/auth; Max-Age={}{}",
-        refresh_token, refresh_expiry_secs, secure_flag
+        "refresh_token={}; HttpOnly; SameSite=Strict; Path=/api/auth{}; Max-Age={}{}",
+        refresh_token, domain_attr, refresh_expiry_secs, secure_flag
     );
 
     let mut headers = HeaderMap::new();
@@ -583,13 +618,16 @@ fn build_clear_cookie_headers(app_url: &str) -> HeaderMap {
         ""
     };
 
+    // Extract domain from APP_URL
+    let domain_attr = extract_domain_from_url(app_url);
+
     let clear_access = format!(
-        "access_token=; HttpOnly; SameSite=Strict; Path=/api; Max-Age=0{}",
-        secure_flag
+        "access_token=; HttpOnly; SameSite=Strict; Path=/api{}; Max-Age=0{}",
+        domain_attr, secure_flag
     );
     let clear_refresh = format!(
-        "refresh_token=; HttpOnly; SameSite=Strict; Path=/api/auth; Max-Age=0{}",
-        secure_flag
+        "refresh_token=; HttpOnly; SameSite=Strict; Path=/api/auth{}; Max-Age=0{}",
+        domain_attr, secure_flag
     );
 
     let mut headers = HeaderMap::new();
