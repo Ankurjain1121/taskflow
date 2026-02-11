@@ -108,13 +108,13 @@ pub async fn create_board_share(
     let token = generate_share_token();
     let now = Utc::now();
 
-    // Simple hash for optional password (not bcrypt since this is a share link, not user auth)
+    // Salted SHA-256 hash for share link password
     let password_hash = input.password.as_ref().map(|p| {
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
-        let mut hasher = DefaultHasher::new();
-        p.hash(&mut hasher);
-        format!("{:x}", hasher.finish())
+        use sha2::{Sha256, Digest};
+        let salt = Uuid::new_v4().to_string();
+        let mut hasher = Sha256::new();
+        hasher.update(format!("{}:{}", salt, p));
+        format!("{}:{:x}", salt, hasher.finalize())
     });
 
     let permissions = input.permissions.unwrap_or_else(|| {
@@ -250,12 +250,17 @@ pub async fn access_shared_board(
     // Check password
     if let Some(ref hash) = share.password_hash {
         let provided = password.ok_or(BoardShareQueryError::InvalidPassword)?;
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
-        let mut hasher = DefaultHasher::new();
-        provided.hash(&mut hasher);
-        let provided_hash = format!("{:x}", hasher.finish());
-        if &provided_hash != hash {
+        use sha2::{Sha256, Digest};
+        let parts: Vec<&str> = hash.splitn(2, ':').collect();
+        if parts.len() != 2 {
+            return Err(BoardShareQueryError::InvalidPassword);
+        }
+        let salt = parts[0];
+        let stored_hash = parts[1];
+        let mut hasher = Sha256::new();
+        hasher.update(format!("{}:{}", salt, provided));
+        let computed = format!("{:x}", hasher.finalize());
+        if computed != stored_hash {
             return Err(BoardShareQueryError::InvalidPassword);
         }
     }

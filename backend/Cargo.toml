@@ -32,7 +32,6 @@ chrono = { version = "0.4", features = ["serde"] }
 
 # Error handling
 thiserror = "2"
-anyhow = "1"
 
 # Logging
 tracing = "0.1"
@@ -46,9 +45,6 @@ redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
 
 # HTTP client
 reqwest = { version = "0.12", features = ["json"] }
-
-# Validation
-validator = { version = "0.19", features = ["derive"] }
 
 # Environment
 dotenvy = "0.15"

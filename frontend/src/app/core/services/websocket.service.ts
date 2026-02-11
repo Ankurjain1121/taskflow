@@ -1,5 +1,5 @@
 import { Injectable, OnDestroy } from '@angular/core';
-import { Subject, Observable, timer, retry, share } from 'rxjs';
+import { Subject, Observable, Subscription, timer, retry, share } from 'rxjs';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
 import { AuthService } from './auth.service';
 
@@ -13,6 +13,7 @@ export interface WebSocketMessage<T = unknown> {
 })
 export class WebSocketService implements OnDestroy {
   private socket$: WebSocketSubject<WebSocketMessage> | null = null;
+  private socketSubscription: Subscription | null = null;
   private messagesSubject$ = new Subject<WebSocketMessage>();
   private connectionStatusSubject$ = new Subject<boolean>();
 
@@ -55,7 +56,7 @@ export class WebSocketService implements OnDestroy {
       },
     });
 
-    this.socket$
+    this.socketSubscription = this.socket$
       .pipe(
         retry({
           delay: () => timer(3000),
@@ -69,6 +70,10 @@ export class WebSocketService implements OnDestroy {
   }
 
   disconnect(): void {
+    if (this.socketSubscription) {
+      this.socketSubscription.unsubscribe();
+      this.socketSubscription = null;
+    }
     if (this.socket$) {
       this.socket$.complete();
       this.socket$ = null;

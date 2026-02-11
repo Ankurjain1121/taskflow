@@ -583,7 +583,7 @@ async fn import_json_handler(
                 .or_else(|| {
                     chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d")
                         .ok()
-                        .map(|nd| nd.and_hms_opt(0, 0, 0).unwrap().and_utc())
+                        .and_then(|nd| nd.and_hms_opt(0, 0, 0).map(|ndt| ndt.and_utc()))
                 })
         });
 
@@ -666,7 +666,7 @@ async fn import_csv_handler(
                 .or_else(|| {
                     chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d")
                         .ok()
-                        .map(|nd| nd.and_hms_opt(0, 0, 0).unwrap().and_utc())
+                        .and_then(|nd| nd.and_hms_opt(0, 0, 0).map(|ndt| ndt.and_utc()))
                 })
         });
 
@@ -824,7 +824,7 @@ async fn import_trello_handler(
                 .or_else(|| {
                     chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d")
                         .ok()
-                        .map(|nd| nd.and_hms_opt(0, 0, 0).unwrap().and_utc())
+                        .and_then(|nd| nd.and_hms_opt(0, 0, 0).map(|ndt| ndt.and_utc()))
                 })
         });
 

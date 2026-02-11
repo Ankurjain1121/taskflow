@@ -39,14 +39,6 @@ struct TriggerRecipient<'a> {
     subscriber_id: &'a str,
 }
 
-/// Payload for identifying a subscriber
-#[derive(Serialize)]
-struct IdentifySubscriberPayload<'a> {
-    subscriber_id: &'a str,
-    email: &'a str,
-    first_name: &'a str,
-}
-
 impl NovuClient {
     /// Create a new Novu client
     ///
@@ -126,54 +118,6 @@ impl NovuClient {
         }
     }
 
-    /// Identify a subscriber in Novu
-    ///
-    /// Creates or updates a subscriber with their email and name.
-    /// This should be called when a user registers or updates their profile.
-    ///
-    /// # Arguments
-    /// * `subscriber_id` - The subscriber ID (usually user UUID)
-    /// * `email` - The subscriber's email address
-    /// * `name` - The subscriber's display name
-    pub async fn identify_subscriber(
-        &self,
-        subscriber_id: &str,
-        email: &str,
-        name: &str,
-    ) -> Result<(), NovuError> {
-        let url = format!("{}/v1/subscribers", self.api_url);
-
-        let payload = IdentifySubscriberPayload {
-            subscriber_id,
-            email,
-            first_name: name,
-        };
-
-        let response = self
-            .client
-            .post(&url)
-            .header("Authorization", format!("ApiKey {}", self.api_key))
-            .header("Content-Type", "application/json")
-            .json(&payload)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            let status = response.status().as_u16();
-            let message = response
-                .text()
-                .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(NovuError::Api { status, message });
-        }
-
-        tracing::debug!(
-            subscriber = subscriber_id,
-            "Subscriber identified in Novu"
-        );
-
-        Ok(())
-    }
 }
 
 #[cfg(test)]
