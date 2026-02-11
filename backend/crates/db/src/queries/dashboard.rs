@@ -252,13 +252,13 @@ pub async fn get_overdue_tasks(
     let now = Utc::now();
     let limit = limit.min(50).max(1);
 
-    let rows = sqlx::query!(
+    let rows = sqlx::query_as::<_, OverdueTask>(
         r#"
         SELECT
             t.id,
             t.title,
             t.due_date,
-            t.priority as "priority: TaskPriority",
+            t.priority,
             t.board_id,
             b.name as board_name,
             EXTRACT(DAY FROM (NOW() - t.due_date))::integer as days_overdue
@@ -275,25 +275,14 @@ pub async fn get_overdue_tasks(
         ORDER BY t.due_date ASC
         LIMIT $3
         "#,
-        user_id,
-        now,
-        limit
     )
+    .bind(user_id)
+    .bind(now)
+    .bind(limit)
     .fetch_all(pool)
     .await?;
 
-    Ok(rows
-        .into_iter()
-        .map(|r| OverdueTask {
-            id: r.id,
-            title: r.title,
-            due_date: r.due_date.unwrap(),
-            priority: r.priority,
-            board_id: r.board_id,
-            board_name: r.board_name,
-            days_overdue: r.days_overdue.unwrap_or(0),
-        })
-        .collect())
+    Ok(rows)
 }
 
 /// Completion trend data point
@@ -312,10 +301,10 @@ pub async fn get_completion_trend(
     let days = days.min(90).max(7);
     let start_date = Utc::now() - chrono::Duration::days(days);
 
-    let rows = sqlx::query!(
+    let rows = sqlx::query_as::<_, CompletionTrendPoint>(
         r#"
         SELECT
-            DATE(al.created_at) as date,
+            DATE(al.created_at)::text as date,
             COUNT(DISTINCT al.entity_id)::bigint as completed
         FROM activity_log al
         INNER JOIN tasks t ON t.id = al.entity_id AND t.deleted_at IS NULL
@@ -329,19 +318,13 @@ pub async fn get_completion_trend(
         GROUP BY DATE(al.created_at)
         ORDER BY date ASC
         "#,
-        user_id,
-        start_date
     )
+    .bind(user_id)
+    .bind(start_date)
     .fetch_all(pool)
     .await?;
 
-    Ok(rows
-        .into_iter()
-        .map(|r| CompletionTrendPoint {
-            date: r.date.map(|d| d.to_string()).unwrap_or_default(),
-            completed: r.completed.unwrap_or(0),
-        })
-        .collect())
+    Ok(rows)
 }
 
 /// Upcoming deadline task
@@ -364,13 +347,13 @@ pub async fn get_upcoming_deadlines(
     let now = Utc::now();
     let end_date = now + chrono::Duration::days(days);
 
-    let rows = sqlx::query!(
+    let rows = sqlx::query_as::<_, UpcomingDeadline>(
         r#"
         SELECT
             t.id,
             t.title,
             t.due_date,
-            t.priority as "priority: TaskPriority",
+            t.priority,
             b.name as board_name,
             EXTRACT(DAY FROM (t.due_date - NOW()))::integer as days_until_due
         FROM tasks t
@@ -386,24 +369,14 @@ pub async fn get_upcoming_deadlines(
           AND (bc.status_mapping IS NULL OR NOT (bc.status_mapping->>'done')::boolean)
         ORDER BY t.due_date ASC
         "#,
-        user_id,
-        now,
-        end_date
     )
+    .bind(user_id)
+    .bind(now)
+    .bind(end_date)
     .fetch_all(pool)
     .await?;
 
-    Ok(rows
-        .into_iter()
-        .map(|r| UpcomingDeadline {
-            id: r.id,
-            title: r.title,
-            due_date: r.due_date.unwrap(),
-            priority: r.priority,
-            board_name: r.board_name,
-            days_until_due: r.days_until_due.unwrap_or(0),
-        })
-        .collect())
+    Ok(rows)
 }
 
 #[cfg(test)]

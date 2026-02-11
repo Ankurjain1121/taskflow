@@ -54,6 +54,7 @@ pub struct EisenhowerMatrixResponse {
 }
 
 /// Internal row type for Eisenhower query
+#[derive(sqlx::FromRow)]
 struct EisenhowerTaskRow {
     id: Uuid,
     title: String,
@@ -113,14 +114,13 @@ pub async fn get_eisenhower_matrix(
     pool: &PgPool,
     user_id: Uuid,
 ) -> Result<EisenhowerMatrixResponse, sqlx::Error> {
-    let rows: Vec<EisenhowerTaskRow> = sqlx::query_as!(
-        EisenhowerTaskRow,
+    let rows: Vec<EisenhowerTaskRow> = sqlx::query_as::<_, EisenhowerTaskRow>(
         r#"
         SELECT
             t.id,
             t.title,
             t.description,
-            t.priority as "priority: TaskPriority",
+            t.priority,
             t.due_date,
             t.board_id,
             b.name as board_name,
@@ -140,8 +140,8 @@ pub async fn get_eisenhower_matrix(
           AND t.deleted_at IS NULL
         ORDER BY t.due_date ASC NULLS LAST, t.created_at DESC
         "#,
-        user_id
     )
+    .bind(user_id)
     .fetch_all(pool)
     .await?;
 
@@ -208,19 +208,19 @@ pub async fn update_eisenhower_overrides(
     urgency: Option<bool>,
     importance: Option<bool>,
 ) -> Result<(), sqlx::Error> {
-    sqlx::query!(
+    sqlx::query(
         r#"
         UPDATE tasks
         SET
-            eisenhower_urgency = $2,
-            eisenhower_importance = $3,
+            eisenhower_urgency = $1,
+            eisenhower_importance = $2,
             updated_at = now()
-        WHERE id = $1
+        WHERE id = $3
         "#,
-        task_id,
-        urgency,
-        importance
     )
+    .bind(urgency)
+    .bind(importance)
+    .bind(task_id)
     .execute(pool)
     .await?;
 
@@ -232,7 +232,7 @@ pub async fn reset_eisenhower_overrides(
     pool: &PgPool,
     user_id: Uuid,
 ) -> Result<u64, sqlx::Error> {
-    let result = sqlx::query!(
+    let result = sqlx::query(
         r#"
         UPDATE tasks
         SET
@@ -247,8 +247,8 @@ pub async fn reset_eisenhower_overrides(
               AND t.deleted_at IS NULL
         )
         "#,
-        user_id
     )
+    .bind(user_id)
     .execute(pool)
     .await?;
 
