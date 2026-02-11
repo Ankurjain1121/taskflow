@@ -6,7 +6,7 @@
 # =============================================================================
 
 # Stage 1: Chef - Install cargo-chef
-FROM rust:1.93-slim AS chef
+FROM rust:1.93-bookworm AS chef
 RUN cargo install cargo-chef --locked
 WORKDIR /app
 
