@@ -4,6 +4,11 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { DashboardService, DashboardStats, DashboardActivityEntry } from '../../core/services/dashboard.service';
+import { TasksByStatusComponent } from './widgets/tasks-by-status.component';
+import { TasksByPriorityComponent } from './widgets/tasks-by-priority.component';
+import { OverdueTasksTableComponent } from './widgets/overdue-tasks-table.component';
+import { CompletionTrendComponent } from './widgets/completion-trend.component';
+import { UpcomingDeadlinesComponent } from './widgets/upcoming-deadlines.component';
 
 interface Workspace {
   id: string;
@@ -15,7 +20,15 @@ interface Workspace {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [
+    CommonModule,
+    RouterLink,
+    TasksByStatusComponent,
+    TasksByPriorityComponent,
+    OverdueTasksTableComponent,
+    CompletionTrendComponent,
+    UpcomingDeadlinesComponent
+  ],
   template: `
     <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
       <!-- Header -->
@@ -174,6 +187,29 @@ interface Workspace {
               </div>
             </div>
           }
+
+          <!-- Analytics & Insights Section -->
+          <div class="animate-fade-in-up stagger-6 mb-8">
+            <div class="mb-4 flex items-center justify-between">
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Analytics & Insights</h2>
+            </div>
+
+            <!-- Analytics Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <!-- Row 1: Tasks by Status & Tasks by Priority -->
+              <app-tasks-by-status class="h-[400px]"></app-tasks-by-status>
+              <app-tasks-by-priority class="h-[400px]"></app-tasks-by-priority>
+
+              <!-- Row 2: Completion Trend & Upcoming Deadlines -->
+              <app-completion-trend class="h-[400px]"></app-completion-trend>
+              <app-upcoming-deadlines class="h-[400px]"></app-upcoming-deadlines>
+
+              <!-- Row 3: Overdue Tasks (Full Width) -->
+              <div class="lg:col-span-2">
+                <app-overdue-tasks-table class="h-[400px]"></app-overdue-tasks-table>
+              </div>
+            </div>
+          </div>
 
           <!-- Workspaces Section -->
           @if (workspaces().length === 0) {

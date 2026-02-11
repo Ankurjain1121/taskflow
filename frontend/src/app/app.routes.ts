@@ -63,8 +63,16 @@ export const routes: Routes = [
   {
     path: 'my-tasks',
     loadComponent: () =>
-      import('./features/my-tasks/my-tasks/my-tasks.component').then(
-        (m) => m.MyTasksComponent
+      import('./features/my-tasks/my-tasks-timeline/my-tasks-timeline.component').then(
+        (m) => m.MyTasksTimelineComponent
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'eisenhower',
+    loadComponent: () =>
+      import('./features/my-tasks/eisenhower-matrix/eisenhower-matrix.component').then(
+        (m) => m.EisenhowerMatrixComponent
       ),
     canActivate: [authGuard],
   },

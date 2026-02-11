@@ -1,0 +1,50 @@
+# =============================================================================
+# TaskFlow Backend - Development Dockerfile
+# =============================================================================
+# Uses cargo-watch for hot reload during development
+# =============================================================================
+
+FROM rust:1.83-slim
+
+# Install build dependencies and cargo-watch
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    curl \
+    && cargo install cargo-watch \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy dependency files first
+COPY Cargo.toml Cargo.lock ./
+COPY crates/api/Cargo.toml crates/api/
+COPY crates/db/Cargo.toml crates/db/
+COPY crates/auth/Cargo.toml crates/auth/
+COPY crates/services/Cargo.toml crates/services/
+
+# Create stub files for dependency caching
+RUN mkdir -p crates/api/src crates/db/src crates/auth/src crates/services/src && \
+    echo "fn main() {}" > crates/api/src/main.rs && \
+    echo "" > crates/db/src/lib.rs && \
+    echo "" > crates/auth/src/lib.rs && \
+    echo "" > crates/services/src/lib.rs
+
+# Build dependencies (cached layer)
+RUN cargo build 2>/dev/null || true
+
+# Copy full source
+COPY . .
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:8080/api/health || exit 1
+
+# Run with cargo-watch for hot reload
+# -x run: execute "cargo run"
+# -w crates: watch the crates directory
+# --why: show reason for restart
+CMD ["cargo", "watch", "-x", "run --bin taskflow-api", "-w", "crates", "--why"]

@@ -8,7 +8,7 @@ use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::ActivityAction;
+use crate::models::{ActivityAction, TaskPriority};
 
 /// Dashboard statistics for the authenticated user
 #[derive(Debug, Serialize, Clone)]
@@ -152,6 +152,258 @@ pub async fn get_recent_activity(
     .await?;
 
     Ok(entries)
+}
+
+/// Tasks grouped by status (column name)
+#[derive(Debug, Serialize, Clone)]
+pub struct TasksByStatus {
+    pub status: String,
+    pub count: i64,
+    pub color: Option<String>,
+}
+
+/// Get tasks grouped by status for dashboard chart
+pub async fn get_tasks_by_status(
+    pool: &PgPool,
+    user_id: Uuid,
+) -> Result<Vec<TasksByStatus>, sqlx::Error> {
+    let rows = sqlx::query_as::<_, TasksByStatus>(
+        r#"
+        SELECT
+            bc.name as status,
+            COUNT(DISTINCT t.id)::bigint as count,
+            bc.color
+        FROM tasks t
+        INNER JOIN task_assignees ta ON ta.task_id = t.id
+        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
+        INNER JOIN board_columns bc ON bc.id = t.column_id
+        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
+        WHERE ta.user_id = $1
+          AND t.deleted_at IS NULL
+        GROUP BY bc.name, bc.color
+        ORDER BY count DESC
+        "#,
+    )
+    .bind(user_id)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows)
+}
+
+/// Tasks grouped by priority
+#[derive(Debug, Serialize, Clone)]
+pub struct TasksByPriority {
+    pub priority: TaskPriority,
+    pub count: i64,
+}
+
+/// Get tasks grouped by priority for dashboard chart
+pub async fn get_tasks_by_priority(
+    pool: &PgPool,
+    user_id: Uuid,
+) -> Result<Vec<TasksByPriority>, sqlx::Error> {
+    let rows = sqlx::query_as::<_, TasksByPriority>(
+        r#"
+        SELECT
+            t.priority as "priority: TaskPriority",
+            COUNT(DISTINCT t.id)::bigint as count
+        FROM tasks t
+        INNER JOIN task_assignees ta ON ta.task_id = t.id
+        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
+        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
+        WHERE ta.user_id = $1
+          AND t.deleted_at IS NULL
+        GROUP BY t.priority
+        ORDER BY
+            CASE t.priority
+                WHEN 'urgent' THEN 1
+                WHEN 'high' THEN 2
+                WHEN 'medium' THEN 3
+                WHEN 'low' THEN 4
+            END
+        "#,
+    )
+    .bind(user_id)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows)
+}
+
+/// Overdue task details for dashboard table
+#[derive(Debug, Serialize, Clone)]
+pub struct OverdueTask {
+    pub id: Uuid,
+    pub title: String,
+    pub due_date: DateTime<Utc>,
+    pub priority: TaskPriority,
+    pub board_id: Uuid,
+    pub board_name: String,
+    pub days_overdue: i32,
+}
+
+/// Get overdue tasks with details
+pub async fn get_overdue_tasks(
+    pool: &PgPool,
+    user_id: Uuid,
+    limit: i64,
+) -> Result<Vec<OverdueTask>, sqlx::Error> {
+    let now = Utc::now();
+    let limit = limit.min(50).max(1);
+
+    let rows = sqlx::query!(
+        r#"
+        SELECT
+            t.id,
+            t.title,
+            t.due_date,
+            t.priority as "priority: TaskPriority",
+            t.board_id,
+            b.name as board_name,
+            EXTRACT(DAY FROM (NOW() - t.due_date))::integer as days_overdue
+        FROM tasks t
+        INNER JOIN task_assignees ta ON ta.task_id = t.id
+        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
+        INNER JOIN board_columns bc ON bc.id = t.column_id
+        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
+        WHERE ta.user_id = $1
+          AND t.deleted_at IS NULL
+          AND t.due_date IS NOT NULL
+          AND t.due_date < $2
+          AND (bc.status_mapping IS NULL OR NOT (bc.status_mapping->>'done')::boolean)
+        ORDER BY t.due_date ASC
+        LIMIT $3
+        "#,
+        user_id,
+        now,
+        limit
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|r| OverdueTask {
+            id: r.id,
+            title: r.title,
+            due_date: r.due_date.unwrap(),
+            priority: r.priority,
+            board_id: r.board_id,
+            board_name: r.board_name,
+            days_overdue: r.days_overdue.unwrap_or(0),
+        })
+        .collect())
+}
+
+/// Completion trend data point
+#[derive(Debug, Serialize, Clone)]
+pub struct CompletionTrendPoint {
+    pub date: String,
+    pub completed: i64,
+}
+
+/// Get completion trend over the last N days
+pub async fn get_completion_trend(
+    pool: &PgPool,
+    user_id: Uuid,
+    days: i64,
+) -> Result<Vec<CompletionTrendPoint>, sqlx::Error> {
+    let days = days.min(90).max(7);
+    let start_date = Utc::now() - chrono::Duration::days(days);
+
+    let rows = sqlx::query!(
+        r#"
+        SELECT
+            DATE(al.created_at) as date,
+            COUNT(DISTINCT al.entity_id)::bigint as completed
+        FROM activity_log al
+        INNER JOIN tasks t ON t.id = al.entity_id AND t.deleted_at IS NULL
+        INNER JOIN task_assignees ta ON ta.task_id = t.id AND ta.user_id = $1
+        INNER JOIN board_columns bc ON bc.id = t.column_id
+        WHERE al.action = 'moved'
+          AND al.entity_type = 'task'
+          AND al.created_at >= $2
+          AND bc.status_mapping IS NOT NULL
+          AND (bc.status_mapping->>'done')::boolean = true
+        GROUP BY DATE(al.created_at)
+        ORDER BY date ASC
+        "#,
+        user_id,
+        start_date
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|r| CompletionTrendPoint {
+            date: r.date.map(|d| d.to_string()).unwrap_or_default(),
+            completed: r.completed.unwrap_or(0),
+        })
+        .collect())
+}
+
+/// Upcoming deadline task
+#[derive(Debug, Serialize, Clone)]
+pub struct UpcomingDeadline {
+    pub id: Uuid,
+    pub title: String,
+    pub due_date: DateTime<Utc>,
+    pub priority: TaskPriority,
+    pub board_name: String,
+    pub days_until_due: i32,
+}
+
+/// Get upcoming deadlines (tasks due in next N days)
+pub async fn get_upcoming_deadlines(
+    pool: &PgPool,
+    user_id: Uuid,
+    days: i64,
+) -> Result<Vec<UpcomingDeadline>, sqlx::Error> {
+    let now = Utc::now();
+    let end_date = now + chrono::Duration::days(days);
+
+    let rows = sqlx::query!(
+        r#"
+        SELECT
+            t.id,
+            t.title,
+            t.due_date,
+            t.priority as "priority: TaskPriority",
+            b.name as board_name,
+            EXTRACT(DAY FROM (t.due_date - NOW()))::integer as days_until_due
+        FROM tasks t
+        INNER JOIN task_assignees ta ON ta.task_id = t.id
+        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
+        INNER JOIN board_columns bc ON bc.id = t.column_id
+        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
+        WHERE ta.user_id = $1
+          AND t.deleted_at IS NULL
+          AND t.due_date IS NOT NULL
+          AND t.due_date >= $2
+          AND t.due_date <= $3
+          AND (bc.status_mapping IS NULL OR NOT (bc.status_mapping->>'done')::boolean)
+        ORDER BY t.due_date ASC
+        "#,
+        user_id,
+        now,
+        end_date
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|r| UpcomingDeadline {
+            id: r.id,
+            title: r.title,
+            due_date: r.due_date.unwrap(),
+            priority: r.priority,
+            board_name: r.board_name,
+            days_until_due: r.days_until_due.unwrap_or(0),
+        })
+        .collect())
 }
 
 #[cfg(test)]

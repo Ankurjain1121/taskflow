@@ -21,7 +21,7 @@ use crate::routes::{
     activity_log_router, admin_audit_router, admin_trash_router, admin_users_router,
     attachment_router, board_columns_router, board_router, board_templates_router, column_router,
     comment_router, cron_router, custom_field_router, dashboard_router, health_handler,
-    liveness_handler, my_tasks_router, notification_preferences_router, notification_router,
+    liveness_handler, my_tasks_router, eisenhower_router, notification_preferences_router, notification_router,
     onboarding_router, readiness_handler, recurring_router, reports_router, search_router,
     subtask_router, dependency_router, milestone_router, task_router, team_overview_router,
     time_entry_router, workspace_boards_router, workspace_router,
@@ -126,6 +126,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api/workspaces/{workspace_id}", team_overview_router(state.clone()))
         // My tasks routes
         .nest("/api/my-tasks", my_tasks_router(state.clone()))
+        // Eisenhower Matrix routes
+        .nest("/api/eisenhower", eisenhower_router(state.clone()))
         // Dashboard routes
         .nest("/api/dashboard", dashboard_router(state.clone()))
         // Admin routes (require Admin role)

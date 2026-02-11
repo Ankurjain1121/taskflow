@@ -19,6 +19,8 @@ pub struct Task {
     pub column_id: Uuid,
     pub position: String,
     pub milestone_id: Option<Uuid>,
+    pub eisenhower_urgency: Option<bool>,
+    pub eisenhower_importance: Option<bool>,
     pub tenant_id: Uuid,
     pub created_by_id: Uuid,
     pub deleted_at: Option<DateTime<Utc>>,
