@@ -23,7 +23,7 @@ use crate::routes::{
     comment_router, cron_router, custom_field_router, dashboard_router, health_handler,
     liveness_handler, my_tasks_router, eisenhower_router, notification_preferences_router, notification_router,
     onboarding_router, readiness_handler, recurring_router, reports_router, search_router,
-    subtask_router, dependency_router, milestone_router, task_router, team_overview_router,
+    subtask_router, task_group_routes, dependency_router, milestone_router, task_router, team_overview_router,
     time_entry_router, workspace_boards_router, workspace_router,
     project_template_router, automation_router, import_export_router,
     board_share_router, shared_board_public_router, webhook_router,
@@ -100,6 +100,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", public_routes)
         .nest("/api", task_router(state.clone()))
         .nest("/api", subtask_router(state.clone()))
+        .nest("/api", task_group_routes(state.clone()))
         .nest("/api", dependency_router(state.clone()))
         .nest("/api", milestone_router(state.clone()))
         .nest("/api", attachment_router(state.clone()))

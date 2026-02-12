@@ -30,6 +30,7 @@ export interface TaskWithDetails {
 export interface Task {
   id: string;
   column_id: string;
+  group_id?: string | null;
   title: string;
   description: string | null;
   priority: TaskPriority;

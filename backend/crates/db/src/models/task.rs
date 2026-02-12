@@ -17,6 +17,7 @@ pub struct Task {
     pub estimated_hours: Option<f64>,
     pub board_id: Uuid,
     pub column_id: Uuid,
+    pub group_id: Option<Uuid>,
     pub position: String,
     pub milestone_id: Option<Uuid>,
     pub eisenhower_urgency: Option<bool>,
