@@ -10,8 +10,7 @@ pub async fn list_task_groups_by_board(
     pool: &PgPool,
     board_id: Uuid,
 ) -> Result<Vec<TaskGroup>, sqlx::Error> {
-    sqlx::query_as!(
-        TaskGroup,
+    sqlx::query_as::<_, TaskGroup>(
         r#"
         SELECT id, board_id, name, color, position, collapsed,
                tenant_id, created_by_id, created_at, updated_at, deleted_at
@@ -19,8 +18,8 @@ pub async fn list_task_groups_by_board(
         WHERE board_id = $1 AND deleted_at IS NULL
         ORDER BY position ASC
         "#,
-        board_id
     )
+    .bind(board_id)
     .fetch_all(pool)
     .await
 }
@@ -30,6 +29,7 @@ pub async fn list_task_groups_with_stats(
     pool: &PgPool,
     board_id: Uuid,
 ) -> Result<Vec<TaskGroupWithStats>, sqlx::Error> {
+    #[derive(sqlx::FromRow)]
     struct Row {
         id: Uuid,
         board_id: Uuid,
@@ -47,8 +47,7 @@ pub async fn list_task_groups_with_stats(
         estimated_hours: Option<f64>,
     }
 
-    let rows = sqlx::query_as!(
-        Row,
+    let rows: Vec<Row> = sqlx::query_as::<_, Row>(
         r#"
         SELECT
             tg.id, tg.board_id, tg.name, tg.color, tg.position, tg.collapsed,
@@ -63,8 +62,8 @@ pub async fn list_task_groups_with_stats(
         GROUP BY tg.id
         ORDER BY tg.position ASC
         "#,
-        board_id
     )
+    .bind(board_id)
     .fetch_all(pool)
     .await?;
 
@@ -96,16 +95,15 @@ pub async fn get_task_group_by_id(
     pool: &PgPool,
     id: Uuid,
 ) -> Result<Option<TaskGroup>, sqlx::Error> {
-    sqlx::query_as!(
-        TaskGroup,
+    sqlx::query_as::<_, TaskGroup>(
         r#"
         SELECT id, board_id, name, color, position, collapsed,
                tenant_id, created_by_id, created_at, updated_at, deleted_at
         FROM task_groups
         WHERE id = $1 AND deleted_at IS NULL
         "#,
-        id
     )
+    .bind(id)
     .fetch_optional(pool)
     .await
 }
@@ -120,21 +118,20 @@ pub async fn create_task_group(
     tenant_id: Uuid,
     created_by_id: Uuid,
 ) -> Result<TaskGroup, sqlx::Error> {
-    sqlx::query_as!(
-        TaskGroup,
+    sqlx::query_as::<_, TaskGroup>(
         r#"
         INSERT INTO task_groups (board_id, name, color, position, tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id, board_id, name, color, position, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
         "#,
-        board_id,
-        name,
-        color,
-        position,
-        tenant_id,
-        created_by_id
     )
+    .bind(board_id)
+    .bind(name)
+    .bind(color)
+    .bind(position)
+    .bind(tenant_id)
+    .bind(created_by_id)
     .fetch_one(pool)
     .await
 }
@@ -145,8 +142,7 @@ pub async fn update_task_group_name(
     id: Uuid,
     name: &str,
 ) -> Result<Option<TaskGroup>, sqlx::Error> {
-    sqlx::query_as!(
-        TaskGroup,
+    sqlx::query_as::<_, TaskGroup>(
         r#"
         UPDATE task_groups
         SET name = $2, updated_at = NOW()
@@ -154,9 +150,9 @@ pub async fn update_task_group_name(
         RETURNING id, board_id, name, color, position, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
         "#,
-        id,
-        name
     )
+    .bind(id)
+    .bind(name)
     .fetch_optional(pool)
     .await
 }
@@ -167,8 +163,7 @@ pub async fn update_task_group_color(
     id: Uuid,
     color: &str,
 ) -> Result<Option<TaskGroup>, sqlx::Error> {
-    sqlx::query_as!(
-        TaskGroup,
+    sqlx::query_as::<_, TaskGroup>(
         r#"
         UPDATE task_groups
         SET color = $2, updated_at = NOW()
@@ -176,9 +171,9 @@ pub async fn update_task_group_color(
         RETURNING id, board_id, name, color, position, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
         "#,
-        id,
-        color
     )
+    .bind(id)
+    .bind(color)
     .fetch_optional(pool)
     .await
 }
@@ -189,8 +184,7 @@ pub async fn update_task_group_position(
     id: Uuid,
     position: &str,
 ) -> Result<Option<TaskGroup>, sqlx::Error> {
-    sqlx::query_as!(
-        TaskGroup,
+    sqlx::query_as::<_, TaskGroup>(
         r#"
         UPDATE task_groups
         SET position = $2, updated_at = NOW()
@@ -198,9 +192,9 @@ pub async fn update_task_group_position(
         RETURNING id, board_id, name, color, position, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
         "#,
-        id,
-        position
     )
+    .bind(id)
+    .bind(position)
     .fetch_optional(pool)
     .await
 }
@@ -211,8 +205,7 @@ pub async fn toggle_task_group_collapse(
     id: Uuid,
     collapsed: bool,
 ) -> Result<Option<TaskGroup>, sqlx::Error> {
-    sqlx::query_as!(
-        TaskGroup,
+    sqlx::query_as::<_, TaskGroup>(
         r#"
         UPDATE task_groups
         SET collapsed = $2, updated_at = NOW()
@@ -220,9 +213,9 @@ pub async fn toggle_task_group_collapse(
         RETURNING id, board_id, name, color, position, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
         "#,
-        id,
-        collapsed
     )
+    .bind(id)
+    .bind(collapsed)
     .fetch_optional(pool)
     .await
 }
@@ -235,40 +228,39 @@ pub async fn soft_delete_task_group(
     let mut tx = pool.begin().await?;
 
     // Move all tasks in this group to the "Ungrouped" group
-    let board_id = sqlx::query_scalar!(
+    let board_id: Uuid = sqlx::query_scalar::<_, Uuid>(
         r#"
         SELECT board_id FROM task_groups WHERE id = $1
         "#,
-        id
     )
+    .bind(id)
     .fetch_one(&mut *tx)
     .await?;
 
-    let ungrouped_id = sqlx::query_scalar!(
+    let ungrouped_id: Uuid = sqlx::query_scalar::<_, Uuid>(
         r#"
         SELECT id FROM task_groups
         WHERE board_id = $1 AND name = 'Ungrouped' AND deleted_at IS NULL
         "#,
-        board_id
     )
+    .bind(board_id)
     .fetch_one(&mut *tx)
     .await?;
 
-    sqlx::query!(
+    sqlx::query(
         r#"
         UPDATE tasks
         SET group_id = $2
         WHERE group_id = $1 AND deleted_at IS NULL
         "#,
-        id,
-        ungrouped_id
     )
+    .bind(id)
+    .bind(ungrouped_id)
     .execute(&mut *tx)
     .await?;
 
     // Soft delete the group
-    let group = sqlx::query_as!(
-        TaskGroup,
+    let group = sqlx::query_as::<_, TaskGroup>(
         r#"
         UPDATE task_groups
         SET deleted_at = NOW()
@@ -276,8 +268,8 @@ pub async fn soft_delete_task_group(
         RETURNING id, board_id, name, color, position, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
         "#,
-        id
     )
+    .bind(id)
     .fetch_optional(&mut *tx)
     .await?;
 
