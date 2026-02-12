@@ -267,11 +267,17 @@ pub async fn sign_up_handler(
 pub async fn refresh_handler(
     State(state): State<AppState>,
     headers: HeaderMap,
-    payload: Option<Json<RefreshRequest>>,
+    payload: Option<Json<serde_json::Value>>,
 ) -> Result<Response> {
     // Try to get refresh token from cookie first, then fall back to JSON body
     let refresh_token_value = extract_cookie(&headers, "refresh_token")
-        .or_else(|| payload.as_ref().map(|p| p.refresh_token.clone()))
+        .or_else(|| {
+            payload.as_ref().and_then(|j| {
+                j.get("refresh_token")
+                    .and_then(|v| v.as_str())
+                    .map(String::from)
+            })
+        })
         .ok_or_else(|| AppError::BadRequest("No refresh token provided".into()))?;
 
     // Verify the refresh token JWT
