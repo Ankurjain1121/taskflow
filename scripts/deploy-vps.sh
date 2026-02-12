@@ -16,6 +16,21 @@ echo "=============================================="
 echo "  TaskFlow VPS Deployment"
 echo "=============================================="
 
+# Run pre-deploy checks first (skip with --skip-checks)
+if [ "${1:-}" != "--skip-checks" ]; then
+    echo ""
+    echo "Running pre-deploy checks..."
+    echo "(Use --skip-checks to skip, e.g., for hotfixes)"
+    echo ""
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    if ! "$SCRIPT_DIR/pre-deploy-check.sh"; then
+        echo ""
+        echo "ERROR: Pre-deploy checks failed! Fix errors before deploying."
+        echo "  To skip (DANGER): ./scripts/deploy-vps.sh --skip-checks"
+        exit 1
+    fi
+fi
+
 # Check if .env exists
 if [ ! -f .env ]; then
     echo "ERROR: .env file not found!"
