@@ -20,13 +20,13 @@ use taskflow_db::queries::{
 
 pub fn task_group_routes(state: AppState) -> Router<AppState> {
     Router::new()
-        .route("/boards/:board_id/groups", get(list_groups))
-        .route("/boards/:board_id/groups/stats", get(list_groups_with_stats_handler))
-        .route("/boards/:board_id/groups", post(create_group))
-        .route("/groups/:id", get(get_group))
-        .route("/groups/:id", put(update_group))
-        .route("/groups/:id/collapse", put(toggle_collapse))
-        .route("/groups/:id", delete(delete_group))
+        .route("/boards/{board_id}/groups", get(list_groups))
+        .route("/boards/{board_id}/groups/stats", get(list_groups_with_stats_handler))
+        .route("/boards/{board_id}/groups", post(create_group))
+        .route("/groups/{id}", get(get_group))
+        .route("/groups/{id}", put(update_group))
+        .route("/groups/{id}/collapse", put(toggle_collapse))
+        .route("/groups/{id}", delete(delete_group))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
