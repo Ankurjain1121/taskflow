@@ -106,7 +106,7 @@ import {
     }
   `],
   template: `
-    <aside class="sidebar-root h-full flex flex-col text-gray-100">
+    <aside class="sidebar-root w-64 h-full flex flex-col text-gray-100">
       <!-- Header: Logo & Search -->
       <div class="px-4 py-4">
         <div class="flex items-center gap-2.5 mb-3">
