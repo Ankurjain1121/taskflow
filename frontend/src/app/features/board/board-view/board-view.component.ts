@@ -16,6 +16,7 @@ import { generateKeyBetween } from 'fractional-indexing';
 
 import { BoardService, Board, Column, BoardMember } from '../../../core/services/board.service';
 import { TaskService, Task, Assignee, TaskListItem, Label, BulkUpdateRequest } from '../../../core/services/task.service';
+import { TaskGroupService, TaskGroupWithStats } from '../../../core/services/task-group.service';
 import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
 import {
   CreateTaskDialogComponent,
@@ -25,6 +26,10 @@ import {
   CreateColumnDialogComponent,
   CreateColumnDialogResult,
 } from './create-column-dialog.component';
+import {
+  CreateTaskGroupDialogComponent,
+  CreateTaskGroupDialogResult,
+} from '../create-task-group-dialog/create-task-group-dialog.component';
 import { WebSocketService } from '../../../core/services/websocket.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { MilestoneService, Milestone } from '../../../core/services/milestone.service';
@@ -45,6 +50,7 @@ import { GanttViewComponent, GanttTask, GanttDependency } from '../gantt-view/ga
 import { ReportsViewComponent } from '../reports-view/reports-view.component';
 import { TimeReportComponent } from '../time-report/time-report.component';
 import { BulkActionsBarComponent, BulkAction } from '../bulk-actions/bulk-actions-bar.component';
+import { TaskGroupHeaderComponent } from '../task-group-header/task-group-header.component';
 import { ShortcutHelpComponent } from '../../../shared/components/shortcut-help/shortcut-help.component';
 import { DependencyService } from '../../../core/services/dependency.service';
 
@@ -65,6 +71,7 @@ import { DependencyService } from '../../../core/services/dependency.service';
     ReportsViewComponent,
     TimeReportComponent,
     BulkActionsBarComponent,
+    TaskGroupHeaderComponent,
     ShortcutHelpComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -117,6 +124,18 @@ import { DependencyService } from '../../../core/services/dependency.service';
               Settings
             </a>
 
+            <!-- Add Group Button -->
+            <button
+              (click)="onCreateGroup()"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              Add Group
+            </button>
+
             <!-- New Task Button -->
             <button
               (click)="onCreateTask()"
@@ -148,6 +167,21 @@ import { DependencyService } from '../../../core/services/dependency.service';
         (filtersChanged)="onFiltersChanged($event)"
         (viewModeChanged)="onViewModeChanged($event)"
       ></app-board-toolbar>
+
+      <!-- Task Group Headers -->
+      @if (boardGroups().length > 1) {
+        <div class="px-4 py-2 bg-white border-b border-gray-200 space-y-1">
+          @for (group of boardGroups(); track group.group.id) {
+            <app-task-group-header
+              [groupData]="group"
+              (nameChange)="onGroupNameChange(group.group.id, $event)"
+              (colorChange)="onGroupColorChange(group.group.id, $event)"
+              (toggleCollapse)="onGroupToggleCollapse(group)"
+              (delete)="onGroupDelete(group.group.id)"
+            />
+          }
+        </div>
+      }
 
       <!-- Board Content -->
       @if (loading()) {
@@ -277,6 +311,7 @@ import { DependencyService } from '../../../core/services/dependency.service';
           [selectedCount]="selectedTaskIds().length"
           [columns]="columns()"
           [milestones]="boardMilestones()"
+          [groups]="boardGroups()"
           (bulkAction)="onBulkAction($event)"
           (cancelSelection)="clearSelection()"
         ></app-bulk-actions-bar>
@@ -315,6 +350,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private boardService = inject(BoardService);
   private taskService = inject(TaskService);
+  private taskGroupService = inject(TaskGroupService);
   private wsService = inject(WebSocketService);
   private authService = inject(AuthService);
   private dependencyService = inject(DependencyService);
@@ -350,16 +386,29 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   errorMessage = signal<string | null>(null);
   boardMembers = signal<BoardMember[]>([]);
   boardMilestones = signal<Milestone[]>([]);
+  boardGroups = signal<TaskGroupWithStats[]>([]);
 
-  // Computed: filtered board state
+  // Computed: IDs of collapsed groups (tasks in collapsed groups are hidden)
+  collapsedGroupIds = computed(() => {
+    return new Set(
+      this.boardGroups()
+        .filter(g => g.group.collapsed)
+        .map(g => g.group.id)
+    );
+  });
+
+  // Computed: filtered board state (applies text/priority/assignee filters + group collapse)
   filteredBoardState = computed(() => {
     const state = this.boardState();
     const f = this.filters();
+    const collapsed = this.collapsedGroupIds();
 
     const result: Record<string, Task[]> = {};
 
     for (const [columnId, tasks] of Object.entries(state)) {
-      result[columnId] = this.filterTasks(tasks, f);
+      result[columnId] = this.filterTasks(tasks, f).filter(
+        t => !t.group_id || !collapsed.has(t.group_id)
+      );
     }
 
     return result;
@@ -581,6 +630,12 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       color: m.color,
     }));
 
+    const groups = this.boardGroups().map(g => ({
+      id: g.group.id,
+      name: g.group.name,
+      color: g.group.color,
+    }));
+
     const dialogRef = this.dialog.open(CreateTaskDialogComponent, {
       width: '500px',
       data: {
@@ -589,6 +644,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
         members,
         labels,
         milestones,
+        groups,
       },
     });
 
@@ -608,6 +664,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
         due_date: taskData.due_date,
         start_date: taskData.start_date,
         estimated_hours: taskData.estimated_hours,
+        group_id: taskData.group_id,
         milestone_id: taskData.milestone_id,
         assignee_ids: taskData.assignee_ids,
         label_ids: taskData.label_ids,
@@ -671,6 +728,91 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       });
   }
 
+  // === Task Group Operations ===
+
+  onCreateGroup(): void {
+    const dialogRef = this.dialog.open(CreateTaskGroupDialogComponent, {
+      width: '450px',
+    });
+
+    dialogRef.afterClosed().subscribe((result: CreateTaskGroupDialogResult | undefined) => {
+      if (!result) return;
+
+      const groups = this.boardGroups();
+      const lastGroup = groups[groups.length - 1];
+      const position = generateKeyBetween(lastGroup?.group.position ?? null, null);
+
+      this.taskGroupService
+        .createGroup(this.boardId, {
+          board_id: this.boardId,
+          name: result.name,
+          color: result.color,
+          position,
+        })
+        .subscribe({
+          next: () => this.reloadGroups(),
+          error: () => this.showError('Failed to create group'),
+        });
+    });
+  }
+
+  onGroupNameChange(groupId: string, name: string): void {
+    this.taskGroupService.updateGroup(groupId, { name }).subscribe({
+      next: () => this.reloadGroups(),
+      error: () => this.showError('Failed to rename group'),
+    });
+  }
+
+  onGroupColorChange(groupId: string, color: string): void {
+    this.taskGroupService.updateGroup(groupId, { color }).subscribe({
+      next: () => this.reloadGroups(),
+      error: () => this.showError('Failed to update group color'),
+    });
+  }
+
+  onGroupToggleCollapse(group: TaskGroupWithStats): void {
+    const newCollapsed = !group.group.collapsed;
+
+    // Optimistic update
+    this.boardGroups.update(groups =>
+      groups.map(g =>
+        g.group.id === group.group.id
+          ? { ...g, group: { ...g.group, collapsed: newCollapsed } }
+          : g
+      )
+    );
+
+    this.taskGroupService.toggleCollapse(group.group.id, newCollapsed).subscribe({
+      error: () => {
+        // Revert on error
+        this.boardGroups.update(groups =>
+          groups.map(g =>
+            g.group.id === group.group.id
+              ? { ...g, group: { ...g.group, collapsed: !newCollapsed } }
+              : g
+          )
+        );
+        this.showError('Failed to toggle group');
+      },
+    });
+  }
+
+  onGroupDelete(groupId: string): void {
+    this.taskGroupService.deleteGroup(groupId).subscribe({
+      next: () => {
+        this.reloadGroups();
+        this.loadBoard(); // Reload tasks since they moved to Ungrouped
+      },
+      error: () => this.showError('Failed to delete group'),
+    });
+  }
+
+  private reloadGroups(): void {
+    this.taskGroupService.listGroupsWithStats(this.boardId).subscribe({
+      next: (groups) => this.boardGroups.set(groups),
+    });
+  }
+
   clearError(): void {
     this.errorMessage.set(null);
   }
@@ -702,13 +844,15 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       tasks: this.taskService.listByBoard(this.boardId),
       members: this.boardService.getBoardMembers(this.boardId),
       milestones: this.milestoneService.list(this.boardId),
+      groups: this.taskGroupService.listGroupsWithStats(this.boardId),
     }).subscribe({
-      next: ({ board, columns, tasks, members, milestones }) => {
+      next: ({ board, columns, tasks, members, milestones, groups }) => {
         this.board.set(board);
         this.columns.set(columns.sort((a, b) => a.position.localeCompare(b.position)));
         this.boardState.set(tasks);
         this.boardMembers.set(members);
         this.boardMilestones.set(milestones);
+        this.boardGroups.set(groups);
         this.loading.set(false);
 
         // Subscribe to board updates
@@ -901,6 +1045,13 @@ export class BoardViewComponent implements OnInit, OnDestroy {
         req.clear_milestone = true;
       } else if (action.milestone_id) {
         req.milestone_id = action.milestone_id;
+      }
+    }
+    if (action.type === 'group') {
+      if (action.clear_group) {
+        req.clear_group = true;
+      } else if (action.group_id) {
+        req.group_id = action.group_id;
       }
     }
 

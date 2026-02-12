@@ -21,6 +21,7 @@ export interface CreateTaskDialogData {
   members: { id: string; name: string; avatar_url?: string }[];
   labels: { id: string; name: string; color: string }[];
   milestones: { id: string; name: string; color: string }[];
+  groups: { id: string; name: string; color: string }[];
 }
 
 export interface CreateTaskDialogResult {
@@ -30,6 +31,7 @@ export interface CreateTaskDialogResult {
   due_date?: string;
   start_date?: string;
   estimated_hours?: number;
+  group_id?: string;
   milestone_id?: string;
   assignee_ids?: string[];
   label_ids?: string[];
@@ -206,6 +208,24 @@ export interface CreateTaskDialogResult {
             </mat-select>
           </mat-form-field>
         }
+
+        <!-- Task Group -->
+        @if (data.groups && data.groups.length > 1) {
+          <mat-form-field appearance="outline">
+            <mat-label>Group</mat-label>
+            <mat-select formControlName="groupId">
+              <mat-option [value]="''">Default (Ungrouped)</mat-option>
+              @for (group of data.groups; track group.id) {
+                <mat-option [value]="group.id">
+                  <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full" [style.background-color]="group.color"></span>
+                    {{ group.name }}
+                  </div>
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
@@ -277,6 +297,7 @@ export class CreateTaskDialogComponent {
     assigneeIds: [[] as string[]],
     labelIds: [[] as string[]],
     milestoneId: ['' as string],
+    groupId: ['' as string],
   });
 
   onCancel(): void {
@@ -318,6 +339,10 @@ export class CreateTaskDialogComponent {
 
     if (values.milestoneId) {
       result.milestone_id = values.milestoneId;
+    }
+
+    if (values.groupId) {
+      result.group_id = values.groupId;
     }
 
     this.dialogRef.close(result);

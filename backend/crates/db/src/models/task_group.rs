@@ -37,7 +37,6 @@ pub struct UpdateTaskGroupRequest {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TaskGroupWithStats {
-    #[serde(flatten)]
     pub group: TaskGroup,
     pub task_count: i64,
     pub completed_count: i64,

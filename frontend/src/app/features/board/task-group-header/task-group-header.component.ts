@@ -72,10 +72,10 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
           <span class="px-2 py-0.5 bg-gray-100 rounded-full">
             {{ groupData().completed_count }} / {{ groupData().task_count }}
           </span>
-          @if (groupData().estimated_hours !== null && groupData().estimated_hours > 0) {
+          @if (groupData().estimated_hours != null && groupData().estimated_hours! > 0) {
             <span class="px-2 py-0.5 bg-gray-100 rounded-full flex items-center gap-1">
               <mat-icon class="!w-3 !h-3 !text-xs">schedule</mat-icon>
-              {{ groupData().estimated_hours.toFixed(1) }}h
+              {{ groupData().estimated_hours!.toFixed(1) }}h
             </span>
           }
           <!-- Progress percentage -->

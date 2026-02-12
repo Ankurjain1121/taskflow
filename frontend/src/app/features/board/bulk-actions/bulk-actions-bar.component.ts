@@ -11,14 +11,17 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TaskService, TaskPriority } from '../../../core/services/task.service';
 import { Milestone } from '../../../core/services/milestone.service';
+import { TaskGroupWithStats } from '../../../core/services/task-group.service';
 import { Column } from '../../../core/services/board.service';
 
 export interface BulkAction {
-  type: 'move' | 'priority' | 'milestone' | 'delete';
+  type: 'move' | 'priority' | 'milestone' | 'group' | 'delete';
   column_id?: string;
   priority?: TaskPriority;
   milestone_id?: string;
   clear_milestone?: boolean;
+  group_id?: string;
+  clear_group?: boolean;
 }
 
 @Component({
@@ -82,6 +85,23 @@ export interface BulkAction {
         </div>
       }
 
+      <!-- Move to Group -->
+      @if (groups().length > 1) {
+        <div class="relative">
+          <select
+            class="bg-gray-800 text-white text-sm rounded px-2 py-1.5 border border-gray-600 cursor-pointer"
+            [ngModel]="''"
+            (ngModelChange)="onMoveToGroup($event)"
+          >
+            <option value="" disabled>Group...</option>
+            <option value="__clear">No Group</option>
+            @for (g of groups(); track g.group.id) {
+              <option [value]="g.group.id">{{ g.group.name }}</option>
+            }
+          </select>
+        </div>
+      }
+
       <!-- Delete -->
       <button
         (click)="onDelete()"
@@ -111,6 +131,7 @@ export class BulkActionsBarComponent {
   selectedCount = input.required<number>();
   columns = input<Column[]>([]);
   milestones = input<Milestone[]>([]);
+  groups = input<TaskGroupWithStats[]>([]);
 
   actionEmitter = output<BulkAction>({ alias: 'bulkAction' });
   cancelEmitter = output<void>({ alias: 'cancelSelection' });
@@ -132,6 +153,14 @@ export class BulkActionsBarComponent {
       this.actionEmitter.emit({ type: 'milestone', clear_milestone: true });
     } else if (value) {
       this.actionEmitter.emit({ type: 'milestone', milestone_id: value });
+    }
+  }
+
+  onMoveToGroup(value: string): void {
+    if (value === '__clear') {
+      this.actionEmitter.emit({ type: 'group', clear_group: true });
+    } else if (value) {
+      this.actionEmitter.emit({ type: 'group', group_id: value });
     }
   }
 

@@ -83,6 +83,7 @@ export interface CreateTaskRequest {
   due_date?: string;
   start_date?: string;
   estimated_hours?: number;
+  group_id?: string;
   milestone_id?: string;
   assignee_ids?: string[];
   label_ids?: string[];
@@ -132,6 +133,8 @@ export interface BulkUpdateRequest {
   priority?: TaskPriority;
   milestone_id?: string;
   clear_milestone?: boolean;
+  group_id?: string;
+  clear_group?: boolean;
 }
 
 export interface BulkDeleteRequest {

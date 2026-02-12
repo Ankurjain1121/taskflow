@@ -28,6 +28,7 @@ pub struct CreateTaskInput {
     pub start_date: Option<DateTime<Utc>>,
     pub estimated_hours: Option<f64>,
     pub column_id: Uuid,
+    pub group_id: Option<Uuid>,
     pub milestone_id: Option<Uuid>,
     pub assignee_ids: Option<Vec<Uuid>>,
     pub label_ids: Option<Vec<Uuid>>,
@@ -103,22 +104,10 @@ pub async fn list_tasks_by_board(
     let tasks = sqlx::query_as::<_, Task>(
         r#"
         SELECT
-            id,
-            title,
-            description,
-            priority,
-            due_date,
-            start_date,
-            estimated_hours,
-            board_id,
-            column_id,
-            position,
-            milestone_id,
-            tenant_id,
-            created_by_id,
-            deleted_at,
-            created_at,
-            updated_at
+            id, title, description, priority, due_date, start_date,
+            estimated_hours, board_id, column_id, group_id, position,
+            milestone_id, eisenhower_urgency, eisenhower_importance,
+            tenant_id, created_by_id, deleted_at, created_at, updated_at
         FROM tasks
         WHERE board_id = $1 AND deleted_at IS NULL
         ORDER BY position ASC
@@ -147,22 +136,10 @@ pub async fn get_task_by_id(
     let task = sqlx::query_as::<_, Task>(
         r#"
         SELECT
-            id,
-            title,
-            description,
-            priority,
-            due_date,
-            start_date,
-            estimated_hours,
-            board_id,
-            column_id,
-            position,
-            milestone_id,
-            tenant_id,
-            created_by_id,
-            deleted_at,
-            created_at,
-            updated_at
+            id, title, description, priority, due_date, start_date,
+            estimated_hours, board_id, column_id, group_id, position,
+            milestone_id, eisenhower_urgency, eisenhower_importance,
+            tenant_id, created_by_id, deleted_at, created_at, updated_at
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -273,25 +250,15 @@ pub async fn create_task(
     // Insert the task
     let task = sqlx::query_as::<_, Task>(
         r#"
-        INSERT INTO tasks (id, title, description, priority, due_date, start_date, estimated_hours, board_id, column_id, position, milestone_id, tenant_id, created_by_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        INSERT INTO tasks (id, title, description, priority, due_date, start_date,
+                          estimated_hours, board_id, column_id, group_id, position,
+                          milestone_id, tenant_id, created_by_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         RETURNING
-            id,
-            title,
-            description,
-            priority,
-            due_date,
-            start_date,
-            estimated_hours,
-            board_id,
-            column_id,
-            position,
-            milestone_id,
-            tenant_id,
-            created_by_id,
-            deleted_at,
-            created_at,
-            updated_at
+            id, title, description, priority, due_date, start_date,
+            estimated_hours, board_id, column_id, group_id, position,
+            milestone_id, eisenhower_urgency, eisenhower_importance,
+            tenant_id, created_by_id, deleted_at, created_at, updated_at
         "#,
     )
     .bind(task_id)
@@ -303,6 +270,7 @@ pub async fn create_task(
     .bind(input.estimated_hours)
     .bind(board_id)
     .bind(input.column_id)
+    .bind(input.group_id)
     .bind(&position)
     .bind(input.milestone_id)
     .bind(tenant_id)
@@ -369,22 +337,10 @@ pub async fn update_task(
             updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
         RETURNING
-            id,
-            title,
-            description,
-            priority,
-            due_date,
-            start_date,
-            estimated_hours,
-            board_id,
-            column_id,
-            position,
-            milestone_id,
-            tenant_id,
-            created_by_id,
-            deleted_at,
-            created_at,
-            updated_at
+            id, title, description, priority, due_date, start_date,
+            estimated_hours, board_id, column_id, group_id, position,
+            milestone_id, eisenhower_urgency, eisenhower_importance,
+            tenant_id, created_by_id, deleted_at, created_at, updated_at
         "#,
     )
     .bind(task_id)
@@ -439,22 +395,10 @@ pub async fn move_task(
             updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
         RETURNING
-            id,
-            title,
-            description,
-            priority,
-            due_date,
-            start_date,
-            estimated_hours,
-            board_id,
-            column_id,
-            position,
-            milestone_id,
-            tenant_id,
-            created_by_id,
-            deleted_at,
-            created_at,
-            updated_at
+            id, title, description, priority, due_date, start_date,
+            estimated_hours, board_id, column_id, group_id, position,
+            milestone_id, eisenhower_urgency, eisenhower_importance,
+            tenant_id, created_by_id, deleted_at, created_at, updated_at
         "#,
     )
     .bind(task_id)
@@ -698,6 +642,8 @@ pub struct BulkUpdateInput {
     pub priority: Option<TaskPriority>,
     pub milestone_id: Option<Uuid>,
     pub clear_milestone: Option<bool>,
+    pub group_id: Option<Uuid>,
+    pub clear_group: Option<bool>,
 }
 
 /// Bulk update multiple tasks at once
@@ -779,6 +725,34 @@ pub async fn bulk_update_tasks(
             "#,
         )
         .bind(milestone_id)
+        .bind(&input.task_ids)
+        .bind(board_id)
+        .execute(pool)
+        .await?;
+        updated = result.rows_affected();
+    }
+
+    // Update group if specified
+    if input.clear_group == Some(true) {
+        let result = sqlx::query(
+            r#"
+            UPDATE tasks SET group_id = NULL, updated_at = now()
+            WHERE id = ANY($1) AND board_id = $2 AND deleted_at IS NULL
+            "#,
+        )
+        .bind(&input.task_ids)
+        .bind(board_id)
+        .execute(pool)
+        .await?;
+        updated = result.rows_affected();
+    } else if let Some(group_id) = input.group_id {
+        let result = sqlx::query(
+            r#"
+            UPDATE tasks SET group_id = $1, updated_at = now()
+            WHERE id = ANY($2) AND board_id = $3 AND deleted_at IS NULL
+            "#,
+        )
+        .bind(group_id)
         .bind(&input.task_ids)
         .bind(board_id)
         .execute(pool)
