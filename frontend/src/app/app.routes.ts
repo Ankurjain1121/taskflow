@@ -77,6 +77,38 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'favorites',
+    loadComponent: () =>
+      import('./features/favorites/favorites.component').then(
+        (m) => m.FavoritesComponent
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'archive',
+    loadComponent: () =>
+      import('./features/archive/archive.component').then(
+        (m) => m.ArchiveComponent
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'team',
+    loadComponent: () =>
+      import('./features/team/team-page.component').then(
+        (m) => m.TeamPageComponent
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'help',
+    loadComponent: () =>
+      import('./features/help/help.component').then(
+        (m) => m.HelpComponent
+      ),
+    canActivate: [authGuard],
+  },
+  {
     path: 'workspace/:workspaceId',
     canActivate: [authGuard],
     children: [

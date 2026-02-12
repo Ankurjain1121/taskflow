@@ -26,6 +26,8 @@ pub mod project_templates;
 pub mod automations;
 pub mod board_shares;
 pub mod webhooks;
+pub mod favorites;
+pub mod archive;
 
 pub use recurring::*;
 pub use project_templates::*;

@@ -22,6 +22,7 @@ pub mod project_template;
 pub mod automation;
 pub mod board_share;
 pub mod webhook;
+pub mod favorite;
 
 pub use common::*;
 pub use custom_field::*;
@@ -47,3 +48,4 @@ pub use dependency::*;
 pub use milestone::*;
 pub use ws_events::*;
 pub use time_entry::*;
+pub use favorite::*;

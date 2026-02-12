@@ -33,6 +33,8 @@ pub mod automation;
 pub mod import_export;
 pub mod board_share;
 pub mod webhook;
+pub mod favorites;
+pub mod archive;
 
 pub use auth::auth_router;
 pub use recurring::recurring_router;
@@ -69,3 +71,5 @@ pub use automation::automation_router;
 pub use import_export::import_export_router;
 pub use board_share::{board_share_router, shared_board_public_router};
 pub use webhook::webhook_router;
+pub use favorites::favorites_router;
+pub use archive::archive_router;

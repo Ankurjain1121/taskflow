@@ -27,6 +27,7 @@ use crate::routes::{
     time_entry_router, workspace_boards_router, workspace_router,
     project_template_router, automation_router, import_export_router,
     board_share_router, shared_board_public_router, webhook_router,
+    favorites_router, archive_router,
 };
 use crate::state::AppState;
 use crate::ws::ws_handler;
@@ -157,6 +158,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", shared_board_public_router())
         // Phase 4: Webhooks
         .nest("/api", webhook_router(state.clone()))
+        // Phase 5: Favorites & Archive
+        .nest("/api/favorites", favorites_router(state.clone()))
+        .nest("/api", archive_router(state.clone()))
         .layer(TraceLayer::new_for_http())
         .layer(CompressionLayer::new())
         .layer(cors)
