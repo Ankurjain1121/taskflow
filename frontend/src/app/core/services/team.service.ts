@@ -32,7 +32,7 @@ export class TeamService {
 
   getTeamWorkload(workspaceId: string): Observable<MemberWorkload[]> {
     return this.http.get<MemberWorkload[]>(
-      `${this.apiUrl}/workspaces/${workspaceId}/team/workload`
+      `${this.apiUrl}/workspaces/${workspaceId}/team-workload`
     );
   }
 
@@ -42,7 +42,7 @@ export class TeamService {
   ): Observable<OverloadedMember[]> {
     const params = new HttpParams().set('threshold', threshold.toString());
     return this.http.get<OverloadedMember[]>(
-      `${this.apiUrl}/workspaces/${workspaceId}/team/overloaded`,
+      `${this.apiUrl}/workspaces/${workspaceId}/overloaded-members`,
       { params }
     );
   }

@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of, catchError } from 'rxjs';
 import { WorkspaceService, Workspace } from '../../core/services/workspace.service';
 import { TeamService, MemberWorkload } from '../../core/services/team.service';
 
@@ -143,7 +143,9 @@ export class TeamPageComponent implements OnInit {
         }
 
         const requests = workspaces.map((ws) =>
-          this.teamService.getTeamWorkload(ws.id)
+          this.teamService.getTeamWorkload(ws.id).pipe(
+            catchError(() => of([] as MemberWorkload[]))
+          )
         );
 
         forkJoin(requests).subscribe({
@@ -153,10 +155,6 @@ export class TeamPageComponent implements OnInit {
               members: results[i],
             }));
             this.workspaceTeams.set(teams);
-            this.loading.set(false);
-          },
-          error: () => {
-            this.error.set('Failed to load team data. Please try again.');
             this.loading.set(false);
           },
         });
