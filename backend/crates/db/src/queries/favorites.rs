@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
-use sqlx::PgPool;
+use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 
 /// A favorite item with entity details resolved via JOIN
@@ -16,6 +16,7 @@ pub struct FavoriteItem {
 }
 
 /// Internal row for favorite task query
+#[derive(Debug, FromRow)]
 struct FavoriteTaskRow {
     id: Uuid,
     entity_type: String,
@@ -27,6 +28,7 @@ struct FavoriteTaskRow {
 }
 
 /// Internal row for favorite board query
+#[derive(Debug, FromRow)]
 struct FavoriteBoardRow {
     id: Uuid,
     entity_type: String,
@@ -42,16 +44,15 @@ pub async fn list_favorites(
     user_id: Uuid,
 ) -> Result<Vec<FavoriteItem>, sqlx::Error> {
     // Fetch favorite tasks
-    let task_rows = sqlx::query_as!(
-        FavoriteTaskRow,
+    let task_rows = sqlx::query_as::<_, FavoriteTaskRow>(
         r#"
         SELECT
             f.id,
             f.entity_type,
             f.entity_id,
             t.title as name,
-            t.board_id as "board_id?",
-            b.workspace_id as "workspace_id?",
+            t.board_id,
+            b.workspace_id,
             f.created_at
         FROM favorites f
         INNER JOIN tasks t ON t.id = f.entity_id AND t.deleted_at IS NULL
@@ -59,29 +60,28 @@ pub async fn list_favorites(
         WHERE f.user_id = $1 AND f.entity_type = 'task'
         ORDER BY f.created_at DESC
         "#,
-        user_id
     )
+    .bind(user_id)
     .fetch_all(pool)
     .await?;
 
     // Fetch favorite boards
-    let board_rows = sqlx::query_as!(
-        FavoriteBoardRow,
+    let board_rows = sqlx::query_as::<_, FavoriteBoardRow>(
         r#"
         SELECT
             f.id,
             f.entity_type,
             f.entity_id,
             b.name,
-            b.workspace_id as "workspace_id?",
+            b.workspace_id,
             f.created_at
         FROM favorites f
         INNER JOIN boards b ON b.id = f.entity_id AND b.deleted_at IS NULL
         WHERE f.user_id = $1 AND f.entity_type = 'board'
         ORDER BY f.created_at DESC
         "#,
-        user_id
     )
+    .bind(user_id)
     .fetch_all(pool)
     .await?;
 
@@ -124,21 +124,21 @@ pub async fn add_favorite(
     entity_type: &str,
     entity_id: Uuid,
 ) -> Result<Uuid, sqlx::Error> {
-    let id = sqlx::query_scalar!(
+    let row: (Uuid,) = sqlx::query_as(
         r#"
         INSERT INTO favorites (user_id, entity_type, entity_id)
         VALUES ($1, $2, $3)
         ON CONFLICT (user_id, entity_type, entity_id) DO UPDATE SET created_at = favorites.created_at
         RETURNING id
         "#,
-        user_id,
-        entity_type,
-        entity_id
     )
+    .bind(user_id)
+    .bind(entity_type)
+    .bind(entity_id)
     .fetch_one(pool)
     .await?;
 
-    Ok(id)
+    Ok(row.0)
 }
 
 /// Remove a favorite
@@ -148,15 +148,15 @@ pub async fn remove_favorite(
     entity_type: &str,
     entity_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query!(
+    let result = sqlx::query(
         r#"
         DELETE FROM favorites
         WHERE user_id = $1 AND entity_type = $2 AND entity_id = $3
         "#,
-        user_id,
-        entity_type,
-        entity_id
     )
+    .bind(user_id)
+    .bind(entity_type)
+    .bind(entity_id)
     .execute(pool)
     .await?;
 
@@ -170,19 +170,19 @@ pub async fn is_favorited(
     entity_type: &str,
     entity_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
-    let exists = sqlx::query_scalar!(
+    let row: (bool,) = sqlx::query_as(
         r#"
         SELECT EXISTS(
             SELECT 1 FROM favorites
             WHERE user_id = $1 AND entity_type = $2 AND entity_id = $3
-        ) as "exists!"
+        )
         "#,
-        user_id,
-        entity_type,
-        entity_id
     )
+    .bind(user_id)
+    .bind(entity_type)
+    .bind(entity_id)
     .fetch_one(pool)
     .await?;
 
-    Ok(exists)
+    Ok(row.0)
 }

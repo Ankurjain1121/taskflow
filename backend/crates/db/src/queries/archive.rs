@@ -1,10 +1,10 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
-use sqlx::PgPool;
+use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 
 /// An archived (soft-deleted) item visible to the tenant
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, FromRow)]
 pub struct ArchiveItem {
     pub entity_type: String,
     pub entity_id: Uuid,
@@ -28,7 +28,6 @@ pub async fn list_archive(
     cursor: Option<DateTime<Utc>>,
     page_size: i64,
 ) -> Result<PaginatedArchive, sqlx::Error> {
-    let now = Utc::now();
     let retention_days: i64 = 30;
     let fetch_limit = page_size + 1;
 
@@ -36,15 +35,14 @@ pub async fn list_archive(
 
     // Fetch archived tasks
     if entity_type_filter.is_none() || entity_type_filter == Some("task") {
-        let tasks = sqlx::query_as!(
-            ArchiveItem,
+        let tasks = sqlx::query_as::<_, ArchiveItem>(
             r#"
             SELECT
-                'task' as "entity_type!",
+                'task'::text as entity_type,
                 t.id as entity_id,
                 t.title as name,
-                t.deleted_at as "deleted_at!",
-                GREATEST(0, $1 - EXTRACT(DAY FROM (now() - t.deleted_at))::bigint) as "days_remaining!"
+                t.deleted_at as deleted_at,
+                GREATEST(0, $1 - EXTRACT(DAY FROM (now() - t.deleted_at))::bigint) as days_remaining
             FROM tasks t
             WHERE t.tenant_id = $2
               AND t.deleted_at IS NOT NULL
@@ -52,11 +50,11 @@ pub async fn list_archive(
             ORDER BY t.deleted_at DESC
             LIMIT $4
             "#,
-            retention_days,
-            tenant_id,
-            cursor,
-            fetch_limit
         )
+        .bind(retention_days)
+        .bind(tenant_id)
+        .bind(cursor)
+        .bind(fetch_limit)
         .fetch_all(pool)
         .await?;
         items.extend(tasks);
@@ -64,15 +62,14 @@ pub async fn list_archive(
 
     // Fetch archived boards
     if entity_type_filter.is_none() || entity_type_filter == Some("board") {
-        let boards = sqlx::query_as!(
-            ArchiveItem,
+        let boards = sqlx::query_as::<_, ArchiveItem>(
             r#"
             SELECT
-                'board' as "entity_type!",
+                'board'::text as entity_type,
                 b.id as entity_id,
                 b.name as name,
-                b.deleted_at as "deleted_at!",
-                GREATEST(0, $1 - EXTRACT(DAY FROM (now() - b.deleted_at))::bigint) as "days_remaining!"
+                b.deleted_at as deleted_at,
+                GREATEST(0, $1 - EXTRACT(DAY FROM (now() - b.deleted_at))::bigint) as days_remaining
             FROM boards b
             WHERE b.tenant_id = $2
               AND b.deleted_at IS NOT NULL
@@ -80,11 +77,11 @@ pub async fn list_archive(
             ORDER BY b.deleted_at DESC
             LIMIT $4
             "#,
-            retention_days,
-            tenant_id,
-            cursor,
-            fetch_limit
         )
+        .bind(retention_days)
+        .bind(tenant_id)
+        .bind(cursor)
+        .bind(fetch_limit)
         .fetch_all(pool)
         .await?;
         items.extend(boards);

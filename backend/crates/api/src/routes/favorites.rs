@@ -101,29 +101,29 @@ async fn verify_entity_access(
     entity_id: Uuid,
     tenant_id: Uuid,
 ) -> Result<()> {
-    let exists = match entity_type {
+    let exists: (bool,) = match entity_type {
         "task" => {
-            sqlx::query_scalar!(
-                r#"SELECT EXISTS(SELECT 1 FROM tasks WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL) as "exists!""#,
-                entity_id,
-                tenant_id
+            sqlx::query_as(
+                r#"SELECT EXISTS(SELECT 1 FROM tasks WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL)"#,
             )
+            .bind(entity_id)
+            .bind(tenant_id)
             .fetch_one(&state.db)
             .await?
         }
         "board" => {
-            sqlx::query_scalar!(
-                r#"SELECT EXISTS(SELECT 1 FROM boards WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL) as "exists!""#,
-                entity_id,
-                tenant_id
+            sqlx::query_as(
+                r#"SELECT EXISTS(SELECT 1 FROM boards WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL)"#,
             )
+            .bind(entity_id)
+            .bind(tenant_id)
             .fetch_one(&state.db)
             .await?
         }
         _ => return Err(AppError::BadRequest(format!("Invalid entity type: {}", entity_type))),
     };
 
-    if !exists {
+    if !exists.0 {
         return Err(AppError::NotFound(format!("{} not found", entity_type)));
     }
 

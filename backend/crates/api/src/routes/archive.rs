@@ -137,37 +137,37 @@ async fn verify_entity_tenant(
     entity_id: Uuid,
     tenant_id: Uuid,
 ) -> Result<()> {
-    let exists = match entity_type {
+    let exists: (bool,) = match entity_type {
         TrashEntityType::Task => {
-            sqlx::query_scalar!(
-                r#"SELECT EXISTS(SELECT 1 FROM tasks WHERE id = $1 AND tenant_id = $2) as "exists!""#,
-                entity_id,
-                tenant_id
+            sqlx::query_as(
+                r#"SELECT EXISTS(SELECT 1 FROM tasks WHERE id = $1 AND tenant_id = $2)"#,
             )
+            .bind(entity_id)
+            .bind(tenant_id)
             .fetch_one(&state.db)
             .await?
         }
         TrashEntityType::Board => {
-            sqlx::query_scalar!(
-                r#"SELECT EXISTS(SELECT 1 FROM boards WHERE id = $1 AND tenant_id = $2) as "exists!""#,
-                entity_id,
-                tenant_id
+            sqlx::query_as(
+                r#"SELECT EXISTS(SELECT 1 FROM boards WHERE id = $1 AND tenant_id = $2)"#,
             )
+            .bind(entity_id)
+            .bind(tenant_id)
             .fetch_one(&state.db)
             .await?
         }
         TrashEntityType::Workspace => {
-            sqlx::query_scalar!(
-                r#"SELECT EXISTS(SELECT 1 FROM workspaces WHERE id = $1 AND tenant_id = $2) as "exists!""#,
-                entity_id,
-                tenant_id
+            sqlx::query_as(
+                r#"SELECT EXISTS(SELECT 1 FROM workspaces WHERE id = $1 AND tenant_id = $2)"#,
             )
+            .bind(entity_id)
+            .bind(tenant_id)
             .fetch_one(&state.db)
             .await?
         }
     };
 
-    if !exists {
+    if !exists.0 {
         return Err(AppError::NotFound(format!("{} not found", entity_type.as_str())));
     }
 
