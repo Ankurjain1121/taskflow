@@ -40,6 +40,7 @@ pub struct CreateTaskRequest {
     pub estimated_hours: Option<f64>,
     pub column_id: Uuid,
     pub milestone_id: Option<Uuid>,
+    pub group_id: Option<Uuid>,
     pub assignee_ids: Option<Vec<Uuid>>,
     pub label_ids: Option<Vec<Uuid>>,
 }
@@ -198,6 +199,7 @@ async fn create_task_handler(
         estimated_hours: body.estimated_hours,
         column_id: body.column_id,
         milestone_id: body.milestone_id,
+        group_id: body.group_id,
         assignee_ids: body.assignee_ids.clone(),
         label_ids: body.label_ids,
     };
@@ -779,6 +781,8 @@ pub struct BulkUpdateRequest {
     pub priority: Option<TaskPriority>,
     pub milestone_id: Option<Uuid>,
     pub clear_milestone: Option<bool>,
+    pub group_id: Option<Uuid>,
+    pub clear_group: Option<bool>,
 }
 
 /// Request body for bulk delete
@@ -800,6 +804,8 @@ async fn bulk_update_handler(
         priority: req.priority,
         milestone_id: req.milestone_id,
         clear_milestone: req.clear_milestone,
+        group_id: req.group_id,
+        clear_group: req.clear_group,
     };
 
     let updated = bulk_update_tasks(&state.db, board_id, ctx.user_id, input)
