@@ -1,0 +1,102 @@
+import { Page } from '@playwright/test';
+
+/**
+ * API-based test data creation helpers.
+ * Uses page.request which shares HttpOnly cookies from browser session.
+ * Call these AFTER signing in via UI so cookies are set.
+ */
+
+const API_BASE = '/api';
+
+/** Navigate to workspace and return the workspace ID from the URL */
+export async function getFirstWorkspaceId(page: Page): Promise<string> {
+  await page.locator('a:has-text("Open Workspace")').first().click();
+  await page.waitForURL(/\/workspace\//, { timeout: 15000 });
+  const url = page.url();
+  const match = url.match(/\/workspace\/([a-f0-9-]+)/);
+  if (!match) throw new Error(`Could not extract workspace ID from URL: ${url}`);
+  return match[1];
+}
+
+/** Navigate to workspace, then to the first board, return { workspaceId, boardId } */
+export async function navigateToFirstBoard(page: Page): Promise<{ workspaceId: string; boardId: string }> {
+  // From dashboard, click Open Workspace
+  await page.locator('text=Your Workspaces').waitFor({ timeout: 15000 });
+  const openLink = page.locator('a:has-text("Open Workspace")').first();
+  await openLink.waitFor({ timeout: 10000 });
+  await openLink.click();
+
+  await page.waitForURL(/\/workspace\//, { timeout: 15000 });
+  const wsUrl = page.url();
+  const wsMatch = wsUrl.match(/\/workspace\/([a-f0-9-]+)/);
+  if (!wsMatch) throw new Error(`Could not extract workspace ID from URL: ${wsUrl}`);
+
+  // Wait for boards to appear
+  await page.locator('h2:has-text("Boards")').waitFor({ timeout: 15000 });
+  const boardCard = page.locator('a[href*="/board/"]').first();
+  await boardCard.waitFor({ timeout: 10000 });
+  await boardCard.click();
+
+  await page.waitForURL(/\/workspace\/.*\/board\//, { timeout: 15000 });
+  const boardUrl = page.url();
+  const boardMatch = boardUrl.match(/\/board\/([a-f0-9-]+)/);
+  if (!boardMatch) throw new Error(`Could not extract board ID from URL: ${boardUrl}`);
+
+  await page.waitForLoadState('networkidle');
+
+  return { workspaceId: wsMatch[1], boardId: boardMatch[1] };
+}
+
+/** Create a task via the board UI (click Add Task, type title, press Enter) */
+export async function createTaskViaUI(page: Page, title: string): Promise<void> {
+  // Click the "Add Task" or "New Task" button
+  const addTaskBtn = page.locator('button:has-text("New Task"), button:has-text("Add Task"), button:has-text("+ Add Task")').first();
+  await addTaskBtn.click();
+
+  // Look for the task creation input/dialog
+  const taskInput = page.locator('input[placeholder*="task"], input[placeholder*="Task"], input[formControlName="title"]').first();
+  await taskInput.waitFor({ timeout: 10000 });
+  await taskInput.fill(title);
+  await taskInput.press('Enter');
+
+  // Wait for the task to appear
+  await page.waitForTimeout(1000);
+}
+
+/** Add a favorite via API (requires authenticated session) */
+export async function addFavoriteViaAPI(page: Page, entityType: string, entityId: string): Promise<void> {
+  const response = await page.request.post(`${API_BASE}/favorites/`, {
+    data: { entity_type: entityType, entity_id: entityId },
+  });
+  if (!response.ok()) {
+    throw new Error(`Failed to add favorite: ${response.status()} ${await response.text()}`);
+  }
+}
+
+/** Remove a favorite via API */
+export async function removeFavoriteViaAPI(page: Page, entityType: string, entityId: string): Promise<void> {
+  const response = await page.request.delete(`${API_BASE}/favorites/${entityType}/${entityId}`);
+  if (!response.ok()) {
+    throw new Error(`Failed to remove favorite: ${response.status()} ${await response.text()}`);
+  }
+}
+
+/** Delete a task via API (soft-delete, goes to archive) */
+export async function deleteTaskViaAPI(page: Page, taskId: string): Promise<void> {
+  const response = await page.request.delete(`${API_BASE}/tasks/${taskId}`);
+  if (!response.ok()) {
+    throw new Error(`Failed to delete task: ${response.status()} ${await response.text()}`);
+  }
+}
+
+/** Create a board via API */
+export async function createBoardViaAPI(page: Page, workspaceId: string, name: string): Promise<string> {
+  const response = await page.request.post(`${API_BASE}/workspaces/${workspaceId}/boards`, {
+    data: { name, description: '' },
+  });
+  if (!response.ok()) {
+    throw new Error(`Failed to create board: ${response.status()} ${await response.text()}`);
+  }
+  const body = await response.json();
+  return body.id;
+}
