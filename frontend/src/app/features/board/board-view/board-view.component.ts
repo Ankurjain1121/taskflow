@@ -14,9 +14,24 @@ import { CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { generateKeyBetween } from 'fractional-indexing';
 
-import { BoardService, Board, Column, BoardMember } from '../../../core/services/board.service';
-import { TaskService, Task, Assignee, TaskListItem, Label, BulkUpdateRequest } from '../../../core/services/task.service';
-import { TaskGroupService, TaskGroupWithStats } from '../../../core/services/task-group.service';
+import {
+  BoardService,
+  Board,
+  Column,
+  BoardMember,
+} from '../../../core/services/board.service';
+import {
+  TaskService,
+  Task,
+  Assignee,
+  TaskListItem,
+  Label,
+  BulkUpdateRequest,
+} from '../../../core/services/task.service';
+import {
+  TaskGroupService,
+  TaskGroupWithStats,
+} from '../../../core/services/task-group.service';
 import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
 import {
   CreateTaskDialogComponent,
@@ -32,7 +47,10 @@ import {
 } from '../create-task-group-dialog/create-task-group-dialog.component';
 import { WebSocketService } from '../../../core/services/websocket.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { MilestoneService, Milestone } from '../../../core/services/milestone.service';
+import {
+  MilestoneService,
+  Milestone,
+} from '../../../core/services/milestone.service';
 
 import {
   KanbanColumnComponent,
@@ -46,10 +64,17 @@ import {
 import { TaskDetailComponent } from '../task-detail/task-detail.component';
 import { ListViewComponent } from '../list-view/list-view.component';
 import { CalendarViewComponent } from '../calendar-view/calendar-view.component';
-import { GanttViewComponent, GanttTask, GanttDependency } from '../gantt-view/gantt-view.component';
+import {
+  GanttViewComponent,
+  GanttTask,
+  GanttDependency,
+} from '../gantt-view/gantt-view.component';
 import { ReportsViewComponent } from '../reports-view/reports-view.component';
 import { TimeReportComponent } from '../time-report/time-report.component';
-import { BulkActionsBarComponent, BulkAction } from '../bulk-actions/bulk-actions-bar.component';
+import {
+  BulkActionsBarComponent,
+  BulkAction,
+} from '../bulk-actions/bulk-actions-bar.component';
 import { TaskGroupHeaderComponent } from '../task-group-header/task-group-header.component';
 import { ShortcutHelpComponent } from '../../../shared/components/shortcut-help/shortcut-help.component';
 import { DependencyService } from '../../../core/services/dependency.service';
@@ -98,7 +123,7 @@ import { DependencyService } from '../../../core/services/dependency.service';
                 workspaceId,
                 'board',
                 boardId,
-                'settings'
+                'settings',
               ]"
               class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
             >
@@ -129,9 +154,18 @@ import { DependencyService } from '../../../core/services/dependency.service';
               (click)="onCreateGroup()"
               class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
               </svg>
               Add Group
             </button>
@@ -187,13 +221,18 @@ import { DependencyService } from '../../../core/services/dependency.service';
       @if (loading()) {
         <div class="flex-1 overflow-x-auto p-4">
           <div class="flex gap-4 h-full">
-            @for (i of [1,2,3,4]; track i) {
+            @for (i of [1, 2, 3, 4]; track i) {
               <div class="flex-shrink-0 w-72">
                 <div class="bg-white rounded-lg border border-gray-200 p-3">
-                  <div class="skeleton skeleton-text w-24 mb-4" style="height: 14px;"></div>
+                  <div
+                    class="skeleton skeleton-text w-24 mb-4"
+                    style="height: 14px;"
+                  ></div>
                   <div class="space-y-3">
-                    @for (j of [1,2,3]; track j) {
-                      <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                    @for (j of [1, 2, 3]; track j) {
+                      <div
+                        class="bg-gray-50 rounded-lg p-3 border border-gray-100"
+                      >
                         <div class="skeleton skeleton-text w-full mb-2"></div>
                         <div class="skeleton skeleton-text w-3/4 mb-3"></div>
                         <div class="flex items-center gap-2">
@@ -238,23 +277,16 @@ import { DependencyService } from '../../../core/services/dependency.service';
       } @else if (viewMode() === 'reports') {
         <!-- Reports View -->
         <div class="flex-1 overflow-y-auto">
-          <app-reports-view
-            [boardId]="boardId"
-          ></app-reports-view>
+          <app-reports-view [boardId]="boardId"></app-reports-view>
         </div>
       } @else if (viewMode() === 'time-report') {
         <!-- Time Report View -->
         <div class="flex-1 overflow-y-auto">
-          <app-time-report
-            [boardId]="boardId"
-          ></app-time-report>
+          <app-time-report [boardId]="boardId"></app-time-report>
         </div>
       } @else {
         <!-- Kanban Board -->
-        <div
-          class="flex-1 overflow-x-auto p-4"
-          cdkDropListGroup
-        >
+        <div class="flex-1 overflow-x-auto p-4" cdkDropListGroup>
           <div class="flex gap-4 h-full">
             @for (column of columns(); track column.id) {
               <app-kanban-column
@@ -392,8 +424,8 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   collapsedGroupIds = computed(() => {
     return new Set(
       this.boardGroups()
-        .filter(g => g.group.collapsed)
-        .map(g => g.group.id)
+        .filter((g) => g.group.collapsed)
+        .map((g) => g.group.id),
     );
   });
 
@@ -407,7 +439,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
 
     for (const [columnId, tasks] of Object.entries(state)) {
       result[columnId] = this.filterTasks(tasks, f).filter(
-        t => !t.group_id || !collapsed.has(t.group_id)
+        (t) => !t.group_id || !collapsed.has(t.group_id),
       );
     }
 
@@ -549,7 +581,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
           (t) =>
             t.id === event.task.id
               ? { ...t, column_id: event.targetColumnId, position: newPosition }
-              : t
+              : t,
         );
       }
 
@@ -557,8 +589,13 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     });
 
     // Celebrate if moved to a done column
-    const targetColumn = this.columns().find(c => c.id === event.targetColumnId);
-    if (targetColumn?.status_mapping?.done && event.previousColumnId !== event.targetColumnId) {
+    const targetColumn = this.columns().find(
+      (c) => c.id === event.targetColumnId,
+    );
+    if (
+      targetColumn?.status_mapping?.done &&
+      event.previousColumnId !== event.targetColumnId
+    ) {
       this.celebratingTaskId.set(event.task.id);
       setTimeout(() => this.celebratingTaskId.set(null), 1200);
     }
@@ -593,7 +630,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       const columnTasks = newState[task.column_id];
       if (columnTasks) {
         newState[task.column_id] = columnTasks.map((t) =>
-          t.id === task.id ? task : t
+          t.id === task.id ? task : t,
         );
       }
       return newState;
@@ -630,7 +667,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       color: m.color,
     }));
 
-    const groups = this.boardGroups().map(g => ({
+    const groups = this.boardGroups().map((g) => ({
       id: g.group.id,
       name: g.group.name,
       color: g.group.color,
@@ -648,19 +685,22 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       },
     });
 
-    dialogRef.afterClosed().subscribe((result: CreateTaskDialogResult | undefined) => {
-      if (result) {
-        this.createTask(columnId, result);
-      }
-    });
+    dialogRef
+      .afterClosed()
+      .subscribe((result: CreateTaskDialogResult | undefined) => {
+        if (result) {
+          this.createTask(columnId, result);
+        }
+      });
   }
 
   private createTask(columnId: string, taskData: CreateTaskDialogResult): void {
     this.taskService
-      .createTask(columnId, {
+      .createTask(this.boardId, {
         title: taskData.title,
         description: taskData.description,
         priority: taskData.priority,
+        column_id: columnId,
         due_date: taskData.due_date,
         start_date: taskData.start_date,
         estimated_hours: taskData.estimated_hours,
@@ -676,7 +716,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
             const newState = { ...state };
             const columnTasks = newState[columnId] || [];
             newState[columnId] = [...columnTasks, task].sort((a, b) =>
-              a.position.localeCompare(b.position)
+              a.position.localeCompare(b.position),
             );
             return newState;
           });
@@ -693,11 +733,13 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       width: '500px',
     });
 
-    dialogRef.afterClosed().subscribe((result: CreateColumnDialogResult | undefined) => {
-      if (result) {
-        this.createColumn(result);
-      }
-    });
+    dialogRef
+      .afterClosed()
+      .subscribe((result: CreateColumnDialogResult | undefined) => {
+        if (result) {
+          this.createColumn(result);
+        }
+      });
   }
 
   private createColumn(columnData: CreateColumnDialogResult): void {
@@ -713,7 +755,9 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (column) => {
           this.columns.update((cols) =>
-            [...cols, column].sort((a, b) => a.position.localeCompare(b.position))
+            [...cols, column].sort((a, b) =>
+              a.position.localeCompare(b.position),
+            ),
           );
           // Initialize empty task array for new column
           this.boardState.update((state) => ({
@@ -735,25 +779,30 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       width: '450px',
     });
 
-    dialogRef.afterClosed().subscribe((result: CreateTaskGroupDialogResult | undefined) => {
-      if (!result) return;
+    dialogRef
+      .afterClosed()
+      .subscribe((result: CreateTaskGroupDialogResult | undefined) => {
+        if (!result) return;
 
-      const groups = this.boardGroups();
-      const lastGroup = groups[groups.length - 1];
-      const position = generateKeyBetween(lastGroup?.group.position ?? null, null);
+        const groups = this.boardGroups();
+        const lastGroup = groups[groups.length - 1];
+        const position = generateKeyBetween(
+          lastGroup?.group.position ?? null,
+          null,
+        );
 
-      this.taskGroupService
-        .createGroup(this.boardId, {
-          board_id: this.boardId,
-          name: result.name,
-          color: result.color,
-          position,
-        })
-        .subscribe({
-          next: () => this.reloadGroups(),
-          error: () => this.showError('Failed to create group'),
-        });
-    });
+        this.taskGroupService
+          .createGroup(this.boardId, {
+            board_id: this.boardId,
+            name: result.name,
+            color: result.color,
+            position,
+          })
+          .subscribe({
+            next: () => this.reloadGroups(),
+            error: () => this.showError('Failed to create group'),
+          });
+      });
   }
 
   onGroupNameChange(groupId: string, name: string): void {
@@ -774,27 +823,29 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     const newCollapsed = !group.group.collapsed;
 
     // Optimistic update
-    this.boardGroups.update(groups =>
-      groups.map(g =>
+    this.boardGroups.update((groups) =>
+      groups.map((g) =>
         g.group.id === group.group.id
           ? { ...g, group: { ...g.group, collapsed: newCollapsed } }
-          : g
-      )
+          : g,
+      ),
     );
 
-    this.taskGroupService.toggleCollapse(group.group.id, newCollapsed).subscribe({
-      error: () => {
-        // Revert on error
-        this.boardGroups.update(groups =>
-          groups.map(g =>
-            g.group.id === group.group.id
-              ? { ...g, group: { ...g.group, collapsed: !newCollapsed } }
-              : g
-          )
-        );
-        this.showError('Failed to toggle group');
-      },
-    });
+    this.taskGroupService
+      .toggleCollapse(group.group.id, newCollapsed)
+      .subscribe({
+        error: () => {
+          // Revert on error
+          this.boardGroups.update((groups) =>
+            groups.map((g) =>
+              g.group.id === group.group.id
+                ? { ...g, group: { ...g.group, collapsed: !newCollapsed } }
+                : g,
+            ),
+          );
+          this.showError('Failed to toggle group');
+        },
+      });
   }
 
   onGroupDelete(groupId: string): void {
@@ -848,7 +899,9 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: ({ board, columns, tasks, members, milestones, groups }) => {
         this.board.set(board);
-        this.columns.set(columns.sort((a, b) => a.position.localeCompare(b.position)));
+        this.columns.set(
+          columns.sort((a, b) => a.position.localeCompare(b.position)),
+        );
         this.boardState.set(tasks);
         this.boardMembers.set(members);
         this.boardMilestones.set(milestones);
@@ -888,7 +941,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       if (filters.assigneeIds.length > 0) {
         const taskAssigneeIds = task.assignees?.map((a) => a.id) || [];
         const hasMatchingAssignee = filters.assigneeIds.some((id) =>
-          taskAssigneeIds.includes(id)
+          taskAssigneeIds.includes(id),
         );
         if (!hasMatchingAssignee) {
           return false;
@@ -913,7 +966,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       if (filters.labelIds.length > 0) {
         const taskLabelIds = task.labels?.map((l) => l.id) || [];
         const hasMatchingLabel = filters.labelIds.some((id) =>
-          taskLabelIds.includes(id)
+          taskLabelIds.includes(id),
         );
         if (!hasMatchingLabel) {
           return false;
@@ -924,7 +977,10 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     });
   }
 
-  private handleWebSocketMessage(message: { type: string; payload: unknown }): void {
+  private handleWebSocketMessage(message: {
+    type: string;
+    payload: unknown;
+  }): void {
     if (!message.payload || typeof message.payload !== 'object') return;
 
     const currentUserId = this.authService.currentUser()?.id;
@@ -956,7 +1012,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       const newState = { ...state };
       const columnTasks = newState[task.column_id] || [];
       newState[task.column_id] = [...columnTasks, task].sort((a, b) =>
-        a.position.localeCompare(b.position)
+        a.position.localeCompare(b.position),
       );
       return newState;
     });
@@ -984,7 +1040,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       // Add to target column
       const columnTasks = newState[task.column_id] || [];
       newState[task.column_id] = [...columnTasks, task].sort((a, b) =>
-        a.position.localeCompare(b.position)
+        a.position.localeCompare(b.position),
       );
 
       return newState;
@@ -1038,8 +1094,10 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     }
 
     const req: BulkUpdateRequest = { task_ids: ids };
-    if (action.type === 'move' && action.column_id) req.column_id = action.column_id;
-    if (action.type === 'priority' && action.priority) req.priority = action.priority;
+    if (action.type === 'move' && action.column_id)
+      req.column_id = action.column_id;
+    if (action.type === 'priority' && action.priority)
+      req.priority = action.priority;
     if (action.type === 'milestone') {
       if (action.clear_milestone) {
         req.clear_milestone = true;
@@ -1079,7 +1137,9 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       description: 'Focus search',
       category: 'Board',
       action: () => {
-        const searchInput = document.querySelector<HTMLInputElement>('input[placeholder*="Search"]');
+        const searchInput = document.querySelector<HTMLInputElement>(
+          'input[placeholder*="Search"]',
+        );
         searchInput?.focus();
       },
     });

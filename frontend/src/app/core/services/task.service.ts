@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
@@ -79,6 +80,7 @@ export interface CreateTaskRequest {
   title: string;
   description?: string;
   priority?: TaskPriority;
+  column_id?: string;
   assignee_id?: string;
   due_date?: string;
   start_date?: string;
@@ -157,8 +159,11 @@ export class TaskService {
     return this.http.get<Task>(`${this.apiUrl}/tasks/${taskId}`);
   }
 
-  createTask(columnId: string, request: CreateTaskRequest): Observable<Task> {
-    return this.http.post<Task>(`${this.apiUrl}/columns/${columnId}/tasks`, request);
+  createTask(boardId: string, request: CreateTaskRequest): Observable<Task> {
+    return this.http.post<Task>(
+      `${this.apiUrl}/boards/${boardId}/tasks`,
+      request,
+    );
   }
 
   updateTask(taskId: string, request: UpdateTaskRequest): Observable<Task> {
@@ -166,7 +171,10 @@ export class TaskService {
   }
 
   moveTask(taskId: string, request: MoveTaskRequest): Observable<Task> {
-    return this.http.patch<Task>(`${this.apiUrl}/tasks/${taskId}/move`, request);
+    return this.http.patch<Task>(
+      `${this.apiUrl}/tasks/${taskId}/move`,
+      request,
+    );
   }
 
   deleteTask(taskId: string): Observable<void> {
@@ -174,11 +182,16 @@ export class TaskService {
   }
 
   addLabel(taskId: string, labelId: string): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/tasks/${taskId}/labels/${labelId}`, {});
+    return this.http.post<void>(
+      `${this.apiUrl}/tasks/${taskId}/labels/${labelId}`,
+      {},
+    );
   }
 
   removeLabel(taskId: string, labelId: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/tasks/${taskId}/labels/${labelId}`);
+    return this.http.delete<void>(
+      `${this.apiUrl}/tasks/${taskId}/labels/${labelId}`,
+    );
   }
 
   getLabels(taskId: string): Observable<Label[]> {
@@ -186,54 +199,65 @@ export class TaskService {
   }
 
   listByBoard(boardId: string): Observable<Record<string, Task[]>> {
-    return this.http.get<Record<string, Task[]>>(
-      `${this.apiUrl}/boards/${boardId}/tasks`
-    );
+    return this.http
+      .get<{
+        tasks: Record<string, Task[]>;
+      }>(`${this.apiUrl}/boards/${boardId}/tasks`)
+      .pipe(map((response) => response.tasks));
   }
 
   listFlat(boardId: string): Observable<TaskListItem[]> {
     return this.http.get<TaskListItem[]>(
-      `${this.apiUrl}/boards/${boardId}/tasks/list`
+      `${this.apiUrl}/boards/${boardId}/tasks/list`,
     );
   }
 
   assignUser(taskId: string, userId: string): Observable<void> {
-    return this.http.post<void>(
-      `${this.apiUrl}/tasks/${taskId}/assignees`,
-      { user_id: userId }
-    );
+    return this.http.post<void>(`${this.apiUrl}/tasks/${taskId}/assignees`, {
+      user_id: userId,
+    });
   }
 
   unassignUser(taskId: string, userId: string): Observable<void> {
     return this.http.delete<void>(
-      `${this.apiUrl}/tasks/${taskId}/assignees/${userId}`
+      `${this.apiUrl}/tasks/${taskId}/assignees/${userId}`,
     );
   }
 
-  listCalendarTasks(boardId: string, start: string, end: string): Observable<CalendarTask[]> {
+  listCalendarTasks(
+    boardId: string,
+    start: string,
+    end: string,
+  ): Observable<CalendarTask[]> {
     return this.http.get<CalendarTask[]>(
       `${this.apiUrl}/boards/${boardId}/tasks/calendar`,
-      { params: { start, end } }
+      { params: { start, end } },
     );
   }
 
   listGanttTasks(boardId: string): Observable<GanttTask[]> {
     return this.http.get<GanttTask[]>(
-      `${this.apiUrl}/boards/${boardId}/tasks/gantt`
+      `${this.apiUrl}/boards/${boardId}/tasks/gantt`,
     );
   }
 
-  bulkUpdate(boardId: string, request: BulkUpdateRequest): Observable<{ updated: number }> {
+  bulkUpdate(
+    boardId: string,
+    request: BulkUpdateRequest,
+  ): Observable<{ updated: number }> {
     return this.http.post<{ updated: number }>(
       `${this.apiUrl}/boards/${boardId}/tasks/bulk-update`,
-      request
+      request,
     );
   }
 
-  bulkDelete(boardId: string, request: BulkDeleteRequest): Observable<{ deleted: number }> {
+  bulkDelete(
+    boardId: string,
+    request: BulkDeleteRequest,
+  ): Observable<{ deleted: number }> {
     return this.http.post<{ deleted: number }>(
       `${this.apiUrl}/boards/${boardId}/tasks/bulk-delete`,
-      request
+      request,
     );
   }
 }
