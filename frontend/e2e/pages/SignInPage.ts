@@ -23,7 +23,7 @@ export class SignInPage {
 
   async goto() {
     await this.page.goto('/auth/sign-in');
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async fillForm(email: string, password: string) {

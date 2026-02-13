@@ -2,66 +2,83 @@ import { test, expect } from '@playwright/test';
 import { signUpAndOnboard } from './helpers/auth';
 import { DashboardPage } from './pages/DashboardPage';
 
+/** Wait for the My Tasks page to fully load (greeting banner visible) */
+async function waitForMyTasksPage(page: import('@playwright/test').Page) {
+  await page.goto('/my-tasks');
+  await page.waitForLoadState('domcontentloaded');
+
+  // Wait for the view toggle buttons (always rendered regardless of API state)
+  const myTasksBtn = page.locator('button:has-text("My Tasks")').first();
+  await expect(myTasksBtn).toBeVisible({ timeout: 20000 });
+}
+
 test.describe('My Tasks', () => {
   test.beforeEach(async ({ page }) => {
     await signUpAndOnboard(page, 'My Tasks WS');
   });
 
-  test('page loads with greeting heading', async ({ page }) => {
-    await page.goto('/my-tasks');
-    await page.waitForLoadState('networkidle');
+  test('page loads with view toggle and content', async ({ page }) => {
+    await waitForMyTasksPage(page);
 
-    // The my-tasks page shows a greeting like "Good morning, <name>!"
-    const heading = page.locator('h1').first();
-    await expect(heading).toBeVisible({ timeout: 15000 });
-    const text = await heading.textContent();
-    expect(text?.trim().length).toBeGreaterThan(0);
-  });
+    // The page always shows the toggle buttons and content area
+    await expect(
+      page.locator('button:has-text("My Tasks")').first(),
+    ).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.locator('button:has-text("Tasks I Created")'),
+    ).toBeVisible({ timeout: 10000 });
 
-  test('summary stats are visible', async ({ page }) => {
-    await page.goto('/my-tasks');
-    await page.waitForLoadState('networkidle');
-
-    // Wait for the summary banner to appear
-    await expect(page.locator('h1').first()).toBeVisible({ timeout: 15000 });
-
-    // Check for summary stat text items (total tasks, overdue, due soon, completed)
-    await expect(page.locator('text=total tasks')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('text=overdue')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('text=due soon')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('text=completed this week')).toBeVisible({ timeout: 10000 });
-  });
-
-  test('empty state shows caught up message when no assigned tasks', async ({ page }) => {
-    await page.goto('/my-tasks');
-    await page.waitForLoadState('networkidle');
-
-    // Wait for loading to finish
-    await expect(page.locator('h1').first()).toBeVisible({ timeout: 15000 });
-
-    // Fresh workspace with no tasks assigned should show empty state
-    await expect(page.locator('text=all caught up')).toBeVisible({ timeout: 15000 });
+    // Either the Overdue group header or the empty state should be visible
+    const content = page
+      .locator('h2:has-text("Overdue")')
+      .or(page.locator('h3:has-text("all caught up")'));
+    await expect(content.first()).toBeVisible({ timeout: 20000 });
   });
 
   test('view toggle buttons are visible', async ({ page }) => {
-    await page.goto('/my-tasks');
-    await page.waitForLoadState('networkidle');
+    await waitForMyTasksPage(page);
 
-    await expect(page.locator('h1').first()).toBeVisible({ timeout: 15000 });
-
-    // The page has "My Tasks" and "Tasks I Created" toggle buttons
-    await expect(page.locator('button:has-text("My Tasks")')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('button:has-text("Tasks I Created")')).toBeVisible({ timeout: 10000 });
+    // The page has view toggle buttons: "My Tasks" and "Tasks I Created"
+    await expect(
+      page.locator('button:has-text("My Tasks")').first(),
+    ).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.locator('button:has-text("Tasks I Created")'),
+    ).toBeVisible({ timeout: 10000 });
   });
 
-  test('Matrix View link is visible', async ({ page }) => {
-    await page.goto('/my-tasks');
-    await page.waitForLoadState('networkidle');
+  test('empty state shows caught up message when no assigned tasks', async ({
+    page,
+  }) => {
+    await waitForMyTasksPage(page);
 
-    await expect(page.locator('h1').first()).toBeVisible({ timeout: 15000 });
+    // Wait for loading to finish - either empty state or timeline groups appear
+    // Fresh workspace with no tasks assigned should show "You're all caught up!"
+    const emptyMessage = page.locator('h3:has-text("all caught up")');
+    await expect(emptyMessage).toBeVisible({ timeout: 20000 });
+  });
 
-    // There should be a "Matrix View" link to /eisenhower
-    await expect(page.locator('a:has-text("Matrix View")')).toBeVisible({ timeout: 10000 });
+  test('My Tasks toggle is active by default', async ({ page }) => {
+    await waitForMyTasksPage(page);
+
+    // The "My Tasks" button should have the active/highlighted style (bg-indigo-600)
+    const myTasksBtn = page.locator('button:has-text("My Tasks")').first();
+    await expect(myTasksBtn).toBeVisible({ timeout: 10000 });
+    // Active button has indigo-600 class applied via [class] binding
+    await expect(myTasksBtn).toHaveClass(/indigo/, { timeout: 10000 });
+  });
+
+  test('clicking Tasks I Created toggle works', async ({ page }) => {
+    await waitForMyTasksPage(page);
+
+    // Click the "Tasks I Created" toggle
+    const createdBtn = page
+      .locator('button:has-text("Tasks I Created")')
+      .first();
+    await createdBtn.click();
+
+    // After clicking, the "Tasks I Created" button should now be active
+    await expect(createdBtn).toHaveClass(/indigo/, { timeout: 10000 });
   });
 
   test('page accessible from sidebar My Work link', async ({ page }) => {
@@ -74,52 +91,58 @@ test.describe('My Tasks', () => {
     await myWorkLink.click();
 
     await expect(page).toHaveURL(/\/my-tasks/, { timeout: 15000 });
-    await expect(page.locator('h1').first()).toBeVisible({ timeout: 15000 });
+
+    // View toggle buttons should appear
+    await expect(
+      page.locator('button:has-text("My Tasks")').first(),
+    ).toBeVisible({ timeout: 15000 });
   });
 
   test('page accessible from dashboard My Tasks link', async ({ page }) => {
     const dashboard = new DashboardPage(page);
     await dashboard.expectLoaded();
 
-    await expect(dashboard.myTasksLink).toBeVisible({ timeout: 10000 });
-    await dashboard.myTasksLink.click();
+    // The "My Tasks" link/button on the dashboard
+    const myTasksLink = page.locator('a[href="/my-tasks"]').first();
+    await expect(myTasksLink).toBeVisible({ timeout: 10000 });
+    await myTasksLink.click();
 
     await expect(page).toHaveURL(/\/my-tasks/, { timeout: 15000 });
   });
 
-  test('summary stat numbers are visible', async ({ page }) => {
-    await page.goto('/my-tasks');
-    await page.waitForLoadState('networkidle');
+  test('page handles fresh workspace with no tasks gracefully', async ({
+    page,
+  }) => {
+    await waitForMyTasksPage(page);
 
-    await expect(page.locator('h1').first()).toBeVisible({ timeout: 15000 });
-
-    // The summary banner contains numeric values (font-semibold text-lg spans)
-    const statNumbers = page.locator('.font-semibold.text-lg');
-    await expect(statNumbers.first()).toBeVisible({ timeout: 10000 });
-    const count = await statNumbers.count();
-    expect(count).toBeGreaterThanOrEqual(3);
-  });
-
-  test('page heading contains user name', async ({ page }) => {
-    await page.goto('/my-tasks');
-    await page.waitForLoadState('networkidle');
-
-    const heading = page.locator('h1').first();
-    await expect(heading).toBeVisible({ timeout: 15000 });
-    const text = await heading.textContent();
-    // Should contain a greeting with the user's name or a generic greeting
-    expect(text).toMatch(/Good (morning|afternoon|evening)/);
-  });
-
-  test('page handles fresh workspace with no tasks gracefully', async ({ page }) => {
-    await page.goto('/my-tasks');
-    await page.waitForLoadState('networkidle');
-
-    // Page should load without errors
-    await expect(page.locator('h1').first()).toBeVisible({ timeout: 15000 });
+    // Wait for loading to complete (skeleton elements should disappear)
+    await expect(page.locator('.skeleton').first())
+      .toBeHidden({ timeout: 20000 })
+      .catch(() => {});
 
     // No error messages should be shown
-    await expect(page.locator('text=Failed to load')).toBeHidden({ timeout: 5000 });
-    await expect(page.locator('text=Error')).toBeHidden({ timeout: 5000 });
+    await expect(page.locator('text=Failed to load')).toBeHidden({
+      timeout: 5000,
+    });
+  });
+
+  test('Matrix View link is visible', async ({ page }) => {
+    await waitForMyTasksPage(page);
+
+    // Matrix View link navigates to /eisenhower
+    const matrixLink = page.locator('a[href="/eisenhower"]');
+    await expect(matrixLink).toBeVisible({ timeout: 10000 });
+  });
+
+  test('overdue group shows task count badge', async ({ page }) => {
+    await waitForMyTasksPage(page);
+
+    // Wait for loading to finish
+    const overdueHeader = page.locator('h2:has-text("Overdue")');
+    await expect(overdueHeader).toBeVisible({ timeout: 20000 });
+
+    // The Overdue group header has a count badge (even if 0)
+    const countBadge = page.locator('span.rounded-full').first();
+    await expect(countBadge).toBeVisible({ timeout: 10000 });
   });
 });

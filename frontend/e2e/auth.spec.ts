@@ -1,7 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { SignUpPage } from './pages/SignUpPage';
 import { SignInPage } from './pages/SignInPage';
-import { generateTestEmail, signUpTestUser, signInTestUser, signUpAndOnboard, TEST_PASSWORD, TEST_NAME } from './helpers/auth';
+import {
+  generateTestEmail,
+  signUpTestUser,
+  signInTestUser,
+  signUpAndOnboard,
+  TEST_PASSWORD,
+  TEST_NAME,
+} from './helpers/auth';
 
 test.describe('Authentication - Sign Up', () => {
   test('sign-up page loads with correct UI', async ({ page }) => {
@@ -58,7 +65,12 @@ test.describe('Authentication - Sign Up', () => {
     await signUpPage.goto();
 
     const email = generateTestEmail();
-    await signUpPage.fillForm(TEST_NAME, email, TEST_PASSWORD, 'DifferentPass123!');
+    await signUpPage.fillForm(
+      TEST_NAME,
+      email,
+      TEST_PASSWORD,
+      'DifferentPass123!',
+    );
 
     // The button should be disabled because passwords do not match
     // Touch the confirmPassword field to trigger validation
@@ -86,13 +98,18 @@ test.describe('Authentication - Sign Up', () => {
     await signUpPage.confirmPasswordInput.fill(TEST_PASSWORD);
 
     // Either a mat-error appears or the submit button stays disabled
-    const hasMatError = await page.locator('mat-error').isVisible().catch(() => false);
+    const hasMatError = await page
+      .locator('mat-error')
+      .isVisible()
+      .catch(() => false);
     const isDisabled = await signUpPage.submitButton.isDisabled();
     expect(hasMatError || isDisabled).toBeTruthy();
   });
 
   // NEW: Password too short shows error
-  test('password too short shows error or disables submit', async ({ page }) => {
+  test('password too short shows error or disables submit', async ({
+    page,
+  }) => {
     const signUpPage = new SignUpPage(page);
     await signUpPage.goto();
 
@@ -109,7 +126,9 @@ test.describe('Authentication - Sign Up', () => {
   });
 
   // NEW: Name field required validation
-  test('name field is required - submit disabled when empty', async ({ page }) => {
+  test('name field is required - submit disabled when empty', async ({
+    page,
+  }) => {
     const signUpPage = new SignUpPage(page);
     await signUpPage.goto();
 
@@ -153,8 +172,9 @@ test.describe('Authentication - Sign Up', () => {
     await page.keyboard.press('Tab');
     await expect(signUpPage.passwordInput).toBeFocused();
 
-    // Tab to confirm password
-    await page.keyboard.press('Tab');
+    // Tab past the password visibility toggle, then to confirm password
+    await page.keyboard.press('Tab'); // visibility toggle
+    await page.keyboard.press('Tab'); // confirm password
     await expect(signUpPage.confirmPasswordInput).toBeFocused();
   });
 });
@@ -194,7 +214,9 @@ test.describe('Authentication - Sign In', () => {
     await expect(signInPage.submitButton).toBeDisabled();
   });
 
-  test('successful sign-in redirects to onboarding or dashboard', async ({ page }) => {
+  test('successful sign-in redirects to onboarding or dashboard', async ({
+    page,
+  }) => {
     const signInPage = new SignInPage(page);
     await signInPage.goto();
     await signInPage.fillForm(testEmail, TEST_PASSWORD);
@@ -211,7 +233,9 @@ test.describe('Authentication - Sign In', () => {
     await signInPage.submit();
 
     await signInPage.expectErrorVisible();
-    await expect(signInPage.errorMessage).toContainText('Invalid email or password');
+    await expect(signInPage.errorMessage).toContainText(
+      'Invalid email or password',
+    );
   });
 
   test('sign-up link navigates to sign-up page', async ({ page }) => {
@@ -223,7 +247,9 @@ test.describe('Authentication - Sign In', () => {
   });
 
   // NEW: Forgot password link navigates correctly
-  test('forgot password link navigates to forgot-password page', async ({ page }) => {
+  test('forgot password link navigates to forgot-password page', async ({
+    page,
+  }) => {
     const signInPage = new SignInPage(page);
     await signInPage.goto();
 
@@ -237,71 +263,74 @@ test.describe('Authentication - Sign In', () => {
     const email = await signUpAndOnboard(page, 'Session Persist WS');
 
     // Verify we are on the dashboard
-    await expect(page.locator('h1:has-text("Welcome back")')).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.locator(
+        'h1:has-text("Good morning"), h1:has-text("Good afternoon"), h1:has-text("Good evening")',
+      ),
+    ).toBeVisible({ timeout: 10000 });
 
     // Refresh the page
     await page.reload();
 
     // Should still be on the dashboard (session cookie is preserved)
-    await expect(page.locator('h1:has-text("Welcome back")')).toBeVisible({ timeout: 15000 });
+    await expect(
+      page.locator(
+        'h1:has-text("Good morning"), h1:has-text("Good afternoon"), h1:has-text("Good evening")',
+      ),
+    ).toBeVisible({ timeout: 15000 });
   });
 
   // NEW: Sign out then sign back in works
   test('sign out then sign back in works', async ({ page }) => {
     // Sign up and onboard
     const email = await signUpAndOnboard(page, 'SignOut Test WS');
-    await expect(page.locator('h1:has-text("Welcome back")')).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.locator(
+        'h1:has-text("Good morning"), h1:has-text("Good afternoon"), h1:has-text("Good evening")',
+      ),
+    ).toBeVisible({ timeout: 10000 });
 
-    // Look for a sign-out / logout button or menu item
-    const userMenu = page.locator('button:has-text("Logout"), button:has-text("Sign Out"), a:has-text("Logout"), a:has-text("Sign Out"), [data-testid="logout"]');
-    const menuTrigger = page.locator('[mat-icon-button] mat-icon:has-text("account_circle"), button:has-text("account"), .user-menu, [data-testid="user-menu"]');
+    // The sidebar has a sign-out icon button with title="Sign out"
+    const signOutBtn = page.locator('button[title="Sign out"]');
+    await signOutBtn.click({ timeout: 5000 });
 
-    // Try clicking a user menu trigger first, then the logout
-    if (await menuTrigger.first().isVisible({ timeout: 3000 }).catch(() => false)) {
-      await menuTrigger.first().click();
-    }
+    // Should redirect to sign-in
+    await expect(page).toHaveURL(/\/auth\/sign-in/, { timeout: 15000 });
+    await page.waitForLoadState('domcontentloaded');
 
-    if (await userMenu.first().isVisible({ timeout: 3000 }).catch(() => false)) {
-      await userMenu.first().click();
-      // Should redirect to sign-in
-      await expect(page).toHaveURL(/\/auth\/sign-in/, { timeout: 15000 });
+    // Now sign back in directly on this page (don't re-navigate)
+    await page.locator('input[formControlName="email"]').fill(email);
+    await page.locator('input[formControlName="password"]').fill(TEST_PASSWORD);
+    await page.locator('button[type="submit"]').click();
 
-      // Now sign back in
-      await signInTestUser(page, email);
-      await expect(page).not.toHaveURL(/\/auth\/sign-in/, { timeout: 15000 });
-    } else {
-      // If no visible logout button found, navigate to sign-in manually
-      // Clear cookies to simulate logout
-      await page.context().clearCookies();
-      await page.goto('/auth/sign-in');
-      await page.waitForLoadState('networkidle');
-
-      await signInTestUser(page, email);
-      await expect(page).not.toHaveURL(/\/auth\/sign-in/, { timeout: 15000 });
-    }
+    // Should redirect away from sign-in
+    await expect(page).not.toHaveURL(/\/auth\/sign-in/, { timeout: 15000 });
   });
 
   // NEW: Return URL redirect after login
   test('return URL redirect after login', async ({ browser }) => {
     // Create a fresh user who is fully onboarded
-    const context = await browser.newContext({ ignoreHTTPSErrors: true });
-    const page = await context.newPage();
-    const email = await signUpAndOnboard(page, 'ReturnURL WS');
+    const context1 = await browser.newContext({ ignoreHTTPSErrors: true });
+    const page1 = await context1.newPage();
+    const email = await signUpAndOnboard(page1, 'ReturnURL WS');
+    await context1.close();
 
-    // Clear cookies to force re-login
-    await context.clearCookies();
+    // Use a completely fresh context (no cookies) to test returnUrl flow
+    const context2 = await browser.newContext({ ignoreHTTPSErrors: true });
+    const page2 = await context2.newPage();
 
-    // Try to access dashboard directly - should redirect to sign-in
-    await page.goto('/dashboard');
-    await expect(page).toHaveURL(/\/auth\/sign-in/, { timeout: 15000 });
+    // Access a protected route - should redirect to sign-in with returnUrl
+    await page2.goto('/dashboard');
+    await page2.waitForLoadState('domcontentloaded');
+    await expect(page2).toHaveURL(/\/auth\/sign-in/, { timeout: 15000 });
 
-    // Sign in
-    await signInTestUser(page, email);
+    // Sign in on the redirected page (preserves returnUrl query param)
+    await signInTestUser(page2, email, TEST_PASSWORD, true);
 
-    // Should redirect back to dashboard (or at least away from sign-in)
-    await expect(page).not.toHaveURL(/\/auth\/sign-in/, { timeout: 15000 });
+    // Should redirect to dashboard after login
+    await expect(page2).toHaveURL(/\/dashboard/, { timeout: 20000 });
 
-    await context.close();
+    await context2.close();
   });
 
   // NEW: Email field trims whitespace

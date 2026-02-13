@@ -12,14 +12,14 @@ export class FavoritesPage {
     this.page = page;
     this.heading = page.locator('h1:has-text("Favorites")');
     this.emptyState = page.locator('text=No favorites yet');
-    this.favoriteItems = page.locator('[class*="hover:shadow"], [class*="hover:bg"]').filter({ hasText: /\w+/ });
+    this.favoriteItems = page.locator('[class*="hover\\:border-indigo"]');
     this.taskSection = page.locator('h2:has-text("Tasks")');
     this.boardSection = page.locator('h2:has-text("Boards")');
   }
 
   async goto() {
     await this.page.goto('/favorites');
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async expectLoaded() {

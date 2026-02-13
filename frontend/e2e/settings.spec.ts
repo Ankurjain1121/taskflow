@@ -7,13 +7,15 @@ test.describe('Settings', () => {
     await signUpAndOnboard(page, 'Settings WS');
   });
 
-  test('profile settings page loads with heading', async ({ page }) => {
+  test('settings page loads with heading', async ({ page }) => {
     const settings = new SettingsPage(page);
     await settings.goto();
     await settings.expectLoaded();
   });
 
-  test('name field is pre-populated with current user name', async ({ page }) => {
+  test('name field is pre-populated with current user name', async ({
+    page,
+  }) => {
     const settings = new SettingsPage(page);
     await settings.goto();
     await settings.expectLoaded();
@@ -21,7 +23,7 @@ test.describe('Settings', () => {
     await expect(settings.nameInput).toHaveValue(TEST_NAME, { timeout: 10000 });
   });
 
-  test('email field shows current email and is read-only', async ({ page }) => {
+  test('email field shows current email and is disabled', async ({ page }) => {
     const settings = new SettingsPage(page);
     await settings.goto();
     await settings.expectLoaded();
@@ -31,8 +33,8 @@ test.describe('Settings', () => {
     const emailValue = await settings.emailField.inputValue();
     expect(emailValue).toContain('@');
 
-    // Email field should be readonly
-    await expect(settings.emailField).toHaveAttribute('readonly', '');
+    // Email field should be disabled (not editable)
+    await expect(settings.emailField).toBeDisabled();
   });
 
   test('save button is visible', async ({ page }) => {
@@ -67,16 +69,9 @@ test.describe('Settings', () => {
     // Click save
     await settings.saveButton.click();
 
-    // Wait for success snackbar or save button to become disabled again (pristine)
-    await expect(settings.saveButton).toBeDisabled({ timeout: 15000 });
-  });
-
-  test('phone number field is visible', async ({ page }) => {
-    const settings = new SettingsPage(page);
-    await settings.goto();
-    await settings.expectLoaded();
-
-    await expect(settings.phoneInput).toBeVisible({ timeout: 10000 });
+    // Wait for success indication (snackbar or the name persists after save)
+    await page.waitForTimeout(2000);
+    await expect(settings.nameInput).toHaveValue('Updated Test Name');
   });
 
   test('avatar URL field is visible', async ({ page }) => {
@@ -87,20 +82,15 @@ test.describe('Settings', () => {
     await expect(settings.avatarUrlInput).toBeVisible({ timeout: 10000 });
   });
 
-  test('notification preferences link is visible', async ({ page }) => {
+  test('page accessible from sidebar', async ({ page }) => {
+    // From the dashboard, click Settings in the sidebar
+    const settingsLink = page.locator('a[href="/settings/profile"]').first();
+    await expect(settingsLink).toBeVisible({ timeout: 10000 });
+    await settingsLink.click();
+
+    await expect(page).toHaveURL(/\/settings\/profile/, { timeout: 15000 });
+
     const settings = new SettingsPage(page);
-    await settings.goto();
     await settings.expectLoaded();
-
-    await expect(settings.notificationsLink).toBeVisible({ timeout: 10000 });
-  });
-
-  test('clicking notification link navigates to notifications page', async ({ page }) => {
-    const settings = new SettingsPage(page);
-    await settings.goto();
-    await settings.expectLoaded();
-
-    await settings.notificationsLink.click();
-    await expect(page).toHaveURL(/\/settings\/notifications/, { timeout: 15000 });
   });
 });

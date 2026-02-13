@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { OnboardingPage } from './pages/OnboardingPage';
-import { signUpTestUser, signUpAndOnboard, signInTestUser } from './helpers/auth';
+import {
+  signUpTestUser,
+  signUpAndOnboard,
+  signInTestUser,
+} from './helpers/auth';
 
 test.describe('Onboarding Flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -8,7 +12,9 @@ test.describe('Onboarding Flow', () => {
     await signUpTestUser(page);
   });
 
-  test('onboarding page loads at workspace step after sign-up', async ({ page }) => {
+  test('onboarding page loads at workspace step after sign-up', async ({
+    page,
+  }) => {
     const onboarding = new OnboardingPage(page);
     await onboarding.expectWorkspaceStep();
 
@@ -63,7 +69,11 @@ test.describe('Onboarding Flow', () => {
     await onboarding.goToDashboard();
 
     // Verify we are on the dashboard
-    await expect(page.locator('text=Welcome back')).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.locator(
+        'h1:has-text("Good morning"), h1:has-text("Good afternoon"), h1:has-text("Good evening")',
+      ),
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test('generate sample board shows success message', async ({ page }) => {
@@ -77,10 +87,14 @@ test.describe('Onboarding Flow', () => {
 
     // Click generate and verify success
     await page.locator('button:has-text("Generate Sample Board")').click();
-    await expect(page.locator('text=Sample board created successfully!')).toBeVisible({ timeout: 20000 });
+    await expect(
+      page.locator('text=Sample board created successfully!'),
+    ).toBeVisible({ timeout: 20000 });
 
     // Verify "Go to Dashboard" button appears
-    await expect(page.locator('button:has-text("Go to Dashboard")')).toBeVisible();
+    await expect(
+      page.locator('button:has-text("Go to Dashboard")'),
+    ).toBeVisible();
   });
 
   // NEW: Workspace with description field filled
@@ -89,7 +103,10 @@ test.describe('Onboarding Flow', () => {
     await onboarding.expectWorkspaceStep();
 
     // Fill both name and description
-    await onboarding.createWorkspace('Described Workspace', 'This is a workspace for testing descriptions');
+    await onboarding.createWorkspace(
+      'Described Workspace',
+      'This is a workspace for testing descriptions',
+    );
     await onboarding.expectInviteStep();
   });
 
@@ -128,7 +145,9 @@ test.describe('Onboarding Flow', () => {
   });
 
   // NEW: Creating workspace populates sidebar
-  test('creating workspace populates sidebar after onboarding', async ({ page }) => {
+  test('creating workspace populates sidebar after onboarding', async ({
+    page,
+  }) => {
     const onboarding = new OnboardingPage(page);
 
     // Complete full flow
@@ -141,11 +160,17 @@ test.describe('Onboarding Flow', () => {
     await onboarding.goToDashboard();
 
     // On dashboard, look for the workspace name in the sidebar or main content
-    await expect(page.locator('text=Welcome back')).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.locator(
+        'h1:has-text("Good morning"), h1:has-text("Good afternoon"), h1:has-text("Good evening")',
+      ),
+    ).toBeVisible({ timeout: 10000 });
 
     // The sidebar or workspace section should contain our workspace name
     const sidebarOrContent = page.locator('text=Sidebar Check WS');
-    const workspaceVisible = await sidebarOrContent.isVisible({ timeout: 5000 }).catch(() => false);
+    const workspaceVisible = await sidebarOrContent
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
 
     // Also check via the workspaces heading area
     const workspacesSection = page.locator('text=Your Workspaces');
@@ -155,12 +180,18 @@ test.describe('Onboarding Flow', () => {
 
 test.describe('Onboarding - Already Onboarded', () => {
   // NEW: Already onboarded user redirects to dashboard
-  test('already onboarded user is redirected away from onboarding', async ({ page }) => {
+  test('already onboarded user is redirected away from onboarding', async ({
+    page,
+  }) => {
     // Sign up AND complete full onboarding
     await signUpAndOnboard(page, 'Already Onboarded WS');
 
     // Verify we are on dashboard
-    await expect(page.locator('h1:has-text("Welcome back")')).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.locator(
+        'h1:has-text("Good morning"), h1:has-text("Good afternoon"), h1:has-text("Good evening")',
+      ),
+    ).toBeVisible({ timeout: 10000 });
 
     // Now try to navigate to /onboarding
     await page.goto('/onboarding');
@@ -174,42 +205,38 @@ test.describe('Onboarding - Already Onboarded', () => {
   });
 
   // NEW: Sample board has default columns
-  test('sample board has default columns after onboarding', async ({ page }) => {
+  test('sample board has default columns after onboarding', async ({
+    page,
+  }) => {
     await signUpAndOnboard(page, 'Default Columns WS');
 
     // Navigate to workspace
-    await expect(page.locator('text=Your Workspaces')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('text=Your Workspaces')).toBeVisible({
+      timeout: 15000,
+    });
     await page.locator('a:has-text("Open Workspace")').first().click();
     await expect(page).toHaveURL(/\/workspace\//, { timeout: 15000 });
 
     // Navigate to the sample board
-    await expect(page.locator('h2:has-text("Boards")')).toBeVisible({ timeout: 15000 });
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('h2:has-text("Boards")')).toBeVisible({
+      timeout: 20000,
+    });
     const boardCard = page.locator('a[href*="/board/"]').first();
     await expect(boardCard).toBeVisible({ timeout: 10000 });
     await boardCard.click();
 
-    await expect(page).toHaveURL(/\/workspace\/.*\/board\//, { timeout: 15000 });
-    await page.waitForLoadState('networkidle');
+    await expect(page).toHaveURL(/\/workspace\/.*\/board\//, {
+      timeout: 15000,
+    });
+    await page.waitForLoadState('domcontentloaded');
 
-    // Verify default columns exist (To Do, In Progress, Done are typical defaults)
-    const columnHeaders = page.locator('.column-header, [data-testid="column-header"], .kanban-column h3, .kanban-column h2, .cdk-drop-list .font-semibold');
-    const headerCount = await columnHeaders.count();
-
-    // Should have at least some columns
-    if (headerCount > 0) {
-      expect(headerCount).toBeGreaterThanOrEqual(1);
-    } else {
-      // Fallback: check for column text content
-      const todoColumn = page.locator('text=To Do');
-      const inProgressColumn = page.locator('text=In Progress');
-      const doneColumn = page.locator('text=Done');
-
-      const hasTodo = await todoColumn.isVisible({ timeout: 5000 }).catch(() => false);
-      const hasInProgress = await inProgressColumn.isVisible({ timeout: 3000 }).catch(() => false);
-      const hasDone = await doneColumn.isVisible({ timeout: 3000 }).catch(() => false);
-
-      // At least one default column should be visible
-      expect(hasTodo || hasInProgress || hasDone).toBeTruthy();
-    }
+    // Verify board columns exist - the sample board creates 4 columns
+    // Columns have "Add task" buttons and "Column options" buttons
+    const addTaskButtons = page.locator('button:has-text("Add task")');
+    await expect(addTaskButtons.first()).toBeVisible({ timeout: 15000 });
+    const columnCount = await addTaskButtons.count();
+    // Sample board should have at least 2 columns (To Do, In Progress, Review, Done)
+    expect(columnCount).toBeGreaterThanOrEqual(2);
   });
 });

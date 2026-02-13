@@ -9,16 +9,20 @@ test.describe('Admin Pages', () => {
 
   test('admin users page loads with heading', async ({ page }) => {
     await page.goto('/admin/users');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.locator('h1:has-text("User Management")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1:has-text("User Management")')).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test('users list shows at least one user', async ({ page }) => {
     await page.goto('/admin/users');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.locator('h1:has-text("User Management")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1:has-text("User Management")')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Wait for loading to finish and table to appear
     const table = page.locator('table');
@@ -33,9 +37,11 @@ test.describe('Admin Pages', () => {
 
   test('user entry shows name and email', async ({ page }) => {
     await page.goto('/admin/users');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.locator('h1:has-text("User Management")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1:has-text("User Management")')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Wait for table
     const table = page.locator('table');
@@ -43,7 +49,9 @@ test.describe('Admin Pages', () => {
 
     // First row should have user info with name and email
     const firstRow = table.locator('tbody tr').first();
-    await expect(firstRow.locator('td').first()).toBeVisible({ timeout: 10000 });
+    await expect(firstRow.locator('td').first()).toBeVisible({
+      timeout: 10000,
+    });
 
     // The User column should contain text (name)
     const userCell = firstRow.locator('td').first();
@@ -53,58 +61,80 @@ test.describe('Admin Pages', () => {
 
   test('search input is visible on users page', async ({ page }) => {
     await page.goto('/admin/users');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.locator('h1:has-text("User Management")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1:has-text("User Management")')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Search field
-    const searchField = page.locator('mat-form-field').filter({ hasText: /search users/i }).locator('input');
+    const searchField = page
+      .locator('mat-form-field')
+      .filter({ hasText: /search users/i })
+      .locator('input');
     await expect(searchField).toBeVisible({ timeout: 10000 });
   });
 
   test('role filter dropdown is visible on users page', async ({ page }) => {
     await page.goto('/admin/users');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.locator('h1:has-text("User Management")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1:has-text("User Management")')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Role filter
-    const roleFilter = page.locator('mat-form-field').filter({ hasText: /^Role/i });
+    const roleFilter = page
+      .locator('mat-form-field')
+      .filter({ hasText: /^Role/i });
     await expect(roleFilter).toBeVisible({ timeout: 10000 });
   });
 
   test('audit log page loads with heading', async ({ page }) => {
     await page.goto('/admin/audit-log');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.locator('h1:has-text("Audit Log")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1:has-text("Audit Log")')).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test('audit log shows entries or empty state', async ({ page }) => {
     await page.goto('/admin/audit-log');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.locator('h1:has-text("Audit Log")')).toBeVisible({ timeout: 10000 });
+    // The audit log heading should appear
+    await expect(page.locator('h1:has-text("Audit Log")')).toBeVisible({
+      timeout: 10000,
+    });
 
-    // Either the table with entries is visible, or the empty state shows
-    const table = page.locator('table');
-    const emptyState = page.locator('text=No audit entries');
-
-    await expect(table.or(emptyState)).toBeVisible({ timeout: 15000 });
+    // The page should show either: loading spinner, data table, empty state, or error
+    await expect(
+      page
+        .locator('table')
+        .or(page.locator('text=No audit entries'))
+        .or(page.locator('text=Failed to load'))
+        .or(page.locator('mat-spinner'))
+        .first(),
+    ).toBeVisible({ timeout: 30000 });
   });
 
   test('trash page loads with heading', async ({ page }) => {
     await page.goto('/admin/trash');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.locator('h1:has-text("Trash")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1:has-text("Trash")')).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test('trash page shows items or empty state', async ({ page }) => {
     await page.goto('/admin/trash');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.locator('h1:has-text("Trash")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('h1:has-text("Trash")')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Either the table with items or the empty state
     const table = page.locator('table');

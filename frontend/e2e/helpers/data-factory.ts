@@ -14,12 +14,15 @@ export async function getFirstWorkspaceId(page: Page): Promise<string> {
   await page.waitForURL(/\/workspace\//, { timeout: 15000 });
   const url = page.url();
   const match = url.match(/\/workspace\/([a-f0-9-]+)/);
-  if (!match) throw new Error(`Could not extract workspace ID from URL: ${url}`);
+  if (!match)
+    throw new Error(`Could not extract workspace ID from URL: ${url}`);
   return match[1];
 }
 
 /** Navigate to workspace, then to the first board, return { workspaceId, boardId } */
-export async function navigateToFirstBoard(page: Page): Promise<{ workspaceId: string; boardId: string }> {
+export async function navigateToFirstBoard(
+  page: Page,
+): Promise<{ workspaceId: string; boardId: string }> {
   // From dashboard, click Open Workspace
   await page.locator('text=Your Workspaces').waitFor({ timeout: 15000 });
   const openLink = page.locator('a:has-text("Open Workspace")').first();
@@ -29,7 +32,8 @@ export async function navigateToFirstBoard(page: Page): Promise<{ workspaceId: s
   await page.waitForURL(/\/workspace\//, { timeout: 15000 });
   const wsUrl = page.url();
   const wsMatch = wsUrl.match(/\/workspace\/([a-f0-9-]+)/);
-  if (!wsMatch) throw new Error(`Could not extract workspace ID from URL: ${wsUrl}`);
+  if (!wsMatch)
+    throw new Error(`Could not extract workspace ID from URL: ${wsUrl}`);
 
   // Wait for boards to appear
   await page.locator('h2:has-text("Boards")').waitFor({ timeout: 15000 });
@@ -40,62 +44,108 @@ export async function navigateToFirstBoard(page: Page): Promise<{ workspaceId: s
   await page.waitForURL(/\/workspace\/.*\/board\//, { timeout: 15000 });
   const boardUrl = page.url();
   const boardMatch = boardUrl.match(/\/board\/([a-f0-9-]+)/);
-  if (!boardMatch) throw new Error(`Could not extract board ID from URL: ${boardUrl}`);
+  if (!boardMatch)
+    throw new Error(`Could not extract board ID from URL: ${boardUrl}`);
 
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
+
+  // Wait for board content to load (New Task button visible)
+  await page.locator('button:has-text("New Task")').waitFor({ timeout: 15000 });
 
   return { workspaceId: wsMatch[1], boardId: boardMatch[1] };
 }
 
-/** Create a task via the board UI (click Add Task, type title, press Enter) */
-export async function createTaskViaUI(page: Page, title: string): Promise<void> {
-  // Click the "Add Task" or "New Task" button
-  const addTaskBtn = page.locator('button:has-text("New Task"), button:has-text("Add Task"), button:has-text("+ Add Task")').first();
-  await addTaskBtn.click();
+/** Create a task via the board UI (click New Task, fill dialog, submit) */
+export async function createTaskViaUI(
+  page: Page,
+  title: string,
+): Promise<void> {
+  // Click the "New Task" button in toolbar to open the dialog
+  const newTaskBtn = page.locator('button:has-text("New Task")');
+  await newTaskBtn.click();
 
-  // Look for the task creation input/dialog
-  const taskInput = page.locator('input[placeholder*="task"], input[placeholder*="Task"], input[formControlName="title"]').first();
-  await taskInput.waitFor({ timeout: 10000 });
-  await taskInput.fill(title);
-  await taskInput.press('Enter');
+  // Wait for the Create New Task dialog
+  const dialogTitle = page.locator('h2:has-text("New Task")');
+  await dialogTitle.waitFor({ timeout: 10000 });
 
-  // Wait for the task to appear
-  await page.waitForTimeout(1000);
+  // Fill the title field using its placeholder attribute
+  const titleInput = page.locator('input[placeholder="Enter task title"]');
+  await titleInput.waitFor({ timeout: 5000 });
+  await titleInput.click();
+  await titleInput.fill(title);
+
+  // Verify submit button is enabled and click
+  const submitBtn = page.locator('mat-dialog-actions button[mat-flat-button]');
+  await submitBtn.click();
+
+  // Wait for dialog to close
+  await dialogTitle.waitFor({ state: 'hidden', timeout: 15000 });
+
+  // Wait for the task card to appear on the board
+  await page.locator(`text=${title}`).waitFor({ timeout: 15000 });
 }
 
 /** Add a favorite via API (requires authenticated session) */
-export async function addFavoriteViaAPI(page: Page, entityType: string, entityId: string): Promise<void> {
-  const response = await page.request.post(`${API_BASE}/favorites/`, {
+export async function addFavoriteViaAPI(
+  page: Page,
+  entityType: string,
+  entityId: string,
+): Promise<void> {
+  const response = await page.request.post(`${API_BASE}/favorites`, {
     data: { entity_type: entityType, entity_id: entityId },
   });
   if (!response.ok()) {
-    throw new Error(`Failed to add favorite: ${response.status()} ${await response.text()}`);
+    throw new Error(
+      `Failed to add favorite: ${response.status()} ${await response.text()}`,
+    );
   }
 }
 
 /** Remove a favorite via API */
-export async function removeFavoriteViaAPI(page: Page, entityType: string, entityId: string): Promise<void> {
-  const response = await page.request.delete(`${API_BASE}/favorites/${entityType}/${entityId}`);
+export async function removeFavoriteViaAPI(
+  page: Page,
+  entityType: string,
+  entityId: string,
+): Promise<void> {
+  const response = await page.request.delete(
+    `${API_BASE}/favorites/${entityType}/${entityId}`,
+  );
   if (!response.ok()) {
-    throw new Error(`Failed to remove favorite: ${response.status()} ${await response.text()}`);
+    throw new Error(
+      `Failed to remove favorite: ${response.status()} ${await response.text()}`,
+    );
   }
 }
 
 /** Delete a task via API (soft-delete, goes to archive) */
-export async function deleteTaskViaAPI(page: Page, taskId: string): Promise<void> {
+export async function deleteTaskViaAPI(
+  page: Page,
+  taskId: string,
+): Promise<void> {
   const response = await page.request.delete(`${API_BASE}/tasks/${taskId}`);
   if (!response.ok()) {
-    throw new Error(`Failed to delete task: ${response.status()} ${await response.text()}`);
+    throw new Error(
+      `Failed to delete task: ${response.status()} ${await response.text()}`,
+    );
   }
 }
 
 /** Create a board via API */
-export async function createBoardViaAPI(page: Page, workspaceId: string, name: string): Promise<string> {
-  const response = await page.request.post(`${API_BASE}/workspaces/${workspaceId}/boards`, {
-    data: { name, description: '' },
-  });
+export async function createBoardViaAPI(
+  page: Page,
+  workspaceId: string,
+  name: string,
+): Promise<string> {
+  const response = await page.request.post(
+    `${API_BASE}/workspaces/${workspaceId}/boards`,
+    {
+      data: { name, description: '' },
+    },
+  );
   if (!response.ok()) {
-    throw new Error(`Failed to create board: ${response.status()} ${await response.text()}`);
+    throw new Error(
+      `Failed to create board: ${response.status()} ${await response.text()}`,
+    );
   }
   const body = await response.json();
   return body.id;

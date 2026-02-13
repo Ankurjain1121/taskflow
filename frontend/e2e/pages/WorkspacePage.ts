@@ -17,8 +17,12 @@ export class WorkspacePage {
     this.boardsHeading = page.locator('h2:has-text("Boards")');
     this.boardCards = page.locator('a[href*="/board/"]');
     this.createBoardButton = page.locator('button:has-text("Create Board")');
-    this.settingsLink = page.locator('a[href*="/settings"]');
-    this.teamLink = page.locator('a[href*="/team"]');
+    this.settingsLink = page
+      .locator('a[href*="/settings"]:has-text("Settings")')
+      .first();
+    this.teamLink = page
+      .locator('a[href*="/team"]:has-text("Team Overview")')
+      .first();
     this.statsCards = page.locator('.rounded-xl');
     this.emptyState = page.locator('text=Create your first board');
   }

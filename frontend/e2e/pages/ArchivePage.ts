@@ -14,18 +14,23 @@ export class ArchivePage {
   constructor(page: Page) {
     this.page = page;
     this.heading = page.locator('h1:has-text("Archive")');
-    this.emptyState = page.locator('text=Archive is empty, text=No archived items, text=archive is empty').first();
+    this.emptyState = page
+      .locator('text=Archive is empty')
+      .or(page.locator('text=No archived items'))
+      .first();
     this.filterAll = page.locator('button:has-text("All")');
     this.filterTasks = page.locator('button:has-text("Tasks")');
     this.filterBoards = page.locator('button:has-text("Boards")');
-    this.archiveItems = page.locator('[class*="border"]').filter({ hasText: /deleted|ago|remaining/i });
+    this.archiveItems = page
+      .locator('[class*="border"]')
+      .filter({ hasText: /deleted|ago|remaining/i });
     this.restoreButtons = page.locator('button:has-text("Restore")');
     this.deleteButtons = page.locator('button:has-text("Delete")');
   }
 
   async goto() {
     await this.page.goto('/archive');
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async expectLoaded() {

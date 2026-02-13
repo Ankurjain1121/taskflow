@@ -20,7 +20,9 @@ test.describe('Dashboard', () => {
     await dashboard.expectStatsVisible();
   });
 
-  test('dashboard shows the workspace created during onboarding', async ({ page }) => {
+  test('dashboard shows the workspace created during onboarding', async ({
+    page,
+  }) => {
     const dashboard = new DashboardPage(page);
     await dashboard.expectLoaded();
 
@@ -36,8 +38,8 @@ test.describe('Dashboard', () => {
     const dashboard = new DashboardPage(page);
     await dashboard.expectLoaded();
 
-    await expect(dashboard.myTasksLink).toBeVisible();
-    await dashboard.myTasksLink.click();
+    await expect(dashboard.myTasksLink.first()).toBeVisible();
+    await dashboard.myTasksLink.first().click();
     await expect(page).toHaveURL(/\/my-tasks/, { timeout: 10000 });
   });
 
@@ -54,21 +56,22 @@ test.describe('Dashboard', () => {
   });
 
   // NEW: Stats show 0 or valid numbers for fresh workspace
-  test('stats show zero or valid numbers for fresh workspace', async ({ page }) => {
+  test('stats show zero or valid numbers for fresh workspace', async ({
+    page,
+  }) => {
     const dashboard = new DashboardPage(page);
     await dashboard.expectLoaded();
     await dashboard.expectStatsVisible();
 
-    // Each stat card should contain a number (0 or more)
-    const statValues = page.locator('.grid .rounded-xl.shadow-sm .text-2xl, .grid .rounded-xl.shadow-sm .text-3xl, .grid .rounded-xl.shadow-sm .font-bold');
+    // Each stat card has a .text-3xl.font-bold number
+    const statValues = page.locator('.text-3xl.font-bold');
     const count = await statValues.count();
+    expect(count).toBeGreaterThanOrEqual(1);
 
-    if (count > 0) {
-      for (let i = 0; i < count; i++) {
-        const text = await statValues.nth(i).textContent();
-        // The value should be a number (possibly with formatting)
-        expect(text?.trim()).toMatch(/^\d+/);
-      }
+    for (let i = 0; i < count; i++) {
+      const text = await statValues.nth(i).textContent();
+      // The value should be a number (possibly with formatting)
+      expect(text?.trim()).toMatch(/^\d+/);
     }
   });
 
@@ -78,8 +81,13 @@ test.describe('Dashboard', () => {
     await dashboard.expectLoaded();
 
     // Look for sidebar or navigation elements
-    const sidebar = page.locator('nav, aside, [role="navigation"], .sidebar, .sidenav');
-    const sidebarVisible = await sidebar.first().isVisible({ timeout: 5000 }).catch(() => false);
+    const sidebar = page.locator(
+      'nav, aside, [role="navigation"], .sidebar, .sidenav',
+    );
+    const sidebarVisible = await sidebar
+      .first()
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
 
     if (sidebarVisible) {
       // Sidebar should contain navigation links
@@ -89,7 +97,10 @@ test.describe('Dashboard', () => {
     } else {
       // Check for mat-sidenav or Angular Material sidebar
       const matSidenav = page.locator('mat-sidenav, mat-drawer');
-      const matVisible = await matSidenav.first().isVisible({ timeout: 3000 }).catch(() => false);
+      const matVisible = await matSidenav
+        .first()
+        .isVisible({ timeout: 3000 })
+        .catch(() => false);
       // Either regular sidebar or mat-sidenav should exist
       expect(sidebarVisible || matVisible).toBeTruthy();
     }

@@ -20,6 +20,7 @@ pub enum BoardMemberRole {
 
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Debug, PartialEq, TS)]
 #[sqlx(type_name = "task_priority", rename_all = "snake_case")]
+#[serde(rename_all = "lowercase")]
 #[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
 pub enum TaskPriority {
     Urgent,
