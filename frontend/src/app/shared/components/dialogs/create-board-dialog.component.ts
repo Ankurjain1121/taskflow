@@ -211,11 +211,11 @@ export class CreateBoardDialogComponent implements OnInit {
   /** Two-way bound visibility */
   visible = model(false);
 
-  /** Input data previously passed via MAT_DIALOG_DATA */
+  /** Input data for the dialog */
   workspaceId = input<string>('');
   workspaceName = input<string>('');
 
-  /** Output event replacing MatDialogRef.close(result) */
+  /** Emits result when dialog closes with a value */
   created = output<CreateBoardDialogResult>();
 
   templates = signal<BoardTemplate[]>([]);

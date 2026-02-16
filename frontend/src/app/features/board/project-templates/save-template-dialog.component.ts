@@ -146,11 +146,11 @@ export class SaveTemplateDialogComponent {
   /** Two-way bound visibility */
   visible = model(false);
 
-  /** Input data previously passed via MAT_DIALOG_DATA */
+  /** Input data for the dialog */
   boardId = input<string>('');
   boardName = input<string>('');
 
-  /** Output event replacing MatDialogRef.close(result) */
+  /** Emits result when dialog closes with a value */
   saved = output<SaveTemplateDialogResult>();
 
   categoryOptions = TEMPLATE_CATEGORIES.map((cat) => ({

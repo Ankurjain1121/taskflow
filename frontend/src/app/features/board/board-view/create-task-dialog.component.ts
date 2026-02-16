@@ -310,7 +310,7 @@ export class CreateTaskDialogComponent {
   /** Two-way bound visibility */
   visible = model(false);
 
-  /** Input data previously passed via MAT_DIALOG_DATA */
+  /** Input data for the dialog */
   columnId = input<string>('');
   columnName = input<string>('');
   members = input<{ id: string; name: string; avatar_url?: string }[]>([]);
@@ -318,7 +318,7 @@ export class CreateTaskDialogComponent {
   milestones = input<{ id: string; name: string; color: string }[]>([]);
   groups = input<{ id: string; name: string; color: string }[]>([]);
 
-  /** Output event replacing MatDialogRef.close(result) */
+  /** Emits result when dialog closes with a value */
   created = output<CreateTaskDialogResult>();
 
   saving = signal(false);

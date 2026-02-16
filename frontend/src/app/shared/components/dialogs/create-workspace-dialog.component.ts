@@ -101,7 +101,7 @@ export class CreateWorkspaceDialogComponent {
   /** Two-way bound visibility */
   visible = model(false);
 
-  /** Output event replacing MatDialogRef.close(result) */
+  /** Emits result when dialog closes with a value */
   created = output<CreateWorkspaceDialogResult>();
 
   form: FormGroup = this.fb.group({

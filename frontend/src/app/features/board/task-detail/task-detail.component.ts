@@ -3,6 +3,7 @@ import {
   input,
   output,
   signal,
+  computed,
   inject,
   OnInit,
   OnChanges,
@@ -12,6 +13,15 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Drawer } from 'primeng/drawer';
+import { Select } from 'primeng/select';
+import { DatePicker } from 'primeng/datepicker';
+import { InputTextModule } from 'primeng/inputtext';
+import { Textarea } from 'primeng/textarea';
+import { InputNumber } from 'primeng/inputnumber';
+import { ButtonModule } from 'primeng/button';
+import { Tag } from 'primeng/tag';
+import { Tooltip } from 'primeng/tooltip';
 import {
   TaskService,
   Task,
@@ -20,7 +30,10 @@ import {
   TaskListItem,
   Assignee,
 } from '../../../core/services/task.service';
-import { WorkspaceService, MemberSearchResult } from '../../../core/services/workspace.service';
+import {
+  WorkspaceService,
+  MemberSearchResult,
+} from '../../../core/services/workspace.service';
 import { BoardService, Column } from '../../../core/services/board.service';
 import {
   PRIORITY_COLORS,
@@ -57,54 +70,40 @@ import {
 @Component({
   selector: 'app-task-detail',
   standalone: true,
-  imports: [CommonModule, FormsModule, SubtaskListComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    SubtaskListComponent,
+    Drawer,
+    Select,
+    DatePicker,
+    InputTextModule,
+    Textarea,
+    InputNumber,
+    ButtonModule,
+    Tag,
+    Tooltip,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- Backdrop -->
-    <div
-      class="fixed inset-0 bg-black bg-opacity-25 z-40"
-      (click)="onClose()"
-    ></div>
-
-    <!-- Slide-over Panel -->
-    <div
-      class="fixed inset-y-0 right-0 w-[480px] bg-white shadow-xl z-50 flex flex-col transform transition-transform"
-      [class.translate-x-0]="true"
+    <p-drawer
+      [(visible)]="drawerVisible"
+      position="right"
+      [style]="{ width: '480px' }"
+      [modal]="true"
+      (onHide)="onClose()"
     >
-      <!-- Header -->
-      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+      <ng-template #header>
         <div class="flex items-center gap-2">
           <span class="text-sm text-gray-500">Task Detail</span>
           @if (column()?.status_mapping?.done) {
-            <span
-              class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
-            >
-              Done
-            </span>
+            <p-tag value="Done" severity="success" />
           }
         </div>
-        <button
-          (click)="onClose()"
-          class="p-2 hover:bg-gray-100 rounded-md transition-colors"
-        >
-          <svg
-            class="w-5 h-5 text-gray-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
-      </div>
+      </ng-template>
 
       @if (loading()) {
-        <div class="flex-1 p-6 space-y-6 animate-fade-in">
+        <div class="p-6 space-y-6 animate-fade-in">
           <div class="space-y-3">
             <div class="skeleton skeleton-heading w-3/4"></div>
             <div class="skeleton skeleton-text w-1/2"></div>
@@ -123,15 +122,16 @@ import {
         </div>
       } @else if (task()) {
         <div class="flex-1 overflow-y-auto">
-          <div class="px-6 py-4 space-y-6">
+          <div class="px-2 py-4 space-y-6">
             <!-- Title (Inline Editable) -->
             <div>
               <input
+                pInputText
                 type="text"
                 [ngModel]="task()!.title"
                 (ngModelChange)="onTitleChange($event)"
                 (blur)="saveTitle()"
-                class="w-full text-xl font-semibold text-gray-900 border-0 border-b-2 border-transparent hover:border-gray-200 focus:border-indigo-500 focus:ring-0 px-0 py-1"
+                class="w-full text-xl font-semibold"
                 placeholder="Task title"
               />
             </div>
@@ -159,17 +159,33 @@ import {
                 <label class="block text-sm font-medium text-gray-500 mb-1"
                   >Priority</label
                 >
-                <select
+                <p-select
                   [ngModel]="task()!.priority"
                   (ngModelChange)="onPriorityChange($event)"
-                  class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  [options]="prioritySelectOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  styleClass="w-full"
                 >
-                  @for (priority of priorityOptions; track priority) {
-                    <option [value]="priority">
-                      {{ getPriorityLabel(priority) }}
-                    </option>
-                  }
-                </select>
+                  <ng-template #selectedItem let-selected>
+                    <div class="flex items-center gap-2" *ngIf="selected">
+                      <span
+                        class="w-2.5 h-2.5 rounded-full"
+                        [style.background-color]="selected.color"
+                      ></span>
+                      {{ selected.label }}
+                    </div>
+                  </ng-template>
+                  <ng-template #item let-priority>
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="w-2.5 h-2.5 rounded-full"
+                        [style.background-color]="priority.color"
+                      ></span>
+                      {{ priority.label }}
+                    </div>
+                  </ng-template>
+                </p-select>
               </div>
 
               <!-- Due Date -->
@@ -177,14 +193,14 @@ import {
                 <label class="block text-sm font-medium text-gray-500 mb-1"
                   >Due Date</label
                 >
-                <input
-                  type="date"
-                  [ngModel]="task()!.due_date || ''"
-                  (ngModelChange)="onDueDateChange($event)"
-                  [class]="
-                    'w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ' +
-                    getDueDateColor(task()!.due_date)
-                  "
+                <p-datePicker
+                  [ngModel]="dueDateValue()"
+                  (ngModelChange)="onDueDatePickerChange($event)"
+                  dateFormat="yy-mm-dd"
+                  [showIcon]="true"
+                  [showClear]="true"
+                  styleClass="w-full"
+                  placeholder="No due date"
                 />
               </div>
 
@@ -217,19 +233,7 @@ import {
                           (click)="onUnassign(assignee)"
                           class="ml-1 text-gray-400 hover:text-gray-600"
                         >
-                          <svg
-                            class="w-3 h-3"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
+                          <i class="pi pi-times text-xs"></i>
                         </button>
                       </div>
                     }
@@ -238,19 +242,7 @@ import {
                     (click)="toggleAssigneeSearch()"
                     class="inline-flex items-center gap-1 px-2 py-1 text-sm text-indigo-600 hover:bg-indigo-50 rounded-full"
                   >
-                    <svg
-                      class="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M12 4v16m8-8H4"
-                      />
-                    </svg>
+                    <i class="pi pi-plus text-xs"></i>
                     Add
                   </button>
                 </div>
@@ -261,11 +253,12 @@ import {
                     class="mt-2 bg-white border border-gray-200 rounded-md shadow-lg"
                   >
                     <input
+                      pInputText
                       type="text"
                       [ngModel]="assigneeSearchQuery()"
                       (ngModelChange)="onAssigneeSearchChange($event)"
                       placeholder="Search members..."
-                      class="w-full px-3 py-2 text-sm border-0 border-b border-gray-200 focus:ring-0"
+                      class="w-full border-0 border-b border-gray-200"
                     />
                     <div class="max-h-48 overflow-y-auto p-2">
                       @for (member of searchResults(); track member.id) {
@@ -281,8 +274,12 @@ import {
                           <span>{{ member.name || member.email }}</span>
                         </button>
                       }
-                      @if (searchResults().length === 0 && assigneeSearchQuery()) {
-                        <div class="px-2 py-4 text-sm text-gray-500 text-center">
+                      @if (
+                        searchResults().length === 0 && assigneeSearchQuery()
+                      ) {
+                        <div
+                          class="px-2 py-4 text-sm text-gray-500 text-center"
+                        >
                           No members found
                         </div>
                       }
@@ -298,11 +295,12 @@ import {
                 >Description</label
               >
               <textarea
+                pTextarea
                 [ngModel]="task()!.description || ''"
                 (ngModelChange)="onDescriptionChange($event)"
                 (blur)="saveDescription()"
                 rows="4"
-                class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                class="w-full"
                 placeholder="Add a description..."
               ></textarea>
             </div>
@@ -325,19 +323,7 @@ import {
                         (click)="onRemoveLabel(label.id)"
                         class="ml-1.5 hover:opacity-70"
                       >
-                        <svg
-                          class="w-3 h-3"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
+                        <i class="pi pi-times text-xs"></i>
                       </button>
                     </span>
                   }
@@ -349,56 +335,58 @@ import {
 
             <!-- Milestone -->
             <div class="border-t border-gray-200 pt-6">
-              <label class="block text-sm font-medium text-gray-500 mb-2">Milestone</label>
+              <label class="block text-sm font-medium text-gray-500 mb-2"
+                >Milestone</label
+              >
               <div class="flex items-center gap-2">
                 @if (selectedMilestone()) {
                   <span
                     class="w-3 h-3 rounded-full flex-shrink-0"
                     [style.background-color]="selectedMilestone()!.color"
                   ></span>
-                  <span class="text-sm text-gray-900">{{ selectedMilestone()!.name }}</span>
+                  <span class="text-sm text-gray-900">{{
+                    selectedMilestone()!.name
+                  }}</span>
                   <button
                     (click)="onClearMilestone()"
                     class="ml-auto p-1 text-gray-400 hover:text-gray-600 rounded"
-                    title="Remove milestone"
+                    pTooltip="Remove milestone"
                   >
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <i class="pi pi-times text-xs"></i>
                   </button>
                 } @else {
                   <span class="text-sm text-gray-400">None</span>
                 }
               </div>
-              <select
+              <p-select
                 [ngModel]="task()?.milestone_id || ''"
                 (ngModelChange)="onMilestoneChange($event)"
-                class="mt-2 w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              >
-                <option value="">No milestone</option>
-                @for (ms of milestones(); track ms.id) {
-                  <option [value]="ms.id">{{ ms.name }}</option>
-                }
-              </select>
+                [options]="milestoneSelectOptions()"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="No milestone"
+                [showClear]="true"
+                styleClass="w-full mt-2"
+              />
             </div>
 
             <!-- Dependencies -->
             <div class="border-t border-gray-200 pt-6">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
-                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                  </svg>
-                  <h3 class="text-sm font-medium text-gray-900">Dependencies</h3>
-                  <span class="text-xs text-gray-400">({{ dependencies().length }})</span>
+                  <i class="pi pi-link text-gray-400"></i>
+                  <h3 class="text-sm font-medium text-gray-900">
+                    Dependencies
+                  </h3>
+                  <span class="text-xs text-gray-400"
+                    >({{ dependencies().length }})</span
+                  >
                 </div>
                 <button
                   (click)="toggleAddDependency()"
                   class="inline-flex items-center gap-1 px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 rounded"
                 >
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                  </svg>
+                  <i class="pi pi-plus text-xs"></i>
                   Add
                 </button>
               </div>
@@ -406,24 +394,26 @@ import {
               <!-- Add Dependency Form -->
               @if (showAddDependency()) {
                 <div class="mb-3 bg-gray-50 rounded-md p-3 space-y-2">
-                  <select
+                  <p-select
                     [ngModel]="selectedDepType()"
                     (ngModelChange)="selectedDepType.set($event)"
-                    class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  >
-                    <option value="blocks">Blocks</option>
-                    <option value="blocked_by">Blocked by</option>
-                    <option value="related">Related to</option>
-                  </select>
+                    [options]="depTypeOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    styleClass="w-full"
+                  />
                   <input
+                    pInputText
                     type="text"
                     [ngModel]="depSearchQuery()"
                     (ngModelChange)="onDepSearchChange($event)"
                     placeholder="Search tasks..."
-                    class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    class="w-full"
                   />
                   @if (depSearchResults().length > 0) {
-                    <div class="max-h-40 overflow-y-auto border border-gray-200 rounded-md bg-white">
+                    <div
+                      class="max-h-40 overflow-y-auto border border-gray-200 rounded-md bg-white"
+                    >
                       @for (t of depSearchResults(); track t.id) {
                         <button
                           (click)="onAddDependency(t)"
@@ -437,7 +427,10 @@ import {
                             [class.bg-blue-500]="t.priority === 'low'"
                           ></span>
                           <span class="truncate">{{ t.title }}</span>
-                          <span class="text-xs text-gray-400 ml-auto flex-shrink-0">{{ t.column_name }}</span>
+                          <span
+                            class="text-xs text-gray-400 ml-auto flex-shrink-0"
+                            >{{ t.column_name }}</span
+                          >
                         </button>
                       }
                     </div>
@@ -448,28 +441,43 @@ import {
               <!-- Blocking (tasks this task blocks) -->
               @if (blockingDeps().length > 0) {
                 <div class="mb-2">
-                  <span class="text-xs font-medium text-red-600 uppercase tracking-wide">Blocking</span>
+                  <span
+                    class="text-xs font-medium text-red-600 uppercase tracking-wide"
+                    >Blocking</span
+                  >
                   <div class="mt-1 space-y-1">
                     @for (dep of blockingDeps(); track dep.id) {
-                      <div class="flex items-center justify-between px-2 py-1.5 bg-red-50 rounded text-sm group">
+                      <div
+                        class="flex items-center justify-between px-2 py-1.5 bg-red-50 rounded text-sm group"
+                      >
                         <div class="flex items-center gap-2 min-w-0">
                           <span
                             class="w-2 h-2 rounded-full flex-shrink-0"
-                            [class.bg-red-500]="dep.related_task_priority === 'urgent'"
-                            [class.bg-orange-500]="dep.related_task_priority === 'high'"
-                            [class.bg-yellow-500]="dep.related_task_priority === 'medium'"
-                            [class.bg-blue-500]="dep.related_task_priority === 'low'"
+                            [class.bg-red-500]="
+                              dep.related_task_priority === 'urgent'
+                            "
+                            [class.bg-orange-500]="
+                              dep.related_task_priority === 'high'
+                            "
+                            [class.bg-yellow-500]="
+                              dep.related_task_priority === 'medium'
+                            "
+                            [class.bg-blue-500]="
+                              dep.related_task_priority === 'low'
+                            "
                           ></span>
-                          <span class="truncate text-red-800">{{ dep.related_task_title }}</span>
-                          <span class="text-xs text-red-400 flex-shrink-0">{{ dep.related_task_column_name }}</span>
+                          <span class="truncate text-red-800">{{
+                            dep.related_task_title
+                          }}</span>
+                          <span class="text-xs text-red-400 flex-shrink-0">{{
+                            dep.related_task_column_name
+                          }}</span>
                         </div>
                         <button
                           (click)="onRemoveDependency(dep.id)"
                           class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 p-0.5"
                         >
-                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
+                          <i class="pi pi-times text-xs"></i>
                         </button>
                       </div>
                     }
@@ -480,28 +488,46 @@ import {
               <!-- Blocked by (tasks that block this task) -->
               @if (blockedByDeps().length > 0) {
                 <div class="mb-2">
-                  <span class="text-xs font-medium text-orange-600 uppercase tracking-wide">Blocked by</span>
+                  <span
+                    class="text-xs font-medium text-orange-600 uppercase tracking-wide"
+                    >Blocked by</span
+                  >
                   <div class="mt-1 space-y-1">
                     @for (dep of blockedByDeps(); track dep.id) {
-                      <div class="flex items-center justify-between px-2 py-1.5 bg-orange-50 rounded text-sm group">
+                      <div
+                        class="flex items-center justify-between px-2 py-1.5 bg-orange-50 rounded text-sm group"
+                      >
                         <div class="flex items-center gap-2 min-w-0">
                           <span
                             class="w-2 h-2 rounded-full flex-shrink-0"
-                            [class.bg-red-500]="dep.related_task_priority === 'urgent'"
-                            [class.bg-orange-500]="dep.related_task_priority === 'high'"
-                            [class.bg-yellow-500]="dep.related_task_priority === 'medium'"
-                            [class.bg-blue-500]="dep.related_task_priority === 'low'"
+                            [class.bg-red-500]="
+                              dep.related_task_priority === 'urgent'
+                            "
+                            [class.bg-orange-500]="
+                              dep.related_task_priority === 'high'
+                            "
+                            [class.bg-yellow-500]="
+                              dep.related_task_priority === 'medium'
+                            "
+                            [class.bg-blue-500]="
+                              dep.related_task_priority === 'low'
+                            "
                           ></span>
-                          <span class="truncate text-orange-800">{{ dep.related_task_title }}</span>
-                          <span class="text-xs text-orange-400 flex-shrink-0">{{ dep.related_task_column_name }}</span>
+                          <span class="truncate text-orange-800">{{
+                            dep.related_task_title
+                          }}</span>
+                          <span
+                            class="text-xs text-orange-400 flex-shrink-0"
+                            >{{
+                              dep.related_task_column_name
+                            }}</span
+                          >
                         </div>
                         <button
                           (click)="onRemoveDependency(dep.id)"
                           class="opacity-0 group-hover:opacity-100 text-orange-400 hover:text-orange-600 p-0.5"
                         >
-                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
+                          <i class="pi pi-times text-xs"></i>
                         </button>
                       </div>
                     }
@@ -512,28 +538,46 @@ import {
               <!-- Related -->
               @if (relatedDeps().length > 0) {
                 <div class="mb-2">
-                  <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Related</span>
+                  <span
+                    class="text-xs font-medium text-gray-500 uppercase tracking-wide"
+                    >Related</span
+                  >
                   <div class="mt-1 space-y-1">
                     @for (dep of relatedDeps(); track dep.id) {
-                      <div class="flex items-center justify-between px-2 py-1.5 bg-gray-50 rounded text-sm group">
+                      <div
+                        class="flex items-center justify-between px-2 py-1.5 bg-gray-50 rounded text-sm group"
+                      >
                         <div class="flex items-center gap-2 min-w-0">
                           <span
                             class="w-2 h-2 rounded-full flex-shrink-0"
-                            [class.bg-red-500]="dep.related_task_priority === 'urgent'"
-                            [class.bg-orange-500]="dep.related_task_priority === 'high'"
-                            [class.bg-yellow-500]="dep.related_task_priority === 'medium'"
-                            [class.bg-blue-500]="dep.related_task_priority === 'low'"
+                            [class.bg-red-500]="
+                              dep.related_task_priority === 'urgent'
+                            "
+                            [class.bg-orange-500]="
+                              dep.related_task_priority === 'high'
+                            "
+                            [class.bg-yellow-500]="
+                              dep.related_task_priority === 'medium'
+                            "
+                            [class.bg-blue-500]="
+                              dep.related_task_priority === 'low'
+                            "
                           ></span>
-                          <span class="truncate text-gray-800">{{ dep.related_task_title }}</span>
-                          <span class="text-xs text-gray-400 flex-shrink-0">{{ dep.related_task_column_name }}</span>
+                          <span class="truncate text-gray-800">{{
+                            dep.related_task_title
+                          }}</span>
+                          <span
+                            class="text-xs text-gray-400 flex-shrink-0"
+                            >{{
+                              dep.related_task_column_name
+                            }}</span
+                          >
                         </div>
                         <button
                           (click)="onRemoveDependency(dep.id)"
                           class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 p-0.5"
                         >
-                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
+                          <i class="pi pi-times text-xs"></i>
                         </button>
                       </div>
                     }
@@ -550,9 +594,7 @@ import {
             <div class="border-t border-gray-200 pt-6">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
-                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
+                  <i class="pi pi-replay text-gray-400"></i>
                   <h3 class="text-sm font-medium text-gray-900">Recurring</h3>
                 </div>
                 @if (!recurringConfig() && !showRecurringForm()) {
@@ -560,9 +602,7 @@ import {
                     (click)="toggleRecurringForm()"
                     class="inline-flex items-center gap-1 px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 rounded"
                   >
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
+                    <i class="pi pi-plus text-xs"></i>
                     Set as recurring
                   </button>
                 }
@@ -571,29 +611,57 @@ import {
                 <div class="bg-indigo-50 rounded-md p-3 space-y-2">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                      <span class="text-sm font-medium text-indigo-800">Repeats: {{ getPatternLabel(recurringConfig()!.pattern) }}</span>
+                      <span class="text-sm font-medium text-indigo-800"
+                        >Repeats:
+                        {{
+                          getPatternLabel(recurringConfig()!.pattern)
+                        }}</span
+                      >
                       @if (!recurringConfig()!.is_active) {
-                        <span class="text-xs px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded">Paused</span>
+                        <span
+                          class="text-xs px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded"
+                          >Paused</span
+                        >
                       }
                     </div>
                     <div class="flex items-center gap-1">
-                      <button (click)="toggleRecurringForm()" class="p-1 text-indigo-400 hover:text-indigo-600 rounded" title="Edit">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
+                      <button
+                        (click)="toggleRecurringForm()"
+                        class="p-1 text-indigo-400 hover:text-indigo-600 rounded"
+                        pTooltip="Edit"
+                      >
+                        <i class="pi pi-pencil text-xs"></i>
                       </button>
-                      <button (click)="onRemoveRecurring()" class="p-1 text-red-400 hover:text-red-600 rounded" title="Remove">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                      <button
+                        (click)="onRemoveRecurring()"
+                        class="p-1 text-red-400 hover:text-red-600 rounded"
+                        pTooltip="Remove"
+                      >
+                        <i class="pi pi-times text-xs"></i>
                       </button>
                     </div>
                   </div>
                   <div class="text-xs text-indigo-600 space-y-1">
-                    <div>Next run: {{ formatDate(recurringConfig()!.next_run_at) }}</div>
-                    <div>Occurrences: {{ recurringConfig()!.occurrences_created }}{{ recurringConfig()!.max_occurrences ? ' / ' + recurringConfig()!.max_occurrences : '' }}</div>
-                    @if (recurringConfig()!.interval_days && recurringConfig()!.pattern === 'custom') {
-                      <div>Every {{ recurringConfig()!.interval_days }} days</div>
+                    <div>
+                      Next run:
+                      {{ formatDate(recurringConfig()!.next_run_at) }}
+                    </div>
+                    <div>
+                      Occurrences:
+                      {{ recurringConfig()!.occurrences_created
+                      }}{{
+                        recurringConfig()!.max_occurrences
+                          ? ' / ' + recurringConfig()!.max_occurrences
+                          : ''
+                      }}
+                    </div>
+                    @if (
+                      recurringConfig()!.interval_days &&
+                      recurringConfig()!.pattern === 'custom'
+                    ) {
+                      <div>
+                        Every {{ recurringConfig()!.interval_days }} days
+                      </div>
                     }
                   </div>
                 </div>
@@ -601,30 +669,62 @@ import {
               @if (showRecurringForm()) {
                 <div class="bg-gray-50 rounded-md p-3 space-y-3">
                   <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">Pattern</label>
-                    <select [ngModel]="recurringPattern()" (ngModelChange)="recurringPattern.set($event)" class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="biweekly">Biweekly</option>
-                      <option value="monthly">Monthly</option>
-                      <option value="custom">Custom</option>
-                    </select>
+                    <label class="block text-xs font-medium text-gray-500 mb-1"
+                      >Pattern</label
+                    >
+                    <p-select
+                      [ngModel]="recurringPattern()"
+                      (ngModelChange)="recurringPattern.set($event)"
+                      [options]="recurringPatternOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      styleClass="w-full"
+                    />
                   </div>
                   @if (recurringPattern() === 'custom') {
                     <div>
-                      <label class="block text-xs font-medium text-gray-500 mb-1">Interval (days)</label>
-                      <input type="number" min="1" [ngModel]="recurringIntervalDays()" (ngModelChange)="recurringIntervalDays.set($event)" class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="e.g. 3" />
+                      <label
+                        class="block text-xs font-medium text-gray-500 mb-1"
+                        >Interval (days)</label
+                      >
+                      <input
+                        pInputText
+                        type="number"
+                        min="1"
+                        [ngModel]="recurringIntervalDays()"
+                        (ngModelChange)="recurringIntervalDays.set($event)"
+                        class="w-full"
+                        placeholder="e.g. 3"
+                      />
                     </div>
                   }
                   <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">Max occurrences (optional)</label>
-                    <input type="number" min="1" [ngModel]="recurringMaxOccurrences()" (ngModelChange)="recurringMaxOccurrences.set($event)" class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Leave empty for unlimited" />
+                    <label class="block text-xs font-medium text-gray-500 mb-1"
+                      >Max occurrences (optional)</label
+                    >
+                    <input
+                      pInputText
+                      type="number"
+                      min="1"
+                      [ngModel]="recurringMaxOccurrences()"
+                      (ngModelChange)="recurringMaxOccurrences.set($event)"
+                      class="w-full"
+                      placeholder="Leave empty for unlimited"
+                    />
                   </div>
                   <div class="flex items-center gap-2">
-                    <button (click)="onSaveRecurring()" class="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
-                      {{ recurringConfig() ? 'Update' : 'Save' }}
-                    </button>
-                    <button (click)="toggleRecurringForm()" class="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200 rounded-md">Cancel</button>
+                    <p-button
+                      [label]="recurringConfig() ? 'Update' : 'Save'"
+                      (onClick)="onSaveRecurring()"
+                      size="small"
+                    />
+                    <p-button
+                      label="Cancel"
+                      [text]="true"
+                      severity="secondary"
+                      (onClick)="toggleRecurringForm()"
+                      size="small"
+                    />
                   </div>
                 </div>
               }
@@ -642,10 +742,10 @@ import {
             @if (customFields().length > 0) {
               <div class="border-t border-gray-200 pt-6">
                 <div class="flex items-center gap-2 mb-3">
-                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                  <h3 class="text-sm font-medium text-gray-900">Custom Fields</h3>
+                  <i class="pi pi-clipboard text-gray-400"></i>
+                  <h3 class="text-sm font-medium text-gray-900">
+                    Custom Fields
+                  </h3>
                 </div>
                 <div class="space-y-3">
                   @for (cf of customFields(); track cf.field_id) {
@@ -659,55 +759,76 @@ import {
                       @switch (cf.field_type) {
                         @case ('text') {
                           <input
+                            pInputText
                             type="text"
                             [ngModel]="cf.value_text || ''"
-                            (ngModelChange)="onCustomFieldTextChange(cf.field_id, $event)"
+                            (ngModelChange)="
+                              onCustomFieldTextChange(cf.field_id, $event)
+                            "
                             (blur)="saveCustomFields()"
-                            class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            class="w-full"
                             placeholder="Enter text..."
                           />
                         }
                         @case ('number') {
                           <input
+                            pInputText
                             type="number"
                             [ngModel]="cf.value_number"
-                            (ngModelChange)="onCustomFieldNumberChange(cf.field_id, $event)"
+                            (ngModelChange)="
+                              onCustomFieldNumberChange(cf.field_id, $event)
+                            "
                             (blur)="saveCustomFields()"
-                            class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            class="w-full"
                             placeholder="Enter number..."
                           />
                         }
                         @case ('date') {
-                          <input
-                            type="date"
-                            [ngModel]="cf.value_date ? cf.value_date.split('T')[0] : ''"
-                            (ngModelChange)="onCustomFieldDateChange(cf.field_id, $event)"
-                            class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                          <p-datePicker
+                            [ngModel]="
+                              cf.value_date ? toDate(cf.value_date) : null
+                            "
+                            (ngModelChange)="
+                              onCustomFieldDatePickerChange(cf.field_id, $event)
+                            "
+                            dateFormat="yy-mm-dd"
+                            [showIcon]="true"
+                            [showClear]="true"
+                            styleClass="w-full"
                           />
                         }
                         @case ('dropdown') {
-                          <select
+                          <p-select
                             [ngModel]="cf.value_text || ''"
-                            (ngModelChange)="onCustomFieldDropdownChange(cf.field_id, $event)"
-                            class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                          >
-                            <option value="">Select...</option>
-                            @if (cf.options) {
-                              @for (opt of getDropdownOptions(cf.options); track opt) {
-                                <option [value]="opt">{{ opt }}</option>
-                              }
-                            }
-                          </select>
+                            (ngModelChange)="
+                              onCustomFieldDropdownChange(cf.field_id, $event)
+                            "
+                            [options]="getDropdownSelectOptions(cf.options)"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="Select..."
+                            [showClear]="true"
+                            styleClass="w-full"
+                          />
                         }
                         @case ('checkbox') {
-                          <label class="inline-flex items-center gap-2 cursor-pointer">
+                          <label
+                            class="inline-flex items-center gap-2 cursor-pointer"
+                          >
                             <input
                               type="checkbox"
                               [ngModel]="cf.value_bool || false"
-                              (ngModelChange)="onCustomFieldCheckboxChange(cf.field_id, $event)"
+                              (ngModelChange)="
+                                onCustomFieldCheckboxChange(
+                                  cf.field_id,
+                                  $event
+                                )
+                              "
                               class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                             />
-                            <span class="text-sm text-gray-700">{{ cf.value_bool ? 'Yes' : 'No' }}</span>
+                            <span class="text-sm text-gray-700">{{
+                              cf.value_bool ? 'Yes' : 'No'
+                            }}</span>
                           </label>
                         }
                       }
@@ -721,22 +842,21 @@ import {
             <div class="border-t border-gray-200 pt-6">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
-                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <h3 class="text-sm font-medium text-gray-900">Time Tracking</h3>
+                  <i class="pi pi-clock text-gray-400"></i>
+                  <h3 class="text-sm font-medium text-gray-900">
+                    Time Tracking
+                  </h3>
                   @if (timeEntryTotalMinutes() > 0) {
-                    <span class="text-xs text-gray-400">({{ formatDuration(timeEntryTotalMinutes()) }})</span>
+                    <span class="text-xs text-gray-400"
+                      >({{ formatDuration(timeEntryTotalMinutes()) }})</span
+                    >
                   }
                 </div>
                 <button
                   (click)="toggleLogTimeForm()"
                   class="inline-flex items-center gap-1 px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 rounded"
                 >
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                  </svg>
+                  <i class="pi pi-plus text-xs"></i>
                   Log Time
                 </button>
               </div>
@@ -744,29 +864,32 @@ import {
               <!-- Timer Control -->
               <div class="mb-3">
                 @if (runningTimerForTask()) {
-                  <div class="flex items-center gap-3 px-3 py-2 bg-red-50 rounded-md">
-                    <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                    <span class="text-sm font-mono text-red-700 flex-1">{{ elapsedTime() }}</span>
-                    <button
-                      (click)="onStopTimer()"
-                      class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded"
-                    >
-                      <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                        <rect x="6" y="6" width="12" height="12" rx="1" />
-                      </svg>
-                      Stop
-                    </button>
+                  <div
+                    class="flex items-center gap-3 px-3 py-2 bg-red-50 rounded-md"
+                  >
+                    <div
+                      class="w-2 h-2 rounded-full bg-red-500 animate-pulse"
+                    ></div>
+                    <span class="text-sm font-mono text-red-700 flex-1">{{
+                      elapsedTime()
+                    }}</span>
+                    <p-button
+                      label="Stop"
+                      icon="pi pi-stop"
+                      severity="danger"
+                      size="small"
+                      (onClick)="onStopTimer()"
+                    />
                   </div>
                 } @else {
-                  <button
-                    (click)="onStartTimer()"
-                    class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-md w-full justify-center"
-                  >
-                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                    Start Timer
-                  </button>
+                  <p-button
+                    label="Start Timer"
+                    icon="pi pi-play"
+                    severity="success"
+                    [outlined]="true"
+                    styleClass="w-full"
+                    (onClick)="onStartTimer()"
+                  />
                 }
               </div>
 
@@ -775,55 +898,64 @@ import {
                 <div class="mb-3 bg-gray-50 rounded-md p-3 space-y-2">
                   <div class="flex gap-2">
                     <div class="flex-1">
-                      <label class="block text-xs text-gray-500 mb-1">Hours</label>
+                      <label class="block text-xs text-gray-500 mb-1"
+                        >Hours</label
+                      >
                       <input
+                        pInputText
                         type="number"
                         min="0"
                         [ngModel]="logTimeHours()"
                         (ngModelChange)="logTimeHours.set($event)"
-                        class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        class="w-full"
                         placeholder="0"
                       />
                     </div>
                     <div class="flex-1">
-                      <label class="block text-xs text-gray-500 mb-1">Minutes</label>
+                      <label class="block text-xs text-gray-500 mb-1"
+                        >Minutes</label
+                      >
                       <input
+                        pInputText
                         type="number"
                         min="0"
                         max="59"
                         [ngModel]="logTimeMinutes()"
                         (ngModelChange)="logTimeMinutes.set($event)"
-                        class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        class="w-full"
                         placeholder="0"
                       />
                     </div>
                   </div>
                   <input
+                    pInputText
                     type="text"
                     [ngModel]="logTimeDescription()"
                     (ngModelChange)="logTimeDescription.set($event)"
                     placeholder="Description (optional)"
-                    class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    class="w-full"
                   />
-                  <input
-                    type="date"
-                    [ngModel]="logTimeDate()"
-                    (ngModelChange)="logTimeDate.set($event)"
-                    class="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  <p-datePicker
+                    [ngModel]="logTimeDateValue()"
+                    (ngModelChange)="onLogTimeDateChange($event)"
+                    dateFormat="yy-mm-dd"
+                    [showIcon]="true"
+                    styleClass="w-full"
                   />
                   <div class="flex gap-2">
-                    <button
-                      (click)="onSubmitLogTime()"
-                      class="flex-1 px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
-                    >
-                      Log Time
-                    </button>
-                    <button
-                      (click)="toggleLogTimeForm()"
-                      class="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200 rounded-md"
-                    >
-                      Cancel
-                    </button>
+                    <p-button
+                      label="Log Time"
+                      (onClick)="onSubmitLogTime()"
+                      styleClass="flex-1"
+                      size="small"
+                    />
+                    <p-button
+                      label="Cancel"
+                      [text]="true"
+                      severity="secondary"
+                      (onClick)="toggleLogTimeForm()"
+                      size="small"
+                    />
                   </div>
                 </div>
               }
@@ -832,24 +964,28 @@ import {
               @if (timeEntries().length > 0) {
                 <div class="space-y-1">
                   @for (entry of timeEntries(); track entry.id) {
-                    <div class="flex items-center justify-between px-2 py-1.5 hover:bg-gray-50 rounded text-sm group">
+                    <div
+                      class="flex items-center justify-between px-2 py-1.5 hover:bg-gray-50 rounded text-sm group"
+                    >
                       <div class="flex items-center gap-2 min-w-0">
                         <span class="font-mono text-gray-700 flex-shrink-0">
                           {{ formatDuration(entry.duration_minutes || 0) }}
                         </span>
                         @if (entry.description) {
-                          <span class="text-gray-500 truncate">{{ entry.description }}</span>
+                          <span class="text-gray-500 truncate">{{
+                            entry.description
+                          }}</span>
                         }
                       </div>
                       <div class="flex items-center gap-2">
-                        <span class="text-xs text-gray-400 flex-shrink-0">{{ formatDate(entry.started_at) }}</span>
+                        <span class="text-xs text-gray-400 flex-shrink-0">{{
+                          formatDate(entry.started_at)
+                        }}</span>
                         <button
                           (click)="onDeleteTimeEntry(entry.id)"
                           class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600 p-0.5"
                         >
-                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
+                          <i class="pi pi-times text-xs"></i>
                         </button>
                       </div>
                     </div>
@@ -863,22 +999,12 @@ import {
             <!-- Comments Placeholder -->
             <div class="border-t border-gray-200 pt-6">
               <div class="flex items-center gap-2 mb-4">
-                <svg
-                  class="w-5 h-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                  />
-                </svg>
+                <i class="pi pi-comments text-gray-400"></i>
                 <h3 class="text-sm font-medium text-gray-900">Comments</h3>
               </div>
-              <div class="bg-gray-50 rounded-md p-4 text-center text-sm text-gray-500">
+              <div
+                class="bg-gray-50 rounded-md p-4 text-center text-sm text-gray-500"
+              >
                 Comments will be available in a future update
               </div>
             </div>
@@ -886,57 +1012,35 @@ import {
             <!-- Attachments Placeholder -->
             <div class="border-t border-gray-200 pt-6">
               <div class="flex items-center gap-2 mb-4">
-                <svg
-                  class="w-5 h-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                  />
-                </svg>
+                <i class="pi pi-paperclip text-gray-400"></i>
                 <h3 class="text-sm font-medium text-gray-900">Attachments</h3>
               </div>
-              <div class="bg-gray-50 rounded-md p-4 text-center text-sm text-gray-500">
+              <div
+                class="bg-gray-50 rounded-md p-4 text-center text-sm text-gray-500"
+              >
                 Attachments will be available in a future update
               </div>
             </div>
-          </div>
-        </div>
 
-        <!-- Footer Actions -->
-        <div class="border-t border-gray-200 px-6 py-4">
-          <div class="flex items-center justify-between">
-            <div class="text-xs text-gray-500">
-              Created {{ formatDate(task()!.created_at) }}
-            </div>
-            <button
-              (click)="onDelete()"
-              class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-md"
-            >
-              <svg
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            <!-- Footer (inside scrollable content) -->
+            <div class="border-t border-gray-200 pt-4">
+              <div class="flex items-center justify-between">
+                <div class="text-xs text-gray-500">
+                  Created {{ formatDate(task()!.created_at) }}
+                </div>
+                <p-button
+                  label="Delete"
+                  icon="pi pi-trash"
+                  severity="danger"
+                  [text]="true"
+                  (onClick)="onDelete()"
                 />
-              </svg>
-              Delete
-            </button>
+              </div>
+            </div>
           </div>
         </div>
       }
-    </div>
+    </p-drawer>
   `,
 })
 export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
@@ -1004,6 +1108,50 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
 
   priorityOptions: TaskPriority[] = ['urgent', 'high', 'medium', 'low'];
 
+  // PrimeNG Drawer visibility - always true when component is rendered; parent controls lifecycle via @if
+  drawerVisible = true;
+
+  // PrimeNG Select options
+  prioritySelectOptions = [
+    { value: 'urgent', label: 'Urgent', color: '#ef4444' },
+    { value: 'high', label: 'High', color: '#f97316' },
+    { value: 'medium', label: 'Medium', color: '#facc15' },
+    { value: 'low', label: 'Low', color: '#60a5fa' },
+  ];
+
+  depTypeOptions = [
+    { value: 'blocks', label: 'Blocks' },
+    { value: 'blocked_by', label: 'Blocked by' },
+    { value: 'related', label: 'Related to' },
+  ];
+
+  recurringPatternOptions = [
+    { value: 'daily', label: 'Daily' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'biweekly', label: 'Biweekly' },
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'custom', label: 'Custom' },
+  ];
+
+  // Computed values for PrimeNG components
+  dueDateValue = computed(() => {
+    const d = this.task()?.due_date;
+    return d ? new Date(d) : null;
+  });
+
+  milestoneSelectOptions = computed(() => {
+    return this.milestones().map((ms) => ({
+      id: ms.id,
+      name: ms.name,
+      color: ms.color,
+    }));
+  });
+
+  logTimeDateValue = computed(() => {
+    const d = this.logTimeDate();
+    return d ? new Date(d) : new Date();
+  });
+
   private pendingTitle = '';
   private pendingDescription = '';
 
@@ -1022,7 +1170,10 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   timeEntryTotalMinutes(): number {
-    return this.timeEntries().reduce((sum, e) => sum + (e.duration_minutes || 0), 0);
+    return this.timeEntries().reduce(
+      (sum, e) => sum + (e.duration_minutes || 0),
+      0,
+    );
   }
 
   getPriorityLabel(priority: TaskPriority): string {
@@ -1080,6 +1231,36 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
 
   onDueDateChange(dueDate: string): void {
     this.updateTask({ due_date: dueDate || null });
+  }
+
+  onDueDatePickerChange(date: Date | null): void {
+    this.onDueDateChange(date ? date.toISOString().split('T')[0] : '');
+  }
+
+  onLogTimeDateChange(date: Date | null): void {
+    this.logTimeDate.set(
+      date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    );
+  }
+
+  toDate(dateString: string): Date {
+    return new Date(dateString);
+  }
+
+  onCustomFieldDatePickerChange(fieldId: string, date: Date | null): void {
+    this.onCustomFieldDateChange(
+      fieldId,
+      date ? date.toISOString().split('T')[0] : '',
+    );
+  }
+
+  getDropdownSelectOptions(
+    options: unknown,
+  ): { label: string; value: string }[] {
+    return this.getDropdownOptions(options).map((opt) => ({
+      label: opt,
+      value: opt,
+    }));
   }
 
   toggleAssigneeSearch(): void {
@@ -1173,7 +1354,8 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
           const updatedTask = { ...task, milestone_id: milestoneId };
           this.task.set(updatedTask);
           this.taskUpdated.emit(updatedTask);
-          const ms = this.milestones().find(m => m.id === milestoneId) || null;
+          const ms =
+            this.milestones().find((m) => m.id === milestoneId) || null;
           this.selectedMilestone.set(ms);
         },
         error: (err) => console.error('Failed to assign milestone:', err),
@@ -1238,13 +1420,13 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     }
     const currentTaskId = this.taskId();
     const existingDepTaskIds = new Set(
-      this.dependencies().map((d) => d.related_task_id)
+      this.dependencies().map((d) => d.related_task_id),
     );
     const filtered = this.boardTasks().filter(
       (t) =>
         t.id !== currentTaskId &&
         !existingDepTaskIds.has(t.id) &&
-        t.title.toLowerCase().includes(query.toLowerCase())
+        t.title.toLowerCase().includes(query.toLowerCase()),
     );
     this.depSearchResults.set(filtered.slice(0, 10));
   }
@@ -1290,12 +1472,12 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
 
     // "Blocking" = this task is the source of a "blocks" relationship
     const blocking = deps.filter(
-      (d) => d.dependency_type === 'blocks' && d.source_task_id === taskId
+      (d) => d.dependency_type === 'blocks' && d.source_task_id === taskId,
     );
 
     // "Blocked by" = this task is the target of a "blocks" relationship
     const blockedBy = deps.filter(
-      (d) => d.dependency_type === 'blocks' && d.target_task_id === taskId
+      (d) => d.dependency_type === 'blocks' && d.target_task_id === taskId,
     );
 
     // "Related" = related dependencies
@@ -1310,34 +1492,44 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
 
   onCustomFieldTextChange(fieldId: string, value: string): void {
     this.customFields.update((fields) =>
-      fields.map((f) => (f.field_id === fieldId ? { ...f, value_text: value || null } : f))
+      fields.map((f) =>
+        f.field_id === fieldId ? { ...f, value_text: value || null } : f,
+      ),
     );
   }
 
   onCustomFieldNumberChange(fieldId: string, value: number | null): void {
     this.customFields.update((fields) =>
-      fields.map((f) => (f.field_id === fieldId ? { ...f, value_number: value } : f))
+      fields.map((f) =>
+        f.field_id === fieldId ? { ...f, value_number: value } : f,
+      ),
     );
   }
 
   onCustomFieldDateChange(fieldId: string, value: string): void {
     const dateValue = value ? new Date(value).toISOString() : null;
     this.customFields.update((fields) =>
-      fields.map((f) => (f.field_id === fieldId ? { ...f, value_date: dateValue } : f))
+      fields.map((f) =>
+        f.field_id === fieldId ? { ...f, value_date: dateValue } : f,
+      ),
     );
     this.saveCustomFields();
   }
 
   onCustomFieldDropdownChange(fieldId: string, value: string): void {
     this.customFields.update((fields) =>
-      fields.map((f) => (f.field_id === fieldId ? { ...f, value_text: value || null } : f))
+      fields.map((f) =>
+        f.field_id === fieldId ? { ...f, value_text: value || null } : f,
+      ),
     );
     this.saveCustomFields();
   }
 
   onCustomFieldCheckboxChange(fieldId: string, value: boolean): void {
     this.customFields.update((fields) =>
-      fields.map((f) => (f.field_id === fieldId ? { ...f, value_bool: value } : f))
+      fields.map((f) =>
+        f.field_id === fieldId ? { ...f, value_bool: value } : f,
+      ),
     );
     this.saveCustomFields();
   }
@@ -1402,7 +1594,7 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
         this.runningTimerForTask.set(null);
         this.clearTimerInterval();
         this.timeEntries.update((entries) =>
-          entries.map((e) => (e.id === stoppedEntry.id ? stoppedEntry : e))
+          entries.map((e) => (e.id === stoppedEntry.id ? stoppedEntry : e)),
         );
       },
       error: (err) => console.error('Failed to stop timer:', err),
@@ -1425,9 +1617,12 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     const totalMinutes = hours * 60 + minutes;
     if (totalMinutes <= 0) return;
 
-    const dateStr = this.logTimeDate() || new Date().toISOString().split('T')[0];
+    const dateStr =
+      this.logTimeDate() || new Date().toISOString().split('T')[0];
     const startedAt = new Date(dateStr + 'T09:00:00Z').toISOString();
-    const endedAt = new Date(new Date(startedAt).getTime() + totalMinutes * 60000).toISOString();
+    const endedAt = new Date(
+      new Date(startedAt).getTime() + totalMinutes * 60000,
+    ).toISOString();
 
     this.timeTrackingService
       .createManualEntry(this.taskId(), {
@@ -1448,7 +1643,9 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   onDeleteTimeEntry(entryId: string): void {
     this.timeTrackingService.deleteEntry(entryId).subscribe({
       next: () => {
-        this.timeEntries.update((entries) => entries.filter((e) => e.id !== entryId));
+        this.timeEntries.update((entries) =>
+          entries.filter((e) => e.id !== entryId),
+        );
         if (this.runningTimerForTask()?.id === entryId) {
           this.runningTimerForTask.set(null);
           this.clearTimerInterval();
@@ -1485,7 +1682,7 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
       const mins = Math.floor((diffSec % 3600) / 60);
       const secs = diffSec % 60;
       this.elapsedTime.set(
-        `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+        `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`,
       );
     };
     updateElapsed();
@@ -1544,7 +1741,10 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     const config = this.recurringConfig();
     const req: CreateRecurringRequest = {
       pattern: this.recurringPattern(),
-      interval_days: this.recurringPattern() === 'custom' ? (this.recurringIntervalDays() || undefined) : undefined,
+      interval_days:
+        this.recurringPattern() === 'custom'
+          ? this.recurringIntervalDays() || undefined
+          : undefined,
       max_occurrences: this.recurringMaxOccurrences() || undefined,
     };
 
@@ -1555,7 +1755,8 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
           this.recurringConfig.set(updated);
           this.showRecurringForm.set(false);
         },
-        error: (err) => console.error('Failed to update recurring config:', err),
+        error: (err) =>
+          console.error('Failed to update recurring config:', err),
       });
     } else {
       // Create new
@@ -1564,7 +1765,8 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
           this.recurringConfig.set(created);
           this.showRecurringForm.set(false);
         },
-        error: (err) => console.error('Failed to create recurring config:', err),
+        error: (err) =>
+          console.error('Failed to create recurring config:', err),
       });
     }
   }
@@ -1635,7 +1837,8 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
       next: (milestones) => {
         this.milestones.set(milestones);
         if (task.milestone_id) {
-          const selected = milestones.find(m => m.id === task.milestone_id) || null;
+          const selected =
+            milestones.find((m) => m.id === task.milestone_id) || null;
           this.selectedMilestone.set(selected);
         } else {
           this.selectedMilestone.set(null);
