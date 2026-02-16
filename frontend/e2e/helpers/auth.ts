@@ -34,9 +34,11 @@ export async function signUpTestUser(page: Page): Promise<string> {
   const signUp = page.locator('app-sign-up');
   await signUp.locator('input[formControlName="name"]').fill(TEST_NAME);
   await signUp.locator('input[formControlName="email"]').fill(email);
-  await signUp.locator('input[formControlName="password"]').fill(TEST_PASSWORD);
   await signUp
-    .locator('input[formControlName="confirmPassword"]')
+    .locator('p-password[formControlName="password"] input')
+    .fill(TEST_PASSWORD);
+  await signUp
+    .locator('p-password[formControlName="confirmPassword"] input')
     .fill(TEST_PASSWORD);
 
   // Submit
@@ -58,30 +60,48 @@ export async function signInTestUser(
   password: string = TEST_PASSWORD,
   skipNavigation = false,
 ): Promise<void> {
-  if (!skipNavigation) {
-    await page.goto('/auth/sign-in');
-    await page.waitForLoadState('domcontentloaded');
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    if (!skipNavigation || attempt > 1) {
+      await page.goto('/auth/sign-in');
+      await page.waitForLoadState('domcontentloaded');
+    }
+
+    // Small delay between retry attempts to let the server recover
+    if (attempt > 1) {
+      await page.waitForTimeout(2000);
+    }
+
+    // Wait for the sign-in form to be interactive
+    const emailInput = page
+      .locator('input[type="email"], input[formControlName="email"]')
+      .first();
+    await emailInput.waitFor({ state: 'visible', timeout: 10000 });
+    await emailInput.fill(email);
+
+    const passwordInput = page
+      .locator('p-password input[type="password"], input[type="password"]')
+      .first();
+    await passwordInput.fill(password);
+
+    // Wait for submit button to be enabled
+    const submitBtn = page.locator('button[type="submit"]').first();
+    await expect(submitBtn).toBeEnabled({ timeout: 5000 });
+    await submitBtn.click();
+
+    // Wait for redirect away from sign-in page
+    try {
+      await expect(page).not.toHaveURL(/\/auth\/sign-in/, { timeout: 25000 });
+      return; // Success
+    } catch {
+      if (attempt === maxAttempts) {
+        throw new Error(
+          `Sign-in failed after ${maxAttempts} attempts for ${email}. Still on: ${page.url()}`,
+        );
+      }
+      // Retry on next iteration
+    }
   }
-
-  // Wait for the sign-in form to be interactive
-  const emailInput = page
-    .locator('input[type="email"], input[formControlName="email"]')
-    .first();
-  await emailInput.waitFor({ state: 'visible', timeout: 10000 });
-  await emailInput.fill(email);
-
-  const passwordInput = page
-    .locator('input[type="password"], input[formControlName="password"]')
-    .first();
-  await passwordInput.fill(password);
-
-  // Wait for submit button to be enabled
-  const submitBtn = page.locator('button[type="submit"]').first();
-  await expect(submitBtn).toBeEnabled({ timeout: 5000 });
-  await submitBtn.click();
-
-  // Wait for redirect away from sign-in page (longer timeout for slow auth)
-  await expect(page).not.toHaveURL(/\/auth\/sign-in/, { timeout: 20000 });
 }
 
 /**
@@ -99,7 +119,7 @@ export async function completeOnboarding(
   await expect(page.locator('text=Create Your Workspace')).toBeVisible({
     timeout: 10000,
   });
-  await page.locator('input#name').fill(workspaceName);
+  await page.locator('app-step-workspace input#name').fill(workspaceName);
   await page.locator('button[type="submit"]:has-text("Continue")').click();
 
   // Step 2 - Invite team (skip it)

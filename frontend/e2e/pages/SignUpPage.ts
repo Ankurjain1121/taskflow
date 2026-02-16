@@ -18,8 +18,12 @@ export class SignUpPage {
     this.container = page.locator('app-sign-up');
     this.nameInput = this.container.locator('input[formControlName="name"]');
     this.emailInput = this.container.locator('input[formControlName="email"]');
-    this.passwordInput = this.container.locator('input[formControlName="password"]');
-    this.confirmPasswordInput = this.container.locator('input[formControlName="confirmPassword"]');
+    this.passwordInput = this.container.locator(
+      'p-password[formControlName="password"] input',
+    );
+    this.confirmPasswordInput = this.container.locator(
+      'p-password[formControlName="confirmPassword"] input',
+    );
     this.submitButton = this.container.locator('button[type="submit"]');
     this.errorMessage = this.container.locator('.bg-red-50 span');
     this.signInLink = this.container.locator('a[routerLink="/auth/sign-in"]');
@@ -37,7 +41,12 @@ export class SignUpPage {
     await this.container.waitFor({ timeout: 10000 });
   }
 
-  async fillForm(name: string, email: string, password: string, confirmPassword?: string) {
+  async fillForm(
+    name: string,
+    email: string,
+    password: string,
+    confirmPassword?: string,
+  ) {
     await this.nameInput.fill(name);
     await this.emailInput.fill(email);
     await this.passwordInput.fill(password);

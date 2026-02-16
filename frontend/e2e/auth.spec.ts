@@ -168,13 +168,22 @@ test.describe('Authentication - Sign Up', () => {
     await page.keyboard.press('Tab');
     await expect(signUpPage.emailInput).toBeFocused();
 
-    // Tab to password
+    // Tab to password (PrimeNG p-password wraps the input)
     await page.keyboard.press('Tab');
     await expect(signUpPage.passwordInput).toBeFocused();
 
-    // Tab past the password visibility toggle, then to confirm password
-    await page.keyboard.press('Tab'); // visibility toggle
-    await page.keyboard.press('Tab'); // confirm password
+    // Tab past the password toggle icon(s) until confirm password is focused
+    // PrimeNG p-password may have a toggle mask button between fields
+    for (let i = 0; i < 5; i++) {
+      await page.keyboard.press('Tab');
+      if (
+        await signUpPage.confirmPasswordInput.evaluate(
+          (el) => el === document.activeElement,
+        )
+      ) {
+        break;
+      }
+    }
     await expect(signUpPage.confirmPasswordInput).toBeFocused();
   });
 });
@@ -300,7 +309,9 @@ test.describe('Authentication - Sign In', () => {
 
     // Now sign back in directly on this page (don't re-navigate)
     await page.locator('input[formControlName="email"]').fill(email);
-    await page.locator('input[formControlName="password"]').fill(TEST_PASSWORD);
+    await page
+      .locator('p-password[formControlName="password"] input')
+      .fill(TEST_PASSWORD);
     await page.locator('button[type="submit"]').click();
 
     // Should redirect away from sign-in
@@ -308,30 +319,59 @@ test.describe('Authentication - Sign In', () => {
   });
 
   // NEW: Return URL redirect after login
-  test('return URL redirect after login', async ({ browser }) => {
-    // Create a fresh user who is fully onboarded
-    const context1 = await browser.newContext({ ignoreHTTPSErrors: true });
-    const page1 = await context1.newPage();
-    const email = await signUpAndOnboard(page1, 'ReturnURL WS');
-    await context1.close();
+  test(
+    'return URL redirect after login',
+    { timeout: 60000 },
+    async ({ browser }) => {
+      // Create a fresh user who is fully onboarded
+      const context1 = await browser.newContext({ ignoreHTTPSErrors: true });
+      const page1 = await context1.newPage();
+      const email = await signUpAndOnboard(page1, 'ReturnURL WS');
+      await context1.close();
 
-    // Use a completely fresh context (no cookies) to test returnUrl flow
-    const context2 = await browser.newContext({ ignoreHTTPSErrors: true });
-    const page2 = await context2.newPage();
+      // Use a completely fresh context (no cookies) to test returnUrl flow
+      const context2 = await browser.newContext({ ignoreHTTPSErrors: true });
+      const page2 = await context2.newPage();
 
-    // Access a protected route - should redirect to sign-in with returnUrl
-    await page2.goto('/dashboard');
-    await page2.waitForLoadState('domcontentloaded');
-    await expect(page2).toHaveURL(/\/auth\/sign-in/, { timeout: 15000 });
+      // Access a protected route - should redirect to sign-in with returnUrl
+      await page2.goto('/dashboard');
+      await page2.waitForLoadState('domcontentloaded');
+      await expect(page2).toHaveURL(/\/auth\/sign-in/, { timeout: 15000 });
 
-    // Sign in on the redirected page (preserves returnUrl query param)
-    await signInTestUser(page2, email, TEST_PASSWORD, true);
+      // Sign in on the redirected page (preserves returnUrl query param)
+      await signInTestUser(page2, email, TEST_PASSWORD, true);
 
-    // Should redirect to dashboard after login
-    await expect(page2).toHaveURL(/\/dashboard/, { timeout: 20000 });
+      // Should redirect to dashboard after login
+      await expect(page2).toHaveURL(/\/dashboard/, { timeout: 20000 });
 
-    await context2.close();
-  });
+      await context2.close();
+    },
+  );
+
+  // Stale localStorage redirects to sign-in after cookie loss (deploy simulation)
+  test(
+    'stale localStorage redirects to sign-in after cookie loss',
+    { timeout: 60000 },
+    async ({ page }) => {
+      // Sign up and reach the dashboard
+      const email = await signUpAndOnboard(page, 'Stale LS WS');
+      await expect(
+        page.locator(
+          'h1:has-text("Good morning"), h1:has-text("Good afternoon"), h1:has-text("Good evening")',
+        ),
+      ).toBeVisible({ timeout: 10000 });
+
+      // Clear cookies (simulates deploy / token invalidation) but keep localStorage
+      const cookies = await page.context().cookies();
+      await page.context().clearCookies();
+
+      // Reload — the app initializer should detect stale localStorage and redirect
+      await page.reload();
+
+      // Should end up on the sign-in page (not stuck on a broken dashboard)
+      await expect(page).toHaveURL(/\/auth\/sign-in/, { timeout: 20000 });
+    },
+  );
 
   // NEW: Email field trims whitespace
   test('email field trims whitespace on sign-in', async ({ browser }) => {

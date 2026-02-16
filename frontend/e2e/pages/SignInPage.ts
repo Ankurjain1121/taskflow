@@ -13,11 +13,15 @@ export class SignInPage {
   constructor(page: Page) {
     this.page = page;
     this.emailInput = page.locator('input[formControlName="email"]');
-    this.passwordInput = page.locator('input[formControlName="password"]');
+    this.passwordInput = page.locator(
+      'p-password[formControlName="password"] input',
+    );
     this.submitButton = page.locator('button[type="submit"]');
     this.errorMessage = page.locator('.bg-red-50 span');
     this.signUpLink = page.locator('a[routerLink="/auth/sign-up"]');
-    this.forgotPasswordLink = page.locator('a[routerLink="/auth/forgot-password"]');
+    this.forgotPasswordLink = page.locator(
+      'a[routerLink="/auth/forgot-password"]',
+    );
     this.formTitle = page.locator('.form-title');
   }
 
