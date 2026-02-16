@@ -1,24 +1,27 @@
-import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, signal, inject, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
+import { ChartModule } from 'primeng/chart';
 import { DashboardService, CompletionTrendPoint } from '../../../core/services/dashboard.service';
 
 @Component({
   selector: 'app-completion-trend',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ChartModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white rounded-xl border border-gray-200 p-6 h-full">
+    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 h-full">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold text-gray-900">Completion Trend</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Completion Trend</h3>
 
-        <div class="flex gap-1 bg-gray-100 rounded-lg p-1">
+        <div class="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
           @for (option of dayOptions; track option) {
             <button
               (click)="setDays(option)"
               class="px-3 py-1 text-sm font-medium rounded-md transition-colors"
-              [class]="selectedDays() === option ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'">
+              [class]="selectedDays() === option
+                ? 'bg-white dark:bg-gray-600 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'">
               {{ option }}d
             </button>
           }
@@ -33,33 +36,19 @@ import { DashboardService, CompletionTrendPoint } from '../../../core/services/d
           </svg>
         </div>
       } @else if (data().length > 0) {
-        <!-- Simple visualization (fallback until Chart.js) -->
-        <div class="h-64">
-          <div class="flex items-end justify-between h-full gap-1">
-            @for (point of getVisiblePoints(); track point.date) {
-              <div class="flex-1 flex flex-col items-center">
-                <div
-                  class="w-full bg-indigo-500 rounded-t hover:bg-indigo-600 transition-colors cursor-pointer"
-                  [style.height.%]="(point.completed / maxCompleted()) * 100"
-                  [title]="point.date + ': ' + point.completed + ' tasks'">
-                </div>
-                @if ($index % getDateLabelInterval() === 0) {
-                  <span class="text-xs text-gray-400 mt-2 rotate-45 origin-top-left">
-                    {{ formatDate(point.date) }}
-                  </span>
-                }
-              </div>
-            }
-          </div>
-        </div>
+        <p-chart
+          type="line"
+          [data]="chartData()"
+          [options]="chartOptions"
+          [style]="{height: '240px'}" />
 
-        <div class="mt-4 flex items-center justify-center gap-4 text-sm">
+        <div class="mt-3 flex items-center justify-center gap-4 text-sm">
           <div class="flex items-center gap-2">
             <div class="w-3 h-3 bg-indigo-500 rounded"></div>
-            <span class="text-gray-600">Tasks Completed</span>
+            <span class="text-gray-600 dark:text-gray-400">Tasks Completed</span>
           </div>
-          <span class="text-gray-400">•</span>
-          <span class="font-semibold text-gray-900">
+          <span class="text-gray-400">&#183;</span>
+          <span class="font-semibold text-gray-900 dark:text-white">
             Total: {{ totalCompleted() }}
           </span>
         </div>
@@ -70,11 +59,6 @@ import { DashboardService, CompletionTrendPoint } from '../../../core/services/d
       }
     </div>
   `,
-  styles: [`
-    .rotate-45 {
-      transform: rotate(-45deg);
-    }
-  `]
 })
 export class CompletionTrendComponent implements OnInit {
   private dashboardService = inject(DashboardService);
@@ -82,10 +66,51 @@ export class CompletionTrendComponent implements OnInit {
   loading = signal(true);
   data = signal<CompletionTrendPoint[]>([]);
   selectedDays = signal(30);
-  maxCompleted = signal(1);
   totalCompleted = signal(0);
 
   dayOptions = [30, 60, 90];
+
+  chartData = computed(() => {
+    const points = this.data();
+    return {
+      labels: points.map(p =>
+        new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      ),
+      datasets: [{
+        label: 'Tasks Completed',
+        data: points.map(p => p.completed),
+        fill: true,
+        borderColor: '#6366f1',
+        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        tension: 0.4,
+        pointRadius: 2,
+        pointHoverRadius: 6,
+        pointBackgroundColor: '#6366f1',
+      }],
+    };
+  });
+
+  chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: {
+          maxTicksLimit: 7,
+          font: { size: 11 },
+        },
+      },
+      y: {
+        beginAtZero: true,
+        ticks: { stepSize: 1 },
+        grid: { color: 'rgba(0,0,0,0.05)' },
+      },
+    },
+  };
 
   ngOnInit() {
     this.loadData();
@@ -97,13 +122,10 @@ export class CompletionTrendComponent implements OnInit {
       const data = await firstValueFrom(this.dashboardService.getCompletionTrend(this.selectedDays()));
       this.data.set(data || []);
 
-      const max = Math.max(...(data?.map(d => d.completed) || [0]));
-      this.maxCompleted.set(max || 1);
-
       const total = (data || []).reduce((sum, d) => sum + d.completed, 0);
       this.totalCompleted.set(total);
-    } catch (error) {
-      console.error('Failed to load completion trend:', error);
+    } catch {
+      // Chart will show empty state
     } finally {
       this.loading.set(false);
     }
@@ -112,24 +134,5 @@ export class CompletionTrendComponent implements OnInit {
   setDays(days: number) {
     this.selectedDays.set(days);
     this.loadData();
-  }
-
-  getVisiblePoints(): CompletionTrendPoint[] {
-    // For better visualization, show every Nth point based on range
-    const points = this.data();
-    if (points.length <= 30) return points;
-
-    const step = Math.ceil(points.length / 30);
-    return points.filter((_, i) => i % step === 0);
-  }
-
-  formatDate(dateStr: string): string {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return (date.getMonth() + 1) + '/' + date.getDate();
-  }
-
-  getDateLabelInterval(): number {
-    return Math.max(1, Math.floor(this.getVisiblePoints().length / 7));
   }
 }

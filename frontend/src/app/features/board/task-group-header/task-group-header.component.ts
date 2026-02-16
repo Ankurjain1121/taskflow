@@ -3,14 +3,16 @@ import {
   input,
   output,
   signal,
+  viewChild,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatMenuModule } from '@angular/material/menu';
+import { ButtonModule } from 'primeng/button';
+import { Tooltip } from 'primeng/tooltip';
+import { Popover } from 'primeng/popover';
+import { Menu } from 'primeng/menu';
+import { MenuItem } from 'primeng/api';
 import { TaskGroupWithStats } from '../../../core/services/task-group.service';
 
 @Component({
@@ -19,10 +21,10 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
   imports: [
     CommonModule,
     FormsModule,
-    MatIconModule,
-    MatButtonModule,
-    MatTooltipModule,
-    MatMenuModule,
+    ButtonModule,
+    Tooltip,
+    Popover,
+    Menu,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -35,14 +37,14 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
       <div class="flex items-center gap-2 flex-1">
         <!-- Collapse toggle -->
         <button
-          mat-icon-button
+          pButton
+          [rounded]="true"
+          [text]="true"
           (click)="onToggleCollapse()"
-          [matTooltip]="groupData().group.collapsed ? 'Expand group' : 'Collapse group'"
+          [pTooltip]="groupData().group.collapsed ? 'Expand group' : 'Collapse group'"
           class="text-gray-600 hover:text-gray-900"
         >
-          <mat-icon>
-            {{ groupData().group.collapsed ? 'chevron_right' : 'expand_more' }}
-          </mat-icon>
+          <i [class]="groupData().group.collapsed ? 'pi pi-chevron-right' : 'pi pi-chevron-down'"></i>
         </button>
 
         <!-- Group name (editable) -->
@@ -74,7 +76,7 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
           </span>
           @if (groupData().estimated_hours != null && groupData().estimated_hours! > 0) {
             <span class="px-2 py-0.5 bg-gray-100 rounded-full flex items-center gap-1">
-              <mat-icon class="!w-3 !h-3 !text-xs">schedule</mat-icon>
+              <i class="pi pi-clock" style="font-size: 0.75rem"></i>
               {{ groupData().estimated_hours!.toFixed(1) }}h
             </span>
           }
@@ -97,37 +99,40 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
       <div class="flex items-center gap-1">
         <!-- Color picker button -->
         <button
-          mat-icon-button
-          [matMenuTriggerFor]="colorMenu"
-          matTooltip="Change color"
+          pButton
+          [rounded]="true"
+          [text]="true"
+          pTooltip="Change color"
+          (click)="colorPopover.toggle($event)"
           class="text-gray-600 hover:text-gray-900"
         >
-          <mat-icon>palette</mat-icon>
+          <i class="pi pi-palette"></i>
         </button>
 
         <!-- More options -->
         <button
-          mat-icon-button
-          [matMenuTriggerFor]="moreMenu"
-          matTooltip="More options"
+          pButton
+          [rounded]="true"
+          [text]="true"
+          pTooltip="More options"
+          (click)="moreMenu.toggle($event)"
           class="text-gray-600 hover:text-gray-900"
         >
-          <mat-icon>more_vert</mat-icon>
+          <i class="pi pi-ellipsis-v"></i>
         </button>
       </div>
     </div>
 
-    <!-- Color menu -->
-    <mat-menu #colorMenu="matMenu">
+    <!-- Color popover -->
+    <p-popover #colorPopover>
       <div class="px-4 py-2">
         <div class="text-xs font-medium text-gray-500 mb-2">GROUP COLOR</div>
         <div class="grid grid-cols-6 gap-2">
           @for (color of predefinedColors; track color) {
             <button
-              mat-icon-button
-              (click)="onColorChange(color); $event.stopPropagation()"
+              class="w-8 h-8 rounded-full border-2 hover:scale-110 transition-transform cursor-pointer"
+              (click)="onColorChange(color); colorPopover.hide()"
               [style.background-color]="color"
-              class="w-8 h-8 rounded-full border-2 hover:scale-110 transition-transform"
               [class.ring-2]="groupData().group.color === color"
               [class.ring-offset-2]="groupData().group.color === color"
               [class.ring-gray-800]="groupData().group.color === color"
@@ -136,19 +141,10 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
           }
         </div>
       </div>
-    </mat-menu>
+    </p-popover>
 
     <!-- More options menu -->
-    <mat-menu #moreMenu="matMenu">
-      <button mat-menu-item (click)="startNameEdit()">
-        <mat-icon>edit</mat-icon>
-        <span>Rename group</span>
-      </button>
-      <button mat-menu-item (click)="onDelete()">
-        <mat-icon class="text-red-600">delete</mat-icon>
-        <span class="text-red-600">Delete group</span>
-      </button>
-    </mat-menu>
+    <p-menu #moreMenu [model]="moreMenuItems" [popup]="true" />
   `,
   styles: [`
     :host {
@@ -169,6 +165,21 @@ export class TaskGroupHeaderComponent {
   // Local state
   isEditing = signal(false);
   editedName = '';
+
+  // Menu items for the "more" menu
+  moreMenuItems: MenuItem[] = [
+    {
+      label: 'Rename group',
+      icon: 'pi pi-pencil',
+      command: () => this.startNameEdit(),
+    },
+    {
+      label: 'Delete group',
+      icon: 'pi pi-trash',
+      styleClass: 'text-red-600',
+      command: () => this.onDelete(),
+    },
+  ];
 
   // Predefined colors
   predefinedColors = [

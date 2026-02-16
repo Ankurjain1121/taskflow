@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, input, output, model, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -6,16 +6,12 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import {
-  MatDialogModule,
-  MAT_DIALOG_DATA,
-  MatDialogRef,
-} from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatRadioModule } from '@angular/material/radio';
+import { ButtonModule } from 'primeng/button';
+import { Dialog } from 'primeng/dialog';
+import { InputTextModule } from 'primeng/inputtext';
+import { Textarea } from 'primeng/textarea';
+import { RadioButton } from 'primeng/radiobutton';
+import { ProgressSpinner } from 'primeng/progressspinner';
 import { HttpClient } from '@angular/common/http';
 
 export interface CreateBoardDialogData {
@@ -48,59 +44,74 @@ export interface BoardTemplate {
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatButtonModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatProgressSpinnerModule,
-    MatRadioModule,
+    ButtonModule,
+    Dialog,
+    InputTextModule,
+    Textarea,
+    RadioButton,
+    ProgressSpinner,
   ],
   template: `
-    <h2 mat-dialog-title>Create New Board</h2>
-    <mat-dialog-content>
+    <p-dialog
+      header="Create New Board"
+      [(visible)]="visible"
+      [modal]="true"
+      [style]="{ width: '520px' }"
+      [closable]="true"
+      (onShow)="onDialogShow()"
+    >
       <p class="text-sm text-gray-500 mb-4">
-        Create a new board in {{ data.workspaceName }}
+        Create a new board in {{ workspaceName() }}
       </p>
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
-        <mat-form-field appearance="outline" class="w-full mb-4">
-          <mat-label>Board Name</mat-label>
+        <!-- Board Name -->
+        <div class="flex flex-col gap-1 mb-4">
+          <label for="boardName" class="text-sm font-medium text-gray-700 dark:text-gray-300">Board Name</label>
           <input
-            matInput
+            pInputText
+            id="boardName"
             formControlName="name"
             placeholder="e.g., Product Roadmap"
             maxlength="100"
+            class="w-full"
           />
           @if (form.get('name')?.hasError('required') && form.get('name')?.touched) {
-            <mat-error>Board name is required</mat-error>
+            <small class="text-red-500">Board name is required</small>
           }
           @if (form.get('name')?.hasError('minlength') && form.get('name')?.touched) {
-            <mat-error>Board name must be at least 2 characters</mat-error>
+            <small class="text-red-500">Board name must be at least 2 characters</small>
           }
-        </mat-form-field>
+        </div>
 
-        <mat-form-field appearance="outline" class="w-full mb-4">
-          <mat-label>Description (optional)</mat-label>
+        <!-- Description -->
+        <div class="flex flex-col gap-1 mb-4">
+          <label for="boardDesc" class="text-sm font-medium text-gray-700 dark:text-gray-300">Description (optional)</label>
           <textarea
-            matInput
+            pTextarea
+            id="boardDesc"
             formControlName="description"
             placeholder="Describe the purpose of this board"
             rows="3"
             maxlength="500"
+            class="w-full"
           ></textarea>
-        </mat-form-field>
+        </div>
 
         <!-- Template Picker -->
         <div class="mb-2">
-          <label class="text-sm font-medium text-gray-700 mb-3 block">
+          <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block">
             Choose a template
           </label>
 
           @if (loadingTemplates()) {
             <div class="flex justify-center py-4">
-              <mat-spinner diameter="24"></mat-spinner>
+              <p-progressSpinner
+                [style]="{ width: '24px', height: '24px' }"
+                strokeWidth="4"
+              />
             </div>
           } @else {
-            <mat-radio-group formControlName="template" class="flex flex-col gap-2">
+            <div class="flex flex-col gap-2">
               @for (template of templates(); track template.id) {
                 <label
                   class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all"
@@ -109,10 +120,12 @@ export interface BoardTemplate {
                   [class.border-gray-200]="form.get('template')?.value !== template.id"
                   [class.hover:border-gray-300]="form.get('template')?.value !== template.id"
                 >
-                  <mat-radio-button [value]="template.id" class="mt-0.5">
-                  </mat-radio-button>
+                  <p-radioButton
+                    [value]="template.id"
+                    formControlName="template"
+                  />
                   <div class="flex-1 min-w-0">
-                    <div class="font-medium text-gray-900 text-sm">
+                    <div class="font-medium text-gray-900 dark:text-gray-100 text-sm">
                       {{ template.name }}
                     </div>
                     <div class="text-xs text-gray-500 mt-0.5">
@@ -140,14 +153,14 @@ export interface BoardTemplate {
                   </div>
                 </label>
               }
-            </mat-radio-group>
+            </div>
           }
         </div>
 
         <!-- Selected template preview -->
         @if (selectedTemplate() && selectedTemplate()!.columns.length > 0) {
-          <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <div class="text-xs font-medium text-gray-600 mb-2">
+          <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
               Column Preview
             </div>
             <div class="flex items-center gap-1 overflow-x-auto">
@@ -170,54 +183,43 @@ export interface BoardTemplate {
           </div>
         }
       </form>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end" class="gap-2">
-      <button mat-button (click)="onCancel()" [disabled]="isSubmitting">
-        Cancel
-      </button>
-      <button
-        mat-flat-button
-        color="primary"
-        (click)="onSubmit()"
-        [disabled]="form.invalid || isSubmitting"
-      >
-        @if (isSubmitting) {
-          <mat-spinner diameter="20" class="inline-block mr-2"></mat-spinner>
-          Creating...
-        } @else {
-          Create Board
-        }
-      </button>
-    </mat-dialog-actions>
+
+      <ng-template #footer>
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancel"
+            [text]="true"
+            severity="secondary"
+            (onClick)="onCancel()"
+            [disabled]="isSubmitting"
+          />
+          <p-button
+            label="Create Board"
+            (onClick)="onSubmit()"
+            [disabled]="form.invalid || isSubmitting"
+            [loading]="isSubmitting"
+          />
+        </div>
+      </ng-template>
+    </p-dialog>
   `,
-  styles: [
-    `
-      mat-dialog-content {
-        min-width: 480px;
-        max-height: 70vh;
-      }
-
-      mat-spinner {
-        display: inline-block;
-        margin-right: 8px;
-      }
-
-      /* Hide the radio button ripple overflow */
-      mat-radio-button {
-        --mdc-radio-state-layer-size: 24px;
-      }
-    `,
-  ],
 })
 export class CreateBoardDialogComponent implements OnInit {
-  data = inject<CreateBoardDialogData>(MAT_DIALOG_DATA);
-  private dialogRef = inject(MatDialogRef<CreateBoardDialogComponent>);
   private fb = inject(FormBuilder);
   private http = inject(HttpClient);
 
+  /** Two-way bound visibility */
+  visible = model(false);
+
+  /** Input data previously passed via MAT_DIALOG_DATA */
+  workspaceId = input<string>('');
+  workspaceName = input<string>('');
+
+  /** Output event replacing MatDialogRef.close(result) */
+  created = output<CreateBoardDialogResult>();
+
   templates = signal<BoardTemplate[]>([]);
   loadingTemplates = signal(true);
-
   selectedTemplate = signal<BoardTemplate | null>(null);
 
   form: FormGroup = this.fb.group({
@@ -229,8 +231,6 @@ export class CreateBoardDialogComponent implements OnInit {
   isSubmitting = false;
 
   ngOnInit(): void {
-    this.loadTemplates();
-
     // Watch template selection changes
     this.form.get('template')?.valueChanges.subscribe((templateId: string) => {
       const found = this.templates().find((t) => t.id === templateId) || null;
@@ -238,12 +238,16 @@ export class CreateBoardDialogComponent implements OnInit {
     });
   }
 
+  onDialogShow(): void {
+    this.form.reset({ name: '', description: '', template: 'kanban' });
+    this.loadTemplates();
+  }
+
   private loadTemplates(): void {
     this.loadingTemplates.set(true);
     this.http.get<BoardTemplate[]>('/api/board-templates').subscribe({
       next: (templates) => {
         this.templates.set(templates);
-        // Set initial selected template
         const kanban = templates.find((t) => t.id === 'kanban') || null;
         this.selectedTemplate.set(kanban);
         this.loadingTemplates.set(false);
@@ -289,7 +293,7 @@ export class CreateBoardDialogComponent implements OnInit {
   }
 
   onCancel(): void {
-    this.dialogRef.close();
+    this.visible.set(false);
   }
 
   onSubmit(): void {
@@ -310,6 +314,7 @@ export class CreateBoardDialogComponent implements OnInit {
       result.template = this.form.value.template;
     }
 
-    this.dialogRef.close(result);
+    this.visible.set(false);
+    this.created.emit(result);
   }
 }

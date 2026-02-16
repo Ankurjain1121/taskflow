@@ -1,16 +1,17 @@
-import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, signal, inject, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
+import { ChartModule } from 'primeng/chart';
 import { DashboardService, TasksByStatus } from '../../../core/services/dashboard.service';
 
 @Component({
   selector: 'app-tasks-by-status',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ChartModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white rounded-xl border border-gray-200 p-6 h-full">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Tasks by Status</h3>
+    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 h-full">
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tasks by Status</h3>
 
       @if (loading()) {
         <div class="flex items-center justify-center h-64">
@@ -20,10 +21,11 @@ import { DashboardService, TasksByStatus } from '../../../core/services/dashboar
           </svg>
         </div>
       } @else if (data().length > 0) {
-        <!-- Canvas for Chart.js -->
-        <div class="relative h-64 flex items-center justify-center">
-          <canvas #chartCanvas></canvas>
-        </div>
+        <p-chart
+          type="doughnut"
+          [data]="chartData()"
+          [options]="chartOptions"
+          [style]="{height: '220px'}" />
 
         <!-- Legend -->
         <div class="mt-4 space-y-2">
@@ -34,9 +36,9 @@ import { DashboardService, TasksByStatus } from '../../../core/services/dashboar
                   class="w-3 h-3 rounded-full"
                   [style.background-color]="item.color || '#6366f1'">
                 </div>
-                <span class="text-gray-700">{{ item.status }}</span>
+                <span class="text-gray-700 dark:text-gray-300">{{ item.status }}</span>
               </div>
-              <span class="font-medium text-gray-900">{{ item.count }}</span>
+              <span class="font-medium text-gray-900 dark:text-white">{{ item.count }}</span>
             </div>
           }
         </div>
@@ -47,17 +49,34 @@ import { DashboardService, TasksByStatus } from '../../../core/services/dashboar
       }
     </div>
   `,
-  styles: [`
-    canvas {
-      max-height: 250px;
-    }
-  `]
 })
 export class TasksByStatusComponent implements OnInit {
   private dashboardService = inject(DashboardService);
 
   loading = signal(true);
   data = signal<TasksByStatus[]>([]);
+
+  chartData = computed(() => {
+    const items = this.data();
+    return {
+      labels: items.map(i => i.status),
+      datasets: [{
+        data: items.map(i => i.count),
+        backgroundColor: items.map(i => i.color || '#6366f1'),
+        borderWidth: 0,
+        hoverOffset: 8,
+      }],
+    };
+  });
+
+  chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '60%',
+    plugins: {
+      legend: { display: false },
+    },
+  };
 
   ngOnInit() {
     this.loadData();
@@ -68,11 +87,8 @@ export class TasksByStatusComponent implements OnInit {
     try {
       const data = await firstValueFrom(this.dashboardService.getTasksByStatus());
       this.data.set(data || []);
-
-      // TODO: Initialize Chart.js here once installed
-      // For now, just showing legend
-    } catch (error) {
-      console.error('Failed to load tasks by status:', error);
+    } catch {
+      // Chart will show empty state
     } finally {
       this.loading.set(false);
     }

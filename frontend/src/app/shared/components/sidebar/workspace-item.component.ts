@@ -8,7 +8,6 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { BoardService, Board } from '../../../core/services/board.service';
 import { Workspace } from '../../../core/services/workspace.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -20,7 +19,7 @@ import {
 @Component({
   selector: 'app-workspace-item',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatDialogModule],
+  imports: [CommonModule, RouterModule, CreateBoardDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     :host { display: block; }
@@ -162,18 +161,26 @@ import {
         </div>
       }
     </div>
+
+    <!-- Create Board Dialog (PrimeNG) -->
+    <app-create-board-dialog
+      [(visible)]="showCreateBoardDialog"
+      [workspaceId]="workspace().id"
+      [workspaceName]="workspace().name"
+      (created)="onBoardCreated($event)"
+    />
   `,
 })
 export class WorkspaceItemComponent implements OnInit {
   private boardService = inject(BoardService);
   private authService = inject(AuthService);
-  private dialog = inject(MatDialog);
 
   workspace = input.required<Workspace>();
 
   expanded = signal(false);
   loading = signal(false);
   boards = signal<Board[]>([]);
+  showCreateBoardDialog = signal(false);
 
   ngOnInit(): void {
     // Auto-expand first workspace
@@ -196,34 +203,27 @@ export class WorkspaceItemComponent implements OnInit {
 
   onAddBoardClick(event: Event): void {
     event.stopPropagation();
-    const dialogRef = this.dialog.open(CreateBoardDialogComponent, {
-      data: {
-        workspaceId: this.workspace().id,
-        workspaceName: this.workspace().name,
-      },
-    });
+    this.showCreateBoardDialog.set(true);
+  }
 
-    dialogRef.afterClosed().subscribe((result: CreateBoardDialogResult | undefined) => {
-      if (result) {
-        this.boardService
-          .createBoard(this.workspace().id, {
-            name: result.name,
-            description: result.description,
-            template: result.template,
-          })
-          .subscribe({
-            next: (board) => {
-              this.boards.update((boards) => [...boards, board]);
-              if (!this.expanded()) {
-                this.expanded.set(true);
-              }
-            },
-            error: (err) => {
-              console.error('Failed to create board:', err);
-            },
-          });
-      }
-    });
+  onBoardCreated(result: CreateBoardDialogResult): void {
+    this.boardService
+      .createBoard(this.workspace().id, {
+        name: result.name,
+        description: result.description,
+        template: result.template,
+      })
+      .subscribe({
+        next: (board) => {
+          this.boards.update((boards) => [...boards, board]);
+          if (!this.expanded()) {
+            this.expanded.set(true);
+          }
+        },
+        error: () => {
+          // Error handling - board creation failed
+        },
+      });
   }
 
   private loadBoards(): void {
@@ -233,8 +233,7 @@ export class WorkspaceItemComponent implements OnInit {
         this.boards.set(boards);
         this.loading.set(false);
       },
-      error: (err) => {
-        console.error('Failed to load boards:', err);
+      error: () => {
         this.loading.set(false);
       },
     });

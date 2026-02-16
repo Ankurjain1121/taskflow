@@ -2,6 +2,9 @@ import {
   Component,
   inject,
   signal,
+  input,
+  output,
+  model,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -10,16 +13,11 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import {
-  MatDialogModule,
-  MatDialogRef,
-  MAT_DIALOG_DATA,
-} from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ButtonModule } from 'primeng/button';
+import { Dialog } from 'primeng/dialog';
+import { InputTextModule } from 'primeng/inputtext';
+import { Textarea } from 'primeng/textarea';
+import { Select } from 'primeng/select';
 
 import {
   ProjectTemplateService,
@@ -52,53 +50,67 @@ const TEMPLATE_CATEGORIES = [
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatButtonModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatProgressSpinnerModule,
+    ButtonModule,
+    Dialog,
+    InputTextModule,
+    Textarea,
+    Select,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h2 mat-dialog-title>Save Board as Template</h2>
-    <mat-dialog-content class="min-w-[440px]">
+    <p-dialog
+      header="Save Board as Template"
+      [(visible)]="visible"
+      [modal]="true"
+      [style]="{ width: '500px' }"
+      [closable]="true"
+      (onShow)="onDialogShow()"
+    >
       <p class="text-gray-600 mb-4">
-        Save "{{ data.boardName }}" as a reusable template. The template will
+        Save "{{ boardName() }}" as a reusable template. The template will
         include all columns and tasks.
       </p>
       <form [formGroup]="form" class="flex flex-col gap-4">
-        <mat-form-field appearance="outline">
-          <mat-label>Template Name</mat-label>
+        <div class="flex flex-col gap-1">
+          <label for="templateName" class="text-sm font-medium text-gray-700">Template Name</label>
           <input
-            matInput
+            pInputText
+            id="templateName"
             formControlName="name"
             placeholder="e.g. Sprint Board Template"
+            class="w-full"
           />
-          @if (form.controls['name'].hasError('required')) {
-            <mat-error>Name is required</mat-error>
+          @if (form.controls['name'].hasError('required') && form.controls['name'].touched) {
+            <small class="text-red-500">Name is required</small>
           }
-        </mat-form-field>
+        </div>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Description</mat-label>
+        <div class="flex flex-col gap-1">
+          <label for="templateDesc" class="text-sm font-medium text-gray-700">Description</label>
           <textarea
-            matInput
+            pTextarea
+            id="templateDesc"
             formControlName="description"
             rows="3"
             placeholder="Describe what this template is for..."
+            class="w-full"
           ></textarea>
-        </mat-form-field>
+        </div>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Category</mat-label>
-          <mat-select formControlName="category">
-            <mat-option [value]="null">None</mat-option>
-            @for (cat of categories; track cat) {
-              <mat-option [value]="cat">{{ cat }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+        <div class="flex flex-col gap-1">
+          <label for="templateCategory" class="text-sm font-medium text-gray-700">Category</label>
+          <p-select
+            id="templateCategory"
+            formControlName="category"
+            [options]="categoryOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Select a category"
+            class="w-full"
+            styleClass="w-full"
+            [showClear]="true"
+          />
+        </div>
       </form>
 
       @if (errorMessage()) {
@@ -106,45 +118,66 @@ const TEMPLATE_CATEGORIES = [
           {{ errorMessage() }}
         </div>
       }
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="onCancel()" [disabled]="saving()">
-        Cancel
-      </button>
-      <button
-        mat-flat-button
-        color="primary"
-        [disabled]="form.invalid || saving()"
-        (click)="onSave()"
-      >
-        @if (saving()) {
-          <mat-spinner diameter="20" class="inline-block mr-2"></mat-spinner>
-          Saving...
-        } @else {
-          Save as Template
-        }
-      </button>
-    </mat-dialog-actions>
+
+      <ng-template #footer>
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancel"
+            [text]="true"
+            severity="secondary"
+            (onClick)="onCancel()"
+            [disabled]="saving()"
+          />
+          <p-button
+            label="Save as Template"
+            (onClick)="onSave()"
+            [disabled]="form.invalid || saving()"
+            [loading]="saving()"
+          />
+        </div>
+      </ng-template>
+    </p-dialog>
   `,
 })
 export class SaveTemplateDialogComponent {
-  data = inject<SaveTemplateDialogData>(MAT_DIALOG_DATA);
-  private dialogRef = inject(MatDialogRef<SaveTemplateDialogComponent>);
   private fb = inject(FormBuilder);
   private templateService = inject(ProjectTemplateService);
 
-  categories = TEMPLATE_CATEGORIES;
+  /** Two-way bound visibility */
+  visible = model(false);
+
+  /** Input data previously passed via MAT_DIALOG_DATA */
+  boardId = input<string>('');
+  boardName = input<string>('');
+
+  /** Output event replacing MatDialogRef.close(result) */
+  saved = output<SaveTemplateDialogResult>();
+
+  categoryOptions = TEMPLATE_CATEGORIES.map((cat) => ({
+    label: cat,
+    value: cat,
+  }));
+
   saving = signal(false);
   errorMessage = signal<string | null>(null);
 
   form = this.fb.group({
-    name: [this.data.boardName + ' Template', Validators.required],
+    name: ['', Validators.required],
     description: [''],
     category: [null as string | null],
   });
 
+  onDialogShow(): void {
+    this.form.reset({
+      name: this.boardName() + ' Template',
+      description: '',
+      category: null,
+    });
+    this.errorMessage.set(null);
+  }
+
   onCancel(): void {
-    this.dialogRef.close(null);
+    this.visible.set(false);
   }
 
   onSave(): void {
@@ -160,16 +193,14 @@ export class SaveTemplateDialogComponent {
     };
 
     this.templateService
-      .saveBoardAsTemplate(this.data.boardId, request)
+      .saveBoardAsTemplate(this.boardId(), request)
       .subscribe({
         next: (template) => {
           this.saving.set(false);
-          this.dialogRef.close({
-            templateId: template.id,
-          } as SaveTemplateDialogResult);
+          this.visible.set(false);
+          this.saved.emit({ templateId: template.id });
         },
-        error: (err) => {
-          console.error('Failed to save template:', err);
+        error: () => {
           this.errorMessage.set(
             'Failed to save board as template. Please try again.'
           );

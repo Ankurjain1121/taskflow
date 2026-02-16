@@ -1,16 +1,17 @@
-import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, signal, inject, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { firstValueFrom } from 'rxjs';
+import { ChartModule } from 'primeng/chart';
 import { DashboardService, TasksByPriority } from '../../../core/services/dashboard.service';
 
 @Component({
   selector: 'app-tasks-by-priority',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ChartModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white rounded-xl border border-gray-200 p-6 h-full">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Tasks by Priority</h3>
+    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 h-full">
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tasks by Priority</h3>
 
       @if (loading()) {
         <div class="flex items-center justify-center h-64">
@@ -20,26 +21,11 @@ import { DashboardService, TasksByPriority } from '../../../core/services/dashbo
           </svg>
         </div>
       } @else if (data().length > 0) {
-        <!-- Simple bar visualization (fallback until Chart.js installed) -->
-        <div class="space-y-3">
-          @for (item of data(); track item.priority) {
-            <div>
-              <div class="flex items-center justify-between mb-1">
-                <span class="text-sm font-medium" [class]="getPriorityTextColor(item.priority)">
-                  {{ item.priority }}
-                </span>
-                <span class="text-sm font-semibold text-gray-900">{{ item.count }}</span>
-              </div>
-              <div class="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  class="h-2 rounded-full transition-all"
-                  [class]="getPriorityBarColor(item.priority)"
-                  [style.width.%]="(item.count / maxCount()) * 100">
-                </div>
-              </div>
-            </div>
-          }
-        </div>
+        <p-chart
+          type="bar"
+          [data]="chartData()"
+          [options]="chartOptions"
+          [style]="{height: '280px'}" />
       } @else {
         <div class="flex items-center justify-center h-64 text-gray-400">
           <p class="text-sm">No data available</p>
@@ -53,7 +39,39 @@ export class TasksByPriorityComponent implements OnInit {
 
   loading = signal(true);
   data = signal<TasksByPriority[]>([]);
-  maxCount = signal(0);
+
+  chartData = computed(() => {
+    const items = this.data();
+    return {
+      labels: items.map(i => i.priority),
+      datasets: [{
+        data: items.map(i => i.count),
+        backgroundColor: items.map(i => this.getPriorityColor(i.priority)),
+        borderWidth: 0,
+        borderRadius: 4,
+        barThickness: 24,
+      }],
+    };
+  });
+
+  chartOptions = {
+    indexAxis: 'y' as const,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+        ticks: { stepSize: 1 },
+        grid: { display: false },
+      },
+      y: {
+        grid: { display: false },
+      },
+    },
+  };
 
   ngOnInit() {
     this.loadData();
@@ -64,33 +82,20 @@ export class TasksByPriorityComponent implements OnInit {
     try {
       const data = await firstValueFrom(this.dashboardService.getTasksByPriority());
       this.data.set(data || []);
-
-      const max = Math.max(...(data?.map(d => d.count) || [0]));
-      this.maxCount.set(max || 1);
-    } catch (error) {
-      console.error('Failed to load tasks by priority:', error);
+    } catch {
+      // Chart will show empty state
     } finally {
       this.loading.set(false);
     }
   }
 
-  getPriorityTextColor(priority: string): string {
+  getPriorityColor(priority: string): string {
     switch (priority.toLowerCase()) {
-      case 'urgent': return 'text-red-700';
-      case 'high': return 'text-orange-700';
-      case 'medium': return 'text-blue-700';
-      case 'low': return 'text-gray-700';
-      default: return 'text-gray-700';
-    }
-  }
-
-  getPriorityBarColor(priority: string): string {
-    switch (priority.toLowerCase()) {
-      case 'urgent': return 'bg-red-500';
-      case 'high': return 'bg-orange-500';
-      case 'medium': return 'bg-blue-500';
-      case 'low': return 'bg-gray-400';
-      default: return 'bg-gray-400';
+      case 'urgent': return '#ef4444';
+      case 'high': return '#f97316';
+      case 'medium': return '#3b82f6';
+      case 'low': return '#9ca3af';
+      default: return '#9ca3af';
     }
   }
 }

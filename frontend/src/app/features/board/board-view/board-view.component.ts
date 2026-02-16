@@ -11,7 +11,6 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { Subject, takeUntil, forkJoin } from 'rxjs';
 import { CdkDropListGroup } from '@angular/cdk/drag-drop';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { generateKeyBetween } from 'fractional-indexing';
 
 import {
@@ -86,7 +85,9 @@ import { DependencyService } from '../../../core/services/dependency.service';
     CommonModule,
     RouterModule,
     CdkDropListGroup,
-    MatDialogModule,
+    CreateTaskDialogComponent,
+    CreateColumnDialogComponent,
+    CreateTaskGroupDialogComponent,
     KanbanColumnComponent,
     BoardToolbarComponent,
     TaskDetailComponent,
@@ -352,6 +353,30 @@ import { DependencyService } from '../../../core/services/dependency.service';
       <!-- Keyboard Shortcuts Help -->
       <app-shortcut-help></app-shortcut-help>
 
+      <!-- Inline Create Task Dialog -->
+      <app-create-task-dialog
+        [(visible)]="showCreateTaskDialog"
+        [columnId]="createTaskDialogColumnId"
+        [columnName]="createTaskDialogColumnName"
+        [members]="createTaskDialogMembers"
+        [labels]="createTaskDialogLabels"
+        [milestones]="createTaskDialogMilestones"
+        [groups]="createTaskDialogGroups"
+        (created)="onCreateTaskResult($event)"
+      />
+
+      <!-- Inline Create Column Dialog -->
+      <app-create-column-dialog
+        [(visible)]="showCreateColumnDialog"
+        (created)="onCreateColumnResult($event)"
+      />
+
+      <!-- Inline Create Group Dialog -->
+      <app-create-task-group-dialog
+        [(visible)]="showCreateGroupDialog"
+        (created)="onCreateGroupResult($event)"
+      />
+
       <!-- Snackbar for errors -->
       @if (errorMessage()) {
         <div
@@ -388,7 +413,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   private dependencyService = inject(DependencyService);
   private milestoneService = inject(MilestoneService);
   private shortcutsService = inject(KeyboardShortcutsService);
-  private dialog = inject(MatDialog);
   private destroy$ = new Subject<void>();
 
   workspaceId = '';
@@ -419,6 +443,20 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   boardMembers = signal<BoardMember[]>([]);
   boardMilestones = signal<Milestone[]>([]);
   boardGroups = signal<TaskGroupWithStats[]>([]);
+
+  // Dialog visibility state
+  showCreateTaskDialog = false;
+  createTaskDialogColumnId = '';
+  createTaskDialogColumnName = '';
+  createTaskDialogMembers: { id: string; name: string; avatar_url?: string }[] =
+    [];
+  createTaskDialogLabels: { id: string; name: string; color: string }[] = [];
+  createTaskDialogMilestones: { id: string; name: string; color: string }[] =
+    [];
+  createTaskDialogGroups: { id: string; name: string; color: string }[] = [];
+
+  showCreateColumnDialog = false;
+  showCreateGroupDialog = false;
 
   // Computed: IDs of collapsed groups (tasks in collapsed groups are hidden)
   collapsedGroupIds = computed(() => {
@@ -649,49 +687,33 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     const column = this.columns().find((c) => c.id === columnId);
     if (!column) return;
 
-    const members = this.boardMembers().map((m) => ({
+    this.createTaskDialogColumnId = columnId;
+    this.createTaskDialogColumnName = column.name;
+    this.createTaskDialogMembers = this.boardMembers().map((m) => ({
       id: m.user_id,
       name: m.display_name || m.email || 'Unknown',
       avatar_url: m.avatar_url ?? undefined,
     }));
-
-    const labels = this.allLabels().map((l) => ({
+    this.createTaskDialogLabels = this.allLabels().map((l) => ({
       id: l.id,
       name: l.name,
       color: l.color,
     }));
-
-    const milestones = this.boardMilestones().map((m) => ({
+    this.createTaskDialogMilestones = this.boardMilestones().map((m) => ({
       id: m.id,
       name: m.name,
       color: m.color,
     }));
-
-    const groups = this.boardGroups().map((g) => ({
+    this.createTaskDialogGroups = this.boardGroups().map((g) => ({
       id: g.group.id,
       name: g.group.name,
       color: g.group.color,
     }));
+    this.showCreateTaskDialog = true;
+  }
 
-    const dialogRef = this.dialog.open(CreateTaskDialogComponent, {
-      width: '500px',
-      data: {
-        columnId,
-        columnName: column.name,
-        members,
-        labels,
-        milestones,
-        groups,
-      },
-    });
-
-    dialogRef
-      .afterClosed()
-      .subscribe((result: CreateTaskDialogResult | undefined) => {
-        if (result) {
-          this.createTask(columnId, result);
-        }
-      });
+  onCreateTaskResult(result: CreateTaskDialogResult): void {
+    this.createTask(this.createTaskDialogColumnId, result);
   }
 
   private createTask(columnId: string, taskData: CreateTaskDialogResult): void {
@@ -729,17 +751,11 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   onAddColumn(): void {
-    const dialogRef = this.dialog.open(CreateColumnDialogComponent, {
-      width: '500px',
-    });
+    this.showCreateColumnDialog = true;
+  }
 
-    dialogRef
-      .afterClosed()
-      .subscribe((result: CreateColumnDialogResult | undefined) => {
-        if (result) {
-          this.createColumn(result);
-        }
-      });
+  onCreateColumnResult(result: CreateColumnDialogResult): void {
+    this.createColumn(result);
   }
 
   private createColumn(columnData: CreateColumnDialogResult): void {
@@ -775,33 +791,27 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   // === Task Group Operations ===
 
   onCreateGroup(): void {
-    const dialogRef = this.dialog.open(CreateTaskGroupDialogComponent, {
-      width: '450px',
-    });
+    this.showCreateGroupDialog = true;
+  }
 
-    dialogRef
-      .afterClosed()
-      .subscribe((result: CreateTaskGroupDialogResult | undefined) => {
-        if (!result) return;
+  onCreateGroupResult(result: CreateTaskGroupDialogResult): void {
+    const groups = this.boardGroups();
+    const lastGroup = groups[groups.length - 1];
+    const position = generateKeyBetween(
+      lastGroup?.group.position ?? null,
+      null,
+    );
 
-        const groups = this.boardGroups();
-        const lastGroup = groups[groups.length - 1];
-        const position = generateKeyBetween(
-          lastGroup?.group.position ?? null,
-          null,
-        );
-
-        this.taskGroupService
-          .createGroup(this.boardId, {
-            board_id: this.boardId,
-            name: result.name,
-            color: result.color,
-            position,
-          })
-          .subscribe({
-            next: () => this.reloadGroups(),
-            error: () => this.showError('Failed to create group'),
-          });
+    this.taskGroupService
+      .createGroup(this.boardId, {
+        board_id: this.boardId,
+        name: result.name,
+        color: result.color,
+        position,
+      })
+      .subscribe({
+        next: () => this.reloadGroups(),
+        error: () => this.showError('Failed to create group'),
       });
   }
 

@@ -11,16 +11,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
-import { MatTableModule } from '@angular/material/table';
-import { MatButtonModule } from '@angular/material/button';
-import { MatSelectModule } from '@angular/material/select';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { InputTextModule } from 'primeng/inputtext';
+import { Select } from 'primeng/select';
+import { DatePicker } from 'primeng/datepicker';
+import { ButtonModule } from 'primeng/button';
+import { Tooltip } from 'primeng/tooltip';
+import { ProgressSpinner } from 'primeng/progressspinner';
 import {
   AdminService,
   AuditLogEntry,
@@ -34,16 +30,12 @@ import {
     CommonModule,
     FormsModule,
     RouterModule,
-    MatTableModule,
-    MatButtonModule,
-    MatSelectModule,
-    MatInputModule,
-    MatFormFieldModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
-    MatTooltipModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
+    InputTextModule,
+    Select,
+    DatePicker,
+    ButtonModule,
+    Tooltip,
+    ProgressSpinner,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -61,68 +53,90 @@ import {
         <div class="bg-white rounded-lg shadow mb-6 p-4">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <!-- Search -->
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Search</mat-label>
-              <input
-                matInput
-                [(ngModel)]="searchQuery"
-                (ngModelChange)="onSearchChange($event)"
-                placeholder="Search activities..."
-              />
-              <mat-icon matPrefix>search</mat-icon>
-            </mat-form-field>
+            <div class="flex flex-col gap-2">
+              <label for="search" class="text-sm font-medium text-gray-700">Search</label>
+              <div class="p-inputgroup">
+                <span class="p-inputgroup-addon"><i class="pi pi-search"></i></span>
+                <input
+                  pInputText
+                  id="search"
+                  [(ngModel)]="searchQuery"
+                  (ngModelChange)="onSearchChange($event)"
+                  placeholder="Search activities..."
+                  class="w-full"
+                />
+              </div>
+            </div>
 
             <!-- Action Filter -->
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Action</mat-label>
-              <mat-select [(ngModel)]="selectedAction" (ngModelChange)="loadAuditLog()">
-                <mat-option [value]="''">All Actions</mat-option>
-                @for (action of availableActions(); track action) {
-                  <mat-option [value]="action">{{ formatAction(action) }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
+            <div class="flex flex-col gap-2">
+              <label for="action" class="text-sm font-medium text-gray-700">Action</label>
+              <p-select
+                id="action"
+                [options]="actionOptions()"
+                [(ngModel)]="selectedAction"
+                (ngModelChange)="loadAuditLog()"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="All Actions"
+                [showClear]="true"
+                styleClass="w-full"
+              />
+            </div>
 
             <!-- Entity Type Filter -->
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>Entity Type</mat-label>
-              <mat-select [(ngModel)]="selectedEntityType" (ngModelChange)="loadAuditLog()">
-                <mat-option [value]="''">All Types</mat-option>
-                <mat-option value="task">Task</mat-option>
-                <mat-option value="board">Board</mat-option>
-                <mat-option value="workspace">Workspace</mat-option>
-                <mat-option value="user">User</mat-option>
-                <mat-option value="comment">Comment</mat-option>
-              </mat-select>
-            </mat-form-field>
+            <div class="flex flex-col gap-2">
+              <label for="entityType" class="text-sm font-medium text-gray-700">Entity Type</label>
+              <p-select
+                id="entityType"
+                [options]="entityTypeOptions"
+                [(ngModel)]="selectedEntityType"
+                (ngModelChange)="loadAuditLog()"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="All Types"
+                [showClear]="true"
+                styleClass="w-full"
+              />
+            </div>
 
             <!-- Date From -->
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>From Date</mat-label>
-              <input matInput [matDatepicker]="dateFromPicker" [(ngModel)]="dateFrom" (dateChange)="loadAuditLog()" />
-              <mat-datepicker-toggle matIconSuffix [for]="dateFromPicker"></mat-datepicker-toggle>
-              <mat-datepicker #dateFromPicker></mat-datepicker>
-            </mat-form-field>
+            <div class="flex flex-col gap-2">
+              <label for="dateFrom" class="text-sm font-medium text-gray-700">From Date</label>
+              <p-datepicker
+                id="dateFrom"
+                [(ngModel)]="dateFrom"
+                (ngModelChange)="loadAuditLog()"
+                [showIcon]="true"
+                dateFormat="mm/dd/yy"
+                placeholder="Select date"
+                styleClass="w-full"
+              />
+            </div>
 
             <!-- Date To -->
-            <mat-form-field appearance="outline" class="w-full">
-              <mat-label>To Date</mat-label>
-              <input matInput [matDatepicker]="dateToPicker" [(ngModel)]="dateTo" (dateChange)="loadAuditLog()" />
-              <mat-datepicker-toggle matIconSuffix [for]="dateToPicker"></mat-datepicker-toggle>
-              <mat-datepicker #dateToPicker></mat-datepicker>
-            </mat-form-field>
+            <div class="flex flex-col gap-2">
+              <label for="dateTo" class="text-sm font-medium text-gray-700">To Date</label>
+              <p-datepicker
+                id="dateTo"
+                [(ngModel)]="dateTo"
+                (ngModelChange)="loadAuditLog()"
+                [showIcon]="true"
+                dateFormat="mm/dd/yy"
+                placeholder="Select date"
+                styleClass="w-full"
+              />
+            </div>
           </div>
 
           <!-- Clear Filters -->
           @if (hasActiveFilters()) {
             <div class="mt-4 flex justify-end">
-              <button
-                mat-button
-                color="primary"
-                (click)="clearFilters()"
-              >
-                Clear Filters
-              </button>
+              <p-button
+                label="Clear Filters"
+                [text]="true"
+                (onClick)="clearFilters()"
+              />
             </div>
           }
         </div>
@@ -130,7 +144,10 @@ import {
         <!-- Loading State -->
         @if (loading() && entries().length === 0) {
           <div class="flex items-center justify-center py-12">
-            <mat-spinner diameter="40"></mat-spinner>
+            <p-progressSpinner
+              [style]="{ width: '40px', height: '40px' }"
+              strokeWidth="4"
+            />
           </div>
         }
 
@@ -201,7 +218,7 @@ import {
                       <!-- Timestamp -->
                       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <span
-                          [matTooltip]="formatAbsoluteDate(entry.created_at)"
+                          [pTooltip]="formatAbsoluteDate(entry.created_at)"
                           class="cursor-help"
                         >
                           {{ formatRelativeDate(entry.created_at) }}
@@ -259,13 +276,11 @@ import {
                       <td class="px-6 py-4">
                         @if (entry.details && Object.keys(entry.details).length > 0) {
                           <button
-                            mat-icon-button
+                            class="p-1 rounded hover:bg-gray-100 transition-colors"
                             (click)="toggleDetails(entry.id)"
-                            [matTooltip]="expandedDetails().has(entry.id) ? 'Hide details' : 'Show details'"
+                            [pTooltip]="expandedDetails().has(entry.id) ? 'Hide details' : 'Show details'"
                           >
-                            <mat-icon>
-                              {{ expandedDetails().has(entry.id) ? 'expand_less' : 'expand_more' }}
-                            </mat-icon>
+                            <i [class]="expandedDetails().has(entry.id) ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
                           </button>
                         } @else {
                           <span class="text-gray-400 text-sm">-</span>
@@ -289,17 +304,13 @@ import {
             <!-- Load More -->
             @if (nextCursor()) {
               <div class="px-6 py-4 border-t border-gray-200 flex justify-center">
-                <button
-                  mat-stroked-button
-                  color="primary"
-                  (click)="loadMore()"
+                <p-button
+                  [outlined]="true"
+                  (onClick)="loadMore()"
                   [disabled]="loadingMore()"
-                >
-                  @if (loadingMore()) {
-                    <mat-spinner diameter="20" class="inline-block mr-2"></mat-spinner>
-                  }
-                  Load More
-                </button>
+                  [loading]="loadingMore()"
+                  label="Load More"
+                />
               </div>
             }
           </div>
@@ -310,14 +321,6 @@ import {
   styles: [`
     :host {
       display: block;
-    }
-
-    mat-form-field {
-      font-size: 14px;
-    }
-
-    .mat-mdc-form-field {
-      --mdc-outlined-text-field-container-shape: 8px;
     }
   `],
 })
@@ -335,10 +338,26 @@ export class AuditLogComponent implements OnInit, OnDestroy {
   availableActions = signal<string[]>([]);
   expandedDetails = signal<Set<string>>(new Set());
 
+  // Select options
+  actionOptions = computed(() =>
+    this.availableActions().map((action) => ({
+      label: this.formatAction(action),
+      value: action,
+    }))
+  );
+
+  entityTypeOptions = [
+    { label: 'Task', value: 'task' },
+    { label: 'Board', value: 'board' },
+    { label: 'Workspace', value: 'workspace' },
+    { label: 'User', value: 'user' },
+    { label: 'Comment', value: 'comment' },
+  ];
+
   // Filters
   searchQuery = '';
-  selectedAction = '';
-  selectedEntityType = '';
+  selectedAction: string | null = null;
+  selectedEntityType: string | null = null;
   dateFrom: Date | null = null;
   dateTo: Date | null = null;
 
@@ -374,8 +393,8 @@ export class AuditLogComponent implements OnInit, OnDestroy {
         next: (actions) => {
           this.availableActions.set(actions);
         },
-        error: (err) => {
-          console.error('Failed to load audit actions:', err);
+        error: () => {
+          // silently fail - actions list is non-critical
         },
       });
   }
@@ -395,8 +414,7 @@ export class AuditLogComponent implements OnInit, OnDestroy {
           this.nextCursor.set(response.next_cursor);
           this.loading.set(false);
         },
-        error: (err) => {
-          console.error('Failed to load audit log:', err);
+        error: () => {
           this.error.set('Failed to load audit log. Please try again.');
           this.loading.set(false);
         },
@@ -420,8 +438,7 @@ export class AuditLogComponent implements OnInit, OnDestroy {
           this.nextCursor.set(response.next_cursor);
           this.loadingMore.set(false);
         },
-        error: (err) => {
-          console.error('Failed to load more entries:', err);
+        error: () => {
           this.loadingMore.set(false);
         },
       });
@@ -443,8 +460,8 @@ export class AuditLogComponent implements OnInit, OnDestroy {
 
   clearFilters(): void {
     this.searchQuery = '';
-    this.selectedAction = '';
-    this.selectedEntityType = '';
+    this.selectedAction = null;
+    this.selectedEntityType = null;
     this.dateFrom = null;
     this.dateTo = null;
     this.loadAuditLog();

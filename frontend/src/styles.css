@@ -1,5 +1,6 @@
 @import "tailwindcss";
-@import "@angular/material/prebuilt-themes/azure-blue.css";
+
+@import "primeicons/primeicons.css";
 
 /* Tailwind CSS 4 Animation Utilities */
 @utility animate-pulse {
@@ -339,23 +340,6 @@ button:active, [role="button"]:active {
   animation: celebrateGlow 0.6s ease both;
 }
 
-/* ============================================
-   Angular Material Theme Overrides (warmer)
-   ============================================ */
-.mat-mdc-form-field {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
-}
-
-.mdc-text-field--outlined .mdc-notched-outline__leading,
-.mdc-text-field--outlined .mdc-notched-outline__notch,
-.mdc-text-field--outlined .mdc-notched-outline__trailing {
-  border-color: var(--border) !important;
-}
-
-.mat-mdc-raised-button.mat-primary,
-.mat-mdc-unelevated-button.mat-primary {
-  --mdc-filled-button-container-color: var(--primary) !important;
-}
 
 /* ============================================
    Route Transition Wrapper

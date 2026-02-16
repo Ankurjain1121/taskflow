@@ -2,18 +2,17 @@ import {
   Component,
   inject,
   signal,
+  input,
+  output,
+  model,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import {
-  MatDialogModule,
-  MAT_DIALOG_DATA,
-  MatDialogRef,
-} from '@angular/material/dialog';
-import { MatRadioModule } from '@angular/material/radio';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ButtonModule } from 'primeng/button';
+import { Dialog } from 'primeng/dialog';
+import { RadioButton } from 'primeng/radiobutton';
+import { ProgressSpinner } from 'primeng/progressspinner';
 import { ImportExportService } from '../../../core/services/import-export.service';
 
 export interface ExportDialogData {
@@ -27,35 +26,52 @@ export interface ExportDialogData {
   imports: [
     CommonModule,
     FormsModule,
-    MatButtonModule,
-    MatDialogModule,
-    MatRadioModule,
-    MatProgressSpinnerModule,
+    ButtonModule,
+    Dialog,
+    RadioButton,
+    ProgressSpinner,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h2 mat-dialog-title>Export Board</h2>
-    <mat-dialog-content>
+    <p-dialog
+      header="Export Board"
+      [(visible)]="visible"
+      [modal]="true"
+      [style]="{ width: '480px' }"
+      [closable]="true"
+    >
       <p class="text-gray-600 mb-4">
-        Export tasks from "{{ data.boardName }}" to a file.
+        Export tasks from "{{ boardName() }}" to a file.
       </p>
 
       <div class="flex flex-col gap-2">
         <label class="text-sm font-medium text-gray-700">Format</label>
-        <mat-radio-group [(ngModel)]="selectedFormat" class="flex flex-col gap-2">
-          <mat-radio-button value="csv">
-            <span class="text-sm">
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center gap-2">
+            <p-radioButton
+              name="exportFormat"
+              value="csv"
+              [(ngModel)]="selectedFormat"
+              inputId="formatCsv"
+            />
+            <label for="formatCsv" class="text-sm cursor-pointer">
               <span class="font-medium">CSV</span>
               <span class="text-gray-500 ml-1">- Spreadsheet compatible (Excel, Google Sheets)</span>
-            </span>
-          </mat-radio-button>
-          <mat-radio-button value="json">
-            <span class="text-sm">
+            </label>
+          </div>
+          <div class="flex items-center gap-2">
+            <p-radioButton
+              name="exportFormat"
+              value="json"
+              [(ngModel)]="selectedFormat"
+              inputId="formatJson"
+            />
+            <label for="formatJson" class="text-sm cursor-pointer">
               <span class="font-medium">JSON</span>
               <span class="text-gray-500 ml-1">- Structured data with board metadata</span>
-            </span>
-          </mat-radio-button>
-        </mat-radio-group>
+            </label>
+          </div>
+        </div>
       </div>
 
       @if (error()) {
@@ -63,48 +79,46 @@ export interface ExportDialogData {
           <p class="text-sm text-red-700">{{ error() }}</p>
         </div>
       }
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="onCancel()" [disabled]="exporting()">
-        Cancel
-      </button>
-      <button
-        mat-flat-button
-        color="primary"
-        [disabled]="exporting()"
-        (click)="onExport()"
-      >
-        @if (exporting()) {
-          <mat-spinner diameter="18" class="inline-block mr-2"></mat-spinner>
-          Exporting...
-        } @else {
-          Export
-        }
-      </button>
-    </mat-dialog-actions>
+
+      <ng-template #footer>
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancel"
+            [text]="true"
+            severity="secondary"
+            (onClick)="onCancel()"
+            [disabled]="exporting()"
+          />
+          <p-button
+            label="Export"
+            (onClick)="onExport()"
+            [disabled]="exporting()"
+            [loading]="exporting()"
+          />
+        </div>
+      </ng-template>
+    </p-dialog>
   `,
-  styles: [
-    `
-      mat-dialog-content {
-        min-width: 420px;
-      }
-      mat-spinner {
-        display: inline-block;
-      }
-    `,
-  ],
 })
 export class ExportDialogComponent {
-  data = inject<ExportDialogData>(MAT_DIALOG_DATA);
-  private dialogRef = inject(MatDialogRef<ExportDialogComponent>);
   private importExportService = inject(ImportExportService);
+
+  /** Two-way bound visibility */
+  visible = model(false);
+
+  /** Input data previously passed via MAT_DIALOG_DATA */
+  boardId = input<string>('');
+  boardName = input<string>('');
+
+  /** Output event replacing MatDialogRef.close(result) */
+  exported = output<void>();
 
   selectedFormat = 'csv';
   exporting = signal(false);
   error = signal<string | null>(null);
 
   onCancel(): void {
-    this.dialogRef.close(null);
+    this.visible.set(false);
   }
 
   onExport(): void {
@@ -112,29 +126,29 @@ export class ExportDialogComponent {
     this.error.set(null);
 
     if (this.selectedFormat === 'csv') {
-      this.importExportService.exportCsv(this.data.boardId).subscribe({
+      this.importExportService.exportCsv(this.boardId()).subscribe({
         next: (blob) => {
-          this.downloadBlob(blob, `${this.sanitizeFilename(this.data.boardName)}_export.csv`);
+          this.downloadBlob(blob, `${this.sanitizeFilename(this.boardName())}_export.csv`);
           this.exporting.set(false);
-          this.dialogRef.close('exported');
+          this.visible.set(false);
+          this.exported.emit();
         },
-        error: (err) => {
-          console.error('CSV export failed:', err);
+        error: () => {
           this.error.set('Failed to export CSV. Please try again.');
           this.exporting.set(false);
         },
       });
     } else {
-      this.importExportService.exportJson(this.data.boardId).subscribe({
+      this.importExportService.exportJson(this.boardId()).subscribe({
         next: (data) => {
           const json = JSON.stringify(data, null, 2);
           const blob = new Blob([json], { type: 'application/json' });
-          this.downloadBlob(blob, `${this.sanitizeFilename(this.data.boardName)}_export.json`);
+          this.downloadBlob(blob, `${this.sanitizeFilename(this.boardName())}_export.json`);
           this.exporting.set(false);
-          this.dialogRef.close('exported');
+          this.visible.set(false);
+          this.exported.emit();
         },
-        error: (err) => {
-          console.error('JSON export failed:', err);
+        error: () => {
           this.error.set('Failed to export JSON. Please try again.');
           this.exporting.set(false);
         },

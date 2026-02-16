@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, input, output, model } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -6,19 +6,13 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import {
-  MatDialogModule,
-  MAT_DIALOG_DATA,
-  MatDialogRef,
-} from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatIconModule } from '@angular/material/icon';
-import { MatCheckboxModule } from '@angular/material/checkbox';
+import { ButtonModule } from 'primeng/button';
+import { Dialog } from 'primeng/dialog';
+import { InputTextModule } from 'primeng/inputtext';
+import { Textarea } from 'primeng/textarea';
+import { Select } from 'primeng/select';
+import { Checkbox } from 'primeng/checkbox';
+import { FormsModule } from '@angular/forms';
 
 export interface InviteMemberDialogData {
   workspaceId: string;
@@ -45,44 +39,62 @@ interface EmailValidation {
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatButtonModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatProgressSpinnerModule,
-    MatChipsModule,
-    MatIconModule,
-    MatCheckboxModule,
+    FormsModule,
+    ButtonModule,
+    Dialog,
+    InputTextModule,
+    Textarea,
+    Select,
+    Checkbox,
   ],
   template: `
-    <h2 mat-dialog-title>Invite Members</h2>
-    <mat-dialog-content>
+    <p-dialog
+      header="Invite Members"
+      [(visible)]="visible"
+      [modal]="true"
+      [style]="{ width: '520px' }"
+      [closable]="true"
+      (onShow)="onDialogShow()"
+    >
       <p class="text-sm text-gray-500 mb-4">
-        Invite new members to {{ data.workspaceName }}
+        Invite new members to {{ workspaceName() }}
       </p>
       <form [formGroup]="form">
         <!-- Bulk Email Input -->
-        <mat-form-field appearance="outline" class="w-full mb-2">
-          <mat-label>Email Addresses</mat-label>
+        <div class="flex flex-col gap-1 mb-4">
+          <label
+            for="emailsText"
+            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Email Addresses</label
+          >
           <textarea
-            matInput
+            pTextarea
+            id="emailsText"
             formControlName="emailsText"
-            placeholder="Enter emails separated by commas or new lines&#10;e.g. alice&#64;example.com, bob&#64;example.com"
+            placeholder="Enter emails separated by commas or new lines&#10;e.g. alice@example.com, bob@example.com"
             rows="4"
+            class="w-full"
             (blur)="validateEmails()"
           ></textarea>
-          <mat-hint>Enter one email per line or separate with commas</mat-hint>
-          @if (form.get('emailsText')?.hasError('required') && form.get('emailsText')?.touched) {
-            <mat-error>At least one email is required</mat-error>
+          <small class="text-gray-500"
+            >Enter one email per line or separate with commas</small
+          >
+          @if (
+            form.get('emailsText')?.hasError('required') &&
+            form.get('emailsText')?.touched
+          ) {
+            <small class="text-red-500">At least one email is required</small>
           }
-        </mat-form-field>
+        </div>
 
         <!-- Parsed emails preview -->
         @if (parsedEmails().length > 0) {
           <div class="mb-4">
             <div class="text-xs font-medium text-gray-500 mb-2">
-              {{ validEmailCount() }} valid email{{ validEmailCount() !== 1 ? 's' : '' }} found
+              {{ validEmailCount() }} valid email{{
+                validEmailCount() !== 1 ? 's' : ''
+              }}
+              found
               @if (invalidEmailCount() > 0) {
                 <span class="text-red-500 ml-1">
                   ({{ invalidEmailCount() }} invalid)
@@ -102,8 +114,16 @@ interface EmailValidation {
                 >
                   {{ item.email }}
                   @if (!item.valid) {
-                    <svg class="w-3 h-3 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    <svg
+                      class="w-3 h-3 text-red-500"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clip-rule="evenodd"
+                      />
                     </svg>
                   }
                 </span>
@@ -113,122 +133,136 @@ interface EmailValidation {
         }
 
         <!-- Role Selection -->
-        <mat-form-field appearance="outline" class="w-full mb-2">
-          <mat-label>Role</mat-label>
-          <mat-select formControlName="role">
-            <mat-option value="member">
-              <div class="flex flex-col">
-                <span class="font-medium">Member</span>
-                <span class="text-xs text-gray-500">Can view and edit boards</span>
-              </div>
-            </mat-option>
-            <mat-option value="manager">
-              <div class="flex flex-col">
-                <span class="font-medium">Manager</span>
-                <span class="text-xs text-gray-500">Can manage boards and assign tasks</span>
-              </div>
-            </mat-option>
-            <mat-option value="admin">
-              <div class="flex flex-col">
-                <span class="font-medium">Admin</span>
-                <span class="text-xs text-gray-500">Can manage members and settings</span>
-              </div>
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
+        <div class="flex flex-col gap-1 mb-4">
+          <label
+            for="role"
+            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Role</label
+          >
+          <p-select
+            formControlName="role"
+            [options]="roleOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Select a role"
+            class="w-full"
+          />
+        </div>
 
         <!-- Board Access Selection -->
-        @if (data.boards && data.boards.length > 0) {
+        @if (boards() && boards().length > 0) {
           <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
               Board Access
             </label>
             <p class="text-xs text-gray-500 mb-2">
               Select which boards the invited members should have access to
             </p>
-            <div class="border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto space-y-1">
-              <div class="mb-2">
-                <mat-checkbox
-                  [checked]="allBoardsSelected()"
-                  [indeterminate]="someBoardsSelected() && !allBoardsSelected()"
-                  (change)="toggleAllBoards($event.checked)"
-                  color="primary"
+            <div
+              class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 max-h-48 overflow-y-auto space-y-1"
+            >
+              <div class="mb-2 flex items-center gap-2">
+                <p-checkbox
+                  [binary]="true"
+                  [ngModel]="allBoardsSelected()"
+                  [ngModelOptions]="{ standalone: true }"
+                  (onChange)="toggleAllBoards($event.checked)"
+                  inputId="selectAll"
+                />
+                <label
+                  for="selectAll"
+                  class="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
+                  >Select All</label
                 >
-                  <span class="text-sm font-medium text-gray-700">Select All</span>
-                </mat-checkbox>
               </div>
-              @for (board of data.boards; track board.id) {
-                <div>
-                  <mat-checkbox
-                    [checked]="isBoardSelected(board.id)"
-                    (change)="toggleBoard(board.id, $event.checked)"
-                    color="primary"
+              @for (board of boards(); track board.id; let i = $index) {
+                <div class="flex items-center gap-2">
+                  <p-checkbox
+                    [binary]="true"
+                    [ngModel]="isBoardSelected(board.id)"
+                    [ngModelOptions]="{ standalone: true }"
+                    (onChange)="toggleBoard(board.id, $event.checked)"
+                    [inputId]="'board-' + i"
+                  />
+                  <label
+                    [for]="'board-' + i"
+                    class="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+                    >{{ board.name }}</label
                   >
-                    <span class="text-sm text-gray-700">{{ board.name }}</span>
-                  </mat-checkbox>
                 </div>
               }
             </div>
             @if (selectedBoardIds().length > 0) {
               <p class="text-xs text-gray-500 mt-1">
-                {{ selectedBoardIds().length }} board{{ selectedBoardIds().length !== 1 ? 's' : '' }} selected
+                {{ selectedBoardIds().length }} board{{
+                  selectedBoardIds().length !== 1 ? 's' : ''
+                }}
+                selected
               </p>
             }
           </div>
         }
 
         <!-- Welcome Message -->
-        <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Welcome Message (optional)</mat-label>
+        <div class="flex flex-col gap-1">
+          <label
+            for="message"
+            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Welcome Message (optional)</label
+          >
           <textarea
-            matInput
+            pTextarea
+            id="message"
             formControlName="message"
             placeholder="Add a personal welcome message for the invitees..."
             rows="3"
+            class="w-full"
           ></textarea>
-          <mat-hint>This message will be included in the invitation email</mat-hint>
-        </mat-form-field>
+          <small class="text-gray-500"
+            >This message will be included in the invitation email</small
+          >
+        </div>
       </form>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end" class="gap-2">
-      <button mat-button (click)="onCancel()" [disabled]="isSubmitting">
-        Cancel
-      </button>
-      <button
-        mat-flat-button
-        color="primary"
-        (click)="onSubmit()"
-        [disabled]="!canSubmit() || isSubmitting"
-      >
-        @if (isSubmitting) {
-          <mat-spinner diameter="20" class="inline-block mr-2"></mat-spinner>
-          Sending...
-        } @else {
-          Send Invitation{{ validEmailCount() > 1 ? 's' : '' }}
-          @if (validEmailCount() > 0) {
-            ({{ validEmailCount() }})
-          }
-        }
-      </button>
-    </mat-dialog-actions>
-  `,
-  styles: [
-    `
-      mat-dialog-content {
-        min-width: 460px;
-      }
 
-      mat-spinner {
-        display: inline-block;
-        margin-right: 8px;
-      }
-    `,
-  ],
+      <ng-template #footer>
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancel"
+            [text]="true"
+            severity="secondary"
+            (onClick)="onCancel()"
+            [disabled]="isSubmitting"
+          />
+          <p-button
+            [label]="
+              'Send Invitation' +
+              (validEmailCount() > 1 ? 's' : '') +
+              (validEmailCount() > 0 ? ' (' + validEmailCount() + ')' : '')
+            "
+            (onClick)="onSubmit()"
+            [disabled]="!canSubmit() || isSubmitting"
+            [loading]="isSubmitting"
+          />
+        </div>
+      </ng-template>
+    </p-dialog>
+  `,
 })
 export class InviteMemberDialogComponent {
-  data = inject<InviteMemberDialogData>(MAT_DIALOG_DATA);
-  private dialogRef = inject(MatDialogRef<InviteMemberDialogComponent>);
   private fb = inject(FormBuilder);
+
+  /** Two-way bound visibility */
+  visible = model(false);
+
+  /** Input data previously passed via MAT_DIALOG_DATA */
+  workspaceId = input<string>('');
+  workspaceName = input<string>('');
+  boards = input<{ id: string; name: string }[]>([]);
+
+  /** Output event replacing MatDialogRef.close(result) */
+  created = output<InviteMemberDialogResult>();
 
   form: FormGroup = this.fb.group({
     emailsText: ['', [Validators.required]],
@@ -240,7 +274,19 @@ export class InviteMemberDialogComponent {
   selectedBoardIds = signal<string[]>([]);
   isSubmitting = false;
 
+  roleOptions = [
+    { label: 'Member - Can view and edit boards', value: 'member' },
+    { label: 'Manager - Can manage boards and assign tasks', value: 'manager' },
+    { label: 'Admin - Can manage members and settings', value: 'admin' },
+  ];
+
   private readonly emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  onDialogShow(): void {
+    this.form.reset({ emailsText: '', role: 'member', message: '' });
+    this.parsedEmails.set([]);
+    this.selectedBoardIds.set([]);
+  }
 
   validEmailCount(): number {
     return this.parsedEmails().filter((e) => e.valid).length;
@@ -251,10 +297,7 @@ export class InviteMemberDialogComponent {
   }
 
   canSubmit(): boolean {
-    return (
-      this.form.get('role')?.valid === true &&
-      this.validEmailCount() > 0
-    );
+    return this.form.get('role')?.valid === true && this.validEmailCount() > 0;
   }
 
   isBoardSelected(boardId: string): boolean {
@@ -263,24 +306,20 @@ export class InviteMemberDialogComponent {
 
   allBoardsSelected(): boolean {
     return (
-      this.data.boards?.length > 0 &&
-      this.selectedBoardIds().length === this.data.boards.length
+      this.boards()?.length > 0 &&
+      this.selectedBoardIds().length === this.boards().length
     );
-  }
-
-  someBoardsSelected(): boolean {
-    return this.selectedBoardIds().length > 0;
   }
 
   toggleBoard(boardId: string, checked: boolean): void {
     this.selectedBoardIds.update((ids) =>
-      checked ? [...ids, boardId] : ids.filter((id) => id !== boardId)
+      checked ? [...ids, boardId] : ids.filter((id) => id !== boardId),
     );
   }
 
   toggleAllBoards(checked: boolean): void {
     if (checked) {
-      this.selectedBoardIds.set(this.data.boards.map((b) => b.id));
+      this.selectedBoardIds.set(this.boards().map((b) => b.id));
     } else {
       this.selectedBoardIds.set([]);
     }
@@ -307,7 +346,7 @@ export class InviteMemberDialogComponent {
   }
 
   onCancel(): void {
-    this.dialogRef.close();
+    this.visible.set(false);
   }
 
   onSubmit(): void {
@@ -329,6 +368,7 @@ export class InviteMemberDialogComponent {
       message: this.form.value.message?.trim() || undefined,
     };
 
-    this.dialogRef.close(result);
+    this.visible.set(false);
+    this.created.emit(result);
   }
 }

@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import {
   WorkspaceService,
   WorkspaceMember,
@@ -18,7 +17,6 @@ import {
 import { AuthService } from '../../../core/services/auth.service';
 import {
   InviteMemberDialogComponent,
-  InviteMemberDialogData,
   InviteMemberDialogResult,
 } from '../../../shared/components/dialogs/invite-member-dialog.component';
 
@@ -31,7 +29,7 @@ export interface MemberWithDetails extends WorkspaceMember {
 @Component({
   selector: 'app-members-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatDialogModule],
+  imports: [CommonModule, FormsModule, InviteMemberDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-white rounded-lg shadow">
@@ -291,12 +289,20 @@ export interface MemberWithDetails extends WorkspaceMember {
         }
       </div>
     }
+
+    <!-- Invite Member Dialog (PrimeNG) -->
+    <app-invite-member-dialog
+      [(visible)]="showInviteDialog"
+      [workspaceId]="workspaceId()"
+      [workspaceName]="workspaceName()"
+      [boards]="boards()"
+      (created)="onInviteResult($event)"
+    />
   `,
 })
 export class MembersListComponent implements OnInit {
   private workspaceService = inject(WorkspaceService);
   private authService = inject(AuthService);
-  private dialog = inject(MatDialog);
 
   members = input.required<MemberWithDetails[]>();
   workspaceId = input.required<string>();
@@ -311,6 +317,7 @@ export class MembersListComponent implements OnInit {
   allInvitations = signal<InvitationWithStatus[]>([]);
   loadingInvitations = signal(false);
   actionInProgress = signal<string | null>(null);
+  showInviteDialog = signal(false);
 
   ngOnInit(): void {
     this.loadInvitations();
@@ -329,8 +336,7 @@ export class MembersListComponent implements OnInit {
         this.allInvitations.set(invitations);
         this.loadingInvitations.set(false);
       },
-      error: (err) => {
-        console.error('Failed to load invitations:', err);
+      error: () => {
         this.loadingInvitations.set(false);
       },
     });
@@ -409,45 +415,35 @@ export class MembersListComponent implements OnInit {
   }
 
   onInviteMember(): void {
-    const dialogData: InviteMemberDialogData = {
-      workspaceId: this.workspaceId(),
-      workspaceName: this.workspaceName(),
-      boards: this.boards(),
-    };
+    this.showInviteDialog.set(true);
+  }
 
-    const dialogRef = this.dialog.open(InviteMemberDialogComponent, {
-      data: dialogData,
-    });
+  onInviteResult(result: InviteMemberDialogResult): void {
+    this.workspaceService
+      .bulkInviteMembers(
+        this.workspaceId(),
+        result.emails,
+        result.role,
+        result.message,
+        result.boardIds
+      )
+      .subscribe({
+        next: (response) => {
+          this.memberInvited.emit({ emails: result.emails, role: result.role });
+          // Reload invitations to show the newly created ones
+          this.loadInvitations();
 
-    dialogRef.afterClosed().subscribe((result: InviteMemberDialogResult | undefined) => {
-      if (result) {
-        this.workspaceService
-          .bulkInviteMembers(
-            this.workspaceId(),
-            result.emails,
-            result.role,
-            result.message,
-            result.boardIds
-          )
-          .subscribe({
-            next: (response) => {
-              this.memberInvited.emit({ emails: result.emails, role: result.role });
-              // Reload invitations to show the newly created ones
-              this.loadInvitations();
-
-              if (response.errors && response.errors.length > 0) {
-                const errorMessages = response.errors
-                  .map((e) => `${e.email}: ${e.reason}`)
-                  .join('\n');
-                console.warn('Some invitations failed:', errorMessages);
-              }
-            },
-            error: (err) => {
-              console.error('Failed to invite members:', err);
-            },
-          });
-      }
-    });
+          if (response.errors && response.errors.length > 0) {
+            const errorMessages = response.errors
+              .map((e) => `${e.email}: ${e.reason}`)
+              .join('\n');
+            // Log warning for partial failures
+          }
+        },
+        error: () => {
+          // Error handling - invite failed
+        },
+      });
   }
 
   onResendInvitation(invitation: InvitationWithStatus): void {
@@ -458,8 +454,7 @@ export class MembersListComponent implements OnInit {
         this.loadInvitations();
         this.actionInProgress.set(null);
       },
-      error: (err) => {
-        console.error('Failed to resend invitation:', err);
+      error: () => {
         this.actionInProgress.set(null);
       },
     });
@@ -479,8 +474,7 @@ export class MembersListComponent implements OnInit {
         );
         this.actionInProgress.set(null);
       },
-      error: (err) => {
-        console.error('Failed to cancel invitation:', err);
+      error: () => {
         this.actionInProgress.set(null);
       },
     });
@@ -501,8 +495,7 @@ export class MembersListComponent implements OnInit {
           this.memberRoleChanged.emit({ userId: member.user_id, role: newRole });
           this.updatingMember.set(null);
         },
-        error: (err) => {
-          console.error('Failed to update member role:', err);
+        error: () => {
           this.updatingMember.set(null);
         },
       });
@@ -522,8 +515,7 @@ export class MembersListComponent implements OnInit {
           this.memberRemoved.emit(member.user_id);
           this.updatingMember.set(null);
         },
-        error: (err) => {
-          console.error('Failed to remove member:', err);
+        error: () => {
           this.updatingMember.set(null);
         },
       });

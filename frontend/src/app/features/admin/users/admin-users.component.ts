@@ -10,20 +10,17 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged } from 'rxjs';
-import { MatTableModule } from '@angular/material/table';
-import { MatButtonModule } from '@angular/material/button';
-import { MatSelectModule } from '@angular/material/select';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatDividerModule } from '@angular/material/divider';
+import { InputTextModule } from 'primeng/inputtext';
+import { Select } from 'primeng/select';
+import { ButtonModule } from 'primeng/button';
+import { Tooltip } from 'primeng/tooltip';
+import { ProgressSpinner } from 'primeng/progressspinner';
+import { Dialog } from 'primeng/dialog';
+import { Menu } from 'primeng/menu';
+import { DividerModule } from 'primeng/divider';
 import { AdminService, AdminUser } from '../../../core/services/admin.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { AdminConfirmDialogComponent } from '../shared/confirm-dialog.component';
+import { MenuItem } from 'primeng/api';
 
 @Component({
   selector: 'app-admin-users',
@@ -31,17 +28,14 @@ import { AdminConfirmDialogComponent } from '../shared/confirm-dialog.component'
   imports: [
     CommonModule,
     FormsModule,
-    MatTableModule,
-    MatButtonModule,
-    MatSelectModule,
-    MatInputModule,
-    MatFormFieldModule,
-    MatMenuModule,
-    MatIconModule,
-    MatTooltipModule,
-    MatProgressSpinnerModule,
-    MatDialogModule,
-    MatDividerModule,
+    InputTextModule,
+    Select,
+    ButtonModule,
+    Tooltip,
+    ProgressSpinner,
+    Dialog,
+    Menu,
+    DividerModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -70,27 +64,30 @@ import { AdminConfirmDialogComponent } from '../shared/confirm-dialog.component'
             <!-- Filters -->
             <div class="flex flex-col sm:flex-row gap-3">
               <!-- Search -->
-              <mat-form-field appearance="outline" class="w-full sm:w-64">
-                <mat-label>Search users</mat-label>
-                <input
-                  matInput
-                  [(ngModel)]="searchQuery"
-                  (ngModelChange)="onSearchChange($event)"
-                  placeholder="Name or email..."
-                />
-                <mat-icon matPrefix>search</mat-icon>
-              </mat-form-field>
+              <div class="flex flex-col gap-1">
+                <div class="p-inputgroup w-full sm:w-64">
+                  <span class="p-inputgroup-addon"><i class="pi pi-search"></i></span>
+                  <input
+                    pInputText
+                    [(ngModel)]="searchQuery"
+                    (ngModelChange)="onSearchChange($event)"
+                    placeholder="Name or email..."
+                    class="w-full"
+                  />
+                </div>
+              </div>
 
               <!-- Role Filter -->
-              <mat-form-field appearance="outline" class="w-full sm:w-40">
-                <mat-label>Role</mat-label>
-                <mat-select [(ngModel)]="selectedRole" (ngModelChange)="loadUsers()">
-                  <mat-option [value]="''">All Roles</mat-option>
-                  <mat-option value="admin">Admin</mat-option>
-                  <mat-option value="manager">Manager</mat-option>
-                  <mat-option value="member">Member</mat-option>
-                </mat-select>
-              </mat-form-field>
+              <p-select
+                [options]="roleOptions"
+                [(ngModel)]="selectedRole"
+                (ngModelChange)="loadUsers()"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="All Roles"
+                [showClear]="true"
+                styleClass="w-full sm:w-40"
+              />
             </div>
           </div>
         </div>
@@ -98,7 +95,10 @@ import { AdminConfirmDialogComponent } from '../shared/confirm-dialog.component'
         <!-- Loading State -->
         @if (loading()) {
           <div class="flex items-center justify-center py-12">
-            <mat-spinner diameter="40"></mat-spinner>
+            <p-progressSpinner
+              [style]="{ width: '40px', height: '40px' }"
+              strokeWidth="4"
+            />
           </div>
         }
 
@@ -197,17 +197,15 @@ import { AdminConfirmDialogComponent } from '../shared/confirm-dialog.component'
                       <!-- Role -->
                       <td class="px-6 py-4 whitespace-nowrap">
                         @if (!isSelf(user)) {
-                          <mat-form-field appearance="outline" class="role-select">
-                            <mat-select
-                              [value]="user.role"
-                              (selectionChange)="onRoleChange(user, $event.value)"
-                              [disabled]="updatingUser() === user.id"
-                            >
-                              <mat-option value="admin">Admin</mat-option>
-                              <mat-option value="manager">Manager</mat-option>
-                              <mat-option value="member">Member</mat-option>
-                            </mat-select>
-                          </mat-form-field>
+                          <p-select
+                            [options]="roleChangeOptions"
+                            [ngModel]="user.role"
+                            (ngModelChange)="onRoleChange(user, $event)"
+                            optionLabel="label"
+                            optionValue="value"
+                            [disabled]="updatingUser() === user.id"
+                            styleClass="w-28"
+                          />
                         } @else {
                           <span [class]="getRoleBadgeClass(user.role)">
                             {{ formatRole(user.role) }}
@@ -225,7 +223,7 @@ import { AdminConfirmDialogComponent } from '../shared/confirm-dialog.component'
                       <!-- Joined -->
                       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <span
-                          [matTooltip]="formatAbsoluteDate(user.created_at)"
+                          [pTooltip]="formatAbsoluteDate(user.created_at)"
                           class="cursor-help"
                         >
                           {{ formatDate(user.created_at) }}
@@ -236,7 +234,7 @@ import { AdminConfirmDialogComponent } from '../shared/confirm-dialog.component'
                       <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         @if (user.last_active_at) {
                           <span
-                            [matTooltip]="formatAbsoluteDate(user.last_active_at)"
+                            [pTooltip]="formatAbsoluteDate(user.last_active_at)"
                             class="cursor-help"
                           >
                             {{ formatRelativeDate(user.last_active_at) }}
@@ -249,32 +247,19 @@ import { AdminConfirmDialogComponent } from '../shared/confirm-dialog.component'
                       <!-- Actions -->
                       <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         @if (!isSelf(user)) {
-                          <button
-                            mat-icon-button
-                            [matMenuTriggerFor]="userMenu"
+                          <p-button
+                            icon="pi pi-ellipsis-v"
+                            [rounded]="true"
+                            [text]="true"
+                            severity="secondary"
+                            (onClick)="openUserMenu($event, user)"
                             [disabled]="updatingUser() === user.id"
-                          >
-                            <mat-icon>more_vert</mat-icon>
-                          </button>
-                          <mat-menu #userMenu="matMenu">
-                            <button mat-menu-item (click)="onChangeRole(user, 'admin')" [disabled]="user.role === 'admin'">
-                              <mat-icon class="text-purple-600">admin_panel_settings</mat-icon>
-                              <span>Make Admin</span>
-                            </button>
-                            <button mat-menu-item (click)="onChangeRole(user, 'manager')" [disabled]="user.role === 'manager'">
-                              <mat-icon class="text-blue-600">supervisor_account</mat-icon>
-                              <span>Make Manager</span>
-                            </button>
-                            <button mat-menu-item (click)="onChangeRole(user, 'member')" [disabled]="user.role === 'member'">
-                              <mat-icon class="text-gray-600">person</mat-icon>
-                              <span>Make Member</span>
-                            </button>
-                            <mat-divider></mat-divider>
-                            <button mat-menu-item (click)="onRemoveUser(user)" class="text-red-600">
-                              <mat-icon class="text-red-600">delete</mat-icon>
-                              <span class="text-red-600">Remove User</span>
-                            </button>
-                          </mat-menu>
+                          />
+                          <p-menu
+                            #userMenu
+                            [model]="getUserMenuItems(user)"
+                            [popup]="true"
+                          />
                         }
                       </td>
                     </tr>
@@ -286,41 +271,38 @@ import { AdminConfirmDialogComponent } from '../shared/confirm-dialog.component'
         }
       </div>
     </div>
+
+    <!-- Confirm Remove Dialog -->
+    <p-dialog
+      [(visible)]="showRemoveDialog"
+      [modal]="true"
+      [style]="{ width: '400px' }"
+      header="Remove User"
+    >
+      <div class="flex items-start gap-3">
+        <svg class="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <p class="text-gray-600">
+          Are you sure you want to remove "{{ userToRemove()?.display_name }}" ({{ userToRemove()?.email }})? This action cannot be undone and the user will lose access to all workspaces.
+        </p>
+      </div>
+      <ng-template pTemplate="footer">
+        <p-button label="Cancel" [text]="true" (onClick)="showRemoveDialog = false" />
+        <p-button label="Remove User" severity="danger" (onClick)="confirmRemoveUser()" />
+      </ng-template>
+    </p-dialog>
   `,
   styles: [`
     :host {
       display: block;
-    }
-
-    mat-form-field {
-      font-size: 14px;
-    }
-
-    .mat-mdc-form-field {
-      --mdc-outlined-text-field-container-shape: 8px;
-    }
-
-    .role-select {
-      width: 120px;
-    }
-
-    .role-select ::ng-deep .mat-mdc-form-field-subscript-wrapper {
-      display: none;
-    }
-
-    .role-select ::ng-deep .mat-mdc-text-field-wrapper {
-      padding: 0 8px;
-    }
-
-    ::ng-deep .mat-divider {
-      margin: 4px 0 !important;
     }
   `],
 })
 export class AdminUsersComponent implements OnInit, OnDestroy {
   private adminService = inject(AdminService);
   private authService = inject(AuthService);
-  private dialog = inject(MatDialog);
   private destroy$ = new Subject<void>();
   private searchSubject$ = new Subject<string>();
 
@@ -330,14 +312,33 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
   users = signal<AdminUser[]>([]);
   updatingUser = signal<string | null>(null);
 
+  // Dialog
+  showRemoveDialog = false;
+  userToRemove = signal<AdminUser | null>(null);
+
   // Filters
   searchQuery = '';
-  selectedRole = '';
+  selectedRole: string | null = null;
+
+  roleOptions = [
+    { label: 'Admin', value: 'admin' },
+    { label: 'Manager', value: 'manager' },
+    { label: 'Member', value: 'member' },
+  ];
+
+  roleChangeOptions = [
+    { label: 'Admin', value: 'admin' },
+    { label: 'Manager', value: 'manager' },
+    { label: 'Member', value: 'member' },
+  ];
 
   // Computed stats
   adminCount = computed(() => this.users().filter((u) => u.role === 'admin').length);
   managerCount = computed(() => this.users().filter((u) => u.role === 'manager').length);
   memberCount = computed(() => this.users().filter((u) => u.role === 'member').length);
+
+  // Menu reference
+  private menuRef: Menu | null = null;
 
   ngOnInit(): void {
     this.loadUsers();
@@ -374,8 +375,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
           this.users.set(users);
           this.loading.set(false);
         },
-        error: (err) => {
-          console.error('Failed to load users:', err);
+        error: () => {
           this.error.set('Failed to load users. Please try again.');
           this.loading.set(false);
         },
@@ -391,9 +391,53 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
     return currentUser?.id === user.id;
   }
 
-  onRoleChange(user: AdminUser, newRole: 'admin' | 'manager' | 'member'): void {
+  onRoleChange(user: AdminUser, newRole: string): void {
     if (user.role === newRole) return;
-    this.updateUserRole(user, newRole);
+    this.updateUserRole(user, newRole as 'admin' | 'manager' | 'member');
+  }
+
+  getUserMenuItems(user: AdminUser): MenuItem[] {
+    return [
+      {
+        label: 'Make Admin',
+        icon: 'pi pi-shield',
+        disabled: user.role === 'admin',
+        command: () => this.onChangeRole(user, 'admin'),
+      },
+      {
+        label: 'Make Manager',
+        icon: 'pi pi-users',
+        disabled: user.role === 'manager',
+        command: () => this.onChangeRole(user, 'manager'),
+      },
+      {
+        label: 'Make Member',
+        icon: 'pi pi-user',
+        disabled: user.role === 'member',
+        command: () => this.onChangeRole(user, 'member'),
+      },
+      { separator: true },
+      {
+        label: 'Remove User',
+        icon: 'pi pi-trash',
+        styleClass: 'text-red-600',
+        command: () => this.onRemoveUser(user),
+      },
+    ];
+  }
+
+  openUserMenu(event: Event, user: AdminUser): void {
+    // PrimeNG Menu toggle is handled via ViewChild in templates
+    // Using the menu template reference approach with #userMenu
+    // The menu items are generated per-user so we use a different approach
+    const target = event.target as HTMLElement;
+    const menuEl = target.closest('td')?.querySelector('p-menu');
+    if (menuEl) {
+      const menuComponent = (menuEl as any).__ngContext__?.[0];
+      if (menuComponent?.toggle) {
+        menuComponent.toggle(event);
+      }
+    }
   }
 
   onChangeRole(user: AdminUser, newRole: 'admin' | 'manager' | 'member'): void {
@@ -416,29 +460,22 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
           );
           this.updatingUser.set(null);
         },
-        error: (err) => {
-          console.error('Failed to update user role:', err);
+        error: () => {
           this.updatingUser.set(null);
         },
       });
   }
 
   onRemoveUser(user: AdminUser): void {
-    const dialogRef = this.dialog.open(AdminConfirmDialogComponent, {
-      data: {
-        title: 'Remove User',
-        message: `Are you sure you want to remove "${user.display_name}" (${user.email})? This action cannot be undone and the user will lose access to all workspaces.`,
-        confirmText: 'Remove User',
-        cancelText: 'Cancel',
-        isDestructive: true,
-      },
-    });
+    this.userToRemove.set(user);
+    this.showRemoveDialog = true;
+  }
 
-    dialogRef.afterClosed().subscribe((confirmed) => {
-      if (confirmed) {
-        this.deleteUser(user);
-      }
-    });
+  confirmRemoveUser(): void {
+    const user = this.userToRemove();
+    if (!user) return;
+    this.showRemoveDialog = false;
+    this.deleteUser(user);
   }
 
   private deleteUser(user: AdminUser): void {
@@ -452,8 +489,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
           this.users.update((current) => current.filter((u) => u.id !== user.id));
           this.updatingUser.set(null);
         },
-        error: (err) => {
-          console.error('Failed to delete user:', err);
+        error: () => {
           this.updatingUser.set(null);
         },
       });

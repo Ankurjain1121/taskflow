@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import {
   WorkspaceService,
   Workspace,
@@ -23,7 +22,7 @@ import {
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatDialogModule],
+  imports: [CommonModule, RouterModule, CreateWorkspaceDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`
     :host { display: block; height: 100%; }
@@ -129,7 +128,7 @@ import {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
           </svg>
           <span>Search</span>
-          <span class="ml-auto text-xs text-gray-500">⌘K</span>
+          <span class="ml-auto text-xs text-gray-500">&#8984;K</span>
         </button>
       </div>
 
@@ -370,6 +369,12 @@ import {
         }
       </div>
     </aside>
+
+    <!-- Create Workspace Dialog (PrimeNG) -->
+    <app-create-workspace-dialog
+      [(visible)]="showCreateWorkspaceDialog"
+      (created)="onWorkspaceCreated($event)"
+    />
   `,
 })
 export class SidebarComponent implements OnInit {
@@ -377,12 +382,12 @@ export class SidebarComponent implements OnInit {
 
   private workspaceService = inject(WorkspaceService);
   private authService = inject(AuthService);
-  private dialog = inject(MatDialog);
   private router = inject(Router);
 
   loading = signal(false);
   workspaces = signal<Workspace[]>([]);
   currentUser = this.authService.currentUser;
+  showCreateWorkspaceDialog = signal(false);
 
   ngOnInit(): void {
     this.loadWorkspaces();
@@ -397,21 +402,18 @@ export class SidebarComponent implements OnInit {
   }
 
   onCreateWorkspace(): void {
-    const dialogRef = this.dialog.open(CreateWorkspaceDialogComponent);
+    this.showCreateWorkspaceDialog.set(true);
+  }
 
-    dialogRef.afterClosed().subscribe((result: CreateWorkspaceDialogResult | undefined) => {
-      if (result) {
-        this.workspaceService.create(result).subscribe({
-          next: (workspace) => {
-            this.workspaces.update((workspaces) => [...workspaces, workspace]);
-            // Navigate to new workspace
-            this.router.navigate(['/workspace', workspace.id]);
-          },
-          error: (err) => {
-            console.error('Failed to create workspace:', err);
-          },
-        });
-      }
+  onWorkspaceCreated(result: CreateWorkspaceDialogResult): void {
+    this.workspaceService.create(result).subscribe({
+      next: (workspace) => {
+        this.workspaces.update((workspaces) => [...workspaces, workspace]);
+        this.router.navigate(['/workspace', workspace.id]);
+      },
+      error: (err) => {
+        // Error handling - workspace creation failed
+      },
     });
   }
 
@@ -426,8 +428,7 @@ export class SidebarComponent implements OnInit {
         this.workspaces.set(workspaces);
         this.loading.set(false);
       },
-      error: (err) => {
-        console.error('Failed to load workspaces:', err);
+      error: () => {
         this.loading.set(false);
       },
     });

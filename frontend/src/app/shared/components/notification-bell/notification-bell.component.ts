@@ -1,15 +1,13 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, signal, computed } from '@angular/core';
-
 import { Router } from '@angular/router';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatBadgeModule } from '@angular/material/badge';
-import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { CdkScrollableModule } from '@angular/cdk/scrolling';
+import { ButtonModule } from 'primeng/button';
+import { BadgeModule } from 'primeng/badge';
+import { Popover, PopoverModule } from 'primeng/popover';
+import { DividerModule } from 'primeng/divider';
+import { ProgressSpinner } from 'primeng/progressspinner';
+import { SelectButton } from 'primeng/selectbutton';
+import { Tooltip } from 'primeng/tooltip';
+import { FormsModule } from '@angular/forms';
 import { NotificationService, Notification, NotificationEventType } from '../../../core/services/notification.service';
 import { NotificationSoundService } from '../../../core/services/notification-sound.service';
 import { NotificationItemComponent } from './notification-item.component';
@@ -27,82 +25,67 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
   selector: 'app-notification-bell',
   standalone: true,
   imports: [
-    MatIconModule,
-    MatButtonModule,
-    MatBadgeModule,
-    MatMenuModule,
-    MatDividerModule,
-    MatProgressSpinnerModule,
-    MatChipsModule,
-    MatTooltipModule,
-    CdkScrollableModule,
+    ButtonModule,
+    BadgeModule,
+    PopoverModule,
+    DividerModule,
+    ProgressSpinner,
+    SelectButton,
+    Tooltip,
+    FormsModule,
     NotificationItemComponent,
   ],
   template: `
-    <button
-      mat-icon-button
-      [matMenuTriggerFor]="notificationMenu"
-      (menuOpened)="onMenuOpened()"
-      class="relative"
+    <!-- Bell button with badge -->
+    <p-button
+      icon="pi pi-bell"
+      [text]="true"
+      [rounded]="true"
+      severity="secondary"
+      [badge]="notificationService.unreadCount() > 0 ? notificationService.displayBadge() : undefined"
+      badgeSeverity="danger"
       aria-label="Notifications"
-    >
-      <mat-icon
-        [matBadge]="notificationService.displayBadge()"
-        [matBadgeHidden]="notificationService.unreadCount() === 0"
-        matBadgeColor="warn"
-        matBadgeSize="small"
-      >
-        notifications
-      </mat-icon>
-    </button>
+      (onClick)="onBellClick($event)"
+    />
 
-    <mat-menu
-      #notificationMenu="matMenu"
-      class="notification-menu"
-      [overlapTrigger]="false"
-    >
-      <div class="w-80 max-w-full" (click)="$event.stopPropagation()">
+    <!-- Notification popover -->
+    <p-popover #notifPopover [style]="{ width: '22rem' }">
+      <div (click)="$event.stopPropagation()">
         <!-- Header -->
-        <div class="flex items-center justify-between px-4 py-3 border-b">
-          <h3 class="text-lg font-semibold text-gray-900">Notifications</h3>
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Notifications</h3>
           <div class="flex items-center gap-1">
-            <button
-              mat-icon-button
-              class="scale-75"
-              [matTooltip]="soundService.soundEnabled() ? 'Mute notifications' : 'Unmute notifications'"
-              (click)="toggleSound()"
-            >
-              <mat-icon class="text-gray-500 text-lg">
-                {{ soundService.soundEnabled() ? 'volume_up' : 'volume_off' }}
-              </mat-icon>
-            </button>
+            <p-button
+              [icon]="soundService.soundEnabled() ? 'pi pi-volume-up' : 'pi pi-volume-off'"
+              [text]="true"
+              [rounded]="true"
+              severity="secondary"
+              size="small"
+              [pTooltip]="soundService.soundEnabled() ? 'Mute notifications' : 'Unmute notifications'"
+              (onClick)="toggleSound()"
+            />
             @if (notificationService.unreadCount() > 0) {
-              <button
-                mat-button
-                color="primary"
-                class="text-sm"
-                (click)="markAllRead()"
-              >
-                Mark all read
-              </button>
+              <p-button
+                label="Mark all read"
+                [text]="true"
+                size="small"
+                (onClick)="markAllRead()"
+              />
             }
           </div>
         </div>
 
         <!-- Filter tabs -->
-        <div class="px-3 py-2 border-b overflow-x-auto">
-          <mat-chip-listbox
-            [value]="activeTab()"
-            (change)="onTabChange($event.value)"
-            class="flex gap-1"
-            aria-label="Filter notifications"
-          >
-            <mat-chip-option value="all" class="text-xs">All</mat-chip-option>
-            <mat-chip-option value="assignments" class="text-xs">Assignments</mat-chip-option>
-            <mat-chip-option value="comments" class="text-xs">Comments</mat-chip-option>
-            <mat-chip-option value="mentions" class="text-xs">Mentions</mat-chip-option>
-            <mat-chip-option value="deadlines" class="text-xs">Deadlines</mat-chip-option>
-          </mat-chip-listbox>
+        <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+          <p-selectButton
+            [options]="tabOptions"
+            [(ngModel)]="activeTabValue"
+            (ngModelChange)="onTabChange($event)"
+            [allowEmpty]="false"
+            optionLabel="label"
+            optionValue="value"
+            size="small"
+          />
         </div>
 
         <!-- Notification list -->
@@ -113,11 +96,9 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
         >
           <!-- Empty state -->
           @if (filteredNotifications().length === 0 && !isInitialLoading()) {
-            <div
-              class="flex flex-col items-center justify-center py-8 px-4"
-            >
-              <mat-icon class="text-gray-300 text-5xl mb-2">notifications_none</mat-icon>
-              <p class="text-gray-500 text-sm">
+            <div class="flex flex-col items-center justify-center py-8 px-4">
+              <i class="pi pi-bell-slash text-gray-300 dark:text-gray-600 mb-2" style="font-size: 2.5rem;"></i>
+              <p class="text-gray-500 dark:text-gray-400 text-sm">
                 {{ activeTab() === 'all' ? 'No notifications yet' : 'No ' + activeTab() + ' notifications' }}
               </p>
             </div>
@@ -125,10 +106,11 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
 
           <!-- Initial loading -->
           @if (isInitialLoading()) {
-            <div
-              class="flex items-center justify-center py-8"
-            >
-              <mat-spinner diameter="32"></mat-spinner>
+            <div class="flex items-center justify-center py-8">
+              <p-progressSpinner
+                [style]="{ width: '32px', height: '32px' }"
+                strokeWidth="4"
+              />
             </div>
           }
 
@@ -137,44 +119,43 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
             <div>
               <!-- Today section -->
               @if (todayNotifications().length > 0) {
-                <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
+                <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 dark:bg-gray-800">
                   Today
                 </div>
                 @for (notification of todayNotifications(); track notification.id) {
                   <app-notification-item
                     [notification]="notification"
                     (notificationClick)="onNotificationClick($event)"
-                  ></app-notification-item>
+                  />
                 }
               }
 
               <!-- Earlier section -->
               @if (earlierNotifications().length > 0) {
-                <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
+                <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 dark:bg-gray-800">
                   Earlier
                 </div>
                 @for (notification of earlierNotifications(); track notification.id) {
                   <app-notification-item
                     [notification]="notification"
                     (notificationClick)="onNotificationClick($event)"
-                  ></app-notification-item>
+                  />
                 }
               }
 
               <!-- Load more spinner -->
               @if (notificationService.isLoading()) {
-                <div
-                  class="flex items-center justify-center py-4"
-                >
-                  <mat-spinner diameter="24"></mat-spinner>
+                <div class="flex items-center justify-center py-4">
+                  <p-progressSpinner
+                    [style]="{ width: '24px', height: '24px' }"
+                    strokeWidth="4"
+                  />
                 </div>
               }
 
               <!-- End of list -->
               @if (!notificationService.hasMore() && filteredNotifications().length > 0) {
-                <div
-                  class="text-center py-3 text-gray-400 text-sm"
-                >
+                <div class="text-center py-3 text-gray-400 dark:text-gray-500 text-sm">
                   No more notifications
                 </div>
               }
@@ -183,43 +164,43 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
         </div>
 
         <!-- Footer -->
-        <mat-divider></mat-divider>
+        <p-divider />
         <div class="px-4 py-2">
-          <button
-            mat-button
-            class="w-full text-sm"
-            color="primary"
-            (click)="goToSettings()"
-          >
-            Notification Settings
-          </button>
+          <p-button
+            label="Notification Settings"
+            [text]="true"
+            styleClass="w-full"
+            size="small"
+            (onClick)="goToSettings()"
+          />
         </div>
       </div>
-    </mat-menu>
+    </p-popover>
   `,
   styles: [
     `
       :host {
         display: inline-block;
       }
-
-      ::ng-deep .notification-menu {
-        max-width: none !important;
-      }
-
-      ::ng-deep .mat-mdc-menu-content {
-        padding: 0 !important;
-      }
     `,
   ],
 })
 export class NotificationBellComponent implements OnInit, OnDestroy {
   @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLDivElement>;
-  @ViewChild(MatMenuTrigger) menuTrigger!: MatMenuTrigger;
+  @ViewChild('notifPopover') notifPopover!: Popover;
 
   activeTab = signal<NotificationTab>('all');
+  activeTabValue: NotificationTab = 'all';
   isInitialLoading = signal(false);
   private hasLoadedInitial = false;
+
+  tabOptions = [
+    { label: 'All', value: 'all' as NotificationTab },
+    { label: 'Assignments', value: 'assignments' as NotificationTab },
+    { label: 'Comments', value: 'comments' as NotificationTab },
+    { label: 'Mentions', value: 'mentions' as NotificationTab },
+    { label: 'Deadlines', value: 'deadlines' as NotificationTab },
+  ];
 
   filteredNotifications = computed(() => {
     const tab = this.activeTab();
@@ -262,7 +243,8 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     this.notificationService.stopRealTimeUpdates();
   }
 
-  onMenuOpened(): void {
+  onBellClick(event: Event): void {
+    this.notifPopover.toggle(event);
     if (!this.hasLoadedInitial) {
       this.loadInitialNotifications();
     }
@@ -308,7 +290,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
 
     // Navigate to link if provided
     if (notification.link_url) {
-      this.menuTrigger.closeMenu();
+      this.notifPopover.hide();
       // Handle both internal and external links
       if (notification.link_url.startsWith('/')) {
         this.router.navigateByUrl(notification.link_url);
@@ -333,7 +315,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   }
 
   goToSettings(): void {
-    this.menuTrigger.closeMenu();
+    this.notifPopover.hide();
     this.router.navigate(['/settings/notifications']);
   }
 }

@@ -10,9 +10,8 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { ButtonModule } from 'primeng/button';
 import { Subject, takeUntil, filter } from 'rxjs';
 
 import { CommentService, Comment } from '../../../../core/services/comment.service';
@@ -65,9 +64,8 @@ interface CommentCreatedPayload {
   standalone: true,
   imports: [
     CommonModule,
-    MatProgressSpinnerModule,
-    MatButtonModule,
-    MatIconModule,
+    ProgressSpinnerModule,
+    ButtonModule,
     RenderMentionsPipe,
     CommentInputComponent,
   ],
@@ -76,12 +74,15 @@ interface CommentCreatedPayload {
       <!-- Comments list -->
       @if (isLoading()) {
         <div class="flex items-center justify-center py-8">
-          <mat-spinner diameter="32"></mat-spinner>
+          <p-progressSpinner
+            [style]="{ width: '32px', height: '32px' }"
+            strokeWidth="4"
+          />
           <span class="ml-3 text-gray-500">Loading comments...</span>
         </div>
       } @else if (comments().length === 0) {
         <div class="text-center py-8 text-gray-500">
-          <mat-icon class="text-4xl text-gray-300 mb-2">chat_bubble_outline</mat-icon>
+          <i class="pi pi-comments text-4xl text-gray-300 mb-2 block"></i>
           <p>No comments yet. Be the first to comment!</p>
         </div>
       } @else {
@@ -129,14 +130,16 @@ interface CommentCreatedPayload {
 
                   <!-- Reply button -->
                   @if (!comment.parent_id) {
-                    <button
-                      mat-button
-                      class="mt-2 -ml-2 text-xs text-gray-500 hover:text-indigo-600"
-                      (click)="toggleReply(comment.id)"
+                    <p-button
+                      [text]="true"
+                      size="small"
+                      severity="secondary"
+                      styleClass="mt-2 -ml-2 text-xs"
+                      (onClick)="toggleReply(comment.id)"
                     >
-                      <mat-icon class="text-base mr-1">reply</mat-icon>
+                      <i class="pi pi-reply mr-1"></i>
                       Reply
-                    </button>
+                    </p-button>
                   }
 
                   <!-- Reply input -->

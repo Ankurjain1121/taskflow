@@ -8,10 +8,8 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ButtonModule } from 'primeng/button';
+import { ProgressSpinner } from 'primeng/progressspinner';
 
 import {
   WorkspaceService,
@@ -30,10 +28,9 @@ import {
   imports: [
     CommonModule,
     RouterLink,
-    MatButtonModule,
-    MatIconModule,
-    MatDialogModule,
-    MatProgressSpinnerModule,
+    ButtonModule,
+    ProgressSpinner,
+    CreateBoardDialogComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -42,16 +39,17 @@ import {
         <!-- Loading State -->
         @if (loading()) {
           <div class="flex items-center justify-center py-24">
-            <mat-spinner diameter="48"></mat-spinner>
+            <p-progressSpinner
+              [style]="{ width: '48px', height: '48px' }"
+              strokeWidth="4"
+            />
           </div>
         } @else if (error()) {
           <!-- Error State -->
           <div class="text-center py-24">
             <div class="text-red-500 text-lg mb-2">Failed to load workspace</div>
             <p class="text-gray-500 mb-4">{{ error() }}</p>
-            <button mat-flat-button color="primary" (click)="loadData()">
-              Retry
-            </button>
+            <p-button label="Retry" (onClick)="loadData()" />
           </div>
         } @else {
           <!-- Header -->
@@ -64,17 +62,17 @@ import {
             </div>
             <div class="flex items-center gap-3">
               <a
-                mat-stroked-button
                 [routerLink]="['/workspace', workspaceId(), 'team']"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               >
-                <mat-icon class="mr-1">group</mat-icon>
+                <i class="pi pi-users"></i>
                 Team Overview
               </a>
               <a
-                mat-stroked-button
                 [routerLink]="['/workspace', workspaceId(), 'settings']"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               >
-                <mat-icon class="mr-1">settings</mat-icon>
+                <i class="pi pi-cog"></i>
                 Settings
               </a>
             </div>
@@ -87,7 +85,7 @@ import {
                 <div
                   class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center"
                 >
-                  <mat-icon class="text-blue-600">dashboard</mat-icon>
+                  <i class="pi pi-th-large text-blue-600"></i>
                 </div>
                 <div>
                   <p class="text-2xl font-bold text-gray-900">
@@ -104,7 +102,7 @@ import {
                 <div
                   class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center"
                 >
-                  <mat-icon class="text-green-600">people</mat-icon>
+                  <i class="pi pi-users text-green-600"></i>
                 </div>
                 <div>
                   <p class="text-2xl font-bold text-gray-900">
@@ -121,7 +119,7 @@ import {
                 <div
                   class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center"
                 >
-                  <mat-icon class="text-purple-600">view_kanban</mat-icon>
+                  <i class="pi pi-objects-column text-purple-600"></i>
                 </div>
                 <div>
                   <p class="text-2xl font-bold text-gray-900">
@@ -136,10 +134,11 @@ import {
           <!-- Board Grid Header -->
           <div class="flex items-center justify-between mb-5">
             <h2 class="text-xl font-semibold text-gray-900">Boards</h2>
-            <button mat-flat-button color="primary" (click)="openCreateBoardDialog()">
-              <mat-icon class="mr-1">add</mat-icon>
-              Create Board
-            </button>
+            <p-button
+              icon="pi pi-plus"
+              label="Create Board"
+              (onClick)="openCreateBoardDialog()"
+            />
           </div>
 
           <!-- Empty State -->
@@ -156,10 +155,11 @@ import {
               <p class="text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
                 Boards are where the magic happens. Organize tasks into columns and track progress visually.
               </p>
-              <button mat-flat-button color="primary" (click)="openCreateBoardDialog()">
-                <mat-icon class="mr-1">add</mat-icon>
-                Create Board
-              </button>
+              <p-button
+                icon="pi pi-plus"
+                label="Create Board"
+                (onClick)="openCreateBoardDialog()"
+              />
             </div>
           } @else {
             <!-- Board Cards Grid -->
@@ -174,13 +174,11 @@ import {
                     <div
                       class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors"
                     >
-                      <mat-icon class="text-blue-600">view_kanban</mat-icon>
+                      <i class="pi pi-objects-column text-blue-600"></i>
                     </div>
-                    <mat-icon
-                      class="text-gray-400 group-hover:text-blue-500 transition-colors"
-                    >
-                      arrow_forward
-                    </mat-icon>
+                    <i
+                      class="pi pi-arrow-right text-gray-400 group-hover:text-blue-500 transition-colors"
+                    ></i>
                   </div>
                   <h3
                     class="text-lg font-semibold text-gray-900 mb-1 group-hover:text-blue-700 transition-colors"
@@ -195,12 +193,7 @@ import {
                     <p class="text-sm text-gray-400 italic mb-3">No description</p>
                   }
                   <div class="flex items-center text-xs text-gray-400">
-                    <mat-icon
-                      class="mr-1"
-                      style="font-size: 14px; width: 14px; height: 14px;"
-                    >
-                      calendar_today
-                    </mat-icon>
+                    <i class="pi pi-calendar mr-1" style="font-size: 0.75rem;"></i>
                     Created {{ formatDate(board.created_at) }}
                   </div>
                 </a>
@@ -210,6 +203,14 @@ import {
         }
       </div>
     </div>
+
+    <!-- Create Board Dialog (PrimeNG) -->
+    <app-create-board-dialog
+      [(visible)]="showCreateBoardDialog"
+      [workspaceId]="workspaceId()"
+      [workspaceName]="workspace()?.name || 'Workspace'"
+      (created)="onBoardCreated($event)"
+    />
   `,
   styles: [
     `
@@ -226,7 +227,6 @@ export class WorkspaceComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private workspaceService = inject(WorkspaceService);
   private boardService = inject(BoardService);
-  private dialog = inject(MatDialog);
 
   workspaceId = signal<string>('');
   workspace = signal<Workspace | null>(null);
@@ -234,6 +234,7 @@ export class WorkspaceComponent implements OnInit {
   members = signal<WorkspaceMember[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
+  showCreateBoardDialog = signal(false);
 
   totalTaskEstimate = computed(() => {
     // Each board is estimated at ~10 tasks as a rough indicator
@@ -259,7 +260,7 @@ export class WorkspaceComponent implements OnInit {
     // Load workspace details
     this.workspaceService.get(id).subscribe({
       next: (ws) => this.workspace.set(ws),
-      error: (err) => {
+      error: () => {
         this.error.set('Could not load workspace details.');
         this.loading.set(false);
       },
@@ -284,31 +285,24 @@ export class WorkspaceComponent implements OnInit {
   }
 
   openCreateBoardDialog(): void {
-    const dialogRef = this.dialog.open(CreateBoardDialogComponent, {
-      data: {
-        workspaceId: this.workspaceId(),
-        workspaceName: this.workspace()?.name || 'Workspace',
-      },
-    });
+    this.showCreateBoardDialog.set(true);
+  }
 
-    dialogRef.afterClosed().subscribe((result: CreateBoardDialogResult | undefined) => {
-      if (result) {
-        this.boardService
-          .createBoard(this.workspaceId(), {
-            name: result.name,
-            description: result.description,
-            template: result.template,
-          })
-          .subscribe({
-            next: () => {
-              this.loadData();
-            },
-            error: (err) => {
-              console.error('Failed to create board:', err);
-            },
-          });
-      }
-    });
+  onBoardCreated(result: CreateBoardDialogResult): void {
+    this.boardService
+      .createBoard(this.workspaceId(), {
+        name: result.name,
+        description: result.description,
+        template: result.template,
+      })
+      .subscribe({
+        next: () => {
+          this.loadData();
+        },
+        error: () => {
+          // Error handling - board creation failed
+        },
+      });
   }
 
   formatDate(dateStr: string): string {

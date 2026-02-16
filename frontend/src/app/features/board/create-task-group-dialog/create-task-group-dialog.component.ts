@@ -1,11 +1,15 @@
-import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  signal,
+  model,
+  output,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatIconModule } from '@angular/material/icon';
+import { ButtonModule } from 'primeng/button';
+import { Dialog } from 'primeng/dialog';
+import { InputTextModule } from 'primeng/inputtext';
 
 export interface CreateTaskGroupDialogResult {
   name: string;
@@ -18,29 +22,33 @@ export interface CreateTaskGroupDialogResult {
   imports: [
     CommonModule,
     FormsModule,
-    MatDialogModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatIconModule,
+    ButtonModule,
+    Dialog,
+    InputTextModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h2 mat-dialog-title>Create Task Group</h2>
-
-    <mat-dialog-content class="!py-4">
+    <p-dialog
+      header="Create Task Group"
+      [(visible)]="visible"
+      [modal]="true"
+      [style]="{ width: '460px' }"
+      [closable]="true"
+      (onShow)="onDialogShow()"
+    >
       <div class="space-y-4">
         <!-- Group name -->
-        <mat-form-field class="w-full" appearance="outline">
-          <mat-label>Group Name</mat-label>
+        <div class="flex flex-col gap-1">
+          <label for="groupName" class="text-sm font-medium text-gray-700">Group Name</label>
           <input
-            matInput
+            pInputText
+            id="groupName"
             [(ngModel)]="groupName"
             placeholder="e.g., Frontend Tasks"
-            autofocus
+            class="w-full"
             (keydown.enter)="onCreate()"
           />
-        </mat-form-field>
+        </div>
 
         <!-- Color selection -->
         <div>
@@ -74,22 +82,32 @@ export interface CreateTaskGroupDialogResult {
           </div>
         </div>
       </div>
-    </mat-dialog-content>
 
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="onCancel()">Cancel</button>
-      <button
-        mat-raised-button
-        color="primary"
-        [disabled]="!groupName.trim()"
-        (click)="onCreate()"
-      >
-        Create Group
-      </button>
-    </mat-dialog-actions>
+      <ng-template #footer>
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancel"
+            [text]="true"
+            severity="secondary"
+            (onClick)="onCancel()"
+          />
+          <p-button
+            label="Create Group"
+            (onClick)="onCreate()"
+            [disabled]="!groupName.trim()"
+          />
+        </div>
+      </ng-template>
+    </p-dialog>
   `,
 })
 export class CreateTaskGroupDialogComponent {
+  /** Two-way bound visibility */
+  visible = model(false);
+
+  /** Output event replacing MatDialogRef.close(result) */
+  created = output<CreateTaskGroupDialogResult>();
+
   groupName = '';
   selectedColor = signal('#6366f1');
 
@@ -110,22 +128,26 @@ export class CreateTaskGroupDialogComponent {
     '#6b7280', // Gray
   ];
 
-  constructor(
-    private dialogRef: MatDialogRef<CreateTaskGroupDialogComponent, CreateTaskGroupDialogResult>
-  ) {}
+  onDialogShow(): void {
+    this.groupName = '';
+    this.selectedColor.set('#6366f1');
+  }
 
-  onCreate() {
+  onCreate(): void {
     if (!this.groupName.trim()) {
       return;
     }
 
-    this.dialogRef.close({
+    const result: CreateTaskGroupDialogResult = {
       name: this.groupName.trim(),
       color: this.selectedColor(),
-    });
+    };
+
+    this.visible.set(false);
+    this.created.emit(result);
   }
 
-  onCancel() {
-    this.dialogRef.close();
+  onCancel(): void {
+    this.visible.set(false);
   }
 }

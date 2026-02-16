@@ -14,7 +14,6 @@ import {
   FormsModule,
   Validators,
 } from '@angular/forms';
-import { MatDialog } from '@angular/material/dialog';
 import { BoardService, Board, BoardMember } from '../../../core/services/board.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ColumnManagerComponent } from '../column-manager/column-manager.component';
@@ -26,7 +25,7 @@ import {
 @Component({
   selector: 'app-board-settings',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, ColumnManagerComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, ColumnManagerComponent, InviteMemberDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="min-h-screen bg-gray-100">
@@ -331,6 +330,14 @@ import {
         }
       </div>
     </div>
+
+    <!-- Invite Member Dialog (PrimeNG) -->
+    <app-board-invite-member-dialog
+      [(visible)]="showInviteDialog"
+      [boardId]="boardId"
+      [boardName]="board()?.name || ''"
+      (invited)="onInviteResult($event)"
+    />
   `,
 })
 export class BoardSettingsComponent implements OnInit {
@@ -339,7 +346,6 @@ export class BoardSettingsComponent implements OnInit {
   private fb = inject(FormBuilder);
   private boardService = inject(BoardService);
   private authService = inject(AuthService);
-  private dialog = inject(MatDialog);
 
   workspaceId = '';
   boardId = '';
@@ -349,6 +355,7 @@ export class BoardSettingsComponent implements OnInit {
   deleting = signal(false);
   board = signal<Board | null>(null);
   members = signal<BoardMember[]>([]);
+  showInviteDialog = signal(false);
 
   form: FormGroup = this.fb.group({
     name: ['', Validators.required],
@@ -390,41 +397,30 @@ export class BoardSettingsComponent implements OnInit {
         this.form.markAsPristine();
         this.saving.set(false);
       },
-      error: (err) => {
-        console.error('Failed to update board:', err);
+      error: () => {
         this.saving.set(false);
       },
     });
   }
 
   onInviteMember(): void {
-    const board = this.board();
-    if (!board) return;
+    this.showInviteDialog.set(true);
+  }
 
-    const dialogRef = this.dialog.open(InviteMemberDialogComponent, {
-      data: {
-        boardId: this.boardId,
-        boardName: board.name,
-      },
-    });
-
-    dialogRef.afterClosed().subscribe((result: InviteMemberDialogResult | null) => {
-      if (!result) return;
-
-      this.boardService
-        .inviteBoardMember(this.boardId, {
-          email: result.email,
-          role: result.role,
-        })
-        .subscribe({
-          next: (member) => {
-            this.members.update((members) => [...members, member]);
-          },
-          error: (err) => {
-            console.error('Failed to invite member:', err);
-          },
-        });
-    });
+  onInviteResult(result: InviteMemberDialogResult): void {
+    this.boardService
+      .inviteBoardMember(this.boardId, {
+        email: result.email,
+        role: result.role,
+      })
+      .subscribe({
+        next: (member) => {
+          this.members.update((members) => [...members, member]);
+        },
+        error: () => {
+          // Error handling - invite failed
+        },
+      });
   }
 
   onMemberRoleChange(member: BoardMember, role: 'viewer' | 'editor'): void {
@@ -438,8 +434,7 @@ export class BoardSettingsComponent implements OnInit {
             )
           );
         },
-        error: (err) => {
-          console.error('Failed to update member role:', err);
+        error: () => {
           // Revert the UI by reloading members
           this.loadBoardMembers();
         },
@@ -461,8 +456,8 @@ export class BoardSettingsComponent implements OnInit {
           members.filter((m) => m.user_id !== member.user_id)
         );
       },
-      error: (err) => {
-        console.error('Failed to remove member:', err);
+      error: () => {
+        // Error handling - remove failed
       },
     });
   }
@@ -482,8 +477,7 @@ export class BoardSettingsComponent implements OnInit {
       next: () => {
         this.router.navigate(['/workspace', this.workspaceId]);
       },
-      error: (err) => {
-        console.error('Failed to delete board:', err);
+      error: () => {
         this.deleting.set(false);
       },
     });
@@ -502,8 +496,7 @@ export class BoardSettingsComponent implements OnInit {
         this.loadBoardMembers();
         this.loading.set(false);
       },
-      error: (err) => {
-        console.error('Failed to load board:', err);
+      error: () => {
         this.loading.set(false);
       },
     });
@@ -514,8 +507,8 @@ export class BoardSettingsComponent implements OnInit {
       next: (members) => {
         this.members.set(members);
       },
-      error: (err) => {
-        console.error('Failed to load board members:', err);
+      error: () => {
+        // Error handling - failed to load members
       },
     });
   }

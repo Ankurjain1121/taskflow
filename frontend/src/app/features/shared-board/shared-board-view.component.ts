@@ -2,57 +2,62 @@ import { Component, ChangeDetectionStrategy, signal, inject, OnInit } from '@ang
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ButtonModule } from 'primeng/button';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { InputTextModule } from 'primeng/inputtext';
+import { ChipModule } from 'primeng/chip';
 import { BoardShareService, SharedBoardAccess } from '../../core/services/board-share.service';
 
 @Component({
   selector: 'app-shared-board-view',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, MatCardModule, MatButtonModule, MatIconModule,
-    MatInputModule, MatFormFieldModule, MatChipsModule, MatProgressSpinnerModule,
+    CommonModule, FormsModule, ButtonModule, ProgressSpinnerModule,
+    InputTextModule, ChipModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
       <div class="flex items-center justify-center h-screen">
-        <mat-spinner diameter="48"></mat-spinner>
+        <p-progressSpinner
+          [style]="{ width: '48px', height: '48px' }"
+          strokeWidth="4"
+        />
       </div>
     } @else if (needsPassword()) {
       <div class="flex items-center justify-center h-screen bg-gray-50">
-        <mat-card class="w-96">
-          <mat-card-content class="p-6 text-center">
-            <mat-icon class="text-6xl text-gray-400 mb-4">lock</mat-icon>
-            <h2 class="text-xl font-semibold mb-4">Password Required</h2>
-            <p class="text-gray-600 mb-4">This board is password protected.</p>
-            <mat-form-field class="w-full">
-              <mat-label>Password</mat-label>
-              <input matInput type="password" [(ngModel)]="password" (keyup.enter)="submitPassword()">
-            </mat-form-field>
-            @if (passwordError()) {
-              <p class="text-red-500 text-sm mb-2">{{ passwordError() }}</p>
-            }
-            <button mat-raised-button color="primary" class="w-full mt-2" (click)="submitPassword()">
-              Access Board
-            </button>
-          </mat-card-content>
-        </mat-card>
+        <div class="w-96 bg-white rounded-lg shadow-sm border p-6 text-center">
+          <i class="pi pi-lock text-6xl text-gray-400 mb-4 block"></i>
+          <h2 class="text-xl font-semibold mb-4">Password Required</h2>
+          <p class="text-gray-600 mb-4">This board is password protected.</p>
+          <div class="w-full mb-2">
+            <label for="boardPassword" class="block text-sm font-medium text-gray-700 mb-1 text-left">Password</label>
+            <input
+              id="boardPassword"
+              pInputText
+              type="password"
+              [(ngModel)]="password"
+              (keyup.enter)="submitPassword()"
+              class="w-full"
+            />
+          </div>
+          @if (passwordError()) {
+            <p class="text-red-500 text-sm mb-2">{{ passwordError() }}</p>
+          }
+          <p-button
+            label="Access Board"
+            (onClick)="submitPassword()"
+            styleClass="w-full mt-2"
+          />
+        </div>
       </div>
     } @else if (error()) {
       <div class="flex items-center justify-center h-screen bg-gray-50">
-        <mat-card class="w-96">
-          <mat-card-content class="p-6 text-center">
-            <mat-icon class="text-6xl text-red-400 mb-4">error_outline</mat-icon>
-            <h2 class="text-xl font-semibold mb-2">Unable to Access Board</h2>
-            <p class="text-gray-600">{{ error() }}</p>
-          </mat-card-content>
-        </mat-card>
+        <div class="w-96 bg-white rounded-lg shadow-sm border p-6 text-center">
+          <i class="pi pi-exclamation-circle text-6xl text-red-400 mb-4 block"></i>
+          <h2 class="text-xl font-semibold mb-2">Unable to Access Board</h2>
+          <p class="text-gray-600">{{ error() }}</p>
+        </div>
       </div>
     } @else if (board()) {
       <div class="min-h-screen bg-gray-50">
@@ -78,24 +83,21 @@ import { BoardShareService, SharedBoardAccess } from '../../core/services/board-
                 </div>
                 <div class="space-y-2">
                   @for (task of getTasksForColumn(column.id); track task.id) {
-                    <mat-card class="!shadow-sm">
-                      <mat-card-content class="p-3">
-                        <h4 class="font-medium text-sm mb-1">{{ task.title }}</h4>
-                        @if (task.description) {
-                          <p class="text-xs text-gray-500 line-clamp-2">{{ task.description }}</p>
+                    <div class="bg-white rounded-lg shadow-sm border p-3">
+                      <h4 class="font-medium text-sm mb-1">{{ task.title }}</h4>
+                      @if (task.description) {
+                        <p class="text-xs text-gray-500 line-clamp-2">{{ task.description }}</p>
+                      }
+                      <div class="flex items-center gap-2 mt-2">
+                        <p-chip
+                          [label]="task.priority"
+                          [styleClass]="getPriorityClass(task.priority)"
+                        />
+                        @if (task.due_date) {
+                          <span class="text-xs text-gray-400">{{ task.due_date | date:'shortDate' }}</span>
                         }
-                        <div class="flex items-center gap-2 mt-2">
-                          <mat-chip-set>
-                            <mat-chip class="!text-xs" [class]="getPriorityClass(task.priority)">
-                              {{ task.priority }}
-                            </mat-chip>
-                          </mat-chip-set>
-                          @if (task.due_date) {
-                            <span class="text-xs text-gray-400">{{ task.due_date | date:'shortDate' }}</span>
-                          }
-                        </div>
-                      </mat-card-content>
-                    </mat-card>
+                      </div>
+                    </div>
                   }
                 </div>
               </div>

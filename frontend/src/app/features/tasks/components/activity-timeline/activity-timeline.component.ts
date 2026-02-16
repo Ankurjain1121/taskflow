@@ -7,9 +7,8 @@ import {
   OnDestroy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatIconModule } from '@angular/material/icon';
+import { ButtonModule } from 'primeng/button';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { Subject, takeUntil } from 'rxjs';
 
 import {
@@ -23,20 +22,22 @@ import {
   standalone: true,
   imports: [
     CommonModule,
-    MatButtonModule,
-    MatProgressSpinnerModule,
-    MatIconModule,
+    ButtonModule,
+    ProgressSpinnerModule,
   ],
   template: `
     <div class="relative">
       @if (isLoading() && activities().length === 0) {
         <div class="flex items-center justify-center py-8">
-          <mat-spinner diameter="32"></mat-spinner>
+          <p-progressSpinner
+            [style]="{ width: '32px', height: '32px' }"
+            strokeWidth="4"
+          />
           <span class="ml-3 text-gray-500">Loading activity...</span>
         </div>
       } @else if (activities().length === 0) {
         <div class="text-center py-8 text-gray-500">
-          <mat-icon class="text-4xl text-gray-300 mb-2">history</mat-icon>
+          <i class="pi pi-history text-4xl text-gray-300 mb-2 block"></i>
           <p>No activity recorded yet.</p>
         </div>
       } @else {
@@ -65,7 +66,7 @@ import {
                       class="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium border-2 border-white shadow-sm"
                       [class]="getActionIconBgClass(activity.action)"
                     >
-                      <mat-icon class="text-lg">{{ getActionIcon(activity.action) }}</mat-icon>
+                      <i [class]="'pi ' + getActionIcon(activity.action) + ' text-lg'"></i>
                     </div>
                   }
                 </div>
@@ -92,20 +93,24 @@ import {
         <!-- Show more button -->
         @if (nextCursor()) {
           <div class="mt-6 text-center">
-            <button
-              mat-stroked-button
-              (click)="loadMore()"
+            <p-button
+              [outlined]="true"
+              (onClick)="loadMore()"
               [disabled]="isLoadingMore()"
-              class="text-sm"
+              size="small"
             >
               @if (isLoadingMore()) {
-                <mat-spinner diameter="16" class="inline-block mr-2"></mat-spinner>
+                <p-progressSpinner
+                  [style]="{ width: '16px', height: '16px' }"
+                  strokeWidth="4"
+                  styleClass="inline-block mr-2"
+                />
                 Loading...
               } @else {
-                <mat-icon class="mr-1">expand_more</mat-icon>
+                <i class="pi pi-chevron-down mr-1"></i>
                 Show more activity
               }
-            </button>
+            </p-button>
           </div>
         }
       }
@@ -257,27 +262,27 @@ export class ActivityTimelineComponent implements OnDestroy {
   getActionIcon(action: ActivityAction): string {
     switch (action) {
       case 'created':
-        return 'add_circle';
+        return 'pi-plus-circle';
       case 'updated':
-        return 'edit';
+        return 'pi-pencil';
       case 'moved':
-        return 'swap_horiz';
+        return 'pi-arrows-h';
       case 'assigned':
-        return 'person_add';
+        return 'pi-user-plus';
       case 'unassigned':
-        return 'person_remove';
+        return 'pi-user-minus';
       case 'commented':
-        return 'comment';
+        return 'pi-comment';
       case 'attached':
-        return 'attach_file';
+        return 'pi-paperclip';
       case 'status_changed':
-        return 'sync';
+        return 'pi-sync';
       case 'priority_changed':
-        return 'flag';
+        return 'pi-flag';
       case 'deleted':
-        return 'delete';
+        return 'pi-trash';
       default:
-        return 'history';
+        return 'pi-history';
     }
   }
 

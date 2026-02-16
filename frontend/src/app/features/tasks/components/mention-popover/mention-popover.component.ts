@@ -11,8 +11,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { MatListModule } from '@angular/material/list';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { Subject, debounceTime, distinctUntilChanged, switchMap, takeUntil, of, catchError } from 'rxjs';
 
 export interface MentionableMember {
@@ -30,7 +29,7 @@ export interface MemberSelectedEvent {
 @Component({
   selector: 'app-mention-popover',
   standalone: true,
-  imports: [CommonModule, MatListModule, MatProgressSpinnerModule],
+  imports: [CommonModule, ProgressSpinnerModule],
   template: `
     <div
       class="bg-white rounded-lg shadow-lg border border-gray-200 max-h-64 overflow-y-auto min-w-64"
@@ -39,7 +38,10 @@ export interface MemberSelectedEvent {
     >
       @if (isLoading()) {
         <div class="flex items-center justify-center p-4">
-          <mat-spinner diameter="24"></mat-spinner>
+          <p-progressSpinner
+            [style]="{ width: '24px', height: '24px' }"
+            strokeWidth="4"
+          />
           <span class="ml-2 text-sm text-gray-500">Searching...</span>
         </div>
       } @else if (members().length === 0) {
@@ -51,16 +53,16 @@ export interface MemberSelectedEvent {
           }
         </div>
       } @else {
-        <mat-nav-list dense>
+        <div class="py-1">
           @for (member of members(); track member.id; let i = $index) {
-            <mat-list-item
+            <div
               (click)="selectMember(member)"
               [class.bg-indigo-50]="i === selectedIndex()"
-              class="cursor-pointer hover:bg-gray-50"
+              class="cursor-pointer hover:bg-gray-50 px-3 py-2"
               role="option"
               [attr.aria-selected]="i === selectedIndex()"
             >
-              <div class="flex items-center gap-3 py-1">
+              <div class="flex items-center gap-3">
                 @if (member.avatar_url) {
                   <img
                     [src]="member.avatar_url"
@@ -83,9 +85,9 @@ export interface MemberSelectedEvent {
                   </span>
                 </div>
               </div>
-            </mat-list-item>
+            </div>
           }
-        </mat-nav-list>
+        </div>
       }
     </div>
   `,
@@ -93,10 +95,6 @@ export interface MemberSelectedEvent {
     `
       :host {
         display: block;
-      }
-
-      mat-list-item {
-        height: auto !important;
       }
     `,
   ],

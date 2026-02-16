@@ -1,7 +1,6 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatIconModule } from '@angular/material/icon';
-import { MatRippleModule } from '@angular/material/core';
+import { Ripple } from 'primeng/ripple';
 import { Notification, NotificationEventType } from '../../../core/services/notification.service';
 
 interface EventTypeConfig {
@@ -10,12 +9,12 @@ interface EventTypeConfig {
 }
 
 const EVENT_TYPE_ICONS: Record<NotificationEventType, EventTypeConfig> = {
-  task_assigned: { icon: 'assignment_ind', color: 'text-blue-500' },
-  task_due_soon: { icon: 'schedule', color: 'text-orange-500' },
-  task_overdue: { icon: 'warning', color: 'text-red-500' },
-  task_commented: { icon: 'comment', color: 'text-green-500' },
-  task_completed: { icon: 'check_circle', color: 'text-emerald-500' },
-  mention_in_comment: { icon: 'alternate_email', color: 'text-purple-500' },
+  task_assigned: { icon: 'pi pi-user', color: 'text-blue-500' },
+  task_due_soon: { icon: 'pi pi-clock', color: 'text-orange-500' },
+  task_overdue: { icon: 'pi pi-exclamation-triangle', color: 'text-red-500' },
+  task_commented: { icon: 'pi pi-comment', color: 'text-green-500' },
+  task_completed: { icon: 'pi pi-check-circle', color: 'text-emerald-500' },
+  mention_in_comment: { icon: 'pi pi-at', color: 'text-purple-500' },
 };
 
 const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
@@ -30,11 +29,11 @@ const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
 @Component({
   selector: 'app-notification-item',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatRippleModule],
+  imports: [CommonModule, Ripple],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      matRipple
+      pRipple
       class="flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-700"
       [ngClass]="{
         'border-l-4 border-l-blue-500 bg-blue-50/70 dark:bg-blue-900/20 hover:bg-blue-50 dark:hover:bg-blue-900/30': !notification.is_read,
@@ -47,9 +46,7 @@ const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
         class="flex-shrink-0 mt-0.5 w-8 h-8 rounded-full flex items-center justify-center"
         [ngClass]="getIconBgClass()"
       >
-        <mat-icon [class]="getIconConfig().color" class="text-lg">
-          {{ getIconConfig().icon }}
-        </mat-icon>
+        <i [class]="getIconConfig().icon + ' ' + getIconConfig().color" style="font-size: 1rem;"></i>
       </div>
 
       <!-- Content -->
@@ -112,7 +109,7 @@ export class NotificationItemComponent {
   getIconConfig(): EventTypeConfig {
     return (
       EVENT_TYPE_ICONS[this.notification.event_type] || {
-        icon: 'notifications',
+        icon: 'pi pi-bell',
         color: 'text-gray-500',
       }
     );

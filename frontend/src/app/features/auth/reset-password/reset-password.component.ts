@@ -9,12 +9,10 @@ import {
   ValidationErrors,
 } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatIconModule } from '@angular/material/icon';
+import { InputTextModule } from 'primeng/inputtext';
+import { ButtonModule } from 'primeng/button';
+import { ProgressSpinner } from 'primeng/progressspinner';
+import { PasswordModule } from 'primeng/password';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -24,55 +22,45 @@ import { AuthService } from '../../../core/services/auth.service';
     CommonModule,
     ReactiveFormsModule,
     RouterLink,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatProgressSpinnerModule,
-    MatIconModule,
+    InputTextModule,
+    ButtonModule,
+    ProgressSpinner,
+    PasswordModule,
   ],
   template: `
     <div class="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <mat-card class="w-full max-w-md">
-        <mat-card-header class="justify-center mb-6">
-          <mat-card-title class="text-2xl font-bold text-center">
+      <div class="card-container w-full max-w-md">
+        <div class="card-header">
+          <h2 class="text-2xl font-bold text-center">
             Reset Password
-          </mat-card-title>
-        </mat-card-header>
+          </h2>
+        </div>
 
-        <mat-card-content>
+        <div class="card-body">
           @if (!token) {
             <div class="text-center">
-              <mat-icon class="text-red-500 mb-4" style="font-size: 48px; width: 48px; height: 48px;">
-                error_outline
-              </mat-icon>
+              <i class="pi pi-exclamation-circle text-red-500 mb-4" style="font-size: 48px;"></i>
               <h3 class="text-lg font-semibold mb-2">Invalid Reset Link</h3>
               <p class="text-gray-600 text-sm mb-6">
                 This password reset link is invalid. Please request a new one.
               </p>
               <a
-                mat-flat-button
-                color="primary"
                 routerLink="/auth/forgot-password"
               >
-                Request New Link
+                <button pButton label="Request New Link" class="action-btn"></button>
               </a>
             </div>
           } @else if (resetSuccess) {
             <div class="text-center">
-              <mat-icon class="text-green-500 mb-4" style="font-size: 48px; width: 48px; height: 48px;">
-                check_circle
-              </mat-icon>
+              <i class="pi pi-check-circle text-green-500 mb-4" style="font-size: 48px;"></i>
               <h3 class="text-lg font-semibold mb-2">Password Reset Successfully</h3>
               <p class="text-gray-600 text-sm mb-6">
                 Your password has been reset. You can now sign in with your new password.
               </p>
               <a
-                mat-flat-button
-                color="primary"
                 routerLink="/auth/sign-in"
               >
-                Go to Sign In
+                <button pButton label="Go to Sign In" class="action-btn"></button>
               </a>
             </div>
           } @else {
@@ -81,53 +69,43 @@ import { AuthService } from '../../../core/services/auth.service';
             </p>
 
             <form [formGroup]="resetForm" (ngSubmit)="onSubmit()">
-              <mat-form-field appearance="outline" class="w-full mb-4">
-                <mat-label>New Password</mat-label>
-                <input
-                  matInput
-                  [type]="hidePassword ? 'password' : 'text'"
+              <div class="mb-4">
+                <label for="new-password" class="field-label">New Password</label>
+                <p-password
+                  id="new-password"
                   formControlName="newPassword"
                   placeholder="Enter new password"
+                  [toggleMask]="true"
+                  [feedback]="false"
+                  styleClass="w-full"
+                  inputStyleClass="w-full"
                 />
-                <button
-                  mat-icon-button
-                  matSuffix
-                  type="button"
-                  (click)="hidePassword = !hidePassword"
-                >
-                  <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-                </button>
                 @if (resetForm.get('newPassword')?.hasError('required') && resetForm.get('newPassword')?.touched) {
-                  <mat-error>Password is required</mat-error>
+                  <small class="p-error">Password is required</small>
                 }
                 @if (resetForm.get('newPassword')?.hasError('minlength') && resetForm.get('newPassword')?.touched) {
-                  <mat-error>Password must be at least 8 characters</mat-error>
+                  <small class="p-error">Password must be at least 8 characters</small>
                 }
-              </mat-form-field>
+              </div>
 
-              <mat-form-field appearance="outline" class="w-full mb-4">
-                <mat-label>Confirm Password</mat-label>
-                <input
-                  matInput
-                  [type]="hideConfirmPassword ? 'password' : 'text'"
+              <div class="mb-4">
+                <label for="confirm-new-password" class="field-label">Confirm Password</label>
+                <p-password
+                  id="confirm-new-password"
                   formControlName="confirmPassword"
                   placeholder="Confirm new password"
+                  [toggleMask]="true"
+                  [feedback]="false"
+                  styleClass="w-full"
+                  inputStyleClass="w-full"
                 />
-                <button
-                  mat-icon-button
-                  matSuffix
-                  type="button"
-                  (click)="hideConfirmPassword = !hideConfirmPassword"
-                >
-                  <mat-icon>{{ hideConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-                </button>
                 @if (resetForm.get('confirmPassword')?.hasError('required') && resetForm.get('confirmPassword')?.touched) {
-                  <mat-error>Please confirm your password</mat-error>
+                  <small class="p-error">Please confirm your password</small>
                 }
                 @if (resetForm.get('confirmPassword')?.hasError('passwordMismatch') && resetForm.get('confirmPassword')?.touched) {
-                  <mat-error>Passwords do not match</mat-error>
+                  <small class="p-error">Passwords do not match</small>
                 }
-              </mat-form-field>
+              </div>
 
               @if (errorMessage) {
                 <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -136,14 +114,17 @@ import { AuthService } from '../../../core/services/auth.service';
               }
 
               <button
-                mat-flat-button
-                color="primary"
+                pButton
                 type="submit"
-                class="w-full h-12"
+                class="w-full submit-btn"
                 [disabled]="isLoading || resetForm.invalid"
               >
                 @if (isLoading) {
-                  <mat-spinner diameter="20" class="inline-block mr-2"></mat-spinner>
+                  <p-progressSpinner
+                    [style]="{ width: '20px', height: '20px' }"
+                    strokeWidth="4"
+                    styleClass="inline-spinner"
+                  />
                   Resetting...
                 } @else {
                   Reset Password
@@ -151,17 +132,17 @@ import { AuthService } from '../../../core/services/auth.service';
               </button>
             </form>
           }
-        </mat-card-content>
+        </div>
 
-        <mat-card-actions class="justify-center mt-4">
+        <div class="card-footer">
           <p class="text-sm text-gray-600">
             Remember your password?
             <a routerLink="/auth/sign-in" class="text-blue-600 hover:underline">
               Sign in
             </a>
           </p>
-        </mat-card-actions>
-      </mat-card>
+        </div>
+      </div>
     </div>
   `,
   styles: [
@@ -170,26 +151,65 @@ import { AuthService } from '../../../core/services/auth.service';
         display: block;
       }
 
-      mat-card {
+      .card-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
         padding: 2rem;
       }
 
-      mat-card-header {
-        display: flex;
-        justify-content: center;
+      .card-header {
+        margin-bottom: 1.5rem;
       }
 
-      mat-form-field {
-        width: 100%;
+      .card-body {
+        margin-bottom: 1rem;
       }
 
-      button[type='submit'] {
-        height: 48px;
-        font-size: 16px;
+      .card-footer {
+        text-align: center;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #f3f4f6;
       }
 
-      mat-spinner {
+      .field-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.375rem;
+      }
+
+      .submit-btn {
+        height: 48px !important;
+        font-size: 16px !important;
+        border-radius: 8px !important;
+        background: #4f46e5 !important;
+        border: none !important;
+      }
+
+      .submit-btn:hover:not([disabled]) {
+        background: #4338ca !important;
+      }
+
+      .action-btn {
+        border-radius: 8px !important;
+        background: #4f46e5 !important;
+        border: none !important;
+      }
+
+      .action-btn:hover {
+        background: #4338ca !important;
+      }
+
+      :host ::ng-deep .inline-spinner .p-progress-spinner-circle {
+        stroke: white !important;
+      }
+
+      :host ::ng-deep .inline-spinner {
         display: inline-block;
+        vertical-align: middle;
         margin-right: 8px;
       }
     `,

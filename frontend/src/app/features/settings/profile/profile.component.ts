@@ -2,14 +2,11 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatDividerModule } from '@angular/material/divider';
+import { InputTextModule } from 'primeng/inputtext';
+import { ButtonModule } from 'primeng/button';
+import { ProgressSpinner } from 'primeng/progressspinner';
+import { ToastModule } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
 import { ProfileService, UserProfile } from '../../../core/services/profile.service';
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -20,16 +17,14 @@ import { AuthService } from '../../../core/services/auth.service';
     CommonModule,
     RouterLink,
     ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatSnackBarModule,
-    MatProgressSpinnerModule,
-    MatDividerModule,
+    InputTextModule,
+    ButtonModule,
+    ProgressSpinner,
+    ToastModule,
   ],
+  providers: [MessageService],
   template: `
+    <p-toast />
     <div class="min-h-screen bg-gray-100 p-4 md:p-8">
       <div class="max-w-2xl mx-auto">
         <!-- Header -->
@@ -43,18 +38,21 @@ import { AuthService } from '../../../core/services/auth.service';
         <!-- Loading state -->
         @if (isLoading()) {
           <div class="flex items-center justify-center py-12">
-            <mat-spinner diameter="40"></mat-spinner>
+            <p-progressSpinner
+              [style]="{ width: '40px', height: '40px' }"
+              strokeWidth="4"
+            />
           </div>
         }
 
         <!-- Profile form -->
         @if (!isLoading()) {
-        <mat-card class="mb-6">
-          <mat-card-header>
-            <mat-card-title>Personal Information</mat-card-title>
-          </mat-card-header>
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm mb-6">
+          <div class="px-6 pt-6 pb-2">
+            <h3 class="text-lg font-semibold text-gray-900">Personal Information</h3>
+          </div>
 
-          <mat-card-content class="pt-4">
+          <div class="px-6 pb-6 pt-4">
             <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
               <!-- Avatar preview -->
               <div class="flex items-center gap-4 mb-6">
@@ -69,9 +67,7 @@ import { AuthService } from '../../../core/services/auth.service';
                       (error)="onAvatarError()"
                     />
                   } @else {
-                    <mat-icon class="text-gray-400 !text-4xl">
-                      person
-                    </mat-icon>
+                    <i class="pi pi-user text-gray-400 text-4xl"></i>
                   }
                 </div>
                 <div>
@@ -81,104 +77,102 @@ import { AuthService } from '../../../core/services/auth.service';
               </div>
 
               <!-- Display Name -->
-              <mat-form-field appearance="outline" class="w-full mb-4">
-                <mat-label>Display Name</mat-label>
+              <div class="flex flex-col gap-2 mb-5">
+                <label for="displayName" class="text-sm font-medium text-gray-700">Display Name</label>
                 <input
-                  matInput
+                  pInputText
+                  id="displayName"
                   formControlName="displayName"
                   placeholder="Enter your display name"
+                  class="w-full"
                 />
-                @if (profileForm.get('displayName')?.hasError('required')) {
-                  <mat-error>
-                    Display name is required
-                  </mat-error>
+                @if (profileForm.get('displayName')?.hasError('required') && profileForm.get('displayName')?.touched) {
+                  <small class="text-red-500">Display name is required</small>
                 }
-                @if (profileForm.get('displayName')?.hasError('minlength')) {
-                  <mat-error>
-                    Display name must be at least 2 characters
-                  </mat-error>
+                @if (profileForm.get('displayName')?.hasError('minlength') && profileForm.get('displayName')?.touched) {
+                  <small class="text-red-500">Display name must be at least 2 characters</small>
                 }
-              </mat-form-field>
+              </div>
 
               <!-- Email (read-only) -->
-              <mat-form-field appearance="outline" class="w-full mb-4">
-                <mat-label>Email</mat-label>
-                <input
-                  matInput
-                  formControlName="email"
-                  readonly
-                />
-                <mat-icon matSuffix class="text-gray-400">lock</mat-icon>
-                <mat-hint>Email cannot be changed</mat-hint>
-              </mat-form-field>
+              <div class="flex flex-col gap-2 mb-5">
+                <label for="email" class="text-sm font-medium text-gray-700">Email</label>
+                <div class="p-inputgroup">
+                  <input
+                    pInputText
+                    id="email"
+                    formControlName="email"
+                    readonly
+                    class="w-full"
+                  />
+                  <span class="p-inputgroup-addon"><i class="pi pi-lock text-gray-400"></i></span>
+                </div>
+                <small class="text-gray-500">Email cannot be changed</small>
+              </div>
 
               <!-- Phone Number -->
-              <mat-form-field appearance="outline" class="w-full mb-4">
-                <mat-label>Phone Number</mat-label>
+              <div class="flex flex-col gap-2 mb-5">
+                <label for="phoneNumber" class="text-sm font-medium text-gray-700">Phone Number</label>
                 <input
-                  matInput
+                  pInputText
+                  id="phoneNumber"
                   formControlName="phoneNumber"
                   placeholder="+1234567890"
+                  class="w-full"
                 />
-                <mat-hint>
+                <small class="text-gray-500">
                   Enter in E.164 format (e.g., +1234567890) for WhatsApp notifications
-                </mat-hint>
-                @if (profileForm.get('phoneNumber')?.hasError('pattern')) {
-                  <mat-error>
+                </small>
+                @if (profileForm.get('phoneNumber')?.hasError('pattern') && profileForm.get('phoneNumber')?.touched) {
+                  <small class="text-red-500">
                     Please enter a valid E.164 phone number (e.g., +1234567890)
-                  </mat-error>
+                  </small>
                 }
-              </mat-form-field>
+              </div>
 
               <!-- Avatar URL -->
-              <mat-form-field appearance="outline" class="w-full mb-4">
-                <mat-label>Avatar URL</mat-label>
+              <div class="flex flex-col gap-2 mb-5">
+                <label for="avatarUrl" class="text-sm font-medium text-gray-700">Avatar URL</label>
                 <input
-                  matInput
+                  pInputText
+                  id="avatarUrl"
                   formControlName="avatarUrl"
                   placeholder="https://example.com/avatar.jpg"
                   (input)="onAvatarUrlChange()"
+                  class="w-full"
                 />
-                <mat-hint>Enter a URL to your profile picture</mat-hint>
-                @if (profileForm.get('avatarUrl')?.hasError('pattern')) {
-                  <mat-error>
+                <small class="text-gray-500">Enter a URL to your profile picture</small>
+                @if (profileForm.get('avatarUrl')?.hasError('pattern') && profileForm.get('avatarUrl')?.touched) {
+                  <small class="text-red-500">
                     Please enter a valid URL
-                  </mat-error>
+                  </small>
                 }
-              </mat-form-field>
+              </div>
 
               <!-- Submit button -->
               <div class="flex justify-end">
-                <button
-                  mat-raised-button
-                  color="primary"
+                <p-button
                   type="submit"
+                  [label]="isSaving() ? 'Saving...' : 'Save Changes'"
                   [disabled]="!profileForm.valid || !profileForm.dirty || isSaving()"
-                >
-                  @if (isSaving()) {
-                    <mat-spinner
-                      diameter="20"
-                      class="inline-block mr-2"
-                    ></mat-spinner>
-                  }
-                  {{ isSaving() ? 'Saving...' : 'Save Changes' }}
-                </button>
+                  [loading]="isSaving()"
+                />
               </div>
             </form>
-          </mat-card-content>
-        </mat-card>
+          </div>
+        </div>
         }
 
         <!-- Notification preferences link -->
         @if (!isLoading()) {
-        <mat-card>
-          <mat-card-content class="!py-4">
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+          <div class="py-4 px-6">
             <a
               routerLink="/settings/notifications"
               class="flex items-center justify-between group hover:bg-gray-50 -mx-4 px-4 py-3 rounded transition-colors"
             >
               <div class="flex items-center gap-3">
-                <mat-icon class="text-gray-500">notifications</mat-icon>
+                <i class="pi pi-bell text-gray-500"></i>
                 <div>
                   <p class="font-medium text-gray-900">Notification Preferences</p>
                   <p class="text-sm text-gray-500">
@@ -186,12 +180,10 @@ import { AuthService } from '../../../core/services/auth.service';
                   </p>
                 </div>
               </div>
-              <mat-icon class="text-gray-400 group-hover:text-gray-600 transition-colors">
-                chevron_right
-              </mat-icon>
+              <i class="pi pi-chevron-right text-gray-400 group-hover:text-gray-600 transition-colors"></i>
             </a>
-          </mat-card-content>
-        </mat-card>
+          </div>
+        </div>
         }
 
         <!-- Account info -->
@@ -212,8 +204,8 @@ import { AuthService } from '../../../core/services/auth.service';
   `,
   styles: [
     `
-      :host ::ng-deep .mat-mdc-form-field-subscript-wrapper {
-        margin-bottom: 0.5rem;
+      :host {
+        display: block;
       }
     `,
   ],
@@ -235,7 +227,7 @@ export class ProfileComponent implements OnInit {
     private fb: FormBuilder,
     private profileService: ProfileService,
     private authService: AuthService,
-    private snackBar: MatSnackBar
+    private messageService: MessageService
   ) {
     this.profileForm = this.fb.group({
       displayName: ['', [Validators.required, Validators.minLength(2)]],
@@ -266,7 +258,6 @@ export class ProfileComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (error) => {
-        console.error('Failed to load profile:', error);
         // Try to use current user from auth service as fallback
         const currentUser = this.authService.currentUser();
         if (currentUser) {
@@ -287,9 +278,7 @@ export class ProfileComponent implements OnInit {
           });
           this.avatarPreview.set(currentUser.avatar_url);
         }
-        this.snackBar.open('Failed to load profile', 'Dismiss', {
-          duration: 3000,
-        });
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load profile' });
         this.isLoading.set(false);
       },
     });
@@ -326,16 +315,11 @@ export class ProfileComponent implements OnInit {
       next: (updatedProfile) => {
         this.profile.set(updatedProfile);
         this.profileForm.markAsPristine();
-        this.snackBar.open('Profile updated successfully', 'Dismiss', {
-          duration: 3000,
-        });
+        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Profile updated successfully' });
         this.isSaving.set(false);
       },
-      error: (error) => {
-        console.error('Failed to update profile:', error);
-        this.snackBar.open('Failed to update profile', 'Dismiss', {
-          duration: 3000,
-        });
+      error: () => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to update profile' });
         this.isSaving.set(false);
       },
     });

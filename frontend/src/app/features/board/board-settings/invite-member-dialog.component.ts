@@ -1,11 +1,10 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, input, output, model } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule, MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import { ButtonModule } from 'primeng/button';
+import { Dialog } from 'primeng/dialog';
+import { InputTextModule } from 'primeng/inputtext';
+import { Select } from 'primeng/select';
 
 export interface InviteMemberDialogData {
   boardId: string;
@@ -18,81 +17,109 @@ export interface InviteMemberDialogResult {
 }
 
 @Component({
-  selector: 'app-invite-member-dialog',
+  selector: 'app-board-invite-member-dialog',
   standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatButtonModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
+    ButtonModule,
+    Dialog,
+    InputTextModule,
+    Select,
   ],
   template: `
-    <h2 mat-dialog-title>Invite Member</h2>
-    <mat-dialog-content>
-      <p class="text-gray-600 mb-4">
-        Add a new member to "{{ data.boardName }}"
+    <p-dialog
+      header="Invite Member"
+      [(visible)]="visible"
+      [modal]="true"
+      [style]="{ width: '440px' }"
+      [closable]="true"
+      (onShow)="onDialogShow()"
+    >
+      <p class="text-gray-600 dark:text-gray-400 mb-4">
+        Add a new member to "{{ boardName() }}"
       </p>
       <form [formGroup]="form" class="flex flex-col gap-4">
-        <mat-form-field appearance="outline">
-          <mat-label>Email address</mat-label>
+        <!-- Email -->
+        <div class="flex flex-col gap-1">
+          <label for="email" class="text-sm font-medium text-gray-700 dark:text-gray-300">Email address</label>
           <input
-            matInput
+            pInputText
+            id="email"
             type="email"
             formControlName="email"
             placeholder="member@example.com"
+            class="w-full"
           />
-          @if (form.controls['email'].hasError('required')) {
-            <mat-error>Email is required</mat-error>
+          @if (form.controls['email'].hasError('required') && form.controls['email'].touched) {
+            <small class="text-red-500">Email is required</small>
           }
-          @if (form.controls['email'].hasError('email')) {
-            <mat-error>Please enter a valid email</mat-error>
+          @if (form.controls['email'].hasError('email') && form.controls['email'].touched) {
+            <small class="text-red-500">Please enter a valid email</small>
           }
-        </mat-form-field>
+        </div>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Role</mat-label>
-          <mat-select formControlName="role">
-            <mat-option value="viewer">Viewer - Can view board and tasks</mat-option>
-            <mat-option value="editor">Editor - Can edit tasks and columns</mat-option>
-          </mat-select>
-        </mat-form-field>
+        <!-- Role -->
+        <div class="flex flex-col gap-1">
+          <label for="role" class="text-sm font-medium text-gray-700 dark:text-gray-300">Role</label>
+          <p-select
+            formControlName="role"
+            [options]="roleOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Select a role"
+            class="w-full"
+          />
+        </div>
       </form>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="onCancel()">Cancel</button>
-      <button
-        mat-flat-button
-        color="primary"
-        [disabled]="form.invalid"
-        (click)="onInvite()"
-      >
-        Send Invite
-      </button>
-    </mat-dialog-actions>
+
+      <ng-template #footer>
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancel"
+            [text]="true"
+            severity="secondary"
+            (onClick)="onCancel()"
+          />
+          <p-button
+            label="Send Invite"
+            [disabled]="form.invalid"
+            (onClick)="onInvite()"
+          />
+        </div>
+      </ng-template>
+    </p-dialog>
   `,
-  styles: [
-    `
-      mat-dialog-content {
-        min-width: 400px;
-      }
-    `,
-  ],
 })
 export class InviteMemberDialogComponent {
-  data = inject<InviteMemberDialogData>(MAT_DIALOG_DATA);
-  private dialogRef = inject(MatDialogRef<InviteMemberDialogComponent>);
   private fb = inject(FormBuilder);
+
+  /** Two-way bound visibility */
+  visible = model(false);
+
+  /** Input data */
+  boardId = input<string>('');
+  boardName = input<string>('');
+
+  /** Output event */
+  invited = output<InviteMemberDialogResult>();
+
+  roleOptions = [
+    { label: 'Viewer - Can view board and tasks', value: 'viewer' },
+    { label: 'Editor - Can edit tasks and columns', value: 'editor' },
+  ];
 
   form = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
     role: ['editor' as 'viewer' | 'editor', Validators.required],
   });
 
+  onDialogShow(): void {
+    this.form.reset({ email: '', role: 'editor' });
+  }
+
   onCancel(): void {
-    this.dialogRef.close(null);
+    this.visible.set(false);
   }
 
   onInvite(): void {
@@ -102,6 +129,7 @@ export class InviteMemberDialogComponent {
       email: this.form.value.email!,
       role: this.form.value.role!,
     };
-    this.dialogRef.close(result);
+    this.visible.set(false);
+    this.invited.emit(result);
   }
 }

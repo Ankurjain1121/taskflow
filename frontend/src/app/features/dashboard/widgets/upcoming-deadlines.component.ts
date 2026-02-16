@@ -1,19 +1,20 @@
 import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { TimelineModule } from 'primeng/timeline';
 import { DashboardService, UpcomingDeadline } from '../../../core/services/dashboard.service';
 
 @Component({
   selector: 'app-upcoming-deadlines',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, TimelineModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white rounded-xl border border-gray-200 h-full flex flex-col">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-900">Upcoming Deadlines</h3>
-        <p class="text-sm text-gray-500 mt-1">Next 14 days</p>
+    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 h-full flex flex-col">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Upcoming Deadlines</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Next 14 days</p>
       </div>
 
       @if (loading()) {
@@ -25,52 +26,39 @@ import { DashboardService, UpcomingDeadline } from '../../../core/services/dashb
         </div>
       } @else if (deadlines().length > 0) {
         <div class="overflow-auto flex-1 p-6">
-          <div class="space-y-4">
-            @for (deadline of deadlines(); track deadline.id) {
+          <p-timeline [value]="deadlines()" align="left">
+            <ng-template pTemplate="marker" let-item>
               <div
-                class="flex items-start gap-4 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors border border-gray-100"
-                [routerLink]="['/board', deadline.board_id]"
-                [queryParams]="{ task: deadline.id }">
-                <!-- Timeline indicator -->
-                <div class="flex flex-col items-center">
-                  <div
-                    class="w-3 h-3 rounded-full ring-4 ring-white"
-                    [class]="getUrgencyColor(deadline.days_until_due)">
-                  </div>
-                  @if (!$last) {
-                    <div class="w-0.5 h-full bg-gray-200 mt-1"></div>
-                  }
-                </div>
-
-                <!-- Content -->
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-start justify-between gap-2">
-                    <h4 class="text-sm font-medium text-gray-900 truncate">
-                      {{ deadline.title }}
-                    </h4>
-                    <span
-                      class="px-2 py-0.5 text-xs font-medium rounded-full flex-shrink-0"
-                      [class]="getPriorityClass(deadline.priority)">
-                      {{ deadline.priority }}
-                    </span>
-                  </div>
-                  <p class="text-xs text-gray-500 mt-1">{{ deadline.board_name }}</p>
-                  <p
-                    class="text-xs font-medium mt-1"
-                    [class]="getUrgencyTextColor(deadline.days_until_due)">
-                    {{ getRelativeTime(deadline.days_until_due) }}
-                  </p>
-                </div>
+                class="w-3 h-3 rounded-full ring-4 ring-white dark:ring-gray-800"
+                [class]="getUrgencyColor(item.days_until_due)">
               </div>
-            }
-          </div>
+            </ng-template>
+            <ng-template pTemplate="content" let-item>
+              <div
+                class="flex flex-col gap-1 pb-4 cursor-pointer hover:opacity-80 transition-opacity"
+                (click)="navigateToTask(item)">
+                <div class="flex items-start justify-between gap-2">
+                  <span class="font-medium text-sm text-gray-900 dark:text-white">{{ item.title }}</span>
+                  <span
+                    class="px-2 py-0.5 text-xs font-medium rounded-full flex-shrink-0"
+                    [class]="getPriorityClass(item.priority)">
+                    {{ item.priority }}
+                  </span>
+                </div>
+                <span class="text-xs text-gray-500 dark:text-gray-400">{{ item.board_name }}</span>
+                <span
+                  class="text-xs font-medium"
+                  [class]="getUrgencyTextColor(item.days_until_due)">
+                  {{ getRelativeTime(item.days_until_due) }}
+                </span>
+              </div>
+            </ng-template>
+          </p-timeline>
         </div>
       } @else {
         <div class="flex-1 flex items-center justify-center text-gray-400">
           <div class="text-center">
-            <svg class="mx-auto h-12 w-12 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-            </svg>
+            <i class="pi pi-calendar text-4xl text-gray-300 mb-2"></i>
             <p class="text-sm">No upcoming deadlines</p>
           </div>
         </div>
@@ -80,6 +68,7 @@ import { DashboardService, UpcomingDeadline } from '../../../core/services/dashb
 })
 export class UpcomingDeadlinesComponent implements OnInit {
   private dashboardService = inject(DashboardService);
+  private router = inject(Router);
 
   loading = signal(true);
   deadlines = signal<UpcomingDeadline[]>([]);
@@ -93,11 +82,15 @@ export class UpcomingDeadlinesComponent implements OnInit {
     try {
       const data = await firstValueFrom(this.dashboardService.getUpcomingDeadlines(14));
       this.deadlines.set(data || []);
-    } catch (error) {
-      console.error('Failed to load upcoming deadlines:', error);
+    } catch {
+      // Timeline will show empty state
     } finally {
       this.loading.set(false);
     }
+  }
+
+  navigateToTask(deadline: UpcomingDeadline): void {
+    this.router.navigate(['/board', deadline.board_id], { queryParams: { task: deadline.id } });
   }
 
   getRelativeTime(days: number): string {
@@ -116,19 +109,19 @@ export class UpcomingDeadlinesComponent implements OnInit {
   }
 
   getUrgencyTextColor(days: number): string {
-    if (days === 0) return 'text-red-600';
-    if (days <= 2) return 'text-orange-600';
-    if (days <= 7) return 'text-yellow-600';
-    return 'text-blue-600';
+    if (days === 0) return 'text-red-600 dark:text-red-400';
+    if (days <= 2) return 'text-orange-600 dark:text-orange-400';
+    if (days <= 7) return 'text-yellow-600 dark:text-yellow-400';
+    return 'text-blue-600 dark:text-blue-400';
   }
 
   getPriorityClass(priority: string): string {
     switch (priority.toLowerCase()) {
-      case 'urgent': return 'bg-red-100 text-red-800';
-      case 'high': return 'bg-orange-100 text-orange-800';
-      case 'medium': return 'bg-blue-100 text-blue-800';
-      case 'low': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-600';
+      case 'urgent': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+      case 'high': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
+      case 'medium': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'low': return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+      default: return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400';
     }
   }
 }

@@ -4,15 +4,13 @@ import {
   output,
   signal,
   inject,
-  ElementRef,
-  viewChild,
   OnDestroy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { ButtonModule } from 'primeng/button';
+import { ProgressBar } from 'primeng/progressbar';
+import { Toast } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
 import { Subject, takeUntil } from 'rxjs';
 
 import {
@@ -39,13 +37,14 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
   standalone: true,
   imports: [
     CommonModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressBarModule,
-    MatSnackBarModule,
+    ButtonModule,
+    ProgressBar,
+    Toast,
     FileSizePipe,
   ],
+  providers: [MessageService],
   template: `
+    <p-toast />
     <div class="space-y-4">
       <!-- Drop zone -->
       <div
@@ -66,7 +65,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
           class="hidden"
         />
 
-        <mat-icon class="text-5xl text-gray-400 mb-2">cloud_upload</mat-icon>
+        <i class="pi pi-cloud-upload text-5xl text-gray-400 mb-2"></i>
         <p class="text-gray-600 mb-1">
           Drag and drop files here, or
           <span class="text-indigo-600 font-medium">click to browse</span>
@@ -84,9 +83,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
               <div class="flex items-center gap-3">
                 <!-- File icon -->
                 <div class="flex-shrink-0">
-                  <mat-icon class="text-gray-400">
-                    {{ getFileIcon(upload.fileName) }}
-                  </mat-icon>
+                  <i [class]="'pi ' + getFileIcon(upload.fileName) + ' text-gray-400 text-xl'"></i>
                 </div>
 
                 <!-- File info and progress -->
@@ -106,15 +103,15 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
                     </div>
                   } @else if (upload.status === 'completed') {
                     <div class="text-sm text-green-600 flex items-center">
-                      <mat-icon class="text-base mr-1">check_circle</mat-icon>
+                      <i class="pi pi-check-circle mr-1"></i>
                       Uploaded successfully
                     </div>
                   } @else {
-                    <mat-progress-bar
+                    <p-progressBar
                       [value]="upload.progress"
                       [mode]="upload.status === 'confirming' ? 'indeterminate' : 'determinate'"
-                      color="primary"
-                    ></mat-progress-bar>
+                      [style]="{height: '6px'}"
+                    />
                     <div class="mt-1 text-xs text-gray-400">
                       @switch (upload.status) {
                         @case ('pending') {
@@ -134,21 +131,25 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
                 <!-- Cancel button -->
                 @if (upload.status !== 'completed' && upload.status !== 'error') {
                   <button
-                    mat-icon-button
+                    pButton
+                    [rounded]="true"
+                    [text]="true"
                     (click)="cancelUpload(upload.id)"
                     class="flex-shrink-0"
                     title="Cancel upload"
                   >
-                    <mat-icon>close</mat-icon>
+                    <i class="pi pi-times"></i>
                   </button>
                 } @else if (upload.status === 'completed' || upload.status === 'error') {
                   <button
-                    mat-icon-button
+                    pButton
+                    [rounded]="true"
+                    [text]="true"
                     (click)="removeFromList(upload.id)"
                     class="flex-shrink-0"
                     title="Remove from list"
                   >
-                    <mat-icon>close</mat-icon>
+                    <i class="pi pi-times"></i>
                   </button>
                 }
               </div>
@@ -168,7 +169,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 })
 export class FileUploadZoneComponent implements OnDestroy {
   private attachmentService = inject(AttachmentService);
-  private snackBar = inject(MatSnackBar);
+  private messageService = inject(MessageService);
   private destroy$ = new Subject<void>();
 
   taskId = input.required<string>();
@@ -227,11 +228,11 @@ export class FileUploadZoneComponent implements OnDestroy {
   uploadFile(file: File): void {
     // Client-side validation
     if (file.size > MAX_FILE_SIZE) {
-      this.snackBar.open(
-        `File "${file.name}" exceeds 10 MB limit`,
-        'Dismiss',
-        { duration: 5000 }
-      );
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'File too large',
+        detail: `File "${file.name}" exceeds 10 MB limit`,
+      });
       return;
     }
 
@@ -288,49 +289,49 @@ export class FileUploadZoneComponent implements OnDestroy {
 
     switch (ext) {
       case 'pdf':
-        return 'picture_as_pdf';
+        return 'pi-file-pdf';
       case 'doc':
       case 'docx':
-        return 'description';
+        return 'pi-file-word';
       case 'xls':
       case 'xlsx':
-        return 'table_chart';
+        return 'pi-file-excel';
       case 'ppt':
       case 'pptx':
-        return 'slideshow';
+        return 'pi-file';
       case 'jpg':
       case 'jpeg':
       case 'png':
       case 'gif':
       case 'webp':
       case 'svg':
-        return 'image';
+        return 'pi-image';
       case 'mp4':
       case 'avi':
       case 'mov':
       case 'wmv':
-        return 'movie';
+        return 'pi-video';
       case 'mp3':
       case 'wav':
       case 'ogg':
-        return 'audio_file';
+        return 'pi-volume-up';
       case 'zip':
       case 'rar':
       case '7z':
       case 'tar':
       case 'gz':
-        return 'folder_zip';
+        return 'pi-box';
       case 'txt':
-        return 'article';
+        return 'pi-file';
       case 'json':
       case 'xml':
       case 'html':
       case 'css':
       case 'js':
       case 'ts':
-        return 'code';
+        return 'pi-code';
       default:
-        return 'insert_drive_file';
+        return 'pi-file';
     }
   }
 

@@ -1,16 +1,14 @@
 import { Component, ChangeDetectionStrategy, input, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ButtonModule } from 'primeng/button';
+import { Card } from 'primeng/card';
+import { ToggleSwitch } from 'primeng/toggleswitch';
+import { InputText } from 'primeng/inputtext';
+import { Tooltip } from 'primeng/tooltip';
+import { ProgressSpinner } from 'primeng/progressspinner';
+import { Toast } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
 import { BoardShareService, BoardShare, CreateShareRequest } from '../../../core/services/board-share.service';
 import { Clipboard } from '@angular/cdk/clipboard';
 
@@ -18,46 +16,47 @@ import { Clipboard } from '@angular/cdk/clipboard';
   selector: 'app-share-settings',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, MatCardModule, MatButtonModule, MatIconModule,
-    MatSlideToggleModule, MatInputModule, MatFormFieldModule, MatChipsModule,
-    MatSnackBarModule, MatTooltipModule, MatProgressSpinnerModule,
+    CommonModule, FormsModule, ButtonModule, Card, ToggleSwitch,
+    InputText, Tooltip, ProgressSpinner, Toast,
   ],
+  providers: [MessageService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <p-toast />
     <div class="p-6 max-w-3xl mx-auto">
       <h2 class="text-xl font-semibold mb-4">Share Settings</h2>
       <p class="text-gray-600 mb-6">Create shareable links to give external users read-only access to this board.</p>
 
       <!-- Create new share -->
-      <mat-card class="mb-6">
-        <mat-card-content class="p-4">
+      <p-card class="mb-6">
+        <div class="p-4">
           <h3 class="font-medium mb-3">Create New Share Link</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <mat-form-field>
-              <mat-label>Link Name (optional)</mat-label>
-              <input matInput [(ngModel)]="newShareName" placeholder="e.g. Client Review">
-            </mat-form-field>
-            <mat-form-field>
-              <mat-label>Password (optional)</mat-label>
-              <input matInput [(ngModel)]="newSharePassword" type="password" placeholder="Leave blank for no password">
-            </mat-form-field>
+            <div class="flex flex-col gap-2">
+              <label for="shareName" class="text-sm font-medium">Link Name (optional)</label>
+              <input pInputText id="shareName" [(ngModel)]="newShareName" placeholder="e.g. Client Review" />
+            </div>
+            <div class="flex flex-col gap-2">
+              <label for="sharePassword" class="text-sm font-medium">Password (optional)</label>
+              <input pInputText id="sharePassword" [(ngModel)]="newSharePassword" type="password" placeholder="Leave blank for no password" />
+            </div>
           </div>
           <div class="flex items-center gap-4 mb-4">
-            <mat-slide-toggle [(ngModel)]="newShareViewComments">Allow viewing comments</mat-slide-toggle>
+            <p-toggleSwitch [(ngModel)]="newShareViewComments" />
+            <span class="text-sm">Allow viewing comments</span>
           </div>
-          <button mat-raised-button color="primary" (click)="createShare()" [disabled]="creating()">
+          <button pButton label="Create Share Link" (click)="createShare()" [disabled]="creating()">
             @if (creating()) {
-              <mat-spinner diameter="20" class="inline-block mr-2"></mat-spinner>
+              <p-progressSpinner [style]="{width: '20px', height: '20px'}" strokeWidth="4" class="inline-block mr-2" />
             }
-            Create Share Link
           </button>
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </p-card>
 
       <!-- Existing shares -->
       @if (loading()) {
         <div class="flex justify-center py-8">
-          <mat-spinner diameter="40"></mat-spinner>
+          <p-progressSpinner [style]="{width: '40px', height: '40px'}" strokeWidth="4" />
         </div>
       } @else if (shares().length === 0) {
         <div class="text-center text-gray-500 py-8">
@@ -66,8 +65,8 @@ import { Clipboard } from '@angular/cdk/clipboard';
       } @else {
         <div class="space-y-3">
           @for (share of shares(); track share.id) {
-            <mat-card>
-              <mat-card-content class="p-4">
+            <p-card>
+              <div class="p-4">
                 <div class="flex items-center justify-between">
                   <div class="flex-1">
                     <div class="flex items-center gap-2 mb-1">
@@ -84,21 +83,20 @@ import { Clipboard } from '@angular/cdk/clipboard';
                     </div>
                   </div>
                   <div class="flex items-center gap-2">
-                    <button mat-icon-button matTooltip="Copy Link" (click)="copyLink(share)">
-                      <mat-icon>content_copy</mat-icon>
+                    <button pButton [rounded]="true" [text]="true" pTooltip="Copy Link" (click)="copyLink(share)">
+                      <i class="pi pi-copy"></i>
                     </button>
-                    <mat-slide-toggle
-                      [checked]="share.is_active"
-                      (change)="toggleShare(share, $event.checked)"
-                      matTooltip="Toggle active">
-                    </mat-slide-toggle>
-                    <button mat-icon-button color="warn" matTooltip="Delete" (click)="deleteShare(share)">
-                      <mat-icon>delete</mat-icon>
+                    <p-toggleSwitch
+                      [(ngModel)]="share.is_active"
+                      (onChange)="toggleShare(share, $event.checked)"
+                      pTooltip="Toggle active" />
+                    <button pButton [rounded]="true" [text]="true" severity="danger" pTooltip="Delete" (click)="deleteShare(share)">
+                      <i class="pi pi-trash"></i>
                     </button>
                   </div>
                 </div>
-              </mat-card-content>
-            </mat-card>
+              </div>
+            </p-card>
           }
         </div>
       }
@@ -110,7 +108,7 @@ export class ShareSettingsComponent implements OnInit {
 
   private shareService = inject(BoardShareService);
   private clipboard = inject(Clipboard);
-  private snackBar = inject(MatSnackBar);
+  private messageService = inject(MessageService);
 
   shares = signal<BoardShare[]>([]);
   loading = signal(true);
@@ -151,11 +149,11 @@ export class ShareSettingsComponent implements OnInit {
         this.newSharePassword = '';
         this.newShareViewComments = false;
         this.copyLink(share);
-        this.snackBar.open('Share link created and copied!', 'OK', { duration: 3000 });
+        this.messageService.add({ severity: 'success', summary: 'Created', detail: 'Share link created and copied!' });
       },
       error: () => {
         this.creating.set(false);
-        this.snackBar.open('Failed to create share link', 'OK', { duration: 3000 });
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to create share link' });
       },
     });
   }
@@ -166,7 +164,7 @@ export class ShareSettingsComponent implements OnInit {
 
   copyLink(share: BoardShare) {
     this.clipboard.copy(this.getShareUrl(share));
-    this.snackBar.open('Link copied to clipboard', 'OK', { duration: 2000 });
+    this.messageService.add({ severity: 'info', summary: 'Copied', detail: 'Link copied to clipboard' });
   }
 
   toggleShare(share: BoardShare, isActive: boolean) {
@@ -181,7 +179,7 @@ export class ShareSettingsComponent implements OnInit {
     this.shareService.deleteShare(share.id).subscribe({
       next: () => {
         this.shares.update((s) => s.filter((sh) => sh.id !== share.id));
-        this.snackBar.open('Share link deleted', 'OK', { duration: 2000 });
+        this.messageService.add({ severity: 'success', summary: 'Deleted', detail: 'Share link deleted' });
       },
     });
   }

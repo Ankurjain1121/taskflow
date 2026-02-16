@@ -9,13 +9,11 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { InputTextModule } from 'primeng/inputtext';
+import { ButtonModule } from 'primeng/button';
+import { ProgressSpinner } from 'primeng/progressspinner';
+import { PasswordModule } from 'primeng/password';
+import { ProgressBar } from 'primeng/progressbar';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -25,13 +23,11 @@ import { AuthService } from '../../../core/services/auth.service';
     CommonModule,
     ReactiveFormsModule,
     RouterLink,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatProgressSpinnerModule,
-    MatIconModule,
-    MatProgressBarModule,
+    InputTextModule,
+    ButtonModule,
+    ProgressSpinner,
+    PasswordModule,
+    ProgressBar,
   ],
   template: `
     <div class="auth-wrapper">
@@ -63,15 +59,15 @@ import { AuthService } from '../../../core/services/auth.service';
 
             <div class="brand-features">
               <div class="feature-item">
-                <mat-icon class="feature-icon">rocket_launch</mat-icon>
+                <i class="pi pi-bolt feature-icon"></i>
                 <span>Get started in under a minute</span>
               </div>
               <div class="feature-item">
-                <mat-icon class="feature-icon">lock</mat-icon>
+                <i class="pi pi-lock feature-icon"></i>
                 <span>Enterprise-grade security</span>
               </div>
               <div class="feature-item">
-                <mat-icon class="feature-icon">auto_awesome</mat-icon>
+                <i class="pi pi-star feature-icon"></i>
                 <span>Free for teams up to 10</span>
               </div>
             </div>
@@ -87,112 +83,111 @@ import { AuthService } from '../../../core/services/auth.service';
             </div>
 
             <form [formGroup]="signUpForm" (ngSubmit)="onSubmit()">
-              <mat-form-field appearance="outline" class="w-full field-spacing">
-                <mat-label>Full Name</mat-label>
+              <div class="field-spacing">
+                <label for="name" class="field-label">Full Name</label>
                 <input
-                  matInput
+                  pInputText
+                  id="name"
                   type="text"
                   formControlName="name"
                   placeholder="John Doe"
+                  class="w-full"
                 />
                 @if (signUpForm.get('name')?.hasError('required') && signUpForm.get('name')?.touched) {
-                  <mat-error>Name is required</mat-error>
+                  <small class="p-error">Name is required</small>
                 }
-              </mat-form-field>
+              </div>
 
-              <mat-form-field appearance="outline" class="w-full field-spacing">
-                <mat-label>Email</mat-label>
+              <div class="field-spacing">
+                <label for="email" class="field-label">Email</label>
                 <input
-                  matInput
+                  pInputText
+                  id="email"
                   type="email"
                   formControlName="email"
                   placeholder="you@example.com"
+                  class="w-full"
                 />
                 @if (signUpForm.get('email')?.hasError('required') && signUpForm.get('email')?.touched) {
-                  <mat-error>Email is required</mat-error>
+                  <small class="p-error">Email is required</small>
                 }
                 @if (signUpForm.get('email')?.hasError('email') && signUpForm.get('email')?.touched) {
-                  <mat-error>Please enter a valid email</mat-error>
+                  <small class="p-error">Please enter a valid email</small>
                 }
-              </mat-form-field>
+              </div>
 
-              <mat-form-field appearance="outline" class="w-full field-spacing">
-                <mat-label>Password</mat-label>
-                <input
-                  matInput
-                  [type]="hidePassword ? 'password' : 'text'"
+              <div class="field-spacing">
+                <label for="password" class="field-label">Password</label>
+                <p-password
+                  id="password"
                   formControlName="password"
                   placeholder="At least 8 characters"
+                  [toggleMask]="true"
+                  [feedback]="false"
+                  styleClass="w-full"
+                  inputStyleClass="w-full"
                 />
-                <button
-                  mat-icon-button
-                  matSuffix
-                  type="button"
-                  (click)="hidePassword = !hidePassword"
-                >
-                  <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-                </button>
                 @if (signUpForm.get('password')?.hasError('required') && signUpForm.get('password')?.touched) {
-                  <mat-error>Password is required</mat-error>
+                  <small class="p-error">Password is required</small>
                 }
                 @if (signUpForm.get('password')?.hasError('minlength') && signUpForm.get('password')?.touched) {
-                  <mat-error>Password must be at least 8 characters</mat-error>
+                  <small class="p-error">Password must be at least 8 characters</small>
                 }
-              </mat-form-field>
+              </div>
 
               <!-- Password strength indicator -->
               @if (signUpForm.get('password')?.value) {
                 <div class="strength-bar-wrapper">
-                  <mat-progress-bar
-                    mode="determinate"
+                  <p-progressBar
                     [value]="passwordStrength"
-                    [color]="passwordStrengthColor"
-                  ></mat-progress-bar>
+                    [showValue]="false"
+                    [style]="{ height: '6px' }"
+                    [styleClass]="passwordStrengthBarClass"
+                  />
                   <p class="text-xs mt-1" [class]="passwordStrengthTextClass">
                     {{ passwordStrengthLabel }}
                   </p>
                 </div>
               }
 
-              <mat-form-field appearance="outline" class="w-full field-spacing">
-                <mat-label>Confirm Password</mat-label>
-                <input
-                  matInput
-                  [type]="hideConfirmPassword ? 'password' : 'text'"
+              <div class="field-spacing">
+                <label for="confirmPassword" class="field-label">Confirm Password</label>
+                <p-password
+                  id="confirmPassword"
                   formControlName="confirmPassword"
                   placeholder="Re-enter your password"
+                  [toggleMask]="true"
+                  [feedback]="false"
+                  styleClass="w-full"
+                  inputStyleClass="w-full"
                 />
-                <button
-                  mat-icon-button
-                  matSuffix
-                  type="button"
-                  (click)="hideConfirmPassword = !hideConfirmPassword"
-                >
-                  <mat-icon>{{ hideConfirmPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-                </button>
                 @if (signUpForm.get('confirmPassword')?.hasError('required') && signUpForm.get('confirmPassword')?.touched) {
-                  <mat-error>Please confirm your password</mat-error>
+                  <small class="p-error">Please confirm your password</small>
                 }
                 @if (signUpForm.get('confirmPassword')?.hasError('passwordMismatch') && signUpForm.get('confirmPassword')?.touched) {
-                  <mat-error>Passwords do not match</mat-error>
+                  <small class="p-error">Passwords do not match</small>
                 }
-              </mat-form-field>
+              </div>
 
               @if (errorMessage) {
                 <div class="mb-5 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-start gap-2">
-                  <mat-icon class="text-red-500 shrink-0" style="font-size: 20px; width: 20px; height: 20px;">error_outline</mat-icon>
+                  <i class="pi pi-exclamation-circle text-red-500 shrink-0" style="font-size: 20px; margin-top: 1px;"></i>
                   <span>{{ errorMessage }}</span>
                 </div>
               }
 
               <button
-                mat-flat-button
+                pButton
                 type="submit"
                 class="submit-btn w-full"
                 [disabled]="isLoading || signUpForm.invalid"
               >
                 @if (isLoading) {
-                  <mat-spinner diameter="20" class="inline-block mr-2"></mat-spinner>
+                  <p-progressSpinner
+                    [style]="{ width: '20px', height: '20px' }"
+                    strokeWidth="4"
+                    styleClass="inline-spinner"
+                  />
                   Creating account...
                 } @else {
                   Create Account
@@ -434,8 +429,16 @@ import { AuthService } from '../../../core/services/auth.service';
         margin: 0;
       }
 
+      .field-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.375rem;
+      }
+
       .field-spacing {
-        margin-bottom: 0.125rem;
+        margin-bottom: 0.75rem;
       }
 
       .strength-bar-wrapper {
@@ -461,6 +464,7 @@ import { AuthService } from '../../../core/services/auth.service';
         color: white !important;
         transition: all 0.2s ease !important;
         box-shadow: 0 1px 3px rgba(79, 70, 229, 0.3), 0 4px 12px rgba(79, 70, 229, 0.15) !important;
+        border: none !important;
       }
 
       .submit-btn:hover:not([disabled]) {
@@ -478,9 +482,28 @@ import { AuthService } from '../../../core/services/auth.service';
         box-shadow: none !important;
       }
 
-      mat-spinner {
+      :host ::ng-deep .inline-spinner .p-progress-spinner-circle {
+        stroke: white !important;
+      }
+
+      :host ::ng-deep .inline-spinner {
         display: inline-block;
+        vertical-align: middle;
         margin-right: 8px;
+      }
+
+      /* ===== Password strength bar colors ===== */
+      :host ::ng-deep .strength-weak .p-progressbar-value {
+        background: #ef4444 !important;
+      }
+      :host ::ng-deep .strength-fair .p-progressbar-value {
+        background: #eab308 !important;
+      }
+      :host ::ng-deep .strength-good .p-progressbar-value {
+        background: #3b82f6 !important;
+      }
+      :host ::ng-deep .strength-strong .p-progressbar-value {
+        background: #22c55e !important;
       }
 
       /* ===== Responsive: stack on small screens ===== */
@@ -547,11 +570,12 @@ export class SignUpComponent {
     return Math.min(strength, 100);
   }
 
-  get passwordStrengthColor(): 'primary' | 'accent' | 'warn' {
+  get passwordStrengthBarClass(): string {
     const strength = this.passwordStrength;
-    if (strength < 40) return 'warn';
-    if (strength < 70) return 'accent';
-    return 'primary';
+    if (strength < 40) return 'strength-weak';
+    if (strength < 70) return 'strength-fair';
+    if (strength < 90) return 'strength-good';
+    return 'strength-strong';
   }
 
   get passwordStrengthLabel(): string {

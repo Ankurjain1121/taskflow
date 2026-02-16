@@ -1,17 +1,14 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, input, output, model } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import {
-  MatDialogModule,
-  MAT_DIALOG_DATA,
-  MatDialogRef,
-} from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
+import { ButtonModule } from 'primeng/button';
+import { Dialog } from 'primeng/dialog';
+import { InputTextModule } from 'primeng/inputtext';
+import { Textarea } from 'primeng/textarea';
+import { Select } from 'primeng/select';
+import { DatePicker } from 'primeng/datepicker';
+import { InputNumber } from 'primeng/inputnumber';
+import { MultiSelect } from 'primeng/multiselect';
 
 import { TaskPriority } from '../../../core/services/task.service';
 
@@ -43,240 +40,286 @@ export interface CreateTaskDialogResult {
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatButtonModule,
-    MatDialogModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatDatepickerModule,
-    MatNativeDateModule,
+    ButtonModule,
+    Dialog,
+    InputTextModule,
+    Textarea,
+    Select,
+    DatePicker,
+    InputNumber,
+    MultiSelect,
   ],
   template: `
-    <h2 mat-dialog-title>Create New Task</h2>
-    <mat-dialog-content>
+    <p-dialog
+      header="Create New Task"
+      [(visible)]="visible"
+      [modal]="true"
+      [style]="{ width: '540px' }"
+      [closable]="true"
+      (onShow)="onDialogShow()"
+    >
       <form [formGroup]="form" class="flex flex-col gap-4">
         <!-- Column info -->
         <p class="text-sm text-gray-500">
-          Adding to column: <span class="font-medium">{{ data.columnName }}</span>
+          Adding to column: <span class="font-medium">{{ columnName() }}</span>
         </p>
 
         <!-- Title -->
-        <mat-form-field appearance="outline">
-          <mat-label>Title</mat-label>
+        <div class="flex flex-col gap-1">
+          <label for="taskTitle" class="text-sm font-medium text-gray-700">Title</label>
           <input
-            matInput
+            pInputText
+            id="taskTitle"
             formControlName="title"
             placeholder="Enter task title"
-            cdkFocusInitial
+            class="w-full"
           />
-          @if (form.controls.title.hasError('required')) {
-            <mat-error>Title is required</mat-error>
+          @if (form.controls.title.hasError('required') && form.controls.title.touched) {
+            <small class="text-red-500">Title is required</small>
           }
           @if (form.controls.title.hasError('maxlength')) {
-            <mat-error>Title must be less than 200 characters</mat-error>
+            <small class="text-red-500">Title must be less than 200 characters</small>
           }
-        </mat-form-field>
+        </div>
 
         <!-- Description -->
-        <mat-form-field appearance="outline">
-          <mat-label>Description</mat-label>
+        <div class="flex flex-col gap-1">
+          <label for="taskDesc" class="text-sm font-medium text-gray-700">Description</label>
           <textarea
-            matInput
+            pTextarea
+            id="taskDesc"
             formControlName="description"
             placeholder="Enter task description (optional)"
             rows="3"
+            class="w-full"
           ></textarea>
-        </mat-form-field>
+        </div>
 
         <!-- Priority -->
-        <mat-form-field appearance="outline">
-          <mat-label>Priority</mat-label>
-          <mat-select formControlName="priority">
-            @for (priority of priorities; track priority.value) {
-              <mat-option [value]="priority.value">
-                <div class="flex items-center gap-2">
-                  <span
-                    class="w-2 h-2 rounded-full"
-                    [style.background-color]="priority.color"
-                  ></span>
-                  {{ priority.label }}
-                </div>
-              </mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+        <div class="flex flex-col gap-1">
+          <label for="taskPriority" class="text-sm font-medium text-gray-700">Priority</label>
+          <p-select
+            id="taskPriority"
+            formControlName="priority"
+            [options]="priorities"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full"
+            styleClass="w-full"
+          >
+            <ng-template #selectedItem let-selected>
+              <div class="flex items-center gap-2" *ngIf="selected">
+                <span
+                  class="w-2 h-2 rounded-full inline-block"
+                  [style.background-color]="selected.color"
+                ></span>
+                {{ selected.label }}
+              </div>
+            </ng-template>
+            <ng-template #item let-priority>
+              <div class="flex items-center gap-2">
+                <span
+                  class="w-2 h-2 rounded-full inline-block"
+                  [style.background-color]="priority.color"
+                ></span>
+                {{ priority.label }}
+              </div>
+            </ng-template>
+          </p-select>
+        </div>
 
         <!-- Date Row: Start Date and Due Date side by side -->
         <div class="grid grid-cols-2 gap-4">
           <!-- Start Date -->
-          <mat-form-field appearance="outline">
-            <mat-label>Start Date</mat-label>
-            <input
-              matInput
-              [matDatepicker]="startPicker"
+          <div class="flex flex-col gap-1">
+            <label for="startDate" class="text-sm font-medium text-gray-700">Start Date</label>
+            <p-datePicker
+              id="startDate"
               formControlName="startDate"
               placeholder="Select start date"
+              [showIcon]="true"
+              dateFormat="yy-mm-dd"
+              styleClass="w-full"
             />
-            <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
-            <mat-datepicker #startPicker></mat-datepicker>
-          </mat-form-field>
+          </div>
 
           <!-- Due Date -->
-          <mat-form-field appearance="outline">
-            <mat-label>Due Date</mat-label>
-            <input
-              matInput
-              [matDatepicker]="duePicker"
+          <div class="flex flex-col gap-1">
+            <label for="dueDate" class="text-sm font-medium text-gray-700">Due Date</label>
+            <p-datePicker
+              id="dueDate"
               formControlName="dueDate"
               placeholder="Select due date"
+              [showIcon]="true"
+              dateFormat="yy-mm-dd"
+              styleClass="w-full"
             />
-            <mat-datepicker-toggle matIconSuffix [for]="duePicker"></mat-datepicker-toggle>
-            <mat-datepicker #duePicker></mat-datepicker>
-          </mat-form-field>
+          </div>
         </div>
 
         <!-- Estimated Hours -->
-        <mat-form-field appearance="outline">
-          <mat-label>Estimated Hours</mat-label>
-          <input
-            matInput
-            type="number"
+        <div class="flex flex-col gap-1">
+          <label for="estHours" class="text-sm font-medium text-gray-700">Estimated Hours</label>
+          <p-inputNumber
+            id="estHours"
             formControlName="estimatedHours"
             placeholder="e.g., 4"
-            min="0"
-            step="0.5"
+            [min]="0"
+            [max]="9999"
+            [step]="0.5"
+            suffix=" hrs"
+            [minFractionDigits]="0"
+            [maxFractionDigits]="1"
+            styleClass="w-full"
           />
-          <span matTextSuffix>hrs</span>
           @if (form.controls.estimatedHours.hasError('min')) {
-            <mat-error>Hours must be 0 or greater</mat-error>
+            <small class="text-red-500">Hours must be 0 or greater</small>
           }
           @if (form.controls.estimatedHours.hasError('max')) {
-            <mat-error>Hours must be less than 10,000</mat-error>
+            <small class="text-red-500">Hours must be less than 10,000</small>
           }
-        </mat-form-field>
+        </div>
 
         <!-- Assignees -->
-        @if (data.members.length > 0) {
-          <mat-form-field appearance="outline">
-            <mat-label>Assignees</mat-label>
-            <mat-select formControlName="assigneeIds" multiple>
-              @for (member of data.members; track member.id) {
-                <mat-option [value]="member.id">
-                  <div class="flex items-center gap-2">
-                    <div class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-medium">
-                      {{ member.name.charAt(0).toUpperCase() }}
-                    </div>
-                    {{ member.name }}
+        @if (members().length > 0) {
+          <div class="flex flex-col gap-1">
+            <label for="assignees" class="text-sm font-medium text-gray-700">Assignees</label>
+            <p-multiSelect
+              id="assignees"
+              formControlName="assigneeIds"
+              [options]="members()"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="Select assignees"
+              styleClass="w-full"
+              [showClear]="true"
+            >
+              <ng-template #item let-member>
+                <div class="flex items-center gap-2">
+                  <div class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-medium">
+                    {{ member.name.charAt(0).toUpperCase() }}
                   </div>
-                </mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+                  {{ member.name }}
+                </div>
+              </ng-template>
+            </p-multiSelect>
+          </div>
         }
 
         <!-- Labels -->
-        @if (data.labels.length > 0) {
-          <mat-form-field appearance="outline">
-            <mat-label>Labels</mat-label>
-            <mat-select formControlName="labelIds" multiple>
-              @for (label of data.labels; track label.id) {
-                <mat-option [value]="label.id">
-                  <div class="flex items-center gap-2">
-                    <span class="w-3 h-3 rounded-full" [style.background-color]="label.color"></span>
-                    {{ label.name }}
-                  </div>
-                </mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+        @if (labels().length > 0) {
+          <div class="flex flex-col gap-1">
+            <label for="taskLabels" class="text-sm font-medium text-gray-700">Labels</label>
+            <p-multiSelect
+              id="taskLabels"
+              formControlName="labelIds"
+              [options]="labels()"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="Select labels"
+              styleClass="w-full"
+              [showClear]="true"
+            >
+              <ng-template #item let-label>
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full inline-block" [style.background-color]="label.color"></span>
+                  {{ label.name }}
+                </div>
+              </ng-template>
+            </p-multiSelect>
+          </div>
         }
 
         <!-- Milestone -->
-        @if (data.milestones && data.milestones.length > 0) {
-          <mat-form-field appearance="outline">
-            <mat-label>Milestone</mat-label>
-            <mat-select formControlName="milestoneId">
-              <mat-option [value]="''">None</mat-option>
-              @for (milestone of data.milestones; track milestone.id) {
-                <mat-option [value]="milestone.id">
-                  <div class="flex items-center gap-2">
-                    <span class="w-3 h-3 rounded-full" [style.background-color]="milestone.color"></span>
-                    {{ milestone.name }}
-                  </div>
-                </mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+        @if (milestones().length > 0) {
+          <div class="flex flex-col gap-1">
+            <label for="milestone" class="text-sm font-medium text-gray-700">Milestone</label>
+            <p-select
+              id="milestone"
+              formControlName="milestoneId"
+              [options]="milestoneOptions()"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="Select milestone"
+              class="w-full"
+              styleClass="w-full"
+              [showClear]="true"
+            >
+              <ng-template #item let-ms>
+                <div class="flex items-center gap-2">
+                  @if (ms.color) {
+                    <span class="w-3 h-3 rounded-full inline-block" [style.background-color]="ms.color"></span>
+                  }
+                  {{ ms.name }}
+                </div>
+              </ng-template>
+            </p-select>
+          </div>
         }
 
         <!-- Task Group -->
-        @if (data.groups && data.groups.length > 1) {
-          <mat-form-field appearance="outline">
-            <mat-label>Group</mat-label>
-            <mat-select formControlName="groupId">
-              <mat-option [value]="''">Default (Ungrouped)</mat-option>
-              @for (group of data.groups; track group.id) {
-                <mat-option [value]="group.id">
-                  <div class="flex items-center gap-2">
-                    <span class="w-3 h-3 rounded-full" [style.background-color]="group.color"></span>
-                    {{ group.name }}
-                  </div>
-                </mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+        @if (groups().length > 1) {
+          <div class="flex flex-col gap-1">
+            <label for="taskGroup" class="text-sm font-medium text-gray-700">Group</label>
+            <p-select
+              id="taskGroup"
+              formControlName="groupId"
+              [options]="groupOptions()"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="Select group"
+              class="w-full"
+              styleClass="w-full"
+              [showClear]="true"
+            >
+              <ng-template #item let-group>
+                <div class="flex items-center gap-2">
+                  @if (group.color) {
+                    <span class="w-3 h-3 rounded-full inline-block" [style.background-color]="group.color"></span>
+                  }
+                  {{ group.name }}
+                </div>
+              </ng-template>
+            </p-select>
+          </div>
         }
       </form>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="onCancel()">Cancel</button>
-      <button
-        mat-flat-button
-        color="primary"
-        [disabled]="form.invalid || saving()"
-        (click)="onSave()"
-      >
-        @if (saving()) {
-          <span class="flex items-center gap-2">
-            <svg
-              class="animate-spin h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            Creating...
-          </span>
-        } @else {
-          Create Task
-        }
-      </button>
-    </mat-dialog-actions>
+
+      <ng-template #footer>
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancel"
+            [text]="true"
+            severity="secondary"
+            (onClick)="onCancel()"
+          />
+          <p-button
+            label="Create Task"
+            (onClick)="onSave()"
+            [disabled]="form.invalid || saving()"
+            [loading]="saving()"
+          />
+        </div>
+      </ng-template>
+    </p-dialog>
   `,
-  styles: [
-    `
-      mat-dialog-content {
-        min-width: 480px;
-      }
-    `,
-  ],
 })
 export class CreateTaskDialogComponent {
-  data = inject<CreateTaskDialogData>(MAT_DIALOG_DATA);
-  private dialogRef = inject(MatDialogRef<CreateTaskDialogComponent>);
   private fb = inject(FormBuilder);
+
+  /** Two-way bound visibility */
+  visible = model(false);
+
+  /** Input data previously passed via MAT_DIALOG_DATA */
+  columnId = input<string>('');
+  columnName = input<string>('');
+  members = input<{ id: string; name: string; avatar_url?: string }[]>([]);
+  labels = input<{ id: string; name: string; color: string }[]>([]);
+  milestones = input<{ id: string; name: string; color: string }[]>([]);
+  groups = input<{ id: string; name: string; color: string }[]>([]);
+
+  /** Output event replacing MatDialogRef.close(result) */
+  created = output<CreateTaskDialogResult>();
 
   saving = signal(false);
 
@@ -300,8 +343,28 @@ export class CreateTaskDialogComponent {
     groupId: ['' as string],
   });
 
+  milestoneOptions = signal<{ id: string; name: string; color: string }[]>([]);
+  groupOptions = signal<{ id: string; name: string; color: string }[]>([]);
+
+  onDialogShow(): void {
+    this.form.reset({
+      title: '',
+      description: '',
+      priority: 'medium',
+      startDate: null,
+      dueDate: null,
+      estimatedHours: null,
+      assigneeIds: [],
+      labelIds: [],
+      milestoneId: '',
+      groupId: '',
+    });
+    this.milestoneOptions.set(this.milestones());
+    this.groupOptions.set(this.groups());
+  }
+
   onCancel(): void {
-    this.dialogRef.close();
+    this.visible.set(false);
   }
 
   onSave(): void {
@@ -345,6 +408,7 @@ export class CreateTaskDialogComponent {
       result.group_id = values.groupId;
     }
 
-    this.dialogRef.close(result);
+    this.visible.set(false);
+    this.created.emit(result);
   }
 }

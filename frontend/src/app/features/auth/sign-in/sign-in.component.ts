@@ -7,12 +7,10 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatIconModule } from '@angular/material/icon';
+import { InputTextModule } from 'primeng/inputtext';
+import { ButtonModule } from 'primeng/button';
+import { ProgressSpinner } from 'primeng/progressspinner';
+import { PasswordModule } from 'primeng/password';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -22,12 +20,10 @@ import { AuthService } from '../../../core/services/auth.service';
     CommonModule,
     ReactiveFormsModule,
     RouterLink,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatProgressSpinnerModule,
-    MatIconModule,
+    InputTextModule,
+    ButtonModule,
+    ProgressSpinner,
+    PasswordModule,
   ],
   template: `
     <div class="auth-wrapper">
@@ -42,32 +38,58 @@ import { AuthService } from '../../../core/services/auth.service';
           <div class="brand-content">
             <!-- Logo -->
             <div class="logo-mark">
-              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="48" height="48" rx="12" fill="white" fill-opacity="0.15"/>
-                <path d="M14 24.5L21 31.5L34 17.5" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 48 48"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  width="48"
+                  height="48"
+                  rx="12"
+                  fill="white"
+                  fill-opacity="0.15"
+                />
+                <path
+                  d="M14 24.5L21 31.5L34 17.5"
+                  stroke="white"
+                  stroke-width="3.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </div>
             <h1 class="brand-title">TaskFlow</h1>
-            <p class="brand-tagline">Manage projects with clarity.<br/>Ship faster, together.</p>
+            <p class="brand-tagline">
+              Manage projects with clarity.<br />Ship faster, together.
+            </p>
 
             <!-- Decorative grid dots -->
             <div class="grid-dots">
-              @for (dot of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]; track dot) {
+              @for (
+                dot of [
+                  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+                  19, 20, 21, 22, 23, 24, 25,
+                ];
+                track dot
+              ) {
                 <div class="dot"></div>
               }
             </div>
 
             <div class="brand-features">
               <div class="feature-item">
-                <mat-icon class="feature-icon">dashboard</mat-icon>
+                <i class="pi pi-th-large feature-icon"></i>
                 <span>Kanban boards & timelines</span>
               </div>
               <div class="feature-item">
-                <mat-icon class="feature-icon">group</mat-icon>
+                <i class="pi pi-users feature-icon"></i>
                 <span>Real-time collaboration</span>
               </div>
               <div class="feature-item">
-                <mat-icon class="feature-icon">insights</mat-icon>
+                <i class="pi pi-chart-line feature-icon"></i>
                 <span>Smart project insights</span>
               </div>
             </div>
@@ -83,67 +105,100 @@ import { AuthService } from '../../../core/services/auth.service';
             </div>
 
             <form [formGroup]="signInForm" (ngSubmit)="onSubmit()">
-              <mat-form-field appearance="outline" class="w-full field-spacing">
-                <mat-label>Email</mat-label>
+              <div class="field-spacing">
+                <label for="email" class="field-label">Email</label>
                 <input
-                  matInput
+                  pInputText
+                  id="email"
                   type="email"
                   formControlName="email"
                   placeholder="you@example.com"
+                  class="w-full"
                 />
-                @if (signInForm.get('email')?.hasError('required') && signInForm.get('email')?.touched) {
-                  <mat-error>Email is required</mat-error>
+                @if (
+                  signInForm.get('email')?.hasError('required') &&
+                  signInForm.get('email')?.touched
+                ) {
+                  <small class="p-error">Email is required</small>
                 }
-                @if (signInForm.get('email')?.hasError('email') && signInForm.get('email')?.touched) {
-                  <mat-error>Please enter a valid email</mat-error>
+                @if (
+                  signInForm.get('email')?.hasError('email') &&
+                  signInForm.get('email')?.touched
+                ) {
+                  <small class="p-error">Please enter a valid email</small>
                 }
-              </mat-form-field>
+              </div>
 
-              <mat-form-field appearance="outline" class="w-full field-spacing">
-                <mat-label>Password</mat-label>
-                <input
-                  matInput
-                  [type]="hidePassword ? 'password' : 'text'"
+              <div class="field-spacing">
+                <label for="password" class="field-label">Password</label>
+                <p-password
+                  id="password"
                   formControlName="password"
                   placeholder="Enter your password"
+                  [toggleMask]="true"
+                  [feedback]="false"
+                  styleClass="w-full"
+                  inputStyleClass="w-full"
                 />
-                <button
-                  mat-icon-button
-                  matSuffix
-                  type="button"
-                  (click)="hidePassword = !hidePassword"
-                >
-                  <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
-                </button>
-                @if (signInForm.get('password')?.hasError('required') && signInForm.get('password')?.touched) {
-                  <mat-error>Password is required</mat-error>
+                @if (
+                  signInForm.get('password')?.hasError('required') &&
+                  signInForm.get('password')?.touched
+                ) {
+                  <small class="p-error">Password is required</small>
                 }
-                @if (signInForm.get('password')?.hasError('minlength') && signInForm.get('password')?.touched) {
-                  <mat-error>Password must be at least 8 characters</mat-error>
+                @if (
+                  signInForm.get('password')?.hasError('minlength') &&
+                  signInForm.get('password')?.touched
+                ) {
+                  <small class="p-error">Password must be at least 8 characters</small>
                 }
-              </mat-form-field>
+              </div>
 
               <div class="flex justify-end mb-5 -mt-1">
-                <a routerLink="/auth/forgot-password" class="text-sm text-indigo-600 hover:text-indigo-800 transition-colors font-medium">
+                <a
+                  routerLink="/auth/forgot-password"
+                  class="text-sm text-indigo-600 hover:text-indigo-800 transition-colors font-medium"
+                >
                   Forgot password?
                 </a>
               </div>
 
+              @if (sessionExpiredMessage) {
+                <div
+                  class="mb-5 p-3.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-sm flex items-start gap-2"
+                >
+                  <i
+                    class="pi pi-clock text-amber-500 shrink-0"
+                    style="font-size: 20px; margin-top: 1px;"
+                  ></i>
+                  <span>{{ sessionExpiredMessage }}</span>
+                </div>
+              }
+
               @if (errorMessage) {
-                <div class="mb-5 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-start gap-2">
-                  <mat-icon class="text-red-500 shrink-0" style="font-size: 20px; width: 20px; height: 20px;">error_outline</mat-icon>
+                <div
+                  class="mb-5 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-start gap-2"
+                >
+                  <i
+                    class="pi pi-exclamation-circle text-red-500 shrink-0"
+                    style="font-size: 20px; margin-top: 1px;"
+                  ></i>
                   <span>{{ errorMessage }}</span>
                 </div>
               }
 
               <button
-                mat-flat-button
+                pButton
                 type="submit"
                 class="submit-btn w-full"
                 [disabled]="isLoading || signInForm.invalid"
               >
                 @if (isLoading) {
-                  <mat-spinner diameter="20" class="inline-block mr-2"></mat-spinner>
+                  <p-progressSpinner
+                    [style]="{ width: '20px', height: '20px' }"
+                    strokeWidth="4"
+                    styleClass="inline-spinner"
+                  />
                   Signing in...
                 } @else {
                   Sign In
@@ -154,7 +209,10 @@ import { AuthService } from '../../../core/services/auth.service';
             <div class="form-footer">
               <p class="text-sm text-gray-500">
                 Don't have an account?
-                <a routerLink="/auth/sign-up" class="text-indigo-600 hover:text-indigo-800 font-semibold transition-colors">
+                <a
+                  routerLink="/auth/sign-up"
+                  class="text-indigo-600 hover:text-indigo-800 font-semibold transition-colors"
+                >
                   Sign up
                 </a>
               </p>
@@ -188,9 +246,16 @@ import { AuthService } from '../../../core/services/auth.service';
 
       /* ===== Background blobs ===== */
       @keyframes blobFloat {
-        0%, 100% { transform: translate(0, 0) scale(1); }
-        33% { transform: translate(30px, -20px) scale(1.05); }
-        66% { transform: translate(-15px, 15px) scale(0.97); }
+        0%,
+        100% {
+          transform: translate(0, 0) scale(1);
+        }
+        33% {
+          transform: translate(30px, -20px) scale(1.05);
+        }
+        66% {
+          transform: translate(-15px, 15px) scale(0.97);
+        }
       }
 
       .auth-wrapper {
@@ -198,7 +263,12 @@ import { AuthService } from '../../../core/services/auth.service';
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #f5f3ff 100%);
+        background: linear-gradient(
+          135deg,
+          #f8fafc 0%,
+          #eef2ff 50%,
+          #f5f3ff 100%
+        );
         padding: 1rem;
         position: relative;
         overflow: hidden;
@@ -216,7 +286,11 @@ import { AuthService } from '../../../core/services/auth.service';
       .blob-1 {
         width: 500px;
         height: 500px;
-        background: radial-gradient(circle, rgba(129, 140, 248, 0.3) 0%, transparent 70%);
+        background: radial-gradient(
+          circle,
+          rgba(129, 140, 248, 0.3) 0%,
+          transparent 70%
+        );
         top: -10%;
         right: -5%;
         animation-delay: 0s;
@@ -225,7 +299,11 @@ import { AuthService } from '../../../core/services/auth.service';
       .blob-2 {
         width: 400px;
         height: 400px;
-        background: radial-gradient(circle, rgba(167, 139, 250, 0.25) 0%, transparent 70%);
+        background: radial-gradient(
+          circle,
+          rgba(167, 139, 250, 0.25) 0%,
+          transparent 70%
+        );
         bottom: -10%;
         left: -5%;
         animation-delay: -7s;
@@ -234,7 +312,11 @@ import { AuthService } from '../../../core/services/auth.service';
       .blob-3 {
         width: 300px;
         height: 300px;
-        background: radial-gradient(circle, rgba(99, 102, 241, 0.2) 0%, transparent 70%);
+        background: radial-gradient(
+          circle,
+          rgba(99, 102, 241, 0.2) 0%,
+          transparent 70%
+        );
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
@@ -259,7 +341,12 @@ import { AuthService } from '../../../core/services/auth.service';
       /* ===== Left brand panel ===== */
       .brand-panel {
         flex: 0 0 420px;
-        background: linear-gradient(145deg, #4f46e5 0%, #7c3aed 50%, #6d28d9 100%);
+        background: linear-gradient(
+          145deg,
+          #4f46e5 0%,
+          #7c3aed 50%,
+          #6d28d9 100%
+        );
         padding: 3rem 2.5rem;
         display: flex;
         flex-direction: column;
@@ -275,7 +362,11 @@ import { AuthService } from '../../../core/services/auth.service';
         right: -50%;
         width: 100%;
         height: 100%;
-        background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 60%);
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.08) 0%,
+          transparent 60%
+        );
         pointer-events: none;
       }
 
@@ -286,7 +377,11 @@ import { AuthService } from '../../../core/services/auth.service';
         left: -30%;
         width: 80%;
         height: 80%;
-        background: radial-gradient(circle, rgba(0,0,0,0.1) 0%, transparent 60%);
+        background: radial-gradient(
+          circle,
+          rgba(0, 0, 0, 0.1) 0%,
+          transparent 60%
+        );
         pointer-events: none;
       }
 
@@ -385,8 +480,16 @@ import { AuthService } from '../../../core/services/auth.service';
         margin: 0;
       }
 
+      .field-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.375rem;
+      }
+
       .field-spacing {
-        margin-bottom: 0.25rem;
+        margin-bottom: 1rem;
       }
 
       .form-footer {
@@ -403,14 +506,23 @@ import { AuthService } from '../../../core/services/auth.service';
         font-weight: 600 !important;
         border-radius: 12px !important;
         letter-spacing: 0.01em;
-        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+        background: linear-gradient(
+          135deg,
+          #4f46e5 0%,
+          #7c3aed 100%
+        ) !important;
         color: white !important;
         transition: all 0.2s ease !important;
-        box-shadow: 0 1px 3px rgba(79, 70, 229, 0.3), 0 4px 12px rgba(79, 70, 229, 0.15) !important;
+        box-shadow:
+          0 1px 3px rgba(79, 70, 229, 0.3),
+          0 4px 12px rgba(79, 70, 229, 0.15) !important;
+        border: none !important;
       }
 
       .submit-btn:hover:not([disabled]) {
-        box-shadow: 0 1px 3px rgba(79, 70, 229, 0.4), 0 8px 24px rgba(79, 70, 229, 0.25) !important;
+        box-shadow:
+          0 1px 3px rgba(79, 70, 229, 0.4),
+          0 8px 24px rgba(79, 70, 229, 0.25) !important;
         transform: translateY(-1px);
       }
 
@@ -419,13 +531,22 @@ import { AuthService } from '../../../core/services/auth.service';
       }
 
       .submit-btn[disabled] {
-        background: linear-gradient(135deg, #a5b4fc 0%, #c4b5fd 100%) !important;
+        background: linear-gradient(
+          135deg,
+          #a5b4fc 0%,
+          #c4b5fd 100%
+        ) !important;
         color: rgba(255, 255, 255, 0.7) !important;
         box-shadow: none !important;
       }
 
-      mat-spinner {
+      :host ::ng-deep .inline-spinner .p-progress-spinner-circle {
+        stroke: white !important;
+      }
+
+      :host ::ng-deep .inline-spinner {
         display: inline-block;
+        vertical-align: middle;
         margin-right: 8px;
       }
 
@@ -475,6 +596,15 @@ export class SignInComponent {
   isLoading = false;
   hidePassword = true;
   errorMessage = '';
+  sessionExpiredMessage = '';
+
+  constructor() {
+    const reason = this.route.snapshot.queryParams['reason'];
+    if (reason === 'session_expired') {
+      this.sessionExpiredMessage =
+        'Your session has expired. Please sign in again.';
+    }
+  }
 
   onSubmit(): void {
     if (this.signInForm.invalid) {
@@ -489,7 +619,8 @@ export class SignInComponent {
 
     this.authService.signIn(email, password).subscribe({
       next: () => {
-        let returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+        let returnUrl =
+          this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
         // SECURITY: Validate returnUrl to prevent open redirect attacks
         // Only allow relative URLs starting with a single slash (not protocol-relative //)
         if (!returnUrl.startsWith('/') || returnUrl.startsWith('//')) {
@@ -504,7 +635,8 @@ export class SignInComponent {
         } else if (error.status === 0) {
           this.errorMessage = 'Unable to connect to server. Please try again.';
         } else {
-          this.errorMessage = error.error?.message || 'An error occurred. Please try again.';
+          this.errorMessage =
+            error.error?.message || 'An error occurred. Please try again.';
         }
       },
     });

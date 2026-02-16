@@ -10,9 +10,8 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ButtonModule } from 'primeng/button';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { OverlayModule, Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
 import { Subject, takeUntil } from 'rxjs';
@@ -29,9 +28,8 @@ import {
   imports: [
     CommonModule,
     FormsModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
+    ButtonModule,
+    ProgressSpinnerModule,
     OverlayModule,
   ],
   template: `
@@ -52,21 +50,23 @@ import {
         <div class="text-xs text-gray-400">
           Press @ to mention teammates
         </div>
-        <button
-          mat-flat-button
-          color="primary"
-          (click)="submitComment()"
+        <p-button
+          (onClick)="submitComment()"
           [disabled]="!content.trim() || isSubmitting()"
-          class="h-8"
+          size="small"
         >
           @if (isSubmitting()) {
-            <mat-spinner diameter="16" class="inline-block mr-1"></mat-spinner>
+            <p-progressSpinner
+              [style]="{ width: '16px', height: '16px' }"
+              strokeWidth="4"
+              styleClass="inline-block mr-1"
+            />
             Sending...
           } @else {
-            <mat-icon class="text-sm mr-1">send</mat-icon>
+            <i class="pi pi-send mr-1"></i>
             Send
           }
-        </button>
+        </p-button>
       </div>
     </div>
   `,

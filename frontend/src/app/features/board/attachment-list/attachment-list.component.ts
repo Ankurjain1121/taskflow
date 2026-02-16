@@ -7,11 +7,11 @@ import {
   OnDestroy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { ButtonModule } from 'primeng/button';
+import { ProgressSpinner } from 'primeng/progressspinner';
+import { ConfirmDialog } from 'primeng/confirmdialog';
+import { Toast } from 'primeng/toast';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { Subject, takeUntil } from 'rxjs';
 
 import {
@@ -19,29 +19,30 @@ import {
   Attachment,
 } from '../../../core/services/attachment.service';
 import { FileSizePipe } from '../../../shared/pipes/file-size.pipe';
-import { ConfirmDialogComponent } from './confirm-dialog.component';
 
 @Component({
   selector: 'app-attachment-list',
   standalone: true,
   imports: [
     CommonModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatDialogModule,
-    MatSnackBarModule,
+    ButtonModule,
+    ProgressSpinner,
+    ConfirmDialog,
+    Toast,
     FileSizePipe,
   ],
+  providers: [ConfirmationService, MessageService],
   template: `
+    <p-toast />
+    <p-confirmDialog />
     @if (isLoading()) {
       <div class="flex items-center justify-center py-8">
-        <mat-spinner diameter="32"></mat-spinner>
+        <p-progressSpinner [style]="{width: '32px', height: '32px'}" strokeWidth="4" />
         <span class="ml-3 text-gray-500">Loading attachments...</span>
       </div>
     } @else if (attachments().length === 0) {
       <div class="text-center py-8 text-gray-500">
-        <mat-icon class="text-4xl text-gray-300 mb-2">attach_file</mat-icon>
+        <i class="pi pi-paperclip text-4xl text-gray-300 mb-2"></i>
         <p>No files attached yet.</p>
       </div>
     } @else {
@@ -55,9 +56,7 @@ import { ConfirmDialogComponent } from './confirm-dialog.component';
               class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
               [class]="getFileIconBgClass(attachment.mime_type)"
             >
-              <mat-icon class="text-white">
-                {{ getFileIcon(attachment.mime_type, attachment.file_name) }}
-              </mat-icon>
+              <i [class]="'pi ' + getFileIcon(attachment.mime_type, attachment.file_name) + ' text-white'"></i>
             </div>
 
             <!-- File info -->
@@ -81,28 +80,32 @@ import { ConfirmDialogComponent } from './confirm-dialog.component';
             <!-- Actions -->
             <div class="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
               @if (downloadingId() === attachment.id) {
-                <mat-spinner diameter="20"></mat-spinner>
+                <p-progressSpinner [style]="{width: '20px', height: '20px'}" strokeWidth="4" />
               } @else {
                 <button
-                  mat-icon-button
+                  pButton
+                  [rounded]="true"
+                  [text]="true"
                   (click)="downloadFile(attachment)"
                   title="Download"
                 >
-                  <mat-icon>download</mat-icon>
+                  <i class="pi pi-download"></i>
                 </button>
               }
 
               <button
-                mat-icon-button
+                pButton
+                [rounded]="true"
+                [text]="true"
                 (click)="confirmDelete(attachment)"
                 [disabled]="deletingId() === attachment.id"
                 title="Delete"
                 class="text-gray-400 hover:text-red-500"
               >
                 @if (deletingId() === attachment.id) {
-                  <mat-spinner diameter="20"></mat-spinner>
+                  <p-progressSpinner [style]="{width: '20px', height: '20px'}" strokeWidth="4" />
                 } @else {
-                  <mat-icon>delete</mat-icon>
+                  <i class="pi pi-trash"></i>
                 }
               </button>
             </div>
@@ -121,8 +124,8 @@ import { ConfirmDialogComponent } from './confirm-dialog.component';
 })
 export class AttachmentListComponent implements OnDestroy {
   private attachmentService = inject(AttachmentService);
-  private dialog = inject(MatDialog);
-  private snackBar = inject(MatSnackBar);
+  private confirmationService = inject(ConfirmationService);
+  private messageService = inject(MessageService);
   private destroy$ = new Subject<void>();
 
   taskId = input.required<string>();
@@ -158,11 +161,12 @@ export class AttachmentListComponent implements OnDestroy {
           this.attachments.set(attachments);
           this.isLoading.set(false);
         },
-        error: (error) => {
-          console.error('Failed to load attachments:', error);
+        error: () => {
           this.isLoading.set(false);
-          this.snackBar.open('Failed to load attachments', 'Dismiss', {
-            duration: 3000,
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to load attachments',
           });
         },
       });
@@ -182,31 +186,26 @@ export class AttachmentListComponent implements OnDestroy {
           window.open(response.downloadUrl, '_blank');
           this.downloadingId.set(null);
         },
-        error: (error) => {
-          console.error('Failed to get download URL:', error);
+        error: () => {
           this.downloadingId.set(null);
-          this.snackBar.open('Failed to download file', 'Dismiss', {
-            duration: 3000,
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to download file',
           });
         },
       });
   }
 
   confirmDelete(attachment: Attachment): void {
-    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '400px',
-      data: {
-        title: 'Delete Attachment',
-        message: `Are you sure you want to delete "${attachment.file_name}"? This action cannot be undone.`,
-        confirmText: 'Delete',
-        confirmColor: 'warn',
-      },
-    });
-
-    dialogRef.afterClosed().subscribe((confirmed) => {
-      if (confirmed) {
+    this.confirmationService.confirm({
+      message: `Are you sure you want to delete "${attachment.file_name}"? This action cannot be undone.`,
+      header: 'Delete Attachment',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => {
         this.deleteAttachment(attachment);
-      }
+      },
     });
   }
 
@@ -222,15 +221,18 @@ export class AttachmentListComponent implements OnDestroy {
             attachments.filter((a) => a.id !== attachment.id)
           );
           this.deletingId.set(null);
-          this.snackBar.open('Attachment deleted', 'Dismiss', {
-            duration: 3000,
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Deleted',
+            detail: 'Attachment deleted',
           });
         },
-        error: (error) => {
-          console.error('Failed to delete attachment:', error);
+        error: () => {
           this.deletingId.set(null);
-          this.snackBar.open('Failed to delete attachment', 'Dismiss', {
-            duration: 3000,
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed to delete attachment',
           });
         },
       });
@@ -238,10 +240,10 @@ export class AttachmentListComponent implements OnDestroy {
 
   getFileIcon(mimeType: string, fileName: string): string {
     // Check by MIME type first
-    if (mimeType.startsWith('image/')) return 'image';
-    if (mimeType.startsWith('video/')) return 'movie';
-    if (mimeType.startsWith('audio/')) return 'audio_file';
-    if (mimeType === 'application/pdf') return 'picture_as_pdf';
+    if (mimeType.startsWith('image/')) return 'pi-image';
+    if (mimeType.startsWith('video/')) return 'pi-video';
+    if (mimeType.startsWith('audio/')) return 'pi-volume-up';
+    if (mimeType === 'application/pdf') return 'pi-file-pdf';
 
     // Fall back to extension
     const ext = fileName.split('.').pop()?.toLowerCase();
@@ -249,30 +251,30 @@ export class AttachmentListComponent implements OnDestroy {
     switch (ext) {
       case 'doc':
       case 'docx':
-        return 'description';
+        return 'pi-file-word';
       case 'xls':
       case 'xlsx':
-        return 'table_chart';
+        return 'pi-file-excel';
       case 'ppt':
       case 'pptx':
-        return 'slideshow';
+        return 'pi-file';
       case 'zip':
       case 'rar':
       case '7z':
       case 'tar':
       case 'gz':
-        return 'folder_zip';
+        return 'pi-box';
       case 'txt':
-        return 'article';
+        return 'pi-file';
       case 'json':
       case 'xml':
       case 'html':
       case 'css':
       case 'js':
       case 'ts':
-        return 'code';
+        return 'pi-code';
       default:
-        return 'insert_drive_file';
+        return 'pi-file';
     }
   }
 

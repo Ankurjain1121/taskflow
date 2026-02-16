@@ -3,19 +3,17 @@ import {
   inject,
   signal,
   computed,
+  input,
+  output,
+  model,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import {
-  MatDialogModule,
-  MAT_DIALOG_DATA,
-  MatDialogRef,
-} from '@angular/material/dialog';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatIconModule } from '@angular/material/icon';
+import { ButtonModule } from 'primeng/button';
+import { Dialog } from 'primeng/dialog';
+import { Tabs, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
+import { ProgressSpinner } from 'primeng/progressspinner';
 import {
   ImportExportService,
   ImportTaskItem,
@@ -36,127 +34,139 @@ export interface ImportDialogResult {
   imports: [
     CommonModule,
     FormsModule,
-    MatButtonModule,
-    MatDialogModule,
-    MatTabsModule,
-    MatProgressSpinnerModule,
-    MatIconModule,
+    ButtonModule,
+    Dialog,
+    Tabs,
+    TabList,
+    Tab,
+    TabPanels,
+    TabPanel,
+    ProgressSpinner,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <h2 mat-dialog-title>Import Tasks</h2>
-    <mat-dialog-content class="import-dialog-content">
+    <p-dialog
+      header="Import Tasks"
+      [(visible)]="visible"
+      [modal]="true"
+      [style]="{ width: '580px' }"
+      [closable]="true"
+    >
       <p class="text-gray-600 mb-4">
-        Import tasks into "{{ data.boardName }}".
+        Import tasks into "{{ boardName() }}".
       </p>
 
-      <mat-tab-group
-        [(selectedIndex)]="selectedTab"
-        (selectedIndexChange)="onTabChange()"
-      >
-        <!-- JSON Tab -->
-        <mat-tab label="JSON">
-          <div class="pt-4 flex flex-col gap-3">
-            <p class="text-sm text-gray-500">
-              Paste a JSON array of tasks or upload a JSON file.
-              Each task should have at least a <code class="bg-gray-100 px-1 rounded">title</code> field.
-              Optional: <code class="bg-gray-100 px-1 rounded">description</code>,
-              <code class="bg-gray-100 px-1 rounded">priority</code> (urgent/high/medium/low),
-              <code class="bg-gray-100 px-1 rounded">column_name</code>,
-              <code class="bg-gray-100 px-1 rounded">due_date</code> (YYYY-MM-DD).
-            </p>
-            <textarea
-              [(ngModel)]="jsonText"
-              (ngModelChange)="onJsonChange()"
-              rows="8"
-              class="w-full border border-gray-300 rounded-md p-3 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder='[{ "title": "My task", "priority": "high" }]'
-            ></textarea>
-            <div class="flex items-center gap-2">
-              <label
-                class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md cursor-pointer transition-colors border border-indigo-200"
-              >
-                <mat-icon class="text-base">upload_file</mat-icon>
-                Upload JSON file
-                <input
-                  type="file"
-                  accept=".json"
-                  class="hidden"
-                  (change)="onJsonFileSelected($event)"
-                />
-              </label>
+      <p-tabs [(value)]="selectedTab" (valueChange)="onTabChange()">
+        <p-tablist>
+          <p-tab [value]="0">JSON</p-tab>
+          <p-tab [value]="1">CSV</p-tab>
+          <p-tab [value]="2">Trello</p-tab>
+        </p-tablist>
+        <p-tabpanels>
+          <!-- JSON Tab -->
+          <p-tabpanel [value]="0">
+            <div class="pt-4 flex flex-col gap-3">
+              <p class="text-sm text-gray-500">
+                Paste a JSON array of tasks or upload a JSON file.
+                Each task should have at least a <code class="bg-gray-100 px-1 rounded">title</code> field.
+                Optional: <code class="bg-gray-100 px-1 rounded">description</code>,
+                <code class="bg-gray-100 px-1 rounded">priority</code> (urgent/high/medium/low),
+                <code class="bg-gray-100 px-1 rounded">column_name</code>,
+                <code class="bg-gray-100 px-1 rounded">due_date</code> (YYYY-MM-DD).
+              </p>
+              <textarea
+                [(ngModel)]="jsonText"
+                (ngModelChange)="onJsonChange()"
+                rows="8"
+                class="w-full border border-gray-300 rounded-md p-3 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder='[{ "title": "My task", "priority": "high" }]'
+              ></textarea>
+              <div class="flex items-center gap-2">
+                <label
+                  class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md cursor-pointer transition-colors border border-indigo-200"
+                >
+                  <i class="pi pi-upload text-base"></i>
+                  Upload JSON file
+                  <input
+                    type="file"
+                    accept=".json"
+                    class="hidden"
+                    (change)="onJsonFileSelected($event)"
+                  />
+                </label>
+              </div>
             </div>
-          </div>
-        </mat-tab>
+          </p-tabpanel>
 
-        <!-- CSV Tab -->
-        <mat-tab label="CSV">
-          <div class="pt-4 flex flex-col gap-3">
-            <p class="text-sm text-gray-500">
-              Paste CSV text or upload a CSV file.
-              Columns: <code class="bg-gray-100 px-1 rounded">title, description, priority, column_name, due_date</code>.
-              A header row is optional (auto-detected).
-            </p>
-            <textarea
-              [(ngModel)]="csvText"
-              (ngModelChange)="onCsvChange()"
-              rows="8"
-              class="w-full border border-gray-300 rounded-md p-3 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="title,description,priority,column_name,due_date
+          <!-- CSV Tab -->
+          <p-tabpanel [value]="1">
+            <div class="pt-4 flex flex-col gap-3">
+              <p class="text-sm text-gray-500">
+                Paste CSV text or upload a CSV file.
+                Columns: <code class="bg-gray-100 px-1 rounded">title, description, priority, column_name, due_date</code>.
+                A header row is optional (auto-detected).
+              </p>
+              <textarea
+                [(ngModel)]="csvText"
+                (ngModelChange)="onCsvChange()"
+                rows="8"
+                class="w-full border border-gray-300 rounded-md p-3 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="title,description,priority,column_name,due_date
 Fix login bug,Users cannot log in,high,In Progress,2025-03-15
 Add search,Implement full-text search,medium,To Do,"
-            ></textarea>
-            <div class="flex items-center gap-2">
-              <label
-                class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md cursor-pointer transition-colors border border-indigo-200"
-              >
-                <mat-icon class="text-base">upload_file</mat-icon>
-                Upload CSV file
-                <input
-                  type="file"
-                  accept=".csv"
-                  class="hidden"
-                  (change)="onCsvFileSelected($event)"
-                />
-              </label>
+              ></textarea>
+              <div class="flex items-center gap-2">
+                <label
+                  class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md cursor-pointer transition-colors border border-indigo-200"
+                >
+                  <i class="pi pi-upload text-base"></i>
+                  Upload CSV file
+                  <input
+                    type="file"
+                    accept=".csv"
+                    class="hidden"
+                    (change)="onCsvFileSelected($event)"
+                  />
+                </label>
+              </div>
             </div>
-          </div>
-        </mat-tab>
+          </p-tabpanel>
 
-        <!-- Trello Tab -->
-        <mat-tab label="Trello">
-          <div class="pt-4 flex flex-col gap-3">
-            <div class="bg-blue-50 border border-blue-200 rounded-md p-3">
-              <h4 class="text-sm font-medium text-blue-800 mb-1">How to export from Trello</h4>
-              <ol class="text-sm text-blue-700 list-decimal list-inside space-y-1">
-                <li>Open your Trello board</li>
-                <li>Click the menu (...) in the top-right corner</li>
-                <li>Select "More" then "Print and Export"</li>
-                <li>Choose "Export as JSON"</li>
-                <li>Upload the downloaded file below</li>
-              </ol>
-            </div>
+          <!-- Trello Tab -->
+          <p-tabpanel [value]="2">
+            <div class="pt-4 flex flex-col gap-3">
+              <div class="bg-blue-50 border border-blue-200 rounded-md p-3">
+                <h4 class="text-sm font-medium text-blue-800 mb-1">How to export from Trello</h4>
+                <ol class="text-sm text-blue-700 list-decimal list-inside space-y-1">
+                  <li>Open your Trello board</li>
+                  <li>Click the menu (...) in the top-right corner</li>
+                  <li>Select "More" then "Print and Export"</li>
+                  <li>Choose "Export as JSON"</li>
+                  <li>Upload the downloaded file below</li>
+                </ol>
+              </div>
 
-            <div class="flex items-center gap-2">
-              <label
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md cursor-pointer transition-colors border border-indigo-200"
-              >
-                <mat-icon class="text-base">upload_file</mat-icon>
-                Upload Trello JSON export
-                <input
-                  type="file"
-                  accept=".json"
-                  class="hidden"
-                  (change)="onTrelloFileSelected($event)"
-                />
-              </label>
-              @if (trelloFileName()) {
-                <span class="text-sm text-gray-500">{{ trelloFileName() }}</span>
-              }
+              <div class="flex items-center gap-2">
+                <label
+                  class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md cursor-pointer transition-colors border border-indigo-200"
+                >
+                  <i class="pi pi-upload text-base"></i>
+                  Upload Trello JSON export
+                  <input
+                    type="file"
+                    accept=".json"
+                    class="hidden"
+                    (change)="onTrelloFileSelected($event)"
+                  />
+                </label>
+                @if (trelloFileName()) {
+                  <span class="text-sm text-gray-500">{{ trelloFileName() }}</span>
+                }
+              </div>
             </div>
-          </div>
-        </mat-tab>
-      </mat-tab-group>
+          </p-tabpanel>
+        </p-tabpanels>
+      </p-tabs>
 
       <!-- Preview section -->
       @if (previewCount() > 0) {
@@ -185,37 +195,30 @@ Add search,Implement full-text search,medium,To Do,"
           <p class="text-sm text-red-700">{{ importError() }}</p>
         </div>
       }
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button (click)="onCancel()" [disabled]="importing()">
-        {{ successMessage() ? 'Close' : 'Cancel' }}
-      </button>
-      @if (!successMessage()) {
-        <button
-          mat-flat-button
-          color="primary"
-          [disabled]="importing() || previewCount() === 0"
-          (click)="onImport()"
-        >
-          @if (importing()) {
-            <mat-spinner diameter="18" class="inline-block mr-2"></mat-spinner>
-            Importing...
-          } @else {
-            Import {{ previewCount() }} task{{ previewCount() === 1 ? '' : 's' }}
+
+      <ng-template #footer>
+        <div class="flex justify-end gap-2">
+          <p-button
+            [label]="successMessage() ? 'Close' : 'Cancel'"
+            [text]="true"
+            severity="secondary"
+            (onClick)="onCancel()"
+            [disabled]="importing()"
+          />
+          @if (!successMessage()) {
+            <p-button
+              [label]="'Import ' + previewCount() + ' task' + (previewCount() === 1 ? '' : 's')"
+              (onClick)="onImport()"
+              [disabled]="importing() || previewCount() === 0"
+              [loading]="importing()"
+            />
           }
-        </button>
-      }
-    </mat-dialog-actions>
+        </div>
+      </ng-template>
+    </p-dialog>
   `,
   styles: [
     `
-      .import-dialog-content {
-        min-width: 520px;
-        max-height: 70vh;
-      }
-      mat-spinner {
-        display: inline-block;
-      }
       code {
         font-size: 0.8em;
       }
@@ -223,9 +226,17 @@ Add search,Implement full-text search,medium,To Do,"
   ],
 })
 export class ImportDialogComponent {
-  data = inject<ImportDialogData>(MAT_DIALOG_DATA);
-  private dialogRef = inject(MatDialogRef<ImportDialogComponent>);
   private importExportService = inject(ImportExportService);
+
+  /** Two-way bound visibility */
+  visible = model(false);
+
+  /** Input data previously passed via MAT_DIALOG_DATA */
+  boardId = input<string>('');
+  boardName = input<string>('');
+
+  /** Output event replacing MatDialogRef.close(result) */
+  imported = output<ImportDialogResult>();
 
   selectedTab = 0;
   jsonText = '';
@@ -268,10 +279,9 @@ export class ImportDialogComponent {
       // Extract count from success message and pass it back
       const match = msg.match(/(\d+)/);
       const count = match ? parseInt(match[1], 10) : 0;
-      this.dialogRef.close({ imported_count: count } as ImportDialogResult);
-    } else {
-      this.dialogRef.close(null);
+      this.imported.emit({ imported_count: count });
     }
+    this.visible.set(false);
   }
 
   // ---- JSON ----
@@ -443,7 +453,7 @@ export class ImportDialogComponent {
     }
 
     this.importExportService
-      .importJson(this.data.boardId, tasks)
+      .importJson(this.boardId(), tasks)
       .subscribe({
         next: (result) => {
           this.successMessage.set(
@@ -451,8 +461,7 @@ export class ImportDialogComponent {
           );
           this.importing.set(false);
         },
-        error: (err) => {
-          console.error('JSON import failed:', err);
+        error: () => {
           this.importError.set('Import failed. Please check your data and try again.');
           this.importing.set(false);
         },
@@ -461,7 +470,7 @@ export class ImportDialogComponent {
 
   private doCsvImport(): void {
     this.importExportService
-      .importCsv(this.data.boardId, this.csvText)
+      .importCsv(this.boardId(), this.csvText)
       .subscribe({
         next: (result) => {
           this.successMessage.set(
@@ -469,8 +478,7 @@ export class ImportDialogComponent {
           );
           this.importing.set(false);
         },
-        error: (err) => {
-          console.error('CSV import failed:', err);
+        error: () => {
           this.importError.set('Import failed. Please check your CSV format and try again.');
           this.importing.set(false);
         },
@@ -485,7 +493,7 @@ export class ImportDialogComponent {
     }
 
     this.importExportService
-      .importTrello(this.data.boardId, this.trelloData)
+      .importTrello(this.boardId(), this.trelloData)
       .subscribe({
         next: (result) => {
           let msg = `Successfully imported ${result.imported_count} task${result.imported_count === 1 ? '' : 's'}`;
@@ -499,8 +507,7 @@ export class ImportDialogComponent {
           this.successMessage.set(msg);
           this.importing.set(false);
         },
-        error: (err) => {
-          console.error('Trello import failed:', err);
+        error: () => {
           this.importError.set(
             'Trello import failed. Please ensure the file is a valid Trello JSON export.'
           );

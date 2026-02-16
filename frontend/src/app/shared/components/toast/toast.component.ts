@@ -1,7 +1,6 @@
 import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
+import { ButtonModule } from 'primeng/button';
 import {
   trigger,
   transition,
@@ -17,18 +16,18 @@ interface EventTypeConfig {
 }
 
 const EVENT_TYPE_ICONS: Record<NotificationEventType, EventTypeConfig> = {
-  task_assigned: { icon: 'assignment_ind', color: 'text-blue-500' },
-  task_due_soon: { icon: 'schedule', color: 'text-orange-500' },
-  task_overdue: { icon: 'warning', color: 'text-red-500' },
-  task_commented: { icon: 'comment', color: 'text-green-500' },
-  task_completed: { icon: 'check_circle', color: 'text-emerald-500' },
-  mention_in_comment: { icon: 'alternate_email', color: 'text-purple-500' },
+  task_assigned: { icon: 'pi pi-user', color: 'text-blue-500' },
+  task_due_soon: { icon: 'pi pi-clock', color: 'text-orange-500' },
+  task_overdue: { icon: 'pi pi-exclamation-triangle', color: 'text-red-500' },
+  task_commented: { icon: 'pi pi-comment', color: 'text-green-500' },
+  task_completed: { icon: 'pi pi-check-circle', color: 'text-emerald-500' },
+  mention_in_comment: { icon: 'pi pi-at', color: 'text-purple-500' },
 };
 
 @Component({
   selector: 'app-toast-container',
   standalone: true,
-  imports: [MatIconModule, MatButtonModule],
+  imports: [ButtonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   animations: [
     trigger('toastAnim', [
@@ -59,9 +58,8 @@ const EVENT_TYPE_ICONS: Record<NotificationEventType, EventTypeConfig> = {
           <div class="flex items-start gap-3 p-3">
             <!-- Event type icon -->
             <div class="flex-shrink-0 mt-0.5">
-              <mat-icon [class]="getIconConfig(toast.event_type).color">
-                {{ getIconConfig(toast.event_type).icon }}
-              </mat-icon>
+              <i [class]="getIconConfig(toast.event_type).icon + ' ' + getIconConfig(toast.event_type).color"
+                 style="font-size: 1.25rem;"></i>
             </div>
 
             <!-- Content -->
@@ -75,14 +73,16 @@ const EVENT_TYPE_ICONS: Record<NotificationEventType, EventTypeConfig> = {
             </div>
 
             <!-- Close button -->
-            <button
-              mat-icon-button
-              class="flex-shrink-0 -mt-1 -mr-1"
+            <p-button
+              icon="pi pi-times"
+              [text]="true"
+              [rounded]="true"
+              severity="secondary"
+              size="small"
               aria-label="Dismiss notification"
-              (click)="onDismiss($event, toast.id)"
-            >
-              <mat-icon class="text-gray-400 text-base">close</mat-icon>
-            </button>
+              (onClick)="onDismiss($event, toast.id)"
+              styleClass="flex-shrink-0 -mt-1 -mr-1"
+            />
           </div>
         </div>
       }
@@ -106,7 +106,7 @@ export class ToastContainerComponent {
   getIconConfig(eventType: NotificationEventType): EventTypeConfig {
     return (
       EVENT_TYPE_ICONS[eventType] || {
-        icon: 'notifications',
+        icon: 'pi pi-bell',
         color: 'text-gray-500',
       }
     );
