@@ -3,22 +3,22 @@ import {
   input,
   output,
   ChangeDetectionStrategy,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { TableModule } from 'primeng/table';
-import { Tag } from 'primeng/tag';
-import { TaskListItem } from '../../../core/services/task.service';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { TableModule } from "primeng/table";
+import { TaskListItem } from "../../../core/services/task.service";
 import {
   getPriorityLabel,
+  getPriorityColorHex,
   getDueDateColor,
   isOverdue,
   isToday,
-} from '../../../shared/utils/task-colors';
+} from "../../../shared/utils/task-colors";
 
 @Component({
-  selector: 'app-list-view',
+  selector: "app-list-view",
   standalone: true,
-  imports: [CommonModule, TableModule, Tag],
+  imports: [CommonModule, TableModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-4 my-4">
@@ -62,33 +62,48 @@ import {
           </tr>
         </ng-template>
         <ng-template #body let-task>
-          <tr [pSelectableRow]="task" class="cursor-pointer" (click)="onRowClick(task)">
+          <tr
+            [pSelectableRow]="task"
+            class="cursor-pointer"
+            (click)="onRowClick(task)"
+          >
             <td (click)="$event.stopPropagation()">
               <p-tableCheckbox [value]="task" />
             </td>
             <td>
-              <div class="text-sm font-medium text-gray-900">{{ task.title }}</div>
+              <div class="text-sm font-medium text-gray-900">
+                {{ task.title }}
+              </div>
               @if (task.description) {
-                <div class="text-xs text-gray-500 line-clamp-1 mt-0.5">{{ task.description }}</div>
+                <div class="text-xs text-gray-500 line-clamp-1 mt-0.5">
+                  {{ task.description }}
+                </div>
               }
             </td>
             <td>
-              <p-tag
-                [value]="getPriorityLabelText(task.priority)"
-                [severity]="getPrioritySeverity(task.priority)"
-                [rounded]="true"
-              />
+              <div
+                class="flex items-center justify-center h-8 rounded text-xs font-medium text-white cursor-pointer transition-opacity hover:opacity-85"
+                [style.background-color]="getPriorityHexColor(task.priority)"
+              >
+                {{ getPriorityLabelText(task.priority) }}
+              </div>
             </td>
             <td>
-              <p-tag
-                [value]="task.column_name"
-                severity="secondary"
-                [rounded]="true"
-              />
+              <div
+                class="flex items-center justify-center h-8 rounded text-xs font-medium cursor-pointer transition-opacity hover:opacity-85"
+                style="
+                  background: var(--surface-200, #e5e7eb);
+                  color: var(--surface-700, #374151);
+                "
+              >
+                {{ task.column_name }}
+              </div>
             </td>
             <td>
               @if (task.due_date) {
-                <span [class]="'text-sm ' + getDueDateColorClass(task.due_date)">
+                <span
+                  [class]="'text-sm ' + getDueDateColorClass(task.due_date)"
+                >
                   {{ formatDueDate(task.due_date) }}
                 </span>
               } @else {
@@ -105,21 +120,51 @@ import {
         <ng-template #emptymessage>
           <tr>
             <td colspan="6" class="text-center py-12">
-              <p class="text-sm text-gray-500">No tasks match your filters</p>
+              <p class="text-sm text-gray-500">
+                No tasks match your filters
+              </p>
             </td>
           </tr>
         </ng-template>
       </p-table>
     </div>
   `,
-  styles: [`
-    .line-clamp-1 {
-      display: -webkit-box;
-      -webkit-line-clamp: 1;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-  `],
+  styles: [
+    `
+      .line-clamp-1 {
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      :host ::ng-deep .p-datatable .p-datatable-thead > tr > th {
+        background: var(--background);
+        color: var(--muted-foreground);
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid var(--border);
+      }
+
+      :host ::ng-deep .p-datatable .p-datatable-tbody > tr {
+        transition: background-color 150ms ease;
+      }
+
+      :host ::ng-deep .p-datatable .p-datatable-tbody > tr:nth-child(even) {
+        background: color-mix(in srgb, var(--background) 95%, var(--primary));
+      }
+
+      :host ::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
+        background: color-mix(
+          in srgb,
+          var(--background) 90%,
+          var(--primary)
+        ) !important;
+      }
+    `,
+  ],
 })
 export class ListViewComponent {
   tasks = input<TaskListItem[]>([]);
@@ -129,14 +174,8 @@ export class ListViewComponent {
 
   selectedTasks: TaskListItem[] = [];
 
-  getPrioritySeverity(priority: string): 'danger' | 'warn' | 'info' | 'secondary' | 'success' | 'contrast' | undefined {
-    const map: Record<string, 'danger' | 'warn' | 'info' | 'secondary'> = {
-      urgent: 'danger',
-      high: 'warn',
-      medium: 'info',
-      low: 'secondary',
-    };
-    return map[priority] || 'secondary';
+  getPriorityHexColor(priority: string): string {
+    return getPriorityColorHex(priority).bg;
   }
 
   getPriorityLabelText(priority: string): string {
@@ -158,7 +197,7 @@ export class ListViewComponent {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     if (isToday(date)) {
-      return 'Today';
+      return "Today";
     }
 
     if (
@@ -166,27 +205,27 @@ export class ListViewComponent {
       dueDate.getMonth() === tomorrow.getMonth() &&
       dueDate.getFullYear() === tomorrow.getFullYear()
     ) {
-      return 'Tomorrow';
+      return "Tomorrow";
     }
 
     if (isOverdue(date)) {
       const diffDays = Math.ceil(
-        (today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)
+        (today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24),
       );
       return `Overdue (${diffDays}d)`;
     }
 
-    return dueDate.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
+    return dueDate.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
     });
   }
 
   formatDate(date: string): string {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
+    return new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   }
 }

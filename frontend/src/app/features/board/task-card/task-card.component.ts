@@ -2,24 +2,19 @@ import {
   Component,
   input,
   output,
-  signal,
-  inject,
-  OnInit,
-  OnDestroy,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CdkDrag } from '@angular/cdk/drag-drop';
-import { Task, Label, Assignee } from '../../../core/services/task.service';
+import { Task } from '../../../core/services/task.service';
 import {
   getPriorityColor,
   getPriorityLabel,
   getDueDateColor,
   isOverdue,
   isToday,
+  PRIORITY_FLAG_COLORS,
 } from '../../../shared/utils/task-colors';
-import { SubtaskService, SubtaskProgress } from '../../../core/services/subtask.service';
-import { TimeTrackingService } from '../../../core/services/time-tracking.service';
 
 @Component({
   selector: 'app-task-card',
@@ -31,93 +26,193 @@ import { TimeTrackingService } from '../../../core/services/time-tracking.servic
       cdkDrag
       [cdkDragData]="task()"
       (click)="onCardClick($event)"
-      class="task-card rounded-lg border border-gray-200/80 cursor-pointer group relative overflow-hidden"
+      class="task-card rounded-lg border border-gray-200/80 cursor-grab group relative overflow-hidden"
       [style.border-left]="'4px solid ' + getBorderColor()"
       [class.task-card--urgent]="task().priority === 'urgent'"
       [class.task-card--high]="task().priority === 'high'"
       [class.task-card--medium]="task().priority === 'medium'"
       [class.task-card--low]="task().priority === 'low'"
+      [class.ring-2]="isFocused()"
+      [class.ring-indigo-500]="isFocused()"
+      [class.shadow-lg]="isFocused()"
     >
       <!-- Celebration Overlay -->
       @if (isCelebrating()) {
-        <div class="absolute inset-0 bg-emerald-50/80 dark:bg-emerald-900/30 flex items-center justify-center z-10 rounded-lg">
+        <div
+          class="absolute inset-0 bg-emerald-50/80 dark:bg-emerald-900/30 flex items-center justify-center z-10 rounded-lg"
+        >
           <div class="animate-celebrate-check">
-            <svg class="w-10 h-10 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            <svg
+              class="w-10 h-10 text-emerald-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              stroke-width="2.5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
           </div>
         </div>
       }
 
-      <div class="p-3.5">
+      <!-- Hover Quick-Actions -->
+      <div
+        class="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-20"
+      >
+        <button
+          class="w-6 h-6 rounded bg-white/90 dark:bg-gray-700/90 shadow-sm flex items-center justify-center hover:bg-white dark:hover:bg-gray-600 text-gray-500"
+          (click)="$event.stopPropagation()"
+        >
+          <svg
+            class="w-3.5 h-3.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+        </button>
+        <button
+          class="w-6 h-6 rounded bg-white/90 dark:bg-gray-700/90 shadow-sm flex items-center justify-center hover:bg-white dark:hover:bg-gray-600 text-gray-500"
+          (click)="$event.stopPropagation()"
+        >
+          <svg
+            class="w-3.5 h-3.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+            />
+          </svg>
+        </button>
+        <button
+          class="w-6 h-6 rounded bg-white/90 dark:bg-gray-700/90 shadow-sm flex items-center justify-center hover:bg-white dark:hover:bg-gray-600 text-gray-500"
+          (click)="$event.stopPropagation()"
+        >
+          <svg
+            class="w-3.5 h-3.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Label Bars -->
+      @if (task().labels && task().labels!.length > 0) {
+        <div class="flex gap-1 mb-0 px-3 pt-3">
+          @for (label of task().labels!; track label.id) {
+            <div
+              class="h-1 rounded-full"
+              [style.width.px]="32"
+              [style.background-color]="label.color"
+              [title]="label.name"
+            ></div>
+          }
+        </div>
+      }
+
+      <div
+        class="p-3.5"
+        [class.pt-2]="task().labels && task().labels!.length > 0"
+      >
         <!-- Blocked Indicator -->
         @if (isBlocked()) {
-          <div class="flex items-center gap-1.5 mb-2.5 px-2 py-1 bg-red-50 rounded-lg text-xs font-semibold text-red-600 border border-red-100">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          <div
+            class="flex items-center gap-1.5 mb-2.5 px-2 py-1 bg-red-50 rounded-lg text-xs font-semibold text-red-600 border border-red-100"
+          >
+            <svg
+              class="w-3.5 h-3.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
             </svg>
             Blocked
           </div>
         }
 
         <!-- Title -->
-        <h4 class="text-sm font-semibold text-gray-800 line-clamp-2 mb-2.5 leading-snug tracking-tight">
+        <h4
+          class="text-sm font-semibold text-gray-800 dark:text-gray-100 line-clamp-2 mb-2.5 leading-snug tracking-tight"
+        >
           {{ task().title }}
         </h4>
 
         <!-- Running Timer Indicator -->
         @if (hasRunningTimer()) {
-          <div class="flex items-center gap-1.5 mb-2.5 px-2 py-1 bg-emerald-50 rounded-lg text-xs font-semibold text-emerald-700 border border-emerald-100">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div
+            class="flex items-center gap-1.5 mb-2.5 px-2 py-1 bg-emerald-50 rounded-lg text-xs font-semibold text-emerald-700 border border-emerald-100"
+          >
+            <span
+              class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"
+            ></span>
+            <svg
+              class="w-3.5 h-3.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
-            {{ timerElapsed() }}
-          </div>
-        }
-
-        <!-- Labels -->
-        @if (task().labels && task().labels!.length > 0) {
-          <div class="flex flex-wrap gap-1.5 mb-3">
-            @for (label of task().labels!.slice(0, 3); track label.id) {
-              <span
-                class="label-chip inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide"
-                [style.background-color]="label.color + '18'"
-                [style.color]="label.color"
-                [style.border]="'1px solid ' + label.color + '30'"
-              >
-                {{ label.name }}
-              </span>
-            }
-            @if (task().labels!.length > 3) {
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium text-gray-400 bg-gray-100">
-                +{{ task().labels!.length - 3 }}
-              </span>
-            }
+            Timer running
           </div>
         }
 
         <!-- Bottom Row -->
-        <div class="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-100">
+        <div
+          class="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-100 dark:border-gray-700"
+        >
           <div class="flex items-center gap-2">
-            <!-- Priority Badge -->
-            <span
-              [class]="
-                'priority-badge inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase ' +
-                priorityColors.bg +
-                ' ' +
-                priorityColors.text
-              "
-            >
-              {{ priorityLabel }}
-            </span>
+            <!-- Priority Flag Icon -->
+            <svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 12 12" fill="none">
+              <path
+                d="M2 1v10M2 1h7l-2 3 2 3H2"
+                [attr.stroke]="getPriorityFlagColor()"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
 
             <!-- Due Date -->
             @if (task().due_date) {
               <span
                 [class]="
-                  'flex items-center gap-1 text-[11px] font-medium ' + dueDateColorClass
+                  'flex items-center gap-1 text-[11px] font-medium ' +
+                  dueDateColorClass
                 "
               >
                 <svg
@@ -141,8 +236,12 @@ import { TimeTrackingService } from '../../../core/services/time-tracking.servic
             @if (subtaskProgress() && subtaskProgress()!.total > 0) {
               <span
                 class="flex items-center gap-1 text-[11px] font-medium"
-                [class.text-emerald-600]="subtaskProgress()!.completed === subtaskProgress()!.total"
-                [class.text-gray-400]="subtaskProgress()!.completed !== subtaskProgress()!.total"
+                [class.text-emerald-600]="
+                  subtaskProgress()!.completed === subtaskProgress()!.total
+                "
+                [class.text-gray-400]="
+                  subtaskProgress()!.completed !== subtaskProgress()!.total
+                "
               >
                 <svg
                   class="w-3 h-3"
@@ -157,7 +256,9 @@ import { TimeTrackingService } from '../../../core/services/time-tracking.servic
                     d="M5 13l4 4L19 7"
                   />
                 </svg>
-                {{ subtaskProgress()!.completed }}/{{ subtaskProgress()!.total }}
+                {{ subtaskProgress()!.completed }}/{{
+                  subtaskProgress()!.total
+                }}
               </span>
             }
           </div>
@@ -172,10 +273,12 @@ import { TimeTrackingService } from '../../../core/services/time-tracking.servic
                   let i = $index
                 ) {
                   <div
-                    class="assignee-avatar w-7 h-7 rounded-full ring-2 ring-white flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
+                    class="assignee-avatar w-7 h-7 rounded-full ring-2 ring-white dark:ring-gray-800 flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
                     [title]="assignee.display_name"
                     [style.z-index]="3 - i"
-                    [style.background]="assignee.avatar_url ? 'transparent' : getAvatarGradient(i)"
+                    [style.background]="
+                      assignee.avatar_url ? 'transparent' : getAvatarGradient(i)
+                    "
                   >
                     @if (assignee.avatar_url) {
                       <img
@@ -190,7 +293,7 @@ import { TimeTrackingService } from '../../../core/services/time-tracking.servic
                 }
                 @if (task().assignees!.length > 3) {
                   <div
-                    class="w-7 h-7 rounded-full ring-2 ring-white bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500 shadow-sm"
+                    class="w-7 h-7 rounded-full ring-2 ring-white dark:ring-gray-800 bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500 shadow-sm"
                     [style.z-index]="0"
                   >
                     +{{ task().assignees!.length - 3 }}
@@ -203,17 +306,24 @@ import { TimeTrackingService } from '../../../core/services/time-tracking.servic
       </div>
 
       <!-- Drag Preview -->
-      <div *cdkDragPreview class="drag-preview rounded-xl shadow-2xl p-4 w-64 border border-gray-200/50">
+      <div
+        *cdkDragPreview
+        class="drag-preview rounded-xl shadow-2xl p-4 w-64 border border-gray-200/50"
+      >
         <div class="flex items-center gap-2 mb-1">
           <span
             class="w-2 h-2 rounded-full"
             [style.background-color]="getBorderColor()"
           ></span>
-          <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+          <span
+            class="text-[10px] font-bold uppercase tracking-wider text-gray-400"
+          >
             {{ priorityLabel }}
           </span>
         </div>
-        <h4 class="text-sm font-semibold text-gray-800 line-clamp-2 leading-snug">
+        <h4
+          class="text-sm font-semibold text-gray-800 line-clamp-2 leading-snug"
+        >
           {{ task().title }}
         </h4>
       </div>
@@ -221,7 +331,7 @@ import { TimeTrackingService } from '../../../core/services/time-tracking.servic
       <!-- Drag Placeholder -->
       <div
         *cdkDragPlaceholder
-        class="bg-indigo-50/50 rounded-lg border-2 border-dashed border-indigo-200"
+        class="bg-indigo-50/30 dark:bg-indigo-900/20 rounded-lg border-2 border-dashed border-indigo-200/60"
         style="height: 80px"
       ></div>
     </div>
@@ -236,43 +346,52 @@ import { TimeTrackingService } from '../../../core/services/time-tracking.servic
       }
 
       .task-card {
-        background: white;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
-        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-                    box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        background: var(--card, #ffffff);
+        box-shadow:
+          0 1px 3px rgba(0, 0, 0, 0.04),
+          0 1px 2px rgba(0, 0, 0, 0.03);
+        transition:
+          transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+          box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .task-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08), 0 4px 10px rgba(0, 0, 0, 0.04);
+        box-shadow:
+          0 8px 25px rgba(0, 0, 0, 0.08),
+          0 4px 10px rgba(0, 0, 0, 0.04);
       }
 
       .task-card--urgent {
-        background: linear-gradient(135deg, rgba(239, 68, 68, 0.03) 0%, white 60%);
+        background: linear-gradient(
+          135deg,
+          rgba(239, 68, 68, 0.03) 0%,
+          var(--card, #ffffff) 60%
+        );
       }
 
       .task-card--high {
-        background: linear-gradient(135deg, rgba(249, 115, 22, 0.03) 0%, white 60%);
+        background: linear-gradient(
+          135deg,
+          rgba(249, 115, 22, 0.03) 0%,
+          var(--card, #ffffff) 60%
+        );
       }
 
       .task-card--medium {
-        background: linear-gradient(135deg, rgba(234, 179, 8, 0.02) 0%, white 60%);
+        background: linear-gradient(
+          135deg,
+          rgba(234, 179, 8, 0.02) 0%,
+          var(--card, #ffffff) 60%
+        );
       }
 
       .task-card--low {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.02) 0%, white 60%);
-      }
-
-      .priority-badge {
-        letter-spacing: 0.04em;
-        line-height: 1;
-        padding-top: 3px;
-        padding-bottom: 3px;
-      }
-
-      .label-chip {
-        letter-spacing: 0.02em;
-        backdrop-filter: blur(4px);
+        background: linear-gradient(
+          135deg,
+          rgba(59, 130, 246, 0.02) 0%,
+          var(--card, #ffffff) 60%
+        );
       }
 
       .assignee-avatar {
@@ -291,32 +410,15 @@ import { TimeTrackingService } from '../../../core/services/time-tracking.servic
     `,
   ],
 })
-export class TaskCardComponent implements OnInit, OnDestroy {
-  private subtaskService = inject(SubtaskService);
-  private timeTrackingService = inject(TimeTrackingService);
-
+export class TaskCardComponent {
   task = input.required<Task>();
   isBlocked = input<boolean>(false);
   isCelebrating = input<boolean>(false);
+  isFocused = input<boolean>(false);
+  subtaskProgress = input<{ completed: number; total: number } | null>(null);
+  hasRunningTimer = input<boolean>(false);
 
   taskClicked = output<Task>();
-
-  subtaskProgress = signal<SubtaskProgress | null>(null);
-  hasRunningTimer = signal(false);
-  timerElapsed = signal('');
-  private timerInterval: ReturnType<typeof setInterval> | null = null;
-
-  ngOnInit(): void {
-    this.loadSubtaskProgress();
-    this.checkRunningTimer();
-  }
-
-  ngOnDestroy(): void {
-    if (this.timerInterval) {
-      clearInterval(this.timerInterval);
-      this.timerInterval = null;
-    }
-  }
 
   get priorityColors() {
     return getPriorityColor(this.task().priority);
@@ -338,6 +440,10 @@ export class TaskCardComponent implements OnInit, OnDestroy {
       low: '#3b82f6',
     };
     return colors[this.task().priority] || '#9ca3af';
+  }
+
+  getPriorityFlagColor(): string {
+    return PRIORITY_FLAG_COLORS[this.task().priority] || '#9ca3af';
   }
 
   formatDueDate(date: string): string {
@@ -392,47 +498,5 @@ export class TaskCardComponent implements OnInit, OnDestroy {
     if (!(event.target as HTMLElement).closest('.cdk-drag-preview')) {
       this.taskClicked.emit(this.task());
     }
-  }
-
-  private loadSubtaskProgress(): void {
-    this.subtaskService.list(this.task().id).subscribe({
-      next: (response) => {
-        if (response.progress.total > 0) {
-          this.subtaskProgress.set(response.progress);
-        }
-      },
-      error: () => {
-        // Silently ignore - subtask progress is optional
-      },
-    });
-  }
-
-  private checkRunningTimer(): void {
-    this.timeTrackingService.listEntries(this.task().id).subscribe({
-      next: (entries) => {
-        const running = entries.find((e) => e.is_running);
-        if (running) {
-          this.hasRunningTimer.set(true);
-          this.startTimerDisplay(running.started_at);
-        }
-      },
-      error: () => {
-        // Silently ignore
-      },
-    });
-  }
-
-  private startTimerDisplay(startedAt: string): void {
-    const update = () => {
-      const diffSec = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000);
-      const h = Math.floor(diffSec / 3600);
-      const m = Math.floor((diffSec % 3600) / 60);
-      const s = diffSec % 60;
-      this.timerElapsed.set(
-        `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-      );
-    };
-    update();
-    this.timerInterval = setInterval(update, 1000);
   }
 }

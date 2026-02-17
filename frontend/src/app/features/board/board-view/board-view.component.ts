@@ -6,9 +6,10 @@ import {
   OnInit,
   OnDestroy,
   ChangeDetectionStrategy,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil, forkJoin } from 'rxjs';
 import { CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { generateKeyBetween } from 'fractional-indexing';
@@ -18,6 +19,7 @@ import {
   Board,
   Column,
   BoardMember,
+  BoardFullResponse,
 } from '../../../core/services/board.service';
 import {
   TaskService,
@@ -295,6 +297,7 @@ import { DependencyService } from '../../../core/services/dependency.service';
                 [tasks]="getFilteredTasksForColumn(column.id)"
                 [connectedLists]="connectedColumnIds()"
                 [celebratingTaskId]="celebratingTaskId()"
+                [focusedTaskId]="focusedTaskId()"
                 (taskMoved)="onTaskMoved($event)"
                 (taskClicked)="onTaskClicked($event)"
                 (addTaskClicked)="onAddTaskToColumn($event)"
@@ -405,6 +408,7 @@ import { DependencyService } from '../../../core/services/dependency.service';
 })
 export class BoardViewComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private boardService = inject(BoardService);
   private taskService = inject(TaskService);
   private taskGroupService = inject(TaskGroupService);
@@ -436,6 +440,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     labelIds: [],
   });
   celebratingTaskId = signal<string | null>(null);
+  focusedTaskId = signal<string | null>(null);
   selectedTaskId = signal<string | null>(null);
   selectedTaskIds = signal<string[]>([]);
   selectionMode = signal(false);
@@ -584,7 +589,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   onListTaskClicked(taskId: string): void {
-    this.selectedTaskId.set(taskId);
+    this.router.navigate(['/task', taskId]);
   }
 
   onTaskMoved(event: TaskMoveEvent): void {
@@ -655,7 +660,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   onTaskClicked(task: Task): void {
-    this.selectedTaskId.set(task.id);
+    this.router.navigate(['/task', task.id]);
   }
 
   closeTaskDetail(): void {
@@ -899,23 +904,54 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   private loadBoard(): void {
     this.loading.set(true);
 
-    forkJoin({
-      board: this.boardService.getBoard(this.boardId),
-      columns: this.boardService.listColumns(this.boardId),
-      tasks: this.taskService.listByBoard(this.boardId),
-      members: this.boardService.getBoardMembers(this.boardId),
-      milestones: this.milestoneService.list(this.boardId),
-      groups: this.taskGroupService.listGroupsWithStats(this.boardId),
-    }).subscribe({
-      next: ({ board, columns, tasks, members, milestones, groups }) => {
-        this.board.set(board);
+    // Batch endpoint for board + columns + tasks + members
+    this.boardService.getBoardFull(this.boardId).subscribe({
+      next: (response: BoardFullResponse) => {
+        this.board.set(response.board);
         this.columns.set(
-          columns.sort((a, b) => a.position.localeCompare(b.position)),
+          [...response.board.columns].sort((a, b) =>
+            a.position.localeCompare(b.position),
+          ),
         );
-        this.boardState.set(tasks);
-        this.boardMembers.set(members);
-        this.boardMilestones.set(milestones);
-        this.boardGroups.set(groups);
+
+        // Group tasks by column_id into Record<string, Task[]>
+        const tasksByColumn: Record<string, Task[]> = {};
+        for (const col of response.board.columns) {
+          tasksByColumn[col.id] = [];
+        }
+        for (const t of response.tasks) {
+          const task: Task = {
+            id: t.id,
+            column_id: t.column_id,
+            title: t.title,
+            description: t.description,
+            priority: t.priority as Task['priority'],
+            position: t.position,
+            milestone_id: null,
+            assignee_id: null,
+            due_date: t.due_date,
+            created_by: t.created_by_id,
+            created_at: t.created_at,
+            updated_at: t.updated_at,
+            assignees: t.assignees,
+            labels: t.labels as Label[],
+            subtask_completed: t.subtask_completed,
+            subtask_total: t.subtask_total,
+          };
+          if (!tasksByColumn[t.column_id]) {
+            tasksByColumn[t.column_id] = [];
+          }
+          tasksByColumn[t.column_id].push(task);
+        }
+        // Sort tasks within each column by position
+        for (const colId of Object.keys(tasksByColumn)) {
+          tasksByColumn[colId].sort((a, b) =>
+            a.position.localeCompare(b.position),
+          );
+        }
+        this.boardState.set(tasksByColumn);
+
+        this.boardMembers.set(response.members);
         this.loading.set(false);
 
         // Subscribe to board updates
@@ -926,6 +962,14 @@ export class BoardViewComponent implements OnInit, OnDestroy {
         this.loading.set(false);
         this.showError('Failed to load board');
       },
+    });
+
+    // Milestones and groups are not in the batch response yet; load separately
+    this.milestoneService.list(this.boardId).subscribe({
+      next: (milestones) => this.boardMilestones.set(milestones),
+    });
+    this.taskGroupService.listGroupsWithStats(this.boardId).subscribe({
+      next: (groups) => this.boardGroups.set(groups),
     });
   }
 
@@ -1132,6 +1176,87 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     });
   }
 
+  // === Card Keyboard Navigation (J/K/Enter) ===
+
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(event: KeyboardEvent): void {
+    // Don't trigger when typing in inputs/textareas/select/contenteditable
+    const target = event.target as HTMLElement;
+    if (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target.tagName === 'SELECT' ||
+      target.isContentEditable
+    ) {
+      return;
+    }
+
+    // Only handle J/K/Enter for card navigation when in kanban view
+    if (this.viewMode() !== 'kanban') return;
+
+    switch (event.key) {
+      case 'j':
+      case 'J':
+        this.navigateCard(1);
+        event.preventDefault();
+        break;
+      case 'k':
+      case 'K':
+        this.navigateCard(-1);
+        event.preventDefault();
+        break;
+      case 'Enter':
+        if (this.focusedTaskId()) {
+          this.openFocusedTask();
+          event.preventDefault();
+        }
+        break;
+    }
+  }
+
+  private navigateCard(direction: number): void {
+    const allTasks = this.getAllVisibleTasks();
+    if (allTasks.length === 0) return;
+
+    const currentId = this.focusedTaskId();
+    const currentIndex = currentId
+      ? allTasks.findIndex((t) => t.id === currentId)
+      : -1;
+
+    const nextIndex = Math.max(
+      0,
+      Math.min(allTasks.length - 1, currentIndex + direction),
+    );
+    const nextTaskId = allTasks[nextIndex].id;
+    this.focusedTaskId.set(nextTaskId);
+
+    // Scroll the focused card into view
+    setTimeout(() => {
+      const el = document.querySelector(`[data-task-id="${nextTaskId}"]`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 0);
+  }
+
+  private getAllVisibleTasks(): Task[] {
+    const cols = this.columns();
+    const filtered = this.filteredBoardState();
+    const tasks: Task[] = [];
+
+    for (const col of cols) {
+      const colTasks = filtered[col.id] || [];
+      tasks.push(...colTasks);
+    }
+
+    return tasks;
+  }
+
+  private openFocusedTask(): void {
+    const taskId = this.focusedTaskId();
+    if (taskId) {
+      this.router.navigate(['/task', taskId]);
+    }
+  }
+
   // === Keyboard Shortcuts ===
 
   private registerShortcuts(): void {
@@ -1156,10 +1281,12 @@ export class BoardViewComponent implements OnInit, OnDestroy {
 
     this.shortcutsService.register('board-escape', {
       key: 'Escape',
-      description: 'Close panel / Clear selection',
+      description: 'Close panel / Clear selection / Clear focus',
       category: 'Board',
       action: () => {
-        if (this.selectedTaskIds().length > 0) {
+        if (this.focusedTaskId()) {
+          this.focusedTaskId.set(null);
+        } else if (this.selectedTaskIds().length > 0) {
           this.clearSelection();
         } else if (this.selectedTaskId()) {
           this.closeTaskDetail();

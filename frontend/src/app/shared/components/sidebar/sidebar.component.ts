@@ -146,6 +146,8 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
       class="sidebar-root h-full flex flex-col transition-all duration-300"
       [class.w-64]="!collapsed()"
       [class.w-14]="collapsed()"
+      [class.sidebar-collapsed]="isCollapsed()"
+      [class.sidebar-open]="isMobileOpen()"
     >
       <!-- Header: Logo & Search -->
       <div
@@ -169,6 +171,15 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
               style="letter-spacing: -0.02em; color: var(--sidebar-text-primary)"
               >TaskFlow</span
             >
+            <button
+              (click)="toggleCollapseLocal(); $event.stopPropagation()"
+              class="hidden md:flex items-center justify-center w-7 h-7 rounded-md hover:bg-[var(--sidebar-surface-hover)] text-[var(--sidebar-text-secondary)] transition-colors ml-auto"
+              [title]="isCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+            >
+              <svg class="w-4 h-4 transition-transform duration-200" [class.rotate-180]="isCollapsed()" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+              </svg>
+            </button>
           </div>
         } @else {
           <div class="flex justify-center w-full">
@@ -565,13 +576,21 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
 })
 export class SidebarComponent implements OnInit {
   collapsed = input(false);
+  isMobileOpen = input(false);
   toggleCollapse = output<void>();
+  sidebarClose = output<void>();
   searchOpen = output<void>();
+
+  isCollapsed = signal(false);
 
   private workspaceService = inject(WorkspaceService);
   private authService = inject(AuthService);
   private themeService = inject(ThemeService);
   private router = inject(Router);
+
+  constructor() {
+    this.isCollapsed.set(localStorage.getItem('sidebar-collapsed') === 'true');
+  }
 
   loading = signal(false);
   workspaces = signal<Workspace[]>([]);
@@ -588,6 +607,11 @@ export class SidebarComponent implements OnInit {
     '#22c55e',
     '#06b6d4',
   ];
+
+  toggleCollapseLocal(): void {
+    this.isCollapsed.update(v => !v);
+    localStorage.setItem('sidebar-collapsed', String(this.isCollapsed()));
+  }
 
   ngOnInit(): void {
     this.loadWorkspaces();

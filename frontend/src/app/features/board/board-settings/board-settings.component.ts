@@ -14,8 +14,14 @@ import {
   FormsModule,
   Validators,
 } from '@angular/forms';
-import { BoardService, Board, BoardMember } from '../../../core/services/board.service';
+import {
+  BoardService,
+  Board,
+  BoardMember,
+} from '../../../core/services/board.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ConfirmDialog } from 'primeng/confirmdialog';
+import { ConfirmationService } from 'primeng/api';
 import { ColumnManagerComponent } from '../column-manager/column-manager.component';
 import {
   InviteMemberDialogComponent,
@@ -25,7 +31,16 @@ import {
 @Component({
   selector: 'app-board-settings',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterModule, ColumnManagerComponent, InviteMemberDialogComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    RouterModule,
+    ColumnManagerComponent,
+    InviteMemberDialogComponent,
+    ConfirmDialog,
+  ],
+  providers: [ConfirmationService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="min-h-screen bg-gray-100">
@@ -222,7 +237,9 @@ import {
                                 />
                               } @else {
                                 {{
-                                  getInitials(member.display_name || member.email)
+                                  getInitials(
+                                    member.display_name || member.email
+                                  )
                                 }}
                               }
                             </div>
@@ -338,6 +355,7 @@ import {
       [boardName]="board()?.name || ''"
       (invited)="onInviteResult($event)"
     />
+    <p-confirmDialog />
   `,
 })
 export class BoardSettingsComponent implements OnInit {
@@ -346,6 +364,7 @@ export class BoardSettingsComponent implements OnInit {
   private fb = inject(FormBuilder);
   private boardService = inject(BoardService);
   private authService = inject(AuthService);
+  private confirmationService = inject(ConfirmationService);
 
   workspaceId = '';
   boardId = '';
@@ -391,16 +410,18 @@ export class BoardSettingsComponent implements OnInit {
     this.saving.set(true);
     const { name, description } = this.form.value;
 
-    this.boardService.updateBoard(this.boardId, { name, description }).subscribe({
-      next: (updated) => {
-        this.board.set(updated);
-        this.form.markAsPristine();
-        this.saving.set(false);
-      },
-      error: () => {
-        this.saving.set(false);
-      },
-    });
+    this.boardService
+      .updateBoard(this.boardId, { name, description })
+      .subscribe({
+        next: (updated) => {
+          this.board.set(updated);
+          this.form.markAsPristine();
+          this.saving.set(false);
+        },
+        error: () => {
+          this.saving.set(false);
+        },
+      });
   }
 
   onInviteMember(): void {
@@ -430,8 +451,8 @@ export class BoardSettingsComponent implements OnInit {
         next: (updatedMember) => {
           this.members.update((members) =>
             members.map((m) =>
-              m.user_id === updatedMember.user_id ? updatedMember : m
-            )
+              m.user_id === updatedMember.user_id ? updatedMember : m,
+            ),
           );
         },
         error: () => {
@@ -442,22 +463,25 @@ export class BoardSettingsComponent implements OnInit {
   }
 
   onRemoveMember(member: BoardMember): void {
-    if (
-      !confirm(
-        `Remove ${member.display_name || member.email} from this board?`
-      )
-    ) {
-      return;
-    }
-
-    this.boardService.removeBoardMember(this.boardId, member.user_id).subscribe({
-      next: () => {
-        this.members.update((members) =>
-          members.filter((m) => m.user_id !== member.user_id)
-        );
-      },
-      error: () => {
-        // Error handling - remove failed
+    this.confirmationService.confirm({
+      message: `Remove ${member.display_name || member.email} from this board?`,
+      header: 'Remove Member',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger p-button-sm',
+      rejectButtonStyleClass: 'p-button-text p-button-sm',
+      accept: () => {
+        this.boardService
+          .removeBoardMember(this.boardId, member.user_id)
+          .subscribe({
+            next: () => {
+              this.members.update((members) =>
+                members.filter((m) => m.user_id !== member.user_id),
+              );
+            },
+            error: () => {
+              // Error handling - remove failed
+            },
+          });
       },
     });
   }
@@ -466,19 +490,23 @@ export class BoardSettingsComponent implements OnInit {
     const board = this.board();
     if (!board) return;
 
-    const confirmed = confirm(
-      `Are you sure you want to delete "${board.name}"? This action cannot be undone.`
-    );
-    if (!confirmed) return;
+    this.confirmationService.confirm({
+      message: `Are you sure you want to delete "${board.name}"? This action cannot be undone. All tasks, columns, and data will be permanently lost.`,
+      header: 'Delete Board',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger p-button-sm',
+      rejectButtonStyleClass: 'p-button-text p-button-sm',
+      accept: () => {
+        this.deleting.set(true);
 
-    this.deleting.set(true);
-
-    this.boardService.deleteBoard(this.boardId).subscribe({
-      next: () => {
-        this.router.navigate(['/workspace', this.workspaceId]);
-      },
-      error: () => {
-        this.deleting.set(false);
+        this.boardService.deleteBoard(this.boardId).subscribe({
+          next: () => {
+            this.router.navigate(['/workspace', this.workspaceId]);
+          },
+          error: () => {
+            this.deleting.set(false);
+          },
+        });
       },
     });
   }

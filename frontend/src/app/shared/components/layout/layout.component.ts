@@ -56,6 +56,14 @@ import { TooltipModule } from 'primeng/tooltip';
         ></div>
       }
 
+      <!-- Mobile sidebar backdrop -->
+      @if (isMobileSidebarOpen()) {
+        <div
+          class="sidebar-backdrop md:hidden"
+          (click)="closeMobileSidebar()"
+        ></div>
+      }
+
       <!-- Sidebar wrapper -->
       <div
         class="flex-shrink-0 z-40 transition-all duration-300 ease-in-out"
@@ -63,7 +71,9 @@ import { TooltipModule } from 'primeng/tooltip';
       >
         <app-sidebar
           [collapsed]="sidebarCollapsed()"
+          [isMobileOpen]="isMobileSidebarOpen()"
           (toggleCollapse)="onToggleSidebar()"
+          (sidebarClose)="closeMobileSidebar()"
           (searchOpen)="onSearchOpen()"
         />
       </div>
@@ -139,6 +149,8 @@ export class LayoutComponent {
 
   currentUser = this.authService.currentUser;
 
+  isMobileSidebarOpen = signal(false);
+
   private readonly themeCycle: Theme[] = ['light', 'dark', 'system'];
 
   themeIcon = () => {
@@ -180,12 +192,14 @@ export class LayoutComponent {
     this.isMobile.set(mobile);
     if (!mobile && this.mobileOpen()) {
       this.mobileOpen.set(false);
+      this.isMobileSidebarOpen.set(false);
     }
   }
 
   onToggleSidebar(): void {
     if (this.isMobile()) {
       this.mobileOpen.update((v) => !v);
+      this.isMobileSidebarOpen.set(this.mobileOpen());
     } else {
       this.sidebarCollapsed.update((v) => {
         const next = !v;
@@ -197,10 +211,12 @@ export class LayoutComponent {
 
   openMobileSidebar(): void {
     this.mobileOpen.set(true);
+    this.isMobileSidebarOpen.set(true);
   }
 
   closeMobileSidebar(): void {
     this.mobileOpen.set(false);
+    this.isMobileSidebarOpen.set(false);
   }
 
   onSearchOpen(): void {

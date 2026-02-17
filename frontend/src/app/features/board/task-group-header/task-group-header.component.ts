@@ -3,6 +3,7 @@ import {
   input,
   output,
   signal,
+  inject,
   viewChild,
   ChangeDetectionStrategy,
 } from '@angular/core';
@@ -12,7 +13,8 @@ import { ButtonModule } from 'primeng/button';
 import { Tooltip } from 'primeng/tooltip';
 import { Popover } from 'primeng/popover';
 import { Menu } from 'primeng/menu';
-import { MenuItem } from 'primeng/api';
+import { ConfirmDialog } from 'primeng/confirmdialog';
+import { MenuItem, ConfirmationService } from 'primeng/api';
 import { TaskGroupWithStats } from '../../../core/services/task-group.service';
 
 @Component({
@@ -25,7 +27,9 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
     Tooltip,
     Popover,
     Menu,
+    ConfirmDialog,
   ],
+  providers: [ConfirmationService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -41,10 +45,18 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
           [rounded]="true"
           [text]="true"
           (click)="onToggleCollapse()"
-          [pTooltip]="groupData().group.collapsed ? 'Expand group' : 'Collapse group'"
+          [pTooltip]="
+            groupData().group.collapsed ? 'Expand group' : 'Collapse group'
+          "
           class="text-gray-600 hover:text-gray-900"
         >
-          <i [class]="groupData().group.collapsed ? 'pi pi-chevron-right' : 'pi pi-chevron-down'"></i>
+          <i
+            [class]="
+              groupData().group.collapsed
+                ? 'pi pi-chevron-right'
+                : 'pi pi-chevron-down'
+            "
+          ></i>
         </button>
 
         <!-- Group name (editable) -->
@@ -74,8 +86,13 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
           <span class="px-2 py-0.5 bg-gray-100 rounded-full">
             {{ groupData().completed_count }} / {{ groupData().task_count }}
           </span>
-          @if (groupData().estimated_hours != null && groupData().estimated_hours! > 0) {
-            <span class="px-2 py-0.5 bg-gray-100 rounded-full flex items-center gap-1">
+          @if (
+            groupData().estimated_hours != null &&
+            groupData().estimated_hours! > 0
+          ) {
+            <span
+              class="px-2 py-0.5 bg-gray-100 rounded-full flex items-center gap-1"
+            >
               <i class="pi pi-clock" style="font-size: 0.75rem"></i>
               {{ groupData().estimated_hours!.toFixed(1) }}h
             </span>
@@ -85,8 +102,12 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
             class="px-2 py-0.5 rounded-full font-medium"
             [class.bg-green-100]="completionPercentage() === 100"
             [class.text-green-700]="completionPercentage() === 100"
-            [class.bg-blue-100]="completionPercentage() > 0 && completionPercentage() < 100"
-            [class.text-blue-700]="completionPercentage() > 0 && completionPercentage() < 100"
+            [class.bg-blue-100]="
+              completionPercentage() > 0 && completionPercentage() < 100
+            "
+            [class.text-blue-700]="
+              completionPercentage() > 0 && completionPercentage() < 100
+            "
             [class.bg-gray-100]="completionPercentage() === 0"
             [class.text-gray-600]="completionPercentage() === 0"
           >
@@ -136,8 +157,7 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
               [class.ring-2]="groupData().group.color === color"
               [class.ring-offset-2]="groupData().group.color === color"
               [class.ring-gray-800]="groupData().group.color === color"
-            >
-            </button>
+            ></button>
           }
         </div>
       </div>
@@ -145,14 +165,19 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
 
     <!-- More options menu -->
     <p-menu #moreMenu [model]="moreMenuItems" [popup]="true" />
+    <p-confirmDialog />
   `,
-  styles: [`
-    :host {
-      display: block;
-    }
-  `]
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+    `,
+  ],
 })
 export class TaskGroupHeaderComponent {
+  private confirmationService = inject(ConfirmationService);
+
   // Inputs
   groupData = input.required<TaskGroupWithStats>();
 
@@ -213,7 +238,10 @@ export class TaskGroupHeaderComponent {
   }
 
   saveNameEdit() {
-    if (this.editedName.trim() && this.editedName !== this.groupData().group.name) {
+    if (
+      this.editedName.trim() &&
+      this.editedName !== this.groupData().group.name
+    ) {
       this.nameChange.emit(this.editedName.trim());
     }
     this.isEditing.set(false);
@@ -232,8 +260,15 @@ export class TaskGroupHeaderComponent {
   }
 
   onDelete() {
-    if (confirm(`Delete group "${this.groupData().group.name}"? Tasks will be moved to "Ungrouped".`)) {
-      this.delete.emit();
-    }
+    this.confirmationService.confirm({
+      message: `Delete group "${this.groupData().group.name}"? Tasks will be moved to "Ungrouped".`,
+      header: 'Delete Group',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger p-button-sm',
+      rejectButtonStyleClass: 'p-button-text p-button-sm',
+      accept: () => {
+        this.delete.emit();
+      },
+    });
   }
 }

@@ -2,6 +2,8 @@
 //!
 //! Provides CRUD operations for boards and board membership management.
 
+use std::collections::HashMap;
+
 use axum::{
     extract::{Path, State},
     middleware::from_fn_with_state,
@@ -11,7 +13,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use taskflow_db::models::BoardMemberRole;
+use taskflow_db::models::{BoardMemberRole, TaskPriority};
 use taskflow_db::queries::{boards, columns, workspaces};
 use taskflow_db::utils::generate_key_between;
 
@@ -98,6 +100,53 @@ pub struct BoardMemberResponse {
 #[derive(Debug, Serialize)]
 pub struct MessageResponse {
     pub message: String,
+}
+
+// ============================================================================
+// Board Full (batch) Response DTOs
+// ============================================================================
+
+#[derive(Debug, Serialize)]
+pub struct BoardFullResponse {
+    pub board: BoardDetailResponse,
+    pub tasks: Vec<TaskWithBadges>,
+    pub members: Vec<BoardMemberResponse>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TaskWithBadges {
+    pub id: Uuid,
+    pub title: String,
+    pub description: Option<String>,
+    pub priority: TaskPriority,
+    pub due_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub column_id: Uuid,
+    pub position: String,
+    pub group_id: Option<Uuid>,
+    pub milestone_id: Option<Uuid>,
+    pub created_by_id: Uuid,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub subtask_completed: i64,
+    pub subtask_total: i64,
+    pub has_running_timer: bool,
+    pub comment_count: i64,
+    pub assignees: Vec<AssigneeInfo>,
+    pub labels: Vec<LabelInfo>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AssigneeInfo {
+    pub id: Uuid,
+    pub display_name: String,
+    pub avatar_url: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct LabelInfo {
+    pub id: Uuid,
+    pub name: String,
+    pub color: String,
 }
 
 // ============================================================================
@@ -444,6 +493,132 @@ async fn list_board_templates() -> Json<Vec<board_templates::BoardTemplate>> {
     Json(board_templates::TEMPLATES.to_vec())
 }
 
+/// GET /api/boards/:id/full
+///
+/// Get a board with columns, tasks (with badge data), and members in a single request.
+/// This batch endpoint replaces 6+ separate API calls needed to render a board view.
+async fn get_board_full(
+    State(state): State<AppState>,
+    auth: AuthUserExtractor,
+    Path(id): Path<Uuid>,
+) -> Result<Json<BoardFullResponse>> {
+    // Fetch board+columns, tasks with badges, members, assignees, and labels in parallel
+    let (board_result, tasks_result, members_result, assignees_result, labels_result) = tokio::join!(
+        boards::get_board_by_id(&state.db, id, auth.0.user_id),
+        boards::list_board_tasks_with_badges(&state.db, id),
+        boards::list_board_members(&state.db, id),
+        boards::list_board_task_assignees(&state.db, id),
+        boards::list_board_task_labels(&state.db, id),
+    );
+
+    let board = board_result?
+        .ok_or_else(|| AppError::NotFound("Board not found or access denied".into()))?;
+
+    let task_rows = tasks_result?;
+    let members = members_result?;
+    let assignee_rows = assignees_result?;
+    let label_rows = labels_result?;
+
+    // Group assignees by task_id
+    let mut assignees_map: HashMap<Uuid, Vec<AssigneeInfo>> = HashMap::new();
+    for a in assignee_rows {
+        assignees_map
+            .entry(a.task_id)
+            .or_default()
+            .push(AssigneeInfo {
+                id: a.user_id,
+                display_name: a.display_name,
+                avatar_url: a.avatar_url,
+            });
+    }
+
+    // Group labels by task_id
+    let mut labels_map: HashMap<Uuid, Vec<LabelInfo>> = HashMap::new();
+    for l in label_rows {
+        labels_map
+            .entry(l.task_id)
+            .or_default()
+            .push(LabelInfo {
+                id: l.label_id,
+                name: l.name,
+                color: l.color,
+            });
+    }
+
+    // Build enriched task list
+    let tasks: Vec<TaskWithBadges> = task_rows
+        .into_iter()
+        .map(|t| {
+            let task_id = t.id;
+            TaskWithBadges {
+                id: t.id,
+                title: t.title,
+                description: t.description,
+                priority: t.priority,
+                due_date: t.due_date,
+                column_id: t.column_id,
+                position: t.position,
+                group_id: t.group_id,
+                milestone_id: t.milestone_id,
+                created_by_id: t.created_by_id,
+                created_at: t.created_at,
+                updated_at: t.updated_at,
+                subtask_completed: t.subtask_completed,
+                subtask_total: t.subtask_total,
+                has_running_timer: t.has_running_timer,
+                comment_count: t.comment_count,
+                assignees: assignees_map.remove(&task_id).unwrap_or_default(),
+                labels: labels_map.remove(&task_id).unwrap_or_default(),
+            }
+        })
+        .collect();
+
+    let board_detail = BoardDetailResponse {
+        id: board.board.id,
+        name: board.board.name,
+        description: board.board.description,
+        slack_webhook_url: board.board.slack_webhook_url,
+        workspace_id: board.board.workspace_id,
+        tenant_id: board.board.tenant_id,
+        created_by_id: board.board.created_by_id,
+        created_at: board.board.created_at,
+        updated_at: board.board.updated_at,
+        columns: board
+            .columns
+            .into_iter()
+            .map(|c| ColumnResponse {
+                id: c.id,
+                name: c.name,
+                board_id: c.board_id,
+                position: c.position,
+                color: c.color,
+                status_mapping: c.status_mapping,
+                created_at: c.created_at,
+            })
+            .collect(),
+    };
+
+    let member_responses: Vec<BoardMemberResponse> = members
+        .into_iter()
+        .map(|m| BoardMemberResponse {
+            id: m.id,
+            board_id: m.board_id,
+            user_id: m.user_id,
+            role: m.role,
+            joined_at: m.joined_at,
+            name: m.name,
+            email: m.email,
+            avatar_url: m.avatar_url,
+        })
+        .collect();
+
+    Ok(Json(BoardFullResponse {
+        board: board_detail,
+        tasks,
+        members: member_responses,
+    }))
+}
+
 // ============================================================================
 // Routers
 // ============================================================================
@@ -461,6 +636,7 @@ pub fn workspace_boards_router(state: AppState) -> Router<AppState> {
 pub fn board_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/{id}", get(get_board).put(update_board).delete(delete_board))
+        .route("/{id}/full", get(get_board_full))
         .route("/{id}/members", get(list_board_members).post(add_board_member))
         .route("/{id}/members/{user_id}", delete(remove_board_member))
         .layer(from_fn_with_state(state.clone(), auth_middleware))

@@ -1,9 +1,11 @@
 //! Board query functions
 
+use chrono::{DateTime, Utc};
+use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::{Board, BoardColumn, BoardMember, BoardMemberRole};
+use crate::models::{Board, BoardColumn, BoardMember, BoardMemberRole, TaskPriority};
 
 /// List boards in a workspace that the user has access to
 pub async fn list_boards_by_workspace(
@@ -342,5 +344,150 @@ pub async fn get_board_internal(pool: &PgPool, id: Uuid) -> Result<Option<Board>
         id
     )
     .fetch_optional(pool)
+    .await
+}
+
+// ============================================================================
+// Board Full (batch) query types and functions
+// ============================================================================
+
+/// A task row enriched with badge counts for the board full response
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct TaskWithBadgesRow {
+    pub id: Uuid,
+    pub title: String,
+    pub description: Option<String>,
+    pub priority: TaskPriority,
+    pub due_date: Option<DateTime<Utc>>,
+    pub column_id: Uuid,
+    pub position: String,
+    pub group_id: Option<Uuid>,
+    pub milestone_id: Option<Uuid>,
+    pub created_by_id: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub subtask_total: i64,
+    pub subtask_completed: i64,
+    pub has_running_timer: bool,
+    pub comment_count: i64,
+}
+
+/// Assignee info returned for a board's tasks
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct BoardTaskAssignee {
+    pub task_id: Uuid,
+    pub user_id: Uuid,
+    pub display_name: String,
+    pub avatar_url: Option<String>,
+}
+
+/// Label info returned for a board's tasks
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct BoardTaskLabel {
+    pub task_id: Uuid,
+    pub label_id: Uuid,
+    pub name: String,
+    pub color: String,
+}
+
+/// Fetch all tasks for a board with badge counts (subtasks, timers, comments)
+/// in a single query using LEFT JOINs and subqueries.
+pub async fn list_board_tasks_with_badges(
+    pool: &PgPool,
+    board_id: Uuid,
+) -> Result<Vec<TaskWithBadgesRow>, sqlx::Error> {
+    sqlx::query_as::<_, TaskWithBadgesRow>(
+        r#"
+        SELECT
+            t.id,
+            t.title,
+            t.description,
+            t.priority,
+            t.due_date,
+            t.column_id,
+            t.position,
+            t.group_id,
+            t.milestone_id,
+            t.created_by_id,
+            t.created_at,
+            t.updated_at,
+            COALESCE(sub.total, 0) AS "subtask_total",
+            COALESCE(sub.completed, 0) AS "subtask_completed",
+            COALESCE(tmr.has_running, false) AS "has_running_timer",
+            COALESCE(cmt.cnt, 0) AS "comment_count"
+        FROM tasks t
+        LEFT JOIN LATERAL (
+            SELECT
+                COUNT(*)::bigint AS total,
+                COUNT(*) FILTER (WHERE s.is_completed)::bigint AS completed
+            FROM subtasks s
+            WHERE s.task_id = t.id
+        ) sub ON true
+        LEFT JOIN LATERAL (
+            SELECT EXISTS(
+                SELECT 1 FROM time_entries te
+                WHERE te.task_id = t.id AND te.is_running = true
+            ) AS has_running
+        ) tmr ON true
+        LEFT JOIN LATERAL (
+            SELECT COUNT(*)::bigint AS cnt
+            FROM comments c
+            WHERE c.task_id = t.id AND c.deleted_at IS NULL
+        ) cmt ON true
+        WHERE t.board_id = $1 AND t.deleted_at IS NULL
+        ORDER BY t.position ASC
+        "#,
+    )
+    .bind(board_id)
+    .fetch_all(pool)
+    .await
+}
+
+/// Fetch all assignees for tasks in a board
+pub async fn list_board_task_assignees(
+    pool: &PgPool,
+    board_id: Uuid,
+) -> Result<Vec<BoardTaskAssignee>, sqlx::Error> {
+    sqlx::query_as::<_, BoardTaskAssignee>(
+        r#"
+        SELECT
+            ta.task_id,
+            ta.user_id,
+            u.name AS display_name,
+            u.avatar_url
+        FROM task_assignees ta
+        JOIN tasks t ON t.id = ta.task_id
+        JOIN users u ON u.id = ta.user_id
+        WHERE t.board_id = $1
+          AND t.deleted_at IS NULL
+          AND u.deleted_at IS NULL
+        "#,
+    )
+    .bind(board_id)
+    .fetch_all(pool)
+    .await
+}
+
+/// Fetch all labels for tasks in a board
+pub async fn list_board_task_labels(
+    pool: &PgPool,
+    board_id: Uuid,
+) -> Result<Vec<BoardTaskLabel>, sqlx::Error> {
+    sqlx::query_as::<_, BoardTaskLabel>(
+        r#"
+        SELECT
+            tl.task_id,
+            l.id AS label_id,
+            l.name,
+            l.color
+        FROM task_labels tl
+        JOIN labels l ON l.id = tl.label_id
+        JOIN tasks t ON t.id = tl.task_id
+        WHERE t.board_id = $1
+          AND t.deleted_at IS NULL
+        "#,
+    )
+    .bind(board_id)
+    .fetch_all(pool)
     .await
 }

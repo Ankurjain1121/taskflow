@@ -3,7 +3,6 @@ import {
   input,
   output,
   signal,
-  computed,
   inject,
   OnInit,
   OnChanges,
@@ -12,20 +11,12 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Drawer } from 'primeng/drawer';
-import { Select } from 'primeng/select';
-import { DatePicker } from 'primeng/datepicker';
-import { InputTextModule } from 'primeng/inputtext';
-import { Textarea } from 'primeng/textarea';
-import { InputNumber } from 'primeng/inputnumber';
 import { ButtonModule } from 'primeng/button';
-import { Tag } from 'primeng/tag';
-import { Tooltip } from 'primeng/tooltip';
+import { Tabs, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
 import {
   TaskService,
   Task,
-  TaskWithDetails,
   TaskPriority,
   TaskListItem,
   Assignee,
@@ -35,12 +26,6 @@ import {
   MemberSearchResult,
 } from '../../../core/services/workspace.service';
 import { BoardService, Column } from '../../../core/services/board.service';
-import {
-  PRIORITY_COLORS,
-  getPriorityLabel,
-  getDueDateColor,
-} from '../../../shared/utils/task-colors';
-import { SubtaskListComponent } from '../subtask-list/subtask-list.component';
 import {
   DependencyService,
   TaskDependency,
@@ -54,7 +39,6 @@ import {
   CustomFieldService,
   TaskCustomFieldValueWithField,
   SetFieldValue,
-  CustomFieldType,
 } from '../../../core/services/custom-field.service';
 import {
   RecurringService,
@@ -66,39 +50,49 @@ import {
   TimeTrackingService,
   TimeEntry,
 } from '../../../core/services/time-tracking.service';
+import { ConfirmDialog } from 'primeng/confirmdialog';
+import { ConfirmationService } from 'primeng/api';
+
+import { TaskDetailHeaderComponent } from './task-detail-header.component';
+import { TaskDetailMetadataComponent } from './task-detail-metadata.component';
+import { TaskDetailDescriptionComponent } from './task-detail-description.component';
+import { SubtaskListComponent } from '../subtask-list/subtask-list.component';
+import { TaskDetailActivityComponent } from './task-detail-activity.component';
+import { TaskDetailFieldsComponent } from './task-detail-fields.component';
 
 @Component({
   selector: 'app-task-detail',
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
-    SubtaskListComponent,
     Drawer,
-    Select,
-    DatePicker,
-    InputTextModule,
-    Textarea,
-    InputNumber,
     ButtonModule,
-    Tag,
-    Tooltip,
+    Tabs,
+    TabList,
+    Tab,
+    TabPanels,
+    TabPanel,
+    TaskDetailHeaderComponent,
+    TaskDetailMetadataComponent,
+    TaskDetailDescriptionComponent,
+    SubtaskListComponent,
+    TaskDetailActivityComponent,
+    TaskDetailFieldsComponent,
+    ConfirmDialog,
   ],
+  providers: [ConfirmationService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p-drawer
       [(visible)]="drawerVisible"
       position="right"
-      [style]="{ width: '480px' }"
+      [style]="{ width: '520px' }"
       [modal]="true"
       (onHide)="onClose()"
     >
       <ng-template #header>
         <div class="flex items-center gap-2">
           <span class="text-sm text-gray-500">Task Detail</span>
-          @if (column()?.status_mapping?.done) {
-            <p-tag value="Done" severity="success" />
-          }
         </div>
       </ng-template>
 
@@ -114,920 +108,93 @@ import {
             <div class="skeleton w-16 h-6 rounded-full"></div>
           </div>
           <div class="skeleton w-full h-24 rounded-lg"></div>
-          <div class="space-y-2">
-            <div class="skeleton skeleton-text w-24"></div>
-            <div class="skeleton w-full h-12 rounded-lg"></div>
-            <div class="skeleton w-full h-12 rounded-lg"></div>
-          </div>
         </div>
       } @else if (task()) {
         <div class="flex-1 overflow-y-auto">
-          <div class="px-2 py-4 space-y-6">
-            <!-- Title (Inline Editable) -->
-            <div>
-              <input
-                pInputText
-                type="text"
-                [ngModel]="task()!.title"
-                (ngModelChange)="onTitleChange($event)"
-                (blur)="saveTitle()"
-                class="w-full text-xl font-semibold"
-                placeholder="Task title"
-              />
-            </div>
+          <div class="px-2 py-4 space-y-4">
+            <!-- Header: title, column badge, created date -->
+            <app-task-detail-header
+              [task]="task()"
+              [column]="column()"
+              (titleChanged)="onTitleSave($event)"
+            />
 
-            <!-- Metadata Grid -->
-            <div class="grid grid-cols-2 gap-4">
-              <!-- Column -->
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1"
-                  >Column</label
-                >
-                <div class="flex items-center gap-2 py-2">
-                  <span
-                    class="w-3 h-3 rounded-full"
-                    [style.background-color]="column()?.color || '#6366f1'"
-                  ></span>
-                  <span class="text-sm text-gray-900">{{
-                    column()?.name || 'Unknown'
-                  }}</span>
-                </div>
-              </div>
+            <!-- Metadata: priority, due date, assignees, labels, milestone -->
+            <app-task-detail-metadata
+              [task]="task()"
+              [milestones]="milestones()"
+              [selectedMilestone]="selectedMilestone()"
+              [searchResults]="memberSearchResults()"
+              (priorityChanged)="onPriorityChange($event)"
+              (dueDateChanged)="onDueDateChange($event)"
+              (assigneeSearchChanged)="onAssigneeSearchChange($event)"
+              (assignRequested)="onAssign($event)"
+              (unassignRequested)="onUnassign($event)"
+              (labelRemoved)="onRemoveLabel($event)"
+              (milestoneChanged)="onMilestoneChange($event)"
+            />
 
-              <!-- Priority -->
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1"
-                  >Priority</label
-                >
-                <p-select
-                  [ngModel]="task()!.priority"
-                  (ngModelChange)="onPriorityChange($event)"
-                  [options]="prioritySelectOptions"
-                  optionLabel="label"
-                  optionValue="value"
-                  styleClass="w-full"
-                >
-                  <ng-template #selectedItem let-selected>
-                    <div class="flex items-center gap-2" *ngIf="selected">
-                      <span
-                        class="w-2.5 h-2.5 rounded-full"
-                        [style.background-color]="selected.color"
-                      ></span>
-                      {{ selected.label }}
-                    </div>
-                  </ng-template>
-                  <ng-template #item let-priority>
-                    <div class="flex items-center gap-2">
-                      <span
-                        class="w-2.5 h-2.5 rounded-full"
-                        [style.background-color]="priority.color"
-                      ></span>
-                      {{ priority.label }}
-                    </div>
-                  </ng-template>
-                </p-select>
-              </div>
-
-              <!-- Due Date -->
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1"
-                  >Due Date</label
-                >
-                <p-datePicker
-                  [ngModel]="dueDateValue()"
-                  (ngModelChange)="onDueDatePickerChange($event)"
-                  dateFormat="yy-mm-dd"
-                  [showIcon]="true"
-                  [showClear]="true"
-                  styleClass="w-full"
-                  placeholder="No due date"
-                />
-              </div>
-
-              <!-- Assignees -->
-              <div>
-                <label class="block text-sm font-medium text-gray-500 mb-1"
-                  >Assignees</label
-                >
-                <div class="flex flex-wrap gap-2 py-1">
-                  @if (task()!.assignees && task()!.assignees!.length > 0) {
-                    @for (assignee of task()!.assignees!; track assignee.id) {
-                      <div
-                        class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full text-sm"
-                      >
-                        <div
-                          class="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs"
-                        >
-                          @if (assignee.avatar_url) {
-                            <img
-                              [src]="assignee.avatar_url"
-                              [alt]="assignee.display_name"
-                              class="w-full h-full rounded-full object-cover"
-                            />
-                          } @else {
-                            {{ getInitials(assignee.display_name) }}
-                          }
-                        </div>
-                        <span>{{ assignee.display_name }}</span>
-                        <button
-                          (click)="onUnassign(assignee)"
-                          class="ml-1 text-gray-400 hover:text-gray-600"
-                        >
-                          <i class="pi pi-times text-xs"></i>
-                        </button>
-                      </div>
-                    }
-                  }
-                  <button
-                    (click)="toggleAssigneeSearch()"
-                    class="inline-flex items-center gap-1 px-2 py-1 text-sm text-indigo-600 hover:bg-indigo-50 rounded-full"
-                  >
-                    <i class="pi pi-plus text-xs"></i>
-                    Add
-                  </button>
-                </div>
-
-                <!-- Assignee Search Dropdown -->
-                @if (showAssigneeSearch()) {
-                  <div
-                    class="mt-2 bg-white border border-gray-200 rounded-md shadow-lg"
-                  >
-                    <input
-                      pInputText
-                      type="text"
-                      [ngModel]="assigneeSearchQuery()"
-                      (ngModelChange)="onAssigneeSearchChange($event)"
-                      placeholder="Search members..."
-                      class="w-full border-0 border-b border-gray-200"
-                    />
-                    <div class="max-h-48 overflow-y-auto p-2">
-                      @for (member of searchResults(); track member.id) {
-                        <button
-                          (click)="onAssign(member)"
-                          class="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-gray-100 rounded"
-                        >
-                          <div
-                            class="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs"
-                          >
-                            {{ getInitials(member.name || '') }}
-                          </div>
-                          <span>{{ member.name || member.email }}</span>
-                        </button>
-                      }
-                      @if (
-                        searchResults().length === 0 && assigneeSearchQuery()
-                      ) {
-                        <div
-                          class="px-2 py-4 text-sm text-gray-500 text-center"
-                        >
-                          No members found
-                        </div>
-                      }
-                    </div>
-                  </div>
-                }
-              </div>
-            </div>
-
-            <!-- Description -->
-            <div>
-              <label class="block text-sm font-medium text-gray-500 mb-1"
-                >Description</label
-              >
-              <textarea
-                pTextarea
-                [ngModel]="task()!.description || ''"
-                (ngModelChange)="onDescriptionChange($event)"
-                (blur)="saveDescription()"
-                rows="4"
-                class="w-full"
-                placeholder="Add a description..."
-              ></textarea>
-            </div>
-
-            <!-- Labels -->
-            <div>
-              <label class="block text-sm font-medium text-gray-500 mb-2"
-                >Labels</label
-              >
-              <div class="flex flex-wrap gap-2">
-                @if (task()!.labels && task()!.labels!.length > 0) {
-                  @for (label of task()!.labels!; track label.id) {
-                    <span
-                      class="inline-flex items-center px-2.5 py-1 rounded text-sm font-medium"
-                      [style.background-color]="label.color + '20'"
-                      [style.color]="label.color"
-                    >
-                      {{ label.name }}
-                      <button
-                        (click)="onRemoveLabel(label.id)"
-                        class="ml-1.5 hover:opacity-70"
-                      >
-                        <i class="pi pi-times text-xs"></i>
-                      </button>
-                    </span>
-                  }
-                } @else {
-                  <span class="text-sm text-gray-400">No labels</span>
-                }
-              </div>
-            </div>
-
-            <!-- Milestone -->
-            <div class="border-t border-gray-200 pt-6">
-              <label class="block text-sm font-medium text-gray-500 mb-2"
-                >Milestone</label
-              >
-              <div class="flex items-center gap-2">
-                @if (selectedMilestone()) {
-                  <span
-                    class="w-3 h-3 rounded-full flex-shrink-0"
-                    [style.background-color]="selectedMilestone()!.color"
-                  ></span>
-                  <span class="text-sm text-gray-900">{{
-                    selectedMilestone()!.name
-                  }}</span>
-                  <button
-                    (click)="onClearMilestone()"
-                    class="ml-auto p-1 text-gray-400 hover:text-gray-600 rounded"
-                    pTooltip="Remove milestone"
-                  >
-                    <i class="pi pi-times text-xs"></i>
-                  </button>
-                } @else {
-                  <span class="text-sm text-gray-400">None</span>
-                }
-              </div>
-              <p-select
-                [ngModel]="task()?.milestone_id || ''"
-                (ngModelChange)="onMilestoneChange($event)"
-                [options]="milestoneSelectOptions()"
-                optionLabel="name"
-                optionValue="id"
-                placeholder="No milestone"
-                [showClear]="true"
-                styleClass="w-full mt-2"
-              />
-            </div>
-
-            <!-- Dependencies -->
-            <div class="border-t border-gray-200 pt-6">
-              <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center gap-2">
-                  <i class="pi pi-link text-gray-400"></i>
-                  <h3 class="text-sm font-medium text-gray-900">
-                    Dependencies
-                  </h3>
-                  <span class="text-xs text-gray-400"
-                    >({{ dependencies().length }})</span
-                  >
-                </div>
-                <button
-                  (click)="toggleAddDependency()"
-                  class="inline-flex items-center gap-1 px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 rounded"
-                >
-                  <i class="pi pi-plus text-xs"></i>
-                  Add
-                </button>
-              </div>
-
-              <!-- Add Dependency Form -->
-              @if (showAddDependency()) {
-                <div class="mb-3 bg-gray-50 rounded-md p-3 space-y-2">
-                  <p-select
-                    [ngModel]="selectedDepType()"
-                    (ngModelChange)="selectedDepType.set($event)"
-                    [options]="depTypeOptions"
-                    optionLabel="label"
-                    optionValue="value"
-                    styleClass="w-full"
+            <!-- Tabbed content area -->
+            <p-tabs value="0">
+              <p-tablist>
+                <p-tab value="0">
+                  <i class="pi pi-align-left mr-1"></i> Description
+                </p-tab>
+                <p-tab value="1">
+                  <i class="pi pi-check-square mr-1"></i> Subtasks
+                </p-tab>
+                <p-tab value="2">
+                  <i class="pi pi-comments mr-1"></i> Activity
+                </p-tab>
+                <p-tab value="3">
+                  <i class="pi pi-cog mr-1"></i> Details
+                </p-tab>
+              </p-tablist>
+              <p-tabpanels>
+                <p-tabpanel value="0">
+                  <app-task-detail-description
+                    [description]="task()!.description"
+                    (descriptionChanged)="onDescriptionSave($event)"
                   />
-                  <input
-                    pInputText
-                    type="text"
-                    [ngModel]="depSearchQuery()"
-                    (ngModelChange)="onDepSearchChange($event)"
-                    placeholder="Search tasks..."
-                    class="w-full"
+                </p-tabpanel>
+                <p-tabpanel value="1">
+                  <app-subtask-list [taskId]="taskId()" />
+                </p-tabpanel>
+                <p-tabpanel value="2">
+                  <app-task-detail-activity [taskId]="taskId()" />
+                </p-tabpanel>
+                <p-tabpanel value="3">
+                  <app-task-detail-fields
+                    [taskId]="taskId()"
+                    [dependencies]="dependencies()"
+                    [blockingDeps]="blockingDeps()"
+                    [blockedByDeps]="blockedByDeps()"
+                    [relatedDeps]="relatedDeps()"
+                    [depSearchResults]="depSearchResults()"
+                    [customFields]="customFields()"
+                    [recurringConfig]="recurringConfig()"
+                    [timeEntries]="timeEntries()"
+                    [runningTimer]="runningTimerForTask()"
+                    [elapsedTime]="elapsedTime()"
+                    (dependencyAdded)="onAddDependency($event)"
+                    (dependencyRemoved)="onRemoveDependency($event)"
+                    (depSearchChanged)="onDepSearchChange($event)"
+                    (customFieldChanged)="onCustomFieldChanged($event)"
+                    (customFieldSaveRequested)="saveCustomFields()"
+                    (recurringSaved)="onSaveRecurring($event)"
+                    (recurringRemoved)="onRemoveRecurring()"
+                    (timerStarted)="onStartTimer()"
+                    (timerStopped)="onStopTimer()"
+                    (timeEntryLogged)="onSubmitLogTime($event)"
+                    (timeEntryDeleted)="onDeleteTimeEntry($event)"
                   />
-                  @if (depSearchResults().length > 0) {
-                    <div
-                      class="max-h-40 overflow-y-auto border border-gray-200 rounded-md bg-white"
-                    >
-                      @for (t of depSearchResults(); track t.id) {
-                        <button
-                          (click)="onAddDependency(t)"
-                          class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 text-left"
-                        >
-                          <span
-                            class="w-2 h-2 rounded-full flex-shrink-0"
-                            [class.bg-red-500]="t.priority === 'urgent'"
-                            [class.bg-orange-500]="t.priority === 'high'"
-                            [class.bg-yellow-500]="t.priority === 'medium'"
-                            [class.bg-blue-500]="t.priority === 'low'"
-                          ></span>
-                          <span class="truncate">{{ t.title }}</span>
-                          <span
-                            class="text-xs text-gray-400 ml-auto flex-shrink-0"
-                            >{{ t.column_name }}</span
-                          >
-                        </button>
-                      }
-                    </div>
-                  }
-                </div>
-              }
+                </p-tabpanel>
+              </p-tabpanels>
+            </p-tabs>
 
-              <!-- Blocking (tasks this task blocks) -->
-              @if (blockingDeps().length > 0) {
-                <div class="mb-2">
-                  <span
-                    class="text-xs font-medium text-red-600 uppercase tracking-wide"
-                    >Blocking</span
-                  >
-                  <div class="mt-1 space-y-1">
-                    @for (dep of blockingDeps(); track dep.id) {
-                      <div
-                        class="flex items-center justify-between px-2 py-1.5 bg-red-50 rounded text-sm group"
-                      >
-                        <div class="flex items-center gap-2 min-w-0">
-                          <span
-                            class="w-2 h-2 rounded-full flex-shrink-0"
-                            [class.bg-red-500]="
-                              dep.related_task_priority === 'urgent'
-                            "
-                            [class.bg-orange-500]="
-                              dep.related_task_priority === 'high'
-                            "
-                            [class.bg-yellow-500]="
-                              dep.related_task_priority === 'medium'
-                            "
-                            [class.bg-blue-500]="
-                              dep.related_task_priority === 'low'
-                            "
-                          ></span>
-                          <span class="truncate text-red-800">{{
-                            dep.related_task_title
-                          }}</span>
-                          <span class="text-xs text-red-400 flex-shrink-0">{{
-                            dep.related_task_column_name
-                          }}</span>
-                        </div>
-                        <button
-                          (click)="onRemoveDependency(dep.id)"
-                          class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 p-0.5"
-                        >
-                          <i class="pi pi-times text-xs"></i>
-                        </button>
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-
-              <!-- Blocked by (tasks that block this task) -->
-              @if (blockedByDeps().length > 0) {
-                <div class="mb-2">
-                  <span
-                    class="text-xs font-medium text-orange-600 uppercase tracking-wide"
-                    >Blocked by</span
-                  >
-                  <div class="mt-1 space-y-1">
-                    @for (dep of blockedByDeps(); track dep.id) {
-                      <div
-                        class="flex items-center justify-between px-2 py-1.5 bg-orange-50 rounded text-sm group"
-                      >
-                        <div class="flex items-center gap-2 min-w-0">
-                          <span
-                            class="w-2 h-2 rounded-full flex-shrink-0"
-                            [class.bg-red-500]="
-                              dep.related_task_priority === 'urgent'
-                            "
-                            [class.bg-orange-500]="
-                              dep.related_task_priority === 'high'
-                            "
-                            [class.bg-yellow-500]="
-                              dep.related_task_priority === 'medium'
-                            "
-                            [class.bg-blue-500]="
-                              dep.related_task_priority === 'low'
-                            "
-                          ></span>
-                          <span class="truncate text-orange-800">{{
-                            dep.related_task_title
-                          }}</span>
-                          <span
-                            class="text-xs text-orange-400 flex-shrink-0"
-                            >{{
-                              dep.related_task_column_name
-                            }}</span
-                          >
-                        </div>
-                        <button
-                          (click)="onRemoveDependency(dep.id)"
-                          class="opacity-0 group-hover:opacity-100 text-orange-400 hover:text-orange-600 p-0.5"
-                        >
-                          <i class="pi pi-times text-xs"></i>
-                        </button>
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-
-              <!-- Related -->
-              @if (relatedDeps().length > 0) {
-                <div class="mb-2">
-                  <span
-                    class="text-xs font-medium text-gray-500 uppercase tracking-wide"
-                    >Related</span
-                  >
-                  <div class="mt-1 space-y-1">
-                    @for (dep of relatedDeps(); track dep.id) {
-                      <div
-                        class="flex items-center justify-between px-2 py-1.5 bg-gray-50 rounded text-sm group"
-                      >
-                        <div class="flex items-center gap-2 min-w-0">
-                          <span
-                            class="w-2 h-2 rounded-full flex-shrink-0"
-                            [class.bg-red-500]="
-                              dep.related_task_priority === 'urgent'
-                            "
-                            [class.bg-orange-500]="
-                              dep.related_task_priority === 'high'
-                            "
-                            [class.bg-yellow-500]="
-                              dep.related_task_priority === 'medium'
-                            "
-                            [class.bg-blue-500]="
-                              dep.related_task_priority === 'low'
-                            "
-                          ></span>
-                          <span class="truncate text-gray-800">{{
-                            dep.related_task_title
-                          }}</span>
-                          <span
-                            class="text-xs text-gray-400 flex-shrink-0"
-                            >{{
-                              dep.related_task_column_name
-                            }}</span
-                          >
-                        </div>
-                        <button
-                          (click)="onRemoveDependency(dep.id)"
-                          class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 p-0.5"
-                        >
-                          <i class="pi pi-times text-xs"></i>
-                        </button>
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-
-              @if (dependencies().length === 0 && !showAddDependency()) {
-                <div class="text-sm text-gray-400">No dependencies</div>
-              }
-            </div>
-
-            <!-- Recurring -->
-            <div class="border-t border-gray-200 pt-6">
-              <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center gap-2">
-                  <i class="pi pi-replay text-gray-400"></i>
-                  <h3 class="text-sm font-medium text-gray-900">Recurring</h3>
-                </div>
-                @if (!recurringConfig() && !showRecurringForm()) {
-                  <button
-                    (click)="toggleRecurringForm()"
-                    class="inline-flex items-center gap-1 px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 rounded"
-                  >
-                    <i class="pi pi-plus text-xs"></i>
-                    Set as recurring
-                  </button>
-                }
-              </div>
-              @if (recurringConfig()) {
-                <div class="bg-indigo-50 rounded-md p-3 space-y-2">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm font-medium text-indigo-800"
-                        >Repeats:
-                        {{
-                          getPatternLabel(recurringConfig()!.pattern)
-                        }}</span
-                      >
-                      @if (!recurringConfig()!.is_active) {
-                        <span
-                          class="text-xs px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded"
-                          >Paused</span
-                        >
-                      }
-                    </div>
-                    <div class="flex items-center gap-1">
-                      <button
-                        (click)="toggleRecurringForm()"
-                        class="p-1 text-indigo-400 hover:text-indigo-600 rounded"
-                        pTooltip="Edit"
-                      >
-                        <i class="pi pi-pencil text-xs"></i>
-                      </button>
-                      <button
-                        (click)="onRemoveRecurring()"
-                        class="p-1 text-red-400 hover:text-red-600 rounded"
-                        pTooltip="Remove"
-                      >
-                        <i class="pi pi-times text-xs"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <div class="text-xs text-indigo-600 space-y-1">
-                    <div>
-                      Next run:
-                      {{ formatDate(recurringConfig()!.next_run_at) }}
-                    </div>
-                    <div>
-                      Occurrences:
-                      {{ recurringConfig()!.occurrences_created
-                      }}{{
-                        recurringConfig()!.max_occurrences
-                          ? ' / ' + recurringConfig()!.max_occurrences
-                          : ''
-                      }}
-                    </div>
-                    @if (
-                      recurringConfig()!.interval_days &&
-                      recurringConfig()!.pattern === 'custom'
-                    ) {
-                      <div>
-                        Every {{ recurringConfig()!.interval_days }} days
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-              @if (showRecurringForm()) {
-                <div class="bg-gray-50 rounded-md p-3 space-y-3">
-                  <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1"
-                      >Pattern</label
-                    >
-                    <p-select
-                      [ngModel]="recurringPattern()"
-                      (ngModelChange)="recurringPattern.set($event)"
-                      [options]="recurringPatternOptions"
-                      optionLabel="label"
-                      optionValue="value"
-                      styleClass="w-full"
-                    />
-                  </div>
-                  @if (recurringPattern() === 'custom') {
-                    <div>
-                      <label
-                        class="block text-xs font-medium text-gray-500 mb-1"
-                        >Interval (days)</label
-                      >
-                      <input
-                        pInputText
-                        type="number"
-                        min="1"
-                        [ngModel]="recurringIntervalDays()"
-                        (ngModelChange)="recurringIntervalDays.set($event)"
-                        class="w-full"
-                        placeholder="e.g. 3"
-                      />
-                    </div>
-                  }
-                  <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1"
-                      >Max occurrences (optional)</label
-                    >
-                    <input
-                      pInputText
-                      type="number"
-                      min="1"
-                      [ngModel]="recurringMaxOccurrences()"
-                      (ngModelChange)="recurringMaxOccurrences.set($event)"
-                      class="w-full"
-                      placeholder="Leave empty for unlimited"
-                    />
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <p-button
-                      [label]="recurringConfig() ? 'Update' : 'Save'"
-                      (onClick)="onSaveRecurring()"
-                      size="small"
-                    />
-                    <p-button
-                      label="Cancel"
-                      [text]="true"
-                      severity="secondary"
-                      (onClick)="toggleRecurringForm()"
-                      size="small"
-                    />
-                  </div>
-                </div>
-              }
-              @if (!recurringConfig() && !showRecurringForm()) {
-                <div class="text-sm text-gray-400">Not recurring</div>
-              }
-            </div>
-
-            <!-- Subtasks / Checklist -->
-            <div class="border-t border-gray-200 pt-6">
-              <app-subtask-list [taskId]="taskId()" />
-            </div>
-
-            <!-- Custom Fields -->
-            @if (customFields().length > 0) {
-              <div class="border-t border-gray-200 pt-6">
-                <div class="flex items-center gap-2 mb-3">
-                  <i class="pi pi-clipboard text-gray-400"></i>
-                  <h3 class="text-sm font-medium text-gray-900">
-                    Custom Fields
-                  </h3>
-                </div>
-                <div class="space-y-3">
-                  @for (cf of customFields(); track cf.field_id) {
-                    <div class="flex flex-col gap-1">
-                      <label class="text-xs font-medium text-gray-500">
-                        {{ cf.field_name }}
-                        @if (cf.is_required) {
-                          <span class="text-red-500">*</span>
-                        }
-                      </label>
-                      @switch (cf.field_type) {
-                        @case ('text') {
-                          <input
-                            pInputText
-                            type="text"
-                            [ngModel]="cf.value_text || ''"
-                            (ngModelChange)="
-                              onCustomFieldTextChange(cf.field_id, $event)
-                            "
-                            (blur)="saveCustomFields()"
-                            class="w-full"
-                            placeholder="Enter text..."
-                          />
-                        }
-                        @case ('number') {
-                          <input
-                            pInputText
-                            type="number"
-                            [ngModel]="cf.value_number"
-                            (ngModelChange)="
-                              onCustomFieldNumberChange(cf.field_id, $event)
-                            "
-                            (blur)="saveCustomFields()"
-                            class="w-full"
-                            placeholder="Enter number..."
-                          />
-                        }
-                        @case ('date') {
-                          <p-datePicker
-                            [ngModel]="
-                              cf.value_date ? toDate(cf.value_date) : null
-                            "
-                            (ngModelChange)="
-                              onCustomFieldDatePickerChange(cf.field_id, $event)
-                            "
-                            dateFormat="yy-mm-dd"
-                            [showIcon]="true"
-                            [showClear]="true"
-                            styleClass="w-full"
-                          />
-                        }
-                        @case ('dropdown') {
-                          <p-select
-                            [ngModel]="cf.value_text || ''"
-                            (ngModelChange)="
-                              onCustomFieldDropdownChange(cf.field_id, $event)
-                            "
-                            [options]="getDropdownSelectOptions(cf.options)"
-                            optionLabel="label"
-                            optionValue="value"
-                            placeholder="Select..."
-                            [showClear]="true"
-                            styleClass="w-full"
-                          />
-                        }
-                        @case ('checkbox') {
-                          <label
-                            class="inline-flex items-center gap-2 cursor-pointer"
-                          >
-                            <input
-                              type="checkbox"
-                              [ngModel]="cf.value_bool || false"
-                              (ngModelChange)="
-                                onCustomFieldCheckboxChange(
-                                  cf.field_id,
-                                  $event
-                                )
-                              "
-                              class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                            />
-                            <span class="text-sm text-gray-700">{{
-                              cf.value_bool ? 'Yes' : 'No'
-                            }}</span>
-                          </label>
-                        }
-                      }
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-
-            <!-- Time Tracking -->
-            <div class="border-t border-gray-200 pt-6">
-              <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center gap-2">
-                  <i class="pi pi-clock text-gray-400"></i>
-                  <h3 class="text-sm font-medium text-gray-900">
-                    Time Tracking
-                  </h3>
-                  @if (timeEntryTotalMinutes() > 0) {
-                    <span class="text-xs text-gray-400"
-                      >({{ formatDuration(timeEntryTotalMinutes()) }})</span
-                    >
-                  }
-                </div>
-                <button
-                  (click)="toggleLogTimeForm()"
-                  class="inline-flex items-center gap-1 px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 rounded"
-                >
-                  <i class="pi pi-plus text-xs"></i>
-                  Log Time
-                </button>
-              </div>
-
-              <!-- Timer Control -->
-              <div class="mb-3">
-                @if (runningTimerForTask()) {
-                  <div
-                    class="flex items-center gap-3 px-3 py-2 bg-red-50 rounded-md"
-                  >
-                    <div
-                      class="w-2 h-2 rounded-full bg-red-500 animate-pulse"
-                    ></div>
-                    <span class="text-sm font-mono text-red-700 flex-1">{{
-                      elapsedTime()
-                    }}</span>
-                    <p-button
-                      label="Stop"
-                      icon="pi pi-stop"
-                      severity="danger"
-                      size="small"
-                      (onClick)="onStopTimer()"
-                    />
-                  </div>
-                } @else {
-                  <p-button
-                    label="Start Timer"
-                    icon="pi pi-play"
-                    severity="success"
-                    [outlined]="true"
-                    styleClass="w-full"
-                    (onClick)="onStartTimer()"
-                  />
-                }
-              </div>
-
-              <!-- Log Time Form -->
-              @if (showLogTimeForm()) {
-                <div class="mb-3 bg-gray-50 rounded-md p-3 space-y-2">
-                  <div class="flex gap-2">
-                    <div class="flex-1">
-                      <label class="block text-xs text-gray-500 mb-1"
-                        >Hours</label
-                      >
-                      <input
-                        pInputText
-                        type="number"
-                        min="0"
-                        [ngModel]="logTimeHours()"
-                        (ngModelChange)="logTimeHours.set($event)"
-                        class="w-full"
-                        placeholder="0"
-                      />
-                    </div>
-                    <div class="flex-1">
-                      <label class="block text-xs text-gray-500 mb-1"
-                        >Minutes</label
-                      >
-                      <input
-                        pInputText
-                        type="number"
-                        min="0"
-                        max="59"
-                        [ngModel]="logTimeMinutes()"
-                        (ngModelChange)="logTimeMinutes.set($event)"
-                        class="w-full"
-                        placeholder="0"
-                      />
-                    </div>
-                  </div>
-                  <input
-                    pInputText
-                    type="text"
-                    [ngModel]="logTimeDescription()"
-                    (ngModelChange)="logTimeDescription.set($event)"
-                    placeholder="Description (optional)"
-                    class="w-full"
-                  />
-                  <p-datePicker
-                    [ngModel]="logTimeDateValue()"
-                    (ngModelChange)="onLogTimeDateChange($event)"
-                    dateFormat="yy-mm-dd"
-                    [showIcon]="true"
-                    styleClass="w-full"
-                  />
-                  <div class="flex gap-2">
-                    <p-button
-                      label="Log Time"
-                      (onClick)="onSubmitLogTime()"
-                      styleClass="flex-1"
-                      size="small"
-                    />
-                    <p-button
-                      label="Cancel"
-                      [text]="true"
-                      severity="secondary"
-                      (onClick)="toggleLogTimeForm()"
-                      size="small"
-                    />
-                  </div>
-                </div>
-              }
-
-              <!-- Time Entries List -->
-              @if (timeEntries().length > 0) {
-                <div class="space-y-1">
-                  @for (entry of timeEntries(); track entry.id) {
-                    <div
-                      class="flex items-center justify-between px-2 py-1.5 hover:bg-gray-50 rounded text-sm group"
-                    >
-                      <div class="flex items-center gap-2 min-w-0">
-                        <span class="font-mono text-gray-700 flex-shrink-0">
-                          {{ formatDuration(entry.duration_minutes || 0) }}
-                        </span>
-                        @if (entry.description) {
-                          <span class="text-gray-500 truncate">{{
-                            entry.description
-                          }}</span>
-                        }
-                      </div>
-                      <div class="flex items-center gap-2">
-                        <span class="text-xs text-gray-400 flex-shrink-0">{{
-                          formatDate(entry.started_at)
-                        }}</span>
-                        <button
-                          (click)="onDeleteTimeEntry(entry.id)"
-                          class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600 p-0.5"
-                        >
-                          <i class="pi pi-times text-xs"></i>
-                        </button>
-                      </div>
-                    </div>
-                  }
-                </div>
-              } @else if (!showLogTimeForm()) {
-                <div class="text-sm text-gray-400">No time entries</div>
-              }
-            </div>
-
-            <!-- Comments Placeholder -->
-            <div class="border-t border-gray-200 pt-6">
-              <div class="flex items-center gap-2 mb-4">
-                <i class="pi pi-comments text-gray-400"></i>
-                <h3 class="text-sm font-medium text-gray-900">Comments</h3>
-              </div>
-              <div
-                class="bg-gray-50 rounded-md p-4 text-center text-sm text-gray-500"
-              >
-                Comments will be available in a future update
-              </div>
-            </div>
-
-            <!-- Attachments Placeholder -->
-            <div class="border-t border-gray-200 pt-6">
-              <div class="flex items-center gap-2 mb-4">
-                <i class="pi pi-paperclip text-gray-400"></i>
-                <h3 class="text-sm font-medium text-gray-900">Attachments</h3>
-              </div>
-              <div
-                class="bg-gray-50 rounded-md p-4 text-center text-sm text-gray-500"
-              >
-                Attachments will be available in a future update
-              </div>
-            </div>
-
-            <!-- Footer (inside scrollable content) -->
+            <!-- Footer: delete -->
             <div class="border-t border-gray-200 pt-4">
-              <div class="flex items-center justify-between">
-                <div class="text-xs text-gray-500">
-                  Created {{ formatDate(task()!.created_at) }}
-                </div>
+              <div class="flex items-center justify-end">
                 <p-button
                   label="Delete"
                   icon="pi pi-trash"
@@ -1041,6 +208,7 @@ import {
         </div>
       }
     </p-drawer>
+    <p-confirmDialog />
   `,
 })
 export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
@@ -1052,26 +220,31 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   private customFieldService = inject(CustomFieldService);
   private recurringService = inject(RecurringService);
   private timeTrackingService = inject(TimeTrackingService);
+  private confirmationService = inject(ConfirmationService);
 
+  // Inputs
   taskId = input.required<string>();
   workspaceId = input.required<string>();
   boardId = input<string>('');
 
+  // Outputs
   closed = output<void>();
   taskUpdated = output<Task>();
 
+  // Core state
   loading = signal(true);
   task = signal<Task | null>(null);
   column = signal<Column | null>(null);
-  showAssigneeSearch = signal(false);
-  assigneeSearchQuery = signal('');
-  searchResults = signal<MemberSearchResult[]>([]);
+  drawerVisible = true;
+
+  // Member search
+  memberSearchResults = signal<MemberSearchResult[]>([]);
 
   // Dependencies
   dependencies = signal<TaskDependency[]>([]);
-  showAddDependency = signal(false);
-  selectedDepType = signal<DependencyType>('blocks');
-  depSearchQuery = signal('');
+  blockingDeps = signal<TaskDependency[]>([]);
+  blockedByDeps = signal<TaskDependency[]>([]);
+  relatedDeps = signal<TaskDependency[]>([]);
   depSearchResults = signal<TaskListItem[]>([]);
   private boardTasks = signal<TaskListItem[]>([]);
 
@@ -1079,81 +252,20 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   milestones = signal<Milestone[]>([]);
   selectedMilestone = signal<Milestone | null>(null);
 
-  // Computed dependency groups
-  blockingDeps = signal<TaskDependency[]>([]);
-  blockedByDeps = signal<TaskDependency[]>([]);
-  relatedDeps = signal<TaskDependency[]>([]);
-
-  // Custom Fields
+  // Custom fields
   customFields = signal<TaskCustomFieldValueWithField[]>([]);
-  private customFieldDebounceTimer: any = null;
+  private customFieldDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Recurring
   recurringConfig = signal<RecurringTaskConfig | null>(null);
-  showRecurringForm = signal(false);
-  recurringPattern = signal<RecurrencePattern>('weekly');
-  recurringIntervalDays = signal<number | null>(null);
-  recurringMaxOccurrences = signal<number | null>(null);
 
-  // Time Tracking
+  // Time tracking
   timeEntries = signal<TimeEntry[]>([]);
   runningTimerForTask = signal<TimeEntry | null>(null);
   elapsedTime = signal('00:00:00');
-  showLogTimeForm = signal(false);
-  logTimeHours = signal(0);
-  logTimeMinutes = signal(0);
-  logTimeDescription = signal('');
-  logTimeDate = signal(new Date().toISOString().split('T')[0]);
   private timerInterval: ReturnType<typeof setInterval> | null = null;
 
-  priorityOptions: TaskPriority[] = ['urgent', 'high', 'medium', 'low'];
-
-  // PrimeNG Drawer visibility - always true when component is rendered; parent controls lifecycle via @if
-  drawerVisible = true;
-
-  // PrimeNG Select options
-  prioritySelectOptions = [
-    { value: 'urgent', label: 'Urgent', color: '#ef4444' },
-    { value: 'high', label: 'High', color: '#f97316' },
-    { value: 'medium', label: 'Medium', color: '#facc15' },
-    { value: 'low', label: 'Low', color: '#60a5fa' },
-  ];
-
-  depTypeOptions = [
-    { value: 'blocks', label: 'Blocks' },
-    { value: 'blocked_by', label: 'Blocked by' },
-    { value: 'related', label: 'Related to' },
-  ];
-
-  recurringPatternOptions = [
-    { value: 'daily', label: 'Daily' },
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'biweekly', label: 'Biweekly' },
-    { value: 'monthly', label: 'Monthly' },
-    { value: 'custom', label: 'Custom' },
-  ];
-
-  // Computed values for PrimeNG components
-  dueDateValue = computed(() => {
-    const d = this.task()?.due_date;
-    return d ? new Date(d) : null;
-  });
-
-  milestoneSelectOptions = computed(() => {
-    return this.milestones().map((ms) => ({
-      id: ms.id,
-      name: ms.name,
-      color: ms.color,
-    }));
-  });
-
-  logTimeDateValue = computed(() => {
-    const d = this.logTimeDate();
-    return d ? new Date(d) : new Date();
-  });
-
-  private pendingTitle = '';
-  private pendingDescription = '';
+  // ── Lifecycle ──────────────────────────────────────────────
 
   ngOnInit(): void {
     this.loadTask();
@@ -1167,62 +279,23 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
 
   ngOnDestroy(): void {
     this.clearTimerInterval();
+    if (this.customFieldDebounceTimer) {
+      clearTimeout(this.customFieldDebounceTimer);
+    }
   }
 
-  timeEntryTotalMinutes(): number {
-    return this.timeEntries().reduce(
-      (sum, e) => sum + (e.duration_minutes || 0),
-      0,
-    );
-  }
-
-  getPriorityLabel(priority: TaskPriority): string {
-    return getPriorityLabel(priority);
-  }
-
-  getDueDateColor(dueDate: string | null): string {
-    return getDueDateColor(dueDate);
-  }
-
-  getInitials(name: string): string {
-    return name
-      .split(' ')
-      .map((n) => n.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  }
-
-  formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  }
+  // ── Event handlers from sub-components ─────────────────────
 
   onClose(): void {
     this.closed.emit();
   }
 
-  onTitleChange(title: string): void {
-    this.pendingTitle = title;
+  onTitleSave(title: string): void {
+    this.updateTask({ title });
   }
 
-  saveTitle(): void {
-    if (this.pendingTitle && this.pendingTitle !== this.task()?.title) {
-      this.updateTask({ title: this.pendingTitle });
-    }
-  }
-
-  onDescriptionChange(description: string): void {
-    this.pendingDescription = description;
-  }
-
-  saveDescription(): void {
-    if (this.pendingDescription !== this.task()?.description) {
-      this.updateTask({ description: this.pendingDescription || null });
-    }
+  onDescriptionSave(description: string): void {
+    this.updateTask({ description: description || null });
   }
 
   onPriorityChange(priority: TaskPriority): void {
@@ -1233,56 +306,14 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     this.updateTask({ due_date: dueDate || null });
   }
 
-  onDueDatePickerChange(date: Date | null): void {
-    this.onDueDateChange(date ? date.toISOString().split('T')[0] : '');
-  }
-
-  onLogTimeDateChange(date: Date | null): void {
-    this.logTimeDate.set(
-      date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-    );
-  }
-
-  toDate(dateString: string): Date {
-    return new Date(dateString);
-  }
-
-  onCustomFieldDatePickerChange(fieldId: string, date: Date | null): void {
-    this.onCustomFieldDateChange(
-      fieldId,
-      date ? date.toISOString().split('T')[0] : '',
-    );
-  }
-
-  getDropdownSelectOptions(
-    options: unknown,
-  ): { label: string; value: string }[] {
-    return this.getDropdownOptions(options).map((opt) => ({
-      label: opt,
-      value: opt,
-    }));
-  }
-
-  toggleAssigneeSearch(): void {
-    this.showAssigneeSearch.update((v) => !v);
-    if (!this.showAssigneeSearch()) {
-      this.assigneeSearchQuery.set('');
-      this.searchResults.set([]);
-    }
-  }
-
   onAssigneeSearchChange(query: string): void {
-    this.assigneeSearchQuery.set(query);
     if (!query || query.length < 2) {
-      this.searchResults.set([]);
+      this.memberSearchResults.set([]);
       return;
     }
     this.workspaceService.searchMembers(this.workspaceId(), query).subscribe({
-      next: (results) => this.searchResults.set(results),
-      error: (err) => {
-        console.error('Failed to search members:', err);
-        this.searchResults.set([]);
-      },
+      next: (results) => this.memberSearchResults.set(results),
+      error: () => this.memberSearchResults.set([]),
     });
   }
 
@@ -1292,7 +323,6 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
 
     this.taskService.assignUser(task.id, member.id).subscribe({
       next: () => {
-        // Add assignee to local state
         const newAssignee: Assignee = {
           id: member.id,
           display_name: member.name || 'Unknown',
@@ -1304,9 +334,8 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
         };
         this.task.set(updatedTask);
         this.taskUpdated.emit(updatedTask);
-        this.toggleAssigneeSearch();
       },
-      error: (err) => console.error('Failed to assign user:', err),
+      error: () => {},
     });
   }
 
@@ -1323,7 +352,7 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
         this.task.set(updatedTask);
         this.taskUpdated.emit(updatedTask);
       },
-      error: (err) => console.error('Failed to unassign user:', err),
+      error: () => {},
     });
   }
 
@@ -1340,7 +369,7 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
         this.task.set(updatedTask);
         this.taskUpdated.emit(updatedTask);
       },
-      error: (err) => console.error('Failed to remove label:', err),
+      error: () => {},
     });
   }
 
@@ -1358,91 +387,65 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
             this.milestones().find((m) => m.id === milestoneId) || null;
           this.selectedMilestone.set(ms);
         },
-        error: (err) => console.error('Failed to assign milestone:', err),
+        error: () => {},
       });
     } else {
       this.onClearMilestone();
     }
   }
 
-  onClearMilestone(): void {
-    const task = this.task();
-    if (!task) return;
-
-    this.milestoneService.unassignTask(task.id).subscribe({
-      next: () => {
-        const updatedTask = { ...task, milestone_id: null };
-        this.task.set(updatedTask);
-        this.taskUpdated.emit(updatedTask);
-        this.selectedMilestone.set(null);
-      },
-      error: (err) => console.error('Failed to unassign milestone:', err),
-    });
-  }
-
   onDelete(): void {
     const task = this.task();
     if (!task) return;
 
-    if (!confirm('Are you sure you want to delete this task?')) {
-      return;
-    }
-
-    this.taskService.deleteTask(task.id).subscribe({
-      next: () => {
-        this.closed.emit();
+    this.confirmationService.confirm({
+      message: `Are you sure you want to delete "${task.title}"? This action cannot be undone.`,
+      header: 'Delete Task',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger p-button-sm',
+      rejectButtonStyleClass: 'p-button-text p-button-sm',
+      accept: () => {
+        this.taskService.deleteTask(task.id).subscribe({
+          next: () => this.closed.emit(),
+          error: () => {},
+        });
       },
-      error: (err) => console.error('Failed to delete task:', err),
     });
   }
 
-  // -- Dependency methods --
-
-  toggleAddDependency(): void {
-    this.showAddDependency.update((v) => !v);
-    if (!this.showAddDependency()) {
-      this.depSearchQuery.set('');
-      this.depSearchResults.set([]);
-    } else if (this.boardTasks().length === 0 && this.boardId()) {
-      // Load board tasks for the search dropdown
-      this.taskService.listFlat(this.boardId()).subscribe({
-        next: (tasks) => this.boardTasks.set(tasks),
-        error: (err) => console.error('Failed to load board tasks:', err),
-      });
-    }
-  }
+  // ── Dependency handlers ────────────────────────────────────
 
   onDepSearchChange(query: string): void {
-    this.depSearchQuery.set(query);
     if (!query || query.length < 2) {
       this.depSearchResults.set([]);
       return;
     }
-    const currentTaskId = this.taskId();
-    const existingDepTaskIds = new Set(
-      this.dependencies().map((d) => d.related_task_id),
-    );
-    const filtered = this.boardTasks().filter(
-      (t) =>
-        t.id !== currentTaskId &&
-        !existingDepTaskIds.has(t.id) &&
-        t.title.toLowerCase().includes(query.toLowerCase()),
-    );
-    this.depSearchResults.set(filtered.slice(0, 10));
+    // Lazy-load board tasks if needed
+    if (this.boardTasks().length === 0 && this.boardId()) {
+      this.taskService.listFlat(this.boardId()).subscribe({
+        next: (tasks) => {
+          this.boardTasks.set(tasks);
+          this.filterDepResults(query);
+        },
+        error: () => {},
+      });
+    } else {
+      this.filterDepResults(query);
+    }
   }
 
-  onAddDependency(targetTask: TaskListItem): void {
+  onAddDependency(event: {
+    targetTaskId: string;
+    depType: DependencyType;
+  }): void {
     this.dependencyService
-      .createDependency(this.taskId(), targetTask.id, this.selectedDepType())
+      .createDependency(this.taskId(), event.targetTaskId, event.depType)
       .subscribe({
         next: (dep) => {
           this.dependencies.update((deps) => [dep, ...deps]);
           this.updateDepGroups();
-          this.showAddDependency.set(false);
-          this.depSearchQuery.set('');
-          this.depSearchResults.set([]);
         },
-        error: (err) => console.error('Failed to create dependency:', err),
+        error: () => {},
       });
   }
 
@@ -1452,91 +455,22 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
         this.dependencies.update((deps) => deps.filter((d) => d.id !== depId));
         this.updateDepGroups();
       },
-      error: (err) => console.error('Failed to remove dependency:', err),
+      error: () => {},
     });
   }
 
-  private loadDependencies(): void {
-    this.dependencyService.listDependencies(this.taskId()).subscribe({
-      next: (deps) => {
-        this.dependencies.set(deps);
-        this.updateDepGroups();
-      },
-      error: (err) => console.error('Failed to load dependencies:', err),
-    });
-  }
+  // ── Custom field handlers ──────────────────────────────────
 
-  private updateDepGroups(): void {
-    const deps = this.dependencies();
-    const taskId = this.taskId();
-
-    // "Blocking" = this task is the source of a "blocks" relationship
-    const blocking = deps.filter(
-      (d) => d.dependency_type === 'blocks' && d.source_task_id === taskId,
-    );
-
-    // "Blocked by" = this task is the target of a "blocks" relationship
-    const blockedBy = deps.filter(
-      (d) => d.dependency_type === 'blocks' && d.target_task_id === taskId,
-    );
-
-    // "Related" = related dependencies
-    const related = deps.filter((d) => d.dependency_type === 'related');
-
-    this.blockingDeps.set(blocking);
-    this.blockedByDeps.set(blockedBy);
-    this.relatedDeps.set(related);
-  }
-
-  // -- Custom Field methods --
-
-  onCustomFieldTextChange(fieldId: string, value: string): void {
+  onCustomFieldChanged(event: {
+    fieldId: string;
+    field: string;
+    value: unknown;
+  }): void {
     this.customFields.update((fields) =>
       fields.map((f) =>
-        f.field_id === fieldId ? { ...f, value_text: value || null } : f,
+        f.field_id === event.fieldId ? { ...f, [event.field]: event.value } : f,
       ),
     );
-  }
-
-  onCustomFieldNumberChange(fieldId: string, value: number | null): void {
-    this.customFields.update((fields) =>
-      fields.map((f) =>
-        f.field_id === fieldId ? { ...f, value_number: value } : f,
-      ),
-    );
-  }
-
-  onCustomFieldDateChange(fieldId: string, value: string): void {
-    const dateValue = value ? new Date(value).toISOString() : null;
-    this.customFields.update((fields) =>
-      fields.map((f) =>
-        f.field_id === fieldId ? { ...f, value_date: dateValue } : f,
-      ),
-    );
-    this.saveCustomFields();
-  }
-
-  onCustomFieldDropdownChange(fieldId: string, value: string): void {
-    this.customFields.update((fields) =>
-      fields.map((f) =>
-        f.field_id === fieldId ? { ...f, value_text: value || null } : f,
-      ),
-    );
-    this.saveCustomFields();
-  }
-
-  onCustomFieldCheckboxChange(fieldId: string, value: boolean): void {
-    this.customFields.update((fields) =>
-      fields.map((f) =>
-        f.field_id === fieldId ? { ...f, value_bool: value } : f,
-      ),
-    );
-    this.saveCustomFields();
-  }
-
-  getDropdownOptions(options: any): string[] {
-    if (Array.isArray(options)) return options;
-    return [];
   }
 
   saveCustomFields(): void {
@@ -1548,31 +482,56 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     }, 500);
   }
 
-  private doSaveCustomFields(): void {
-    const fields = this.customFields();
-    if (fields.length === 0) return;
+  // ── Recurring handlers ─────────────────────────────────────
 
-    const values: SetFieldValue[] = fields.map((f) => ({
-      field_id: f.field_id,
-      value_text: f.value_text,
-      value_number: f.value_number,
-      value_date: f.value_date,
-      value_bool: f.value_bool,
-    }));
+  onSaveRecurring(event: {
+    pattern: RecurrencePattern;
+    intervalDays: number | null;
+    maxOccurrences: number | null;
+  }): void {
+    const config = this.recurringConfig();
+    const req: CreateRecurringRequest = {
+      pattern: event.pattern,
+      interval_days:
+        event.pattern === 'custom'
+          ? event.intervalDays || undefined
+          : undefined,
+      max_occurrences: event.maxOccurrences || undefined,
+    };
 
-    this.customFieldService.setTaskValues(this.taskId(), values).subscribe({
-      error: (err) => console.error('Failed to save custom fields:', err),
+    if (config) {
+      this.recurringService.updateConfig(config.id, req).subscribe({
+        next: (updated) => this.recurringConfig.set(updated),
+        error: () => {},
+      });
+    } else {
+      this.recurringService.createConfig(this.taskId(), req).subscribe({
+        next: (created) => this.recurringConfig.set(created),
+        error: () => {},
+      });
+    }
+  }
+
+  onRemoveRecurring(): void {
+    const config = this.recurringConfig();
+    if (!config) return;
+
+    this.confirmationService.confirm({
+      message: 'Remove recurring schedule from this task?',
+      header: 'Remove Recurring Schedule',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger p-button-sm',
+      rejectButtonStyleClass: 'p-button-text p-button-sm',
+      accept: () => {
+        this.recurringService.deleteConfig(config.id).subscribe({
+          next: () => this.recurringConfig.set(null),
+          error: () => {},
+        });
+      },
     });
   }
 
-  // -- Time Tracking methods --
-
-  formatDuration(minutes: number): string {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    if (h > 0) return `${h}h ${m}m`;
-    return `${m}m`;
-  }
+  // ── Time tracking handlers ─────────────────────────────────
 
   onStartTimer(): void {
     this.timeTrackingService.startTimer(this.taskId()).subscribe({
@@ -1581,7 +540,7 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
         this.timeEntries.update((entries) => [entry, ...entries]);
         this.startElapsedTimer(entry.started_at);
       },
-      error: (err) => console.error('Failed to start timer:', err),
+      error: () => {},
     });
   }
 
@@ -1597,36 +556,27 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
           entries.map((e) => (e.id === stoppedEntry.id ? stoppedEntry : e)),
         );
       },
-      error: (err) => console.error('Failed to stop timer:', err),
+      error: () => {},
     });
   }
 
-  toggleLogTimeForm(): void {
-    this.showLogTimeForm.update((v) => !v);
-    if (this.showLogTimeForm()) {
-      this.logTimeHours.set(0);
-      this.logTimeMinutes.set(0);
-      this.logTimeDescription.set('');
-      this.logTimeDate.set(new Date().toISOString().split('T')[0]);
-    }
-  }
-
-  onSubmitLogTime(): void {
-    const hours = this.logTimeHours() || 0;
-    const minutes = this.logTimeMinutes() || 0;
-    const totalMinutes = hours * 60 + minutes;
+  onSubmitLogTime(event: {
+    hours: number;
+    minutes: number;
+    description: string;
+    date: string;
+  }): void {
+    const totalMinutes = event.hours * 60 + event.minutes;
     if (totalMinutes <= 0) return;
 
-    const dateStr =
-      this.logTimeDate() || new Date().toISOString().split('T')[0];
-    const startedAt = new Date(dateStr + 'T09:00:00Z').toISOString();
+    const startedAt = new Date(event.date + 'T09:00:00Z').toISOString();
     const endedAt = new Date(
       new Date(startedAt).getTime() + totalMinutes * 60000,
     ).toISOString();
 
     this.timeTrackingService
       .createManualEntry(this.taskId(), {
-        description: this.logTimeDescription() || undefined,
+        description: event.description || undefined,
         started_at: startedAt,
         ended_at: endedAt,
         duration_minutes: totalMinutes,
@@ -1634,9 +584,8 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
       .subscribe({
         next: (entry) => {
           this.timeEntries.update((entries) => [entry, ...entries]);
-          this.showLogTimeForm.set(false);
         },
-        error: (err) => console.error('Failed to log time:', err),
+        error: () => {},
       });
   }
 
@@ -1651,7 +600,74 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
           this.clearTimerInterval();
         }
       },
-      error: (err) => console.error('Failed to delete time entry:', err),
+      error: () => {},
+    });
+  }
+
+  // ── Private methods ────────────────────────────────────────
+
+  private loadTask(): void {
+    this.loading.set(true);
+
+    this.taskService.getTask(this.taskId()).subscribe({
+      next: (task) => {
+        this.task.set(task);
+        this.loadDependencies();
+        this.loadMilestones(task);
+        this.loadCustomFields();
+        this.loadRecurringConfig();
+        this.loadTimeEntries();
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+      },
+    });
+  }
+
+  private loadDependencies(): void {
+    this.dependencyService.listDependencies(this.taskId()).subscribe({
+      next: (deps) => {
+        this.dependencies.set(deps);
+        this.updateDepGroups();
+      },
+      error: () => {},
+    });
+  }
+
+  private loadMilestones(task: Task): void {
+    const bid = this.boardId();
+    if (!bid) return;
+
+    this.milestoneService.list(bid).subscribe({
+      next: (milestones) => {
+        this.milestones.set(milestones);
+        if (task.milestone_id) {
+          const selected =
+            milestones.find((m) => m.id === task.milestone_id) || null;
+          this.selectedMilestone.set(selected);
+        } else {
+          this.selectedMilestone.set(null);
+        }
+      },
+      error: () => {},
+    });
+  }
+
+  private loadCustomFields(): void {
+    const bid = this.boardId();
+    if (!bid) return;
+
+    this.customFieldService.getTaskValues(this.taskId()).subscribe({
+      next: (values) => this.customFields.set(values),
+      error: () => {},
+    });
+  }
+
+  private loadRecurringConfig(): void {
+    this.recurringService.getConfig(this.taskId()).subscribe({
+      next: (config) => this.recurringConfig.set(config),
+      error: () => this.recurringConfig.set(null),
     });
   }
 
@@ -1668,13 +684,89 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
           this.clearTimerInterval();
         }
       },
-      error: (err) => console.error('Failed to load time entries:', err),
+      error: () => {},
+    });
+  }
+
+  private updateTask(updates: Partial<Task>): void {
+    const task = this.task();
+    if (!task) return;
+
+    this.taskService.updateTask(task.id, updates).subscribe({
+      next: (updatedTask) => {
+        this.task.set(updatedTask);
+        this.taskUpdated.emit(updatedTask);
+      },
+      error: () => {},
+    });
+  }
+
+  private onClearMilestone(): void {
+    const task = this.task();
+    if (!task) return;
+
+    this.milestoneService.unassignTask(task.id).subscribe({
+      next: () => {
+        const updatedTask = { ...task, milestone_id: null };
+        this.task.set(updatedTask);
+        this.taskUpdated.emit(updatedTask);
+        this.selectedMilestone.set(null);
+      },
+      error: () => {},
+    });
+  }
+
+  private updateDepGroups(): void {
+    const deps = this.dependencies();
+    const taskId = this.taskId();
+
+    this.blockingDeps.set(
+      deps.filter(
+        (d) => d.dependency_type === 'blocks' && d.source_task_id === taskId,
+      ),
+    );
+    this.blockedByDeps.set(
+      deps.filter(
+        (d) => d.dependency_type === 'blocks' && d.target_task_id === taskId,
+      ),
+    );
+    this.relatedDeps.set(deps.filter((d) => d.dependency_type === 'related'));
+  }
+
+  private filterDepResults(query: string): void {
+    const currentTaskId = this.taskId();
+    const existingDepTaskIds = new Set(
+      this.dependencies().map((d) => d.related_task_id),
+    );
+    const filtered = this.boardTasks().filter(
+      (t) =>
+        t.id !== currentTaskId &&
+        !existingDepTaskIds.has(t.id) &&
+        t.title.toLowerCase().includes(query.toLowerCase()),
+    );
+    this.depSearchResults.set(filtered.slice(0, 10));
+  }
+
+  private doSaveCustomFields(): void {
+    const fields = this.customFields();
+    if (fields.length === 0) return;
+
+    const values: SetFieldValue[] = fields.map((f) => ({
+      field_id: f.field_id,
+      value_text: f.value_text,
+      value_number: f.value_number,
+      value_date: f.value_date,
+      value_bool: f.value_bool,
+    }));
+
+    this.customFieldService.setTaskValues(this.taskId(), values).subscribe({
+      error: () => {},
     });
   }
 
   private startElapsedTimer(startedAt: string): void {
     this.clearTimerInterval();
-    const updateElapsed = () => {
+    const updateElapsed = (): void => {
       const start = new Date(startedAt).getTime();
       const now = Date.now();
       const diffSec = Math.floor((now - start) / 1000);
@@ -1695,169 +787,5 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
       this.timerInterval = null;
     }
     this.elapsedTime.set('00:00:00');
-  }
-
-  private loadCustomFields(): void {
-    const bid = this.boardId();
-    if (!bid) return;
-
-    this.customFieldService.getTaskValues(this.taskId()).subscribe({
-      next: (values) => this.customFields.set(values),
-      error: (err) => console.error('Failed to load custom fields:', err),
-    });
-  }
-
-  // -- Recurring methods --
-
-  getPatternLabel(pattern: RecurrencePattern): string {
-    const labels: Record<RecurrencePattern, string> = {
-      daily: 'Daily',
-      weekly: 'Weekly',
-      biweekly: 'Biweekly',
-      monthly: 'Monthly',
-      custom: 'Custom',
-    };
-    return labels[pattern] || pattern;
-  }
-
-  toggleRecurringForm(): void {
-    this.showRecurringForm.update((v) => !v);
-    if (this.showRecurringForm()) {
-      // Pre-fill form if editing existing config
-      const config = this.recurringConfig();
-      if (config) {
-        this.recurringPattern.set(config.pattern);
-        this.recurringIntervalDays.set(config.interval_days);
-        this.recurringMaxOccurrences.set(config.max_occurrences);
-      } else {
-        this.recurringPattern.set('weekly');
-        this.recurringIntervalDays.set(null);
-        this.recurringMaxOccurrences.set(null);
-      }
-    }
-  }
-
-  onSaveRecurring(): void {
-    const config = this.recurringConfig();
-    const req: CreateRecurringRequest = {
-      pattern: this.recurringPattern(),
-      interval_days:
-        this.recurringPattern() === 'custom'
-          ? this.recurringIntervalDays() || undefined
-          : undefined,
-      max_occurrences: this.recurringMaxOccurrences() || undefined,
-    };
-
-    if (config) {
-      // Update existing
-      this.recurringService.updateConfig(config.id, req).subscribe({
-        next: (updated) => {
-          this.recurringConfig.set(updated);
-          this.showRecurringForm.set(false);
-        },
-        error: (err) =>
-          console.error('Failed to update recurring config:', err),
-      });
-    } else {
-      // Create new
-      this.recurringService.createConfig(this.taskId(), req).subscribe({
-        next: (created) => {
-          this.recurringConfig.set(created);
-          this.showRecurringForm.set(false);
-        },
-        error: (err) =>
-          console.error('Failed to create recurring config:', err),
-      });
-    }
-  }
-
-  onRemoveRecurring(): void {
-    const config = this.recurringConfig();
-    if (!config) return;
-
-    if (!confirm('Remove recurring schedule from this task?')) return;
-
-    this.recurringService.deleteConfig(config.id).subscribe({
-      next: () => {
-        this.recurringConfig.set(null);
-      },
-      error: (err) => console.error('Failed to remove recurring config:', err),
-    });
-  }
-
-  private loadRecurringConfig(): void {
-    this.recurringService.getConfig(this.taskId()).subscribe({
-      next: (config) => this.recurringConfig.set(config),
-      error: () => {
-        // 404 means no recurring config - that's fine
-        this.recurringConfig.set(null);
-      },
-    });
-  }
-
-  private loadTask(): void {
-    this.loading.set(true);
-
-    this.taskService.getTask(this.taskId()).subscribe({
-      next: (task) => {
-        this.task.set(task);
-        this.pendingTitle = task.title;
-        this.pendingDescription = task.description || '';
-        this.loadColumn(task.column_id);
-        this.loadDependencies();
-        this.loadMilestones(task);
-        this.loadCustomFields();
-        this.loadRecurringConfig();
-        this.loadTimeEntries();
-        this.loading.set(false);
-      },
-      error: (err) => {
-        console.error('Failed to load task:', err);
-        this.loading.set(false);
-      },
-    });
-  }
-
-  private loadColumn(columnId: string): void {
-    // Get board ID from task, then fetch columns
-    // For simplicity, we'll fetch columns from the service
-    const task = this.task();
-    if (!task) return;
-
-    // We need to get board ID - for now we'll parse it from URL or skip
-    // In a real implementation, task would include board_id
-  }
-
-  private loadMilestones(task: Task): void {
-    // Use boardId input if available, else we cannot load milestones
-    const bid = this.boardId();
-    if (!bid) return;
-
-    this.milestoneService.list(bid).subscribe({
-      next: (milestones) => {
-        this.milestones.set(milestones);
-        if (task.milestone_id) {
-          const selected =
-            milestones.find((m) => m.id === task.milestone_id) || null;
-          this.selectedMilestone.set(selected);
-        } else {
-          this.selectedMilestone.set(null);
-        }
-      },
-      error: (err) => console.error('Failed to load milestones:', err),
-    });
-  }
-
-  private updateTask(updates: Partial<Task>): void {
-    const task = this.task();
-    if (!task) return;
-
-    this.taskService.updateTask(task.id, updates).subscribe({
-      next: (updatedTask) => {
-        this.task.set(updatedTask);
-        this.taskUpdated.emit(updatedTask);
-      },
-      error: (err) => console.error('Failed to update task:', err),
-    });
   }
 }

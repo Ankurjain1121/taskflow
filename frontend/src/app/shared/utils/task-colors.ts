@@ -93,7 +93,26 @@ export const COLUMN_HEADER_COLORS: string[] = [
   '#8b5cf6', // violet
   '#ec4899', // pink
   '#14b8a6', // teal
+  '#0086C0', // monday blue
+  '#00C875', // monday green
+  '#FDAB3D', // monday orange
+  '#E2445C', // monday red
+  '#A25DDC', // monday purple
+  '#579BFC', // monday sky
+  '#FF158A', // monday pink
+  '#CAB641', // monday olive
+  '#9AADBD', // monday blue-gray
+  '#7F5347', // monday brown
+  '#175A63', // monday teal-dark
 ];
+
+/** Priority flag hex colors for SVG rendering */
+export const PRIORITY_FLAG_COLORS: Record<string, string> = {
+  urgent: '#ef4444',
+  high: '#f97316',
+  medium: '#facc15',
+  low: '#60a5fa',
+};
 
 /**
  * Column status indicator colors
