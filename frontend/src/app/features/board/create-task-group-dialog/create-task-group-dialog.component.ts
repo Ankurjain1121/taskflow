@@ -19,13 +19,7 @@ export interface CreateTaskGroupDialogResult {
 @Component({
   selector: 'app-create-task-group-dialog',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ButtonModule,
-    Dialog,
-    InputTextModule,
-  ],
+  imports: [CommonModule, FormsModule, ButtonModule, Dialog, InputTextModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p-dialog
@@ -39,7 +33,11 @@ export interface CreateTaskGroupDialogResult {
       <div class="space-y-4">
         <!-- Group name -->
         <div class="flex flex-col gap-1">
-          <label for="groupName" class="text-sm font-medium text-gray-700">Group Name</label>
+          <label
+            for="groupName"
+            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Group Name</label
+          >
           <input
             pInputText
             id="groupName"
@@ -52,7 +50,11 @@ export interface CreateTaskGroupDialogResult {
 
         <!-- Color selection -->
         <div>
-          <div class="text-sm font-medium text-gray-700 mb-2">Color</div>
+          <div
+            class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+          >
+            Color
+          </div>
           <div class="grid grid-cols-7 gap-2">
             @for (color of predefinedColors; track color) {
               <button
@@ -62,15 +64,19 @@ export interface CreateTaskGroupDialogResult {
                 class="w-10 h-10 rounded-full border-2 hover:scale-110 transition-transform"
                 [class.ring-2]="selectedColor() === color"
                 [class.ring-offset-2]="selectedColor() === color"
-                [class.ring-gray-800]="selectedColor() === color"
-              >
-              </button>
+                [style.--tw-ring-color]="
+                  selectedColor() === color ? 'currentColor' : 'transparent'
+                "
+              ></button>
             }
           </div>
         </div>
 
         <!-- Preview -->
-        <div class="mt-4 p-3 rounded-lg border" [style.border-color]="selectedColor()">
+        <div
+          class="mt-4 p-3 rounded-lg border"
+          [style.border-color]="selectedColor()"
+        >
           <div class="flex items-center gap-2">
             <div
               class="w-3 h-3 rounded-full"

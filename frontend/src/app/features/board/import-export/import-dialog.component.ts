@@ -52,7 +52,7 @@ export interface ImportDialogResult {
       [style]="{ width: '580px' }"
       [closable]="true"
     >
-      <p class="text-gray-600 mb-4">
+      <p class="text-gray-600 dark:text-gray-400 mb-4">
         Import tasks into "{{ boardName() }}".
       </p>
 
@@ -66,19 +66,33 @@ export interface ImportDialogResult {
           <!-- JSON Tab -->
           <p-tabpanel [value]="0">
             <div class="pt-4 flex flex-col gap-3">
-              <p class="text-sm text-gray-500">
-                Paste a JSON array of tasks or upload a JSON file.
-                Each task should have at least a <code class="bg-gray-100 px-1 rounded">title</code> field.
-                Optional: <code class="bg-gray-100 px-1 rounded">description</code>,
-                <code class="bg-gray-100 px-1 rounded">priority</code> (urgent/high/medium/low),
-                <code class="bg-gray-100 px-1 rounded">column_name</code>,
-                <code class="bg-gray-100 px-1 rounded">due_date</code> (YYYY-MM-DD).
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                Paste a JSON array of tasks or upload a JSON file. Each task
+                should have at least a
+                <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded"
+                  >title</code
+                >
+                field. Optional:
+                <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded"
+                  >description</code
+                >,
+                <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded"
+                  >priority</code
+                >
+                (urgent/high/medium/low),
+                <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded"
+                  >column_name</code
+                >,
+                <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded"
+                  >due_date</code
+                >
+                (YYYY-MM-DD).
               </p>
               <textarea
                 [(ngModel)]="jsonText"
                 (ngModelChange)="onJsonChange()"
                 rows="8"
-                class="w-full border border-gray-300 rounded-md p-3 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-md p-3 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder='[{ "title": "My task", "priority": "high" }]'
               ></textarea>
               <div class="flex items-center gap-2">
@@ -101,16 +115,17 @@ export interface ImportDialogResult {
           <!-- CSV Tab -->
           <p-tabpanel [value]="1">
             <div class="pt-4 flex flex-col gap-3">
-              <p class="text-sm text-gray-500">
-                Paste CSV text or upload a CSV file.
-                Columns: <code class="bg-gray-100 px-1 rounded">title, description, priority, column_name, due_date</code>.
-                A header row is optional (auto-detected).
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                Paste CSV text or upload a CSV file. Columns:
+                <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded"
+                  >title, description, priority, column_name, due_date</code
+                >. A header row is optional (auto-detected).
               </p>
               <textarea
                 [(ngModel)]="csvText"
                 (ngModelChange)="onCsvChange()"
                 rows="8"
-                class="w-full border border-gray-300 rounded-md p-3 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-md p-3 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="title,description,priority,column_name,due_date
 Fix login bug,Users cannot log in,high,In Progress,2025-03-15
 Add search,Implement full-text search,medium,To Do,"
@@ -135,9 +150,20 @@ Add search,Implement full-text search,medium,To Do,"
           <!-- Trello Tab -->
           <p-tabpanel [value]="2">
             <div class="pt-4 flex flex-col gap-3">
-              <div class="bg-blue-50 border border-blue-200 rounded-md p-3">
-                <h4 class="text-sm font-medium text-blue-800 mb-1">How to export from Trello</h4>
-                <ol class="text-sm text-blue-700 list-decimal list-inside space-y-1">
+              <div
+                class="rounded-md p-3"
+                style="background: var(--status-blue-bg); border: 1px solid var(--status-blue-border)"
+              >
+                <h4
+                  class="text-sm font-medium mb-1"
+                  style="color: var(--status-blue-text)"
+                >
+                  How to export from Trello
+                </h4>
+                <ol
+                  class="text-sm list-decimal list-inside space-y-1"
+                  style="color: var(--status-blue-text)"
+                >
                   <li>Open your Trello board</li>
                   <li>Click the menu (...) in the top-right corner</li>
                   <li>Select "More" then "Print and Export"</li>
@@ -160,7 +186,9 @@ Add search,Implement full-text search,medium,To Do,"
                   />
                 </label>
                 @if (trelloFileName()) {
-                  <span class="text-sm text-gray-500">{{ trelloFileName() }}</span>
+                  <span class="text-sm text-gray-500 dark:text-gray-400">{{
+                    trelloFileName()
+                  }}</span>
                 }
               </div>
             </div>
@@ -170,8 +198,11 @@ Add search,Implement full-text search,medium,To Do,"
 
       <!-- Preview section -->
       @if (previewCount() > 0) {
-        <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-          <p class="text-sm text-green-700">
+        <div
+          class="mt-4 p-3 rounded-md"
+          style="background: var(--status-green-bg); border: 1px solid var(--status-green-border)"
+        >
+          <p class="text-sm" style="color: var(--status-green-text)">
             <span class="font-medium">{{ previewCount() }}</span>
             task{{ previewCount() === 1 ? '' : 's' }} ready to import.
           </p>
@@ -179,20 +210,38 @@ Add search,Implement full-text search,medium,To Do,"
       }
 
       @if (parseError()) {
-        <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p class="text-sm text-red-700">{{ parseError() }}</p>
+        <div
+          class="mt-4 p-3 rounded-md"
+          style="background: var(--status-red-bg); border: 1px solid var(--status-red-border)"
+        >
+          <p class="text-sm" style="color: var(--status-red-text)">
+            {{ parseError() }}
+          </p>
         </div>
       }
 
       @if (successMessage()) {
-        <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-          <p class="text-sm text-green-700 font-medium">{{ successMessage() }}</p>
+        <div
+          class="mt-4 p-3 rounded-md"
+          style="background: var(--status-green-bg); border: 1px solid var(--status-green-border)"
+        >
+          <p
+            class="text-sm font-medium"
+            style="color: var(--status-green-text)"
+          >
+            {{ successMessage() }}
+          </p>
         </div>
       }
 
       @if (importError()) {
-        <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p class="text-sm text-red-700">{{ importError() }}</p>
+        <div
+          class="mt-4 p-3 rounded-md"
+          style="background: var(--status-red-bg); border: 1px solid var(--status-red-border)"
+        >
+          <p class="text-sm" style="color: var(--status-red-text)">
+            {{ importError() }}
+          </p>
         </div>
       }
 
@@ -207,7 +256,12 @@ Add search,Implement full-text search,medium,To Do,"
           />
           @if (!successMessage()) {
             <p-button
-              [label]="'Import ' + previewCount() + ' task' + (previewCount() === 1 ? '' : 's')"
+              [label]="
+                'Import ' +
+                previewCount() +
+                ' task' +
+                (previewCount() === 1 ? '' : 's')
+              "
               (onClick)="onImport()"
               [disabled]="importing() || previewCount() === 0"
               [loading]="importing()"
@@ -304,11 +358,14 @@ export class ImportDialogComponent {
         return;
       }
       const valid = parsed.filter(
-        (item: Record<string, unknown>) => item && typeof item['title'] === 'string' && item['title'].trim()
+        (item: Record<string, unknown>) =>
+          item && typeof item['title'] === 'string' && item['title'].trim(),
       );
       this.jsonPreviewCount.set(valid.length);
       if (valid.length === 0 && parsed.length > 0) {
-        this.parseError.set('No valid tasks found. Each task must have a "title" field.');
+        this.parseError.set(
+          'No valid tasks found. Each task must have a "title" field.',
+        );
       }
     } catch {
       this.parseError.set('Invalid JSON format.');
@@ -399,7 +456,7 @@ export class ImportDialogComponent {
         // Basic Trello format validation
         if (!parsed.cards && !parsed.lists) {
           this.parseError.set(
-            'This does not look like a Trello export. Expected "cards" and "lists" fields.'
+            'This does not look like a Trello export. Expected "cards" and "lists" fields.',
           );
           this.trelloPreviewCount.set(0);
           this.trelloData = null;
@@ -407,13 +464,18 @@ export class ImportDialogComponent {
         }
 
         this.trelloData = parsed;
-        const cards = (parsed.cards || []) as Array<{ closed?: boolean; name?: string }>;
+        const cards = (parsed.cards || []) as Array<{
+          closed?: boolean;
+          name?: string;
+        }>;
         const activeCards = cards.filter(
-          (c) => !c.closed && c.name && c.name.trim()
+          (c) => !c.closed && c.name && c.name.trim(),
         );
         this.trelloPreviewCount.set(activeCards.length);
       } catch {
-        this.parseError.set('Invalid JSON file. Please upload a valid Trello export.');
+        this.parseError.set(
+          'Invalid JSON file. Please upload a valid Trello export.',
+        );
         this.trelloPreviewCount.set(0);
         this.trelloData = null;
       }
@@ -452,37 +514,37 @@ export class ImportDialogComponent {
       return;
     }
 
-    this.importExportService
-      .importJson(this.boardId(), tasks)
-      .subscribe({
-        next: (result) => {
-          this.successMessage.set(
-            `Successfully imported ${result.imported_count} task${result.imported_count === 1 ? '' : 's'}.`
-          );
-          this.importing.set(false);
-        },
-        error: () => {
-          this.importError.set('Import failed. Please check your data and try again.');
-          this.importing.set(false);
-        },
-      });
+    this.importExportService.importJson(this.boardId(), tasks).subscribe({
+      next: (result) => {
+        this.successMessage.set(
+          `Successfully imported ${result.imported_count} task${result.imported_count === 1 ? '' : 's'}.`,
+        );
+        this.importing.set(false);
+      },
+      error: () => {
+        this.importError.set(
+          'Import failed. Please check your data and try again.',
+        );
+        this.importing.set(false);
+      },
+    });
   }
 
   private doCsvImport(): void {
-    this.importExportService
-      .importCsv(this.boardId(), this.csvText)
-      .subscribe({
-        next: (result) => {
-          this.successMessage.set(
-            `Successfully imported ${result.imported_count} task${result.imported_count === 1 ? '' : 's'}.`
-          );
-          this.importing.set(false);
-        },
-        error: () => {
-          this.importError.set('Import failed. Please check your CSV format and try again.');
-          this.importing.set(false);
-        },
-      });
+    this.importExportService.importCsv(this.boardId(), this.csvText).subscribe({
+      next: (result) => {
+        this.successMessage.set(
+          `Successfully imported ${result.imported_count} task${result.imported_count === 1 ? '' : 's'}.`,
+        );
+        this.importing.set(false);
+      },
+      error: () => {
+        this.importError.set(
+          'Import failed. Please check your CSV format and try again.',
+        );
+        this.importing.set(false);
+      },
+    });
   }
 
   private doTrelloImport(): void {
@@ -509,7 +571,7 @@ export class ImportDialogComponent {
         },
         error: () => {
           this.importError.set(
-            'Trello import failed. Please ensure the file is a valid Trello JSON export.'
+            'Trello import failed. Please ensure the file is a valid Trello JSON export.',
           );
           this.importing.set(false);
         },

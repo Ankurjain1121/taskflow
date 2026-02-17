@@ -40,12 +40,14 @@ export interface ExportDialogData {
       [style]="{ width: '480px' }"
       [closable]="true"
     >
-      <p class="text-gray-600 mb-4">
+      <p class="text-gray-600 dark:text-gray-400 mb-4">
         Export tasks from "{{ boardName() }}" to a file.
       </p>
 
       <div class="flex flex-col gap-2">
-        <label class="text-sm font-medium text-gray-700">Format</label>
+        <label class="text-sm font-medium text-gray-700 dark:text-gray-300"
+          >Format</label
+        >
         <div class="flex flex-col gap-3">
           <div class="flex items-center gap-2">
             <p-radioButton
@@ -56,7 +58,9 @@ export interface ExportDialogData {
             />
             <label for="formatCsv" class="text-sm cursor-pointer">
               <span class="font-medium">CSV</span>
-              <span class="text-gray-500 ml-1">- Spreadsheet compatible (Excel, Google Sheets)</span>
+              <span class="text-gray-500 dark:text-gray-400 ml-1"
+                >- Spreadsheet compatible (Excel, Google Sheets)</span
+              >
             </label>
           </div>
           <div class="flex items-center gap-2">
@@ -68,15 +72,25 @@ export interface ExportDialogData {
             />
             <label for="formatJson" class="text-sm cursor-pointer">
               <span class="font-medium">JSON</span>
-              <span class="text-gray-500 ml-1">- Structured data with board metadata</span>
+              <span class="text-gray-500 dark:text-gray-400 ml-1"
+                >- Structured data with board metadata</span
+              >
             </label>
           </div>
         </div>
       </div>
 
       @if (error()) {
-        <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p class="text-sm text-red-700">{{ error() }}</p>
+        <div
+          class="mt-4 p-3 rounded-md"
+          style="
+            background: var(--status-red-bg);
+            border: 1px solid var(--status-red-border);
+          "
+        >
+          <p class="text-sm" style="color: var(--status-red-text)">
+            {{ error() }}
+          </p>
         </div>
       }
 
@@ -128,7 +142,10 @@ export class ExportDialogComponent {
     if (this.selectedFormat === 'csv') {
       this.importExportService.exportCsv(this.boardId()).subscribe({
         next: (blob) => {
-          this.downloadBlob(blob, `${this.sanitizeFilename(this.boardName())}_export.csv`);
+          this.downloadBlob(
+            blob,
+            `${this.sanitizeFilename(this.boardName())}_export.csv`,
+          );
           this.exporting.set(false);
           this.visible.set(false);
           this.exported.emit();
@@ -143,7 +160,10 @@ export class ExportDialogComponent {
         next: (data) => {
           const json = JSON.stringify(data, null, 2);
           const blob = new Blob([json], { type: 'application/json' });
-          this.downloadBlob(blob, `${this.sanitizeFilename(this.boardName())}_export.json`);
+          this.downloadBlob(
+            blob,
+            `${this.sanitizeFilename(this.boardName())}_export.json`,
+          );
           this.exporting.set(false);
           this.visible.set(false);
           this.exported.emit();

@@ -56,7 +56,7 @@ interface EmailValidation {
       [closable]="true"
       (onShow)="onDialogShow()"
     >
-      <p class="text-sm text-gray-500 mb-4">
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
         Invite new members to {{ workspaceName() }}
       </p>
       <form [formGroup]="form">
@@ -76,7 +76,7 @@ interface EmailValidation {
             class="w-full"
             (blur)="validateEmails()"
           ></textarea>
-          <small class="text-gray-500"
+          <small class="text-gray-500 dark:text-gray-400"
             >Enter one email per line or separate with commas</small
           >
           @if (
@@ -90,7 +90,9 @@ interface EmailValidation {
         <!-- Parsed emails preview -->
         @if (parsedEmails().length > 0) {
           <div class="mb-4">
-            <div class="text-xs font-medium text-gray-500 mb-2">
+            <div
+              class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2"
+            >
               {{ validEmailCount() }} valid email{{
                 validEmailCount() !== 1 ? 's' : ''
               }}
@@ -104,12 +106,18 @@ interface EmailValidation {
             <div class="flex flex-wrap gap-1.5">
               @for (item of parsedEmails(); track item.email) {
                 <span
-                  [class]="
-                    'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ' +
-                    (item.valid
-                      ? 'bg-green-50 text-green-700 border border-green-200'
-                      : 'bg-red-50 text-red-700 border border-red-200')
-                  "
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                  [style]="{
+                    background: item.valid
+                      ? 'var(--status-green-bg)'
+                      : 'var(--status-red-bg)',
+                    color: item.valid
+                      ? 'var(--status-green-text)'
+                      : 'var(--status-red-text)',
+                    border: item.valid
+                      ? '1px solid var(--status-green-border)'
+                      : '1px solid var(--status-red-border)',
+                  }"
                   [title]="item.error || item.email"
                 >
                   {{ item.email }}
@@ -157,7 +165,7 @@ interface EmailValidation {
             >
               Board Access
             </label>
-            <p class="text-xs text-gray-500 mb-2">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
               Select which boards the invited members should have access to
             </p>
             <div
@@ -195,7 +203,7 @@ interface EmailValidation {
               }
             </div>
             @if (selectedBoardIds().length > 0) {
-              <p class="text-xs text-gray-500 mt-1">
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 {{ selectedBoardIds().length }} board{{
                   selectedBoardIds().length !== 1 ? 's' : ''
                 }}
@@ -220,7 +228,7 @@ interface EmailValidation {
             rows="3"
             class="w-full"
           ></textarea>
-          <small class="text-gray-500"
+          <small class="text-gray-500 dark:text-gray-400"
             >This message will be included in the invitation email</small
           >
         </div>

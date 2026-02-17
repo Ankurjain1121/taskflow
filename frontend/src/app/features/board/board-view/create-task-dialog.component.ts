@@ -60,13 +60,17 @@ export interface CreateTaskDialogResult {
     >
       <form [formGroup]="form" class="flex flex-col gap-4">
         <!-- Column info -->
-        <p class="text-sm text-gray-500">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
           Adding to column: <span class="font-medium">{{ columnName() }}</span>
         </p>
 
         <!-- Title -->
         <div class="flex flex-col gap-1">
-          <label for="taskTitle" class="text-sm font-medium text-gray-700">Title</label>
+          <label
+            for="taskTitle"
+            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Title</label
+          >
           <input
             pInputText
             id="taskTitle"
@@ -74,17 +78,26 @@ export interface CreateTaskDialogResult {
             placeholder="Enter task title"
             class="w-full"
           />
-          @if (form.controls.title.hasError('required') && form.controls.title.touched) {
+          @if (
+            form.controls.title.hasError('required') &&
+            form.controls.title.touched
+          ) {
             <small class="text-red-500">Title is required</small>
           }
           @if (form.controls.title.hasError('maxlength')) {
-            <small class="text-red-500">Title must be less than 200 characters</small>
+            <small class="text-red-500"
+              >Title must be less than 200 characters</small
+            >
           }
         </div>
 
         <!-- Description -->
         <div class="flex flex-col gap-1">
-          <label for="taskDesc" class="text-sm font-medium text-gray-700">Description</label>
+          <label
+            for="taskDesc"
+            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Description</label
+          >
           <textarea
             pTextarea
             id="taskDesc"
@@ -97,7 +110,11 @@ export interface CreateTaskDialogResult {
 
         <!-- Priority -->
         <div class="flex flex-col gap-1">
-          <label for="taskPriority" class="text-sm font-medium text-gray-700">Priority</label>
+          <label
+            for="taskPriority"
+            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Priority</label
+          >
           <p-select
             id="taskPriority"
             formControlName="priority"
@@ -132,7 +149,11 @@ export interface CreateTaskDialogResult {
         <div class="grid grid-cols-2 gap-4">
           <!-- Start Date -->
           <div class="flex flex-col gap-1">
-            <label for="startDate" class="text-sm font-medium text-gray-700">Start Date</label>
+            <label
+              for="startDate"
+              class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Start Date</label
+            >
             <p-datePicker
               id="startDate"
               formControlName="startDate"
@@ -145,7 +166,11 @@ export interface CreateTaskDialogResult {
 
           <!-- Due Date -->
           <div class="flex flex-col gap-1">
-            <label for="dueDate" class="text-sm font-medium text-gray-700">Due Date</label>
+            <label
+              for="dueDate"
+              class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Due Date</label
+            >
             <p-datePicker
               id="dueDate"
               formControlName="dueDate"
@@ -159,7 +184,11 @@ export interface CreateTaskDialogResult {
 
         <!-- Estimated Hours -->
         <div class="flex flex-col gap-1">
-          <label for="estHours" class="text-sm font-medium text-gray-700">Estimated Hours</label>
+          <label
+            for="estHours"
+            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Estimated Hours</label
+          >
           <p-inputNumber
             id="estHours"
             formControlName="estimatedHours"
@@ -183,7 +212,11 @@ export interface CreateTaskDialogResult {
         <!-- Assignees -->
         @if (members().length > 0) {
           <div class="flex flex-col gap-1">
-            <label for="assignees" class="text-sm font-medium text-gray-700">Assignees</label>
+            <label
+              for="assignees"
+              class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Assignees</label
+            >
             <p-multiSelect
               id="assignees"
               formControlName="assigneeIds"
@@ -196,7 +229,9 @@ export interface CreateTaskDialogResult {
             >
               <ng-template #item let-member>
                 <div class="flex items-center gap-2">
-                  <div class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-medium">
+                  <div
+                    class="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-xs font-medium"
+                  >
                     {{ member.name.charAt(0).toUpperCase() }}
                   </div>
                   {{ member.name }}
@@ -209,7 +244,11 @@ export interface CreateTaskDialogResult {
         <!-- Labels -->
         @if (labels().length > 0) {
           <div class="flex flex-col gap-1">
-            <label for="taskLabels" class="text-sm font-medium text-gray-700">Labels</label>
+            <label
+              for="taskLabels"
+              class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Labels</label
+            >
             <p-multiSelect
               id="taskLabels"
               formControlName="labelIds"
@@ -222,7 +261,10 @@ export interface CreateTaskDialogResult {
             >
               <ng-template #item let-label>
                 <div class="flex items-center gap-2">
-                  <span class="w-3 h-3 rounded-full inline-block" [style.background-color]="label.color"></span>
+                  <span
+                    class="w-3 h-3 rounded-full inline-block"
+                    [style.background-color]="label.color"
+                  ></span>
                   {{ label.name }}
                 </div>
               </ng-template>
@@ -233,7 +275,11 @@ export interface CreateTaskDialogResult {
         <!-- Milestone -->
         @if (milestones().length > 0) {
           <div class="flex flex-col gap-1">
-            <label for="milestone" class="text-sm font-medium text-gray-700">Milestone</label>
+            <label
+              for="milestone"
+              class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Milestone</label
+            >
             <p-select
               id="milestone"
               formControlName="milestoneId"
@@ -248,7 +294,10 @@ export interface CreateTaskDialogResult {
               <ng-template #item let-ms>
                 <div class="flex items-center gap-2">
                   @if (ms.color) {
-                    <span class="w-3 h-3 rounded-full inline-block" [style.background-color]="ms.color"></span>
+                    <span
+                      class="w-3 h-3 rounded-full inline-block"
+                      [style.background-color]="ms.color"
+                    ></span>
                   }
                   {{ ms.name }}
                 </div>
@@ -260,7 +309,11 @@ export interface CreateTaskDialogResult {
         <!-- Task Group -->
         @if (groups().length > 1) {
           <div class="flex flex-col gap-1">
-            <label for="taskGroup" class="text-sm font-medium text-gray-700">Group</label>
+            <label
+              for="taskGroup"
+              class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Group</label
+            >
             <p-select
               id="taskGroup"
               formControlName="groupId"
@@ -275,7 +328,10 @@ export interface CreateTaskDialogResult {
               <ng-template #item let-group>
                 <div class="flex items-center gap-2">
                   @if (group.color) {
-                    <span class="w-3 h-3 rounded-full inline-block" [style.background-color]="group.color"></span>
+                    <span
+                      class="w-3 h-3 rounded-full inline-block"
+                      [style.background-color]="group.color"
+                    ></span>
                   }
                   {{ group.name }}
                 </div>
@@ -336,7 +392,10 @@ export class CreateTaskDialogComponent {
     priority: ['medium' as TaskPriority],
     startDate: [null as Date | null],
     dueDate: [null as Date | null],
-    estimatedHours: [null as number | null, [Validators.min(0), Validators.max(9999)]],
+    estimatedHours: [
+      null as number | null,
+      [Validators.min(0), Validators.max(9999)],
+    ],
     assigneeIds: [[] as string[]],
     labelIds: [[] as string[]],
     milestoneId: ['' as string],

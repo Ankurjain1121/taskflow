@@ -8,11 +8,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  FormBuilder,
-  ReactiveFormsModule,
-  Validators,
-} from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { Dialog } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -66,13 +62,17 @@ const TEMPLATE_CATEGORIES = [
       [closable]="true"
       (onShow)="onDialogShow()"
     >
-      <p class="text-gray-600 mb-4">
+      <p class="text-gray-600 dark:text-gray-400 mb-4">
         Save "{{ boardName() }}" as a reusable template. The template will
         include all columns and tasks.
       </p>
       <form [formGroup]="form" class="flex flex-col gap-4">
         <div class="flex flex-col gap-1">
-          <label for="templateName" class="text-sm font-medium text-gray-700">Template Name</label>
+          <label
+            for="templateName"
+            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Template Name</label
+          >
           <input
             pInputText
             id="templateName"
@@ -80,13 +80,20 @@ const TEMPLATE_CATEGORIES = [
             placeholder="e.g. Sprint Board Template"
             class="w-full"
           />
-          @if (form.controls['name'].hasError('required') && form.controls['name'].touched) {
+          @if (
+            form.controls['name'].hasError('required') &&
+            form.controls['name'].touched
+          ) {
             <small class="text-red-500">Name is required</small>
           }
         </div>
 
         <div class="flex flex-col gap-1">
-          <label for="templateDesc" class="text-sm font-medium text-gray-700">Description</label>
+          <label
+            for="templateDesc"
+            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Description</label
+          >
           <textarea
             pTextarea
             id="templateDesc"
@@ -98,7 +105,11 @@ const TEMPLATE_CATEGORIES = [
         </div>
 
         <div class="flex flex-col gap-1">
-          <label for="templateCategory" class="text-sm font-medium text-gray-700">Category</label>
+          <label
+            for="templateCategory"
+            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Category</label
+          >
           <p-select
             id="templateCategory"
             formControlName="category"
@@ -114,7 +125,14 @@ const TEMPLATE_CATEGORIES = [
       </form>
 
       @if (errorMessage()) {
-        <div class="mt-2 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+        <div
+          class="mt-2 p-3 rounded text-sm"
+          style="
+            background: var(--status-red-bg);
+            border: 1px solid var(--status-red-border);
+            color: var(--status-red-text);
+          "
+        >
           {{ errorMessage() }}
         </div>
       }
@@ -202,7 +220,7 @@ export class SaveTemplateDialogComponent {
         },
         error: () => {
           this.errorMessage.set(
-            'Failed to save board as template. Please try again.'
+            'Failed to save board as template. Please try again.',
           );
           this.saving.set(false);
         },

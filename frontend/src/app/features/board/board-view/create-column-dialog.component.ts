@@ -37,7 +37,11 @@ export interface CreateColumnDialogResult {
       <form [formGroup]="form" class="flex flex-col gap-4">
         <!-- Name -->
         <div class="flex flex-col gap-1">
-          <label for="colName" class="text-sm font-medium text-gray-700">Column Name</label>
+          <label
+            for="colName"
+            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Column Name</label
+          >
           <input
             pInputText
             id="colName"
@@ -45,17 +49,24 @@ export interface CreateColumnDialogResult {
             placeholder="e.g., In Progress, Review, Done"
             class="w-full"
           />
-          @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+          @if (
+            form.controls.name.hasError('required') &&
+            form.controls.name.touched
+          ) {
             <small class="text-red-500">Column name is required</small>
           }
           @if (form.controls.name.hasError('maxlength')) {
-            <small class="text-red-500">Name must be less than 50 characters</small>
+            <small class="text-red-500"
+              >Name must be less than 50 characters</small
+            >
           }
         </div>
 
         <!-- Color Picker -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+          >
             Column Color
           </label>
           <div class="flex flex-wrap gap-2">
@@ -82,7 +93,7 @@ export interface CreateColumnDialogResult {
           />
           <label for="isDoneCol" class="text-sm cursor-pointer">
             Mark as "Done" column
-            <span class="text-gray-500 ml-1">
+            <span class="text-gray-500 dark:text-gray-400 ml-1">
               (Tasks moved here are considered completed)
             </span>
           </label>

@@ -34,13 +34,18 @@ export interface CreateWorkspaceDialogResult {
       [closable]="true"
       (onShow)="onDialogShow()"
     >
-      <p class="text-sm text-gray-500 mb-4">
-        Workspaces help you organize your projects and collaborate with your team.
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        Workspaces help you organize your projects and collaborate with your
+        team.
       </p>
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <!-- Workspace Name -->
         <div class="flex flex-col gap-1 mb-4">
-          <label for="wsName" class="text-sm font-medium text-gray-700 dark:text-gray-300">Workspace Name</label>
+          <label
+            for="wsName"
+            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Workspace Name</label
+          >
           <input
             pInputText
             id="wsName"
@@ -49,17 +54,27 @@ export interface CreateWorkspaceDialogResult {
             maxlength="100"
             class="w-full"
           />
-          @if (form.get('name')?.hasError('required') && form.get('name')?.touched) {
+          @if (
+            form.get('name')?.hasError('required') && form.get('name')?.touched
+          ) {
             <small class="text-red-500">Workspace name is required</small>
           }
-          @if (form.get('name')?.hasError('minlength') && form.get('name')?.touched) {
-            <small class="text-red-500">Workspace name must be at least 2 characters</small>
+          @if (
+            form.get('name')?.hasError('minlength') && form.get('name')?.touched
+          ) {
+            <small class="text-red-500"
+              >Workspace name must be at least 2 characters</small
+            >
           }
         </div>
 
         <!-- URL Slug -->
         <div class="flex flex-col gap-1">
-          <label for="wsSlug" class="text-sm font-medium text-gray-700 dark:text-gray-300">URL Slug (optional)</label>
+          <label
+            for="wsSlug"
+            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >URL Slug (optional)</label
+          >
           <input
             pInputText
             id="wsSlug"
@@ -68,9 +83,15 @@ export interface CreateWorkspaceDialogResult {
             maxlength="50"
             class="w-full"
           />
-          <small class="text-gray-500">Letters, numbers, and hyphens only</small>
-          @if (form.get('slug')?.hasError('pattern') && form.get('slug')?.touched) {
-            <small class="text-red-500">Slug can only contain letters, numbers, and hyphens</small>
+          <small class="text-gray-500 dark:text-gray-400"
+            >Letters, numbers, and hyphens only</small
+          >
+          @if (
+            form.get('slug')?.hasError('pattern') && form.get('slug')?.touched
+          ) {
+            <small class="text-red-500"
+              >Slug can only contain letters, numbers, and hyphens</small
+            >
           }
         </div>
       </form>
@@ -105,7 +126,10 @@ export class CreateWorkspaceDialogComponent {
   created = output<CreateWorkspaceDialogResult>();
 
   form: FormGroup = this.fb.group({
-    name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+    name: [
+      '',
+      [Validators.required, Validators.minLength(2), Validators.maxLength(100)],
+    ],
     slug: ['', [Validators.maxLength(50), Validators.pattern(/^[a-z0-9-]*$/)]],
   });
 
