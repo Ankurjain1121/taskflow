@@ -923,20 +923,23 @@ export class BoardViewComponent implements OnInit, OnDestroy {
           const task: Task = {
             id: t.id,
             column_id: t.column_id,
+            group_id: t.group_id,
             title: t.title,
             description: t.description,
             priority: t.priority as Task['priority'],
             position: t.position,
-            milestone_id: null,
+            milestone_id: t.milestone_id,
             assignee_id: null,
             due_date: t.due_date,
             created_by: t.created_by_id,
             created_at: t.created_at,
             updated_at: t.updated_at,
             assignees: t.assignees,
-            labels: t.labels as Label[],
+            labels: t.labels as any[],
             subtask_completed: t.subtask_completed,
             subtask_total: t.subtask_total,
+            has_running_timer: t.has_running_timer,
+            comment_count: t.comment_count,
           };
           if (!tasksByColumn[t.column_id]) {
             tasksByColumn[t.column_id] = [];

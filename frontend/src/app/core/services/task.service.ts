@@ -46,6 +46,8 @@ export interface Task {
   labels?: Label[];
   subtask_completed?: number;
   subtask_total?: number;
+  has_running_timer?: boolean;
+  comment_count?: number;
 }
 
 export interface TaskLabel {

@@ -84,8 +84,8 @@ export interface TaskWithBadges {
   due_date: string | null;
   column_id: string;
   position: string;
-  display_id: string | null;
-  parent_task_id: string | null;
+  group_id: string | null;
+  milestone_id: string | null;
   created_by_id: string;
   created_at: string;
   updated_at: string;

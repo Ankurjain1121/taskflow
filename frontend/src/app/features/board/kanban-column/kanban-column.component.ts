@@ -122,6 +122,15 @@ export interface TaskMoveEvent {
               [isBlocked]="false"
               [isCelebrating]="celebratingTaskId() === task.id"
               [isFocused]="focusedTaskId() === task.id"
+              [subtaskProgress]="
+                task.subtask_total
+                  ? {
+                      completed: task.subtask_completed ?? 0,
+                      total: task.subtask_total,
+                    }
+                  : null
+              "
+              [hasRunningTimer]="task.has_running_timer ?? false"
               (taskClicked)="onTaskClicked($event)"
             ></app-task-card>
           </div>
