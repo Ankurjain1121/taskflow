@@ -1,6 +1,7 @@
 //! Dashboard API routes
 //!
 //! Provides endpoints for dashboard statistics and recent activity feed.
+//! All endpoints support optional `workspace_id` query param for filtering.
 
 use axum::{
     extract::{Query, State},
@@ -9,6 +10,7 @@ use axum::{
     Json, Router,
 };
 use serde::Deserialize;
+use uuid::Uuid;
 
 use crate::errors::Result;
 use crate::extractors::TenantContext;
@@ -21,12 +23,18 @@ use taskflow_db::queries::dashboard::{
     OverdueTask, CompletionTrendPoint, UpcomingDeadline,
 };
 
+/// Common workspace filter applied to all dashboard endpoints
+#[derive(Debug, Deserialize)]
+pub struct DashboardFilter {
+    pub workspace_id: Option<Uuid>,
+}
+
 /// Query parameters for recent activity
 #[derive(Debug, Deserialize)]
 pub struct RecentActivityQuery {
-    /// Number of entries to return (default 10, max 20)
     #[serde(default = "default_limit")]
     pub limit: i64,
+    pub workspace_id: Option<Uuid>,
 }
 
 fn default_limit() -> i64 {
@@ -36,9 +44,9 @@ fn default_limit() -> i64 {
 /// Query parameters for trend data
 #[derive(Debug, Deserialize)]
 pub struct TrendQuery {
-    /// Number of days to look back (default 30, max 90)
     #[serde(default = "default_trend_days")]
     pub days: i64,
+    pub workspace_id: Option<Uuid>,
 }
 
 fn default_trend_days() -> i64 {
@@ -48,9 +56,9 @@ fn default_trend_days() -> i64 {
 /// Query parameters for upcoming deadlines
 #[derive(Debug, Deserialize)]
 pub struct DeadlinesQuery {
-    /// Number of days to look ahead (default 14)
     #[serde(default = "default_deadline_days")]
     pub days: i64,
+    pub workspace_id: Option<Uuid>,
 }
 
 fn default_deadline_days() -> i64 {
@@ -58,25 +66,16 @@ fn default_deadline_days() -> i64 {
 }
 
 /// GET /api/dashboard/stats
-///
-/// Returns dashboard statistics for the authenticated user:
-/// - total_tasks: Total tasks assigned to the user
-/// - overdue: Tasks past their due date (not in done columns)
-/// - completed_this_week: Tasks completed in the last 7 days
-/// - due_today: Tasks due today
 async fn get_stats_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
+    Query(filter): Query<DashboardFilter>,
 ) -> Result<Json<DashboardStats>> {
-    let stats = get_dashboard_stats(&state.db, tenant.user_id).await?;
+    let stats = get_dashboard_stats(&state.db, tenant.user_id, filter.workspace_id).await?;
     Ok(Json(stats))
 }
 
 /// GET /api/dashboard/recent-activity
-///
-/// Returns the most recent activity log entries for the user's tenant.
-/// Query parameters:
-/// - limit: Number of entries to return (default 10, max 20)
 async fn get_recent_activity_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
@@ -87,6 +86,7 @@ async fn get_recent_activity_handler(
         tenant.user_id,
         tenant.tenant_id,
         query.limit,
+        query.workspace_id,
     )
     .await?;
     Ok(Json(activity))
@@ -96,8 +96,9 @@ async fn get_recent_activity_handler(
 async fn get_tasks_by_status_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
+    Query(filter): Query<DashboardFilter>,
 ) -> Result<Json<Vec<TasksByStatus>>> {
-    let data = get_tasks_by_status(&state.db, tenant.user_id).await?;
+    let data = get_tasks_by_status(&state.db, tenant.user_id, filter.workspace_id).await?;
     Ok(Json(data))
 }
 
@@ -105,8 +106,9 @@ async fn get_tasks_by_status_handler(
 async fn get_tasks_by_priority_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
+    Query(filter): Query<DashboardFilter>,
 ) -> Result<Json<Vec<TasksByPriority>>> {
-    let data = get_tasks_by_priority(&state.db, tenant.user_id).await?;
+    let data = get_tasks_by_priority(&state.db, tenant.user_id, filter.workspace_id).await?;
     Ok(Json(data))
 }
 
@@ -116,7 +118,7 @@ async fn get_overdue_tasks_handler(
     tenant: TenantContext,
     Query(query): Query<RecentActivityQuery>,
 ) -> Result<Json<Vec<OverdueTask>>> {
-    let data = get_overdue_tasks(&state.db, tenant.user_id, query.limit).await?;
+    let data = get_overdue_tasks(&state.db, tenant.user_id, query.limit, query.workspace_id).await?;
     Ok(Json(data))
 }
 
@@ -126,7 +128,7 @@ async fn get_completion_trend_handler(
     tenant: TenantContext,
     Query(query): Query<TrendQuery>,
 ) -> Result<Json<Vec<CompletionTrendPoint>>> {
-    let data = get_completion_trend(&state.db, tenant.user_id, query.days).await?;
+    let data = get_completion_trend(&state.db, tenant.user_id, query.days, query.workspace_id).await?;
     Ok(Json(data))
 }
 
@@ -136,20 +138,11 @@ async fn get_upcoming_deadlines_handler(
     tenant: TenantContext,
     Query(query): Query<DeadlinesQuery>,
 ) -> Result<Json<Vec<UpcomingDeadline>>> {
-    let data = get_upcoming_deadlines(&state.db, tenant.user_id, query.days).await?;
+    let data = get_upcoming_deadlines(&state.db, tenant.user_id, query.days, query.workspace_id).await?;
     Ok(Json(data))
 }
 
 /// Create the dashboard router
-///
-/// Routes:
-/// - GET /stats - Get dashboard statistics
-/// - GET /recent-activity - Get recent activity feed
-/// - GET /tasks-by-status - Get tasks grouped by status (for donut chart)
-/// - GET /tasks-by-priority - Get tasks grouped by priority (for bar chart)
-/// - GET /overdue-tasks - Get overdue tasks table
-/// - GET /completion-trend - Get completion trend over time (for line chart)
-/// - GET /upcoming-deadlines - Get upcoming deadlines
 pub fn dashboard_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/stats", get(get_stats_handler))
@@ -176,12 +169,21 @@ mod tests {
         let json = r#"{}"#;
         let query: RecentActivityQuery = serde_json::from_str(json).unwrap();
         assert_eq!(query.limit, 10);
+        assert!(query.workspace_id.is_none());
     }
 
     #[test]
-    fn test_query_params_custom_limit() {
-        let json = r#"{"limit": 15}"#;
+    fn test_query_params_with_workspace_id() {
+        let json = r#"{"limit": 15, "workspace_id": "550e8400-e29b-41d4-a716-446655440000"}"#;
         let query: RecentActivityQuery = serde_json::from_str(json).unwrap();
         assert_eq!(query.limit, 15);
+        assert!(query.workspace_id.is_some());
+    }
+
+    #[test]
+    fn test_dashboard_filter_empty() {
+        let json = r#"{}"#;
+        let filter: DashboardFilter = serde_json::from_str(json).unwrap();
+        assert!(filter.workspace_id.is_none());
     }
 }

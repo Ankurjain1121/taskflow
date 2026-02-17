@@ -55,12 +55,30 @@ cat > /tmp/cors.json << 'EOF'
 }
 EOF
 
-# Apply CORS configuration
-# Note: mc cors set requires the bucket to be specified
+# Apply CORS configuration using the S3 API (mc doesn't have a direct CORS command)
+# MinIO supports S3-compatible CORS via the XML API
+curl -s -X PUT "http://localhost:9000/${MINIO_BUCKET}/?cors" \
+  --user "${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}" \
+  -H "Content-Type: application/xml" \
+  -d '<?xml version="1.0" encoding="UTF-8"?>
+<CORSConfiguration>
+  <CORSRule>
+    <AllowedOrigin>*</AllowedOrigin>
+    <AllowedMethod>GET</AllowedMethod>
+    <AllowedMethod>PUT</AllowedMethod>
+    <AllowedMethod>HEAD</AllowedMethod>
+    <AllowedMethod>POST</AllowedMethod>
+    <AllowedMethod>DELETE</AllowedMethod>
+    <AllowedHeader>*</AllowedHeader>
+    <ExposeHeader>ETag</ExposeHeader>
+    <ExposeHeader>Content-Length</ExposeHeader>
+    <ExposeHeader>Content-Type</ExposeHeader>
+    <MaxAgeSeconds>3600</MaxAgeSeconds>
+  </CORSRule>
+</CORSConfiguration>' || echo "WARNING: CORS API call failed. Set MINIO_API_CORS_ALLOW_ORIGIN=* in docker-compose.yml as fallback."
+
 mc anonymous set download local/${MINIO_BUCKET} 2>/dev/null || true
 
-# For MinIO, we can also set CORS via the API
-# Using mc admin config to set CORS
 echo "CORS configuration applied successfully!"
 
 # Verify the configuration

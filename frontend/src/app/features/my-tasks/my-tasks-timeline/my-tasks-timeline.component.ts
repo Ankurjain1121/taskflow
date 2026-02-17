@@ -59,28 +59,38 @@ type ViewMode = 'assigned' | 'created';
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Welcome Banner -->
         @if (summary()) {
-          <div class="mb-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-6 text-white">
+          <div
+            class="mb-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-6 text-white"
+          >
             <h1 class="text-3xl font-bold mb-2">
               {{ getGreeting() }}, {{ userName() }}!
             </h1>
             <div class="flex items-center gap-6 text-sm">
               <span>
-                <span class="font-semibold text-lg">{{ summary()!.total_assigned }}</span>
+                <span class="font-semibold text-lg">{{
+                  summary()!.total_assigned
+                }}</span>
                 total tasks
               </span>
               <span>•</span>
               <span>
-                <span class="font-semibold text-lg">{{ summary()!.overdue }}</span>
+                <span class="font-semibold text-lg">{{
+                  summary()!.overdue
+                }}</span>
                 overdue
               </span>
               <span>•</span>
               <span>
-                <span class="font-semibold text-lg">{{ summary()!.due_soon }}</span>
+                <span class="font-semibold text-lg">{{
+                  summary()!.due_soon
+                }}</span>
                 due soon
               </span>
               <span>•</span>
               <span>
-                <span class="font-semibold text-lg">{{ summary()!.completed_this_week }}</span>
+                <span class="font-semibold text-lg">{{
+                  summary()!.completed_this_week
+                }}</span>
                 completed this week
               </span>
             </div>
@@ -89,18 +99,28 @@ type ViewMode = 'assigned' | 'created';
 
         <!-- View Toggle & Quick Add -->
         <div class="mb-4 flex items-center justify-between">
-          <div class="inline-flex rounded-lg border border-gray-300 bg-white p-1">
+          <div
+            class="inline-flex rounded-lg border border-gray-300 bg-white p-1"
+          >
             <button
               (click)="viewMode.set('assigned')"
               class="px-4 py-2 text-sm font-medium rounded-md transition-colors"
-              [class]="viewMode() === 'assigned' ? 'bg-indigo-600 text-white' : 'text-gray-700 hover:bg-gray-100'"
+              [class]="
+                viewMode() === 'assigned'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+              "
             >
               My Tasks
             </button>
             <button
               (click)="viewMode.set('created'); loadTasks()"
               class="px-4 py-2 text-sm font-medium rounded-md transition-colors"
-              [class]="viewMode() === 'created' ? 'bg-indigo-600 text-white' : 'text-gray-700 hover:bg-gray-100'"
+              [class]="
+                viewMode() === 'created'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100'
+              "
             >
               Tasks I Created
             </button>
@@ -111,8 +131,18 @@ type ViewMode = 'assigned' | 'created';
               routerLink="/eisenhower"
               class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                />
               </svg>
               Matrix View
             </a>
@@ -122,11 +152,11 @@ type ViewMode = 'assigned' | 'created';
         <!-- Loading State -->
         @if (loading()) {
           <div class="space-y-4">
-            @for (i of [1,2,3]; track i) {
+            @for (i of [1, 2, 3]; track i) {
               <div class="bg-white rounded-lg border border-gray-200 p-4">
                 <div class="skeleton skeleton-text w-32 mb-3"></div>
                 <div class="space-y-2">
-                  @for (j of [1,2,3]; track j) {
+                  @for (j of [1, 2, 3]; track j) {
                     <div class="skeleton skeleton-card h-16"></div>
                   }
                 </div>
@@ -157,14 +187,23 @@ type ViewMode = 'assigned' | 'created';
                         stroke="currentColor"
                         viewBox="0 0 24 24"
                       >
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 5l7 7-7 7"
+                        />
                       </svg>
                       <h2 class="text-lg font-semibold text-gray-900">
                         {{ group.title }}
                       </h2>
                       <span
                         class="px-2.5 py-0.5 rounded-full text-xs font-medium"
-                        [class]="group.key === 'overdue' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-600'"
+                        [class]="
+                          group.key === 'overdue'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-gray-100 text-gray-600'
+                        "
                       >
                         {{ groupTasks.length }}
                       </span>
@@ -191,14 +230,34 @@ type ViewMode = 'assigned' | 'created';
           <!-- Empty State -->
           @if (allTasks().length === 0) {
             <div class="text-center py-16">
-              <div class="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-emerald-100 via-teal-50 to-indigo-100 flex items-center justify-center mb-5">
-                <svg class="w-10 h-10 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              <div
+                class="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-emerald-100 via-teal-50 to-indigo-100 flex items-center justify-center mb-5"
+              >
+                <svg
+                  class="w-10 h-10 text-emerald-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">You're all caught up!</h3>
+              <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                You're all caught up!
+              </h3>
               <p class="text-sm text-gray-500 max-w-xs mx-auto">
-                No tasks {{ viewMode() === 'created' ? 'created by you' : 'assigned to you' }} right now.
+                No tasks
+                {{
+                  viewMode() === 'created'
+                    ? 'created by you'
+                    : 'assigned to you'
+                }}
+                right now.
               </p>
             </div>
           }
@@ -206,18 +265,20 @@ type ViewMode = 'assigned' | 'created';
       </div>
     </div>
   `,
-  styles: [`
-    @reference "tailwindcss";
-    .skeleton {
-      @apply animate-pulse bg-gray-200 rounded;
-    }
-    .skeleton-text {
-      @apply h-4;
-    }
-    .skeleton-card {
-      @apply h-20;
-    }
-  `],
+  styles: [
+    `
+      @reference "tailwindcss";
+      .skeleton {
+        @apply animate-pulse bg-gray-200 rounded;
+      }
+      .skeleton-text {
+        @apply h-4;
+      }
+      .skeleton-card {
+        @apply h-20;
+      }
+    `,
+  ],
 })
 export class MyTasksTimelineComponent implements OnInit, OnDestroy {
   private myTasksService = inject(MyTasksService);
@@ -230,7 +291,7 @@ export class MyTasksTimelineComponent implements OnInit, OnDestroy {
   summary = signal<MyTasksSummary | null>(null);
   viewMode = signal<ViewMode>('assigned');
   collapsedGroups = signal<Set<TimelineGroup>>(
-    new Set<TimelineGroup>(['later', 'no_due_date', 'completed_today'])
+    new Set<TimelineGroup>(['later', 'no_due_date', 'completed_today']),
   );
 
   groups: GroupConfig[] = [
@@ -312,18 +373,19 @@ export class MyTasksTimelineComponent implements OnInit, OnDestroy {
   async loadTasks() {
     this.loading.set(true);
     try {
-      const response = await firstValueFrom(this.myTasksService
-        .getMyTasks({
+      const response = await firstValueFrom(
+        this.myTasksService.getMyTasks({
           sort_by: 'due_date',
           sort_order: 'asc',
           limit: 1000, // Load all tasks for grouping
-        }));
+        }),
+      );
 
       if (response) {
         this.allTasks.set(response.items);
       }
-    } catch (error) {
-      console.error('Failed to load tasks:', error);
+    } catch {
+      // Tasks will show empty state
     } finally {
       this.loading.set(false);
     }
@@ -331,10 +393,12 @@ export class MyTasksTimelineComponent implements OnInit, OnDestroy {
 
   async loadSummary() {
     try {
-      const summary = await firstValueFrom(this.myTasksService.getMyTasksSummary());
+      const summary = await firstValueFrom(
+        this.myTasksService.getMyTasksSummary(),
+      );
       this.summary.set(summary || null);
-    } catch (error) {
-      console.error('Failed to load summary:', error);
+    } catch {
+      // Summary will show null state
     }
   }
 
@@ -407,7 +471,7 @@ export class MyTasksTimelineComponent implements OnInit, OnDestroy {
       const dueDateOnly = new Date(
         dueDate.getFullYear(),
         dueDate.getMonth(),
-        dueDate.getDate()
+        dueDate.getDate(),
       );
 
       // Skip completed tasks (except completed today)
@@ -447,18 +511,20 @@ export class MyTasksTimelineComponent implements OnInit, OnDestroy {
     this.wsService.connect();
     this.wsService.send('subscribe', { channel: `user:${userId}` });
 
-    this.wsService.messages$.pipe(takeUntil(this.destroy$)).subscribe((message) => {
-      switch (message.type) {
-        case 'task:assigned':
-        case 'task:unassigned':
-        case 'task:updated':
-        case 'task:moved':
-        case 'task:deleted':
-          this.loadTasks();
-          this.loadSummary();
-          break;
-      }
-    });
+    this.wsService.messages$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((message) => {
+        switch (message.type) {
+          case 'task:assigned':
+          case 'task:unassigned':
+          case 'task:updated':
+          case 'task:moved':
+          case 'task:deleted':
+            this.loadTasks();
+            this.loadSummary();
+            break;
+        }
+      });
   }
 
   /**

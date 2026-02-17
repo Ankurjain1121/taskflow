@@ -25,7 +25,7 @@ async fn get_board_report_handler(
     Path(board_id): Path<Uuid>,
     Query(query): Query<ReportQuery>,
 ) -> Result<Json<BoardReport>> {
-    let days_back = query.days.unwrap_or(30).min(365).max(1);
+    let days_back = query.days.unwrap_or(30).clamp(1, 365);
 
     let report = get_board_report(&state.db, board_id, tenant.user_id, days_back)
         .await

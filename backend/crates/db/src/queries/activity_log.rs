@@ -47,7 +47,7 @@ pub async fn list_activity_by_task(
     limit: i64,
 ) -> Result<PaginatedActivityLog, sqlx::Error> {
     // Clamp limit to max 50
-    let limit = limit.min(50).max(1);
+    let limit = limit.clamp(1, 50);
     // Fetch one extra to determine if there are more results
     let fetch_limit = limit + 1;
 

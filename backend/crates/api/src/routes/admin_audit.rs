@@ -85,7 +85,7 @@ async fn list_audit_log(
     Query(query): Query<AuditLogQuery>,
 ) -> Result<Json<PaginatedAuditLog>> {
     let tenant_id = admin.0.tenant_id;
-    let page_size = query.page_size.min(100).max(1);
+    let page_size = query.page_size.clamp(1, 100);
     let fetch_limit = page_size + 1;
 
     // Parse cursor if provided

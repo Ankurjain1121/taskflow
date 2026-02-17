@@ -82,7 +82,7 @@ async fn list_trash(
     Query(query): Query<TrashListQuery>,
 ) -> Result<Json<PaginatedTrashItems>> {
     let tenant_id = admin.0.tenant_id;
-    let page_size = query.page_size.min(100).max(1);
+    let page_size = query.page_size.clamp(1, 100);
 
     // Parse entity type filter
     let entity_type_filter = query

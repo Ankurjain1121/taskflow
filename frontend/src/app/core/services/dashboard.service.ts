@@ -64,47 +64,62 @@ export class DashboardService {
 
   constructor(private http: HttpClient) {}
 
-  getStats(): Observable<DashboardStats> {
-    return this.http.get<DashboardStats>(`${this.apiUrl}/stats`);
+  private buildParams(workspaceId?: string, extra?: Record<string, string>): HttpParams {
+    let params = new HttpParams();
+    if (workspaceId) {
+      params = params.set('workspace_id', workspaceId);
+    }
+    if (extra) {
+      for (const [key, value] of Object.entries(extra)) {
+        params = params.set(key, value);
+      }
+    }
+    return params;
   }
 
-  getRecentActivity(limit: number = 10): Observable<DashboardActivityEntry[]> {
-    const params = new HttpParams().set('limit', limit.toString());
+  getStats(workspaceId?: string): Observable<DashboardStats> {
+    return this.http.get<DashboardStats>(`${this.apiUrl}/stats`, {
+      params: this.buildParams(workspaceId),
+    });
+  }
+
+  getRecentActivity(limit: number = 10, workspaceId?: string): Observable<DashboardActivityEntry[]> {
     return this.http.get<DashboardActivityEntry[]>(
       `${this.apiUrl}/recent-activity`,
-      { params }
+      { params: this.buildParams(workspaceId, { limit: limit.toString() }) }
     );
   }
 
-  getTasksByStatus(): Observable<TasksByStatus[]> {
-    return this.http.get<TasksByStatus[]>(`${this.apiUrl}/tasks-by-status`);
+  getTasksByStatus(workspaceId?: string): Observable<TasksByStatus[]> {
+    return this.http.get<TasksByStatus[]>(`${this.apiUrl}/tasks-by-status`, {
+      params: this.buildParams(workspaceId),
+    });
   }
 
-  getTasksByPriority(): Observable<TasksByPriority[]> {
-    return this.http.get<TasksByPriority[]>(`${this.apiUrl}/tasks-by-priority`);
+  getTasksByPriority(workspaceId?: string): Observable<TasksByPriority[]> {
+    return this.http.get<TasksByPriority[]>(`${this.apiUrl}/tasks-by-priority`, {
+      params: this.buildParams(workspaceId),
+    });
   }
 
-  getOverdueTasks(limit: number = 10): Observable<OverdueTask[]> {
-    const params = new HttpParams().set('limit', limit.toString());
+  getOverdueTasks(limit: number = 10, workspaceId?: string): Observable<OverdueTask[]> {
     return this.http.get<OverdueTask[]>(
       `${this.apiUrl}/overdue-tasks`,
-      { params }
+      { params: this.buildParams(workspaceId, { limit: limit.toString() }) }
     );
   }
 
-  getCompletionTrend(days: number = 30): Observable<CompletionTrendPoint[]> {
-    const params = new HttpParams().set('days', days.toString());
+  getCompletionTrend(days: number = 30, workspaceId?: string): Observable<CompletionTrendPoint[]> {
     return this.http.get<CompletionTrendPoint[]>(
       `${this.apiUrl}/completion-trend`,
-      { params }
+      { params: this.buildParams(workspaceId, { days: days.toString() }) }
     );
   }
 
-  getUpcomingDeadlines(days: number = 14): Observable<UpcomingDeadline[]> {
-    const params = new HttpParams().set('days', days.toString());
+  getUpcomingDeadlines(days: number = 14, workspaceId?: string): Observable<UpcomingDeadline[]> {
     return this.http.get<UpcomingDeadline[]>(
       `${this.apiUrl}/upcoming-deadlines`,
-      { params }
+      { params: this.buildParams(workspaceId, { days: days.toString() }) }
     );
   }
 }

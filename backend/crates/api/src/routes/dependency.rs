@@ -97,9 +97,22 @@ async fn create_dependency_handler(
 /// Delete a dependency
 async fn delete_dependency_handler(
     State(state): State<AppState>,
-    _tenant: TenantContext,
+    tenant: TenantContext,
     Path(dep_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>> {
+    // Look up the dependency's source task to verify board membership
+    let source_task_id: Option<Uuid> = sqlx::query_scalar(
+        "SELECT source_task_id FROM task_dependencies WHERE id = $1",
+    )
+    .bind(dep_id)
+    .fetch_optional(&state.db)
+    .await?;
+
+    let source_task_id = source_task_id
+        .ok_or_else(|| AppError::NotFound("Dependency not found".into()))?;
+
+    verify_task_board_membership(&state, source_task_id, tenant.user_id).await?;
+
     delete_dependency(&state.db, dep_id)
         .await
         .map_err(map_dep_error)?;

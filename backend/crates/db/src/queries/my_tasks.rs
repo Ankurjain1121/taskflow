@@ -102,7 +102,7 @@ pub async fn list_my_tasks(
     limit: i64,
 ) -> Result<PaginatedMyTasks, sqlx::Error> {
     // Clamp limit
-    let limit = limit.min(50).max(1);
+    let limit = limit.clamp(1, 50);
     let fetch_limit = limit + 1;
 
     // Build ORDER BY clause based on sort options

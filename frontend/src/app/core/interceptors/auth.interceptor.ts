@@ -4,6 +4,14 @@ import { Router } from '@angular/router';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
+const SKIP_RETRY_URLS = [
+  '/auth/sign-in',
+  '/auth/sign-up',
+  '/auth/refresh',
+  '/auth/logout',
+  '/auth/me',
+];
+
 export const authInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
   next: HttpHandlerFn
@@ -20,36 +28,43 @@ export const authInterceptor: HttpInterceptorFn = (
   }
 
   // Skip retry logic for auth endpoints
-  if (req.url.includes('/auth/sign-in') || req.url.includes('/auth/refresh') || req.url.includes('/auth/logout')) {
+  if (SKIP_RETRY_URLS.some((url) => req.url.includes(url))) {
     return next(authReq);
   }
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401 && !req.url.includes('/auth/')) {
-        // Attempt to refresh the token (cookie-based)
-        if (!authService.isRefreshInProgress()) {
-          return authService.refresh().pipe(
-            switchMap(() => {
-              // Retry the original request - cookies are updated automatically
-              const retryReq = req.clone({
-                withCredentials: true,
-              });
-              return next(retryReq);
+        if (authService.isRefreshInProgress()) {
+          // Another request already triggered a refresh — wait for it, then retry
+          return authService.waitForRefresh().pipe(
+            switchMap((success) => {
+              if (success) {
+                const retryReq = req.clone({ withCredentials: true });
+                return next(retryReq);
+              }
+              return throwError(() => error);
             }),
-            catchError((refreshError) => {
-              // Refresh failed, redirect to sign-in
-              authService.signOut();
-              router.navigate(['/auth/sign-in'], {
-                queryParams: { returnUrl: router.url },
-              });
-              return throwError(() => refreshError);
-            })
           );
         }
+
+        // First 401 — start the refresh
+        return authService.refresh().pipe(
+          switchMap(() => {
+            const retryReq = req.clone({ withCredentials: true });
+            return next(retryReq);
+          }),
+          catchError((refreshError) => {
+            authService.signOut('expired');
+            router.navigate(['/auth/sign-in'], {
+              queryParams: { returnUrl: router.url },
+            });
+            return throwError(() => refreshError);
+          }),
+        );
       }
 
       return throwError(() => error);
-    })
+    }),
   );
 };

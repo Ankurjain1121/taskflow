@@ -51,7 +51,7 @@ async fn list_archive_handler(
     tenant: TenantContext,
     Query(query): Query<ArchiveListQuery>,
 ) -> Result<Json<PaginatedArchive>> {
-    let page_size = query.page_size.min(100).max(1);
+    let page_size = query.page_size.clamp(1, 100);
 
     let cursor: Option<DateTime<Utc>> = query
         .cursor

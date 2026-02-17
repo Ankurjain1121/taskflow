@@ -1,14 +1,25 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap, catchError, throwError, BehaviorSubject } from 'rxjs';
+import {
+  Observable,
+  tap,
+  catchError,
+  throwError,
+  BehaviorSubject,
+  of,
+  switchMap,
+  filter,
+  take,
+  map,
+} from 'rxjs';
 import { Router } from '@angular/router';
 
 export interface User {
   id: string;
   email: string;
-  name: string;  // Backend sends 'name', not 'display_name'
+  name: string; // Backend sends 'name', not 'display_name'
   avatar_url: string | null;
-  role: 'Admin' | 'Manager' | 'Member';  // Backend uses capitalized role names
+  role: 'Admin' | 'Manager' | 'Member'; // Backend uses capitalized role names
   tenant_id: string;
   onboarding_completed: boolean;
 }
@@ -39,15 +50,59 @@ const USER_KEY = 'taskflow_user';
 export class AuthService {
   private readonly apiUrl = '/api/auth';
   private _currentUser = signal<User | null>(this.loadUserFromStorage());
-  private refreshInProgress$ = new BehaviorSubject<boolean>(false);
+  private refreshResult$ = new BehaviorSubject<
+    'idle' | 'pending' | 'success' | 'failed'
+  >('idle');
 
   readonly currentUser = this._currentUser.asReadonly();
   readonly isAuthenticated = computed(() => this._currentUser() !== null);
 
   constructor(
     private http: HttpClient,
-    private router: Router
+    private router: Router,
   ) {}
+
+  /**
+   * Validate the current session on app boot.
+   * If localStorage has a user but the cookie is invalid, clears state.
+   * Called by APP_INITIALIZER before any route guard runs.
+   */
+  validateSession(): Observable<boolean> {
+    const storedUser = this.loadUserFromStorage();
+    if (!storedUser) {
+      this._currentUser.set(null);
+      return of(false);
+    }
+
+    return this.http
+      .get<User>(`${this.apiUrl}/me`, { withCredentials: true })
+      .pipe(
+        map((user) => {
+          localStorage.setItem(USER_KEY, JSON.stringify(user));
+          this._currentUser.set(user);
+          return true;
+        }),
+        catchError(() =>
+          // /me failed — try refreshing the token
+          this.http
+            .post<TokenResponse>(
+              `${this.apiUrl}/refresh`,
+              {},
+              { withCredentials: true },
+            )
+            .pipe(
+              map((response) => {
+                this.handleAuthSuccess(response);
+                return true;
+              }),
+              catchError(() => {
+                this.clearLocalState();
+                return of(false);
+              }),
+            ),
+        ),
+      );
+  }
 
   signIn(email: string, password: string): Observable<TokenResponse> {
     return this.http
@@ -55,9 +110,8 @@ export class AuthService {
       .pipe(
         tap((response) => this.handleAuthSuccess(response)),
         catchError((error) => {
-          console.error('Sign in failed:', error);
           return throwError(() => error);
-        })
+        }),
       );
   }
 
@@ -67,74 +121,105 @@ export class AuthService {
       .pipe(
         tap((response) => this.handleAuthSuccess(response)),
         catchError((error) => {
-          console.error('Sign up failed:', error);
           return throwError(() => error);
-        })
+        }),
       );
   }
 
   refresh(): Observable<TokenResponse> {
-    this.refreshInProgress$.next(true);
-
-    // No need to send refresh_token in body - it's sent automatically as a cookie
-    return this.http
-      .post<TokenResponse>(`${this.apiUrl}/refresh`, {})
-      .pipe(
-        tap((response) => {
-          this.handleAuthSuccess(response);
-          this.refreshInProgress$.next(false);
-        }),
-        catchError((error) => {
-          this.refreshInProgress$.next(false);
-          this.signOut();
-          return throwError(() => error);
-        })
+    if (this.refreshResult$.value === 'pending') {
+      // A refresh is already in flight — wait for its result
+      return this.waitForRefresh().pipe(
+        switchMap((success) =>
+          success
+            ? of(null as unknown as TokenResponse)
+            : throwError(() => new Error('Refresh failed')),
+        ),
       );
+    }
+
+    this.refreshResult$.next('pending');
+
+    return this.http.post<TokenResponse>(`${this.apiUrl}/refresh`, {}).pipe(
+      tap((response) => {
+        this.handleAuthSuccess(response);
+        this.refreshResult$.next('success');
+      }),
+      catchError((error) => {
+        this.refreshResult$.next('failed');
+        return throwError(() => error);
+      }),
+    );
   }
 
-  signOut(): void {
-    // Call the logout endpoint to clear server-side cookies
+  /**
+   * Wait for an in-flight refresh to complete.
+   * Returns true if refresh succeeded, false if it failed.
+   */
+  waitForRefresh(): Observable<boolean> {
+    return this.refreshResult$.pipe(
+      filter((status) => status === 'success' || status === 'failed'),
+      take(1),
+      map((status) => status === 'success'),
+    );
+  }
+
+  signOut(reason?: 'expired' | 'manual'): void {
     this.http.post(`${this.apiUrl}/logout`, {}).subscribe({
       error: () => {
-        // Ignore errors - clear local state regardless
+        // Ignore errors — clear local state regardless
       },
     });
-    localStorage.removeItem(USER_KEY);
-    this._currentUser.set(null);
-    this.router.navigate(['/auth/sign-in']);
+    this.clearLocalState();
+
+    const queryParams: Record<string, string> = {};
+    if (reason === 'expired') {
+      queryParams['reason'] = 'session_expired';
+    }
+    this.router.navigate(['/auth/sign-in'], { queryParams });
   }
 
   getAccessToken(): string | null {
-    // Tokens are now in HttpOnly cookies - not accessible from JS.
-    // This method exists for backward compat; returns null.
     return null;
   }
 
   getRefreshToken(): string | null {
-    // Tokens are now in HttpOnly cookies - not accessible from JS.
     return null;
   }
 
   isRefreshInProgress(): boolean {
-    return this.refreshInProgress$.value;
+    return this.refreshResult$.value === 'pending';
   }
 
   forgotPassword(email: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.apiUrl}/forgot-password`, { email });
+    return this.http.post<{ message: string }>(
+      `${this.apiUrl}/forgot-password`,
+      { email },
+    );
   }
 
-  resetPassword(token: string, newPassword: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.apiUrl}/reset-password`, {
-      token,
-      new_password: newPassword,
-    });
+  resetPassword(
+    token: string,
+    newPassword: string,
+  ): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(
+      `${this.apiUrl}/reset-password`,
+      {
+        token,
+        new_password: newPassword,
+      },
+    );
   }
 
   private handleAuthSuccess(response: TokenResponse): void {
-    // Tokens are set as HttpOnly cookies by the server - no localStorage needed for tokens.
-    // We still store the user object for quick access on page reload.
     localStorage.setItem(USER_KEY, JSON.stringify(response.user));
     this._currentUser.set(response.user);
+  }
+
+  private clearLocalState(): void {
+    localStorage.removeItem(USER_KEY);
+    this._currentUser.set(null);
+    this.refreshResult$.next('idle');
   }
 
   private loadUserFromStorage(): User | null {

@@ -11,7 +11,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::errors::Result;
+use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
@@ -19,6 +19,7 @@ use taskflow_db::queries::eisenhower::{
     get_eisenhower_matrix, reset_eisenhower_overrides, update_eisenhower_overrides,
     EisenhowerMatrixResponse,
 };
+use taskflow_db::queries::get_task_board_id;
 
 /// Request body for updating Eisenhower overrides
 #[derive(Debug, Deserialize)]
@@ -59,7 +60,23 @@ async fn update_task_eisenhower(
     Path(task_id): Path<Uuid>,
     Json(req): Json<UpdateEisenhowerRequest>,
 ) -> Result<Json<()>> {
-    // TODO: Add permission check - verify user owns the task or has access to the board
+    // Verify user has access to the task via board membership
+    let board_id = get_task_board_id(&state.db, task_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
+
+    let is_member: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)",
+    )
+    .bind(board_id)
+    .bind(tenant.user_id)
+    .fetch_one(&state.db)
+    .await?;
+
+    if !is_member {
+        return Err(AppError::Forbidden("Not a board member".into()));
+    }
+
     update_eisenhower_overrides(&state.db, task_id, req.urgency, req.importance).await?;
 
     Ok(Json(()))

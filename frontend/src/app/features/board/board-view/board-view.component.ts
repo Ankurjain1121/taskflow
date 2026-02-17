@@ -650,8 +650,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
         position: newPosition,
       })
       .subscribe({
-        error: (err) => {
-          console.error('Failed to move task:', err);
+        error: () => {
           // Rollback on error
           this.boardState.set(snapshot);
           this.showError('Failed to move task. Reverted.');
@@ -748,8 +747,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
             return newState;
           });
         },
-        error: (err) => {
-          console.error('Failed to create task:', err);
+        error: () => {
           this.showError('Failed to create task');
         },
       });
@@ -786,8 +784,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
             [column.id]: [],
           }));
         },
-        error: (err) => {
-          console.error('Failed to create column:', err);
+        error: () => {
           this.showError('Failed to create column');
         },
       });
@@ -893,8 +890,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
           this.flatTasks.set(tasks);
           this.listLoading.set(false);
         },
-        error: (err) => {
-          console.error('Failed to load flat task list:', err);
+        error: () => {
           this.listLoading.set(false);
           this.showError('Failed to load task list');
         },
@@ -960,8 +956,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
         // Subscribe to board updates
         this.wsService.send('subscribe', { channel: `board:${this.boardId}` });
       },
-      error: (err) => {
-        console.error('Failed to load board:', err);
+      error: () => {
         this.loading.set(false);
         this.showError('Failed to load board');
       },
@@ -1145,7 +1140,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
           this.clearSelection();
           this.loadBoard();
         },
-        error: (err) => this.showError('Failed to delete tasks'),
+        error: () => this.showError('Failed to delete tasks'),
       });
       return;
     }
@@ -1175,7 +1170,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
         this.clearSelection();
         this.loadBoard();
       },
-      error: (err) => this.showError('Failed to update tasks'),
+      error: () => this.showError('Failed to update tasks'),
     });
   }
 

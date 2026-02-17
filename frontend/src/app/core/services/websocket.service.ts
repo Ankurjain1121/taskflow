@@ -16,8 +16,10 @@ export class WebSocketService implements OnDestroy {
   private messagesSubject$ = new Subject<WebSocketMessage>();
   private connectionStatusSubject$ = new Subject<boolean>();
 
-  readonly messages$: Observable<WebSocketMessage> = this.messagesSubject$.asObservable();
-  readonly connectionStatus$: Observable<boolean> = this.connectionStatusSubject$.asObservable();
+  readonly messages$: Observable<WebSocketMessage> =
+    this.messagesSubject$.asObservable();
+  readonly connectionStatus$: Observable<boolean> =
+    this.connectionStatusSubject$.asObservable();
 
   connect(): void {
     if (this.socket$) {
@@ -33,13 +35,11 @@ export class WebSocketService implements OnDestroy {
       url: wsUrl,
       openObserver: {
         next: () => {
-          console.log('WebSocket connected and authenticated');
           this.connectionStatusSubject$.next(true);
         },
       },
       closeObserver: {
         next: () => {
-          console.log('WebSocket disconnected');
           this.connectionStatusSubject$.next(false);
         },
       },
@@ -50,11 +50,13 @@ export class WebSocketService implements OnDestroy {
         retry({
           delay: () => timer(3000),
         }),
-        share()
+        share(),
       )
       .subscribe({
         next: (message) => this.messagesSubject$.next(message),
-        error: (error) => console.error('WebSocket error:', error),
+        error: () => {
+          /* WebSocket reconnects automatically via retry */
+        },
       });
   }
 
@@ -73,7 +75,7 @@ export class WebSocketService implements OnDestroy {
     if (this.socket$) {
       this.socket$.next({ type, payload });
     } else {
-      console.error('Cannot send message: WebSocket not connected');
+      /* WebSocket not connected - message dropped */
     }
   }
 

@@ -35,6 +35,9 @@ nul
 # Docker volumes
 docker-data/
 
+# Caddy backup (may contain secrets)
+Caddyfile.backup
+
 # Logs
 *.log
 

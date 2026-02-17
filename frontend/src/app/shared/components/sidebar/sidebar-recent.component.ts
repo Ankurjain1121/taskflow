@@ -9,7 +9,8 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
-import { Subscription, filter } from 'rxjs';
+import { Subscription, filter, take } from 'rxjs';
+import { BoardService } from '../../../core/services/board.service';
 
 export interface RecentBoardEntry {
   id: string;
@@ -36,18 +37,29 @@ const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
         </div>
 
         @if (recentItems().length === 0) {
-          <p class="px-3 py-2 text-xs italic" style="color: var(--sidebar-text-muted)">
+          <p
+            class="px-3 py-2 text-xs italic"
+            style="color: var(--sidebar-text-muted)"
+          >
             No recent boards
           </p>
         } @else {
           <div class="space-y-0.5">
             @for (item of recentItems(); track item.id) {
               <a
-                [routerLink]="['/workspace', item.workspaceId, 'board', item.id]"
+                [routerLink]="[
+                  '/workspace',
+                  item.workspaceId,
+                  'board',
+                  item.id,
+                ]"
                 routerLinkActive="active"
                 class="nav-item flex items-center gap-2 px-3 py-1.5 rounded-md text-sm"
               >
-                <i class="pi pi-table text-xs" style="color: var(--sidebar-text-muted)"></i>
+                <i
+                  class="pi pi-table text-xs"
+                  style="color: var(--sidebar-text-muted)"
+                ></i>
                 <span class="truncate">{{ item.name }}</span>
               </a>
             }
@@ -56,28 +68,37 @@ const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
       </div>
     } @else {
       <div class="flex justify-center py-2" title="Recent">
-        <i class="pi pi-clock text-xs" style="color: var(--sidebar-text-muted)"></i>
+        <i
+          class="pi pi-clock text-xs"
+          style="color: var(--sidebar-text-muted)"
+        ></i>
       </div>
     }
   `,
-  styles: [`
-    :host { display: block; }
-    .nav-item {
-      transition: background var(--duration-fast) var(--ease-standard),
-                  color var(--duration-fast) var(--ease-standard);
-      color: var(--sidebar-text-secondary);
-    }
-    .nav-item:hover {
-      background: var(--sidebar-surface-hover);
-    }
-    .nav-item.active {
-      background: var(--sidebar-surface-active);
-      color: var(--sidebar-text-primary);
-    }
-  `],
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+      .nav-item {
+        transition:
+          background var(--duration-fast) var(--ease-standard),
+          color var(--duration-fast) var(--ease-standard);
+        color: var(--sidebar-text-secondary);
+      }
+      .nav-item:hover {
+        background: var(--sidebar-surface-hover);
+      }
+      .nav-item.active {
+        background: var(--sidebar-surface-active);
+        color: var(--sidebar-text-primary);
+      }
+    `,
+  ],
 })
 export class SidebarRecentComponent implements OnInit, OnDestroy {
   private router = inject(Router);
+  private boardService = inject(BoardService);
   private routerSub: Subscription | null = null;
 
   collapsed = input(false);
@@ -96,19 +117,41 @@ export class SidebarRecentComponent implements OnInit, OnDestroy {
 
   private onNavigationEnd(event: NavigationEnd): void {
     const match = event.urlAfterRedirects.match(
-      /\/workspace\/([^/]+)\/board\/([^/?]+)/
+      /\/workspace\/([^/]+)\/board\/([^/?]+)/,
     );
     if (!match) return;
 
     const workspaceId = match[1];
     const boardId = match[2];
 
+    // Check if we already have this board with a real name
+    const existing = this.recentItems().find((i) => i.id === boardId);
+    const placeholderName = boardId.substring(0, 8) + '...';
+
     this.addRecentEntry({
       id: boardId,
-      name: boardId.substring(0, 8) + '...',
+      name:
+        existing?.name && existing.name !== placeholderName
+          ? existing.name
+          : placeholderName,
       workspaceId,
       visitedAt: Date.now(),
     });
+
+    // Fetch the real board name
+    this.boardService
+      .getBoard(boardId)
+      .pipe(take(1))
+      .subscribe({
+        next: (board) => {
+          if (board.name) {
+            this.updateEntryName(boardId, board.name);
+          }
+        },
+        error: () => {
+          // Board fetch failed — keep placeholder
+        },
+      });
   }
 
   addRecentEntry(entry: RecentBoardEntry): void {
@@ -120,7 +163,7 @@ export class SidebarRecentComponent implements OnInit, OnDestroy {
 
   updateEntryName(boardId: string, name: string): void {
     const items = this.recentItems().map((i) =>
-      i.id === boardId ? { ...i, name } : i
+      i.id === boardId ? { ...i, name } : i,
     );
     this.recentItems.set(items);
     this.saveToStorage(items);

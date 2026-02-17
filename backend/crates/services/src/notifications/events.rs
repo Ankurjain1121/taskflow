@@ -44,6 +44,7 @@ impl NotificationEvent {
     }
 
     /// Parse from string representation
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "task-assigned" | "task_assigned" => Some(NotificationEvent::TaskAssigned),

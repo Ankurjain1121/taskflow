@@ -46,15 +46,12 @@ async fn list_notifications_handler(
 ) -> Result<Json<NotificationListResponse>> {
     // Parse cursor as UUID if provided
     let cursor = match params.cursor {
-        Some(c) => match Uuid::parse_str(&c) {
-            Ok(id) => Some(id),
-            Err(_) => None, // Invalid cursor, start from beginning
-        },
+        Some(c) => Uuid::parse_str(&c).ok(),
         None => None,
     };
 
     // Limit defaults to 20, max 100
-    let limit = params.limit.unwrap_or(20).min(100).max(1);
+    let limit = params.limit.unwrap_or(20).clamp(1, 100);
 
     let response = list_notifications(&state.db, tenant.user_id, cursor, limit)
         .await

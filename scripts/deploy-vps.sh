@@ -104,6 +104,24 @@ sleep 10
 echo "Starting Caddy (reverse proxy with HTTPS)..."
 docker compose -f docker-compose.yml -f docker-compose.vps.yml up -d caddy
 
+# Run auth smoke test
+echo ""
+echo "Waiting 15s for services to stabilize..."
+sleep 15
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -f "$SCRIPT_DIR/smoke-test-auth.sh" ]; then
+    echo "Running auth smoke test..."
+    if ! "$SCRIPT_DIR/smoke-test-auth.sh" "https://$DOMAIN"; then
+        echo ""
+        echo "WARNING: Auth smoke test failed! Check auth endpoints."
+        echo "         The deploy completed but auth may be broken."
+        echo ""
+    fi
+else
+    echo "WARNING: smoke-test-auth.sh not found, skipping auth validation."
+fi
+
 echo ""
 echo "=============================================="
 echo "  Deployment Complete!"

@@ -17,6 +17,7 @@ pub async fn create_invitation(
 }
 
 /// Create a new invitation with optional message and board_ids
+#[allow(clippy::too_many_arguments)]
 pub async fn create_invitation_with_details(
     pool: &PgPool,
     email: &str,

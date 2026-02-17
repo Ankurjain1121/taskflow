@@ -1,7 +1,7 @@
 //! Dashboard database queries
 //!
 //! Provides queries for dashboard statistics and recent activity
-//! across all workspaces for a given user.
+//! across all workspaces for a given user, with optional workspace filtering.
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;
@@ -46,21 +46,15 @@ pub struct DashboardActivityEntry {
     pub actor_avatar_url: Option<String>,
 }
 
-/// Get dashboard statistics for a user
-///
-/// Returns counts of:
-/// - Total tasks assigned to the user (not deleted)
-/// - Overdue tasks (due_date < NOW(), not in done columns)
-/// - Completed this week (tasks moved to done columns in last 7 days)
-/// - Due today (due_date matches current date)
+/// Get dashboard statistics for a user, optionally filtered by workspace
 pub async fn get_dashboard_stats(
     pool: &PgPool,
     user_id: Uuid,
+    workspace_id: Option<Uuid>,
 ) -> Result<DashboardStats, sqlx::Error> {
     let now = chrono::Utc::now();
     let seven_days_ago = now - chrono::Duration::days(7);
 
-    // Get total assigned, overdue, and due_today in a single query
     let stats = sqlx::query_as::<_, StatsRow>(
         r#"
         SELECT
@@ -81,30 +75,34 @@ pub async fn get_dashboard_stats(
         INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
+          AND ($3::uuid IS NULL OR b.workspace_id = $3)
         "#,
     )
     .bind(user_id)
     .bind(now)
+    .bind(workspace_id)
     .fetch_one(pool)
     .await?;
 
-    // Get completed this week from activity_log
     let completed = sqlx::query_as::<_, CountRow>(
         r#"
         SELECT COUNT(DISTINCT al.entity_id)::bigint as count
         FROM activity_log al
         INNER JOIN tasks t ON t.id = al.entity_id AND t.deleted_at IS NULL
         INNER JOIN task_assignees ta ON ta.task_id = t.id AND ta.user_id = $1
+        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
         INNER JOIN board_columns bc ON bc.id = t.column_id
         WHERE al.action = 'moved'
           AND al.entity_type = 'task'
           AND al.created_at >= $2
           AND bc.status_mapping IS NOT NULL
           AND (bc.status_mapping->>'done')::boolean = true
+          AND ($3::uuid IS NULL OR b.workspace_id = $3)
         "#,
     )
     .bind(user_id)
     .bind(seven_days_ago)
+    .bind(workspace_id)
     .fetch_one(pool)
     .await?;
 
@@ -117,16 +115,14 @@ pub async fn get_dashboard_stats(
 }
 
 /// Get recent activity for a user's tenant
-///
-/// Returns the last N activity log entries across all boards
-/// that the user has access to, ordered by newest first.
 pub async fn get_recent_activity(
     pool: &PgPool,
     _user_id: Uuid,
     tenant_id: Uuid,
     limit: i64,
+    workspace_id: Option<Uuid>,
 ) -> Result<Vec<DashboardActivityEntry>, sqlx::Error> {
-    let limit = limit.min(20).max(1);
+    let limit = limit.clamp(1, 20);
 
     let entries = sqlx::query_as::<_, DashboardActivityEntry>(
         r#"
@@ -141,13 +137,17 @@ pub async fn get_recent_activity(
             u.avatar_url as actor_avatar_url
         FROM activity_log al
         JOIN users u ON u.id = al.user_id
+        LEFT JOIN tasks t ON t.id = al.entity_id AND al.entity_type = 'task'
+        LEFT JOIN boards b ON b.id = t.board_id
         WHERE al.tenant_id = $1
+          AND ($3::uuid IS NULL OR b.workspace_id = $3)
         ORDER BY al.created_at DESC
         LIMIT $2
         "#,
     )
     .bind(tenant_id)
     .bind(limit)
+    .bind(workspace_id)
     .fetch_all(pool)
     .await?;
 
@@ -166,6 +166,7 @@ pub struct TasksByStatus {
 pub async fn get_tasks_by_status(
     pool: &PgPool,
     user_id: Uuid,
+    workspace_id: Option<Uuid>,
 ) -> Result<Vec<TasksByStatus>, sqlx::Error> {
     let rows = sqlx::query_as::<_, TasksByStatus>(
         r#"
@@ -180,11 +181,13 @@ pub async fn get_tasks_by_status(
         INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
+          AND ($2::uuid IS NULL OR b.workspace_id = $2)
         GROUP BY bc.name, bc.color
         ORDER BY count DESC
         "#,
     )
     .bind(user_id)
+    .bind(workspace_id)
     .fetch_all(pool)
     .await?;
 
@@ -202,6 +205,7 @@ pub struct TasksByPriority {
 pub async fn get_tasks_by_priority(
     pool: &PgPool,
     user_id: Uuid,
+    workspace_id: Option<Uuid>,
 ) -> Result<Vec<TasksByPriority>, sqlx::Error> {
     let rows = sqlx::query_as::<_, TasksByPriority>(
         r#"
@@ -214,6 +218,7 @@ pub async fn get_tasks_by_priority(
         INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
+          AND ($2::uuid IS NULL OR b.workspace_id = $2)
         GROUP BY t.priority
         ORDER BY
             CASE t.priority
@@ -225,6 +230,7 @@ pub async fn get_tasks_by_priority(
         "#,
     )
     .bind(user_id)
+    .bind(workspace_id)
     .fetch_all(pool)
     .await?;
 
@@ -248,9 +254,10 @@ pub async fn get_overdue_tasks(
     pool: &PgPool,
     user_id: Uuid,
     limit: i64,
+    workspace_id: Option<Uuid>,
 ) -> Result<Vec<OverdueTask>, sqlx::Error> {
     let now = Utc::now();
-    let limit = limit.min(50).max(1);
+    let limit = limit.clamp(1, 50);
 
     let rows = sqlx::query_as::<_, OverdueTask>(
         r#"
@@ -272,6 +279,7 @@ pub async fn get_overdue_tasks(
           AND t.due_date IS NOT NULL
           AND t.due_date < $2
           AND (bc.status_mapping IS NULL OR NOT (bc.status_mapping->>'done')::boolean)
+          AND ($4::uuid IS NULL OR b.workspace_id = $4)
         ORDER BY t.due_date ASC
         LIMIT $3
         "#,
@@ -279,6 +287,7 @@ pub async fn get_overdue_tasks(
     .bind(user_id)
     .bind(now)
     .bind(limit)
+    .bind(workspace_id)
     .fetch_all(pool)
     .await?;
 
@@ -297,8 +306,9 @@ pub async fn get_completion_trend(
     pool: &PgPool,
     user_id: Uuid,
     days: i64,
+    workspace_id: Option<Uuid>,
 ) -> Result<Vec<CompletionTrendPoint>, sqlx::Error> {
-    let days = days.min(90).max(7);
+    let days = days.clamp(7, 90);
     let start_date = Utc::now() - chrono::Duration::days(days);
 
     let rows = sqlx::query_as::<_, CompletionTrendPoint>(
@@ -309,18 +319,21 @@ pub async fn get_completion_trend(
         FROM activity_log al
         INNER JOIN tasks t ON t.id = al.entity_id AND t.deleted_at IS NULL
         INNER JOIN task_assignees ta ON ta.task_id = t.id AND ta.user_id = $1
+        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
         INNER JOIN board_columns bc ON bc.id = t.column_id
         WHERE al.action = 'moved'
           AND al.entity_type = 'task'
           AND al.created_at >= $2
           AND bc.status_mapping IS NOT NULL
           AND (bc.status_mapping->>'done')::boolean = true
+          AND ($3::uuid IS NULL OR b.workspace_id = $3)
         GROUP BY DATE(al.created_at)
         ORDER BY date ASC
         "#,
     )
     .bind(user_id)
     .bind(start_date)
+    .bind(workspace_id)
     .fetch_all(pool)
     .await?;
 
@@ -343,6 +356,7 @@ pub async fn get_upcoming_deadlines(
     pool: &PgPool,
     user_id: Uuid,
     days: i64,
+    workspace_id: Option<Uuid>,
 ) -> Result<Vec<UpcomingDeadline>, sqlx::Error> {
     let now = Utc::now();
     let end_date = now + chrono::Duration::days(days);
@@ -367,12 +381,14 @@ pub async fn get_upcoming_deadlines(
           AND t.due_date >= $2
           AND t.due_date <= $3
           AND (bc.status_mapping IS NULL OR NOT (bc.status_mapping->>'done')::boolean)
+          AND ($4::uuid IS NULL OR b.workspace_id = $4)
         ORDER BY t.due_date ASC
         "#,
     )
     .bind(user_id)
     .bind(now)
     .bind(end_date)
+    .bind(workspace_id)
     .fetch_all(pool)
     .await?;
 

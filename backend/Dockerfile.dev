@@ -4,7 +4,7 @@
 # Uses cargo-watch for hot reload during development
 # =============================================================================
 
-FROM rust:1.83-slim
+FROM rust:1.93-slim
 
 # Install build dependencies and cargo-watch
 RUN apt-get update && apt-get install -y \

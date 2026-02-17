@@ -32,10 +32,10 @@ async fn search_handler(
         return Err(AppError::BadRequest("Search query is required".into()));
     }
 
-    let limit = params.limit.min(50).max(1);
+    let limit = params.limit.clamp(1, 50);
     let results = search::search_all(&state.db, tenant.tenant_id, &params.q, limit)
         .await
-        .map_err(|e| AppError::SqlxError(e))?;
+        .map_err(AppError::SqlxError)?;
 
     Ok(Json(results))
 }

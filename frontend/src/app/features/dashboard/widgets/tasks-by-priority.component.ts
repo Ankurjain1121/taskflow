@@ -1,5 +1,6 @@
-import { Component, OnInit, signal, inject, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, signal, inject, input, effect, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ChartModule } from 'primeng/chart';
 import { DashboardService, TasksByPriority } from '../../../core/services/dashboard.service';
@@ -10,24 +11,24 @@ import { DashboardService, TasksByPriority } from '../../../core/services/dashbo
   imports: [CommonModule, ChartModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 h-full">
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tasks by Priority</h3>
+    <div class="widget-card p-5 h-full">
+      <h3 class="widget-title mb-4">Tasks by Priority</h3>
 
       @if (loading()) {
-        <div class="flex items-center justify-center h-64">
-          <svg class="animate-spin h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
+        <div class="px-2 space-y-3 py-4">
+          @for (i of [1,2,3,4]; track i) {
+            <div class="skeleton skeleton-row" style="height: 1.75rem;"></div>
+          }
         </div>
       } @else if (data().length > 0) {
         <p-chart
           type="bar"
           [data]="chartData()"
           [options]="chartOptions"
-          [style]="{height: '280px'}" />
+          (onDataSelect)="onChartClick($event)"
+          [style]="{height: '260px'}" />
       } @else {
-        <div class="flex items-center justify-center h-64 text-gray-400">
+        <div class="flex items-center justify-center h-48" style="color: var(--muted-foreground)">
           <p class="text-sm">No data available</p>
         </div>
       }
@@ -36,9 +37,19 @@ import { DashboardService, TasksByPriority } from '../../../core/services/dashbo
 })
 export class TasksByPriorityComponent implements OnInit {
   private dashboardService = inject(DashboardService);
+  private router = inject(Router);
+
+  workspaceId = input<string | undefined>();
 
   loading = signal(true);
   data = signal<TasksByPriority[]>([]);
+
+  constructor() {
+    effect(() => {
+      const _wsId = this.workspaceId();
+      this.loadData();
+    });
+  }
 
   chartData = computed(() => {
     const items = this.data();
@@ -48,8 +59,8 @@ export class TasksByPriorityComponent implements OnInit {
         data: items.map(i => i.count),
         backgroundColor: items.map(i => this.getPriorityColor(i.priority)),
         borderWidth: 0,
-        borderRadius: 4,
-        barThickness: 24,
+        borderRadius: 6,
+        barThickness: 28,
       }],
     };
   });
@@ -60,15 +71,23 @@ export class TasksByPriorityComponent implements OnInit {
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1e293b',
+        titleFont: { family: 'Inter', size: 12 },
+        bodyFont: { family: 'Inter', size: 12 },
+        cornerRadius: 8,
+        padding: 10,
+      },
     },
     scales: {
       x: {
         beginAtZero: true,
-        ticks: { stepSize: 1 },
+        ticks: { stepSize: 1, font: { size: 11 } },
         grid: { display: false },
       },
       y: {
         grid: { display: false },
+        ticks: { font: { size: 12, weight: '500' as const } },
       },
     },
   };
@@ -77,15 +96,13 @@ export class TasksByPriorityComponent implements OnInit {
     this.loadData();
   }
 
-  async loadData() {
-    this.loading.set(true);
-    try {
-      const data = await firstValueFrom(this.dashboardService.getTasksByPriority());
-      this.data.set(data || []);
-    } catch {
-      // Chart will show empty state
-    } finally {
-      this.loading.set(false);
+  onChartClick(event: { element: { index: number } }): void {
+    const items = this.data();
+    const idx = event?.element?.index;
+    if (idx != null && items[idx]) {
+      this.router.navigate(['/my-tasks'], {
+        queryParams: { priority: items[idx].priority },
+      });
     }
   }
 
@@ -96,6 +113,20 @@ export class TasksByPriorityComponent implements OnInit {
       case 'medium': return '#3b82f6';
       case 'low': return '#9ca3af';
       default: return '#9ca3af';
+    }
+  }
+
+  async loadData() {
+    this.loading.set(true);
+    try {
+      const data = await firstValueFrom(
+        this.dashboardService.getTasksByPriority(this.workspaceId())
+      );
+      this.data.set(data || []);
+    } catch {
+      // Chart will show empty state
+    } finally {
+      this.loading.set(false);
     }
   }
 }

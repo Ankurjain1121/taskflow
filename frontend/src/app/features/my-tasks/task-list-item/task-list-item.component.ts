@@ -1,8 +1,4 @@
-import {
-  Component,
-  input,
-  ChangeDetectionStrategy,
-} from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MyTask } from '../../../core/services/my-tasks.service';
@@ -21,13 +17,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <a
-      [routerLink]="[
-        '/workspace',
-        task().workspace_id,
-        'board',
-        task().board_id
-      ]"
-      [queryParams]="{ task: task().id }"
+      [routerLink]="['/task', task().id]"
       class="block bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer"
       [style.border-left]="'4px solid ' + getBorderColor()"
     >
@@ -93,7 +83,8 @@ import {
             @if (task().due_date) {
               <span
                 [class]="
-                  'flex items-center gap-1 text-xs font-medium ' + dueDateColorClass
+                  'flex items-center gap-1 text-xs font-medium ' +
+                  dueDateColorClass
                 "
               >
                 <svg

@@ -70,12 +70,12 @@ export class MyTasksService {
       httpParams = httpParams.set('limit', params.limit.toString());
     }
 
-    return this.http.get<MyTasksResponse>(`${this.apiUrl}/me/tasks`, {
+    return this.http.get<MyTasksResponse>(`${this.apiUrl}/my-tasks`, {
       params: httpParams,
     });
   }
 
   getMyTasksSummary(): Observable<MyTasksSummary> {
-    return this.http.get<MyTasksSummary>(`${this.apiUrl}/me/tasks/summary`);
+    return this.http.get<MyTasksSummary>(`${this.apiUrl}/my-tasks/summary`);
   }
 }

@@ -10,35 +10,35 @@ export const routes: Routes = [
         path: 'sign-in',
         loadComponent: () =>
           import('./features/auth/sign-in/sign-in.component').then(
-            (m) => m.SignInComponent
+            (m) => m.SignInComponent,
           ),
       },
       {
         path: 'sign-up',
         loadComponent: () =>
           import('./features/auth/sign-up/sign-up.component').then(
-            (m) => m.SignUpComponent
+            (m) => m.SignUpComponent,
           ),
       },
       {
         path: 'forgot-password',
         loadComponent: () =>
           import('./features/auth/forgot-password/forgot-password.component').then(
-            (m) => m.ForgotPasswordComponent
+            (m) => m.ForgotPasswordComponent,
           ),
       },
       {
         path: 'reset-password',
         loadComponent: () =>
           import('./features/auth/reset-password/reset-password.component').then(
-            (m) => m.ResetPasswordComponent
+            (m) => m.ResetPasswordComponent,
           ),
       },
       {
         path: 'accept-invite',
         loadComponent: () =>
           import('./features/auth/accept-invite/accept-invite.component').then(
-            (m) => m.AcceptInviteComponent
+            (m) => m.AcceptInviteComponent,
           ),
       },
     ],
@@ -47,7 +47,7 @@ export const routes: Routes = [
     path: 'onboarding',
     loadComponent: () =>
       import('./features/onboarding/onboarding.component').then(
-        (m) => m.OnboardingComponent
+        (m) => m.OnboardingComponent,
       ),
     canActivate: [authGuard],
     data: { hideSidebar: true },
@@ -56,7 +56,7 @@ export const routes: Routes = [
     path: 'dashboard',
     loadComponent: () =>
       import('./features/dashboard/dashboard.component').then(
-        (m) => m.DashboardComponent
+        (m) => m.DashboardComponent,
       ),
     canActivate: [authGuard],
   },
@@ -64,7 +64,7 @@ export const routes: Routes = [
     path: 'my-tasks',
     loadComponent: () =>
       import('./features/my-tasks/my-tasks-timeline/my-tasks-timeline.component').then(
-        (m) => m.MyTasksTimelineComponent
+        (m) => m.MyTasksTimelineComponent,
       ),
     canActivate: [authGuard],
   },
@@ -72,7 +72,7 @@ export const routes: Routes = [
     path: 'eisenhower',
     loadComponent: () =>
       import('./features/my-tasks/eisenhower-matrix/eisenhower-matrix.component').then(
-        (m) => m.EisenhowerMatrixComponent
+        (m) => m.EisenhowerMatrixComponent,
       ),
     canActivate: [authGuard],
   },
@@ -80,7 +80,7 @@ export const routes: Routes = [
     path: 'favorites',
     loadComponent: () =>
       import('./features/favorites/favorites.component').then(
-        (m) => m.FavoritesComponent
+        (m) => m.FavoritesComponent,
       ),
     canActivate: [authGuard],
   },
@@ -88,7 +88,7 @@ export const routes: Routes = [
     path: 'archive',
     loadComponent: () =>
       import('./features/archive/archive.component').then(
-        (m) => m.ArchiveComponent
+        (m) => m.ArchiveComponent,
       ),
     canActivate: [authGuard],
   },
@@ -96,16 +96,14 @@ export const routes: Routes = [
     path: 'team',
     loadComponent: () =>
       import('./features/team/team-page.component').then(
-        (m) => m.TeamPageComponent
+        (m) => m.TeamPageComponent,
       ),
     canActivate: [authGuard],
   },
   {
     path: 'help',
     loadComponent: () =>
-      import('./features/help/help.component').then(
-        (m) => m.HelpComponent
-      ),
+      import('./features/help/help.component').then((m) => m.HelpComponent),
     canActivate: [authGuard],
   },
   {
@@ -116,35 +114,35 @@ export const routes: Routes = [
         path: '',
         loadComponent: () =>
           import('./features/workspace/workspace.component').then(
-            (m) => m.WorkspaceComponent
+            (m) => m.WorkspaceComponent,
           ),
       },
       {
         path: 'board/:boardId',
         loadComponent: () =>
           import('./features/board/board-view/board-view.component').then(
-            (m) => m.BoardViewComponent
+            (m) => m.BoardViewComponent,
           ),
       },
       {
         path: 'board/:boardId/settings',
         loadComponent: () =>
           import('./features/board/board-settings/board-settings.component').then(
-            (m) => m.BoardSettingsComponent
+            (m) => m.BoardSettingsComponent,
           ),
       },
       {
         path: 'team',
         loadComponent: () =>
           import('./features/team/team-overview/team-overview.component').then(
-            (m) => m.TeamOverviewComponent
+            (m) => m.TeamOverviewComponent,
           ),
       },
       {
         path: 'settings',
         loadComponent: () =>
           import('./features/workspace/workspace-settings/workspace-settings.component').then(
-            (m) => m.WorkspaceSettingsComponent
+            (m) => m.WorkspaceSettingsComponent,
           ),
       },
     ],
@@ -157,14 +155,14 @@ export const routes: Routes = [
         path: 'profile',
         loadComponent: () =>
           import('./features/settings/profile/profile.component').then(
-            (m) => m.ProfileComponent
+            (m) => m.ProfileComponent,
           ),
       },
       {
         path: 'notifications',
         loadComponent: () =>
           import('./features/settings/notifications/notifications.component').then(
-            (m) => m.NotificationsComponent
+            (m) => m.NotificationsComponent,
           ),
       },
     ],
@@ -174,6 +172,14 @@ export const routes: Routes = [
     canActivate: [adminGuard],
     loadChildren: () =>
       import('./features/admin/admin.routes').then((m) => m.adminRoutes),
+  },
+  {
+    path: 'task/:taskId',
+    loadComponent: () =>
+      import('./features/task-detail/task-detail-page.component').then(
+        (m) => m.TaskDetailPageComponent,
+      ),
+    canActivate: [authGuard],
   },
   { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
   { path: '**', redirectTo: '/dashboard' },

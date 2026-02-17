@@ -205,10 +205,10 @@ pub async fn delete_template(
     .ok_or(ProjectTemplateQueryError::NotFound)?;
 
     // Only the creator or an admin of the same tenant can delete
-    if template.created_by_id != user_id {
-        if template.tenant_id != tenant_id || user_role != UserRole::Admin {
-            return Err(ProjectTemplateQueryError::Forbidden);
-        }
+    if template.created_by_id != user_id
+        && (template.tenant_id != tenant_id || user_role != UserRole::Admin)
+    {
+        return Err(ProjectTemplateQueryError::Forbidden);
     }
 
     // Cascade delete handles columns and tasks
@@ -485,7 +485,7 @@ pub async fn create_board_from_template(
         let position = format!("a{}", col.position);
         let status_mapping_val: Option<serde_json::Value> = {
             let v = &col.status_mapping;
-            if v.is_object() && v.as_object().map_or(true, |m| m.is_empty()) {
+            if v.is_object() && v.as_object().is_none_or(|m| m.is_empty()) {
                 None
             } else {
                 Some(v.clone())

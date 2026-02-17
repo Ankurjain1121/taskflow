@@ -124,8 +124,8 @@ services:
     networks:
       - taskflow-network
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 10s
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 10s
@@ -140,7 +140,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${LAGO_DB:-lago}
       REDIS_URL: redis://redis:6379/1
-      SECRET_KEY_BASE: ${LAGO_SECRET_KEY:-your-lago-secret-key-base-min-64-chars-long-change-in-production}
+      SECRET_KEY_BASE: ${LAGO_SECRET_KEY:-your-lago-secret-key-base-min-64-chars-long-change-in-production}  # WARNING: Change in production!
       RAILS_ENV: production
       RAILS_LOG_TO_STDOUT: "true"
       LAGO_API_URL: http://lago-api:3000
@@ -205,7 +205,7 @@ services:
       REDIS_DB_INDEX: 2
       API_ROOT_URL: http://localhost:3001
       DISABLE_USER_REGISTRATION: "false"
-      JWT_SECRET: ${NOVU_JWT_SECRET:-your-novu-jwt-secret-change-in-production}
+      JWT_SECRET: ${NOVU_JWT_SECRET:-your-novu-jwt-secret-change-in-production}  # WARNING: Change in production!
     depends_on:
       mongodb:
         condition: service_healthy
@@ -353,8 +353,8 @@ services:
       PORT: 8080
       RUST_LOG: ${RUST_LOG:-info,sqlx=warn,tower_http=debug}
       # Auth
-      JWT_SECRET: ${JWT_SECRET:-your-jwt-secret-change-in-production}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-jwt-refresh-secret-change-in-production}
+      JWT_SECRET: ${JWT_SECRET:-your-jwt-secret-change-in-production}  # WARNING: Change in production!
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-jwt-refresh-secret-change-in-production}  # WARNING: Change in production!
       JWT_ACCESS_EXPIRY_SECS: ${JWT_ACCESS_EXPIRY_SECS:-900}
       JWT_REFRESH_EXPIRY_SECS: ${JWT_REFRESH_EXPIRY_SECS:-604800}
       # Redis

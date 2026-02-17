@@ -142,8 +142,8 @@ pub fn require_role_level(actual: &UserRole, required: &UserRole) -> Result<(), 
         Ok(())
     } else {
         Err(AuthError::InsufficientRole {
-            required: required.clone(),
-            actual: actual.clone(),
+            required: *required,
+            actual: *actual,
         })
     }
 }

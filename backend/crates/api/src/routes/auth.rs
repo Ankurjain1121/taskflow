@@ -4,7 +4,7 @@
 
 use axum::{
     extract::State,
-    http::{header::SET_COOKIE, HeaderMap, HeaderValue, StatusCode},
+    http::{header::SET_COOKIE, HeaderMap, HeaderValue},
     response::{IntoResponse, Response},
     routing::{get, post},
     Json, Router,
@@ -127,7 +127,7 @@ pub async fn sign_in_handler(
     let tokens = issue_tokens(
         user.id,
         user.tenant_id,
-        user.role.clone(),
+        user.role,
         token_id,
         &state.jwt_keys,
         state.config.jwt_access_expiry_secs,
@@ -218,7 +218,7 @@ pub async fn sign_up_handler(
     let tokens = issue_tokens(
         user.id,
         user.tenant_id,
-        user.role.clone(),
+        user.role,
         token_id,
         &state.jwt_keys,
         state.config.jwt_access_expiry_secs,
@@ -323,7 +323,7 @@ pub async fn refresh_handler(
     let tokens = issue_tokens(
         user.id,
         user.tenant_id,
-        user.role.clone(),
+        user.role,
         new_token_id,
         &state.jwt_keys,
         state.config.jwt_access_expiry_secs,
@@ -471,7 +471,12 @@ pub async fn forgot_password_handler(
             "Password reset requested"
         );
 
-        // TODO: Send actual email via PostalClient when configured
+        // TODO: Wire up PostalClient from services/notifications/email.rs
+        // Steps needed:
+        // 1. Add PostalClient to AppState (construct from config.postal_api_url, config.postal_api_key,
+        //    config.postal_from_address, config.postal_from_name)
+        // 2. Call state.postal_client.send_email(&payload.email, subject, html_body) here
+        // 3. The reset_url is already correctly generated above
         // For now, log the reset URL for development
     }
 

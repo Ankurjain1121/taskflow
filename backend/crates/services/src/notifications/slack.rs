@@ -120,7 +120,7 @@ pub async fn send_slack_notification(
     let client = Client::builder()
         .timeout(std::time::Duration::from_secs(10))
         .build()
-        .map_err(|e| SlackError::Request(e))?;
+        .map_err(SlackError::Request)?;
 
     let response = client
         .post(webhook_url)
@@ -173,7 +173,7 @@ pub async fn send_slack_text(webhook_url: &str, text: &str) -> Result<(), SlackE
     let client = Client::builder()
         .timeout(std::time::Duration::from_secs(10))
         .build()
-        .map_err(|e| SlackError::Request(e))?;
+        .map_err(SlackError::Request)?;
 
     let response = client
         .post(webhook_url)

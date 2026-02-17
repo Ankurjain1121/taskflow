@@ -78,6 +78,7 @@ pub enum AuditError {
 /// * `metadata` - Optional JSON metadata about the action
 /// * `ip_address` - Optional IP address of the request
 /// * `user_agent` - Optional user agent string
+#[allow(clippy::too_many_arguments)]
 pub async fn record_audit_event(
     pool: &PgPool,
     action: ActivityAction,

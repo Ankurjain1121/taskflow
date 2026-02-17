@@ -272,7 +272,7 @@ pub async fn accept_handler(
         &invitation.email,
         &payload.name,
         &password_hash,
-        invitation.role.clone(),
+        invitation.role,
         tenant_id,
     )
     .await?;
@@ -297,7 +297,7 @@ pub async fn accept_handler(
     let tokens = issue_tokens(
         user.id,
         user.tenant_id,
-        user.role.clone(),
+        user.role,
         token_id,
         &state.jwt_keys,
         state.config.jwt_access_expiry_secs,

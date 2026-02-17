@@ -61,11 +61,11 @@ async fn list_activity_handler(
         .and_then(|c| Uuid::parse_str(c).ok());
 
     // Clamp limit to max 50
-    let limit = query.limit.min(50).max(1);
+    let limit = query.limit.clamp(1, 50);
 
     let activity = list_activity_by_task(&state.db, task_id, cursor, limit)
         .await
-        .map_err(|e| AppError::SqlxError(e))?;
+        .map_err(AppError::SqlxError)?;
 
     Ok(Json(activity))
 }

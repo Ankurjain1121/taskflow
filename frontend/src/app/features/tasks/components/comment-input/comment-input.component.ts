@@ -16,7 +16,10 @@ import { OverlayModule, Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
 import { Subject, takeUntil } from 'rxjs';
 
-import { CommentService, Comment } from '../../../../core/services/comment.service';
+import {
+  CommentService,
+  Comment,
+} from '../../../../core/services/comment.service';
 import {
   MentionPopoverComponent,
   MemberSelectedEvent,
@@ -46,9 +49,11 @@ import {
         rows="3"
       ></textarea>
 
-      <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+      <div
+        class="flex items-center justify-between mt-2 pt-2 border-t border-gray-100"
+      >
         <div class="text-xs text-gray-400">
-          Press @ to mention teammates
+          Press &#64; to mention teammates
         </div>
         <p-button
           (onClick)="submitComment()"
@@ -93,7 +98,8 @@ export class CommentInputComponent implements OnDestroy {
 
   commentCreated = output<Comment>();
 
-  textareaRef = viewChild.required<ElementRef<HTMLTextAreaElement>>('textareaRef');
+  textareaRef =
+    viewChild.required<ElementRef<HTMLTextAreaElement>>('textareaRef');
 
   content = '';
   isSubmitting = signal(false);
@@ -118,7 +124,8 @@ export class CommentInputComponent implements OnDestroy {
 
     if (lastAtIndex !== -1) {
       // Check if the @ is at start or preceded by whitespace
-      const charBeforeAt = lastAtIndex > 0 ? textBeforeCursor[lastAtIndex - 1] : ' ';
+      const charBeforeAt =
+        lastAtIndex > 0 ? textBeforeCursor[lastAtIndex - 1] : ' ';
       const isValidMentionStart = /\s/.test(charBeforeAt) || lastAtIndex === 0;
 
       // Check if there's no space between @ and cursor
@@ -234,10 +241,12 @@ export class CommentInputComponent implements OnDestroy {
     }, 50);
 
     // Handle member selection
-    componentRef.instance.memberSelected.subscribe((member: MemberSelectedEvent) => {
-      this.insertMention(member);
-      this.closeMentionPopover();
-    });
+    componentRef.instance.memberSelected.subscribe(
+      (member: MemberSelectedEvent) => {
+        this.insertMention(member);
+        this.closeMentionPopover();
+      },
+    );
 
     // Cleanup interval on destroy
     this.overlayRef.detachments().subscribe(() => {

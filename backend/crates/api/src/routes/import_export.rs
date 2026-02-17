@@ -296,20 +296,23 @@ async fn resolve_column_id(
     Ok(fallback.id)
 }
 
-/// Get the next fractional position key for a column (simple: fetch max and append "a").
+/// Get the next position key for a column.
+///
+/// Uses a count-based approach: fetches the number of existing tasks and
+/// generates a zero-padded numeric string, ensuring monotonically increasing
+/// and fixed-width positions that sort correctly.
 async fn next_position_in_column(db: &sqlx::PgPool, column_id: Uuid) -> Result<String> {
-    let max_pos: Option<String> = sqlx::query_scalar(
-        "SELECT MAX(position) FROM tasks WHERE column_id = $1 AND deleted_at IS NULL",
+    let count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM tasks WHERE column_id = $1 AND deleted_at IS NULL",
     )
     .bind(column_id)
     .fetch_one(db)
     .await
     .map_err(AppError::from)?;
 
-    match max_pos {
-        Some(p) => Ok(format!("{}a", p)),
-        None => Ok("a0".to_string()),
-    }
+    // Zero-padded 6-digit position ensures correct lexicographic ordering
+    // and supports up to 999,999 tasks per column
+    Ok(format!("{:06}", count))
 }
 
 // ============================================================================
@@ -748,7 +751,7 @@ async fn import_trello_handler(
     // Ensure columns exist for each Trello list
     for list_name in list_id_to_name.values() {
         let key = list_name.to_lowercase();
-        if !column_name_to_id.contains_key(&key) {
+        if let std::collections::hash_map::Entry::Vacant(e) = column_name_to_id.entry(key) {
             // Create the column
             let new_pos = format!("{}a", last_position);
             let new_col: NewColumnRow = sqlx::query_as(
@@ -765,7 +768,7 @@ async fn import_trello_handler(
             .await
             .map_err(AppError::from)?;
 
-            column_name_to_id.insert(key, new_col.id);
+            e.insert(new_col.id);
             last_position = new_pos;
             columns_created += 1;
         }
