@@ -50,9 +50,9 @@ impl Config {
                 .unwrap_or_else(|_| "8080".into())
                 .parse()?,
             jwt_secret: env::var("JWT_SECRET")
-                .expect("JWT_SECRET environment variable must be set"),
+                .map_err(|_| "JWT_SECRET environment variable must be set")?,
             jwt_refresh_secret: env::var("JWT_REFRESH_SECRET")
-                .expect("JWT_REFRESH_SECRET environment variable must be set"),
+                .map_err(|_| "JWT_REFRESH_SECRET environment variable must be set")?,
             jwt_access_expiry_secs: env::var("JWT_ACCESS_EXPIRY_SECS")
                 .unwrap_or_else(|_| "900".into())
                 .parse()?,
@@ -68,9 +68,9 @@ impl Config {
             minio_public_url: env::var("MINIO_PUBLIC_URL")
                 .unwrap_or_else(|_| "http://localhost:9000".into()),
             minio_access_key: env::var("MINIO_ACCESS_KEY")
-                .expect("MINIO_ACCESS_KEY environment variable must be set"),
+                .map_err(|_| "MINIO_ACCESS_KEY environment variable must be set")?,
             minio_secret_key: env::var("MINIO_SECRET_KEY")
-                .expect("MINIO_SECRET_KEY environment variable must be set"),
+                .map_err(|_| "MINIO_SECRET_KEY environment variable must be set")?,
             minio_bucket: env::var("MINIO_BUCKET")
                 .unwrap_or_else(|_| "task-attachments".into()),
             postal_smtp_host: env::var("POSTAL_SMTP_HOST")

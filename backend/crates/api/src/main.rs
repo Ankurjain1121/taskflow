@@ -8,7 +8,7 @@ pub mod ws;
 pub mod services;
 
 use axum::http::Method;
-use axum::middleware::from_fn_with_state;
+use axum::middleware::{from_fn, from_fn_with_state};
 use axum::{Router, routing::get};
 use tower_http::compression::CompressionLayer;
 use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
@@ -17,6 +17,7 @@ use tower_http::trace::TraceLayer;
 
 use crate::config::Config;
 use crate::middleware::auth_middleware;
+use crate::middleware::rate_limit::{rate_limit_layer, rate_limit_middleware};
 use crate::routes::{
     activity_log_router, admin_audit_router, admin_trash_router, admin_users_router,
     attachment_router, board_columns_router, board_router, board_templates_router, column_router,
@@ -79,16 +80,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/invitations/{id}/resend", axum::routing::post(routes::invitation::resend_handler))
         .layer(from_fn_with_state(state.clone(), auth_middleware));
 
-    // Build public routes
-    let public_routes = Router::new()
+    // Rate-limited public routes (auth endpoints vulnerable to brute force)
+    let rate_limited_auth = Router::new()
         .route("/auth/sign-in", axum::routing::post(routes::auth::sign_in_handler))
+        .route("/auth/forgot-password", axum::routing::post(routes::auth::forgot_password_handler))
+        .layer(from_fn(rate_limit_middleware))
+        .layer(rate_limit_layer(5, 60)); // 5 requests per 60 seconds per IP
+
+    let rate_limited_invitations = Router::new()
+        .route("/invitations/accept", axum::routing::post(routes::invitation::accept_handler))
+        .layer(from_fn(rate_limit_middleware))
+        .layer(rate_limit_layer(5, 60)); // 5 requests per 60 seconds per IP
+
+    // Build public routes (not rate-limited)
+    let public_routes = Router::new()
         .route("/auth/sign-up", axum::routing::post(routes::auth::sign_up_handler))
         .route("/auth/refresh", axum::routing::post(routes::auth::refresh_handler))
         .route("/auth/logout", axum::routing::post(routes::auth::logout_handler))
-        .route("/auth/forgot-password", axum::routing::post(routes::auth::forgot_password_handler))
         .route("/auth/reset-password", axum::routing::post(routes::auth::reset_password_handler))
         .route("/invitations/validate/{token}", get(routes::invitation::validate_handler))
-        .route("/invitations/accept", axum::routing::post(routes::invitation::accept_handler))
         .route("/ws", get(ws_handler));
 
     // Build router
@@ -98,6 +108,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/health/live", get(liveness_handler))
         .route("/api/health/ready", get(readiness_handler))
         .nest("/api", protected_routes)
+        .nest("/api", rate_limited_auth)
+        .nest("/api", rate_limited_invitations)
         .nest("/api", public_routes)
         .nest("/api", task_router(state.clone()))
         .nest("/api", subtask_router(state.clone()))

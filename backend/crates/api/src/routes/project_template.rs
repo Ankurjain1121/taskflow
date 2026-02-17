@@ -61,9 +61,10 @@ async fn create_template_handler(
 }
 
 /// GET /project-templates/{id}
-/// Get a template with its columns and tasks
+/// Get a template with its columns and tasks (requires authentication)
 async fn get_template_handler(
     State(state): State<AppState>,
+    _tenant: TenantContext,
     Path(template_id): Path<Uuid>,
 ) -> Result<Json<taskflow_db::queries::project_templates::TemplateWithDetails>> {
     let details = get_template(&state.db, template_id)

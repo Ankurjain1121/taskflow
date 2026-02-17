@@ -19,6 +19,8 @@ use taskflow_auth::password::verify_password;
 use taskflow_db::models::UserRole;
 use taskflow_db::queries::auth;
 
+use taskflow_services::notifications::PostalClient;
+
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
 use crate::state::AppState;
@@ -467,17 +469,39 @@ pub async fn forgot_password_handler(
         );
         tracing::info!(
             email = %payload.email,
-            reset_url = %reset_url,
             "Password reset requested"
         );
 
-        // TODO: Wire up PostalClient from services/notifications/email.rs
-        // Steps needed:
-        // 1. Add PostalClient to AppState (construct from config.postal_api_url, config.postal_api_key,
-        //    config.postal_from_address, config.postal_from_name)
-        // 2. Call state.postal_client.send_email(&payload.email, subject, html_body) here
-        // 3. The reset_url is already correctly generated above
-        // For now, log the reset URL for development
+        let subject = "Reset your TaskFlow password";
+        let html_body = format!(
+            r#"<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background-color: #f9fafb; border-radius: 8px; padding: 24px; margin-bottom: 20px;">
+        <h1 style="color: #111827; font-size: 24px; margin: 0 0 16px 0;">Password Reset</h1>
+        <p style="color: #4b5563; font-size: 16px; margin: 0 0 20px 0;">
+            You requested a password reset. Click the button below to set a new password.
+            This link expires in 1 hour.
+        </p>
+        <p><a href="{}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Reset Password</a></p>
+        <p style="color: #9ca3af; font-size: 12px; margin-top: 16px;">If you did not request this, you can safely ignore this email.</p>
+    </div>
+</body>
+</html>"#,
+            reset_url
+        );
+
+        let postal = PostalClient::new(
+            state.config.postal_api_url.clone(),
+            state.config.postal_api_key.clone(),
+            state.config.postal_from_address.clone(),
+            state.config.postal_from_name.clone(),
+        );
+
+        if let Err(e) = postal.send_email(&payload.email, subject, &html_body).await {
+            tracing::error!(error = %e, email = %payload.email, "Failed to send password reset email");
+        }
     }
 
     Ok(Json(MessageResponse {

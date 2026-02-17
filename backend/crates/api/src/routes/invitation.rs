@@ -14,7 +14,7 @@ use uuid::Uuid;
 use taskflow_auth::jwt::issue_tokens;
 use taskflow_auth::password::hash_password;
 use taskflow_db::models::{Invitation, UserRole};
-use taskflow_db::queries::{auth, invitations};
+use taskflow_db::queries::{auth, invitations, workspaces};
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
@@ -335,12 +335,18 @@ pub async fn accept_handler(
 /// GET /api/invitations?workspace_id=<uuid>
 ///
 /// List pending invitations for a workspace.
-/// Requires authentication.
+/// Requires authentication and workspace membership.
 pub async fn list_handler(
     State(state): State<AppState>,
-    _auth: AuthUserExtractor,
+    auth: AuthUserExtractor,
     Query(query): Query<ListInvitationsQuery>,
 ) -> Result<Json<Vec<InvitationResponse>>> {
+    // Verify the user is a member of the requested workspace
+    let is_member = workspaces::is_workspace_member(&state.db, query.workspace_id, auth.0.user_id).await?;
+    if !is_member {
+        return Err(AppError::Forbidden("Not a member of this workspace".into()));
+    }
+
     let invitations = invitations::list_pending_invitations(&state.db, query.workspace_id).await?;
 
     Ok(Json(invitations.into_iter().map(Into::into).collect()))

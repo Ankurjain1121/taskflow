@@ -80,9 +80,15 @@ async fn verify_group_access(
 /// List task groups for a board
 async fn list_groups(
     State(state): State<AppState>,
-    _tenant: TenantContext,
+    tenant: TenantContext,
     Path(board_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>> {
+    if !verify_board_access(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden(
+            "You don't have access to this board".to_string(),
+        ));
+    }
+
     let groups = list_task_groups_by_board(&state.db, board_id).await?;
     Ok(Json(json!(groups)))
 }
@@ -90,9 +96,15 @@ async fn list_groups(
 /// List task groups with statistics
 async fn list_groups_with_stats_handler(
     State(state): State<AppState>,
-    _tenant: TenantContext,
+    tenant: TenantContext,
     Path(board_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>> {
+    if !verify_board_access(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden(
+            "You don't have access to this board".to_string(),
+        ));
+    }
+
     let groups = list_task_groups_with_stats(&state.db, board_id).await?;
     Ok(Json(json!(groups)))
 }
@@ -100,9 +112,15 @@ async fn list_groups_with_stats_handler(
 /// Get a specific task group
 async fn get_group(
     State(state): State<AppState>,
-    _tenant: TenantContext,
+    tenant: TenantContext,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>> {
+    if !verify_group_access(&state.db, id, tenant.user_id).await? {
+        return Err(AppError::Forbidden(
+            "You don't have access to this task group".to_string(),
+        ));
+    }
+
     let group = get_task_group_by_id(&state.db, id)
         .await?
         .ok_or(AppError::NotFound("Task group not found".to_string()))?;
