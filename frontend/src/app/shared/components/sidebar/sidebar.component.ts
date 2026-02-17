@@ -15,6 +15,7 @@ import {
   Workspace,
 } from '../../../core/services/workspace.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ThemeService, Theme } from '../../../core/services/theme.service';
 import {
   CreateWorkspaceDialogComponent,
   CreateWorkspaceDialogResult,
@@ -486,6 +487,21 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
                   {{ user.email }}
                 </p>
               </div>
+              <!-- Theme Toggle -->
+              <button
+                (click)="cycleTheme()"
+                class="p-1.5 rounded-md transition-colors"
+                style="color: var(--sidebar-text-muted)"
+                [title]="'Theme: ' + themeLabel"
+              >
+                <i
+                  [class]="
+                    'pi ' +
+                    themeIcon +
+                    ' text-sm hover:text-indigo-400 transition-colors'
+                  "
+                ></i>
+              </button>
               <!-- Sign Out -->
               <button
                 (click)="onSignOut()"
@@ -499,7 +515,7 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
               </button>
             </div>
           } @else {
-            <div class="flex justify-center">
+            <div class="flex flex-col items-center gap-1">
               <button
                 (click)="onSignOut()"
                 class="rounded-full"
@@ -524,6 +540,16 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
                   </div>
                 }
               </button>
+              <button
+                (click)="cycleTheme()"
+                class="collapsed-icon-btn mt-1"
+                [pTooltip]="'Theme: ' + themeLabel"
+                tooltipPosition="right"
+              >
+                <i
+                  [class]="'pi ' + themeIcon + ' sidebar-icon-color text-sm'"
+                ></i>
+              </button>
             </div>
           }
         }
@@ -544,6 +570,7 @@ export class SidebarComponent implements OnInit {
 
   private workspaceService = inject(WorkspaceService);
   private authService = inject(AuthService);
+  private themeService = inject(ThemeService);
   private router = inject(Router);
 
   loading = signal(false);
@@ -589,6 +616,23 @@ export class SidebarComponent implements OnInit {
         // Error handling - workspace creation failed
       },
     });
+  }
+
+  get themeIcon(): string {
+    const t = this.themeService.theme();
+    return t === 'light' ? 'pi-sun' : t === 'dark' ? 'pi-moon' : 'pi-desktop';
+  }
+
+  get themeLabel(): string {
+    const t = this.themeService.theme();
+    return t === 'light' ? 'Light' : t === 'dark' ? 'Dark' : 'System';
+  }
+
+  cycleTheme(): void {
+    const current = this.themeService.theme();
+    const next: Theme =
+      current === 'light' ? 'dark' : current === 'dark' ? 'system' : 'light';
+    this.themeService.setTheme(next);
   }
 
   onSignOut(): void {
