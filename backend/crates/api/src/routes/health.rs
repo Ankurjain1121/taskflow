@@ -307,4 +307,67 @@ mod tests {
             "\"down\""
         );
     }
+
+    #[test]
+    fn test_health_response_serialization() {
+        let response = HealthResponse {
+            status: HealthStatus::Healthy,
+            services: ServiceStatuses {
+                postgres: ServiceStatus::Up,
+                redis: ServiceStatus::Up,
+                minio: ServiceStatus::Up,
+                novu: ServiceStatus::Up,
+                lago: ServiceStatus::Up,
+            },
+            timestamp: chrono::DateTime::parse_from_rfc3339("2024-01-01T00:00:00Z")
+                .unwrap()
+                .with_timezone(&Utc),
+        };
+
+        let json = serde_json::to_value(&response).unwrap();
+        assert_eq!(json["status"], "healthy");
+        assert!(json.get("services").is_some());
+        assert!(json.get("timestamp").is_some());
+        assert_eq!(json["services"]["postgres"], "up");
+        assert_eq!(json["services"]["redis"], "up");
+        assert_eq!(json["services"]["minio"], "up");
+        assert_eq!(json["services"]["novu"], "up");
+        assert_eq!(json["services"]["lago"], "up");
+    }
+
+    #[test]
+    fn test_service_statuses_all_up() {
+        let statuses = ServiceStatuses {
+            postgres: ServiceStatus::Up,
+            redis: ServiceStatus::Up,
+            minio: ServiceStatus::Up,
+            novu: ServiceStatus::Up,
+            lago: ServiceStatus::Up,
+        };
+
+        let json = serde_json::to_value(&statuses).unwrap();
+        assert_eq!(json["postgres"], "up");
+        assert_eq!(json["redis"], "up");
+        assert_eq!(json["minio"], "up");
+        assert_eq!(json["novu"], "up");
+        assert_eq!(json["lago"], "up");
+    }
+
+    #[test]
+    fn test_service_statuses_mixed() {
+        let statuses = ServiceStatuses {
+            postgres: ServiceStatus::Up,
+            redis: ServiceStatus::Down,
+            minio: ServiceStatus::Up,
+            novu: ServiceStatus::Down,
+            lago: ServiceStatus::Up,
+        };
+
+        let json = serde_json::to_value(&statuses).unwrap();
+        assert_eq!(json["postgres"], "up");
+        assert_eq!(json["redis"], "down");
+        assert_eq!(json["minio"], "up");
+        assert_eq!(json["novu"], "down");
+        assert_eq!(json["lago"], "up");
+    }
 }

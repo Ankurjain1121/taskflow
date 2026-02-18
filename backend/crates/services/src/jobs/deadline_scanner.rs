@@ -306,4 +306,56 @@ mod tests {
         let json = serde_json::to_string(&result).unwrap();
         assert!(json.contains("\"due_soon_count\":5"));
     }
+
+    #[test]
+    fn test_deadline_scan_result_serialize_all_fields() {
+        let result = DeadlineScanResult {
+            due_soon_count: 10,
+            overdue_count: 7,
+            notifications_sent: 15,
+            errors: 2,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed["due_soon_count"], 10);
+        assert_eq!(parsed["overdue_count"], 7);
+        assert_eq!(parsed["notifications_sent"], 15);
+        assert_eq!(parsed["errors"], 2);
+    }
+
+    #[test]
+    fn test_deadline_scan_result_zero_values() {
+        let result = DeadlineScanResult {
+            due_soon_count: 0,
+            overdue_count: 0,
+            notifications_sent: 0,
+            errors: 0,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed["due_soon_count"], 0);
+        assert_eq!(parsed["overdue_count"], 0);
+        assert_eq!(parsed["notifications_sent"], 0);
+        assert_eq!(parsed["errors"], 0);
+    }
+
+    #[test]
+    fn test_deadline_scan_result_debug() {
+        let result = DeadlineScanResult {
+            due_soon_count: 1,
+            overdue_count: 2,
+            notifications_sent: 3,
+            errors: 0,
+        };
+        let debug = format!("{:?}", result);
+        assert!(debug.contains("DeadlineScanResult"), "got: {}", debug);
+        assert!(debug.contains("due_soon_count"), "got: {}", debug);
+    }
+
+    #[test]
+    fn test_deadline_scanner_error_display() {
+        let err = DeadlineScannerError::Database(sqlx::Error::RowNotFound);
+        let msg = format!("{}", err);
+        assert!(msg.contains("Database error"), "got: {}", msg);
+    }
 }

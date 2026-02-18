@@ -200,4 +200,58 @@ mod tests {
         assert!(mid > k1);
         assert!(mid < k2);
     }
+
+    #[test]
+    fn test_many_inserts_maintain_order() {
+        // Insert 20 items sequentially (append to end) and verify sort order
+        let mut keys = Vec::new();
+        let first = generate_key_between(None, None);
+        keys.push(first);
+
+        for _ in 1..20 {
+            let next = generate_key_between(Some(keys.last().unwrap()), None);
+            keys.push(next);
+        }
+
+        for i in 0..keys.len() - 1 {
+            assert!(
+                keys[i] < keys[i + 1],
+                "Key order violated: keys[{}]={} should be < keys[{}]={}",
+                i, keys[i], i + 1, keys[i + 1]
+            );
+        }
+    }
+
+    #[test]
+    fn test_between_adjacent_keys() {
+        let mid = generate_key_between(Some("a0"), Some("a1"));
+        assert!(
+            mid.as_str() > "a0",
+            "Midpoint {} should be > a0",
+            mid
+        );
+        assert!(
+            mid.as_str() < "a1",
+            "Midpoint {} should be < a1",
+            mid
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "subtract with overflow")]
+    fn test_between_equal_keys_panics() {
+        // Equal keys is an invalid input; the midpoint function panics
+        // because it cannot find room between identical keys containing '0'
+        let _ = generate_key_between(Some("a0"), Some("a0"));
+    }
+
+    #[test]
+    fn test_decrement_from_first() {
+        let before = generate_key_between(None, Some("a0"));
+        assert!(
+            before.as_str() < "a0",
+            "Key before a0 ({}) should be < a0",
+            before
+        );
+    }
 }

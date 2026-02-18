@@ -256,4 +256,75 @@ mod tests {
         assert_eq!(config.endpoint, "http://minio:9000");
         assert_eq!(config.public_url, "http://localhost:9000");
     }
+
+    #[test]
+    fn test_minio_config_clone() {
+        let config = MinioConfig {
+            endpoint: "http://minio:9000".to_string(),
+            public_url: "http://localhost:9000".to_string(),
+            access_key: "minioadmin".to_string(),
+            secret_key: "minioadmin".to_string(),
+            bucket: "test-bucket".to_string(),
+        };
+        let cloned = config.clone();
+        assert_eq!(cloned.endpoint, config.endpoint);
+        assert_eq!(cloned.public_url, config.public_url);
+        assert_eq!(cloned.access_key, config.access_key);
+        assert_eq!(cloned.secret_key, config.secret_key);
+        assert_eq!(cloned.bucket, config.bucket);
+    }
+
+    #[test]
+    fn test_minio_config_debug_output() {
+        let config = MinioConfig {
+            endpoint: "http://minio:9000".to_string(),
+            public_url: "http://localhost:9000".to_string(),
+            access_key: "minioadmin".to_string(),
+            secret_key: "minioadmin".to_string(),
+            bucket: "attachments".to_string(),
+        };
+        let debug = format!("{:?}", config);
+        assert!(debug.contains("MinioConfig"), "got: {}", debug);
+        assert!(debug.contains("attachments"), "got: {}", debug);
+    }
+
+    #[test]
+    fn test_minio_config_all_fields_set() {
+        let config = MinioConfig {
+            endpoint: "http://s3.example.com".to_string(),
+            public_url: "https://cdn.example.com".to_string(),
+            access_key: "AKID".to_string(),
+            secret_key: "SKEY".to_string(),
+            bucket: "my-bucket".to_string(),
+        };
+        assert_eq!(config.endpoint, "http://s3.example.com");
+        assert_eq!(config.public_url, "https://cdn.example.com");
+        assert_eq!(config.access_key, "AKID");
+        assert_eq!(config.secret_key, "SKEY");
+        assert_eq!(config.bucket, "my-bucket");
+    }
+
+    #[test]
+    fn test_minio_error_display_s3() {
+        let err = MinioError::S3Error("connection refused".to_string());
+        assert_eq!(format!("{}", err), "S3 error: connection refused");
+    }
+
+    #[test]
+    fn test_minio_error_display_presigning() {
+        let err = MinioError::PresigningError("invalid duration".to_string());
+        assert_eq!(format!("{}", err), "Presigning error: invalid duration");
+    }
+
+    #[test]
+    fn test_minio_error_display_not_found() {
+        let err = MinioError::NotFound("key/path".to_string());
+        assert_eq!(format!("{}", err), "Object not found: key/path");
+    }
+
+    #[test]
+    fn test_minio_error_display_bucket_creation() {
+        let err = MinioError::BucketCreationFailed("access denied".to_string());
+        assert_eq!(format!("{}", err), "Bucket creation failed: access denied");
+    }
 }

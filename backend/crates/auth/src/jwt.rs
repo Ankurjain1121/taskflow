@@ -205,4 +205,179 @@ mod tests {
         assert_eq!(refresh.iss, "taskflow");
         assert_eq!(refresh.aud, "taskflow-api");
     }
+
+    #[test]
+    fn test_expired_access_token() {
+        let keys = JwtKeys::from_config(
+            "test-secret",
+            "test-refresh-secret",
+            None,
+            None,
+        )
+        .unwrap();
+
+        let pair = issue_tokens(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            UserRole::Member,
+            Uuid::new_v4(),
+            &keys,
+            -120, // expired well past the default 60s leeway
+            604800,
+        )
+        .unwrap();
+
+        let result = verify_access_token(&pair.access_token, &keys);
+        assert!(result.is_err(), "Expired access token should fail verification");
+    }
+
+    #[test]
+    fn test_wrong_secret_fails() {
+        let keys_issue = JwtKeys::from_config(
+            "secret-one",
+            "refresh-secret-one",
+            None,
+            None,
+        )
+        .unwrap();
+
+        let keys_verify = JwtKeys::from_config(
+            "secret-two",
+            "refresh-secret-two",
+            None,
+            None,
+        )
+        .unwrap();
+
+        let pair = issue_tokens(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            UserRole::Member,
+            Uuid::new_v4(),
+            &keys_issue,
+            900,
+            604800,
+        )
+        .unwrap();
+
+        let access_result = verify_access_token(&pair.access_token, &keys_verify);
+        assert!(access_result.is_err(), "Access token signed with different secret should fail");
+
+        let refresh_result = verify_refresh_token(&pair.refresh_token, &keys_verify);
+        assert!(refresh_result.is_err(), "Refresh token signed with different secret should fail");
+    }
+
+    #[test]
+    fn test_refresh_token_verification() {
+        let keys = JwtKeys::from_config(
+            "test-secret",
+            "test-refresh-secret",
+            None,
+            None,
+        )
+        .unwrap();
+
+        let user_id = Uuid::new_v4();
+        let token_id = Uuid::new_v4();
+
+        let pair = issue_tokens(
+            user_id,
+            Uuid::new_v4(),
+            UserRole::Admin,
+            token_id,
+            &keys,
+            900,
+            604800,
+        )
+        .unwrap();
+
+        let refresh_claims = verify_refresh_token(&pair.refresh_token, &keys).unwrap();
+        assert_eq!(refresh_claims.sub, user_id, "Refresh token sub should match user_id");
+        assert_eq!(refresh_claims.token_id, token_id, "Refresh token token_id should match");
+        assert_eq!(refresh_claims.iss, "taskflow");
+        assert_eq!(refresh_claims.aud, "taskflow-api");
+    }
+
+    #[test]
+    fn test_access_token_wrong_audience() {
+        let keys = JwtKeys::from_config(
+            "test-secret",
+            "test-refresh-secret",
+            None,
+            None,
+        )
+        .unwrap();
+
+        // Manually craft a token with wrong audience
+        let now = Utc::now();
+        let bad_claims = Claims {
+            sub: Uuid::new_v4(),
+            tenant_id: Uuid::new_v4(),
+            role: UserRole::Member,
+            iat: now.timestamp(),
+            exp: (now + Duration::seconds(900)).timestamp(),
+            iss: "taskflow".to_string(),
+            aud: "wrong-audience".to_string(),
+        };
+
+        let header = Header::new(keys.algorithm);
+        let token = encode(&header, &bad_claims, &keys.access_encoding).unwrap();
+
+        let result = verify_access_token(&token, &keys);
+        assert!(result.is_err(), "Token with wrong audience should fail verification");
+    }
+
+    #[test]
+    fn test_claims_contain_correct_role() {
+        let keys = JwtKeys::from_config(
+            "test-secret",
+            "test-refresh-secret",
+            None,
+            None,
+        )
+        .unwrap();
+
+        for role in [UserRole::Admin, UserRole::Manager, UserRole::Member] {
+            let pair = issue_tokens(
+                Uuid::new_v4(),
+                Uuid::new_v4(),
+                role,
+                Uuid::new_v4(),
+                &keys,
+                900,
+                604800,
+            )
+            .unwrap();
+
+            let claims = verify_access_token(&pair.access_token, &keys).unwrap();
+            assert_eq!(claims.role, role, "Token claims should contain role {:?}", role);
+        }
+    }
+
+    #[test]
+    fn test_issue_tokens_returns_different_access_and_refresh() {
+        let keys = JwtKeys::from_config(
+            "test-secret",
+            "test-refresh-secret",
+            None,
+            None,
+        )
+        .unwrap();
+
+        let pair = issue_tokens(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            UserRole::Member,
+            Uuid::new_v4(),
+            &keys,
+            900,
+            604800,
+        )
+        .unwrap();
+
+        assert_ne!(
+            pair.access_token, pair.refresh_token,
+            "Access and refresh tokens must be different"
+        );
+    }
 }

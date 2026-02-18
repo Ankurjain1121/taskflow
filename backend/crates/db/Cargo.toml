@@ -12,3 +12,7 @@ chrono.workspace = true
 thiserror.workspace = true
 ts-rs.workspace = true
 sha2.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full", "test-util"] }
+serde_json = { workspace = true }

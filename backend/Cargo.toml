@@ -58,3 +58,6 @@ aws-sdk-s3 = { version = "1", features = ["behavior-version-latest"] }
 # Regex
 regex = "1"
 once_cell = "1"
+
+# Testing
+mockall = "0.13"

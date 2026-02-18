@@ -181,4 +181,90 @@ mod tests {
         let all = NotificationEvent::all();
         assert_eq!(all.len(), 6);
     }
+
+    #[test]
+    fn test_event_titles() {
+        assert_eq!(NotificationEvent::TaskAssigned.title(), "Task Assigned");
+        assert_eq!(NotificationEvent::TaskDueSoon.title(), "Task Due Soon");
+        assert_eq!(NotificationEvent::TaskOverdue.title(), "Task Overdue");
+        assert_eq!(NotificationEvent::TaskCommented.title(), "New Comment");
+        assert_eq!(NotificationEvent::TaskCompleted.title(), "Task Completed");
+        assert_eq!(
+            NotificationEvent::MentionInComment.title(),
+            "You Were Mentioned"
+        );
+    }
+
+    #[test]
+    fn test_from_str_all_hyphenated() {
+        assert_eq!(
+            NotificationEvent::from_str("task-assigned"),
+            Some(NotificationEvent::TaskAssigned)
+        );
+        assert_eq!(
+            NotificationEvent::from_str("task-due-soon"),
+            Some(NotificationEvent::TaskDueSoon)
+        );
+        assert_eq!(
+            NotificationEvent::from_str("task-overdue"),
+            Some(NotificationEvent::TaskOverdue)
+        );
+        assert_eq!(
+            NotificationEvent::from_str("task-commented"),
+            Some(NotificationEvent::TaskCommented)
+        );
+        assert_eq!(
+            NotificationEvent::from_str("task-completed"),
+            Some(NotificationEvent::TaskCompleted)
+        );
+        assert_eq!(
+            NotificationEvent::from_str("mention-in-comment"),
+            Some(NotificationEvent::MentionInComment)
+        );
+    }
+
+    #[test]
+    fn test_from_str_all_underscored() {
+        assert_eq!(
+            NotificationEvent::from_str("task_assigned"),
+            Some(NotificationEvent::TaskAssigned)
+        );
+        assert_eq!(
+            NotificationEvent::from_str("task_due_soon"),
+            Some(NotificationEvent::TaskDueSoon)
+        );
+        assert_eq!(
+            NotificationEvent::from_str("task_overdue"),
+            Some(NotificationEvent::TaskOverdue)
+        );
+        assert_eq!(
+            NotificationEvent::from_str("task_commented"),
+            Some(NotificationEvent::TaskCommented)
+        );
+        assert_eq!(
+            NotificationEvent::from_str("task_completed"),
+            Some(NotificationEvent::TaskCompleted)
+        );
+        assert_eq!(
+            NotificationEvent::from_str("mention_in_comment"),
+            Some(NotificationEvent::MentionInComment)
+        );
+    }
+
+    #[test]
+    fn test_event_display() {
+        for event in NotificationEvent::all() {
+            assert_eq!(format!("{}", event), event.name());
+        }
+    }
+
+    #[test]
+    fn test_event_serde_roundtrip() {
+        for event in NotificationEvent::all() {
+            let serialized = serde_json::to_string(event).unwrap();
+            let deserialized: NotificationEvent =
+                serde_json::from_str(&serialized).unwrap();
+            assert_eq!(*event, deserialized);
+        }
+    }
 }

@@ -19,3 +19,8 @@ once_cell.workspace = true
 
 taskflow-db = { path = "../db" }
 taskflow-auth = { path = "../auth" }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full", "test-util"] }
+serde_json = { workspace = true }
+mockall = { workspace = true }

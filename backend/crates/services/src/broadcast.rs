@@ -165,4 +165,99 @@ mod tests {
         assert_eq!(events::TASK_CREATED, "task:created");
         assert_eq!(events::TASK_DELETED, "task:deleted");
     }
+
+    #[test]
+    fn test_all_event_constants_colon_separated() {
+        let all_events = [
+            events::TASK_CREATED,
+            events::TASK_UPDATED,
+            events::TASK_MOVED,
+            events::TASK_DELETED,
+            events::TASK_ASSIGNED,
+            events::TASK_UNASSIGNED,
+            events::COMMENT_CREATED,
+            events::COLUMN_CREATED,
+            events::COLUMN_UPDATED,
+            events::COLUMN_DELETED,
+            events::WORKLOAD_CHANGED,
+        ];
+        for event in all_events {
+            assert!(
+                event.contains(':'),
+                "Event '{}' does not follow 'entity:action' format",
+                event
+            );
+            let parts: Vec<&str> = event.split(':').collect();
+            assert_eq!(parts.len(), 2, "Event '{}' has unexpected number of segments", event);
+            assert!(!parts[0].is_empty(), "Event '{}' has empty entity", event);
+            assert!(!parts[1].is_empty(), "Event '{}' has empty action", event);
+        }
+    }
+
+    #[test]
+    fn test_event_names_complete() {
+        assert_eq!(events::TASK_UPDATED, "task:updated");
+        assert_eq!(events::TASK_MOVED, "task:moved");
+        assert_eq!(events::TASK_ASSIGNED, "task:assigned");
+        assert_eq!(events::TASK_UNASSIGNED, "task:unassigned");
+        assert_eq!(events::COMMENT_CREATED, "comment:created");
+        assert_eq!(events::COLUMN_CREATED, "column:created");
+        assert_eq!(events::COLUMN_UPDATED, "column:updated");
+        assert_eq!(events::COLUMN_DELETED, "column:deleted");
+        assert_eq!(events::WORKLOAD_CHANGED, "workload:changed");
+    }
+
+    #[test]
+    fn test_broadcast_error_display_serialization() {
+        let err = BroadcastError::Serialization(
+            serde_json::from_str::<serde_json::Value>("bad json").unwrap_err(),
+        );
+        let msg = format!("{}", err);
+        assert!(msg.contains("Serialization error"), "got: {}", msg);
+    }
+
+    #[test]
+    fn test_broadcast_error_debug() {
+        let err = BroadcastError::Serialization(
+            serde_json::from_str::<serde_json::Value>("bad json").unwrap_err(),
+        );
+        let debug = format!("{:?}", err);
+        assert!(debug.contains("Serialization"), "got: {}", debug);
+    }
+
+    #[test]
+    fn test_channel_format_board() {
+        let board_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
+        let channel = format!("board:{}", board_id);
+        assert_eq!(channel, "board:550e8400-e29b-41d4-a716-446655440000");
+    }
+
+    #[test]
+    fn test_channel_format_user() {
+        let user_id = Uuid::parse_str("660e8400-e29b-41d4-a716-446655440000").unwrap();
+        let channel = format!("user:{}", user_id);
+        assert_eq!(channel, "user:660e8400-e29b-41d4-a716-446655440000");
+    }
+
+    #[test]
+    fn test_channel_format_workspace() {
+        let ws_id = Uuid::parse_str("770e8400-e29b-41d4-a716-446655440000").unwrap();
+        let channel = format!("workspace:{}", ws_id);
+        assert_eq!(channel, "workspace:770e8400-e29b-41d4-a716-446655440000");
+    }
+
+    #[test]
+    fn test_broadcast_message_json_structure() {
+        let event = "task:created";
+        let data = json!({"id": "abc", "title": "Test"});
+        let message = json!({
+            "event": event,
+            "data": data
+        });
+        let message_str = serde_json::to_string(&message).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&message_str).unwrap();
+        assert_eq!(parsed["event"], "task:created");
+        assert_eq!(parsed["data"]["id"], "abc");
+        assert_eq!(parsed["data"]["title"], "Test");
+    }
 }

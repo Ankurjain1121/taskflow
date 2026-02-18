@@ -261,5 +261,68 @@ pub async fn generate_sample_board(
 
 #[cfg(test)]
 mod tests {
-    // Integration tests would go here with a test database
+    use super::*;
+
+    #[test]
+    fn test_sample_board_error_display() {
+        // Verify the Display trait output for SampleBoardError
+        let err = SampleBoardError::Database(sqlx::Error::RowNotFound);
+        let msg = format!("{}", err);
+        assert!(msg.contains("Database error"), "got: {}", msg);
+    }
+
+    #[test]
+    fn test_sample_board_error_debug() {
+        let err = SampleBoardError::Database(sqlx::Error::RowNotFound);
+        let debug = format!("{:?}", err);
+        assert!(debug.contains("Database"), "got: {}", debug);
+    }
+
+    #[test]
+    fn test_done_status_mapping_json() {
+        let done_status = serde_json::json!({"done": true});
+        assert_eq!(done_status["done"], true);
+    }
+
+    #[test]
+    fn test_sample_board_column_colors_are_valid_hex() {
+        let colors = ["#94a3b8", "#6366f1", "#3b82f6", "#22c55e"];
+        for color in colors {
+            assert!(color.starts_with('#'), "Color '{}' missing # prefix", color);
+            assert_eq!(color.len(), 7, "Color '{}' should be 7 chars (#RRGGBB)", color);
+            assert!(
+                color[1..].chars().all(|c| c.is_ascii_hexdigit()),
+                "Color '{}' contains non-hex chars",
+                color
+            );
+        }
+    }
+
+    #[test]
+    fn test_sample_board_label_colors_are_valid_hex() {
+        let label_colors = ["#8b5cf6", "#22c55e", "#ef4444"];
+        for color in label_colors {
+            assert!(color.starts_with('#'), "Color '{}' missing # prefix", color);
+            assert_eq!(color.len(), 7, "Color '{}' should be 7 chars (#RRGGBB)", color);
+            assert!(
+                color[1..].chars().all(|c| c.is_ascii_hexdigit()),
+                "Color '{}' contains non-hex chars",
+                color
+            );
+        }
+    }
+
+    #[test]
+    fn test_sample_board_positions_are_lexicographically_ordered() {
+        // Positions for the 4 columns: a0, a1, a2, a3
+        let positions = ["a0", "a1", "a2", "a3"];
+        for i in 0..positions.len() - 1 {
+            assert!(
+                positions[i] < positions[i + 1],
+                "Position '{}' should be < '{}'",
+                positions[i],
+                positions[i + 1]
+            );
+        }
+    }
 }

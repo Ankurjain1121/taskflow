@@ -106,3 +106,101 @@ impl fmt::Debug for Config {
             .finish()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_test_config() -> Config {
+        Config {
+            app_database_url: "postgresql://test:test@localhost/testdb".into(),
+            host: "0.0.0.0".into(),
+            port: 8080,
+            jwt_secret: "actual-secret".into(),
+            jwt_refresh_secret: "actual-refresh-secret".into(),
+            jwt_access_expiry_secs: 900,
+            jwt_refresh_expiry_secs: 604800,
+            jwt_rsa_private_key: None,
+            jwt_rsa_public_key: None,
+            redis_url: "redis://localhost:6379".into(),
+            minio_endpoint: "http://minio:9000".into(),
+            minio_public_url: "http://localhost:9000".into(),
+            minio_access_key: "actual-minio-access".into(),
+            minio_secret_key: "actual-minio-secret".into(),
+            minio_bucket: "task-attachments".into(),
+            postal_api_url: "http://localhost:5000".into(),
+            postal_api_key: "actual-postal-key".into(),
+            postal_from_address: "noreply@test.local".into(),
+            postal_from_name: "TaskFlow".into(),
+            novu_api_url: "http://localhost:3000".into(),
+            novu_api_key: "actual-novu-key".into(),
+            lago_api_url: "http://localhost:3000".into(),
+            lago_api_key: "actual-lago-key".into(),
+            waha_api_url: "http://localhost:3000".into(),
+            waha_api_key: "actual-waha-key".into(),
+            app_url: "http://localhost:4200".into(),
+        }
+    }
+
+    #[test]
+    fn test_config_debug_redacts_secrets() {
+        let config = make_test_config();
+        let debug_str = format!("{:?}", config);
+
+        // Should contain [REDACTED] for each sensitive field
+        assert!(debug_str.contains("[REDACTED]"), "Debug output should contain [REDACTED]");
+
+        // Should NOT contain any actual secret values
+        assert!(!debug_str.contains("actual-secret"), "Debug output must not leak jwt_secret");
+        assert!(!debug_str.contains("actual-refresh-secret"), "Debug output must not leak jwt_refresh_secret");
+        assert!(!debug_str.contains("actual-minio-access"), "Debug output must not leak minio_access_key");
+        assert!(!debug_str.contains("actual-minio-secret"), "Debug output must not leak minio_secret_key");
+        assert!(!debug_str.contains("actual-postal-key"), "Debug output must not leak postal_api_key");
+        assert!(!debug_str.contains("actual-novu-key"), "Debug output must not leak novu_api_key");
+        assert!(!debug_str.contains("actual-lago-key"), "Debug output must not leak lago_api_key");
+        assert!(!debug_str.contains("actual-waha-key"), "Debug output must not leak waha_api_key");
+    }
+
+    #[test]
+    fn test_config_debug_shows_non_sensitive_fields() {
+        let config = make_test_config();
+        let debug_str = format!("{:?}", config);
+
+        // Non-sensitive fields should be visible
+        assert!(debug_str.contains("0.0.0.0"), "Debug output should show host");
+        assert!(debug_str.contains("8080"), "Debug output should show port");
+        assert!(debug_str.contains("http://localhost:4200"), "Debug output should show app_url");
+    }
+
+    #[test]
+    fn test_config_debug_contains_config_struct_name() {
+        let config = make_test_config();
+        let debug_str = format!("{:?}", config);
+        assert!(debug_str.starts_with("Config"), "Debug output should start with 'Config'");
+    }
+
+    #[test]
+    fn test_config_clone() {
+        let config = make_test_config();
+        let cloned = config.clone();
+        assert_eq!(cloned.host, config.host);
+        assert_eq!(cloned.port, config.port);
+        assert_eq!(cloned.jwt_secret, config.jwt_secret);
+        assert_eq!(cloned.app_url, config.app_url);
+    }
+
+    #[test]
+    fn test_config_debug_redacts_all_seven_secrets() {
+        let config = make_test_config();
+        let debug_str = format!("{:?}", config);
+
+        // Count occurrences of [REDACTED] - should be 7 (jwt_secret, jwt_refresh_secret,
+        // minio_access_key, minio_secret_key, postal_api_key, novu_api_key, lago_api_key, waha_api_key)
+        let redacted_count = debug_str.matches("[REDACTED]").count();
+        assert_eq!(
+            redacted_count, 8,
+            "Expected 8 [REDACTED] occurrences, got {}. Debug: {}",
+            redacted_count, debug_str
+        );
+    }
+}

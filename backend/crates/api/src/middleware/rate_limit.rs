@@ -113,3 +113,67 @@ pub fn rate_limit_layer(
         req
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_rate_limiter_allows_under_limit() {
+        let limiter = RateLimiter::new(5, 60);
+        for i in 0..4 {
+            assert!(
+                limiter.check_and_record("192.168.1.1"),
+                "Request {} should be allowed",
+                i + 1
+            );
+        }
+    }
+
+    #[test]
+    fn test_rate_limiter_blocks_over_limit() {
+        let limiter = RateLimiter::new(3, 60);
+        assert!(limiter.check_and_record("10.0.0.1"), "Request 1 should be allowed");
+        assert!(limiter.check_and_record("10.0.0.1"), "Request 2 should be allowed");
+        assert!(limiter.check_and_record("10.0.0.1"), "Request 3 should be allowed");
+        assert!(
+            !limiter.check_and_record("10.0.0.1"),
+            "Request 4 should be blocked"
+        );
+    }
+
+    #[test]
+    fn test_rate_limiter_different_ips() {
+        let limiter = RateLimiter::new(2, 60);
+        assert!(limiter.check_and_record("1.1.1.1"));
+        assert!(limiter.check_and_record("1.1.1.1"));
+        assert!(!limiter.check_and_record("1.1.1.1"), "IP 1 should be blocked");
+
+        // Different IP should have its own independent counter
+        assert!(
+            limiter.check_and_record("2.2.2.2"),
+            "IP 2 should still be allowed"
+        );
+        assert!(
+            limiter.check_and_record("2.2.2.2"),
+            "IP 2 second request should be allowed"
+        );
+        assert!(
+            !limiter.check_and_record("2.2.2.2"),
+            "IP 2 third request should be blocked"
+        );
+    }
+
+    #[test]
+    fn test_rate_limiter_single_request_limit() {
+        let limiter = RateLimiter::new(1, 60);
+        assert!(
+            limiter.check_and_record("10.0.0.1"),
+            "First request should be allowed"
+        );
+        assert!(
+            !limiter.check_and_record("10.0.0.1"),
+            "Second request should be blocked"
+        );
+    }
+}

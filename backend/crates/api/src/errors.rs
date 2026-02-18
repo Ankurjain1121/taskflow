@@ -84,3 +84,87 @@ impl IntoResponse for AppError {
 }
 
 pub type Result<T> = std::result::Result<T, AppError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::response::IntoResponse;
+
+    #[test]
+    fn test_not_found_status() {
+        let response = AppError::NotFound("test".into()).into_response();
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[test]
+    fn test_bad_request_status() {
+        let response = AppError::BadRequest("test".into()).into_response();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn test_unauthorized_status() {
+        let response = AppError::Unauthorized("test".into()).into_response();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[test]
+    fn test_forbidden_status() {
+        let response = AppError::Forbidden("test".into()).into_response();
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    }
+
+    #[test]
+    fn test_conflict_status() {
+        let response = AppError::Conflict("test".into()).into_response();
+        assert_eq!(response.status(), StatusCode::CONFLICT);
+    }
+
+    #[test]
+    fn test_validation_error_status() {
+        let response = AppError::ValidationError("test".into()).into_response();
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    }
+
+    #[test]
+    fn test_internal_error_hides_details() {
+        let response = AppError::InternalError("secret database crash info".into()).into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+
+        // Extract body and verify the message is generic
+        let body = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(async {
+                let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+                    .await
+                    .unwrap();
+                serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
+            });
+
+        let message = body["error"]["message"].as_str().unwrap();
+        assert_eq!(message, "An internal error occurred");
+        assert!(!message.contains("secret"));
+    }
+
+    #[test]
+    fn test_error_response_json_shape() {
+        let response = AppError::NotFound("resource missing".into()).into_response();
+
+        let body = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(async {
+                let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+                    .await
+                    .unwrap();
+                serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
+            });
+
+        // Verify JSON shape: { "error": { "code": ..., "message": ... } }
+        assert!(body.get("error").is_some(), "Response must have 'error' key");
+        let error_obj = &body["error"];
+        assert!(error_obj.get("code").is_some(), "Error must have 'code' field");
+        assert!(error_obj.get("message").is_some(), "Error must have 'message' field");
+        assert_eq!(error_obj["code"].as_str().unwrap(), "NOT_FOUND");
+        assert_eq!(error_obj["message"].as_str().unwrap(), "resource missing");
+    }
+}

@@ -73,3 +73,62 @@ pub const TEMPLATES: &[BoardTemplate] = &[
 pub fn get_template(id: &str) -> Option<&'static BoardTemplate> {
     TEMPLATES.iter().find(|t| t.id == id)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    #[test]
+    fn test_get_template_kanban() {
+        let tmpl = get_template("kanban").expect("kanban template should exist");
+        assert_eq!(tmpl.columns.len(), 3);
+    }
+
+    #[test]
+    fn test_get_template_scrum() {
+        let tmpl = get_template("scrum").expect("scrum template should exist");
+        assert_eq!(tmpl.columns.len(), 5);
+    }
+
+    #[test]
+    fn test_get_template_blank() {
+        let tmpl = get_template("blank").expect("blank template should exist");
+        assert_eq!(tmpl.columns.len(), 0);
+    }
+
+    #[test]
+    fn test_get_template_bug_tracker() {
+        let tmpl = get_template("bug-tracker");
+        assert!(tmpl.is_some(), "bug-tracker template should exist");
+    }
+
+    #[test]
+    fn test_get_template_invalid() {
+        assert!(get_template("nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_templates_count() {
+        assert_eq!(TEMPLATES.len(), 5);
+    }
+
+    #[test]
+    fn test_kanban_done_column() {
+        let tmpl = get_template("kanban").unwrap();
+        let last = tmpl.columns.last().expect("kanban should have columns");
+        assert!(last.is_done, "Last kanban column should have is_done=true");
+    }
+
+    #[test]
+    fn test_all_templates_have_unique_ids() {
+        let mut ids = HashSet::new();
+        for tmpl in TEMPLATES {
+            assert!(
+                ids.insert(tmpl.id),
+                "Duplicate template ID found: {}",
+                tmpl.id
+            );
+        }
+    }
+}

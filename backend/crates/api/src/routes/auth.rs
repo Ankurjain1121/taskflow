@@ -698,3 +698,154 @@ pub fn auth_router() -> Router<AppState> {
         .route("/logout", post(logout_handler))
         .route("/me", get(me_handler))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::{header::COOKIE, HeaderMap, HeaderValue};
+
+    #[test]
+    fn test_hash_token_deterministic() {
+        assert_eq!(hash_token("test"), hash_token("test"));
+    }
+
+    #[test]
+    fn test_hash_token_different_inputs() {
+        assert_ne!(hash_token("a"), hash_token("b"));
+    }
+
+    #[test]
+    fn test_hash_token_hex_format() {
+        let result = hash_token("test");
+        assert_eq!(result.len(), 64);
+        assert!(result.chars().all(|c| c.is_ascii_hexdigit()));
+        // Verify it's lowercase hex
+        assert_eq!(result, result.to_lowercase());
+    }
+
+    #[test]
+    fn test_extract_cookie_single() {
+        let mut headers = HeaderMap::new();
+        headers.insert(COOKIE, HeaderValue::from_static("access_token=abc123"));
+        assert_eq!(
+            extract_cookie(&headers, "access_token"),
+            Some("abc123".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_cookie_multiple() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            COOKIE,
+            HeaderValue::from_static("other=x; access_token=abc123; third=y"),
+        );
+        assert_eq!(
+            extract_cookie(&headers, "access_token"),
+            Some("abc123".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_cookie_missing() {
+        let mut headers = HeaderMap::new();
+        headers.insert(COOKIE, HeaderValue::from_static("other=x"));
+        assert_eq!(extract_cookie(&headers, "access_token"), None);
+    }
+
+    #[test]
+    fn test_extract_cookie_no_header() {
+        let headers = HeaderMap::new();
+        assert_eq!(extract_cookie(&headers, "access_token"), None);
+    }
+
+    #[test]
+    fn test_extract_cookie_refresh_token() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            COOKIE,
+            HeaderValue::from_static("access_token=aaa; refresh_token=bbb"),
+        );
+        assert_eq!(
+            extract_cookie(&headers, "refresh_token"),
+            Some("bbb".to_string())
+        );
+    }
+
+    #[test]
+    fn test_extract_domain_from_url_production() {
+        assert_eq!(
+            extract_domain_from_url("https://taskflow.example.com"),
+            "; Domain=taskflow.example.com"
+        );
+    }
+
+    #[test]
+    fn test_extract_domain_from_url_localhost() {
+        assert_eq!(
+            extract_domain_from_url("http://localhost:4200"),
+            ""
+        );
+    }
+
+    #[test]
+    fn test_extract_domain_from_url_local_ip() {
+        assert_eq!(
+            extract_domain_from_url("http://192.168.1.1:8080"),
+            ""
+        );
+    }
+
+    #[test]
+    fn test_extract_domain_from_url_127() {
+        assert_eq!(
+            extract_domain_from_url("http://127.0.0.1:8080"),
+            ""
+        );
+    }
+
+    #[test]
+    fn test_build_auth_cookie_headers_http() {
+        let headers = build_auth_cookie_headers("tok", "ref", 3600, 86400, "http://localhost:4200");
+        let cookies: Vec<String> = headers
+            .get_all(SET_COOKIE)
+            .iter()
+            .map(|v| v.to_str().unwrap().to_string())
+            .collect();
+        // Neither cookie should contain "Secure"
+        for cookie in &cookies {
+            assert!(!cookie.contains("Secure"), "HTTP cookie should not have Secure flag: {}", cookie);
+        }
+    }
+
+    #[test]
+    fn test_build_auth_cookie_headers_https() {
+        let headers = build_auth_cookie_headers("tok", "ref", 3600, 86400, "https://taskflow.example.com");
+        let cookies: Vec<String> = headers
+            .get_all(SET_COOKIE)
+            .iter()
+            .map(|v| v.to_str().unwrap().to_string())
+            .collect();
+        // Both cookies should contain "Secure"
+        for cookie in &cookies {
+            assert!(cookie.contains("Secure"), "HTTPS cookie should have Secure flag: {}", cookie);
+        }
+    }
+
+    #[test]
+    fn test_build_clear_cookie_headers() {
+        let headers = build_clear_cookie_headers("http://localhost:4200");
+        let cookies: Vec<String> = headers
+            .get_all(SET_COOKIE)
+            .iter()
+            .map(|v| v.to_str().unwrap().to_string())
+            .collect();
+        assert_eq!(cookies.len(), 2);
+        for cookie in &cookies {
+            assert!(cookie.contains("Max-Age=0"), "Clear cookie should have Max-Age=0: {}", cookie);
+        }
+        // One should be access_token, one should be refresh_token
+        assert!(cookies.iter().any(|c| c.starts_with("access_token=")));
+        assert!(cookies.iter().any(|c| c.starts_with("refresh_token=")));
+    }
+}

@@ -220,4 +220,36 @@ mod tests {
         assert_eq!(get_event_emoji("task-overdue"), ":warning:");
         assert_eq!(get_event_emoji("unknown"), ":bell:");
     }
+
+    #[test]
+    fn test_validate_webhook_url_empty() {
+        let result = validate_webhook_url("");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_webhook_url_http_not_https() {
+        let result =
+            validate_webhook_url("http://hooks.slack.com/services/T00000000/B00000000/XXXX");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_get_event_emoji_all_events() {
+        assert_eq!(get_event_emoji("task-assigned"), ":inbox_tray:");
+        assert_eq!(get_event_emoji("task-due-soon"), ":alarm_clock:");
+        assert_eq!(get_event_emoji("task-overdue"), ":warning:");
+        assert_eq!(get_event_emoji("task-commented"), ":speech_balloon:");
+        assert_eq!(get_event_emoji("task-completed"), ":white_check_mark:");
+        assert_eq!(get_event_emoji("mention-in-comment"), ":point_right:");
+        // Unknown fallback
+        assert_eq!(get_event_emoji("some-random-event"), ":bell:");
+    }
+
+    #[test]
+    fn test_is_slack_enabled_default_false() {
+        // Without SLACK_ENABLED env var set (or if unset), should return false
+        env::remove_var("SLACK_ENABLED");
+        assert!(!is_slack_enabled());
+    }
 }

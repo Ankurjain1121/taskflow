@@ -300,4 +300,51 @@ mod tests {
         let json = serde_json::to_string(&result).unwrap();
         assert!(json.contains("\"users_processed\":100"));
     }
+
+    #[test]
+    fn test_weekly_digest_result_serialize_all_fields() {
+        let result = WeeklyDigestResult {
+            users_processed: 200,
+            emails_sent: 180,
+            errors: 5,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed["users_processed"], 200);
+        assert_eq!(parsed["emails_sent"], 180);
+        assert_eq!(parsed["errors"], 5);
+    }
+
+    #[test]
+    fn test_weekly_digest_result_zero_values() {
+        let result = WeeklyDigestResult {
+            users_processed: 0,
+            emails_sent: 0,
+            errors: 0,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed["users_processed"], 0);
+        assert_eq!(parsed["emails_sent"], 0);
+        assert_eq!(parsed["errors"], 0);
+    }
+
+    #[test]
+    fn test_weekly_digest_result_debug() {
+        let result = WeeklyDigestResult {
+            users_processed: 50,
+            emails_sent: 40,
+            errors: 1,
+        };
+        let debug = format!("{:?}", result);
+        assert!(debug.contains("WeeklyDigestResult"), "got: {}", debug);
+        assert!(debug.contains("users_processed"), "got: {}", debug);
+    }
+
+    #[test]
+    fn test_weekly_digest_error_display() {
+        let err = WeeklyDigestError::Database(sqlx::Error::RowNotFound);
+        let msg = format!("{}", err);
+        assert!(msg.contains("Database error"), "got: {}", msg);
+    }
 }

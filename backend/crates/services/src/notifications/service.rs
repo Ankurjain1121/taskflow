@@ -152,4 +152,48 @@ mod tests {
     fn test_notification_event_to_string() {
         assert_eq!(NotificationEvent::TaskAssigned.name(), "task-assigned");
     }
+
+    #[test]
+    fn test_notification_service_error_display_broadcast() {
+        let err = NotificationServiceError::Broadcast(
+            crate::broadcast::BroadcastError::Serialization(
+                serde_json::from_str::<serde_json::Value>("invalid")
+                    .unwrap_err(),
+            ),
+        );
+        let msg = format!("{}", err);
+        assert!(msg.contains("Broadcast error"), "got: {}", msg);
+    }
+
+    #[test]
+    fn test_notification_service_error_debug() {
+        let err = NotificationServiceError::Broadcast(
+            crate::broadcast::BroadcastError::Serialization(
+                serde_json::from_str::<serde_json::Value>("invalid")
+                    .unwrap_err(),
+            ),
+        );
+        let debug = format!("{:?}", err);
+        assert!(debug.contains("Broadcast"), "got: {}", debug);
+    }
+
+    #[test]
+    fn test_all_notification_event_names_are_kebab_case() {
+        for event in NotificationEvent::all() {
+            let name = event.name();
+            assert!(
+                name.chars().all(|c| c.is_ascii_lowercase() || c == '-'),
+                "Event name '{}' is not kebab-case",
+                name
+            );
+        }
+    }
+
+    #[test]
+    fn test_notification_event_title_not_empty() {
+        for event in NotificationEvent::all() {
+            let title = event.title();
+            assert!(!title.is_empty(), "Title for {:?} is empty", event);
+        }
+    }
 }

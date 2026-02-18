@@ -265,4 +265,83 @@ mod tests {
         assert_eq!(entity_type, "task");
         assert_eq!(entity_id, uuid);
     }
+
+    #[test]
+    fn test_infer_route_id_task_update() {
+        let uuid = "12345678-1234-1234-1234-123456789abc";
+        assert_eq!(
+            infer_route_id(&format!("/api/tasks/{}", uuid), &Method::PUT),
+            Some("tasks.update")
+        );
+    }
+
+    #[test]
+    fn test_infer_route_id_task_move() {
+        let uuid = "12345678-1234-1234-1234-123456789abc";
+        assert_eq!(
+            infer_route_id(&format!("/api/tasks/{}/move", uuid), &Method::POST),
+            Some("tasks.move")
+        );
+    }
+
+    #[test]
+    fn test_infer_route_id_task_assign() {
+        let uuid = "12345678-1234-1234-1234-123456789abc";
+        assert_eq!(
+            infer_route_id(&format!("/api/tasks/{}/assign", uuid), &Method::POST),
+            Some("tasks.assign")
+        );
+    }
+
+    #[test]
+    fn test_infer_route_id_board_create() {
+        let uuid = "12345678-1234-1234-1234-123456789abc";
+        assert_eq!(
+            infer_route_id(&format!("/api/workspaces/{}/boards", uuid), &Method::POST),
+            Some("boards.create")
+        );
+    }
+
+    #[test]
+    fn test_infer_route_id_comment_create() {
+        let uuid = "12345678-1234-1234-1234-123456789abc";
+        assert_eq!(
+            infer_route_id(&format!("/api/tasks/{}/comments", uuid), &Method::POST),
+            Some("comments.create")
+        );
+    }
+
+    #[test]
+    fn test_infer_route_id_workspace_create() {
+        assert_eq!(
+            infer_route_id("/api/workspaces", &Method::POST),
+            Some("workspaces.create")
+        );
+    }
+
+    #[test]
+    fn test_extract_entity_from_path_board() {
+        let uuid = Uuid::new_v4();
+        let path = format!("/api/boards/{}", uuid);
+        let result = extract_entity_from_path(&path);
+        assert!(result.is_some());
+        let (entity_type, entity_id) = result.unwrap();
+        assert_eq!(entity_type, "board");
+        assert_eq!(entity_id, uuid);
+    }
+
+    #[test]
+    fn test_extract_entity_from_path_no_uuid() {
+        let result = extract_entity_from_path("/api/health");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_infer_route_id_admin_trash() {
+        let uuid = "12345678-1234-1234-1234-123456789abc";
+        assert_eq!(
+            infer_route_id(&format!("/api/admin/trash/tasks/{}", uuid), &Method::DELETE),
+            Some("trash.permanent_delete")
+        );
+    }
 }

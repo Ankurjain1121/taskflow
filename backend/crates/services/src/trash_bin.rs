@@ -510,4 +510,41 @@ mod tests {
         assert_eq!(TrashEntityType::Board.as_str(), "board");
         assert_eq!(TrashEntityType::Workspace.as_str(), "workspace");
     }
+
+    #[test]
+    fn test_trash_entity_type_from_str_case_insensitive() {
+        assert_eq!(TrashEntityType::from_str("Task"), Some(TrashEntityType::Task));
+        assert_eq!(TrashEntityType::from_str("TASK"), Some(TrashEntityType::Task));
+        assert_eq!(TrashEntityType::from_str("task"), Some(TrashEntityType::Task));
+        assert_eq!(TrashEntityType::from_str("Board"), Some(TrashEntityType::Board));
+        assert_eq!(TrashEntityType::from_str("BOARD"), Some(TrashEntityType::Board));
+        assert_eq!(TrashEntityType::from_str("Workspace"), Some(TrashEntityType::Workspace));
+        assert_eq!(TrashEntityType::from_str("WORKSPACE"), Some(TrashEntityType::Workspace));
+    }
+
+    #[test]
+    fn test_trash_entity_type_from_str_plural() {
+        assert_eq!(TrashEntityType::from_str("boards"), Some(TrashEntityType::Board));
+        assert_eq!(TrashEntityType::from_str("workspaces"), Some(TrashEntityType::Workspace));
+        assert_eq!(TrashEntityType::from_str("tasks"), Some(TrashEntityType::Task));
+    }
+
+    #[test]
+    fn test_trash_retention_days_constant() {
+        assert_eq!(TRASH_RETENTION_DAYS, 30);
+    }
+
+    #[test]
+    fn test_trash_entity_type_roundtrip() {
+        let types = [
+            TrashEntityType::Task,
+            TrashEntityType::Board,
+            TrashEntityType::Workspace,
+        ];
+        for entity_type in &types {
+            let s = entity_type.as_str();
+            let parsed = TrashEntityType::from_str(s);
+            assert_eq!(parsed, Some(entity_type.clone()));
+        }
+    }
 }

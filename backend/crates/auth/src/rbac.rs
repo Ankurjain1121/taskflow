@@ -219,4 +219,65 @@ mod tests {
         assert!(!has_role_level(&UserRole::Member, &UserRole::Manager));
         assert!(has_role_level(&UserRole::Member, &UserRole::Member));
     }
+
+    #[test]
+    fn test_member_cannot_delete_boards() {
+        assert!(
+            !has_permission(&UserRole::Member, &Permission::BoardDelete),
+            "Member should not have BoardDelete permission"
+        );
+    }
+
+    #[test]
+    fn test_member_cannot_manage_workspace_members() {
+        assert!(
+            !has_permission(&UserRole::Member, &Permission::WorkspaceManageMembers),
+            "Member should not have WorkspaceManageMembers permission"
+        );
+    }
+
+    #[test]
+    fn test_manager_has_all_task_permissions() {
+        let task_perms = [
+            Permission::TaskCreate,
+            Permission::TaskUpdate,
+            Permission::TaskDelete,
+            Permission::TaskAssign,
+            Permission::TaskView,
+        ];
+
+        for perm in &task_perms {
+            assert!(
+                has_permission(&UserRole::Manager, perm),
+                "Manager should have {:?} permission",
+                perm
+            );
+        }
+    }
+
+    #[test]
+    fn test_require_role_level_errors() {
+        let result = require_role_level(&UserRole::Member, &UserRole::Admin);
+        assert!(result.is_err());
+
+        let err = result.unwrap_err();
+        match err {
+            AuthError::InsufficientRole { required, actual } => {
+                assert_eq!(required, UserRole::Admin);
+                assert_eq!(actual, UserRole::Member);
+            }
+            _ => panic!("Expected InsufficientRole error, got {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_permission_count_per_role() {
+        let admin_perms = permissions_for_role(&UserRole::Admin);
+        let manager_perms = permissions_for_role(&UserRole::Manager);
+        let member_perms = permissions_for_role(&UserRole::Member);
+
+        assert_eq!(admin_perms.len(), 17, "Admin should have 17 permissions");
+        assert_eq!(manager_perms.len(), 14, "Manager should have 14 permissions");
+        assert_eq!(member_perms.len(), 6, "Member should have 6 permissions");
+    }
 }

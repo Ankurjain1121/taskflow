@@ -177,4 +177,64 @@ mod tests {
         let json = serde_json::to_string(&result).unwrap();
         assert!(json.contains("\"total_deleted\":27"));
     }
+
+    #[test]
+    fn test_trash_cleanup_result_serialize_all_fields() {
+        let result = TrashCleanupResult {
+            workspaces_deleted: 3,
+            boards_deleted: 10,
+            tasks_deleted: 50,
+            total_deleted: 63,
+            errors: 0,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed["workspaces_deleted"], 3);
+        assert_eq!(parsed["boards_deleted"], 10);
+        assert_eq!(parsed["tasks_deleted"], 50);
+        assert_eq!(parsed["total_deleted"], 63);
+        assert_eq!(parsed["errors"], 0);
+    }
+
+    #[test]
+    fn test_trash_cleanup_result_zero_values() {
+        let result = TrashCleanupResult {
+            workspaces_deleted: 0,
+            boards_deleted: 0,
+            tasks_deleted: 0,
+            total_deleted: 0,
+            errors: 0,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed["total_deleted"], 0);
+    }
+
+    #[test]
+    fn test_trash_cleanup_result_debug() {
+        let result = TrashCleanupResult {
+            workspaces_deleted: 1,
+            boards_deleted: 2,
+            tasks_deleted: 3,
+            total_deleted: 6,
+            errors: 0,
+        };
+        let debug = format!("{:?}", result);
+        assert!(debug.contains("TrashCleanupResult"), "got: {}", debug);
+        assert!(debug.contains("workspaces_deleted"), "got: {}", debug);
+    }
+
+    #[test]
+    fn test_trash_cleanup_error_display() {
+        let err = TrashCleanupError::Cleanup("test cleanup failure".to_string());
+        let msg = format!("{}", err);
+        assert_eq!(msg, "Cleanup error: test cleanup failure");
+    }
+
+    #[test]
+    fn test_trash_cleanup_error_database() {
+        let err = TrashCleanupError::Database(sqlx::Error::RowNotFound);
+        let msg = format!("{}", err);
+        assert!(msg.contains("Database error"), "got: {}", msg);
+    }
 }

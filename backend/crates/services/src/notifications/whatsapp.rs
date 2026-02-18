@@ -245,4 +245,59 @@ mod tests {
         assert_eq!(get_event_emoji("task-assigned"), "\u{1F4E5}");
         assert_eq!(get_event_emoji("task-overdue"), "\u{26A0}");
     }
+
+    #[test]
+    fn test_validate_e164_too_long() {
+        // 16 digits after the + exceeds the 15-digit max
+        let result = validate_e164_phone_number("+1234567890123456");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_e164_minimum_length() {
+        // 7 digits after the + is the minimum
+        let result = validate_e164_phone_number("+1234567");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_phone_to_chat_id_strips_plus() {
+        let chat_id = phone_to_chat_id("+14155552671");
+        assert!(!chat_id.contains('+'), "chat_id should not contain +");
+        assert_eq!(chat_id, "14155552671@c.us");
+    }
+
+    #[test]
+    fn test_get_event_emoji_all_events() {
+        assert_eq!(get_event_emoji("task-assigned"), "\u{1F4E5}");
+        assert_eq!(get_event_emoji("task-due-soon"), "\u{23F0}");
+        assert_eq!(get_event_emoji("task-overdue"), "\u{26A0}");
+        assert_eq!(get_event_emoji("task-commented"), "\u{1F4AC}");
+        assert_eq!(get_event_emoji("task-completed"), "\u{2705}");
+        assert_eq!(get_event_emoji("mention-in-comment"), "\u{1F449}");
+        // Unknown fallback
+        assert_eq!(get_event_emoji("some-random-event"), "\u{1F514}");
+    }
+
+    #[test]
+    fn test_waha_client_creation() {
+        let client = WahaClient::new(
+            "http://localhost:3000/".to_string(),
+            "test-api-key".to_string(),
+            None,
+        );
+        // api_url should be trimmed of trailing slash
+        assert_eq!(client.api_url, "http://localhost:3000");
+        assert_eq!(client.session_name, "default");
+    }
+
+    #[test]
+    fn test_waha_client_custom_session() {
+        let client = WahaClient::new(
+            "http://localhost:3000".to_string(),
+            "test-key".to_string(),
+            Some("custom".to_string()),
+        );
+        assert_eq!(client.session_name, "custom");
+    }
 }
