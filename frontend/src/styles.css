@@ -1,6 +1,7 @@
 @import "tailwindcss";
-
 @import "primeicons/primeicons.css";
+
+@source "../";
 
 /* Tailwind CSS 4 Animation Utilities */
 @utility animate-pulse {
