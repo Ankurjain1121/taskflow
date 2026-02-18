@@ -383,6 +383,7 @@ pub async fn get_upcoming_deadlines(
           AND (bc.status_mapping IS NULL OR NOT (bc.status_mapping->>'done')::boolean)
           AND ($4::uuid IS NULL OR b.workspace_id = $4)
         ORDER BY t.due_date ASC
+        LIMIT 50
         "#,
     )
     .bind(user_id)

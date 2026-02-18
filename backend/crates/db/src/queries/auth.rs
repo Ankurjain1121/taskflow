@@ -93,6 +93,8 @@ pub async fn revoke_refresh_token(pool: &PgPool, token_id: Uuid) -> Result<(), s
 }
 
 /// Create a new user with a new tenant (for self-registration)
+///
+/// Wrapped in a transaction so that a failed user insert does not leave an orphaned tenant.
 pub async fn create_user_with_tenant(
     pool: &PgPool,
     email: &str,
@@ -106,6 +108,8 @@ pub async fn create_user_with_tenant(
         &tenant_id.to_string()[..8]
     );
 
+    let mut tx = pool.begin().await?;
+
     // Create tenant
     sqlx::query(
         r#"INSERT INTO tenants (id, name, slug) VALUES ($1, $2, $3)"#,
@@ -113,11 +117,11 @@ pub async fn create_user_with_tenant(
     .bind(tenant_id)
     .bind(format!("{}'s Team", name))
     .bind(&slug)
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
 
     // Create user as admin of the new tenant
-    sqlx::query_as::<_, User>(
+    let user = sqlx::query_as::<_, User>(
         r#"
         INSERT INTO users (id, email, name, password_hash, role, tenant_id, onboarding_completed, created_at, updated_at)
         VALUES ($1, $2, $3, $4, 'admin', $5, false, NOW(), NOW())
@@ -130,8 +134,12 @@ pub async fn create_user_with_tenant(
     .bind(name)
     .bind(password_hash)
     .bind(tenant_id)
-    .fetch_one(pool)
-    .await
+    .fetch_one(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(user)
 }
 
 /// Revoke all refresh tokens for a user

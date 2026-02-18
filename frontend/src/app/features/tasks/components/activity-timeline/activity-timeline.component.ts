@@ -20,11 +20,7 @@ import {
 @Component({
   selector: 'app-activity-timeline',
   standalone: true,
-  imports: [
-    CommonModule,
-    ButtonModule,
-    ProgressSpinnerModule,
-  ],
+  imports: [CommonModule, ButtonModule, ProgressSpinnerModule],
   template: `
     <div class="relative">
       @if (isLoading() && activities().length === 0) {
@@ -66,7 +62,11 @@ import {
                       class="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium border-2 border-white shadow-sm"
                       [class]="getActionIconBgClass(activity.action)"
                     >
-                      <i [class]="'pi ' + getActionIcon(activity.action) + ' text-lg'"></i>
+                      <i
+                        [class]="
+                          'pi ' + getActionIcon(activity.action) + ' text-lg'
+                        "
+                      ></i>
                     </div>
                   }
                 </div>
@@ -182,7 +182,10 @@ export class ActivityTimelineComponent implements OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          this.activities.update((activities) => [...activities, ...response.items]);
+          this.activities.update((activities) => [
+            ...activities,
+            ...response.items,
+          ]);
           this.nextCursor.set(response.nextCursor);
           this.isLoadingMore.set(false);
         },
@@ -203,53 +206,59 @@ export class ActivityTimelineComponent implements OnDestroy {
       case 'updated':
         return 'updated this task';
 
-      case 'moved':
+      case 'moved': {
         const fromColumn = metadata['from_column'] as string;
         const toColumn = metadata['to_column'] as string;
         if (fromColumn && toColumn) {
           return `moved from "${fromColumn}" to "${toColumn}"`;
         }
         return 'moved this task';
+      }
 
-      case 'assigned':
+      case 'assigned': {
         const assigneeName = metadata['assignee_name'] as string;
         if (assigneeName) {
           return `assigned to ${assigneeName}`;
         }
         return 'assigned this task';
+      }
 
-      case 'unassigned':
+      case 'unassigned': {
         const prevAssigneeName = metadata['previous_assignee_name'] as string;
         if (prevAssigneeName) {
           return `unassigned ${prevAssigneeName}`;
         }
         return 'unassigned this task';
+      }
 
       case 'commented':
         return 'added a comment';
 
-      case 'attached':
+      case 'attached': {
         const fileName = metadata['file_name'] as string;
         if (fileName) {
           return `attached "${fileName}"`;
         }
         return 'attached a file';
+      }
 
-      case 'status_changed':
+      case 'status_changed': {
         const fromStatus = metadata['from_status'] as string;
         const toStatus = metadata['to_status'] as string;
         if (fromStatus && toStatus) {
           return `changed status from "${fromStatus}" to "${toStatus}"`;
         }
         return 'changed the status';
+      }
 
-      case 'priority_changed':
+      case 'priority_changed': {
         const fromPriority = metadata['from_priority'] as string;
         const toPriority = metadata['to_priority'] as string;
         if (fromPriority && toPriority) {
           return `changed priority from "${fromPriority}" to "${toPriority}"`;
         }
         return 'changed the priority';
+      }
 
       case 'deleted':
         return 'deleted this task';

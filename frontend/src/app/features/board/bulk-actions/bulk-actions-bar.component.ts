@@ -107,9 +107,18 @@ export interface BulkAction {
         (click)="onDelete()"
         class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 rounded transition-colors"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        <svg
+          class="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+          />
         </svg>
         Delete
       </button>
@@ -120,8 +129,18 @@ export interface BulkAction {
         class="ml-2 text-gray-400 hover:text-white transition-colors"
         title="Cancel selection"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          />
         </svg>
       </button>
     </div>
@@ -133,42 +152,45 @@ export class BulkActionsBarComponent {
   milestones = input<Milestone[]>([]);
   groups = input<TaskGroupWithStats[]>([]);
 
-  actionEmitter = output<BulkAction>({ alias: 'bulkAction' });
-  cancelEmitter = output<void>({ alias: 'cancelSelection' });
+  bulkAction = output<BulkAction>();
+  cancelSelection = output<void>();
 
   onMoveToColumn(columnId: string): void {
     if (columnId) {
-      this.actionEmitter.emit({ type: 'move', column_id: columnId });
+      this.bulkAction.emit({ type: 'move', column_id: columnId });
     }
   }
 
   onSetPriority(priority: string): void {
     if (priority) {
-      this.actionEmitter.emit({ type: 'priority', priority: priority as TaskPriority });
+      this.bulkAction.emit({
+        type: 'priority',
+        priority: priority as TaskPriority,
+      });
     }
   }
 
   onSetMilestone(value: string): void {
     if (value === '__clear') {
-      this.actionEmitter.emit({ type: 'milestone', clear_milestone: true });
+      this.bulkAction.emit({ type: 'milestone', clear_milestone: true });
     } else if (value) {
-      this.actionEmitter.emit({ type: 'milestone', milestone_id: value });
+      this.bulkAction.emit({ type: 'milestone', milestone_id: value });
     }
   }
 
   onMoveToGroup(value: string): void {
     if (value === '__clear') {
-      this.actionEmitter.emit({ type: 'group', clear_group: true });
+      this.bulkAction.emit({ type: 'group', clear_group: true });
     } else if (value) {
-      this.actionEmitter.emit({ type: 'group', group_id: value });
+      this.bulkAction.emit({ type: 'group', group_id: value });
     }
   }
 
   onDelete(): void {
-    this.actionEmitter.emit({ type: 'delete' });
+    this.bulkAction.emit({ type: 'delete' });
   }
 
   onCancel(): void {
-    this.cancelEmitter.emit();
+    this.cancelSelection.emit();
   }
 }

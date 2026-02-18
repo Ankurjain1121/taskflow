@@ -5,7 +5,6 @@ import {
   output,
   signal,
   computed,
-  OnInit,
   inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -52,7 +51,9 @@ type ZoomLevel = 'day' | 'week' | 'month';
   template: `
     <div class="flex flex-col h-full bg-white">
       <!-- Header -->
-      <div class="flex items-center justify-between px-6 py-3 border-b border-gray-200">
+      <div
+        class="flex items-center justify-between px-6 py-3 border-b border-gray-200"
+      >
         <h2 class="text-lg font-semibold text-gray-900">Gantt Chart</h2>
         <div class="flex items-center gap-2">
           <span class="text-xs text-gray-500">Zoom:</span>
@@ -65,24 +66,34 @@ type ZoomLevel = 'day' | 'week' | 'month';
                 [class.text-white]="zoom() === level"
                 [class.text-gray-600]="zoom() !== level"
                 [class.hover:bg-gray-50]="zoom() !== level"
-              >{{ level }}</button>
+              >
+                {{ level }}
+              </button>
             }
           </div>
         </div>
       </div>
 
       @if (tasks().length === 0) {
-        <div class="flex items-center justify-center flex-1 text-gray-400 text-sm">
-          No tasks with dates to display. Set start/due dates on tasks to see them here.
+        <div
+          class="flex items-center justify-center flex-1 text-gray-400 text-sm"
+        >
+          No tasks with dates to display. Set start/due dates on tasks to see
+          them here.
         </div>
       } @else {
         <!-- Gantt Body -->
         <div class="flex flex-1 overflow-hidden">
           <!-- Left Panel: Task List -->
-          <div class="w-64 flex-shrink-0 border-r border-gray-200 overflow-y-auto">
+          <div
+            class="w-64 flex-shrink-0 border-r border-gray-200 overflow-y-auto"
+          >
             <!-- Header -->
             <div class="h-10 border-b border-gray-200 flex items-center px-3">
-              <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Task</span>
+              <span
+                class="text-xs font-medium text-gray-500 uppercase tracking-wide"
+                >Task</span
+              >
             </div>
             <!-- Task rows -->
             @for (task of sortedTasks(); track task.id) {
@@ -98,22 +109,30 @@ type ZoomLevel = 'day' | 'week' | 'month';
                   class="text-xs text-gray-700 truncate"
                   [class.line-through]="task.is_done"
                   [class.text-gray-400]="task.is_done"
-                >{{ task.title }}</span>
+                  >{{ task.title }}</span
+                >
               </div>
             }
           </div>
 
           <!-- Right Panel: Timeline -->
-          <div class="flex-1 overflow-x-auto overflow-y-auto" #timelineContainer>
+          <div
+            class="flex-1 overflow-x-auto overflow-y-auto"
+            #timelineContainer
+          >
             <div [style.width.px]="timelineWidth()" class="relative">
               <!-- Date headers -->
-              <div class="h-10 border-b border-gray-200 flex sticky top-0 bg-white z-10">
+              <div
+                class="h-10 border-b border-gray-200 flex sticky top-0 bg-white z-10"
+              >
                 @for (header of dateHeaders(); track header.label) {
                   <div
                     class="flex-shrink-0 border-r border-gray-100 flex items-center justify-center"
                     [style.width.px]="header.width"
                   >
-                    <span class="text-[10px] text-gray-500">{{ header.label }}</span>
+                    <span class="text-[10px] text-gray-500">{{
+                      header.label
+                    }}</span>
                   </div>
                 }
               </div>
@@ -127,18 +146,26 @@ type ZoomLevel = 'day' | 'week' | 'month';
                 <!-- Today line -->
                 @if (todayX() >= 0) {
                   <line
-                    [attr.x1]="todayX()" y1="0"
-                    [attr.x2]="todayX()" [attr.y2]="sortedTasks().length * 40"
-                    stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.6"
+                    [attr.x1]="todayX()"
+                    y1="0"
+                    [attr.x2]="todayX()"
+                    [attr.y2]="sortedTasks().length * 40"
+                    stroke="#ef4444"
+                    stroke-width="1.5"
+                    stroke-dasharray="4,4"
+                    opacity="0.6"
                   />
                 }
 
                 <!-- Row grid lines -->
                 @for (task of sortedTasks(); track task.id; let i = $index) {
                   <line
-                    x1="0" [attr.y1]="i * 40 + 40"
-                    [attr.x2]="timelineWidth()" [attr.y2]="i * 40 + 40"
-                    stroke="#f3f4f6" stroke-width="1"
+                    x1="0"
+                    [attr.y1]="i * 40 + 40"
+                    [attr.x2]="timelineWidth()"
+                    [attr.y2]="i * 40 + 40"
+                    stroke="#f3f4f6"
+                    stroke-width="1"
                   />
                 }
 
@@ -152,15 +179,22 @@ type ZoomLevel = 'day' | 'week' | 'month';
                       height="20"
                       [attr.fill]="bar.color"
                       [attr.opacity]="bar.task.is_done ? 0.4 : 0.85"
-                      rx="4" ry="4"
+                      rx="4"
+                      ry="4"
                     />
                     <!-- Task title on bar -->
                     @if (bar.width > 60) {
                       <text
                         [attr.x]="bar.x + 6"
                         [attr.y]="bar.y + 24"
-                        fill="white" font-size="10" font-weight="500"
-                      >{{ bar.task.title | slice:0:Math.floor(bar.width / 6) }}</text>
+                        fill="white"
+                        font-size="10"
+                        font-weight="500"
+                      >
+                        {{
+                          bar.task.title | slice: 0 : Math.floor(bar.width / 6)
+                        }}
+                      </text>
                     }
                   </g>
                 }
@@ -169,14 +203,23 @@ type ZoomLevel = 'day' | 'week' | 'month';
                 @for (arrow of dependencyArrows(); track arrow.path) {
                   <path
                     [attr.d]="arrow.path"
-                    fill="none" stroke="#94a3b8" stroke-width="1.5"
+                    fill="none"
+                    stroke="#94a3b8"
+                    stroke-width="1.5"
                     marker-end="url(#arrowhead)"
                   />
                 }
 
                 <!-- Arrow marker definition -->
                 <defs>
-                  <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                  <marker
+                    id="arrowhead"
+                    markerWidth="8"
+                    markerHeight="6"
+                    refX="8"
+                    refY="3"
+                    orient="auto"
+                  >
                     <polygon points="0 0, 8 3, 0 6" fill="#94a3b8" />
                   </marker>
                 </defs>
@@ -188,7 +231,7 @@ type ZoomLevel = 'day' | 'week' | 'month';
     </div>
   `,
 })
-export class GanttViewComponent implements OnInit {
+export class GanttViewComponent {
   tasks = input<GanttTask[]>([]);
   dependencies = input<GanttDependency[]>([]);
   taskClicked = output<string>();
@@ -213,15 +256,24 @@ export class GanttViewComponent implements OnInit {
 
   private timelineRange = computed(() => {
     const tasks = this.sortedTasks();
-    if (tasks.length === 0) return { start: new Date(), end: new Date(), days: 30 };
+    if (tasks.length === 0)
+      return { start: new Date(), end: new Date(), days: 30 };
 
     let minDate = new Date();
     let maxDate = new Date();
     let first = true;
 
     for (const t of tasks) {
-      const start = t.start_date ? new Date(t.start_date) : t.due_date ? new Date(t.due_date) : null;
-      const end = t.due_date ? new Date(t.due_date) : t.start_date ? new Date(t.start_date) : null;
+      const start = t.start_date
+        ? new Date(t.start_date)
+        : t.due_date
+          ? new Date(t.due_date)
+          : null;
+      const end = t.due_date
+        ? new Date(t.due_date)
+        : t.start_date
+          ? new Date(t.start_date)
+          : null;
       if (!start || !end) continue;
 
       if (first) {
@@ -238,7 +290,9 @@ export class GanttViewComponent implements OnInit {
     minDate.setDate(minDate.getDate() - 7);
     maxDate.setDate(maxDate.getDate() + 14);
 
-    const days = Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24));
+    const days = Math.ceil(
+      (maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24),
+    );
     return { start: minDate, end: maxDate, days: Math.max(days, 30) };
   });
 
@@ -249,7 +303,8 @@ export class GanttViewComponent implements OnInit {
   todayX = computed(() => {
     const range = this.timelineRange();
     const today = new Date();
-    const daysDiff = (today.getTime() - range.start.getTime()) / (1000 * 60 * 60 * 24);
+    const daysDiff =
+      (today.getTime() - range.start.getTime()) / (1000 * 60 * 60 * 24);
     return daysDiff * this.dayWidth();
   });
 
@@ -285,7 +340,10 @@ export class GanttViewComponent implements OnInit {
         const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
         const daysInMonth = monthEnd.getDate();
         headers.push({
-          label: monthStart.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+          label: monthStart.toLocaleDateString('en-US', {
+            month: 'short',
+            year: '2-digit',
+          }),
           width: daysInMonth * dw,
         });
         d.setMonth(d.getMonth() + 1);
@@ -302,11 +360,23 @@ export class GanttViewComponent implements OnInit {
     const dw = this.dayWidth();
 
     return tasks.map((task, index) => {
-      const start = task.start_date ? new Date(task.start_date) : task.due_date ? new Date(task.due_date) : range.start;
-      const end = task.due_date ? new Date(task.due_date) : task.start_date ? new Date(task.start_date) : range.start;
+      const start = task.start_date
+        ? new Date(task.start_date)
+        : task.due_date
+          ? new Date(task.due_date)
+          : range.start;
+      const end = task.due_date
+        ? new Date(task.due_date)
+        : task.start_date
+          ? new Date(task.start_date)
+          : range.start;
 
-      const startDays = (start.getTime() - range.start.getTime()) / (1000 * 60 * 60 * 24);
-      const duration = Math.max((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24), 1);
+      const startDays =
+        (start.getTime() - range.start.getTime()) / (1000 * 60 * 60 * 24);
+      const duration = Math.max(
+        (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24),
+        1,
+      );
 
       return {
         task,
@@ -342,8 +412,6 @@ export class GanttViewComponent implements OnInit {
       })
       .filter((a): a is GanttArrow => a !== null);
   });
-
-  ngOnInit(): void {}
 
   onTaskClick(task: GanttTask): void {
     this.taskClicked.emit(task.id);

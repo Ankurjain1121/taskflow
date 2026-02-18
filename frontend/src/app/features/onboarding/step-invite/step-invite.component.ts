@@ -163,7 +163,7 @@ interface EmailEntry {
 })
 export class StepInviteComponent {
   workspaceId = input.required<string>();
-  onComplete = output<void>();
+  completed = output<void>();
 
   emails: EmailEntry[] = [{ id: 1, value: '', error: null }];
   nextId = 2;
@@ -202,7 +202,7 @@ export class StepInviteComponent {
 
   hasValidEmails(): boolean {
     const validEmails = this.emails.filter(
-      (e) => e.value.trim() && !e.error && this.emailRegex.test(e.value.trim())
+      (e) => e.value.trim() && !e.error && this.emailRegex.test(e.value.trim()),
     );
     return validEmails.length > 0;
   }
@@ -210,7 +210,8 @@ export class StepInviteComponent {
   sendInvites(): void {
     const validEmails = this.emails
       .filter(
-        (e) => e.value.trim() && !e.error && this.emailRegex.test(e.value.trim())
+        (e) =>
+          e.value.trim() && !e.error && this.emailRegex.test(e.value.trim()),
       )
       .map((e) => e.value.trim());
 
@@ -222,27 +223,30 @@ export class StepInviteComponent {
     this.error = null;
     this.successMessage = null;
 
-    this.onboardingService.inviteMembers(this.workspaceId(), validEmails).subscribe({
-      next: (response) => {
-        this.isLoading = false;
-        const total = response.invited + response.pending;
+    this.onboardingService
+      .inviteMembers(this.workspaceId(), validEmails)
+      .subscribe({
+        next: (response) => {
+          this.isLoading = false;
+          const total = response.invited + response.pending;
 
-        if (total > 0) {
-          this.successMessage = `Invitations sent to ${total} team member(s)!`;
-          setTimeout(() => this.onComplete.emit(), 1500);
-        } else {
-          this.onComplete.emit();
-        }
-      },
-      error: (err) => {
-        this.isLoading = false;
-        this.error =
-          err.error?.message || 'Failed to send invitations. Please try again.';
-      },
-    });
+          if (total > 0) {
+            this.successMessage = `Invitations sent to ${total} team member(s)!`;
+            setTimeout(() => this.completed.emit(), 1500);
+          } else {
+            this.completed.emit();
+          }
+        },
+        error: (err) => {
+          this.isLoading = false;
+          this.error =
+            err.error?.message ||
+            'Failed to send invitations. Please try again.';
+        },
+      });
   }
 
   skip(): void {
-    this.onComplete.emit();
+    this.completed.emit();
   }
 }

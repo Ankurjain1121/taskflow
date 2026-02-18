@@ -2,7 +2,10 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { OnboardingService, InvitationContext } from '../../core/services/onboarding.service';
+import {
+  OnboardingService,
+  InvitationContext,
+} from '../../core/services/onboarding.service';
 import { StepWorkspaceComponent } from './step-workspace/step-workspace.component';
 import { StepInviteComponent } from './step-invite/step-invite.component';
 import { StepWelcomeComponent } from './step-welcome/step-welcome.component';
@@ -103,14 +106,12 @@ interface AbbreviatedFlowStep {
           @if (flow() === 'full') {
             @switch (currentFullStep()) {
               @case ('workspace') {
-                <app-step-workspace
-                  (onComplete)="onWorkspaceCreated($event)"
-                />
+                <app-step-workspace (completed)="onWorkspaceCreated($event)" />
               }
               @case ('invite') {
                 <app-step-invite
                   [workspaceId]="workspaceId()!"
-                  (onComplete)="onInviteComplete()"
+                  (completed)="onInviteComplete()"
                 />
               }
               @case ('sample-board') {
@@ -127,7 +128,7 @@ interface AbbreviatedFlowStep {
                   [workspaceName]="invitationContext()!.workspace_name"
                   [workspaceId]="invitationContext()!.workspace_id"
                   [boardIds]="invitationContext()!.board_ids"
-                  (onGoToSampleBoard)="goToSampleBoardStep()"
+                  (goToSampleBoard)="goToSampleBoardStep()"
                 />
               }
               @case ('sample-board') {
@@ -208,7 +209,7 @@ export class OnboardingComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private http: HttpClient,
-    private onboardingService: OnboardingService
+    private onboardingService: OnboardingService,
   ) {}
 
   ngOnInit(): void {

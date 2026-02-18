@@ -87,7 +87,7 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
             {{ groupData().completed_count }} / {{ groupData().task_count }}
           </span>
           @if (
-            groupData().estimated_hours != null &&
+            groupData().estimated_hours !== null &&
             groupData().estimated_hours! > 0
           ) {
             <span

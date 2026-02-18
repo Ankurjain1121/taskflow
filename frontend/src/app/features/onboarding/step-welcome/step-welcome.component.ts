@@ -43,7 +43,11 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
             (click)="exploreExisting()"
             [disabled]="isLoading"
             class="p-6 border-2 rounded-xl hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left group"
-            [ngClass]="selectedOption === 'explore' ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700'"
+            [ngClass]="
+              selectedOption === 'explore'
+                ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20'
+                : 'border-gray-200 dark:border-gray-700'
+            "
           >
             <div class="flex items-start">
               <div
@@ -82,7 +86,11 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
           (click)="createSample()"
           [disabled]="isLoading"
           class="p-6 border-2 rounded-xl hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left group"
-          [ngClass]="selectedOption === 'sample' ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-700'"
+          [ngClass]="
+            selectedOption === 'sample'
+              ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20'
+              : 'border-gray-200 dark:border-gray-700'
+          "
         >
           <div class="flex items-start">
             <div
@@ -131,7 +139,7 @@ export class StepWelcomeComponent {
   workspaceId = input.required<string>();
   boardIds = input<string[]>([]);
 
-  onGoToSampleBoard = output<void>();
+  goToSampleBoard = output<void>();
 
   selectedOption: 'explore' | 'sample' | null = null;
   isLoading = false;
@@ -139,7 +147,7 @@ export class StepWelcomeComponent {
 
   constructor(
     private router: Router,
-    private onboardingService: OnboardingService
+    private onboardingService: OnboardingService,
   ) {}
 
   exploreExisting(): void {
@@ -156,13 +164,14 @@ export class StepWelcomeComponent {
       error: (err) => {
         this.isLoading = false;
         this.error =
-          err.error?.message || 'Failed to complete onboarding. Please try again.';
+          err.error?.message ||
+          'Failed to complete onboarding. Please try again.';
       },
     });
   }
 
   createSample(): void {
     this.selectedOption = 'sample';
-    this.onGoToSampleBoard.emit();
+    this.goToSampleBoard.emit();
   }
 }

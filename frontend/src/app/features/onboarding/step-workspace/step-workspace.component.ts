@@ -116,7 +116,7 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
   `,
 })
 export class StepWorkspaceComponent {
-  onComplete = output<string>();
+  completed = output<string>();
 
   form: FormGroup;
   isLoading = false;
@@ -124,7 +124,7 @@ export class StepWorkspaceComponent {
 
   constructor(
     private fb: FormBuilder,
-    private onboardingService: OnboardingService
+    private onboardingService: OnboardingService,
   ) {
     this.form = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2)]],
@@ -148,12 +148,13 @@ export class StepWorkspaceComponent {
       .subscribe({
         next: (response) => {
           this.isLoading = false;
-          this.onComplete.emit(response.workspace_id);
+          this.completed.emit(response.workspace_id);
         },
         error: (err) => {
           this.isLoading = false;
           this.error =
-            err.error?.message || 'Failed to create workspace. Please try again.';
+            err.error?.message ||
+            'Failed to create workspace. Please try again.';
         },
       });
   }
