@@ -29,6 +29,11 @@ pub mod webhooks;
 pub mod favorites;
 pub mod archive;
 
+#[cfg(test)]
+mod integration_tests;
+#[cfg(test)]
+mod integration_tests_advanced;
+
 pub use recurring::*;
 pub use project_templates::*;
 pub use automations::*;
