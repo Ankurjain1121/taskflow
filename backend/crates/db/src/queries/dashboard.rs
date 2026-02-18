@@ -210,7 +210,7 @@ pub async fn get_tasks_by_priority(
     let rows = sqlx::query_as::<_, TasksByPriority>(
         r#"
         SELECT
-            t.priority as "priority: TaskPriority",
+            t.priority,
             COUNT(DISTINCT t.id)::bigint as count
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id

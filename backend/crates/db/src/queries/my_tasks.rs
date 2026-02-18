@@ -137,7 +137,7 @@ pub async fn list_my_tasks(
             t.id,
             t.title,
             t.description,
-            t.priority as "priority: TaskPriority",
+            t.priority,
             t.due_date,
             t.board_id,
             b.name as board_name,

@@ -132,7 +132,7 @@ import { AuthService } from '../../../core/services/auth.service';
               <div class="field-spacing">
                 <label for="password" class="field-label">Password</label>
                 <p-password
-                  id="password"
+                  inputId="signin-password"
                   formControlName="password"
                   placeholder="Enter your password"
                   [toggleMask]="true"
@@ -150,7 +150,9 @@ import { AuthService } from '../../../core/services/auth.service';
                   signInForm.get('password')?.hasError('minlength') &&
                   signInForm.get('password')?.touched
                 ) {
-                  <small class="p-error">Password must be at least 8 characters</small>
+                  <small class="p-error"
+                    >Password must be at least 8 characters</small
+                  >
                 }
               </div>
 

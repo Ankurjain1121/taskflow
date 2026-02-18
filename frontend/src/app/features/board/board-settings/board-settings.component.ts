@@ -232,20 +232,16 @@ import {
                               @if (member.avatar_url) {
                                 <img
                                   [src]="member.avatar_url"
-                                  [alt]="member.display_name"
+                                  [alt]="member.name"
                                   class="w-full h-full rounded-full object-cover"
                                 />
                               } @else {
-                                {{
-                                  getInitials(
-                                    member.display_name || member.email
-                                  )
-                                }}
+                                {{ getInitials(member.name || member.email) }}
                               }
                             </div>
                             <div>
                               <p class="text-sm font-medium text-gray-900">
-                                {{ member.display_name || 'Unknown' }}
+                                {{ member.name || 'Unknown' }}
                               </p>
                               <p class="text-sm text-gray-500">
                                 {{ member.email }}
@@ -464,7 +460,7 @@ export class BoardSettingsComponent implements OnInit {
 
   onRemoveMember(member: BoardMember): void {
     this.confirmationService.confirm({
-      message: `Remove ${member.display_name || member.email} from this board?`,
+      message: `Remove ${member.name || member.email} from this board?`,
       header: 'Remove Member',
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger p-button-sm',

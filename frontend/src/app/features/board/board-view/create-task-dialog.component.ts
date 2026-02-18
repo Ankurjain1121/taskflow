@@ -116,7 +116,7 @@ export interface CreateTaskDialogResult {
             >Priority</label
           >
           <p-select
-            id="taskPriority"
+            inputId="taskPriority"
             formControlName="priority"
             [options]="priorities"
             optionLabel="label"
@@ -155,7 +155,7 @@ export interface CreateTaskDialogResult {
               >Start Date</label
             >
             <p-datePicker
-              id="startDate"
+              inputId="startDate"
               formControlName="startDate"
               placeholder="Select start date"
               [showIcon]="true"
@@ -172,7 +172,7 @@ export interface CreateTaskDialogResult {
               >Due Date</label
             >
             <p-datePicker
-              id="dueDate"
+              inputId="dueDate"
               formControlName="dueDate"
               placeholder="Select due date"
               [showIcon]="true"
@@ -190,7 +190,7 @@ export interface CreateTaskDialogResult {
             >Estimated Hours</label
           >
           <p-inputNumber
-            id="estHours"
+            inputId="estHours"
             formControlName="estimatedHours"
             placeholder="e.g., 4"
             [min]="0"
@@ -218,7 +218,7 @@ export interface CreateTaskDialogResult {
               >Assignees</label
             >
             <p-multiSelect
-              id="assignees"
+              inputId="assignees"
               formControlName="assigneeIds"
               [options]="members()"
               optionLabel="name"
@@ -250,7 +250,7 @@ export interface CreateTaskDialogResult {
               >Labels</label
             >
             <p-multiSelect
-              id="taskLabels"
+              inputId="taskLabels"
               formControlName="labelIds"
               [options]="labels()"
               optionLabel="name"
@@ -281,7 +281,7 @@ export interface CreateTaskDialogResult {
               >Milestone</label
             >
             <p-select
-              id="milestone"
+              inputId="milestone"
               formControlName="milestoneId"
               [options]="milestoneOptions()"
               optionLabel="name"
@@ -315,7 +315,7 @@ export interface CreateTaskDialogResult {
               >Group</label
             >
             <p-select
-              id="taskGroup"
+              inputId="taskGroup"
               formControlName="groupId"
               [options]="groupOptions()"
               optionLabel="name"

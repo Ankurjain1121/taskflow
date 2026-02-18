@@ -705,7 +705,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     this.createTaskDialogColumnName = column.name;
     this.createTaskDialogMembers = this.boardMembers().map((m) => ({
       id: m.user_id,
-      name: m.display_name || m.email || 'Unknown',
+      name: m.name || m.email || 'Unknown',
       avatar_url: m.avatar_url ?? undefined,
     }));
     this.createTaskDialogLabels = this.allLabels().map((l) => ({

@@ -1,7 +1,7 @@
 use axum::{
     extract::{Path, Query, State},
     middleware::from_fn_with_state,
-    routing::{delete, get, post, put},
+    routing::{delete, get, patch, post, put},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
@@ -841,7 +841,7 @@ pub fn task_router(state: AppState) -> Router<AppState> {
         .route("/tasks/{id}", get(get_task))
         .route("/tasks/{id}", put(update_task_handler))
         .route("/tasks/{id}", delete(delete_task_handler))
-        .route("/tasks/{id}/move", post(move_task_handler))
+        .route("/tasks/{id}/move", patch(move_task_handler))
         .route("/tasks/{id}/assignees", post(assign_user_handler))
         .route(
             "/tasks/{id}/assignees/{user_id}",

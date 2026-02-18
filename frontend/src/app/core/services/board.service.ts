@@ -62,7 +62,7 @@ export interface BoardMember {
   user_id: string;
   board_id: string;
   role: 'viewer' | 'editor';
-  display_name?: string;
+  name?: string;
   email?: string;
   avatar_url?: string | null;
 }

@@ -161,7 +161,7 @@ import {
 
         <!-- Title -->
         <h4
-          class="text-sm font-semibold text-gray-800 dark:text-gray-100 line-clamp-2 mb-2.5 leading-snug tracking-tight"
+          class="text-sm font-semibold text-black dark:text-gray-100 line-clamp-2 mb-2.5 leading-snug tracking-tight"
         >
           {{ task().title }}
         </h4>
@@ -322,7 +322,7 @@ import {
           </span>
         </div>
         <h4
-          class="text-sm font-semibold text-gray-800 line-clamp-2 leading-snug"
+          class="text-sm font-semibold text-black dark:text-gray-100 line-clamp-2 leading-snug"
         >
           {{ task().title }}
         </h4>

@@ -14,8 +14,14 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { ButtonModule } from 'primeng/button';
 import { Subject, takeUntil, filter } from 'rxjs';
 
-import { CommentService, Comment } from '../../../../core/services/comment.service';
-import { WebSocketService, WebSocketMessage } from '../../../../core/services/websocket.service';
+import {
+  CommentService,
+  Comment,
+} from '../../../../core/services/comment.service';
+import {
+  WebSocketService,
+  WebSocketMessage,
+} from '../../../../core/services/websocket.service';
 import { CommentInputComponent } from '../comment-input/comment-input.component';
 
 /**
@@ -38,7 +44,7 @@ export class RenderMentionsPipe implements PipeTransform {
     const mentionRegex = /@\[([^\]]+)\]\(([a-f0-9-]+)\)/g;
     const rendered = escaped.replace(
       mentionRegex,
-      '<span class="text-indigo-600 font-medium bg-indigo-50 px-1 rounded">@$1</span>'
+      '<span class="text-indigo-600 font-medium bg-indigo-50 px-1 rounded">@$1</span>',
     );
     return this.sanitizer.bypassSecurityTrustHtml(rendered);
   }
@@ -89,7 +95,7 @@ interface CommentCreatedPayload {
         <div class="space-y-4">
           @for (comment of comments(); track comment.id) {
             <div
-              class="bg-white rounded-lg border border-gray-200 p-4"
+              class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4"
               [class.ml-8]="comment.parent_id"
             >
               <div class="flex items-start gap-3">
@@ -111,7 +117,7 @@ interface CommentCreatedPayload {
                 <div class="flex-1 min-w-0">
                   <!-- Author name and timestamp -->
                   <div class="flex items-center gap-2 mb-1">
-                    <span class="font-medium text-gray-900">
+                    <span class="font-medium text-gray-900 dark:text-gray-100">
                       {{ comment.author.display_name }}
                     </span>
                     <span class="text-xs text-gray-400">
@@ -124,7 +130,7 @@ interface CommentCreatedPayload {
 
                   <!-- Comment content with rendered mentions -->
                   <div
-                    class="text-gray-700 text-sm whitespace-pre-wrap break-words"
+                    class="text-gray-700 dark:text-gray-300 text-sm whitespace-pre-wrap break-words"
                     [innerHTML]="comment.content | renderMentions"
                   ></div>
 
@@ -282,11 +288,8 @@ export class CommentListComponent implements OnDestroy {
     // Subscribe to comment:created events on the board channel
     this.wsService.messages$
       .pipe(
-        filter(
-          (msg: WebSocketMessage) =>
-            msg.type === 'comment:created'
-        ),
-        takeUntil(this.destroy$)
+        filter((msg: WebSocketMessage) => msg.type === 'comment:created'),
+        takeUntil(this.destroy$),
       )
       .subscribe((message: WebSocketMessage) => {
         const payload = message.payload as CommentCreatedPayload;
