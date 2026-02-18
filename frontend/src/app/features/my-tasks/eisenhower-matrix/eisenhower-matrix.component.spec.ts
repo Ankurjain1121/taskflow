@@ -13,7 +13,9 @@ import {
 } from '../../../core/services/eisenhower.service';
 import { TaskService } from '../../../core/services/task.service';
 
-function createMockEisenhowerTask(overrides: Partial<EisenhowerTask> = {}): EisenhowerTask {
+function createMockEisenhowerTask(
+  overrides: Partial<EisenhowerTask> = {},
+): EisenhowerTask {
   return {
     id: 'task-1',
     title: 'Test Task',
@@ -35,7 +37,9 @@ function createMockEisenhowerTask(overrides: Partial<EisenhowerTask> = {}): Eise
   };
 }
 
-function createMockMatrix(overrides: Partial<EisenhowerMatrixResponse> = {}): EisenhowerMatrixResponse {
+function createMockMatrix(
+  overrides: Partial<EisenhowerMatrixResponse> = {},
+): EisenhowerMatrixResponse {
   return {
     do_first: [],
     schedule: [],
@@ -74,12 +78,20 @@ describe('EisenhowerMatrixComponent', () => {
       providers: [
         { provide: EisenhowerService, useValue: mockEisenhowerService },
         { provide: TaskService, useValue: mockTaskService },
-        { provide: ConfirmationService, useValue: mockConfirmationService },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(EisenhowerMatrixComponent);
     component = fixture.componentInstance;
+
+    // The component provides its own ConfirmationService at component level.
+    // Spy on the actual injected instance's confirm method.
+    const realConfirmationService =
+      fixture.debugElement.injector.get(ConfirmationService);
+    mockConfirmationService.confirm = vi.spyOn(
+      realConfirmationService,
+      'confirm',
+    );
   });
 
   it('should create', () => {
@@ -131,8 +143,12 @@ describe('EisenhowerMatrixComponent', () => {
 
     it('should populate matrix signal with response', async () => {
       const matrix = createMockMatrix({
-        do_first: [createMockEisenhowerTask({ id: 'urgent-1', quadrant: 'do_first' })],
-        schedule: [createMockEisenhowerTask({ id: 'sched-1', quadrant: 'schedule' })],
+        do_first: [
+          createMockEisenhowerTask({ id: 'urgent-1', quadrant: 'do_first' }),
+        ],
+        schedule: [
+          createMockEisenhowerTask({ id: 'sched-1', quadrant: 'schedule' }),
+        ],
       });
       mockEisenhowerService.getMatrix.mockReturnValue(of(matrix));
 
@@ -142,7 +158,9 @@ describe('EisenhowerMatrixComponent', () => {
     });
 
     it('should handle error gracefully', async () => {
-      mockEisenhowerService.getMatrix.mockReturnValue(throwError(() => new Error('fail')));
+      mockEisenhowerService.getMatrix.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
 
       await component.loadMatrix();
 
@@ -201,7 +219,9 @@ describe('EisenhowerMatrixComponent', () => {
       mockConfirmationService.confirm.mockImplementation((config: any) => {
         config.accept();
       });
-      mockEisenhowerService.resetAllOverrides.mockReturnValue(of({ tasks_reset: 3 }));
+      mockEisenhowerService.resetAllOverrides.mockReturnValue(
+        of({ tasks_reset: 3 }),
+      );
       mockEisenhowerService.getMatrix.mockReturnValue(of(createMockMatrix()));
 
       component.resetAllOverrides();
@@ -274,26 +294,32 @@ describe('EisenhowerMatrixComponent', () => {
   });
 
   describe('formatDueDate()', () => {
+    // Use date-only strings (YYYY-MM-DD) to avoid UTC timezone shifts
+    // that cause off-by-one errors when using toISOString()
+    function toDateString(d: Date): string {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
     it('should return "Today" for today date', () => {
       const today = new Date();
-      today.setHours(23, 59, 59, 0);
-      const result = component.formatDueDate(today.toISOString());
+      const result = component.formatDueDate(toDateString(today));
       expect(result).toBe('Today');
     });
 
     it('should return "Tomorrow" for tomorrow date', () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(23, 59, 0, 0);
-      const result = component.formatDueDate(tomorrow.toISOString());
+      const result = component.formatDueDate(toDateString(tomorrow));
       expect(result).toBe('Tomorrow');
     });
 
     it('should return "in Xd" for dates within a week', () => {
       const inFive = new Date();
       inFive.setDate(inFive.getDate() + 5);
-      inFive.setHours(23, 59, 0, 0);
-      const result = component.formatDueDate(inFive.toISOString());
+      const result = component.formatDueDate(toDateString(inFive));
       expect(result).toMatch(/^in \d+d$/);
     });
 
@@ -321,28 +347,42 @@ describe('EisenhowerMatrixComponent', () => {
 
   describe('getPriorityClass()', () => {
     it('should return red classes for urgent', () => {
-      expect(component.getPriorityClass('urgent')).toBe('bg-red-100 text-red-800');
+      expect(component.getPriorityClass('urgent')).toBe(
+        'bg-red-100 text-red-800',
+      );
     });
 
     it('should return orange classes for high', () => {
-      expect(component.getPriorityClass('high')).toBe('bg-orange-100 text-orange-800');
+      expect(component.getPriorityClass('high')).toBe(
+        'bg-orange-100 text-orange-800',
+      );
     });
 
     it('should return blue classes for medium', () => {
-      expect(component.getPriorityClass('medium')).toBe('bg-blue-100 text-blue-800');
+      expect(component.getPriorityClass('medium')).toBe(
+        'bg-blue-100 text-blue-800',
+      );
     });
 
     it('should return gray classes for low', () => {
-      expect(component.getPriorityClass('low')).toBe('bg-gray-100 text-gray-800');
+      expect(component.getPriorityClass('low')).toBe(
+        'bg-gray-100 text-gray-800',
+      );
     });
 
     it('should return default gray classes for unknown priority', () => {
-      expect(component.getPriorityClass('unknown')).toBe('bg-gray-100 text-gray-600');
+      expect(component.getPriorityClass('unknown')).toBe(
+        'bg-gray-100 text-gray-600',
+      );
     });
 
     it('should be case-insensitive', () => {
-      expect(component.getPriorityClass('HIGH')).toBe('bg-orange-100 text-orange-800');
-      expect(component.getPriorityClass('Urgent')).toBe('bg-red-100 text-red-800');
+      expect(component.getPriorityClass('HIGH')).toBe(
+        'bg-orange-100 text-orange-800',
+      );
+      expect(component.getPriorityClass('Urgent')).toBe(
+        'bg-red-100 text-red-800',
+      );
     });
   });
 

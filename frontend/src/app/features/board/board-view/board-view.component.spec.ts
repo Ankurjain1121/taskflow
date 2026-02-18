@@ -1,5 +1,6 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { RouterTestingModule } from '@angular/router/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
 
@@ -130,6 +131,7 @@ function createMockKeyboardShortcutsService() {
   return {
     register: vi.fn(),
     unregisterByCategory: vi.fn(),
+    helpRequested$: new Subject<void>(),
   };
 }
 
@@ -140,7 +142,7 @@ describe('BoardViewComponent', () => {
   let mockTaskService: ReturnType<typeof createMockTaskService>;
   let mockTaskGroupService: ReturnType<typeof createMockTaskGroupService>;
   let mockWsService: ReturnType<typeof createMockWebSocketService>;
-  let mockRouter: { navigate: ReturnType<typeof vi.fn> };
+  let mockRouter: Router;
   let routeParams$: Subject<Record<string, string>>;
 
   const col1 = makeColumn({ id: 'col-1', name: 'To Do', position: 'a0' });
@@ -185,12 +187,8 @@ describe('BoardViewComponent', () => {
         subtask_total: 0,
         has_running_timer: false,
         comment_count: 0,
-        assignees: [
-          { id: 'user-1', display_name: 'Alice', avatar_url: null },
-        ],
-        labels: [
-          { id: 'label-1', name: 'Bug', color: '#ff0000' },
-        ],
+        assignees: [{ id: 'user-1', display_name: 'Alice', avatar_url: null }],
+        labels: [{ id: 'label-1', name: 'Bug', color: '#ff0000' }],
       },
       {
         id: 'task-2',
@@ -229,13 +227,16 @@ describe('BoardViewComponent', () => {
     mockTaskService = createMockTaskService();
     mockTaskGroupService = createMockTaskGroupService();
     mockWsService = createMockWebSocketService();
-    mockRouter = { navigate: vi.fn() };
     routeParams$ = new Subject();
 
     mockBoardService.getBoardFull.mockReturnValue(of(boardFullResponse));
 
     await TestBed.configureTestingModule({
-      imports: [BoardViewComponent, HttpClientTestingModule],
+      imports: [
+        BoardViewComponent,
+        HttpClientTestingModule,
+        RouterTestingModule,
+      ],
       providers: [
         { provide: BoardService, useValue: mockBoardService },
         { provide: TaskService, useValue: mockTaskService },
@@ -248,16 +249,20 @@ describe('BoardViewComponent', () => {
           provide: KeyboardShortcutsService,
           useValue: createMockKeyboardShortcutsService(),
         },
-        { provide: Router, useValue: mockRouter },
         {
           provide: ActivatedRoute,
-          useValue: { params: routeParams$.asObservable() },
+          useValue: {
+            params: routeParams$.asObservable(),
+            queryParams: of({}),
+          },
         },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(BoardViewComponent);
     component = fixture.componentInstance;
+    mockRouter = TestBed.inject(Router);
+    vi.spyOn(mockRouter, 'navigate');
   });
 
   // --- Creation ---
@@ -447,9 +452,7 @@ describe('BoardViewComponent', () => {
 
       // boardState should revert to snapshot
       expect(component.boardState()).toEqual(snapshotBefore);
-      expect(component.errorMessage()).toBe(
-        'Failed to move task. Reverted.',
-      );
+      expect(component.errorMessage()).toBe('Failed to move task. Reverted.');
     });
 
     it('should celebrate when task moves to a done column', () => {

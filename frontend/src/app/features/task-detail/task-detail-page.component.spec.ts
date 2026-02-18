@@ -32,9 +32,7 @@ function makeTask(overrides: Partial<Task> = {}): Task {
     created_by: 'user-1',
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-02T00:00:00Z',
-    assignees: [
-      { id: 'user-1', display_name: 'Alice', avatar_url: null },
-    ],
+    assignees: [{ id: 'user-1', display_name: 'Alice', avatar_url: null }],
     labels: [
       {
         id: 'label-1',
@@ -233,9 +231,7 @@ describe('TaskDetailPageComponent', () => {
       fixture.detectChanges();
       routeParams$.next({ taskId: 'task-1' });
 
-      expect(component.error()).toBe(
-        'Failed to load task. Please try again.',
-      );
+      expect(component.error()).toBe('Failed to load task. Please try again.');
     });
 
     it('should not reload if taskId has not changed', () => {
@@ -612,7 +608,12 @@ describe('TaskDetailPageComponent', () => {
 
   describe('goBack', () => {
     it('should call location.back() when history exists', () => {
-      // window.history.length is read-only, but it's always > 1 in test env
+      // window.history.length is read-only; stub it via defineProperty
+      Object.defineProperty(window, 'history', {
+        value: { length: 2 },
+        writable: true,
+        configurable: true,
+      });
       component.goBack();
       expect(mockLocation.back).toHaveBeenCalled();
     });

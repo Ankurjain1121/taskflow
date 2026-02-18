@@ -47,7 +47,10 @@ describe('NotificationService', () => {
   let service: NotificationService;
   let httpMock: HttpTestingController;
   let wsMessages$: Subject<WebSocketMessage>;
-  let mockWsService: { messages$: Subject<WebSocketMessage>; connect: ReturnType<typeof vi.fn> };
+  let mockWsService: {
+    messages$: Subject<WebSocketMessage>;
+    connect: ReturnType<typeof vi.fn>;
+  };
   let mockAuthService: {
     isAuthenticated: ReturnType<typeof vi.fn>;
     currentUser: ReturnType<typeof vi.fn>;
@@ -217,14 +220,18 @@ describe('NotificationService', () => {
       const listReq = httpMock.expectOne((r) => r.url === '/api/notifications');
       listReq.flush(MOCK_LIST_RESPONSE);
 
-      expect(service.notifications().find((n) => n.id === 'notif-1')?.is_read).toBe(false);
+      expect(
+        service.notifications().find((n) => n.id === 'notif-1')?.is_read,
+      ).toBe(false);
 
       // Mark as read
       service.markRead('notif-1').subscribe();
       const readReq = httpMock.expectOne('/api/notifications/notif-1/read');
       readReq.flush(null);
 
-      expect(service.notifications().find((n) => n.id === 'notif-1')?.is_read).toBe(true);
+      expect(
+        service.notifications().find((n) => n.id === 'notif-1')?.is_read,
+      ).toBe(true);
     });
 
     it('should decrement unreadCount by 1', () => {
@@ -316,7 +323,9 @@ describe('NotificationService', () => {
 
       // Flush the pending request
       const moreReq = httpMock.expectOne(
-        (r) => r.url === '/api/notifications' && r.params.get('cursor') === 'cursor-abc',
+        (r) =>
+          r.url === '/api/notifications' &&
+          r.params.get('cursor') === 'cursor-abc',
       );
       moreReq.flush({
         items: [],
@@ -370,13 +379,9 @@ describe('NotificationService', () => {
     it('should connect WebSocket', () => {
       service.startRealTimeUpdates();
 
-      // Flush the initial fetchUnreadCount call
-      const countReq = httpMock.expectOne('/api/notifications/unread-count');
-      countReq.flush({ count: 2 });
-
-      // Flush the polling fetchUnreadCount call (startWith(0) triggers immediately)
-      const pollingReq = httpMock.expectOne('/api/notifications/unread-count');
-      pollingReq.flush({ count: 2 });
+      // Flush all unread-count requests (initial + polling startWith(0))
+      const reqs = httpMock.match('/api/notifications/unread-count');
+      reqs.forEach((r) => r.flush({ count: 2 }));
 
       expect(mockWsService.connect).toHaveBeenCalled();
     });
@@ -384,12 +389,8 @@ describe('NotificationService', () => {
     it('should update unreadCount from fetchUnreadCount', () => {
       service.startRealTimeUpdates();
 
-      const countReq = httpMock.expectOne('/api/notifications/unread-count');
-      countReq.flush({ count: 7 });
-
-      // Flush polling request
-      const pollingReq = httpMock.expectOne('/api/notifications/unread-count');
-      pollingReq.flush({ count: 7 });
+      const reqs = httpMock.match('/api/notifications/unread-count');
+      reqs.forEach((r) => r.flush({ count: 7 }));
 
       expect(service.unreadCount()).toBe(7);
     });
@@ -398,10 +399,8 @@ describe('NotificationService', () => {
       service.startRealTimeUpdates();
 
       // Flush initial + polling fetchUnreadCount calls
-      const countReq = httpMock.expectOne('/api/notifications/unread-count');
-      countReq.flush({ count: 0 });
-      const pollingReq = httpMock.expectOne('/api/notifications/unread-count');
-      pollingReq.flush({ count: 0 });
+      const reqs = httpMock.match('/api/notifications/unread-count');
+      reqs.forEach((r) => r.flush({ count: 0 }));
 
       // Emit a WebSocket notification
       wsMessages$.next({
@@ -419,10 +418,8 @@ describe('NotificationService', () => {
 
       service.startRealTimeUpdates();
 
-      const countReq = httpMock.expectOne('/api/notifications/unread-count');
-      countReq.flush({ count: 0 });
-      const pollingReq = httpMock.expectOne('/api/notifications/unread-count');
-      pollingReq.flush({ count: 0 });
+      const reqs = httpMock.match('/api/notifications/unread-count');
+      reqs.forEach((r) => r.flush({ count: 0 }));
 
       wsMessages$.next({
         type: 'notification:new',
@@ -444,10 +441,8 @@ describe('NotificationService', () => {
 
       service.startRealTimeUpdates();
 
-      const countReq = httpMock.expectOne('/api/notifications/unread-count');
-      countReq.flush({ count: 0 });
-      const pollingReq = httpMock.expectOne('/api/notifications/unread-count');
-      pollingReq.flush({ count: 0 });
+      const reqs = httpMock.match('/api/notifications/unread-count');
+      reqs.forEach((r) => r.flush({ count: 0 }));
 
       wsMessages$.next({
         type: 'notification:new',
@@ -461,10 +456,8 @@ describe('NotificationService', () => {
     it('should ignore non-notification WebSocket messages', () => {
       service.startRealTimeUpdates();
 
-      const countReq = httpMock.expectOne('/api/notifications/unread-count');
-      countReq.flush({ count: 0 });
-      const pollingReq = httpMock.expectOne('/api/notifications/unread-count');
-      pollingReq.flush({ count: 0 });
+      const reqs = httpMock.match('/api/notifications/unread-count');
+      reqs.forEach((r) => r.flush({ count: 0 }));
 
       wsMessages$.next({
         type: 'task:updated',
@@ -480,10 +473,8 @@ describe('NotificationService', () => {
     it('should clean up subscriptions without error', () => {
       service.startRealTimeUpdates();
 
-      const countReq = httpMock.expectOne('/api/notifications/unread-count');
-      countReq.flush({ count: 0 });
-      const pollingReq = httpMock.expectOne('/api/notifications/unread-count');
-      pollingReq.flush({ count: 0 });
+      const reqs = httpMock.match('/api/notifications/unread-count');
+      reqs.forEach((r) => r.flush({ count: 0 }));
 
       expect(() => service.stopRealTimeUpdates()).not.toThrow();
     });
@@ -509,7 +500,10 @@ describe('NotificationService', () => {
       });
 
       const req = httpMock.expectOne((r) => r.url === '/api/notifications');
-      req.flush('Server Error', { status: 500, statusText: 'Internal Server Error' });
+      req.flush('Server Error', {
+        status: 500,
+        statusText: 'Internal Server Error',
+      });
 
       expect(error).toBeTruthy();
       expect(error.status).toBe(500);

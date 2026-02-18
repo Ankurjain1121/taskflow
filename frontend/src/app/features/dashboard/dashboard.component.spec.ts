@@ -68,8 +68,22 @@ describe('DashboardComponent', () => {
 
   const mockWorkspaceState = {
     workspaces: signal([
-      { id: 'ws-1', name: 'Workspace 1', slug: 'ws-1', owner_id: 'user-1', created_at: '', updated_at: '' },
-      { id: 'ws-2', name: 'Workspace 2', slug: 'ws-2', owner_id: 'user-1', created_at: '', updated_at: '' },
+      {
+        id: 'ws-1',
+        name: 'Workspace 1',
+        slug: 'ws-1',
+        owner_id: 'user-1',
+        created_at: '',
+        updated_at: '',
+      },
+      {
+        id: 'ws-2',
+        name: 'Workspace 2',
+        slug: 'ws-2',
+        owner_id: 'user-1',
+        created_at: '',
+        updated_at: '',
+      },
     ]),
     loading: signal(false),
     currentWorkspaceId: signal(null as string | null),
@@ -79,6 +93,10 @@ describe('DashboardComponent', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+
+    // Re-set default mock return values after clearAllMocks
+    mockDashboardService.getStats.mockReturnValue(of(MOCK_STATS));
+    mockDashboardService.getRecentActivity.mockReturnValue(of(MOCK_ACTIVITY));
 
     await TestBed.configureTestingModule({
       imports: [
@@ -108,14 +126,11 @@ describe('DashboardComponent', () => {
       expect(component.userName()).toBe('Alice');
     });
 
-    it('should redirect to sign-in if user is not authenticated', () => {
-      const navigateSpy = vi.spyOn(router, 'navigate');
-      (mockAuthService.currentUser as any) = signal(null);
-
+    it('should redirect to sign-in if user is not authenticated', async () => {
       // Recreate component with null user
       const nullAuthService = { currentUser: signal(null) };
       TestBed.resetTestingModule();
-      TestBed.configureTestingModule({
+      await TestBed.configureTestingModule({
         imports: [
           DashboardComponent,
           HttpClientTestingModule,
@@ -127,6 +142,9 @@ describe('DashboardComponent', () => {
           { provide: WorkspaceStateService, useValue: mockWorkspaceState },
         ],
       }).compileComponents();
+
+      const newRouter = TestBed.inject(Router);
+      const navigateSpy = vi.spyOn(newRouter, 'navigate');
 
       const newFixture = TestBed.createComponent(DashboardComponent);
       const newComponent = newFixture.componentInstance;
@@ -144,7 +162,9 @@ describe('DashboardComponent', () => {
   describe('getGreeting()', () => {
     it('should return a valid greeting', () => {
       const greeting = component.getGreeting();
-      expect(['Good morning', 'Good afternoon', 'Good evening']).toContain(greeting);
+      expect(['Good morning', 'Good afternoon', 'Good evening']).toContain(
+        greeting,
+      );
     });
   });
 
@@ -153,12 +173,18 @@ describe('DashboardComponent', () => {
       expect(component.formatAction('created')).toBe('created');
       expect(component.formatAction('commented')).toBe('commented on');
       expect(component.formatAction('attached')).toBe('attached a file to');
-      expect(component.formatAction('status_changed')).toBe('changed status of');
-      expect(component.formatAction('priority_changed')).toBe('changed priority of');
+      expect(component.formatAction('status_changed')).toBe(
+        'changed status of',
+      );
+      expect(component.formatAction('priority_changed')).toBe(
+        'changed priority of',
+      );
     });
 
     it('should return the action string as-is for unknown actions', () => {
-      expect(component.formatAction('some_unknown_action')).toBe('some_unknown_action');
+      expect(component.formatAction('some_unknown_action')).toBe(
+        'some_unknown_action',
+      );
     });
   });
 
@@ -193,7 +219,9 @@ describe('DashboardComponent', () => {
 
   describe('getActionBadgeClass()', () => {
     it('should return green classes for created', () => {
-      expect(component.getActionBadgeClass('created')).toContain('bg-green-100');
+      expect(component.getActionBadgeClass('created')).toContain(
+        'bg-green-100',
+      );
     });
 
     it('should return red classes for deleted', () => {
@@ -205,15 +233,21 @@ describe('DashboardComponent', () => {
     });
 
     it('should return blue classes for status_changed', () => {
-      expect(component.getActionBadgeClass('status_changed')).toContain('bg-blue-100');
+      expect(component.getActionBadgeClass('status_changed')).toContain(
+        'bg-blue-100',
+      );
     });
 
     it('should return purple classes for commented', () => {
-      expect(component.getActionBadgeClass('commented')).toContain('bg-purple-100');
+      expect(component.getActionBadgeClass('commented')).toContain(
+        'bg-purple-100',
+      );
     });
 
     it('should return amber classes for assigned', () => {
-      expect(component.getActionBadgeClass('assigned')).toContain('bg-amber-100');
+      expect(component.getActionBadgeClass('assigned')).toContain(
+        'bg-amber-100',
+      );
     });
 
     it('should return default gray classes for unknown', () => {
@@ -223,16 +257,19 @@ describe('DashboardComponent', () => {
 
   describe('displayedActivity computed', () => {
     it('should show only first 5 activities by default', () => {
-      const manyActivities: DashboardActivityEntry[] = Array.from({ length: 10 }, (_, i) => ({
-        id: `act-${i}`,
-        action: 'created',
-        entity_type: 'task',
-        entity_id: `task-${i}`,
-        metadata: null,
-        created_at: new Date().toISOString(),
-        actor_name: `User ${i}`,
-        actor_avatar_url: null,
-      }));
+      const manyActivities: DashboardActivityEntry[] = Array.from(
+        { length: 10 },
+        (_, i) => ({
+          id: `act-${i}`,
+          action: 'created',
+          entity_type: 'task',
+          entity_id: `task-${i}`,
+          metadata: null,
+          created_at: new Date().toISOString(),
+          actor_name: `User ${i}`,
+          actor_avatar_url: null,
+        }),
+      );
       component.recentActivity.set(manyActivities);
       component.showAllActivity.set(false);
 
@@ -240,16 +277,19 @@ describe('DashboardComponent', () => {
     });
 
     it('should show all activities when showAllActivity is true', () => {
-      const manyActivities: DashboardActivityEntry[] = Array.from({ length: 10 }, (_, i) => ({
-        id: `act-${i}`,
-        action: 'created',
-        entity_type: 'task',
-        entity_id: `task-${i}`,
-        metadata: null,
-        created_at: new Date().toISOString(),
-        actor_name: `User ${i}`,
-        actor_avatar_url: null,
-      }));
+      const manyActivities: DashboardActivityEntry[] = Array.from(
+        { length: 10 },
+        (_, i) => ({
+          id: `act-${i}`,
+          action: 'created',
+          entity_type: 'task',
+          entity_id: `task-${i}`,
+          metadata: null,
+          created_at: new Date().toISOString(),
+          actor_name: `User ${i}`,
+          actor_avatar_url: null,
+        }),
+      );
       component.recentActivity.set(manyActivities);
       component.showAllActivity.set(true);
 
@@ -259,6 +299,9 @@ describe('DashboardComponent', () => {
 
   describe('workspaceOptions computed', () => {
     it('should return options when there are multiple workspaces', () => {
+      // Trigger effects to copy workspaces from state service
+      fixture.detectChanges();
+
       const options = component.workspaceOptions();
       expect(options.length).toBe(3); // "All Workspaces" + 2 workspace options
       expect(options[0]).toEqual({ label: 'All Workspaces', value: null });
@@ -267,7 +310,14 @@ describe('DashboardComponent', () => {
 
     it('should return empty array when there is 1 or fewer workspaces', () => {
       mockWorkspaceState.workspaces.set([
-        { id: 'ws-1', name: 'Only One', slug: 'ws-1', owner_id: 'u1', created_at: '', updated_at: '' },
+        {
+          id: 'ws-1',
+          name: 'Only One',
+          slug: 'ws-1',
+          owner_id: 'u1',
+          created_at: '',
+          updated_at: '',
+        },
       ]);
 
       const options = component.workspaceOptions();

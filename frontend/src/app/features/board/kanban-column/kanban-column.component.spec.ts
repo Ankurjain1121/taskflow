@@ -126,10 +126,7 @@ describe('KanbanColumnComponent', () => {
     });
 
     it('should display task count', () => {
-      host.tasks.set([
-        makeTask({ id: 'task-1' }),
-        makeTask({ id: 'task-2' }),
-      ]);
+      host.tasks.set([makeTask({ id: 'task-1' }), makeTask({ id: 'task-2' })]);
       fixture.detectChanges();
 
       const headerText = fixture.nativeElement.textContent;
@@ -140,9 +137,9 @@ describe('KanbanColumnComponent', () => {
       host.tasks.set([]);
       fixture.detectChanges();
 
-      // The count badge should show 0
+      // The count badge has text-xs and bg-gray-200 classes (not the color dot)
       const countBadge = fixture.debugElement.query(
-        By.css('.rounded-full'),
+        By.css('.text-xs.rounded-full'),
       );
       expect(countBadge.nativeElement.textContent.trim()).toBe('0');
     });
@@ -152,14 +149,10 @@ describe('KanbanColumnComponent', () => {
 
   describe('done column indicator', () => {
     it('should show checkmark for done columns', () => {
-      host.column.set(
-        makeColumn({ status_mapping: { done: true } }),
-      );
+      host.column.set(makeColumn({ status_mapping: { done: true } }));
       fixture.detectChanges();
 
-      const checkmark = fixture.debugElement.query(
-        By.css('.text-green-500'),
-      );
+      const checkmark = fixture.debugElement.query(By.css('.text-green-500'));
       expect(checkmark).toBeTruthy();
     });
 
@@ -167,9 +160,7 @@ describe('KanbanColumnComponent', () => {
       host.column.set(makeColumn({ status_mapping: null }));
       fixture.detectChanges();
 
-      const checkmark = fixture.debugElement.query(
-        By.css('.text-green-500'),
-      );
+      const checkmark = fixture.debugElement.query(By.css('.text-green-500'));
       expect(checkmark).toBeFalsy();
     });
   });
@@ -186,9 +177,7 @@ describe('KanbanColumnComponent', () => {
       ]);
       fixture.detectChanges();
 
-      const warning = fixture.debugElement.query(
-        By.css('.text-amber-600'),
-      );
+      const warning = fixture.debugElement.query(By.css('.text-amber-600'));
       expect(warning).toBeTruthy();
       expect(warning.nativeElement.textContent).toContain('WIP limit');
       expect(warning.nativeElement.textContent).toContain('2');
@@ -196,15 +185,10 @@ describe('KanbanColumnComponent', () => {
 
     it('should NOT show warning when tasks are at or below WIP limit', () => {
       host.column.set(makeColumn({ wip_limit: 3 }));
-      host.tasks.set([
-        makeTask({ id: 't1' }),
-        makeTask({ id: 't2' }),
-      ]);
+      host.tasks.set([makeTask({ id: 't1' }), makeTask({ id: 't2' })]);
       fixture.detectChanges();
 
-      const warning = fixture.debugElement.query(
-        By.css('.text-amber-600'),
-      );
+      const warning = fixture.debugElement.query(By.css('.text-amber-600'));
       expect(warning).toBeFalsy();
     });
 
@@ -217,9 +201,7 @@ describe('KanbanColumnComponent', () => {
       ]);
       fixture.detectChanges();
 
-      const warning = fixture.debugElement.query(
-        By.css('.text-amber-600'),
-      );
+      const warning = fixture.debugElement.query(By.css('.text-amber-600'));
       expect(warning).toBeFalsy();
     });
   });
@@ -239,9 +221,7 @@ describe('KanbanColumnComponent', () => {
       host.tasks.set([makeTask()]);
       fixture.detectChanges();
 
-      const emptyState = fixture.debugElement.query(
-        By.css('.border-dashed'),
-      );
+      const emptyState = fixture.debugElement.query(By.css('.border-dashed'));
       expect(emptyState).toBeFalsy();
     });
   });
@@ -323,9 +303,7 @@ describe('KanbanColumnComponent', () => {
       host.column.set(makeColumn({ id: 'col-99' }));
       fixture.detectChanges();
 
-      const addButton = fixture.debugElement.query(
-        By.css('button'),
-      );
+      const addButton = fixture.debugElement.query(By.css('button'));
       // Find the "Add task" button (the one in the footer)
       const buttons = fixture.debugElement.queryAll(By.css('button'));
       const addTaskBtn = buttons.find((btn) =>
@@ -456,9 +434,7 @@ describe('KanbanColumnComponent', () => {
       ]);
       fixture.detectChanges();
 
-      const taskCards = fixture.debugElement.queryAll(
-        By.css('app-task-card'),
-      );
+      const taskCards = fixture.debugElement.queryAll(By.css('app-task-card'));
       expect(taskCards).toHaveLength(3);
     });
 

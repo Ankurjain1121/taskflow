@@ -70,17 +70,20 @@ describe('CommentListComponent', () => {
     vi.clearAllMocks();
 
     await TestBed.configureTestingModule({
-      imports: [
-        CommentListComponent,
-        HttpClientTestingModule,
-      ],
+      imports: [CommentListComponent, HttpClientTestingModule],
       providers: [
         { provide: CommentService, useValue: mockCommentService },
         { provide: WebSocketService, useValue: mockWsService },
       ],
     })
       .overrideComponent(CommentListComponent, {
-        remove: { imports: [await import('../comment-input/comment-input.component').then(m => m.CommentInputComponent)] },
+        remove: {
+          imports: [
+            await import('../comment-input/comment-input.component').then(
+              (m) => m.CommentInputComponent,
+            ),
+          ],
+        },
         add: { imports: [MockCommentInputComponent] },
       })
       .compileComponents();
@@ -135,7 +138,9 @@ describe('CommentListComponent', () => {
     });
 
     it('should handle error and set isLoading to false', () => {
-      mockCommentService.listByTask.mockReturnValue(throwError(() => new Error('fail')));
+      mockCommentService.listByTask.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
 
       component.loadComments();
 
@@ -181,7 +186,9 @@ describe('CommentListComponent', () => {
     it('should reset replyingTo to null', () => {
       component.replyingTo.set('parent');
 
-      component.onReplyCreated(createMockComment({ id: 'reply', parent_id: 'parent' }));
+      component.onReplyCreated(
+        createMockComment({ id: 'reply', parent_id: 'parent' }),
+      );
 
       expect(component.replyingTo()).toBeNull();
     });
@@ -272,7 +279,10 @@ describe('CommentListComponent', () => {
       // We simulate by detecting the component and triggering the loadComments + ws
       fixture.detectChanges();
 
-      const wsComment = createMockComment({ id: 'ws-comment-1', task_id: 'task-1' });
+      const wsComment = createMockComment({
+        id: 'ws-comment-1',
+        task_id: 'task-1',
+      });
       wsMessages$.next({
         type: 'comment:created',
         payload: { taskId: 'task-1', comment: wsComment },
@@ -289,7 +299,10 @@ describe('CommentListComponent', () => {
 
       wsMessages$.next({
         type: 'comment:created',
-        payload: { taskId: 'task-1', comment: createMockComment({ id: 'dup-1' }) },
+        payload: {
+          taskId: 'task-1',
+          comment: createMockComment({ id: 'dup-1' }),
+        },
       });
 
       expect(component.comments()).toHaveLength(1);
@@ -338,6 +351,7 @@ describe('RenderMentionsPipe', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [RenderMentionsPipe],
+      providers: [RenderMentionsPipe],
     }).compileComponents();
 
     pipe = TestBed.inject(RenderMentionsPipe);
@@ -350,22 +364,27 @@ describe('RenderMentionsPipe', () => {
   it('should render mention syntax into styled HTML span', () => {
     const result = pipe.transform('@[Alice](abc-123)');
     // SafeHtml toString gives [object Object], so check the changingThisBreaksApplicationSecurity prop
-    const html = (result as any).changingThisBreaksApplicationSecurity as string;
+    const html = (result as any)
+      .changingThisBreaksApplicationSecurity as string;
     expect(html).toContain('@Alice');
     expect(html).toContain('class="text-indigo-600');
     expect(html).not.toContain('@[Alice]');
   });
 
   it('should render multiple mentions', () => {
-    const result = pipe.transform('Hello @[Alice](id-1) and @[Bob](id-2)!');
-    const html = (result as any).changingThisBreaksApplicationSecurity as string;
+    const result = pipe.transform(
+      'Hello @[Alice](aaa-111) and @[Bob](bbb-222)!',
+    );
+    const html = (result as any)
+      .changingThisBreaksApplicationSecurity as string;
     expect(html).toContain('@Alice');
     expect(html).toContain('@Bob');
   });
 
   it('should pass through text without mentions unchanged', () => {
     const result = pipe.transform('Just a regular comment');
-    const html = (result as any).changingThisBreaksApplicationSecurity as string;
+    const html = (result as any)
+      .changingThisBreaksApplicationSecurity as string;
     expect(html).toContain('Just a regular comment');
     expect(html).not.toContain('class=');
   });
@@ -373,15 +392,17 @@ describe('RenderMentionsPipe', () => {
   it('should escape HTML to prevent XSS', () => {
     const malicious = '<script>alert("xss")</script>';
     const result = pipe.transform(malicious);
-    const html = (result as any).changingThisBreaksApplicationSecurity as string;
+    const html = (result as any)
+      .changingThisBreaksApplicationSecurity as string;
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;script&gt;');
   });
 
   it('should escape HTML before applying mention styling', () => {
-    const mixed = '<img onerror="alert(1)" src=x> @[Alice](id-1)';
+    const mixed = '<img onerror="alert(1)" src=x> @[Alice](abc-def)';
     const result = pipe.transform(mixed);
-    const html = (result as any).changingThisBreaksApplicationSecurity as string;
+    const html = (result as any)
+      .changingThisBreaksApplicationSecurity as string;
     expect(html).not.toContain('<img');
     expect(html).toContain('&lt;img');
     expect(html).toContain('@Alice');
@@ -389,7 +410,8 @@ describe('RenderMentionsPipe', () => {
 
   it('should handle empty string', () => {
     const result = pipe.transform('');
-    const html = (result as any).changingThisBreaksApplicationSecurity as string;
+    const html = (result as any)
+      .changingThisBreaksApplicationSecurity as string;
     expect(html).toBe('');
   });
 });
