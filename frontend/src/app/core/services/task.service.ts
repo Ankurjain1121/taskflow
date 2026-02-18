@@ -1,7 +1,14 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import {
+  TaskWithDetails as TaskDetailResponse,
+  TaskFilters,
+  MoveTaskRequest as ProjectMoveRequest,
+  CreateTaskRequest as ProjectCreateRequest,
+  UpdateTaskRequest as ProjectUpdateRequest,
+} from '../../shared/types/task.types';
 
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
@@ -259,6 +266,68 @@ export class TaskService {
   ): Observable<{ deleted: number }> {
     return this.http.post<{ deleted: number }>(
       `${this.apiUrl}/boards/${boardId}/tasks/bulk-delete`,
+      request,
+    );
+  }
+
+  // --- Methods used by project/ components (task.types.ts shapes) ---
+
+  getTaskDetails(taskId: string): Observable<TaskDetailResponse> {
+    return this.http.get<TaskDetailResponse>(
+      `${this.apiUrl}/tasks/${taskId}/details`,
+    );
+  }
+
+  listByProject(
+    projectId: string,
+    filters?: TaskFilters,
+  ): Observable<TaskDetailResponse[]> {
+    let params = new HttpParams();
+    if (filters) {
+      for (const [key, value] of Object.entries(filters)) {
+        if (value != null && value !== '') {
+          params = params.set(key, String(value));
+        }
+      }
+    }
+    return this.http.get<TaskDetailResponse[]>(
+      `${this.apiUrl}/projects/${projectId}/tasks`,
+      { params },
+    );
+  }
+
+  moveTaskPosition(
+    taskId: string,
+    request: ProjectMoveRequest,
+  ): Observable<Task> {
+    return this.http.patch<Task>(
+      `${this.apiUrl}/tasks/${taskId}/move`,
+      request,
+    );
+  }
+
+  createProjectTask(
+    projectId: string,
+    request: ProjectCreateRequest,
+  ): Observable<Task> {
+    return this.http.post<Task>(
+      `${this.apiUrl}/projects/${projectId}/tasks`,
+      request,
+    );
+  }
+
+  listSubtasks(parentTaskId: string): Observable<TaskDetailResponse[]> {
+    return this.http.get<TaskDetailResponse[]>(
+      `${this.apiUrl}/tasks/${parentTaskId}/subtasks`,
+    );
+  }
+
+  createSubtask(
+    parentTaskId: string,
+    request: { title: string; priority?: string },
+  ): Observable<Task> {
+    return this.http.post<Task>(
+      `${this.apiUrl}/tasks/${parentTaskId}/subtasks`,
       request,
     );
   }

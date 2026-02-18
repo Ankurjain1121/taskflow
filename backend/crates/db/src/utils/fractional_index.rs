@@ -167,20 +167,20 @@ mod tests {
     #[test]
     fn test_after_key() {
         let k = generate_key_between(Some("a0"), None);
-        assert!(k > "a0".to_string());
+        assert!(k.as_str() > "a0");
     }
 
     #[test]
     fn test_before_key() {
         let k = generate_key_between(None, Some("a0"));
-        assert!(k < "a0".to_string());
+        assert!(k.as_str() < "a0");
     }
 
     #[test]
     fn test_between_keys() {
         let mid = generate_key_between(Some("a0"), Some("a2"));
-        assert!(mid > "a0".to_string());
-        assert!(mid < "a2".to_string());
+        assert!(mid.as_str() > "a0");
+        assert!(mid.as_str() < "a2");
     }
 
     #[test]

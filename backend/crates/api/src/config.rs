@@ -1,6 +1,7 @@
 use std::env;
+use std::fmt;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Config {
     pub database_url: String,
     pub app_database_url: String,
@@ -99,5 +100,26 @@ impl Config {
             app_url: env::var("APP_URL")
                 .unwrap_or_else(|_| "http://localhost:4200".into()),
         })
+    }
+}
+
+impl fmt::Debug for Config {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Config")
+            .field("host", &self.host)
+            .field("port", &self.port)
+            .field("app_url", &self.app_url)
+            .field("database_url", &"[REDACTED]")
+            .field("jwt_secret", &"[REDACTED]")
+            .field("jwt_refresh_secret", &"[REDACTED]")
+            .field("minio_access_key", &"[REDACTED]")
+            .field("minio_secret_key", &"[REDACTED]")
+            .field("postal_api_key", &"[REDACTED]")
+            .field("novu_api_key", &"[REDACTED]")
+            .field("lago_api_key", &"[REDACTED]")
+            .field("stripe_secret_key", &"[REDACTED]")
+            .field("stripe_webhook_secret", &"[REDACTED]")
+            .field("waha_api_key", &"[REDACTED]")
+            .finish()
     }
 }

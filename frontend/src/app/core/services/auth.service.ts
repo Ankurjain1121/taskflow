@@ -211,6 +211,28 @@ export class AuthService {
     );
   }
 
+  updateProfile(data: {
+    name?: string;
+    avatar_url?: string;
+  }): Observable<User> {
+    return this.http.patch<User>(`${this.apiUrl}/me`, data).pipe(
+      tap((user) => {
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        this._currentUser.set(user);
+      }),
+    );
+  }
+
+  changePassword(data: {
+    current_password: string;
+    new_password: string;
+  }): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(
+      `${this.apiUrl}/change-password`,
+      data,
+    );
+  }
+
   private handleAuthSuccess(response: TokenResponse): void {
     localStorage.setItem(USER_KEY, JSON.stringify(response.user));
     this._currentUser.set(response.user);

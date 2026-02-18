@@ -283,12 +283,12 @@ export class WorkspaceSettingsComponent implements OnInit {
     if (!workspace) return;
 
     const confirmed = confirm(
-      `Are you sure you want to delete "${workspace.name}"? This action cannot be undone.`
+      `Are you sure you want to delete "${workspace.name}"? This action cannot be undone.`,
     );
     if (!confirmed) return;
 
     const doubleConfirmed = confirm(
-      `Type the workspace name to confirm: ${workspace.name}`
+      `Type the workspace name to confirm: ${workspace.name}`,
     );
     if (!doubleConfirmed) return;
 
@@ -307,7 +307,7 @@ export class WorkspaceSettingsComponent implements OnInit {
 
   onMemberRemoved(userId: string): void {
     this.members.update((members) =>
-      members.filter((m) => m.user_id !== userId)
+      members.filter((m) => m.user_id !== userId),
     );
   }
 
@@ -315,9 +315,12 @@ export class WorkspaceSettingsComponent implements OnInit {
     this.members.update((members) =>
       members.map((m) =>
         m.user_id === event.userId
-          ? { ...m, role: event.role as 'admin' | 'manager' | 'member' | 'owner' }
-          : m
-      )
+          ? {
+              ...m,
+              role: event.role as 'admin' | 'manager' | 'member' | 'owner',
+            }
+          : m,
+      ),
     );
   }
 
@@ -344,14 +347,15 @@ export class WorkspaceSettingsComponent implements OnInit {
   private loadMembers(): void {
     this.workspaceService.getMembers(this.workspaceId).subscribe({
       next: (members) => {
-        // In a real app, we'd fetch user details for each member
+        // Map WorkspaceMemberInfo to MemberWithDetails
         this.members.set(
           members.map((m) => ({
             ...m,
-            display_name: undefined,
-            email: undefined,
-            avatar_url: null,
-          }))
+            workspace_id: this.workspaceId,
+            role: m.role as WorkspaceMember['role'],
+            display_name: m.name,
+            joined_at: m.joined_at || new Date().toISOString(),
+          })),
         );
         this.loading.set(false);
       },
@@ -365,9 +369,7 @@ export class WorkspaceSettingsComponent implements OnInit {
   private loadBoards(): void {
     this.boardService.listBoards(this.workspaceId).subscribe({
       next: (boards) => {
-        this.boards.set(
-          boards.map((b) => ({ id: b.id, name: b.name }))
-        );
+        this.boards.set(boards.map((b) => ({ id: b.id, name: b.name })));
       },
       error: (err) => {
         console.error('Failed to load boards:', err);

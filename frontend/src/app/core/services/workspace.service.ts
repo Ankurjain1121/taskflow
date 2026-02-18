@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
 
 export interface Workspace {
   id: string;
@@ -48,7 +49,10 @@ export class WorkspaceService {
     return this.http.post<Workspace>(this.apiUrl, request);
   }
 
-  update(workspaceId: string, request: UpdateWorkspaceRequest): Observable<Workspace> {
+  update(
+    workspaceId: string,
+    request: UpdateWorkspaceRequest,
+  ): Observable<Workspace> {
     return this.http.patch<Workspace>(`${this.apiUrl}/${workspaceId}`, request);
   }
 
@@ -56,34 +60,48 @@ export class WorkspaceService {
     return this.http.delete<void>(`${this.apiUrl}/${workspaceId}`);
   }
 
-  getMembers(workspaceId: string): Observable<WorkspaceMember[]> {
-    return this.http.get<WorkspaceMember[]>(`${this.apiUrl}/${workspaceId}/members`);
+  getMembers(workspaceId: string): Observable<WorkspaceMemberInfo[]> {
+    return this.http.get<WorkspaceMemberInfo[]>(
+      `${this.apiUrl}/${workspaceId}/members`,
+    );
   }
 
-  inviteMember(workspaceId: string, email: string, role: 'admin' | 'manager' | 'member'): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/${workspaceId}/invites`, { email, role });
+  inviteMember(
+    workspaceId: string,
+    email: string,
+    role: 'admin' | 'manager' | 'member',
+  ): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${workspaceId}/invites`, {
+      email,
+      role,
+    });
   }
 
   removeMember(workspaceId: string, userId: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${workspaceId}/members/${userId}`);
+    return this.http.delete<void>(
+      `${this.apiUrl}/${workspaceId}/members/${userId}`,
+    );
   }
 
   updateMemberRole(
     workspaceId: string,
     userId: string,
-    role: 'admin' | 'manager' | 'member'
+    role: 'admin' | 'manager' | 'member',
   ): Observable<void> {
-    return this.http.patch<void>(`${this.apiUrl}/${workspaceId}/members/${userId}`, { role });
+    return this.http.patch<void>(
+      `${this.apiUrl}/${workspaceId}/members/${userId}`,
+      { role },
+    );
   }
 
   searchMembers(
     workspaceId: string,
     query: string,
-    limit: number = 10
+    limit: number = 10,
   ): Observable<MemberSearchResult[]> {
     return this.http.get<MemberSearchResult[]>(
       `${this.apiUrl}/${workspaceId}/members/search`,
-      { params: { q: query, limit: limit.toString() } }
+      { params: { q: query, limit: limit.toString() } },
     );
   }
 
@@ -92,7 +110,7 @@ export class WorkspaceService {
     emails: string[],
     role: 'admin' | 'manager' | 'member',
     message?: string,
-    boardIds?: string[]
+    boardIds?: string[],
   ): Observable<BulkInviteResponse> {
     return this.http.post<BulkInviteResponse>('/api/invitations/bulk', {
       emails,
@@ -116,7 +134,7 @@ export class WorkspaceService {
   resendInvitation(invitationId: string): Observable<InvitationWithStatus> {
     return this.http.post<InvitationWithStatus>(
       `/api/invitations/${invitationId}/resend`,
-      {}
+      {},
     );
   }
 }

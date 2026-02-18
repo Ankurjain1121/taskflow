@@ -369,7 +369,7 @@ mod tests {
 
     #[test]
     fn test_update_role_request_deserialize() {
-        let json = r#"{"role": "manager"}"#;
+        let json = r#"{"role": "Manager"}"#;
         let req: UpdateRoleRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.role, UserRole::Manager);
     }

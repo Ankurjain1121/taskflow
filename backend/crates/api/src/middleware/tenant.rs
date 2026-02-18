@@ -41,9 +41,9 @@ where
         AppError::InternalError("Failed to begin transaction".to_string())
     })?;
 
-    // Set tenant context for RLS
-    let set_tenant_sql = format!("SET LOCAL app.tenant_id = '{}'", tenant_id);
-    sqlx::query(&set_tenant_sql)
+    // Set tenant context for RLS (parameterized to prevent SQL injection)
+    sqlx::query("SELECT set_config('app.tenant_id', $1::text, true)")
+        .bind(tenant_id.to_string())
         .execute(&mut *tx)
         .await
         .map_err(|e| {
@@ -91,9 +91,9 @@ where
         AppError::InternalError("Failed to begin transaction".to_string())
     })?;
 
-    // Set tenant context for RLS
-    let set_tenant_sql = format!("SET LOCAL app.tenant_id = '{}'", tenant_id);
-    sqlx::query(&set_tenant_sql)
+    // Set tenant context for RLS (parameterized to prevent SQL injection)
+    sqlx::query("SELECT set_config('app.tenant_id', $1::text, true)")
+        .bind(tenant_id.to_string())
         .execute(&mut *tx)
         .await
         .map_err(|e| {
@@ -127,8 +127,8 @@ pub async fn set_tenant_context<'e, E>(executor: E, tenant_id: Uuid) -> Result<(
 where
     E: sqlx::Executor<'e, Database = sqlx::Postgres>,
 {
-    let set_tenant_sql = format!("SET LOCAL app.tenant_id = '{}'", tenant_id);
-    sqlx::query(&set_tenant_sql)
+    sqlx::query("SELECT set_config('app.tenant_id', $1::text, true)")
+        .bind(tenant_id.to_string())
         .execute(executor)
         .await
         .map_err(|e| {

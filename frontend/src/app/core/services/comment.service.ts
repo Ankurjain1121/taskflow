@@ -27,6 +27,19 @@ export interface UpdateCommentRequest {
   content: string;
 }
 
+/** Flattened comment with author info for display in components */
+export interface CommentWithAuthor {
+  id: string;
+  task_id: string;
+  content: string;
+  author_id: string;
+  author_name: string;
+  author_avatar_url: string | null;
+  parent_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -42,7 +55,7 @@ export class CommentService {
   create(
     taskId: string,
     content: string,
-    parentId?: string
+    parentId?: string,
   ): Observable<Comment> {
     const body: CreateCommentRequest = { content };
     if (parentId) {
@@ -50,7 +63,7 @@ export class CommentService {
     }
     return this.http.post<Comment>(
       `${this.apiUrl}/tasks/${taskId}/comments`,
-      body
+      body,
     );
   }
 

@@ -18,6 +18,11 @@
     "target": "ES2022",
     "module": "ES2022"
   },
+  "exclude": [
+    "**/*.spec.ts",
+    "e2e/**",
+    "node_modules"
+  ],
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
     "strictInjectionParameters": true,

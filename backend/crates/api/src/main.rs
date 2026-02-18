@@ -83,6 +83,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Rate-limited public routes (auth endpoints vulnerable to brute force)
     let rate_limited_auth = Router::new()
         .route("/auth/sign-in", axum::routing::post(routes::auth::sign_in_handler))
+        .route("/auth/sign-up", axum::routing::post(routes::auth::sign_up_handler))
         .route("/auth/forgot-password", axum::routing::post(routes::auth::forgot_password_handler))
         .layer(from_fn(rate_limit_middleware))
         .layer(rate_limit_layer(5, 60)); // 5 requests per 60 seconds per IP
@@ -94,7 +95,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Build public routes (not rate-limited)
     let public_routes = Router::new()
-        .route("/auth/sign-up", axum::routing::post(routes::auth::sign_up_handler))
         .route("/auth/refresh", axum::routing::post(routes::auth::refresh_handler))
         .route("/auth/logout", axum::routing::post(routes::auth::logout_handler))
         .route("/auth/reset-password", axum::routing::post(routes::auth::reset_password_handler))

@@ -39,7 +39,15 @@ fn validate_cron_secret(headers: &HeaderMap) -> Result<()> {
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
 
-    if provided_secret != expected_secret {
+    // Constant-time comparison to prevent timing attacks
+    let a = provided_secret.as_bytes();
+    let b = expected_secret.as_bytes();
+    let matches = a.len() == b.len()
+        && a.iter()
+            .zip(b.iter())
+            .fold(0u8, |acc, (x, y)| acc | (x ^ y))
+            == 0;
+    if !matches {
         return Err(AppError::Unauthorized("Invalid cron secret".into()));
     }
 
