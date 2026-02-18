@@ -115,7 +115,7 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
-      MINIO_API_CORS_ALLOW_ORIGIN: "*"
+      MINIO_API_CORS_ALLOW_ORIGIN: "${APP_URL:-http://localhost:4200}"
     volumes:
       - minio-data:/data
     ports:
@@ -140,7 +140,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${LAGO_DB:-lago}
       REDIS_URL: redis://redis:6379/1
-      SECRET_KEY_BASE: ${LAGO_SECRET_KEY:-your-lago-secret-key-base-min-64-chars-long-change-in-production}  # WARNING: Change in production!
+      SECRET_KEY_BASE: ${LAGO_SECRET_KEY:-}
       RAILS_ENV: production
       RAILS_LOG_TO_STDOUT: "true"
       LAGO_API_URL: http://lago-api:3000
@@ -301,8 +301,8 @@ services:
       WHATSAPP_HOOK_URL: http://backend:8080/api/webhooks/whatsapp
       WHATSAPP_HOOK_EVENTS: message,session.status
       WAHA_DASHBOARD_ENABLED: "true"
-      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USER:-admin}
-      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:-admin}
+      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USER:-}
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:-}
       WAHA_LOG_LEVEL: info
     ports:
       - "${WAHA_PORT:-3002}:3000"
@@ -377,6 +377,8 @@ services:
       # WAHA (WhatsApp)
       WAHA_API_URL: http://waha:3000
       WAHA_API_KEY: ${WAHA_API_KEY:-}
+      # Cron
+      CRON_SECRET: ${CRON_SECRET:-}
       # App
       APP_URL: ${APP_URL:-http://localhost:4200}
       SKIP_INIT: ${SKIP_INIT:-false}
@@ -434,7 +436,6 @@ services:
         sleep 2;
       done;
       mc mb myminio/$${MINIO_BUCKET} --ignore-existing;
-      mc anonymous set download myminio/$${MINIO_BUCKET};
       echo 'MinIO setup complete!';
       "
     environment:

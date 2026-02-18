@@ -29,15 +29,16 @@ pub struct OverloadedMember {
     pub active_tasks: i64,
 }
 
-/// Row returned from workload query
-#[derive(Debug)]
-struct WorkloadRow {
+/// Aggregated workload row from SQL
+#[derive(sqlx::FromRow)]
+struct WorkloadAgg {
     user_id: Uuid,
     user_name: String,
     user_avatar: Option<String>,
-    task_id: Option<Uuid>,
-    due_date: Option<chrono::DateTime<chrono::Utc>>,
-    status_mapping: Option<serde_json::Value>,
+    total_tasks: i64,
+    active_tasks: i64,
+    overdue_tasks: i64,
+    done_tasks: i64,
 }
 
 /// Get workload for all members of a workspace
@@ -53,17 +54,26 @@ pub async fn get_workload(
     workspace_id: Uuid,
     tenant_id: Uuid,
 ) -> Result<Vec<MemberWorkload>, sqlx::Error> {
-    // Get all workspace members with their assigned tasks
-    let rows = sqlx::query_as!(
-        WorkloadRow,
+    let rows = sqlx::query_as::<_, WorkloadAgg>(
         r#"
         SELECT
             u.id as user_id,
             u.name as user_name,
             u.avatar_url as user_avatar,
-            t.id as task_id,
-            t.due_date,
-            bc.status_mapping
+            COUNT(DISTINCT t.id) FILTER (WHERE t.id IS NOT NULL) as total_tasks,
+            COUNT(DISTINCT t.id) FILTER (
+                WHERE t.id IS NOT NULL
+                AND (bc.status_mapping IS NULL OR (bc.status_mapping->>'done') IS DISTINCT FROM 'true')
+            ) as active_tasks,
+            COUNT(DISTINCT t.id) FILTER (
+                WHERE t.id IS NOT NULL
+                AND t.due_date < NOW()
+                AND (bc.status_mapping IS NULL OR (bc.status_mapping->>'done') IS DISTINCT FROM 'true')
+            ) as overdue_tasks,
+            COUNT(DISTINCT t.id) FILTER (
+                WHERE t.id IS NOT NULL
+                AND bc.status_mapping->>'done' = 'true'
+            ) as done_tasks
         FROM workspace_members wm
         INNER JOIN users u ON u.id = wm.user_id
         LEFT JOIN task_assignees ta ON ta.user_id = u.id
@@ -73,71 +83,33 @@ pub async fn get_workload(
         WHERE wm.workspace_id = $1
           AND u.tenant_id = $2
           AND u.deleted_at IS NULL
+        GROUP BY u.id, u.name, u.avatar_url
         ORDER BY u.name ASC
         "#,
-        workspace_id,
-        tenant_id
     )
+    .bind(workspace_id)
+    .bind(tenant_id)
     .fetch_all(pool)
     .await?;
 
-    // Aggregate by user
-    let mut user_workloads: HashMap<Uuid, MemberWorkload> = HashMap::new();
-    let now = chrono::Utc::now();
-
-    for row in rows {
-        let entry = user_workloads.entry(row.user_id).or_insert_with(|| MemberWorkload {
-            user_id: row.user_id,
-            user_name: row.user_name.clone(),
-            user_avatar: row.user_avatar.clone(),
-            total_tasks: 0,
-            active_tasks: 0,
-            overdue_tasks: 0,
-            tasks_by_status: HashMap::new(),
-            is_overloaded: false,
-        });
-
-        // Only count if there's an actual task (not a NULL from LEFT JOIN)
-        if row.task_id.is_some() {
-            entry.total_tasks += 1;
-
-            // Determine status from column's status_mapping
-            let is_done = row
-                .status_mapping
-                .as_ref()
-                .and_then(|sm: &serde_json::Value| sm.get("done"))
-                .and_then(|v: &serde_json::Value| v.as_bool())
-                .unwrap_or(false);
-
-            let status = if is_done {
-                "done"
-            } else {
-                "active"
-            };
-
-            // Increment status count
-            *entry.tasks_by_status.entry(status.to_string()).or_insert(0) += 1;
-
-            // Count active tasks (NOT done)
-            if !is_done {
-                entry.active_tasks += 1;
-
-                // Check if overdue
-                if let Some(due_date) = row.due_date {
-                    if due_date < now {
-                        entry.overdue_tasks += 1;
-                    }
-                }
+    Ok(rows
+        .into_iter()
+        .map(|r| {
+            let mut tasks_by_status = HashMap::new();
+            tasks_by_status.insert("active".to_string(), r.active_tasks);
+            tasks_by_status.insert("done".to_string(), r.done_tasks);
+            MemberWorkload {
+                user_id: r.user_id,
+                user_name: r.user_name,
+                user_avatar: r.user_avatar,
+                total_tasks: r.total_tasks,
+                active_tasks: r.active_tasks,
+                overdue_tasks: r.overdue_tasks,
+                tasks_by_status,
+                is_overloaded: r.active_tasks >= 10,
             }
-        }
-    }
-
-    // Set is_overloaded flag (>= 10 active tasks)
-    for workload in user_workloads.values_mut() {
-        workload.is_overloaded = workload.active_tasks >= 10;
-    }
-
-    Ok(user_workloads.into_values().collect())
+        })
+        .collect())
 }
 
 /// Get members who are overloaded (have >= threshold active tasks)

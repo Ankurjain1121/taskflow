@@ -55,6 +55,11 @@ pub struct UpdateTaskRequest {
     pub start_date: Option<chrono::DateTime<chrono::Utc>>,
     pub estimated_hours: Option<f64>,
     pub milestone_id: Option<Uuid>,
+    pub clear_description: Option<bool>,
+    pub clear_due_date: Option<bool>,
+    pub clear_start_date: Option<bool>,
+    pub clear_estimated_hours: Option<bool>,
+    pub clear_milestone: Option<bool>,
 }
 
 /// Request body for moving a task
@@ -287,6 +292,11 @@ async fn update_task_handler(
         start_date: body.start_date,
         estimated_hours: body.estimated_hours,
         milestone_id: body.milestone_id,
+        clear_description: body.clear_description,
+        clear_due_date: body.clear_due_date,
+        clear_start_date: body.clear_start_date,
+        clear_estimated_hours: body.clear_estimated_hours,
+        clear_milestone: body.clear_milestone,
     };
 
     let task = update_task(&state.db, task_id, input)
@@ -537,24 +547,14 @@ async fn assign_user_handler(
     let task = sqlx::query_as::<_, Task>(
         r#"
         SELECT
-            id,
-            title,
-            description,
+            id, title, description,
             priority as "priority: TaskPriority",
-            due_date,
-            start_date,
-            estimated_hours,
-            board_id,
-            column_id,
-            position,
-            milestone_id,
-            tenant_id,
-            created_by_id,
-            deleted_at,
-            created_at,
-            updated_at
+            due_date, start_date, estimated_hours,
+            board_id, column_id, group_id, position,
+            milestone_id, eisenhower_urgency, eisenhower_importance,
+            tenant_id, created_by_id, deleted_at, created_at, updated_at
         FROM tasks
-        WHERE id = $1
+        WHERE id = $1 AND deleted_at IS NULL
         "#,
     )
     .bind(task_id)
@@ -654,24 +654,14 @@ async fn unassign_user_handler(
     let task = sqlx::query_as::<_, Task>(
         r#"
         SELECT
-            id,
-            title,
-            description,
+            id, title, description,
             priority as "priority: TaskPriority",
-            due_date,
-            start_date,
-            estimated_hours,
-            board_id,
-            column_id,
-            position,
-            milestone_id,
-            tenant_id,
-            created_by_id,
-            deleted_at,
-            created_at,
-            updated_at
+            due_date, start_date, estimated_hours,
+            board_id, column_id, group_id, position,
+            milestone_id, eisenhower_urgency, eisenhower_importance,
+            tenant_id, created_by_id, deleted_at, created_at, updated_at
         FROM tasks
-        WHERE id = $1
+        WHERE id = $1 AND deleted_at IS NULL
         "#,
     )
     .bind(task_id)

@@ -56,8 +56,15 @@ impl RateLimiter {
     }
 }
 
-/// Extract IP address from request headers (X-Forwarded-For, X-Real-IP, or fallback)
+/// Extract IP address from request, preferring the actual peer address
 fn extract_ip(req: &Request<Body>) -> String {
+    // Prefer the actual peer address from the connection (cannot be spoofed)
+    if let Some(connect_info) = req.extensions().get::<axum::extract::ConnectInfo<std::net::SocketAddr>>() {
+        return connect_info.0.ip().to_string();
+    }
+
+    // Fallback to X-Forwarded-For only if peer address not available
+    // (e.g., behind a reverse proxy that strips ConnectInfo)
     if let Some(forwarded) = req.headers().get("X-Forwarded-For") {
         if let Ok(s) = forwarded.to_str() {
             return s.split(',').next().unwrap_or(s).trim().to_string();

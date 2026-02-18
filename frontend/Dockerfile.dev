@@ -4,10 +4,10 @@
 # Uses ng serve for hot reload during development
 # =============================================================================
 
-FROM node:22-alpine
+FROM node:22-slim
 
 # Install curl for healthcheck
-RUN apk add --no-cache curl
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -31,4 +31,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 # --host 0.0.0.0: Allow external connections
 # --poll 2000: Enable polling for file changes (needed in Docker)
 # --live-reload: Enable live reload
-CMD ["npm", "run", "start", "--", "--host", "0.0.0.0", "--poll", "2000", "--live-reload"]
+CMD ["npm", "run", "start", "--", "--host", "0.0.0.0", "--poll", "2000", "--live-reload", "--allowed-hosts", "all"]

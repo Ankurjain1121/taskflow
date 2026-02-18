@@ -4,7 +4,7 @@
 
 use axum::{
     extract::{Path, Query, State},
-    routing::{get, post},
+    routing::{delete, get, post},
     Json, Router,
 };
 use chrono::{Duration, Utc};
@@ -266,22 +266,50 @@ pub async fn accept_handler(
     let password_hash = hash_password(&payload.password)
         .map_err(|_| AppError::InternalError("Failed to hash password".into()))?;
 
-    // Create the user
-    let user = auth::create_user(
-        &state.db,
-        &invitation.email,
-        &payload.name,
-        &password_hash,
-        invitation.role,
-        tenant_id,
+    // Wrap user creation, workspace membership, and invitation acceptance in a transaction
+    let mut tx = state.db.begin().await?;
+
+    // Create the user within the transaction
+    let user = sqlx::query_as::<_, taskflow_db::models::User>(
+        r#"
+        INSERT INTO users (id, email, name, password_hash, role, tenant_id, onboarding_completed, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, false, NOW(), NOW())
+        RETURNING id, email, name, password_hash, avatar_url, phone_number, role,
+                  tenant_id, onboarding_completed, deleted_at, created_at, updated_at
+        "#,
     )
+    .bind(Uuid::new_v4())
+    .bind(&invitation.email)
+    .bind(&payload.name)
+    .bind(&password_hash)
+    .bind(invitation.role)
+    .bind(tenant_id)
+    .fetch_one(&mut *tx)
     .await?;
 
-    // Add user to the workspace
-    invitations::add_workspace_member(&state.db, invitation.workspace_id, user.id).await?;
+    // Add user to the workspace within the transaction
+    sqlx::query(
+        r#"
+        INSERT INTO workspace_members (id, workspace_id, user_id, joined_at)
+        VALUES ($1, $2, $3, NOW())
+        ON CONFLICT (workspace_id, user_id) DO NOTHING
+        "#,
+    )
+    .bind(Uuid::new_v4())
+    .bind(invitation.workspace_id)
+    .bind(user.id)
+    .execute(&mut *tx)
+    .await?;
 
-    // Mark invitation as accepted
-    invitations::accept_invitation(&state.db, payload.token).await?;
+    // Mark invitation as accepted within the transaction
+    sqlx::query(
+        "UPDATE invitations SET accepted_at = NOW() WHERE token = $1 AND accepted_at IS NULL",
+    )
+    .bind(payload.token)
+    .execute(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
 
     // Create refresh token
     let refresh_expiry = Utc::now() + Duration::seconds(state.config.jwt_refresh_expiry_secs);
@@ -463,9 +491,15 @@ pub async fn bulk_create_handler(
 /// Requires authentication.
 pub async fn list_all_handler(
     State(state): State<AppState>,
-    _auth: AuthUserExtractor,
+    auth: AuthUserExtractor,
     Query(query): Query<ListInvitationsQuery>,
 ) -> Result<Json<Vec<InvitationWithStatusResponse>>> {
+    // Verify workspace membership
+    let is_member = workspaces::is_workspace_member(&state.db, query.workspace_id, auth.0.user_id).await?;
+    if !is_member {
+        return Err(AppError::Forbidden("Not a member of this workspace".into()));
+    }
+
     let all_invitations = invitations::list_all_invitations(&state.db, query.workspace_id).await?;
     let now = Utc::now();
 
@@ -504,9 +538,18 @@ pub async fn list_all_handler(
 /// Requires authentication.
 pub async fn delete_handler(
     State(state): State<AppState>,
-    _auth: AuthUserExtractor,
+    auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>> {
+    // Fetch invitation to verify workspace membership
+    let invitation = invitations::get_invitation_by_id(&state.db, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Invitation not found".into()))?;
+    let is_member = workspaces::is_workspace_member(&state.db, invitation.workspace_id, auth.0.user_id).await?;
+    if !is_member {
+        return Err(AppError::Forbidden("Not a member of this workspace".into()));
+    }
+
     let deleted = invitations::delete_invitation(&state.db, id).await?;
 
     if !deleted {
@@ -522,9 +565,18 @@ pub async fn delete_handler(
 /// Requires authentication.
 pub async fn resend_handler(
     State(state): State<AppState>,
-    _auth: AuthUserExtractor,
+    auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
 ) -> Result<Json<InvitationResponse>> {
+    // Fetch invitation to verify workspace membership
+    let inv = invitations::get_invitation_by_id(&state.db, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Invitation not found".into()))?;
+    let is_member = workspaces::is_workspace_member(&state.db, inv.workspace_id, auth.0.user_id).await?;
+    if !is_member {
+        return Err(AppError::Forbidden("Not a member of this workspace".into()));
+    }
+
     let new_expires_at = Utc::now() + Duration::days(7);
 
     let invitation = invitations::resend_invitation(&state.db, id, new_expires_at)
@@ -555,6 +607,10 @@ pub fn invitation_router() -> Router<AppState> {
     Router::new()
         .route("/", post(create_handler))
         .route("/", get(list_handler))
+        .route("/bulk", post(bulk_create_handler))
+        .route("/all", get(list_all_handler))
         .route("/validate/{token}", get(validate_handler))
         .route("/accept", post(accept_handler))
+        .route("/{id}", delete(delete_handler))
+        .route("/{id}/resend", post(resend_handler))
 }

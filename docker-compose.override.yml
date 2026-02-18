@@ -54,7 +54,8 @@ services:
     environment:
       NODE_ENV: development
     ports:
-      - "${FRONTEND_PORT:-4200}:4200"
+      !override
+      - "4200:4200"
     # Override healthcheck for development
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4200"]

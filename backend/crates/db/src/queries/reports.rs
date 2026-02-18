@@ -169,23 +169,20 @@ async fn get_burndown(
                 CURRENT_DATE,
                 '1 day'::interval
             )::date AS date
-        ),
-        daily_counts AS (
-            SELECT
-                ds.date,
-                COUNT(t.id) FILTER (
-                    WHERE t.created_at::date <= ds.date
-                    AND (bc.status_mapping->>'done' IS DISTINCT FROM 'true')
-                ) AS remaining
-            FROM date_series ds
-            CROSS JOIN tasks t
-            JOIN board_columns bc ON bc.id = t.column_id
-            WHERE t.board_id = $1 AND t.deleted_at IS NULL
-            GROUP BY ds.date
         )
-        SELECT date, COALESCE(remaining, 0) AS remaining
-        FROM daily_counts
-        ORDER BY date
+        SELECT
+            ds.date,
+            (
+                SELECT COUNT(*)
+                FROM tasks t
+                JOIN board_columns bc ON bc.id = t.column_id
+                WHERE t.board_id = $1
+                  AND t.deleted_at IS NULL
+                  AND t.created_at::date <= ds.date
+                  AND (bc.status_mapping->>'done' IS DISTINCT FROM 'true')
+            ) AS remaining
+        FROM date_series ds
+        ORDER BY ds.date
         "#,
     )
     .bind(board_id)

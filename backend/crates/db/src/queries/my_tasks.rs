@@ -65,6 +65,7 @@ pub enum SortOrder {
 }
 
 /// Internal row type for my tasks query
+#[derive(sqlx::FromRow)]
 struct MyTaskRow {
     id: Uuid,
     title: String,
@@ -117,8 +118,20 @@ pub async fn list_my_tasks(
         (MyTasksSortBy::UpdatedAt, SortOrder::Desc) => "t.updated_at DESC, t.id DESC",
     };
 
-    // Build query dynamically based on filters
-    let _query = format!(
+    // Build the dynamic query with correct ORDER BY and optional filters
+    let mut conditions = String::new();
+    let mut param_idx = 2u32; // $1 is user_id
+
+    if board_filter.is_some() {
+        conditions.push_str(&format!(" AND t.board_id = ${}", param_idx));
+        param_idx += 1;
+    }
+    if cursor.is_some() {
+        conditions.push_str(&format!(" AND t.id > ${}", param_idx));
+        param_idx += 1;
+    }
+
+    let query_str = format!(
         r#"
         SELECT
             t.id,
@@ -143,174 +156,28 @@ pub async fn list_my_tasks(
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           {}
-          {}
         ORDER BY {}
-        LIMIT $3
+        LIMIT ${}
         "#,
-        if board_filter.is_some() {
-            "AND t.board_id = $4"
-        } else {
-            ""
-        },
-        if cursor.is_some() {
-            "AND t.id > $5"
-        } else {
-            ""
-        },
-        order_clause
+        conditions,
+        order_clause,
+        param_idx
     );
 
-    // Execute query based on which optional params are present
-    let rows = match (board_filter, cursor) {
-        (Some(board_id), Some(cursor_id)) => {
-            sqlx::query_as!(
-                MyTaskRow,
-                r#"
-                SELECT
-                    t.id,
-                    t.title,
-                    t.description,
-                    t.priority as "priority: TaskPriority",
-                    t.due_date,
-                    t.board_id,
-                    b.name as board_name,
-                    b.workspace_id,
-                    t.column_id,
-                    bc.name as column_name,
-                    t.position,
-                    bc.status_mapping,
-                    t.created_at,
-                    t.updated_at
-                FROM tasks t
-                INNER JOIN task_assignees ta ON ta.task_id = t.id
-                INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
-                INNER JOIN board_columns bc ON bc.id = t.column_id
-                INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
-                WHERE ta.user_id = $1
-                  AND t.deleted_at IS NULL
-                  AND t.board_id = $2
-                  AND t.id > $3
-                ORDER BY t.due_date ASC NULLS LAST, t.id ASC
-                LIMIT $4
-                "#,
-                user_id,
-                board_id,
-                cursor_id,
-                fetch_limit
-            )
-            .fetch_all(pool)
-            .await?
-        }
-        (Some(board_id), None) => {
-            sqlx::query_as!(
-                MyTaskRow,
-                r#"
-                SELECT
-                    t.id,
-                    t.title,
-                    t.description,
-                    t.priority as "priority: TaskPriority",
-                    t.due_date,
-                    t.board_id,
-                    b.name as board_name,
-                    b.workspace_id,
-                    t.column_id,
-                    bc.name as column_name,
-                    t.position,
-                    bc.status_mapping,
-                    t.created_at,
-                    t.updated_at
-                FROM tasks t
-                INNER JOIN task_assignees ta ON ta.task_id = t.id
-                INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
-                INNER JOIN board_columns bc ON bc.id = t.column_id
-                INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
-                WHERE ta.user_id = $1
-                  AND t.deleted_at IS NULL
-                  AND t.board_id = $2
-                ORDER BY t.due_date ASC NULLS LAST, t.id ASC
-                LIMIT $3
-                "#,
-                user_id,
-                board_id,
-                fetch_limit
-            )
-            .fetch_all(pool)
-            .await?
-        }
-        (None, Some(cursor_id)) => {
-            sqlx::query_as!(
-                MyTaskRow,
-                r#"
-                SELECT
-                    t.id,
-                    t.title,
-                    t.description,
-                    t.priority as "priority: TaskPriority",
-                    t.due_date,
-                    t.board_id,
-                    b.name as board_name,
-                    b.workspace_id,
-                    t.column_id,
-                    bc.name as column_name,
-                    t.position,
-                    bc.status_mapping,
-                    t.created_at,
-                    t.updated_at
-                FROM tasks t
-                INNER JOIN task_assignees ta ON ta.task_id = t.id
-                INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
-                INNER JOIN board_columns bc ON bc.id = t.column_id
-                INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
-                WHERE ta.user_id = $1
-                  AND t.deleted_at IS NULL
-                  AND t.id > $2
-                ORDER BY t.due_date ASC NULLS LAST, t.id ASC
-                LIMIT $3
-                "#,
-                user_id,
-                cursor_id,
-                fetch_limit
-            )
-            .fetch_all(pool)
-            .await?
-        }
-        (None, None) => {
-            sqlx::query_as!(
-                MyTaskRow,
-                r#"
-                SELECT
-                    t.id,
-                    t.title,
-                    t.description,
-                    t.priority as "priority: TaskPriority",
-                    t.due_date,
-                    t.board_id,
-                    b.name as board_name,
-                    b.workspace_id,
-                    t.column_id,
-                    bc.name as column_name,
-                    t.position,
-                    bc.status_mapping,
-                    t.created_at,
-                    t.updated_at
-                FROM tasks t
-                INNER JOIN task_assignees ta ON ta.task_id = t.id
-                INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
-                INNER JOIN board_columns bc ON bc.id = t.column_id
-                INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
-                WHERE ta.user_id = $1
-                  AND t.deleted_at IS NULL
-                ORDER BY t.due_date ASC NULLS LAST, t.id ASC
-                LIMIT $2
-                "#,
-                user_id,
-                fetch_limit
-            )
-            .fetch_all(pool)
-            .await?
-        }
-    };
+    // Execute the dynamic query with the appropriate bindings
+    let mut query = sqlx::query_as::<_, MyTaskRow>(&query_str).bind(user_id);
+    if let Some(board_id) = board_filter {
+        query = query.bind(board_id);
+    }
+    if let Some(cursor_id) = cursor {
+        query = query.bind(cursor_id);
+    }
+    query = query.bind(fetch_limit);
+
+    let rows = query.fetch_all(pool).await?;
+
+    // Save raw count before take() for correct has_more check
+    let raw_count = rows.len();
 
     // Convert rows to items and determine done status
     let items: Vec<MyTaskItem> = rows
@@ -343,7 +210,7 @@ pub async fn list_my_tasks(
         })
         .collect();
 
-    let has_more = items.len() == limit as usize;
+    let has_more = raw_count > limit as usize;
     let next_cursor = if has_more {
         items.last().map(|item| item.id.to_string())
     } else {

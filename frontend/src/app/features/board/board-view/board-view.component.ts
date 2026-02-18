@@ -595,15 +595,25 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   onTaskMoved(event: TaskMoveEvent): void {
     const snapshot = structuredClone(this.boardState());
 
-    // Get tasks in target column
-    const targetTasks = this.boardState()[event.targetColumnId] || [];
+    // Build position from the PRE-MOVE snapshot to avoid stale signal issues.
+    // CDK drag-drop mutates the filtered view's backing array in place,
+    // but the signal's boardState may not reflect that mutation yet.
+    // Use the snapshot's target column (filtered, minus the moved task)
+    // so event.currentIndex maps to the correct insertion point.
+    const filteredTarget = this.filterTasks(
+      snapshot[event.targetColumnId] || [],
+      this.filters(),
+    ).filter((t) => t.id !== event.task.id);
 
-    // Calculate new position
-    const beforeTask = targetTasks[event.currentIndex - 1];
-    const afterTask = targetTasks[event.currentIndex + 1];
+    const beforeTask =
+      event.currentIndex > 0 ? filteredTarget[event.currentIndex - 1] : null;
+    const afterTask =
+      event.currentIndex < filteredTarget.length
+        ? filteredTarget[event.currentIndex]
+        : null;
 
-    const beforePos = beforeTask?.position || null;
-    const afterPos = afterTask?.position || null;
+    const beforePos = beforeTask?.position ?? null;
+    const afterPos = afterTask?.position ?? null;
 
     let newPosition: string;
     try {

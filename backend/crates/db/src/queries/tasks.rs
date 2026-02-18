@@ -44,6 +44,17 @@ pub struct UpdateTaskInput {
     pub start_date: Option<DateTime<Utc>>,
     pub estimated_hours: Option<f64>,
     pub milestone_id: Option<Uuid>,
+    /// Explicit clear flags — when true, set the field to NULL even if the value is None
+    #[serde(default)]
+    pub clear_description: Option<bool>,
+    #[serde(default)]
+    pub clear_due_date: Option<bool>,
+    #[serde(default)]
+    pub clear_start_date: Option<bool>,
+    #[serde(default)]
+    pub clear_estimated_hours: Option<bool>,
+    #[serde(default)]
+    pub clear_milestone: Option<bool>,
 }
 
 /// Task with all associated details
@@ -278,37 +289,35 @@ pub async fn create_task(
     .fetch_one(pool)
     .await?;
 
-    // Insert assignees if provided
-    if let Some(assignee_ids) = input.assignee_ids {
-        for assignee_id in assignee_ids {
+    // Insert assignees if provided — batch insert
+    if let Some(ref assignee_ids) = input.assignee_ids {
+        if !assignee_ids.is_empty() {
             sqlx::query(
                 r#"
                 INSERT INTO task_assignees (id, task_id, user_id)
-                VALUES ($1, $2, $3)
+                SELECT gen_random_uuid(), $1, unnest($2::uuid[])
                 ON CONFLICT (task_id, user_id) DO NOTHING
                 "#,
             )
-            .bind(Uuid::new_v4())
             .bind(task_id)
-            .bind(assignee_id)
+            .bind(assignee_ids)
             .execute(pool)
             .await?;
         }
     }
 
-    // Insert labels if provided
-    if let Some(label_ids) = input.label_ids {
-        for label_id in label_ids {
+    // Insert labels if provided — batch insert
+    if let Some(ref label_ids) = input.label_ids {
+        if !label_ids.is_empty() {
             sqlx::query(
                 r#"
                 INSERT INTO task_labels (id, task_id, label_id)
-                VALUES ($1, $2, $3)
+                SELECT gen_random_uuid(), $1, unnest($2::uuid[])
                 ON CONFLICT (task_id, label_id) DO NOTHING
                 "#,
             )
-            .bind(Uuid::new_v4())
             .bind(task_id)
-            .bind(label_id)
+            .bind(label_ids)
             .execute(pool)
             .await?;
         }
@@ -328,12 +337,12 @@ pub async fn update_task(
         UPDATE tasks
         SET
             title = COALESCE($2, title),
-            description = COALESCE($3, description),
+            description = CASE WHEN $9 = true THEN NULL WHEN $3 IS NOT NULL THEN $3 ELSE description END,
             priority = COALESCE($4, priority),
-            due_date = COALESCE($5, due_date),
-            start_date = COALESCE($6, start_date),
-            estimated_hours = COALESCE($7, estimated_hours),
-            milestone_id = COALESCE($8, milestone_id),
+            due_date = CASE WHEN $10 = true THEN NULL WHEN $5 IS NOT NULL THEN $5 ELSE due_date END,
+            start_date = CASE WHEN $11 = true THEN NULL WHEN $6 IS NOT NULL THEN $6 ELSE start_date END,
+            estimated_hours = CASE WHEN $12 = true THEN NULL WHEN $7 IS NOT NULL THEN $7 ELSE estimated_hours END,
+            milestone_id = CASE WHEN $13 = true THEN NULL WHEN $8 IS NOT NULL THEN $8 ELSE milestone_id END,
             updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
         RETURNING
@@ -351,6 +360,11 @@ pub async fn update_task(
     .bind(input.start_date)
     .bind(input.estimated_hours)
     .bind(input.milestone_id)
+    .bind(input.clear_description.unwrap_or(false))
+    .bind(input.clear_due_date.unwrap_or(false))
+    .bind(input.clear_start_date.unwrap_or(false))
+    .bind(input.clear_estimated_hours.unwrap_or(false))
+    .bind(input.clear_milestone.unwrap_or(false))
     .fetch_optional(pool)
     .await?
     .ok_or(TaskQueryError::NotFound)?;

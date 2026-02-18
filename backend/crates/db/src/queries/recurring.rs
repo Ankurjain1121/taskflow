@@ -386,6 +386,8 @@ pub async fn create_recurring_instance(
     pool: &PgPool,
     config: &RecurringTaskConfig,
 ) -> Result<Uuid, RecurringQueryError> {
+    let mut tx = pool.begin().await?;
+
     // 1. Fetch source task
     let source_task = sqlx::query_as::<_, SourceTask>(
         r#"
@@ -395,7 +397,7 @@ pub async fn create_recurring_instance(
         "#,
     )
     .bind(config.task_id)
-    .fetch_optional(pool)
+    .fetch_optional(&mut *tx)
     .await?
     .ok_or(RecurringQueryError::TaskNotFound)?;
 
@@ -428,7 +430,7 @@ pub async fn create_recurring_instance(
     .bind(source_task.tenant_id)
     .bind(source_task.created_by_id)
     .bind(now)
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
 
     // 3. Calculate next run
@@ -457,8 +459,10 @@ pub async fn create_recurring_instance(
     .bind(new_occurrences)
     .bind(next_run)
     .bind(!should_deactivate)
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
+
+    tx.commit().await?;
 
     Ok(new_task_id)
 }

@@ -174,10 +174,23 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
     let tx_clone = tx.clone();
     let forward_task = tokio::spawn(async move {
         loop {
+            // Acquire lock, get next message with timeout, then release lock immediately.
+            // The timeout ensures the lock is periodically released so the main loop
+            // can subscribe/unsubscribe without deadlocking.
             let msg = {
                 let mut guard = pubsub_clone.lock().await;
-                let next_msg = guard.on_message().next().await;
-                next_msg
+                let mut stream = guard.on_message();
+                let result = tokio::time::timeout(
+                    std::time::Duration::from_millis(100),
+                    stream.next(),
+                )
+                .await;
+                drop(stream);
+                drop(guard);
+                match result {
+                    Ok(msg) => msg,
+                    Err(_) => continue, // Timeout — release lock and retry
+                }
             };
 
             match msg {
@@ -454,6 +467,22 @@ async fn validate_channel_access(
             // Users can only subscribe to their own channel
             Ok(channel_id == user_id)
         }
+        "workspace" => {
+            // Verify user is a member of the workspace
+            let is_member = sqlx::query_scalar::<_, bool>(
+                r#"
+                SELECT EXISTS(
+                    SELECT 1 FROM workspace_members
+                    WHERE workspace_id = $1 AND user_id = $2
+                )
+                "#,
+            )
+            .bind(channel_id)
+            .bind(user_id)
+            .fetch_one(pool)
+            .await?;
+            Ok(is_member)
+        }
         _ => Ok(false),
     }
 }
@@ -475,6 +504,7 @@ fn is_valid_channel(channel: &str, user_id: Uuid, _tenant_id: Uuid) -> bool {
     match channel_type {
         "board" => true, // Format valid, actual auth done by validate_channel_access
         "user" => channel_id == user_id,
+        "workspace" => true, // Format valid, actual auth done by validate_channel_access
         _ => false,
     }
 }

@@ -1,0 +1,96 @@
+<p-toast />
+<div class="p-6 max-w-7xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-3xl font-bold">My Tasks</h1>
+    <p-button
+      label="Back to Dashboard"
+      icon="pi pi-th-large"
+      [outlined]="true"
+      routerLink="/dashboard"
+    />
+  </div>
+
+  <!-- Filters -->
+  <div class="mb-6">
+    <p-selectbutton
+      [options]="filterOptions"
+      [ngModel]="selectedFilter()"
+      (ngModelChange)="setFilter($event)"
+      optionLabel="label"
+      optionValue="value"
+    />
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex items-center justify-center py-12">
+      <i class="pi pi-spin pi-spinner text-4xl text-gray-400"></i>
+    </div>
+  } @else if (filteredTasks().length === 0) {
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+      <i class="pi pi-check-circle text-6xl text-gray-400 mb-4"></i>
+      <p class="text-gray-600 text-lg">No tasks found</p>
+      <p class="text-gray-500 text-sm">You're all caught up!</p>
+    </div>
+  } @else {
+    <!-- Grouped Tasks -->
+    <div class="space-y-6">
+      @for (group of groupedTasks(); track group[0]) {
+        <div>
+          <h2 class="text-xl font-semibold mb-3 flex items-center gap-2">
+            <i class="pi pi-folder"></i>
+            {{ group[1][0]?.board_name || 'Unknown Board' }}
+          </h2>
+          <div class="grid gap-3">
+            @for (task of group[1]; track task.id) {
+              <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer">
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                      <span class="text-xs text-gray-500">{{ task.column_name }}</span>
+                      <span
+                        class="text-xs px-2 py-1 rounded capitalize"
+                        [ngClass]="getPriorityBadgeClass(task.priority)"
+                      >
+                        {{ task.priority }}
+                      </span>
+                      @if (task.is_done) {
+                        <span class="text-xs px-2 py-1 rounded bg-green-100 text-green-800">Done</span>
+                      }
+                    </div>
+
+                    <h3 class="text-lg font-semibold mb-1">{{ task.title }}</h3>
+
+                    <div class="flex items-center gap-4 text-sm text-gray-600">
+                      @if (task.due_date) {
+                        <div class="flex items-center gap-1">
+                          <i
+                            class="pi pi-clock text-sm"
+                            [class.text-red-500]="isOverdue(task.due_date)"
+                            [class.text-orange-500]="isDueToday(task.due_date)"
+                          ></i>
+                          <span
+                            [class.text-red-500]="isOverdue(task.due_date)"
+                            [class.text-orange-500]="isDueToday(task.due_date)"
+                          >
+                            {{ formatDueDate(task.due_date) }}
+                          </span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+
+                  <p-button
+                    icon="pi pi-arrow-right"
+                    [rounded]="true"
+                    [text]="true"
+                    [routerLink]="['/boards', task.board_id]"
+                  />
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

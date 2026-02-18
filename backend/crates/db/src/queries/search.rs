@@ -43,12 +43,13 @@ pub struct SearchResults {
 pub async fn search_all(
     pool: &PgPool,
     tenant_id: Uuid,
+    user_id: Uuid,
     query: &str,
     limit: i64,
 ) -> Result<SearchResults, sqlx::Error> {
     let like_query = format!("%{}%", query);
 
-    // Search tasks using full-text search with ILIKE fallback
+    // Search tasks using full-text search with ILIKE fallback (board membership enforced)
     let tasks = sqlx::query_as::<_, TaskSearchResult>(
         r#"
         SELECT t.id, t.title, t.description, t.board_id,
@@ -57,6 +58,7 @@ pub async fn search_all(
         FROM tasks t
         JOIN boards b ON b.id = t.board_id
         JOIN workspaces w ON w.id = b.workspace_id
+        JOIN board_members bm ON bm.board_id = b.id AND bm.user_id = $5
         WHERE t.tenant_id = $1 AND t.deleted_at IS NULL AND b.deleted_at IS NULL
           AND (t.search_vector @@ plainto_tsquery('english', $2) OR t.title ILIKE $3)
         ORDER BY ts_rank(t.search_vector, plainto_tsquery('english', $2)) DESC
@@ -67,16 +69,18 @@ pub async fn search_all(
     .bind(query)
     .bind(&like_query)
     .bind(limit)
+    .bind(user_id)
     .fetch_all(pool)
     .await?;
 
-    // Search boards
+    // Search boards (board membership enforced)
     let boards = sqlx::query_as::<_, BoardSearchResult>(
         r#"
         SELECT b.id, b.name, b.description, b.workspace_id,
                w.name as workspace_name
         FROM boards b
         JOIN workspaces w ON w.id = b.workspace_id
+        JOIN board_members bm ON bm.board_id = b.id AND bm.user_id = $4
         WHERE b.tenant_id = $1 AND b.deleted_at IS NULL
           AND (b.name ILIKE $2 OR b.description ILIKE $2)
         LIMIT $3
@@ -85,10 +89,11 @@ pub async fn search_all(
     .bind(tenant_id)
     .bind(&like_query)
     .bind(limit)
+    .bind(user_id)
     .fetch_all(pool)
     .await?;
 
-    // Search comments
+    // Search comments (board membership enforced)
     let comments = sqlx::query_as::<_, CommentSearchResult>(
         r#"
         SELECT c.id, c.content, c.task_id,
@@ -97,6 +102,7 @@ pub async fn search_all(
         FROM comments c
         JOIN tasks t ON t.id = c.task_id
         JOIN boards b ON b.id = t.board_id
+        JOIN board_members bm ON bm.board_id = b.id AND bm.user_id = $4
         WHERE b.tenant_id = $1 AND c.deleted_at IS NULL AND t.deleted_at IS NULL
           AND c.content ILIKE $2
         LIMIT $3
@@ -105,6 +111,7 @@ pub async fn search_all(
     .bind(tenant_id)
     .bind(&like_query)
     .bind(limit)
+    .bind(user_id)
     .fetch_all(pool)
     .await?;
 

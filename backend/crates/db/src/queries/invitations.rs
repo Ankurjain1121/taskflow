@@ -68,6 +68,23 @@ pub async fn get_invitation_by_token(
     .await
 }
 
+/// Get an invitation by its ID
+pub async fn get_invitation_by_id(
+    pool: &PgPool,
+    id: Uuid,
+) -> Result<Option<Invitation>, sqlx::Error> {
+    sqlx::query_as::<_, Invitation>(
+        r#"
+        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids
+        FROM invitations
+        WHERE id = $1
+        "#,
+    )
+    .bind(id)
+    .fetch_optional(pool)
+    .await
+}
+
 /// Accept an invitation (sets accepted_at timestamp)
 pub async fn accept_invitation(pool: &PgPool, token: Uuid) -> Result<(), sqlx::Error> {
     sqlx::query(
