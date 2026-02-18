@@ -1,0 +1,26 @@
+Codemap Diff Report
+===================
+Generated: 2026-02-18
+Commit: dfb29e9
+
+Status: INITIAL GENERATION (no previous version)
+Diff percentage: N/A (100% new)
+
+Files created:
+  codemaps/architecture.md  - Overall system architecture
+  codemaps/backend.md       - Rust backend structure (100+ API endpoints, 35+ query modules)
+  codemaps/frontend.md      - Angular frontend structure (39 services, 25+ routes)
+  codemaps/data.md          - PostgreSQL schema (40 tables, 10 enums, 10 migrations)
+
+Coverage:
+  - 4 backend crates mapped (api, auth, db, services)
+  - 100+ API endpoints documented
+  - 35+ database query modules listed
+  - 39 frontend services cataloged
+  - 25+ frontend routes mapped
+  - 40 database tables with columns
+  - 15 Docker services documented
+  - CI/CD pipeline (5 GitHub Actions jobs)
+  - Key architectural decisions captured
+
+No approval needed (initial generation).
