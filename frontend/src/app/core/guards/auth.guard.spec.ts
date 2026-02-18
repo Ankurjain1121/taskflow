@@ -1,35 +1,42 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, UrlTree } from '@angular/router';
+import {
+  ActivatedRouteSnapshot,
+  Router,
+  RouterStateSnapshot,
+  UrlTree,
+} from '@angular/router';
 import { authGuard, publicOnlyGuard } from './auth.guard';
 import { AuthService } from '../services/auth.service';
 
 describe('auth guards', () => {
   let mockAuthService: { isAuthenticated: ReturnType<typeof vi.fn> };
-  let router: Router;
+  let mockRouter: {
+    createUrlTree: ReturnType<typeof vi.fn>;
+  };
 
-  const mockRoute = {} as any;
-  const mockState = { url: '/dashboard/boards' } as any;
+  const mockRoute: ActivatedRouteSnapshot = {} as ActivatedRouteSnapshot;
+
+  function createMockState(url: string): RouterStateSnapshot {
+    return { url } as RouterStateSnapshot;
+  }
+
+  const fakeUrlTree = {} as UrlTree;
 
   beforeEach(() => {
     mockAuthService = {
       isAuthenticated: vi.fn(),
     };
 
+    mockRouter = {
+      createUrlTree: vi.fn().mockReturnValue(fakeUrlTree),
+    };
+
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: mockAuthService },
-        {
-          provide: Router,
-          useValue: {
-            createUrlTree: (commands: string[], extras?: any) => {
-              return { commands, extras } as unknown as UrlTree;
-            },
-          },
-        },
+        { provide: Router, useValue: mockRouter },
       ],
     });
-
-    router = TestBed.inject(Router);
   });
 
   describe('authGuard', () => {
@@ -37,24 +44,60 @@ describe('auth guards', () => {
       mockAuthService.isAuthenticated.mockReturnValue(true);
 
       const result = TestBed.runInInjectionContext(() =>
-        authGuard(mockRoute, mockState),
+        authGuard(mockRoute, createMockState('/dashboard/boards')),
       );
 
       expect(result).toBe(true);
     });
 
-    it('should return UrlTree to /auth/sign-in when not authenticated', () => {
+    it('should not call router.createUrlTree when authenticated', () => {
+      mockAuthService.isAuthenticated.mockReturnValue(true);
+
+      TestBed.runInInjectionContext(() =>
+        authGuard(mockRoute, createMockState('/dashboard')),
+      );
+
+      expect(mockRouter.createUrlTree).not.toHaveBeenCalled();
+    });
+
+    it('should redirect to /auth/sign-in when not authenticated', () => {
       mockAuthService.isAuthenticated.mockReturnValue(false);
 
       const result = TestBed.runInInjectionContext(() =>
-        authGuard(mockRoute, mockState),
+        authGuard(mockRoute, createMockState('/dashboard/boards')),
       );
 
-      expect(result).not.toBe(true);
-      // Result should be a UrlTree (our mock returns an object with commands)
-      const tree = result as unknown as { commands: string[]; extras: any };
-      expect(tree.commands).toEqual(['/auth/sign-in']);
-      expect(tree.extras.queryParams.returnUrl).toBe('/dashboard/boards');
+      expect(result).toBe(fakeUrlTree);
+      expect(mockRouter.createUrlTree).toHaveBeenCalledWith(
+        ['/auth/sign-in'],
+        { queryParams: { returnUrl: '/dashboard/boards' } },
+      );
+    });
+
+    it('should pass the current URL as returnUrl query param', () => {
+      mockAuthService.isAuthenticated.mockReturnValue(false);
+
+      TestBed.runInInjectionContext(() =>
+        authGuard(mockRoute, createMockState('/projects/123/tasks')),
+      );
+
+      expect(mockRouter.createUrlTree).toHaveBeenCalledWith(
+        ['/auth/sign-in'],
+        { queryParams: { returnUrl: '/projects/123/tasks' } },
+      );
+    });
+
+    it('should handle root URL redirect', () => {
+      mockAuthService.isAuthenticated.mockReturnValue(false);
+
+      TestBed.runInInjectionContext(() =>
+        authGuard(mockRoute, createMockState('/')),
+      );
+
+      expect(mockRouter.createUrlTree).toHaveBeenCalledWith(
+        ['/auth/sign-in'],
+        { queryParams: { returnUrl: '/' } },
+      );
     });
   });
 
@@ -63,22 +106,41 @@ describe('auth guards', () => {
       mockAuthService.isAuthenticated.mockReturnValue(false);
 
       const result = TestBed.runInInjectionContext(() =>
-        publicOnlyGuard(mockRoute, mockState),
+        publicOnlyGuard(mockRoute, createMockState('/auth/sign-in')),
       );
 
       expect(result).toBe(true);
     });
 
-    it('should return UrlTree to /dashboard when user IS authenticated', () => {
+    it('should not call router.createUrlTree when not authenticated', () => {
+      mockAuthService.isAuthenticated.mockReturnValue(false);
+
+      TestBed.runInInjectionContext(() =>
+        publicOnlyGuard(mockRoute, createMockState('/auth/sign-in')),
+      );
+
+      expect(mockRouter.createUrlTree).not.toHaveBeenCalled();
+    });
+
+    it('should redirect to /dashboard when user IS authenticated', () => {
       mockAuthService.isAuthenticated.mockReturnValue(true);
 
       const result = TestBed.runInInjectionContext(() =>
-        publicOnlyGuard(mockRoute, mockState),
+        publicOnlyGuard(mockRoute, createMockState('/auth/sign-in')),
       );
 
-      expect(result).not.toBe(true);
-      const tree = result as unknown as { commands: string[] };
-      expect(tree.commands).toEqual(['/dashboard']);
+      expect(result).toBe(fakeUrlTree);
+      expect(mockRouter.createUrlTree).toHaveBeenCalledWith(['/dashboard']);
+    });
+
+    it('should redirect authenticated user regardless of current public URL', () => {
+      mockAuthService.isAuthenticated.mockReturnValue(true);
+
+      TestBed.runInInjectionContext(() =>
+        publicOnlyGuard(mockRoute, createMockState('/auth/sign-up')),
+      );
+
+      expect(mockRouter.createUrlTree).toHaveBeenCalledWith(['/dashboard']);
     });
   });
 });
