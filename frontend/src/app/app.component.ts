@@ -48,7 +48,7 @@ export class AppComponent implements OnInit {
     // Listen to route changes to determine if sidebar should be shown
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
-      .subscribe((event: any) => {
+      .subscribe((event: NavigationEnd) => {
         const url = event.url;
         // Hide sidebar on auth and onboarding routes
         const hideSidebar = url.startsWith('/auth') || url.startsWith('/onboarding');

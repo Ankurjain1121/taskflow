@@ -54,7 +54,6 @@ dashmap = "6"
 
 # S3/MinIO
 aws-sdk-s3 = { version = "1", features = ["behavior-version-latest"] }
-aws-config = { version = "1", features = ["behavior-version-latest"] }
 
 # Regex
 regex = "1"

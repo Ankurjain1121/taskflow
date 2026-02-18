@@ -37,7 +37,7 @@ interface ActionOption {
 
 interface ActionFormItem {
   action_type: AutomationActionType;
-  action_config: any;
+  action_config: Record<string, unknown>;
 }
 
 @Component({
@@ -481,23 +481,23 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
     }
   }
 
-  private buildTriggerConfig(): any {
+  private buildTriggerConfig(): Record<string, unknown> {
     switch (this.selectedTrigger) {
       case 'task_moved': {
-        const config: any = {};
-        if (this.triggerConfigFromColumn.trim()) config.from_column = this.triggerConfigFromColumn.trim();
-        if (this.triggerConfigToColumn.trim()) config.to_column = this.triggerConfigToColumn.trim();
+        const config: Record<string, unknown> = {};
+        if (this.triggerConfigFromColumn.trim()) config['from_column'] = this.triggerConfigFromColumn.trim();
+        if (this.triggerConfigToColumn.trim()) config['to_column'] = this.triggerConfigToColumn.trim();
         return config;
       }
       case 'task_priority_changed': {
-        const config: any = {};
-        if (this.triggerConfigFromPriority) config.from_priority = this.triggerConfigFromPriority;
-        if (this.triggerConfigToPriority) config.to_priority = this.triggerConfigToPriority;
+        const config: Record<string, unknown> = {};
+        if (this.triggerConfigFromPriority) config['from_priority'] = this.triggerConfigFromPriority;
+        if (this.triggerConfigToPriority) config['to_priority'] = this.triggerConfigToPriority;
         return config;
       }
       case 'task_assigned': {
-        const config: any = {};
-        if (this.triggerConfigAssignee.trim()) config.assignee_id = this.triggerConfigAssignee.trim();
+        const config: Record<string, unknown> = {};
+        if (this.triggerConfigAssignee.trim()) config['assignee_id'] = this.triggerConfigAssignee.trim();
         return config;
       }
       default:

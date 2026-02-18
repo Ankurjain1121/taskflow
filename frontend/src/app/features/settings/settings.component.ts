@@ -377,7 +377,7 @@ export class SettingsComponent implements OnInit {
     if (user) {
       this.profileData.name = user.name;
       this.profileData.email = user.email;
-      this.profileData.avatar_url = (user as any).avatar_url || '';
+      this.profileData.avatar_url = user.avatar_url || '';
     }
   }
 

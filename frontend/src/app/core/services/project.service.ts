@@ -35,7 +35,7 @@ export class ProjectService {
     return this.api.get<ProjectColumn[]>(`/projects/${projectId}/columns`);
   }
 
-  addColumn(projectId: string, data: { name: string; color?: string; status_mapping?: any }) {
+  addColumn(projectId: string, data: { name: string; color?: string; status_mapping?: Record<string, boolean> }) {
     return this.api.post<ProjectColumn>(`/projects/${projectId}/columns`, data);
   }
 
@@ -47,7 +47,7 @@ export class ProjectService {
     return this.api.put(`/columns/${columnId}/reorder`, { after_id: afterId, before_id: beforeId });
   }
 
-  updateStatusMapping(columnId: string, statusMapping: any) {
+  updateStatusMapping(columnId: string, statusMapping: Record<string, boolean>) {
     return this.api.put(`/columns/${columnId}/status-mapping`, { status_mapping: statusMapping });
   }
 

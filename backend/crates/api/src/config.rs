@@ -3,7 +3,6 @@ use std::fmt;
 
 #[derive(Clone)]
 pub struct Config {
-    pub database_url: String,
     pub app_database_url: String,
     pub host: String,
     pub port: u16,
@@ -19,8 +18,6 @@ pub struct Config {
     pub minio_access_key: String,
     pub minio_secret_key: String,
     pub minio_bucket: String,
-    pub postal_smtp_host: String,
-    pub postal_smtp_port: u16,
     pub postal_api_url: String,
     pub postal_api_key: String,
     pub postal_from_address: String,
@@ -29,8 +26,6 @@ pub struct Config {
     pub novu_api_key: String,
     pub lago_api_url: String,
     pub lago_api_key: String,
-    pub stripe_secret_key: String,
-    pub stripe_webhook_secret: String,
     pub waha_api_url: String,
     pub waha_api_key: String,
     pub app_url: String,
@@ -41,8 +36,6 @@ impl Config {
         dotenvy::dotenv().ok();
 
         Ok(Self {
-            database_url: env::var("DATABASE_URL")
-                .unwrap_or_else(|_| "postgresql://postgres:postgres@localhost:5432/taskflow".into()),
             app_database_url: env::var("APP_DATABASE_URL")
                 .unwrap_or_else(|_| env::var("DATABASE_URL")
                     .unwrap_or_else(|_| "postgresql://postgres:postgres@localhost:5432/taskflow".into())),
@@ -74,11 +67,6 @@ impl Config {
                 .map_err(|_| "MINIO_SECRET_KEY environment variable must be set")?,
             minio_bucket: env::var("MINIO_BUCKET")
                 .unwrap_or_else(|_| "task-attachments".into()),
-            postal_smtp_host: env::var("POSTAL_SMTP_HOST")
-                .unwrap_or_else(|_| "localhost".into()),
-            postal_smtp_port: env::var("POSTAL_SMTP_PORT")
-                .unwrap_or_else(|_| "25".into())
-                .parse()?,
             postal_api_url: env::var("POSTAL_API_URL")
                 .unwrap_or_else(|_| "http://localhost:5000".into()),
             postal_api_key: env::var("POSTAL_API_KEY").unwrap_or_default(),
@@ -92,8 +80,6 @@ impl Config {
             lago_api_url: env::var("LAGO_API_URL")
                 .unwrap_or_else(|_| "http://localhost:3000".into()),
             lago_api_key: env::var("LAGO_API_KEY").unwrap_or_default(),
-            stripe_secret_key: env::var("STRIPE_SECRET_KEY").unwrap_or_default(),
-            stripe_webhook_secret: env::var("STRIPE_WEBHOOK_SECRET").unwrap_or_default(),
             waha_api_url: env::var("WAHA_API_URL")
                 .unwrap_or_else(|_| "http://localhost:3000".into()),
             waha_api_key: env::var("WAHA_API_KEY").unwrap_or_default(),
@@ -109,7 +95,6 @@ impl fmt::Debug for Config {
             .field("host", &self.host)
             .field("port", &self.port)
             .field("app_url", &self.app_url)
-            .field("database_url", &"[REDACTED]")
             .field("jwt_secret", &"[REDACTED]")
             .field("jwt_refresh_secret", &"[REDACTED]")
             .field("minio_access_key", &"[REDACTED]")
@@ -117,8 +102,6 @@ impl fmt::Debug for Config {
             .field("postal_api_key", &"[REDACTED]")
             .field("novu_api_key", &"[REDACTED]")
             .field("lago_api_key", &"[REDACTED]")
-            .field("stripe_secret_key", &"[REDACTED]")
-            .field("stripe_webhook_secret", &"[REDACTED]")
             .field("waha_api_key", &"[REDACTED]")
             .finish()
     }

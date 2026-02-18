@@ -941,7 +941,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
             created_at: t.created_at,
             updated_at: t.updated_at,
             assignees: t.assignees,
-            labels: t.labels as any[],
+            labels: t.labels as Label[],
             subtask_completed: t.subtask_completed,
             subtask_total: t.subtask_total,
             has_running_timer: t.has_running_timer,

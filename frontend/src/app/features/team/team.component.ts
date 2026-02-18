@@ -397,8 +397,9 @@ export class TeamComponent implements OnInit {
           });
           this.loadData();
         },
-        error: (err: any) => {
-          const message = err?.error?.error?.message || 'Failed to update role';
+        error: (err: unknown) => {
+          const httpErr = err as { error?: { error?: { message?: string } } };
+          const message = httpErr?.error?.error?.message || 'Failed to update role';
           this.messageService.add({
             severity: 'error',
             summary: 'Error',

@@ -31,7 +31,6 @@ reqwest.workspace = true
 dotenvy.workspace = true
 dashmap.workspace = true
 aws-sdk-s3.workspace = true
-aws-config.workspace = true
 sha2.workspace = true
 futures-util = "0.3"
 

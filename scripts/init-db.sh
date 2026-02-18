@@ -154,9 +154,8 @@ create_minio_bucket() {
         log_info "Creating MinIO bucket '${MINIO_BUCKET}'..."
         mc mb myminio/"${MINIO_BUCKET}"
 
-        # Set bucket policy to allow public read (for attachments)
-        log_info "Setting bucket policy..."
-        mc anonymous set download myminio/"${MINIO_BUCKET}"
+        # Bucket is private by default — backend uses presigned URLs for access
+        log_info "Bucket created with private policy (presigned URLs required)"
 
         log_info "MinIO bucket created successfully"
     fi

@@ -9,7 +9,7 @@ export interface BoardCustomField {
   board_id: string;
   name: string;
   field_type: CustomFieldType;
-  options: any | null;
+  options: string[] | null;
   is_required: boolean;
   position: number;
   tenant_id: string;
@@ -36,7 +36,7 @@ export interface TaskCustomFieldValueWithField {
   field_id: string;
   field_name: string;
   field_type: CustomFieldType;
-  options: any | null;
+  options: string[] | null;
   is_required: boolean;
   value_text: string | null;
   value_number: number | null;
@@ -47,13 +47,13 @@ export interface TaskCustomFieldValueWithField {
 export interface CreateCustomFieldRequest {
   name: string;
   field_type: CustomFieldType;
-  options?: any;
+  options?: string[];
   is_required?: boolean;
 }
 
 export interface UpdateCustomFieldRequest {
   name?: string;
-  options?: any;
+  options?: string[];
   is_required?: boolean;
   position?: number;
 }

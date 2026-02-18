@@ -23,7 +23,7 @@ export interface AutomationRule {
   name: string;
   board_id: string;
   trigger: AutomationTrigger;
-  trigger_config: any;
+  trigger_config: Record<string, unknown>;
   is_active: boolean;
   tenant_id: string;
   created_by_id: string;
@@ -35,7 +35,7 @@ export interface AutomationAction {
   id: string;
   rule_id: string;
   action_type: AutomationActionType;
-  action_config: any;
+  action_config: Record<string, unknown>;
   position: number;
 }
 
@@ -45,7 +45,7 @@ export interface AutomationLog {
   task_id: string | null;
   triggered_at: string;
   status: string;
-  details: any | null;
+  details: Record<string, unknown> | null;
 }
 
 export interface AutomationRuleWithActions {
@@ -55,20 +55,20 @@ export interface AutomationRuleWithActions {
 
 export interface CreateActionRequest {
   action_type: AutomationActionType;
-  action_config?: any;
+  action_config?: Record<string, unknown>;
 }
 
 export interface CreateRuleRequest {
   name: string;
   trigger: AutomationTrigger;
-  trigger_config?: any;
+  trigger_config?: Record<string, unknown>;
   actions: CreateActionRequest[];
 }
 
 export interface UpdateRuleRequest {
   name?: string;
   trigger?: AutomationTrigger;
-  trigger_config?: any;
+  trigger_config?: Record<string, unknown>;
   is_active?: boolean;
   actions?: CreateActionRequest[];
 }
