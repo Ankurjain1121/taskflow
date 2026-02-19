@@ -63,7 +63,7 @@ const DEFAULT_FILTERS: TaskFilters = {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="toolbar-wrapper border-b border-gray-200/80 px-5 py-3">
+    <div class="toolbar-wrapper border-b border-[var(--border)] px-5 py-3">
       <div class="flex items-center gap-3 flex-wrap">
         <!-- Search Input -->
         <p-iconfield class="flex-1 min-w-[200px] max-w-md">
@@ -137,7 +137,9 @@ const DEFAULT_FILTERS: TaskFilters = {
             styleClass="w-auto"
             inputStyleClass="text-sm py-2"
           />
-          <span class="text-gray-400 text-xs font-medium">to</span>
+          <span class="text-[var(--muted-foreground)] text-xs font-medium"
+            >to</span
+          >
           <p-datePicker
             [(ngModel)]="dueDateEndValue"
             (ngModelChange)="onDueDateEndPickerChange($event)"
@@ -188,7 +190,7 @@ const DEFAULT_FILTERS: TaskFilters = {
       }
 
       .toolbar-wrapper {
-        background: rgba(255, 255, 255, 0.85);
+        background: color-mix(in srgb, var(--card) 85%, transparent);
         backdrop-filter: blur(12px) saturate(180%);
         -webkit-backdrop-filter: blur(12px) saturate(180%);
       }

@@ -3,20 +3,20 @@ import {
   input,
   output,
   ChangeDetectionStrategy,
-} from "@angular/core";
-import { CommonModule } from "@angular/common";
-import { TableModule } from "primeng/table";
-import { TaskListItem } from "../../../core/services/task.service";
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { TableModule } from 'primeng/table';
+import { TaskListItem } from '../../../core/services/task.service';
 import {
   getPriorityLabel,
   getPriorityColorHex,
   getDueDateColor,
   isOverdue,
   isToday,
-} from "../../../shared/utils/task-colors";
+} from '../../../shared/utils/task-colors';
 
 @Component({
-  selector: "app-list-view",
+  selector: 'app-list-view',
   standalone: true,
   imports: [CommonModule, TableModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -44,9 +44,7 @@ import {
             <th style="width: 3rem">
               <p-tableHeaderCheckbox />
             </th>
-            <th pSortableColumn="title">
-              Title <p-sortIcon field="title" />
-            </th>
+            <th pSortableColumn="title">Title <p-sortIcon field="title" /></th>
             <th pSortableColumn="priority" style="width: 120px">
               Priority <p-sortIcon field="priority" />
             </th>
@@ -71,11 +69,13 @@ import {
               <p-tableCheckbox [value]="task" />
             </td>
             <td>
-              <div class="text-sm font-medium text-gray-900">
+              <div class="text-sm font-medium text-[var(--foreground)]">
                 {{ task.title }}
               </div>
               @if (task.description) {
-                <div class="text-xs text-gray-500 line-clamp-1 mt-0.5">
+                <div
+                  class="text-xs text-[var(--muted-foreground)] line-clamp-1 mt-0.5"
+                >
                   {{ task.description }}
                 </div>
               }
@@ -92,8 +92,8 @@ import {
               <div
                 class="flex items-center justify-center h-8 rounded text-xs font-medium cursor-pointer transition-opacity hover:opacity-85"
                 style="
-                  background: var(--surface-200, #e5e7eb);
-                  color: var(--surface-700, #374151);
+                  background: var(--secondary);
+                  color: var(--secondary-foreground);
                 "
               >
                 {{ task.column_name }}
@@ -107,11 +107,11 @@ import {
                   {{ formatDueDate(task.due_date) }}
                 </span>
               } @else {
-                <span class="text-sm text-gray-400">--</span>
+                <span class="text-sm text-[var(--muted-foreground)]">--</span>
               }
             </td>
             <td>
-              <span class="text-sm text-gray-500">
+              <span class="text-sm text-[var(--muted-foreground)]">
                 {{ formatDate(task.created_at) }}
               </span>
             </td>
@@ -120,7 +120,7 @@ import {
         <ng-template #emptymessage>
           <tr>
             <td colspan="6" class="text-center py-12">
-              <p class="text-sm text-gray-500">
+              <p class="text-sm text-[var(--muted-foreground)]">
                 No tasks match your filters
               </p>
             </td>
@@ -197,7 +197,7 @@ export class ListViewComponent {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     if (isToday(date)) {
-      return "Today";
+      return 'Today';
     }
 
     if (
@@ -205,7 +205,7 @@ export class ListViewComponent {
       dueDate.getMonth() === tomorrow.getMonth() &&
       dueDate.getFullYear() === tomorrow.getFullYear()
     ) {
-      return "Tomorrow";
+      return 'Tomorrow';
     }
 
     if (isOverdue(date)) {
@@ -215,17 +215,17 @@ export class ListViewComponent {
       return `Overdue (${diffDays}d)`;
     }
 
-    return dueDate.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
+    return dueDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
     });
   }
 
   formatDate(date: string): string {
-    return new Date(date).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
     });
   }
 }

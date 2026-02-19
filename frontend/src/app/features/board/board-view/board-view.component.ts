@@ -104,16 +104,16 @@ import { DependencyService } from '../../../core/services/dependency.service';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="h-screen flex flex-col bg-gray-50">
+    <div class="h-screen flex flex-col bg-[var(--background)]">
       <!-- Header -->
-      <div class="bg-white border-b border-gray-200 px-6 py-4">
+      <div class="bg-[var(--card)] border-b border-[var(--border)] px-6 py-4">
         <div class="flex items-center justify-between">
           <div>
-            <h1 class="text-2xl font-bold text-gray-900">
+            <h1 class="text-2xl font-bold text-[var(--foreground)]">
               {{ board()?.name || 'Loading...' }}
             </h1>
             @if (board()?.description) {
-              <p class="text-sm text-gray-500 mt-1">
+              <p class="text-sm text-[var(--muted-foreground)] mt-1">
                 {{ board()?.description }}
               </p>
             }
@@ -128,7 +128,7 @@ import { DependencyService } from '../../../core/services/dependency.service';
                 boardId,
                 'settings',
               ]"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--foreground)] bg-[var(--card)] border border-[var(--border)] rounded-md hover:bg-[var(--muted)]"
             >
               <svg
                 class="w-4 h-4"
@@ -155,7 +155,7 @@ import { DependencyService } from '../../../core/services/dependency.service';
             <!-- Add Group Button -->
             <button
               (click)="onCreateGroup()"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--foreground)] bg-[var(--card)] border border-[var(--border)] rounded-md hover:bg-[var(--muted)]"
             >
               <svg
                 class="w-4 h-4"
@@ -207,7 +207,7 @@ import { DependencyService } from '../../../core/services/dependency.service';
 
       <!-- Task Group Headers -->
       @if (boardGroups().length > 1) {
-        <div class="px-4 py-2 bg-white border-b border-gray-200 space-y-1">
+        <div class="px-4 py-2 bg-[var(--card)] border-b border-[var(--border)] space-y-1">
           @for (group of boardGroups(); track group.group.id) {
             <app-task-group-header
               [groupData]="group"
@@ -226,7 +226,7 @@ import { DependencyService } from '../../../core/services/dependency.service';
           <div class="flex gap-4 h-full">
             @for (i of [1, 2, 3, 4]; track i) {
               <div class="flex-shrink-0 w-72">
-                <div class="bg-white rounded-lg border border-gray-200 p-3">
+                <div class="widget-card p-3">
                   <div
                     class="skeleton skeleton-text w-24 mb-4"
                     style="height: 14px;"
@@ -234,7 +234,7 @@ import { DependencyService } from '../../../core/services/dependency.service';
                   <div class="space-y-3">
                     @for (j of [1, 2, 3]; track j) {
                       <div
-                        class="bg-gray-50 rounded-lg p-3 border border-gray-100"
+                        class="bg-[var(--muted)] rounded-lg p-3 border border-[var(--border)]"
                       >
                         <div class="skeleton skeleton-text w-full mb-2"></div>
                         <div class="skeleton skeleton-text w-3/4 mb-3"></div>
@@ -308,7 +308,7 @@ import { DependencyService } from '../../../core/services/dependency.service';
             <div class="flex-shrink-0">
               <button
                 (click)="onAddColumn()"
-                class="w-72 h-12 flex items-center justify-center gap-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-600 transition-colors"
+                class="w-72 h-12 flex items-center justify-center gap-2 bg-[var(--secondary)] hover:bg-[var(--muted)] rounded-lg text-[var(--muted-foreground)] transition-colors"
               >
                 <svg
                   class="w-5 h-5"
@@ -383,10 +383,10 @@ import { DependencyService } from '../../../core/services/dependency.service';
       <!-- Snackbar for errors -->
       @if (errorMessage()) {
         <div
-          class="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3"
+          class="fixed bottom-4 right-4 bg-[var(--destructive)] text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3"
         >
           <span>{{ errorMessage() }}</span>
-          <button (click)="clearError()" class="hover:text-red-200">
+          <button (click)="clearError()" class="hover:opacity-70">
             <svg
               class="w-5 h-5"
               fill="none"
@@ -623,20 +623,25 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       newPosition = Date.now().toString();
     }
 
-    // Optimistic update already done by CDK
-    // Update the task's position and column_id in our state
+    // Rebuild state from scratch — CDK mutates arrays in place but signals
+    // need new references to trigger change detection.
     this.boardState.update((state) => {
-      const newState = { ...state };
+      const newState: Record<string, Task[]> = {};
 
-      // Update task in target column
-      if (newState[event.targetColumnId]) {
-        newState[event.targetColumnId] = newState[event.targetColumnId].map(
-          (t) =>
-            t.id === event.task.id
-              ? { ...t, column_id: event.targetColumnId, position: newPosition }
-              : t,
-        );
+      for (const [columnId, tasks] of Object.entries(state)) {
+        // Remove the moved task from every column
+        newState[columnId] = tasks.filter((t) => t.id !== event.task.id);
       }
+
+      // Insert the task at the correct position in the target column
+      const updatedTask = {
+        ...event.task,
+        column_id: event.targetColumnId,
+        position: newPosition,
+      };
+      const targetTasks = [...(newState[event.targetColumnId] || [])];
+      targetTasks.splice(event.currentIndex, 0, updatedTask);
+      newState[event.targetColumnId] = targetTasks;
 
       return newState;
     });
