@@ -55,17 +55,18 @@ type ViewMode = 'assigned' | 'created';
   imports: [CommonModule, FormsModule, RouterModule, TaskListItemComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-gray-50">
+    <div class="min-h-screen" style="background: var(--background)">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Welcome Banner -->
         @if (summary()) {
           <div
-            class="mb-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-6 text-white"
+            class="mb-6 rounded-xl p-6 animate-fade-in-up"
+            style="background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 70%, #7c3aed)); color: var(--primary-foreground)"
           >
             <h1 class="text-3xl font-bold mb-2">
               {{ getGreeting() }}, {{ userName() }}!
             </h1>
-            <div class="flex items-center gap-6 text-sm">
+            <div class="flex items-center gap-6 text-sm opacity-95">
               <span>
                 <span class="font-semibold text-lg">{{
                   summary()!.total_assigned
@@ -100,15 +101,19 @@ type ViewMode = 'assigned' | 'created';
         <!-- View Toggle & Quick Add -->
         <div class="mb-4 flex items-center justify-between">
           <div
-            class="inline-flex rounded-lg border border-gray-300 bg-white p-1"
+            class="inline-flex rounded-lg p-1"
+            style="border: 1px solid var(--border); background: var(--card)"
           >
             <button
               (click)="viewMode.set('assigned')"
               class="px-4 py-2 text-sm font-medium rounded-md transition-colors"
               [class]="
                 viewMode() === 'assigned'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
+                  : 'hover:bg-[var(--muted)]'
+              "
+              [style.color]="
+                viewMode() !== 'assigned' ? 'var(--foreground)' : ''
               "
             >
               My Tasks
@@ -118,8 +123,11 @@ type ViewMode = 'assigned' | 'created';
               class="px-4 py-2 text-sm font-medium rounded-md transition-colors"
               [class]="
                 viewMode() === 'created'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
+                  : 'hover:bg-[var(--muted)]'
+              "
+              [style.color]="
+                viewMode() !== 'created' ? 'var(--foreground)' : ''
               "
             >
               Tasks I Created
@@ -129,7 +137,8 @@ type ViewMode = 'assigned' | 'created';
           <div class="flex items-center gap-2">
             <a
               routerLink="/eisenhower"
-              class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              class="btn-press inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              style="background: var(--card); border: 1px solid var(--border); color: var(--foreground)"
             >
               <svg
                 class="w-4 h-4"
@@ -153,7 +162,10 @@ type ViewMode = 'assigned' | 'created';
         @if (loading()) {
           <div class="space-y-4">
             @for (i of [1, 2, 3]; track i) {
-              <div class="bg-white rounded-lg border border-gray-200 p-4">
+              <div
+                class="rounded-lg p-4"
+                style="background: var(--card); border: 1px solid var(--border)"
+              >
                 <div class="skeleton skeleton-text w-32 mb-3"></div>
                 <div class="space-y-2">
                   @for (j of [1, 2, 3]; track j) {
@@ -166,17 +178,19 @@ type ViewMode = 'assigned' | 'created';
         } @else {
           <!-- Timeline Groups -->
           <div class="space-y-4">
-            @for (group of groups; track group.key) {
+            @for (group of groups; track group.key; let gi = $index) {
               @let groupTasks = groupedTasks()[group.key];
               @if (groupTasks.length > 0 || group.key === 'overdue') {
                 <div
-                  class="bg-white rounded-lg border-2 transition-all"
+                  class="rounded-lg border transition-all animate-fade-in-up"
                   [style.border-color]="group.color"
+                  [style.background]="'var(--card)'"
+                  [style.animation-delay]="gi * 0.06 + 's'"
                 >
                   <!-- Group Header -->
                   <button
                     (click)="toggleGroup(group.key)"
-                    class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                    class="w-full px-6 py-4 flex items-center justify-between transition-colors rounded-t-lg"
                     [style.background]="group.bgColor"
                   >
                     <div class="flex items-center gap-3">
@@ -186,6 +200,7 @@ type ViewMode = 'assigned' | 'created';
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
+                        style="color: var(--foreground)"
                       >
                         <path
                           stroke-linecap="round"
@@ -194,15 +209,23 @@ type ViewMode = 'assigned' | 'created';
                           d="M9 5l7 7-7 7"
                         />
                       </svg>
-                      <h2 class="text-lg font-semibold text-gray-900">
+                      <h2
+                        class="text-lg font-semibold"
+                        style="color: var(--foreground)"
+                      >
                         {{ group.title }}
                       </h2>
                       <span
                         class="px-2.5 py-0.5 rounded-full text-xs font-medium"
-                        [class]="
+                        [style.background]="
                           group.key === 'overdue'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-gray-100 text-gray-600'
+                            ? 'var(--status-red-bg)'
+                            : 'var(--muted)'
+                        "
+                        [style.color]="
+                          group.key === 'overdue'
+                            ? 'var(--status-red-text)'
+                            : 'var(--muted-foreground)'
                         "
                       >
                         {{ groupTasks.length }}
@@ -216,7 +239,10 @@ type ViewMode = 'assigned' | 'created';
                       @for (task of groupTasks; track task.id) {
                         <app-task-list-item [task]="task"></app-task-list-item>
                       } @empty {
-                        <div class="text-center py-8 text-gray-400">
+                        <div
+                          class="text-center py-8"
+                          style="color: var(--muted-foreground)"
+                        >
                           <p class="text-sm">No tasks in this group</p>
                         </div>
                       }
@@ -229,9 +255,10 @@ type ViewMode = 'assigned' | 'created';
 
           <!-- Empty State -->
           @if (allTasks().length === 0) {
-            <div class="text-center py-16">
+            <div class="text-center py-16 animate-fade-in-up">
               <div
-                class="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-emerald-100 via-teal-50 to-indigo-100 flex items-center justify-center mb-5"
+                class="mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-5"
+                style="background: color-mix(in srgb, var(--success) 12%, var(--card))"
               >
                 <svg
                   class="w-10 h-10 text-emerald-500"
@@ -247,10 +274,16 @@ type ViewMode = 'assigned' | 'created';
                   />
                 </svg>
               </div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">
+              <h3
+                class="text-lg font-semibold mb-2"
+                style="color: var(--foreground)"
+              >
                 You're all caught up!
               </h3>
-              <p class="text-sm text-gray-500 max-w-xs mx-auto">
+              <p
+                class="text-sm max-w-xs mx-auto"
+                style="color: var(--muted-foreground)"
+              >
                 No tasks
                 {{
                   viewMode() === 'created'
@@ -267,15 +300,25 @@ type ViewMode = 'assigned' | 'created';
   `,
   styles: [
     `
-      @reference "tailwindcss";
       .skeleton {
-        @apply animate-pulse bg-gray-200 rounded;
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        background: var(--muted);
+        border-radius: 0.25rem;
       }
       .skeleton-text {
-        @apply h-4;
+        height: 1rem;
       }
       .skeleton-card {
-        @apply h-20;
+        height: 5rem;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
       }
     `,
   ],
@@ -298,50 +341,50 @@ export class MyTasksTimelineComponent implements OnInit, OnDestroy {
     {
       key: 'overdue',
       title: 'Overdue',
-      color: '#dc2626',
-      bgColor: '#fef2f2',
+      color: 'var(--status-red-border)',
+      bgColor: 'var(--status-red-bg)',
       defaultCollapsed: false,
     },
     {
       key: 'today',
       title: 'Today',
-      color: '#2563eb',
-      bgColor: '#eff6ff',
+      color: 'var(--status-blue-border)',
+      bgColor: 'var(--status-blue-bg)',
       defaultCollapsed: false,
     },
     {
       key: 'this_week',
       title: 'This Week',
-      color: '#16a34a',
-      bgColor: '#f0fdf4',
+      color: 'var(--status-green-border)',
+      bgColor: 'var(--status-green-bg)',
       defaultCollapsed: false,
     },
     {
       key: 'next_week',
       title: 'Next Week',
-      color: '#9333ea',
-      bgColor: '#faf5ff',
+      color: 'color-mix(in srgb, var(--primary) 40%, transparent)',
+      bgColor: 'color-mix(in srgb, var(--primary) 6%, var(--card))',
       defaultCollapsed: false,
     },
     {
       key: 'later',
       title: 'Later',
-      color: '#6b7280',
-      bgColor: '#f9fafb',
+      color: 'var(--border)',
+      bgColor: 'var(--muted)',
       defaultCollapsed: true,
     },
     {
       key: 'no_due_date',
       title: 'No Due Date',
-      color: '#6b7280',
-      bgColor: '#f9fafb',
+      color: 'var(--border)',
+      bgColor: 'var(--muted)',
       defaultCollapsed: true,
     },
     {
       key: 'completed_today',
       title: 'Completed Today',
-      color: '#059669',
-      bgColor: '#ecfdf5',
+      color: 'var(--status-green-border)',
+      bgColor: 'var(--status-green-bg)',
       defaultCollapsed: true,
     },
   ];

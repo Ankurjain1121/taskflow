@@ -86,7 +86,7 @@ import {
           </div>
         } @else if (board()) {
           <!-- General Settings -->
-          <section class="mb-8">
+          <section class="mb-8 animate-fade-in-up">
             <div class="bg-[var(--card)] shadow rounded-lg">
               <div class="px-6 py-4 border-b border-[var(--border)]">
                 <h2 class="text-lg font-medium text-[var(--foreground)]">
@@ -137,7 +137,7 @@ import {
                   <button
                     type="submit"
                     [disabled]="saving() || form.invalid || !form.dirty"
-                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="btn-press inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     @if (saving()) {
                       <svg
@@ -170,12 +170,12 @@ import {
           </section>
 
           <!-- Columns Section -->
-          <section class="mb-8">
+          <section class="mb-8 animate-fade-in-up stagger-2">
             <app-column-manager [boardId]="boardId"></app-column-manager>
           </section>
 
           <!-- Members Section -->
-          <section class="mb-8">
+          <section class="mb-8 animate-fade-in-up stagger-3">
             <div class="bg-[var(--card)] shadow rounded-lg">
               <div class="px-6 py-4 border-b border-[var(--border)]">
                 <div class="flex items-center justify-between">
@@ -297,10 +297,19 @@ import {
           @if (canDeleteBoard()) {
             <section>
               <div
-                class="bg-[var(--card)] shadow rounded-lg border-2 border-red-200"
+                class="shadow rounded-lg border-2"
+                style="background: var(--card); border-color: var(--status-red-border)"
               >
-                <div class="px-6 py-4 border-b border-red-200 bg-red-50">
-                  <h2 class="text-lg font-medium text-red-800">Danger Zone</h2>
+                <div
+                  class="px-6 py-4"
+                  style="border-bottom: 1px solid var(--status-red-border); background: var(--status-red-bg)"
+                >
+                  <h2
+                    class="text-lg font-medium"
+                    style="color: var(--status-red-text)"
+                  >
+                    Danger Zone
+                  </h2>
                 </div>
                 <div class="px-6 py-4">
                   <div class="flex items-center justify-between">
@@ -316,7 +325,8 @@ import {
                     <button
                       (click)="onDeleteBoard()"
                       [disabled]="deleting()"
-                      class="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                      class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                      style="border: 1px solid var(--status-red-border); color: var(--status-red-text); background: var(--card)"
                     >
                       @if (deleting()) {
                         <svg

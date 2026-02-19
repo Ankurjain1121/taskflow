@@ -4,7 +4,6 @@ import {
   ChangeDetectionStrategy,
   inject,
   signal,
-  computed,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -60,7 +59,9 @@ import {
               <h1 class="text-3xl font-bold text-[var(--foreground)]">
                 {{ workspace()?.name }}
               </h1>
-              <p class="text-[var(--muted-foreground)] mt-1">Workspace overview</p>
+              <p class="text-[var(--muted-foreground)] mt-1">
+                Workspace overview
+              </p>
             </div>
             <div class="flex items-center gap-3">
               <a
@@ -81,10 +82,8 @@ import {
           </div>
 
           <!-- Stats Row -->
-          <div
-            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8"
-          >
-            <div class="widget-card p-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            <div class="widget-card p-5 animate-fade-in-up stagger-1">
               <div class="flex items-center gap-3">
                 <div
                   class="w-10 h-10 rounded-lg bg-[var(--status-blue-bg)] flex items-center justify-center"
@@ -101,7 +100,7 @@ import {
                 </div>
               </div>
             </div>
-            <div class="widget-card p-5">
+            <div class="widget-card p-5 animate-fade-in-up stagger-2">
               <div class="flex items-center gap-3">
                 <div
                   class="w-10 h-10 rounded-lg bg-[var(--status-green-bg)] flex items-center justify-center"
@@ -118,26 +117,13 @@ import {
                 </div>
               </div>
             </div>
-            <div class="widget-card p-5">
-              <div class="flex items-center gap-3">
-                <div
-                  class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center"
-                >
-                  <i class="pi pi-objects-column text-purple-600"></i>
-                </div>
-                <div>
-                  <p class="text-2xl font-bold text-[var(--foreground)]">
-                    {{ totalTaskEstimate() }}
-                  </p>
-                  <p class="text-sm text-[var(--muted-foreground)]">Est. Tasks</p>
-                </div>
-              </div>
-            </div>
           </div>
 
           <!-- Board Grid Header -->
           <div class="flex items-center justify-between mb-5">
-            <h2 class="text-xl font-semibold text-[var(--foreground)]">Boards</h2>
+            <h2 class="text-xl font-semibold text-[var(--foreground)]">
+              Boards
+            </h2>
             <p-button
               icon="pi pi-plus"
               label="Create Board"
@@ -167,9 +153,7 @@ import {
                   />
                 </svg>
               </div>
-              <h3
-                class="text-lg font-semibold text-[var(--foreground)] mb-2"
-              >
+              <h3 class="text-lg font-semibold text-[var(--foreground)] mb-2">
                 Create your first board
               </h3>
               <p class="text-[var(--muted-foreground)] mb-6 max-w-sm mx-auto">
@@ -193,39 +177,56 @@ import {
                     'board',
                     board.id,
                   ]"
-                  class="animate-fade-in-up bg-[var(--card)] rounded-xl border border-[var(--border)] p-5 hover:shadow-md hover:border-[var(--primary)] transition-all duration-200 cursor-pointer group block"
+                  class="animate-fade-in-up bg-[var(--card)] rounded-xl border border-[var(--border)] hover:shadow-md hover:border-[var(--primary)] transition-all duration-200 cursor-pointer group block overflow-hidden"
                   [style.animation-delay]="i * 0.06 + 's'"
                 >
-                  <div class="flex items-start justify-between mb-3">
-                    <div
-                      class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors"
-                    >
-                      <i class="pi pi-objects-column text-blue-600"></i>
+                  <!-- Colored top accent stripe -->
+                  <div
+                    class="h-1"
+                    [style.background]="getBoardAccentColor(i)"
+                  ></div>
+                  <div class="p-5">
+                    <div class="flex items-start justify-between mb-3">
+                      <div
+                        class="w-10 h-10 rounded-lg flex items-center justify-center transition-colors"
+                        [style.background]="getBoardAccentColor(i) + '18'"
+                      >
+                        <i
+                          class="pi pi-objects-column"
+                          [style.color]="getBoardAccentColor(i)"
+                        ></i>
+                      </div>
+                      <i
+                        class="pi pi-arrow-right text-[var(--muted-foreground)] group-hover:text-[var(--primary)] transition-colors"
+                      ></i>
                     </div>
-                    <i
-                      class="pi pi-arrow-right text-[var(--muted-foreground)] group-hover:text-[var(--primary)] transition-colors"
-                    ></i>
-                  </div>
-                  <h3
-                    class="text-lg font-semibold text-[var(--foreground)] mb-1 group-hover:text-[var(--primary)] transition-colors"
-                  >
-                    {{ board.name }}
-                  </h3>
-                  @if (board.description) {
-                    <p class="text-sm text-[var(--muted-foreground)] line-clamp-2 mb-3">
-                      {{ board.description }}
-                    </p>
-                  } @else {
-                    <p class="text-sm text-[var(--muted-foreground)] italic mb-3">
-                      No description
-                    </p>
-                  }
-                  <div class="flex items-center text-xs text-[var(--muted-foreground)]">
-                    <i
-                      class="pi pi-calendar mr-1"
-                      style="font-size: 0.75rem;"
-                    ></i>
-                    Created {{ formatDate(board.created_at) }}
+                    <h3
+                      class="text-lg font-semibold text-[var(--foreground)] mb-1 group-hover:text-[var(--primary)] transition-colors"
+                    >
+                      {{ board.name }}
+                    </h3>
+                    @if (board.description) {
+                      <p
+                        class="text-sm text-[var(--muted-foreground)] line-clamp-2 mb-3"
+                      >
+                        {{ board.description }}
+                      </p>
+                    } @else {
+                      <p
+                        class="text-sm text-[var(--muted-foreground)] italic mb-3"
+                      >
+                        No description
+                      </p>
+                    }
+                    <div
+                      class="flex items-center text-xs text-[var(--muted-foreground)]"
+                    >
+                      <i
+                        class="pi pi-calendar mr-1"
+                        style="font-size: 0.75rem;"
+                      ></i>
+                      Created {{ formatDate(board.created_at) }}
+                    </div>
                   </div>
                 </a>
               }
@@ -267,10 +268,16 @@ export class WorkspaceComponent implements OnInit {
   error = signal<string | null>(null);
   showCreateBoardDialog = signal(false);
 
-  totalTaskEstimate = computed(() => {
-    // Each board is estimated at ~10 tasks as a rough indicator
-    return this.boards().length * 10;
-  });
+  private boardAccentColors = [
+    '#6366f1',
+    '#3b82f6',
+    '#10b981',
+    '#f59e0b',
+    '#ef4444',
+    '#8b5cf6',
+    '#06b6d4',
+    '#ec4899',
+  ];
 
   ngOnInit(): void {
     this.route.paramMap.subscribe((params) => {
@@ -334,6 +341,10 @@ export class WorkspaceComponent implements OnInit {
           // Error handling - board creation failed
         },
       });
+  }
+
+  getBoardAccentColor(index: number): string {
+    return this.boardAccentColors[index % this.boardAccentColors.length];
   }
 
   formatDate(dateStr: string): string {

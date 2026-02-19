@@ -128,8 +128,8 @@ import {
         <div class="flex gap-1 mb-0 px-3 pt-3">
           @for (label of task().labels!; track label.id) {
             <div
-              class="h-1 rounded-full"
-              [style.width.px]="32"
+              class="h-1.5 rounded-full"
+              [style.width.px]="40"
               [style.background-color]="label.color"
               [title]="label.name"
             ></div>
@@ -201,7 +201,11 @@ import {
         >
           <div class="flex items-center gap-2">
             <!-- Priority Flag Icon -->
-            <svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 12 12" fill="none">
+            <svg
+              class="w-3.5 h-3.5 flex-shrink-0"
+              viewBox="0 0 12 12"
+              fill="none"
+            >
               <path
                 d="M2 1v10M2 1h7l-2 3 2 3H2"
                 [attr.stroke]="getPriorityFlagColor()"
@@ -210,6 +214,12 @@ import {
                 stroke-linejoin="round"
               />
             </svg>
+            <span
+              class="text-[10px] font-semibold uppercase tracking-wider"
+              [style.color]="getPriorityFlagColor()"
+            >
+              {{ priorityLabel }}
+            </span>
 
             <!-- Due Date -->
             @if (task().due_date) {

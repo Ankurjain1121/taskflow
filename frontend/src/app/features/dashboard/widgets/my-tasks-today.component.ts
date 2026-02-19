@@ -9,7 +9,10 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { MyTasksService, MyTask } from '../../../core/services/my-tasks.service';
+import {
+  MyTasksService,
+  MyTask,
+} from '../../../core/services/my-tasks.service';
 
 @Component({
   selector: 'app-my-tasks-today',
@@ -23,25 +26,36 @@ import { MyTasksService, MyTask } from '../../../core/services/my-tasks.service'
           <i class="pi pi-calendar text-indigo-500 text-sm"></i>
           My Tasks Today
         </h3>
-        <a routerLink="/my-tasks"
-           class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
+        <a
+          routerLink="/my-tasks"
+          class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+        >
           View all
         </a>
       </div>
 
       @if (loading()) {
         <div class="space-y-2">
-          @for (i of [1,2,3]; track i) {
+          @for (i of [1, 2, 3]; track i) {
             <div class="skeleton skeleton-row"></div>
           }
         </div>
       } @else if (filteredTasks().length === 0) {
-        <div class="text-center py-6">
-          <div class="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-3" style="background: var(--muted)">
-            <i class="pi pi-check-circle text-2xl text-emerald-500"></i>
+        <div class="flex items-center gap-3 py-2 px-1">
+          <div
+            class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+            style="background: color-mix(in srgb, var(--success) 12%, transparent)"
+          >
+            <i class="pi pi-check-circle text-sm text-emerald-500"></i>
           </div>
-          <p class="text-sm font-medium" style="color: var(--foreground)">You're all caught up!</p>
-          <p class="text-xs mt-0.5" style="color: var(--muted-foreground)">No tasks due today or overdue</p>
+          <div>
+            <p class="text-sm font-medium" style="color: var(--foreground)">
+              You're all caught up!
+            </p>
+            <p class="text-xs" style="color: var(--muted-foreground)">
+              No tasks due today or overdue
+            </p>
+          </div>
         </div>
       } @else {
         <div class="space-y-1">
@@ -60,10 +74,16 @@ import { MyTasksService, MyTask } from '../../../core/services/my-tasks.service'
 
               <!-- Task info -->
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium truncate" style="color: var(--foreground)">
+                <p
+                  class="text-sm font-medium truncate"
+                  style="color: var(--foreground)"
+                >
                   {{ task.title }}
                 </p>
-                <div class="flex items-center gap-2 mt-0.5 text-xs" style="color: var(--muted-foreground)">
+                <div
+                  class="flex items-center gap-2 mt-0.5 text-xs"
+                  style="color: var(--muted-foreground)"
+                >
                   <span>{{ task.board_name }}</span>
                   @if (isOverdue(task)) {
                     <span class="text-red-500 font-medium">Overdue</span>
@@ -76,7 +96,10 @@ import { MyTasksService, MyTask } from '../../../core/services/my-tasks.service'
               </div>
 
               <!-- Column badge -->
-              <span class="text-[11px] px-2 py-0.5 rounded-md flex-shrink-0" style="background: var(--muted); color: var(--muted-foreground)">
+              <span
+                class="text-[11px] px-2 py-0.5 rounded-md flex-shrink-0"
+                style="background: var(--muted); color: var(--muted-foreground)"
+              >
                 {{ task.column_name }}
               </span>
             </div>
@@ -84,7 +107,10 @@ import { MyTasksService, MyTask } from '../../../core/services/my-tasks.service'
         </div>
 
         @if (filteredTasks().length > 8) {
-          <p class="text-xs mt-3 text-center" style="color: var(--muted-foreground)">
+          <p
+            class="text-xs mt-3 text-center"
+            style="color: var(--muted-foreground)"
+          >
             +{{ filteredTasks().length - 8 }} more tasks
           </p>
         }
@@ -138,17 +164,22 @@ export class MyTasksTodayComponent implements OnInit {
 
   getPriorityDotClass(priority: string): string {
     switch (priority) {
-      case 'urgent': return 'bg-red-500';
-      case 'high': return 'bg-orange-500';
-      case 'medium': return 'bg-blue-500';
-      case 'low': return 'bg-gray-400';
-      default: return 'bg-gray-400';
+      case 'urgent':
+        return 'bg-red-500';
+      case 'high':
+        return 'bg-orange-500';
+      case 'medium':
+        return 'bg-blue-500';
+      case 'low':
+        return 'bg-gray-400';
+      default:
+        return 'bg-gray-400';
     }
   }
 
   private filterTasks(tasks: MyTask[], wsId?: string): MyTask[] {
     let filtered = tasks.filter(
-      (t) => this.isOverdue(t) || this.isDueToday(t) || this.isDueTomorrow(t)
+      (t) => this.isOverdue(t) || this.isDueToday(t) || this.isDueTomorrow(t),
     );
     if (wsId) {
       filtered = filtered.filter((t) => t.workspace_id === wsId);

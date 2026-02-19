@@ -18,7 +18,7 @@ import {
   template: `
     <a
       [routerLink]="['/task', task().id]"
-      class="block bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all cursor-pointer"
+      class="block widget-card rounded-lg hover:shadow-md transition-all cursor-pointer"
       [style.border-left]="'4px solid ' + getBorderColor()"
     >
       <div class="p-4">
@@ -29,7 +29,8 @@ import {
               <!-- Status Badge -->
               @if (isDone()) {
                 <span
-                  class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
+                  class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                  style="background: var(--status-green-bg); color: var(--status-green-text)"
                 >
                   Done
                 </span>
@@ -47,12 +48,15 @@ import {
               </span>
             </div>
 
-            <h3 class="text-sm font-medium text-gray-900 truncate">
+            <h3
+              class="text-sm font-medium truncate"
+              style="color: var(--foreground)"
+            >
               {{ task().title }}
             </h3>
 
             <!-- Board and Column Info -->
-            <p class="text-xs text-gray-500 mt-1">
+            <p class="text-xs mt-1" style="color: var(--muted-foreground)">
               {{ task().board_name }} / {{ task().column_name }}
             </p>
 
@@ -69,7 +73,7 @@ import {
                   </span>
                 }
                 @if (task().labels.length > 3) {
-                  <span class="text-xs text-gray-500">
+                  <span class="text-xs" style="color: var(--muted-foreground)">
                     +{{ task().labels.length - 3 }}
                   </span>
                 }
@@ -105,7 +109,7 @@ import {
             }
 
             <!-- Workspace -->
-            <span class="text-xs text-gray-400">
+            <span class="text-xs" style="color: var(--muted-foreground)">
               {{ task().workspace_name }}
             </span>
           </div>
