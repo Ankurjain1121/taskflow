@@ -140,16 +140,22 @@ export class AuthService {
 
     this.refreshResult$.next('pending');
 
-    return this.http.post<TokenResponse>(`${this.apiUrl}/refresh`, {}).pipe(
-      tap((response) => {
-        this.handleAuthSuccess(response);
-        this.refreshResult$.next('success');
-      }),
-      catchError((error) => {
-        this.refreshResult$.next('failed');
-        return throwError(() => error);
-      }),
-    );
+    return this.http
+      .post<TokenResponse>(
+        `${this.apiUrl}/refresh`,
+        {},
+        { withCredentials: true },
+      )
+      .pipe(
+        tap((response) => {
+          this.handleAuthSuccess(response);
+          this.refreshResult$.next('success');
+        }),
+        catchError((error) => {
+          this.refreshResult$.next('failed');
+          return throwError(() => error);
+        }),
+      );
   }
 
   /**
