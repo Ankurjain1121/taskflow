@@ -37,22 +37,20 @@ import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
       <!-- Back link -->
       <a
         [routerLink]="['..']"
-        class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+        class="inline-flex items-center gap-1 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
       >
         <i class="pi pi-arrow-left text-sm"></i>
         Back to Workspace
       </a>
 
       @if (loading()) {
-        <p class="text-gray-500">Loading team data...</p>
+        <p class="text-[var(--muted-foreground)]">Loading team data...</p>
       }
 
       @if (!loading()) {
         <!-- Invite new member section -->
-        <section
-          class="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6 space-y-4"
-        >
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        <section class="widget-card p-6 space-y-4">
+          <h2 class="text-lg font-semibold text-[var(--foreground)]">
             Invite New Member
           </h2>
 
@@ -60,12 +58,12 @@ import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
             <div class="md:col-span-2 flex flex-col gap-2">
               <label
                 for="inviteEmail"
-                class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                class="text-sm font-medium text-[var(--foreground)]"
                 >Email Address</label
               >
               <div class="p-inputgroup">
                 <span class="p-inputgroup-addon"
-                  ><i class="pi pi-envelope text-gray-400"></i
+                  ><i class="pi pi-envelope text-[var(--muted-foreground)]"></i
                 ></span>
                 <input
                   pInputText
@@ -81,7 +79,7 @@ import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
             <div class="flex flex-col gap-2">
               <label
                 for="inviteRole"
-                class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                class="text-sm font-medium text-[var(--foreground)]"
                 >Role</label
               >
               <p-select
@@ -104,13 +102,12 @@ import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
         </section>
 
         <!-- Current members section -->
-        <section
-          class="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6 space-y-4"
-        >
+        <section class="widget-card p-6 space-y-4">
           <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <h2 class="text-lg font-semibold text-[var(--foreground)]">
               Workspace Members
-              <span class="ml-2 text-sm font-normal text-gray-500"
+              <span
+                class="ml-2 text-sm font-normal text-[var(--muted-foreground)]"
                 >({{ members().length }})</span
               >
             </h2>
@@ -119,7 +116,7 @@ import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
           <div class="space-y-2">
             @for (member of members(); track member.user_id) {
               <div
-                class="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                class="flex items-center justify-between px-4 py-3 bg-[var(--muted)] rounded-lg border border-[var(--border)]"
               >
                 <div class="flex items-center gap-3">
                   <div
@@ -128,12 +125,12 @@ import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
                     {{ member.name.charAt(0).toUpperCase() }}
                   </div>
                   <div>
-                    <div
-                      class="text-sm font-medium text-gray-900 dark:text-gray-100"
-                    >
+                    <div class="text-sm font-medium text-[var(--foreground)]">
                       {{ member.name }}
                     </div>
-                    <div class="text-xs text-gray-500">{{ member.email }}</div>
+                    <div class="text-xs text-[var(--muted-foreground)]">
+                      {{ member.email }}
+                    </div>
                   </div>
                 </div>
 
@@ -178,7 +175,9 @@ import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
                 </div>
               </div>
             } @empty {
-              <p class="text-sm text-gray-500 text-center py-4">
+              <p
+                class="text-sm text-[var(--muted-foreground)] text-center py-4"
+              >
                 No members found
               </p>
             }
@@ -186,13 +185,12 @@ import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
         </section>
 
         <!-- Pending invitations section -->
-        <section
-          class="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6 space-y-4"
-        >
+        <section class="widget-card p-6 space-y-4">
           <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            <h2 class="text-lg font-semibold text-[var(--foreground)]">
               Pending Invitations
-              <span class="ml-2 text-sm font-normal text-gray-500"
+              <span
+                class="ml-2 text-sm font-normal text-[var(--muted-foreground)]"
                 >({{ invitations().length }})</span
               >
             </h2>
@@ -201,19 +199,15 @@ import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
           <div class="space-y-2">
             @for (inv of invitations(); track inv.id) {
               <div
-                class="flex items-center justify-between px-4 py-3 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-800"
+                class="flex items-center justify-between px-4 py-3 bg-[var(--status-amber-bg)] rounded-lg border border-[var(--status-amber-border)]"
               >
                 <div class="flex items-center gap-3">
-                  <i
-                    class="pi pi-clock text-yellow-600 dark:text-yellow-500"
-                  ></i>
+                  <i class="pi pi-clock text-[var(--status-amber-text)]"></i>
                   <div>
-                    <div
-                      class="text-sm font-medium text-gray-900 dark:text-gray-100"
-                    >
+                    <div class="text-sm font-medium text-[var(--foreground)]">
                       {{ inv.email }}
                     </div>
-                    <div class="text-xs text-gray-500">
+                    <div class="text-xs text-[var(--muted-foreground)]">
                       Sent {{ formatDate(inv.created_at) }} · Expires
                       {{ formatDate(inv.expires_at) }}
                     </div>
@@ -239,7 +233,9 @@ import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
                 </div>
               </div>
             } @empty {
-              <p class="text-sm text-gray-500 text-center py-4">
+              <p
+                class="text-sm text-[var(--muted-foreground)] text-center py-4"
+              >
                 No pending invitations
               </p>
             }
@@ -399,7 +395,8 @@ export class TeamComponent implements OnInit {
         },
         error: (err: unknown) => {
           const httpErr = err as { error?: { error?: { message?: string } } };
-          const message = httpErr?.error?.error?.message || 'Failed to update role';
+          const message =
+            httpErr?.error?.error?.message || 'Failed to update role';
           this.messageService.add({
             severity: 'error',
             summary: 'Error',

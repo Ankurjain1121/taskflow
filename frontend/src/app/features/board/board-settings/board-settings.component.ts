@@ -43,19 +43,21 @@ import {
   providers: [ConfirmationService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-gray-100">
+    <div class="min-h-screen bg-[var(--background)]">
       <div class="max-w-4xl mx-auto px-4 py-8">
         <!-- Header -->
         <div class="mb-8">
-          <nav class="text-sm text-gray-500 mb-2">
+          <nav class="text-sm text-[var(--muted-foreground)] mb-2">
             <a
               [routerLink]="['/workspace', workspaceId, 'board', boardId]"
               class="hover:text-indigo-600"
               >Back to Board</a
             >
           </nav>
-          <h1 class="text-3xl font-bold text-gray-900">Board Settings</h1>
-          <p class="mt-2 text-gray-600">
+          <h1 class="text-3xl font-bold text-[var(--foreground)]">
+            Board Settings
+          </h1>
+          <p class="mt-2 text-[var(--muted-foreground)]">
             Configure your board's settings, columns, and members
           </p>
         </div>
@@ -85,9 +87,11 @@ import {
         } @else if (board()) {
           <!-- General Settings -->
           <section class="mb-8">
-            <div class="bg-white shadow rounded-lg">
-              <div class="px-6 py-4 border-b border-gray-200">
-                <h2 class="text-lg font-medium text-gray-900">General</h2>
+            <div class="bg-[var(--card)] shadow rounded-lg">
+              <div class="px-6 py-4 border-b border-[var(--border)]">
+                <h2 class="text-lg font-medium text-[var(--foreground)]">
+                  General
+                </h2>
               </div>
               <form
                 [formGroup]="form"
@@ -97,14 +101,14 @@ import {
                 <div>
                   <label
                     for="name"
-                    class="block text-sm font-medium text-gray-700"
+                    class="block text-sm font-medium text-[var(--foreground)]"
                     >Name</label
                   >
                   <input
                     type="text"
                     id="name"
                     formControlName="name"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    class="mt-1 block w-full rounded-md border-[var(--border)] shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   />
                   @if (
                     form.controls['name'].invalid &&
@@ -117,14 +121,14 @@ import {
                 <div>
                   <label
                     for="description"
-                    class="block text-sm font-medium text-gray-700"
+                    class="block text-sm font-medium text-[var(--foreground)]"
                     >Description</label
                   >
                   <textarea
                     id="description"
                     formControlName="description"
                     rows="3"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    class="mt-1 block w-full rounded-md border-[var(--border)] shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                     placeholder="Add a description for this board..."
                   ></textarea>
                 </div>
@@ -172,10 +176,10 @@ import {
 
           <!-- Members Section -->
           <section class="mb-8">
-            <div class="bg-white shadow rounded-lg">
-              <div class="px-6 py-4 border-b border-gray-200">
+            <div class="bg-[var(--card)] shadow rounded-lg">
+              <div class="px-6 py-4 border-b border-[var(--border)]">
                 <div class="flex items-center justify-between">
-                  <h3 class="text-lg font-medium text-gray-900">
+                  <h3 class="text-lg font-medium text-[var(--foreground)]">
                     Board Members
                   </h3>
                   <button
@@ -201,33 +205,35 @@ import {
               </div>
 
               <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                  <thead class="bg-gray-50">
+                <table class="min-w-full divide-y divide-[var(--border)]">
+                  <thead class="bg-[var(--muted)]">
                     <tr>
                       <th
-                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
                       >
                         Member
                       </th>
                       <th
-                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
                       >
                         Role
                       </th>
                       <th
-                        class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        class="px-6 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
                       >
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody class="bg-white divide-y divide-gray-200">
+                  <tbody
+                    class="bg-[var(--card)] divide-y divide-[var(--border)]"
+                  >
                     @for (member of members(); track member.user_id) {
-                      <tr class="hover:bg-gray-50">
+                      <tr class="hover:bg-[var(--muted)]">
                         <td class="px-6 py-4 whitespace-nowrap">
                           <div class="flex items-center gap-3">
                             <div
-                              class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-600"
+                              class="w-10 h-10 rounded-full bg-[var(--secondary)] flex items-center justify-center text-sm font-medium text-[var(--muted-foreground)]"
                             >
                               @if (member.avatar_url) {
                                 <img
@@ -240,10 +246,12 @@ import {
                               }
                             </div>
                             <div>
-                              <p class="text-sm font-medium text-gray-900">
+                              <p
+                                class="text-sm font-medium text-[var(--foreground)]"
+                              >
                                 {{ member.name || 'Unknown' }}
                               </p>
-                              <p class="text-sm text-gray-500">
+                              <p class="text-sm text-[var(--muted-foreground)]">
                                 {{ member.email }}
                               </p>
                             </div>
@@ -253,7 +261,7 @@ import {
                           <select
                             [ngModel]="member.role"
                             (ngModelChange)="onMemberRoleChange(member, $event)"
-                            class="text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                           >
                             <option value="viewer">Viewer</option>
                             <option value="editor">Editor</option>
@@ -276,7 +284,9 @@ import {
               </div>
 
               @if (members().length === 0) {
-                <div class="px-6 py-8 text-center text-gray-500">
+                <div
+                  class="px-6 py-8 text-center text-[var(--muted-foreground)]"
+                >
                   No members found
                 </div>
               }
@@ -286,17 +296,19 @@ import {
           <!-- Danger Zone -->
           @if (canDeleteBoard()) {
             <section>
-              <div class="bg-white shadow rounded-lg border-2 border-red-200">
+              <div
+                class="bg-[var(--card)] shadow rounded-lg border-2 border-red-200"
+              >
                 <div class="px-6 py-4 border-b border-red-200 bg-red-50">
                   <h2 class="text-lg font-medium text-red-800">Danger Zone</h2>
                 </div>
                 <div class="px-6 py-4">
                   <div class="flex items-center justify-between">
                     <div>
-                      <h3 class="text-sm font-medium text-gray-900">
+                      <h3 class="text-sm font-medium text-[var(--foreground)]">
                         Delete Board
                       </h3>
-                      <p class="text-sm text-gray-500">
+                      <p class="text-sm text-[var(--muted-foreground)]">
                         Permanently delete this board and all its tasks. This
                         action cannot be undone.
                       </p>
@@ -338,7 +350,7 @@ import {
           }
         } @else {
           <div class="text-center py-12">
-            <p class="text-gray-500">Board not found</p>
+            <p class="text-[var(--muted-foreground)]">Board not found</p>
           </div>
         }
       </div>

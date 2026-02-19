@@ -86,7 +86,7 @@ interface WorkspaceOption {
 
             <a
               routerLink="/my-tasks"
-              class="animate-fade-in-up stagger-2 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
+              class="animate-fade-in-up stagger-2 inline-flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-lg hover:opacity-90 transition-colors font-medium text-sm"
             >
               <i class="pi pi-clipboard text-sm"></i>
               My Tasks
@@ -399,7 +399,7 @@ interface WorkspaceOption {
               </p>
               <a
                 routerLink="/onboarding"
-                class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
+                class="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-lg hover:opacity-90 transition-colors font-medium text-sm"
               >
                 <i class="pi pi-plus"></i>
                 Create Workspace
@@ -609,7 +609,7 @@ export class DashboardComponent implements OnInit {
       case 'unassigned':
         return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+        return 'bg-[var(--secondary)] text-[var(--secondary-foreground)]';
     }
   }
 

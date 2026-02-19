@@ -34,12 +34,12 @@ type SortOrder = 'asc' | 'desc';
   imports: [CommonModule, FormsModule, RouterModule, TaskListItemComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-gray-50">
+    <div class="min-h-screen bg-[var(--background)]">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->
         <div class="mb-6">
-          <h1 class="text-2xl font-bold text-gray-900">My Tasks</h1>
-          <p class="text-sm text-gray-500 mt-1">
+          <h1 class="text-2xl font-bold text-[var(--foreground)]">My Tasks</h1>
+          <p class="text-sm text-[var(--muted-foreground)] mt-1">
             All tasks assigned to you across workspaces
           </p>
         </div>
@@ -48,13 +48,13 @@ type SortOrder = 'asc' | 'desc';
         @if (summary()) {
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
             <!-- Total Assigned -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="bg-[var(--card)] rounded-lg shadow-sm border border-[var(--border)] p-4">
               <div class="flex items-center gap-3">
                 <div
-                  class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center"
+                  class="w-10 h-10 rounded-full bg-[var(--secondary)] flex items-center justify-center"
                 >
                   <svg
-                    class="w-5 h-5 text-gray-600"
+                    class="w-5 h-5 text-[var(--muted-foreground)]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -68,16 +68,16 @@ type SortOrder = 'asc' | 'desc';
                   </svg>
                 </div>
                 <div>
-                  <p class="text-2xl font-bold text-gray-900">
+                  <p class="text-2xl font-bold text-[var(--foreground)]">
                     {{ summary()!.total_assigned }}
                   </p>
-                  <p class="text-xs text-gray-500">Total Assigned</p>
+                  <p class="text-xs text-[var(--muted-foreground)]">Total Assigned</p>
                 </div>
               </div>
             </div>
 
             <!-- Due Soon -->
-            <div class="bg-white rounded-lg shadow-sm border border-amber-200 p-4">
+            <div class="bg-[var(--card)] rounded-lg shadow-sm border border-[var(--border)] p-4">
               <div class="flex items-center gap-3">
                 <div
                   class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center"
@@ -100,13 +100,13 @@ type SortOrder = 'asc' | 'desc';
                   <p class="text-2xl font-bold text-amber-600">
                     {{ summary()!.due_soon }}
                   </p>
-                  <p class="text-xs text-gray-500">Due Soon</p>
+                  <p class="text-xs text-[var(--muted-foreground)]">Due Soon</p>
                 </div>
               </div>
             </div>
 
             <!-- Overdue -->
-            <div class="bg-white rounded-lg shadow-sm border border-red-200 p-4">
+            <div class="bg-[var(--card)] rounded-lg shadow-sm border border-[var(--status-red-border)] p-4">
               <div class="flex items-center gap-3">
                 <div
                   class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center"
@@ -129,13 +129,13 @@ type SortOrder = 'asc' | 'desc';
                   <p class="text-2xl font-bold text-red-600">
                     {{ summary()!.overdue }}
                   </p>
-                  <p class="text-xs text-gray-500">Overdue</p>
+                  <p class="text-xs text-[var(--muted-foreground)]">Overdue</p>
                 </div>
               </div>
             </div>
 
             <!-- Completed This Week -->
-            <div class="bg-white rounded-lg shadow-sm border border-green-200 p-4">
+            <div class="bg-[var(--card)] rounded-lg shadow-sm border border-[var(--status-green-border)] p-4">
               <div class="flex items-center gap-3">
                 <div
                   class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center"
@@ -158,7 +158,7 @@ type SortOrder = 'asc' | 'desc';
                   <p class="text-2xl font-bold text-green-600">
                     {{ summary()!.completed_this_week }}
                   </p>
-                  <p class="text-xs text-gray-500">Completed This Week</p>
+                  <p class="text-xs text-[var(--muted-foreground)]">Completed This Week</p>
                 </div>
               </div>
             </div>
@@ -167,19 +167,19 @@ type SortOrder = 'asc' | 'desc';
 
         <!-- Filters and Sort -->
         <div
-          class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4"
+          class="bg-[var(--card)] rounded-lg shadow-sm border border-[var(--border)] p-4 mb-4"
         >
           <div class="flex flex-wrap items-center gap-4">
             <!-- Board Filter -->
             <div class="flex items-center gap-2">
-              <label for="board-filter" class="text-sm text-gray-600">
+              <label for="board-filter" class="text-sm text-[var(--muted-foreground)]">
                 Board:
               </label>
               <select
                 id="board-filter"
                 [(ngModel)]="selectedBoardId"
                 (ngModelChange)="onFilterChange()"
-                class="text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               >
                 <option value="">All Boards</option>
                 @for (board of boards(); track board.id) {
@@ -190,12 +190,12 @@ type SortOrder = 'asc' | 'desc';
 
             <!-- Sort By -->
             <div class="flex items-center gap-2">
-              <label for="sort-by" class="text-sm text-gray-600">Sort by:</label>
+              <label for="sort-by" class="text-sm text-[var(--muted-foreground)]">Sort by:</label>
               <select
                 id="sort-by"
                 [(ngModel)]="sortBy"
                 (ngModelChange)="onSortChange()"
-                class="text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               >
                 <option value="due_date">Due Date</option>
                 <option value="priority">Priority</option>
@@ -207,7 +207,7 @@ type SortOrder = 'asc' | 'desc';
             <!-- Sort Order -->
             <button
               (click)="toggleSortOrder()"
-              class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50"
+              class="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] border border-[var(--border)] rounded-md hover:bg-[var(--muted)]"
             >
               @if (sortOrder === 'asc') {
                 <svg
@@ -248,7 +248,7 @@ type SortOrder = 'asc' | 'desc';
         @if (loading() && tasks().length === 0) {
           <div class="space-y-3">
             @for (i of [1,2,3,4,5]; track i) {
-              <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-4">
+              <div class="bg-[var(--card)] dark:bg-gray-800 rounded-xl border border-[var(--border)] dark:border-gray-700 p-4 flex items-center gap-4">
                 <div class="skeleton skeleton-circle w-5 h-5 flex-shrink-0"></div>
                 <div class="flex-1 space-y-2">
                   <div class="skeleton skeleton-text" [style.width]="(60 + i * 8) + '%'"></div>
@@ -263,7 +263,7 @@ type SortOrder = 'asc' | 'desc';
         <!-- Error State -->
         @if (error()) {
           <div
-            class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3"
+            class="bg-[var(--status-red-bg)] border border-[var(--status-red-border)] rounded-lg p-4 flex items-center gap-3"
           >
             <svg
               class="w-5 h-5 text-red-600"
@@ -277,7 +277,7 @@ type SortOrder = 'asc' | 'desc';
               />
             </svg>
             <div>
-              <p class="text-sm font-medium text-red-800">{{ error() }}</p>
+              <p class="text-sm font-medium text-[var(--status-red-text)]">{{ error() }}</p>
               <button
                 (click)="loadTasks(true)"
                 class="text-sm text-red-600 hover:text-red-800 underline mt-1"
@@ -296,8 +296,8 @@ type SortOrder = 'asc' | 'desc';
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">You're all caught up!</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+            <h3 class="text-lg font-semibold text-[var(--foreground)] mb-2">You're all caught up!</h3>
+            <p class="text-sm text-[var(--muted-foreground)] max-w-xs mx-auto">
               No tasks assigned to you right now. Enjoy the calm, or jump into a board to pick up some work.
             </p>
           </div>

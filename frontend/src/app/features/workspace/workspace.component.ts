@@ -34,7 +34,7 @@ import {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-gray-50 p-6 md:p-8">
+    <div class="min-h-screen bg-[var(--background)] p-6 md:p-8">
       <div class="max-w-7xl mx-auto">
         <!-- Loading State -->
         @if (loading()) {
@@ -50,29 +50,29 @@ import {
             <div class="text-red-500 text-lg mb-2">
               Failed to load workspace
             </div>
-            <p class="text-gray-500 mb-4">{{ error() }}</p>
+            <p class="text-[var(--muted-foreground)] mb-4">{{ error() }}</p>
             <p-button label="Retry" (onClick)="loadData()" />
           </div>
         } @else {
           <!-- Header -->
           <div class="flex items-center justify-between mb-8">
             <div>
-              <h1 class="text-3xl font-bold text-gray-900">
+              <h1 class="text-3xl font-bold text-[var(--foreground)]">
                 {{ workspace()?.name }}
               </h1>
-              <p class="text-gray-500 mt-1">Workspace overview</p>
+              <p class="text-[var(--muted-foreground)] mt-1">Workspace overview</p>
             </div>
             <div class="flex items-center gap-3">
               <a
                 [routerLink]="['/workspace', workspaceId(), 'team']"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--muted-foreground)] bg-[var(--card)] border border-[var(--border)] rounded-md hover:bg-[var(--muted)]"
               >
                 <i class="pi pi-users"></i>
                 Team Overview
               </a>
               <a
                 [routerLink]="['/workspace', workspaceId(), 'settings']"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--muted-foreground)] bg-[var(--card)] border border-[var(--border)] rounded-md hover:bg-[var(--muted)]"
               >
                 <i class="pi pi-cog"></i>
                 Settings
@@ -84,52 +84,52 @@ import {
           <div
             class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8"
           >
-            <div class="bg-white rounded-xl border border-gray-200 p-5">
+            <div class="widget-card p-5">
               <div class="flex items-center gap-3">
                 <div
-                  class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center"
+                  class="w-10 h-10 rounded-lg bg-[var(--status-blue-bg)] flex items-center justify-center"
                 >
                   <i class="pi pi-th-large text-blue-600"></i>
                 </div>
                 <div>
-                  <p class="text-2xl font-bold text-gray-900">
+                  <p class="text-2xl font-bold text-[var(--foreground)]">
                     {{ boards().length }}
                   </p>
-                  <p class="text-sm text-gray-500">
+                  <p class="text-sm text-[var(--muted-foreground)]">
                     {{ boards().length === 1 ? 'Board' : 'Boards' }}
                   </p>
                 </div>
               </div>
             </div>
-            <div class="bg-white rounded-xl border border-gray-200 p-5">
+            <div class="widget-card p-5">
               <div class="flex items-center gap-3">
                 <div
-                  class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center"
+                  class="w-10 h-10 rounded-lg bg-[var(--status-green-bg)] flex items-center justify-center"
                 >
                   <i class="pi pi-users text-green-600"></i>
                 </div>
                 <div>
-                  <p class="text-2xl font-bold text-gray-900">
+                  <p class="text-2xl font-bold text-[var(--foreground)]">
                     {{ members().length }}
                   </p>
-                  <p class="text-sm text-gray-500">
+                  <p class="text-sm text-[var(--muted-foreground)]">
                     {{ members().length === 1 ? 'Member' : 'Members' }}
                   </p>
                 </div>
               </div>
             </div>
-            <div class="bg-white rounded-xl border border-gray-200 p-5">
+            <div class="widget-card p-5">
               <div class="flex items-center gap-3">
                 <div
-                  class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center"
+                  class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center"
                 >
                   <i class="pi pi-objects-column text-purple-600"></i>
                 </div>
                 <div>
-                  <p class="text-2xl font-bold text-gray-900">
+                  <p class="text-2xl font-bold text-[var(--foreground)]">
                     {{ totalTaskEstimate() }}
                   </p>
-                  <p class="text-sm text-gray-500">Est. Tasks</p>
+                  <p class="text-sm text-[var(--muted-foreground)]">Est. Tasks</p>
                 </div>
               </div>
             </div>
@@ -137,7 +137,7 @@ import {
 
           <!-- Board Grid Header -->
           <div class="flex items-center justify-between mb-5">
-            <h2 class="text-xl font-semibold text-gray-900">Boards</h2>
+            <h2 class="text-xl font-semibold text-[var(--foreground)]">Boards</h2>
             <p-button
               icon="pi pi-plus"
               label="Create Board"
@@ -148,7 +148,7 @@ import {
           <!-- Empty State -->
           @if (boards().length === 0) {
             <div
-              class="animate-fade-in-up bg-white rounded-xl border-2 border-dashed border-gray-200 p-12 text-center"
+              class="animate-fade-in-up bg-[var(--card)] rounded-xl border-2 border-dashed border-[var(--border)] p-12 text-center"
             >
               <div
                 class="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-indigo-100 via-blue-50 to-violet-100 dark:from-indigo-900/30 dark:via-blue-900/20 dark:to-violet-900/30 flex items-center justify-center mb-5"
@@ -168,11 +168,11 @@ import {
                 </svg>
               </div>
               <h3
-                class="text-lg font-semibold text-gray-900 dark:text-white mb-2"
+                class="text-lg font-semibold text-[var(--foreground)] mb-2"
               >
                 Create your first board
               </h3>
-              <p class="text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
+              <p class="text-[var(--muted-foreground)] mb-6 max-w-sm mx-auto">
                 Boards are where the magic happens. Organize tasks into columns
                 and track progress visually.
               </p>
@@ -193,7 +193,7 @@ import {
                     'board',
                     board.id,
                   ]"
-                  class="animate-fade-in-up bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md hover:border-blue-300 transition-all duration-200 cursor-pointer group block"
+                  class="animate-fade-in-up bg-[var(--card)] rounded-xl border border-[var(--border)] p-5 hover:shadow-md hover:border-[var(--primary)] transition-all duration-200 cursor-pointer group block"
                   [style.animation-delay]="i * 0.06 + 's'"
                 >
                   <div class="flex items-start justify-between mb-3">
@@ -203,24 +203,24 @@ import {
                       <i class="pi pi-objects-column text-blue-600"></i>
                     </div>
                     <i
-                      class="pi pi-arrow-right text-gray-400 group-hover:text-blue-500 transition-colors"
+                      class="pi pi-arrow-right text-[var(--muted-foreground)] group-hover:text-[var(--primary)] transition-colors"
                     ></i>
                   </div>
                   <h3
-                    class="text-lg font-semibold text-gray-900 mb-1 group-hover:text-blue-700 transition-colors"
+                    class="text-lg font-semibold text-[var(--foreground)] mb-1 group-hover:text-[var(--primary)] transition-colors"
                   >
                     {{ board.name }}
                   </h3>
                   @if (board.description) {
-                    <p class="text-sm text-gray-500 line-clamp-2 mb-3">
+                    <p class="text-sm text-[var(--muted-foreground)] line-clamp-2 mb-3">
                       {{ board.description }}
                     </p>
                   } @else {
-                    <p class="text-sm text-gray-400 italic mb-3">
+                    <p class="text-sm text-[var(--muted-foreground)] italic mb-3">
                       No description
                     </p>
                   }
-                  <div class="flex items-center text-xs text-gray-400">
+                  <div class="flex items-center text-xs text-[var(--muted-foreground)]">
                     <i
                       class="pi pi-calendar mr-1"
                       style="font-size: 0.75rem;"

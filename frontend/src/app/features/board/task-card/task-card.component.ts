@@ -5,7 +5,11 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CdkDrag } from '@angular/cdk/drag-drop';
+import {
+  CdkDrag,
+  CdkDragPreview,
+  CdkDragPlaceholder,
+} from '@angular/cdk/drag-drop';
 import { Task } from '../../../core/services/task.service';
 import {
   getPriorityColor,
@@ -19,7 +23,7 @@ import {
 @Component({
   selector: 'app-task-card',
   standalone: true,
-  imports: [CommonModule, CdkDrag],
+  imports: [CommonModule, CdkDrag, CdkDragPreview, CdkDragPlaceholder],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -350,16 +354,26 @@ import {
         box-shadow:
           0 1px 3px rgba(0, 0, 0, 0.04),
           0 1px 2px rgba(0, 0, 0, 0.03);
-        transition:
-          transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-          box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .task-card:hover {
-        transform: translateY(-2px);
         box-shadow:
-          0 8px 25px rgba(0, 0, 0, 0.08),
-          0 4px 10px rgba(0, 0, 0, 0.04);
+          0 4px 12px rgba(0, 0, 0, 0.08),
+          0 2px 4px rgba(0, 0, 0, 0.04);
+      }
+
+      /* CDK drag-drop transitions */
+      :host {
+        display: block;
+      }
+
+      :host.cdk-drag-animating {
+        transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+      }
+
+      .cdk-drop-list-dragging .task-card {
+        transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
       }
 
       .task-card--urgent {

@@ -13,6 +13,7 @@ import {
   CdkDrag,
   CdkDragDrop,
   CdkDragHandle,
+  CdkDragPreview,
   moveItemInArray,
 } from '@angular/cdk/drag-drop';
 import { generateKeyBetween } from 'fractional-indexing';
@@ -26,7 +27,14 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
 @Component({
   selector: 'app-column-manager',
   standalone: true,
-  imports: [CommonModule, FormsModule, CdkDropList, CdkDrag, CdkDragHandle],
+  imports: [
+    CommonModule,
+    FormsModule,
+    CdkDropList,
+    CdkDrag,
+    CdkDragHandle,
+    CdkDragPreview,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-white rounded-lg shadow">
@@ -222,10 +230,7 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
 
           <!-- Add Column Form -->
           <div class="mt-4 pt-4 border-t border-gray-200">
-            <form
-              (ngSubmit)="onAddColumn()"
-              class="flex items-center gap-3"
-            >
+            <form (ngSubmit)="onAddColumn()" class="flex items-center gap-3">
               <div class="relative">
                 <button
                   type="button"
@@ -407,7 +412,7 @@ export class ColumnManagerComponent implements OnInit {
     this.boardService.updateColumn(column.id, { color }).subscribe({
       next: (updated) => {
         this.columns.update((cols) =>
-          cols.map((c) => (c.id === column.id ? updated : c))
+          cols.map((c) => (c.id === column.id ? updated : c)),
         );
       },
       error: (err) => console.error('Failed to update color:', err),
@@ -433,7 +438,7 @@ export class ColumnManagerComponent implements OnInit {
     this.boardService.updateColumn(column.id, { name }).subscribe({
       next: (updated) => {
         this.columns.update((cols) =>
-          cols.map((c) => (c.id === column.id ? updated : c))
+          cols.map((c) => (c.id === column.id ? updated : c)),
         );
         this.pendingNames.delete(column.id);
       },
@@ -454,7 +459,7 @@ export class ColumnManagerComponent implements OnInit {
       .subscribe({
         next: (updated) => {
           this.columns.update((cols) =>
-            cols.map((c) => (c.id === column.id ? updated : c))
+            cols.map((c) => (c.id === column.id ? updated : c)),
           );
         },
         error: (err) => console.error('Failed to update status mapping:', err),
@@ -478,7 +483,7 @@ export class ColumnManagerComponent implements OnInit {
 
         if (err.status === 409) {
           this.errorMessage.set(
-            'Cannot delete column with tasks. Move or delete tasks first.'
+            'Cannot delete column with tasks. Move or delete tasks first.',
           );
         } else {
           this.errorMessage.set('Failed to delete column');
@@ -538,7 +543,7 @@ export class ColumnManagerComponent implements OnInit {
     this.boardService.listColumns(this.boardId()).subscribe({
       next: (columns) => {
         this.columns.set(
-          columns.sort((a, b) => a.position.localeCompare(b.position))
+          columns.sort((a, b) => a.position.localeCompare(b.position)),
         );
         this.loading.set(false);
       },

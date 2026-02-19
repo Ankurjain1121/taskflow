@@ -31,12 +31,14 @@ import {
   imports: [CommonModule, ReactiveFormsModule, MembersListComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-gray-100">
+    <div class="min-h-screen bg-[var(--background)]">
       <div class="max-w-4xl mx-auto px-4 py-8">
         <!-- Header -->
         <div class="mb-8">
-          <h1 class="text-3xl font-bold text-gray-900">Workspace Settings</h1>
-          <p class="mt-2 text-gray-600">
+          <h1 class="text-3xl font-bold text-[var(--foreground)]">
+            Workspace Settings
+          </h1>
+          <p class="mt-2 text-[var(--muted-foreground)]">
             Manage your workspace settings and members
           </p>
         </div>
@@ -66,9 +68,11 @@ import {
         } @else if (workspace()) {
           <!-- General Settings -->
           <section class="mb-8">
-            <div class="bg-white shadow rounded-lg">
-              <div class="px-6 py-4 border-b border-gray-200">
-                <h2 class="text-lg font-medium text-gray-900">General</h2>
+            <div class="widget-card">
+              <div class="px-6 py-4 border-b border-[var(--border)]">
+                <h2 class="text-lg font-medium text-[var(--foreground)]">
+                  General
+                </h2>
               </div>
               <form
                 [formGroup]="form"
@@ -78,36 +82,38 @@ import {
                 <div>
                   <label
                     for="name"
-                    class="block text-sm font-medium text-gray-700"
+                    class="block text-sm font-medium text-[var(--foreground)]"
                     >Name</label
                   >
                   <input
                     type="text"
                     id="name"
                     formControlName="name"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    class="mt-1 block w-full rounded-md border-[var(--border)] shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   />
                   @if (
                     form.controls['name'].invalid &&
                     form.controls['name'].touched
                   ) {
-                    <p class="mt-1 text-sm text-red-600">Name is required</p>
+                    <p class="mt-1 text-sm text-[var(--status-red-text)]">
+                      Name is required
+                    </p>
                   }
                 </div>
 
                 <div>
                   <label
                     for="slug"
-                    class="block text-sm font-medium text-gray-700"
+                    class="block text-sm font-medium text-[var(--foreground)]"
                     >Slug</label
                   >
                   <input
                     type="text"
                     id="slug"
                     formControlName="slug"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    class="mt-1 block w-full rounded-md border-[var(--border)] shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   />
-                  <p class="mt-1 text-sm text-gray-500">
+                  <p class="mt-1 text-sm text-[var(--muted-foreground)]">
                     URL-friendly identifier for the workspace
                   </p>
                 </div>
@@ -162,19 +168,25 @@ import {
           <!-- Danger Zone -->
           @if (isAdmin()) {
             <section>
-              <div class="bg-white shadow rounded-lg border-2 border-red-200">
-                <div class="px-6 py-4 border-b border-red-200 bg-red-50">
-                  <h2 class="text-lg font-medium text-red-800">Danger Zone</h2>
+              <div
+                class="widget-card border-2 border-[var(--status-red-border)]"
+              >
+                <div
+                  class="px-6 py-4 border-b border-[var(--status-red-border)] bg-[var(--status-red-bg)]"
+                >
+                  <h2 class="text-lg font-medium text-[var(--status-red-text)]">
+                    Danger Zone
+                  </h2>
                 </div>
                 <div class="px-6 py-4">
                   <div
-                    class="flex items-center justify-between py-4 border-b border-gray-200 last:border-0"
+                    class="flex items-center justify-between py-4 border-b border-[var(--border)] last:border-0"
                   >
                     <div>
-                      <h3 class="text-sm font-medium text-gray-900">
+                      <h3 class="text-sm font-medium text-[var(--foreground)]">
                         Delete Workspace
                       </h3>
-                      <p class="text-sm text-gray-500">
+                      <p class="text-sm text-[var(--muted-foreground)]">
                         Permanently delete this workspace and all its data. This
                         action cannot be undone.
                       </p>
@@ -182,7 +194,7 @@ import {
                     <button
                       (click)="onDeleteWorkspace()"
                       [disabled]="deleting()"
-                      class="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                      class="inline-flex items-center px-4 py-2 border border-[var(--status-red-border)] text-sm font-medium rounded-md text-[var(--status-red-text)] bg-[var(--card)] hover:bg-[var(--status-red-bg)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
                     >
                       @if (deleting()) {
                         <svg
@@ -216,7 +228,7 @@ import {
           }
         } @else {
           <div class="text-center py-12">
-            <p class="text-gray-500">Workspace not found</p>
+            <p class="text-[var(--muted-foreground)]">Workspace not found</p>
           </div>
         }
       </div>

@@ -31,10 +31,10 @@ export interface TaskMoveEvent {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="flex flex-col bg-gray-100 rounded-lg min-h-[500px] w-72 flex-shrink-0"
+      class="flex flex-col bg-[var(--muted)] rounded-lg min-h-[500px] w-72 flex-shrink-0"
     >
       <!-- Column Header -->
-      <div class="px-3 py-3 border-b border-gray-200">
+      <div class="px-3 py-3 border-b border-[var(--border)]">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <!-- Color Dot -->
@@ -44,11 +44,13 @@ export interface TaskMoveEvent {
             ></span>
 
             <!-- Column Name -->
-            <h3 class="font-medium text-gray-900">{{ column().name }}</h3>
+            <h3 class="font-medium text-[var(--foreground)]">
+              {{ column().name }}
+            </h3>
 
             <!-- Task Count -->
             <span
-              class="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700"
+              class="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--secondary)] text-[var(--foreground)]"
             >
               {{ tasks().length }}
             </span>
@@ -71,11 +73,11 @@ export interface TaskMoveEvent {
 
           <!-- Column Menu -->
           <button
-            class="p-1 hover:bg-gray-200 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+            class="p-1 hover:bg-[var(--secondary)] rounded opacity-0 group-hover:opacity-100 transition-opacity"
             title="Column options"
           >
             <svg
-              class="w-4 h-4 text-gray-500"
+              class="w-4 h-4 text-[var(--muted-foreground)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -109,48 +111,40 @@ export interface TaskMoveEvent {
         (cdkDropListDropped)="onDrop($event)"
         class="flex-1 px-2 py-2 space-y-2 overflow-y-auto min-h-[200px]"
       >
-        @for (task of tasks(); track task.id; let i = $index) {
-          <div
-            class="animate-fade-in-up"
-            [attr.data-task-id]="task.id"
-            [style.animation-delay]="i * 0.04 + 's'"
-            [class.animate-celebrate-pop]="celebratingTaskId() === task.id"
-            [class.animate-celebrate-glow]="celebratingTaskId() === task.id"
-          >
-            <app-task-card
-              [task]="task"
-              [isBlocked]="false"
-              [isCelebrating]="celebratingTaskId() === task.id"
-              [isFocused]="focusedTaskId() === task.id"
-              [subtaskProgress]="
-                task.subtask_total
-                  ? {
-                      completed: task.subtask_completed ?? 0,
-                      total: task.subtask_total,
-                    }
-                  : null
-              "
-              [hasRunningTimer]="task.has_running_timer ?? false"
-              (taskClicked)="onTaskClicked($event)"
-            ></app-task-card>
-          </div>
+        @for (task of tasks(); track task.id) {
+          <app-task-card
+            [task]="task"
+            [isBlocked]="false"
+            [isCelebrating]="celebratingTaskId() === task.id"
+            [isFocused]="focusedTaskId() === task.id"
+            [subtaskProgress]="
+              task.subtask_total
+                ? {
+                    completed: task.subtask_completed ?? 0,
+                    total: task.subtask_total,
+                  }
+                : null
+            "
+            [hasRunningTimer]="task.has_running_timer ?? false"
+            (taskClicked)="onTaskClicked($event)"
+          ></app-task-card>
         }
 
         <!-- Empty State -->
         @if (tasks().length === 0) {
           <div
-            class="flex flex-col items-center justify-center h-24 text-sm border-2 border-dashed border-gray-200 rounded-lg transition-colors"
+            class="flex flex-col items-center justify-center h-24 text-sm border-2 border-dashed border-[var(--border)] rounded-lg transition-colors"
           >
-            <span class="text-gray-400">Drop tasks here</span>
+            <span class="text-[var(--muted-foreground)]">Drop tasks here</span>
           </div>
         }
       </div>
 
       <!-- Add Task Button -->
-      <div class="px-2 py-2 border-t border-gray-200">
+      <div class="px-2 py-2 border-t border-[var(--border)]">
         <button
           (click)="onAddTask()"
-          class="w-full flex items-center justify-center gap-1 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-md transition-colors"
+          class="w-full flex items-center justify-center gap-1 px-3 py-2 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] rounded-md transition-colors"
         >
           <svg
             class="w-4 h-4"

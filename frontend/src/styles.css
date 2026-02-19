@@ -58,6 +58,9 @@
   --status-blue-bg: #eff6ff;
   --status-blue-border: #bfdbfe;
   --status-blue-text: #1d4ed8;
+  --status-amber-bg: #fffbeb;
+  --status-amber-border: #fde68a;
+  --status-amber-text: #92400e;
 
   /* Elevation tokens */
   --shadow-glow: 0 0 0 1px rgba(99, 102, 241, 0.08), 0 4px 16px rgba(99, 102, 241, 0.06);
@@ -120,6 +123,9 @@ html.dark {
   --status-blue-bg: rgba(59, 130, 246, 0.12);
   --status-blue-border: rgba(59, 130, 246, 0.3);
   --status-blue-text: #93c5fd;
+  --status-amber-bg: rgba(245, 158, 11, 0.12);
+  --status-amber-border: rgba(245, 158, 11, 0.3);
+  --status-amber-text: #fcd34d;
 }
 
 html, body { height: 100%; }
@@ -478,8 +484,8 @@ button:active, [role="button"]:active {
   transform: translateY(-50%) translateX(-4px);
   opacity: 0;
   pointer-events: none;
-  background: #1e293b;
-  color: #f1f5f9;
+  background: var(--foreground);
+  color: var(--background);
   padding: 0.375rem 0.75rem;
   border-radius: 0.5rem;
   font-size: 0.8125rem;
@@ -594,11 +600,21 @@ button:active, [role="button"]:active {
    Card Drag Styles
    ============================================ */
 .cdk-drag-preview {
-  transform: rotate(2deg) !important;
-  box-shadow: 0 12px 24px rgba(0,0,0,0.15) !important;
+  transform: rotate(1.5deg) !important;
+  box-shadow: 0 16px 32px rgba(0,0,0,0.18), 0 4px 8px rgba(0,0,0,0.1) !important;
+  border-radius: var(--radius);
+  z-index: 1000 !important;
 }
 .cdk-drag-animating {
-  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+/* Smooth reflow when siblings shift during drag */
+.cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+.cdk-drag-placeholder {
+  opacity: 0.4;
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
 
 /* ============================================

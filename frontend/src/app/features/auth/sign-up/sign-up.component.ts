@@ -224,10 +224,10 @@ import { AuthService } from '../../../core/services/auth.service';
 
               @if (errorMessage) {
                 <div
-                  class="mb-5 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-start gap-2"
+                  class="mb-5 p-3.5 bg-[var(--status-red-bg)] border border-[var(--status-red-border)] text-[var(--status-red-text)] rounded-xl text-sm flex items-start gap-2"
                 >
                   <i
-                    class="pi pi-exclamation-circle text-red-500 shrink-0"
+                    class="pi pi-exclamation-circle text-[var(--status-red-text)] shrink-0"
                     style="font-size: 20px; margin-top: 1px;"
                   ></i>
                   <span>{{ errorMessage }}</span>
@@ -254,7 +254,7 @@ import { AuthService } from '../../../core/services/auth.service';
             </form>
 
             <div class="form-footer">
-              <p class="text-sm text-gray-500">
+              <p class="text-sm text-[var(--muted-foreground)]">
                 Already have an account?
                 <a
                   routerLink="/auth/sign-in"
@@ -497,7 +497,7 @@ import { AuthService } from '../../../core/services/auth.service';
       /* ===== Right form panel ===== */
       .form-panel {
         flex: 1;
-        background: white;
+        background: var(--card);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -516,14 +516,14 @@ import { AuthService } from '../../../core/services/auth.service';
       .form-title {
         font-size: 1.625rem;
         font-weight: 700;
-        color: #111827;
+        color: var(--foreground);
         margin: 0 0 0.5rem 0;
         letter-spacing: -0.025em;
       }
 
       .form-subtitle {
         font-size: 0.925rem;
-        color: #6b7280;
+        color: var(--muted-foreground);
         margin: 0;
       }
 
@@ -531,7 +531,7 @@ import { AuthService } from '../../../core/services/auth.service';
         display: block;
         font-size: 0.875rem;
         font-weight: 500;
-        color: #374151;
+        color: var(--foreground);
         margin-bottom: 0.375rem;
       }
 
@@ -548,7 +548,17 @@ import { AuthService } from '../../../core/services/auth.service';
         text-align: center;
         margin-top: 1.5rem;
         padding-top: 1.25rem;
-        border-top: 1px solid #f3f4f6;
+        border-top: 1px solid var(--border);
+      }
+
+      /* ===== Dark mode auth wrapper ===== */
+      :host-context(html.dark) .auth-wrapper {
+        background: linear-gradient(
+          135deg,
+          var(--background) 0%,
+          #1e1b4b 50%,
+          #1e1b4b 100%
+        );
       }
 
       /* ===== Submit button ===== */
