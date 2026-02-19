@@ -37,10 +37,12 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white rounded-lg shadow">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <h3 class="text-lg font-medium text-gray-900">Columns</h3>
-        <p class="text-sm text-gray-500 mt-1">
+    <div class="rounded-lg shadow" style="background: var(--card)">
+      <div class="px-6 py-4" style="border-bottom: 1px solid var(--border)">
+        <h3 class="text-lg font-medium" style="color: var(--foreground)">
+          Columns
+        </h3>
+        <p class="text-sm mt-1" style="color: var(--muted-foreground)">
           Drag to reorder. Click on a column to edit its properties.
         </p>
       </div>
@@ -79,12 +81,14 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
             @for (column of columns(); track column.id) {
               <div
                 cdkDrag
-                class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                class="flex items-center gap-3 p-3 rounded-lg transition-colors"
+                style="background: var(--muted); border: 1px solid var(--border)"
               >
                 <!-- Drag Handle -->
                 <button
                   cdkDragHandle
-                  class="p-1 text-gray-400 hover:text-gray-600 cursor-grab"
+                  class="p-1 cursor-grab"
+                  style="color: var(--muted-foreground)"
                 >
                   <svg
                     class="w-5 h-5"
@@ -111,7 +115,8 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
 
                   @if (editingColorId() === column.id) {
                     <div
-                      class="absolute top-full left-0 mt-2 p-2 bg-white rounded-lg shadow-lg border border-gray-200 z-10"
+                      class="absolute top-full left-0 mt-2 p-2 rounded-lg shadow-lg z-10"
+                      style="background: var(--card); border: 1px solid var(--border)"
                     >
                       <div class="grid grid-cols-4 gap-1">
                         @for (color of availableColors; track color) {
@@ -135,13 +140,15 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
                   [ngModel]="column.name"
                   (ngModelChange)="onNameChange(column, $event)"
                   (blur)="saveName(column)"
-                  class="flex-1 text-sm font-medium text-gray-900 bg-transparent border-0 border-b-2 border-transparent hover:border-gray-200 focus:border-indigo-500 focus:ring-0 px-1 py-0.5"
+                  class="flex-1 text-sm font-medium bg-transparent border-0 border-b-2 border-transparent focus:border-indigo-500 focus:ring-0 px-1 py-0.5"
+                  style="color: var(--foreground)"
                 />
 
                 <!-- Status Mapping Badge -->
                 @if (column.status_mapping?.done) {
                   <span
-                    class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
+                    class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                    style="background: var(--status-green-bg); color: var(--status-green-text)"
                   >
                     Done
                   </span>
@@ -150,11 +157,16 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
                 <!-- Status Toggle -->
                 <button
                   (click)="toggleDoneStatus(column)"
-                  [class]="
-                    'px-2 py-1 text-xs rounded ' +
-                    (column.status_mapping?.done
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200')
+                  class="px-2 py-1 text-xs rounded"
+                  [style.background]="
+                    column.status_mapping?.done
+                      ? 'var(--status-green-bg)'
+                      : 'var(--muted)'
+                  "
+                  [style.color]="
+                    column.status_mapping?.done
+                      ? 'var(--status-green-text)'
+                      : 'var(--muted-foreground)'
                   "
                   [title]="
                     column.status_mapping?.done
@@ -195,7 +207,8 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
                 <button
                   (click)="onDelete(column)"
                   [disabled]="deleting() === column.id"
-                  class="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                  class="p-1 hover:text-red-600 transition-colors disabled:opacity-50"
+                  style="color: var(--muted-foreground)"
                   title="Delete column"
                 >
                   <svg
@@ -216,7 +229,8 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
                 <!-- Drag Preview -->
                 <div
                   *cdkDragPreview
-                  class="flex items-center gap-3 p-3 bg-white rounded-lg shadow-lg border border-indigo-200"
+                  class="flex items-center gap-3 p-3 rounded-lg shadow-lg"
+                  style="background: var(--card); border: 1px solid var(--primary)"
                 >
                   <div
                     class="w-4 h-4 rounded"
@@ -229,19 +243,21 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
           </div>
 
           <!-- Add Column Form -->
-          <div class="mt-4 pt-4 border-t border-gray-200">
+          <div class="mt-4 pt-4" style="border-top: 1px solid var(--border)">
             <form (ngSubmit)="onAddColumn()" class="flex items-center gap-3">
               <div class="relative">
                 <button
                   type="button"
                   (click)="toggleNewColorPicker()"
-                  class="w-8 h-8 rounded-md border-2 border-gray-200"
+                  class="w-8 h-8 rounded-md border-2"
+                  style="border-color: var(--border)"
                   [style.background-color]="newColumnColor()"
                 ></button>
 
                 @if (showNewColorPicker()) {
                   <div
-                    class="absolute top-full left-0 mt-2 p-2 bg-white rounded-lg shadow-lg border border-gray-200 z-10"
+                    class="absolute top-full left-0 mt-2 p-2 rounded-lg shadow-lg z-10"
+                    style="background: var(--card); border: 1px solid var(--border)"
                   >
                     <div class="grid grid-cols-4 gap-1">
                       @for (color of availableColors; track color) {
@@ -265,15 +281,20 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
                 [(ngModel)]="newColumnName"
                 name="newColumnName"
                 placeholder="New column name"
-                class="flex-1 text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                class="flex-1 text-sm rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                style="border-color: var(--border); background: var(--card); color: var(--foreground)"
               />
 
-              <label class="inline-flex items-center gap-2 text-sm">
+              <label
+                class="inline-flex items-center gap-2 text-sm"
+                style="color: var(--foreground)"
+              >
                 <input
                   type="checkbox"
                   [(ngModel)]="newColumnIsDone"
                   name="newColumnIsDone"
-                  class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  class="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  style="border-color: var(--border)"
                 />
                 Done column
               </label>
@@ -326,7 +347,8 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
           <!-- Error Message -->
           @if (errorMessage()) {
             <div
-              class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700"
+              class="mt-4 p-3 rounded-md text-sm"
+              style="background: var(--status-red-bg); border: 1px solid var(--status-red-border); color: var(--status-red-text)"
             >
               {{ errorMessage() }}
             </div>

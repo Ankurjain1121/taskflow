@@ -25,10 +25,6 @@ import { CompletionTrendComponent } from './widgets/completion-trend.component';
 import { UpcomingDeadlinesComponent } from './widgets/upcoming-deadlines.component';
 import { MyTasksTodayComponent } from './widgets/my-tasks-today.component';
 import { TeamWorkloadComponent } from './widgets/team-workload.component';
-import {
-  SummaryNumbersComponent,
-  SummaryStats,
-} from './widgets/summary-numbers.component';
 
 interface WorkspaceOption {
   label: string;
@@ -50,7 +46,6 @@ interface WorkspaceOption {
     UpcomingDeadlinesComponent,
     MyTasksTodayComponent,
     TeamWorkloadComponent,
-    SummaryNumbersComponent,
   ],
   template: `
     <div class="min-h-screen" style="background: var(--background)">
@@ -112,16 +107,6 @@ interface WorkspaceOption {
             }
           </div>
         } @else {
-          <!-- My Tasks Today Widget -->
-          <div class="mb-6 animate-fade-in-up">
-            <app-my-tasks-today [workspaceId]="activeWorkspaceId()" />
-          </div>
-
-          <!-- Summary Numbers -->
-          <div class="mb-6 animate-fade-in-up">
-            <app-summary-numbers [stats]="summaryStats()" />
-          </div>
-
           <!-- Stats Cards -->
           <div
             class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
@@ -130,6 +115,7 @@ interface WorkspaceOption {
             <a
               routerLink="/my-tasks"
               class="animate-fade-in-up stagger-1 widget-card p-5 cursor-pointer group"
+              style="border-left: 4px solid #6366f1"
             >
               <div class="flex items-center justify-between">
                 <div>
@@ -156,6 +142,7 @@ interface WorkspaceOption {
               routerLink="/my-tasks"
               [queryParams]="{ sort_by: 'due_date', sort_order: 'asc' }"
               class="animate-fade-in-up stagger-2 widget-card p-5 cursor-pointer group"
+              style="border-left: 4px solid #ef4444"
             >
               <div class="flex items-center justify-between">
                 <div>
@@ -189,6 +176,7 @@ interface WorkspaceOption {
               routerLink="/my-tasks"
               [queryParams]="{ sort_by: 'due_date' }"
               class="animate-fade-in-up stagger-3 widget-card p-5 cursor-pointer group"
+              style="border-left: 4px solid #f97316"
             >
               <div class="flex items-center justify-between">
                 <div>
@@ -211,7 +199,10 @@ interface WorkspaceOption {
             </a>
 
             <!-- Completed This Week -->
-            <div class="animate-fade-in-up stagger-4 widget-card p-5">
+            <div
+              class="animate-fade-in-up stagger-4 widget-card p-5"
+              style="border-left: 4px solid #10b981"
+            >
               <div class="flex items-center justify-between">
                 <div>
                   <p class="widget-title">Completed This Week</p>
@@ -230,6 +221,11 @@ interface WorkspaceOption {
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- My Tasks Today Widget -->
+          <div class="mb-6 animate-fade-in-up stagger-5">
+            <app-my-tasks-today [workspaceId]="activeWorkspaceId()" />
           </div>
 
           <!-- Recent Activity -->
@@ -499,25 +495,6 @@ export class DashboardComponent implements OnInit {
   activeWorkspaceId = computed(() => {
     const id = this.selectedWorkspaceId();
     return id ?? undefined;
-  });
-
-  summaryStats = computed<SummaryStats>(() => {
-    const s = this.stats();
-    const totalTasks = s?.total_tasks ?? 0;
-    const completedThisWeek = s?.completed_this_week ?? 0;
-    const overdueTasks = s?.overdue ?? 0;
-    const completionRate =
-      totalTasks > 0 ? Math.round((completedThisWeek / totalTasks) * 100) : 0;
-
-    return {
-      totalTasks,
-      completedThisWeek,
-      completedLastWeek: 0,
-      overdueTasks,
-      overdueLastWeek: 0,
-      completionRate,
-      completionRateLastWeek: 0,
-    };
   });
 
   constructor() {
