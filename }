@@ -1,0 +1,12 @@
+
+## Guidelines
+- Backend broadcasts to Redis channels
+- Frontend subscribes to WebSocket
+- Protocol uses { "type": "...", "payload": {...} }
+
+## Action
+Analyze websocket/broadcast code and explain:
+1. How real-time updates are published
+2. How clients subscribe to updates
+3. Reconnection handling
+4. Message format and types

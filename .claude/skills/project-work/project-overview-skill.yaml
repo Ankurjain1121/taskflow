@@ -9,31 +9,54 @@ source: project_skill
 You are working on a full-stack project management application.
 
 ## Project Structure
-- Backend: Rust with PostgreSQL
+- Backend: Rust with PostgreSQL (using sqlx)
 - Frontend: Angular with TypeScript
 - Real-time: WebSocket via Redis pub/sub
-- Auth: JWT-based authentication
+- Auth: JWT-based authentication with Argon2 password hashing
+
+## Tech Stack
+### Backend
+- Rust with async/await (tokio)
+- sqlx for PostgreSQL
+- Axum for HTTP routes
+- Redis for pub/sub (broadcast)
+- Argon2 for password hashing
+
+### Frontend
+- Angular 17+ with standalone components
+- RxJS for async operations
+- PrimeNG for UI components
+- Signals for state (theme service)
 
 ## Key Components
 ### Backend (Rust)
 - automation.rs, project.rs - Data models
-- automations.rs, recurring.rs, notifications.rs - Database queries
+- automations.rs, recurring.rs, notifications.rs, milestones.rs, workspaces.rs - Database queries
 - workspace.rs, milestone.rs - API routes
-- errors.rs - Error handling
-- broadcast.rs - Real-time updates via Redis
+- errors.rs - Error handling with thiserror
+- broadcast.rs - Redis pub/sub for real-time
+- password.rs - Argon2 password hashing
 
 ### Frontend (Angular)
 - api.service.ts - Base HTTP client
-- automation.service.ts, workspace.service.ts - Domain services
+- automation.service.ts - Automation CRUD
+- workspace.service.ts - Workspace management
+- milestone.service.ts - Milestone management
 - websocket.service.ts - Real-time updates
-- keyboard-shortcuts.service.ts - UX features
+- keyboard-shortcuts.service.ts - Keyboard shortcuts
+- theme.service.ts - Theme/palette management
 
 ## Data Flow
-1. Frontend calls API service
-2. API routes validate & authorize
-3. Database queries execute
-4. Broadcast service publishes updates
+1. Frontend calls API service (HttpClient)
+2. API routes validate & authorize (Axum extractors)
+3. Database queries execute (sqlx with raw SQL)
+4. Broadcast service publishes to Redis channels
 5. WebSocket pushes to clients
+
+## Real-time Architecture
+- Redis channels: board:{id}, user:{id}, workspace:{id}
+- Frontend WebSocket connects to /api/ws
+- Auto-reconnect with 3 second retry
 
 ## Action
 Provide a high-level overview of:

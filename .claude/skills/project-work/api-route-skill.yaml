@@ -17,6 +17,12 @@ You are analyzing REST API routes in a Rust Axum backend.
 - Extractors: Path, Query, Json, State
 - Middleware for auth via from_fn_with_state
 - Error mapping to AppError types
+- Extractors for tenant context (TenantContext)
+
+## Authorization Patterns
+- verify_board_membership(state, board_id, user_id) - checks board_members table
+- is_workspace_member(pool, workspace_id, user_id) - checks workspace_members table
+- Role-based: ManagerOrAdmin, AuthUserExtractor
 
 ## Guidelines
 - Show the HTTP method, path, and request/response types

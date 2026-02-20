@@ -1,0 +1,57 @@
+---
+id: milestone-routes
+trigger: "analyze milestone routes"
+confidence: 0.8
+domain: code_analysis
+source: project_skill
+---
+## Context
+You are analyzing milestone REST API routes.
+
+## Available Files
+- backend/crates/api/src/routes/milestone.rs
+- backend/crates/db/src/queries/milestones.rs
+
+## Endpoints
+
+### GET /api/boards/:board_id/milestones
+- Lists all milestones for a board with progress
+- Checks: verify_board_membership
+
+### POST /api/boards/:board_id/milestones
+- Creates a new milestone
+- Checks: verify_board_membership
+
+### GET /api/milestones/:id
+- Gets milestone with progress
+- Checks: verify_board_membership via milestone
+
+### PUT /api/milestones/:id
+- Updates milestone
+- Checks: verify_board_membership via milestone
+
+### DELETE /api/milestones/:id
+- Deletes milestone
+- Checks: verify_board_membership via milestone
+
+### POST /api/tasks/:task_id/milestone
+- Assigns task to milestone
+- Checks: verify_board_membership via task
+
+### DELETE /api/tasks/:task_id/milestone
+- Unassigns task from milestone
+- Checks: verify_board_membership via task
+
+## MilestoneWithProgress
+- id, name, description, due_date, color, board_id
+- total_tasks, completed_tasks (calculated via SQL)
+
+## Frontend Service
+MilestoneService in frontend/src/app/core/services/milestone.service.ts
+
+## Action
+Analyze milestone routes and explain:
+1. All endpoints and their methods
+2. Authorization via task->board or milestone->board
+3. Progress calculation in SQL
+4. Corresponding frontend calls

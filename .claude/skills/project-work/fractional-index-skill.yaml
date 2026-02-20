@@ -1,0 +1,22 @@
+---
+id: fractional-indexing
+trigger: "explain fractional indexing"
+confidence: 0.7
+domain: code_analysis
+source: project_skill
+---
+## Context
+You are analyzing fractional indexing for ordering items in a Kanban board.
+
+## Available Files
+- backend/crates/db/src/utils/fractional_index.rs
+
+## Purpose
+Used for ordering columns and tasks in a Kanban board without requiring sequential integer positions (which cause cascade updates).
+
+## How It Works
+- Keys are strings that sort lexicographically
+- Inserting between two keys produces a new key that sorts between them
+- Uses characters 0-9, a-z for base-36 encoding
+
+## Key Function
