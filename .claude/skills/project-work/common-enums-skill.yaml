@@ -16,6 +16,9 @@ This project uses several common enums across backend and frontend.
 ### BoardMemberRole
 - Viewer, Editor
 
+### ProjectMemberRole
+- owner, manager, viewer, editor
+
 ### TaskPriority
 - urgent, high, medium, low (stored as lowercase)
 
@@ -33,6 +36,9 @@ This project uses several common enums across backend and frontend.
 
 ### RecurrencePattern
 - Daily, Weekly, Biweekly, Monthly, Custom
+
+### ProjectStatus
+- Active, Archived
 
 ## Automation Enums (from automation.rs)
 

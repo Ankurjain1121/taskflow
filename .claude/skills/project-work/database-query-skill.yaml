@@ -17,9 +17,15 @@ You are analyzing database queries in a Rust project using sqlx with raw SQL.
 
 ## Query Patterns
 - Uses raw SQL with sqlx::query_as, sqlx::query_scalar, sqlx::query
+- Uses sqlx::query_as! for type-safe queries with column mapping
 - Pagination with cursor-based approach
 - Authorization via board_membership checks
 - Transactions with pool.begin().await?
+
+## Common Helper Functions
+- verify_board_membership_internal(pool, board_id, user_id) -> bool
+- get_task_board_id_internal(pool, task_id) -> Uuid
+- get_rule_board_id_internal(pool, rule_id) -> Uuid
 
 ## Guidelines
 - Explain SQL query logic in plain English

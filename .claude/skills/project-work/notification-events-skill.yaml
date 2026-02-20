@@ -1,0 +1,54 @@
+---
+id: notification-events
+trigger: "analyze notification events"
+confidence: 0.75
+domain: code_analysis
+source: project_skill
+---
+## Context
+You are analyzing notification events in the Rust backend.
+
+## Available Files
+- backend/crates/services/src/notifications/events.rs
+- backend/crates/db/src/queries/notifications.rs
+
+## Notification Event Types (from events.rs)
+
+### NotificationEvent Enum
+- TaskAssigned - When a task is assigned to a user
+- TaskDueSoon - When a task is approaching its due date
+- TaskOverdue - When a task passes its due date
+- TaskCommented - When a comment is added to a task
+- TaskCompleted - When a task is marked complete
+- MentionInComment - When a user is mentioned in a comment
+
+### Event Methods
+- name() -> &'static str - Returns event name (e.g., "task-assigned")
+- title() -> &'static str - Human-readable title
+- from_str() -> Option<NotificationEvent> - Parse from string
+
+## Notification Queries (from notifications.rs)
+
+### NotificationListResponse
+- items: Vec<Notification>
+- next_cursor: Option<String> - For pagination
+- unread_count: i64
+
+### Functions
+- list_notifications(pool, user_id, cursor, limit) -> NotificationListResponse
+- get_unread_count(pool, user_id) -> i64
+- mark_read(pool, notification_id, user_id)
+- mark_all_read(pool, user_id) -> i64
+- delete_old_notifications(pool, days_to_keep) -> i64
+
+## Guidelines
+- Notifications are for in-app (not email) notifications
+- Cursor-based pagination for listing
+- Users can only modify their own notifications
+
+## Action
+Analyze notification code and explain:
+1. Event types and their payloads
+2. How notifications are stored and retrieved
+3. Pagination patterns
+4. Read/unread state management

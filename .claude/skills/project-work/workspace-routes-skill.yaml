@@ -1,0 +1,58 @@
+---
+id: workspace-routes
+trigger: "analyze workspace routes"
+confidence: 0.8
+domain: code_analysis
+source: project_skill
+---
+## Context
+You are analyzing workspace REST API routes.
+
+## Available Files
+- backend/crates/api/src/routes/workspace.rs
+- backend/crates/db/src/queries/workspaces.rs
+
+## Endpoints
+
+### GET /api/workspaces
+- Lists all workspaces the user is a member of
+- No special authorization (members only)
+
+### GET /api/workspaces/:id
+- Returns workspace with members
+- Checks: is_workspace_member
+
+### POST /api/workspaces
+- Creates new workspace
+- Creator automatically added as member
+
+### PUT /api/workspaces/:id
+- Updates workspace name/description
+- Requires: Manager or Admin role
+
+### DELETE /api/workspaces/:id
+- Soft-deletes workspace
+- Requires: Manager or Admin role
+
+### GET /api/workspaces/:id/members/search?q=<query>
+- Searches members by name or email
+- Checks: is_workspace_member
+
+### POST /api/workspaces/:id/members
+- Adds user to workspace
+- Requires: Manager or Admin role
+
+### DELETE /api/workspaces/:id/members/:user_id
+- Removes user from workspace
+- Also removes from all boards in workspace
+- Requires: Manager or Admin role
+
+## Frontend Service
+WorkspaceService in frontend/src/app/core/services/workspace.service.ts
+
+## Action
+Analyze workspace routes and explain:
+1. All endpoints and their methods
+2. Authorization requirements
+3. How workspace membership works
+4. Corresponding frontend calls

@@ -14,10 +14,20 @@ You are analyzing error handling in the Rust backend.
 - Implements IntoResponse for Axum
 - Error responses follow: { "error": { "code": "...", "message": "..." } }
 
-## Query Error Pattern
+## Query Error Patterns
 - Each query module has its own Error enum
-- Maps to AppError in routes
 - Examples: AutomationQueryError, RecurringQueryError, MilestoneQueryError, NotificationQueryError
+- Maps to AppError in routes
+
+## Error to HTTP Status Mapping
+- NotFound -> 404 NOT_FOUND
+- BadRequest -> 400 BAD_REQUEST
+- Unauthorized -> 401 UNAUTHORIZED
+- Forbidden -> 403 FORBIDDEN
+- Conflict -> 409 CONFLICT
+- ValidationError -> 422 UNPROCESSABLE_ENTITY
+- InternalError/SqlxError -> 500 INTERNAL_SERVER_ERROR (message hidden)
+- JwtError -> 401 UNAUTHORIZED
 
 ## Guidelines
 - Internal errors hide details from users

@@ -19,6 +19,13 @@ You are working on a Rust backend project using sqlx for PostgreSQL database ope
 - Models derive sqlx::Type, Serialize, Deserialize
 - Queries are async functions taking PgPool
 - Error types use thiserror::Error
+- Authorization via board_membership checks
+
+## Models Found
+- AutomationRule, AutomationAction, AutomationLog (from automation.rs)
+- Project, ProjectMember, ProjectColumn (from project.rs)
+- Milestone (from milestones queries)
+- Notification (from notifications queries)
 
 ## Guidelines
 - When analyzing backend code, explain the database schema implications

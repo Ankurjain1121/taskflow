@@ -11,11 +11,21 @@ You are working on an Angular frontend project with TypeScript. The project uses
 - RxJS Observables for async operations
 - HttpClient for API calls
 - Signal-based state management (in some services)
+- PrimeNG components for UI
 
 ## Available Files
 - Services in: frontend/src/app/core/services/
 - Shared types in: frontend/src/app/shared/types/
-- Components in: frontend/src/app/features/
+- Components in: frontend/src/app/shared/components/
+
+## Services Found
+- ApiService - Base HTTP client
+- AutomationService - CRUD for automation rules
+- WorkspaceService - Workspace management
+- MilestoneService - Milestone CRUD
+- WebSocketService - Real-time updates
+- KeyboardShortcutsService - Keyboard shortcuts
+- ThemeService - Light/dark theme with palettes
 
 ## Code Patterns
 - Services use @Injectable({ providedIn: 'root' })
