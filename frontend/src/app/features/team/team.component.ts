@@ -135,32 +135,22 @@ import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
                 </div>
 
                 <div class="flex items-center gap-3">
-                  @if (isCurrentUserAdmin()) {
-                    <p-select
-                      [options]="memberRoleOptions"
-                      [ngModel]="member.role"
-                      (ngModelChange)="onRoleChange(member, $event)"
-                      optionLabel="label"
-                      optionValue="value"
-                      styleClass="w-32"
-                    />
-                  } @else {
-                    <span
-                      class="px-2 py-1 text-xs font-medium rounded"
-                      [ngClass]="{
-                        'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300':
-                          member.role === 'admin',
-                        'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300':
-                          member.role === 'manager',
-                        'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300':
-                          member.role === 'member',
-                        'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300':
-                          member.role === 'viewer',
-                      }"
-                    >
-                      {{ member.role }}
-                    </span>
-                  }
+                  <span
+                    class="px-2 py-1 text-xs font-medium rounded"
+                    [ngClass]="{
+                      'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300':
+                        member.role === 'admin',
+                      'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300':
+                        member.role === 'manager',
+                      'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300':
+                        member.role === 'member',
+                      'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300':
+                        member.role === 'viewer',
+                    }"
+                    title="Roles are managed in the Admin panel"
+                  >
+                    {{ member.role }}
+                  </span>
 
                   @if (isCurrentUserAdmin()) {
                     <p-button
@@ -276,13 +266,6 @@ export class TeamComponent implements OnInit {
     { label: 'Viewer', value: 'viewer' },
   ];
 
-  memberRoleOptions = [
-    { label: 'Admin', value: 'admin' },
-    { label: 'Manager', value: 'manager' },
-    { label: 'Member', value: 'member' },
-    { label: 'Viewer', value: 'viewer' },
-  ];
-
   ngOnInit(): void {
     this.route.paramMap.subscribe((params) => {
       const id = params.get('workspaceId');
@@ -369,41 +352,6 @@ export class TeamComponent implements OnInit {
             summary: 'Error',
             detail: 'Failed to remove member',
           });
-        },
-      });
-  }
-
-  onRoleChange(member: WorkspaceMemberInfo, newRole: string): void {
-    if (newRole === member.role) {
-      return;
-    }
-
-    this.workspaceService
-      .updateMemberRole(
-        this.workspaceId(),
-        member.user_id,
-        newRole as 'admin' | 'manager' | 'member',
-      )
-      .subscribe({
-        next: () => {
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Success',
-            detail: `Role updated to ${newRole}`,
-          });
-          this.loadData();
-        },
-        error: (err: unknown) => {
-          const httpErr = err as { error?: { error?: { message?: string } } };
-          const message =
-            httpErr?.error?.error?.message || 'Failed to update role';
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: message,
-          });
-          // Reload to revert the select visual state
-          this.loadData();
         },
       });
   }

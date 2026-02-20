@@ -1,14 +1,12 @@
 import { Component, inject, signal, HostListener } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Router, RouterOutlet } from '@angular/router';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { NotificationBellComponent } from '../notification-bell/notification-bell.component';
 import { AuthService } from '../../../core/services/auth.service';
 import {
   ThemeService,
   Theme,
-  Palette,
   AccentColor,
-  PALETTE_PRESETS,
   ACCENT_PRESETS,
 } from '../../../core/services/theme.service';
 import { TooltipModule } from 'primeng/tooltip';
@@ -154,58 +152,12 @@ import { PopoverModule } from 'primeng/popover';
                             : 'var(--foreground)'
                         "
                       >
-                        <i
-                          [class]="option.icon"
-                          style="font-size: 0.75rem"
-                        ></i>
+                        <i [class]="option.icon" style="font-size: 0.75rem"></i>
                         {{ option.label }}
                       </button>
                     }
                   </div>
                 </div>
-                <!-- Dark style palette (only in dark mode) -->
-                @if (isDark()) {
-                  <div
-                    style="
-                      border-top: 1px solid var(--border);
-                      padding-top: 0.75rem;
-                    "
-                  >
-                    <div
-                      class="text-xs font-semibold uppercase tracking-wider mb-2"
-                      style="color: var(--muted-foreground)"
-                    >
-                      Style
-                    </div>
-                    <div class="flex gap-1.5">
-                      @for (p of palettePresets; track p.value) {
-                        @if (p.darkOnly || p.value === 'default') {
-                          <button
-                            (click)="setPalette(p.value)"
-                            class="px-3 py-1.5 rounded-md text-xs font-medium transition-all border"
-                            [style.border-color]="
-                              currentPalette() === p.value
-                                ? 'var(--primary)'
-                                : 'var(--border)'
-                            "
-                            [style.background]="
-                              currentPalette() === p.value
-                                ? 'var(--muted)'
-                                : 'transparent'
-                            "
-                            [style.color]="
-                              currentPalette() === p.value
-                                ? 'var(--primary)'
-                                : 'var(--foreground)'
-                            "
-                          >
-                            {{ p.label }}
-                          </button>
-                        }
-                      }
-                    </div>
-                  </div>
-                }
                 <!-- Accent color -->
                 <div
                   style="
@@ -248,6 +200,22 @@ import { PopoverModule } from 'primeng/popover';
                     }
                   </div>
                 </div>
+                <!-- More themes link -->
+                <div
+                  style="
+                    border-top: 1px solid var(--border);
+                    padding-top: 0.75rem;
+                  "
+                >
+                  <button
+                    class="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border"
+                    style="border-color: var(--border); color: var(--muted-foreground)"
+                    (click)="goToThemes(); themePanel.hide()"
+                  >
+                    <i class="pi pi-palette" style="font-size: 0.75rem"></i>
+                    More themes...
+                  </button>
+                </div>
               </div>
             </p-popover>
 
@@ -282,16 +250,15 @@ import { PopoverModule } from 'primeng/popover';
 export class LayoutComponent {
   private authService = inject(AuthService);
   private themeService = inject(ThemeService);
+  private router = inject(Router);
 
   currentUser = this.authService.currentUser;
 
   isMobileSidebarOpen = signal(false);
 
   currentTheme = this.themeService.theme;
-  currentPalette = this.themeService.palette;
   currentAccent = this.themeService.accent;
   isDark = this.themeService.isDark;
-  palettePresets = PALETTE_PRESETS;
   accentPresets = ACCENT_PRESETS;
 
   themeOptions: { value: Theme; label: string; icon: string }[] = [
@@ -311,12 +278,12 @@ export class LayoutComponent {
     this.themeService.setTheme(theme);
   }
 
-  setPalette(palette: Palette): void {
-    this.themeService.setPalette(palette);
-  }
-
   setAccent(accent: AccentColor): void {
     this.themeService.setAccent(accent);
+  }
+
+  goToThemes(): void {
+    this.router.navigate(['/settings/appearance']);
   }
 
   sidebarCollapsed = signal(

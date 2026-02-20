@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
@@ -9,11 +9,10 @@ import { MessageService } from 'primeng/api';
 import {
   ThemeService,
   Theme,
-  Palette,
   AccentColor,
-  PALETTE_PRESETS,
   ACCENT_PRESETS,
 } from '../../../core/services/theme.service';
+import { Theme as DbTheme } from '../../../shared/types/theme.types';
 import { UserPreferencesService } from '../../../core/services/user-preferences.service';
 
 interface TimezoneOption {
@@ -30,6 +29,24 @@ interface BoardViewOption {
   label: string;
   value: string;
 }
+
+interface ThemeCategory {
+  key: string;
+  label: string;
+  themes: DbTheme[];
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  clean: 'Clean',
+  'dark-sidebar': 'Dark',
+  tinted: 'Tinted',
+  famous: 'Popular',
+  bold: 'Bold',
+  specialty: 'Seasonal & Fun',
+};
+
+const LIGHT_CATEGORY_ORDER = ['clean', 'tinted', 'famous', 'bold', 'specialty'];
+const DARK_CATEGORY_ORDER = ['dark-sidebar', 'famous', 'bold', 'specialty'];
 
 @Component({
   selector: 'app-appearance-section',
@@ -57,6 +74,8 @@ interface BoardViewOption {
       <p class="text-sm mb-4" style="color: var(--muted-foreground)">
         Choose your preferred theme
       </p>
+
+      <!-- Section A: Color Mode -->
       <div class="flex gap-3">
         @for (option of themeOptions; track option.value) {
           <button
@@ -91,46 +110,76 @@ interface BoardViewOption {
         }
       </div>
 
-      <!-- Dark Style (only visible in dark mode) -->
-      @if (isDark()) {
-        <div class="mt-4 pt-4" style="border-top: 1px solid var(--border)">
+      <!-- Section B: Theme Gallery -->
+      @if (categorizedThemes().length > 0) {
+        <div class="mt-5 pt-5" style="border-top: 1px solid var(--border)">
           <p
             class="text-sm font-medium mb-3"
             style="color: var(--foreground)"
           >
-            Dark Style
+            Theme Gallery
           </p>
-          <div class="flex gap-2">
-            @for (p of palettePresets; track p.value) {
-              @if (p.darkOnly || p.value === 'default') {
-                <button
-                  (click)="setPalette(p.value)"
-                  class="px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all"
-                  [style.border-color]="
-                    currentPalette() === p.value
-                      ? 'var(--primary)'
-                      : 'var(--border)'
-                  "
-                  [style.background]="
-                    currentPalette() === p.value
-                      ? 'var(--muted)'
-                      : 'transparent'
-                  "
-                  [style.color]="
-                    currentPalette() === p.value
-                      ? 'var(--primary)'
-                      : 'var(--foreground)'
-                  "
-                >
-                  {{ p.label }}
-                </button>
-              }
-            }
-          </div>
+          @for (category of categorizedThemes(); track category.key) {
+            <div class="mb-4">
+              <p
+                class="text-xs font-semibold uppercase tracking-wider mb-2"
+                style="color: var(--muted-foreground)"
+              >
+                {{ category.label }}
+              </p>
+              <div class="flex gap-3 flex-wrap">
+                @for (t of category.themes; track t.slug) {
+                  <button
+                    class="flex flex-col items-center gap-1.5 group cursor-pointer"
+                    (click)="selectTheme(t.slug)"
+                  >
+                    <div
+                      class="rounded-lg border overflow-hidden transition-all duration-150"
+                      [class.ring-2]="activeThemeSlug() === t.slug"
+                      [class.scale-[1.02]]="activeThemeSlug() === t.slug"
+                      [style.ring-color]="activeThemeSlug() === t.slug ? 'var(--primary)' : 'transparent'"
+                      [style.border-color]="activeThemeSlug() === t.slug ? 'var(--primary)' : 'var(--border)'"
+                      style="width: 140px; height: 90px;"
+                    >
+                      <div
+                        class="w-full h-full flex"
+                        [style.background]="t.preview.background_color"
+                      >
+                        <!-- Sidebar strip -->
+                        <div
+                          class="h-full flex-shrink-0"
+                          style="width: 20%;"
+                          [style.background]="t.preview.sidebar_color"
+                        ></div>
+                        <!-- Main area -->
+                        <div class="flex-1 flex flex-col p-1.5 gap-1">
+                          <!-- Top bar hint -->
+                          <div
+                            class="rounded-sm"
+                            style="height: 6px;"
+                            [style.background]="t.preview.primary_color"
+                          ></div>
+                          <!-- Card hint -->
+                          <div
+                            class="flex-1 rounded-sm"
+                            [style.background]="t.preview.card_color"
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                    <span
+                      class="text-xs font-medium truncate max-w-[140px]"
+                      [style.color]="activeThemeSlug() === t.slug ? 'var(--primary)' : 'var(--foreground)'"
+                    >{{ t.name }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
         </div>
       }
 
-      <!-- Accent Color -->
+      <!-- Section C: Accent Color -->
       <div class="mt-4 pt-4" style="border-top: 1px solid var(--border)">
         <p
           class="text-sm font-medium mb-3"
@@ -293,10 +342,8 @@ export class AppearanceSectionComponent implements OnInit {
   private readonly messageService = inject(MessageService);
 
   currentTheme = this.themeService.theme;
-  currentPalette = this.themeService.palette;
   currentAccent = this.themeService.accent;
   isDark = this.themeService.isDark;
-  palettePresets = PALETTE_PRESETS;
   accentPresets = ACCENT_PRESETS;
 
   isSaving = signal(false);
@@ -306,6 +353,32 @@ export class AppearanceSectionComponent implements OnInit {
     { value: 'dark', label: 'Dark', icon: 'pi pi-moon' },
     { value: 'system', label: 'System', icon: 'pi pi-desktop' },
   ];
+
+  activeThemeSlug = computed(() => this.themeService.activeTheme()?.slug ?? '');
+
+  categorizedThemes = computed<ThemeCategory[]>(() => {
+    const all = this.themeService.allThemes();
+    const dark = this.isDark();
+    const filtered = all.filter((t) => (dark ? t.is_dark : !t.is_dark));
+    const order = dark ? DARK_CATEGORY_ORDER : LIGHT_CATEGORY_ORDER;
+
+    const grouped = new Map<string, DbTheme[]>();
+    for (const theme of filtered) {
+      const list = grouped.get(theme.category) ?? [];
+      list.push(theme);
+      grouped.set(theme.category, list);
+    }
+
+    return order
+      .filter((key) => grouped.has(key))
+      .map((key) => ({
+        key,
+        label: CATEGORY_LABELS[key] ?? key,
+        themes: (grouped.get(key) ?? []).sort(
+          (a, b) => a.sort_order - b.sort_order,
+        ),
+      }));
+  });
 
   timezoneOptions: TimezoneOption[] = [
     { label: 'UTC', value: 'UTC' },
@@ -350,8 +423,8 @@ export class AppearanceSectionComponent implements OnInit {
     this.themeService.setTheme(theme);
   }
 
-  setPalette(palette: Palette): void {
-    this.themeService.setPalette(palette);
+  selectTheme(slug: string): void {
+    this.themeService.setThemeSlug(slug);
   }
 
   setAccent(accent: AccentColor): void {
