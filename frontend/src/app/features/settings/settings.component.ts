@@ -7,15 +7,7 @@ import { PasswordModule } from 'primeng/password';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { AuthService } from '../../core/services/auth.service';
-import {
-  ThemeService,
-  Theme,
-  Palette,
-  AccentColor,
-  PALETTE_PRESETS,
-  ACCENT_PRESETS,
-} from '../../core/services/theme.service';
-import { TooltipModule } from 'primeng/tooltip';
+import { AppearanceSectionComponent } from './appearance-section/appearance-section.component';
 
 @Component({
   selector: 'app-settings',
@@ -27,7 +19,7 @@ import { TooltipModule } from 'primeng/tooltip';
     ButtonModule,
     PasswordModule,
     ToastModule,
-    TooltipModule,
+    AppearanceSectionComponent,
   ],
   providers: [MessageService],
   template: `
@@ -39,128 +31,7 @@ import { TooltipModule } from 'primeng/tooltip';
 
       <div class="space-y-6">
         <!-- Appearance Section -->
-        <div
-          class="rounded-lg border shadow-sm p-6"
-          style="background: var(--card); border-color: var(--border)"
-        >
-          <h2
-            class="text-xl font-semibold mb-4"
-            style="color: var(--foreground)"
-          >
-            Appearance
-          </h2>
-          <p class="text-sm mb-4" style="color: var(--muted-foreground)">
-            Choose your preferred theme
-          </p>
-          <div class="flex gap-3">
-            @for (option of themeOptions; track option.value) {
-              <button
-                (click)="setTheme(option.value)"
-                class="flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all cursor-pointer flex-1"
-                [style.border-color]="
-                  currentTheme() === option.value
-                    ? 'var(--primary)'
-                    : 'var(--border)'
-                "
-                [style.background]="
-                  currentTheme() === option.value
-                    ? 'var(--muted)'
-                    : 'transparent'
-                "
-              >
-                <i
-                  [class]="option.icon + ' text-xl'"
-                  [style.color]="
-                    currentTheme() === option.value
-                      ? 'var(--primary)'
-                      : 'var(--muted-foreground)'
-                  "
-                ></i>
-                <span
-                  class="text-sm font-medium"
-                  [style.color]="
-                    currentTheme() === option.value
-                      ? 'var(--primary)'
-                      : 'var(--foreground)'
-                  "
-                  >{{ option.label }}</span
-                >
-              </button>
-            }
-          </div>
-
-          <!-- Dark Style (visible only in dark mode) -->
-          @if (isDark()) {
-            <div class="mt-4 pt-4" style="border-top: 1px solid var(--border)">
-              <p
-                class="text-sm font-medium mb-3"
-                style="color: var(--foreground)"
-              >
-                Dark Style
-              </p>
-              <div class="flex gap-2">
-                @for (p of palettePresets; track p.value) {
-                  @if (p.darkOnly || p.value === 'default') {
-                    <button
-                      (click)="setPalette(p.value)"
-                      class="px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all"
-                      [style.border-color]="
-                        currentPalette() === p.value
-                          ? 'var(--primary)'
-                          : 'var(--border)'
-                      "
-                      [style.background]="
-                        currentPalette() === p.value
-                          ? 'var(--muted)'
-                          : 'transparent'
-                      "
-                      [style.color]="
-                        currentPalette() === p.value
-                          ? 'var(--primary)'
-                          : 'var(--foreground)'
-                      "
-                    >
-                      {{ p.label }}
-                    </button>
-                  }
-                }
-              </div>
-            </div>
-          }
-
-          <!-- Accent Color -->
-          <div class="mt-4 pt-4" style="border-top: 1px solid var(--border)">
-            <p
-              class="text-sm font-medium mb-3"
-              style="color: var(--foreground)"
-            >
-              Accent Color
-            </p>
-            <div class="flex gap-3 flex-wrap">
-              @for (a of accentPresets; track a.value) {
-                <button
-                  (click)="setAccent(a.value)"
-                  class="w-8 h-8 rounded-full border-2 transition-all flex items-center justify-center"
-                  [style.background]="a.color"
-                  [style.border-color]="
-                    currentAccent() === a.value
-                      ? 'var(--foreground)'
-                      : 'transparent'
-                  "
-                  [style.transform]="
-                    currentAccent() === a.value ? 'scale(1.15)' : 'scale(1)'
-                  "
-                  [pTooltip]="a.label"
-                  tooltipPosition="bottom"
-                >
-                  @if (currentAccent() === a.value) {
-                    <i class="pi pi-check text-white text-xs"></i>
-                  }
-                </button>
-              }
-            </div>
-          </div>
-        </div>
+        <app-appearance-section />
 
         <!-- Profile Section -->
         <div
@@ -425,20 +296,6 @@ import { TooltipModule } from 'primeng/tooltip';
 export class SettingsComponent implements OnInit {
   private authService = inject(AuthService);
   private messageService = inject(MessageService);
-  private themeService = inject(ThemeService);
-
-  currentTheme = this.themeService.theme;
-  currentPalette = this.themeService.palette;
-  currentAccent = this.themeService.accent;
-  isDark = this.themeService.isDark;
-  palettePresets = PALETTE_PRESETS;
-  accentPresets = ACCENT_PRESETS;
-
-  themeOptions: { value: Theme; label: string; icon: string }[] = [
-    { value: 'light', label: 'Light', icon: 'pi pi-sun' },
-    { value: 'dark', label: 'Dark', icon: 'pi pi-moon' },
-    { value: 'system', label: 'System', icon: 'pi pi-desktop' },
-  ];
 
   profileData = {
     name: '',
@@ -465,18 +322,6 @@ export class SettingsComponent implements OnInit {
       this.profileData.email = user.email;
       this.profileData.avatar_url = user.avatar_url || '';
     }
-  }
-
-  setTheme(theme: Theme): void {
-    this.themeService.setTheme(theme);
-  }
-
-  setPalette(palette: Palette): void {
-    this.themeService.setPalette(palette);
-  }
-
-  setAccent(accent: AccentColor): void {
-    this.themeService.setAccent(accent);
   }
 
   updateProfile(): void {

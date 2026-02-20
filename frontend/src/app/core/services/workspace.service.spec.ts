@@ -17,8 +17,9 @@ import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
 const MOCK_WORKSPACE: Workspace = {
   id: 'ws-1',
   name: 'Test Workspace',
-  slug: 'test-workspace',
-  owner_id: 'user-1',
+  description: null,
+  logo_url: null,
+  created_by_id: 'user-1',
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 };
@@ -181,7 +182,12 @@ describe('WorkspaceService', () => {
   describe('searchMembers()', () => {
     it('should GET /api/workspaces/:workspaceId/members/search with query params', () => {
       const mockResults: MemberSearchResult[] = [
-        { id: 'user-1', name: 'Test User', email: 'test@example.com', avatar_url: null },
+        {
+          id: 'user-1',
+          name: 'Test User',
+          email: 'test@example.com',
+          avatar_url: null,
+        },
       ];
 
       service.searchMembers('ws-1', 'test', 5).subscribe((result) => {
@@ -249,7 +255,9 @@ describe('WorkspaceService', () => {
     });
 
     it('should omit board_ids when empty array', () => {
-      service.bulkInviteMembers('ws-1', ['a@example.com'], 'admin', undefined, []).subscribe();
+      service
+        .bulkInviteMembers('ws-1', ['a@example.com'], 'admin', undefined, [])
+        .subscribe();
 
       const req = httpMock.expectOne('/api/invitations/bulk');
       expect(req.request.body.board_ids).toBeUndefined();
@@ -265,9 +273,7 @@ describe('WorkspaceService', () => {
         expect(result).toEqual(invitations);
       });
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/invitations/all',
-      );
+      const req = httpMock.expectOne((r) => r.url === '/api/invitations/all');
       expect(req.request.method).toBe('GET');
       expect(req.request.params.get('workspace_id')).toBe('ws-1');
       req.flush(invitations);

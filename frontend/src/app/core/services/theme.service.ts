@@ -29,27 +29,7 @@ const LIGHT_CACHE_KEY = 'taskflow-light-cache';
 const DARK_CACHE_KEY = 'taskflow-dark-cache';
 
 export type Theme = 'light' | 'dark' | 'system';
-export type Palette =
-  | 'default'
-  | 'dracula'
-  | 'nord'
-  | 'midnight'
-  | 'ocean'
-  | 'forest';
 export type { AccentColor } from '../../shared/types/theme.types';
-
-export const PALETTE_PRESETS: {
-  value: Palette;
-  label: string;
-  darkOnly?: boolean;
-}[] = [
-  { value: 'default', label: 'Default' },
-  { value: 'dracula', label: 'Dracula', darkOnly: true },
-  { value: 'nord', label: 'Nord', darkOnly: true },
-  { value: 'midnight', label: 'Midnight', darkOnly: true },
-  { value: 'ocean', label: 'Ocean', darkOnly: true },
-  { value: 'forest', label: 'Forest', darkOnly: true },
-];
 
 export const ACCENT_PRESETS: {
   value: AccentColor;
@@ -79,7 +59,6 @@ export class ThemeService implements OnDestroy {
   readonly theme = signal<Theme>(
     this.loadFromStorage(THEME_STORAGE_KEY, 'system') as Theme,
   );
-  readonly palette = signal<Palette>('default');
   readonly accent = signal<AccentColor>(
     this.loadFromStorage(ACCENT_STORAGE_KEY, 'indigo') as AccentColor,
   );
@@ -151,11 +130,6 @@ export class ThemeService implements OnDestroy {
     this.theme.set(t);
     this.saveToStorage(THEME_STORAGE_KEY, t);
     this.savePreference('color_mode', t);
-  }
-
-  setPalette(p: Palette): void {
-    this.palette.set(p);
-    this.applyFullTheme();
   }
 
   setAccent(a: AccentColor): void {
@@ -400,21 +374,7 @@ export class ThemeService implements OnDestroy {
       'sidebar-text-muted': 'rgba(148,163,184,0.5)',
     };
 
-    return isDark
-      ? { ...darkColors, ...this.getPaletteColors(this.palette()) }
-      : lightColors;
-  }
-
-  private getPaletteColors(palette: Palette): Record<string, string> {
-    const palettes: Record<Palette, Record<string, string>> = {
-      default: {},
-      dracula: { primary: '#BD93F9', ring: '#BD93F9' },
-      nord: { primary: '#88C0D0', ring: '#88C0D0' },
-      midnight: { primary: '#6366f1', ring: '#6366f1' },
-      ocean: { primary: '#5090D3', ring: '#5090D3' },
-      forest: { primary: '#238636', ring: '#238636' },
-    };
-    return palettes[palette] || {};
+    return isDark ? darkColors : lightColors;
   }
 
   private applyThemeClasses(resolved: 'light' | 'dark'): void {
