@@ -53,9 +53,15 @@ export class ThemeService {
   private readonly document = inject(DOCUMENT);
   private readonly primeng = inject(PrimeNG);
 
-  private readonly _theme = signal<Theme>(this.loadFromStorage(THEME_STORAGE_KEY, 'system') as Theme);
-  private readonly _palette = signal<Palette>(this.loadFromStorage(PALETTE_STORAGE_KEY, 'default') as Palette);
-  private readonly _accent = signal<AccentColor>(this.loadFromStorage(ACCENT_STORAGE_KEY, 'indigo') as AccentColor);
+  private readonly _theme = signal<Theme>(
+    this.loadFromStorage(THEME_STORAGE_KEY, 'system') as Theme,
+  );
+  private readonly _palette = signal<Palette>(
+    this.loadFromStorage(PALETTE_STORAGE_KEY, 'default') as Palette,
+  );
+  private readonly _accent = signal<AccentColor>(
+    this.loadFromStorage(ACCENT_STORAGE_KEY, 'indigo') as AccentColor,
+  );
 
   private readonly systemPrefersDark = signal<boolean>(
     this.getSystemPreference(),
@@ -84,12 +90,19 @@ export class ThemeService {
     this.applyAccent(this._accent());
     this.updatePrimeNGAccent(this._accent());
 
+    // React to theme changes — only tracks resolvedTheme, not palette
     effect(() => {
       const resolved = this.resolvedTheme();
       this.applyTheme(resolved);
-      // Reset palette when switching to light (palettes are dark-only)
-      if (resolved === 'light' && this._palette() !== 'default') {
-        this.setPalette('default');
+      // When switching to light, remove palette classes (visual only, don't touch storage)
+      if (resolved === 'light') {
+        this.document.documentElement.classList.remove('dracula', 'dimmed');
+      } else {
+        // Re-apply palette when switching back to dark
+        const palette = this._palette();
+        if (palette !== 'default') {
+          this.document.documentElement.classList.add(palette);
+        }
       }
     });
 
@@ -120,9 +133,7 @@ export class ThemeService {
     if (resolved === 'dark') {
       htmlElement.classList.add('dark');
     } else {
-      htmlElement.classList.remove('dark');
-      // Remove palette classes when going light
-      htmlElement.classList.remove('dracula', 'dimmed');
+      htmlElement.classList.remove('dark', 'dracula', 'dimmed');
     }
   }
 
