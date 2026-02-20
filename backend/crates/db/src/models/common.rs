@@ -46,17 +46,6 @@ pub enum ActivityAction {
 }
 
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Debug, PartialEq, TS)]
-#[sqlx(type_name = "subscription_status", rename_all = "snake_case")]
-#[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
-pub enum SubscriptionStatus {
-    Active,
-    Trialing,
-    PastDue,
-    Cancelled,
-    Expired,
-}
-
-#[derive(sqlx::Type, Serialize, Deserialize, Clone, Debug, PartialEq, TS)]
 #[sqlx(type_name = "dependency_type", rename_all = "snake_case")]
 #[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
 pub enum DependencyType {
@@ -139,21 +128,6 @@ mod tests {
         ] {
             let json = serde_json::to_string(&variant).unwrap();
             let deserialized: ActivityAction = serde_json::from_str(&json).unwrap();
-            assert_eq!(variant, deserialized);
-        }
-    }
-
-    #[test]
-    fn test_subscription_status_serde() {
-        for variant in [
-            SubscriptionStatus::Active,
-            SubscriptionStatus::Trialing,
-            SubscriptionStatus::PastDue,
-            SubscriptionStatus::Cancelled,
-            SubscriptionStatus::Expired,
-        ] {
-            let json = serde_json::to_string(&variant).unwrap();
-            let deserialized: SubscriptionStatus = serde_json::from_str(&json).unwrap();
             assert_eq!(variant, deserialized);
         }
     }
