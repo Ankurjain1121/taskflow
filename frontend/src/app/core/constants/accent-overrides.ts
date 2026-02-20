@@ -5,7 +5,7 @@
  * These are applied ON TOP of theme colors when accent != 'indigo'.
  */
 
-import { AccentColor } from '../services/theme.service';
+import { AccentColor } from '../../shared/types/theme.types';
 
 interface AccentOverrides {
   primary: string;
