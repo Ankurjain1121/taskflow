@@ -28,39 +28,53 @@ import { AuthService } from '../../../core/services/auth.service';
     PasswordModule,
   ],
   template: `
-    <div class="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+    <div
+      class="min-h-screen flex items-center justify-center px-4"
+      style="background: var(--background)"
+    >
       <div class="card-container w-full max-w-md">
         <div class="card-header">
-          <h2 class="text-2xl font-bold text-center">
-            Reset Password
-          </h2>
+          <h2 class="text-2xl font-bold text-center">Reset Password</h2>
         </div>
 
         <div class="card-body">
           @if (!token) {
             <div class="text-center">
-              <i class="pi pi-exclamation-circle text-red-500 mb-4" style="font-size: 48px;"></i>
+              <i
+                class="pi pi-exclamation-circle text-red-500 mb-4"
+                style="font-size: 48px;"
+              ></i>
               <h3 class="text-lg font-semibold mb-2">Invalid Reset Link</h3>
               <p class="text-gray-600 text-sm mb-6">
                 This password reset link is invalid. Please request a new one.
               </p>
-              <a
-                routerLink="/auth/forgot-password"
-              >
-                <button pButton label="Request New Link" class="action-btn"></button>
+              <a routerLink="/auth/forgot-password">
+                <button
+                  pButton
+                  label="Request New Link"
+                  class="action-btn"
+                ></button>
               </a>
             </div>
           } @else if (resetSuccess) {
             <div class="text-center">
-              <i class="pi pi-check-circle text-green-500 mb-4" style="font-size: 48px;"></i>
-              <h3 class="text-lg font-semibold mb-2">Password Reset Successfully</h3>
+              <i
+                class="pi pi-check-circle text-green-500 mb-4"
+                style="font-size: 48px;"
+              ></i>
+              <h3 class="text-lg font-semibold mb-2">
+                Password Reset Successfully
+              </h3>
               <p class="text-gray-600 text-sm mb-6">
-                Your password has been reset. You can now sign in with your new password.
+                Your password has been reset. You can now sign in with your new
+                password.
               </p>
-              <a
-                routerLink="/auth/sign-in"
-              >
-                <button pButton label="Go to Sign In" class="action-btn"></button>
+              <a routerLink="/auth/sign-in">
+                <button
+                  pButton
+                  label="Go to Sign In"
+                  class="action-btn"
+                ></button>
               </a>
             </div>
           } @else {
@@ -70,7 +84,9 @@ import { AuthService } from '../../../core/services/auth.service';
 
             <form [formGroup]="resetForm" (ngSubmit)="onSubmit()">
               <div class="mb-4">
-                <label for="new-password" class="field-label">New Password</label>
+                <label for="new-password" class="field-label"
+                  >New Password</label
+                >
                 <p-password
                   id="new-password"
                   formControlName="newPassword"
@@ -80,16 +96,26 @@ import { AuthService } from '../../../core/services/auth.service';
                   styleClass="w-full"
                   inputStyleClass="w-full"
                 />
-                @if (resetForm.get('newPassword')?.hasError('required') && resetForm.get('newPassword')?.touched) {
+                @if (
+                  resetForm.get('newPassword')?.hasError('required') &&
+                  resetForm.get('newPassword')?.touched
+                ) {
                   <small class="p-error">Password is required</small>
                 }
-                @if (resetForm.get('newPassword')?.hasError('minlength') && resetForm.get('newPassword')?.touched) {
-                  <small class="p-error">Password must be at least 8 characters</small>
+                @if (
+                  resetForm.get('newPassword')?.hasError('minlength') &&
+                  resetForm.get('newPassword')?.touched
+                ) {
+                  <small class="p-error"
+                    >Password must be at least 8 characters</small
+                  >
                 }
               </div>
 
               <div class="mb-4">
-                <label for="confirm-new-password" class="field-label">Confirm Password</label>
+                <label for="confirm-new-password" class="field-label"
+                  >Confirm Password</label
+                >
                 <p-password
                   id="confirm-new-password"
                   formControlName="confirmPassword"
@@ -99,16 +125,26 @@ import { AuthService } from '../../../core/services/auth.service';
                   styleClass="w-full"
                   inputStyleClass="w-full"
                 />
-                @if (resetForm.get('confirmPassword')?.hasError('required') && resetForm.get('confirmPassword')?.touched) {
+                @if (
+                  resetForm.get('confirmPassword')?.hasError('required') &&
+                  resetForm.get('confirmPassword')?.touched
+                ) {
                   <small class="p-error">Please confirm your password</small>
                 }
-                @if (resetForm.get('confirmPassword')?.hasError('passwordMismatch') && resetForm.get('confirmPassword')?.touched) {
+                @if (
+                  resetForm
+                    .get('confirmPassword')
+                    ?.hasError('passwordMismatch') &&
+                  resetForm.get('confirmPassword')?.touched
+                ) {
                   <small class="p-error">Passwords do not match</small>
                 }
               </div>
 
               @if (errorMessage) {
-                <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                <div
+                  class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded"
+                >
                   {{ errorMessage }}
                 </div>
               }
@@ -152,9 +188,11 @@ import { AuthService } from '../../../core/services/auth.service';
       }
 
       .card-container {
-        background: white;
+        background: var(--card);
         border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        box-shadow:
+          0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -2px rgba(0, 0, 0, 0.1);
         padding: 2rem;
       }
 
@@ -170,14 +208,14 @@ import { AuthService } from '../../../core/services/auth.service';
         text-align: center;
         margin-top: 1rem;
         padding-top: 1rem;
-        border-top: 1px solid #f3f4f6;
+        border-top: 1px solid var(--border);
       }
 
       .field-label {
         display: block;
         font-size: 0.875rem;
         font-weight: 500;
-        color: #374151;
+        color: var(--foreground);
         margin-bottom: 0.375rem;
       }
 
@@ -185,22 +223,38 @@ import { AuthService } from '../../../core/services/auth.service';
         height: 48px !important;
         font-size: 16px !important;
         border-radius: 8px !important;
-        background: #4f46e5 !important;
+        background: var(--primary) !important;
+        color: var(--primary-foreground) !important;
         border: none !important;
       }
 
       .submit-btn:hover:not([disabled]) {
-        background: #4338ca !important;
+        opacity: 0.9;
       }
 
       .action-btn {
         border-radius: 8px !important;
-        background: #4f46e5 !important;
+        background: var(--primary) !important;
+        color: var(--primary-foreground) !important;
         border: none !important;
       }
 
       .action-btn:hover {
-        background: #4338ca !important;
+        opacity: 0.9;
+      }
+
+      .card-header h2,
+      .card-body h3 {
+        color: var(--foreground);
+      }
+
+      .card-body p,
+      .card-footer p {
+        color: var(--muted-foreground);
+      }
+
+      .card-footer a {
+        color: var(--primary);
       }
 
       :host ::ng-deep .inline-spinner .p-progress-spinner-circle {
@@ -227,7 +281,7 @@ export class ResetPasswordComponent implements OnInit {
       newPassword: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required]],
     },
-    { validators: this.passwordMatchValidator }
+    { validators: this.passwordMatchValidator },
   );
 
   isLoading = false;
@@ -272,11 +326,17 @@ export class ResetPasswordComponent implements OnInit {
     });
   }
 
-  private passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
+  private passwordMatchValidator(
+    control: AbstractControl,
+  ): ValidationErrors | null {
     const newPassword = control.get('newPassword');
     const confirmPassword = control.get('confirmPassword');
 
-    if (newPassword && confirmPassword && newPassword.value !== confirmPassword.value) {
+    if (
+      newPassword &&
+      confirmPassword &&
+      newPassword.value !== confirmPassword.value
+    ) {
       confirmPassword.setErrors({ passwordMismatch: true });
       return { passwordMismatch: true };
     }

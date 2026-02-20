@@ -130,9 +130,7 @@ interface WorkspaceOption {
                 <div
                   class="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform"
                 >
-                  <i
-                    class="pi pi-clipboard text-primary"
-                  ></i>
+                  <i class="pi pi-clipboard text-primary"></i>
                 </div>
               </div>
             </a>
@@ -142,7 +140,7 @@ interface WorkspaceOption {
               routerLink="/my-tasks"
               [queryParams]="{ sort_by: 'due_date', sort_order: 'asc' }"
               class="animate-fade-in-up stagger-2 widget-card p-5 cursor-pointer group"
-              style="border-left: 4px solid #ef4444"
+              style="border-left: 4px solid var(--destructive)"
             >
               <div class="flex items-center justify-between">
                 <div>
@@ -176,7 +174,7 @@ interface WorkspaceOption {
               routerLink="/my-tasks"
               [queryParams]="{ sort_by: 'due_date' }"
               class="animate-fade-in-up stagger-3 widget-card p-5 cursor-pointer group"
-              style="border-left: 4px solid #f97316"
+              style="border-left: 4px solid var(--accent-warm)"
             >
               <div class="flex items-center justify-between">
                 <div>
@@ -201,7 +199,7 @@ interface WorkspaceOption {
             <!-- Completed This Week -->
             <div
               class="animate-fade-in-up stagger-4 widget-card p-5"
-              style="border-left: 4px solid #10b981"
+              style="border-left: 4px solid var(--success)"
             >
               <div class="flex items-center justify-between">
                 <div>
@@ -288,10 +286,9 @@ interface WorkspaceOption {
                           <span style="color: var(--muted-foreground)">
                             &middot;
                           </span>
-                          <span
-                            class="font-medium text-primary"
-                            >{{ activity.metadata['task_title'] }}</span
-                          >
+                          <span class="font-medium text-primary">{{
+                            activity.metadata['task_title']
+                          }}</span>
                         }
                       </p>
                       <p

@@ -1,9 +1,21 @@
-import { Component, OnInit, signal, inject, input, effect, computed, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  signal,
+  inject,
+  input,
+  effect,
+  computed,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ChartModule } from 'primeng/chart';
-import { DashboardService, TasksByPriority } from '../../../core/services/dashboard.service';
+import {
+  DashboardService,
+  TasksByPriority,
+} from '../../../core/services/dashboard.service';
 
 @Component({
   selector: 'app-tasks-by-priority',
@@ -16,7 +28,7 @@ import { DashboardService, TasksByPriority } from '../../../core/services/dashbo
 
       @if (loading()) {
         <div class="px-2 space-y-3 py-4">
-          @for (i of [1,2,3,4]; track i) {
+          @for (i of [1, 2, 3, 4]; track i) {
             <div class="skeleton skeleton-row" style="height: 1.75rem;"></div>
           }
         </div>
@@ -26,9 +38,13 @@ import { DashboardService, TasksByPriority } from '../../../core/services/dashbo
           [data]="chartData()"
           [options]="chartOptions"
           (onDataSelect)="onChartClick($event)"
-          [style]="{height: '260px'}" />
+          [style]="{ height: '260px' }"
+        />
       } @else {
-        <div class="flex items-center justify-center h-48" style="color: var(--muted-foreground)">
+        <div
+          class="flex items-center justify-center h-48"
+          style="color: var(--muted-foreground)"
+        >
           <p class="text-sm">No data available</p>
         </div>
       }
@@ -54,14 +70,16 @@ export class TasksByPriorityComponent implements OnInit {
   chartData = computed(() => {
     const items = this.data();
     return {
-      labels: items.map(i => i.priority),
-      datasets: [{
-        data: items.map(i => i.count),
-        backgroundColor: items.map(i => this.getPriorityColor(i.priority)),
-        borderWidth: 0,
-        borderRadius: 6,
-        barThickness: 28,
-      }],
+      labels: items.map((i) => i.priority),
+      datasets: [
+        {
+          data: items.map((i) => i.count),
+          backgroundColor: items.map((i) => this.getPriorityColor(i.priority)),
+          borderWidth: 0,
+          borderRadius: 6,
+          barThickness: 28,
+        },
+      ],
     };
   });
 
@@ -72,7 +90,7 @@ export class TasksByPriorityComponent implements OnInit {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#1e293b',
+        backgroundColor: this.getTooltipBg(),
         titleFont: { family: 'Inter', size: 12 },
         bodyFont: { family: 'Inter', size: 12 },
         cornerRadius: 8,
@@ -108,11 +126,16 @@ export class TasksByPriorityComponent implements OnInit {
 
   getPriorityColor(priority: string): string {
     switch (priority.toLowerCase()) {
-      case 'urgent': return '#ef4444';
-      case 'high': return '#f97316';
-      case 'medium': return '#3b82f6';
-      case 'low': return '#9ca3af';
-      default: return '#9ca3af';
+      case 'urgent':
+        return '#ef4444';
+      case 'high':
+        return '#f97316';
+      case 'medium':
+        return '#3b82f6';
+      case 'low':
+        return '#9ca3af';
+      default:
+        return '#9ca3af';
     }
   }
 
@@ -120,7 +143,7 @@ export class TasksByPriorityComponent implements OnInit {
     this.loading.set(true);
     try {
       const data = await firstValueFrom(
-        this.dashboardService.getTasksByPriority(this.workspaceId())
+        this.dashboardService.getTasksByPriority(this.workspaceId()),
       );
       this.data.set(data || []);
     } catch {
@@ -128,5 +151,13 @@ export class TasksByPriorityComponent implements OnInit {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private getTooltipBg(): string {
+    return (
+      getComputedStyle(document.documentElement)
+        .getPropertyValue('--card')
+        .trim() || '#1e293b'
+    );
   }
 }

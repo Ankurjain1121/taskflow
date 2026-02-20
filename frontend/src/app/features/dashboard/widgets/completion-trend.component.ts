@@ -159,7 +159,7 @@ export class CompletionTrendComponent implements OnInit {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#1e293b',
+        backgroundColor: this.getTooltipBg(),
         titleFont: { family: 'Inter', size: 12 },
         bodyFont: { family: 'Inter', size: 12 },
         cornerRadius: 8,
@@ -209,5 +209,13 @@ export class CompletionTrendComponent implements OnInit {
   setDays(days: number) {
     this.selectedDays.set(days);
     this.loadData();
+  }
+
+  private getTooltipBg(): string {
+    return (
+      getComputedStyle(document.documentElement)
+        .getPropertyValue('--card')
+        .trim() || '#1e293b'
+    );
   }
 }
