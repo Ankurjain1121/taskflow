@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, map, tap } from 'rxjs';
 
 export interface UserProfile {
   id: string;
@@ -148,8 +148,11 @@ export class ProfileService {
    */
   getNotificationPreferences(): Observable<NotificationPreference[]> {
     return this.http
-      .get<NotificationPreference[]>(this.preferencesUrl)
-      .pipe(tap((preferences) => this._preferences.set(preferences)));
+      .get<{ preferences: NotificationPreference[] }>(this.preferencesUrl)
+      .pipe(
+        map((response) => response.preferences),
+        tap((preferences) => this._preferences.set(preferences)),
+      );
   }
 
   /**
