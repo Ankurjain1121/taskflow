@@ -9,6 +9,8 @@ const VALID_DATE_FORMATS: &[&str] = &["MMM dd, yyyy", "dd/MM/yyyy", "yyyy-MM-dd"
 const VALID_BOARD_VIEWS: &[&str] = &["kanban", "list"];
 const VALID_SIDEBAR_DENSITIES: &[&str] = &["compact", "comfortable"];
 const VALID_DIGEST_FREQUENCIES: &[&str] = &["realtime", "hourly", "daily"];
+const VALID_COLOR_MODES: &[&str] = &["light", "dark", "system"];
+const VALID_ACCENT_COLORS: &[&str] = &["indigo", "blue", "green", "orange", "rose", "violet", "amber", "slate"];
 
 /// Validate preference values server-side
 pub fn validate_preferences(
@@ -40,13 +42,34 @@ pub fn validate_preferences(
     Ok(())
 }
 
+/// Validate theme-related preferences
+pub fn validate_theme_preferences(
+    color_mode: Option<&str>,
+    accent_color: Option<&str>,
+    _light_theme_slug: Option<&str>,
+    _dark_theme_slug: Option<&str>,
+) -> Result<(), String> {
+    if let Some(mode) = color_mode {
+        if !VALID_COLOR_MODES.contains(&mode) {
+            return Err(format!("Invalid color_mode: {}", mode));
+        }
+    }
+    if let Some(accent) = accent_color {
+        if !VALID_ACCENT_COLORS.contains(&accent) {
+            return Err(format!("Invalid accent_color: {}", accent));
+        }
+    }
+    Ok(())
+}
+
 /// Get preferences for a user, returning defaults if none exist
 pub async fn get_by_user_id(pool: &PgPool, user_id: Uuid) -> Result<UserPreferences, sqlx::Error> {
     let prefs = sqlx::query_as::<_, UserPreferences>(
         r#"
         SELECT id, user_id, timezone, date_format, default_board_view,
                sidebar_density, locale, quiet_hours_start, quiet_hours_end,
-               digest_frequency, created_at, updated_at
+               digest_frequency, created_at, updated_at,
+               light_theme_slug, dark_theme_slug, accent_color, color_mode
         FROM user_preferences
         WHERE user_id = $1
         "#,
@@ -73,6 +96,10 @@ pub async fn get_by_user_id(pool: &PgPool, user_id: Uuid) -> Result<UserPreferen
                 digest_frequency: "realtime".to_string(),
                 created_at: now,
                 updated_at: now,
+                light_theme_slug: Some("default".to_string()),
+                dark_theme_slug: Some("default".to_string()),
+                accent_color: Some("indigo".to_string()),
+                color_mode: Some("system".to_string()),
             })
         }
     }
@@ -91,15 +118,20 @@ pub async fn upsert(
     quiet_hours_start: Option<NaiveTime>,
     quiet_hours_end: Option<NaiveTime>,
     digest_frequency: &str,
+    light_theme_slug: Option<&str>,
+    dark_theme_slug: Option<&str>,
+    accent_color: Option<&str>,
+    color_mode: Option<&str>,
 ) -> Result<UserPreferences, sqlx::Error> {
     sqlx::query_as::<_, UserPreferences>(
         r#"
         INSERT INTO user_preferences (
             id, user_id, timezone, date_format, default_board_view,
             sidebar_density, locale, quiet_hours_start, quiet_hours_end,
-            digest_frequency, created_at, updated_at
+            digest_frequency, created_at, updated_at,
+            light_theme_slug, dark_theme_slug, accent_color, color_mode
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW(), $11, $12, $13, $14)
         ON CONFLICT (user_id) DO UPDATE SET
             timezone = EXCLUDED.timezone,
             date_format = EXCLUDED.date_format,
@@ -109,10 +141,15 @@ pub async fn upsert(
             quiet_hours_start = EXCLUDED.quiet_hours_start,
             quiet_hours_end = EXCLUDED.quiet_hours_end,
             digest_frequency = EXCLUDED.digest_frequency,
+            light_theme_slug = COALESCE(EXCLUDED.light_theme_slug, (SELECT light_theme_slug FROM user_preferences WHERE user_id = $2)),
+            dark_theme_slug = COALESCE(EXCLUDED.dark_theme_slug, (SELECT dark_theme_slug FROM user_preferences WHERE user_id = $2)),
+            accent_color = COALESCE(EXCLUDED.accent_color, (SELECT accent_color FROM user_preferences WHERE user_id = $2)),
+            color_mode = COALESCE(EXCLUDED.color_mode, (SELECT color_mode FROM user_preferences WHERE user_id = $2)),
             updated_at = NOW()
         RETURNING id, user_id, timezone, date_format, default_board_view,
                   sidebar_density, locale, quiet_hours_start, quiet_hours_end,
-                  digest_frequency, created_at, updated_at
+                  digest_frequency, created_at, updated_at,
+                  light_theme_slug, dark_theme_slug, accent_color, color_mode
         "#,
     )
     .bind(Uuid::new_v4())
@@ -125,6 +162,10 @@ pub async fn upsert(
     .bind(quiet_hours_start)
     .bind(quiet_hours_end)
     .bind(digest_frequency)
+    .bind(light_theme_slug.unwrap_or("default"))
+    .bind(dark_theme_slug.unwrap_or("default"))
+    .bind(accent_color.unwrap_or("indigo"))
+    .bind(color_mode.unwrap_or("system"))
     .fetch_one(pool)
     .await
 }
