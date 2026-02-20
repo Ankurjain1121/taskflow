@@ -23,9 +23,13 @@ pub struct UpdatePreferencesRequest {
     pub quiet_hours_start: Option<String>,
     pub quiet_hours_end: Option<String>,
     pub digest_frequency: String,
+    #[serde(default)]
     pub light_theme_slug: Option<String>,
+    #[serde(default)]
     pub dark_theme_slug: Option<String>,
+    #[serde(default)]
     pub accent_color: Option<String>,
+    #[serde(default)]
     pub color_mode: Option<String>,
 }
 
