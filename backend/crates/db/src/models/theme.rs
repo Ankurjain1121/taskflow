@@ -9,7 +9,7 @@ pub struct Theme {
     pub category: String,
     pub description: String,
     pub is_dark: bool,
-    pub sort_order: i32,
+    pub sort_order: i16,
     pub is_active: bool,
     pub colors: serde_json::Value,
     pub personality: serde_json::Value,

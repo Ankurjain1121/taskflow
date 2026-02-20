@@ -25,6 +25,7 @@ pub mod subtasks;
 pub mod task_groups;
 pub mod tasks;
 pub mod team_overview;
+pub mod themes;
 pub mod time_entries;
 pub mod user_preferences;
 pub mod webhooks;

@@ -23,6 +23,10 @@ pub struct UpdatePreferencesRequest {
     pub quiet_hours_start: Option<String>,
     pub quiet_hours_end: Option<String>,
     pub digest_frequency: String,
+    pub light_theme_slug: Option<String>,
+    pub dark_theme_slug: Option<String>,
+    pub accent_color: Option<String>,
+    pub color_mode: Option<String>,
 }
 
 /// GET /api/users/me/preferences
@@ -47,6 +51,15 @@ async fn update_preferences(
         &body.default_board_view,
         &body.sidebar_density,
         &body.digest_frequency,
+    )
+    .map_err(AppError::BadRequest)?;
+
+    // Validate theme preferences
+    user_prefs::validate_theme_preferences(
+        body.color_mode.as_deref(),
+        body.accent_color.as_deref(),
+        body.light_theme_slug.as_deref(),
+        body.dark_theme_slug.as_deref(),
     )
     .map_err(AppError::BadRequest)?;
 
@@ -84,6 +97,10 @@ async fn update_preferences(
         quiet_start,
         quiet_end,
         &body.digest_frequency,
+        body.light_theme_slug.as_deref(),
+        body.dark_theme_slug.as_deref(),
+        body.accent_color.as_deref(),
+        body.color_mode.as_deref(),
     )
     .await?;
 

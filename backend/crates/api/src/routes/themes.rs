@@ -3,7 +3,7 @@
 //! Provides public access to theme configurations for the theming system.
 
 use axum::{
-    extract::{Query, State},
+    extract::{Path, Query, State},
     routing::get,
     Json, Router,
 };
