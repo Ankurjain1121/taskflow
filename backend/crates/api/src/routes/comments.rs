@@ -57,10 +57,7 @@ pub struct UpdateCommentRequest {
 fn extract_mentioned_user_ids(content: &str) -> Vec<Uuid> {
     MENTION_REGEX
         .captures_iter(content)
-        .filter_map(|cap| {
-            cap.get(2)
-                .and_then(|m| Uuid::parse_str(m.as_str()).ok())
-        })
+        .filter_map(|cap| cap.get(2).and_then(|m| Uuid::parse_str(m.as_str()).ok()))
         .collect()
 }
 
@@ -139,9 +136,14 @@ async fn create_comment_handler(
     let db = state.db.clone();
     let comment_id = comment.id;
     tokio::spawn(async move {
-        if let Err(e) =
-            ActivityLogService::record_commented(&db, task_id, tenant.user_id, tenant.tenant_id, comment_id)
-                .await
+        if let Err(e) = ActivityLogService::record_commented(
+            &db,
+            task_id,
+            tenant.user_id,
+            tenant.tenant_id,
+            comment_id,
+        )
+        .await
         {
             tracing::error!("Failed to record comment activity: {}", e);
         }
@@ -195,7 +197,11 @@ async fn create_comment_handler(
                         )
                         .await
                     {
-                        tracing::error!("Failed to send mention notification to {}: {}", user_id, e);
+                        tracing::error!(
+                            "Failed to send mention notification to {}: {}",
+                            user_id,
+                            e
+                        );
                     }
                 }
             }
@@ -342,11 +348,7 @@ async fn delete_comment_handler(
 }
 
 /// Helper to verify board membership
-async fn verify_board_membership(
-    state: &AppState,
-    board_id: Uuid,
-    user_id: Uuid,
-) -> Result<()> {
+async fn verify_board_membership(state: &AppState, board_id: Uuid, user_id: Uuid) -> Result<()> {
     let is_member = sqlx::query_scalar!(
         r#"
         SELECT EXISTS(
@@ -407,7 +409,8 @@ mod tests {
 
     #[test]
     fn test_extract_mentioned_user_ids_invalid_uuid() {
-        let content = "Hello @[John](not-a-uuid) and @[Jane](550e8400-e29b-41d4-a716-446655440001)!";
+        let content =
+            "Hello @[John](not-a-uuid) and @[Jane](550e8400-e29b-41d4-a716-446655440001)!";
         let ids = extract_mentioned_user_ids(content);
         assert_eq!(ids.len(), 1);
         assert_eq!(

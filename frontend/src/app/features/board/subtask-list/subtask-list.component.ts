@@ -27,7 +27,7 @@ import {
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <svg
-            class="w-5 h-5 text-gray-400"
+            class="w-5 h-5 text-[var(--muted-foreground)]"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -39,10 +39,12 @@ import {
               d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
             />
           </svg>
-          <h3 class="text-sm font-medium text-gray-900">Subtasks</h3>
+          <h3 class="text-sm font-medium text-[var(--card-foreground)]">
+            Subtasks
+          </h3>
         </div>
         @if (progress().total > 0) {
-          <span class="text-xs text-gray-500">
+          <span class="text-xs text-[var(--muted-foreground)]">
             {{ progress().completed }}/{{ progress().total }} completed
           </span>
         }
@@ -50,10 +52,10 @@ import {
 
       <!-- Progress bar -->
       @if (progress().total > 0) {
-        <div class="w-full bg-gray-200 rounded-full h-1.5">
+        <div class="w-full bg-[var(--muted)] rounded-full h-1.5">
           <div
             class="h-1.5 rounded-full transition-all duration-300"
-            [class]="progressPercent() === 100 ? 'bg-green-500' : 'bg-indigo-500'"
+            [class]="progressPercent() === 100 ? 'bg-green-500' : 'bg-primary'"
             [style.width.%]="progressPercent()"
           ></div>
         </div>
@@ -63,7 +65,7 @@ import {
       @if (loading()) {
         <div class="flex items-center justify-center py-4">
           <svg
-            class="animate-spin h-5 w-5 text-indigo-500"
+            class="animate-spin h-5 w-5 text-primary"
             fill="none"
             viewBox="0 0 24 24"
           >
@@ -87,14 +89,14 @@ import {
         <div class="space-y-1">
           @for (subtask of subtasks(); track subtask.id) {
             <div
-              class="group flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 transition-colors"
+              class="group flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[var(--muted)] transition-colors"
             >
               <!-- Checkbox -->
               <input
                 type="checkbox"
                 [checked]="subtask.is_completed"
                 (change)="onToggle(subtask)"
-                class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                class="h-4 w-4 rounded border-[var(--border)] text-primary focus:ring-ring cursor-pointer"
               />
 
               <!-- Title (editable on click) -->
@@ -106,7 +108,7 @@ import {
                   (blur)="saveEdit(subtask)"
                   (keydown.enter)="saveEdit(subtask)"
                   (keydown.escape)="cancelEdit()"
-                  class="flex-1 text-sm border-0 border-b border-indigo-300 focus:ring-0 focus:border-indigo-500 px-0 py-0 bg-transparent"
+                  class="flex-1 text-sm border-0 border-b border-[var(--border)] focus:ring-0 focus:border-primary px-0 py-0 bg-transparent text-[var(--foreground)]"
                   #editInput
                 />
               } @else {
@@ -114,8 +116,11 @@ import {
                   (dblclick)="startEdit(subtask)"
                   class="flex-1 text-sm cursor-default select-none"
                   [class.line-through]="subtask.is_completed"
-                  [class.text-gray-400]="subtask.is_completed"
-                  [class.text-gray-700]="!subtask.is_completed"
+                  [style.color]="
+                    subtask.is_completed
+                      ? 'var(--muted-foreground)'
+                      : 'var(--foreground)'
+                  "
                 >
                   {{ subtask.title }}
                 </span>
@@ -124,7 +129,7 @@ import {
               <!-- Delete button (visible on hover) -->
               <button
                 (click)="onDelete(subtask)"
-                class="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all"
+                class="opacity-0 group-hover:opacity-100 p-1 text-[var(--muted-foreground)] hover:text-red-500 transition-all"
                 title="Delete subtask"
               >
                 <svg
@@ -148,7 +153,7 @@ import {
         <!-- Add new subtask input -->
         <div class="flex items-center gap-2 px-2 py-1.5">
           <svg
-            class="w-4 h-4 text-gray-300"
+            class="w-4 h-4 text-[var(--muted-foreground)]"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -166,7 +171,7 @@ import {
             (ngModelChange)="newSubtaskTitle.set($event)"
             (keydown.enter)="onAdd()"
             placeholder="Add a subtask..."
-            class="flex-1 text-sm border-0 focus:ring-0 px-0 py-0 bg-transparent text-gray-700 placeholder-gray-400"
+            class="flex-1 text-sm border-0 focus:ring-0 px-0 py-0 bg-transparent text-[var(--foreground)] placeholder-[var(--muted-foreground)]"
           />
         </div>
       }
@@ -205,7 +210,7 @@ export class SubtaskListComponent implements OnInit, OnChanges {
     this.subtaskService.toggle(subtask.id).subscribe({
       next: (updated) => {
         this.subtasks.update((list) =>
-          list.map((s) => (s.id === updated.id ? updated : s))
+          list.map((s) => (s.id === updated.id ? updated : s)),
         );
         this.updateProgress(updated.is_completed ? 1 : -1);
       },
@@ -232,9 +237,7 @@ export class SubtaskListComponent implements OnInit, OnChanges {
       next: () => {
         this.subtasks.update((list) => list.filter((s) => s.id !== subtask.id));
         this.progress.update((p) => ({
-          completed: subtask.is_completed
-            ? p.completed - 1
-            : p.completed,
+          completed: subtask.is_completed ? p.completed - 1 : p.completed,
           total: p.total - 1,
         }));
       },
@@ -257,7 +260,7 @@ export class SubtaskListComponent implements OnInit, OnChanges {
     this.subtaskService.update(subtask.id, newTitle).subscribe({
       next: (updated) => {
         this.subtasks.update((list) =>
-          list.map((s) => (s.id === updated.id ? updated : s))
+          list.map((s) => (s.id === updated.id ? updated : s)),
         );
         this.cancelEdit();
       },

@@ -39,24 +39,32 @@ import {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-gray-50">
+    <div class="min-h-screen bg-[var(--secondary)]">
       <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->
         <div class="mb-6">
-          <h1 class="text-2xl font-bold text-gray-900">Audit Log</h1>
-          <p class="text-sm text-gray-500 mt-1">
+          <h1 class="text-2xl font-bold text-[var(--card-foreground)]">
+            Audit Log
+          </h1>
+          <p class="text-sm text-[var(--muted-foreground)] mt-1">
             Track all system activities and user actions
           </p>
         </div>
 
         <!-- Filters -->
-        <div class="bg-white rounded-lg shadow mb-6 p-4">
+        <div class="bg-[var(--card)] rounded-lg shadow mb-6 p-4">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <!-- Search -->
             <div class="flex flex-col gap-2">
-              <label for="search" class="text-sm font-medium text-gray-700">Search</label>
+              <label
+                for="search"
+                class="text-sm font-medium text-[var(--foreground)]"
+                >Search</label
+              >
               <div class="p-inputgroup">
-                <span class="p-inputgroup-addon"><i class="pi pi-search"></i></span>
+                <span class="p-inputgroup-addon"
+                  ><i class="pi pi-search"></i
+                ></span>
                 <input
                   pInputText
                   id="search"
@@ -70,7 +78,11 @@ import {
 
             <!-- Action Filter -->
             <div class="flex flex-col gap-2">
-              <label for="action" class="text-sm font-medium text-gray-700">Action</label>
+              <label
+                for="action"
+                class="text-sm font-medium text-[var(--foreground)]"
+                >Action</label
+              >
               <p-select
                 id="action"
                 [options]="actionOptions()"
@@ -86,7 +98,11 @@ import {
 
             <!-- Entity Type Filter -->
             <div class="flex flex-col gap-2">
-              <label for="entityType" class="text-sm font-medium text-gray-700">Entity Type</label>
+              <label
+                for="entityType"
+                class="text-sm font-medium text-[var(--foreground)]"
+                >Entity Type</label
+              >
               <p-select
                 id="entityType"
                 [options]="entityTypeOptions"
@@ -102,7 +118,11 @@ import {
 
             <!-- Date From -->
             <div class="flex flex-col gap-2">
-              <label for="dateFrom" class="text-sm font-medium text-gray-700">From Date</label>
+              <label
+                for="dateFrom"
+                class="text-sm font-medium text-[var(--foreground)]"
+                >From Date</label
+              >
               <p-datepicker
                 id="dateFrom"
                 [(ngModel)]="dateFrom"
@@ -116,7 +136,11 @@ import {
 
             <!-- Date To -->
             <div class="flex flex-col gap-2">
-              <label for="dateTo" class="text-sm font-medium text-gray-700">To Date</label>
+              <label
+                for="dateTo"
+                class="text-sm font-medium text-[var(--foreground)]"
+                >To Date</label
+              >
               <p-datepicker
                 id="dateTo"
                 [(ngModel)]="dateTo"
@@ -153,11 +177,19 @@ import {
 
         <!-- Error State -->
         @if (error()) {
-          <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 mb-6">
-            <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd"
+          <div
+            class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 mb-6"
+          >
+            <svg
+              class="w-5 h-5 text-red-600"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fill-rule="evenodd"
                 d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clip-rule="evenodd" />
+                clip-rule="evenodd"
+              />
             </svg>
             <div>
               <p class="text-sm font-medium text-red-800">{{ error() }}</p>
@@ -173,13 +205,24 @@ import {
 
         <!-- Empty State -->
         @if (!loading() && !error() && entries().length === 0) {
-          <div class="bg-white rounded-lg shadow p-12 text-center">
-            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <div class="bg-[var(--card)] rounded-lg shadow p-12 text-center">
+            <svg
+              class="mx-auto h-12 w-12 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
             </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">No audit entries</h3>
-            <p class="mt-1 text-sm text-gray-500">
+            <h3 class="mt-2 text-sm font-medium text-[var(--card-foreground)]">
+              No audit entries
+            </h3>
+            <p class="mt-1 text-sm text-[var(--muted-foreground)]">
               No activities match your current filters.
             </p>
           </div>
@@ -187,36 +230,50 @@ import {
 
         <!-- Audit Table -->
         @if (entries().length > 0) {
-          <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="bg-[var(--card)] rounded-lg shadow overflow-hidden">
             <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+              <table class="min-w-full divide-y divide-[var(--border)]">
+                <thead class="bg-[var(--secondary)]">
                   <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th
+                      class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
+                    >
                       Timestamp
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th
+                      class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
+                    >
                       User
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th
+                      class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
+                    >
                       Action
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th
+                      class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
+                    >
                       Entity
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th
+                      class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
+                    >
                       IP Address
                     </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th
+                      class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
+                    >
                       Details
                     </th>
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-[var(--card)] divide-y divide-[var(--border)]">
                   @for (entry of entries(); track entry.id) {
-                    <tr class="hover:bg-gray-50">
+                    <tr class="hover:bg-[var(--muted)]">
                       <!-- Timestamp -->
-                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td
+                        class="px-6 py-4 whitespace-nowrap text-sm text-[var(--muted-foreground)]"
+                      >
                         <span
                           [pTooltip]="formatAbsoluteDate(entry.created_at)"
                           class="cursor-help"
@@ -228,7 +285,9 @@ import {
                       <!-- User -->
                       <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center gap-3">
-                          <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600 overflow-hidden">
+                          <div
+                            class="w-8 h-8 rounded-full bg-[var(--secondary)] flex items-center justify-center text-xs font-medium text-[var(--muted-foreground)] overflow-hidden"
+                          >
                             @if (entry.actor.avatar_url) {
                               <img
                                 [src]="entry.actor.avatar_url"
@@ -240,10 +299,14 @@ import {
                             }
                           </div>
                           <div>
-                            <p class="text-sm font-medium text-gray-900">
+                            <p
+                              class="text-sm font-medium text-[var(--card-foreground)]"
+                            >
                               {{ entry.actor.display_name }}
                             </p>
-                            <p class="text-xs text-gray-500">{{ entry.actor.email }}</p>
+                            <p class="text-xs text-[var(--muted-foreground)]">
+                              {{ entry.actor.email }}
+                            </p>
                           </div>
                         </div>
                       </td>
@@ -258,7 +321,9 @@ import {
                       <!-- Entity -->
                       <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center gap-2">
-                          <span [class]="getEntityTypeBadgeClass(entry.entity_type)">
+                          <span
+                            [class]="getEntityTypeBadgeClass(entry.entity_type)"
+                          >
                             {{ formatEntityType(entry.entity_type) }}
                           </span>
                           <span class="text-xs text-gray-400 font-mono">
@@ -268,19 +333,33 @@ import {
                       </td>
 
                       <!-- IP Address -->
-                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                      <td
+                        class="px-6 py-4 whitespace-nowrap text-sm text-[var(--muted-foreground)] font-mono"
+                      >
                         {{ entry.ip_address || '-' }}
                       </td>
 
                       <!-- Details -->
                       <td class="px-6 py-4">
-                        @if (entry.details && Object.keys(entry.details).length > 0) {
+                        @if (
+                          entry.details && Object.keys(entry.details).length > 0
+                        ) {
                           <button
-                            class="p-1 rounded hover:bg-gray-100 transition-colors"
+                            class="p-1 rounded hover:bg-[var(--muted)] transition-colors"
                             (click)="toggleDetails(entry.id)"
-                            [pTooltip]="expandedDetails().has(entry.id) ? 'Hide details' : 'Show details'"
+                            [pTooltip]="
+                              expandedDetails().has(entry.id)
+                                ? 'Hide details'
+                                : 'Show details'
+                            "
                           >
-                            <i [class]="expandedDetails().has(entry.id) ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
+                            <i
+                              [class]="
+                                expandedDetails().has(entry.id)
+                                  ? 'pi pi-chevron-up'
+                                  : 'pi pi-chevron-down'
+                              "
+                            ></i>
                           </button>
                         } @else {
                           <span class="text-gray-400 text-sm">-</span>
@@ -290,9 +369,12 @@ import {
 
                     <!-- Expanded Details Row -->
                     @if (expandedDetails().has(entry.id) && entry.details) {
-                      <tr class="bg-gray-50">
+                      <tr class="bg-[var(--secondary)]">
                         <td colspan="6" class="px-6 py-4">
-                          <pre class="text-xs bg-gray-100 p-3 rounded overflow-x-auto max-w-full">{{ formatDetails(entry.details) }}</pre>
+                          <pre
+                            class="text-xs bg-[var(--secondary)] p-3 rounded overflow-x-auto max-w-full"
+                            >{{ formatDetails(entry.details) }}</pre
+                          >
                         </td>
                       </tr>
                     }
@@ -303,7 +385,9 @@ import {
 
             <!-- Load More -->
             @if (nextCursor()) {
-              <div class="px-6 py-4 border-t border-gray-200 flex justify-center">
+              <div
+                class="px-6 py-4 border-t border-[var(--border)] flex justify-center"
+              >
                 <p-button
                   [outlined]="true"
                   (onClick)="loadMore()"
@@ -318,11 +402,13 @@ import {
       </div>
     </div>
   `,
-  styles: [`
-    :host {
-      display: block;
-    }
-  `],
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+    `,
+  ],
 })
 export class AuditLogComponent implements OnInit, OnDestroy {
   private adminService = inject(AdminService);
@@ -343,7 +429,7 @@ export class AuditLogComponent implements OnInit, OnDestroy {
     this.availableActions().map((action) => ({
       label: this.formatAction(action),
       value: action,
-    }))
+    })),
   );
 
   entityTypeOptions = [
@@ -370,11 +456,7 @@ export class AuditLogComponent implements OnInit, OnDestroy {
 
     // Debounced search
     this.searchSubject$
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        takeUntil(this.destroy$)
-      )
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
       .subscribe(() => {
         this.loadAuditLog();
       });
@@ -560,7 +642,8 @@ export class AuditLogComponent implements OnInit, OnDestroy {
   }
 
   getActionBadgeClass(action: string): string {
-    const baseClasses = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
+    const baseClasses =
+      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
 
     const actionColors: Record<string, string> = {
       created: 'bg-green-100 text-green-800',
@@ -568,18 +651,19 @@ export class AuditLogComponent implements OnInit, OnDestroy {
       deleted: 'bg-red-100 text-red-800',
       restored: 'bg-purple-100 text-purple-800',
       moved: 'bg-yellow-100 text-yellow-800',
-      assigned: 'bg-indigo-100 text-indigo-800',
-      unassigned: 'bg-gray-100 text-gray-800',
+      assigned: 'bg-primary/10 text-primary',
+      unassigned: 'bg-[var(--secondary)] text-gray-800',
       commented: 'bg-cyan-100 text-cyan-800',
       login: 'bg-emerald-100 text-emerald-800',
       logout: 'bg-orange-100 text-orange-800',
     };
 
-    return `${baseClasses} ${actionColors[action] || 'bg-gray-100 text-gray-800'}`;
+    return `${baseClasses} ${actionColors[action] || 'bg-[var(--secondary)] text-gray-800'}`;
   }
 
   getEntityTypeBadgeClass(entityType: string): string {
-    const baseClasses = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium';
+    const baseClasses =
+      'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium';
 
     const typeColors: Record<string, string> = {
       task: 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20',
@@ -589,6 +673,6 @@ export class AuditLogComponent implements OnInit, OnDestroy {
       comment: 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-600/20',
     };
 
-    return `${baseClasses} ${typeColors[entityType] || 'bg-gray-50 text-gray-700 ring-1 ring-gray-600/20'}`;
+    return `${baseClasses} ${typeColors[entityType] || 'bg-[var(--secondary)] text-[var(--foreground)] ring-1 ring-gray-600/20'}`;
   }
 }

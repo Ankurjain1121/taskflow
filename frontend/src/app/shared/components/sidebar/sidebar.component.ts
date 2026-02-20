@@ -87,7 +87,7 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
         width: 3px;
         height: 16px;
         border-radius: 0 3px 3px 0;
-        background: #6366f1;
+        background: var(--primary);
         opacity: 0;
         transition: opacity var(--duration-fast) var(--ease-standard);
       }
@@ -158,7 +158,7 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
         @if (!collapsed()) {
           <div class="flex items-center gap-2.5 w-full">
             <svg
-              class="w-7 h-7 text-indigo-400 flex-shrink-0"
+              class="w-7 h-7 text-primary flex-shrink-0"
               fill="currentColor"
               viewBox="0 0 24 24"
             >
@@ -184,7 +184,7 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
         } @else {
           <div class="flex justify-center w-full">
             <svg
-              class="w-6 h-6 text-indigo-400"
+              class="w-6 h-6 text-primary"
               fill="currentColor"
               viewBox="0 0 24 24"
             >
@@ -326,7 +326,7 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
                 @if (canCreateWorkspace()) {
                   <button
                     (click)="onCreateWorkspace()"
-                    class="mt-2 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                    class="mt-2 text-xs text-primary hover:text-primary hover:brightness-90 transition-colors"
                   >
                     Create one
                   </button>
@@ -474,7 +474,7 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
                   />
                 } @else {
                   <div
-                    class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center"
+                    class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"
                     style="border: 2px solid var(--sidebar-border)"
                   >
                     <span class="text-xs font-medium text-white">{{
@@ -509,7 +509,7 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
                   [class]="
                     'pi ' +
                     themeIcon +
-                    ' text-sm hover:text-indigo-400 transition-colors'
+                    ' text-sm hover:text-primary transition-colors'
                   "
                 ></i>
               </button>
@@ -542,7 +542,7 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
                   />
                 } @else {
                   <div
-                    class="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center"
+                    class="w-7 h-7 rounded-full bg-primary flex items-center justify-center"
                     style="border: 2px solid var(--sidebar-border)"
                   >
                     <span class="text-xs font-medium text-white">{{

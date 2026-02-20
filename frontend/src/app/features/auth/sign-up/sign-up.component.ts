@@ -258,7 +258,7 @@ import { AuthService } from '../../../core/services/auth.service';
                 Already have an account?
                 <a
                   routerLink="/auth/sign-in"
-                  class="text-indigo-600 hover:text-indigo-800 font-semibold transition-colors"
+                  class="text-primary hover:text-primary font-semibold transition-colors"
                 >
                   Sign in
                 </a>

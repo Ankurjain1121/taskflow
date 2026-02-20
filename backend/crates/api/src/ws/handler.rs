@@ -51,9 +51,15 @@ pub struct ChannelPayload {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ServerMessage {
     Authenticated,
-    Subscribed { channel: String },
-    Unsubscribed { channel: String },
-    Error { message: String },
+    Subscribed {
+        channel: String,
+    },
+    Unsubscribed {
+        channel: String,
+    },
+    Error {
+        message: String,
+    },
     Pong,
     #[serde(untagged)]
     Data(serde_json::Value),
@@ -180,11 +186,9 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
             let msg = {
                 let mut guard = pubsub_clone.lock().await;
                 let mut stream = guard.on_message();
-                let result = tokio::time::timeout(
-                    std::time::Duration::from_millis(100),
-                    stream.next(),
-                )
-                .await;
+                let result =
+                    tokio::time::timeout(std::time::Duration::from_millis(100), stream.next())
+                        .await;
                 drop(stream);
                 drop(guard);
                 match result {
@@ -258,7 +262,8 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                     ClientMessage::Subscribe { payload } => {
                         let channel = payload.channel;
                         // Validate channel format and permissions
-                        match validate_channel_access(&channel, user_id, tenant_id, &state.db).await {
+                        match validate_channel_access(&channel, user_id, tenant_id, &state.db).await
+                        {
                             Ok(true) => {}
                             Ok(false) => {
                                 let error_msg = ServerMessage::Error {
@@ -281,7 +286,11 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                         {
                             let mut guard = pubsub.lock().await;
                             if let Err(e) = guard.subscribe(&channel).await {
-                                tracing::error!("Failed to subscribe to channel {}: {}", channel, e);
+                                tracing::error!(
+                                    "Failed to subscribe to channel {}: {}",
+                                    channel,
+                                    e
+                                );
                                 let error_msg = ServerMessage::Error {
                                     message: "Failed to subscribe".into(),
                                 };
@@ -394,14 +403,16 @@ async fn wait_for_auth(
                             match verify_access_token(&payload.token, &state.jwt_keys) {
                                 Ok(claims) => {
                                     let response = ServerMessage::Authenticated;
-                                    let _ = tx.send(serde_json::to_string(&response).unwrap()).await;
+                                    let _ =
+                                        tx.send(serde_json::to_string(&response).unwrap()).await;
                                     return Some((claims.sub, claims.tenant_id));
                                 }
                                 Err(_) => {
                                     let error_msg = ServerMessage::Error {
                                         message: "Invalid or expired token".into(),
                                     };
-                                    let _ = tx.send(serde_json::to_string(&error_msg).unwrap()).await;
+                                    let _ =
+                                        tx.send(serde_json::to_string(&error_msg).unwrap()).await;
                                     return None;
                                 }
                             }

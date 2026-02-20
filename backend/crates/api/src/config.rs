@@ -36,13 +36,13 @@ impl Config {
         dotenvy::dotenv().ok();
 
         Ok(Self {
-            app_database_url: env::var("APP_DATABASE_URL")
-                .unwrap_or_else(|_| env::var("DATABASE_URL")
-                    .unwrap_or_else(|_| "postgresql://postgres:postgres@localhost:5432/taskflow".into())),
+            app_database_url: env::var("APP_DATABASE_URL").unwrap_or_else(|_| {
+                env::var("DATABASE_URL").unwrap_or_else(|_| {
+                    "postgresql://postgres:postgres@localhost:5432/taskflow".into()
+                })
+            }),
             host: env::var("HOST").unwrap_or_else(|_| "0.0.0.0".into()),
-            port: env::var("PORT")
-                .unwrap_or_else(|_| "8080".into())
-                .parse()?,
+            port: env::var("PORT").unwrap_or_else(|_| "8080".into()).parse()?,
             jwt_secret: env::var("JWT_SECRET")
                 .map_err(|_| "JWT_SECRET environment variable must be set")?,
             jwt_refresh_secret: env::var("JWT_REFRESH_SECRET")
@@ -53,10 +53,13 @@ impl Config {
             jwt_refresh_expiry_secs: env::var("JWT_REFRESH_EXPIRY_SECS")
                 .unwrap_or_else(|_| "604800".into())
                 .parse()?,
-            jwt_rsa_private_key: env::var("JWT_RSA_PRIVATE_KEY").ok().filter(|s| !s.is_empty()),
-            jwt_rsa_public_key: env::var("JWT_RSA_PUBLIC_KEY").ok().filter(|s| !s.is_empty()),
-            redis_url: env::var("REDIS_URL")
-                .unwrap_or_else(|_| "redis://localhost:6379".into()),
+            jwt_rsa_private_key: env::var("JWT_RSA_PRIVATE_KEY")
+                .ok()
+                .filter(|s| !s.is_empty()),
+            jwt_rsa_public_key: env::var("JWT_RSA_PUBLIC_KEY")
+                .ok()
+                .filter(|s| !s.is_empty()),
+            redis_url: env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379".into()),
             minio_endpoint: env::var("MINIO_ENDPOINT")
                 .unwrap_or_else(|_| "http://localhost:9000".into()),
             minio_public_url: env::var("MINIO_PUBLIC_URL")
@@ -65,15 +68,13 @@ impl Config {
                 .map_err(|_| "MINIO_ACCESS_KEY environment variable must be set")?,
             minio_secret_key: env::var("MINIO_SECRET_KEY")
                 .map_err(|_| "MINIO_SECRET_KEY environment variable must be set")?,
-            minio_bucket: env::var("MINIO_BUCKET")
-                .unwrap_or_else(|_| "task-attachments".into()),
+            minio_bucket: env::var("MINIO_BUCKET").unwrap_or_else(|_| "task-attachments".into()),
             postal_api_url: env::var("POSTAL_API_URL")
                 .unwrap_or_else(|_| "http://localhost:5000".into()),
             postal_api_key: env::var("POSTAL_API_KEY").unwrap_or_default(),
             postal_from_address: env::var("POSTAL_FROM_ADDRESS")
                 .unwrap_or_else(|_| "noreply@taskflow.local".into()),
-            postal_from_name: env::var("POSTAL_FROM_NAME")
-                .unwrap_or_else(|_| "TaskFlow".into()),
+            postal_from_name: env::var("POSTAL_FROM_NAME").unwrap_or_else(|_| "TaskFlow".into()),
             novu_api_url: env::var("NOVU_API_URL")
                 .unwrap_or_else(|_| "http://localhost:3000".into()),
             novu_api_key: env::var("NOVU_API_KEY").unwrap_or_default(),
@@ -83,8 +84,7 @@ impl Config {
             waha_api_url: env::var("WAHA_API_URL")
                 .unwrap_or_else(|_| "http://localhost:3000".into()),
             waha_api_key: env::var("WAHA_API_KEY").unwrap_or_default(),
-            app_url: env::var("APP_URL")
-                .unwrap_or_else(|_| "http://localhost:4200".into()),
+            app_url: env::var("APP_URL").unwrap_or_else(|_| "http://localhost:4200".into()),
         })
     }
 }
@@ -148,17 +148,44 @@ mod tests {
         let debug_str = format!("{:?}", config);
 
         // Should contain [REDACTED] for each sensitive field
-        assert!(debug_str.contains("[REDACTED]"), "Debug output should contain [REDACTED]");
+        assert!(
+            debug_str.contains("[REDACTED]"),
+            "Debug output should contain [REDACTED]"
+        );
 
         // Should NOT contain any actual secret values
-        assert!(!debug_str.contains("actual-secret"), "Debug output must not leak jwt_secret");
-        assert!(!debug_str.contains("actual-refresh-secret"), "Debug output must not leak jwt_refresh_secret");
-        assert!(!debug_str.contains("actual-minio-access"), "Debug output must not leak minio_access_key");
-        assert!(!debug_str.contains("actual-minio-secret"), "Debug output must not leak minio_secret_key");
-        assert!(!debug_str.contains("actual-postal-key"), "Debug output must not leak postal_api_key");
-        assert!(!debug_str.contains("actual-novu-key"), "Debug output must not leak novu_api_key");
-        assert!(!debug_str.contains("actual-lago-key"), "Debug output must not leak lago_api_key");
-        assert!(!debug_str.contains("actual-waha-key"), "Debug output must not leak waha_api_key");
+        assert!(
+            !debug_str.contains("actual-secret"),
+            "Debug output must not leak jwt_secret"
+        );
+        assert!(
+            !debug_str.contains("actual-refresh-secret"),
+            "Debug output must not leak jwt_refresh_secret"
+        );
+        assert!(
+            !debug_str.contains("actual-minio-access"),
+            "Debug output must not leak minio_access_key"
+        );
+        assert!(
+            !debug_str.contains("actual-minio-secret"),
+            "Debug output must not leak minio_secret_key"
+        );
+        assert!(
+            !debug_str.contains("actual-postal-key"),
+            "Debug output must not leak postal_api_key"
+        );
+        assert!(
+            !debug_str.contains("actual-novu-key"),
+            "Debug output must not leak novu_api_key"
+        );
+        assert!(
+            !debug_str.contains("actual-lago-key"),
+            "Debug output must not leak lago_api_key"
+        );
+        assert!(
+            !debug_str.contains("actual-waha-key"),
+            "Debug output must not leak waha_api_key"
+        );
     }
 
     #[test]
@@ -167,16 +194,25 @@ mod tests {
         let debug_str = format!("{:?}", config);
 
         // Non-sensitive fields should be visible
-        assert!(debug_str.contains("0.0.0.0"), "Debug output should show host");
+        assert!(
+            debug_str.contains("0.0.0.0"),
+            "Debug output should show host"
+        );
         assert!(debug_str.contains("8080"), "Debug output should show port");
-        assert!(debug_str.contains("http://localhost:4200"), "Debug output should show app_url");
+        assert!(
+            debug_str.contains("http://localhost:4200"),
+            "Debug output should show app_url"
+        );
     }
 
     #[test]
     fn test_config_debug_contains_config_struct_name() {
         let config = make_test_config();
         let debug_str = format!("{:?}", config);
-        assert!(debug_str.starts_with("Config"), "Debug output should start with 'Config'");
+        assert!(
+            debug_str.starts_with("Config"),
+            "Debug output should start with 'Config'"
+        );
     }
 
     #[test]

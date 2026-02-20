@@ -24,8 +24,7 @@ fn unique_email() -> String {
     format!("inttest-{}@example.com", Uuid::new_v4())
 }
 
-const FAKE_HASH: &str =
-    "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
+const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
 
 // ---------------------------------------------------------------------------
 // Helper: create a user+tenant and return (tenant_id, user_id)
@@ -162,8 +161,12 @@ async fn test_revoke_all_user_tokens() {
     let (_, user_id) = setup_user(&pool).await;
 
     let expires = Utc::now() + Duration::hours(24);
-    let id1 = auth::create_refresh_token(&pool, user_id, "all-1", expires).await.unwrap();
-    let id2 = auth::create_refresh_token(&pool, user_id, "all-2", expires).await.unwrap();
+    let id1 = auth::create_refresh_token(&pool, user_id, "all-1", expires)
+        .await
+        .unwrap();
+    let id2 = auth::create_refresh_token(&pool, user_id, "all-2", expires)
+        .await
+        .unwrap();
 
     auth::revoke_all_user_tokens(&pool, user_id).await.unwrap();
 
@@ -202,7 +205,9 @@ async fn test_update_user_password() {
         .unwrap();
 
     let new_hash = "$argon2id$v=19$m=19456,t=2,p=1$new_salt$new_hash_updated";
-    auth::update_user_password(&pool, user.id, new_hash).await.unwrap();
+    auth::update_user_password(&pool, user.id, new_hash)
+        .await
+        .unwrap();
 
     let updated = auth::get_user_by_id(&pool, user.id).await.unwrap().unwrap();
     assert_eq!(updated.password_hash, new_hash);
@@ -214,9 +219,16 @@ async fn test_create_user_via_invitation() {
     let (tenant_id, _) = setup_user(&pool).await;
 
     let email = unique_email();
-    let user = auth::create_user(&pool, &email, "Invited User", FAKE_HASH, UserRole::Member, tenant_id)
-        .await
-        .expect("create_user (invitation)");
+    let user = auth::create_user(
+        &pool,
+        &email,
+        "Invited User",
+        FAKE_HASH,
+        UserRole::Member,
+        tenant_id,
+    )
+    .await
+    .expect("create_user (invitation)");
 
     assert_eq!(user.email, email);
     assert_eq!(user.role, UserRole::Member);
@@ -233,9 +245,10 @@ async fn test_create_workspace() {
     let pool = test_pool().await;
     let (tenant_id, user_id) = setup_user(&pool).await;
 
-    let ws = workspaces::create_workspace(&pool, "WS Create Test", Some("A desc"), tenant_id, user_id)
-        .await
-        .expect("create_workspace");
+    let ws =
+        workspaces::create_workspace(&pool, "WS Create Test", Some("A desc"), tenant_id, user_id)
+            .await
+            .expect("create_workspace");
 
     assert_eq!(ws.name, "WS Create Test");
     assert_eq!(ws.description.as_deref(), Some("A desc"));
@@ -255,8 +268,12 @@ async fn test_list_workspaces_for_user() {
     let pool = test_pool().await;
     let (tenant_id, user_id) = setup_user(&pool).await;
 
-    workspaces::create_workspace(&pool, "List WS 1", None, tenant_id, user_id).await.unwrap();
-    workspaces::create_workspace(&pool, "List WS 2", None, tenant_id, user_id).await.unwrap();
+    workspaces::create_workspace(&pool, "List WS 1", None, tenant_id, user_id)
+        .await
+        .unwrap();
+    workspaces::create_workspace(&pool, "List WS 2", None, tenant_id, user_id)
+        .await
+        .unwrap();
 
     let list = workspaces::list_workspaces_for_user(&pool, user_id, tenant_id)
         .await
@@ -302,11 +319,15 @@ async fn test_soft_delete_workspace() {
     let pool = test_pool().await;
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
-    let deleted = workspaces::soft_delete_workspace(&pool, ws_id).await.unwrap();
+    let deleted = workspaces::soft_delete_workspace(&pool, ws_id)
+        .await
+        .unwrap();
     assert!(deleted);
 
     // Should no longer appear in list
-    let list = workspaces::list_workspaces_for_user(&pool, user_id, tenant_id).await.unwrap();
+    let list = workspaces::list_workspaces_for_user(&pool, user_id, tenant_id)
+        .await
+        .unwrap();
     assert!(!list.iter().any(|w| w.id == ws_id));
 }
 
@@ -315,11 +336,15 @@ async fn test_is_workspace_member() {
     let pool = test_pool().await;
     let (_, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
-    let is_member = workspaces::is_workspace_member(&pool, ws_id, user_id).await.unwrap();
+    let is_member = workspaces::is_workspace_member(&pool, ws_id, user_id)
+        .await
+        .unwrap();
     assert!(is_member);
 
     let random_user = Uuid::new_v4();
-    let not_member = workspaces::is_workspace_member(&pool, ws_id, random_user).await.unwrap();
+    let not_member = workspaces::is_workspace_member(&pool, ws_id, random_user)
+        .await
+        .unwrap();
     assert!(!not_member);
 }
 
@@ -330,15 +355,26 @@ async fn test_add_workspace_member() {
 
     // Create a second user in the same tenant
     let email2 = unique_email();
-    let user2 = auth::create_user(&pool, &email2, "WS Member 2", FAKE_HASH, UserRole::Member, tenant_id)
+    let user2 = auth::create_user(
+        &pool,
+        &email2,
+        "WS Member 2",
+        FAKE_HASH,
+        UserRole::Member,
+        tenant_id,
+    )
+    .await
+    .unwrap();
+
+    let member = workspaces::add_workspace_member(&pool, ws_id, user2.id)
         .await
         .unwrap();
-
-    let member = workspaces::add_workspace_member(&pool, ws_id, user2.id).await.unwrap();
     assert_eq!(member.workspace_id, ws_id);
     assert_eq!(member.user_id, user2.id);
 
-    let is_member = workspaces::is_workspace_member(&pool, ws_id, user2.id).await.unwrap();
+    let is_member = workspaces::is_workspace_member(&pool, ws_id, user2.id)
+        .await
+        .unwrap();
     assert!(is_member);
 }
 
@@ -348,16 +384,29 @@ async fn test_remove_workspace_member() {
     let (tenant_id, _, ws_id) = setup_user_and_workspace(&pool).await;
 
     let email2 = unique_email();
-    let user2 = auth::create_user(&pool, &email2, "WS Remove", FAKE_HASH, UserRole::Member, tenant_id)
+    let user2 = auth::create_user(
+        &pool,
+        &email2,
+        "WS Remove",
+        FAKE_HASH,
+        UserRole::Member,
+        tenant_id,
+    )
+    .await
+    .unwrap();
+
+    workspaces::add_workspace_member(&pool, ws_id, user2.id)
         .await
         .unwrap();
 
-    workspaces::add_workspace_member(&pool, ws_id, user2.id).await.unwrap();
-
-    let removed = workspaces::remove_workspace_member(&pool, ws_id, user2.id).await.unwrap();
+    let removed = workspaces::remove_workspace_member(&pool, ws_id, user2.id)
+        .await
+        .unwrap();
     assert!(removed);
 
-    let still_member = workspaces::is_workspace_member(&pool, ws_id, user2.id).await.unwrap();
+    let still_member = workspaces::is_workspace_member(&pool, ws_id, user2.id)
+        .await
+        .unwrap();
     assert!(!still_member);
 }
 
@@ -370,9 +419,16 @@ async fn test_create_board() {
     let pool = test_pool().await;
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
-    let bwc = boards::create_board(&pool, "Board Create", Some("desc"), ws_id, tenant_id, user_id)
-        .await
-        .expect("create_board");
+    let bwc = boards::create_board(
+        &pool,
+        "Board Create",
+        Some("desc"),
+        ws_id,
+        tenant_id,
+        user_id,
+    )
+    .await
+    .expect("create_board");
 
     assert_eq!(bwc.board.name, "Board Create");
     assert_eq!(bwc.board.description.as_deref(), Some("desc"));
@@ -383,7 +439,9 @@ async fn test_create_board() {
     assert_eq!(bwc.columns.len(), 3);
 
     // Creator should be a board member
-    let is_member = boards::is_board_member(&pool, bwc.board.id, user_id).await.unwrap();
+    let is_member = boards::is_board_member(&pool, bwc.board.id, user_id)
+        .await
+        .unwrap();
     assert!(is_member);
 }
 
@@ -392,10 +450,16 @@ async fn test_list_boards_by_workspace() {
     let pool = test_pool().await;
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
-    boards::create_board(&pool, "List Board 1", None, ws_id, tenant_id, user_id).await.unwrap();
-    boards::create_board(&pool, "List Board 2", None, ws_id, tenant_id, user_id).await.unwrap();
+    boards::create_board(&pool, "List Board 1", None, ws_id, tenant_id, user_id)
+        .await
+        .unwrap();
+    boards::create_board(&pool, "List Board 2", None, ws_id, tenant_id, user_id)
+        .await
+        .unwrap();
 
-    let list = boards::list_boards_by_workspace(&pool, ws_id, user_id).await.unwrap();
+    let list = boards::list_boards_by_workspace(&pool, ws_id, user_id)
+        .await
+        .unwrap();
     assert!(list.len() >= 2);
     let names: Vec<&str> = list.iter().map(|b| b.name.as_str()).collect();
     assert!(names.contains(&"List Board 1"));
@@ -431,7 +495,9 @@ async fn test_get_board_by_id_non_member() {
 
     // A random user who is NOT a member should get None
     let random_user = Uuid::new_v4();
-    let result = boards::get_board_by_id(&pool, bwc.board.id, random_user).await.unwrap();
+    let result = boards::get_board_by_id(&pool, bwc.board.id, random_user)
+        .await
+        .unwrap();
     assert!(result.is_none());
 }
 
@@ -444,11 +510,15 @@ async fn test_soft_delete_board() {
         .await
         .unwrap();
 
-    let deleted = boards::soft_delete_board(&pool, bwc.board.id).await.unwrap();
+    let deleted = boards::soft_delete_board(&pool, bwc.board.id)
+        .await
+        .unwrap();
     assert!(deleted);
 
     // Should not appear in list
-    let list = boards::list_boards_by_workspace(&pool, ws_id, user_id).await.unwrap();
+    let list = boards::list_boards_by_workspace(&pool, ws_id, user_id)
+        .await
+        .unwrap();
     assert!(!list.iter().any(|b| b.id == bwc.board.id));
 }
 
@@ -462,9 +532,16 @@ async fn test_add_board_member() {
         .unwrap();
 
     let email2 = unique_email();
-    let user2 = auth::create_user(&pool, &email2, "Board Member", FAKE_HASH, UserRole::Member, tenant_id)
-        .await
-        .unwrap();
+    let user2 = auth::create_user(
+        &pool,
+        &email2,
+        "Board Member",
+        FAKE_HASH,
+        UserRole::Member,
+        tenant_id,
+    )
+    .await
+    .unwrap();
 
     let member = boards::add_board_member(&pool, bwc.board.id, user2.id, BoardMemberRole::Viewer)
         .await
@@ -474,7 +551,9 @@ async fn test_add_board_member() {
     assert_eq!(member.user_id, user2.id);
     assert_eq!(member.role, BoardMemberRole::Viewer);
 
-    let is_member = boards::is_board_member(&pool, bwc.board.id, user2.id).await.unwrap();
+    let is_member = boards::is_board_member(&pool, bwc.board.id, user2.id)
+        .await
+        .unwrap();
     assert!(is_member);
 }
 
@@ -488,16 +567,29 @@ async fn test_remove_board_member() {
         .unwrap();
 
     let email2 = unique_email();
-    let user2 = auth::create_user(&pool, &email2, "RemBoardMem", FAKE_HASH, UserRole::Member, tenant_id)
+    let user2 = auth::create_user(
+        &pool,
+        &email2,
+        "RemBoardMem",
+        FAKE_HASH,
+        UserRole::Member,
+        tenant_id,
+    )
+    .await
+    .unwrap();
+
+    boards::add_board_member(&pool, bwc.board.id, user2.id, BoardMemberRole::Editor)
         .await
         .unwrap();
 
-    boards::add_board_member(&pool, bwc.board.id, user2.id, BoardMemberRole::Editor).await.unwrap();
-
-    let removed = boards::remove_board_member(&pool, bwc.board.id, user2.id).await.unwrap();
+    let removed = boards::remove_board_member(&pool, bwc.board.id, user2.id)
+        .await
+        .unwrap();
     assert!(removed);
 
-    let still_member = boards::is_board_member(&pool, bwc.board.id, user2.id).await.unwrap();
+    let still_member = boards::is_board_member(&pool, bwc.board.id, user2.id)
+        .await
+        .unwrap();
     assert!(!still_member);
 }
 
@@ -510,7 +602,9 @@ async fn test_list_columns_by_board() {
     let pool = test_pool().await;
     let (_, _, _, board_id, _) = setup_full(&pool).await;
 
-    let cols = columns::list_columns_by_board(&pool, board_id).await.unwrap();
+    let cols = columns::list_columns_by_board(&pool, board_id)
+        .await
+        .unwrap();
     // Default columns created by create_board
     assert_eq!(cols.len(), 3);
     assert_eq!(cols[0].name, "To Do");
@@ -532,7 +626,9 @@ async fn test_add_column() {
     assert_eq!(col.color.as_deref(), Some("#ff9800"));
     assert_eq!(col.position, "a3");
 
-    let all = columns::list_columns_by_board(&pool, board_id).await.unwrap();
+    let all = columns::list_columns_by_board(&pool, board_id)
+        .await
+        .unwrap();
     assert!(all.iter().any(|c| c.name == "Review"));
 }
 
@@ -541,7 +637,9 @@ async fn test_rename_column() {
     let pool = test_pool().await;
     let (_, _, _, board_id, _) = setup_full(&pool).await;
 
-    let cols = columns::list_columns_by_board(&pool, board_id).await.unwrap();
+    let cols = columns::list_columns_by_board(&pool, board_id)
+        .await
+        .unwrap();
     let first_col = &cols[0];
 
     let renamed = columns::rename_column(&pool, first_col.id, "Backlog")
@@ -558,7 +656,9 @@ async fn test_reorder_column() {
     let pool = test_pool().await;
     let (_, _, _, board_id, _) = setup_full(&pool).await;
 
-    let cols = columns::list_columns_by_board(&pool, board_id).await.unwrap();
+    let cols = columns::list_columns_by_board(&pool, board_id)
+        .await
+        .unwrap();
     let first_col = &cols[0];
 
     let reordered = columns::reorder_column(&pool, first_col.id, "z0")
@@ -569,7 +669,9 @@ async fn test_reorder_column() {
     assert_eq!(reordered.position, "z0");
 
     // Verify the new order: the moved column should now be last
-    let all = columns::list_columns_by_board(&pool, board_id).await.unwrap();
+    let all = columns::list_columns_by_board(&pool, board_id)
+        .await
+        .unwrap();
     assert_eq!(all.last().unwrap().id, first_col.id);
 }
 
@@ -608,7 +710,12 @@ async fn test_create_comment() {
     let (task_id, user_id, _) = create_test_task(&pool).await;
 
     let comment = comments::create_comment(
-        &pool, task_id, user_id, "Hello from integration test", None, &[],
+        &pool,
+        task_id,
+        user_id,
+        "Hello from integration test",
+        None,
+        &[],
     )
     .await
     .expect("create_comment");

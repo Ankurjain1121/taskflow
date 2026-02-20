@@ -8,22 +8,22 @@ pub mod novu;
 pub mod sample_board;
 pub mod trash_bin;
 
-pub use audit::{record_audit_event, get_action_for_route, AuditError, ROUTE_ACTION_MAP};
-pub use board_templates::{BoardTemplate, TEMPLATES as BOARD_TEMPLATES, get_template};
+pub use audit::{get_action_for_route, record_audit_event, AuditError, ROUTE_ACTION_MAP};
+pub use board_templates::{get_template, BoardTemplate, TEMPLATES as BOARD_TEMPLATES};
 pub use broadcast::{BroadcastError, BroadcastService};
 pub use jobs::{
-    cleanup_expired_trash, scan_deadlines, send_weekly_digests,
-    DeadlineScanResult, TrashCleanupResult, WeeklyDigestResult,
+    cleanup_expired_trash, scan_deadlines, send_weekly_digests, DeadlineScanResult,
+    TrashCleanupResult, WeeklyDigestResult,
 };
 pub use minio::{MinioConfig, MinioError, MinioService};
 pub use notifications::{
-    generate_weekly_digest_html, is_slack_enabled, is_whatsapp_enabled,
-    send_slack_notification, send_whatsapp_notification, EmailError, NotificationEvent,
-    NotificationService, NotificationServiceError, PostalClient, SlackError, WhatsAppError,
+    generate_weekly_digest_html, is_slack_enabled, is_whatsapp_enabled, send_slack_notification,
+    send_whatsapp_notification, EmailError, NotificationEvent, NotificationService,
+    NotificationServiceError, PostalClient, SlackError, WhatsAppError,
 };
 pub use novu::{NovuClient, NovuError};
 pub use sample_board::{generate_sample_board, SampleBoardError};
 pub use trash_bin::{
-    get_trash_items, move_to_trash, permanently_delete, restore_from_trash,
-    PaginatedTrashItems, TrashBinError, TrashEntityType, TrashItem, TRASH_RETENTION_DAYS,
+    get_trash_items, move_to_trash, permanently_delete, restore_from_trash, PaginatedTrashItems,
+    TrashBinError, TrashEntityType, TrashItem, TRASH_RETENTION_DAYS,
 };

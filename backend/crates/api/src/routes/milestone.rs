@@ -13,12 +13,12 @@ use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 use taskflow_db::models::Milestone;
+use taskflow_db::queries::get_task_board_id;
 use taskflow_db::queries::milestones::{
     assign_task_to_milestone, create_milestone, delete_milestone, get_milestone,
     get_milestone_board_id, list_milestones, unassign_task_from_milestone, update_milestone,
     CreateMilestoneInput, MilestoneQueryError, MilestoneWithProgress, UpdateMilestoneInput,
 };
-use taskflow_db::queries::get_task_board_id;
 
 /// Request body for creating a milestone
 #[derive(Deserialize)]
@@ -45,11 +45,7 @@ pub struct AssignMilestoneRequest {
 }
 
 /// Helper: verify board membership
-async fn verify_board_membership(
-    state: &AppState,
-    board_id: Uuid,
-    user_id: Uuid,
-) -> Result<()> {
+async fn verify_board_membership(state: &AppState, board_id: Uuid, user_id: Uuid) -> Result<()> {
     let is_member = sqlx::query_scalar::<_, bool>(
         r#"
         SELECT EXISTS(
@@ -230,14 +226,23 @@ async fn unassign_milestone_handler(
 pub fn milestone_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Board-scoped milestone routes
-        .route("/boards/{board_id}/milestones", get(list_milestones_handler))
-        .route("/boards/{board_id}/milestones", post(create_milestone_handler))
+        .route(
+            "/boards/{board_id}/milestones",
+            get(list_milestones_handler),
+        )
+        .route(
+            "/boards/{board_id}/milestones",
+            post(create_milestone_handler),
+        )
         // Milestone-specific routes
         .route("/milestones/{id}", get(get_milestone_handler))
         .route("/milestones/{id}", put(update_milestone_handler))
         .route("/milestones/{id}", delete(delete_milestone_handler))
         // Task-milestone assignment routes
         .route("/tasks/{task_id}/milestone", post(assign_milestone_handler))
-        .route("/tasks/{task_id}/milestone", delete(unassign_milestone_handler))
+        .route(
+            "/tasks/{task_id}/milestone",
+            delete(unassign_milestone_handler),
+        )
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

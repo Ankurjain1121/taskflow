@@ -21,7 +21,7 @@ pub enum CommentQueryError {
 }
 
 /// Comment with author information for API responses
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, sqlx::FromRow, Serialize, Clone)]
 pub struct CommentWithAuthor {
     pub id: Uuid,
     pub content: String,
@@ -57,8 +57,7 @@ pub async fn list_comments_by_task(
     pool: &PgPool,
     task_id: Uuid,
 ) -> Result<Vec<CommentWithAuthor>, CommentQueryError> {
-    let comments = sqlx::query_as!(
-        CommentWithAuthor,
+    let comments = sqlx::query_as::<_, CommentWithAuthor>(
         r#"
         SELECT
             c.id,
@@ -76,8 +75,8 @@ pub async fn list_comments_by_task(
         WHERE c.task_id = $1 AND c.deleted_at IS NULL
         ORDER BY c.created_at ASC
         "#,
-        task_id
     )
+    .bind(task_id)
     .fetch_all(pool)
     .await?;
 
@@ -94,11 +93,10 @@ pub async fn create_comment(
     mentioned_user_ids: &[Uuid],
 ) -> Result<CommentWithAuthor, CommentQueryError> {
     let comment_id = Uuid::new_v4();
-    let mentioned_ids_json = serde_json::to_value(mentioned_user_ids)
-        .unwrap_or_else(|_| serde_json::json!([]));
+    let mentioned_ids_json =
+        serde_json::to_value(mentioned_user_ids).unwrap_or_else(|_| serde_json::json!([]));
 
-    let comment = sqlx::query_as!(
-        CommentWithAuthor,
+    let comment = sqlx::query_as::<_, CommentWithAuthor>(
         r#"
         WITH inserted AS (
             INSERT INTO comments (id, content, task_id, author_id, parent_id, mentioned_user_ids)
@@ -119,13 +117,13 @@ pub async fn create_comment(
         FROM inserted i
         JOIN users u ON u.id = i.author_id
         "#,
-        comment_id,
-        content,
-        task_id,
-        author_id,
-        parent_id,
-        mentioned_ids_json
     )
+    .bind(comment_id)
+    .bind(content)
+    .bind(task_id)
+    .bind(author_id)
+    .bind(parent_id)
+    .bind(mentioned_ids_json)
     .fetch_one(pool)
     .await?;
 
@@ -141,11 +139,10 @@ pub async fn update_comment(
     content: &str,
     mentioned_user_ids: &[Uuid],
 ) -> Result<CommentWithAuthor, CommentQueryError> {
-    let mentioned_ids_json = serde_json::to_value(mentioned_user_ids)
-        .unwrap_or_else(|_| serde_json::json!([]));
+    let mentioned_ids_json =
+        serde_json::to_value(mentioned_user_ids).unwrap_or_else(|_| serde_json::json!([]));
 
-    let comment = sqlx::query_as!(
-        CommentWithAuthor,
+    let comment = sqlx::query_as::<_, CommentWithAuthor>(
         r#"
         WITH updated AS (
             UPDATE comments
@@ -167,10 +164,10 @@ pub async fn update_comment(
         FROM updated u
         JOIN users usr ON usr.id = u.author_id
         "#,
-        comment_id,
-        content,
-        mentioned_ids_json
     )
+    .bind(comment_id)
+    .bind(content)
+    .bind(mentioned_ids_json)
     .fetch_optional(pool)
     .await?
     .ok_or(CommentQueryError::NotFound)?;
@@ -180,14 +177,14 @@ pub async fn update_comment(
 
 /// Soft delete a comment
 pub async fn delete_comment(pool: &PgPool, comment_id: Uuid) -> Result<(), CommentQueryError> {
-    let rows_affected = sqlx::query!(
+    let rows_affected = sqlx::query(
         r#"
         UPDATE comments
         SET deleted_at = NOW(), updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
         "#,
-        comment_id
     )
+    .bind(comment_id)
     .execute(pool)
     .await?
     .rows_affected();
@@ -204,15 +201,14 @@ pub async fn get_comment_by_id(
     pool: &PgPool,
     comment_id: Uuid,
 ) -> Result<Option<Comment>, CommentQueryError> {
-    let comment = sqlx::query_as!(
-        Comment,
+    let comment = sqlx::query_as::<_, Comment>(
         r#"
         SELECT id, content, task_id, author_id, parent_id, mentioned_user_ids, created_at, updated_at
         FROM comments
         WHERE id = $1 AND deleted_at IS NULL
         "#,
-        comment_id
     )
+    .bind(comment_id)
     .fetch_optional(pool)
     .await?;
 
@@ -224,12 +220,12 @@ pub async fn get_comment_task_id(
     pool: &PgPool,
     comment_id: Uuid,
 ) -> Result<Option<Uuid>, sqlx::Error> {
-    sqlx::query_scalar!(
+    sqlx::query_scalar(
         r#"
         SELECT task_id FROM comments WHERE id = $1 AND deleted_at IS NULL
         "#,
-        comment_id
     )
+    .bind(comment_id)
     .fetch_optional(pool)
     .await
 }
@@ -239,12 +235,12 @@ pub async fn get_comment_author_id(
     pool: &PgPool,
     comment_id: Uuid,
 ) -> Result<Option<Uuid>, sqlx::Error> {
-    sqlx::query_scalar!(
+    sqlx::query_scalar(
         r#"
         SELECT author_id FROM comments WHERE id = $1 AND deleted_at IS NULL
         "#,
-        comment_id
     )
+    .bind(comment_id)
     .fetch_optional(pool)
     .await
 }

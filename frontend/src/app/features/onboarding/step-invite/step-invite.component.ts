@@ -16,10 +16,12 @@ interface EmailEntry {
   template: `
     <div class="space-y-6">
       <div class="text-center mb-8">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+        <h2
+          class="text-2xl font-bold text-[var(--card-foreground)] dark:text-white mb-2"
+        >
           Invite Your Team
         </h2>
-        <p class="text-gray-600 dark:text-gray-400">
+        <p class="text-[var(--muted-foreground)] dark:text-gray-400">
           Collaboration is better together. Add team members to get started.
         </p>
       </div>
@@ -33,8 +35,8 @@ interface EmailEntry {
                 [(ngModel)]="email.value"
                 (blur)="validateEmail(email)"
                 placeholder="colleague@company.com"
-                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg
-                       bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                class="w-full px-4 py-3 border border-[var(--border)] dark:border-gray-600 rounded-lg
+                       bg-[var(--card)] dark:bg-gray-800 text-[var(--card-foreground)] dark:text-white
                        focus:ring-2 focus:ring-blue-500 focus:border-transparent
                        placeholder-gray-400 dark:placeholder-gray-500"
                 [class.border-red-500]="email.error"
@@ -134,7 +136,7 @@ interface EmailEntry {
         <button
           type="button"
           (click)="skip()"
-          class="w-full py-3 px-4 text-gray-600 dark:text-gray-400 hover:text-gray-900
+          class="w-full py-3 px-4 text-[var(--muted-foreground)] dark:text-gray-400 hover:text-[var(--card-foreground)]
                  dark:hover:text-white font-medium transition-colors"
         >
           Skip this step

@@ -159,9 +159,7 @@ pub async fn list_my_tasks(
         ORDER BY {}
         LIMIT ${}
         "#,
-        conditions,
-        order_clause,
-        param_idx
+        conditions, order_clause, param_idx
     );
 
     // Execute the dynamic query with the appropriate bindings

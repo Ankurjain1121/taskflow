@@ -167,11 +167,7 @@ struct CreatedTaskRow {
 // ============================================================================
 
 /// Verify the current user is a board member. Returns Err(AppError) if not.
-async fn verify_board_membership(
-    db: &sqlx::PgPool,
-    board_id: Uuid,
-    user_id: Uuid,
-) -> Result<()> {
+async fn verify_board_membership(db: &sqlx::PgPool, board_id: Uuid, user_id: Uuid) -> Result<()> {
     let is_member: bool = sqlx::query_scalar(
         "SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)",
     )
@@ -417,13 +413,11 @@ async fn export_csv(db: &sqlx::PgPool, board_id: Uuid) -> Result<Response> {
     }
 
     // Get board name for the filename
-    let board_name: Option<String> = sqlx::query_scalar(
-        "SELECT name FROM boards WHERE id = $1",
-    )
-    .bind(board_id)
-    .fetch_optional(db)
-    .await
-    .map_err(AppError::from)?;
+    let board_name: Option<String> = sqlx::query_scalar("SELECT name FROM boards WHERE id = $1")
+        .bind(board_id)
+        .fetch_optional(db)
+        .await
+        .map_err(AppError::from)?;
 
     let filename = format!(
         "{}_export.csv",
@@ -533,10 +527,7 @@ async fn export_json(db: &sqlx::PgPool, board_id: Uuid) -> Result<Response> {
         tasks: tasks
             .iter()
             .map(|t| {
-                let task_assignees = assignee_map
-                    .get(&t.title)
-                    .cloned()
-                    .unwrap_or_default();
+                let task_assignees = assignee_map.get(&t.title).cloned().unwrap_or_default();
                 ExportTaskJson {
                     title: t.title.clone(),
                     description: t.description.clone(),
@@ -575,19 +566,16 @@ async fn import_json_handler(
             continue;
         }
 
-        let column_id =
-            resolve_column_id(&state.db, board_id, item.column_name.as_deref()).await?;
+        let column_id = resolve_column_id(&state.db, board_id, item.column_name.as_deref()).await?;
         let position = next_position_in_column(&state.db, column_id).await?;
         let priority = normalize_priority(item.priority.as_deref().unwrap_or("medium"));
 
         let due_date: Option<DateTime<Utc>> = item.due_date.as_deref().and_then(|d| {
-            d.parse::<DateTime<Utc>>()
-                .ok()
-                .or_else(|| {
-                    chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d")
-                        .ok()
-                        .and_then(|nd| nd.and_hms_opt(0, 0, 0).map(|ndt| ndt.and_utc()))
-                })
+            d.parse::<DateTime<Utc>>().ok().or_else(|| {
+                chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d")
+                    .ok()
+                    .and_then(|nd| nd.and_hms_opt(0, 0, 0).map(|ndt| ndt.and_utc()))
+            })
         });
 
         let _created: Option<CreatedTaskRow> = sqlx::query_as(
@@ -664,13 +652,11 @@ async fn import_csv_handler(
         let priority = normalize_priority(priority_str);
 
         let due_date: Option<DateTime<Utc>> = due_date_str.and_then(|d| {
-            d.parse::<DateTime<Utc>>()
-                .ok()
-                .or_else(|| {
-                    chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d")
-                        .ok()
-                        .and_then(|nd| nd.and_hms_opt(0, 0, 0).map(|ndt| ndt.and_utc()))
-                })
+            d.parse::<DateTime<Utc>>().ok().or_else(|| {
+                chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d")
+                    .ok()
+                    .and_then(|nd| nd.and_hms_opt(0, 0, 0).map(|ndt| ndt.and_utc()))
+            })
         });
 
         let _created: Option<CreatedTaskRow> = sqlx::query_as(
@@ -822,13 +808,11 @@ async fn import_trello_handler(
         let description = card.desc.as_deref().filter(|d| !d.is_empty());
 
         let due_date: Option<DateTime<Utc>> = card.due.as_deref().and_then(|d| {
-            d.parse::<DateTime<Utc>>()
-                .ok()
-                .or_else(|| {
-                    chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d")
-                        .ok()
-                        .and_then(|nd| nd.and_hms_opt(0, 0, 0).map(|ndt| ndt.and_utc()))
-                })
+            d.parse::<DateTime<Utc>>().ok().or_else(|| {
+                chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d")
+                    .ok()
+                    .and_then(|nd| nd.and_hms_opt(0, 0, 0).map(|ndt| ndt.and_utc()))
+            })
         });
 
         let _created: Option<CreatedTaskRow> = sqlx::query_as(
@@ -868,10 +852,7 @@ fn resolve_column_id_sync(
     if let Some(id) = name_map.values().next() {
         return *id;
     }
-    existing
-        .first()
-        .map(|c| c.id)
-        .unwrap_or(Uuid::nil())
+    existing.first().map(|c| c.id).unwrap_or(Uuid::nil())
 }
 
 // ============================================================================

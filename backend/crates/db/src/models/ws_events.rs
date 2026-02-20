@@ -275,13 +275,57 @@ mod tests {
         let uid = Uuid::new_v4();
 
         let variants: Vec<(&str, WsBoardEvent)> = vec![
-            ("TaskCreated", WsBoardEvent::TaskCreated { task: task.clone(), origin_user_id: uid }),
-            ("TaskUpdated", WsBoardEvent::TaskUpdated { task: task.clone(), origin_user_id: uid }),
-            ("TaskMoved", WsBoardEvent::TaskMoved { task_id: uid, column_id: uid, position: "a0".into(), origin_user_id: uid }),
-            ("TaskDeleted", WsBoardEvent::TaskDeleted { task_id: uid, origin_user_id: uid }),
-            ("ColumnCreated", WsBoardEvent::ColumnCreated { column: col.clone(), origin_user_id: uid }),
-            ("ColumnUpdated", WsBoardEvent::ColumnUpdated { column: col.clone(), origin_user_id: uid }),
-            ("ColumnDeleted", WsBoardEvent::ColumnDeleted { column_id: uid, origin_user_id: uid }),
+            (
+                "TaskCreated",
+                WsBoardEvent::TaskCreated {
+                    task: task.clone(),
+                    origin_user_id: uid,
+                },
+            ),
+            (
+                "TaskUpdated",
+                WsBoardEvent::TaskUpdated {
+                    task: task.clone(),
+                    origin_user_id: uid,
+                },
+            ),
+            (
+                "TaskMoved",
+                WsBoardEvent::TaskMoved {
+                    task_id: uid,
+                    column_id: uid,
+                    position: "a0".into(),
+                    origin_user_id: uid,
+                },
+            ),
+            (
+                "TaskDeleted",
+                WsBoardEvent::TaskDeleted {
+                    task_id: uid,
+                    origin_user_id: uid,
+                },
+            ),
+            (
+                "ColumnCreated",
+                WsBoardEvent::ColumnCreated {
+                    column: col.clone(),
+                    origin_user_id: uid,
+                },
+            ),
+            (
+                "ColumnUpdated",
+                WsBoardEvent::ColumnUpdated {
+                    column: col.clone(),
+                    origin_user_id: uid,
+                },
+            ),
+            (
+                "ColumnDeleted",
+                WsBoardEvent::ColumnDeleted {
+                    column_id: uid,
+                    origin_user_id: uid,
+                },
+            ),
         ];
 
         for (expected_type, event) in variants {

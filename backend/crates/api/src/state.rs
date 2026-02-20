@@ -24,9 +24,7 @@ impl AppState {
         let db = PgPool::connect(&config.app_database_url).await?;
 
         // Run pending migrations
-        sqlx::migrate!("../db/src/migrations")
-            .run(&db)
-            .await?;
+        sqlx::migrate!("../db/src/migrations").run(&db).await?;
         tracing::info!("Database migrations applied");
 
         // Connect to Redis

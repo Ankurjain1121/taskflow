@@ -1,7 +1,32 @@
 @import "tailwindcss";
 @import "primeicons/primeicons.css";
+@import "./themes.css";
 
 @source "../";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
 
 /* Tailwind CSS 4 Animation Utilities */
 @utility animate-pulse {
@@ -20,6 +45,7 @@
   --card: #ffffff;
   --card-foreground: #0f172a;
   --border: #e2e8f0;
+  --input: #e2e8f0;
   --muted: #f8f9fb;
   --muted-foreground: #64748b;
   --accent: #fff7ed;
@@ -42,7 +68,7 @@
   --sidebar-bg: #F0F1F5;
   --sidebar-surface: rgba(0, 0, 0, 0.03);
   --sidebar-surface-hover: rgba(0, 0, 0, 0.05);
-  --sidebar-surface-active: rgba(99, 102, 241, 0.08);
+  --sidebar-surface-active: color-mix(in srgb, var(--primary) 8%, transparent);
   --sidebar-border: rgba(0, 0, 0, 0.08);
   --sidebar-text-primary: #0f172a;
   --sidebar-text-secondary: rgba(51, 65, 85, 0.85);
@@ -63,8 +89,8 @@
   --status-amber-text: #92400e;
 
   /* Elevation tokens */
-  --shadow-glow: 0 0 0 1px rgba(99, 102, 241, 0.08), 0 4px 16px rgba(99, 102, 241, 0.06);
-  --widget-hover-border: rgba(99, 102, 241, 0.2);
+  --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--primary) 8%, transparent), 0 4px 16px color-mix(in srgb, var(--primary) 6%, transparent);
+  --widget-hover-border: color-mix(in srgb, var(--primary) 20%, transparent);
 
   /* Transition tokens */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -78,6 +104,18 @@
   --shadow-sm: 0 2px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
   --shadow-lg: 0 12px 32px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
+
+  /* Chart tokens */
+  --chart-1: #6366f1;
+  --chart-2: #10b981;
+  --chart-3: #f97316;
+  --chart-4: #f59e0b;
+  --chart-5: #8b5cf6;
+
+  /* Due date chip tokens */
+  --chip-overdue: #db2828;
+  --chip-due-soon: #f2711c;
+  --chip-completed: #21ba45;
 }
 
 html.dark {
@@ -85,7 +123,8 @@ html.dark {
   --foreground: #f8fafc;
   --card: #30324E;
   --card-foreground: #f8fafc;
-  --border: #334155;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.15);
   --muted: #1e293b;
   --muted-foreground: #94a3b8;
   --accent: #431407;
@@ -106,13 +145,13 @@ html.dark {
   --sidebar-bg: #13152A;
   --sidebar-surface: rgba(255, 255, 255, 0.03);
   --sidebar-surface-hover: rgba(255, 255, 255, 0.06);
-  --sidebar-surface-active: rgba(99, 102, 241, 0.14);
+  --sidebar-surface-active: color-mix(in srgb, var(--primary) 14%, transparent);
   --sidebar-border: rgba(255, 255, 255, 0.05);
   --sidebar-text-primary: rgba(255, 255, 255, 0.95);
   --sidebar-text-secondary: rgba(203, 213, 225, 0.8);
   --sidebar-text-muted: rgba(148, 163, 184, 0.5);
-  --shadow-glow: 0 0 0 1px rgba(99, 102, 241, 0.1), 0 4px 16px rgba(99, 102, 241, 0.08);
-  --widget-hover-border: rgba(99, 102, 241, 0.25);
+  --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--primary) 10%, transparent), 0 4px 16px color-mix(in srgb, var(--primary) 8%, transparent);
+  --widget-hover-border: color-mix(in srgb, var(--primary) 25%, transparent);
 
   --status-red-bg: rgba(220, 38, 38, 0.12);
   --status-red-border: rgba(220, 38, 38, 0.3);
@@ -126,6 +165,63 @@ html.dark {
   --status-amber-bg: rgba(245, 158, 11, 0.12);
   --status-amber-border: rgba(245, 158, 11, 0.3);
   --status-amber-text: #fcd34d;
+
+  /* Chart tokens */
+  --chart-1: #818cf8;
+  --chart-2: #34d399;
+  --chart-3: #fb923c;
+  --chart-4: #fcd34d;
+  --chart-5: #a78bfa;
+
+  /* Due date chip tokens */
+  --chip-overdue: #f87171;
+  --chip-due-soon: #fb923c;
+  --chip-completed: #4ade80;
+}
+
+/* Surface elevation tokens */
+:root {
+  --surface-0: var(--background);
+  --surface-1: var(--card);
+  --surface-2: #ffffff;
+  --surface-3: #ffffff;
+}
+html.dark {
+  --surface-0: var(--background);
+  --surface-1: var(--card);
+  --surface-2: #3a3c58;
+  --surface-3: #42446a;
+}
+
+/* Dark scrollbar */
+html.dark *::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+html.dark *::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+html.dark * {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* Dark placeholder + disabled forms */
+html.dark ::placeholder {
+  color: var(--muted-foreground);
+}
+html.dark input:disabled,
+html.dark textarea:disabled,
+html.dark select:disabled {
+  background: var(--muted);
+  opacity: 0.5;
+}
+
+/* Dark skeleton shimmer fix */
+html.dark .skeleton-shimmer {
+  background: linear-gradient(90deg, var(--muted) 25%, color-mix(in srgb, var(--muted) 60%, white) 50%, var(--muted) 75%);
+}
+html.dark .skeleton {
+  background: linear-gradient(90deg, var(--muted) 25%, color-mix(in srgb, var(--muted) 60%, white) 50%, var(--muted) 75%);
+  background-size: 200% 100%;
 }
 
 html, body { height: 100%; }
@@ -141,11 +237,11 @@ body {
    Selection Styling
    ============================================ */
 ::selection {
-  background-color: rgba(99, 102, 241, 0.25);
+  background-color: color-mix(in srgb, var(--primary) 25%, transparent);
   color: inherit;
 }
 ::-moz-selection {
-  background-color: rgba(99, 102, 241, 0.25);
+  background-color: color-mix(in srgb, var(--primary) 25%, transparent);
   color: inherit;
 }
 
@@ -188,7 +284,7 @@ body {
    ============================================ */
 *:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px color-mix(in srgb, var(--primary) 50%, transparent);
   border-radius: 4px;
 }
 
@@ -239,33 +335,6 @@ button:active, [role="button"]:active {
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.04);
 }
-
-/* ============================================
-   Theme Color Utility Classes
-   ============================================ */
-
-/* Apply theme colors to common elements */
-.bg-background { background-color: var(--background); }
-.bg-foreground { background-color: var(--foreground); }
-.bg-card { background-color: var(--card); }
-.bg-muted { background-color: var(--muted); }
-.bg-accent { background-color: var(--accent); }
-.bg-primary { background-color: var(--primary); }
-.bg-secondary { background-color: var(--secondary); }
-.bg-destructive { background-color: var(--destructive); }
-
-.text-foreground { color: var(--foreground); }
-.text-muted-foreground { color: var(--muted-foreground); }
-.text-card-foreground { color: var(--card-foreground); }
-.text-accent-foreground { color: var(--accent-foreground); }
-.text-primary { color: var(--primary); }
-.text-primary-foreground { color: var(--primary-foreground); }
-.text-secondary-foreground { color: var(--secondary-foreground); }
-.text-destructive { color: var(--destructive); }
-.text-destructive-foreground { color: var(--destructive-foreground); }
-
-.border-border { border-color: var(--border); }
-.ring-ring { --tw-ring-color: var(--ring); }
 
 /* ============================================
    Skeleton Loading Shimmer
@@ -388,11 +457,6 @@ button:active, [role="button"]:active {
   0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
   70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
   100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-}
-
-@keyframes confettiFall {
-  0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(30px) rotate(360deg); opacity: 0; }
 }
 
 .animate-celebrate-check {
@@ -589,6 +653,12 @@ button:active, [role="button"]:active {
 .popover-enter { animation: popoverIn 150ms ease-out; }
 
 .btn-press:active { transform: scale(0.97); transition: transform 100ms ease; }
+
+.btn-snappy { transition: background 85ms ease-in, color 85ms ease-in; }
+
+.chip-overdue { background-color: var(--chip-overdue); color: white; }
+.chip-due-soon { background-color: var(--chip-due-soon); color: white; }
+.chip-completed { background-color: var(--chip-completed); color: white; }
 
 @keyframes bellPulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }

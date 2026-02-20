@@ -9,28 +9,28 @@ export const PRIORITY_COLORS: Record<
   { bg: string; text: string; border: string; dot: string }
 > = {
   urgent: {
-    bg: 'bg-red-500',
-    text: 'text-white',
-    border: 'border-red-600',
-    dot: 'bg-red-400',
+    bg: 'bg-red-50 dark:bg-red-950',
+    text: 'text-red-700 dark:text-red-300',
+    border: 'border-red-200 dark:border-red-800',
+    dot: 'bg-red-500',
   },
   high: {
-    bg: 'bg-orange-500',
-    text: 'text-white',
-    border: 'border-orange-600',
-    dot: 'bg-orange-400',
+    bg: 'bg-orange-50 dark:bg-orange-950',
+    text: 'text-orange-700 dark:text-orange-300',
+    border: 'border-orange-200 dark:border-orange-800',
+    dot: 'bg-orange-500',
   },
   medium: {
-    bg: 'bg-yellow-400',
-    text: 'text-yellow-900',
-    border: 'border-yellow-500',
-    dot: 'bg-yellow-300',
+    bg: 'bg-amber-50 dark:bg-amber-950',
+    text: 'text-amber-700 dark:text-amber-300',
+    border: 'border-amber-200 dark:border-amber-800',
+    dot: 'bg-amber-500',
   },
   low: {
-    bg: 'bg-blue-400',
-    text: 'text-white',
-    border: 'border-blue-500',
-    dot: 'bg-blue-300',
+    bg: 'bg-blue-50 dark:bg-blue-950',
+    text: 'text-blue-700 dark:text-blue-300',
+    border: 'border-blue-200 dark:border-blue-800',
+    dot: 'bg-blue-500',
   },
 };
 
@@ -85,7 +85,7 @@ export function getPriorityColorHex(priority: string): {
  * Bright colors for column headers (Monday.com style)
  */
 export const COLUMN_HEADER_COLORS: string[] = [
-  '#6366f1', // indigo
+  'var(--primary)', // primary
   '#3b82f6', // blue
   '#22c55e', // green
   '#f59e0b', // amber
@@ -118,10 +118,22 @@ export const PRIORITY_FLAG_COLORS: Record<string, string> = {
  * Column status indicator colors
  */
 export const COLUMN_STATUS_COLORS = {
-  default: { bg: 'bg-gray-200', text: 'text-gray-700' },
-  done: { bg: 'bg-green-100', text: 'text-green-800' },
-  inProgress: { bg: 'bg-blue-100', text: 'text-blue-800' },
-  blocked: { bg: 'bg-red-100', text: 'text-red-800' },
+  default: {
+    bg: 'bg-[var(--secondary)]',
+    text: 'text-[var(--muted-foreground)]',
+  },
+  done: {
+    bg: 'bg-[var(--status-green-bg)]',
+    text: 'text-[var(--status-green-text)]',
+  },
+  inProgress: {
+    bg: 'bg-[var(--status-blue-bg)]',
+    text: 'text-[var(--status-blue-text)]',
+  },
+  blocked: {
+    bg: 'bg-[var(--status-red-bg)]',
+    text: 'text-[var(--status-red-text)]',
+  },
 };
 
 /**
@@ -185,9 +197,15 @@ export function isToday(dueDate: string | null): boolean {
 /**
  * Get due date color classes based on date
  */
-export function getDueDateColor(dueDate: string | null): string {
-  if (!dueDate) return 'text-gray-500';
-  if (isOverdue(dueDate)) return 'text-red-600';
-  if (isToday(dueDate)) return 'text-amber-600';
-  return 'text-gray-500';
+export function getDueDateColor(dueDate: string | null): {
+  class: string;
+  chipClass: string;
+} {
+  if (!dueDate)
+    return { class: 'text-[var(--muted-foreground)]', chipClass: '' };
+  if (isOverdue(dueDate))
+    return { class: 'text-white', chipClass: 'chip-overdue' };
+  if (isToday(dueDate))
+    return { class: 'text-white', chipClass: 'chip-due-soon' };
+  return { class: 'text-[var(--muted-foreground)]', chipClass: '' };
 }

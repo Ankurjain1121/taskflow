@@ -213,10 +213,22 @@ mod tests {
 
     #[test]
     fn test_task_priority_json_lowercase() {
-        assert_eq!(serde_json::to_string(&TaskPriority::Urgent).unwrap(), "\"urgent\"");
-        assert_eq!(serde_json::to_string(&TaskPriority::High).unwrap(), "\"high\"");
-        assert_eq!(serde_json::to_string(&TaskPriority::Medium).unwrap(), "\"medium\"");
-        assert_eq!(serde_json::to_string(&TaskPriority::Low).unwrap(), "\"low\"");
+        assert_eq!(
+            serde_json::to_string(&TaskPriority::Urgent).unwrap(),
+            "\"urgent\""
+        );
+        assert_eq!(
+            serde_json::to_string(&TaskPriority::High).unwrap(),
+            "\"high\""
+        );
+        assert_eq!(
+            serde_json::to_string(&TaskPriority::Medium).unwrap(),
+            "\"medium\""
+        );
+        assert_eq!(
+            serde_json::to_string(&TaskPriority::Low).unwrap(),
+            "\"low\""
+        );
 
         // Also verify deserialization from lowercase
         let urgent: TaskPriority = serde_json::from_str("\"urgent\"").unwrap();

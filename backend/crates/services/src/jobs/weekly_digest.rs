@@ -268,12 +268,10 @@ async fn get_user_stats(
     .await?;
 
     // Get user info
-    let user: (String, String) = sqlx::query_as(
-        r#"SELECT email, name FROM users WHERE id = $1"#
-    )
-    .bind(user_id)
-    .fetch_one(pool)
-    .await?;
+    let user: (String, String) = sqlx::query_as(r#"SELECT email, name FROM users WHERE id = $1"#)
+        .bind(user_id)
+        .fetch_one(pool)
+        .await?;
 
     Ok(UserDigestStats {
         user_id,

@@ -1,4 +1,10 @@
-import { Component, ChangeDetectionStrategy, signal, inject, OnInit } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  signal,
+  inject,
+  OnInit,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -6,14 +12,21 @@ import { ButtonModule } from 'primeng/button';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { InputTextModule } from 'primeng/inputtext';
 import { ChipModule } from 'primeng/chip';
-import { BoardShareService, SharedBoardAccess } from '../../core/services/board-share.service';
+import {
+  BoardShareService,
+  SharedBoardAccess,
+} from '../../core/services/board-share.service';
 
 @Component({
   selector: 'app-shared-board-view',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, ButtonModule, ProgressSpinnerModule,
-    InputTextModule, ChipModule,
+    CommonModule,
+    FormsModule,
+    ButtonModule,
+    ProgressSpinnerModule,
+    InputTextModule,
+    ChipModule,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -25,13 +38,23 @@ import { BoardShareService, SharedBoardAccess } from '../../core/services/board-
         />
       </div>
     } @else if (needsPassword()) {
-      <div class="flex items-center justify-center h-screen bg-gray-50">
-        <div class="w-96 bg-white rounded-lg shadow-sm border p-6 text-center">
+      <div
+        class="flex items-center justify-center h-screen bg-[var(--secondary)]"
+      >
+        <div
+          class="w-96 bg-[var(--card)] rounded-lg shadow-sm border p-6 text-center"
+        >
           <i class="pi pi-lock text-6xl text-gray-400 mb-4 block"></i>
           <h2 class="text-xl font-semibold mb-4">Password Required</h2>
-          <p class="text-gray-600 mb-4">This board is password protected.</p>
+          <p class="text-[var(--muted-foreground)] mb-4">
+            This board is password protected.
+          </p>
           <div class="w-full mb-2">
-            <label for="boardPassword" class="block text-sm font-medium text-gray-700 mb-1 text-left">Password</label>
+            <label
+              for="boardPassword"
+              class="block text-sm font-medium text-[var(--foreground)] mb-1 text-left"
+              >Password</label
+            >
             <input
               id="boardPassword"
               pInputText
@@ -52,29 +75,42 @@ import { BoardShareService, SharedBoardAccess } from '../../core/services/board-
         </div>
       </div>
     } @else if (error()) {
-      <div class="flex items-center justify-center h-screen bg-gray-50">
-        <div class="w-96 bg-white rounded-lg shadow-sm border p-6 text-center">
-          <i class="pi pi-exclamation-circle text-6xl text-red-400 mb-4 block"></i>
+      <div
+        class="flex items-center justify-center h-screen bg-[var(--secondary)]"
+      >
+        <div
+          class="w-96 bg-[var(--card)] rounded-lg shadow-sm border p-6 text-center"
+        >
+          <i
+            class="pi pi-exclamation-circle text-6xl text-red-400 mb-4 block"
+          ></i>
           <h2 class="text-xl font-semibold mb-2">Unable to Access Board</h2>
-          <p class="text-gray-600">{{ error() }}</p>
+          <p class="text-[var(--muted-foreground)]">{{ error() }}</p>
         </div>
       </div>
     } @else if (board()) {
-      <div class="min-h-screen bg-gray-50">
+      <div class="min-h-screen bg-[var(--secondary)]">
         <!-- Header -->
-        <div class="bg-white border-b px-6 py-4">
+        <div class="bg-[var(--card)] border-b px-6 py-4">
           <h1 class="text-2xl font-bold">{{ board()!.board_name }}</h1>
-          <p class="text-sm text-gray-500">Shared board view (read-only)</p>
+          <p class="text-sm text-[var(--muted-foreground)]">
+            Shared board view (read-only)
+          </p>
         </div>
 
         <!-- Kanban columns -->
         <div class="p-6 overflow-x-auto">
           <div class="flex gap-4 min-w-max">
             @for (column of board()!.columns; track column.id) {
-              <div class="w-72 bg-gray-100 rounded-lg p-3 flex-shrink-0">
+              <div
+                class="w-72 bg-[var(--secondary)] rounded-lg p-3 flex-shrink-0"
+              >
                 <div class="flex items-center gap-2 mb-3">
                   @if (column.color) {
-                    <div class="w-3 h-3 rounded-full" [style.background-color]="column.color"></div>
+                    <div
+                      class="w-3 h-3 rounded-full"
+                      [style.background-color]="column.color"
+                    ></div>
                   }
                   <h3 class="font-semibold text-sm">{{ column.name }}</h3>
                   <span class="text-xs text-gray-400 ml-auto">
@@ -83,10 +119,16 @@ import { BoardShareService, SharedBoardAccess } from '../../core/services/board-
                 </div>
                 <div class="space-y-2">
                   @for (task of getTasksForColumn(column.id); track task.id) {
-                    <div class="bg-white rounded-lg shadow-sm border p-3">
+                    <div
+                      class="bg-[var(--card)] rounded-lg shadow-sm border p-3"
+                    >
                       <h4 class="font-medium text-sm mb-1">{{ task.title }}</h4>
                       @if (task.description) {
-                        <p class="text-xs text-gray-500 line-clamp-2">{{ task.description }}</p>
+                        <p
+                          class="text-xs text-[var(--muted-foreground)] line-clamp-2"
+                        >
+                          {{ task.description }}
+                        </p>
                       }
                       <div class="flex items-center gap-2 mt-2">
                         <p-chip
@@ -94,7 +136,9 @@ import { BoardShareService, SharedBoardAccess } from '../../core/services/board-
                           [styleClass]="getPriorityClass(task.priority)"
                         />
                         @if (task.due_date) {
-                          <span class="text-xs text-gray-400">{{ task.due_date | date:'shortDate' }}</span>
+                          <span class="text-xs text-gray-400">{{
+                            task.due_date | date: 'shortDate'
+                          }}</span>
                         }
                       </div>
                     </div>
@@ -147,7 +191,9 @@ export class SharedBoardViewComponent implements OnInit {
             this.passwordError.set('Incorrect password');
           }
         } else if (err.status === 400) {
-          this.error.set(err.error?.error?.message || 'This share link is no longer valid');
+          this.error.set(
+            err.error?.error?.message || 'This share link is no longer valid',
+          );
         } else {
           this.error.set('Unable to access this board');
         }
@@ -166,11 +212,16 @@ export class SharedBoardViewComponent implements OnInit {
 
   getPriorityClass(priority: string): string {
     switch (priority) {
-      case 'urgent': return 'bg-red-100 text-red-800';
-      case 'high': return 'bg-orange-100 text-orange-800';
-      case 'medium': return 'bg-blue-100 text-blue-800';
-      case 'low': return 'bg-gray-100 text-gray-600';
-      default: return '';
+      case 'urgent':
+        return 'bg-red-100 text-red-800';
+      case 'high':
+        return 'bg-orange-100 text-orange-800';
+      case 'medium':
+        return 'bg-blue-100 text-blue-800';
+      case 'low':
+        return 'bg-[var(--secondary)] text-[var(--muted-foreground)]';
+      default:
+        return '';
     }
   }
 }

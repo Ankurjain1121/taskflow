@@ -154,7 +154,7 @@ pub async fn create_custom_field(
     .fetch_one(pool)
     .await?
     .unwrap_or(0)
-    + 1;
+        + 1;
 
     let id = Uuid::new_v4();
     let now = Utc::now();

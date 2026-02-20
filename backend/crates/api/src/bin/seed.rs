@@ -6,8 +6,9 @@ use uuid::Uuid;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenvy::dotenv().ok();
 
-    let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgresql://taskflow_app:taskflow_secure_2026@localhost:5432/taskflow".into());
+    let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+        "postgresql://taskflow_app:taskflow_secure_2026@localhost:5432/taskflow".into()
+    });
 
     println!("Connecting to database...");
     let pool = PgPool::connect(&database_url).await?;
@@ -19,15 +20,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 1. Create tenant
     let tenant_id = Uuid::new_v4();
-    sqlx::query(
-        "INSERT INTO tenants (id, name, slug, plan) VALUES ($1, $2, $3, $4)"
-    )
-    .bind(tenant_id)
-    .bind("Acme Corp")
-    .bind("acme-corp")
-    .bind("pro")
-    .execute(&pool)
-    .await?;
+    sqlx::query("INSERT INTO tenants (id, name, slug, plan) VALUES ($1, $2, $3, $4)")
+        .bind(tenant_id)
+        .bind("Acme Corp")
+        .bind("acme-corp")
+        .bind("pro")
+        .execute(&pool)
+        .await?;
     println!("  Created tenant: Acme Corp");
 
     // 2. Create users
@@ -43,7 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ] {
         sqlx::query(
             "INSERT INTO users (id, email, name, password_hash, role, tenant_id) \
-             VALUES ($1, $2, $3, $4, $5::user_role, $6)"
+             VALUES ($1, $2, $3, $4, $5::user_role, $6)",
         )
         .bind(id)
         .bind(email)
@@ -60,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let workspace_id = Uuid::new_v4();
     sqlx::query(
         "INSERT INTO workspaces (id, name, description, tenant_id, created_by_id) \
-         VALUES ($1, $2, $3, $4, $5)"
+         VALUES ($1, $2, $3, $4, $5)",
     )
     .bind(workspace_id)
     .bind("Engineering")
@@ -73,13 +72,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 4. Add workspace members
     for user_id in [alice_id, bob_id, carol_id] {
-        sqlx::query(
-            "INSERT INTO workspace_members (workspace_id, user_id) VALUES ($1, $2)"
-        )
-        .bind(workspace_id)
-        .bind(user_id)
-        .execute(&pool)
-        .await?;
+        sqlx::query("INSERT INTO workspace_members (workspace_id, user_id) VALUES ($1, $2)")
+            .bind(workspace_id)
+            .bind(user_id)
+            .execute(&pool)
+            .await?;
     }
     println!("  Added 3 workspace members");
 
@@ -87,7 +84,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let board_id = Uuid::new_v4();
     sqlx::query(
         "INSERT INTO boards (id, name, description, workspace_id, tenant_id, created_by_id) \
-         VALUES ($1, $2, $3, $4, $5, $6)"
+         VALUES ($1, $2, $3, $4, $5, $6)",
     )
     .bind(board_id)
     .bind("Sprint 1")
@@ -116,11 +113,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for (id, name, position, color, status_mapping) in [
         (todo_col, "To Do", "a0", "#6366f1", None),
         (progress_col, "In Progress", "a1", "#3b82f6", None),
-        (done_col, "Done", "a2", "#22c55e", Some(serde_json::json!({"done": true}))),
+        (
+            done_col,
+            "Done",
+            "a2",
+            "#22c55e",
+            Some(serde_json::json!({"done": true})),
+        ),
     ] {
         sqlx::query(
             "INSERT INTO board_columns (id, name, board_id, position, color, status_mapping) \
-             VALUES ($1, $2, $3, $4, $5, $6)"
+             VALUES ($1, $2, $3, $4, $5, $6)",
         )
         .bind(id)
         .bind(name)
@@ -138,7 +141,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("Set up CI/CD pipeline", "urgent", todo_col, "a0", alice_id),
         ("Design database schema", "high", todo_col, "a1", bob_id),
         ("Implement user auth", "high", progress_col, "a0", alice_id),
-        ("Create API endpoints", "medium", progress_col, "a1", carol_id),
+        (
+            "Create API endpoints",
+            "medium",
+            progress_col,
+            "a1",
+            carol_id,
+        ),
         ("Write unit tests", "low", done_col, "a0", bob_id),
     ];
 
@@ -160,13 +169,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .execute(&pool)
         .await?;
 
-        sqlx::query(
-            "INSERT INTO task_assignees (task_id, user_id) VALUES ($1, $2)"
-        )
-        .bind(task_id)
-        .bind(assignee_id)
-        .execute(&pool)
-        .await?;
+        sqlx::query("INSERT INTO task_assignees (task_id, user_id) VALUES ($1, $2)")
+            .bind(task_id)
+            .bind(assignee_id)
+            .execute(&pool)
+            .await?;
 
         task_ids.push(task_id);
         println!("  Created task: {}", title);
@@ -175,7 +182,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 9. Create sample comments
     sqlx::query(
         "INSERT INTO comments (content, task_id, author_id, mentioned_user_ids) \
-         VALUES ($1, $2, $3, $4)"
+         VALUES ($1, $2, $3, $4)",
     )
     .bind("Let's prioritize this for the sprint!")
     .bind(task_ids[0])
@@ -186,7 +193,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     sqlx::query(
         "INSERT INTO comments (content, task_id, author_id, mentioned_user_ids) \
-         VALUES ($1, $2, $3, $4)"
+         VALUES ($1, $2, $3, $4)",
     )
     .bind("@Bob can you take a look at the config?")
     .bind(task_ids[0])
@@ -199,7 +206,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 10. Create trial subscription
     sqlx::query(
         "INSERT INTO subscriptions (tenant_id, plan_code, status, trial_ends_at) \
-         VALUES ($1, $2, 'trialing'::subscription_status, $3)"
+         VALUES ($1, $2, 'trialing'::subscription_status, $3)",
     )
     .bind(tenant_id)
     .bind("free")

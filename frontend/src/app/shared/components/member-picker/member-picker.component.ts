@@ -34,7 +34,7 @@ import {
       <ng-template let-member #item>
         <div class="flex items-center gap-2 py-1">
           <div
-            class="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-xs text-white font-medium"
+            class="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-xs text-white font-medium"
           >
             {{ member.name.charAt(0).toUpperCase() }}
           </div>

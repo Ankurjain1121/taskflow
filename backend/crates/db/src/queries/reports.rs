@@ -110,10 +110,7 @@ pub async fn get_board_report(
 }
 
 /// Count tasks in done vs not-done columns
-async fn get_completion_rate(
-    pool: &PgPool,
-    board_id: Uuid,
-) -> Result<CompletionRate, sqlx::Error> {
+async fn get_completion_rate(pool: &PgPool, board_id: Uuid) -> Result<CompletionRate, sqlx::Error> {
     #[derive(sqlx::FromRow)]
     struct Counts {
         total: i64,

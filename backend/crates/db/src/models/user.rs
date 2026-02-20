@@ -17,6 +17,7 @@ pub struct User {
     pub role: UserRole,
     pub tenant_id: Uuid,
     pub onboarding_completed: bool,
+    pub last_login_at: Option<DateTime<Utc>>,
     pub deleted_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -42,5 +43,9 @@ pub struct RefreshToken {
     pub token_hash: String,
     pub expires_at: DateTime<Utc>,
     pub revoked_at: Option<DateTime<Utc>>,
+    pub ip_address: Option<String>,
+    pub user_agent: Option<String>,
+    pub device_name: Option<String>,
+    pub last_active_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
 }

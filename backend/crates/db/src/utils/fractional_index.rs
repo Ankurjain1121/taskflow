@@ -25,15 +25,9 @@
 pub fn generate_key_between(lower: Option<&str>, upper: Option<&str>) -> String {
     match (lower, upper) {
         (None, None) => "a0".to_string(),
-        (None, Some(upper)) => {
-            decrement_key(upper)
-        }
-        (Some(lower), None) => {
-            increment_key(lower)
-        }
-        (Some(lower), Some(upper)) => {
-            midpoint(lower, upper)
-        }
+        (None, Some(upper)) => decrement_key(upper),
+        (Some(lower), None) => increment_key(lower),
+        (Some(lower), Some(upper)) => midpoint(lower, upper),
     }
 }
 
@@ -217,7 +211,10 @@ mod tests {
             assert!(
                 keys[i] < keys[i + 1],
                 "Key order violated: keys[{}]={} should be < keys[{}]={}",
-                i, keys[i], i + 1, keys[i + 1]
+                i,
+                keys[i],
+                i + 1,
+                keys[i + 1]
             );
         }
     }
@@ -225,16 +222,8 @@ mod tests {
     #[test]
     fn test_between_adjacent_keys() {
         let mid = generate_key_between(Some("a0"), Some("a1"));
-        assert!(
-            mid.as_str() > "a0",
-            "Midpoint {} should be > a0",
-            mid
-        );
-        assert!(
-            mid.as_str() < "a1",
-            "Midpoint {} should be < a1",
-            mid
-        );
+        assert!(mid.as_str() > "a0", "Midpoint {} should be > a0", mid);
+        assert!(mid.as_str() < "a1", "Midpoint {} should be < a1", mid);
     }
 
     #[test]

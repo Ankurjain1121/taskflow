@@ -228,9 +228,8 @@ pub async fn health_handler(State(state): State<AppState>) -> (StatusCode, Json<
 
     // Determine overall status - only core services are required
     // Novu and Lago are optional (deployed via docker-compose profiles)
-    let core_services_up = postgres == ServiceStatus::Up
-        && redis == ServiceStatus::Up
-        && minio == ServiceStatus::Up;
+    let core_services_up =
+        postgres == ServiceStatus::Up && redis == ServiceStatus::Up && minio == ServiceStatus::Up;
 
     let status = if core_services_up {
         HealthStatus::Healthy
@@ -298,10 +297,7 @@ mod tests {
 
     #[test]
     fn test_service_status_serialization() {
-        assert_eq!(
-            serde_json::to_string(&ServiceStatus::Up).unwrap(),
-            "\"up\""
-        );
+        assert_eq!(serde_json::to_string(&ServiceStatus::Up).unwrap(), "\"up\"");
         assert_eq!(
             serde_json::to_string(&ServiceStatus::Down).unwrap(),
             "\"down\""

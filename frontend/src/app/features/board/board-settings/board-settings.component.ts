@@ -50,7 +50,7 @@ import {
           <nav class="text-sm text-[var(--muted-foreground)] mb-2">
             <a
               [routerLink]="['/workspace', workspaceId, 'board', boardId]"
-              class="hover:text-indigo-600"
+              class="hover:text-primary"
               >Back to Board</a
             >
           </nav>
@@ -65,7 +65,7 @@ import {
         @if (loading()) {
           <div class="flex items-center justify-center py-12">
             <svg
-              class="animate-spin h-8 w-8 text-indigo-600"
+              class="animate-spin h-8 w-8 text-primary"
               fill="none"
               viewBox="0 0 24 24"
             >
@@ -108,7 +108,7 @@ import {
                     type="text"
                     id="name"
                     formControlName="name"
-                    class="mt-1 block w-full rounded-md border-[var(--border)] shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    class="mt-1 block w-full rounded-md border-[var(--border)] shadow-sm focus:border-primary focus:ring-ring sm:text-sm"
                   />
                   @if (
                     form.controls['name'].invalid &&
@@ -128,7 +128,7 @@ import {
                     id="description"
                     formControlName="description"
                     rows="3"
-                    class="mt-1 block w-full rounded-md border-[var(--border)] shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    class="mt-1 block w-full rounded-md border-[var(--border)] shadow-sm focus:border-primary focus:ring-ring sm:text-sm"
                     placeholder="Add a description for this board..."
                   ></textarea>
                 </div>
@@ -137,7 +137,7 @@ import {
                   <button
                     type="submit"
                     [disabled]="saving() || form.invalid || !form.dirty"
-                    class="btn-press inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="btn-press inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     @if (saving()) {
                       <svg
@@ -184,7 +184,7 @@ import {
                   </h3>
                   <button
                     (click)="onInviteMember()"
-                    class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md transition-colors"
+                    class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-primary hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
                   >
                     <svg
                       class="w-4 h-4"
@@ -261,7 +261,7 @@ import {
                           <select
                             [ngModel]="member.role"
                             (ngModelChange)="onMemberRoleChange(member, $event)"
-                            class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-primary focus:ring-ring"
                           >
                             <option value="viewer">Viewer</option>
                             <option value="editor">Editor</option>

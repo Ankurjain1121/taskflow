@@ -55,10 +55,7 @@ async fn list_activity_handler(
     verify_board_membership(&state, board_id, tenant.user_id).await?;
 
     // Parse cursor if provided
-    let cursor = query
-        .cursor
-        .as_ref()
-        .and_then(|c| Uuid::parse_str(c).ok());
+    let cursor = query.cursor.as_ref().and_then(|c| Uuid::parse_str(c).ok());
 
     // Clamp limit to max 50
     let limit = query.limit.clamp(1, 50);

@@ -23,12 +23,12 @@ import {
     <div class="widget-card p-5">
       <div class="flex items-center justify-between mb-4">
         <h3 class="widget-title flex items-center gap-2">
-          <i class="pi pi-calendar text-indigo-500 text-sm"></i>
+          <i class="pi pi-calendar text-primary text-sm"></i>
           My Tasks Today
         </h3>
         <a
           routerLink="/my-tasks"
-          class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+          class="text-xs text-primary hover:underline font-medium"
         >
           View all
         </a>

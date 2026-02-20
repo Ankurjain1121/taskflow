@@ -30,13 +30,15 @@ import { AdminService, TrashItem } from '../../../core/services/admin.service';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-gray-50">
+    <div class="min-h-screen bg-[var(--secondary)]">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->
         <div class="mb-6 flex items-center justify-between">
           <div>
-            <h1 class="text-2xl font-bold text-gray-900">Trash</h1>
-            <p class="text-sm text-gray-500 mt-1">
+            <h1 class="text-2xl font-bold text-[var(--card-foreground)]">
+              Trash
+            </h1>
+            <p class="text-sm text-[var(--muted-foreground)] mt-1">
               Manage deleted items across all workspaces
             </p>
           </div>
@@ -53,7 +55,7 @@ import { AdminService, TrashItem } from '../../../core/services/admin.service';
         </div>
 
         <!-- Tabs Filter -->
-        <div class="bg-white rounded-lg shadow mb-6">
+        <div class="bg-[var(--card)] rounded-lg shadow mb-6">
           <p-tabs
             [value]="selectedTabValue()"
             (valueChange)="onTabChange($event)"
@@ -107,9 +109,9 @@ import { AdminService, TrashItem } from '../../../core/services/admin.service';
 
         <!-- Empty State -->
         @if (!loading() && !error() && items().length === 0) {
-          <div class="bg-white rounded-lg shadow p-12 text-center">
+          <div class="bg-[var(--card)] rounded-lg shadow p-12 text-center">
             <div
-              class="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4"
+              class="w-16 h-16 mx-auto bg-[var(--secondary)] rounded-full flex items-center justify-center mb-4"
             >
               <svg
                 class="w-8 h-8 text-gray-400"
@@ -125,8 +127,10 @@ import { AdminService, TrashItem } from '../../../core/services/admin.service';
                 />
               </svg>
             </div>
-            <h3 class="text-sm font-medium text-gray-900">Trash is empty</h3>
-            <p class="mt-1 text-sm text-gray-500">
+            <h3 class="text-sm font-medium text-[var(--card-foreground)]">
+              Trash is empty
+            </h3>
+            <p class="mt-1 text-sm text-[var(--muted-foreground)]">
               Deleted items will appear here for 30 days before being
               permanently removed.
             </p>
@@ -135,46 +139,46 @@ import { AdminService, TrashItem } from '../../../core/services/admin.service';
 
         <!-- Trash Items Table -->
         @if (!loading() && items().length > 0) {
-          <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="bg-[var(--card)] rounded-lg shadow overflow-hidden">
             <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+              <table class="min-w-full divide-y divide-[var(--border)]">
+                <thead class="bg-[var(--secondary)]">
                   <tr>
                     <th
-                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
                     >
                       Type
                     </th>
                     <th
-                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
                     >
                       Name
                     </th>
                     <th
-                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
                     >
                       Deleted By
                     </th>
                     <th
-                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
                     >
                       Deleted At
                     </th>
                     <th
-                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
                     >
                       Expires In
                     </th>
                     <th
-                      class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      class="px-6 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
                     >
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-[var(--card)] divide-y divide-[var(--border)]">
                   @for (item of items(); track item.id) {
-                    <tr class="hover:bg-gray-50">
+                    <tr class="hover:bg-[var(--secondary)]">
                       <!-- Type -->
                       <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center gap-2">
@@ -187,7 +191,9 @@ import { AdminService, TrashItem } from '../../../core/services/admin.service';
                               "
                             ></i>
                           </div>
-                          <span class="text-sm font-medium text-gray-900">
+                          <span
+                            class="text-sm font-medium text-[var(--card-foreground)]"
+                          >
                             {{ formatEntityType(item.entity_type) }}
                           </span>
                         </div>
@@ -196,7 +202,7 @@ import { AdminService, TrashItem } from '../../../core/services/admin.service';
                       <!-- Name -->
                       <td class="px-6 py-4">
                         <p
-                          class="text-sm font-medium text-gray-900 line-clamp-1"
+                          class="text-sm font-medium text-[var(--card-foreground)] line-clamp-1"
                         >
                           {{ item.name }}
                         </p>
@@ -206,7 +212,7 @@ import { AdminService, TrashItem } from '../../../core/services/admin.service';
                       <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center gap-2">
                           <div
-                            class="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600 overflow-hidden"
+                            class="w-6 h-6 rounded-full bg-[var(--secondary)] flex items-center justify-center text-xs font-medium text-[var(--muted-foreground)] overflow-hidden"
                           >
                             @if (item.deleted_by.avatar_url) {
                               <img
@@ -218,7 +224,7 @@ import { AdminService, TrashItem } from '../../../core/services/admin.service';
                               {{ getInitials(item.deleted_by.display_name) }}
                             }
                           </div>
-                          <span class="text-sm text-gray-900">
+                          <span class="text-sm text-[var(--card-foreground)]">
                             {{ item.deleted_by.display_name }}
                           </span>
                         </div>
@@ -226,7 +232,7 @@ import { AdminService, TrashItem } from '../../../core/services/admin.service';
 
                       <!-- Deleted At -->
                       <td
-                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                        class="px-6 py-4 whitespace-nowrap text-sm text-[var(--muted-foreground)]"
                       >
                         <span
                           [pTooltip]="formatAbsoluteDate(item.deleted_at)"
@@ -280,7 +286,7 @@ import { AdminService, TrashItem } from '../../../core/services/admin.service';
             <!-- Load More -->
             @if (nextCursor()) {
               <div
-                class="px-6 py-4 border-t border-gray-200 flex justify-center"
+                class="px-6 py-4 border-t border-[var(--border)] flex justify-center"
               >
                 <p-button
                   [outlined]="true"
@@ -317,7 +323,7 @@ import { AdminService, TrashItem } from '../../../core/services/admin.service';
             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
           />
         </svg>
-        <p class="text-gray-600">
+        <p class="text-[var(--muted-foreground)]">
           Are you sure you want to permanently delete "{{
             itemToDelete()?.name
           }}"? This action cannot be undone.
@@ -358,7 +364,7 @@ import { AdminService, TrashItem } from '../../../core/services/admin.service';
             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
           />
         </svg>
-        <p class="text-gray-600">
+        <p class="text-[var(--muted-foreground)]">
           Are you sure you want to permanently delete ALL items in the trash?
           This action cannot be undone.
         </p>
@@ -593,7 +599,7 @@ export class AdminTrashComponent implements OnInit, OnDestroy {
       workspace: 'bg-green-100 text-green-600',
     };
 
-    return `${baseClasses} ${typeColors[entityType] || 'bg-gray-100 text-gray-600'}`;
+    return `${baseClasses} ${typeColors[entityType] || 'bg-[var(--secondary)] text-[var(--muted-foreground)]'}`;
   }
 
   formatRelativeDate(dateString: string): string {
@@ -652,6 +658,6 @@ export class AdminTrashComponent implements OnInit, OnDestroy {
     if (diffDays <= 0) return `${baseClasses} bg-red-100 text-red-800`;
     if (diffDays <= 3) return `${baseClasses} bg-orange-100 text-orange-800`;
     if (diffDays <= 7) return `${baseClasses} bg-yellow-100 text-yellow-800`;
-    return `${baseClasses} bg-gray-100 text-gray-800`;
+    return `${baseClasses} bg-[var(--secondary)] text-[var(--card-foreground)]`;
   }
 }

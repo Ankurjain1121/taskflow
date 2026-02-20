@@ -79,8 +79,12 @@ export interface UseTemplateDialogResult {
           <button
             pButton
             [outlined]="true"
-            [class.!bg-indigo-100]="!selectedCategory()"
-            [class.!text-indigo-700]="!selectedCategory()"
+            [style.background]="
+              !selectedCategory()
+                ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)'
+                : ''
+            "
+            [style.color]="!selectedCategory() ? 'var(--color-primary)' : ''"
             (click)="selectedCategory.set(null)"
             label="All"
           ></button>
@@ -88,8 +92,14 @@ export interface UseTemplateDialogResult {
             <button
               pButton
               [outlined]="true"
-              [class.!bg-indigo-100]="selectedCategory() === cat"
-              [class.!text-indigo-700]="selectedCategory() === cat"
+              [style.background]="
+                selectedCategory() === cat
+                  ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)'
+                  : ''
+              "
+              [style.color]="
+                selectedCategory() === cat ? 'var(--color-primary)' : ''
+              "
               (click)="selectedCategory.set(cat)"
               [label]="cat"
             ></button>
@@ -100,7 +110,10 @@ export interface UseTemplateDialogResult {
       <!-- Loading State -->
       @if (loading()) {
         <div class="flex items-center justify-center py-16">
-          <p-progressSpinner [style]="{width: '40px', height: '40px'}" strokeWidth="4" />
+          <p-progressSpinner
+            [style]="{ width: '40px', height: '40px' }"
+            strokeWidth="4"
+          />
         </div>
       } @else if (filteredTemplates().length === 0) {
         <!-- Empty State -->
@@ -131,7 +144,7 @@ export interface UseTemplateDialogResult {
                   @if (template.category) {
                     <div class="mt-1">
                       <span
-                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700"
+                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary"
                       >
                         {{ template.category }}
                       </span>
@@ -157,7 +170,9 @@ export interface UseTemplateDialogResult {
                       [rounded]="true"
                       [text]="true"
                       pTooltip="Delete template"
-                      (click)="onDeleteTemplate(template); $event.stopPropagation()"
+                      (click)="
+                        onDeleteTemplate(template); $event.stopPropagation()
+                      "
                     >
                       <i class="pi pi-trash text-red-500"></i>
                     </button>
@@ -189,7 +204,7 @@ export interface UseTemplateDialogResult {
       header="Create Board from Template"
       [(visible)]="showUseTemplateDialog"
       [modal]="true"
-      [style]="{width: '450px'}"
+      [style]="{ width: '450px' }"
       [closable]="true"
     >
       <div class="flex flex-col gap-4">
@@ -197,11 +212,20 @@ export interface UseTemplateDialogResult {
           Create a new board using the "{{ dialogTemplateName() }}" template.
         </p>
         <div class="flex flex-col gap-2">
-          <label for="dialogBoardName" class="text-sm font-medium">Board Name</label>
-          <input pInputText id="dialogBoardName" [(ngModel)]="dialogBoardName" placeholder="My New Board" />
+          <label for="dialogBoardName" class="text-sm font-medium"
+            >Board Name</label
+          >
+          <input
+            pInputText
+            id="dialogBoardName"
+            [(ngModel)]="dialogBoardName"
+            placeholder="My New Board"
+          />
         </div>
         <div class="flex flex-col gap-2">
-          <label for="dialogWorkspace" class="text-sm font-medium">Workspace</label>
+          <label for="dialogWorkspace" class="text-sm font-medium"
+            >Workspace</label
+          >
           <p-select
             id="dialogWorkspace"
             [(ngModel)]="dialogSelectedWorkspaceId"
@@ -215,7 +239,12 @@ export interface UseTemplateDialogResult {
       </div>
       <ng-template #footer>
         <div class="flex justify-end gap-2">
-          <button pButton [text]="true" label="Cancel" (click)="showUseTemplateDialog = false"></button>
+          <button
+            pButton
+            [text]="true"
+            label="Cancel"
+            (click)="showUseTemplateDialog = false"
+          ></button>
           <button
             pButton
             label="Create Board"
@@ -247,7 +276,7 @@ export class TemplateListComponent implements OnInit {
   private dialogTemplateId = '';
 
   workspaceOptions = computed(() =>
-    this.workspaces().map((ws) => ({ id: ws.id, name: ws.name }))
+    this.workspaces().map((ws) => ({ id: ws.id, name: ws.name })),
   );
 
   categories = computed(() => {
@@ -280,7 +309,8 @@ export class TemplateListComponent implements OnInit {
     this.dialogTemplateId = template.id;
     this.dialogTemplateName.set(template.name);
     this.dialogBoardName = '';
-    this.dialogSelectedWorkspaceId = this.workspaces().length > 0 ? this.workspaces()[0].id : '';
+    this.dialogSelectedWorkspaceId =
+      this.workspaces().length > 0 ? this.workspaces()[0].id : '';
     this.showUseTemplateDialog = true;
   }
 
@@ -314,14 +344,14 @@ export class TemplateListComponent implements OnInit {
 
   onDeleteTemplate(template: ProjectTemplate): void {
     const confirmed = confirm(
-      `Are you sure you want to delete the "${template.name}" template? This action cannot be undone.`
+      `Are you sure you want to delete the "${template.name}" template? This action cannot be undone.`,
     );
     if (!confirmed) return;
 
     this.templateService.deleteTemplate(template.id).subscribe({
       next: () => {
         this.templates.update((list) =>
-          list.filter((t) => t.id !== template.id)
+          list.filter((t) => t.id !== template.id),
         );
       },
       error: () => {

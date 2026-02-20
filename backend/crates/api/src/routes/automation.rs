@@ -12,22 +12,18 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
+use taskflow_db::models::automation::{AutomationActionType, AutomationLog, AutomationTrigger};
 use taskflow_db::queries::automations::{
     create_rule, delete_rule, get_rule, get_rule_logs, list_rules, update_rule,
     AutomationQueryError, AutomationRuleWithActions, CreateActionInput, CreateRuleInput,
     UpdateRuleInput,
 };
-use taskflow_db::models::automation::{AutomationActionType, AutomationLog, AutomationTrigger};
 
 /// Map AutomationQueryError to AppError
 fn map_automation_error(e: AutomationQueryError) -> AppError {
     match e {
-        AutomationQueryError::NotFound => {
-            AppError::NotFound("Automation rule not found".into())
-        }
-        AutomationQueryError::NotBoardMember => {
-            AppError::Forbidden("Not a board member".into())
-        }
+        AutomationQueryError::NotFound => AppError::NotFound("Automation rule not found".into()),
+        AutomationQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
         AutomationQueryError::Database(e) => AppError::SqlxError(e),
     }
 }

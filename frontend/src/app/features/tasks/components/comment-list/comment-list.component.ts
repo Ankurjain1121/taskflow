@@ -44,7 +44,7 @@ export class RenderMentionsPipe implements PipeTransform {
     const mentionRegex = /@\[([^\]]+)\]\(([a-f0-9-]+)\)/g;
     const rendered = escaped.replace(
       mentionRegex,
-      '<span class="text-indigo-600 font-medium bg-indigo-50 px-1 rounded">@$1</span>',
+      '<span style="color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, transparent);" class="font-medium px-1 rounded">@$1</span>',
     );
     return this.sanitizer.bypassSecurityTrustHtml(rendered);
   }
@@ -84,18 +84,22 @@ interface CommentCreatedPayload {
             [style]="{ width: '32px', height: '32px' }"
             strokeWidth="4"
           />
-          <span class="ml-3 text-gray-500">Loading comments...</span>
+          <span class="ml-3 text-[var(--muted-foreground)]"
+            >Loading comments...</span
+          >
         </div>
       } @else if (comments().length === 0) {
-        <div class="text-center py-8 text-gray-500">
-          <i class="pi pi-comments text-4xl text-gray-300 mb-2 block"></i>
+        <div class="text-center py-8 text-[var(--muted-foreground)]">
+          <i
+            class="pi pi-comments text-4xl text-[var(--muted-foreground)]/50 mb-2 block"
+          ></i>
           <p>No comments yet. Be the first to comment!</p>
         </div>
       } @else {
         <div class="space-y-4">
           @for (comment of comments(); track comment.id) {
             <div
-              class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4"
+              class="bg-[var(--card)] rounded-lg border border-[var(--border)] p-4"
               [class.ml-8]="comment.parent_id"
             >
               <div class="flex items-start gap-3">
@@ -108,7 +112,7 @@ interface CommentCreatedPayload {
                   />
                 } @else {
                   <div
-                    class="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-medium flex-shrink-0"
+                    class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-medium flex-shrink-0"
                   >
                     {{ getInitials(comment.author.display_name) }}
                   </div>
@@ -117,7 +121,9 @@ interface CommentCreatedPayload {
                 <div class="flex-1 min-w-0">
                   <!-- Author name and timestamp -->
                   <div class="flex items-center gap-2 mb-1">
-                    <span class="font-medium text-gray-900 dark:text-gray-100">
+                    <span
+                      class="font-medium text-[var(--card-foreground)] dark:text-gray-100"
+                    >
                       {{ comment.author.display_name }}
                     </span>
                     <span class="text-xs text-gray-400">
@@ -130,7 +136,7 @@ interface CommentCreatedPayload {
 
                   <!-- Comment content with rendered mentions -->
                   <div
-                    class="text-gray-700 dark:text-gray-300 text-sm whitespace-pre-wrap break-words"
+                    class="text-[var(--foreground)] dark:text-gray-300 text-sm whitespace-pre-wrap break-words"
                     [innerHTML]="comment.content | renderMentions"
                   ></div>
 

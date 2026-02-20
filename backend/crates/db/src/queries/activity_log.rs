@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::models::ActivityAction;
 
 /// Activity log entry with actor information for API responses
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, sqlx::FromRow, Serialize, Clone)]
 pub struct ActivityLogWithActor {
     pub id: Uuid,
     pub action: ActivityAction,
@@ -53,18 +53,17 @@ pub async fn list_activity_by_task(
 
     let items = if let Some(cursor_id) = cursor {
         // Get the created_at of the cursor entry to use for pagination
-        let cursor_created_at = sqlx::query_scalar!(
+        let cursor_created_at: Option<DateTime<Utc>> = sqlx::query_scalar(
             r#"
             SELECT created_at FROM activity_log WHERE id = $1
             "#,
-            cursor_id
         )
+        .bind(cursor_id)
         .fetch_optional(pool)
         .await?;
 
         if let Some(cursor_time) = cursor_created_at {
-            sqlx::query_as!(
-                ActivityLogWithActor,
+            sqlx::query_as::<_, ActivityLogWithActor>(
                 r#"
                 SELECT
                     al.id,
@@ -85,17 +84,16 @@ pub async fn list_activity_by_task(
                 ORDER BY al.created_at DESC, al.id DESC
                 LIMIT $4
                 "#,
-                task_id,
-                cursor_time,
-                cursor_id,
-                fetch_limit
             )
+            .bind(task_id)
+            .bind(cursor_time)
+            .bind(cursor_id)
+            .bind(fetch_limit)
             .fetch_all(pool)
             .await?
         } else {
             // Invalid cursor, return first page
-            sqlx::query_as!(
-                ActivityLogWithActor,
+            sqlx::query_as::<_, ActivityLogWithActor>(
                 r#"
                 SELECT
                     al.id,
@@ -114,15 +112,14 @@ pub async fn list_activity_by_task(
                 ORDER BY al.created_at DESC, al.id DESC
                 LIMIT $2
                 "#,
-                task_id,
-                fetch_limit
             )
+            .bind(task_id)
+            .bind(fetch_limit)
             .fetch_all(pool)
             .await?
         }
     } else {
-        sqlx::query_as!(
-            ActivityLogWithActor,
+        sqlx::query_as::<_, ActivityLogWithActor>(
             r#"
             SELECT
                 al.id,
@@ -141,9 +138,9 @@ pub async fn list_activity_by_task(
             ORDER BY al.created_at DESC, al.id DESC
             LIMIT $2
             "#,
-            task_id,
-            fetch_limit
         )
+        .bind(task_id)
+        .bind(fetch_limit)
         .fetch_all(pool)
         .await?
     };
@@ -174,8 +171,7 @@ pub async fn insert_activity_log(
 ) -> Result<ActivityLogWithActor, sqlx::Error> {
     let entry_id = Uuid::new_v4();
 
-    let entry = sqlx::query_as!(
-        ActivityLogWithActor,
+    let entry = sqlx::query_as::<_, ActivityLogWithActor>(
         r#"
         WITH inserted AS (
             INSERT INTO activity_log (id, action, entity_type, entity_id, user_id, metadata, tenant_id)
@@ -196,13 +192,13 @@ pub async fn insert_activity_log(
         FROM inserted i
         JOIN users u ON u.id = i.user_id
         "#,
-        entry_id,
-        action as ActivityAction,
-        task_id,
-        actor_id,
-        metadata,
-        tenant_id
     )
+    .bind(entry_id)
+    .bind(action as ActivityAction)
+    .bind(task_id)
+    .bind(actor_id)
+    .bind(metadata)
+    .bind(tenant_id)
     .fetch_one(pool)
     .await?;
 

@@ -14,7 +14,7 @@ use crate::middleware::auth_middleware;
 use crate::state::AppState;
 use taskflow_db::queries::archive::{list_archive, PaginatedArchive};
 use taskflow_services::minio::{MinioConfig, MinioService};
-use taskflow_services::trash_bin::{restore_from_trash, permanently_delete, TrashEntityType};
+use taskflow_services::trash_bin::{permanently_delete, restore_from_trash, TrashEntityType};
 
 /// Query parameters for archive listing
 #[derive(Debug, Deserialize)]
@@ -80,8 +80,9 @@ async fn restore_archive_handler(
     tenant: TenantContext,
     Json(body): Json<RestoreRequest>,
 ) -> Result<Json<ArchiveOperationResponse>> {
-    let entity_type = TrashEntityType::from_str(&body.entity_type)
-        .ok_or_else(|| AppError::BadRequest(format!("Invalid entity type: {}", body.entity_type)))?;
+    let entity_type = TrashEntityType::from_str(&body.entity_type).ok_or_else(|| {
+        AppError::BadRequest(format!("Invalid entity type: {}", body.entity_type))
+    })?;
 
     // Verify entity belongs to tenant
     verify_entity_tenant(&state, &entity_type, body.entity_id, tenant.tenant_id).await?;
@@ -139,13 +140,11 @@ async fn verify_entity_tenant(
 ) -> Result<()> {
     let exists: (bool,) = match entity_type {
         TrashEntityType::Task => {
-            sqlx::query_as(
-                r#"SELECT EXISTS(SELECT 1 FROM tasks WHERE id = $1 AND tenant_id = $2)"#,
-            )
-            .bind(entity_id)
-            .bind(tenant_id)
-            .fetch_one(&state.db)
-            .await?
+            sqlx::query_as(r#"SELECT EXISTS(SELECT 1 FROM tasks WHERE id = $1 AND tenant_id = $2)"#)
+                .bind(entity_id)
+                .bind(tenant_id)
+                .fetch_one(&state.db)
+                .await?
         }
         TrashEntityType::Board => {
             sqlx::query_as(
@@ -168,7 +167,10 @@ async fn verify_entity_tenant(
     };
 
     if !exists.0 {
-        return Err(AppError::NotFound(format!("{} not found", entity_type.as_str())));
+        return Err(AppError::NotFound(format!(
+            "{} not found",
+            entity_type.as_str()
+        )));
     }
 
     Ok(())
@@ -179,6 +181,9 @@ pub fn archive_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/archive", get(list_archive_handler))
         .route("/archive/restore", post(restore_archive_handler))
-        .route("/archive/{entity_type}/{entity_id}", delete(delete_archive_handler))
+        .route(
+            "/archive/{entity_type}/{entity_id}",
+            delete(delete_archive_handler),
+        )
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

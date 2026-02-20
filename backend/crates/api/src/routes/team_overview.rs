@@ -16,8 +16,10 @@ use crate::errors::{AppError, Result};
 use crate::extractors::ManagerOrAdmin;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
-use taskflow_db::queries::team_overview::{get_overloaded_members, get_workload, MemberWorkload, OverloadedMember};
 use taskflow_db::queries::is_workspace_member;
+use taskflow_db::queries::team_overview::{
+    get_overloaded_members, get_workload, MemberWorkload, OverloadedMember,
+};
 
 /// Query parameters for overloaded members endpoint
 #[derive(Debug, Deserialize)]
@@ -70,7 +72,8 @@ async fn get_overloaded_members_handler(
         return Err(AppError::Forbidden("Not a workspace member".into()));
     }
 
-    let members = get_overloaded_members(&state.db, workspace_id, auth.tenant_id, query.threshold).await?;
+    let members =
+        get_overloaded_members(&state.db, workspace_id, auth.tenant_id, query.threshold).await?;
 
     Ok(Json(members))
 }

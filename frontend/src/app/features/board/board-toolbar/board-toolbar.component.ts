@@ -116,7 +116,7 @@ const DEFAULT_FILTERS: TaskFilters = {
           <ng-template #item let-assignee>
             <div class="flex items-center gap-2">
               <div
-                class="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-[10px] font-bold text-white"
+                class="w-6 h-6 rounded-full bg-[var(--primary)] flex items-center justify-center text-[10px] font-bold text-white"
               >
                 {{ getInitials(assignee.display_name) }}
               </div>

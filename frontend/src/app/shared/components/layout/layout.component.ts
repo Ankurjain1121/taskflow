@@ -3,8 +3,16 @@ import { RouterOutlet } from '@angular/router';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { NotificationBellComponent } from '../notification-bell/notification-bell.component';
 import { AuthService } from '../../../core/services/auth.service';
-import { ThemeService, Theme } from '../../../core/services/theme.service';
+import {
+  ThemeService,
+  Theme,
+  Palette,
+  AccentColor,
+  PALETTE_PRESETS,
+  ACCENT_PRESETS,
+} from '../../../core/services/theme.service';
 import { TooltipModule } from 'primeng/tooltip';
+import { PopoverModule } from 'primeng/popover';
 
 @Component({
   selector: 'app-layout',
@@ -14,6 +22,7 @@ import { TooltipModule } from 'primeng/tooltip';
     RouterOutlet,
     NotificationBellComponent,
     TooltipModule,
+    PopoverModule,
   ],
   styles: [
     `
@@ -105,15 +114,142 @@ import { TooltipModule } from 'primeng/tooltip';
           <div class="flex items-center gap-2">
             <app-notification-bell />
 
-            <!-- Theme toggle -->
+            <!-- Theme popover trigger -->
             <button
               class="theme-toggle"
-              (click)="cycleTheme()"
-              [pTooltip]="themeTooltip()"
+              (click)="themePanel.toggle($event)"
+              pTooltip="Theme"
               tooltipPosition="bottom"
             >
               <i [class]="themeIcon()"></i>
             </button>
+            <p-popover #themePanel>
+              <div class="p-3 space-y-3" style="min-width: 220px">
+                <!-- Mode -->
+                <div>
+                  <div
+                    class="text-xs font-semibold uppercase tracking-wider mb-2"
+                    style="color: var(--muted-foreground)"
+                  >
+                    Mode
+                  </div>
+                  <div class="flex gap-1.5">
+                    @for (option of themeOptions; track option.value) {
+                      <button
+                        (click)="setTheme(option.value)"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border"
+                        [style.border-color]="
+                          currentTheme() === option.value
+                            ? 'var(--primary)'
+                            : 'var(--border)'
+                        "
+                        [style.background]="
+                          currentTheme() === option.value
+                            ? 'var(--muted)'
+                            : 'transparent'
+                        "
+                        [style.color]="
+                          currentTheme() === option.value
+                            ? 'var(--primary)'
+                            : 'var(--foreground)'
+                        "
+                      >
+                        <i
+                          [class]="option.icon"
+                          style="font-size: 0.75rem"
+                        ></i>
+                        {{ option.label }}
+                      </button>
+                    }
+                  </div>
+                </div>
+                <!-- Dark style palette (only in dark mode) -->
+                @if (isDark()) {
+                  <div
+                    style="
+                      border-top: 1px solid var(--border);
+                      padding-top: 0.75rem;
+                    "
+                  >
+                    <div
+                      class="text-xs font-semibold uppercase tracking-wider mb-2"
+                      style="color: var(--muted-foreground)"
+                    >
+                      Style
+                    </div>
+                    <div class="flex gap-1.5">
+                      @for (p of palettePresets; track p.value) {
+                        @if (p.darkOnly || p.value === 'default') {
+                          <button
+                            (click)="setPalette(p.value)"
+                            class="px-3 py-1.5 rounded-md text-xs font-medium transition-all border"
+                            [style.border-color]="
+                              currentPalette() === p.value
+                                ? 'var(--primary)'
+                                : 'var(--border)'
+                            "
+                            [style.background]="
+                              currentPalette() === p.value
+                                ? 'var(--muted)'
+                                : 'transparent'
+                            "
+                            [style.color]="
+                              currentPalette() === p.value
+                                ? 'var(--primary)'
+                                : 'var(--foreground)'
+                            "
+                          >
+                            {{ p.label }}
+                          </button>
+                        }
+                      }
+                    </div>
+                  </div>
+                }
+                <!-- Accent color -->
+                <div
+                  style="
+                    border-top: 1px solid var(--border);
+                    padding-top: 0.75rem;
+                  "
+                >
+                  <div
+                    class="text-xs font-semibold uppercase tracking-wider mb-2"
+                    style="color: var(--muted-foreground)"
+                  >
+                    Accent
+                  </div>
+                  <div class="flex gap-2 flex-wrap">
+                    @for (a of accentPresets; track a.value) {
+                      <button
+                        class="w-6 h-6 rounded-full border-2 transition-all flex items-center justify-center"
+                        [style.background]="a.color"
+                        [style.border-color]="
+                          currentAccent() === a.value
+                            ? 'var(--foreground)'
+                            : 'transparent'
+                        "
+                        [style.transform]="
+                          currentAccent() === a.value
+                            ? 'scale(1.15)'
+                            : 'scale(1)'
+                        "
+                        (click)="setAccent(a.value)"
+                        [pTooltip]="a.label"
+                        tooltipPosition="bottom"
+                      >
+                        @if (currentAccent() === a.value) {
+                          <i
+                            class="pi pi-check text-white"
+                            style="font-size: 0.6rem"
+                          ></i>
+                        }
+                      </button>
+                    }
+                  </div>
+                </div>
+              </div>
+            </p-popover>
 
             <!-- User avatar + name (no duplicate of sidebar user) -->
             <div
@@ -121,7 +257,7 @@ import { TooltipModule } from 'primeng/tooltip';
               style="border-left: 1px solid var(--border)"
             >
               <span
-                class="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-semibold text-white flex-shrink-0"
+                class="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-xs font-semibold text-white flex-shrink-0"
               >
                 {{ getUserInitials() }}
               </span>
@@ -151,7 +287,18 @@ export class LayoutComponent {
 
   isMobileSidebarOpen = signal(false);
 
-  private readonly themeCycle: Theme[] = ['light', 'dark', 'system'];
+  currentTheme = this.themeService.theme;
+  currentPalette = this.themeService.palette;
+  currentAccent = this.themeService.accent;
+  isDark = this.themeService.isDark;
+  palettePresets = PALETTE_PRESETS;
+  accentPresets = ACCENT_PRESETS;
+
+  themeOptions: { value: Theme; label: string; icon: string }[] = [
+    { value: 'light', label: 'Light', icon: 'pi pi-sun' },
+    { value: 'dark', label: 'Dark', icon: 'pi pi-moon' },
+    { value: 'system', label: 'System', icon: 'pi pi-desktop' },
+  ];
 
   themeIcon = () => {
     const t = this.themeService.theme();
@@ -160,18 +307,16 @@ export class LayoutComponent {
     return 'pi pi-desktop';
   };
 
-  themeTooltip = () => {
-    const t = this.themeService.theme();
-    if (t === 'light') return 'Light mode';
-    if (t === 'dark') return 'Dark mode';
-    return 'System theme';
-  };
+  setTheme(theme: Theme): void {
+    this.themeService.setTheme(theme);
+  }
 
-  cycleTheme(): void {
-    const current = this.themeService.theme();
-    const idx = this.themeCycle.indexOf(current);
-    const next = this.themeCycle[(idx + 1) % this.themeCycle.length];
-    this.themeService.setTheme(next);
+  setPalette(palette: Palette): void {
+    this.themeService.setPalette(palette);
+  }
+
+  setAccent(accent: AccentColor): void {
+    this.themeService.setAccent(accent);
   }
 
   sidebarCollapsed = signal(

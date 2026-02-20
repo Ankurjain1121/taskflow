@@ -97,10 +97,9 @@ async fn get_deliveries_handler(
     Path(webhook_id): Path<Uuid>,
     Query(query): Query<DeliveriesQuery>,
 ) -> Result<Json<Vec<taskflow_db::models::WebhookDelivery>>> {
-    let deliveries =
-        get_webhook_deliveries(&state.db, webhook_id, tenant.user_id, query.limit)
-            .await
-            .map_err(map_webhook_error)?;
+    let deliveries = get_webhook_deliveries(&state.db, webhook_id, tenant.user_id, query.limit)
+        .await
+        .map_err(map_webhook_error)?;
 
     Ok(Json(deliveries))
 }

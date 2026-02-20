@@ -53,7 +53,7 @@ export class WorkspaceService {
     workspaceId: string,
     request: UpdateWorkspaceRequest,
   ): Observable<Workspace> {
-    return this.http.patch<Workspace>(`${this.apiUrl}/${workspaceId}`, request);
+    return this.http.put<Workspace>(`${this.apiUrl}/${workspaceId}`, request);
   }
 
   delete(workspaceId: string): Observable<void> {
@@ -71,8 +71,9 @@ export class WorkspaceService {
     email: string,
     role: 'admin' | 'manager' | 'member',
   ): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/${workspaceId}/invites`, {
+    return this.http.post<void>('/api/invitations', {
       email,
+      workspace_id: workspaceId,
       role,
     });
   }

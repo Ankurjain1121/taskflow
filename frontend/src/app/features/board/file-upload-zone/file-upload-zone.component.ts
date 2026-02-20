@@ -35,13 +35,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 @Component({
   selector: 'app-file-upload-zone',
   standalone: true,
-  imports: [
-    CommonModule,
-    ButtonModule,
-    ProgressBar,
-    Toast,
-    FileSizePipe,
-  ],
+  imports: [CommonModule, ButtonModule, ProgressBar, Toast, FileSizePipe],
   providers: [MessageService],
   template: `
     <p-toast />
@@ -53,9 +47,13 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
         (dragleave)="onDragLeave($event)"
         (drop)="onDrop($event)"
         (click)="fileInput.click()"
-        [class.border-indigo-500]="isDragging()"
-        [class.bg-indigo-50]="isDragging()"
-        class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer transition-colors hover:border-indigo-400 hover:bg-gray-50"
+        [style.border-color]="isDragging() ? 'var(--color-primary)' : ''"
+        [style.background]="
+          isDragging()
+            ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)'
+            : ''
+        "
+        class="border-2 border-dashed border-[var(--border)] rounded-lg p-8 text-center cursor-pointer transition-colors hover:border-primary hover:bg-[var(--secondary)]"
       >
         <input
           #fileInput
@@ -66,9 +64,9 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
         />
 
         <i class="pi pi-cloud-upload text-5xl text-gray-400 mb-2"></i>
-        <p class="text-gray-600 mb-1">
+        <p class="text-[var(--muted-foreground)] mb-1">
           Drag and drop files here, or
-          <span class="text-indigo-600 font-medium">click to browse</span>
+          <span class="text-primary font-medium">click to browse</span>
         </p>
         <p class="text-sm text-gray-400">Maximum file size: 10 MB</p>
       </div>
@@ -76,20 +74,32 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
       <!-- Active uploads -->
       @if (uploads().length > 0) {
         <div class="space-y-3">
-          <h4 class="text-sm font-medium text-gray-700">Uploading files</h4>
+          <h4 class="text-sm font-medium text-[var(--foreground)]">
+            Uploading files
+          </h4>
 
           @for (upload of uploads(); track upload.id) {
-            <div class="bg-white rounded-lg border border-gray-200 p-3">
+            <div
+              class="bg-[var(--card)] rounded-lg border border-[var(--border)] p-3"
+            >
               <div class="flex items-center gap-3">
                 <!-- File icon -->
                 <div class="flex-shrink-0">
-                  <i [class]="'pi ' + getFileIcon(upload.fileName) + ' text-gray-400 text-xl'"></i>
+                  <i
+                    [class]="
+                      'pi ' +
+                      getFileIcon(upload.fileName) +
+                      ' text-gray-400 text-xl'
+                    "
+                  ></i>
                 </div>
 
                 <!-- File info and progress -->
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center justify-between mb-1">
-                    <span class="text-sm font-medium text-gray-900 truncate">
+                    <span
+                      class="text-sm font-medium text-[var(--card-foreground)] truncate"
+                    >
                       {{ upload.fileName }}
                     </span>
                     <span class="text-xs text-gray-400 ml-2 flex-shrink-0">
@@ -109,8 +119,12 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
                   } @else {
                     <p-progressBar
                       [value]="upload.progress"
-                      [mode]="upload.status === 'confirming' ? 'indeterminate' : 'determinate'"
-                      [style]="{height: '6px'}"
+                      [mode]="
+                        upload.status === 'confirming'
+                          ? 'indeterminate'
+                          : 'determinate'
+                      "
+                      [style]="{ height: '6px' }"
                     />
                     <div class="mt-1 text-xs text-gray-400">
                       @switch (upload.status) {
@@ -129,7 +143,9 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
                 </div>
 
                 <!-- Cancel button -->
-                @if (upload.status !== 'completed' && upload.status !== 'error') {
+                @if (
+                  upload.status !== 'completed' && upload.status !== 'error'
+                ) {
                   <button
                     pButton
                     [rounded]="true"
@@ -140,7 +156,9 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
                   >
                     <i class="pi pi-times"></i>
                   </button>
-                } @else if (upload.status === 'completed' || upload.status === 'error') {
+                } @else if (
+                  upload.status === 'completed' || upload.status === 'error'
+                ) {
                   <button
                     pButton
                     [rounded]="true"
@@ -337,12 +355,12 @@ export class FileUploadZoneComponent implements OnDestroy {
 
   private updateUploadState(
     uploadId: string,
-    updates: Partial<UploadState>
+    updates: Partial<UploadState>,
   ): void {
     this.uploads.update((uploads) =>
       uploads.map((upload) =>
-        upload.id === uploadId ? { ...upload, ...updates } : upload
-      )
+        upload.id === uploadId ? { ...upload, ...updates } : upload,
+      ),
     );
   }
 }

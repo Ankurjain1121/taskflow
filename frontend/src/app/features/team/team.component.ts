@@ -120,7 +120,7 @@ import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
               >
                 <div class="flex items-center gap-3">
                   <div
-                    class="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-sm text-white font-medium"
+                    class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-sm text-white font-medium"
                   >
                     {{ member.name.charAt(0).toUpperCase() }}
                   </div>

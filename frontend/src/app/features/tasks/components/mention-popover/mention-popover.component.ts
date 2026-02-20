@@ -12,7 +12,15 @@ import {
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { Subject, debounceTime, distinctUntilChanged, switchMap, takeUntil, of, catchError } from 'rxjs';
+import {
+  Subject,
+  debounceTime,
+  distinctUntilChanged,
+  switchMap,
+  takeUntil,
+  of,
+  catchError,
+} from 'rxjs';
 
 export interface MentionableMember {
   id: string;
@@ -32,7 +40,7 @@ export interface MemberSelectedEvent {
   imports: [CommonModule, ProgressSpinnerModule],
   template: `
     <div
-      class="bg-white rounded-lg shadow-lg border border-gray-200 max-h-64 overflow-y-auto min-w-64"
+      class="bg-[var(--card)] rounded-lg shadow-lg border border-[var(--border)] max-h-64 overflow-y-auto min-w-64"
       role="listbox"
       [attr.aria-label]="'Member suggestions'"
     >
@@ -42,10 +50,12 @@ export interface MemberSelectedEvent {
             [style]="{ width: '24px', height: '24px' }"
             strokeWidth="4"
           />
-          <span class="ml-2 text-sm text-gray-500">Searching...</span>
+          <span class="ml-2 text-sm text-[var(--muted-foreground)]"
+            >Searching...</span
+          >
         </div>
       } @else if (members().length === 0) {
-        <div class="p-4 text-sm text-gray-500 text-center">
+        <div class="p-4 text-sm text-[var(--muted-foreground)] text-center">
           @if (searchQuery().length > 0) {
             No members found matching "{{ searchQuery() }}"
           } @else {
@@ -57,8 +67,12 @@ export interface MemberSelectedEvent {
           @for (member of members(); track member.id; let i = $index) {
             <div
               (click)="selectMember(member)"
-              [class.bg-indigo-50]="i === selectedIndex()"
-              class="cursor-pointer hover:bg-gray-50 px-3 py-2"
+              [style.background]="
+                i === selectedIndex()
+                  ? 'color-mix(in srgb, var(--primary) 10%, transparent)'
+                  : ''
+              "
+              class="cursor-pointer hover:bg-[var(--muted)] px-3 py-2"
               role="option"
               [attr.aria-selected]="i === selectedIndex()"
             >
@@ -71,16 +85,18 @@ export interface MemberSelectedEvent {
                   />
                 } @else {
                   <div
-                    class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-medium"
+                    class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-medium"
                   >
                     {{ getInitials(member.display_name) }}
                   </div>
                 }
                 <div class="flex flex-col min-w-0">
-                  <span class="text-sm font-medium text-gray-900 truncate">
+                  <span
+                    class="text-sm font-medium text-[var(--card-foreground)] truncate"
+                  >
                     {{ member.display_name }}
                   </span>
-                  <span class="text-xs text-gray-500 truncate">
+                  <span class="text-xs text-[var(--muted-foreground)] truncate">
                     {{ member.email }}
                   </span>
                 </div>
@@ -128,10 +144,10 @@ export class MentionPopoverComponent implements OnDestroy {
           return this.searchMembers(query).pipe(
             catchError(() => {
               return of([]);
-            })
+            }),
           );
         }),
-        takeUntil(this.destroy$)
+        takeUntil(this.destroy$),
       )
       .subscribe((results) => {
         this.members.set(results);
@@ -203,7 +219,7 @@ export class MentionPopoverComponent implements OnDestroy {
   private searchMembers(query: string) {
     return this.http.get<MentionableMember[]>(
       `/api/workspaces/${this.workspaceId()}/members/search`,
-      { params: { search: query } }
+      { params: { search: query } },
     );
   }
 }

@@ -262,8 +262,7 @@ mod tests {
     fn test_event_serde_roundtrip() {
         for event in NotificationEvent::all() {
             let serialized = serde_json::to_string(event).unwrap();
-            let deserialized: NotificationEvent =
-                serde_json::from_str(&serialized).unwrap();
+            let deserialized: NotificationEvent = serde_json::from_str(&serialized).unwrap();
             assert_eq!(*event, deserialized);
         }
     }

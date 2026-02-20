@@ -43,12 +43,16 @@ impl IntoResponse for AppError {
             AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, "UNAUTHORIZED", msg.clone()),
             AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, "FORBIDDEN", msg.clone()),
             AppError::Conflict(msg) => (StatusCode::CONFLICT, "CONFLICT", msg.clone()),
-            AppError::PreconditionFailed(msg) => {
-                (StatusCode::PRECONDITION_FAILED, "PRECONDITION_FAILED", msg.clone())
-            }
-            AppError::ValidationError(msg) => {
-                (StatusCode::UNPROCESSABLE_ENTITY, "VALIDATION_ERROR", msg.clone())
-            }
+            AppError::PreconditionFailed(msg) => (
+                StatusCode::PRECONDITION_FAILED,
+                "PRECONDITION_FAILED",
+                msg.clone(),
+            ),
+            AppError::ValidationError(msg) => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "VALIDATION_ERROR",
+                msg.clone(),
+            ),
             AppError::InternalError(msg) => {
                 tracing::error!("Internal error: {}", msg);
                 (
@@ -132,14 +136,12 @@ mod tests {
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
 
         // Extract body and verify the message is generic
-        let body = tokio::runtime::Runtime::new()
-            .unwrap()
-            .block_on(async {
-                let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
-                    .await
-                    .unwrap();
-                serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
-            });
+        let body = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
+            serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
+        });
 
         let message = body["error"]["message"].as_str().unwrap();
         assert_eq!(message, "An internal error occurred");
@@ -150,20 +152,27 @@ mod tests {
     fn test_error_response_json_shape() {
         let response = AppError::NotFound("resource missing".into()).into_response();
 
-        let body = tokio::runtime::Runtime::new()
-            .unwrap()
-            .block_on(async {
-                let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
-                    .await
-                    .unwrap();
-                serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
-            });
+        let body = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
+            serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
+        });
 
         // Verify JSON shape: { "error": { "code": ..., "message": ... } }
-        assert!(body.get("error").is_some(), "Response must have 'error' key");
+        assert!(
+            body.get("error").is_some(),
+            "Response must have 'error' key"
+        );
         let error_obj = &body["error"];
-        assert!(error_obj.get("code").is_some(), "Error must have 'code' field");
-        assert!(error_obj.get("message").is_some(), "Error must have 'message' field");
+        assert!(
+            error_obj.get("code").is_some(),
+            "Error must have 'code' field"
+        );
+        assert!(
+            error_obj.get("message").is_some(),
+            "Error must have 'message' field"
+        );
         assert_eq!(error_obj["code"].as_str().unwrap(), "NOT_FOUND");
         assert_eq!(error_obj["message"].as_str().unwrap(), "resource missing");
     }

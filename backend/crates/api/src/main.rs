@@ -1,17 +1,17 @@
 mod config;
 mod errors;
-mod state;
-pub mod routes;
-pub mod middleware;
 pub mod extractors;
-pub mod ws;
+pub mod middleware;
+pub mod routes;
 pub mod services;
+mod state;
+pub mod ws;
 
+use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
 use axum::http::Method;
 use axum::middleware::{from_fn, from_fn_with_state};
-use axum::{Router, routing::get};
+use axum::{routing::get, Router};
 use tower_http::compression::CompressionLayer;
-use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
 use tower_http::cors::{AllowOrigin, CorsLayer};
 use tower_http::trace::TraceLayer;
 
@@ -20,19 +20,18 @@ use crate::middleware::auth_middleware;
 use crate::middleware::rate_limit::{rate_limit_layer, rate_limit_middleware};
 use crate::routes::{
     activity_log_router, admin_audit_router, admin_trash_router, admin_users_router,
-    attachment_router, board_columns_router, board_router, board_templates_router, column_router,
-    comment_router, cron_router, custom_field_router, dashboard_router, health_handler,
-    liveness_handler, my_tasks_router, eisenhower_router, notification_preferences_router, notification_router,
-    onboarding_router, readiness_handler, recurring_router, reports_router, search_router,
-    subtask_router, task_group_routes, dependency_router, milestone_router, task_router, team_overview_router,
-    time_entry_router, workspace_boards_router, workspace_router,
-    project_template_router, automation_router, import_export_router,
-    board_share_router, shared_board_public_router, webhook_router,
-    favorites_router, archive_router,
+    archive_router, attachment_router, automation_router, board_columns_router, board_router,
+    board_share_router, board_templates_router, column_router, comment_router, cron_router,
+    custom_field_router, dashboard_router, dependency_router, eisenhower_router, favorites_router,
+    health_handler, import_export_router, liveness_handler, milestone_router, my_tasks_router,
+    notification_preferences_router, notification_router, onboarding_router,
+    project_template_router, readiness_handler, recurring_router, reports_router, search_router,
+    sessions_router, shared_board_public_router, subtask_router, task_group_routes, task_router,
+    team_overview_router, time_entry_router, upload_router, user_preferences_router,
+    webhook_router, workspace_api_keys_router, workspace_boards_router, workspace_router,
 };
 use crate::state::AppState;
 use crate::ws::ws_handler;
-
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -53,7 +52,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = AppState::new(config.clone()).await?;
 
     // Build CORS layer with configured origin
-    let allowed_origin = config.app_url.parse::<axum::http::HeaderValue>()
+    let allowed_origin = config
+        .app_url
+        .parse::<axum::http::HeaderValue>()
         .expect("APP_URL must be a valid header value");
     let cors = CorsLayer::new()
         .allow_origin(AllowOrigin::exact(allowed_origin))
@@ -70,35 +71,86 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Build protected routes (require auth)
     let protected_routes = Router::new()
-        .route("/auth/sign-out", axum::routing::post(routes::auth::sign_out_handler))
-        .route("/auth/me", get(routes::auth::me_handler))
-        .route("/invitations", axum::routing::post(routes::invitation::create_handler))
+        .route(
+            "/auth/sign-out",
+            axum::routing::post(routes::auth::sign_out_handler),
+        )
+        .route(
+            "/auth/me",
+            get(routes::auth::me_handler)
+                .patch(routes::auth::update_profile_handler)
+                .delete(routes::auth::delete_account_handler),
+        )
+        .route(
+            "/auth/change-password",
+            axum::routing::post(routes::auth::change_password_handler),
+        )
+        .route(
+            "/invitations",
+            axum::routing::post(routes::invitation::create_handler),
+        )
         .route("/invitations", get(routes::invitation::list_handler))
-        .route("/invitations/bulk", axum::routing::post(routes::invitation::bulk_create_handler))
-        .route("/invitations/all", get(routes::invitation::list_all_handler))
-        .route("/invitations/{id}", axum::routing::delete(routes::invitation::delete_handler))
-        .route("/invitations/{id}/resend", axum::routing::post(routes::invitation::resend_handler))
+        .route(
+            "/invitations/bulk",
+            axum::routing::post(routes::invitation::bulk_create_handler),
+        )
+        .route(
+            "/invitations/all",
+            get(routes::invitation::list_all_handler),
+        )
+        .route(
+            "/invitations/{id}",
+            axum::routing::delete(routes::invitation::delete_handler),
+        )
+        .route(
+            "/invitations/{id}/resend",
+            axum::routing::post(routes::invitation::resend_handler),
+        )
         .layer(from_fn_with_state(state.clone(), auth_middleware));
 
     // Rate-limited public routes (auth endpoints vulnerable to brute force)
     let rate_limited_auth = Router::new()
-        .route("/auth/sign-in", axum::routing::post(routes::auth::sign_in_handler))
-        .route("/auth/sign-up", axum::routing::post(routes::auth::sign_up_handler))
-        .route("/auth/forgot-password", axum::routing::post(routes::auth::forgot_password_handler))
+        .route(
+            "/auth/sign-in",
+            axum::routing::post(routes::auth::sign_in_handler),
+        )
+        .route(
+            "/auth/sign-up",
+            axum::routing::post(routes::auth::sign_up_handler),
+        )
+        .route(
+            "/auth/forgot-password",
+            axum::routing::post(routes::auth::forgot_password_handler),
+        )
         .layer(from_fn(rate_limit_middleware))
         .layer(rate_limit_layer(5, 60)); // 5 requests per 60 seconds per IP
 
     let rate_limited_invitations = Router::new()
-        .route("/invitations/accept", axum::routing::post(routes::invitation::accept_handler))
+        .route(
+            "/invitations/accept",
+            axum::routing::post(routes::invitation::accept_handler),
+        )
         .layer(from_fn(rate_limit_middleware))
         .layer(rate_limit_layer(5, 60)); // 5 requests per 60 seconds per IP
 
     // Build public routes (not rate-limited)
     let public_routes = Router::new()
-        .route("/auth/refresh", axum::routing::post(routes::auth::refresh_handler))
-        .route("/auth/logout", axum::routing::post(routes::auth::logout_handler))
-        .route("/auth/reset-password", axum::routing::post(routes::auth::reset_password_handler))
-        .route("/invitations/validate/{token}", get(routes::invitation::validate_handler))
+        .route(
+            "/auth/refresh",
+            axum::routing::post(routes::auth::refresh_handler),
+        )
+        .route(
+            "/auth/logout",
+            axum::routing::post(routes::auth::logout_handler),
+        )
+        .route(
+            "/auth/reset-password",
+            axum::routing::post(routes::auth::reset_password_handler),
+        )
+        .route(
+            "/invitations/validate/{token}",
+            get(routes::invitation::validate_handler),
+        )
         .route("/ws", get(ws_handler));
 
     // Build router
@@ -123,11 +175,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", activity_log_router(state.clone()))
         // Workspace routes
         .nest("/api/workspaces", workspace_router(state.clone()))
-        .nest("/api/workspaces/{workspace_id}/boards", workspace_boards_router(state.clone()))
+        .nest(
+            "/api/workspaces/{workspace_id}/boards",
+            workspace_boards_router(state.clone()),
+        )
         // Board routes
-        .nest("/api/board-templates", board_templates_router(state.clone()))
+        .nest(
+            "/api/board-templates",
+            board_templates_router(state.clone()),
+        )
         .nest("/api/boards", board_router(state.clone()))
-        .nest("/api/boards/{board_id}/columns", board_columns_router(state.clone()))
+        .nest(
+            "/api/boards/{board_id}/columns",
+            board_columns_router(state.clone()),
+        )
         // Column routes
         .nest("/api/columns", column_router(state.clone()))
         // Notification routes
@@ -138,7 +199,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Onboarding routes
         .nest("/api/onboarding", onboarding_router(state.clone()))
         // Team overview routes (nested under workspace)
-        .nest("/api/workspaces/{workspace_id}", team_overview_router(state.clone()))
+        .nest(
+            "/api/workspaces/{workspace_id}",
+            team_overview_router(state.clone()),
+        )
         // My tasks routes
         .nest("/api/my-tasks", my_tasks_router(state.clone()))
         // Eisenhower Matrix routes
@@ -170,6 +234,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", shared_board_public_router())
         // Phase 4: Webhooks
         .nest("/api", webhook_router(state.clone()))
+        // Settings & Teams: User preferences, sessions, uploads, API keys
+        .nest("/api", user_preferences_router(state.clone()))
+        .nest("/api", sessions_router(state.clone()))
+        .nest("/api", upload_router(state.clone()))
+        .nest("/api", workspace_api_keys_router(state.clone()))
         // Phase 5: Favorites & Archive
         .nest("/api/favorites", favorites_router(state.clone()))
         .nest("/api", archive_router(state.clone()))

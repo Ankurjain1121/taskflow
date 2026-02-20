@@ -254,7 +254,7 @@ pub async fn remove_board_member(
 }
 
 /// Board member with user info
-#[derive(serde::Serialize, Clone, Debug)]
+#[derive(sqlx::FromRow, serde::Serialize, Clone, Debug)]
 pub struct BoardMemberWithUser {
     pub id: Uuid,
     pub board_id: Uuid,
@@ -271,10 +271,9 @@ pub async fn list_board_members(
     pool: &PgPool,
     board_id: Uuid,
 ) -> Result<Vec<BoardMemberWithUser>, sqlx::Error> {
-    sqlx::query_as!(
-        BoardMemberWithUser,
+    sqlx::query_as::<_, BoardMemberWithUser>(
         r#"
-        SELECT bm.id, bm.board_id, bm.user_id, bm.role AS "role: _",
+        SELECT bm.id, bm.board_id, bm.user_id, bm.role,
                bm.joined_at, u.name, u.email, u.avatar_url
         FROM board_members bm
         INNER JOIN users u ON bm.user_id = u.id
@@ -282,8 +281,8 @@ pub async fn list_board_members(
           AND u.deleted_at IS NULL
         ORDER BY bm.joined_at ASC
         "#,
-        board_id
     )
+    .bind(board_id)
     .fetch_all(pool)
     .await
 }

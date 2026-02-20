@@ -130,7 +130,8 @@ export class TaskListItemComponent {
   }
 
   get dueDateColorClass(): string {
-    return getDueDateColor(this.task().due_date);
+    const result = getDueDateColor(this.task().due_date);
+    return [result.class, result.chipClass].filter(Boolean).join(' ');
   }
 
   getBorderColor(): string {

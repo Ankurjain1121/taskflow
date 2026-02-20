@@ -70,7 +70,10 @@ pub async fn audit_middleware(
     let method = request.method().clone();
 
     // Only audit mutations
-    let is_mutation = matches!(method, Method::POST | Method::PUT | Method::PATCH | Method::DELETE);
+    let is_mutation = matches!(
+        method,
+        Method::POST | Method::PUT | Method::PATCH | Method::DELETE
+    );
 
     if !is_mutation {
         return next.run(request).await;
@@ -249,10 +252,7 @@ mod tests {
             infer_route_id(&format!("/api/tasks/{}", uuid), &Method::DELETE),
             Some("tasks.delete")
         );
-        assert_eq!(
-            infer_route_id("/api/unknown/path", &Method::POST),
-            None
-        );
+        assert_eq!(infer_route_id("/api/unknown/path", &Method::POST), None);
     }
 
     #[test]

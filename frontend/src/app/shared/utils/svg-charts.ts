@@ -116,7 +116,7 @@ export const CHART_PRIORITY_COLORS: Record<string, string> = {
  * General chart color palette.
  */
 export const CHART_COLORS = [
-  '#6366f1', // indigo
+  'var(--chart-1)', // primary
   '#8b5cf6', // violet
   '#ec4899', // pink
   '#14b8a6', // teal

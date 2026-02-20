@@ -42,17 +42,24 @@ interface PreferenceRow {
   providers: [MessageService],
   template: `
     <p-toast />
-    <div class="min-h-screen bg-gray-100 p-4 md:p-8">
+    <div class="min-h-screen bg-[var(--secondary)] p-4 md:p-8">
       <div class="max-w-4xl mx-auto">
         <!-- Header -->
         <div class="mb-6">
           <div class="flex items-center gap-2 mb-2">
-            <a routerLink="/settings/profile" class="text-gray-500 hover:text-gray-700">
+            <a
+              routerLink="/settings/profile"
+              class="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+            >
               <i class="pi pi-arrow-left"></i>
             </a>
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Notification Preferences</h1>
+            <h1
+              class="text-2xl md:text-3xl font-bold text-[var(--card-foreground)]"
+            >
+              Notification Preferences
+            </h1>
           </div>
-          <p class="text-gray-600">
+          <p class="text-[var(--muted-foreground)]">
             Choose how you want to be notified for different events
           </p>
         </div>
@@ -69,81 +76,101 @@ interface PreferenceRow {
 
         <!-- Preferences table -->
         @if (!isLoading()) {
-        <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-          <p-table [value]="preferenceRows()" styleClass="p-datatable-sm" [tableStyle]="{ 'min-width': '50rem' }">
-            <ng-template pTemplate="header">
-              <tr>
-                <th class="!font-semibold">Event Type</th>
-                <th class="!font-semibold !text-center">In-App</th>
-                <th class="!font-semibold !text-center">Email</th>
-                @if (slackEnabled()) {
-                  <th class="!font-semibold !text-center">Slack</th>
-                }
-                @if (whatsappEnabled()) {
-                  <th class="!font-semibold !text-center">WhatsApp</th>
-                }
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-row>
-              <tr>
-                <td class="!py-4">{{ row.label }}</td>
-                <td class="!text-center">
-                  <p-toggleSwitch
-                    [(ngModel)]="row.inApp"
-                    [disabled]="true"
-                    pTooltip="In-app notifications are always enabled"
-                  />
-                </td>
-                <td class="!text-center">
-                  <p-toggleSwitch
-                    [(ngModel)]="row.email"
-                    (onChange)="onToggleChange(row.eventType, 'email', $event.checked)"
-                  />
-                </td>
-                @if (slackEnabled()) {
+          <div
+            class="bg-[var(--card)] rounded-lg border border-[var(--border)] shadow-sm overflow-hidden"
+          >
+            <p-table
+              [value]="preferenceRows()"
+              styleClass="p-datatable-sm"
+              [tableStyle]="{ 'min-width': '50rem' }"
+            >
+              <ng-template pTemplate="header">
+                <tr>
+                  <th class="!font-semibold">Event Type</th>
+                  <th class="!font-semibold !text-center">In-App</th>
+                  <th class="!font-semibold !text-center">Email</th>
+                  @if (slackEnabled()) {
+                    <th class="!font-semibold !text-center">Slack</th>
+                  }
+                  @if (whatsappEnabled()) {
+                    <th class="!font-semibold !text-center">WhatsApp</th>
+                  }
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-row>
+                <tr>
+                  <td class="!py-4">{{ row.label }}</td>
                   <td class="!text-center">
                     <p-toggleSwitch
-                      [(ngModel)]="row.slack"
-                      (onChange)="onToggleChange(row.eventType, 'slack', $event.checked)"
+                      [(ngModel)]="row.inApp"
+                      [disabled]="true"
+                      pTooltip="In-app notifications are always enabled"
                     />
                   </td>
-                }
-                @if (whatsappEnabled()) {
                   <td class="!text-center">
                     <p-toggleSwitch
-                      [(ngModel)]="row.whatsapp"
-                      (onChange)="onToggleChange(row.eventType, 'whatsapp', $event.checked)"
+                      [(ngModel)]="row.email"
+                      (onChange)="
+                        onToggleChange(row.eventType, 'email', $event.checked)
+                      "
                     />
                   </td>
-                }
-              </tr>
-            </ng-template>
-          </p-table>
+                  @if (slackEnabled()) {
+                    <td class="!text-center">
+                      <p-toggleSwitch
+                        [(ngModel)]="row.slack"
+                        (onChange)="
+                          onToggleChange(row.eventType, 'slack', $event.checked)
+                        "
+                      />
+                    </td>
+                  }
+                  @if (whatsappEnabled()) {
+                    <td class="!text-center">
+                      <p-toggleSwitch
+                        [(ngModel)]="row.whatsapp"
+                        (onChange)="
+                          onToggleChange(
+                            row.eventType,
+                            'whatsapp',
+                            $event.checked
+                          )
+                        "
+                      />
+                    </td>
+                  }
+                </tr>
+              </ng-template>
+            </p-table>
 
-          <!-- Actions -->
-          <div class="flex justify-end gap-4 p-4 border-t bg-gray-50">
-            <p-button
-              severity="danger"
-              [text]="true"
-              (onClick)="resetToDefaults()"
-              [disabled]="isSaving()"
-              icon="pi pi-refresh"
-              label="Reset to Defaults"
-            />
+            <!-- Actions -->
+            <div
+              class="flex justify-end gap-4 p-4 border-t bg-[var(--secondary)]"
+            >
+              <p-button
+                severity="danger"
+                [text]="true"
+                (onClick)="resetToDefaults()"
+                [disabled]="isSaving()"
+                icon="pi pi-refresh"
+                label="Reset to Defaults"
+              />
+            </div>
           </div>
-        </div>
         }
 
         <!-- Help text -->
-        <div class="mt-6 text-sm text-gray-500">
+        <div class="mt-6 text-sm text-[var(--muted-foreground)]">
           <p class="flex items-center gap-2">
             <i class="pi pi-info-circle text-blue-500"></i>
-            In-app notifications cannot be disabled to ensure you always receive important updates.
+            In-app notifications cannot be disabled to ensure you always receive
+            important updates.
           </p>
           @if (!slackEnabled() || !whatsappEnabled()) {
             <p class="flex items-center gap-2 mt-2">
               <i class="pi pi-eye-slash text-gray-400"></i>
-              Some notification channels may be hidden if not configured for your organization.
+              Some notification channels may be hidden if not configured for
+              your organization.
             </p>
           }
         </div>
@@ -190,7 +217,7 @@ export class NotificationPreferencesComponent implements OnInit {
 
   constructor(
     private profileService: ProfileService,
-    private messageService: MessageService
+    private messageService: MessageService,
   ) {}
 
   ngOnInit(): void {
@@ -216,7 +243,11 @@ export class NotificationPreferencesComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: () => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load preferences' });
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to load preferences',
+        });
         this.isLoading.set(false);
       },
     });
@@ -225,9 +256,11 @@ export class NotificationPreferencesComponent implements OnInit {
   onToggleChange(
     eventType: string,
     channel: 'email' | 'slack' | 'whatsapp',
-    checked: boolean
+    checked: boolean,
   ): void {
-    const currentRow = this.preferenceRows().find((r) => r.eventType === eventType);
+    const currentRow = this.preferenceRows().find(
+      (r) => r.eventType === eventType,
+    );
     if (!currentRow) return;
 
     const request: UpdatePreferenceRequest = {
@@ -245,7 +278,8 @@ export class NotificationPreferencesComponent implements OnInit {
         const map = new Map(this.preferencesMap());
         map.set(updatedPref.event_type, {
           eventType: updatedPref.event_type,
-          label: EVENT_TYPE_LABELS[updatedPref.event_type] || updatedPref.event_type,
+          label:
+            EVENT_TYPE_LABELS[updatedPref.event_type] || updatedPref.event_type,
           inApp: updatedPref.in_app,
           email: updatedPref.email,
           slack: updatedPref.slack,
@@ -255,14 +289,22 @@ export class NotificationPreferencesComponent implements OnInit {
         this.isSaving.set(false);
       },
       error: () => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to update preference' });
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to update preference',
+        });
         this.isSaving.set(false);
       },
     });
   }
 
   resetToDefaults(): void {
-    if (!confirm('Are you sure you want to reset all notification preferences to defaults?')) {
+    if (
+      !confirm(
+        'Are you sure you want to reset all notification preferences to defaults?',
+      )
+    ) {
       return;
     }
 
@@ -270,11 +312,19 @@ export class NotificationPreferencesComponent implements OnInit {
     this.profileService.resetNotificationPreferences().subscribe({
       next: () => {
         this.preferencesMap.set(new Map());
-        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Preferences reset to defaults' });
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Preferences reset to defaults',
+        });
         this.isSaving.set(false);
       },
       error: () => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to reset preferences' });
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to reset preferences',
+        });
         this.isSaving.set(false);
       },
     });

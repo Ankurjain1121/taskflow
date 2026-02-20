@@ -80,45 +80,39 @@ pub async fn move_to_trash(
     user_id: Uuid,
 ) -> Result<(), TrashBinError> {
     let rows_affected = match entity_type {
-        TrashEntityType::Task => {
-            sqlx::query!(
-                r#"
+        TrashEntityType::Task => sqlx::query!(
+            r#"
                 UPDATE tasks
                 SET deleted_at = NOW(), updated_at = NOW()
                 WHERE id = $1 AND deleted_at IS NULL
                 "#,
-                entity_id
-            )
-            .execute(pool)
-            .await?
-            .rows_affected()
-        }
-        TrashEntityType::Board => {
-            sqlx::query!(
-                r#"
+            entity_id
+        )
+        .execute(pool)
+        .await?
+        .rows_affected(),
+        TrashEntityType::Board => sqlx::query!(
+            r#"
                 UPDATE boards
                 SET deleted_at = NOW(), updated_at = NOW()
                 WHERE id = $1 AND deleted_at IS NULL
                 "#,
-                entity_id
-            )
-            .execute(pool)
-            .await?
-            .rows_affected()
-        }
-        TrashEntityType::Workspace => {
-            sqlx::query!(
-                r#"
+            entity_id
+        )
+        .execute(pool)
+        .await?
+        .rows_affected(),
+        TrashEntityType::Workspace => sqlx::query!(
+            r#"
                 UPDATE workspaces
                 SET deleted_at = NOW(), updated_at = NOW()
                 WHERE id = $1 AND deleted_at IS NULL
                 "#,
-                entity_id
-            )
-            .execute(pool)
-            .await?
-            .rows_affected()
-        }
+            entity_id
+        )
+        .execute(pool)
+        .await?
+        .rows_affected(),
     };
 
     if rows_affected == 0 {
@@ -147,45 +141,39 @@ pub async fn restore_from_trash(
     user_id: Uuid,
 ) -> Result<(), TrashBinError> {
     let rows_affected = match entity_type {
-        TrashEntityType::Task => {
-            sqlx::query!(
-                r#"
+        TrashEntityType::Task => sqlx::query!(
+            r#"
                 UPDATE tasks
                 SET deleted_at = NULL, updated_at = NOW()
                 WHERE id = $1 AND deleted_at IS NOT NULL
                 "#,
-                entity_id
-            )
-            .execute(pool)
-            .await?
-            .rows_affected()
-        }
-        TrashEntityType::Board => {
-            sqlx::query!(
-                r#"
+            entity_id
+        )
+        .execute(pool)
+        .await?
+        .rows_affected(),
+        TrashEntityType::Board => sqlx::query!(
+            r#"
                 UPDATE boards
                 SET deleted_at = NULL, updated_at = NOW()
                 WHERE id = $1 AND deleted_at IS NOT NULL
                 "#,
-                entity_id
-            )
-            .execute(pool)
-            .await?
-            .rows_affected()
-        }
-        TrashEntityType::Workspace => {
-            sqlx::query!(
-                r#"
+            entity_id
+        )
+        .execute(pool)
+        .await?
+        .rows_affected(),
+        TrashEntityType::Workspace => sqlx::query!(
+            r#"
                 UPDATE workspaces
                 SET deleted_at = NULL, updated_at = NOW()
                 WHERE id = $1 AND deleted_at IS NOT NULL
                 "#,
-                entity_id
-            )
-            .execute(pool)
-            .await?
-            .rows_affected()
-        }
+            entity_id
+        )
+        .execute(pool)
+        .await?
+        .rows_affected(),
     };
 
     if rows_affected == 0 {
@@ -265,7 +253,10 @@ async fn permanently_delete_task(
     .rows_affected();
 
     if rows == 0 {
-        return Err(TrashBinError::NotFound(format!("Task {} not found in trash", task_id)));
+        return Err(TrashBinError::NotFound(format!(
+            "Task {} not found in trash",
+            task_id
+        )));
     }
 
     Ok(())
@@ -278,12 +269,10 @@ async fn permanently_delete_board(
     board_id: Uuid,
 ) -> Result<(), TrashBinError> {
     // Get all task IDs for this board
-    let task_ids: Vec<Uuid> = sqlx::query_scalar!(
-        r#"SELECT id FROM tasks WHERE board_id = $1"#,
-        board_id
-    )
-    .fetch_all(pool)
-    .await?;
+    let task_ids: Vec<Uuid> =
+        sqlx::query_scalar!(r#"SELECT id FROM tasks WHERE board_id = $1"#, board_id)
+            .fetch_all(pool)
+            .await?;
 
     // Delete attachments from storage for all tasks
     let attachments: Vec<String> = sqlx::query_scalar!(
@@ -309,7 +298,10 @@ async fn permanently_delete_board(
     .rows_affected();
 
     if rows == 0 {
-        return Err(TrashBinError::NotFound(format!("Board {} not found in trash", board_id)));
+        return Err(TrashBinError::NotFound(format!(
+            "Board {} not found in trash",
+            board_id
+        )));
     }
 
     Ok(())
@@ -361,7 +353,10 @@ async fn permanently_delete_workspace(
     .rows_affected();
 
     if rows == 0 {
-        return Err(TrashBinError::NotFound(format!("Workspace {} not found in trash", workspace_id)));
+        return Err(TrashBinError::NotFound(format!(
+            "Workspace {} not found in trash",
+            workspace_id
+        )));
     }
 
     Ok(())
@@ -498,9 +493,18 @@ mod tests {
 
     #[test]
     fn test_trash_entity_type_from_str() {
-        assert_eq!(TrashEntityType::from_str("task"), Some(TrashEntityType::Task));
-        assert_eq!(TrashEntityType::from_str("tasks"), Some(TrashEntityType::Task));
-        assert_eq!(TrashEntityType::from_str("BOARD"), Some(TrashEntityType::Board));
+        assert_eq!(
+            TrashEntityType::from_str("task"),
+            Some(TrashEntityType::Task)
+        );
+        assert_eq!(
+            TrashEntityType::from_str("tasks"),
+            Some(TrashEntityType::Task)
+        );
+        assert_eq!(
+            TrashEntityType::from_str("BOARD"),
+            Some(TrashEntityType::Board)
+        );
         assert_eq!(TrashEntityType::from_str("invalid"), None);
     }
 
@@ -513,20 +517,50 @@ mod tests {
 
     #[test]
     fn test_trash_entity_type_from_str_case_insensitive() {
-        assert_eq!(TrashEntityType::from_str("Task"), Some(TrashEntityType::Task));
-        assert_eq!(TrashEntityType::from_str("TASK"), Some(TrashEntityType::Task));
-        assert_eq!(TrashEntityType::from_str("task"), Some(TrashEntityType::Task));
-        assert_eq!(TrashEntityType::from_str("Board"), Some(TrashEntityType::Board));
-        assert_eq!(TrashEntityType::from_str("BOARD"), Some(TrashEntityType::Board));
-        assert_eq!(TrashEntityType::from_str("Workspace"), Some(TrashEntityType::Workspace));
-        assert_eq!(TrashEntityType::from_str("WORKSPACE"), Some(TrashEntityType::Workspace));
+        assert_eq!(
+            TrashEntityType::from_str("Task"),
+            Some(TrashEntityType::Task)
+        );
+        assert_eq!(
+            TrashEntityType::from_str("TASK"),
+            Some(TrashEntityType::Task)
+        );
+        assert_eq!(
+            TrashEntityType::from_str("task"),
+            Some(TrashEntityType::Task)
+        );
+        assert_eq!(
+            TrashEntityType::from_str("Board"),
+            Some(TrashEntityType::Board)
+        );
+        assert_eq!(
+            TrashEntityType::from_str("BOARD"),
+            Some(TrashEntityType::Board)
+        );
+        assert_eq!(
+            TrashEntityType::from_str("Workspace"),
+            Some(TrashEntityType::Workspace)
+        );
+        assert_eq!(
+            TrashEntityType::from_str("WORKSPACE"),
+            Some(TrashEntityType::Workspace)
+        );
     }
 
     #[test]
     fn test_trash_entity_type_from_str_plural() {
-        assert_eq!(TrashEntityType::from_str("boards"), Some(TrashEntityType::Board));
-        assert_eq!(TrashEntityType::from_str("workspaces"), Some(TrashEntityType::Workspace));
-        assert_eq!(TrashEntityType::from_str("tasks"), Some(TrashEntityType::Task));
+        assert_eq!(
+            TrashEntityType::from_str("boards"),
+            Some(TrashEntityType::Board)
+        );
+        assert_eq!(
+            TrashEntityType::from_str("workspaces"),
+            Some(TrashEntityType::Workspace)
+        );
+        assert_eq!(
+            TrashEntityType::from_str("tasks"),
+            Some(TrashEntityType::Task)
+        );
     }
 
     #[test]

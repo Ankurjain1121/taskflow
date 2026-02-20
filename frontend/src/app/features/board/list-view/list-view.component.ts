@@ -183,7 +183,8 @@ export class ListViewComponent {
   }
 
   getDueDateColorClass(dueDate: string | null): string {
-    return getDueDateColor(dueDate);
+    const result = getDueDateColor(dueDate);
+    return [result.class, result.chipClass].filter(Boolean).join(' ');
   }
 
   onRowClick(task: TaskListItem): void {

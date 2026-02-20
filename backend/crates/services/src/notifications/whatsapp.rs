@@ -42,7 +42,11 @@ fn validate_e164_phone_number(phone: &str) -> Result<(), WhatsAppError> {
     }
 
     // Must be between 8 and 15 digits (plus the +)
-    let digits: String = phone.chars().skip(1).filter(|c| c.is_ascii_digit()).collect();
+    let digits: String = phone
+        .chars()
+        .skip(1)
+        .filter(|c| c.is_ascii_digit())
+        .collect();
 
     if digits.len() < 7 || digits.len() > 15 {
         return Err(WhatsAppError::InvalidPhoneNumber(format!(
@@ -113,7 +117,11 @@ impl WahaClient {
     /// # Arguments
     /// * `phone_number` - Recipient phone in E.164 format (e.g., +14155552671)
     /// * `message` - Plain text message to send
-    pub async fn send_message(&self, phone_number: &str, message: &str) -> Result<(), WhatsAppError> {
+    pub async fn send_message(
+        &self,
+        phone_number: &str,
+        message: &str,
+    ) -> Result<(), WhatsAppError> {
         // Check if WhatsApp is enabled
         if !is_whatsapp_enabled() {
             return Err(WhatsAppError::Disabled);
@@ -149,10 +157,7 @@ impl WahaClient {
             return Err(WhatsAppError::ApiError { status, message });
         }
 
-        tracing::debug!(
-            phone = phone_number,
-            "WhatsApp message sent successfully"
-        );
+        tracing::debug!(phone = phone_number, "WhatsApp message sent successfully");
 
         Ok(())
     }
@@ -191,11 +196,7 @@ pub async fn send_whatsapp_notification(
         message.push_str(&format!("\n\nView details: {}", url));
     }
 
-    let client = WahaClient::new(
-        waha_api_url.to_string(),
-        waha_api_key.to_string(),
-        None,
-    );
+    let client = WahaClient::new(waha_api_url.to_string(), waha_api_key.to_string(), None);
 
     client.send_message(phone_number, &message).await
 }
@@ -203,13 +204,13 @@ pub async fn send_whatsapp_notification(
 /// Get an emoji for the event type
 fn get_event_emoji(event_type: &str) -> &'static str {
     match event_type {
-        "task-assigned" => "\u{1F4E5}", // inbox_tray
-        "task-due-soon" => "\u{23F0}",  // alarm_clock
-        "task-overdue" => "\u{26A0}",   // warning
-        "task-commented" => "\u{1F4AC}", // speech_balloon
-        "task-completed" => "\u{2705}", // white_check_mark
+        "task-assigned" => "\u{1F4E5}",      // inbox_tray
+        "task-due-soon" => "\u{23F0}",       // alarm_clock
+        "task-overdue" => "\u{26A0}",        // warning
+        "task-commented" => "\u{1F4AC}",     // speech_balloon
+        "task-completed" => "\u{2705}",      // white_check_mark
         "mention-in-comment" => "\u{1F449}", // point_right
-        _ => "\u{1F514}",               // bell
+        _ => "\u{1F514}",                    // bell
     }
 }
 

@@ -289,7 +289,12 @@ mod tests {
         let colors = ["#94a3b8", "#6366f1", "#3b82f6", "#22c55e"];
         for color in colors {
             assert!(color.starts_with('#'), "Color '{}' missing # prefix", color);
-            assert_eq!(color.len(), 7, "Color '{}' should be 7 chars (#RRGGBB)", color);
+            assert_eq!(
+                color.len(),
+                7,
+                "Color '{}' should be 7 chars (#RRGGBB)",
+                color
+            );
             assert!(
                 color[1..].chars().all(|c| c.is_ascii_hexdigit()),
                 "Color '{}' contains non-hex chars",
@@ -303,7 +308,12 @@ mod tests {
         let label_colors = ["#8b5cf6", "#22c55e", "#ef4444"];
         for color in label_colors {
             assert!(color.starts_with('#'), "Color '{}' missing # prefix", color);
-            assert_eq!(color.len(), 7, "Color '{}' should be 7 chars (#RRGGBB)", color);
+            assert_eq!(
+                color.len(),
+                7,
+                "Color '{}' should be 7 chars (#RRGGBB)",
+                color
+            );
             assert!(
                 color[1..].chars().all(|c| c.is_ascii_hexdigit()),
                 "Color '{}' contains non-hex chars",

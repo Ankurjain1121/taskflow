@@ -41,7 +41,8 @@ import { Milestone } from '../../../core/services/milestone.service';
         <div class="grid grid-cols-2 gap-4">
           <!-- Priority -->
           <div>
-            <label class="block text-xs font-medium text-gray-500 mb-1"
+            <label
+              class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
               >Priority</label
             >
             <p-select
@@ -75,7 +76,8 @@ import { Milestone } from '../../../core/services/milestone.service';
 
           <!-- Due Date -->
           <div>
-            <label class="block text-xs font-medium text-gray-500 mb-1"
+            <label
+              class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
               >Due Date</label
             >
             <p-datePicker
@@ -92,17 +94,18 @@ import { Milestone } from '../../../core/services/milestone.service';
 
         <!-- Assignees -->
         <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1"
+          <label
+            class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
             >Assignees</label
           >
           <div class="flex flex-wrap gap-2 py-1">
             @if (t.assignees && t.assignees.length > 0) {
               @for (assignee of t.assignees; track assignee.id) {
                 <div
-                  class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full text-sm"
+                  class="inline-flex items-center gap-1 px-2 py-1 bg-[var(--secondary)] rounded-full text-sm"
                 >
                   <div
-                    class="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center text-xs"
+                    class="w-5 h-5 rounded-full bg-[var(--secondary)] flex items-center justify-center text-xs"
                   >
                     @if (assignee.avatar_url) {
                       <img
@@ -117,7 +120,7 @@ import { Milestone } from '../../../core/services/milestone.service';
                   <span>{{ assignee.display_name }}</span>
                   <button
                     (click)="unassignRequested.emit(assignee)"
-                    class="ml-1 text-gray-400 hover:text-gray-600"
+                    class="ml-1 text-gray-400 hover:text-[var(--foreground)]"
                   >
                     <i class="pi pi-times text-xs"></i>
                   </button>
@@ -126,7 +129,7 @@ import { Milestone } from '../../../core/services/milestone.service';
             }
             <button
               (click)="toggleAssigneeSearch()"
-              class="inline-flex items-center gap-1 px-2 py-1 text-sm text-indigo-600 hover:bg-indigo-50 rounded-full"
+              class="inline-flex items-center gap-1 px-2 py-1 text-sm text-primary hover:bg-primary/10 rounded-full"
             >
               <i class="pi pi-plus text-xs"></i>
               Add
@@ -136,7 +139,7 @@ import { Milestone } from '../../../core/services/milestone.service';
           <!-- Assignee Search Dropdown -->
           @if (showAssigneeSearch()) {
             <div
-              class="mt-2 bg-white border border-gray-200 rounded-md shadow-lg"
+              class="mt-2 bg-[var(--card)] border border-[var(--border)] rounded-md shadow-lg"
             >
               <input
                 pInputText
@@ -144,16 +147,16 @@ import { Milestone } from '../../../core/services/milestone.service';
                 [ngModel]="assigneeSearchQuery()"
                 (ngModelChange)="onAssigneeSearchInput($event)"
                 placeholder="Search members..."
-                class="w-full border-0 border-b border-gray-200"
+                class="w-full border-0 border-b border-[var(--border)]"
               />
               <div class="max-h-48 overflow-y-auto p-2">
                 @for (member of searchResults(); track member.id) {
                   <button
                     (click)="onAssign(member)"
-                    class="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-gray-100 rounded"
+                    class="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-[var(--muted)] rounded"
                   >
                     <div
-                      class="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs"
+                      class="w-6 h-6 rounded-full bg-[var(--secondary)] flex items-center justify-center text-xs"
                     >
                       {{ getInitials(member.name || '') }}
                     </div>
@@ -162,7 +165,7 @@ import { Milestone } from '../../../core/services/milestone.service';
                 }
                 @if (searchResults().length === 0 && assigneeSearchQuery()) {
                   <div
-                    class="px-2 py-4 text-sm text-gray-500 text-center"
+                    class="px-2 py-4 text-sm text-[var(--muted-foreground)] text-center"
                   >
                     No members found
                   </div>
@@ -174,7 +177,8 @@ import { Milestone } from '../../../core/services/milestone.service';
 
         <!-- Labels -->
         <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1"
+          <label
+            class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
             >Labels</label
           >
           <div class="flex flex-wrap gap-2">
@@ -202,7 +206,8 @@ import { Milestone } from '../../../core/services/milestone.service';
 
         <!-- Milestone -->
         <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1"
+          <label
+            class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
             >Milestone</label
           >
           <div class="flex items-center gap-2 mb-2">
@@ -211,10 +216,12 @@ import { Milestone } from '../../../core/services/milestone.service';
                 class="w-3 h-3 rounded-full flex-shrink-0"
                 [style.background-color]="ms.color"
               ></span>
-              <span class="text-sm text-gray-900">{{ ms.name }}</span>
+              <span class="text-sm text-[var(--card-foreground)]">{{
+                ms.name
+              }}</span>
               <button
                 (click)="milestoneChanged.emit('')"
-                class="ml-auto p-1 text-gray-400 hover:text-gray-600 rounded"
+                class="ml-auto p-1 text-gray-400 hover:text-[var(--foreground)] rounded"
                 pTooltip="Remove milestone"
               >
                 <i class="pi pi-times text-xs"></i>

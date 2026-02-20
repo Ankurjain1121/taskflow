@@ -9,7 +9,7 @@ pub async fn get_user_by_email(pool: &PgPool, email: &str) -> Result<Option<User
     sqlx::query_as::<_, User>(
         r#"
         SELECT id, email, name, password_hash, avatar_url, phone_number, role,
-               tenant_id, onboarding_completed, deleted_at, created_at, updated_at
+               tenant_id, onboarding_completed, last_login_at, deleted_at, created_at, updated_at
         FROM users
         WHERE email = $1 AND deleted_at IS NULL
         "#,
@@ -24,7 +24,7 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<Option<User>
     sqlx::query_as::<_, User>(
         r#"
         SELECT id, email, name, password_hash, avatar_url, phone_number, role,
-               tenant_id, onboarding_completed, deleted_at, created_at, updated_at
+               tenant_id, onboarding_completed, last_login_at, deleted_at, created_at, updated_at
         FROM users
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -66,7 +66,9 @@ pub async fn get_refresh_token(
 ) -> Result<Option<RefreshToken>, sqlx::Error> {
     sqlx::query_as::<_, RefreshToken>(
         r#"
-        SELECT id, user_id, token_hash, expires_at, revoked_at, created_at
+        SELECT id, user_id, token_hash, expires_at, revoked_at,
+               ip_address, user_agent, device_name, last_active_at,
+               created_at
         FROM refresh_tokens
         WHERE id = $1
         "#,
@@ -111,14 +113,12 @@ pub async fn create_user_with_tenant(
     let mut tx = pool.begin().await?;
 
     // Create tenant
-    sqlx::query(
-        r#"INSERT INTO tenants (id, name, slug) VALUES ($1, $2, $3)"#,
-    )
-    .bind(tenant_id)
-    .bind(format!("{}'s Team", name))
-    .bind(&slug)
-    .execute(&mut *tx)
-    .await?;
+    sqlx::query(r#"INSERT INTO tenants (id, name, slug) VALUES ($1, $2, $3)"#)
+        .bind(tenant_id)
+        .bind(format!("{}'s Team", name))
+        .bind(&slug)
+        .execute(&mut *tx)
+        .await?;
 
     // Create user as admin of the new tenant
     let user = sqlx::query_as::<_, User>(
@@ -126,7 +126,7 @@ pub async fn create_user_with_tenant(
         INSERT INTO users (id, email, name, password_hash, role, tenant_id, onboarding_completed, created_at, updated_at)
         VALUES ($1, $2, $3, $4, 'admin', $5, false, NOW(), NOW())
         RETURNING id, email, name, password_hash, avatar_url, phone_number, role,
-                  tenant_id, onboarding_completed, deleted_at, created_at, updated_at
+                  tenant_id, onboarding_completed, last_login_at, deleted_at, created_at, updated_at
         "#,
     )
     .bind(Uuid::new_v4())
@@ -167,7 +167,7 @@ pub async fn create_user(
         INSERT INTO users (id, email, name, password_hash, role, tenant_id, onboarding_completed, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, false, NOW(), NOW())
         RETURNING id, email, name, password_hash, avatar_url, phone_number, role,
-                  tenant_id, onboarding_completed, deleted_at, created_at, updated_at
+                  tenant_id, onboarding_completed, last_login_at, deleted_at, created_at, updated_at
         "#,
     )
     .bind(Uuid::new_v4())

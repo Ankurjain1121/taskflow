@@ -40,31 +40,35 @@ import { MenuItem } from 'primeng/api';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-gray-50">
+    <div class="min-h-screen bg-[var(--secondary)]">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->
         <div class="mb-6">
-          <h1 class="text-2xl font-bold text-gray-900">User Management</h1>
-          <p class="text-sm text-gray-500 mt-1">
+          <h1 class="text-2xl font-bold text-[var(--card-foreground)]">
+            User Management
+          </h1>
+          <p class="text-sm text-[var(--muted-foreground)] mt-1">
             Manage users and their roles across the platform
           </p>
         </div>
 
         <!-- Stats & Filters -->
-        <div class="bg-white rounded-lg shadow mb-6 p-4">
+        <div class="bg-[var(--card)] rounded-lg shadow mb-6 p-4">
           <div
             class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
           >
             <!-- User Count Stats -->
-            <div class="text-sm text-gray-600">
-              <span class="font-semibold text-gray-900">{{
+            <div class="text-sm text-[var(--muted-foreground)]">
+              <span class="font-semibold text-[var(--card-foreground)]">{{
                 users().length
               }}</span>
               users
               <span class="mx-2 text-gray-300">|</span>
               <span class="text-purple-600">{{ adminCount() }} admins</span>,
               <span class="text-blue-600">{{ managerCount() }} managers</span>,
-              <span class="text-gray-600">{{ memberCount() }} members</span>
+              <span class="text-[var(--muted-foreground)]"
+                >{{ memberCount() }} members</span
+              >
             </div>
 
             <!-- Filters -->
@@ -140,7 +144,7 @@ import { MenuItem } from 'primeng/api';
 
         <!-- Empty State -->
         @if (!loading() && !error() && users().length === 0) {
-          <div class="bg-white rounded-lg shadow p-12 text-center">
+          <div class="bg-[var(--card)] rounded-lg shadow p-12 text-center">
             <svg
               class="mx-auto h-12 w-12 text-gray-400"
               fill="none"
@@ -154,10 +158,10 @@ import { MenuItem } from 'primeng/api';
                 d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
               />
             </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">
+            <h3 class="mt-2 text-sm font-medium text-[var(--card-foreground)]">
               No users found
             </h3>
-            <p class="mt-1 text-sm text-gray-500">
+            <p class="mt-1 text-sm text-[var(--muted-foreground)]">
               No users match your current search criteria.
             </p>
           </div>
@@ -165,51 +169,51 @@ import { MenuItem } from 'primeng/api';
 
         <!-- Users Table -->
         @if (!loading() && users().length > 0) {
-          <div class="bg-white rounded-lg shadow overflow-hidden">
+          <div class="bg-[var(--card)] rounded-lg shadow overflow-hidden">
             <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+              <table class="min-w-full divide-y divide-[var(--border)]">
+                <thead class="bg-[var(--secondary)]">
                   <tr>
                     <th
-                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
                     >
                       User
                     </th>
                     <th
-                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
                     >
                       Role
                     </th>
                     <th
-                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
                     >
                       Workspaces
                     </th>
                     <th
-                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
                     >
                       Joined
                     </th>
                     <th
-                      class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
                     >
                       Last Active
                     </th>
                     <th
-                      class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      class="px-6 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
                     >
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-[var(--card)] divide-y divide-[var(--border)]">
                   @for (user of users(); track user.id) {
-                    <tr class="hover:bg-gray-50">
+                    <tr class="hover:bg-[var(--secondary)]">
                       <!-- User Info -->
                       <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center gap-3">
                           <div
-                            class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-600 overflow-hidden"
+                            class="w-10 h-10 rounded-full bg-[var(--secondary)] flex items-center justify-center text-sm font-medium text-[var(--muted-foreground)] overflow-hidden"
                           >
                             @if (user.avatar_url) {
                               <img
@@ -223,7 +227,7 @@ import { MenuItem } from 'primeng/api';
                           </div>
                           <div>
                             <p
-                              class="text-sm font-medium text-gray-900 flex items-center gap-2"
+                              class="text-sm font-medium text-[var(--card-foreground)] flex items-center gap-2"
                             >
                               {{ user.display_name }}
                               @if (!user.email_verified) {
@@ -234,7 +238,7 @@ import { MenuItem } from 'primeng/api';
                                 </span>
                               }
                             </p>
-                            <p class="text-sm text-gray-500">
+                            <p class="text-sm text-[var(--muted-foreground)]">
                               {{ user.email }}
                             </p>
                           </div>
@@ -263,7 +267,7 @@ import { MenuItem } from 'primeng/api';
                       <!-- Workspaces -->
                       <td class="px-6 py-4 whitespace-nowrap">
                         <span
-                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--secondary)] text-[var(--card-foreground)]"
                         >
                           {{ user.workspace_count }} workspace{{
                             user.workspace_count !== 1 ? 's' : ''
@@ -273,7 +277,7 @@ import { MenuItem } from 'primeng/api';
 
                       <!-- Joined -->
                       <td
-                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                        class="px-6 py-4 whitespace-nowrap text-sm text-[var(--muted-foreground)]"
                       >
                         <span
                           [pTooltip]="formatAbsoluteDate(user.created_at)"
@@ -285,7 +289,7 @@ import { MenuItem } from 'primeng/api';
 
                       <!-- Last Active -->
                       <td
-                        class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                        class="px-6 py-4 whitespace-nowrap text-sm text-[var(--muted-foreground)]"
                       >
                         @if (user.last_active_at) {
                           <span
@@ -348,7 +352,7 @@ import { MenuItem } from 'primeng/api';
             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
           />
         </svg>
-        <p class="text-gray-600">
+        <p class="text-[var(--muted-foreground)]">
           Are you sure you want to remove "{{ userToRemove()?.display_name }}"
           ({{ userToRemove()?.email }})? This action cannot be undone and the
           user will lose access to all workspaces.
@@ -592,10 +596,10 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
     const roleColors: Record<string, string> = {
       admin: 'bg-purple-100 text-purple-800',
       manager: 'bg-blue-100 text-blue-800',
-      member: 'bg-gray-100 text-gray-800',
+      member: 'bg-[var(--secondary)] text-[var(--card-foreground)]',
     };
 
-    return `${baseClasses} ${roleColors[role] || 'bg-gray-100 text-gray-800'}`;
+    return `${baseClasses} ${roleColors[role] || 'bg-[var(--secondary)] text-[var(--card-foreground)]'}`;
   }
 
   formatDate(dateString: string): string {

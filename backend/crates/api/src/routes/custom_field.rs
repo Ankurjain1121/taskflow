@@ -16,17 +16,15 @@ use taskflow_db::models::{BoardCustomField, CustomFieldType, TaskCustomFieldValu
 use taskflow_db::queries::custom_fields::{
     create_custom_field, delete_custom_field, get_task_custom_field_values,
     list_board_custom_fields, set_task_custom_field_values, update_custom_field,
-    CreateCustomFieldInput, CustomFieldQueryError, SetFieldValue,
-    TaskCustomFieldValueWithField, UpdateCustomFieldInput,
+    CreateCustomFieldInput, CustomFieldQueryError, SetFieldValue, TaskCustomFieldValueWithField,
+    UpdateCustomFieldInput,
 };
 
 /// Map CustomFieldQueryError to AppError
 fn map_cf_error(e: CustomFieldQueryError) -> AppError {
     match e {
         CustomFieldQueryError::NotFound => AppError::NotFound("Custom field not found".into()),
-        CustomFieldQueryError::NotBoardMember => {
-            AppError::Forbidden("Not a board member".into())
-        }
+        CustomFieldQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
         CustomFieldQueryError::Database(e) => AppError::SqlxError(e),
     }
 }
@@ -164,13 +162,25 @@ async fn set_task_field_values_handler(
 pub fn custom_field_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Board-scoped custom field routes
-        .route("/boards/{board_id}/custom-fields", get(list_custom_fields_handler))
-        .route("/boards/{board_id}/custom-fields", axum::routing::post(create_custom_field_handler))
+        .route(
+            "/boards/{board_id}/custom-fields",
+            get(list_custom_fields_handler),
+        )
+        .route(
+            "/boards/{board_id}/custom-fields",
+            axum::routing::post(create_custom_field_handler),
+        )
         // Custom field-specific routes
         .route("/custom-fields/{id}", put(update_custom_field_handler))
         .route("/custom-fields/{id}", delete(delete_custom_field_handler))
         // Task-scoped custom field value routes
-        .route("/tasks/{task_id}/custom-fields", get(get_task_field_values_handler))
-        .route("/tasks/{task_id}/custom-fields", put(set_task_field_values_handler))
+        .route(
+            "/tasks/{task_id}/custom-fields",
+            get(get_task_field_values_handler),
+        )
+        .route(
+            "/tasks/{task_id}/custom-fields",
+            put(set_task_field_values_handler),
+        )
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

@@ -16,10 +16,12 @@ interface SampleColumn {
   template: `
     <div class="space-y-6">
       <div class="text-center mb-8">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+        <h2
+          class="text-2xl font-bold text-[var(--card-foreground)] dark:text-white mb-2"
+        >
           Sample Board Preview
         </h2>
-        <p class="text-gray-600 dark:text-gray-400">
+        <p class="text-[var(--muted-foreground)] dark:text-gray-400">
           Generate a sample board with pre-made tasks to explore TaskFlow's
           features.
         </p>
@@ -27,14 +29,15 @@ interface SampleColumn {
 
       <!-- Sample Board Preview -->
       <div
-        class="bg-gray-100 dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700"
+        class="bg-[var(--secondary)] dark:bg-gray-800 rounded-xl p-6 border border-[var(--border)] dark:border-gray-700"
       >
         <div class="flex items-center mb-4">
           <div
             class="w-3 h-3 bg-blue-500 rounded-full mr-2"
             aria-hidden="true"
           ></div>
-          <span class="font-medium text-gray-900 dark:text-white"
+          <span
+            class="font-medium text-[var(--card-foreground)] dark:text-white"
             >Getting Started Board</span
           >
         </div>
@@ -42,7 +45,7 @@ interface SampleColumn {
         <div class="grid grid-cols-4 gap-3">
           @for (column of sampleColumns; track column.name) {
             <div
-              class="bg-white dark:bg-gray-700 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-600"
+              class="bg-[var(--card)] rounded-lg p-3 shadow-sm border border-[var(--border)]"
             >
               <div class="flex items-center justify-between mb-2">
                 <div class="flex items-center">
@@ -51,13 +54,13 @@ interface SampleColumn {
                     [style.background-color]="column.color"
                   ></div>
                   <span
-                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                    class="text-sm font-medium text-[var(--foreground)] dark:text-gray-300"
                   >
                     {{ column.name }}
                   </span>
                 </div>
                 <span
-                  class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded"
+                  class="text-xs text-[var(--muted-foreground)] dark:text-gray-400 bg-[var(--secondary)] dark:bg-gray-600 px-1.5 py-0.5 rounded"
                 >
                   {{ column.taskCount }}
                 </span>
@@ -66,7 +69,7 @@ interface SampleColumn {
               <div class="space-y-2">
                 @for (i of getTaskPlaceholders(column.taskCount); track i) {
                   <div
-                    class="h-8 bg-gray-100 dark:bg-gray-600 rounded animate-pulse"
+                    class="h-8 bg-[var(--secondary)] dark:bg-gray-600 rounded animate-pulse"
                   ></div>
                 }
               </div>
@@ -220,7 +223,7 @@ export class StepSampleBoardComponent {
 
   constructor(
     private router: Router,
-    private onboardingService: OnboardingService
+    private onboardingService: OnboardingService,
   ) {}
 
   getTaskPlaceholders(count: number): number[] {
@@ -243,7 +246,7 @@ export class StepSampleBoardComponent {
         this.isLoading.set(false);
         this.error.set(
           err.error?.message ||
-            'Failed to generate sample board. Please try again.'
+            'Failed to generate sample board. Please try again.',
         );
       },
     });
@@ -262,7 +265,7 @@ export class StepSampleBoardComponent {
         this.isNavigating.set(false);
         this.error.set(
           err.error?.message ||
-            'Failed to complete onboarding. Please try again.'
+            'Failed to complete onboarding. Please try again.',
         );
       },
     });

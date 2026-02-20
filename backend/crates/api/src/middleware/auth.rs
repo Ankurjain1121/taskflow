@@ -6,7 +6,10 @@
 use axum::{
     body::Body,
     extract::State,
-    http::{header::{AUTHORIZATION, COOKIE}, Request, StatusCode},
+    http::{
+        header::{AUTHORIZATION, COOKIE},
+        Request, StatusCode,
+    },
     middleware::Next,
     response::{IntoResponse, Response},
     Json,
@@ -25,6 +28,7 @@ pub struct AuthUser {
     pub user_id: Uuid,
     pub tenant_id: Uuid,
     pub role: UserRole,
+    pub token_id: Uuid,
 }
 
 /// Error response for authentication failures
@@ -86,6 +90,7 @@ pub async fn auth_middleware(
         user_id: claims.sub,
         tenant_id: claims.tenant_id,
         role: claims.role,
+        token_id: claims.token_id.unwrap_or_default(),
     };
     request.extensions_mut().insert(auth_user);
 
@@ -112,6 +117,7 @@ pub async fn optional_auth_middleware(
                 user_id: claims.sub,
                 tenant_id: claims.tenant_id,
                 role: claims.role,
+                token_id: claims.token_id.unwrap_or_default(),
             };
             request.extensions_mut().insert(auth_user);
         }

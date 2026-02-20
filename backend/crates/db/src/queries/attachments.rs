@@ -23,7 +23,7 @@ pub enum AttachmentQueryError {
 }
 
 /// Attachment with uploader information for listing
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, sqlx::FromRow, Serialize, Deserialize)]
 pub struct AttachmentWithUploader {
     pub id: Uuid,
     pub file_name: String,
@@ -39,7 +39,7 @@ pub struct AttachmentWithUploader {
 }
 
 /// Result of deleting an attachment (returns storage_key for MinIO cleanup)
-#[derive(Debug)]
+#[derive(Debug, sqlx::FromRow)]
 pub struct DeletedAttachment {
     pub id: Uuid,
     pub storage_key: String,
@@ -59,21 +59,20 @@ pub async fn create_attachment(
 ) -> Result<Attachment, AttachmentQueryError> {
     let id = Uuid::new_v4();
 
-    let attachment = sqlx::query_as!(
-        Attachment,
+    let attachment = sqlx::query_as::<_, Attachment>(
         r#"
         INSERT INTO attachments (id, file_name, file_size, mime_type, storage_key, task_id, uploaded_by_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING id, file_name, file_size, mime_type, storage_key, task_id, uploaded_by_id, created_at
         "#,
-        id,
-        file_name,
-        file_size,
-        mime_type,
-        storage_key,
-        task_id,
-        uploaded_by_id
     )
+    .bind(id)
+    .bind(file_name)
+    .bind(file_size)
+    .bind(mime_type)
+    .bind(storage_key)
+    .bind(task_id)
+    .bind(uploaded_by_id)
     .fetch_one(pool)
     .await?;
 
@@ -85,8 +84,7 @@ pub async fn list_by_task(
     pool: &PgPool,
     task_id: Uuid,
 ) -> Result<Vec<AttachmentWithUploader>, AttachmentQueryError> {
-    let attachments = sqlx::query_as!(
-        AttachmentWithUploader,
+    let attachments = sqlx::query_as::<_, AttachmentWithUploader>(
         r#"
         SELECT
             a.id,
@@ -104,8 +102,8 @@ pub async fn list_by_task(
         WHERE a.task_id = $1 AND a.deleted_at IS NULL
         ORDER BY a.created_at DESC
         "#,
-        task_id
     )
+    .bind(task_id)
     .fetch_all(pool)
     .await?;
 
@@ -117,15 +115,14 @@ pub async fn get_attachment_by_id(
     pool: &PgPool,
     id: Uuid,
 ) -> Result<Option<Attachment>, AttachmentQueryError> {
-    let attachment = sqlx::query_as!(
-        Attachment,
+    let attachment = sqlx::query_as::<_, Attachment>(
         r#"
         SELECT id, file_name, file_size, mime_type, storage_key, task_id, uploaded_by_id, created_at
         FROM attachments
         WHERE id = $1 AND deleted_at IS NULL
         "#,
-        id
     )
+    .bind(id)
     .fetch_optional(pool)
     .await?;
 
@@ -137,8 +134,7 @@ pub async fn get_attachment_with_uploader(
     pool: &PgPool,
     id: Uuid,
 ) -> Result<Option<AttachmentWithUploader>, AttachmentQueryError> {
-    let attachment = sqlx::query_as!(
-        AttachmentWithUploader,
+    let attachment = sqlx::query_as::<_, AttachmentWithUploader>(
         r#"
         SELECT
             a.id,
@@ -155,8 +151,8 @@ pub async fn get_attachment_with_uploader(
         JOIN users u ON u.id = a.uploaded_by_id
         WHERE a.id = $1 AND a.deleted_at IS NULL
         "#,
-        id
     )
+    .bind(id)
     .fetch_optional(pool)
     .await?;
 
@@ -168,16 +164,15 @@ pub async fn delete_attachment(
     pool: &PgPool,
     id: Uuid,
 ) -> Result<DeletedAttachment, AttachmentQueryError> {
-    let deleted = sqlx::query_as!(
-        DeletedAttachment,
+    let deleted = sqlx::query_as::<_, DeletedAttachment>(
         r#"
         UPDATE attachments
         SET deleted_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
         RETURNING id, storage_key, task_id, file_name
         "#,
-        id
     )
+    .bind(id)
     .fetch_optional(pool)
     .await?
     .ok_or(AttachmentQueryError::NotFound)?;
@@ -193,25 +188,25 @@ pub async fn verify_task_board_membership(
     task_id: Uuid,
     user_id: Uuid,
 ) -> Result<(bool, Option<Uuid>), sqlx::Error> {
-    let result = sqlx::query!(
+    let result: Option<(Uuid, bool)> = sqlx::query_as(
         r#"
         SELECT
             t.board_id,
             EXISTS(
                 SELECT 1 FROM board_members bm
                 WHERE bm.board_id = t.board_id AND bm.user_id = $2
-            ) as "is_member!"
+            )
         FROM tasks t
         WHERE t.id = $1 AND t.deleted_at IS NULL
         "#,
-        task_id,
-        user_id
     )
+    .bind(task_id)
+    .bind(user_id)
     .fetch_optional(pool)
     .await?;
 
     match result {
-        Some(r) => Ok((r.is_member, Some(r.board_id))),
+        Some((board_id, is_member)) => Ok((is_member, Some(board_id))),
         None => Ok((false, None)),
     }
 }
@@ -223,16 +218,16 @@ pub async fn can_delete_attachment(
     user_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
     // Check if user is the uploader
-    let is_uploader = sqlx::query_scalar!(
+    let (is_uploader,): (bool,) = sqlx::query_as(
         r#"
         SELECT EXISTS(
             SELECT 1 FROM attachments
             WHERE id = $1 AND uploaded_by_id = $2 AND deleted_at IS NULL
-        ) as "exists!"
+        )
         "#,
-        attachment_id,
-        user_id
     )
+    .bind(attachment_id)
+    .bind(user_id)
     .fetch_one(pool)
     .await?;
 
@@ -241,15 +236,15 @@ pub async fn can_delete_attachment(
     }
 
     // Check if user is admin or manager
-    let is_admin_or_manager = sqlx::query_scalar!(
+    let (is_admin_or_manager,): (bool,) = sqlx::query_as(
         r#"
         SELECT EXISTS(
             SELECT 1 FROM users
             WHERE id = $1 AND role IN ('admin', 'manager')
-        ) as "exists!"
+        )
         "#,
-        user_id
     )
+    .bind(user_id)
     .fetch_one(pool)
     .await?;
 

@@ -17,10 +17,10 @@ use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 use taskflow_db::queries::dashboard::{
-    get_dashboard_stats, get_recent_activity, get_tasks_by_status, get_tasks_by_priority,
-    get_overdue_tasks, get_completion_trend, get_upcoming_deadlines,
-    DashboardActivityEntry, DashboardStats, TasksByStatus, TasksByPriority,
-    OverdueTask, CompletionTrendPoint, UpcomingDeadline,
+    get_completion_trend, get_dashboard_stats, get_overdue_tasks, get_recent_activity,
+    get_tasks_by_priority, get_tasks_by_status, get_upcoming_deadlines, CompletionTrendPoint,
+    DashboardActivityEntry, DashboardStats, OverdueTask, TasksByPriority, TasksByStatus,
+    UpcomingDeadline,
 };
 
 /// Common workspace filter applied to all dashboard endpoints
@@ -118,7 +118,8 @@ async fn get_overdue_tasks_handler(
     tenant: TenantContext,
     Query(query): Query<RecentActivityQuery>,
 ) -> Result<Json<Vec<OverdueTask>>> {
-    let data = get_overdue_tasks(&state.db, tenant.user_id, query.limit, query.workspace_id).await?;
+    let data =
+        get_overdue_tasks(&state.db, tenant.user_id, query.limit, query.workspace_id).await?;
     Ok(Json(data))
 }
 
@@ -128,7 +129,8 @@ async fn get_completion_trend_handler(
     tenant: TenantContext,
     Query(query): Query<TrendQuery>,
 ) -> Result<Json<Vec<CompletionTrendPoint>>> {
-    let data = get_completion_trend(&state.db, tenant.user_id, query.days, query.workspace_id).await?;
+    let data =
+        get_completion_trend(&state.db, tenant.user_id, query.days, query.workspace_id).await?;
     Ok(Json(data))
 }
 
@@ -138,7 +140,8 @@ async fn get_upcoming_deadlines_handler(
     tenant: TenantContext,
     Query(query): Query<DeadlinesQuery>,
 ) -> Result<Json<Vec<UpcomingDeadline>>> {
-    let data = get_upcoming_deadlines(&state.db, tenant.user_id, query.days, query.workspace_id).await?;
+    let data =
+        get_upcoming_deadlines(&state.db, tenant.user_id, query.days, query.workspace_id).await?;
     Ok(Json(data))
 }
 

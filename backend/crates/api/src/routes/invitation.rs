@@ -157,16 +157,19 @@ pub async fn create_handler(
 
     // Check if user already exists with this email
     if let Some(_existing) = auth::get_user_by_email(&state.db, &payload.email).await? {
-        return Err(AppError::Conflict("User with this email already exists".into()));
+        return Err(AppError::Conflict(
+            "User with this email already exists".into(),
+        ));
     }
 
     // Set expiry to 7 days from now
     let expires_at = Utc::now() + Duration::days(7);
 
     // Convert board_ids to JSON value if present
-    let board_ids_json = payload.board_ids.as_ref().map(|ids| {
-        serde_json::to_value(ids).unwrap_or(serde_json::Value::Null)
-    });
+    let board_ids_json = payload
+        .board_ids
+        .as_ref()
+        .map(|ids| serde_json::to_value(ids).unwrap_or(serde_json::Value::Null));
 
     // Create the invitation
     let invitation = invitations::create_invitation_with_details(
@@ -234,7 +237,9 @@ pub async fn accept_handler(
         return Err(AppError::BadRequest("Name is required".into()));
     }
     if payload.password.len() < 8 {
-        return Err(AppError::BadRequest("Password must be at least 8 characters".into()));
+        return Err(AppError::BadRequest(
+            "Password must be at least 8 characters".into(),
+        ));
     }
 
     // Get the invitation
@@ -244,7 +249,9 @@ pub async fn accept_handler(
 
     // Check if already accepted
     if invitation.accepted_at.is_some() {
-        return Err(AppError::BadRequest("Invitation has already been accepted".into()));
+        return Err(AppError::BadRequest(
+            "Invitation has already been accepted".into(),
+        ));
     }
 
     // Check if expired
@@ -253,8 +260,13 @@ pub async fn accept_handler(
     }
 
     // Check if user already exists
-    if auth::get_user_by_email(&state.db, &invitation.email).await?.is_some() {
-        return Err(AppError::Conflict("User with this email already exists".into()));
+    if auth::get_user_by_email(&state.db, &invitation.email)
+        .await?
+        .is_some()
+    {
+        return Err(AppError::Conflict(
+            "User with this email already exists".into(),
+        ));
     }
 
     // Get the tenant ID from the workspace
@@ -275,7 +287,7 @@ pub async fn accept_handler(
         INSERT INTO users (id, email, name, password_hash, role, tenant_id, onboarding_completed, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, false, NOW(), NOW())
         RETURNING id, email, name, password_hash, avatar_url, phone_number, role,
-                  tenant_id, onboarding_completed, deleted_at, created_at, updated_at
+                  tenant_id, onboarding_completed, last_login_at, deleted_at, created_at, updated_at
         "#,
     )
     .bind(Uuid::new_v4())
@@ -313,13 +325,8 @@ pub async fn accept_handler(
 
     // Create refresh token
     let refresh_expiry = Utc::now() + Duration::seconds(state.config.jwt_refresh_expiry_secs);
-    let token_id = auth::create_refresh_token(
-        &state.db,
-        user.id,
-        "pending",
-        refresh_expiry,
-    )
-    .await?;
+    let token_id =
+        auth::create_refresh_token(&state.db, user.id, "pending", refresh_expiry).await?;
 
     // Issue tokens
     let tokens = issue_tokens(
@@ -370,7 +377,8 @@ pub async fn list_handler(
     Query(query): Query<ListInvitationsQuery>,
 ) -> Result<Json<Vec<InvitationResponse>>> {
     // Verify the user is a member of the requested workspace
-    let is_member = workspaces::is_workspace_member(&state.db, query.workspace_id, auth.0.user_id).await?;
+    let is_member =
+        workspaces::is_workspace_member(&state.db, query.workspace_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
@@ -391,11 +399,15 @@ pub async fn bulk_create_handler(
     Json(payload): Json<BulkCreateInvitationRequest>,
 ) -> Result<Json<BulkCreateInvitationResponse>> {
     if payload.emails.is_empty() {
-        return Err(AppError::BadRequest("At least one email is required".into()));
+        return Err(AppError::BadRequest(
+            "At least one email is required".into(),
+        ));
     }
 
     if payload.emails.len() > 50 {
-        return Err(AppError::BadRequest("Cannot invite more than 50 emails at once".into()));
+        return Err(AppError::BadRequest(
+            "Cannot invite more than 50 emails at once".into(),
+        ));
     }
 
     let expires_at = Utc::now() + Duration::days(7);
@@ -403,9 +415,10 @@ pub async fn bulk_create_handler(
     let mut errors = Vec::new();
 
     // Convert board_ids to a JSON value if present
-    let board_ids_json = payload.board_ids.as_ref().map(|ids| {
-        serde_json::to_value(ids).unwrap_or(serde_json::Value::Null)
-    });
+    let board_ids_json = payload
+        .board_ids
+        .as_ref()
+        .map(|ids| serde_json::to_value(ids).unwrap_or(serde_json::Value::Null));
 
     for raw_email in &payload.emails {
         let email = raw_email.trim().to_lowercase();
@@ -439,7 +452,9 @@ pub async fn bulk_create_handler(
         }
 
         // Check if a pending invitation already exists
-        match invitations::get_pending_invitation_by_email(&state.db, &email, payload.workspace_id).await {
+        match invitations::get_pending_invitation_by_email(&state.db, &email, payload.workspace_id)
+            .await
+        {
             Ok(Some(_)) => {
                 errors.push(BulkInvitationError {
                     email: email.clone(),
@@ -495,7 +510,8 @@ pub async fn list_all_handler(
     Query(query): Query<ListInvitationsQuery>,
 ) -> Result<Json<Vec<InvitationWithStatusResponse>>> {
     // Verify workspace membership
-    let is_member = workspaces::is_workspace_member(&state.db, query.workspace_id, auth.0.user_id).await?;
+    let is_member =
+        workspaces::is_workspace_member(&state.db, query.workspace_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
@@ -545,7 +561,8 @@ pub async fn delete_handler(
     let invitation = invitations::get_invitation_by_id(&state.db, id)
         .await?
         .ok_or_else(|| AppError::NotFound("Invitation not found".into()))?;
-    let is_member = workspaces::is_workspace_member(&state.db, invitation.workspace_id, auth.0.user_id).await?;
+    let is_member =
+        workspaces::is_workspace_member(&state.db, invitation.workspace_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
@@ -553,7 +570,9 @@ pub async fn delete_handler(
     let deleted = invitations::delete_invitation(&state.db, id).await?;
 
     if !deleted {
-        return Err(AppError::NotFound("Invitation not found or already accepted".into()));
+        return Err(AppError::NotFound(
+            "Invitation not found or already accepted".into(),
+        ));
     }
 
     Ok(Json(serde_json::json!({ "success": true })))
@@ -572,7 +591,8 @@ pub async fn resend_handler(
     let inv = invitations::get_invitation_by_id(&state.db, id)
         .await?
         .ok_or_else(|| AppError::NotFound("Invitation not found".into()))?;
-    let is_member = workspaces::is_workspace_member(&state.db, inv.workspace_id, auth.0.user_id).await?;
+    let is_member =
+        workspaces::is_workspace_member(&state.db, inv.workspace_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }

@@ -10,9 +10,11 @@ const JWT_AUDIENCE: &str = "taskflow-api";
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
-    pub sub: Uuid,        // user_id
+    pub sub: Uuid, // user_id
     pub tenant_id: Uuid,
     pub role: UserRole,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token_id: Option<Uuid>, // refresh_token row id (for session identification)
     pub exp: i64,
     pub iat: i64,
     pub iss: String,
@@ -21,8 +23,8 @@ pub struct Claims {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RefreshClaims {
-    pub sub: Uuid,        // user_id
-    pub token_id: Uuid,   // refresh_token row id
+    pub sub: Uuid,      // user_id
+    pub token_id: Uuid, // refresh_token row id
     pub exp: i64,
     pub iat: i64,
     pub iss: String,
@@ -53,24 +55,20 @@ impl JwtKeys {
         rsa_public_key: Option<&str>,
     ) -> Result<Self, jsonwebtoken::errors::Error> {
         match (rsa_private_key, rsa_public_key) {
-            (Some(private_pem), Some(public_pem)) => {
-                Ok(Self {
-                    access_encoding: EncodingKey::from_rsa_pem(private_pem.as_bytes())?,
-                    access_decoding: DecodingKey::from_rsa_pem(public_pem.as_bytes())?,
-                    refresh_encoding: EncodingKey::from_rsa_pem(private_pem.as_bytes())?,
-                    refresh_decoding: DecodingKey::from_rsa_pem(public_pem.as_bytes())?,
-                    algorithm: Algorithm::RS256,
-                })
-            }
-            _ => {
-                Ok(Self {
-                    access_encoding: EncodingKey::from_secret(jwt_secret.as_bytes()),
-                    access_decoding: DecodingKey::from_secret(jwt_secret.as_bytes()),
-                    refresh_encoding: EncodingKey::from_secret(jwt_refresh_secret.as_bytes()),
-                    refresh_decoding: DecodingKey::from_secret(jwt_refresh_secret.as_bytes()),
-                    algorithm: Algorithm::HS256,
-                })
-            }
+            (Some(private_pem), Some(public_pem)) => Ok(Self {
+                access_encoding: EncodingKey::from_rsa_pem(private_pem.as_bytes())?,
+                access_decoding: DecodingKey::from_rsa_pem(public_pem.as_bytes())?,
+                refresh_encoding: EncodingKey::from_rsa_pem(private_pem.as_bytes())?,
+                refresh_decoding: DecodingKey::from_rsa_pem(public_pem.as_bytes())?,
+                algorithm: Algorithm::RS256,
+            }),
+            _ => Ok(Self {
+                access_encoding: EncodingKey::from_secret(jwt_secret.as_bytes()),
+                access_decoding: DecodingKey::from_secret(jwt_secret.as_bytes()),
+                refresh_encoding: EncodingKey::from_secret(jwt_refresh_secret.as_bytes()),
+                refresh_decoding: DecodingKey::from_secret(jwt_refresh_secret.as_bytes()),
+                algorithm: Algorithm::HS256,
+            }),
         }
     }
 }
@@ -100,6 +98,7 @@ pub fn issue_tokens(
         sub: user_id,
         tenant_id,
         role,
+        token_id: Some(refresh_token_id),
         iat: now.timestamp(),
         exp: (now + Duration::seconds(access_expiry_secs)).timestamp(),
         iss: JWT_ISSUER.to_string(),
@@ -117,17 +116,9 @@ pub fn issue_tokens(
 
     let header = Header::new(keys.algorithm);
 
-    let access_token = encode(
-        &header,
-        &access_claims,
-        &keys.access_encoding,
-    )?;
+    let access_token = encode(&header, &access_claims, &keys.access_encoding)?;
 
-    let refresh_token = encode(
-        &header,
-        &refresh_claims,
-        &keys.refresh_encoding,
-    )?;
+    let refresh_token = encode(&header, &refresh_claims, &keys.refresh_encoding)?;
 
     Ok(TokenPair {
         access_token,
@@ -141,11 +132,7 @@ pub fn verify_access_token(
     keys: &JwtKeys,
 ) -> Result<Claims, jsonwebtoken::errors::Error> {
     let validation = build_validation(keys.algorithm);
-    let token_data = decode::<Claims>(
-        token,
-        &keys.access_decoding,
-        &validation,
-    )?;
+    let token_data = decode::<Claims>(token, &keys.access_decoding, &validation)?;
     Ok(token_data.claims)
 }
 
@@ -155,11 +142,7 @@ pub fn verify_refresh_token(
     keys: &JwtKeys,
 ) -> Result<RefreshClaims, jsonwebtoken::errors::Error> {
     let validation = build_validation(keys.algorithm);
-    let token_data = decode::<RefreshClaims>(
-        token,
-        &keys.refresh_decoding,
-        &validation,
-    )?;
+    let token_data = decode::<RefreshClaims>(token, &keys.refresh_decoding, &validation)?;
     Ok(token_data.claims)
 }
 
@@ -169,13 +152,7 @@ mod tests {
 
     #[test]
     fn test_issue_and_verify_tokens_hs256() {
-        let keys = JwtKeys::from_config(
-            "test-secret",
-            "test-refresh-secret",
-            None,
-            None,
-        )
-        .unwrap();
+        let keys = JwtKeys::from_config("test-secret", "test-refresh-secret", None, None).unwrap();
 
         let user_id = Uuid::new_v4();
         let tenant_id = Uuid::new_v4();
@@ -208,13 +185,7 @@ mod tests {
 
     #[test]
     fn test_expired_access_token() {
-        let keys = JwtKeys::from_config(
-            "test-secret",
-            "test-refresh-secret",
-            None,
-            None,
-        )
-        .unwrap();
+        let keys = JwtKeys::from_config("test-secret", "test-refresh-secret", None, None).unwrap();
 
         let pair = issue_tokens(
             Uuid::new_v4(),
@@ -228,26 +199,19 @@ mod tests {
         .unwrap();
 
         let result = verify_access_token(&pair.access_token, &keys);
-        assert!(result.is_err(), "Expired access token should fail verification");
+        assert!(
+            result.is_err(),
+            "Expired access token should fail verification"
+        );
     }
 
     #[test]
     fn test_wrong_secret_fails() {
-        let keys_issue = JwtKeys::from_config(
-            "secret-one",
-            "refresh-secret-one",
-            None,
-            None,
-        )
-        .unwrap();
+        let keys_issue =
+            JwtKeys::from_config("secret-one", "refresh-secret-one", None, None).unwrap();
 
-        let keys_verify = JwtKeys::from_config(
-            "secret-two",
-            "refresh-secret-two",
-            None,
-            None,
-        )
-        .unwrap();
+        let keys_verify =
+            JwtKeys::from_config("secret-two", "refresh-secret-two", None, None).unwrap();
 
         let pair = issue_tokens(
             Uuid::new_v4(),
@@ -261,21 +225,21 @@ mod tests {
         .unwrap();
 
         let access_result = verify_access_token(&pair.access_token, &keys_verify);
-        assert!(access_result.is_err(), "Access token signed with different secret should fail");
+        assert!(
+            access_result.is_err(),
+            "Access token signed with different secret should fail"
+        );
 
         let refresh_result = verify_refresh_token(&pair.refresh_token, &keys_verify);
-        assert!(refresh_result.is_err(), "Refresh token signed with different secret should fail");
+        assert!(
+            refresh_result.is_err(),
+            "Refresh token signed with different secret should fail"
+        );
     }
 
     #[test]
     fn test_refresh_token_verification() {
-        let keys = JwtKeys::from_config(
-            "test-secret",
-            "test-refresh-secret",
-            None,
-            None,
-        )
-        .unwrap();
+        let keys = JwtKeys::from_config("test-secret", "test-refresh-secret", None, None).unwrap();
 
         let user_id = Uuid::new_v4();
         let token_id = Uuid::new_v4();
@@ -292,21 +256,21 @@ mod tests {
         .unwrap();
 
         let refresh_claims = verify_refresh_token(&pair.refresh_token, &keys).unwrap();
-        assert_eq!(refresh_claims.sub, user_id, "Refresh token sub should match user_id");
-        assert_eq!(refresh_claims.token_id, token_id, "Refresh token token_id should match");
+        assert_eq!(
+            refresh_claims.sub, user_id,
+            "Refresh token sub should match user_id"
+        );
+        assert_eq!(
+            refresh_claims.token_id, token_id,
+            "Refresh token token_id should match"
+        );
         assert_eq!(refresh_claims.iss, "taskflow");
         assert_eq!(refresh_claims.aud, "taskflow-api");
     }
 
     #[test]
     fn test_access_token_wrong_audience() {
-        let keys = JwtKeys::from_config(
-            "test-secret",
-            "test-refresh-secret",
-            None,
-            None,
-        )
-        .unwrap();
+        let keys = JwtKeys::from_config("test-secret", "test-refresh-secret", None, None).unwrap();
 
         // Manually craft a token with wrong audience
         let now = Utc::now();
@@ -314,6 +278,7 @@ mod tests {
             sub: Uuid::new_v4(),
             tenant_id: Uuid::new_v4(),
             role: UserRole::Member,
+            token_id: None,
             iat: now.timestamp(),
             exp: (now + Duration::seconds(900)).timestamp(),
             iss: "taskflow".to_string(),
@@ -324,18 +289,15 @@ mod tests {
         let token = encode(&header, &bad_claims, &keys.access_encoding).unwrap();
 
         let result = verify_access_token(&token, &keys);
-        assert!(result.is_err(), "Token with wrong audience should fail verification");
+        assert!(
+            result.is_err(),
+            "Token with wrong audience should fail verification"
+        );
     }
 
     #[test]
     fn test_claims_contain_correct_role() {
-        let keys = JwtKeys::from_config(
-            "test-secret",
-            "test-refresh-secret",
-            None,
-            None,
-        )
-        .unwrap();
+        let keys = JwtKeys::from_config("test-secret", "test-refresh-secret", None, None).unwrap();
 
         for role in [UserRole::Admin, UserRole::Manager, UserRole::Member] {
             let pair = issue_tokens(
@@ -350,19 +312,17 @@ mod tests {
             .unwrap();
 
             let claims = verify_access_token(&pair.access_token, &keys).unwrap();
-            assert_eq!(claims.role, role, "Token claims should contain role {:?}", role);
+            assert_eq!(
+                claims.role, role,
+                "Token claims should contain role {:?}",
+                role
+            );
         }
     }
 
     #[test]
     fn test_issue_tokens_returns_different_access_and_refresh() {
-        let keys = JwtKeys::from_config(
-            "test-secret",
-            "test-refresh-secret",
-            None,
-            None,
-        )
-        .unwrap();
+        let keys = JwtKeys::from_config("test-secret", "test-refresh-secret", None, None).unwrap();
 
         let pair = issue_tokens(
             Uuid::new_v4(),

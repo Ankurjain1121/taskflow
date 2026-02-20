@@ -304,7 +304,7 @@ export class ActivityTimelineComponent implements OnDestroy {
       case 'moved':
         return 'bg-purple-500';
       case 'assigned':
-        return 'bg-indigo-500';
+        return 'bg-primary';
       case 'unassigned':
         return 'bg-orange-500';
       case 'commented':

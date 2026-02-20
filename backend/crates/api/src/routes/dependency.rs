@@ -13,7 +13,8 @@ use crate::middleware::auth_middleware;
 use crate::state::AppState;
 use taskflow_db::queries::dependencies::{
     check_blockers, create_dependency, delete_dependency, get_board_dependencies,
-    list_dependencies, BlockerInfo, CreateDependencyInput, DependencyQueryError, DependencyWithTask,
+    list_dependencies, BlockerInfo, CreateDependencyInput, DependencyQueryError,
+    DependencyWithTask,
 };
 use taskflow_db::queries::get_task_board_id;
 
@@ -51,9 +52,7 @@ async fn verify_task_board_membership(
 fn map_dep_error(e: DependencyQueryError) -> AppError {
     match e {
         DependencyQueryError::NotFound => AppError::NotFound("Dependency not found".into()),
-        DependencyQueryError::NotBoardMember => {
-            AppError::Forbidden("Not a board member".into())
-        }
+        DependencyQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
         DependencyQueryError::CircularDependency => {
             AppError::BadRequest("Circular dependency detected".into())
         }
@@ -101,15 +100,14 @@ async fn delete_dependency_handler(
     Path(dep_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>> {
     // Look up the dependency's source task to verify board membership
-    let source_task_id: Option<Uuid> = sqlx::query_scalar(
-        "SELECT source_task_id FROM task_dependencies WHERE id = $1",
-    )
-    .bind(dep_id)
-    .fetch_optional(&state.db)
-    .await?;
+    let source_task_id: Option<Uuid> =
+        sqlx::query_scalar("SELECT source_task_id FROM task_dependencies WHERE id = $1")
+            .bind(dep_id)
+            .fetch_optional(&state.db)
+            .await?;
 
-    let source_task_id = source_task_id
-        .ok_or_else(|| AppError::NotFound("Dependency not found".into()))?;
+    let source_task_id =
+        source_task_id.ok_or_else(|| AppError::NotFound("Dependency not found".into()))?;
 
     verify_task_board_membership(&state, source_task_id, tenant.user_id).await?;
 
@@ -155,12 +153,21 @@ async fn board_dependencies_handler(
 pub fn dependency_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Task-scoped dependency routes
-        .route("/tasks/{task_id}/dependencies", get(list_dependencies_handler))
-        .route("/tasks/{task_id}/dependencies", post(create_dependency_handler))
+        .route(
+            "/tasks/{task_id}/dependencies",
+            get(list_dependencies_handler),
+        )
+        .route(
+            "/tasks/{task_id}/dependencies",
+            post(create_dependency_handler),
+        )
         .route("/tasks/{task_id}/blockers", get(check_blockers_handler))
         // Dependency-specific routes
         .route("/dependencies/{id}", delete(delete_dependency_handler))
         // Board-level dependency routes
-        .route("/boards/{board_id}/dependencies", get(board_dependencies_handler))
+        .route(
+            "/boards/{board_id}/dependencies",
+            get(board_dependencies_handler),
+        )
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

@@ -48,7 +48,7 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
           [pTooltip]="
             groupData().group.collapsed ? 'Expand group' : 'Collapse group'
           "
-          class="text-gray-600 hover:text-gray-900"
+          class="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
         >
           <i
             [class]="
@@ -67,7 +67,7 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
             (blur)="saveNameEdit()"
             (keydown.enter)="saveNameEdit()"
             (keydown.escape)="cancelNameEdit()"
-            class="px-2 py-1 text-sm font-semibold border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            class="px-2 py-1 text-sm font-semibold border border-[var(--border)] rounded focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
             [style.color]="groupData().group.color"
             autofocus
           />
@@ -82,8 +82,10 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
         }
 
         <!-- Stats badge -->
-        <div class="flex items-center gap-2 text-xs text-gray-600">
-          <span class="px-2 py-0.5 bg-gray-100 rounded-full">
+        <div
+          class="flex items-center gap-2 text-xs text-[var(--muted-foreground)]"
+        >
+          <span class="px-2 py-0.5 bg-[var(--secondary)] rounded-full">
             {{ groupData().completed_count }} / {{ groupData().task_count }}
           </span>
           @if (
@@ -91,7 +93,7 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
             groupData().estimated_hours! > 0
           ) {
             <span
-              class="px-2 py-0.5 bg-gray-100 rounded-full flex items-center gap-1"
+              class="px-2 py-0.5 bg-[var(--secondary)] rounded-full flex items-center gap-1"
             >
               <i class="pi pi-clock" style="font-size: 0.75rem"></i>
               {{ groupData().estimated_hours!.toFixed(1) }}h
@@ -100,16 +102,7 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
           <!-- Progress percentage -->
           <span
             class="px-2 py-0.5 rounded-full font-medium"
-            [class.bg-green-100]="completionPercentage() === 100"
-            [class.text-green-700]="completionPercentage() === 100"
-            [class.bg-blue-100]="
-              completionPercentage() > 0 && completionPercentage() < 100
-            "
-            [class.text-blue-700]="
-              completionPercentage() > 0 && completionPercentage() < 100
-            "
-            [class.bg-gray-100]="completionPercentage() === 0"
-            [class.text-gray-600]="completionPercentage() === 0"
+            [ngClass]="completionBadgeClass()"
           >
             {{ completionPercentage() }}%
           </span>
@@ -125,7 +118,7 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
           [text]="true"
           pTooltip="Change color"
           (click)="colorPopover.toggle($event)"
-          class="text-gray-600 hover:text-gray-900"
+          class="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
         >
           <i class="pi pi-palette"></i>
         </button>
@@ -137,7 +130,7 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
           [text]="true"
           pTooltip="More options"
           (click)="moreMenu.toggle($event)"
-          class="text-gray-600 hover:text-gray-900"
+          class="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
         >
           <i class="pi pi-ellipsis-v"></i>
         </button>
@@ -147,7 +140,9 @@ import { TaskGroupWithStats } from '../../../core/services/task-group.service';
     <!-- Color popover -->
     <p-popover #colorPopover>
       <div class="px-4 py-2">
-        <div class="text-xs font-medium text-gray-500 mb-2">GROUP COLOR</div>
+        <div class="text-xs font-medium text-[var(--muted-foreground)] mb-2">
+          GROUP COLOR
+        </div>
         <div class="grid grid-cols-6 gap-2">
           @for (color of predefinedColors; track color) {
             <button
@@ -225,6 +220,15 @@ export class TaskGroupHeaderComponent {
   ];
 
   // Computed
+  completionBadgeClass(): string {
+    const pct = this.completionPercentage();
+    if (pct === 100)
+      return 'bg-[var(--status-green-bg)] text-[var(--status-green-text)]';
+    if (pct > 0)
+      return 'bg-[var(--status-blue-bg)] text-[var(--status-blue-text)]';
+    return 'bg-[var(--secondary)] text-[var(--muted-foreground)]';
+  }
+
   completionPercentage = () => {
     const total = this.groupData().task_count;
     if (total === 0) return 0;

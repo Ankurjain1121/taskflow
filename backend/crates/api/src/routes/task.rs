@@ -234,7 +234,10 @@ async fn create_task_handler(
         origin_user_id: tenant.user_id,
     };
 
-    if let Err(e) = broadcast_service.broadcast_board_event(board_id, &event).await {
+    if let Err(e) = broadcast_service
+        .broadcast_board_event(board_id, &event)
+        .await
+    {
         tracing::error!("Failed to broadcast task created event: {}", e);
     }
 
@@ -324,7 +327,10 @@ async fn update_task_handler(
         origin_user_id: tenant.user_id,
     };
 
-    if let Err(e) = broadcast_service.broadcast_board_event(board_id, &event).await {
+    if let Err(e) = broadcast_service
+        .broadcast_board_event(board_id, &event)
+        .await
+    {
         tracing::error!("Failed to broadcast task updated event: {}", e);
     }
 
@@ -389,7 +395,10 @@ async fn delete_task_handler(
         origin_user_id: tenant.user_id,
     };
 
-    if let Err(e) = broadcast_service.broadcast_board_event(board_id, &event).await {
+    if let Err(e) = broadcast_service
+        .broadcast_board_event(board_id, &event)
+        .await
+    {
         tracing::error!("Failed to broadcast task deleted event: {}", e);
     }
 
@@ -463,13 +472,18 @@ async fn move_task_handler(
         origin_user_id: tenant.user_id,
     };
 
-    if let Err(e) = broadcast_service.broadcast_board_event(board_id, &event).await {
+    if let Err(e) = broadcast_service
+        .broadcast_board_event(board_id, &event)
+        .await
+    {
         tracing::error!("Failed to broadcast task moved event: {}", e);
     }
 
     // Broadcast workspace update for team overview (task move can change status)
     if let Ok(Some(workspace_id)) = get_workspace_id_for_board(&state.db, board_id).await {
-        let assignee_ids = get_task_assignee_ids(&state.db, task_id).await.unwrap_or_default();
+        let assignee_ids = get_task_assignee_ids(&state.db, task_id)
+            .await
+            .unwrap_or_default();
         broadcast_workspace_task_update(
             &broadcast_service,
             workspace_id,
@@ -576,7 +590,10 @@ async fn assign_user_handler(
         origin_user_id: tenant.user_id,
     };
 
-    if let Err(e) = broadcast_service.broadcast_board_event(board_id, &event).await {
+    if let Err(e) = broadcast_service
+        .broadcast_board_event(board_id, &event)
+        .await
+    {
         tracing::error!("Failed to broadcast task assigned event: {}", e);
     }
 
@@ -683,7 +700,10 @@ async fn unassign_user_handler(
         origin_user_id: tenant.user_id,
     };
 
-    if let Err(e) = broadcast_service.broadcast_board_event(board_id, &event).await {
+    if let Err(e) = broadcast_service
+        .broadcast_board_event(board_id, &event)
+        .await
+    {
         tracing::error!("Failed to broadcast task unassigned event: {}", e);
     }
 
@@ -736,13 +756,14 @@ async fn list_calendar_tasks_handler(
     Path(board_id): Path<Uuid>,
     Query(query): Query<CalendarQuery>,
 ) -> Result<Json<Vec<CalendarTask>>> {
-    let tasks = list_tasks_for_calendar(&state.db, board_id, tenant.user_id, query.start, query.end)
-        .await
-        .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
-            TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
-            TaskQueryError::Database(e) => AppError::SqlxError(e),
-        })?;
+    let tasks =
+        list_tasks_for_calendar(&state.db, board_id, tenant.user_id, query.start, query.end)
+            .await
+            .map_err(|e| match e {
+                TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+                TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
+                TaskQueryError::Database(e) => AppError::SqlxError(e),
+            })?;
     Ok(Json(tasks))
 }
 
@@ -831,11 +852,26 @@ pub fn task_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Board-scoped task routes
         .route("/boards/{board_id}/tasks", get(list_tasks))
-        .route("/boards/{board_id}/tasks/list", get(list_tasks_flat_handler))
-        .route("/boards/{board_id}/tasks/calendar", get(list_calendar_tasks_handler))
-        .route("/boards/{board_id}/tasks/gantt", get(list_gantt_tasks_handler))
-        .route("/boards/{board_id}/tasks/bulk-update", post(bulk_update_handler))
-        .route("/boards/{board_id}/tasks/bulk-delete", post(bulk_delete_handler))
+        .route(
+            "/boards/{board_id}/tasks/list",
+            get(list_tasks_flat_handler),
+        )
+        .route(
+            "/boards/{board_id}/tasks/calendar",
+            get(list_calendar_tasks_handler),
+        )
+        .route(
+            "/boards/{board_id}/tasks/gantt",
+            get(list_gantt_tasks_handler),
+        )
+        .route(
+            "/boards/{board_id}/tasks/bulk-update",
+            post(bulk_update_handler),
+        )
+        .route(
+            "/boards/{board_id}/tasks/bulk-delete",
+            post(bulk_delete_handler),
+        )
         .route("/boards/{board_id}/tasks", post(create_task_handler))
         // Task-specific routes
         .route("/tasks/{id}", get(get_task))

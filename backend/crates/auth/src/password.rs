@@ -34,7 +34,10 @@ mod tests {
     #[test]
     fn test_empty_password() {
         let result = hash_password("");
-        assert!(result.is_ok(), "Argon2 should allow hashing an empty password");
+        assert!(
+            result.is_ok(),
+            "Argon2 should allow hashing an empty password"
+        );
         let hash = result.unwrap();
         assert!(verify_password("", &hash).unwrap());
     }
@@ -62,7 +65,10 @@ mod tests {
     fn test_different_passwords_different_hashes() {
         let hash1 = hash_password("password_one").unwrap();
         let hash2 = hash_password("password_two").unwrap();
-        assert_ne!(hash1, hash2, "Different passwords should produce different hashes");
+        assert_ne!(
+            hash1, hash2,
+            "Different passwords should produce different hashes"
+        );
     }
 
     #[test]

@@ -51,7 +51,7 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
         @if (loading()) {
           <div class="flex items-center justify-center py-8">
             <svg
-              class="animate-spin h-6 w-6 text-indigo-600"
+              class="animate-spin h-6 w-6 text-primary"
               fill="none"
               viewBox="0 0 24 24"
             >
@@ -126,7 +126,7 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
                             [style.background-color]="color"
                             [class.ring-2]="column.color === color"
                             [class.ring-offset-1]="column.color === color"
-                            [class.ring-indigo-500]="column.color === color"
+                            [class.ring-ring]="column.color === color"
                           ></button>
                         }
                       </div>
@@ -140,7 +140,7 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
                   [ngModel]="column.name"
                   (ngModelChange)="onNameChange(column, $event)"
                   (blur)="saveName(column)"
-                  class="flex-1 text-sm font-medium bg-transparent border-0 border-b-2 border-transparent focus:border-indigo-500 focus:ring-0 px-1 py-0.5"
+                  class="flex-1 text-sm font-medium bg-transparent border-0 border-b-2 border-transparent focus:border-primary focus:ring-0 px-1 py-0.5"
                   style="color: var(--foreground)"
                 />
 
@@ -268,7 +268,7 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
                           [style.background-color]="color"
                           [class.ring-2]="newColumnColor() === color"
                           [class.ring-offset-1]="newColumnColor() === color"
-                          [class.ring-indigo-500]="newColumnColor() === color"
+                          [class.ring-ring]="newColumnColor() === color"
                         ></button>
                       }
                     </div>
@@ -281,7 +281,7 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
                 [(ngModel)]="newColumnName"
                 name="newColumnName"
                 placeholder="New column name"
-                class="flex-1 text-sm rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                class="flex-1 text-sm rounded-md shadow-sm focus:border-primary focus:ring-ring"
                 style="border-color: var(--border); background: var(--card); color: var(--foreground)"
               />
 
@@ -293,7 +293,7 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
                   type="checkbox"
                   [(ngModel)]="newColumnIsDone"
                   name="newColumnIsDone"
-                  class="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  class="w-4 h-4 text-primary rounded focus:ring-ring"
                   style="border-color: var(--border)"
                 />
                 Done column
@@ -302,7 +302,7 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
               <button
                 type="submit"
                 [disabled]="!newColumnName.trim() || adding()"
-                class="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary hover:brightness-90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 @if (adding()) {
                   <svg

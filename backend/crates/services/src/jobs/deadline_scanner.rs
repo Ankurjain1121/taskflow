@@ -122,7 +122,10 @@ pub async fn scan_deadlines(
 
         for task in tasks_due_soon {
             let hours_until_due = (task.due_date - now).num_hours();
-            let link_url = format!("{}/boards/{}/tasks/{}", app_url, task.board_id, task.task_id);
+            let link_url = format!(
+                "{}/boards/{}/tasks/{}",
+                app_url, task.board_id, task.task_id
+            );
             let body = format!(
                 "Task \"{}\" on board \"{}\" is due in {} hours",
                 task.task_title, task.board_name, hours_until_due
@@ -225,7 +228,10 @@ pub async fn scan_deadlines(
 
         for task in tasks_overdue {
             let days_overdue = (now - task.due_date).num_days();
-            let link_url = format!("{}/boards/{}/tasks/{}", app_url, task.board_id, task.task_id);
+            let link_url = format!(
+                "{}/boards/{}/tasks/{}",
+                app_url, task.board_id, task.task_id
+            );
             let body = format!(
                 "Task \"{}\" on board \"{}\" is {} day(s) overdue",
                 task.task_title,

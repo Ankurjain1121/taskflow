@@ -27,15 +27,10 @@ async fn create_full_test_setup(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid)
     .await
     .expect("create user");
 
-    let workspace = super::workspaces::create_workspace(
-        pool,
-        "Test Workspace",
-        None,
-        user.tenant_id,
-        user.id,
-    )
-    .await
-    .expect("create workspace");
+    let workspace =
+        super::workspaces::create_workspace(pool, "Test Workspace", None, user.tenant_id, user.id)
+            .await
+            .expect("create workspace");
 
     let board = super::boards::create_board(
         pool,
@@ -265,7 +260,10 @@ async fn test_soft_delete_task() {
         .await
         .expect("should not error");
 
-    assert!(fetched.is_none(), "soft-deleted task should not be returned");
+    assert!(
+        fetched.is_none(),
+        "soft-deleted task should not be returned"
+    );
 }
 
 #[tokio::test]
@@ -591,7 +589,10 @@ async fn test_list_notifications() {
         .collect();
 
     assert_eq!(our_ids.len(), 3, "all 3 notifications should appear");
-    assert!(result.unread_count >= 3, "unread count should be at least 3");
+    assert!(
+        result.unread_count >= 3,
+        "unread count should be at least 3"
+    );
 }
 
 #[tokio::test]
@@ -826,10 +827,7 @@ async fn test_toggle_subtask() {
         .expect("toggle_subtask");
 
     assert!(toggled.is_completed, "should be completed after toggle");
-    assert!(
-        toggled.completed_at.is_some(),
-        "completed_at should be set"
-    );
+    assert!(toggled.completed_at.is_some(), "completed_at should be set");
 
     // Toggle back to incomplete
     let toggled_back = super::subtasks::toggle_subtask(&pool, subtask.id)
