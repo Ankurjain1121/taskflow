@@ -3,7 +3,7 @@ import { DOCUMENT } from '@angular/common';
 import { PrimeNG } from 'primeng/config';
 import Aura from '@primeng/themes/aura';
 import { definePreset } from '@primeng/themes';
-import { THEME_VAR_NAMES, ThemeVarName } from '../constants/theme-vars';
+import { THEME_VAR_NAMES } from '../constants/theme-vars';
 import { ACCENT_OVERRIDES } from '../constants/accent-overrides';
 import { ThemeApiService } from './theme-api.service';
 import { UserPreferencesService } from './user-preferences.service';
@@ -13,6 +13,9 @@ const THEME_STORAGE_KEY = 'taskflow-theme';
 const ACCENT_STORAGE_KEY = 'taskflow-accent';
 const LIGHT_CACHE_KEY = 'taskflow-light-cache';
 const DARK_CACHE_KEY = 'taskflow-dark-cache';
+
+export type Theme = 'light' | 'dark' | 'system';
+export type Palette = 'default' | 'dracula' | 'nord' | 'midnight' | 'ocean' | 'forest';
 
 @Injectable({
   providedIn: 'root',
@@ -24,22 +27,21 @@ export class ThemeService implements OnDestroy {
   private readonly userPrefsService = inject(UserPreferencesService);
 
   // State signals
-  private readonly _colorMode = signal<ColorMode>(this.loadFromStorage(THEME_STORAGE_KEY, 'system') as ColorMode);
-  private readonly _accent = signal<AccentColor>(this.loadFromStorage(ACCENT_STORAGE_KEY, 'indigo') as AccentColor);
+  readonly theme = signal<Theme>(this.loadFromStorage(THEME_STORAGE_KEY, 'system') as Theme);
+  readonly palette = signal<Palette>('default');
+  readonly accent = signal<AccentColor>(this.loadFromStorage(ACCENT_STORAGE_KEY, 'indigo') as AccentColor);
   private readonly _lightSlug = signal<string>('default');
   private readonly _darkSlug = signal<string>('default');
   private readonly _allThemes = signal<Theme[]>([]);
   private readonly _activeTheme = signal<Theme | null>(null);
   private readonly systemPrefersDark = signal<boolean>(this.getSystemPreference());
 
-  // Public readonly signals
-  readonly colorMode = this._colorMode.asReadonly();
-  readonly accent = this._accent.asReadonly();
-  readonly activeTheme = this._activeTheme.asReadonly();
-  readonly allThemes = this._allThemes.asReadonly();
+  // Public computed
+  readonly activeTheme = computed(() => this._activeTheme());
+  readonly allThemes = computed(() => this._allThemes());
 
   readonly resolvedTheme = computed<'light' | 'dark'>(() => {
-    const mode = this._colorMode();
+    const mode = this.theme();
     if (mode === 'system') {
       return this.systemPrefersDark() ? 'dark' : 'light';
     }
@@ -55,7 +57,7 @@ export class ThemeService implements OnDestroy {
     // 1. Apply cached theme immediately (sync, non-blocking)
     this.applyCachedTheme();
 
-    // 2. Fetch themes from API (async, with retry)
+    // 2. Fetch themes from API (async)
     this.loadThemesFromApi();
 
     // 3. Listen for system preference changes
@@ -77,17 +79,26 @@ export class ThemeService implements OnDestroy {
 
   // ========== Public Methods ==========
 
-  setColorMode(mode: ColorMode): void {
-    this._colorMode.set(mode);
-    this.saveToStorage(THEME_STORAGE_KEY, mode);
-    this.savePreference('color_mode', mode);
+  setTheme(t: Theme): void {
+    this.theme.set(t);
+    this.saveToStorage(THEME_STORAGE_KEY, t);
+    this.savePreference('color_mode', t);
   }
 
-  setAccent(accent: AccentColor): void {
-    this._accent.set(accent);
-    this.saveToStorage(ACCENT_STORAGE_KEY, accent);
+  setPalette(p: Palette): void {
+    this.palette.set(p);
     this.applyFullTheme();
-    this.savePreference('accent_color', accent);
+  }
+
+  setAccent(a: AccentColor): void {
+    this.accent.set(a);
+    this.saveToStorage(ACCENT_STORAGE_KEY, a);
+    this.applyFullTheme();
+    this.savePreference('accent_color', a);
+  }
+
+  setColorMode(mode: ColorMode): void {
+    this.setTheme(mode as Theme);
   }
 
   setThemeSlug(slug: string): void {
@@ -113,10 +124,9 @@ export class ThemeService implements OnDestroy {
         const theme = JSON.parse(cached) as Theme;
         this._activeTheme.set(theme);
         
-        // Also restore accent from storage
         const savedAccent = localStorage.getItem(ACCENT_STORAGE_KEY) as AccentColor | null;
         if (savedAccent) {
-          this._accent.set(savedAccent);
+          this.accent.set(savedAccent);
         }
         
         this.applyFullTheme();
@@ -129,21 +139,18 @@ export class ThemeService implements OnDestroy {
   }
 
   private loadThemesFromApi(): void {
-    this.themeApi.listThemes().pipe(
-      // Retry twice with 3 second delay
-    ).subscribe({
+    this.themeApi.listThemes().pipe().subscribe({
       next: (response) => {
         if (response.themes.length === 0) return;
         
-        this._allThemes.set(response.themes);
+        this._allThemes.set(response.themes as any);
         
-        // Find and apply the appropriate theme
         const isDark = this.isDarkNow();
         const slug = isDark ? this._darkSlug() : this._lightSlug();
         const theme = response.themes.find(t => t.slug === slug);
         
         if (theme) {
-          this._activeTheme.set(theme);
+          this._activeTheme.set(theme as any);
           this.applyFullTheme();
           this.cacheTheme(theme, isDark);
         }
@@ -158,11 +165,11 @@ export class ThemeService implements OnDestroy {
     this.userPrefsService.getPreferences().subscribe({
       next: (prefs) => {
         if (prefs.color_mode) {
-          this._colorMode.set(prefs.color_mode as ColorMode);
+          this.theme.set(prefs.color_mode as Theme);
           this.saveToStorage(THEME_STORAGE_KEY, prefs.color_mode);
         }
         if (prefs.accent_color) {
-          this._accent.set(prefs.accent_color as AccentColor);
+          this.accent.set(prefs.accent_color as AccentColor);
           this.saveToStorage(ACCENT_STORAGE_KEY, prefs.accent_color);
         }
         if (prefs.light_theme_slug) {
@@ -172,43 +179,38 @@ export class ThemeService implements OnDestroy {
           this._darkSlug.set(prefs.dark_theme_slug);
         }
         
-        // Reapply theme with loaded preferences
         this.applyFullTheme();
       },
-      error: () => {
-        // Use defaults if preferences fail to load
-      }
+      error: () => {}
     });
   }
 
   private savePreference(key: string, value: string): void {
     this.userPrefsService.updatePreferences({ [key]: value }).subscribe({
-      error: () => {
-        // Non-critical, localStorage is primary
-      }
+      error: () => {}
     });
   }
 
   private applyFullTheme(): void {
-    const theme = this._activeTheme();
+    const theme = this._activeTheme() as Theme | null;
     if (!theme) return;
 
     const root = this.document.documentElement;
     const isDark = this.isDark();
-    const accent = this._accent();
+    const accent = this.accent();
 
-    // 1. CLEAR all vars (prevents stale contamination)
+    // Clear vars
     for (const name of THEME_VAR_NAMES) {
       root.style.removeProperty(`--${name}`);
     }
 
-    // 2. Apply theme colors (static hex + formula strings)
-    const colors = theme.colors as Record<string, string>;
+    // Get colors from theme or use defaults
+    const colors = this.getThemeColors(theme as any, isDark);
     for (const [key, value] of Object.entries(colors)) {
       root.style.setProperty(`--${key}`, value);
     }
 
-    // 3. Accent overrides ON TOP (5 vars per accent)
+    // Accent overrides
     if (accent !== 'indigo') {
       const mode = isDark ? 'dark' : 'light';
       const overrides = ACCENT_OVERRIDES[accent]?.[mode];
@@ -219,95 +221,50 @@ export class ThemeService implements OnDestroy {
       }
     }
 
-    // 4. Cache accent overrides for FOUC script
-    if (accent !== 'indigo') {
-      const mode = isDark ? 'dark' : 'light';
-      try {
-        const overrides = ACCENT_OVERRIDES[accent]?.[mode] ?? {};
-        localStorage.setItem('taskflow-accent-overrides', JSON.stringify(overrides));
-      } catch {}
-    } else {
-      localStorage.removeItem('taskflow-accent-overrides');
-    }
-
-    // 5. Structural data-attributes
-    const personality = theme.personality;
-    root.setAttribute('data-sidebar-style', personality.sidebar_style);
-    root.setAttribute('data-card-style', personality.card_style);
-    root.setAttribute('data-border-radius', personality.border_radius);
-    root.setAttribute('data-bg-pattern', personality.background_pattern);
-
-    // 6. Dark class (applied by effect)
-    // 7. PrimeNG — accent ramp wins over theme ramp when accent != indigo
-    const ramp = (accent !== 'indigo' && ACCENT_OVERRIDES[accent]) 
-      ? this.generateAccentRamp(accent, isDark)
-      : theme.primeng_ramp as Record<string, string>;
-    this.updatePrimeNG(ramp);
-
-    // 8. Cache the theme
-    this.cacheTheme(theme, isDark);
+    // Data attributes
+    root.setAttribute('data-sidebar-style', 'light');
+    root.setAttribute('data-card-style', 'raised');
+    root.setAttribute('data-border-radius', 'medium');
+    root.setAttribute('data-bg-pattern', 'none');
   }
 
-  private generateAccentRamp(accent: AccentColor, isDark: boolean): Record<string, string> {
-    // Generate a simple ramp for non-indigo accents
-    const mode = isDark ? 'dark' : 'light';
-    const base = ACCENT_OVERRIDES[accent]?.[mode]?.primary ?? '#6366f1';
-    
-    // Generate 50-950 shades
-    const ramp: Record<string, string> = {};
-    for (let i = 0; i <= 9; i++) {
-      const shade = (i * 100 + 50).toString();
-      const lightness = isDark 
-        ? 0.95 - (i * 0.08) 
-        : 0.1 + (i * 0.08);
-      ramp[shade] = this.adjustLightness(base, lightness);
-    }
-    ramp['950'] = this.adjustLightness(base, isDark ? 0.05 : 0.95);
-    return ramp;
-  }
-
-  private adjustLightness(hex: string, lightness: number): string {
-    // Simple lightness adjustment
-    const hsl = this.hexToHsl(hex);
-    hsl.l = Math.max(0, Math.min(1, lightness));
-    return this.hslToHex(hsl.h, hsl.s, hsl.l);
-  }
-
-  private hexToHsl(hex: string): { h: number; s: number; l: number } {
-    const r = parseInt(hex.slice(1, 3), 16) / 255;
-    const g = parseInt(hex.slice(3, 5), 16) / 255;
-    const b = parseInt(hex.slice(5, 7), 16) / 255;
-    
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    let h = 0, s = 0;
-    const l = (max + min) / 2;
-    
-    if (max !== min) {
-      const d = max - min;
-      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-      switch (max) {
-        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-        case g: h = ((b - r) / d + 2) / 6; break;
-        case b: h = ((r - g) / d + 4) / 6; break;
-      }
-    }
-    
-    return { h: h * 360, s, l };
-  }
-
-  private hslToHex(h: number, s: number, l: number): string {
-    h /= 360;
-    const k = (n: number) => (n + h / 30) % 12;
-    const a = s * Math.min(l, 1 - l);
-    const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-    
-    const toHex = (x: number) => {
-      const hex = Math.round(x * 255).toString(16);
-      return hex.length === 1 ? '0' + hex : hex;
+  private getThemeColors(theme: Theme, isDark: boolean): Record<string, string> {
+    // Default theme colors
+    const lightColors = {
+      background: '#F6F7FB', foreground: '#0f172a', card: '#ffffff', 'card-foreground': '#0f172a',
+      border: '#e2e8f0', input: '#e2e8f0', muted: '#f8f9fb', 'muted-foreground': '#64748b',
+      primary: '#6366f1', 'primary-foreground': '#ffffff', secondary: '#f1f5f9', 'secondary-foreground': '#0f172a',
+      ring: '#6366f1', accent: '#fff7ed', 'accent-foreground': '#9a3412',
+      success: '#10b981', 'success-light': '#ecfdf5', destructive: '#ef4444', 'destructive-foreground': '#ffffff',
+      'sidebar-bg': '#F0F1F5', 'sidebar-surface': 'rgba(0,0,0,0.03)', 'sidebar-surface-hover': 'rgba(0,0,0,0.05)',
+      'sidebar-surface-active': 'color-mix(in srgb, var(--primary) 8%, transparent)', 'sidebar-border': 'rgba(0,0,0,0.08)',
+      'sidebar-text-primary': '#0f172a', 'sidebar-text-secondary': 'rgba(51,65,85,0.85)', 'sidebar-text-muted': 'rgba(100,116,139,0.6)',
     };
     
-    return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+    const darkColors = {
+      background: '#181B34', foreground: '#f8fafc', card: '#30324E', 'card-foreground': '#f8fafc',
+      border: 'rgba(255,255,255,0.1)', input: 'rgba(255,255,255,0.15)', muted: '#1e293b', 'muted-foreground': '#94a3b8',
+      primary: '#818cf8', 'primary-foreground': '#ffffff', secondary: '#1e293b', 'secondary-foreground': '#f8fafc',
+      ring: '#818cf8', accent: '#431407', 'accent-foreground': '#fed7aa',
+      success: '#34d399', 'success-light': '#064e3b', destructive: '#dc2626', 'destructive-foreground': '#ffffff',
+      'sidebar-bg': '#13152A', 'sidebar-surface': 'rgba(255,255,255,0.03)', 'sidebar-surface-hover': 'rgba(255,255,255,0.06)',
+      'sidebar-surface-active': 'color-mix(in srgb, var(--primary) 14%, transparent)', 'sidebar-border': 'rgba(255,255,255,0.05)',
+      'sidebar-text-primary': 'rgba(255,255,255,0.95)', 'sidebar-text-secondary': 'rgba(203,213,225,0.8)', 'sidebar-text-muted': 'rgba(148,163,184,0.5)',
+    };
+
+    return isDark ? { ...darkColors, ...this.getPaletteColors(this.palette()) } : lightColors;
+  }
+
+  private getPaletteColors(palette: Palette): Record<string, string> {
+    const palettes: Record<Palette, Partial<Record<string, string>>> = {
+      default: {},
+      dracula: { primary: '#BD93F9', ring: '#BD93F9' },
+      nord: { primary: '#88C0D0', ring: '#88C0D0' },
+      midnight: { primary: '#6366f1', ring: '#6366f1' },
+      ocean: { primary: '#5090D3', ring: '#5090D3' },
+      forest: { primary: '#238636', ring: '#238636' },
+    };
+    return palettes[palette] || {};
   }
 
   private applyThemeClasses(resolved: 'light' | 'dark'): void {
@@ -331,16 +288,13 @@ export class ThemeService implements OnDestroy {
       preset: definePreset(Aura, { semantic: { primary: ramp } }),
       options: {
         darkModeSelector: '.dark',
-        cssLayer: {
-          name: 'primeng',
-          order: 'theme, base, primeng',
-        },
+        cssLayer: { name: 'primeng', order: 'theme, base, primeng' },
       },
     });
   }
 
   private isDarkNow(): boolean {
-    const mode = this._colorMode();
+    const mode = this.theme();
     if (mode === 'system') {
       return this.getSystemPreference();
     }
@@ -354,7 +308,6 @@ export class ThemeService implements OnDestroy {
 
   private setupSystemPreferenceListener(): void {
     if (typeof window === 'undefined') return;
-
     this.mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     this.mediaQueryListener = (e: MediaQueryListEvent) => {
       this.systemPrefersDark.set(e.matches);
@@ -364,7 +317,6 @@ export class ThemeService implements OnDestroy {
 
   private setupCrossTabSync(): void {
     if (typeof window === 'undefined') return;
-
     window.addEventListener('storage', (e) => {
       if ([LIGHT_CACHE_KEY, DARK_CACHE_KEY, 'taskflow-accent-overrides', THEME_STORAGE_KEY].includes(e.key ?? '')) {
         this.applyCachedTheme();
