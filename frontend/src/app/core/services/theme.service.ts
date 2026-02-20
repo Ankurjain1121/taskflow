@@ -73,7 +73,20 @@ export class ThemeService implements OnDestroy {
   private readonly _lightSlug = signal<string>('default');
   private readonly _darkSlug = signal<string>('default');
   private readonly _allThemes = signal<DbTheme[]>([]);
-  private readonly _activeTheme = signal<DbTheme | null>(null);
+  private readonly _cachedTheme = signal<DbTheme | null>(null);
+  private readonly _activeTheme = computed<DbTheme | null>(() => {
+    const themes = this._allThemes();
+    if (themes.length > 0) {
+      const isDark = this.isDark();
+      const slug = isDark ? this._darkSlug() : this._lightSlug();
+      return (
+        themes.find((t) => t.slug === slug) ??
+        themes.find((t) => t.is_dark === isDark) ??
+        null
+      );
+    }
+    return this._cachedTheme();
+  });
   private readonly _saveSubject = new Subject<Record<string, string>>();
   private readonly systemPrefersDark = signal<boolean>(
     this.getSystemPreference(),
@@ -109,9 +122,10 @@ export class ThemeService implements OnDestroy {
     // 4. Listen for cross-tab storage changes
     this.setupCrossTabSync();
 
-    // 5. React to resolved theme changes
+    // 5. React to resolved theme or active theme changes
     effect(() => {
       const resolved = this.resolvedTheme();
+      this._activeTheme(); // track active theme changes (slug or allThemes)
       this.applyThemeClasses(resolved);
       this.applyFullTheme();
     });
@@ -163,7 +177,7 @@ export class ThemeService implements OnDestroy {
     } else {
       this._lightSlug.set(slug);
     }
-    this.applyFullTheme();
+    this.cacheActiveTheme();
     this.savePreference(isDark ? 'dark_theme_slug' : 'light_theme_slug', slug);
   }
 
@@ -177,7 +191,14 @@ export class ThemeService implements OnDestroy {
 
       if (cached) {
         const theme = JSON.parse(cached) as DbTheme;
-        this._activeTheme.set(theme);
+        this._cachedTheme.set(theme);
+
+        // Set slug signals from cache so computed stays consistent
+        if (isDark) {
+          this._darkSlug.set(theme.slug);
+        } else {
+          this._lightSlug.set(theme.slug);
+        }
 
         const savedAccent = localStorage.getItem(
           ACCENT_STORAGE_KEY,
@@ -185,8 +206,6 @@ export class ThemeService implements OnDestroy {
         if (savedAccent) {
           this.accent.set(savedAccent);
         }
-
-        this.applyFullTheme();
       }
     } catch (e) {
       localStorage.removeItem(LIGHT_CACHE_KEY);
@@ -204,18 +223,8 @@ export class ThemeService implements OnDestroy {
       .subscribe({
         next: (response) => {
           if (response.themes.length === 0) return;
-
-          this._allThemes.set(response.themes);
-
-          const isDark = this.isDarkNow();
-          const slug = isDark ? this._darkSlug() : this._lightSlug();
-          const theme = response.themes.find((t) => t.slug === slug);
-
-          if (theme) {
-            this._activeTheme.set(theme);
-            this.applyFullTheme();
-            this.cacheTheme(theme, isDark);
-          }
+          this._allThemes.set(response.themes); // computed auto-recalculates
+          this.cacheActiveTheme();
         },
       });
   }
@@ -237,8 +246,8 @@ export class ThemeService implements OnDestroy {
         if (prefs.dark_theme_slug) {
           this._darkSlug.set(prefs.dark_theme_slug);
         }
-
-        this.applyFullTheme();
+        // effect auto-applies; just cache the resolved theme
+        this.cacheActiveTheme();
       },
       error: () => {},
     });
@@ -400,6 +409,13 @@ export class ThemeService implements OnDestroy {
     try {
       localStorage.setItem(cacheKey, JSON.stringify(theme));
     } catch {}
+  }
+
+  private cacheActiveTheme(): void {
+    const theme = this._activeTheme();
+    if (theme) {
+      this.cacheTheme(theme, this.isDark());
+    }
   }
 
   private updatePrimeNG(ramp: Record<string, string>): void {
