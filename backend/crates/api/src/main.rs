@@ -27,7 +27,7 @@ use crate::routes::{
     notification_preferences_router, notification_router, onboarding_router,
     project_template_router, readiness_handler, recurring_router, reports_router, search_router,
     sessions_router, shared_board_public_router, subtask_router, task_group_routes, task_router,
-    team_overview_router, time_entry_router, upload_router, user_preferences_router,
+    team_overview_router, themes_router, time_entry_router, upload_router, user_preferences_router,
     webhook_router, workspace_api_keys_router, workspace_boards_router, workspace_router,
 };
 use crate::state::AppState;
@@ -234,6 +234,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", shared_board_public_router())
         // Phase 4: Webhooks
         .nest("/api", webhook_router(state.clone()))
+        // Themes (public)
+        .nest("/api", themes_router(state.clone()))
         // Settings & Teams: User preferences, sessions, uploads, API keys
         .nest("/api", user_preferences_router(state.clone()))
         .nest("/api", sessions_router(state.clone()))

@@ -1,13 +1,27 @@
-import { Injectable, signal, computed, effect, inject, OnDestroy } from '@angular/core';
+import {
+  Injectable,
+  signal,
+  computed,
+  effect,
+  inject,
+  OnDestroy,
+} from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { PrimeNG } from 'primeng/config';
 import Aura from '@primeng/themes/aura';
 import { definePreset } from '@primeng/themes';
+import { Subject, of, EMPTY } from 'rxjs';
+import { debounceTime, switchMap, catchError, retry } from 'rxjs/operators';
 import { THEME_VAR_NAMES } from '../constants/theme-vars';
 import { ACCENT_OVERRIDES } from '../constants/accent-overrides';
+import { COLOR_PALETTES } from '../constants/color-palettes';
 import { ThemeApiService } from './theme-api.service';
 import { UserPreferencesService } from './user-preferences.service';
-import { Theme, AccentColor, ColorMode } from '../../shared/types/theme.types';
+import {
+  Theme as DbTheme,
+  AccentColor,
+  ColorMode,
+} from '../../shared/types/theme.types';
 
 const THEME_STORAGE_KEY = 'taskflow-theme';
 const ACCENT_STORAGE_KEY = 'taskflow-accent';
@@ -15,7 +29,42 @@ const LIGHT_CACHE_KEY = 'taskflow-light-cache';
 const DARK_CACHE_KEY = 'taskflow-dark-cache';
 
 export type Theme = 'light' | 'dark' | 'system';
-export type Palette = 'default' | 'dracula' | 'nord' | 'midnight' | 'ocean' | 'forest';
+export type Palette =
+  | 'default'
+  | 'dracula'
+  | 'nord'
+  | 'midnight'
+  | 'ocean'
+  | 'forest';
+export type { AccentColor } from '../../shared/types/theme.types';
+
+export const PALETTE_PRESETS: {
+  value: Palette;
+  label: string;
+  darkOnly?: boolean;
+}[] = [
+  { value: 'default', label: 'Default' },
+  { value: 'dracula', label: 'Dracula', darkOnly: true },
+  { value: 'nord', label: 'Nord', darkOnly: true },
+  { value: 'midnight', label: 'Midnight', darkOnly: true },
+  { value: 'ocean', label: 'Ocean', darkOnly: true },
+  { value: 'forest', label: 'Forest', darkOnly: true },
+];
+
+export const ACCENT_PRESETS: {
+  value: AccentColor;
+  label: string;
+  color: string;
+}[] = [
+  { value: 'indigo', label: 'Indigo', color: '#6366f1' },
+  { value: 'blue', label: 'Blue', color: '#3b82f6' },
+  { value: 'green', label: 'Green', color: '#22c55e' },
+  { value: 'orange', label: 'Orange', color: '#f97316' },
+  { value: 'rose', label: 'Rose', color: '#f43f5e' },
+  { value: 'violet', label: 'Violet', color: '#8b5cf6' },
+  { value: 'amber', label: 'Amber', color: '#f59e0b' },
+  { value: 'slate', label: 'Slate', color: '#64748b' },
+];
 
 @Injectable({
   providedIn: 'root',
@@ -27,14 +76,21 @@ export class ThemeService implements OnDestroy {
   private readonly userPrefsService = inject(UserPreferencesService);
 
   // State signals
-  readonly theme = signal<Theme>(this.loadFromStorage(THEME_STORAGE_KEY, 'system') as Theme);
+  readonly theme = signal<Theme>(
+    this.loadFromStorage(THEME_STORAGE_KEY, 'system') as Theme,
+  );
   readonly palette = signal<Palette>('default');
-  readonly accent = signal<AccentColor>(this.loadFromStorage(ACCENT_STORAGE_KEY, 'indigo') as AccentColor);
+  readonly accent = signal<AccentColor>(
+    this.loadFromStorage(ACCENT_STORAGE_KEY, 'indigo') as AccentColor,
+  );
   private readonly _lightSlug = signal<string>('default');
   private readonly _darkSlug = signal<string>('default');
-  private readonly _allThemes = signal<Theme[]>([]);
-  private readonly _activeTheme = signal<Theme | null>(null);
-  private readonly systemPrefersDark = signal<boolean>(this.getSystemPreference());
+  private readonly _allThemes = signal<DbTheme[]>([]);
+  private readonly _activeTheme = signal<DbTheme | null>(null);
+  private readonly _saveSubject = new Subject<Record<string, string>>();
+  private readonly systemPrefersDark = signal<boolean>(
+    this.getSystemPreference(),
+  );
 
   // Public computed
   readonly activeTheme = computed(() => this._activeTheme());
@@ -73,7 +129,19 @@ export class ThemeService implements OnDestroy {
       this.applyFullTheme();
     });
 
-    // 6. Load user preferences for theme settings
+    // 6. Debounced server save
+    this._saveSubject
+      .pipe(
+        debounceTime(500),
+        switchMap((prefs) =>
+          this.userPrefsService
+            .updatePreferences(prefs)
+            .pipe(catchError(() => EMPTY)),
+        ),
+      )
+      .subscribe();
+
+    // 7. Load user preferences for theme settings
     this.loadUserPreferences();
   }
 
@@ -119,16 +187,18 @@ export class ThemeService implements OnDestroy {
       const isDark = this.isDarkNow();
       const cacheKey = isDark ? DARK_CACHE_KEY : LIGHT_CACHE_KEY;
       const cached = localStorage.getItem(cacheKey);
-      
+
       if (cached) {
-        const theme = JSON.parse(cached) as Theme;
+        const theme = JSON.parse(cached) as DbTheme;
         this._activeTheme.set(theme);
-        
-        const savedAccent = localStorage.getItem(ACCENT_STORAGE_KEY) as AccentColor | null;
+
+        const savedAccent = localStorage.getItem(
+          ACCENT_STORAGE_KEY,
+        ) as AccentColor | null;
         if (savedAccent) {
           this.accent.set(savedAccent);
         }
-        
+
         this.applyFullTheme();
       }
     } catch (e) {
@@ -139,26 +209,32 @@ export class ThemeService implements OnDestroy {
   }
 
   private loadThemesFromApi(): void {
-    this.themeApi.listThemes().pipe().subscribe({
-      next: (response) => {
-        if (response.themes.length === 0) return;
-        
-        this._allThemes.set(response.themes as any);
-        
-        const isDark = this.isDarkNow();
-        const slug = isDark ? this._darkSlug() : this._lightSlug();
-        const theme = response.themes.find(t => t.slug === slug);
-        
-        if (theme) {
-          this._activeTheme.set(theme as any);
-          this.applyFullTheme();
-          this.cacheTheme(theme, isDark);
-        }
-      },
-      error: (err) => {
-        console.warn('Failed to fetch themes:', err);
-      }
-    });
+    this.themeApi
+      .listThemes()
+      .pipe(
+        retry({ count: 2, delay: 3000 }),
+        catchError(() => of({ themes: [] as DbTheme[] })),
+      )
+      .subscribe({
+        next: (response) => {
+          if (response.themes.length === 0) return;
+
+          this._allThemes.set(response.themes);
+
+          const isDark = this.isDarkNow();
+          const slug = isDark ? this._darkSlug() : this._lightSlug();
+          const theme = response.themes.find((t) => t.slug === slug);
+
+          if (theme) {
+            this._activeTheme.set(theme);
+            this.applyFullTheme();
+            this.cacheTheme(theme, isDark);
+          }
+        },
+        error: (err) => {
+          console.warn('Failed to fetch themes:', err);
+        },
+      });
   }
 
   private loadUserPreferences(): void {
@@ -178,39 +254,41 @@ export class ThemeService implements OnDestroy {
         if (prefs.dark_theme_slug) {
           this._darkSlug.set(prefs.dark_theme_slug);
         }
-        
+
         this.applyFullTheme();
       },
-      error: () => {}
+      error: () => {},
     });
   }
 
   private savePreference(key: string, value: string): void {
-    this.userPrefsService.updatePreferences({ [key]: value }).subscribe({
-      error: () => {}
-    });
+    this._saveSubject.next({ [key]: value });
   }
 
   private applyFullTheme(): void {
-    const theme = this._activeTheme() as Theme | null;
-    if (!theme) return;
-
+    const theme = this._activeTheme();
     const root = this.document.documentElement;
     const isDark = this.isDark();
     const accent = this.accent();
 
-    // Clear vars
+    // Clear all vars (prevents stale contamination)
     for (const name of THEME_VAR_NAMES) {
       root.style.removeProperty(`--${name}`);
     }
 
-    // Get colors from theme or use defaults
-    const colors = this.getThemeColors(theme as any, isDark);
-    for (const [key, value] of Object.entries(colors)) {
-      root.style.setProperty(`--${key}`, value);
+    // Apply theme colors - prefer DB theme, fall back to defaults
+    if (theme?.colors) {
+      for (const [key, value] of Object.entries(theme.colors)) {
+        root.style.setProperty(`--${key}`, value);
+      }
+    } else {
+      const colors = this.getThemeColors(isDark);
+      for (const [key, value] of Object.entries(colors)) {
+        root.style.setProperty(`--${key}`, value);
+      }
     }
 
-    // Accent overrides
+    // Accent overrides ON TOP
     if (accent !== 'indigo') {
       const mode = isDark ? 'dark' : 'light';
       const overrides = ACCENT_OVERRIDES[accent]?.[mode];
@@ -221,42 +299,114 @@ export class ThemeService implements OnDestroy {
       }
     }
 
-    // Data attributes
-    root.setAttribute('data-sidebar-style', 'light');
-    root.setAttribute('data-card-style', 'raised');
-    root.setAttribute('data-border-radius', 'medium');
-    root.setAttribute('data-bg-pattern', 'none');
+    // Cache accent overrides for FOUC script
+    if (accent !== 'indigo') {
+      const mode = isDark ? 'dark' : 'light';
+      try {
+        localStorage.setItem(
+          'taskflow-accent-overrides',
+          JSON.stringify(ACCENT_OVERRIDES[accent]?.[mode] ?? {}),
+        );
+      } catch {}
+    } else {
+      localStorage.removeItem('taskflow-accent-overrides');
+    }
+
+    // Personality data attributes - use theme values or defaults
+    const personality = theme?.personality;
+    root.setAttribute(
+      'data-sidebar-style',
+      personality?.sidebar_style ?? 'light',
+    );
+    root.setAttribute('data-card-style', personality?.card_style ?? 'raised');
+    root.setAttribute(
+      'data-border-radius',
+      personality?.border_radius ?? 'medium',
+    );
+    root.setAttribute(
+      'data-bg-pattern',
+      personality?.background_pattern ?? 'none',
+    );
+
+    // PrimeNG ramp - accent ramp wins over theme ramp when accent != indigo
+    const accentRamp = accent !== 'indigo' ? COLOR_PALETTES[accent] : null;
+    const ramp = accentRamp ?? theme?.primeng_ramp;
+    if (ramp) {
+      this.updatePrimeNG(ramp);
+    }
   }
 
-  private getThemeColors(theme: Theme, isDark: boolean): Record<string, string> {
+  private getThemeColors(isDark: boolean): Record<string, string> {
     // Default theme colors
     const lightColors = {
-      background: '#F6F7FB', foreground: '#0f172a', card: '#ffffff', 'card-foreground': '#0f172a',
-      border: '#e2e8f0', input: '#e2e8f0', muted: '#f8f9fb', 'muted-foreground': '#64748b',
-      primary: '#6366f1', 'primary-foreground': '#ffffff', secondary: '#f1f5f9', 'secondary-foreground': '#0f172a',
-      ring: '#6366f1', accent: '#fff7ed', 'accent-foreground': '#9a3412',
-      success: '#10b981', 'success-light': '#ecfdf5', destructive: '#ef4444', 'destructive-foreground': '#ffffff',
-      'sidebar-bg': '#F0F1F5', 'sidebar-surface': 'rgba(0,0,0,0.03)', 'sidebar-surface-hover': 'rgba(0,0,0,0.05)',
-      'sidebar-surface-active': 'color-mix(in srgb, var(--primary) 8%, transparent)', 'sidebar-border': 'rgba(0,0,0,0.08)',
-      'sidebar-text-primary': '#0f172a', 'sidebar-text-secondary': 'rgba(51,65,85,0.85)', 'sidebar-text-muted': 'rgba(100,116,139,0.6)',
-    };
-    
-    const darkColors = {
-      background: '#181B34', foreground: '#f8fafc', card: '#30324E', 'card-foreground': '#f8fafc',
-      border: 'rgba(255,255,255,0.1)', input: 'rgba(255,255,255,0.15)', muted: '#1e293b', 'muted-foreground': '#94a3b8',
-      primary: '#818cf8', 'primary-foreground': '#ffffff', secondary: '#1e293b', 'secondary-foreground': '#f8fafc',
-      ring: '#818cf8', accent: '#431407', 'accent-foreground': '#fed7aa',
-      success: '#34d399', 'success-light': '#064e3b', destructive: '#dc2626', 'destructive-foreground': '#ffffff',
-      'sidebar-bg': '#13152A', 'sidebar-surface': 'rgba(255,255,255,0.03)', 'sidebar-surface-hover': 'rgba(255,255,255,0.06)',
-      'sidebar-surface-active': 'color-mix(in srgb, var(--primary) 14%, transparent)', 'sidebar-border': 'rgba(255,255,255,0.05)',
-      'sidebar-text-primary': 'rgba(255,255,255,0.95)', 'sidebar-text-secondary': 'rgba(203,213,225,0.8)', 'sidebar-text-muted': 'rgba(148,163,184,0.5)',
+      background: '#F6F7FB',
+      foreground: '#0f172a',
+      card: '#ffffff',
+      'card-foreground': '#0f172a',
+      border: '#e2e8f0',
+      input: '#e2e8f0',
+      muted: '#f8f9fb',
+      'muted-foreground': '#64748b',
+      primary: '#6366f1',
+      'primary-foreground': '#ffffff',
+      secondary: '#f1f5f9',
+      'secondary-foreground': '#0f172a',
+      ring: '#6366f1',
+      accent: '#fff7ed',
+      'accent-foreground': '#9a3412',
+      success: '#10b981',
+      'success-light': '#ecfdf5',
+      destructive: '#ef4444',
+      'destructive-foreground': '#ffffff',
+      'sidebar-bg': '#F0F1F5',
+      'sidebar-surface': 'rgba(0,0,0,0.03)',
+      'sidebar-surface-hover': 'rgba(0,0,0,0.05)',
+      'sidebar-surface-active':
+        'color-mix(in srgb, var(--primary) 8%, transparent)',
+      'sidebar-border': 'rgba(0,0,0,0.08)',
+      'sidebar-text-primary': '#0f172a',
+      'sidebar-text-secondary': 'rgba(51,65,85,0.85)',
+      'sidebar-text-muted': 'rgba(100,116,139,0.6)',
     };
 
-    return isDark ? { ...darkColors, ...this.getPaletteColors(this.palette()) } : lightColors;
+    const darkColors = {
+      background: '#181B34',
+      foreground: '#f8fafc',
+      card: '#30324E',
+      'card-foreground': '#f8fafc',
+      border: 'rgba(255,255,255,0.1)',
+      input: 'rgba(255,255,255,0.15)',
+      muted: '#1e293b',
+      'muted-foreground': '#94a3b8',
+      primary: '#818cf8',
+      'primary-foreground': '#ffffff',
+      secondary: '#1e293b',
+      'secondary-foreground': '#f8fafc',
+      ring: '#818cf8',
+      accent: '#431407',
+      'accent-foreground': '#fed7aa',
+      success: '#34d399',
+      'success-light': '#064e3b',
+      destructive: '#dc2626',
+      'destructive-foreground': '#ffffff',
+      'sidebar-bg': '#13152A',
+      'sidebar-surface': 'rgba(255,255,255,0.03)',
+      'sidebar-surface-hover': 'rgba(255,255,255,0.06)',
+      'sidebar-surface-active':
+        'color-mix(in srgb, var(--primary) 14%, transparent)',
+      'sidebar-border': 'rgba(255,255,255,0.05)',
+      'sidebar-text-primary': 'rgba(255,255,255,0.95)',
+      'sidebar-text-secondary': 'rgba(203,213,225,0.8)',
+      'sidebar-text-muted': 'rgba(148,163,184,0.5)',
+    };
+
+    return isDark
+      ? { ...darkColors, ...this.getPaletteColors(this.palette()) }
+      : lightColors;
   }
 
   private getPaletteColors(palette: Palette): Record<string, string> {
-    const palettes: Record<Palette, Partial<Record<string, string>>> = {
+    const palettes: Record<Palette, Record<string, string>> = {
       default: {},
       dracula: { primary: '#BD93F9', ring: '#BD93F9' },
       nord: { primary: '#88C0D0', ring: '#88C0D0' },
@@ -276,7 +426,7 @@ export class ThemeService implements OnDestroy {
     }
   }
 
-  private cacheTheme(theme: Theme, isDark: boolean): void {
+  private cacheTheme(theme: DbTheme, isDark: boolean): void {
     const cacheKey = isDark ? DARK_CACHE_KEY : LIGHT_CACHE_KEY;
     try {
       localStorage.setItem(cacheKey, JSON.stringify(theme));
@@ -318,7 +468,14 @@ export class ThemeService implements OnDestroy {
   private setupCrossTabSync(): void {
     if (typeof window === 'undefined') return;
     window.addEventListener('storage', (e) => {
-      if ([LIGHT_CACHE_KEY, DARK_CACHE_KEY, 'taskflow-accent-overrides', THEME_STORAGE_KEY].includes(e.key ?? '')) {
+      if (
+        [
+          LIGHT_CACHE_KEY,
+          DARK_CACHE_KEY,
+          'taskflow-accent-overrides',
+          THEME_STORAGE_KEY,
+        ].includes(e.key ?? '')
+      ) {
         this.applyCachedTheme();
       }
     });

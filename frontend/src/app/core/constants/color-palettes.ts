@@ -1,4 +1,4 @@
-import { AccentColor } from '../services/theme.service';
+import { AccentColor } from '../../shared/types/theme.types';
 
 /**
  * Full Tailwind 50-950 shade ramps for PrimeNG's definePreset().
