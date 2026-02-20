@@ -38,7 +38,10 @@ pub struct UpdateRecurringInput {
 }
 
 /// Internal helper: get task's board_id
-async fn get_task_board_id_internal(pool: &PgPool, task_id: Uuid) -> Result<Uuid, RecurringQueryError> {
+async fn get_task_board_id_internal(
+    pool: &PgPool,
+    task_id: Uuid,
+) -> Result<Uuid, RecurringQueryError> {
     let board_id = sqlx::query_scalar::<_, Uuid>(
         r#"
         SELECT board_id FROM tasks WHERE id = $1 AND deleted_at IS NULL

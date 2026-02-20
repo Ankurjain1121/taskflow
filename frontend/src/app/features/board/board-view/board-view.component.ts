@@ -176,7 +176,7 @@ import { DependencyService } from '../../../core/services/dependency.service';
             <!-- New Task Button -->
             <button
               (click)="onCreateTask()"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] rounded-md hover:opacity-90"
             >
               <svg
                 class="w-4 h-4"
@@ -207,7 +207,9 @@ import { DependencyService } from '../../../core/services/dependency.service';
 
       <!-- Task Group Headers -->
       @if (boardGroups().length > 1) {
-        <div class="px-4 py-2 bg-[var(--card)] border-b border-[var(--border)] space-y-1">
+        <div
+          class="px-4 py-2 bg-[var(--card)] border-b border-[var(--border)] space-y-1"
+        >
           @for (group of boardGroups(); track group.group.id) {
             <app-task-group-header
               [groupData]="group"
@@ -223,9 +225,9 @@ import { DependencyService } from '../../../core/services/dependency.service';
       <!-- Board Content -->
       @if (loading()) {
         <div class="flex-1 overflow-x-auto p-4">
-          <div class="flex gap-4 h-full">
+          <div class="flex gap-2 h-full">
             @for (i of [1, 2, 3, 4]; track i) {
-              <div class="flex-shrink-0 w-72">
+              <div class="flex-shrink-0 w-[272px]">
                 <div class="widget-card p-3">
                   <div
                     class="skeleton skeleton-text w-24 mb-4"
@@ -290,7 +292,7 @@ import { DependencyService } from '../../../core/services/dependency.service';
       } @else {
         <!-- Kanban Board -->
         <div class="flex-1 overflow-x-auto p-4" cdkDropListGroup>
-          <div class="flex gap-4 h-full">
+          <div class="flex gap-2 h-full">
             @for (column of columns(); track column.id) {
               <app-kanban-column
                 [column]="column"
@@ -308,7 +310,7 @@ import { DependencyService } from '../../../core/services/dependency.service';
             <div class="flex-shrink-0">
               <button
                 (click)="onAddColumn()"
-                class="w-72 h-12 flex items-center justify-center gap-2 bg-[var(--secondary)] hover:bg-[var(--muted)] rounded-lg text-[var(--muted-foreground)] transition-colors"
+                class="w-[272px] h-12 flex items-center justify-center gap-2 bg-[var(--secondary)] hover:bg-[var(--muted)] rounded-lg text-[var(--muted-foreground)] transition-colors"
               >
                 <svg
                   class="w-5 h-5"

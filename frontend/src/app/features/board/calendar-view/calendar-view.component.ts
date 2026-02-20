@@ -10,7 +10,10 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TaskService } from '../../../core/services/task.service';
-import { PRIORITY_COLORS, getPriorityLabel } from '../../../shared/utils/task-colors';
+import {
+  PRIORITY_COLORS,
+  getPriorityLabel,
+} from '../../../shared/utils/task-colors';
 
 export interface CalendarTask {
   id: string;
@@ -38,75 +41,112 @@ interface CalendarCell {
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="flex flex-col h-full bg-white">
+    <div class="flex flex-col h-full bg-[var(--card)]">
       <!-- Calendar Header -->
-      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+      <div
+        class="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]"
+      >
         <div class="flex items-center gap-4">
-          <h2 class="text-lg font-semibold text-gray-900">
+          <h2 class="text-lg font-semibold text-[var(--card-foreground)]">
             {{ monthYearLabel() }}
           </h2>
           <div class="flex items-center gap-1">
             <button
               (click)="previousMonth()"
-              class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+              class="p-1.5 rounded-lg hover:bg-[var(--muted)] text-[var(--muted-foreground)]"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
             </button>
             <button
               (click)="goToToday()"
-              class="px-3 py-1 text-xs font-medium text-indigo-600 rounded-lg hover:bg-indigo-50"
+              class="px-3 py-1 text-xs font-medium text-primary rounded-lg hover:bg-primary/10"
             >
               Today
             </button>
             <button
               (click)="nextMonth()"
-              class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+              class="p-1.5 rounded-lg hover:bg-[var(--muted)] text-[var(--muted-foreground)]"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
             </button>
           </div>
         </div>
         <!-- View toggle -->
-        <div class="flex rounded-lg border border-gray-200 overflow-hidden">
+        <div
+          class="flex rounded-lg border border-[var(--border)] overflow-hidden"
+        >
           <button
             (click)="calendarView.set('month')"
             class="px-3 py-1 text-xs font-medium transition-colors"
-            [class.bg-indigo-600]="calendarView() === 'month'"
+            [class.bg-primary]="calendarView() === 'month'"
             [class.text-white]="calendarView() === 'month'"
-            [class.text-gray-600]="calendarView() !== 'month'"
-            [class.hover:bg-gray-50]="calendarView() !== 'month'"
-          >Month</button>
+            [class.text-[var(--muted-foreground)]]="calendarView() !== 'month'"
+            [class.hover:bg-[var(--muted)]]="calendarView() !== 'month'"
+          >
+            Month
+          </button>
           <button
             (click)="calendarView.set('week')"
-            class="px-3 py-1 text-xs font-medium transition-colors border-l border-gray-200"
-            [class.bg-indigo-600]="calendarView() === 'week'"
+            class="px-3 py-1 text-xs font-medium transition-colors border-l border-[var(--border)]"
+            [class.bg-primary]="calendarView() === 'week'"
             [class.text-white]="calendarView() === 'week'"
-            [class.text-gray-600]="calendarView() !== 'week'"
-            [class.hover:bg-gray-50]="calendarView() !== 'week'"
-          >Week</button>
+            [class.text-[var(--muted-foreground)]]="calendarView() !== 'week'"
+            [class.hover:bg-[var(--muted)]]="calendarView() !== 'week'"
+          >
+            Week
+          </button>
         </div>
       </div>
 
       <!-- Weekday Headers -->
-      <div class="grid grid-cols-7 border-b border-gray-200">
+      <div class="grid grid-cols-7 border-b border-[var(--border)]">
         @for (day of weekDays; track day) {
-          <div class="py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wide">
+          <div
+            class="py-2 text-center text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide"
+          >
             {{ day }}
           </div>
         }
       </div>
 
       <!-- Calendar Grid -->
-      <div class="grid grid-cols-7 flex-1 border-b border-gray-200" style="grid-auto-rows: 1fr;">
+      <div
+        class="grid grid-cols-7 flex-1 border-b border-[var(--border)]"
+        style="grid-auto-rows: 1fr;"
+      >
         @for (cell of calendarCells(); track cell.date.getTime()) {
           <div
-            class="border-r border-b border-gray-100 p-1 min-h-[100px] overflow-hidden transition-colors"
-            [class.bg-gray-50]="!cell.isCurrentMonth"
-            [class.bg-indigo-50]="cell.isToday"
+            class="border-r border-b border-[var(--border)] p-1 min-h-[100px] overflow-hidden transition-colors"
+            [class.bg-[var(--secondary)]]="!cell.isCurrentMonth"
+            [style.background]="
+              cell.isToday
+                ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)'
+                : ''
+            "
             (dragover)="onDragOver($event)"
             (drop)="onDrop($event, cell.date)"
           >
@@ -115,13 +155,17 @@ interface CalendarCell {
               <span
                 class="text-xs font-medium"
                 [class.text-gray-400]="!cell.isCurrentMonth"
-                [class.text-indigo-600]="cell.isToday && cell.isCurrentMonth"
-                [class.text-gray-700]="!cell.isToday && cell.isCurrentMonth"
+                [class.text-primary]="cell.isToday && cell.isCurrentMonth"
+                [class.text-[var(--foreground)]]="
+                  !cell.isToday && cell.isCurrentMonth
+                "
               >
                 {{ cell.dayNumber }}
               </span>
               @if (cell.tasks.length > 3) {
-                <span class="text-[10px] text-gray-400">+{{ cell.tasks.length - 3 }}</span>
+                <span class="text-[10px] text-gray-400"
+                  >+{{ cell.tasks.length - 3 }}</span
+                >
               }
             </div>
 
@@ -133,8 +177,8 @@ interface CalendarCell {
                 [class.bg-green-50]="task.is_done"
                 [class.text-green-700]="task.is_done"
                 [class.line-through]="task.is_done"
-                [class.bg-gray-50]="!task.is_done"
-                [class.text-gray-700]="!task.is_done"
+                [class.bg-[var(--secondary)]]="!task.is_done"
+                [class.text-[var(--foreground)]]="!task.is_done"
                 draggable="true"
                 (dragstart)="onDragStart($event, task)"
                 (click)="onTaskClick(task)"
@@ -193,11 +237,7 @@ export class CalendarViewComponent implements OnInit {
 
     this.loading.set(true);
     this.taskService
-      .listCalendarTasks(
-        this.boardId(),
-        start.toISOString(),
-        end.toISOString()
-      )
+      .listCalendarTasks(this.boardId(), start.toISOString(), end.toISOString())
       .subscribe({
         next: (tasks) => {
           this.tasks.set(tasks);
@@ -260,7 +300,10 @@ export class CalendarViewComponent implements OnInit {
     this.draggedTask = null;
   }
 
-  private generateMonthCells(current: Date, tasks: CalendarTask[]): CalendarCell[] {
+  private generateMonthCells(
+    current: Date,
+    tasks: CalendarTask[],
+  ): CalendarCell[] {
     const year = current.getFullYear();
     const month = current.getMonth();
     const firstDay = new Date(year, month, 1);
@@ -294,7 +337,10 @@ export class CalendarViewComponent implements OnInit {
     return cells;
   }
 
-  private generateWeekCells(current: Date, tasks: CalendarTask[]): CalendarCell[] {
+  private generateWeekCells(
+    current: Date,
+    tasks: CalendarTask[],
+  ): CalendarCell[] {
     const today = new Date();
     const dayOfWeek = current.getDay();
     const startOfWeek = new Date(current);
@@ -313,7 +359,7 @@ export class CalendarViewComponent implements OnInit {
     date: Date,
     isCurrentMonth: boolean,
     today: Date,
-    tasks: CalendarTask[]
+    tasks: CalendarTask[],
   ): CalendarCell {
     const dateStr = this.toDateString(date);
     const cellTasks = tasks.filter((t) => {

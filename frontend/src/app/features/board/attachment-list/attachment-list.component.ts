@@ -37,11 +37,16 @@ import { FileSizePipe } from '../../../shared/pipes/file-size.pipe';
     <p-confirmDialog />
     @if (isLoading()) {
       <div class="flex items-center justify-center py-8">
-        <p-progressSpinner [style]="{width: '32px', height: '32px'}" strokeWidth="4" />
-        <span class="ml-3 text-gray-500">Loading attachments...</span>
+        <p-progressSpinner
+          [style]="{ width: '32px', height: '32px' }"
+          strokeWidth="4"
+        />
+        <span class="ml-3 text-[var(--muted-foreground)]"
+          >Loading attachments...</span
+        >
       </div>
     } @else if (attachments().length === 0) {
-      <div class="text-center py-8 text-gray-500">
+      <div class="text-center py-8 text-[var(--muted-foreground)]">
         <i class="pi pi-paperclip text-4xl text-gray-300 mb-2"></i>
         <p>No files attached yet.</p>
       </div>
@@ -49,21 +54,27 @@ import { FileSizePipe } from '../../../shared/pipes/file-size.pipe';
       <div class="space-y-2">
         @for (attachment of attachments(); track attachment.id) {
           <div
-            class="bg-white rounded-lg border border-gray-200 p-3 flex items-center gap-3 hover:bg-gray-50 transition-colors group"
+            class="bg-[var(--card)] rounded-lg border border-[var(--border)] p-3 flex items-center gap-3 hover:bg-[var(--muted)] transition-colors group"
           >
             <!-- File type icon -->
             <div
               class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
               [class]="getFileIconBgClass(attachment.mime_type)"
             >
-              <i [class]="'pi ' + getFileIcon(attachment.mime_type, attachment.file_name) + ' text-white'"></i>
+              <i
+                [class]="
+                  'pi ' +
+                  getFileIcon(attachment.mime_type, attachment.file_name) +
+                  ' text-white'
+                "
+              ></i>
             </div>
 
             <!-- File info -->
             <div class="flex-1 min-w-0">
               <button
                 (click)="downloadFile(attachment)"
-                class="text-sm font-medium text-gray-900 hover:text-indigo-600 truncate block text-left w-full"
+                class="text-sm font-medium text-[var(--card-foreground)] hover:text-primary truncate block text-left w-full"
                 [disabled]="downloadingId() === attachment.id"
               >
                 {{ attachment.file_name }}
@@ -78,9 +89,14 @@ import { FileSizePipe } from '../../../shared/pipes/file-size.pipe';
             </div>
 
             <!-- Actions -->
-            <div class="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div
+              class="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
               @if (downloadingId() === attachment.id) {
-                <p-progressSpinner [style]="{width: '20px', height: '20px'}" strokeWidth="4" />
+                <p-progressSpinner
+                  [style]="{ width: '20px', height: '20px' }"
+                  strokeWidth="4"
+                />
               } @else {
                 <button
                   pButton
@@ -103,7 +119,10 @@ import { FileSizePipe } from '../../../shared/pipes/file-size.pipe';
                 class="text-gray-400 hover:text-red-500"
               >
                 @if (deletingId() === attachment.id) {
-                  <p-progressSpinner [style]="{width: '20px', height: '20px'}" strokeWidth="4" />
+                  <p-progressSpinner
+                    [style]="{ width: '20px', height: '20px' }"
+                    strokeWidth="4"
+                  />
                 } @else {
                   <i class="pi pi-trash"></i>
                 }
@@ -218,7 +237,7 @@ export class AttachmentListComponent implements OnDestroy {
       .subscribe({
         next: () => {
           this.attachments.update((attachments) =>
-            attachments.filter((a) => a.id !== attachment.id)
+            attachments.filter((a) => a.id !== attachment.id),
           );
           this.deletingId.set(null);
           this.messageService.add({
@@ -283,24 +302,15 @@ export class AttachmentListComponent implements OnDestroy {
     if (mimeType.startsWith('video/')) return 'bg-purple-500';
     if (mimeType.startsWith('audio/')) return 'bg-orange-500';
     if (mimeType === 'application/pdf') return 'bg-red-500';
-    if (
-      mimeType.includes('spreadsheet') ||
-      mimeType.includes('excel')
-    )
+    if (mimeType.includes('spreadsheet') || mimeType.includes('excel'))
       return 'bg-green-500';
-    if (
-      mimeType.includes('presentation') ||
-      mimeType.includes('powerpoint')
-    )
+    if (mimeType.includes('presentation') || mimeType.includes('powerpoint'))
       return 'bg-yellow-500';
-    if (
-      mimeType.includes('word') ||
-      mimeType.includes('document')
-    )
+    if (mimeType.includes('word') || mimeType.includes('document'))
       return 'bg-blue-500';
     if (mimeType.includes('zip') || mimeType.includes('archive'))
       return 'bg-gray-500';
-    return 'bg-indigo-500';
+    return 'bg-primary';
   }
 
   formatTimestamp(timestamp: string): string {

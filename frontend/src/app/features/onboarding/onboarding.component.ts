@@ -35,7 +35,7 @@ interface AbbreviatedFlowStep {
   ],
   template: `
     <div
-      class="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4"
+      class="min-h-screen bg-[var(--secondary)] dark:bg-gray-900 flex flex-col items-center justify-center p-4"
     >
       <!-- Loading State -->
       @if (isLoading()) {
@@ -59,7 +59,9 @@ interface AbbreviatedFlowStep {
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             ></path>
           </svg>
-          <p class="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+          <p class="mt-4 text-[var(--muted-foreground)] dark:text-gray-400">
+            Loading...
+          </p>
         </div>
       } @else {
         <!-- Logo / Header -->
@@ -81,7 +83,9 @@ interface AbbreviatedFlowStep {
               ></path>
             </svg>
           </div>
-          <h1 class="text-lg font-semibold text-gray-900 dark:text-white">
+          <h1
+            class="text-lg font-semibold text-[var(--card-foreground)] dark:text-white"
+          >
             TaskFlow
           </h1>
         </div>
@@ -100,7 +104,7 @@ interface AbbreviatedFlowStep {
 
         <!-- Card Container -->
         <div
-          class="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8"
+          class="w-full max-w-md bg-[var(--card)] dark:bg-gray-800 rounded-2xl shadow-xl p-8"
         >
           <!-- Full Flow Steps -->
           @if (flow() === 'full') {
@@ -145,7 +149,7 @@ interface AbbreviatedFlowStep {
           <button
             type="button"
             (click)="goBack()"
-            class="mt-6 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white
+            class="mt-6 text-[var(--muted-foreground)] dark:text-gray-400 hover:text-[var(--card-foreground)] dark:hover:text-white
                    flex items-center transition-colors"
           >
             <svg

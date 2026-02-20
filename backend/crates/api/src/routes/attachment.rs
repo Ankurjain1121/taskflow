@@ -357,16 +357,10 @@ pub fn attachment_router(state: AppState) -> Router<AppState> {
             "/tasks/{task_id}/attachments/upload-url",
             post(get_upload_url),
         )
-        .route(
-            "/tasks/{task_id}/attachments/confirm",
-            post(confirm_upload),
-        )
+        .route("/tasks/{task_id}/attachments/confirm", post(confirm_upload))
         .route("/tasks/{task_id}/attachments", get(list_attachments))
         // Attachment-specific routes
-        .route(
-            "/attachments/{id}/download-url",
-            get(get_download_url),
-        )
+        .route("/attachments/{id}/download-url", get(get_download_url))
         .route("/attachments/{id}", delete(delete_attachment_handler))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

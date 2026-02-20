@@ -75,30 +75,24 @@ pub struct MessageResponse {
 // ============================================================================
 
 /// Check if user has editor access to the board
-async fn require_editor_access(
-    state: &AppState,
-    board_id: Uuid,
-    user_id: Uuid,
-) -> Result<()> {
+async fn require_editor_access(state: &AppState, board_id: Uuid, user_id: Uuid) -> Result<()> {
     let role = boards::get_board_member_role(&state.db, board_id, user_id).await?;
     match role {
         Some(BoardMemberRole::Editor) => Ok(()),
-        Some(BoardMemberRole::Viewer) => {
-            Err(AppError::Forbidden("Editor role required".into()))
-        }
-        None => Err(AppError::NotFound("Board not found or access denied".into())),
+        Some(BoardMemberRole::Viewer) => Err(AppError::Forbidden("Editor role required".into())),
+        None => Err(AppError::NotFound(
+            "Board not found or access denied".into(),
+        )),
     }
 }
 
 /// Check if user has at least viewer access to the board
-async fn require_viewer_access(
-    state: &AppState,
-    board_id: Uuid,
-    user_id: Uuid,
-) -> Result<()> {
+async fn require_viewer_access(state: &AppState, board_id: Uuid, user_id: Uuid) -> Result<()> {
     let is_member = boards::is_board_member(&state.db, board_id, user_id).await?;
     if !is_member {
-        return Err(AppError::NotFound("Board not found or access denied".into()));
+        return Err(AppError::NotFound(
+            "Board not found or access denied".into(),
+        ));
     }
     Ok(())
 }
@@ -167,7 +161,9 @@ async fn create_column(
             generate_key_between(last_pos, None)
         } else {
             // Insert between two columns
-            let prev_pos = existing_columns.get(insert_at - 1).map(|c| c.position.as_str());
+            let prev_pos = existing_columns
+                .get(insert_at - 1)
+                .map(|c| c.position.as_str());
             let next_pos = existing_columns.get(insert_at).map(|c| c.position.as_str());
             generate_key_between(prev_pos, next_pos)
         }
@@ -253,7 +249,9 @@ async fn reorder_column(
     let all_columns = columns::list_columns_by_board(&state.db, existing.board_id).await?;
 
     // Find current index
-    let current_index = all_columns.iter().position(|c| c.id == id)
+    let current_index = all_columns
+        .iter()
+        .position(|c| c.id == id)
         .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
 
     let new_index = payload.new_index.max(0) as usize;

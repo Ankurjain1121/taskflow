@@ -52,7 +52,7 @@ export interface ImportDialogResult {
       [style]="{ width: '580px' }"
       [closable]="true"
     >
-      <p class="text-gray-600 dark:text-gray-400 mb-4">
+      <p class="text-[var(--muted-foreground)] mb-4">
         Import tasks into "{{ boardName() }}".
       </p>
 
@@ -66,38 +66,32 @@ export interface ImportDialogResult {
           <!-- JSON Tab -->
           <p-tabpanel [value]="0">
             <div class="pt-4 flex flex-col gap-3">
-              <p class="text-sm text-gray-500 dark:text-gray-400">
+              <p class="text-sm text-[var(--muted-foreground)]">
                 Paste a JSON array of tasks or upload a JSON file. Each task
                 should have at least a
-                <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded"
-                  >title</code
-                >
+                <code class="bg-[var(--secondary)] px-1 rounded">title</code>
                 field. Optional:
-                <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded"
+                <code class="bg-[var(--secondary)] px-1 rounded"
                   >description</code
                 >,
-                <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded"
-                  >priority</code
-                >
+                <code class="bg-[var(--secondary)] px-1 rounded">priority</code>
                 (urgent/high/medium/low),
-                <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded"
+                <code class="bg-[var(--secondary)] px-1 rounded"
                   >column_name</code
                 >,
-                <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded"
-                  >due_date</code
-                >
+                <code class="bg-[var(--secondary)] px-1 rounded">due_date</code>
                 (YYYY-MM-DD).
               </p>
               <textarea
                 [(ngModel)]="jsonText"
                 (ngModelChange)="onJsonChange()"
                 rows="8"
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-md p-3 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                class="w-full border border-[var(--border)] rounded-md p-3 text-sm font-mono focus:ring-2 focus:ring-ring focus:border-primary"
                 placeholder='[{ "title": "My task", "priority": "high" }]'
               ></textarea>
               <div class="flex items-center gap-2">
                 <label
-                  class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md cursor-pointer transition-colors border border-indigo-200"
+                  class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-primary hover:text-primary hover:bg-primary/10 rounded-md cursor-pointer transition-colors border border-primary/30"
                 >
                   <i class="pi pi-upload text-base"></i>
                   Upload JSON file
@@ -115,9 +109,9 @@ export interface ImportDialogResult {
           <!-- CSV Tab -->
           <p-tabpanel [value]="1">
             <div class="pt-4 flex flex-col gap-3">
-              <p class="text-sm text-gray-500 dark:text-gray-400">
+              <p class="text-sm text-[var(--muted-foreground)]">
                 Paste CSV text or upload a CSV file. Columns:
-                <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded"
+                <code class="bg-[var(--secondary)] px-1 rounded"
                   >title, description, priority, column_name, due_date</code
                 >. A header row is optional (auto-detected).
               </p>
@@ -125,14 +119,14 @@ export interface ImportDialogResult {
                 [(ngModel)]="csvText"
                 (ngModelChange)="onCsvChange()"
                 rows="8"
-                class="w-full border border-gray-300 dark:border-gray-600 rounded-md p-3 text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                class="w-full border border-[var(--border)] rounded-md p-3 text-sm font-mono focus:ring-2 focus:ring-ring focus:border-primary"
                 placeholder="title,description,priority,column_name,due_date
 Fix login bug,Users cannot log in,high,In Progress,2025-03-15
 Add search,Implement full-text search,medium,To Do,"
               ></textarea>
               <div class="flex items-center gap-2">
                 <label
-                  class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md cursor-pointer transition-colors border border-indigo-200"
+                  class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-primary hover:text-primary hover:bg-primary/10 rounded-md cursor-pointer transition-colors border border-primary/30"
                 >
                   <i class="pi pi-upload text-base"></i>
                   Upload CSV file
@@ -174,7 +168,7 @@ Add search,Implement full-text search,medium,To Do,"
 
               <div class="flex items-center gap-2">
                 <label
-                  class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md cursor-pointer transition-colors border border-indigo-200"
+                  class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary hover:text-primary hover:bg-primary/10 rounded-md cursor-pointer transition-colors border border-primary/30"
                 >
                   <i class="pi pi-upload text-base"></i>
                   Upload Trello JSON export
@@ -186,7 +180,7 @@ Add search,Implement full-text search,medium,To Do,"
                   />
                 </label>
                 @if (trelloFileName()) {
-                  <span class="text-sm text-gray-500 dark:text-gray-400">{{
+                  <span class="text-sm text-[var(--muted-foreground)]">{{
                     trelloFileName()
                   }}</span>
                 }

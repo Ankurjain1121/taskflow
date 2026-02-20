@@ -31,18 +31,18 @@ export interface TaskMoveEvent {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="flex flex-col bg-[var(--muted)] rounded-lg min-h-[500px] w-72 flex-shrink-0"
+      class="flex flex-col bg-[var(--muted)] rounded-lg min-h-[500px] w-[272px] flex-shrink-0"
     >
+      <!-- Color Accent Bar -->
+      <div
+        class="h-1 rounded-t-lg"
+        [style.background-color]="column().color || 'var(--primary)'"
+      ></div>
+
       <!-- Column Header -->
       <div class="px-3 py-3 border-b border-[var(--border)]">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <!-- Color Dot -->
-            <span
-              class="w-3 h-3 rounded-full"
-              [style.background-color]="column().color || '#6366f1'"
-            ></span>
-
             <!-- Column Name -->
             <h3 class="font-medium text-[var(--foreground)]">
               {{ column().name }}
@@ -58,7 +58,7 @@ export interface TaskMoveEvent {
             <!-- Done Checkmark -->
             @if (isDoneColumn()) {
               <svg
-                class="w-4 h-4 text-green-500"
+                class="w-4 h-4 text-[var(--success)]"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -95,7 +95,7 @@ export interface TaskMoveEvent {
         <!-- WIP Limit Warning -->
         @if (isOverWipLimit()) {
           <div
-            class="mt-2 text-xs text-amber-600 bg-amber-50 rounded px-2 py-1"
+            class="mt-2 text-xs text-[var(--status-amber-text)] bg-[var(--status-amber-bg)] rounded px-2 py-1"
           >
             WIP limit ({{ column().wip_limit }}) exceeded
           </div>
@@ -144,7 +144,7 @@ export interface TaskMoveEvent {
       <div class="px-2 py-2 border-t border-[var(--border)]">
         <button
           (click)="onAddTask()"
-          class="w-full flex items-center justify-center gap-1 px-3 py-2 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] rounded-md transition-colors"
+          class="w-full flex items-center justify-center gap-1 px-3 py-2 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] rounded-md btn-snappy"
         >
           <svg
             class="w-4 h-4"

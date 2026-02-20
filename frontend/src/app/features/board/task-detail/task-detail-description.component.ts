@@ -33,7 +33,7 @@ import { Textarea } from 'primeng/textarea';
         <div class="flex items-center gap-2 mt-2">
           <button
             (click)="onSave()"
-            class="px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
+            class="px-3 py-1.5 text-sm font-medium text-white bg-primary hover:bg-primary hover:brightness-90 rounded-md"
           >
             Save
           </button>

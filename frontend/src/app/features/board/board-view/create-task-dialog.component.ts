@@ -230,7 +230,7 @@ export interface CreateTaskDialogResult {
               <ng-template #item let-member>
                 <div class="flex items-center gap-2">
                   <div
-                    class="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-xs font-medium"
+                    class="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium"
                   >
                     {{ member.name.charAt(0).toUpperCase() }}
                   </div>

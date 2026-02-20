@@ -106,12 +106,8 @@ async fn list_workspaces(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
 ) -> Result<Json<Vec<WorkspaceResponse>>> {
-    let workspaces = workspaces::list_workspaces_for_user(
-        &state.db,
-        auth.0.user_id,
-        auth.0.tenant_id,
-    )
-    .await?;
+    let workspaces =
+        workspaces::list_workspaces_for_user(&state.db, auth.0.user_id, auth.0.tenant_id).await?;
 
     let response: Vec<WorkspaceResponse> = workspaces
         .into_iter()
@@ -221,14 +217,10 @@ async fn update_workspace(
         return Err(AppError::BadRequest("Workspace name is required".into()));
     }
 
-    let workspace = workspaces::update_workspace(
-        &state.db,
-        id,
-        &payload.name,
-        payload.description.as_deref(),
-    )
-    .await?
-    .ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
+    let workspace =
+        workspaces::update_workspace(&state.db, id, &payload.name, payload.description.as_deref())
+            .await?
+            .ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
 
     Ok(Json(WorkspaceResponse {
         id: workspace.id,
@@ -354,7 +346,12 @@ async fn remove_member(
 pub fn workspace_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(list_workspaces).post(create_workspace))
-        .route("/{id}", get(get_workspace).put(update_workspace).delete(delete_workspace))
+        .route(
+            "/{id}",
+            get(get_workspace)
+                .put(update_workspace)
+                .delete(delete_workspace),
+        )
         .route("/{id}/members/search", get(search_members))
         .route("/{id}/members", post(add_member))
         .route("/{id}/members/{user_id}", delete(remove_member))

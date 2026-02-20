@@ -137,10 +137,10 @@ import {
               class="animate-fade-in-up bg-[var(--card)] rounded-xl border-2 border-dashed border-[var(--border)] p-12 text-center"
             >
               <div
-                class="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-indigo-100 via-blue-50 to-violet-100 dark:from-indigo-900/30 dark:via-blue-900/20 dark:to-violet-900/30 flex items-center justify-center mb-5"
+                class="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-5"
               >
                 <svg
-                  class="w-10 h-10 text-indigo-500 dark:text-indigo-400"
+                  class="w-10 h-10 text-primary"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

@@ -29,6 +29,15 @@ pub struct OverloadedMember {
     pub active_tasks: i64,
 }
 
+/// Aggregated row for overloaded members query
+#[derive(sqlx::FromRow)]
+struct OverloadedRow {
+    user_id: Uuid,
+    user_name: String,
+    user_avatar: Option<String>,
+    active_tasks: i64,
+}
+
 /// Aggregated workload row from SQL
 #[derive(sqlx::FromRow)]
 struct WorkloadAgg {
@@ -125,7 +134,7 @@ pub async fn get_overloaded_members(
     tenant_id: Uuid,
     threshold: i64,
 ) -> Result<Vec<OverloadedMember>, sqlx::Error> {
-    let rows = sqlx::query!(
+    let rows = sqlx::query_as::<_, OverloadedRow>(
         r#"
         SELECT
             u.id as user_id,
@@ -134,7 +143,7 @@ pub async fn get_overloaded_members(
             COUNT(DISTINCT t.id) FILTER (
                 WHERE t.deleted_at IS NULL
                 AND (bc.status_mapping IS NULL OR NOT (bc.status_mapping->>'done')::boolean)
-            ) as "active_tasks!"
+            ) as active_tasks
         FROM workspace_members wm
         INNER JOIN users u ON u.id = wm.user_id
         LEFT JOIN task_assignees ta ON ta.user_id = u.id
@@ -149,12 +158,12 @@ pub async fn get_overloaded_members(
             WHERE t.deleted_at IS NULL
             AND (bc.status_mapping IS NULL OR NOT (bc.status_mapping->>'done')::boolean)
         ) >= $3
-        ORDER BY "active_tasks!" DESC
+        ORDER BY active_tasks DESC
         "#,
-        workspace_id,
-        tenant_id,
-        threshold
     )
+    .bind(workspace_id)
+    .bind(tenant_id)
+    .bind(threshold)
     .fetch_all(pool)
     .await?;
 

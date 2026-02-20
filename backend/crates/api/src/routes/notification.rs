@@ -95,9 +95,7 @@ async fn mark_read_handler(
         .await
         .map_err(|e| match e {
             NotificationQueryError::Database(e) => AppError::SqlxError(e),
-            NotificationQueryError::NotFound => {
-                AppError::NotFound("Notification not found".into())
-            }
+            NotificationQueryError::NotFound => AppError::NotFound("Notification not found".into()),
             NotificationQueryError::Unauthorized => {
                 AppError::Forbidden("Not authorized to modify this notification".into())
             }

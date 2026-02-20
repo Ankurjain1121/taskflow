@@ -97,9 +97,15 @@ async fn list_trash(
         .and_then(|c| DateTime::parse_from_rfc3339(c).ok())
         .map(|dt| dt.with_timezone(&Utc));
 
-    let result = get_trash_items(&state.db, tenant_id, entity_type_filter.as_ref(), cursor, page_size)
-        .await
-        .map_err(|e| AppError::InternalError(format!("Failed to fetch trash items: {}", e)))?;
+    let result = get_trash_items(
+        &state.db,
+        tenant_id,
+        entity_type_filter.as_ref(),
+        cursor,
+        page_size,
+    )
+    .await
+    .map_err(|e| AppError::InternalError(format!("Failed to fetch trash items: {}", e)))?;
 
     Ok(Json(result))
 }
@@ -116,8 +122,9 @@ async fn restore_item(
     let user_id = admin.0.user_id;
     let tenant_id = admin.0.tenant_id;
 
-    let entity_type = TrashEntityType::from_str(&body.entity_type)
-        .ok_or_else(|| AppError::BadRequest(format!("Invalid entity type: {}", body.entity_type)))?;
+    let entity_type = TrashEntityType::from_str(&body.entity_type).ok_or_else(|| {
+        AppError::BadRequest(format!("Invalid entity type: {}", body.entity_type))
+    })?;
 
     // Verify entity belongs to tenant
     verify_entity_tenant(&state, &entity_type, body.entity_id, tenant_id).await?;
@@ -187,7 +194,9 @@ async fn empty_trash(
     .await?;
 
     for ws_id in workspace_ids {
-        if let Err(e) = permanently_delete(&state.db, &minio, &TrashEntityType::Workspace, ws_id).await {
+        if let Err(e) =
+            permanently_delete(&state.db, &minio, &TrashEntityType::Workspace, ws_id).await
+        {
             tracing::warn!(workspace_id = %ws_id, error = %e, "Failed to delete workspace");
         } else {
             deleted_count += 1;
@@ -206,7 +215,9 @@ async fn empty_trash(
     .await?;
 
     for board_id in board_ids {
-        if let Err(e) = permanently_delete(&state.db, &minio, &TrashEntityType::Board, board_id).await {
+        if let Err(e) =
+            permanently_delete(&state.db, &minio, &TrashEntityType::Board, board_id).await
+        {
             tracing::warn!(board_id = %board_id, error = %e, "Failed to delete board");
         } else {
             deleted_count += 1;
@@ -225,7 +236,8 @@ async fn empty_trash(
     .await?;
 
     for task_id in task_ids {
-        if let Err(e) = permanently_delete(&state.db, &minio, &TrashEntityType::Task, task_id).await {
+        if let Err(e) = permanently_delete(&state.db, &minio, &TrashEntityType::Task, task_id).await
+        {
             tracing::warn!(task_id = %task_id, error = %e, "Failed to delete task");
         } else {
             deleted_count += 1;
@@ -291,7 +303,10 @@ pub fn admin_trash_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/admin/trash", get(list_trash))
         .route("/admin/trash/restore", post(restore_item))
-        .route("/admin/trash/{entity_type}/{entity_id}", delete(delete_item))
+        .route(
+            "/admin/trash/{entity_type}/{entity_id}",
+            delete(delete_item),
+        )
         .route("/admin/trash/empty", delete(empty_trash))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
@@ -307,7 +322,8 @@ mod tests {
 
     #[test]
     fn test_restore_request_deserialize() {
-        let json = r#"{"entity_type": "task", "entity_id": "550e8400-e29b-41d4-a716-446655440000"}"#;
+        let json =
+            r#"{"entity_type": "task", "entity_id": "550e8400-e29b-41d4-a716-446655440000"}"#;
         let req: RestoreRequest = serde_json::from_str(json).unwrap();
         assert_eq!(req.entity_type, "task");
     }

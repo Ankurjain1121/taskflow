@@ -10,6 +10,21 @@
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
+  <script>
+    // Prevent flash of wrong theme — runs synchronously before paint
+    (function() {
+      var theme = localStorage.getItem('taskflow-theme') || 'system';
+      var palette = localStorage.getItem('taskflow-palette') || 'default';
+      var accent = localStorage.getItem('taskflow-accent');
+      var dark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      if (dark) {
+        document.documentElement.classList.add('dark');
+        if (palette === 'dracula') document.documentElement.classList.add('dracula');
+        if (palette === 'dimmed') document.documentElement.classList.add('dimmed');
+      }
+      if (accent && accent !== 'indigo') document.documentElement.setAttribute('data-accent', accent);
+    })();
+  </script>
   <app-root></app-root>
 </body>
 </html>

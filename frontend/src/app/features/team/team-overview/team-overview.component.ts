@@ -28,12 +28,14 @@ import { OverloadBannerComponent } from '../overload-banner/overload-banner.comp
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-gray-50">
+    <div class="min-h-screen bg-[var(--secondary)]">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->
         <div class="mb-6">
-          <h1 class="text-2xl font-bold text-gray-900">Team Overview</h1>
-          <p class="text-sm text-gray-500 mt-1">
+          <h1 class="text-2xl font-bold text-[var(--card-foreground)]">
+            Team Overview
+          </h1>
+          <p class="text-sm text-[var(--muted-foreground)] mt-1">
             Monitor your team's workload and task distribution
           </p>
         </div>
@@ -46,7 +48,7 @@ import { OverloadBannerComponent } from '../overload-banner/overload-banner.comp
           <div class="space-y-4">
             @for (i of [1, 2, 3, 4]; track i) {
               <div
-                class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-4"
+                class="bg-[var(--card)] dark:bg-gray-800 rounded-xl border border-[var(--border)] dark:border-gray-700 p-4 flex items-center gap-4"
               >
                 <div
                   class="skeleton skeleton-circle w-10 h-10 flex-shrink-0"
@@ -99,7 +101,7 @@ import { OverloadBannerComponent } from '../overload-banner/overload-banner.comp
         @if (!loading() && !error() && members().length === 0) {
           <div class="animate-fade-in-up text-center py-16">
             <div
-              class="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-violet-100 via-purple-50 to-indigo-100 dark:from-violet-900/30 dark:via-purple-900/20 dark:to-indigo-900/30 flex items-center justify-center mb-5"
+              class="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-violet-100 via-purple-50 to-primary/10 dark:from-violet-900/30 dark:via-purple-900/20 flex items-center justify-center mb-5"
             >
               <svg
                 class="w-10 h-10 text-violet-500 dark:text-violet-400"
@@ -116,12 +118,12 @@ import { OverloadBannerComponent } from '../overload-banner/overload-banner.comp
               </svg>
             </div>
             <h3
-              class="text-lg font-semibold text-gray-900 dark:text-white mb-2"
+              class="text-lg font-semibold text-[var(--card-foreground)] dark:text-white mb-2"
             >
               Build your team
             </h3>
             <p
-              class="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto"
+              class="text-sm text-[var(--muted-foreground)] dark:text-gray-400 max-w-xs mx-auto"
             >
               Invite collaborators to start working together. Great things
               happen with great teams.

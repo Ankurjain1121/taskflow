@@ -23,9 +23,7 @@ import {
   TaskDependency,
   DependencyType,
 } from '../../../core/services/dependency.service';
-import {
-  TaskCustomFieldValueWithField,
-} from '../../../core/services/custom-field.service';
+import { TaskCustomFieldValueWithField } from '../../../core/services/custom-field.service';
 import {
   RecurringTaskConfig,
   RecurrencePattern,
@@ -52,14 +50,16 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
             <i class="pi pi-link text-gray-400"></i>
-            <h3 class="text-sm font-medium text-gray-900">Dependencies</h3>
+            <h3 class="text-sm font-medium text-[var(--card-foreground)]">
+              Dependencies
+            </h3>
             <span class="text-xs text-gray-400"
               >({{ dependencies().length }})</span
             >
           </div>
           <button
             (click)="toggleAddDependency()"
-            class="inline-flex items-center gap-1 px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 rounded"
+            class="inline-flex items-center gap-1 px-2 py-1 text-xs text-primary hover:bg-primary/10 rounded"
           >
             <i class="pi pi-plus text-xs"></i>
             Add
@@ -68,7 +68,7 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
 
         <!-- Add Dependency Form -->
         @if (showAddDependency()) {
-          <div class="mb-3 bg-gray-50 rounded-md p-3 space-y-2">
+          <div class="mb-3 bg-[var(--secondary)] rounded-md p-3 space-y-2">
             <p-select
               [ngModel]="selectedDepType()"
               (ngModelChange)="selectedDepType.set($event)"
@@ -87,12 +87,12 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
             />
             @if (depSearchResults().length > 0) {
               <div
-                class="max-h-40 overflow-y-auto border border-gray-200 rounded-md bg-white"
+                class="max-h-40 overflow-y-auto border border-[var(--border)] rounded-md bg-[var(--card)]"
               >
                 @for (t of depSearchResults(); track t.id) {
                   <button
                     (click)="onSelectDepTask(t)"
-                    class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 text-left"
+                    class="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--muted)] text-left"
                   >
                     <span
                       class="w-2 h-2 rounded-full flex-shrink-0"
@@ -127,9 +127,15 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
                   <div class="flex items-center gap-2 min-w-0">
                     <span
                       class="w-2 h-2 rounded-full flex-shrink-0"
-                      [class.bg-red-500]="dep.related_task_priority === 'urgent'"
-                      [class.bg-orange-500]="dep.related_task_priority === 'high'"
-                      [class.bg-yellow-500]="dep.related_task_priority === 'medium'"
+                      [class.bg-red-500]="
+                        dep.related_task_priority === 'urgent'
+                      "
+                      [class.bg-orange-500]="
+                        dep.related_task_priority === 'high'
+                      "
+                      [class.bg-yellow-500]="
+                        dep.related_task_priority === 'medium'
+                      "
                       [class.bg-blue-500]="dep.related_task_priority === 'low'"
                     ></span>
                     <span class="truncate text-red-800">{{
@@ -166,9 +172,15 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
                   <div class="flex items-center gap-2 min-w-0">
                     <span
                       class="w-2 h-2 rounded-full flex-shrink-0"
-                      [class.bg-red-500]="dep.related_task_priority === 'urgent'"
-                      [class.bg-orange-500]="dep.related_task_priority === 'high'"
-                      [class.bg-yellow-500]="dep.related_task_priority === 'medium'"
+                      [class.bg-red-500]="
+                        dep.related_task_priority === 'urgent'
+                      "
+                      [class.bg-orange-500]="
+                        dep.related_task_priority === 'high'
+                      "
+                      [class.bg-yellow-500]="
+                        dep.related_task_priority === 'medium'
+                      "
                       [class.bg-blue-500]="dep.related_task_priority === 'low'"
                     ></span>
                     <span class="truncate text-orange-800">{{
@@ -194,7 +206,7 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
         @if (relatedDeps().length > 0) {
           <div class="mb-2">
             <span
-              class="text-xs font-medium text-gray-500 uppercase tracking-wide"
+              class="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide"
               >Related</span
             >
             <div class="mt-1 space-y-1">
@@ -205,9 +217,15 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
                   <div class="flex items-center gap-2 min-w-0">
                     <span
                       class="w-2 h-2 rounded-full flex-shrink-0"
-                      [class.bg-red-500]="dep.related_task_priority === 'urgent'"
-                      [class.bg-orange-500]="dep.related_task_priority === 'high'"
-                      [class.bg-yellow-500]="dep.related_task_priority === 'medium'"
+                      [class.bg-red-500]="
+                        dep.related_task_priority === 'urgent'
+                      "
+                      [class.bg-orange-500]="
+                        dep.related_task_priority === 'high'
+                      "
+                      [class.bg-yellow-500]="
+                        dep.related_task_priority === 'medium'
+                      "
                       [class.bg-blue-500]="dep.related_task_priority === 'low'"
                     ></span>
                     <span class="truncate text-gray-800">{{
@@ -219,7 +237,7 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
                   </div>
                   <button
                     (click)="dependencyRemoved.emit(dep.id)"
-                    class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 p-0.5"
+                    class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-[var(--foreground)] p-0.5"
                   >
                     <i class="pi pi-times text-xs"></i>
                   </button>
@@ -236,15 +254,19 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
 
       <!-- Custom Fields -->
       @if (customFields().length > 0) {
-        <div class="border-t border-gray-200 pt-6">
+        <div class="border-t border-[var(--border)] pt-6">
           <div class="flex items-center gap-2 mb-3">
             <i class="pi pi-clipboard text-gray-400"></i>
-            <h3 class="text-sm font-medium text-gray-900">Custom Fields</h3>
+            <h3 class="text-sm font-medium text-[var(--card-foreground)]">
+              Custom Fields
+            </h3>
           </div>
           <div class="space-y-3">
             @for (cf of customFields(); track cf.field_id) {
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-medium text-gray-500">
+                <label
+                  class="text-xs font-medium text-[var(--muted-foreground)]"
+                >
                   {{ cf.field_name }}
                   @if (cf.is_required) {
                     <span class="text-red-500">*</span>
@@ -256,7 +278,9 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
                       pInputText
                       type="text"
                       [ngModel]="cf.value_text || ''"
-                      (ngModelChange)="onCustomFieldTextChange(cf.field_id, $event)"
+                      (ngModelChange)="
+                        onCustomFieldTextChange(cf.field_id, $event)
+                      "
                       (blur)="customFieldSaveRequested.emit()"
                       class="w-full"
                       placeholder="Enter text..."
@@ -267,7 +291,9 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
                       pInputText
                       type="number"
                       [ngModel]="cf.value_number"
-                      (ngModelChange)="onCustomFieldNumberChange(cf.field_id, $event)"
+                      (ngModelChange)="
+                        onCustomFieldNumberChange(cf.field_id, $event)
+                      "
                       (blur)="customFieldSaveRequested.emit()"
                       class="w-full"
                       placeholder="Enter number..."
@@ -276,7 +302,9 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
                   @case ('date') {
                     <p-datePicker
                       [ngModel]="cf.value_date ? toDate(cf.value_date) : null"
-                      (ngModelChange)="onCustomFieldDateChange(cf.field_id, $event)"
+                      (ngModelChange)="
+                        onCustomFieldDateChange(cf.field_id, $event)
+                      "
                       dateFormat="yy-mm-dd"
                       [showIcon]="true"
                       [showClear]="true"
@@ -286,7 +314,9 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
                   @case ('dropdown') {
                     <p-select
                       [ngModel]="cf.value_text || ''"
-                      (ngModelChange)="onCustomFieldDropdownChange(cf.field_id, $event)"
+                      (ngModelChange)="
+                        onCustomFieldDropdownChange(cf.field_id, $event)
+                      "
                       [options]="getDropdownSelectOptions(cf.options)"
                       optionLabel="label"
                       optionValue="value"
@@ -296,14 +326,18 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
                     />
                   }
                   @case ('checkbox') {
-                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                    <label
+                      class="inline-flex items-center gap-2 cursor-pointer"
+                    >
                       <input
                         type="checkbox"
                         [ngModel]="cf.value_bool || false"
-                        (ngModelChange)="onCustomFieldCheckboxChange(cf.field_id, $event)"
-                        class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        (ngModelChange)="
+                          onCustomFieldCheckboxChange(cf.field_id, $event)
+                        "
+                        class="rounded border-[var(--border)] text-primary focus:ring-ring"
                       />
-                      <span class="text-sm text-gray-700">{{
+                      <span class="text-sm text-[var(--foreground)]">{{
                         cf.value_bool ? 'Yes' : 'No'
                       }}</span>
                     </label>
@@ -316,16 +350,18 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
       }
 
       <!-- Recurring -->
-      <div class="border-t border-gray-200 pt-6">
+      <div class="border-t border-[var(--border)] pt-6">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
             <i class="pi pi-replay text-gray-400"></i>
-            <h3 class="text-sm font-medium text-gray-900">Recurring</h3>
+            <h3 class="text-sm font-medium text-[var(--card-foreground)]">
+              Recurring
+            </h3>
           </div>
           @if (!recurringConfig() && !showRecurringForm()) {
             <button
               (click)="toggleRecurringForm()"
-              class="inline-flex items-center gap-1 px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 rounded"
+              class="inline-flex items-center gap-1 px-2 py-1 text-xs text-primary hover:bg-primary/10 rounded"
             >
               <i class="pi pi-plus text-xs"></i>
               Set as recurring
@@ -334,14 +370,15 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
         </div>
 
         @if (recurringConfig(); as config) {
-          <div class="bg-indigo-50 rounded-md p-3 space-y-2">
+          <div class="bg-primary/10 rounded-md p-3 space-y-2">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <span class="text-sm font-medium text-indigo-800"
+                <span class="text-sm font-medium text-primary"
                   >Repeats: {{ getPatternLabel(config.pattern) }}</span
                 >
                 @if (!config.is_active) {
-                  <span class="text-xs px-1.5 py-0.5 bg-gray-200 text-gray-600 rounded"
+                  <span
+                    class="text-xs px-1.5 py-0.5 bg-[var(--secondary)] text-[var(--muted-foreground)] rounded"
                     >Paused</span
                   >
                 }
@@ -349,7 +386,7 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
               <div class="flex items-center gap-1">
                 <button
                   (click)="toggleRecurringForm()"
-                  class="p-1 text-indigo-400 hover:text-indigo-600 rounded"
+                  class="p-1 text-primary hover:text-primary rounded"
                   pTooltip="Edit"
                 >
                   <i class="pi pi-pencil text-xs"></i>
@@ -363,11 +400,13 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
                 </button>
               </div>
             </div>
-            <div class="text-xs text-indigo-600 space-y-1">
+            <div class="text-xs text-primary space-y-1">
               <div>Next run: {{ formatDate(config.next_run_at) }}</div>
               <div>
                 Occurrences: {{ config.occurrences_created
-                }}{{ config.max_occurrences ? ' / ' + config.max_occurrences : '' }}
+                }}{{
+                  config.max_occurrences ? ' / ' + config.max_occurrences : ''
+                }}
               </div>
               @if (config.interval_days && config.pattern === 'custom') {
                 <div>Every {{ config.interval_days }} days</div>
@@ -377,9 +416,10 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
         }
 
         @if (showRecurringForm()) {
-          <div class="bg-gray-50 rounded-md p-3 space-y-3">
+          <div class="bg-[var(--secondary)] rounded-md p-3 space-y-3">
             <div>
-              <label class="block text-xs font-medium text-gray-500 mb-1"
+              <label
+                class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
                 >Pattern</label
               >
               <p-select
@@ -393,7 +433,8 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
             </div>
             @if (recurringPattern() === 'custom') {
               <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1"
+                <label
+                  class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
                   >Interval (days)</label
                 >
                 <input
@@ -408,7 +449,8 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
               </div>
             }
             <div>
-              <label class="block text-xs font-medium text-gray-500 mb-1"
+              <label
+                class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
                 >Max occurrences (optional)</label
               >
               <input
@@ -444,11 +486,13 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
       </div>
 
       <!-- Time Tracking -->
-      <div class="border-t border-gray-200 pt-6">
+      <div class="border-t border-[var(--border)] pt-6">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
             <i class="pi pi-clock text-gray-400"></i>
-            <h3 class="text-sm font-medium text-gray-900">Time Tracking</h3>
+            <h3 class="text-sm font-medium text-[var(--card-foreground)]">
+              Time Tracking
+            </h3>
             @if (timeEntryTotalMinutes() > 0) {
               <span class="text-xs text-gray-400"
                 >({{ formatDuration(timeEntryTotalMinutes()) }})</span
@@ -457,7 +501,7 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
           </div>
           <button
             (click)="toggleLogTimeForm()"
-            class="inline-flex items-center gap-1 px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50 rounded"
+            class="inline-flex items-center gap-1 px-2 py-1 text-xs text-primary hover:bg-primary/10 rounded"
           >
             <i class="pi pi-plus text-xs"></i>
             Log Time
@@ -467,9 +511,7 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
         <!-- Timer Control -->
         <div class="mb-3">
           @if (runningTimer()) {
-            <div
-              class="flex items-center gap-3 px-3 py-2 bg-red-50 rounded-md"
-            >
+            <div class="flex items-center gap-3 px-3 py-2 bg-red-50 rounded-md">
               <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
               <span class="text-sm font-mono text-red-700 flex-1">{{
                 elapsedTime()
@@ -496,10 +538,12 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
 
         <!-- Log Time Form -->
         @if (showLogTimeForm()) {
-          <div class="mb-3 bg-gray-50 rounded-md p-3 space-y-2">
+          <div class="mb-3 bg-[var(--secondary)] rounded-md p-3 space-y-2">
             <div class="flex gap-2">
               <div class="flex-1">
-                <label class="block text-xs text-gray-500 mb-1">Hours</label>
+                <label class="block text-xs text-[var(--muted-foreground)] mb-1"
+                  >Hours</label
+                >
                 <input
                   pInputText
                   type="number"
@@ -511,7 +555,9 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
                 />
               </div>
               <div class="flex-1">
-                <label class="block text-xs text-gray-500 mb-1">Minutes</label>
+                <label class="block text-xs text-[var(--muted-foreground)] mb-1"
+                  >Minutes</label
+                >
                 <input
                   pInputText
                   type="number"
@@ -562,14 +608,16 @@ import { TimeEntry } from '../../../core/services/time-tracking.service';
           <div class="space-y-1">
             @for (entry of timeEntries(); track entry.id) {
               <div
-                class="flex items-center justify-between px-2 py-1.5 hover:bg-gray-50 rounded text-sm group"
+                class="flex items-center justify-between px-2 py-1.5 hover:bg-[var(--muted)] rounded text-sm group"
               >
                 <div class="flex items-center gap-2 min-w-0">
-                  <span class="font-mono text-gray-700 flex-shrink-0">
+                  <span
+                    class="font-mono text-[var(--foreground)] flex-shrink-0"
+                  >
                     {{ formatDuration(entry.duration_minutes || 0) }}
                   </span>
                   @if (entry.description) {
-                    <span class="text-gray-500 truncate">{{
+                    <span class="text-[var(--muted-foreground)] truncate">{{
                       entry.description
                     }}</span>
                   }
@@ -613,7 +661,11 @@ export class TaskDetailFieldsComponent {
   dependencyAdded = output<{ targetTaskId: string; depType: DependencyType }>();
   dependencyRemoved = output<string>();
   depSearchChanged = output<string>();
-  customFieldChanged = output<{ fieldId: string; field: string; value: unknown }>();
+  customFieldChanged = output<{
+    fieldId: string;
+    field: string;
+    value: unknown;
+  }>();
   customFieldSaveRequested = output<void>();
   recurringSaved = output<{
     pattern: RecurrencePattern;

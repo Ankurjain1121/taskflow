@@ -26,13 +26,25 @@ import {
     <div class="space-y-4">
       <!-- Header -->
       <div class="flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-gray-900">Milestones</h3>
+        <h3 class="text-lg font-semibold text-[var(--card-foreground)]">
+          Milestones
+        </h3>
         <button
           (click)="toggleCreateForm()"
-          class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+          class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition-colors"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 4v16m8-8H4"
+            />
           </svg>
           Add Milestone
         </button>
@@ -40,31 +52,39 @@ import {
 
       <!-- Create Form -->
       @if (showCreateForm()) {
-        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+        <div
+          class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4 shadow-sm"
+        >
           <div class="space-y-3">
             <input
               type="text"
               [(ngModel)]="newName"
               placeholder="Milestone name"
-              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              class="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
             />
             <textarea
               [(ngModel)]="newDescription"
               placeholder="Description (optional)"
               rows="2"
-              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              class="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
             ></textarea>
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Due Date</label>
+                <label
+                  class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                  >Due Date</label
+                >
                 <input
                   type="date"
                   [(ngModel)]="newDueDate"
-                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  class="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                 />
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Color</label>
+                <label
+                  class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                  >Color</label
+                >
                 <div class="flex flex-wrap gap-1.5 mt-1">
                   @for (color of presetColors; track color) {
                     <button
@@ -82,14 +102,14 @@ import {
             <div class="flex justify-end gap-2 pt-2">
               <button
                 (click)="cancelCreate()"
-                class="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md"
+                class="px-3 py-1.5 text-sm text-[var(--muted-foreground)] hover:bg-[var(--muted)] rounded-md"
               >
                 Cancel
               </button>
               <button
                 (click)="createMilestone()"
                 [disabled]="!newName.trim()"
-                class="px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                class="px-3 py-1.5 text-sm font-medium text-white bg-primary hover:bg-primary hover:brightness-90 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Create
               </button>
@@ -101,25 +121,57 @@ import {
       <!-- Loading -->
       @if (loading()) {
         <div class="flex items-center justify-center py-8">
-          <svg class="animate-spin h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          <svg
+            class="animate-spin h-6 w-6 text-primary"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
           </svg>
         </div>
       } @else if (milestones().length === 0 && !showCreateForm()) {
-        <div class="bg-gray-50 rounded-lg p-6 text-center">
-          <svg class="w-10 h-10 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+        <div class="bg-[var(--secondary)] rounded-lg p-6 text-center">
+          <svg
+            class="w-10 h-10 text-gray-400 mx-auto mb-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
+            />
           </svg>
-          <p class="text-sm text-gray-500">No milestones yet. Create one to track project progress.</p>
+          <p class="text-sm text-[var(--muted-foreground)]">
+            No milestones yet. Create one to track project progress.
+          </p>
         </div>
       } @else {
         <!-- Milestone Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           @for (milestone of milestones(); track milestone.id) {
-            <div class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+            <div
+              class="bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+            >
               <!-- Color bar -->
-              <div class="h-1.5" [style.background-color]="milestone.color"></div>
+              <div
+                class="h-1.5"
+                [style.background-color]="milestone.color"
+              ></div>
 
               @if (editingId() === milestone.id) {
                 <!-- Edit Mode -->
@@ -128,25 +180,31 @@ import {
                     type="text"
                     [(ngModel)]="editName"
                     placeholder="Milestone name"
-                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    class="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                   />
                   <textarea
                     [(ngModel)]="editDescription"
                     placeholder="Description (optional)"
                     rows="2"
-                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    class="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                   ></textarea>
                   <div class="grid grid-cols-2 gap-3">
                     <div>
-                      <label class="block text-xs font-medium text-gray-500 mb-1">Due Date</label>
+                      <label
+                        class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                        >Due Date</label
+                      >
                       <input
                         type="date"
                         [(ngModel)]="editDueDate"
-                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                        class="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                       />
                     </div>
                     <div>
-                      <label class="block text-xs font-medium text-gray-500 mb-1">Color</label>
+                      <label
+                        class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                        >Color</label
+                      >
                       <div class="flex flex-wrap gap-1.5 mt-1">
                         @for (color of presetColors; track color) {
                           <button
@@ -164,14 +222,14 @@ import {
                   <div class="flex justify-end gap-2 pt-2">
                     <button
                       (click)="cancelEdit()"
-                      class="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md"
+                      class="px-3 py-1.5 text-sm text-[var(--muted-foreground)] hover:bg-[var(--muted)] rounded-md"
                     >
                       Cancel
                     </button>
                     <button
                       (click)="saveEdit(milestone.id)"
                       [disabled]="!editName.trim()"
-                      class="px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="px-3 py-1.5 text-sm font-medium text-white bg-primary hover:bg-primary hover:brightness-90 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Save
                     </button>
@@ -183,7 +241,7 @@ import {
                   <div class="flex items-start justify-between mb-2">
                     <h4
                       (click)="startEdit(milestone)"
-                      class="text-sm font-semibold text-gray-900 cursor-pointer hover:text-indigo-600"
+                      class="text-sm font-semibold text-[var(--card-foreground)] cursor-pointer hover:text-primary"
                     >
                       {{ milestone.name }}
                     </h4>
@@ -193,8 +251,18 @@ import {
                         class="p-1 text-gray-400 hover:text-gray-600 rounded"
                         title="Edit"
                       >
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        <svg
+                          class="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                          />
                         </svg>
                       </button>
                       <button
@@ -202,21 +270,48 @@ import {
                         class="p-1 text-gray-400 hover:text-red-600 rounded"
                         title="Delete"
                       >
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        <svg
+                          class="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
                         </svg>
                       </button>
                     </div>
                   </div>
 
                   @if (milestone.description) {
-                    <p class="text-xs text-gray-500 mb-3 line-clamp-2">{{ milestone.description }}</p>
+                    <p
+                      class="text-xs text-[var(--muted-foreground)] mb-3 line-clamp-2"
+                    >
+                      {{ milestone.description }}
+                    </p>
                   }
 
                   @if (milestone.due_date) {
-                    <div class="flex items-center gap-1 text-xs mb-3" [class]="getDueDateClass(milestone.due_date)">
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <div
+                      class="flex items-center gap-1 text-xs mb-3"
+                      [class]="getDueDateClass(milestone.due_date)"
+                    >
+                      <svg
+                        class="w-3.5 h-3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
                       </svg>
                       {{ formatDate(milestone.due_date) }}
                     </div>
@@ -224,11 +319,18 @@ import {
 
                   <!-- Progress Bar -->
                   <div class="mt-2">
-                    <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
-                      <span>{{ milestone.completed_tasks }}/{{ milestone.total_tasks }} tasks</span>
+                    <div
+                      class="flex items-center justify-between text-xs text-[var(--muted-foreground)] mb-1"
+                    >
+                      <span
+                        >{{ milestone.completed_tasks }}/{{
+                          milestone.total_tasks
+                        }}
+                        tasks</span
+                      >
                       <span>{{ getProgressPercent(milestone) }}%</span>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="w-full bg-[var(--secondary)] rounded-full h-2">
                       <div
                         class="h-2 rounded-full transition-all duration-300"
                         [style.width.%]="getProgressPercent(milestone)"
@@ -256,9 +358,16 @@ export class MilestoneListComponent implements OnInit, OnChanges {
   editingId = signal<string | null>(null);
 
   presetColors = [
-    '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
-    '#f97316', '#eab308', '#22c55e', '#14b8a6',
-    '#06b6d4', '#3b82f6',
+    '#6366f1',
+    '#8b5cf6',
+    '#ec4899',
+    '#ef4444',
+    '#f97316',
+    '#eab308',
+    '#22c55e',
+    '#14b8a6',
+    '#06b6d4',
+    '#3b82f6',
   ];
 
   // Create form fields
@@ -284,7 +393,7 @@ export class MilestoneListComponent implements OnInit, OnChanges {
   }
 
   toggleCreateForm(): void {
-    this.showCreateForm.update(v => !v);
+    this.showCreateForm.update((v) => !v);
     if (!this.showCreateForm()) {
       this.resetCreateForm();
     }
@@ -319,7 +428,7 @@ export class MilestoneListComponent implements OnInit, OnChanges {
           total_tasks: 0,
           completed_tasks: 0,
         };
-        this.milestones.update(m => [...m, milestoneWithProgress]);
+        this.milestones.update((m) => [...m, milestoneWithProgress]);
         this.showCreateForm.set(false);
         this.resetCreateForm();
       },
@@ -331,7 +440,9 @@ export class MilestoneListComponent implements OnInit, OnChanges {
     this.editingId.set(milestone.id);
     this.editName = milestone.name;
     this.editDescription = milestone.description || '';
-    this.editDueDate = milestone.due_date ? milestone.due_date.split('T')[0] : '';
+    this.editDueDate = milestone.due_date
+      ? milestone.due_date.split('T')[0]
+      : '';
     this.editColor = milestone.color;
   }
 
@@ -354,8 +465,10 @@ export class MilestoneListComponent implements OnInit, OnChanges {
 
     this.milestoneService.update(milestoneId, req).subscribe({
       next: (updated) => {
-        this.milestones.update(milestones =>
-          milestones.map(m => m.id === milestoneId ? { ...m, ...updated } : m)
+        this.milestones.update((milestones) =>
+          milestones.map((m) =>
+            m.id === milestoneId ? { ...m, ...updated } : m,
+          ),
         );
         this.editingId.set(null);
       },
@@ -364,13 +477,17 @@ export class MilestoneListComponent implements OnInit, OnChanges {
   }
 
   confirmDelete(milestone: Milestone): void {
-    if (!confirm(`Delete milestone "${milestone.name}"? Tasks will be unassigned from this milestone.`)) {
+    if (
+      !confirm(
+        `Delete milestone "${milestone.name}"? Tasks will be unassigned from this milestone.`,
+      )
+    ) {
       return;
     }
 
     this.milestoneService.delete(milestone.id).subscribe({
       next: () => {
-        this.milestones.update(m => m.filter(ms => ms.id !== milestone.id));
+        this.milestones.update((m) => m.filter((ms) => ms.id !== milestone.id));
       },
       error: (err) => console.error('Failed to delete milestone:', err),
     });
@@ -378,13 +495,17 @@ export class MilestoneListComponent implements OnInit, OnChanges {
 
   getProgressPercent(milestone: Milestone): number {
     if (milestone.total_tasks === 0) return 0;
-    return Math.round((milestone.completed_tasks / milestone.total_tasks) * 100);
+    return Math.round(
+      (milestone.completed_tasks / milestone.total_tasks) * 100,
+    );
   }
 
   getDueDateClass(dueDate: string): string {
     const due = new Date(dueDate);
     const now = new Date();
-    const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil(
+      (due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
 
     if (diffDays < 0) return 'text-red-600';
     if (diffDays <= 3) return 'text-orange-500';

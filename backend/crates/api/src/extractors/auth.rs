@@ -53,7 +53,10 @@ where
 {
     type Rejection = Response;
 
-    fn from_request_parts(parts: &mut Parts, _state: &S) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
+    fn from_request_parts(
+        parts: &mut Parts,
+        _state: &S,
+    ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
         let result = parts
             .extensions
             .get::<AuthUser>()
@@ -83,19 +86,18 @@ where
 {
     type Rejection = Response;
 
-    fn from_request_parts(parts: &mut Parts, _state: &S) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
+    fn from_request_parts(
+        parts: &mut Parts,
+        _state: &S,
+    ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
         let result = (|| {
-            let auth_user = parts
-                .extensions
-                .get::<AuthUser>()
-                .cloned()
-                .ok_or_else(|| {
-                    (
-                        StatusCode::UNAUTHORIZED,
-                        Json(ExtractorErrorResponse::unauthorized()),
-                    )
-                        .into_response()
-                })?;
+            let auth_user = parts.extensions.get::<AuthUser>().cloned().ok_or_else(|| {
+                (
+                    StatusCode::UNAUTHORIZED,
+                    Json(ExtractorErrorResponse::unauthorized()),
+                )
+                    .into_response()
+            })?;
 
             if auth_user.role != UserRole::Admin {
                 return Err((
@@ -124,19 +126,18 @@ where
 {
     type Rejection = Response;
 
-    fn from_request_parts(parts: &mut Parts, _state: &S) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
+    fn from_request_parts(
+        parts: &mut Parts,
+        _state: &S,
+    ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
         let result = (|| {
-            let auth_user = parts
-                .extensions
-                .get::<AuthUser>()
-                .cloned()
-                .ok_or_else(|| {
-                    (
-                        StatusCode::UNAUTHORIZED,
-                        Json(ExtractorErrorResponse::unauthorized()),
-                    )
-                        .into_response()
-                })?;
+            let auth_user = parts.extensions.get::<AuthUser>().cloned().ok_or_else(|| {
+                (
+                    StatusCode::UNAUTHORIZED,
+                    Json(ExtractorErrorResponse::unauthorized()),
+                )
+                    .into_response()
+            })?;
 
             match auth_user.role {
                 UserRole::Admin | UserRole::Manager => Ok(ManagerOrAdmin(auth_user)),
@@ -170,7 +171,10 @@ where
 {
     type Rejection = Response;
 
-    fn from_request_parts(parts: &mut Parts, _state: &S) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
+    fn from_request_parts(
+        parts: &mut Parts,
+        _state: &S,
+    ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
         let result = parts
             .extensions
             .get::<AuthUser>()
@@ -204,7 +208,12 @@ where
 {
     type Rejection = std::convert::Infallible;
 
-    fn from_request_parts(parts: &mut Parts, _state: &S) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
-        std::future::ready(Ok(OptionalAuthUser(parts.extensions.get::<AuthUser>().cloned())))
+    fn from_request_parts(
+        parts: &mut Parts,
+        _state: &S,
+    ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
+        std::future::ready(Ok(OptionalAuthUser(
+            parts.extensions.get::<AuthUser>().cloned(),
+        )))
     }
 }

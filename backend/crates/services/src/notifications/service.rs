@@ -155,24 +155,20 @@ mod tests {
 
     #[test]
     fn test_notification_service_error_display_broadcast() {
-        let err = NotificationServiceError::Broadcast(
-            crate::broadcast::BroadcastError::Serialization(
-                serde_json::from_str::<serde_json::Value>("invalid")
-                    .unwrap_err(),
-            ),
-        );
+        let err =
+            NotificationServiceError::Broadcast(crate::broadcast::BroadcastError::Serialization(
+                serde_json::from_str::<serde_json::Value>("invalid").unwrap_err(),
+            ));
         let msg = format!("{}", err);
         assert!(msg.contains("Broadcast error"), "got: {}", msg);
     }
 
     #[test]
     fn test_notification_service_error_debug() {
-        let err = NotificationServiceError::Broadcast(
-            crate::broadcast::BroadcastError::Serialization(
-                serde_json::from_str::<serde_json::Value>("invalid")
-                    .unwrap_err(),
-            ),
-        );
+        let err =
+            NotificationServiceError::Broadcast(crate::broadcast::BroadcastError::Serialization(
+                serde_json::from_str::<serde_json::Value>("invalid").unwrap_err(),
+            ));
         let debug = format!("{:?}", err);
         assert!(debug.contains("Broadcast"), "got: {}", debug);
     }

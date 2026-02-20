@@ -162,12 +162,14 @@ async fn list_boards(
     Path(workspace_id): Path<Uuid>,
 ) -> Result<Json<Vec<BoardResponse>>> {
     // Check workspace membership
-    let is_member = workspaces::is_workspace_member(&state.db, workspace_id, auth.0.user_id).await?;
+    let is_member =
+        workspaces::is_workspace_member(&state.db, workspace_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
-    let boards_list = boards::list_boards_by_workspace(&state.db, workspace_id, auth.0.user_id).await?;
+    let boards_list =
+        boards::list_boards_by_workspace(&state.db, workspace_id, auth.0.user_id).await?;
 
     let response: Vec<BoardResponse> = boards_list
         .into_iter()
@@ -235,7 +237,8 @@ async fn create_board(
     Json(payload): Json<CreateBoardRequest>,
 ) -> Result<Json<BoardDetailResponse>> {
     // Check workspace membership
-    let is_member = workspaces::is_workspace_member(&state.db, workspace_id, auth.0.user_id).await?;
+    let is_member =
+        workspaces::is_workspace_member(&state.db, workspace_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
@@ -272,10 +275,7 @@ async fn create_board(
                 // Create columns from the template
                 let mut prev_pos: Option<String> = None;
                 for template_col in template.columns {
-                    let position = generate_key_between(
-                        prev_pos.as_deref(),
-                        None,
-                    );
+                    let position = generate_key_between(prev_pos.as_deref(), None);
 
                     let status_mapping = if template_col.is_done {
                         Some(serde_json::json!({"done": true}))
@@ -342,7 +342,9 @@ async fn update_board(
             return Err(AppError::Forbidden("Editor role required".into()));
         }
         None => {
-            return Err(AppError::NotFound("Board not found or access denied".into()));
+            return Err(AppError::NotFound(
+                "Board not found or access denied".into(),
+            ));
         }
     }
 
@@ -379,7 +381,9 @@ async fn delete_board(
     // Check board membership
     let is_member = boards::is_board_member(&state.db, id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::NotFound("Board not found or access denied".into()));
+        return Err(AppError::NotFound(
+            "Board not found or access denied".into(),
+        ));
     }
 
     let deleted = boards::soft_delete_board(&state.db, id).await?;
@@ -404,7 +408,9 @@ async fn list_board_members(
     // Check board membership
     let is_member = boards::is_board_member(&state.db, id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::NotFound("Board not found or access denied".into()));
+        return Err(AppError::NotFound(
+            "Board not found or access denied".into(),
+        ));
     }
 
     let members = boards::list_board_members(&state.db, id).await?;
@@ -439,7 +445,9 @@ async fn add_board_member(
     // Check board membership
     let is_member = boards::is_board_member(&state.db, id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::NotFound("Board not found or access denied".into()));
+        return Err(AppError::NotFound(
+            "Board not found or access denied".into(),
+        ));
     }
 
     // Get board to check workspace membership of the user being added
@@ -448,9 +456,12 @@ async fn add_board_member(
         .ok_or_else(|| AppError::NotFound("Board not found".into()))?;
 
     // Verify user is a workspace member
-    let is_ws_member = workspaces::is_workspace_member(&state.db, board.workspace_id, payload.user_id).await?;
+    let is_ws_member =
+        workspaces::is_workspace_member(&state.db, board.workspace_id, payload.user_id).await?;
     if !is_ws_member {
-        return Err(AppError::BadRequest("User must be a workspace member first".into()));
+        return Err(AppError::BadRequest(
+            "User must be a workspace member first".into(),
+        ));
     }
 
     boards::add_board_member(&state.db, id, payload.user_id, payload.role).await?;
@@ -472,7 +483,9 @@ async fn remove_board_member(
     // Check board membership
     let is_member = boards::is_board_member(&state.db, id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::NotFound("Board not found or access denied".into()));
+        return Err(AppError::NotFound(
+            "Board not found or access denied".into(),
+        ));
     }
 
     let removed = boards::remove_board_member(&state.db, id, user_id).await?;
@@ -535,14 +548,11 @@ async fn get_board_full(
     // Group labels by task_id
     let mut labels_map: HashMap<Uuid, Vec<LabelInfo>> = HashMap::new();
     for l in label_rows {
-        labels_map
-            .entry(l.task_id)
-            .or_default()
-            .push(LabelInfo {
-                id: l.label_id,
-                name: l.name,
-                color: l.color,
-            });
+        labels_map.entry(l.task_id).or_default().push(LabelInfo {
+            id: l.label_id,
+            name: l.name,
+            color: l.color,
+        });
     }
 
     // Build enriched task list
@@ -635,9 +645,15 @@ pub fn workspace_boards_router(state: AppState) -> Router<AppState> {
 /// Routes: /api/boards/:id
 pub fn board_router(state: AppState) -> Router<AppState> {
     Router::new()
-        .route("/{id}", get(get_board).put(update_board).delete(delete_board))
+        .route(
+            "/{id}",
+            get(get_board).put(update_board).delete(delete_board),
+        )
         .route("/{id}/full", get(get_board_full))
-        .route("/{id}/members", get(list_board_members).post(add_board_member))
+        .route(
+            "/{id}/members",
+            get(list_board_members).post(add_board_member),
+        )
         .route("/{id}/members/{user_id}", delete(remove_board_member))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

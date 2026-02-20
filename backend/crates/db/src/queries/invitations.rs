@@ -13,7 +13,17 @@ pub async fn create_invitation(
     invited_by_id: Uuid,
     expires_at: DateTime<Utc>,
 ) -> Result<Invitation, sqlx::Error> {
-    create_invitation_with_details(pool, email, workspace_id, role, invited_by_id, expires_at, None, None).await
+    create_invitation_with_details(
+        pool,
+        email,
+        workspace_id,
+        role,
+        invited_by_id,
+        expires_at,
+        None,
+        None,
+    )
+    .await
 }
 
 /// Create a new invitation with optional message and board_ids
@@ -179,10 +189,7 @@ pub async fn list_all_invitations(
 }
 
 /// Delete a pending invitation by ID
-pub async fn delete_invitation(
-    pool: &PgPool,
-    id: Uuid,
-) -> Result<bool, sqlx::Error> {
+pub async fn delete_invitation(pool: &PgPool, id: Uuid) -> Result<bool, sqlx::Error> {
     let result = sqlx::query(
         r#"
         DELETE FROM invitations

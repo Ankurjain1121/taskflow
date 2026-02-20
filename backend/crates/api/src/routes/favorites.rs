@@ -11,7 +11,9 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
-use taskflow_db::queries::favorites::{add_favorite, is_favorited, list_favorites, remove_favorite, FavoriteItem};
+use taskflow_db::queries::favorites::{
+    add_favorite, is_favorited, list_favorites, remove_favorite, FavoriteItem,
+};
 
 /// Request body for adding a favorite
 #[derive(Debug, Deserialize)]
@@ -135,7 +137,13 @@ pub fn favorites_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(list_favorites_handler))
         .route("/", post(add_favorite_handler))
-        .route("/{entity_type}/{entity_id}", delete(remove_favorite_handler))
-        .route("/check/{entity_type}/{entity_id}", get(check_favorite_handler))
+        .route(
+            "/{entity_type}/{entity_id}",
+            delete(remove_favorite_handler),
+        )
+        .route(
+            "/check/{entity_type}/{entity_id}",
+            get(check_favorite_handler),
+        )
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

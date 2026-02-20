@@ -74,7 +74,7 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
                 </div>
                 <h2 class="text-xl font-bold text-gray-900 mb-2">Invitation Expired</h2>
                 <p class="text-gray-500 mb-6">This invitation link has expired. Please ask the workspace admin to send a new invitation.</p>
-                <a routerLink="/auth/sign-in" class="text-indigo-600 hover:text-indigo-800 font-semibold">Go to Sign In</a>
+                <a routerLink="/auth/sign-in" class="text-primary hover:text-primary font-semibold">Go to Sign In</a>
               </div>
             }
 
@@ -86,7 +86,7 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
                 </div>
                 <h2 class="text-xl font-bold text-gray-900 mb-2">Already Accepted</h2>
                 <p class="text-gray-500 mb-6">This invitation has already been accepted. You can sign in with your existing account.</p>
-                <a routerLink="/auth/sign-in" class="text-indigo-600 hover:text-indigo-800 font-semibold">Go to Sign In</a>
+                <a routerLink="/auth/sign-in" class="text-primary hover:text-primary font-semibold">Go to Sign In</a>
               </div>
             }
 
@@ -98,7 +98,7 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
                 </div>
                 <h2 class="text-xl font-bold text-gray-900 mb-2">Invalid Invitation</h2>
                 <p class="text-gray-500 mb-6">This invitation link is not valid. Please check your email for the correct link or contact the workspace admin.</p>
-                <a routerLink="/auth/sign-in" class="text-indigo-600 hover:text-indigo-800 font-semibold">Go to Sign In</a>
+                <a routerLink="/auth/sign-in" class="text-primary hover:text-primary font-semibold">Go to Sign In</a>
               </div>
             }
 
@@ -222,7 +222,7 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
               <div class="form-footer">
                 <p class="text-sm text-gray-500">
                   Already have an account?
-                  <a routerLink="/auth/sign-in" class="text-indigo-600 hover:text-indigo-800 font-semibold transition-colors">
+                  <a routerLink="/auth/sign-in" class="text-primary hover:text-primary font-semibold transition-colors">
                     Sign in
                   </a>
                 </p>

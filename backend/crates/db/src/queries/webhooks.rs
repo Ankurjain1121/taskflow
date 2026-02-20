@@ -60,13 +60,11 @@ async fn get_webhook_board_id_internal(
     pool: &PgPool,
     webhook_id: Uuid,
 ) -> Result<Uuid, WebhookQueryError> {
-    let board_id = sqlx::query_scalar::<_, Uuid>(
-        r#"SELECT board_id FROM webhooks WHERE id = $1"#,
-    )
-    .bind(webhook_id)
-    .fetch_optional(pool)
-    .await?
-    .ok_or(WebhookQueryError::NotFound)?;
+    let board_id = sqlx::query_scalar::<_, Uuid>(r#"SELECT board_id FROM webhooks WHERE id = $1"#)
+        .bind(webhook_id)
+        .fetch_optional(pool)
+        .await?
+        .ok_or(WebhookQueryError::NotFound)?;
 
     Ok(board_id)
 }

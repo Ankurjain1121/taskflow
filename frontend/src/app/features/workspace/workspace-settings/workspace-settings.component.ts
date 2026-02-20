@@ -46,7 +46,7 @@ import {
         @if (loading()) {
           <div class="flex items-center justify-center py-12">
             <svg
-              class="animate-spin h-8 w-8 text-indigo-600"
+              class="animate-spin h-8 w-8 text-primary"
               fill="none"
               viewBox="0 0 24 24"
             >
@@ -89,7 +89,7 @@ import {
                     type="text"
                     id="name"
                     formControlName="name"
-                    class="mt-1 block w-full rounded-md border-[var(--border)] shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    class="mt-1 block w-full rounded-md border-[var(--border)] shadow-sm focus:border-primary focus:ring-ring sm:text-sm"
                   />
                   @if (
                     form.controls['name'].invalid &&
@@ -111,7 +111,7 @@ import {
                     type="text"
                     id="slug"
                     formControlName="slug"
-                    class="mt-1 block w-full rounded-md border-[var(--border)] shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    class="mt-1 block w-full rounded-md border-[var(--border)] shadow-sm focus:border-primary focus:ring-ring sm:text-sm"
                   />
                   <p class="mt-1 text-sm text-[var(--muted-foreground)]">
                     URL-friendly identifier for the workspace
@@ -122,7 +122,7 @@ import {
                   <button
                     type="submit"
                     [disabled]="saving() || form.invalid || !form.dirty"
-                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     @if (saving()) {
                       <svg

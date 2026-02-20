@@ -48,7 +48,9 @@ type SortOrder = 'asc' | 'desc';
         @if (summary()) {
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
             <!-- Total Assigned -->
-            <div class="bg-[var(--card)] rounded-lg shadow-sm border border-[var(--border)] p-4">
+            <div
+              class="bg-[var(--card)] rounded-lg shadow-sm border border-[var(--border)] p-4"
+            >
               <div class="flex items-center gap-3">
                 <div
                   class="w-10 h-10 rounded-full bg-[var(--secondary)] flex items-center justify-center"
@@ -71,13 +73,17 @@ type SortOrder = 'asc' | 'desc';
                   <p class="text-2xl font-bold text-[var(--foreground)]">
                     {{ summary()!.total_assigned }}
                   </p>
-                  <p class="text-xs text-[var(--muted-foreground)]">Total Assigned</p>
+                  <p class="text-xs text-[var(--muted-foreground)]">
+                    Total Assigned
+                  </p>
                 </div>
               </div>
             </div>
 
             <!-- Due Soon -->
-            <div class="bg-[var(--card)] rounded-lg shadow-sm border border-[var(--border)] p-4">
+            <div
+              class="bg-[var(--card)] rounded-lg shadow-sm border border-[var(--border)] p-4"
+            >
               <div class="flex items-center gap-3">
                 <div
                   class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center"
@@ -106,7 +112,9 @@ type SortOrder = 'asc' | 'desc';
             </div>
 
             <!-- Overdue -->
-            <div class="bg-[var(--card)] rounded-lg shadow-sm border border-[var(--status-red-border)] p-4">
+            <div
+              class="bg-[var(--card)] rounded-lg shadow-sm border border-[var(--status-red-border)] p-4"
+            >
               <div class="flex items-center gap-3">
                 <div
                   class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center"
@@ -135,7 +143,9 @@ type SortOrder = 'asc' | 'desc';
             </div>
 
             <!-- Completed This Week -->
-            <div class="bg-[var(--card)] rounded-lg shadow-sm border border-[var(--status-green-border)] p-4">
+            <div
+              class="bg-[var(--card)] rounded-lg shadow-sm border border-[var(--status-green-border)] p-4"
+            >
               <div class="flex items-center gap-3">
                 <div
                   class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center"
@@ -158,7 +168,9 @@ type SortOrder = 'asc' | 'desc';
                   <p class="text-2xl font-bold text-green-600">
                     {{ summary()!.completed_this_week }}
                   </p>
-                  <p class="text-xs text-[var(--muted-foreground)]">Completed This Week</p>
+                  <p class="text-xs text-[var(--muted-foreground)]">
+                    Completed This Week
+                  </p>
                 </div>
               </div>
             </div>
@@ -172,14 +184,17 @@ type SortOrder = 'asc' | 'desc';
           <div class="flex flex-wrap items-center gap-4">
             <!-- Board Filter -->
             <div class="flex items-center gap-2">
-              <label for="board-filter" class="text-sm text-[var(--muted-foreground)]">
+              <label
+                for="board-filter"
+                class="text-sm text-[var(--muted-foreground)]"
+              >
                 Board:
               </label>
               <select
                 id="board-filter"
                 [(ngModel)]="selectedBoardId"
                 (ngModelChange)="onFilterChange()"
-                class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-primary focus:ring-primary bg-[var(--card)] text-[var(--foreground)]"
               >
                 <option value="">All Boards</option>
                 @for (board of boards(); track board.id) {
@@ -190,12 +205,16 @@ type SortOrder = 'asc' | 'desc';
 
             <!-- Sort By -->
             <div class="flex items-center gap-2">
-              <label for="sort-by" class="text-sm text-[var(--muted-foreground)]">Sort by:</label>
+              <label
+                for="sort-by"
+                class="text-sm text-[var(--muted-foreground)]"
+                >Sort by:</label
+              >
               <select
                 id="sort-by"
                 [(ngModel)]="sortBy"
                 (ngModelChange)="onSortChange()"
-                class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-primary focus:ring-primary bg-[var(--card)] text-[var(--foreground)]"
               >
                 <option value="due_date">Due Date</option>
                 <option value="priority">Priority</option>
@@ -247,14 +266,26 @@ type SortOrder = 'asc' | 'desc';
         <!-- Skeleton Loading State -->
         @if (loading() && tasks().length === 0) {
           <div class="space-y-3">
-            @for (i of [1,2,3,4,5]; track i) {
-              <div class="bg-[var(--card)] dark:bg-gray-800 rounded-xl border border-[var(--border)] dark:border-gray-700 p-4 flex items-center gap-4">
-                <div class="skeleton skeleton-circle w-5 h-5 flex-shrink-0"></div>
+            @for (i of [1, 2, 3, 4, 5]; track i) {
+              <div
+                class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-4 flex items-center gap-4"
+              >
+                <div
+                  class="skeleton skeleton-circle w-5 h-5 flex-shrink-0"
+                ></div>
                 <div class="flex-1 space-y-2">
-                  <div class="skeleton skeleton-text" [style.width]="(60 + i * 8) + '%'"></div>
-                  <div class="skeleton skeleton-text w-24" style="height: 0.625rem"></div>
+                  <div
+                    class="skeleton skeleton-text"
+                    [style.width]="60 + i * 8 + '%'"
+                  ></div>
+                  <div
+                    class="skeleton skeleton-text w-24"
+                    style="height: 0.625rem"
+                  ></div>
                 </div>
-                <div class="skeleton skeleton-circle w-7 h-7 flex-shrink-0"></div>
+                <div
+                  class="skeleton skeleton-circle w-7 h-7 flex-shrink-0"
+                ></div>
               </div>
             }
           </div>
@@ -277,7 +308,9 @@ type SortOrder = 'asc' | 'desc';
               />
             </svg>
             <div>
-              <p class="text-sm font-medium text-[var(--status-red-text)]">{{ error() }}</p>
+              <p class="text-sm font-medium text-[var(--status-red-text)]">
+                {{ error() }}
+              </p>
               <button
                 (click)="loadTasks(true)"
                 class="text-sm text-red-600 hover:text-red-800 underline mt-1"
@@ -291,14 +324,29 @@ type SortOrder = 'asc' | 'desc';
         <!-- Empty State -->
         @if (!loading() && !error() && tasks().length === 0) {
           <div class="animate-fade-in-up text-center py-16">
-            <div class="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-emerald-100 via-teal-50 to-indigo-100 dark:from-emerald-900/30 dark:via-teal-900/20 dark:to-indigo-900/30 flex items-center justify-center mb-5">
-              <svg class="w-10 h-10 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            <div
+              class="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-emerald-100 via-teal-50 to-primary/10 dark:from-emerald-900/30 dark:via-teal-900/20 dark:to-primary/10 flex items-center justify-center mb-5"
+            >
+              <svg
+                class="w-10 h-10 text-emerald-500 dark:text-emerald-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-[var(--foreground)] mb-2">You're all caught up!</h3>
+            <h3 class="text-lg font-semibold text-[var(--foreground)] mb-2">
+              You're all caught up!
+            </h3>
             <p class="text-sm text-[var(--muted-foreground)] max-w-xs mx-auto">
-              No tasks assigned to you right now. Enjoy the calm, or jump into a board to pick up some work.
+              No tasks assigned to you right now. Enjoy the calm, or jump into a
+              board to pick up some work.
             </p>
           </div>
         }
@@ -313,13 +361,10 @@ type SortOrder = 'asc' | 'desc';
 
           <!-- Infinite Scroll Trigger -->
           @if (hasMore()) {
-            <div
-              #scrollTrigger
-              class="flex items-center justify-center py-8"
-            >
+            <div #scrollTrigger class="flex items-center justify-center py-8">
               @if (loading()) {
                 <svg
-                  class="animate-spin h-6 w-6 text-indigo-600"
+                  class="animate-spin h-6 w-6 text-primary"
                   fill="none"
                   viewBox="0 0 24 24"
                 >
@@ -340,7 +385,7 @@ type SortOrder = 'asc' | 'desc';
               } @else {
                 <button
                   (click)="loadMore()"
-                  class="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                  class="text-sm text-primary hover:text-primary font-medium"
                 >
                   Load more
                 </button>
@@ -543,7 +588,10 @@ export class MyTasksComponent implements OnInit, OnDestroy, AfterViewChecked {
       });
   }
 
-  private handleWebSocketMessage(message: { type: string; payload: unknown }): void {
+  private handleWebSocketMessage(message: {
+    type: string;
+    payload: unknown;
+  }): void {
     switch (message.type) {
       case 'task:assigned':
       case 'task:unassigned':
@@ -575,7 +623,7 @@ export class MyTasksComponent implements OnInit, OnDestroy, AfterViewChecked {
         root: null,
         rootMargin: '100px',
         threshold: 0.1,
-      }
+      },
     );
 
     this.intersectionObserver.observe(this.scrollTrigger.nativeElement);

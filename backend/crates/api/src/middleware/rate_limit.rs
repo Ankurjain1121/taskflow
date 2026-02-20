@@ -40,9 +40,12 @@ impl RateLimiter {
         let now = Instant::now();
         let window = std::time::Duration::from_secs(self.window_secs);
 
-        let mut entry = self.entries.entry(ip.to_string()).or_insert_with(|| RateEntry {
-            timestamps: Vec::new(),
-        });
+        let mut entry = self
+            .entries
+            .entry(ip.to_string())
+            .or_insert_with(|| RateEntry {
+                timestamps: Vec::new(),
+            });
 
         // Remove timestamps outside the window
         entry.timestamps.retain(|t| now.duration_since(*t) < window);
@@ -59,7 +62,10 @@ impl RateLimiter {
 /// Extract IP address from request, preferring the actual peer address
 fn extract_ip(req: &Request<Body>) -> String {
     // Prefer the actual peer address from the connection (cannot be spoofed)
-    if let Some(connect_info) = req.extensions().get::<axum::extract::ConnectInfo<std::net::SocketAddr>>() {
+    if let Some(connect_info) = req
+        .extensions()
+        .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
+    {
         return connect_info.0.ip().to_string();
     }
 
@@ -82,10 +88,7 @@ fn extract_ip(req: &Request<Body>) -> String {
 
 /// Rate limiting middleware that checks IP-based limits.
 /// Attach via `axum::middleware::from_fn`.
-pub async fn rate_limit_middleware(
-    req: Request<Body>,
-    next: Next,
-) -> Result<Response, StatusCode> {
+pub async fn rate_limit_middleware(req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
     let limiter = req
         .extensions()
         .get::<RateLimiter>()
@@ -133,9 +136,18 @@ mod tests {
     #[test]
     fn test_rate_limiter_blocks_over_limit() {
         let limiter = RateLimiter::new(3, 60);
-        assert!(limiter.check_and_record("10.0.0.1"), "Request 1 should be allowed");
-        assert!(limiter.check_and_record("10.0.0.1"), "Request 2 should be allowed");
-        assert!(limiter.check_and_record("10.0.0.1"), "Request 3 should be allowed");
+        assert!(
+            limiter.check_and_record("10.0.0.1"),
+            "Request 1 should be allowed"
+        );
+        assert!(
+            limiter.check_and_record("10.0.0.1"),
+            "Request 2 should be allowed"
+        );
+        assert!(
+            limiter.check_and_record("10.0.0.1"),
+            "Request 3 should be allowed"
+        );
         assert!(
             !limiter.check_and_record("10.0.0.1"),
             "Request 4 should be blocked"
@@ -147,7 +159,10 @@ mod tests {
         let limiter = RateLimiter::new(2, 60);
         assert!(limiter.check_and_record("1.1.1.1"));
         assert!(limiter.check_and_record("1.1.1.1"));
-        assert!(!limiter.check_and_record("1.1.1.1"), "IP 1 should be blocked");
+        assert!(
+            !limiter.check_and_record("1.1.1.1"),
+            "IP 1 should be blocked"
+        );
 
         // Different IP should have its own independent counter
         assert!(

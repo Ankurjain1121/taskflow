@@ -13,12 +13,12 @@ use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 use taskflow_db::models::Subtask;
+use taskflow_db::queries::get_task_board_id;
 use taskflow_db::queries::subtasks::{
     create_subtask, delete_subtask, get_subtask_progress, get_subtask_task_id,
     list_subtasks_by_task, reorder_subtask, toggle_subtask, update_subtask, SubtaskProgress,
     SubtaskQueryError,
 };
-use taskflow_db::queries::get_task_board_id;
 
 /// Request body for creating a subtask
 #[derive(Deserialize)]
@@ -234,7 +234,10 @@ pub fn subtask_router(state: AppState) -> Router<AppState> {
         .route("/tasks/{task_id}/subtasks", post(create_subtask_handler))
         // Subtask-specific routes
         .route("/subtasks/{id}", put(update_subtask_handler))
-        .route("/subtasks/{id}/toggle", axum::routing::patch(toggle_subtask_handler))
+        .route(
+            "/subtasks/{id}/toggle",
+            axum::routing::patch(toggle_subtask_handler),
+        )
         .route("/subtasks/{id}/reorder", put(reorder_subtask_handler))
         .route("/subtasks/{id}", delete(delete_subtask_handler))
         .layer(from_fn_with_state(state.clone(), auth_middleware))

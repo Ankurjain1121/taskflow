@@ -46,11 +46,15 @@ interface ActionFormItem {
   imports: [CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white border border-indigo-200 rounded-lg shadow-sm overflow-hidden">
+    <div
+      class="bg-[var(--card)] border border-primary/30 rounded-lg shadow-sm overflow-hidden"
+    >
       <!-- Header -->
-      <div class="bg-indigo-50 px-4 py-3 border-b border-indigo-100">
-        <h4 class="text-sm font-semibold text-indigo-900">
-          {{ editingRule() ? 'Edit Automation Rule' : 'Create Automation Rule' }}
+      <div class="bg-primary/10 px-4 py-3 border-b border-primary/15">
+        <h4 class="text-sm font-semibold text-primary">
+          {{
+            editingRule() ? 'Edit Automation Rule' : 'Create Automation Rule'
+          }}
         </h4>
       </div>
 
@@ -58,59 +62,80 @@ interface ActionFormItem {
         <!-- Step 1: Name + Trigger -->
         <div class="space-y-3">
           <div class="flex items-center gap-2">
-            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">1</span>
-            <span class="text-sm font-medium text-gray-700">Name & Trigger</span>
+            <span
+              class="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center"
+              >1</span
+            >
+            <span class="text-sm font-medium text-[var(--foreground)]"
+              >Name & Trigger</span
+            >
           </div>
 
           <input
             type="text"
             [(ngModel)]="ruleName"
             placeholder="Rule name (e.g., Auto-assign on create)"
-            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            class="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
           />
 
           <div>
-            <label class="block text-xs font-medium text-gray-500 mb-1">When this happens...</label>
+            <label
+              class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+              >When this happens...</label
+            >
             <select
               [(ngModel)]="selectedTrigger"
               (ngModelChange)="onTriggerChange()"
-              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              class="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
             >
               @for (opt of triggerOptions; track opt.value) {
                 <option [value]="opt.value">{{ opt.label }}</option>
               }
             </select>
-            <p class="mt-1 text-xs text-gray-400">{{ getSelectedTriggerDescription() }}</p>
+            <p class="mt-1 text-xs text-gray-400">
+              {{ getSelectedTriggerDescription() }}
+            </p>
           </div>
         </div>
 
         <!-- Step 2: Trigger Config -->
         <div class="space-y-3">
           <div class="flex items-center gap-2">
-            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">2</span>
-            <span class="text-sm font-medium text-gray-700">Trigger Conditions</span>
+            <span
+              class="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center"
+              >2</span
+            >
+            <span class="text-sm font-medium text-[var(--foreground)]"
+              >Trigger Conditions</span
+            >
           </div>
 
-          <div class="bg-gray-50 rounded-md p-3 space-y-2">
+          <div class="bg-[var(--secondary)] rounded-md p-3 space-y-2">
             @switch (selectedTrigger) {
               @case ('task_moved') {
                 <div class="grid grid-cols-2 gap-3">
                   <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">From Column (optional)</label>
+                    <label
+                      class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                      >From Column (optional)</label
+                    >
                     <input
                       type="text"
                       [(ngModel)]="triggerConfigFromColumn"
                       placeholder="Any column"
-                      class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                      class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                     />
                   </div>
                   <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">To Column (optional)</label>
+                    <label
+                      class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                      >To Column (optional)</label
+                    >
                     <input
                       type="text"
                       [(ngModel)]="triggerConfigToColumn"
                       placeholder="Any column"
-                      class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                      class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                     />
                   </div>
                 </div>
@@ -118,10 +143,13 @@ interface ActionFormItem {
               @case ('task_priority_changed') {
                 <div class="grid grid-cols-2 gap-3">
                   <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">From Priority (optional)</label>
+                    <label
+                      class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                      >From Priority (optional)</label
+                    >
                     <select
                       [(ngModel)]="triggerConfigFromPriority"
-                      class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                      class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                     >
                       <option value="">Any priority</option>
                       <option value="low">Low</option>
@@ -131,10 +159,13 @@ interface ActionFormItem {
                     </select>
                   </div>
                   <div>
-                    <label class="block text-xs font-medium text-gray-500 mb-1">To Priority (optional)</label>
+                    <label
+                      class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                      >To Priority (optional)</label
+                    >
                     <select
                       [(ngModel)]="triggerConfigToPriority"
-                      class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                      class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                     >
                       <option value="">Any priority</option>
                       <option value="low">Low</option>
@@ -147,17 +178,22 @@ interface ActionFormItem {
               }
               @case ('task_assigned') {
                 <div>
-                  <label class="block text-xs font-medium text-gray-500 mb-1">Assigned To (User ID, optional)</label>
+                  <label
+                    class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                    >Assigned To (User ID, optional)</label
+                  >
                   <input
                     type="text"
                     [(ngModel)]="triggerConfigAssignee"
                     placeholder="Any user"
-                    class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                   />
                 </div>
               }
               @default {
-                <p class="text-xs text-gray-400">No additional configuration needed for this trigger.</p>
+                <p class="text-xs text-gray-400">
+                  No additional configuration needed for this trigger.
+                </p>
               }
             }
           </div>
@@ -167,84 +203,121 @@ interface ActionFormItem {
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <span class="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">3</span>
-              <span class="text-sm font-medium text-gray-700">Actions</span>
+              <span
+                class="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center"
+                >3</span
+              >
+              <span class="text-sm font-medium text-[var(--foreground)]"
+                >Actions</span
+              >
             </div>
             <button
               (click)="addAction()"
-              class="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
+              class="text-xs text-primary hover:text-primary font-medium"
             >
               + Add Action
             </button>
           </div>
 
           @if (actions().length === 0) {
-            <div class="bg-gray-50 rounded-md p-3 text-center">
-              <p class="text-xs text-gray-400">Add at least one action to define what happens.</p>
+            <div class="bg-[var(--secondary)] rounded-md p-3 text-center">
+              <p class="text-xs text-gray-400">
+                Add at least one action to define what happens.
+              </p>
             </div>
           } @else {
             <div class="space-y-3">
               @for (action of actions(); track $index; let i = $index) {
-                <div class="bg-gray-50 rounded-md p-3 relative">
+                <div class="bg-[var(--secondary)] rounded-md p-3 relative">
                   <!-- Remove button -->
                   <button
                     (click)="removeAction(i)"
                     class="absolute top-2 right-2 text-gray-300 hover:text-red-500 transition-colors"
                     title="Remove action"
                   >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      class="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
 
                   <div class="space-y-2">
                     <div>
-                      <label class="block text-xs font-medium text-gray-500 mb-1">Action {{ i + 1 }}</label>
+                      <label
+                        class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                        >Action {{ i + 1 }}</label
+                      >
                       <select
                         [ngModel]="action.action_type"
                         (ngModelChange)="updateActionType(i, $event)"
-                        class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                        class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                       >
                         @for (opt of actionOptions; track opt.value) {
                           <option [value]="opt.value">{{ opt.label }}</option>
                         }
                       </select>
-                      <p class="mt-0.5 text-xs text-gray-400">{{ getActionDescription(action.action_type) }}</p>
+                      <p class="mt-0.5 text-xs text-gray-400">
+                        {{ getActionDescription(action.action_type) }}
+                      </p>
                     </div>
 
                     <!-- Action-specific config -->
                     @switch (action.action_type) {
                       @case ('move_task') {
                         <div>
-                          <label class="block text-xs font-medium text-gray-500 mb-1">Target Column Name</label>
+                          <label
+                            class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                            >Target Column Name</label
+                          >
                           <input
                             type="text"
                             [ngModel]="action.action_config.target_column || ''"
-                            (ngModelChange)="updateActionConfig(i, 'target_column', $event)"
+                            (ngModelChange)="
+                              updateActionConfig(i, 'target_column', $event)
+                            "
                             placeholder="e.g., Done, In Review"
-                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                            class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                           />
                         </div>
                       }
                       @case ('assign_task') {
                         <div>
-                          <label class="block text-xs font-medium text-gray-500 mb-1">Assign To (User ID)</label>
+                          <label
+                            class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                            >Assign To (User ID)</label
+                          >
                           <input
                             type="text"
                             [ngModel]="action.action_config.assignee_id || ''"
-                            (ngModelChange)="updateActionConfig(i, 'assignee_id', $event)"
+                            (ngModelChange)="
+                              updateActionConfig(i, 'assignee_id', $event)
+                            "
                             placeholder="User ID"
-                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                            class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                           />
                         </div>
                       }
                       @case ('set_priority') {
                         <div>
-                          <label class="block text-xs font-medium text-gray-500 mb-1">Priority</label>
+                          <label
+                            class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                            >Priority</label
+                          >
                           <select
                             [ngModel]="action.action_config.priority || ''"
-                            (ngModelChange)="updateActionConfig(i, 'priority', $event)"
-                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                            (ngModelChange)="
+                              updateActionConfig(i, 'priority', $event)
+                            "
+                            class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                           >
                             <option value="low">Low</option>
                             <option value="medium">Medium</option>
@@ -255,37 +328,52 @@ interface ActionFormItem {
                       }
                       @case ('send_notification') {
                         <div>
-                          <label class="block text-xs font-medium text-gray-500 mb-1">Notification Message</label>
+                          <label
+                            class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                            >Notification Message</label
+                          >
                           <input
                             type="text"
                             [ngModel]="action.action_config.message || ''"
-                            (ngModelChange)="updateActionConfig(i, 'message', $event)"
+                            (ngModelChange)="
+                              updateActionConfig(i, 'message', $event)
+                            "
                             placeholder="Notification message..."
-                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                            class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                           />
                         </div>
                       }
                       @case ('add_label') {
                         <div>
-                          <label class="block text-xs font-medium text-gray-500 mb-1">Label Name</label>
+                          <label
+                            class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                            >Label Name</label
+                          >
                           <input
                             type="text"
                             [ngModel]="action.action_config.label || ''"
-                            (ngModelChange)="updateActionConfig(i, 'label', $event)"
+                            (ngModelChange)="
+                              updateActionConfig(i, 'label', $event)
+                            "
                             placeholder="e.g., urgent, reviewed"
-                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                            class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                           />
                         </div>
                       }
                       @case ('set_milestone') {
                         <div>
-                          <label class="block text-xs font-medium text-gray-500 mb-1">Milestone ID</label>
+                          <label
+                            class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                            >Milestone ID</label
+                          >
                           <input
                             type="text"
                             [ngModel]="action.action_config.milestone_id || ''"
-                            (ngModelChange)="updateActionConfig(i, 'milestone_id', $event)"
+                            (ngModelChange)="
+                              updateActionConfig(i, 'milestone_id', $event)
+                            "
                             placeholder="Milestone ID"
-                            class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                            class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                           />
                         </div>
                       }
@@ -298,17 +386,19 @@ interface ActionFormItem {
         </div>
 
         <!-- Buttons -->
-        <div class="flex justify-end gap-2 pt-2 border-t border-gray-100">
+        <div
+          class="flex justify-end gap-2 pt-2 border-t border-[var(--border)]"
+        >
           <button
             (click)="cancel()"
-            class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+            class="px-4 py-2 text-sm text-[var(--muted-foreground)] hover:bg-[var(--muted)] rounded-md transition-colors"
           >
             Cancel
           </button>
           <button
             (click)="save()"
             [disabled]="!canSave()"
-            class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            class="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary hover:brightness-90 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {{ editingRule() ? 'Update Rule' : 'Create Rule' }}
           </button>
@@ -341,21 +431,69 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
   saving = signal(false);
 
   triggerOptions: TriggerOption[] = [
-    { value: 'task_moved', label: 'Task Moved', description: 'Fires when a task is moved between columns.' },
-    { value: 'task_created', label: 'Task Created', description: 'Fires when a new task is created on the board.' },
-    { value: 'task_assigned', label: 'Task Assigned', description: 'Fires when a task is assigned to a user.' },
-    { value: 'task_priority_changed', label: 'Priority Changed', description: 'Fires when a task priority is changed.' },
-    { value: 'task_due_date_passed', label: 'Due Date Passed', description: 'Fires when a task due date has passed.' },
-    { value: 'task_completed', label: 'Task Completed', description: 'Fires when a task is marked as completed.' },
+    {
+      value: 'task_moved',
+      label: 'Task Moved',
+      description: 'Fires when a task is moved between columns.',
+    },
+    {
+      value: 'task_created',
+      label: 'Task Created',
+      description: 'Fires when a new task is created on the board.',
+    },
+    {
+      value: 'task_assigned',
+      label: 'Task Assigned',
+      description: 'Fires when a task is assigned to a user.',
+    },
+    {
+      value: 'task_priority_changed',
+      label: 'Priority Changed',
+      description: 'Fires when a task priority is changed.',
+    },
+    {
+      value: 'task_due_date_passed',
+      label: 'Due Date Passed',
+      description: 'Fires when a task due date has passed.',
+    },
+    {
+      value: 'task_completed',
+      label: 'Task Completed',
+      description: 'Fires when a task is marked as completed.',
+    },
   ];
 
   actionOptions: ActionOption[] = [
-    { value: 'move_task', label: 'Move Task', description: 'Move the task to a specific column.' },
-    { value: 'assign_task', label: 'Assign Task', description: 'Assign the task to a specific user.' },
-    { value: 'set_priority', label: 'Set Priority', description: 'Change the task priority level.' },
-    { value: 'send_notification', label: 'Send Notification', description: 'Send a notification to relevant users.' },
-    { value: 'add_label', label: 'Add Label', description: 'Add a label to the task.' },
-    { value: 'set_milestone', label: 'Set Milestone', description: 'Assign the task to a milestone.' },
+    {
+      value: 'move_task',
+      label: 'Move Task',
+      description: 'Move the task to a specific column.',
+    },
+    {
+      value: 'assign_task',
+      label: 'Assign Task',
+      description: 'Assign the task to a specific user.',
+    },
+    {
+      value: 'set_priority',
+      label: 'Set Priority',
+      description: 'Change the task priority level.',
+    },
+    {
+      value: 'send_notification',
+      label: 'Send Notification',
+      description: 'Send a notification to relevant users.',
+    },
+    {
+      value: 'add_label',
+      label: 'Add Label',
+      description: 'Add a label to the task.',
+    },
+    {
+      value: 'set_milestone',
+      label: 'Set Milestone',
+      description: 'Assign the task to a milestone.',
+    },
   ];
 
   canSave = computed(() => {
@@ -377,7 +515,9 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
   }
 
   getSelectedTriggerDescription(): string {
-    const opt = this.triggerOptions.find((t) => t.value === this.selectedTrigger);
+    const opt = this.triggerOptions.find(
+      (t) => t.value === this.selectedTrigger,
+    );
     return opt?.description || '';
   }
 
@@ -409,8 +549,8 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
   updateActionType(index: number, newType: AutomationActionType): void {
     this.actions.update((actions) =>
       actions.map((a, i) =>
-        i === index ? { ...a, action_type: newType, action_config: {} } : a
-      )
+        i === index ? { ...a, action_type: newType, action_config: {} } : a,
+      ),
     );
   }
 
@@ -419,8 +559,8 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
       actions.map((a, i) =>
         i === index
           ? { ...a, action_config: { ...a.action_config, [key]: value } }
-          : a
-      )
+          : a,
+      ),
     );
   }
 
@@ -485,19 +625,24 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
     switch (this.selectedTrigger) {
       case 'task_moved': {
         const config: Record<string, unknown> = {};
-        if (this.triggerConfigFromColumn.trim()) config['from_column'] = this.triggerConfigFromColumn.trim();
-        if (this.triggerConfigToColumn.trim()) config['to_column'] = this.triggerConfigToColumn.trim();
+        if (this.triggerConfigFromColumn.trim())
+          config['from_column'] = this.triggerConfigFromColumn.trim();
+        if (this.triggerConfigToColumn.trim())
+          config['to_column'] = this.triggerConfigToColumn.trim();
         return config;
       }
       case 'task_priority_changed': {
         const config: Record<string, unknown> = {};
-        if (this.triggerConfigFromPriority) config['from_priority'] = this.triggerConfigFromPriority;
-        if (this.triggerConfigToPriority) config['to_priority'] = this.triggerConfigToPriority;
+        if (this.triggerConfigFromPriority)
+          config['from_priority'] = this.triggerConfigFromPriority;
+        if (this.triggerConfigToPriority)
+          config['to_priority'] = this.triggerConfigToPriority;
         return config;
       }
       case 'task_assigned': {
         const config: Record<string, unknown> = {};
-        if (this.triggerConfigAssignee.trim()) config['assignee_id'] = this.triggerConfigAssignee.trim();
+        if (this.triggerConfigAssignee.trim())
+          config['assignee_id'] = this.triggerConfigAssignee.trim();
         return config;
       }
       default:
@@ -517,18 +662,18 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
 
     // Populate trigger config
     const tc = editing.rule.trigger_config || {};
-    this.triggerConfigFromColumn = tc.from_column || '';
-    this.triggerConfigToColumn = tc.to_column || '';
-    this.triggerConfigFromPriority = tc.from_priority || '';
-    this.triggerConfigToPriority = tc.to_priority || '';
-    this.triggerConfigAssignee = tc.assignee_id || '';
+    this.triggerConfigFromColumn = (tc['from_column'] as string) || '';
+    this.triggerConfigToColumn = (tc['to_column'] as string) || '';
+    this.triggerConfigFromPriority = (tc['from_priority'] as string) || '';
+    this.triggerConfigToPriority = (tc['to_priority'] as string) || '';
+    this.triggerConfigAssignee = (tc['assignee_id'] as string) || '';
 
     // Populate actions
     this.actions.set(
       editing.actions.map((a) => ({
         action_type: a.action_type,
         action_config: { ...a.action_config },
-      }))
+      })),
     );
   }
 

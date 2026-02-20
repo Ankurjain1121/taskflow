@@ -15,10 +15,12 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
   template: `
     <div class="space-y-6">
       <div class="text-center mb-8">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+        <h2
+          class="text-2xl font-bold text-[var(--card-foreground)] dark:text-white mb-2"
+        >
           Create Your Workspace
         </h2>
-        <p class="text-gray-600 dark:text-gray-400">
+        <p class="text-[var(--muted-foreground)] dark:text-gray-400">
           This is where your team's boards and tasks will live.
         </p>
       </div>
@@ -27,7 +29,7 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
         <div>
           <label
             for="name"
-            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            class="block text-sm font-medium text-[var(--foreground)] dark:text-gray-300 mb-1"
           >
             Workspace Name <span class="text-red-500">*</span>
           </label>
@@ -36,8 +38,8 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
             id="name"
             formControlName="name"
             placeholder="e.g., Marketing Team, Product Development"
-            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg
-                   bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+            class="w-full px-4 py-3 border border-[var(--border)] dark:border-gray-600 rounded-lg
+                   bg-[var(--card)] text-[var(--card-foreground)]
                    focus:ring-2 focus:ring-blue-500 focus:border-transparent
                    placeholder-gray-400 dark:placeholder-gray-500"
           />
@@ -49,7 +51,7 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
         <div>
           <label
             for="description"
-            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            class="block text-sm font-medium text-[var(--foreground)] dark:text-gray-300 mb-1"
           >
             Description
             <span class="text-gray-400 dark:text-gray-500">(optional)</span>
@@ -59,8 +61,8 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
             formControlName="description"
             rows="3"
             placeholder="Briefly describe what this workspace is for..."
-            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg
-                   bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+            class="w-full px-4 py-3 border border-[var(--border)] dark:border-gray-600 rounded-lg
+                   bg-[var(--card)] text-[var(--card-foreground)]
                    focus:ring-2 focus:ring-blue-500 focus:border-transparent
                    placeholder-gray-400 dark:placeholder-gray-500 resize-none"
           ></textarea>

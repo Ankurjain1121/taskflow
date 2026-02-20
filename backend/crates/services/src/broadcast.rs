@@ -188,7 +188,12 @@ mod tests {
                 event
             );
             let parts: Vec<&str> = event.split(':').collect();
-            assert_eq!(parts.len(), 2, "Event '{}' has unexpected number of segments", event);
+            assert_eq!(
+                parts.len(),
+                2,
+                "Event '{}' has unexpected number of segments",
+                event
+            );
             assert!(!parts[0].is_empty(), "Event '{}' has empty entity", event);
             assert!(!parts[1].is_empty(), "Event '{}' has empty action", event);
         }

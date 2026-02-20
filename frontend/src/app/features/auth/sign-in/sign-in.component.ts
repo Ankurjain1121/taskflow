@@ -159,7 +159,7 @@ import { AuthService } from '../../../core/services/auth.service';
               <div class="flex justify-end mb-5 -mt-1">
                 <a
                   routerLink="/auth/forgot-password"
-                  class="text-sm text-indigo-600 hover:text-indigo-800 transition-colors font-medium"
+                  class="text-sm text-primary hover:text-primary transition-colors font-medium"
                 >
                   Forgot password?
                 </a>
@@ -213,7 +213,7 @@ import { AuthService } from '../../../core/services/auth.service';
                 Don't have an account?
                 <a
                   routerLink="/auth/sign-up"
-                  class="text-indigo-600 hover:text-indigo-800 font-semibold transition-colors"
+                  class="text-primary hover:text-primary font-semibold transition-colors"
                 >
                   Sign up
                 </a>

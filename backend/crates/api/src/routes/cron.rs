@@ -14,15 +14,15 @@ use std::env;
 
 use crate::errors::{AppError, Result};
 use crate::state::AppState;
+use taskflow_db::queries::recurring::{create_recurring_instance, get_due_configs};
 use taskflow_services::broadcast::BroadcastService;
 use taskflow_services::jobs::{
-    cleanup_expired_trash, scan_deadlines, send_weekly_digests,
-    DeadlineScanResult, TrashCleanupResult, WeeklyDigestResult,
+    cleanup_expired_trash, scan_deadlines, send_weekly_digests, DeadlineScanResult,
+    TrashCleanupResult, WeeklyDigestResult,
 };
 use taskflow_services::minio::{MinioConfig, MinioService};
 use taskflow_services::notifications::{NotificationService, PostalClient};
 use taskflow_services::novu::NovuClient;
-use taskflow_db::queries::recurring::{create_recurring_instance, get_due_configs};
 
 /// Validate the X-Cron-Secret header
 fn validate_cron_secret(headers: &HeaderMap) -> Result<()> {
@@ -111,8 +111,7 @@ async fn weekly_digest_handler(
     let postal_api_key = env::var("POSTAL_API_KEY").unwrap_or_else(|_| "".to_string());
     let postal_from_address =
         env::var("POSTAL_FROM_ADDRESS").unwrap_or_else(|_| "noreply@taskflow.local".to_string());
-    let postal_from_name =
-        env::var("POSTAL_FROM_NAME").unwrap_or_else(|_| "TaskFlow".to_string());
+    let postal_from_name = env::var("POSTAL_FROM_NAME").unwrap_or_else(|_| "TaskFlow".to_string());
 
     let postal = PostalClient::new(
         postal_api_url,

@@ -25,9 +25,7 @@ fn map_share_error(e: BoardShareQueryError) -> AppError {
         BoardShareQueryError::InvalidToken => AppError::NotFound("Invalid share token".into()),
         BoardShareQueryError::Expired => AppError::BadRequest("Share link has expired".into()),
         BoardShareQueryError::Inactive => AppError::BadRequest("Share link is inactive".into()),
-        BoardShareQueryError::InvalidPassword => {
-            AppError::Unauthorized("Invalid password".into())
-        }
+        BoardShareQueryError::InvalidPassword => AppError::Unauthorized("Invalid password".into()),
         BoardShareQueryError::Database(e) => AppError::SqlxError(e),
     }
 }

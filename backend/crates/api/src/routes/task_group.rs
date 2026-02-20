@@ -21,7 +21,10 @@ use taskflow_db::queries::{
 pub fn task_group_routes(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/boards/{board_id}/groups", get(list_groups))
-        .route("/boards/{board_id}/groups/stats", get(list_groups_with_stats_handler))
+        .route(
+            "/boards/{board_id}/groups/stats",
+            get(list_groups_with_stats_handler),
+        )
         .route("/boards/{board_id}/groups", post(create_group))
         .route("/groups/{id}", get(get_group))
         .route("/groups/{id}", put(update_group))
@@ -31,11 +34,7 @@ pub fn task_group_routes(state: AppState) -> Router<AppState> {
 }
 
 /// Verify board membership for a given board_id and user_id
-async fn verify_board_access(
-    pool: &sqlx::PgPool,
-    board_id: Uuid,
-    user_id: Uuid,
-) -> Result<bool> {
+async fn verify_board_access(pool: &sqlx::PgPool, board_id: Uuid, user_id: Uuid) -> Result<bool> {
     let exists: Option<bool> = sqlx::query_scalar::<_, bool>(
         r#"
         SELECT EXISTS(
@@ -54,11 +53,7 @@ async fn verify_board_access(
 }
 
 /// Verify group access for a given group id and user_id
-async fn verify_group_access(
-    pool: &sqlx::PgPool,
-    group_id: Uuid,
-    user_id: Uuid,
-) -> Result<bool> {
+async fn verify_group_access(pool: &sqlx::PgPool, group_id: Uuid, user_id: Uuid) -> Result<bool> {
     let exists: Option<bool> = sqlx::query_scalar::<_, bool>(
         r#"
         SELECT EXISTS(
@@ -209,7 +204,9 @@ async fn toggle_collapse(
     let collapsed = req
         .get("collapsed")
         .and_then(|v| v.as_bool())
-        .ok_or(AppError::BadRequest("Missing 'collapsed' field".to_string()))?;
+        .ok_or(AppError::BadRequest(
+            "Missing 'collapsed' field".to_string(),
+        ))?;
 
     if !verify_group_access(&state.db, id, tenant.user_id).await? {
         return Err(AppError::Forbidden(

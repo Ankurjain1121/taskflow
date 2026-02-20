@@ -117,7 +117,6 @@ impl NovuClient {
             }
         }
     }
-
 }
 
 #[cfg(test)]

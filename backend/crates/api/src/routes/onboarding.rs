@@ -104,7 +104,9 @@ async fn get_invitation_context(
         return Err(AppError::BadRequest("Invitation has expired".into()));
     }
     if invitation.accepted_at.is_some() {
-        return Err(AppError::BadRequest("Invitation has already been accepted".into()));
+        return Err(AppError::BadRequest(
+            "Invitation has already been accepted".into(),
+        ));
     }
 
     // Get workspace details
@@ -152,7 +154,9 @@ async fn create_workspace(
     }
 
     if payload.name.len() > 255 {
-        return Err(AppError::BadRequest("Workspace name is too long (max 255 characters)".into()));
+        return Err(AppError::BadRequest(
+            "Workspace name is too long (max 255 characters)".into(),
+        ));
     }
 
     // Create the workspace (this also adds the user as a member)
@@ -182,15 +186,20 @@ async fn invite_members(
 ) -> Result<Json<InviteMembersResponse>> {
     // Validate max 10 emails
     if payload.emails.len() > 10 {
-        return Err(AppError::BadRequest("Maximum 10 emails allowed per request".into()));
+        return Err(AppError::BadRequest(
+            "Maximum 10 emails allowed per request".into(),
+        ));
     }
 
     if payload.emails.is_empty() {
-        return Err(AppError::BadRequest("At least one email is required".into()));
+        return Err(AppError::BadRequest(
+            "At least one email is required".into(),
+        ));
     }
 
     // Verify user is a workspace member
-    let is_member = workspaces::is_workspace_member(&state.db, payload.workspace_id, auth.0.user_id).await?;
+    let is_member =
+        workspaces::is_workspace_member(&state.db, payload.workspace_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
@@ -209,12 +218,9 @@ async fn invite_members(
         // Check if user already exists
         if let Some(existing_user) = auth::get_user_by_email(&state.db, &email).await? {
             // Check if already a workspace member
-            let already_member = workspaces::is_workspace_member(
-                &state.db,
-                payload.workspace_id,
-                existing_user.id,
-            )
-            .await?;
+            let already_member =
+                workspaces::is_workspace_member(&state.db, payload.workspace_id, existing_user.id)
+                    .await?;
 
             if !already_member {
                 // Add existing user directly to workspace
@@ -275,7 +281,8 @@ async fn generate_sample_board_handler(
     Json(payload): Json<GenerateSampleBoardRequest>,
 ) -> Result<Json<GenerateSampleBoardResponse>> {
     // Verify user is a workspace member
-    let is_member = workspaces::is_workspace_member(&state.db, payload.workspace_id, auth.0.user_id).await?;
+    let is_member =
+        workspaces::is_workspace_member(&state.db, payload.workspace_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
@@ -338,16 +345,16 @@ pub fn onboarding_router(state: AppState) -> Router<AppState> {
     let protected = Router::new()
         .route("/create-workspace", post(create_workspace))
         .route("/invite-members", post(invite_members))
-        .route("/generate-sample-board", post(generate_sample_board_handler))
+        .route(
+            "/generate-sample-board",
+            post(generate_sample_board_handler),
+        )
         .route("/complete", post(complete_onboarding))
         .layer(from_fn_with_state(state.clone(), auth_middleware));
 
     // Public routes
-    let public = Router::new()
-        .route("/invitation-context", get(get_invitation_context));
+    let public = Router::new().route("/invitation-context", get(get_invitation_context));
 
     // Combine both
-    Router::new()
-        .merge(protected)
-        .merge(public)
+    Router::new().merge(protected).merge(public)
 }

@@ -212,10 +212,7 @@ pub async fn create_dependency(
 }
 
 /// Delete a dependency by ID
-pub async fn delete_dependency(
-    pool: &PgPool,
-    dep_id: Uuid,
-) -> Result<(), DependencyQueryError> {
+pub async fn delete_dependency(pool: &PgPool, dep_id: Uuid) -> Result<(), DependencyQueryError> {
     let rows_affected = sqlx::query(
         r#"
         DELETE FROM task_dependencies
@@ -304,7 +301,10 @@ pub async fn get_board_dependencies(
 }
 
 /// Internal helper: get task's board_id
-async fn get_task_board_id_internal(pool: &PgPool, task_id: Uuid) -> Result<Uuid, DependencyQueryError> {
+async fn get_task_board_id_internal(
+    pool: &PgPool,
+    task_id: Uuid,
+) -> Result<Uuid, DependencyQueryError> {
     let board_id = sqlx::query_scalar::<_, Uuid>(
         r#"
         SELECT board_id FROM tasks WHERE id = $1 AND deleted_at IS NULL

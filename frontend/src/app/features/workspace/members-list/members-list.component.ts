@@ -32,15 +32,15 @@ export interface MemberWithDetails extends WorkspaceMember {
   imports: [CommonModule, FormsModule, InviteMemberDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bg-white rounded-lg shadow">
+    <div class="bg-[var(--card)] rounded-lg shadow">
       <!-- Header -->
-      <div class="px-6 py-4 border-b border-gray-200">
+      <div class="px-6 py-4 border-b border-[var(--border)]">
         <div class="flex items-center justify-between">
-          <h3 class="text-lg font-medium text-gray-900">Members</h3>
+          <h3 class="text-lg font-medium text-[var(--card-foreground)]">Members</h3>
           @if (isAdmin()) {
             <button
               (click)="onInviteMember()"
-              class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md transition-colors"
+              class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-primary hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
             >
               <svg
                 class="w-4 h-4"
@@ -63,39 +63,39 @@ export interface MemberWithDetails extends WorkspaceMember {
 
       <!-- Members Table -->
       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
+        <table class="min-w-full divide-y divide-[var(--border)]">
+          <thead class="bg-[var(--secondary)]">
             <tr>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
               >
                 Member
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
               >
                 Role
               </th>
               <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
               >
                 Joined
               </th>
               @if (isAdmin()) {
-                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th class="px-6 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">
                   Actions
                 </th>
               }
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
+          <tbody class="bg-[var(--card)] divide-y divide-[var(--border)]">
             @for (member of members(); track member.user_id) {
-              <tr class="hover:bg-gray-50">
+              <tr class="hover:bg-[var(--muted)]">
                 <!-- Member Info -->
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="flex items-center gap-3">
                     <div
-                      class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-600"
+                      class="w-10 h-10 rounded-full bg-[var(--muted)] flex items-center justify-center text-sm font-medium text-[var(--muted-foreground)]"
                     >
                       @if (member.avatar_url) {
                         <img
@@ -108,10 +108,10 @@ export interface MemberWithDetails extends WorkspaceMember {
                       }
                     </div>
                     <div>
-                      <p class="text-sm font-medium text-gray-900">
+                      <p class="text-sm font-medium text-[var(--card-foreground)]">
                         {{ member.display_name || 'Unknown' }}
                       </p>
-                      <p class="text-sm text-gray-500">{{ member.email }}</p>
+                      <p class="text-sm text-[var(--muted-foreground)]">{{ member.email }}</p>
                     </div>
                   </div>
                 </td>
@@ -123,7 +123,7 @@ export interface MemberWithDetails extends WorkspaceMember {
                       [ngModel]="member.role"
                       (ngModelChange)="onRoleChange(member, $event)"
                       [disabled]="updatingMember() === member.user_id"
-                      class="text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                      class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-primary focus:ring-ring"
                     >
                       <option value="admin">Admin</option>
                       <option value="manager">Manager</option>
@@ -142,7 +142,7 @@ export interface MemberWithDetails extends WorkspaceMember {
                 </td>
 
                 <!-- Joined Date -->
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--muted-foreground)]">
                   {{ formatDate(member.joined_at) }}
                 </td>
 
@@ -167,7 +167,7 @@ export interface MemberWithDetails extends WorkspaceMember {
       </div>
 
       @if (members().length === 0) {
-        <div class="px-6 py-8 text-center text-gray-500">
+        <div class="px-6 py-8 text-center text-[var(--muted-foreground)]">
           No members found
         </div>
       }
@@ -175,53 +175,53 @@ export interface MemberWithDetails extends WorkspaceMember {
 
     <!-- Pending Invitations Section -->
     @if (isAdmin()) {
-      <div class="bg-white rounded-lg shadow mt-6">
-        <div class="px-6 py-4 border-b border-gray-200">
+      <div class="bg-[var(--card)] rounded-lg shadow mt-6">
+        <div class="px-6 py-4 border-b border-[var(--border)]">
           <div class="flex items-center justify-between">
-            <h3 class="text-lg font-medium text-gray-900">Pending Invitations</h3>
+            <h3 class="text-lg font-medium text-[var(--card-foreground)]">Pending Invitations</h3>
             @if (loadingInvitations()) {
-              <span class="text-sm text-gray-400">Loading...</span>
+              <span class="text-sm text-[var(--muted-foreground)]">Loading...</span>
             }
           </div>
         </div>
 
         @if (pendingAndExpiredInvitations().length > 0) {
           <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
+            <table class="min-w-full divide-y divide-[var(--border)]">
+              <thead class="bg-[var(--secondary)]">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">
                     Email
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">
                     Role
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">
                     Status
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">
                     Sent
                   </th>
-                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th class="px-6 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
+              <tbody class="bg-[var(--card)] divide-y divide-[var(--border)]">
                 @for (invitation of pendingAndExpiredInvitations(); track invitation.id) {
-                  <tr class="hover:bg-gray-50">
+                  <tr class="hover:bg-[var(--muted)]">
                     <!-- Email -->
                     <td class="px-6 py-4 whitespace-nowrap">
                       <div class="flex items-center gap-3">
                         <div
-                          class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-500"
+                          class="w-8 h-8 rounded-full bg-[var(--secondary)] flex items-center justify-center text-xs font-medium text-[var(--muted-foreground)]"
                         >
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                           </svg>
                         </div>
-                        <span class="text-sm text-gray-900">{{ invitation.email }}</span>
+                        <span class="text-sm text-[var(--card-foreground)]">{{ invitation.email }}</span>
                       </div>
                     </td>
 
@@ -250,7 +250,7 @@ export interface MemberWithDetails extends WorkspaceMember {
                     </td>
 
                     <!-- Sent Date -->
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--muted-foreground)]">
                       {{ formatDate(invitation.created_at) }}
                     </td>
 
@@ -261,7 +261,7 @@ export interface MemberWithDetails extends WorkspaceMember {
                           <button
                             (click)="onResendInvitation(invitation)"
                             [disabled]="actionInProgress() === invitation.id"
-                            class="text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
+                            class="text-primary hover:text-primary disabled:opacity-50"
                           >
                             Resend
                           </button>
@@ -283,7 +283,7 @@ export interface MemberWithDetails extends WorkspaceMember {
             </table>
           </div>
         } @else if (!loadingInvitations()) {
-          <div class="px-6 py-8 text-center text-gray-500">
+          <div class="px-6 py-8 text-center text-[var(--muted-foreground)]">
             No pending invitations
           </div>
         }
@@ -382,7 +382,7 @@ export class MembersListComponent implements OnInit {
     const classes: Record<string, string> = {
       owner: 'bg-purple-100 text-purple-800',
       admin: 'bg-blue-100 text-blue-800',
-      manager: 'bg-indigo-100 text-indigo-800',
+      manager: 'bg-primary/10 text-primary',
       member: 'bg-gray-100 text-gray-800',
     };
     return classes[role] || 'bg-gray-100 text-gray-800';

@@ -124,15 +124,10 @@ async fn save_board_as_template_handler(
     Path(board_id): Path<Uuid>,
     Json(body): Json<CreateTemplateFromBoardInput>,
 ) -> Result<Json<taskflow_db::models::ProjectTemplate>> {
-    let template = save_board_as_template(
-        &state.db,
-        board_id,
-        body,
-        tenant.user_id,
-        tenant.tenant_id,
-    )
-    .await
-    .map_err(map_error)?;
+    let template =
+        save_board_as_template(&state.db, board_id, body, tenant.user_id, tenant.tenant_id)
+            .await
+            .map_err(map_error)?;
 
     Ok(Json(template))
 }

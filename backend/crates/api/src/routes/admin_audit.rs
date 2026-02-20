@@ -89,36 +89,32 @@ async fn list_audit_log(
     let fetch_limit = page_size + 1;
 
     // Parse cursor if provided
-    let cursor_id = query
-        .cursor
-        .as_ref()
-        .and_then(|c| Uuid::parse_str(c).ok());
+    let cursor_id = query.cursor.as_ref().and_then(|c| Uuid::parse_str(c).ok());
 
     // Parse action filter
-    let action_filter: Option<ActivityAction> = query.action.as_ref().and_then(|a| {
-        match a.to_lowercase().as_str() {
-            "created" => Some(ActivityAction::Created),
-            "updated" => Some(ActivityAction::Updated),
-            "moved" => Some(ActivityAction::Moved),
-            "assigned" => Some(ActivityAction::Assigned),
-            "unassigned" => Some(ActivityAction::Unassigned),
-            "commented" => Some(ActivityAction::Commented),
-            "attached" => Some(ActivityAction::Attached),
-            "status_changed" => Some(ActivityAction::StatusChanged),
-            "priority_changed" => Some(ActivityAction::PriorityChanged),
-            "deleted" => Some(ActivityAction::Deleted),
-            _ => None,
-        }
-    });
+    let action_filter: Option<ActivityAction> =
+        query
+            .action
+            .as_ref()
+            .and_then(|a| match a.to_lowercase().as_str() {
+                "created" => Some(ActivityAction::Created),
+                "updated" => Some(ActivityAction::Updated),
+                "moved" => Some(ActivityAction::Moved),
+                "assigned" => Some(ActivityAction::Assigned),
+                "unassigned" => Some(ActivityAction::Unassigned),
+                "commented" => Some(ActivityAction::Commented),
+                "attached" => Some(ActivityAction::Attached),
+                "status_changed" => Some(ActivityAction::StatusChanged),
+                "priority_changed" => Some(ActivityAction::PriorityChanged),
+                "deleted" => Some(ActivityAction::Deleted),
+                _ => None,
+            });
 
     // Get cursor timestamp if cursor provided
     let cursor_created_at: Option<DateTime<Utc>> = if let Some(cid) = cursor_id {
-        sqlx::query_scalar!(
-            r#"SELECT created_at FROM activity_log WHERE id = $1"#,
-            cid
-        )
-        .fetch_optional(&state.db)
-        .await?
+        sqlx::query_scalar!(r#"SELECT created_at FROM activity_log WHERE id = $1"#, cid)
+            .fetch_optional(&state.db)
+            .await?
     } else {
         None
     };

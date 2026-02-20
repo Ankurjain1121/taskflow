@@ -189,13 +189,12 @@ pub async fn stop_timer(
     user_id: Uuid,
 ) -> Result<TimeEntry, TimeEntryQueryError> {
     // Verify ownership
-    let owner_id = sqlx::query_scalar::<_, Uuid>(
-        r#"SELECT user_id FROM time_entries WHERE id = $1"#,
-    )
-    .bind(entry_id)
-    .fetch_optional(pool)
-    .await?
-    .ok_or(TimeEntryQueryError::NotFound)?;
+    let owner_id =
+        sqlx::query_scalar::<_, Uuid>(r#"SELECT user_id FROM time_entries WHERE id = $1"#)
+            .bind(entry_id)
+            .fetch_optional(pool)
+            .await?
+            .ok_or(TimeEntryQueryError::NotFound)?;
 
     if owner_id != user_id {
         return Err(TimeEntryQueryError::NotOwner);
@@ -276,13 +275,12 @@ pub async fn update_entry(
     user_id: Uuid,
 ) -> Result<TimeEntry, TimeEntryQueryError> {
     // Verify ownership
-    let owner_id = sqlx::query_scalar::<_, Uuid>(
-        r#"SELECT user_id FROM time_entries WHERE id = $1"#,
-    )
-    .bind(id)
-    .fetch_optional(pool)
-    .await?
-    .ok_or(TimeEntryQueryError::NotFound)?;
+    let owner_id =
+        sqlx::query_scalar::<_, Uuid>(r#"SELECT user_id FROM time_entries WHERE id = $1"#)
+            .bind(id)
+            .fetch_optional(pool)
+            .await?
+            .ok_or(TimeEntryQueryError::NotFound)?;
 
     if owner_id != user_id {
         return Err(TimeEntryQueryError::NotOwner);
@@ -323,13 +321,12 @@ pub async fn delete_entry(
     user_id: Uuid,
 ) -> Result<(), TimeEntryQueryError> {
     // Verify ownership
-    let owner_id = sqlx::query_scalar::<_, Uuid>(
-        r#"SELECT user_id FROM time_entries WHERE id = $1"#,
-    )
-    .bind(id)
-    .fetch_optional(pool)
-    .await?
-    .ok_or(TimeEntryQueryError::NotFound)?;
+    let owner_id =
+        sqlx::query_scalar::<_, Uuid>(r#"SELECT user_id FROM time_entries WHERE id = $1"#)
+            .bind(id)
+            .fetch_optional(pool)
+            .await?
+            .ok_or(TimeEntryQueryError::NotFound)?;
 
     if owner_id != user_id {
         return Err(TimeEntryQueryError::NotOwner);

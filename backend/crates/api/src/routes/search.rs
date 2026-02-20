@@ -33,9 +33,15 @@ async fn search_handler(
     }
 
     let limit = params.limit.clamp(1, 50);
-    let results = search::search_all(&state.db, tenant.tenant_id, tenant.user_id, &params.q, limit)
-        .await
-        .map_err(AppError::SqlxError)?;
+    let results = search::search_all(
+        &state.db,
+        tenant.tenant_id,
+        tenant.user_id,
+        &params.q,
+        limit,
+    )
+    .await
+    .map_err(AppError::SqlxError)?;
 
     Ok(Json(results))
 }

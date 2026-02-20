@@ -78,7 +78,7 @@ export interface CreateColumnDialogResult {
                 [style.background-color]="color"
                 [class.ring-2]="selectedColor() === color"
                 [class.ring-offset-2]="selectedColor() === color"
-                [class.ring-indigo-500]="selectedColor() === color"
+                [class.ring-ring]="selectedColor() === color"
               ></button>
             }
           </div>

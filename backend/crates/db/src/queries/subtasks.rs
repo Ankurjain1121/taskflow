@@ -135,10 +135,7 @@ pub async fn update_subtask(
 }
 
 /// Toggle a subtask's completion status
-pub async fn toggle_subtask(
-    pool: &PgPool,
-    subtask_id: Uuid,
-) -> Result<Subtask, SubtaskQueryError> {
+pub async fn toggle_subtask(pool: &PgPool, subtask_id: Uuid) -> Result<Subtask, SubtaskQueryError> {
     let subtask = sqlx::query_as::<_, Subtask>(
         r#"
         UPDATE subtasks
@@ -168,10 +165,7 @@ pub async fn toggle_subtask(
 }
 
 /// Delete a subtask
-pub async fn delete_subtask(
-    pool: &PgPool,
-    subtask_id: Uuid,
-) -> Result<(), SubtaskQueryError> {
+pub async fn delete_subtask(pool: &PgPool, subtask_id: Uuid) -> Result<(), SubtaskQueryError> {
     let rows_affected = sqlx::query(
         r#"
         DELETE FROM subtasks
@@ -253,7 +247,10 @@ pub async fn get_subtask_progress(
 }
 
 /// Get the task_id for a subtask (for authorization checks)
-pub async fn get_subtask_task_id(pool: &PgPool, subtask_id: Uuid) -> Result<Option<Uuid>, sqlx::Error> {
+pub async fn get_subtask_task_id(
+    pool: &PgPool,
+    subtask_id: Uuid,
+) -> Result<Option<Uuid>, sqlx::Error> {
     sqlx::query_scalar::<_, Uuid>(
         r#"
         SELECT task_id FROM subtasks WHERE id = $1

@@ -59,12 +59,12 @@ const MAX_RECENT_SEARCHES = 5;
       >
         <!-- Search Dialog -->
         <div
-          class="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+          class="w-full max-w-2xl bg-[var(--card)] dark:bg-gray-800 rounded-xl shadow-2xl border border-[var(--border)] dark:border-gray-700 overflow-hidden"
           (click)="$event.stopPropagation()"
         >
           <!-- Search Input -->
           <div
-            class="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700"
+            class="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] dark:border-gray-700"
           >
             <!-- Search Icon -->
             <svg
@@ -90,13 +90,13 @@ const MAX_RECENT_SEARCHES = 5;
                   ? 'Type a command...'
                   : 'Search tasks, boards, comments... (type > for commands)'
               "
-              class="flex-1 bg-transparent border-none outline-none text-lg text-gray-900 dark:text-gray-100 placeholder-gray-400"
+              class="flex-1 bg-transparent border-none outline-none text-lg text-[var(--card-foreground)] dark:text-gray-100 placeholder-gray-400"
               autocomplete="off"
             />
             @if (query()) {
               <button
                 (click)="clearQuery()"
-                class="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                class="p-1 hover:bg-[var(--secondary)] dark:hover:bg-gray-700 rounded"
               >
                 <svg
                   class="w-4 h-4 text-gray-400"
@@ -114,7 +114,7 @@ const MAX_RECENT_SEARCHES = 5;
               </button>
             }
             <kbd
-              class="hidden sm:inline-flex items-center px-2 py-0.5 text-xs font-medium text-gray-400 bg-gray-100 dark:bg-gray-700 rounded"
+              class="hidden sm:inline-flex items-center px-2 py-0.5 text-xs font-medium text-gray-400 bg-[var(--secondary)] dark:bg-gray-700 rounded"
             >
               ESC
             </kbd>
@@ -126,13 +126,13 @@ const MAX_RECENT_SEARCHES = 5;
               <!-- Command Palette Actions -->
               <div class="py-2">
                 <div
-                  class="px-3 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide"
+                  class="px-3 py-1 text-xs font-medium text-[var(--muted-foreground)] dark:text-gray-400 uppercase tracking-wide"
                 >
                   Actions
                 </div>
                 @for (action of filteredActions(); track action.label) {
                   <button
-                    class="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors text-left"
+                    class="w-full flex items-center gap-3 px-3 py-2 hover:bg-[var(--secondary)] dark:hover:bg-gray-700 rounded-md transition-colors text-left"
                     (click)="executeAction(action)"
                   >
                     <svg
@@ -193,12 +193,12 @@ const MAX_RECENT_SEARCHES = 5;
                       }
                     </svg>
                     <span
-                      class="flex-1 text-sm text-gray-900 dark:text-gray-100"
+                      class="flex-1 text-sm text-[var(--card-foreground)] dark:text-gray-100"
                       >{{ action.label }}</span
                     >
                     @if (action.shortcut) {
                       <kbd
-                        class="text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-mono"
+                        class="text-xs px-1.5 py-0.5 rounded bg-[var(--secondary)] dark:bg-gray-700 text-[var(--muted-foreground)] dark:text-gray-400 font-mono"
                         >{{ action.shortcut }}</kbd
                       >
                     }
@@ -206,7 +206,7 @@ const MAX_RECENT_SEARCHES = 5;
                 }
                 @if (filteredActions().length === 0) {
                   <div
-                    class="flex flex-col items-center justify-center py-8 text-gray-500 dark:text-gray-400"
+                    class="flex flex-col items-center justify-center py-8 text-[var(--muted-foreground)] dark:text-gray-400"
                   >
                     <p class="text-sm">No matching commands</p>
                   </div>
@@ -216,7 +216,7 @@ const MAX_RECENT_SEARCHES = 5;
               <!-- Loading -->
               <div class="flex items-center justify-center py-12">
                 <div
-                  class="flex items-center gap-3 text-gray-500 dark:text-gray-400"
+                  class="flex items-center gap-3 text-[var(--muted-foreground)] dark:text-gray-400"
                 >
                   <svg
                     class="w-5 h-5 animate-spin"
@@ -243,7 +243,7 @@ const MAX_RECENT_SEARCHES = 5;
             } @else if (hasSearched() && !hasResults()) {
               <!-- No results -->
               <div
-                class="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400"
+                class="flex flex-col items-center justify-center py-12 text-[var(--muted-foreground)] dark:text-gray-400"
               >
                 <svg
                   class="w-12 h-12 mb-3 opacity-50"
@@ -268,12 +268,12 @@ const MAX_RECENT_SEARCHES = 5;
               <div class="px-4 py-3">
                 <div class="flex items-center justify-between mb-2">
                   <span
-                    class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="text-xs font-semibold text-[var(--muted-foreground)] dark:text-gray-400 uppercase tracking-wider"
                     >Recent Searches</span
                   >
                   <button
                     (click)="clearRecentSearches()"
-                    class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    class="text-xs text-[var(--muted-foreground)]/70 hover:text-[var(--foreground)] dark:hover:text-gray-300"
                   >
                     Clear
                   </button>
@@ -281,7 +281,7 @@ const MAX_RECENT_SEARCHES = 5;
                 @for (recent of recentSearches(); track recent) {
                   <button
                     (click)="onRecentClick(recent)"
-                    class="w-full flex items-center gap-3 px-3 py-2 text-left rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    class="w-full flex items-center gap-3 px-3 py-2 text-left rounded-lg hover:bg-[var(--secondary)] dark:hover:bg-gray-700 transition-colors"
                   >
                     <svg
                       class="w-4 h-4 text-gray-400 shrink-0"
@@ -296,9 +296,10 @@ const MAX_RECENT_SEARCHES = 5;
                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                       />
                     </svg>
-                    <span class="text-sm text-gray-700 dark:text-gray-300">{{
-                      recent
-                    }}</span>
+                    <span
+                      class="text-sm text-[var(--foreground)] dark:text-gray-300"
+                      >{{ recent }}</span
+                    >
                   </button>
                 }
               </div>
@@ -307,18 +308,18 @@ const MAX_RECENT_SEARCHES = 5;
               @if (results()!.tasks.length > 0) {
                 <div class="px-4 pt-3 pb-1">
                   <span
-                    class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="text-xs font-semibold text-[var(--muted-foreground)] dark:text-gray-400 uppercase tracking-wider"
                     >Tasks</span
                   >
                 </div>
                 @for (task of results()!.tasks; track task.id) {
                   <button
                     (click)="navigateToTask(task)"
-                    class="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    class="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-[var(--secondary)] dark:hover:bg-gray-700 transition-colors"
                   >
                     <!-- Task icon -->
                     <svg
-                      class="w-5 h-5 text-indigo-500 shrink-0 mt-0.5"
+                      class="w-5 h-5 text-primary shrink-0 mt-0.5"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -332,18 +333,18 @@ const MAX_RECENT_SEARCHES = 5;
                     </svg>
                     <div class="flex-1 min-w-0">
                       <p
-                        class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate"
+                        class="text-sm font-medium text-[var(--card-foreground)] dark:text-gray-100 truncate"
                       >
                         {{ task.title }}
                       </p>
                       <p
-                        class="text-xs text-gray-500 dark:text-gray-400 truncate"
+                        class="text-xs text-[var(--muted-foreground)] dark:text-gray-400 truncate"
                       >
                         {{ task.workspace_name }} &rsaquo; {{ task.board_name }}
                       </p>
                       @if (task.description) {
                         <p
-                          class="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5"
+                          class="text-xs text-[var(--muted-foreground)]/70 dark:text-gray-500 truncate mt-0.5"
                         >
                           {{ task.description }}
                         </p>
@@ -357,14 +358,14 @@ const MAX_RECENT_SEARCHES = 5;
               @if (results()!.boards.length > 0) {
                 <div class="px-4 pt-3 pb-1">
                   <span
-                    class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="text-xs font-semibold text-[var(--muted-foreground)] dark:text-gray-400 uppercase tracking-wider"
                     >Boards</span
                   >
                 </div>
                 @for (board of results()!.boards; track board.id) {
                   <button
                     (click)="navigateToBoard(board)"
-                    class="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    class="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-[var(--secondary)] dark:hover:bg-gray-700 transition-colors"
                   >
                     <!-- Board icon -->
                     <svg
@@ -382,18 +383,18 @@ const MAX_RECENT_SEARCHES = 5;
                     </svg>
                     <div class="flex-1 min-w-0">
                       <p
-                        class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate"
+                        class="text-sm font-medium text-[var(--card-foreground)] dark:text-gray-100 truncate"
                       >
                         {{ board.name }}
                       </p>
                       <p
-                        class="text-xs text-gray-500 dark:text-gray-400 truncate"
+                        class="text-xs text-[var(--muted-foreground)] dark:text-gray-400 truncate"
                       >
                         {{ board.workspace_name }}
                       </p>
                       @if (board.description) {
                         <p
-                          class="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5"
+                          class="text-xs text-[var(--muted-foreground)]/70 dark:text-gray-500 truncate mt-0.5"
                         >
                           {{ board.description }}
                         </p>
@@ -407,14 +408,14 @@ const MAX_RECENT_SEARCHES = 5;
               @if (results()!.comments.length > 0) {
                 <div class="px-4 pt-3 pb-1">
                   <span
-                    class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                    class="text-xs font-semibold text-[var(--muted-foreground)] dark:text-gray-400 uppercase tracking-wider"
                     >Comments</span
                   >
                 </div>
                 @for (comment of results()!.comments; track comment.id) {
                   <button
                     (click)="navigateToComment(comment)"
-                    class="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    class="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-[var(--secondary)] dark:hover:bg-gray-700 transition-colors"
                   >
                     <!-- Comment icon -->
                     <svg
@@ -432,12 +433,12 @@ const MAX_RECENT_SEARCHES = 5;
                     </svg>
                     <div class="flex-1 min-w-0">
                       <p
-                        class="text-sm text-gray-900 dark:text-gray-100 truncate"
+                        class="text-sm text-[var(--card-foreground)] dark:text-gray-100 truncate"
                       >
                         {{ comment.content }}
                       </p>
                       <p
-                        class="text-xs text-gray-500 dark:text-gray-400 truncate"
+                        class="text-xs text-[var(--muted-foreground)] dark:text-gray-400 truncate"
                       >
                         on {{ comment.task_title }} &rsaquo;
                         {{ comment.board_name }}
@@ -454,7 +455,7 @@ const MAX_RECENT_SEARCHES = 5;
             @if (!query() && recentSearches().length === 0 && !hasSearched()) {
               <!-- Initial state -->
               <div
-                class="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400"
+                class="flex flex-col items-center justify-center py-12 text-[var(--muted-foreground)] dark:text-gray-400"
               >
                 <svg
                   class="w-12 h-12 mb-3 opacity-50"
@@ -477,19 +478,19 @@ const MAX_RECENT_SEARCHES = 5;
 
           <!-- Footer -->
           <div
-            class="flex items-center justify-between px-4 py-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-400"
+            class="flex items-center justify-between px-4 py-2 border-t border-[var(--border)] dark:border-gray-700 text-xs text-gray-400"
           >
             <div class="flex items-center gap-3">
               <span class="flex items-center gap-1">
                 <kbd
-                  class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[10px]"
+                  class="px-1.5 py-0.5 bg-[var(--secondary)] dark:bg-gray-700 rounded text-[10px]"
                   >&#8593;&#8595;</kbd
                 >
                 navigate
               </span>
               <span class="flex items-center gap-1">
                 <kbd
-                  class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[10px]"
+                  class="px-1.5 py-0.5 bg-[var(--secondary)] dark:bg-gray-700 rounded text-[10px]"
                   >&#9166;</kbd
                 >
                 select
@@ -497,14 +498,14 @@ const MAX_RECENT_SEARCHES = 5;
             </div>
             <span class="flex items-center gap-1">
               <kbd
-                class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[10px]"
+                class="px-1.5 py-0.5 bg-[var(--secondary)] dark:bg-gray-700 rounded text-[10px]"
                 >&gt;</kbd
               >
               commands
             </span>
             <span class="flex items-center gap-1">
               <kbd
-                class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[10px]"
+                class="px-1.5 py-0.5 bg-[var(--secondary)] dark:bg-gray-700 rounded text-[10px]"
                 >esc</kbd
               >
               close

@@ -27,9 +27,21 @@ pub const TEMPLATES: &[BoardTemplate] = &[
         name: "Basic Kanban",
         description: "Simple To Do, In Progress, Done workflow",
         columns: &[
-            TemplateColumn { name: "To Do", color: "#6B7280", is_done: false },
-            TemplateColumn { name: "In Progress", color: "#3B82F6", is_done: false },
-            TemplateColumn { name: "Done", color: "#10B981", is_done: true },
+            TemplateColumn {
+                name: "To Do",
+                color: "#6B7280",
+                is_done: false,
+            },
+            TemplateColumn {
+                name: "In Progress",
+                color: "#3B82F6",
+                is_done: false,
+            },
+            TemplateColumn {
+                name: "Done",
+                color: "#10B981",
+                is_done: true,
+            },
         ],
     },
     BoardTemplate {
@@ -37,11 +49,31 @@ pub const TEMPLATES: &[BoardTemplate] = &[
         name: "Scrum Board",
         description: "Backlog through Done with review stage",
         columns: &[
-            TemplateColumn { name: "Backlog", color: "#6B7280", is_done: false },
-            TemplateColumn { name: "Sprint", color: "#8B5CF6", is_done: false },
-            TemplateColumn { name: "In Progress", color: "#3B82F6", is_done: false },
-            TemplateColumn { name: "Review", color: "#F59E0B", is_done: false },
-            TemplateColumn { name: "Done", color: "#10B981", is_done: true },
+            TemplateColumn {
+                name: "Backlog",
+                color: "#6B7280",
+                is_done: false,
+            },
+            TemplateColumn {
+                name: "Sprint",
+                color: "#8B5CF6",
+                is_done: false,
+            },
+            TemplateColumn {
+                name: "In Progress",
+                color: "#3B82F6",
+                is_done: false,
+            },
+            TemplateColumn {
+                name: "Review",
+                color: "#F59E0B",
+                is_done: false,
+            },
+            TemplateColumn {
+                name: "Done",
+                color: "#10B981",
+                is_done: true,
+            },
         ],
     },
     BoardTemplate {
@@ -49,11 +81,31 @@ pub const TEMPLATES: &[BoardTemplate] = &[
         name: "Bug Tracker",
         description: "Track bugs from report to resolution",
         columns: &[
-            TemplateColumn { name: "Open", color: "#EF4444", is_done: false },
-            TemplateColumn { name: "Triaging", color: "#F59E0B", is_done: false },
-            TemplateColumn { name: "In Progress", color: "#3B82F6", is_done: false },
-            TemplateColumn { name: "Testing", color: "#8B5CF6", is_done: false },
-            TemplateColumn { name: "Resolved", color: "#10B981", is_done: true },
+            TemplateColumn {
+                name: "Open",
+                color: "#EF4444",
+                is_done: false,
+            },
+            TemplateColumn {
+                name: "Triaging",
+                color: "#F59E0B",
+                is_done: false,
+            },
+            TemplateColumn {
+                name: "In Progress",
+                color: "#3B82F6",
+                is_done: false,
+            },
+            TemplateColumn {
+                name: "Testing",
+                color: "#8B5CF6",
+                is_done: false,
+            },
+            TemplateColumn {
+                name: "Resolved",
+                color: "#10B981",
+                is_done: true,
+            },
         ],
     },
     BoardTemplate {
@@ -61,11 +113,31 @@ pub const TEMPLATES: &[BoardTemplate] = &[
         name: "Content Pipeline",
         description: "Manage content from idea to publication",
         columns: &[
-            TemplateColumn { name: "Ideas", color: "#6B7280", is_done: false },
-            TemplateColumn { name: "Drafting", color: "#3B82F6", is_done: false },
-            TemplateColumn { name: "Review", color: "#F59E0B", is_done: false },
-            TemplateColumn { name: "Approved", color: "#8B5CF6", is_done: false },
-            TemplateColumn { name: "Published", color: "#10B981", is_done: true },
+            TemplateColumn {
+                name: "Ideas",
+                color: "#6B7280",
+                is_done: false,
+            },
+            TemplateColumn {
+                name: "Drafting",
+                color: "#3B82F6",
+                is_done: false,
+            },
+            TemplateColumn {
+                name: "Review",
+                color: "#F59E0B",
+                is_done: false,
+            },
+            TemplateColumn {
+                name: "Approved",
+                color: "#8B5CF6",
+                is_done: false,
+            },
+            TemplateColumn {
+                name: "Published",
+                color: "#10B981",
+                is_done: true,
+            },
         ],
     },
 ];

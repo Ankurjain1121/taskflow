@@ -86,14 +86,16 @@ async fn list_users(
     let tenant_id = admin.0.tenant_id;
 
     // Parse role filter
-    let role_filter: Option<UserRole> = query.role.as_ref().and_then(|r| {
-        match r.to_lowercase().as_str() {
-            "admin" => Some(UserRole::Admin),
-            "manager" => Some(UserRole::Manager),
-            "member" => Some(UserRole::Member),
-            _ => None,
-        }
-    });
+    let role_filter: Option<UserRole> =
+        query
+            .role
+            .as_ref()
+            .and_then(|r| match r.to_lowercase().as_str() {
+                "admin" => Some(UserRole::Admin),
+                "manager" => Some(UserRole::Manager),
+                "member" => Some(UserRole::Member),
+                _ => None,
+            });
 
     // Fetch users
     let users: Vec<UserRow> = sqlx::query_as!(
@@ -199,7 +201,8 @@ async fn update_user_role(
     .fetch_optional(&state.db)
     .await?;
 
-    let (_, current_role) = target_user.ok_or_else(|| AppError::NotFound("User not found".into()))?;
+    let (_, current_role) =
+        target_user.ok_or_else(|| AppError::NotFound("User not found".into()))?;
 
     // If demoting from admin, check if this is the last admin
     if current_role == UserRole::Admin && body.role != UserRole::Admin {

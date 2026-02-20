@@ -1,4 +1,12 @@
-import { Component, inject, signal, input, output, model, OnInit } from '@angular/core';
+import {
+  Component,
+  inject,
+  signal,
+  input,
+  output,
+  model,
+  OnInit,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -60,13 +68,17 @@ export interface BoardTemplate {
       [closable]="true"
       (onShow)="onDialogShow()"
     >
-      <p class="text-sm text-gray-500 mb-4">
+      <p class="text-sm text-[var(--muted-foreground)] mb-4">
         Create a new board in {{ workspaceName() }}
       </p>
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <!-- Board Name -->
         <div class="flex flex-col gap-1 mb-4">
-          <label for="boardName" class="text-sm font-medium text-gray-700 dark:text-gray-300">Board Name</label>
+          <label
+            for="boardName"
+            class="text-sm font-medium text-[var(--foreground)]"
+            >Board Name</label
+          >
           <input
             pInputText
             id="boardName"
@@ -75,17 +87,27 @@ export interface BoardTemplate {
             maxlength="100"
             class="w-full"
           />
-          @if (form.get('name')?.hasError('required') && form.get('name')?.touched) {
+          @if (
+            form.get('name')?.hasError('required') && form.get('name')?.touched
+          ) {
             <small class="text-red-500">Board name is required</small>
           }
-          @if (form.get('name')?.hasError('minlength') && form.get('name')?.touched) {
-            <small class="text-red-500">Board name must be at least 2 characters</small>
+          @if (
+            form.get('name')?.hasError('minlength') && form.get('name')?.touched
+          ) {
+            <small class="text-red-500"
+              >Board name must be at least 2 characters</small
+            >
           }
         </div>
 
         <!-- Description -->
         <div class="flex flex-col gap-1 mb-4">
-          <label for="boardDesc" class="text-sm font-medium text-gray-700 dark:text-gray-300">Description (optional)</label>
+          <label
+            for="boardDesc"
+            class="text-sm font-medium text-[var(--foreground)]"
+            >Description (optional)</label
+          >
           <textarea
             pTextarea
             id="boardDesc"
@@ -99,7 +121,9 @@ export interface BoardTemplate {
 
         <!-- Template Picker -->
         <div class="mb-2">
-          <label class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block">
+          <label
+            class="text-sm font-medium text-[var(--foreground)] mb-3 block"
+          >
             Choose a template
           </label>
 
@@ -115,27 +139,35 @@ export interface BoardTemplate {
               @for (template of templates(); track template.id) {
                 <label
                   class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all"
-                  [class.border-blue-500]="form.get('template')?.value === template.id"
-                  [class.bg-blue-50]="form.get('template')?.value === template.id"
-                  [class.border-gray-200]="form.get('template')?.value !== template.id"
-                  [class.hover:border-gray-300]="form.get('template')?.value !== template.id"
+                  [style.border-color]="
+                    form.get('template')?.value === template.id
+                      ? 'var(--primary)'
+                      : 'var(--border)'
+                  "
+                  [style.background]="
+                    form.get('template')?.value === template.id
+                      ? 'color-mix(in srgb, var(--primary) 10%, transparent)'
+                      : ''
+                  "
                 >
                   <p-radioButton
                     [value]="template.id"
                     formControlName="template"
                   />
                   <div class="flex-1 min-w-0">
-                    <div class="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                    <div
+                      class="font-medium text-[var(--card-foreground)] text-sm"
+                    >
                       {{ template.name }}
                     </div>
-                    <div class="text-xs text-gray-500 mt-0.5">
+                    <div class="text-xs text-[var(--muted-foreground)] mt-0.5">
                       {{ template.description }}
                     </div>
                     @if (template.columns.length > 0) {
                       <div class="flex flex-wrap gap-1.5 mt-2">
                         @for (col of template.columns; track col.name) {
                           <span
-                            class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-white border border-gray-200"
+                            class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[var(--card)] border border-[var(--border)]"
                           >
                             <span
                               class="w-2 h-2 rounded-full inline-block flex-shrink-0"
@@ -146,7 +178,9 @@ export interface BoardTemplate {
                         }
                       </div>
                     } @else {
-                      <div class="text-xs text-gray-400 mt-2 italic">
+                      <div
+                        class="text-xs text-[var(--muted-foreground)] mt-2 italic"
+                      >
                         No predefined columns
                       </div>
                     }
@@ -159,12 +193,20 @@ export interface BoardTemplate {
 
         <!-- Selected template preview -->
         @if (selectedTemplate() && selectedTemplate()!.columns.length > 0) {
-          <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+          <div
+            class="mt-4 p-3 bg-[var(--secondary)] rounded-lg border border-[var(--border)]"
+          >
+            <div
+              class="text-xs font-medium text-[var(--muted-foreground)] mb-2"
+            >
               Column Preview
             </div>
             <div class="flex items-center gap-1 overflow-x-auto">
-              @for (col of selectedTemplate()!.columns; track col.name; let last = $last) {
+              @for (
+                col of selectedTemplate()!.columns;
+                track col.name;
+                let last = $last
+              ) {
                 <div class="flex items-center gap-1 flex-shrink-0">
                   <div
                     class="px-3 py-1.5 rounded text-xs font-medium text-white"
@@ -173,8 +215,18 @@ export interface BoardTemplate {
                     {{ col.name }}
                   </div>
                   @if (!last) {
-                    <svg class="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    <svg
+                      class="w-3 h-3 text-[var(--muted-foreground)] flex-shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 5l7 7-7 7"
+                      ></path>
                     </svg>
                   }
                 </div>
@@ -223,7 +275,10 @@ export class CreateBoardDialogComponent implements OnInit {
   selectedTemplate = signal<BoardTemplate | null>(null);
 
   form: FormGroup = this.fb.group({
-    name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
+    name: [
+      '',
+      [Validators.required, Validators.minLength(2), Validators.maxLength(100)],
+    ],
     description: ['', [Validators.maxLength(500)]],
     template: ['kanban'],
   });

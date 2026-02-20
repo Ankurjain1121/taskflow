@@ -36,19 +36,19 @@ interface QuadrantConfig {
   providers: [ConfirmationService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-gray-50">
+    <div class="min-h-screen bg-[var(--background)]">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->
         <div class="mb-6 flex items-center justify-between">
           <div>
-            <h1 class="text-2xl font-bold text-gray-900">Eisenhower Matrix</h1>
-            <p class="text-sm text-gray-500 mt-1">
+            <h1 class="text-2xl font-bold text-[var(--card-foreground)]">Eisenhower Matrix</h1>
+            <p class="text-sm text-[var(--muted-foreground)] mt-1">
               Prioritize your tasks by urgency and importance
             </p>
           </div>
           <button
             (click)="resetAllOverrides()"
-            class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-[var(--card)] border border-[var(--border)] rounded-lg text-sm font-medium text-[var(--foreground)] hover:bg-[var(--muted)] transition-colors"
             [disabled]="loading()"
           >
             <svg
@@ -72,7 +72,7 @@ interface QuadrantConfig {
         @if (loading()) {
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             @for (i of [1, 2, 3, 4]; track i) {
-              <div class="bg-white rounded-lg border-2 border-gray-200 p-6">
+              <div class="bg-[var(--card)] rounded-lg border-2 border-[var(--border)] p-6">
                 <div class="skeleton skeleton-text w-32 mb-2"></div>
                 <div class="skeleton skeleton-text w-48 mb-4"></div>
                 <div class="space-y-2">
@@ -88,28 +88,28 @@ interface QuadrantConfig {
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             @for (quadrant of quadrants; track quadrant.key) {
               <div
-                class="bg-white rounded-lg border-2 p-6 transition-all"
+                class="rounded-lg border-2 p-6 transition-all"
                 [class]="quadrant.borderColor"
                 [style.background]="quadrant.bgColor"
               >
                 <!-- Quadrant Header -->
-                <div class="mb-4 pb-4 border-b border-gray-200">
-                  <h2 class="text-lg font-semibold text-gray-900">
+                <div class="mb-4 pb-4 border-b border-[var(--border)]">
+                  <h2 class="text-lg font-semibold text-[var(--card-foreground)]">
                     {{ quadrant.title }}
                   </h2>
-                  <p class="text-sm text-gray-600 mt-1">
+                  <p class="text-sm text-[var(--muted-foreground)] mt-1">
                     {{ quadrant.subtitle }}
                   </p>
-                  <p class="text-xs text-gray-500 mt-2 italic">
+                  <p class="text-xs text-[var(--muted-foreground)] mt-2 italic">
                     {{ quadrant.coaching }}
                   </p>
                   <div class="mt-2 flex items-center justify-between">
-                    <span class="text-xs font-medium text-gray-500">
+                    <span class="text-xs font-medium text-[var(--muted-foreground)]">
                       {{ getTasksByQuadrant(quadrant.key).length }} tasks
                     </span>
                     @if (quadrant.actionLabel) {
                       <button
-                        class="text-xs font-medium text-indigo-600 hover:text-indigo-700"
+                        class="text-xs font-medium text-primary hover:text-primary"
                         (click)="performQuadrantAction(quadrant.key)"
                       >
                         {{ quadrant.actionLabel }}
@@ -125,28 +125,28 @@ interface QuadrantConfig {
                     track task.id
                   ) {
                     <div
-                      class="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-sm transition-shadow cursor-pointer"
+                      class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-3 hover:shadow-sm transition-shadow cursor-pointer"
                       [routerLink]="['/task', task.id]"
                     >
                       <div class="flex items-start justify-between">
                         <div class="flex-1 min-w-0">
                           <h3
-                            class="text-sm font-medium text-gray-900 truncate"
+                            class="text-sm font-medium text-[var(--card-foreground)] truncate"
                           >
                             {{ task.title }}
                           </h3>
                           <div class="flex items-center gap-2 mt-1">
-                            <span class="text-xs text-gray-500">
+                            <span class="text-xs text-[var(--muted-foreground)]">
                               {{ task.board_name }}
                             </span>
                             @if (task.due_date) {
-                              <span class="text-xs text-gray-400">•</span>
+                              <span class="text-xs text-[var(--muted-foreground)]">&bull;</span>
                               <span
                                 class="text-xs"
                                 [class]="
                                   isOverdue(task.due_date)
                                     ? 'text-red-600 font-medium'
-                                    : 'text-gray-500'
+                                    : 'text-[var(--muted-foreground)]'
                                 "
                               >
                                 Due {{ formatDueDate(task.due_date) }}
@@ -163,7 +163,7 @@ interface QuadrantConfig {
                       </div>
                     </div>
                   } @empty {
-                    <div class="text-center py-8 text-gray-400">
+                    <div class="text-center py-8 text-[var(--muted-foreground)]">
                       <p class="text-sm">No tasks in this quadrant</p>
                     </div>
                   }
@@ -180,7 +180,8 @@ interface QuadrantConfig {
     `
       @reference "tailwindcss";
       .skeleton {
-        @apply animate-pulse bg-gray-200 rounded;
+        @apply animate-pulse rounded;
+        background: var(--muted);
       }
       .skeleton-text {
         @apply h-4;
@@ -231,7 +232,7 @@ export class EisenhowerMatrixComponent implements OnInit {
       title: 'Eliminate',
       subtitle: 'Not Urgent & Not Important',
       bgColor: '#f8f9fa',
-      borderColor: 'border-gray-300',
+      borderColor: 'border-[var(--border)]',
       coaching: 'Consider removing these from your list entirely.',
       actionLabel: 'Archive',
     },

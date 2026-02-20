@@ -27,13 +27,25 @@ import {
     <div class="space-y-4">
       <!-- Header -->
       <div class="flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-gray-900">Custom Fields</h3>
+        <h3 class="text-lg font-semibold text-[var(--card-foreground)]">
+          Custom Fields
+        </h3>
         <button
           (click)="toggleCreateForm()"
-          class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+          class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition-colors"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 4v16m8-8H4"
+            />
           </svg>
           Add Field
         </button>
@@ -41,20 +53,25 @@ import {
 
       <!-- Create Form -->
       @if (showCreateForm()) {
-        <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+        <div
+          class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4 shadow-sm"
+        >
           <div class="space-y-3">
             <input
               type="text"
               [(ngModel)]="newName"
               placeholder="Field name"
-              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              class="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
             />
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Type</label>
+                <label
+                  class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                  >Type</label
+                >
                 <select
                   [(ngModel)]="newFieldType"
-                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  class="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                 >
                   @for (ft of fieldTypeOptions; track ft.value) {
                     <option [value]="ft.value">{{ ft.label }}</option>
@@ -62,11 +79,13 @@ import {
                 </select>
               </div>
               <div class="flex items-end">
-                <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <label
+                  class="inline-flex items-center gap-2 text-sm text-[var(--foreground)] cursor-pointer"
+                >
                   <input
                     type="checkbox"
                     [(ngModel)]="newIsRequired"
-                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    class="rounded border-[var(--border)] text-primary focus:ring-ring"
                   />
                   Required
                 </label>
@@ -74,26 +93,29 @@ import {
             </div>
             @if (newFieldType === 'dropdown') {
               <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Options (one per line)</label>
+                <label
+                  class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                  >Options (one per line)</label
+                >
                 <textarea
                   [(ngModel)]="newOptions"
                   placeholder="Option 1&#10;Option 2&#10;Option 3"
                   rows="3"
-                  class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  class="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                 ></textarea>
               </div>
             }
             <div class="flex justify-end gap-2 pt-2">
               <button
                 (click)="cancelCreate()"
-                class="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md"
+                class="px-3 py-1.5 text-sm text-[var(--muted-foreground)] hover:bg-[var(--muted)] rounded-md"
               >
                 Cancel
               </button>
               <button
                 (click)="createField()"
                 [disabled]="!newName.trim()"
-                class="px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                class="px-3 py-1.5 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Create
               </button>
@@ -105,23 +127,52 @@ import {
       <!-- Loading -->
       @if (loading()) {
         <div class="flex items-center justify-center py-8">
-          <svg class="animate-spin h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          <svg
+            class="animate-spin h-6 w-6 text-primary"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
           </svg>
         </div>
       } @else if (fields().length === 0 && !showCreateForm()) {
-        <div class="bg-gray-50 rounded-lg p-6 text-center">
-          <svg class="w-10 h-10 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        <div class="bg-[var(--secondary)] rounded-lg p-6 text-center">
+          <svg
+            class="w-10 h-10 text-[var(--muted-foreground)] mx-auto mb-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+            />
           </svg>
-          <p class="text-sm text-gray-500">No custom fields yet. Create one to add extra data to your tasks.</p>
+          <p class="text-sm text-[var(--muted-foreground)]">
+            No custom fields yet. Create one to add extra data to your tasks.
+          </p>
         </div>
       } @else {
         <!-- Fields List -->
         <div class="space-y-2">
           @for (field of fields(); track field.id) {
-            <div class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+            <div
+              class="bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+            >
               @if (editingId() === field.id) {
                 <!-- Edit Mode -->
                 <div class="p-4 space-y-3">
@@ -129,38 +180,43 @@ import {
                     type="text"
                     [(ngModel)]="editName"
                     placeholder="Field name"
-                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    class="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                   />
                   @if (field.field_type === 'dropdown') {
                     <div>
-                      <label class="block text-xs font-medium text-gray-500 mb-1">Options (one per line)</label>
+                      <label
+                        class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                        >Options (one per line)</label
+                      >
                       <textarea
                         [(ngModel)]="editOptions"
                         placeholder="Option 1&#10;Option 2&#10;Option 3"
                         rows="3"
-                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                        class="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                       ></textarea>
                     </div>
                   }
-                  <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <label
+                    class="inline-flex items-center gap-2 text-sm text-[var(--foreground)] cursor-pointer"
+                  >
                     <input
                       type="checkbox"
                       [(ngModel)]="editIsRequired"
-                      class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      class="rounded border-[var(--border)] text-primary focus:ring-ring"
                     />
                     Required
                   </label>
                   <div class="flex justify-end gap-2 pt-2">
                     <button
                       (click)="cancelEdit()"
-                      class="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md"
+                      class="px-3 py-1.5 text-sm text-[var(--muted-foreground)] hover:bg-[var(--muted)] rounded-md"
                     >
                       Cancel
                     </button>
                     <button
                       (click)="saveEdit(field.id)"
                       [disabled]="!editName.trim()"
-                      class="px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="px-3 py-1.5 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Save
                     </button>
@@ -170,50 +226,83 @@ import {
                 <!-- View Mode -->
                 <div class="p-4 flex items-center justify-between">
                   <div class="flex items-center gap-3 min-w-0">
-                    <div class="flex-shrink-0 w-8 h-8 rounded-md flex items-center justify-center"
+                    <div
+                      class="flex-shrink-0 w-8 h-8 rounded-md flex items-center justify-center"
                       [class.bg-blue-100]="field.field_type === 'text'"
                       [class.bg-purple-100]="field.field_type === 'number'"
                       [class.bg-green-100]="field.field_type === 'date'"
                       [class.bg-orange-100]="field.field_type === 'dropdown'"
                       [class.bg-pink-100]="field.field_type === 'checkbox'"
                     >
-                      <span class="text-xs font-bold"
+                      <span
+                        class="text-xs font-bold"
                         [class.text-blue-600]="field.field_type === 'text'"
                         [class.text-purple-600]="field.field_type === 'number'"
                         [class.text-green-600]="field.field_type === 'date'"
-                        [class.text-orange-600]="field.field_type === 'dropdown'"
+                        [class.text-orange-600]="
+                          field.field_type === 'dropdown'
+                        "
                         [class.text-pink-600]="field.field_type === 'checkbox'"
-                      >{{ getFieldTypeIcon(field.field_type) }}</span>
+                        >{{ getFieldTypeIcon(field.field_type) }}</span
+                      >
                     </div>
                     <div class="min-w-0">
                       <div class="flex items-center gap-2">
-                        <span class="text-sm font-medium text-gray-900 truncate">{{ field.name }}</span>
+                        <span
+                          class="text-sm font-medium text-[var(--card-foreground)] truncate"
+                          >{{ field.name }}</span
+                        >
                         @if (field.is_required) {
-                          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
+                          <span
+                            class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700"
+                          >
                             Required
                           </span>
                         }
                       </div>
-                      <span class="text-xs text-gray-500 capitalize">{{ field.field_type }}</span>
+                      <span
+                        class="text-xs text-[var(--muted-foreground)] capitalize"
+                        >{{ field.field_type }}</span
+                      >
                     </div>
                   </div>
                   <div class="flex items-center gap-1 flex-shrink-0">
                     <button
                       (click)="startEdit(field)"
-                      class="p-1.5 text-gray-400 hover:text-gray-600 rounded"
+                      class="p-1.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] rounded"
                       title="Edit"
                     >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      <svg
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                        />
                       </svg>
                     </button>
                     <button
                       (click)="confirmDelete(field)"
-                      class="p-1.5 text-gray-400 hover:text-red-600 rounded"
+                      class="p-1.5 text-[var(--muted-foreground)] hover:text-red-600 rounded"
                       title="Delete"
                     >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      <svg
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -340,7 +429,7 @@ export class CustomFieldsManagerComponent implements OnInit, OnChanges {
     this.customFieldService.updateField(fieldId, req).subscribe({
       next: (updated) => {
         this.fields.update((fields) =>
-          fields.map((f) => (f.id === fieldId ? updated : f))
+          fields.map((f) => (f.id === fieldId ? updated : f)),
         );
         this.editingId.set(null);
       },
@@ -351,7 +440,7 @@ export class CustomFieldsManagerComponent implements OnInit, OnChanges {
   confirmDelete(field: BoardCustomField): void {
     if (
       !confirm(
-        `Delete custom field "${field.name}"? All task values for this field will be removed.`
+        `Delete custom field "${field.name}"? All task values for this field will be removed.`,
       )
     ) {
       return;

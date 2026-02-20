@@ -17,10 +17,10 @@ use crate::models::TaskPriority;
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum EisenhowerQuadrant {
-    DoFirst,        // Urgent + Important
-    Schedule,       // Not Urgent + Important
-    Delegate,       // Urgent + Not Important
-    Eliminate,      // Not Urgent + Not Important
+    DoFirst,   // Urgent + Important
+    Schedule,  // Not Urgent + Important
+    Delegate,  // Urgent + Not Important
+    Eliminate, // Not Urgent + Not Important
 }
 
 /// Task item for Eisenhower Matrix with computed quadrant
@@ -228,10 +228,7 @@ pub async fn update_eisenhower_overrides(
 }
 
 /// Reset all manual overrides for a user's tasks (auto-sort)
-pub async fn reset_eisenhower_overrides(
-    pool: &PgPool,
-    user_id: Uuid,
-) -> Result<u64, sqlx::Error> {
+pub async fn reset_eisenhower_overrides(pool: &PgPool, user_id: Uuid) -> Result<u64, sqlx::Error> {
     let result = sqlx::query(
         r#"
         UPDATE tasks

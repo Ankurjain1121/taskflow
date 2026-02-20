@@ -257,10 +257,16 @@ mod tests {
     #[test]
     fn test_weekly_digest_html_contains_stats() {
         let html = generate_weekly_digest_html("Alice", 12, 34, 5, 7, "https://app.test.com");
-        assert!(html.contains("12"), "HTML should contain tasks_completed=12");
+        assert!(
+            html.contains("12"),
+            "HTML should contain tasks_completed=12"
+        );
         assert!(html.contains("34"), "HTML should contain tasks_created=34");
         assert!(html.contains("5"), "HTML should contain tasks_overdue=5");
-        assert!(html.contains("7"), "HTML should contain tasks_due_this_week=7");
+        assert!(
+            html.contains("7"),
+            "HTML should contain tasks_due_this_week=7"
+        );
     }
 
     #[test]
@@ -278,6 +284,9 @@ mod tests {
         assert!(html.contains("Weekly Summary"));
         assert!(html.contains("User"));
         // All stats should be 0
-        assert!(html.contains(">0<"), "HTML should contain zero values rendered");
+        assert!(
+            html.contains(">0<"),
+            "HTML should contain zero values rendered"
+        );
     }
 }

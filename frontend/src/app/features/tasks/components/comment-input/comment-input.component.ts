@@ -36,7 +36,7 @@ import {
     OverlayModule,
   ],
   template: `
-    <div class="bg-white rounded-lg border border-gray-200 p-3">
+    <div class="bg-[var(--card)] rounded-lg border border-[var(--border)] p-3">
       <textarea
         #textareaRef
         [(ngModel)]="content"
@@ -44,13 +44,13 @@ import {
         (keydown)="onKeydown($event)"
         (blur)="onBlur()"
         placeholder="Write a comment... Use @ to mention someone"
-        class="w-full border-0 resize-none focus:ring-0 focus:outline-none text-sm text-gray-900 placeholder-gray-400 min-h-[80px]"
+        class="w-full border-0 resize-none focus:ring-0 focus:outline-none text-sm text-[var(--card-foreground)] placeholder-gray-400 min-h-[80px]"
         [disabled]="isSubmitting()"
         rows="3"
       ></textarea>
 
       <div
-        class="flex items-center justify-between mt-2 pt-2 border-t border-gray-100"
+        class="flex items-center justify-between mt-2 pt-2 border-t border-[var(--border)]"
       >
         <div class="text-xs text-gray-400">
           Press &#64; to mention teammates

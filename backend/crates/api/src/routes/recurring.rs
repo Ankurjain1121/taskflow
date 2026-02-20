@@ -12,8 +12,8 @@ use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 use taskflow_db::queries::recurring::{
-    create_config, delete_config, get_config_for_task, update_config,
-    CreateRecurringInput, RecurringQueryError, UpdateRecurringInput,
+    create_config, delete_config, get_config_for_task, update_config, CreateRecurringInput,
+    RecurringQueryError, UpdateRecurringInput,
 };
 
 /// Map RecurringQueryError to AppError
@@ -21,9 +21,7 @@ fn map_recurring_error(e: RecurringQueryError) -> AppError {
     match e {
         RecurringQueryError::NotFound => AppError::NotFound("Recurring config not found".into()),
         RecurringQueryError::TaskNotFound => AppError::NotFound("Task not found".into()),
-        RecurringQueryError::NotBoardMember => {
-            AppError::Forbidden("Not a board member".into())
-        }
+        RecurringQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
         RecurringQueryError::Database(e) => AppError::SqlxError(e),
     }
 }

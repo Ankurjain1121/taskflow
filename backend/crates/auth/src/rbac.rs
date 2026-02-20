@@ -190,7 +190,10 @@ mod tests {
     #[test]
     fn test_has_permission() {
         assert!(has_permission(&UserRole::Admin, &Permission::AdminAccess));
-        assert!(!has_permission(&UserRole::Manager, &Permission::AdminAccess));
+        assert!(!has_permission(
+            &UserRole::Manager,
+            &Permission::AdminAccess
+        ));
         assert!(!has_permission(&UserRole::Member, &Permission::AdminAccess));
 
         assert!(has_permission(&UserRole::Member, &Permission::TaskView));
@@ -277,7 +280,11 @@ mod tests {
         let member_perms = permissions_for_role(&UserRole::Member);
 
         assert_eq!(admin_perms.len(), 17, "Admin should have 17 permissions");
-        assert_eq!(manager_perms.len(), 14, "Manager should have 14 permissions");
+        assert_eq!(
+            manager_perms.len(),
+            14,
+            "Manager should have 14 permissions"
+        );
         assert_eq!(member_perms.len(), 6, "Member should have 6 permissions");
     }
 }

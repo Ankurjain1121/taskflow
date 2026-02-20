@@ -115,7 +115,7 @@ interface WorkspaceOption {
             <a
               routerLink="/my-tasks"
               class="animate-fade-in-up stagger-1 widget-card p-5 cursor-pointer group"
-              style="border-left: 4px solid #6366f1"
+              style="border-left: 4px solid var(--primary)"
             >
               <div class="flex items-center justify-between">
                 <div>
@@ -128,10 +128,10 @@ interface WorkspaceOption {
                   </p>
                 </div>
                 <div
-                  class="w-9 h-9 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform"
+                  class="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform"
                 >
                   <i
-                    class="pi pi-clipboard text-indigo-600 dark:text-indigo-400"
+                    class="pi pi-clipboard text-primary"
                   ></i>
                 </div>
               </div>
@@ -263,7 +263,7 @@ interface WorkspaceOption {
                         />
                       } @else {
                         <div
-                          class="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center"
+                          class="w-7 h-7 rounded-full bg-primary flex items-center justify-center"
                         >
                           <span class="text-xs font-medium text-white">{{
                             activity.actor_name.charAt(0).toUpperCase()
@@ -289,7 +289,7 @@ interface WorkspaceOption {
                             &middot;
                           </span>
                           <span
-                            class="font-medium text-indigo-600 dark:text-indigo-400"
+                            class="font-medium text-primary"
                             >{{ activity.metadata['task_title'] }}</span
                           >
                         }
@@ -319,7 +319,7 @@ interface WorkspaceOption {
                 >
                   <button
                     (click)="showAllActivity.set(true)"
-                    class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                    class="text-xs font-medium text-primary hover:underline"
                   >
                     Show {{ recentActivity().length - 5 }} more
                   </button>
@@ -426,13 +426,13 @@ interface WorkspaceOption {
                   <div class="p-5">
                     <div class="flex items-start justify-between">
                       <h3
-                        class="text-base font-semibold group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors"
+                        class="text-base font-semibold group-hover:text-primary transition-colors"
                         style="color: var(--foreground)"
                       >
                         {{ workspace.name }}
                       </h3>
                       <div
-                        class="w-9 h-9 bg-indigo-600 rounded-lg flex items-center justify-center"
+                        class="w-9 h-9 bg-primary rounded-lg flex items-center justify-center"
                       >
                         <span class="text-white font-bold text-sm">{{
                           workspace.name.charAt(0).toUpperCase()
@@ -446,7 +446,7 @@ interface WorkspaceOption {
                   >
                     <a
                       [routerLink]="['/workspace', workspace.id]"
-                      class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium inline-flex items-center gap-1"
+                      class="text-sm text-primary hover:text-primary font-medium inline-flex items-center gap-1"
                     >
                       Open Workspace
                       <i

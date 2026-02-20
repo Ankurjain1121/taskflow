@@ -243,7 +243,10 @@ pub async fn save_board_as_template(
         return Err(ProjectTemplateQueryError::NotBoardMember);
     }
 
-    let mut tx = pool.begin().await.map_err(ProjectTemplateQueryError::Database)?;
+    let mut tx = pool
+        .begin()
+        .await
+        .map_err(ProjectTemplateQueryError::Database)?;
 
     // Create the template
     let template_id = Uuid::new_v4();
@@ -374,7 +377,9 @@ pub async fn save_board_as_template(
         .await?;
     }
 
-    tx.commit().await.map_err(ProjectTemplateQueryError::Database)?;
+    tx.commit()
+        .await
+        .map_err(ProjectTemplateQueryError::Database)?;
 
     Ok(template)
 }
@@ -441,7 +446,10 @@ pub async fn create_board_from_template(
     .fetch_all(pool)
     .await?;
 
-    let mut tx = pool.begin().await.map_err(ProjectTemplateQueryError::Database)?;
+    let mut tx = pool
+        .begin()
+        .await
+        .map_err(ProjectTemplateQueryError::Database)?;
 
     // Create the board
     let board_id = Uuid::new_v4();
@@ -549,7 +557,9 @@ pub async fn create_board_from_template(
         .await?;
     }
 
-    tx.commit().await.map_err(ProjectTemplateQueryError::Database)?;
+    tx.commit()
+        .await
+        .map_err(ProjectTemplateQueryError::Database)?;
 
     Ok(board_id)
 }

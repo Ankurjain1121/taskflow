@@ -133,10 +133,22 @@ mod tests {
 
     #[test]
     fn test_route_action_map() {
-        assert_eq!(ROUTE_ACTION_MAP.get("tasks.create"), Some(&ActivityAction::Created));
-        assert_eq!(ROUTE_ACTION_MAP.get("tasks.move"), Some(&ActivityAction::Moved));
-        assert_eq!(ROUTE_ACTION_MAP.get("comments.create"), Some(&ActivityAction::Commented));
-        assert_eq!(ROUTE_ACTION_MAP.get("attachments.upload"), Some(&ActivityAction::Attached));
+        assert_eq!(
+            ROUTE_ACTION_MAP.get("tasks.create"),
+            Some(&ActivityAction::Created)
+        );
+        assert_eq!(
+            ROUTE_ACTION_MAP.get("tasks.move"),
+            Some(&ActivityAction::Moved)
+        );
+        assert_eq!(
+            ROUTE_ACTION_MAP.get("comments.create"),
+            Some(&ActivityAction::Commented)
+        );
+        assert_eq!(
+            ROUTE_ACTION_MAP.get("attachments.upload"),
+            Some(&ActivityAction::Attached)
+        );
         assert_eq!(ROUTE_ACTION_MAP.get("nonexistent"), None);
     }
 
@@ -160,9 +172,7 @@ mod tests {
             "columns",
         ];
         for prefix in prefixes {
-            let has_entry = ROUTE_ACTION_MAP
-                .keys()
-                .any(|key| key.starts_with(prefix));
+            let has_entry = ROUTE_ACTION_MAP.keys().any(|key| key.starts_with(prefix));
             assert!(
                 has_entry,
                 "ROUTE_ACTION_MAP should have entries for '{}'",
@@ -173,19 +183,46 @@ mod tests {
 
     #[test]
     fn test_route_action_map_task_actions() {
-        assert_eq!(ROUTE_ACTION_MAP.get("tasks.create"), Some(&ActivityAction::Created));
-        assert_eq!(ROUTE_ACTION_MAP.get("tasks.update"), Some(&ActivityAction::Updated));
-        assert_eq!(ROUTE_ACTION_MAP.get("tasks.move"), Some(&ActivityAction::Moved));
-        assert_eq!(ROUTE_ACTION_MAP.get("tasks.assign"), Some(&ActivityAction::Assigned));
-        assert_eq!(ROUTE_ACTION_MAP.get("tasks.unassign"), Some(&ActivityAction::Unassigned));
-        assert_eq!(ROUTE_ACTION_MAP.get("tasks.delete"), Some(&ActivityAction::Deleted));
+        assert_eq!(
+            ROUTE_ACTION_MAP.get("tasks.create"),
+            Some(&ActivityAction::Created)
+        );
+        assert_eq!(
+            ROUTE_ACTION_MAP.get("tasks.update"),
+            Some(&ActivityAction::Updated)
+        );
+        assert_eq!(
+            ROUTE_ACTION_MAP.get("tasks.move"),
+            Some(&ActivityAction::Moved)
+        );
+        assert_eq!(
+            ROUTE_ACTION_MAP.get("tasks.assign"),
+            Some(&ActivityAction::Assigned)
+        );
+        assert_eq!(
+            ROUTE_ACTION_MAP.get("tasks.unassign"),
+            Some(&ActivityAction::Unassigned)
+        );
+        assert_eq!(
+            ROUTE_ACTION_MAP.get("tasks.delete"),
+            Some(&ActivityAction::Deleted)
+        );
     }
 
     #[test]
     fn test_route_action_map_board_actions() {
-        assert_eq!(ROUTE_ACTION_MAP.get("boards.create"), Some(&ActivityAction::Created));
-        assert_eq!(ROUTE_ACTION_MAP.get("boards.update"), Some(&ActivityAction::Updated));
-        assert_eq!(ROUTE_ACTION_MAP.get("boards.delete"), Some(&ActivityAction::Deleted));
+        assert_eq!(
+            ROUTE_ACTION_MAP.get("boards.create"),
+            Some(&ActivityAction::Created)
+        );
+        assert_eq!(
+            ROUTE_ACTION_MAP.get("boards.update"),
+            Some(&ActivityAction::Updated)
+        );
+        assert_eq!(
+            ROUTE_ACTION_MAP.get("boards.delete"),
+            Some(&ActivityAction::Deleted)
+        );
     }
 
     #[test]

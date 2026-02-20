@@ -21,7 +21,7 @@ import { debounceTime, Subject } from 'rxjs';
   ],
   template: `
     <div
-      class="flex items-center gap-2 p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800"
+      class="flex items-center gap-2 p-4 bg-[var(--card)] dark:bg-gray-900 border-b border-[var(--border)] dark:border-gray-800"
     >
       <!-- Search input -->
       <div class="flex-1 max-w-xs">

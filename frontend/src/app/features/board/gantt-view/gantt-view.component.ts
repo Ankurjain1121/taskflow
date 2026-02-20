@@ -49,23 +49,27 @@ type ZoomLevel = 'day' | 'week' | 'month';
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="flex flex-col h-full bg-white">
+    <div class="flex flex-col h-full bg-[var(--card)]">
       <!-- Header -->
       <div
-        class="flex items-center justify-between px-6 py-3 border-b border-gray-200"
+        class="flex items-center justify-between px-6 py-3 border-b border-[var(--border)]"
       >
-        <h2 class="text-lg font-semibold text-gray-900">Gantt Chart</h2>
+        <h2 class="text-lg font-semibold text-[var(--card-foreground)]">
+          Gantt Chart
+        </h2>
         <div class="flex items-center gap-2">
-          <span class="text-xs text-gray-500">Zoom:</span>
-          <div class="flex rounded-lg border border-gray-200 overflow-hidden">
+          <span class="text-xs text-[var(--muted-foreground)]">Zoom:</span>
+          <div
+            class="flex rounded-lg border border-[var(--border)] overflow-hidden"
+          >
             @for (level of zoomLevels; track level) {
               <button
                 (click)="zoom.set(level)"
                 class="px-3 py-1 text-xs font-medium transition-colors capitalize"
-                [class.bg-indigo-600]="zoom() === level"
+                [class.bg-primary]="zoom() === level"
                 [class.text-white]="zoom() === level"
-                [class.text-gray-600]="zoom() !== level"
-                [class.hover:bg-gray-50]="zoom() !== level"
+                [class.text-[var(--muted-foreground)]]="zoom() !== level"
+                [class.hover:bg-[var(--muted)]]="zoom() !== level"
               >
                 {{ level }}
               </button>
@@ -86,19 +90,21 @@ type ZoomLevel = 'day' | 'week' | 'month';
         <div class="flex flex-1 overflow-hidden">
           <!-- Left Panel: Task List -->
           <div
-            class="w-64 flex-shrink-0 border-r border-gray-200 overflow-y-auto"
+            class="w-64 flex-shrink-0 border-r border-[var(--border)] overflow-y-auto"
           >
             <!-- Header -->
-            <div class="h-10 border-b border-gray-200 flex items-center px-3">
+            <div
+              class="h-10 border-b border-[var(--border)] flex items-center px-3"
+            >
               <span
-                class="text-xs font-medium text-gray-500 uppercase tracking-wide"
+                class="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide"
                 >Task</span
               >
             </div>
             <!-- Task rows -->
             @for (task of sortedTasks(); track task.id) {
               <div
-                class="h-10 border-b border-gray-100 flex items-center px-3 gap-2 hover:bg-gray-50 cursor-pointer"
+                class="h-10 border-b border-[var(--border)] flex items-center px-3 gap-2 hover:bg-[var(--muted)] cursor-pointer"
                 (click)="onTaskClick(task)"
               >
                 <div
@@ -106,7 +112,7 @@ type ZoomLevel = 'day' | 'week' | 'month';
                   [style.background-color]="getColor(task.priority)"
                 ></div>
                 <span
-                  class="text-xs text-gray-700 truncate"
+                  class="text-xs text-[var(--foreground)] truncate"
                   [class.line-through]="task.is_done"
                   [class.text-gray-400]="task.is_done"
                   >{{ task.title }}</span
@@ -123,14 +129,14 @@ type ZoomLevel = 'day' | 'week' | 'month';
             <div [style.width.px]="timelineWidth()" class="relative">
               <!-- Date headers -->
               <div
-                class="h-10 border-b border-gray-200 flex sticky top-0 bg-white z-10"
+                class="h-10 border-b border-[var(--border)] flex sticky top-0 bg-[var(--card)] z-10"
               >
                 @for (header of dateHeaders(); track header.label) {
                   <div
-                    class="flex-shrink-0 border-r border-gray-100 flex items-center justify-center"
+                    class="flex-shrink-0 border-r border-[var(--border)] flex items-center justify-center"
                     [style.width.px]="header.width"
                   >
-                    <span class="text-[10px] text-gray-500">{{
+                    <span class="text-[10px] text-[var(--muted-foreground)]">{{
                       header.label
                     }}</span>
                   </div>

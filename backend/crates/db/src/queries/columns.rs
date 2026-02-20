@@ -186,10 +186,7 @@ pub enum DeleteColumnResult {
 }
 
 /// Get column by ID
-pub async fn get_column_by_id(
-    pool: &PgPool,
-    id: Uuid,
-) -> Result<Option<BoardColumn>, sqlx::Error> {
+pub async fn get_column_by_id(pool: &PgPool, id: Uuid) -> Result<Option<BoardColumn>, sqlx::Error> {
     sqlx::query_as!(
         BoardColumn,
         r#"
@@ -228,12 +225,16 @@ pub async fn get_adjacent_columns(
     let columns = list_columns_by_board(pool, board_id).await?;
 
     let prev_pos = if target_index > 0 {
-        columns.get((target_index - 1) as usize).map(|c| c.position.clone())
+        columns
+            .get((target_index - 1) as usize)
+            .map(|c| c.position.clone())
     } else {
         None
     };
 
-    let next_pos = columns.get(target_index as usize).map(|c| c.position.clone());
+    let next_pos = columns
+        .get(target_index as usize)
+        .map(|c| c.position.clone());
 
     Ok((prev_pos, next_pos))
 }

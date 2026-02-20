@@ -62,7 +62,27 @@ pub struct UserResponse {
     pub role: UserRole,
     pub tenant_id: Uuid,
     pub avatar_url: Option<String>,
+    pub phone_number: Option<String>,
     pub onboarding_completed: bool,
+    pub last_login_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateProfileRequest {
+    pub name: Option<String>,
+    pub phone_number: Option<String>,
+    pub avatar_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ChangePasswordRequest {
+    pub current_password: String,
+    pub new_password: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DeleteAccountRequest {
+    pub password: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -95,7 +115,9 @@ pub async fn sign_in_handler(
 ) -> Result<Response> {
     // Validate input
     if payload.email.is_empty() || payload.password.is_empty() {
-        return Err(AppError::BadRequest("Email and password are required".into()));
+        return Err(AppError::BadRequest(
+            "Email and password are required".into(),
+        ));
     }
 
     // Fetch user by email
@@ -112,8 +134,7 @@ pub async fn sign_in_handler(
     }
 
     // Calculate refresh token expiry
-    let refresh_expiry = Utc::now()
-        + Duration::seconds(state.config.jwt_refresh_expiry_secs);
+    let refresh_expiry = Utc::now() + Duration::seconds(state.config.jwt_refresh_expiry_secs);
 
     // Create refresh token record in DB first (to get the token_id)
     // We use a placeholder hash initially, then update after generating the JWT
@@ -163,7 +184,9 @@ pub async fn sign_in_handler(
             role: user.role,
             tenant_id: user.tenant_id,
             avatar_url: user.avatar_url,
+            phone_number: user.phone_number,
             onboarding_completed: user.onboarding_completed,
+            last_login_at: user.last_login_at,
         },
     };
 
@@ -253,7 +276,9 @@ pub async fn sign_up_handler(
             role: user.role,
             tenant_id: user.tenant_id,
             avatar_url: user.avatar_url,
+            phone_number: user.phone_number,
             onboarding_completed: user.onboarding_completed,
+            last_login_at: user.last_login_at,
         },
     };
 
@@ -293,7 +318,9 @@ pub async fn refresh_handler(
 
     // Check if token has been revoked
     if stored_token.revoked_at.is_some() {
-        return Err(AppError::Unauthorized("Refresh token has been revoked".into()));
+        return Err(AppError::Unauthorized(
+            "Refresh token has been revoked".into(),
+        ));
     }
 
     // Verify token hash matches
@@ -311,15 +338,9 @@ pub async fn refresh_handler(
     auth::revoke_refresh_token(&state.db, claims.token_id).await?;
 
     // Create new refresh token record
-    let refresh_expiry = Utc::now()
-        + Duration::seconds(state.config.jwt_refresh_expiry_secs);
-    let new_token_id = auth::create_refresh_token(
-        &state.db,
-        user.id,
-        "pending",
-        refresh_expiry,
-    )
-    .await?;
+    let refresh_expiry = Utc::now() + Duration::seconds(state.config.jwt_refresh_expiry_secs);
+    let new_token_id =
+        auth::create_refresh_token(&state.db, user.id, "pending", refresh_expiry).await?;
 
     // Issue new token pair
     let tokens = issue_tokens(
@@ -359,7 +380,9 @@ pub async fn refresh_handler(
             role: user.role,
             tenant_id: user.tenant_id,
             avatar_url: user.avatar_url,
+            phone_number: user.phone_number,
             onboarding_completed: user.onboarding_completed,
+            last_login_at: user.last_login_at,
         },
     };
 
@@ -394,9 +417,12 @@ pub async fn sign_out_handler(
     // Clear cookies regardless
     let clear_headers = build_clear_cookie_headers(&state.config.app_url);
 
-    Ok((clear_headers, Json(MessageResponse {
-        message: "Successfully signed out".into(),
-    })))
+    Ok((
+        clear_headers,
+        Json(MessageResponse {
+            message: "Successfully signed out".into(),
+        }),
+    ))
 }
 
 /// POST /api/auth/logout
@@ -417,9 +443,12 @@ pub async fn logout_handler(
     // Clear cookies
     let clear_headers = build_clear_cookie_headers(&state.config.app_url);
 
-    Ok((clear_headers, Json(MessageResponse {
-        message: "Successfully logged out".into(),
-    })))
+    Ok((
+        clear_headers,
+        Json(MessageResponse {
+            message: "Successfully logged out".into(),
+        }),
+    ))
 }
 
 /// GET /api/auth/me
@@ -440,7 +469,224 @@ pub async fn me_handler(
         role: user.role,
         tenant_id: user.tenant_id,
         avatar_url: user.avatar_url,
+        phone_number: user.phone_number,
         onboarding_completed: user.onboarding_completed,
+        last_login_at: user.last_login_at,
+    }))
+}
+
+/// PATCH /api/auth/me
+///
+/// Update the current user's profile (name, phone_number, avatar_url).
+pub async fn update_profile_handler(
+    State(state): State<AppState>,
+    auth_ext: AuthUserExtractor,
+    Json(payload): Json<UpdateProfileRequest>,
+) -> Result<Json<UserResponse>> {
+    let user_id = auth_ext.0.user_id;
+
+    // Validate name if provided
+    if let Some(ref name) = payload.name {
+        let name = name.trim();
+        if name.is_empty() || name.len() > 100 {
+            return Err(AppError::BadRequest("Name must be 1-100 characters".into()));
+        }
+    }
+
+    // Validate phone if provided (E.164 format)
+    if let Some(ref phone) = payload.phone_number {
+        if !phone.is_empty() {
+            let phone_re = regex::Regex::new(r"^\+[1-9]\d{1,14}$")
+                .map_err(|_| AppError::InternalError("Regex error".into()))?;
+            if !phone_re.is_match(phone) {
+                return Err(AppError::BadRequest(
+                    "Phone must be in E.164 format (e.g. +1234567890)".into(),
+                ));
+            }
+        }
+    }
+
+    // Validate avatar_url if provided (must be from MinIO or null)
+    if let Some(ref url) = payload.avatar_url {
+        if !url.is_empty() && !url.starts_with(&state.config.minio_public_url) {
+            return Err(AppError::BadRequest(
+                "Avatar URL must be from the configured storage service".into(),
+            ));
+        }
+    }
+
+    // Build dynamic UPDATE
+    sqlx::query(
+        r#"
+        UPDATE users SET
+            name = COALESCE($1, name),
+            phone_number = COALESCE($2, phone_number),
+            avatar_url = COALESCE($3, avatar_url),
+            updated_at = NOW()
+        WHERE id = $4
+        "#,
+    )
+    .bind(payload.name.as_deref().map(|s| s.trim()))
+    .bind(&payload.phone_number)
+    .bind(&payload.avatar_url)
+    .bind(user_id)
+    .execute(&state.db)
+    .await?;
+
+    // Return updated user
+    let user = auth::get_user_by_id(&state.db, user_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("User not found".into()))?;
+
+    Ok(Json(UserResponse {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        tenant_id: user.tenant_id,
+        avatar_url: user.avatar_url,
+        phone_number: user.phone_number,
+        onboarding_completed: user.onboarding_completed,
+        last_login_at: user.last_login_at,
+    }))
+}
+
+/// POST /api/auth/change-password
+///
+/// Change password. Requires current password. Revokes all other sessions.
+pub async fn change_password_handler(
+    State(state): State<AppState>,
+    auth_ext: AuthUserExtractor,
+    Json(payload): Json<ChangePasswordRequest>,
+) -> Result<Json<MessageResponse>> {
+    if payload.new_password.len() < 8 {
+        return Err(AppError::BadRequest(
+            "New password must be at least 8 characters".into(),
+        ));
+    }
+
+    let user = auth::get_user_by_id(&state.db, auth_ext.0.user_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("User not found".into()))?;
+
+    // Verify current password (timing-safe via Argon2)
+    let valid = verify_password(&payload.current_password, &user.password_hash)
+        .map_err(|_| AppError::InternalError("Password verification failed".into()))?;
+
+    if !valid {
+        return Err(AppError::Unauthorized(
+            "Current password is incorrect".into(),
+        ));
+    }
+
+    // Hash new password
+    let new_hash = taskflow_auth::password::hash_password(&payload.new_password)
+        .map_err(|_| AppError::InternalError("Failed to hash password".into()))?;
+
+    // Update password
+    auth::update_user_password(&state.db, user.id, &new_hash).await?;
+
+    // Revoke all refresh tokens EXCEPT current session
+    sqlx::query(
+        r#"
+        UPDATE refresh_tokens SET revoked_at = NOW()
+        WHERE user_id = $1 AND id != $2 AND revoked_at IS NULL
+        "#,
+    )
+    .bind(user.id)
+    .bind(auth_ext.0.token_id)
+    .execute(&state.db)
+    .await?;
+
+    // Audit log
+    let metadata = serde_json::json!({ "action": "password_changed" });
+    let _ = sqlx::query(
+        r#"
+        INSERT INTO activity_log (id, action, entity_type, entity_id, user_id, metadata, tenant_id)
+        VALUES ($1, 'updated', 'user', $2, $2, $3, $4)
+        "#,
+    )
+    .bind(Uuid::new_v4())
+    .bind(user.id)
+    .bind(metadata)
+    .bind(auth_ext.0.tenant_id)
+    .execute(&state.db)
+    .await;
+
+    Ok(Json(MessageResponse {
+        message: "Password changed successfully. All other sessions have been revoked.".into(),
+    }))
+}
+
+/// DELETE /api/auth/me
+///
+/// Delete the current user's account. Requires password confirmation.
+pub async fn delete_account_handler(
+    State(state): State<AppState>,
+    auth_ext: AuthUserExtractor,
+    Json(payload): Json<DeleteAccountRequest>,
+) -> Result<Json<MessageResponse>> {
+    let user = auth::get_user_by_id(&state.db, auth_ext.0.user_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("User not found".into()))?;
+
+    // Verify password
+    let valid = verify_password(&payload.password, &user.password_hash)
+        .map_err(|_| AppError::InternalError("Password verification failed".into()))?;
+
+    if !valid {
+        return Err(AppError::Unauthorized("Password is incorrect".into()));
+    }
+
+    // Check if user is the last admin of their tenant
+    let admin_count: i64 = sqlx::query_scalar(
+        r#"
+        SELECT COUNT(*) FROM users
+        WHERE tenant_id = $1 AND role = 'admin' AND deleted_at IS NULL
+        "#,
+    )
+    .bind(user.tenant_id)
+    .fetch_one(&state.db)
+    .await?;
+
+    if admin_count <= 1 && user.role == UserRole::Admin {
+        return Err(AppError::BadRequest(
+            "Cannot delete account: you are the last admin of this organization".into(),
+        ));
+    }
+
+    // Revoke all tokens
+    auth::revoke_all_user_tokens(&state.db, user.id).await?;
+
+    // Remove workspace memberships
+    sqlx::query("DELETE FROM workspace_members WHERE user_id = $1")
+        .bind(user.id)
+        .execute(&state.db)
+        .await?;
+
+    // Soft-delete the user
+    sqlx::query("UPDATE users SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1")
+        .bind(user.id)
+        .execute(&state.db)
+        .await?;
+
+    // Audit log
+    let metadata = serde_json::json!({ "action": "account_deleted" });
+    let _ = sqlx::query(
+        r#"
+        INSERT INTO activity_log (id, action, entity_type, entity_id, user_id, metadata, tenant_id)
+        VALUES ($1, 'deleted', 'user', $2, $2, $3, $4)
+        "#,
+    )
+    .bind(Uuid::new_v4())
+    .bind(user.id)
+    .bind(metadata)
+    .bind(user.tenant_id)
+    .execute(&state.db)
+    .await;
+
+    Ok(Json(MessageResponse {
+        message: "Account has been deleted".into(),
     }))
 }
 
@@ -659,7 +905,13 @@ pub fn auth_router() -> Router<AppState> {
         .route("/refresh", post(refresh_handler))
         .route("/sign-out", post(sign_out_handler))
         .route("/logout", post(logout_handler))
-        .route("/me", get(me_handler))
+        .route(
+            "/me",
+            get(me_handler)
+                .patch(update_profile_handler)
+                .delete(delete_account_handler),
+        )
+        .route("/change-password", post(change_password_handler))
 }
 
 #[cfg(test)]
@@ -745,13 +997,18 @@ mod tests {
             .collect();
         // Neither cookie should contain "Secure"
         for cookie in &cookies {
-            assert!(!cookie.contains("Secure"), "HTTP cookie should not have Secure flag: {}", cookie);
+            assert!(
+                !cookie.contains("Secure"),
+                "HTTP cookie should not have Secure flag: {}",
+                cookie
+            );
         }
     }
 
     #[test]
     fn test_build_auth_cookie_headers_https() {
-        let headers = build_auth_cookie_headers("tok", "ref", 3600, 86400, "https://taskflow.example.com");
+        let headers =
+            build_auth_cookie_headers("tok", "ref", 3600, 86400, "https://taskflow.example.com");
         let cookies: Vec<String> = headers
             .get_all(SET_COOKIE)
             .iter()
@@ -759,7 +1016,11 @@ mod tests {
             .collect();
         // Both cookies should contain "Secure"
         for cookie in &cookies {
-            assert!(cookie.contains("Secure"), "HTTPS cookie should have Secure flag: {}", cookie);
+            assert!(
+                cookie.contains("Secure"),
+                "HTTPS cookie should have Secure flag: {}",
+                cookie
+            );
         }
     }
 
@@ -773,7 +1034,11 @@ mod tests {
             .collect();
         assert_eq!(cookies.len(), 2);
         for cookie in &cookies {
-            assert!(cookie.contains("Max-Age=0"), "Clear cookie should have Max-Age=0: {}", cookie);
+            assert!(
+                cookie.contains("Max-Age=0"),
+                "Clear cookie should have Max-Age=0: {}",
+                cookie
+            );
         }
         // One should be access_token, one should be refresh_token
         assert!(cookies.iter().any(|c| c.starts_with("access_token=")));

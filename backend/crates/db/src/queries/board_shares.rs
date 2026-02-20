@@ -110,16 +110,16 @@ pub async fn create_board_share(
 
     // Salted SHA-256 hash for share link password
     let password_hash = input.password.as_ref().map(|p| {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
         let salt = Uuid::new_v4().to_string();
         let mut hasher = Sha256::new();
         hasher.update(format!("{}:{}", salt, p));
         format!("{}:{:x}", salt, hasher.finalize())
     });
 
-    let permissions = input.permissions.unwrap_or_else(|| {
-        serde_json::json!({"view_tasks": true, "view_comments": false})
-    });
+    let permissions = input
+        .permissions
+        .unwrap_or_else(|| serde_json::json!({"view_tasks": true, "view_comments": false}));
 
     let share = sqlx::query_as::<_, BoardShare>(
         r#"
@@ -158,13 +158,12 @@ pub async fn delete_board_share(
     user_id: Uuid,
 ) -> Result<(), BoardShareQueryError> {
     // Get share to find board_id
-    let board_id = sqlx::query_scalar::<_, Uuid>(
-        r#"SELECT board_id FROM board_shares WHERE id = $1"#,
-    )
-    .bind(share_id)
-    .fetch_optional(pool)
-    .await?
-    .ok_or(BoardShareQueryError::NotFound)?;
+    let board_id =
+        sqlx::query_scalar::<_, Uuid>(r#"SELECT board_id FROM board_shares WHERE id = $1"#)
+            .bind(share_id)
+            .fetch_optional(pool)
+            .await?
+            .ok_or(BoardShareQueryError::NotFound)?;
 
     if !verify_board_membership_internal(pool, board_id, user_id).await? {
         return Err(BoardShareQueryError::NotBoardMember);
@@ -185,13 +184,12 @@ pub async fn toggle_board_share(
     is_active: bool,
     user_id: Uuid,
 ) -> Result<BoardShare, BoardShareQueryError> {
-    let board_id = sqlx::query_scalar::<_, Uuid>(
-        r#"SELECT board_id FROM board_shares WHERE id = $1"#,
-    )
-    .bind(share_id)
-    .fetch_optional(pool)
-    .await?
-    .ok_or(BoardShareQueryError::NotFound)?;
+    let board_id =
+        sqlx::query_scalar::<_, Uuid>(r#"SELECT board_id FROM board_shares WHERE id = $1"#)
+            .bind(share_id)
+            .fetch_optional(pool)
+            .await?
+            .ok_or(BoardShareQueryError::NotFound)?;
 
     if !verify_board_membership_internal(pool, board_id, user_id).await? {
         return Err(BoardShareQueryError::NotBoardMember);
@@ -250,7 +248,7 @@ pub async fn access_shared_board(
     // Check password
     if let Some(ref hash) = share.password_hash {
         let provided = password.ok_or(BoardShareQueryError::InvalidPassword)?;
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
         let parts: Vec<&str> = hash.splitn(2, ':').collect();
         if parts.len() != 2 {
             return Err(BoardShareQueryError::InvalidPassword);
@@ -288,7 +286,8 @@ pub async fn access_shared_board(
     .await?;
 
     // Fetch tasks (only if view_tasks is allowed)
-    let view_tasks = share.permissions
+    let view_tasks = share
+        .permissions
         .get("view_tasks")
         .and_then(|v| v.as_bool())
         .unwrap_or(true);

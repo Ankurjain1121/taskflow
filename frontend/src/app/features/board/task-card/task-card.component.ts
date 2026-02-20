@@ -30,20 +30,20 @@ import {
       cdkDrag
       [cdkDragData]="task()"
       (click)="onCardClick($event)"
-      class="task-card rounded-lg border border-gray-200/80 cursor-grab group relative overflow-hidden"
-      [style.border-left]="'4px solid ' + getBorderColor()"
+      class="task-card rounded-lg border border-[var(--border)] cursor-grab group relative overflow-hidden"
+      [style.border-top]="'3px solid ' + getBorderColor()"
       [class.task-card--urgent]="task().priority === 'urgent'"
       [class.task-card--high]="task().priority === 'high'"
       [class.task-card--medium]="task().priority === 'medium'"
       [class.task-card--low]="task().priority === 'low'"
       [class.ring-2]="isFocused()"
-      [class.ring-indigo-500]="isFocused()"
+      [class.ring-ring]="isFocused()"
       [class.shadow-lg]="isFocused()"
     >
       <!-- Celebration Overlay -->
       @if (isCelebrating()) {
         <div
-          class="absolute inset-0 bg-emerald-50/80 dark:bg-emerald-900/30 flex items-center justify-center z-10 rounded-lg"
+          class="absolute inset-0 bg-[var(--status-green-bg)] flex items-center justify-center z-10 rounded-lg"
         >
           <div class="animate-celebrate-check">
             <svg
@@ -63,76 +63,33 @@ import {
         </div>
       }
 
-      <!-- Hover Quick-Actions -->
+      <!-- Hover Quick-Action -->
       <div
-        class="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-20"
+        class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-20"
       >
         <button
-          class="w-6 h-6 rounded bg-white/90 dark:bg-gray-700/90 shadow-sm flex items-center justify-center hover:bg-white dark:hover:bg-gray-600 text-gray-500"
+          class="w-6 h-6 rounded bg-[var(--card)]/90 shadow-sm flex items-center justify-center hover:bg-[var(--muted)] text-[var(--muted-foreground)] btn-snappy"
           (click)="$event.stopPropagation()"
         >
-          <svg
-            class="w-3.5 h-3.5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
             <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
-        </button>
-        <button
-          class="w-6 h-6 rounded bg-white/90 dark:bg-gray-700/90 shadow-sm flex items-center justify-center hover:bg-white dark:hover:bg-gray-600 text-gray-500"
-          (click)="$event.stopPropagation()"
-        >
-          <svg
-            class="w-3.5 h-3.5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-            />
-          </svg>
-        </button>
-        <button
-          class="w-6 h-6 rounded bg-white/90 dark:bg-gray-700/90 shadow-sm flex items-center justify-center hover:bg-white dark:hover:bg-gray-600 text-gray-500"
-          (click)="$event.stopPropagation()"
-        >
-          <svg
-            class="w-3.5 h-3.5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
+              d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"
             />
           </svg>
         </button>
       </div>
 
-      <!-- Label Bars -->
+      <!-- Labels -->
       @if (task().labels && task().labels!.length > 0) {
-        <div class="flex gap-1 mb-0 px-3 pt-3">
+        <div class="flex flex-wrap gap-1 px-3 pt-3">
           @for (label of task().labels!; track label.id) {
-            <div
-              class="h-1.5 rounded-full"
-              [style.width.px]="40"
+            <span
+              class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
               [style.background-color]="label.color"
-              [title]="label.name"
-            ></div>
+              [style.text-shadow]="'1px 1px 0 rgba(0,0,0,0.2)'"
+            >
+              {{ label.name }}
+            </span>
           }
         </div>
       }
@@ -144,7 +101,7 @@ import {
         <!-- Blocked Indicator -->
         @if (isBlocked()) {
           <div
-            class="flex items-center gap-1.5 mb-2.5 px-2 py-1 bg-red-50 rounded-lg text-xs font-semibold text-red-600 border border-red-100"
+            class="flex items-center gap-1.5 mb-2.5 px-2 py-1 bg-[var(--status-red-bg)] rounded-lg text-xs font-semibold text-[var(--status-red-text)] border border-[var(--status-red-border)]"
           >
             <svg
               class="w-3.5 h-3.5"
@@ -165,7 +122,7 @@ import {
 
         <!-- Title -->
         <h4
-          class="text-sm font-semibold text-black dark:text-gray-100 line-clamp-2 mb-2.5 leading-snug tracking-tight"
+          class="text-sm font-semibold text-[var(--card-foreground)] line-clamp-2 mb-2.5 leading-snug tracking-tight"
         >
           {{ task().title }}
         </h4>
@@ -173,7 +130,7 @@ import {
         <!-- Running Timer Indicator -->
         @if (hasRunningTimer()) {
           <div
-            class="flex items-center gap-1.5 mb-2.5 px-2 py-1 bg-emerald-50 rounded-lg text-xs font-semibold text-emerald-700 border border-emerald-100"
+            class="flex items-center gap-1.5 mb-2.5 px-2 py-1 bg-[var(--status-green-bg)] rounded-lg text-xs font-semibold text-[var(--status-green-text)] border border-[var(--status-green-border)]"
           >
             <span
               class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"
@@ -197,7 +154,7 @@ import {
 
         <!-- Bottom Row -->
         <div
-          class="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-100 dark:border-gray-700"
+          class="flex items-center justify-between mt-3 pt-2.5 border-t border-[var(--border)]"
         >
           <div class="flex items-center gap-2">
             <!-- Priority Flag Icon -->
@@ -225,8 +182,10 @@ import {
             @if (task().due_date) {
               <span
                 [class]="
-                  'flex items-center gap-1 text-[11px] font-medium ' +
-                  dueDateColorClass
+                  'flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded ' +
+                  dueDateColors.class +
+                  ' ' +
+                  dueDateColors.chipClass
                 "
               >
                 <svg
@@ -287,7 +246,7 @@ import {
                   let i = $index
                 ) {
                   <div
-                    class="assignee-avatar w-7 h-7 rounded-full ring-2 ring-white dark:ring-gray-800 flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
+                    class="assignee-avatar w-7 h-7 rounded-full ring-2 ring-[var(--card)] flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
                     [title]="assignee.display_name"
                     [style.z-index]="3 - i"
                     [style.background]="
@@ -307,7 +266,7 @@ import {
                 }
                 @if (task().assignees!.length > 3) {
                   <div
-                    class="w-7 h-7 rounded-full ring-2 ring-white dark:ring-gray-800 bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500 shadow-sm"
+                    class="w-7 h-7 rounded-full ring-2 ring-[var(--card)] bg-[var(--secondary)] flex items-center justify-center text-[10px] font-bold text-[var(--muted-foreground)] shadow-sm"
                     [style.z-index]="0"
                   >
                     +{{ task().assignees!.length - 3 }}
@@ -322,7 +281,7 @@ import {
       <!-- Drag Preview -->
       <div
         *cdkDragPreview
-        class="drag-preview rounded-xl shadow-2xl p-4 w-64 border border-gray-200/50"
+        class="drag-preview rounded-xl shadow-2xl p-4 w-64 border border-[var(--border)]"
       >
         <div class="flex items-center gap-2 mb-1">
           <span
@@ -330,13 +289,13 @@ import {
             [style.background-color]="getBorderColor()"
           ></span>
           <span
-            class="text-[10px] font-bold uppercase tracking-wider text-gray-400"
+            class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]"
           >
             {{ priorityLabel }}
           </span>
         </div>
         <h4
-          class="text-sm font-semibold text-black dark:text-gray-100 line-clamp-2 leading-snug"
+          class="text-sm font-semibold text-[var(--card-foreground)] line-clamp-2 leading-snug"
         >
           {{ task().title }}
         </h4>
@@ -345,7 +304,7 @@ import {
       <!-- Drag Placeholder -->
       <div
         *cdkDragPlaceholder
-        class="bg-indigo-50/30 dark:bg-indigo-900/20 rounded-lg border-2 border-dashed border-indigo-200/60"
+        class="bg-[color-mix(in_srgb,var(--primary)_8%,transparent)] rounded-lg border-2 border-dashed border-[color-mix(in_srgb,var(--primary)_30%,transparent)]"
         style="height: 80px"
       ></div>
     </div>
@@ -361,16 +320,13 @@ import {
 
       .task-card {
         background: var(--card, #ffffff);
-        box-shadow:
-          0 1px 3px rgba(0, 0, 0, 0.04),
-          0 1px 2px rgba(0, 0, 0, 0.03);
-        transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 1px 0
+          color-mix(in srgb, var(--foreground) 12%, transparent);
+        transition: background 0.15s ease;
       }
 
       .task-card:hover {
-        box-shadow:
-          0 4px 12px rgba(0, 0, 0, 0.08),
-          0 2px 4px rgba(0, 0, 0, 0.04);
+        background: var(--muted);
       }
 
       /* CDK drag-drop transitions */
@@ -427,7 +383,7 @@ import {
       }
 
       .drag-preview {
-        background: rgba(255, 255, 255, 0.92);
+        background: color-mix(in srgb, var(--card) 92%, transparent);
         backdrop-filter: blur(12px) saturate(180%);
         -webkit-backdrop-filter: blur(12px) saturate(180%);
       }
@@ -452,7 +408,7 @@ export class TaskCardComponent {
     return getPriorityLabel(this.task().priority);
   }
 
-  get dueDateColorClass(): string {
+  get dueDateColors(): { class: string; chipClass: string } {
     return getDueDateColor(this.task().due_date);
   }
 
