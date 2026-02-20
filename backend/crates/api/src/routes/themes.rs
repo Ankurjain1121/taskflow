@@ -65,9 +65,8 @@ async fn get_theme_handler(
 }
 
 /// Build the themes router (public, no auth required)
-pub fn themes_router(state: AppState) -> Router<AppState> {
+pub fn themes_router(_state: AppState) -> Router<AppState> {
     Router::new()
         .route("/themes", get(list_themes_handler))
         .route("/themes/{slug}", get(get_theme_handler))
-        .with_state(state)
 }
