@@ -1,0 +1,34 @@
+---
+id: backend-rust-analyze
+trigger: "analyze backend rust code"
+confidence: 0.9
+domain: code_analysis
+source: project_skill
+---
+## Context
+You are working on a Rust backend project using sqlx for PostgreSQL database operations. The project uses async/await with tokio runtime.
+
+## Available Files
+- Models in: backend/crates/db/src/models/
+- Queries in: backend/crates/db/src/queries/
+- API routes in: backend/crates/api/src/routes/
+- Error handling in: backend/crates/api/src/errors.rs
+
+## Code Patterns
+- Database queries use sqlx with raw SQL
+- Models derive sqlx::Type, Serialize, Deserialize
+- Queries are async functions taking PgPool
+- Error types use thiserror::Error
+
+## Guidelines
+- When analyzing backend code, explain the database schema implications
+- Show how models map to database tables
+- Explain SQL query logic
+- Consider authorization/permission checks in routes
+
+## Action
+Analyze the provided Rust code and explain:
+1. What database operations it performs
+2. How data flows from request to database
+3. Any error handling patterns
+4. Authorization checks

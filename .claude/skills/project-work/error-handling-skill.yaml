@@ -1,0 +1,32 @@
+---
+id: error-handling
+trigger: "analyze error handling"
+confidence: 0.8
+domain: code_analysis
+source: project_skill
+---
+## Context
+You are analyzing error handling in the Rust backend.
+
+## Error Pattern (from errors.rs)
+- Uses thiserror::Error derive
+- AppError enum with variants: NotFound, BadRequest, Unauthorized, Forbidden, Conflict, PreconditionFailed, ValidationError, InternalError, SqlxError, JwtError
+- Implements IntoResponse for Axum
+- Error responses follow: { "error": { "code": "...", "message": "..." } }
+
+## Query Error Pattern
+- Each query module has its own Error enum
+- Maps to AppError in routes
+- Examples: AutomationQueryError, RecurringQueryError, MilestoneQueryError, NotificationQueryError
+
+## Guidelines
+- Internal errors hide details from users
+- Database errors are logged but return generic message
+- All errors have consistent JSON structure
+
+## Action
+Analyze error handling and explain:
+1. Error type hierarchy
+2. How errors map to HTTP status codes
+3. What information is exposed to users
+4. Logging considerations

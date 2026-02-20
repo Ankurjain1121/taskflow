@@ -1,0 +1,37 @@
+---
+id: frontend-angular-analyze
+trigger: "analyze frontend angular code"
+confidence: 0.9
+domain: code_analysis
+source: project_skill
+---
+## Context
+You are working on an Angular frontend project with TypeScript. The project uses:
+- Services with dependency injection
+- RxJS Observables for async operations
+- HttpClient for API calls
+- Signal-based state management (in some services)
+
+## Available Files
+- Services in: frontend/src/app/core/services/
+- Shared types in: frontend/src/app/shared/types/
+- Components in: frontend/src/app/features/
+
+## Code Patterns
+- Services use @Injectable({ providedIn: 'root' })
+- HTTP calls return Observable<T>
+- Components use signals, input/output decorators
+- TypeScript interfaces match backend DTOs
+
+## Guidelines
+- When analyzing frontend code, explain API call patterns
+- Show how types match backend models
+- Explain RxJS observable usage
+- Consider state management approaches
+
+## Action
+Analyze the provided Angular/TypeScript code and explain:
+1. What API endpoints it calls
+2. How data types map to backend models
+3. Observable/signal usage patterns
+4. Component communication patterns

@@ -1,0 +1,33 @@
+---
+id: api-route-analyze
+trigger: "analyze api routes"
+confidence: 0.85
+domain: code_analysis
+source: project_skill
+---
+## Context
+You are analyzing REST API routes in a Rust Axum backend.
+
+## Available Route Files
+- backend/crates/api/src/routes/workspace.rs
+- backend/crates/api/src/routes/milestone.rs
+
+## Route Patterns
+- Uses axum routing with get, post, put, delete
+- Extractors: Path, Query, Json, State
+- Middleware for auth via from_fn_with_state
+- Error mapping to AppError types
+
+## Guidelines
+- Show the HTTP method, path, and request/response types
+- Explain authorization checks
+- Show how errors are handled
+- Map to frontend API calls
+
+## Action
+Analyze the provided API route code and explain:
+1. HTTP method and endpoint path
+2. Request and response DTOs
+3. Authorization/permission checks
+4. How it integrates with database queries
+5. Corresponding frontend service calls

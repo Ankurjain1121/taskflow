@@ -1,0 +1,46 @@
+---
+id: common-enums
+trigger: "show common enums"
+confidence: 0.8
+domain: reference
+source: project_skill
+---
+## Context
+This project uses several common enums across backend and frontend.
+
+## Available Enums (from backend/crates/db/src/models/common.rs)
+
+### UserRole
+- Admin, Manager, Member
+
+### BoardMemberRole
+- Viewer, Editor
+
+### TaskPriority
+- urgent, high, medium, low (stored as lowercase)
+
+### ActivityAction
+- Created, Updated, Moved, Assigned, Unassigned, Commented, Attached, StatusChanged, PriorityChanged, Deleted
+
+### SubscriptionStatus
+- Active, Trialing, PastDue, Cancelled, Expired
+
+### DependencyType
+- Blocks, BlockedBy, Related
+
+### CustomFieldType
+- Text, Number, Date, Dropdown, Checkbox
+
+### RecurrencePattern
+- Daily, Weekly, Biweekly, Monthly, Custom
+
+## Automation Enums (from automation.rs)
+
+### AutomationTrigger
+- TaskMoved, TaskCreated, TaskAssigned, TaskPriorityChanged, TaskDueDatePassed, TaskCompleted
+
+### AutomationActionType
+- MoveTask, AssignTask, SetPriority, SendNotification, AddLabel, SetMilestone
+
+## Action
+When asked about enums, explain the enum values and how they're used in both backend and frontend.

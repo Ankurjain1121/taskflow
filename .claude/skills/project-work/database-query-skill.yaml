@@ -1,0 +1,35 @@
+---
+id: database-query-analyze
+trigger: "analyze database queries"
+confidence: 0.85
+domain: code_analysis
+source: project_skill
+---
+## Context
+You are analyzing database queries in a Rust project using sqlx with raw SQL.
+
+## Available Query Files
+- backend/crates/db/src/queries/automations.rs
+- backend/crates/db/src/queries/recurring.rs
+- backend/crates/db/src/queries/notifications.rs
+- backend/crates/db/src/queries/milestones.rs
+- backend/crates/db/src/queries/workspaces.rs
+
+## Query Patterns
+- Uses raw SQL with sqlx::query_as, sqlx::query_scalar, sqlx::query
+- Pagination with cursor-based approach
+- Authorization via board_membership checks
+- Transactions with pool.begin().await?
+
+## Guidelines
+- Explain SQL query logic in plain English
+- Show how joins work between tables
+- Identify performance considerations
+- Note authorization/permission patterns
+
+## Action
+Analyze the provided SQL/query code and explain:
+1. What tables are involved and how they join
+2. What data the query returns
+3. Any authorization or filtering logic
+4. Potential performance considerations
