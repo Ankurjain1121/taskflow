@@ -1,0 +1,43 @@
+---
+id: project-overview
+trigger: "give project overview"
+confidence: 0.95
+domain: documentation
+source: project_skill
+---
+## Context
+You are working on a full-stack project management application.
+
+## Project Structure
+- Backend: Rust with PostgreSQL
+- Frontend: Angular with TypeScript
+- Real-time: WebSocket via Redis pub/sub
+- Auth: JWT-based authentication
+
+## Key Components
+### Backend (Rust)
+- automation.rs, project.rs - Data models
+- automations.rs, recurring.rs, notifications.rs - Database queries
+- workspace.rs, milestone.rs - API routes
+- errors.rs - Error handling
+- broadcast.rs - Real-time updates via Redis
+
+### Frontend (Angular)
+- api.service.ts - Base HTTP client
+- automation.service.ts, workspace.service.ts - Domain services
+- websocket.service.ts - Real-time updates
+- keyboard-shortcuts.service.ts - UX features
+
+## Data Flow
+1. Frontend calls API service
+2. API routes validate & authorize
+3. Database queries execute
+4. Broadcast service publishes updates
+5. WebSocket pushes to clients
+
+## Action
+Provide a high-level overview of:
+1. Architecture and tech stack
+2. How data flows through the system
+3. Key components and their responsibilities
+4. How real-time updates work

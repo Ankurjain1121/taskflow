@@ -1,0 +1,33 @@
+---
+id: websocket-analyze
+trigger: "analyze websocket realtime"
+confidence: 0.75
+domain: code_analysis
+source: project_skill
+---
+## Context
+You are analyzing real-time functionality using WebSockets and Redis pub/sub.
+
+## Components
+### Backend (broadcast.rs)
+- BroadcastService uses Redis pub/sub
+- Channels: board:{board_id}, user:{user_id}, workspace:{workspace_id}
+- Events: task:created, task:updated, task:moved, task:deleted, etc.
+
+### Frontend (websocket.service.ts)
+- Uses rxjs/webSocket
+- Auto-reconnect with retry
+- Sends messages via send<T>(type, payload)
+- Subscribes via messages$ observable
+
+## Guidelines
+- Backend broadcasts to Redis channels
+- Frontend subscribes to WebSocket
+- Protocol uses { "type": "...", "payload": {...} }
+
+## Action
+Analyze websocket/broadcast code and explain:
+1. How real-time updates are published
+2. How clients subscribe to updates
+3. Reconnection handling
+4. Message format and types
