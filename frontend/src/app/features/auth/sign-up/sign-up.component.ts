@@ -310,12 +310,7 @@ import { AuthService } from '../../../core/services/auth.service';
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(
-          135deg,
-          #f8fafc 0%,
-          #eef2ff 50%,
-          #f5f3ff 100%
-        );
+        background: var(--background);
         padding: 1rem;
         position: relative;
         overflow: hidden;
@@ -390,9 +385,9 @@ import { AuthService } from '../../../core/services/auth.service';
         flex: 0 0 400px;
         background: linear-gradient(
           145deg,
-          #4f46e5 0%,
-          #7c3aed 50%,
-          #6d28d9 100%
+          var(--primary) 0%,
+          color-mix(in srgb, var(--primary) 80%, black) 50%,
+          color-mix(in srgb, var(--primary) 65%, black) 100%
         );
         padding: 3rem 2.5rem;
         display: flex;
@@ -551,16 +546,6 @@ import { AuthService } from '../../../core/services/auth.service';
         border-top: 1px solid var(--border);
       }
 
-      /* ===== Dark mode auth wrapper ===== */
-      :host-context(html.dark) .auth-wrapper {
-        background: linear-gradient(
-          135deg,
-          var(--background) 0%,
-          #1e1b4b 50%,
-          #1e1b4b 100%
-        );
-      }
-
       /* ===== Submit button ===== */
       .submit-btn {
         height: 48px !important;
@@ -568,12 +553,8 @@ import { AuthService } from '../../../core/services/auth.service';
         font-weight: 600 !important;
         border-radius: 12px !important;
         letter-spacing: 0.01em;
-        background: linear-gradient(
-          135deg,
-          #4f46e5 0%,
-          #7c3aed 100%
-        ) !important;
-        color: white !important;
+        background: var(--primary) !important;
+        color: var(--primary-foreground) !important;
         transition: all 0.2s ease !important;
         box-shadow:
           0 1px 3px rgba(79, 70, 229, 0.3),
@@ -593,12 +574,9 @@ import { AuthService } from '../../../core/services/auth.service';
       }
 
       .submit-btn[disabled] {
-        background: linear-gradient(
-          135deg,
-          #a5b4fc 0%,
-          #c4b5fd 100%
-        ) !important;
-        color: rgba(255, 255, 255, 0.7) !important;
+        background: var(--primary) !important;
+        opacity: 0.5;
+        color: var(--primary-foreground) !important;
         box-shadow: none !important;
       }
 

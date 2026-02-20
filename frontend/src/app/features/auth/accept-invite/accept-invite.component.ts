@@ -18,7 +18,13 @@ import {
   InvitationValidateResponse,
 } from '../../../core/services/invitation.service';
 
-type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid' | 'success';
+type PageState =
+  | 'loading'
+  | 'valid'
+  | 'expired'
+  | 'already_accepted'
+  | 'invalid'
+  | 'success';
 
 @Component({
   selector: 'app-accept-invite',
@@ -42,13 +48,34 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
         <div class="brand-panel">
           <div class="brand-content">
             <div class="logo-mark">
-              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="48" height="48" rx="12" fill="white" fill-opacity="0.15"/>
-                <path d="M14 24.5L21 31.5L34 17.5" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 48 48"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  width="48"
+                  height="48"
+                  rx="12"
+                  fill="white"
+                  fill-opacity="0.15"
+                />
+                <path
+                  d="M14 24.5L21 31.5L34 17.5"
+                  stroke="white"
+                  stroke-width="3.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </div>
             <h1 class="brand-title">TaskFlow</h1>
-            <p class="brand-tagline">You've been invited to collaborate.<br/>Set up your account to get started.</p>
+            <p class="brand-tagline">
+              You've been invited to collaborate.<br />Set up your account to
+              get started.
+            </p>
           </div>
         </div>
 
@@ -69,48 +96,92 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
             <!-- Expired -->
             @if (pageState() === 'expired') {
               <div class="text-center py-12">
-                <div class="mx-auto w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center mb-4">
+                <div
+                  class="mx-auto w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center mb-4"
+                >
                   <i class="pi pi-clock text-2xl text-yellow-600"></i>
                 </div>
-                <h2 class="text-xl font-bold text-gray-900 mb-2">Invitation Expired</h2>
-                <p class="text-gray-500 mb-6">This invitation link has expired. Please ask the workspace admin to send a new invitation.</p>
-                <a routerLink="/auth/sign-in" class="text-primary hover:text-primary font-semibold">Go to Sign In</a>
+                <h2 class="text-xl font-bold text-gray-900 mb-2">
+                  Invitation Expired
+                </h2>
+                <p class="text-gray-500 mb-6">
+                  This invitation link has expired. Please ask the workspace
+                  admin to send a new invitation.
+                </p>
+                <a
+                  routerLink="/auth/sign-in"
+                  class="text-primary hover:text-primary font-semibold"
+                  >Go to Sign In</a
+                >
               </div>
             }
 
             <!-- Already Accepted -->
             @if (pageState() === 'already_accepted') {
               <div class="text-center py-12">
-                <div class="mx-auto w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                <div
+                  class="mx-auto w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4"
+                >
                   <i class="pi pi-check text-2xl text-blue-600"></i>
                 </div>
-                <h2 class="text-xl font-bold text-gray-900 mb-2">Already Accepted</h2>
-                <p class="text-gray-500 mb-6">This invitation has already been accepted. You can sign in with your existing account.</p>
-                <a routerLink="/auth/sign-in" class="text-primary hover:text-primary font-semibold">Go to Sign In</a>
+                <h2 class="text-xl font-bold text-gray-900 mb-2">
+                  Already Accepted
+                </h2>
+                <p class="text-gray-500 mb-6">
+                  This invitation has already been accepted. You can sign in
+                  with your existing account.
+                </p>
+                <a
+                  routerLink="/auth/sign-in"
+                  class="text-primary hover:text-primary font-semibold"
+                  >Go to Sign In</a
+                >
               </div>
             }
 
             <!-- Invalid -->
             @if (pageState() === 'invalid') {
               <div class="text-center py-12">
-                <div class="mx-auto w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                <div
+                  class="mx-auto w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4"
+                >
                   <i class="pi pi-times text-2xl text-red-600"></i>
                 </div>
-                <h2 class="text-xl font-bold text-gray-900 mb-2">Invalid Invitation</h2>
-                <p class="text-gray-500 mb-6">This invitation link is not valid. Please check your email for the correct link or contact the workspace admin.</p>
-                <a routerLink="/auth/sign-in" class="text-primary hover:text-primary font-semibold">Go to Sign In</a>
+                <h2 class="text-xl font-bold text-gray-900 mb-2">
+                  Invalid Invitation
+                </h2>
+                <p class="text-gray-500 mb-6">
+                  This invitation link is not valid. Please check your email for
+                  the correct link or contact the workspace admin.
+                </p>
+                <a
+                  routerLink="/auth/sign-in"
+                  class="text-primary hover:text-primary font-semibold"
+                  >Go to Sign In</a
+                >
               </div>
             }
 
             <!-- Success -->
             @if (pageState() === 'success') {
               <div class="text-center py-12">
-                <div class="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                <div
+                  class="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4"
+                >
                   <i class="pi pi-check text-2xl text-green-600"></i>
                 </div>
-                <h2 class="text-xl font-bold text-gray-900 mb-2">Account Created!</h2>
-                <p class="text-gray-500 mb-6">Your account has been set up successfully. You can now sign in to access your workspace.</p>
-                <a routerLink="/auth/sign-in" class="submit-btn inline-block px-6 py-3 text-white font-semibold rounded-xl no-underline">Sign In</a>
+                <h2 class="text-xl font-bold text-gray-900 mb-2">
+                  Account Created!
+                </h2>
+                <p class="text-gray-500 mb-6">
+                  Your account has been set up successfully. You can now sign in
+                  to access your workspace.
+                </p>
+                <a
+                  routerLink="/auth/sign-in"
+                  class="submit-btn inline-block px-6 py-3 text-white font-semibold rounded-xl no-underline"
+                  >Sign In</a
+                >
               </div>
             }
 
@@ -137,7 +208,9 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
                     [disabled]="true"
                     class="w-full"
                   />
-                  <small class="text-gray-400">Email is set by the invitation</small>
+                  <small class="text-gray-400"
+                    >Email is set by the invitation</small
+                  >
                 </div>
 
                 <div class="field-spacing">
@@ -150,7 +223,10 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
                     placeholder="John Doe"
                     class="w-full"
                   />
-                  @if (acceptForm.get('name')?.hasError('required') && acceptForm.get('name')?.touched) {
+                  @if (
+                    acceptForm.get('name')?.hasError('required') &&
+                    acceptForm.get('name')?.touched
+                  ) {
                     <small class="p-error">Name is required</small>
                   }
                 </div>
@@ -166,16 +242,26 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
                     styleClass="w-full"
                     inputStyleClass="w-full"
                   />
-                  @if (acceptForm.get('password')?.hasError('required') && acceptForm.get('password')?.touched) {
+                  @if (
+                    acceptForm.get('password')?.hasError('required') &&
+                    acceptForm.get('password')?.touched
+                  ) {
                     <small class="p-error">Password is required</small>
                   }
-                  @if (acceptForm.get('password')?.hasError('minlength') && acceptForm.get('password')?.touched) {
-                    <small class="p-error">Password must be at least 8 characters</small>
+                  @if (
+                    acceptForm.get('password')?.hasError('minlength') &&
+                    acceptForm.get('password')?.touched
+                  ) {
+                    <small class="p-error"
+                      >Password must be at least 8 characters</small
+                    >
                   }
                 </div>
 
                 <div class="field-spacing">
-                  <label for="confirmPassword" class="field-label">Confirm Password</label>
+                  <label for="confirmPassword" class="field-label"
+                    >Confirm Password</label
+                  >
                   <p-password
                     id="confirmPassword"
                     formControlName="confirmPassword"
@@ -185,17 +271,30 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
                     styleClass="w-full"
                     inputStyleClass="w-full"
                   />
-                  @if (acceptForm.get('confirmPassword')?.hasError('required') && acceptForm.get('confirmPassword')?.touched) {
+                  @if (
+                    acceptForm.get('confirmPassword')?.hasError('required') &&
+                    acceptForm.get('confirmPassword')?.touched
+                  ) {
                     <small class="p-error">Please confirm your password</small>
                   }
-                  @if (acceptForm.get('confirmPassword')?.hasError('passwordMismatch') && acceptForm.get('confirmPassword')?.touched) {
+                  @if (
+                    acceptForm
+                      .get('confirmPassword')
+                      ?.hasError('passwordMismatch') &&
+                    acceptForm.get('confirmPassword')?.touched
+                  ) {
                     <small class="p-error">Passwords do not match</small>
                   }
                 </div>
 
                 @if (errorMessage()) {
-                  <div class="mb-5 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-start gap-2">
-                    <i class="pi pi-exclamation-circle text-red-500 shrink-0" style="font-size: 20px; margin-top: 1px;"></i>
+                  <div
+                    class="mb-5 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-start gap-2"
+                  >
+                    <i
+                      class="pi pi-exclamation-circle text-red-500 shrink-0"
+                      style="font-size: 20px; margin-top: 1px;"
+                    ></i>
                     <span>{{ errorMessage() }}</span>
                   </div>
                 }
@@ -222,7 +321,10 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
               <div class="form-footer">
                 <p class="text-sm text-gray-500">
                   Already have an account?
-                  <a routerLink="/auth/sign-in" class="text-primary hover:text-primary font-semibold transition-colors">
+                  <a
+                    routerLink="/auth/sign-in"
+                    class="text-primary hover:text-primary font-semibold transition-colors"
+                  >
                     Sign in
                   </a>
                 </p>
@@ -240,8 +342,14 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
       }
 
       @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(16px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+          opacity: 0;
+          transform: translateY(16px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .fade-in {
@@ -249,9 +357,16 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
       }
 
       @keyframes blobFloat {
-        0%, 100% { transform: translate(0, 0) scale(1); }
-        33% { transform: translate(30px, -20px) scale(1.05); }
-        66% { transform: translate(-15px, 15px) scale(0.97); }
+        0%,
+        100% {
+          transform: translate(0, 0) scale(1);
+        }
+        33% {
+          transform: translate(30px, -20px) scale(1.05);
+        }
+        66% {
+          transform: translate(-15px, 15px) scale(0.97);
+        }
       }
 
       .auth-wrapper {
@@ -259,7 +374,7 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #f5f3ff 100%);
+        background: var(--background);
         padding: 1rem;
         position: relative;
         overflow: hidden;
@@ -277,7 +392,11 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
       .blob-1 {
         width: 500px;
         height: 500px;
-        background: radial-gradient(circle, rgba(129, 140, 248, 0.3) 0%, transparent 70%);
+        background: radial-gradient(
+          circle,
+          rgba(129, 140, 248, 0.3) 0%,
+          transparent 70%
+        );
         top: -10%;
         right: -5%;
       }
@@ -285,7 +404,11 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
       .blob-2 {
         width: 400px;
         height: 400px;
-        background: radial-gradient(circle, rgba(167, 139, 250, 0.25) 0%, transparent 70%);
+        background: radial-gradient(
+          circle,
+          rgba(167, 139, 250, 0.25) 0%,
+          transparent 70%
+        );
         bottom: -10%;
         left: -5%;
         animation-delay: -7s;
@@ -298,14 +421,21 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
         min-height: 680px;
         border-radius: 1.5rem;
         overflow: hidden;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.03);
+        box-shadow:
+          0 25px 50px -12px rgba(0, 0, 0, 0.08),
+          0 0 0 1px rgba(0, 0, 0, 0.03);
         position: relative;
         z-index: 1;
       }
 
       .brand-panel {
         flex: 0 0 400px;
-        background: linear-gradient(145deg, #4f46e5 0%, #7c3aed 50%, #6d28d9 100%);
+        background: linear-gradient(
+          145deg,
+          var(--primary) 0%,
+          color-mix(in srgb, var(--primary) 80%, black) 50%,
+          color-mix(in srgb, var(--primary) 65%, black) 100%
+        );
         padding: 3rem 2.5rem;
         display: flex;
         flex-direction: column;
@@ -319,7 +449,9 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
         z-index: 1;
       }
 
-      .logo-mark { margin-bottom: 1.5rem; }
+      .logo-mark {
+        margin-bottom: 1.5rem;
+      }
 
       .brand-title {
         font-size: 2rem;
@@ -338,7 +470,7 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
 
       .form-panel {
         flex: 1;
-        background: white;
+        background: var(--card);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -350,19 +482,21 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
         max-width: 400px;
       }
 
-      .form-header { margin-bottom: 1.75rem; }
+      .form-header {
+        margin-bottom: 1.75rem;
+      }
 
       .form-title {
         font-size: 1.625rem;
         font-weight: 700;
-        color: #111827;
+        color: var(--foreground);
         margin: 0 0 0.5rem 0;
         letter-spacing: -0.025em;
       }
 
       .form-subtitle {
         font-size: 0.925rem;
-        color: #6b7280;
+        color: var(--muted-foreground);
         margin: 0;
       }
 
@@ -370,17 +504,19 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
         display: block;
         font-size: 0.875rem;
         font-weight: 500;
-        color: #374151;
+        color: var(--foreground);
         margin-bottom: 0.375rem;
       }
 
-      .field-spacing { margin-bottom: 0.75rem; }
+      .field-spacing {
+        margin-bottom: 0.75rem;
+      }
 
       .form-footer {
         text-align: center;
         margin-top: 1.5rem;
         padding-top: 1.25rem;
-        border-top: 1px solid #f3f4f6;
+        border-top: 1px solid var(--border);
       }
 
       .submit-btn {
@@ -388,21 +524,26 @@ type PageState = 'loading' | 'valid' | 'expired' | 'already_accepted' | 'invalid
         font-size: 15px !important;
         font-weight: 600 !important;
         border-radius: 12px !important;
-        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
-        color: white !important;
+        background: var(--primary) !important;
+        color: var(--primary-foreground) !important;
         transition: all 0.2s ease !important;
-        box-shadow: 0 1px 3px rgba(79, 70, 229, 0.3), 0 4px 12px rgba(79, 70, 229, 0.15) !important;
+        box-shadow:
+          0 1px 3px rgba(79, 70, 229, 0.3),
+          0 4px 12px rgba(79, 70, 229, 0.15) !important;
         border: none !important;
       }
 
       .submit-btn:hover:not([disabled]) {
-        box-shadow: 0 1px 3px rgba(79, 70, 229, 0.4), 0 8px 24px rgba(79, 70, 229, 0.25) !important;
+        box-shadow:
+          0 1px 3px rgba(79, 70, 229, 0.4),
+          0 8px 24px rgba(79, 70, 229, 0.25) !important;
         transform: translateY(-1px);
       }
 
       .submit-btn[disabled] {
-        background: linear-gradient(135deg, #a5b4fc 0%, #c4b5fd 100%) !important;
-        color: rgba(255, 255, 255, 0.7) !important;
+        background: var(--primary) !important;
+        opacity: 0.5;
+        color: var(--primary-foreground) !important;
         box-shadow: none !important;
       }
 
