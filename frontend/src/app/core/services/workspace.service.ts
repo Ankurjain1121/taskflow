@@ -7,19 +7,22 @@ export interface Workspace {
   id: string;
   name: string;
   slug: string;
-  owner_id: string;
+  description: string | null;
+  logo_url: string | null;
+  created_by_id: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface CreateWorkspaceRequest {
   name: string;
-  slug?: string;
+  description?: string;
 }
 
 export interface UpdateWorkspaceRequest {
   name?: string;
   slug?: string;
+  description?: string;
 }
 
 export interface WorkspaceMember {

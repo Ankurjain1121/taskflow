@@ -3,6 +3,7 @@ import {
   input,
   output,
   signal,
+  computed,
   inject,
   OnInit,
   ChangeDetectionStrategy,
@@ -59,6 +60,16 @@ export interface MemberWithDetails extends WorkspaceMember {
             </button>
           }
         </div>
+
+        <!-- Search Input -->
+        <div class="mt-3">
+          <input
+            type="text"
+            [(ngModel)]="searchQuery"
+            placeholder="Search members by name or email..."
+            class="w-full px-3 py-2 text-sm rounded-md border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+          />
+        </div>
       </div>
 
       <!-- Members Table -->
@@ -89,7 +100,7 @@ export interface MemberWithDetails extends WorkspaceMember {
             </tr>
           </thead>
           <tbody class="bg-[var(--card)] divide-y divide-[var(--border)]">
-            @for (member of members(); track member.user_id) {
+            @for (member of filteredMembers(); track member.user_id) {
               <tr class="hover:bg-[var(--muted)]">
                 <!-- Member Info -->
                 <td class="px-6 py-4 whitespace-nowrap">
@@ -116,29 +127,17 @@ export interface MemberWithDetails extends WorkspaceMember {
                   </div>
                 </td>
 
-                <!-- Role -->
+                <!-- Role (read-only badge) -->
                 <td class="px-6 py-4 whitespace-nowrap">
-                  @if (isAdmin() && !isOwner(member)) {
-                    <select
-                      [ngModel]="member.role"
-                      (ngModelChange)="onRoleChange(member, $event)"
-                      [disabled]="updatingMember() === member.user_id"
-                      class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-primary focus:ring-ring"
-                    >
-                      <option value="admin">Admin</option>
-                      <option value="manager">Manager</option>
-                      <option value="member">Member</option>
-                    </select>
-                  } @else {
-                    <span
-                      [class]="
-                        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' +
-                        getRoleBadgeClass(member.role)
-                      "
-                    >
-                      {{ getRoleLabel(member.role) }}
-                    </span>
-                  }
+                  <span
+                    [class]="
+                      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' +
+                      getRoleBadgeClass(member.role)
+                    "
+                    [title]="'Roles are managed in the Admin panel'"
+                  >
+                    {{ getRoleLabel(member.role) }}
+                  </span>
                 </td>
 
                 <!-- Joined Date -->
@@ -166,9 +165,13 @@ export interface MemberWithDetails extends WorkspaceMember {
         </table>
       </div>
 
-      @if (members().length === 0) {
+      @if (filteredMembers().length === 0) {
         <div class="px-6 py-8 text-center text-[var(--muted-foreground)]">
-          No members found
+          @if (searchQuery()) {
+            No members matching "{{ searchQuery() }}"
+          } @else {
+            No members found
+          }
         </div>
       }
     </div>
@@ -310,7 +313,6 @@ export class MembersListComponent implements OnInit {
   boards = input<{ id: string; name: string }[]>([]);
 
   memberRemoved = output<string>();
-  memberRoleChanged = output<{ userId: string; role: string }>();
   memberInvited = output<{ emails: string[]; role: 'admin' | 'manager' | 'member' }>();
 
   updatingMember = signal<string | null>(null);
@@ -318,6 +320,17 @@ export class MembersListComponent implements OnInit {
   loadingInvitations = signal(false);
   actionInProgress = signal<string | null>(null);
   showInviteDialog = signal(false);
+  searchQuery = signal('');
+
+  filteredMembers = computed(() => {
+    const query = this.searchQuery().toLowerCase().trim();
+    if (!query) return this.members();
+    return this.members().filter(
+      (m) =>
+        (m.display_name?.toLowerCase().includes(query)) ||
+        (m.email?.toLowerCase().includes(query))
+    );
+  });
 
   ngOnInit(): void {
     this.loadInvitations();
@@ -428,17 +441,9 @@ export class MembersListComponent implements OnInit {
         result.boardIds
       )
       .subscribe({
-        next: (response) => {
+        next: () => {
           this.memberInvited.emit({ emails: result.emails, role: result.role });
-          // Reload invitations to show the newly created ones
           this.loadInvitations();
-
-          if (response.errors && response.errors.length > 0) {
-            const errorMessages = response.errors
-              .map((e) => `${e.email}: ${e.reason}`)
-              .join('\n');
-            // Log warning for partial failures
-          }
         },
         error: () => {
           // Error handling - invite failed
@@ -478,27 +483,6 @@ export class MembersListComponent implements OnInit {
         this.actionInProgress.set(null);
       },
     });
-  }
-
-  onRoleChange(
-    member: MemberWithDetails,
-    newRole: 'admin' | 'manager' | 'member'
-  ): void {
-    if (member.role === newRole) return;
-
-    this.updatingMember.set(member.user_id);
-
-    this.workspaceService
-      .updateMemberRole(this.workspaceId(), member.user_id, newRole)
-      .subscribe({
-        next: () => {
-          this.memberRoleChanged.emit({ userId: member.user_id, role: newRole });
-          this.updatingMember.set(null);
-        },
-        error: () => {
-          this.updatingMember.set(null);
-        },
-      });
   }
 
   onRemoveMember(member: MemberWithDetails): void {

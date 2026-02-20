@@ -145,24 +145,50 @@ export const routes: Routes = [
             (m) => m.WorkspaceSettingsComponent,
           ),
       },
+      {
+        path: 'team/member/:userId',
+        loadComponent: () =>
+          import('./features/team/member-detail/member-detail.component').then(
+            (m) => m.MemberDetailComponent,
+          ),
+      },
     ],
   },
   {
     path: 'settings',
     canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/settings/settings-layout/settings-layout.component').then(
+        (m) => m.SettingsLayoutComponent,
+      ),
     children: [
+      { path: '', redirectTo: 'profile', pathMatch: 'full' as const },
       {
         path: 'profile',
         loadComponent: () =>
-          import('./features/settings/profile/profile.component').then(
-            (m) => m.ProfileComponent,
+          import('./features/settings/profile-section/profile-section.component').then(
+            (m) => m.ProfileSectionComponent,
+          ),
+      },
+      {
+        path: 'security',
+        loadComponent: () =>
+          import('./features/settings/security-section/security-section.component').then(
+            (m) => m.SecuritySectionComponent,
+          ),
+      },
+      {
+        path: 'appearance',
+        loadComponent: () =>
+          import('./features/settings/appearance-section/appearance-section.component').then(
+            (m) => m.AppearanceSectionComponent,
           ),
       },
       {
         path: 'notifications',
         loadComponent: () =>
-          import('./features/settings/notifications/notifications.component').then(
-            (m) => m.NotificationsComponent,
+          import('./features/settings/notifications-section/notifications-section.component').then(
+            (m) => m.NotificationsSectionComponent,
           ),
       },
     ],

@@ -8,6 +8,7 @@ Multi-tenant project management SaaS with kanban boards, task tracking, team col
 - **KISS + YAGNI:** Simple > Complex
 - **No Silent Workarounds:** Report failures, ask user
 - **Visual Over Verbal:** Tables > paragraphs
+- **Full-Stack Features:** Every feature MUST be implemented end-to-end (backend API + frontend UI). Never build frontend calling endpoints that don't exist, or backend endpoints with no frontend consumer. Optimize the implementation before moving on.
 
 ## Tech Stack
 

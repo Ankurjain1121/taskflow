@@ -17,7 +17,6 @@ import {
   EisenhowerQuadrant,
 } from '../../../core/services/eisenhower.service';
 import { TaskService } from '../../../core/services/task.service';
-import { TaskListItemComponent } from '../task-list-item/task-list-item.component';
 
 interface QuadrantConfig {
   key: EisenhowerQuadrant;
@@ -32,7 +31,7 @@ interface QuadrantConfig {
 @Component({
   selector: 'app-eisenhower-matrix',
   standalone: true,
-  imports: [CommonModule, RouterModule, TaskListItemComponent, ConfirmDialog],
+  imports: [CommonModule, RouterModule, ConfirmDialog],
   providers: [ConfirmationService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -41,7 +40,9 @@ interface QuadrantConfig {
         <!-- Header -->
         <div class="mb-6 flex items-center justify-between">
           <div>
-            <h1 class="text-2xl font-bold text-[var(--card-foreground)]">Eisenhower Matrix</h1>
+            <h1 class="text-2xl font-bold text-[var(--card-foreground)]">
+              Eisenhower Matrix
+            </h1>
             <p class="text-sm text-[var(--muted-foreground)] mt-1">
               Prioritize your tasks by urgency and importance
             </p>
@@ -72,7 +73,9 @@ interface QuadrantConfig {
         @if (loading()) {
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             @for (i of [1, 2, 3, 4]; track i) {
-              <div class="bg-[var(--card)] rounded-lg border-2 border-[var(--border)] p-6">
+              <div
+                class="bg-[var(--card)] rounded-lg border-2 border-[var(--border)] p-6"
+              >
                 <div class="skeleton skeleton-text w-32 mb-2"></div>
                 <div class="skeleton skeleton-text w-48 mb-4"></div>
                 <div class="space-y-2">
@@ -94,7 +97,9 @@ interface QuadrantConfig {
               >
                 <!-- Quadrant Header -->
                 <div class="mb-4 pb-4 border-b border-[var(--border)]">
-                  <h2 class="text-lg font-semibold text-[var(--card-foreground)]">
+                  <h2
+                    class="text-lg font-semibold text-[var(--card-foreground)]"
+                  >
                     {{ quadrant.title }}
                   </h2>
                   <p class="text-sm text-[var(--muted-foreground)] mt-1">
@@ -104,7 +109,9 @@ interface QuadrantConfig {
                     {{ quadrant.coaching }}
                   </p>
                   <div class="mt-2 flex items-center justify-between">
-                    <span class="text-xs font-medium text-[var(--muted-foreground)]">
+                    <span
+                      class="text-xs font-medium text-[var(--muted-foreground)]"
+                    >
                       {{ getTasksByQuadrant(quadrant.key).length }} tasks
                     </span>
                     @if (quadrant.actionLabel) {
@@ -136,11 +143,16 @@ interface QuadrantConfig {
                             {{ task.title }}
                           </h3>
                           <div class="flex items-center gap-2 mt-1">
-                            <span class="text-xs text-[var(--muted-foreground)]">
+                            <span
+                              class="text-xs text-[var(--muted-foreground)]"
+                            >
                               {{ task.board_name }}
                             </span>
                             @if (task.due_date) {
-                              <span class="text-xs text-[var(--muted-foreground)]">&bull;</span>
+                              <span
+                                class="text-xs text-[var(--muted-foreground)]"
+                                >&bull;</span
+                              >
                               <span
                                 class="text-xs"
                                 [class]="
@@ -163,7 +175,9 @@ interface QuadrantConfig {
                       </div>
                     </div>
                   } @empty {
-                    <div class="text-center py-8 text-[var(--muted-foreground)]">
+                    <div
+                      class="text-center py-8 text-[var(--muted-foreground)]"
+                    >
                       <p class="text-sm">No tasks in this quadrant</p>
                     </div>
                   }

@@ -12,7 +12,7 @@ import { InputTextModule } from 'primeng/inputtext';
 
 export interface CreateWorkspaceDialogResult {
   name: string;
-  slug?: string;
+  description?: string;
 }
 
 @Component({
@@ -68,31 +68,20 @@ export interface CreateWorkspaceDialogResult {
           }
         </div>
 
-        <!-- URL Slug -->
+        <!-- Description -->
         <div class="flex flex-col gap-1">
           <label
-            for="wsSlug"
+            for="wsDescription"
             class="text-sm font-medium text-gray-700 dark:text-gray-300"
-            >URL Slug (optional)</label
+            >Description (optional)</label
           >
-          <input
-            pInputText
-            id="wsSlug"
-            formControlName="slug"
-            placeholder="e.g., marketing-team"
-            maxlength="50"
-            class="w-full"
-          />
-          <small class="text-gray-500 dark:text-gray-400"
-            >Letters, numbers, and hyphens only</small
-          >
-          @if (
-            form.get('slug')?.hasError('pattern') && form.get('slug')?.touched
-          ) {
-            <small class="text-red-500"
-              >Slug can only contain letters, numbers, and hyphens</small
-            >
-          }
+          <textarea
+            id="wsDescription"
+            formControlName="description"
+            placeholder="Describe what this workspace is for..."
+            rows="3"
+            class="w-full rounded-md border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] px-3 py-2 text-sm placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-primary/50"
+          ></textarea>
         </div>
       </form>
 
@@ -130,13 +119,13 @@ export class CreateWorkspaceDialogComponent {
       '',
       [Validators.required, Validators.minLength(2), Validators.maxLength(100)],
     ],
-    slug: ['', [Validators.maxLength(50), Validators.pattern(/^[a-z0-9-]*$/)]],
+    description: [''],
   });
 
   isSubmitting = false;
 
   onDialogShow(): void {
-    this.form.reset({ name: '', slug: '' });
+    this.form.reset({ name: '', description: '' });
   }
 
   onCancel(): void {
@@ -153,8 +142,8 @@ export class CreateWorkspaceDialogComponent {
       name: this.form.value.name.trim(),
     };
 
-    if (this.form.value.slug?.trim()) {
-      result.slug = this.form.value.slug.trim().toLowerCase();
+    if (this.form.value.description?.trim()) {
+      result.description = this.form.value.description.trim();
     }
 
     this.visible.set(false);
