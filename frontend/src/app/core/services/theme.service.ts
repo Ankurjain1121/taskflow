@@ -11,12 +11,19 @@ import { PrimeNG } from 'primeng/config';
 import Aura from '@primeng/themes/aura';
 import { definePreset } from '@primeng/themes';
 import { Subject, of, EMPTY } from 'rxjs';
-import { debounceTime, switchMap, catchError, retry } from 'rxjs/operators';
+import {
+  debounceTime,
+  switchMap,
+  catchError,
+  retry,
+  filter,
+} from 'rxjs/operators';
 import { THEME_VAR_NAMES } from '../constants/theme-vars';
 import { ACCENT_OVERRIDES } from '../constants/accent-overrides';
 import { COLOR_PALETTES } from '../constants/color-palettes';
 import { ThemeApiService } from './theme-api.service';
 import { UserPreferencesService } from './user-preferences.service';
+import { AuthService } from './auth.service';
 import {
   Theme as DbTheme,
   AccentColor,
@@ -54,6 +61,7 @@ export class ThemeService implements OnDestroy {
   private readonly primeng = inject(PrimeNG);
   private readonly themeApi = inject(ThemeApiService);
   private readonly userPrefsService = inject(UserPreferencesService);
+  private readonly authService = inject(AuthService);
 
   // State signals
   readonly theme = signal<Theme>(
@@ -108,9 +116,10 @@ export class ThemeService implements OnDestroy {
       this.applyFullTheme();
     });
 
-    // 6. Debounced server save
+    // 6. Debounced server save (only when authenticated)
     this._saveSubject
       .pipe(
+        filter(() => this.authService.isAuthenticated()),
         debounceTime(500),
         switchMap((prefs) =>
           this.userPrefsService
@@ -120,8 +129,12 @@ export class ThemeService implements OnDestroy {
       )
       .subscribe();
 
-    // 7. Load user preferences for theme settings
-    this.loadUserPreferences();
+    // 7. Load user preferences when authenticated (not eagerly)
+    effect(() => {
+      if (this.authService.isAuthenticated()) {
+        this.loadUserPreferences();
+      }
+    });
   }
 
   // ========== Public Methods ==========
