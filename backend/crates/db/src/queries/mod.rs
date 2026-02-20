@@ -1,3 +1,5 @@
+#![allow(ambiguous_glob_reexports)]
+
 pub mod activity_log;
 pub mod archive;
 pub mod attachments;
@@ -60,6 +62,15 @@ pub use team_overview::*;
 pub use time_entries::*;
 pub use webhooks::*;
 pub use workspaces::*;
+
+pub use archive::*;
+pub use auth::*;
+pub use favorites::*;
+pub use invitations::*;
+pub use milestones::*;
+pub use reports::*;
+pub use search::*;
+pub use themes::*;
 
 // Re-export with module paths for clarity (avoid name collisions)
 pub use user_preferences as user_prefs;

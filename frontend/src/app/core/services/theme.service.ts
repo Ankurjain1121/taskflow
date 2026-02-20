@@ -176,7 +176,6 @@ export class ThemeService implements OnDestroy {
         this.applyFullTheme();
       }
     } catch (e) {
-      console.warn('Failed to apply cached theme:', e);
       localStorage.removeItem(LIGHT_CACHE_KEY);
       localStorage.removeItem(DARK_CACHE_KEY);
     }
@@ -204,9 +203,6 @@ export class ThemeService implements OnDestroy {
             this.applyFullTheme();
             this.cacheTheme(theme, isDark);
           }
-        },
-        error: (err) => {
-          console.warn('Failed to fetch themes:', err);
         },
       });
   }
