@@ -1,0 +1,1 @@
+cd backend && cargo build 2>&1
