@@ -1,239 +1,138 @@
 /* ============================================
-   Theme System: Palettes + Accent Colors
+   Theme System: Structural Styles Only
    ============================================
-
-   Specificity order (CRITICAL):
-   1. Palette overrides (Dracula, Dimmed) — higher specificity selectors
-      html.dark.dracula (0,2,1) beats html.dark (0,1,1)
-   2. Accent color overrides — [data-accent] attribute selectors
-      Accents override palette defaults for --primary/--ring.
-
-   NO @layer used — natural CSS specificity + source order handles cascade.
+   
+   This file contains ONLY structural styles for the theming system.
+   All color values are now applied via JavaScript from the database.
+   See ThemeService.applyFullTheme() for color application.
+   
    ============================================ */
 
 /* ============================================
-   Palette: Dracula
+   Card Style Variants
    ============================================ */
-html.dark.dracula {
-  --background: #282A36;
-  --foreground: #F8F8F2;
-  --card: #44475A;
-  --card-foreground: #F8F8F2;
-  --border: #6272A4;
-  --input: #6272A4;
-  --muted: #343746;
-  --muted-foreground: #6272A4;
-  --accent: #44475A;
-  --accent-foreground: #F8F8F2;
-  --secondary: #343746;
-  --secondary-foreground: #F8F8F2;
-  --success: #50FA7B;
-  --success-light: rgba(80, 250, 123, 0.12);
-  --destructive: #FF5555;
-  --destructive-foreground: #F8F8F2;
 
-  --sidebar-bg: #21222C;
+/* Flat card style */
+[data-card-style="flat"] .card,
+[data-card-style="flat"] .widget-card,
+[data-card-style="flat"] .p-card {
+  box-shadow: none !important;
+  border: 1px solid var(--border);
+}
+
+/* Raised card style (default) */
+[data-card-style="raised"] .card,
+[data-card-style="raised"] .widget-card,
+[data-card-style="raised"] .p-card {
+  box-shadow: var(--shadow-sm);
+}
+
+/* Bordered card style */
+[data-card-style="bordered"] .card,
+[data-card-style="bordered"] .widget-card,
+[data-card-style="bordered"] .p-card {
+  box-shadow: none !important;
+  border: 2px solid var(--border);
+}
+
+/* ============================================
+   Border Radius Variants
+   ============================================ */
+
+:root {
+  --radius: 0.75rem;
+}
+
+/* Small radius */
+[data-border-radius="small"] {
+  --radius: 0.375rem;
+}
+
+/* Medium radius (default) */
+[data-border-radius="medium"] {
+  --radius: 0.75rem;
+}
+
+/* Large radius */
+[data-border-radius="large"] {
+  --radius: 1rem;
+}
+
+[data-border-radius="small"] .p-button,
+[data-border-radius="small"] .p-inputtext,
+[data-border-radius="small"] .p-dropdown {
+  --radius: 0.375rem;
+}
+
+[data-border-radius="medium"] .p-button,
+[data-border-radius="medium"] .p-inputtext,
+[data-border-radius="medium"] .p-dropdown {
+  --radius: 0.75rem;
+}
+
+[data-border-radius="large"] .p-button,
+[data-border-radius="large"] .p-inputtext,
+[data-border-radius="large"] .p-dropdown {
+  --radius: 1rem;
+}
+
+/* ============================================
+   Sidebar Style Variants (for light mode with dark sidebar)
+   ============================================ */
+
+/* Light sidebar - default */
+html:not(.dark) [data-sidebar-style="dark"] .sidebar-root {
+  background: var(--sidebar-bg) !important;
+}
+
+/* When sidebar style is 'dark' in light mode, still use dark styling */
+html:not(.dark) [data-sidebar-style="dark"] .sidebar-root {
+  background: #1e1e2e !important;
+  --sidebar-text-primary: rgba(255, 255, 255, 0.95);
+  --sidebar-text-secondary: rgba(255, 255, 255, 0.7);
+  --sidebar-text-muted: rgba(255, 255, 255, 0.5);
+  --sidebar-border: rgba(255, 255, 255, 0.1);
   --sidebar-surface: rgba(255, 255, 255, 0.03);
-  --sidebar-surface-hover: rgba(255, 255, 255, 0.06);
-  --sidebar-surface-active: color-mix(in srgb, var(--primary) 14%, transparent);
-  --sidebar-border: rgba(255, 255, 255, 0.06);
-  --sidebar-text-primary: #F8F8F2;
-  --sidebar-text-secondary: rgba(248, 248, 242, 0.7);
-  --sidebar-text-muted: rgba(98, 114, 164, 0.7);
-
-  --surface-2: #4a4d6a;
-  --surface-3: #52557a;
-
-  /* Dracula default accent = purple */
-  --primary: #BD93F9;
-  --primary-foreground: #282A36;
-  --ring: #BD93F9;
-  --chart-1: #BD93F9;
-  --chart-5: #FF79C6;
-
-  --status-red-bg: rgba(255, 85, 85, 0.12);
-  --status-red-border: rgba(255, 85, 85, 0.3);
-  --status-red-text: #FF6E6E;
-  --status-green-bg: rgba(80, 250, 123, 0.12);
-  --status-green-border: rgba(80, 250, 123, 0.3);
-  --status-green-text: #50FA7B;
-  --status-blue-bg: rgba(139, 233, 253, 0.12);
-  --status-blue-border: rgba(139, 233, 253, 0.3);
-  --status-blue-text: #8BE9FD;
-  --status-amber-bg: rgba(241, 250, 140, 0.12);
-  --status-amber-border: rgba(241, 250, 140, 0.3);
-  --status-amber-text: #F1FA8C;
+  --sidebar-surface-hover: rgba(255, 255, 255, 0.08);
+  --sidebar-surface-active: rgba(99, 102, 241, 0.15);
 }
 
 /* ============================================
-   Palette: GitHub Dimmed
-   ============================================ */
-html.dark.dimmed {
-  --background: #22272E;
-  --foreground: #ADBAC7;
-  --card: #2D333B;
-  --card-foreground: #ADBAC7;
-  --border: #444C56;
-  --input: #444C56;
-  --muted: #2D333B;
-  --muted-foreground: #768390;
-  --accent: #2D333B;
-  --accent-foreground: #ADBAC7;
-  --secondary: #2D333B;
-  --secondary-foreground: #ADBAC7;
-  --success: #57AB5A;
-  --success-light: rgba(87, 171, 90, 0.12);
-  --destructive: #E5534B;
-  --destructive-foreground: #ADBAC7;
-
-  --sidebar-bg: #1C2128;
-  --sidebar-surface: rgba(255, 255, 255, 0.03);
-  --sidebar-surface-hover: rgba(255, 255, 255, 0.05);
-  --sidebar-surface-active: color-mix(in srgb, var(--primary) 14%, transparent);
-  --sidebar-border: rgba(255, 255, 255, 0.05);
-  --sidebar-text-primary: #ADBAC7;
-  --sidebar-text-secondary: rgba(173, 186, 199, 0.7);
-  --sidebar-text-muted: rgba(118, 131, 144, 0.7);
-
-  --surface-2: #373E47;
-  --surface-3: #434C56;
-
-  /* Dimmed default accent = blue */
-  --primary: #539BF5;
-  --primary-foreground: #22272E;
-  --ring: #539BF5;
-  --chart-1: #539BF5;
-  --chart-5: #6CB6FF;
-
-  --status-red-bg: rgba(229, 83, 75, 0.12);
-  --status-red-border: rgba(229, 83, 75, 0.3);
-  --status-red-text: #F47067;
-  --status-green-bg: rgba(87, 171, 90, 0.12);
-  --status-green-border: rgba(87, 171, 90, 0.3);
-  --status-green-text: #57AB5A;
-  --status-blue-bg: rgba(83, 155, 245, 0.12);
-  --status-blue-border: rgba(83, 155, 245, 0.3);
-  --status-blue-text: #6CB6FF;
-  --status-amber-bg: rgba(198, 144, 38, 0.12);
-  --status-amber-border: rgba(198, 144, 38, 0.3);
-  --status-amber-text: #DAAA3F;
-}
-
-/* ============================================
-   Accent Color Overrides
-   ============================================
-   indigo = base theme default, no override needed.
-   Each accent overrides: --primary, --primary-foreground, --ring, --chart-1, --chart-5
+   Background Pattern Styles (placeholder for future patterns)
    ============================================ */
 
-/* Blue */
-[data-accent="blue"] {
-  --primary: #2563eb;
-  --primary-foreground: #ffffff;
-  --ring: #2563eb;
-  --chart-1: #2563eb;
-  --chart-5: #3b82f6;
-}
-html.dark[data-accent="blue"] {
-  --primary: #60a5fa;
-  --primary-foreground: #1e3a5f;
-  --ring: #60a5fa;
-  --chart-1: #60a5fa;
-  --chart-5: #93c5fd;
+[data-bg-pattern="dots"] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+  opacity: 0.5;
+  z-index: -1;
 }
 
-/* Green */
-[data-accent="green"] {
-  --primary: #16a34a;
-  --primary-foreground: #ffffff;
-  --ring: #16a34a;
-  --chart-1: #16a34a;
-  --chart-5: #22c55e;
-}
-html.dark[data-accent="green"] {
-  --primary: #4ade80;
-  --primary-foreground: #14532d;
-  --ring: #4ade80;
-  --chart-1: #4ade80;
-  --chart-5: #86efac;
+[data-bg-pattern="grid"] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+  opacity: 0.3;
+  z-index: -1;
 }
 
-/* Orange */
-[data-accent="orange"] {
-  --primary: #ea580c;
-  --primary-foreground: #ffffff;
-  --ring: #ea580c;
-  --chart-1: #ea580c;
-  --chart-5: #f97316;
-}
-html.dark[data-accent="orange"] {
-  --primary: #fb923c;
-  --primary-foreground: #431407;
-  --ring: #fb923c;
-  --chart-1: #fb923c;
-  --chart-5: #fdba74;
-}
-
-/* Rose */
-[data-accent="rose"] {
-  --primary: #e11d48;
-  --primary-foreground: #ffffff;
-  --ring: #e11d48;
-  --chart-1: #e11d48;
-  --chart-5: #f43f5e;
-}
-html.dark[data-accent="rose"] {
-  --primary: #fb7185;
-  --primary-foreground: #4c0519;
-  --ring: #fb7185;
-  --chart-1: #fb7185;
-  --chart-5: #fda4af;
-}
-
-/* Violet */
-[data-accent="violet"] {
-  --primary: #7c3aed;
-  --primary-foreground: #ffffff;
-  --ring: #7c3aed;
-  --chart-1: #7c3aed;
-  --chart-5: #8b5cf6;
-}
-html.dark[data-accent="violet"] {
-  --primary: #a78bfa;
-  --primary-foreground: #2e1065;
-  --ring: #a78bfa;
-  --chart-1: #a78bfa;
-  --chart-5: #c4b5fd;
-}
-
-/* Amber */
-[data-accent="amber"] {
-  --primary: #d97706;
-  --primary-foreground: #ffffff;
-  --ring: #d97706;
-  --chart-1: #d97706;
-  --chart-5: #f59e0b;
-}
-html.dark[data-accent="amber"] {
-  --primary: #fbbf24;
-  --primary-foreground: #451a03;
-  --ring: #fbbf24;
-  --chart-1: #fbbf24;
-  --chart-5: #fcd34d;
-}
-
-/* Slate */
-[data-accent="slate"] {
-  --primary: #475569;
-  --primary-foreground: #ffffff;
-  --ring: #475569;
-  --chart-1: #475569;
-  --chart-5: #64748b;
-}
-html.dark[data-accent="slate"] {
-  --primary: #94a3b8;
-  --primary-foreground: #0f172a;
-  --ring: #94a3b8;
-  --chart-1: #94a3b8;
-  --chart-5: #cbd5e1;
+[data-bg-pattern="waves"] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse at 50% 0%, var(--accent) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, var(--accent) 0%, transparent 40%);
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: -1;
 }
