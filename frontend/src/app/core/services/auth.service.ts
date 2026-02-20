@@ -18,10 +18,12 @@ export interface User {
   id: string;
   email: string;
   name: string; // Backend sends 'name', not 'display_name'
+  phone_number: string | null;
   avatar_url: string | null;
   role: 'Admin' | 'Manager' | 'Member'; // Backend uses capitalized role names
   tenant_id: string;
   onboarding_completed: boolean;
+  last_login_at: string | null;
 }
 
 export interface TokenResponse {
@@ -219,6 +221,7 @@ export class AuthService {
 
   updateProfile(data: {
     name?: string;
+    phone_number?: string | null;
     avatar_url?: string;
   }): Observable<User> {
     return this.http.patch<User>(`${this.apiUrl}/me`, data).pipe(
@@ -227,6 +230,12 @@ export class AuthService {
         this._currentUser.set(user);
       }),
     );
+  }
+
+  deleteAccount(password: string): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(`${this.apiUrl}/me`, {
+      body: { password },
+    });
   }
 
   changePassword(data: {

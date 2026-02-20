@@ -138,10 +138,21 @@ import { OverloadBannerComponent } from '../overload-banner/overload-banner.comp
             style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))"
           >
             @for (member of members(); track member.user_id) {
-              <app-member-workload-card
-                [member]="member"
-                [workspaceId]="workspaceId"
-              ></app-member-workload-card>
+              <a
+                [routerLink]="[
+                  '/workspace',
+                  workspaceId,
+                  'team',
+                  'member',
+                  member.user_id,
+                ]"
+                class="block cursor-pointer transition-transform hover:scale-[1.02]"
+              >
+                <app-member-workload-card
+                  [member]="member"
+                  [workspaceId]="workspaceId"
+                ></app-member-workload-card>
+              </a>
             }
           </div>
         }

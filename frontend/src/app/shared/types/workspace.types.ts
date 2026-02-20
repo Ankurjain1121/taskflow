@@ -2,6 +2,7 @@ export interface Workspace {
   id: string;
   name: string;
   description: string | null;
+  logo_url: string | null;
   tenant_id: string;
   created_by_id: string;
   created_at: string;

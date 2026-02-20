@@ -17,8 +17,8 @@ export interface UserProfile {
 
 export interface UpdateProfileRequest {
   name?: string;
-  phoneNumber?: string | null;
-  avatarUrl?: string | null;
+  phone_number?: string | null;
+  avatar_url?: string | null;
 }
 
 export interface NotificationPreference {
@@ -42,13 +42,52 @@ export interface UpdatePreferenceRequest {
 }
 
 // Default preferences for all event types when no preference is set
-export const DEFAULT_PREFERENCES: Record<string, Omit<NotificationPreference, 'id' | 'user_id' | 'created_at' | 'updated_at'>> = {
-  task_assigned: { event_type: 'task_assigned', in_app: true, email: true, slack: false, whatsapp: false },
-  task_due_soon: { event_type: 'task_due_soon', in_app: true, email: true, slack: false, whatsapp: false },
-  task_overdue: { event_type: 'task_overdue', in_app: true, email: true, slack: false, whatsapp: false },
-  task_commented: { event_type: 'task_commented', in_app: true, email: false, slack: false, whatsapp: false },
-  task_completed: { event_type: 'task_completed', in_app: true, email: false, slack: false, whatsapp: false },
-  mention_in_comment: { event_type: 'mention_in_comment', in_app: true, email: true, slack: false, whatsapp: false },
+export const DEFAULT_PREFERENCES: Record<
+  string,
+  Omit<NotificationPreference, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+> = {
+  task_assigned: {
+    event_type: 'task_assigned',
+    in_app: true,
+    email: true,
+    slack: false,
+    whatsapp: false,
+  },
+  task_due_soon: {
+    event_type: 'task_due_soon',
+    in_app: true,
+    email: true,
+    slack: false,
+    whatsapp: false,
+  },
+  task_overdue: {
+    event_type: 'task_overdue',
+    in_app: true,
+    email: true,
+    slack: false,
+    whatsapp: false,
+  },
+  task_commented: {
+    event_type: 'task_commented',
+    in_app: true,
+    email: false,
+    slack: false,
+    whatsapp: false,
+  },
+  task_completed: {
+    event_type: 'task_completed',
+    in_app: true,
+    email: false,
+    slack: false,
+    whatsapp: false,
+  },
+  mention_in_comment: {
+    event_type: 'mention_in_comment',
+    in_app: true,
+    email: true,
+    slack: false,
+    whatsapp: false,
+  },
 };
 
 export const EVENT_TYPE_LABELS: Record<string, string> = {
@@ -64,7 +103,7 @@ export const EVENT_TYPE_LABELS: Record<string, string> = {
   providedIn: 'root',
 })
 export class ProfileService {
-  private readonly apiUrl = '/api/users/me';
+  private readonly apiUrl = '/api/auth';
   private readonly preferencesUrl = '/api/notification-preferences';
 
   private _profile = signal<UserProfile | null>(null);
@@ -82,25 +121,25 @@ export class ProfileService {
    */
   getProfile(): Observable<UserProfile> {
     this._isLoading.set(true);
-    return this.http.get<UserProfile>(`${this.apiUrl}/profile`).pipe(
+    return this.http.get<UserProfile>(`${this.apiUrl}/me`).pipe(
       tap((profile) => {
         this._profile.set(profile);
         this._isLoading.set(false);
-      })
+      }),
     );
   }
 
   /**
    * Update the current user's profile
-   * @param data Profile data to update (name, phoneNumber in E.164 format, avatarUrl)
+   * @param data Profile data to update (name, phone_number in E.164 format, avatar_url)
    */
   updateProfile(data: UpdateProfileRequest): Observable<UserProfile> {
     this._isLoading.set(true);
-    return this.http.put<UserProfile>(`${this.apiUrl}/profile`, data).pipe(
+    return this.http.patch<UserProfile>(`${this.apiUrl}/me`, data).pipe(
       tap((profile) => {
         this._profile.set(profile);
         this._isLoading.set(false);
-      })
+      }),
     );
   }
 
@@ -108,43 +147,54 @@ export class ProfileService {
    * Get notification preferences for the current user
    */
   getNotificationPreferences(): Observable<NotificationPreference[]> {
-    return this.http.get<NotificationPreference[]>(this.preferencesUrl).pipe(
-      tap((preferences) => this._preferences.set(preferences))
-    );
+    return this.http
+      .get<NotificationPreference[]>(this.preferencesUrl)
+      .pipe(tap((preferences) => this._preferences.set(preferences)));
   }
 
   /**
    * Update a notification preference
    */
-  updateNotificationPreference(request: UpdatePreferenceRequest): Observable<NotificationPreference> {
-    return this.http.put<NotificationPreference>(this.preferencesUrl, request).pipe(
-      tap((updatedPref) => {
-        this._preferences.update((prefs) => {
-          const index = prefs.findIndex((p) => p.event_type === updatedPref.event_type);
-          if (index >= 0) {
-            const newPrefs = [...prefs];
-            newPrefs[index] = updatedPref;
-            return newPrefs;
-          }
-          return [...prefs, updatedPref];
-        });
-      })
-    );
+  updateNotificationPreference(
+    request: UpdatePreferenceRequest,
+  ): Observable<NotificationPreference> {
+    return this.http
+      .put<NotificationPreference>(this.preferencesUrl, request)
+      .pipe(
+        tap((updatedPref) => {
+          this._preferences.update((prefs) => {
+            const index = prefs.findIndex(
+              (p) => p.event_type === updatedPref.event_type,
+            );
+            if (index >= 0) {
+              const newPrefs = [...prefs];
+              newPrefs[index] = updatedPref;
+              return newPrefs;
+            }
+            return [...prefs, updatedPref];
+          });
+        }),
+      );
   }
 
   /**
    * Reset all notification preferences to defaults
    */
   resetNotificationPreferences(): Observable<void> {
-    return this.http.delete<void>(this.preferencesUrl).pipe(
-      tap(() => this._preferences.set([]))
-    );
+    return this.http
+      .delete<void>(this.preferencesUrl)
+      .pipe(tap(() => this._preferences.set([])));
   }
 
   /**
    * Get the effective preference for an event type (with defaults applied)
    */
-  getEffectivePreference(eventType: string): Omit<NotificationPreference, 'id' | 'user_id' | 'created_at' | 'updated_at'> {
+  getEffectivePreference(
+    eventType: string,
+  ): Omit<
+    NotificationPreference,
+    'id' | 'user_id' | 'created_at' | 'updated_at'
+  > {
     const prefs = this._preferences();
     const userPref = prefs.find((p) => p.event_type === eventType);
     if (userPref) {
@@ -156,12 +206,14 @@ export class ProfileService {
         whatsapp: userPref.whatsapp,
       };
     }
-    return DEFAULT_PREFERENCES[eventType] || {
-      event_type: eventType,
-      in_app: true,
-      email: true,
-      slack: false,
-      whatsapp: false,
-    };
+    return (
+      DEFAULT_PREFERENCES[eventType] || {
+        event_type: eventType,
+        in_app: true,
+        email: true,
+        slack: false,
+        whatsapp: false,
+      }
+    );
   }
 }
