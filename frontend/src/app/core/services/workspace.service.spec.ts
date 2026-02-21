@@ -17,6 +17,7 @@ import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
 const MOCK_WORKSPACE: Workspace = {
   id: 'ws-1',
   name: 'Test Workspace',
+  slug: 'test-workspace',
   description: null,
   logo_url: null,
   created_by_id: 'user-1',
@@ -91,7 +92,6 @@ describe('WorkspaceService', () => {
     it('should POST /api/workspaces with body', () => {
       const createReq: CreateWorkspaceRequest = {
         name: 'New Workspace',
-        slug: 'new-workspace',
       };
 
       service.create(createReq).subscribe((workspace) => {
@@ -106,7 +106,7 @@ describe('WorkspaceService', () => {
   });
 
   describe('update()', () => {
-    it('should PATCH /api/workspaces/:workspaceId with body', () => {
+    it('should PUT /api/workspaces/:workspaceId with body', () => {
       const updateReq: UpdateWorkspaceRequest = { name: 'Renamed Workspace' };
 
       service.update('ws-1', updateReq).subscribe((workspace) => {
@@ -114,7 +114,7 @@ describe('WorkspaceService', () => {
       });
 
       const req = httpMock.expectOne('/api/workspaces/ws-1');
-      expect(req.request.method).toBe('PATCH');
+      expect(req.request.method).toBe('PUT');
       expect(req.request.body).toEqual(updateReq);
       req.flush(MOCK_WORKSPACE);
     });
@@ -145,13 +145,14 @@ describe('WorkspaceService', () => {
   });
 
   describe('inviteMember()', () => {
-    it('should POST /api/workspaces/:workspaceId/invites with email and role', () => {
+    it('should POST /api/invitations with email, workspace_id, and role', () => {
       service.inviteMember('ws-1', 'new@example.com', 'member').subscribe();
 
-      const req = httpMock.expectOne('/api/workspaces/ws-1/invites');
+      const req = httpMock.expectOne('/api/invitations');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual({
         email: 'new@example.com',
+        workspace_id: 'ws-1',
         role: 'member',
       });
       req.flush(null);

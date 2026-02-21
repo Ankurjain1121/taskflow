@@ -1,4 +1,4 @@
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Datelike, Duration, Utc};
 use serde::Deserialize;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -25,6 +25,11 @@ pub struct CreateRecurringInput {
     pub cron_expression: Option<String>,
     pub interval_days: Option<i32>,
     pub max_occurrences: Option<i32>,
+    pub end_date: Option<DateTime<Utc>>,
+    pub skip_weekends: Option<bool>,
+    pub days_of_week: Option<Vec<i32>>,
+    pub day_of_month: Option<i32>,
+    pub creation_mode: Option<String>,
 }
 
 /// Input for updating a recurring task config
@@ -35,6 +40,43 @@ pub struct UpdateRecurringInput {
     pub interval_days: Option<i32>,
     pub max_occurrences: Option<i32>,
     pub is_active: Option<bool>,
+    pub end_date: Option<DateTime<Utc>>,
+    pub skip_weekends: Option<bool>,
+    pub days_of_week: Option<Vec<i32>>,
+    pub day_of_month: Option<i32>,
+    pub creation_mode: Option<String>,
+}
+
+/// Build a temporary config struct for next-run calculation
+fn build_calc_config(
+    pattern: &RecurrencePattern,
+    interval_days: Option<i32>,
+    skip_weekends: bool,
+    days_of_week: &[i32],
+    day_of_month: Option<i32>,
+) -> RecurringTaskConfig {
+    RecurringTaskConfig {
+        id: Uuid::nil(),
+        task_id: Uuid::nil(),
+        pattern: pattern.clone(),
+        cron_expression: None,
+        interval_days,
+        next_run_at: Utc::now(),
+        last_run_at: None,
+        is_active: true,
+        max_occurrences: None,
+        occurrences_created: 0,
+        board_id: Uuid::nil(),
+        tenant_id: Uuid::nil(),
+        created_by_id: Uuid::nil(),
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        end_date: None,
+        skip_weekends,
+        days_of_week: days_of_week.to_vec(),
+        day_of_month,
+        creation_mode: "on_schedule".to_string(),
+    }
 }
 
 /// Internal helper: get task's board_id
@@ -77,21 +119,107 @@ async fn verify_board_membership_internal(
     Ok(result)
 }
 
+/// Add one calendar month to a DateTime, clamping to month-end if needed.
+fn add_months(from: DateTime<Utc>, months: u32) -> DateTime<Utc> {
+    let year = from.year();
+    let month = from.month();
+    let day = from.day();
+
+    let total_months = (year * 12 + month as i32 - 1) + months as i32;
+    let new_year = total_months / 12;
+    let new_month = (total_months % 12) as u32 + 1;
+
+    // Clamp day to the last day of the target month
+    let days_in_month = days_in_month(new_year, new_month);
+    let new_day = day.min(days_in_month);
+
+    from.with_year(new_year)
+        .and_then(|d| d.with_month(new_month))
+        .and_then(|d| d.with_day(new_day))
+        .unwrap_or(from + Duration::days(30))
+}
+
+/// Get the number of days in a given month/year
+fn days_in_month(year: i32, month: u32) -> u32 {
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 => {
+            if (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0) {
+                29
+            } else {
+                28
+            }
+        }
+        _ => 30,
+    }
+}
+
 /// Calculate the next run time based on the recurrence pattern
-fn calculate_next_run(
-    from: DateTime<Utc>,
-    pattern: &RecurrencePattern,
-    interval_days: Option<i32>,
-) -> DateTime<Utc> {
-    match pattern {
+fn calculate_next_run(from: DateTime<Utc>, config: &RecurringTaskConfig) -> DateTime<Utc> {
+    let next = match config.pattern {
         RecurrencePattern::Daily => from + Duration::days(1),
         RecurrencePattern::Weekly => from + Duration::days(7),
         RecurrencePattern::Biweekly => from + Duration::days(14),
-        RecurrencePattern::Monthly => from + Duration::days(30),
+        RecurrencePattern::Monthly => {
+            if let Some(dom) = config.day_of_month {
+                // Use specific day of month
+                let mut next = add_months(from, 1);
+                let max_day = days_in_month(next.year(), next.month());
+                let target_day = (dom as u32).min(max_day);
+                next = next.with_day(target_day).unwrap_or(next);
+                next
+            } else {
+                add_months(from, 1)
+            }
+        }
+        RecurrencePattern::Yearly => add_months(from, 12),
+        RecurrencePattern::Weekdays => {
+            // Next weekday (Mon-Fri)
+            let mut next = from + Duration::days(1);
+            while next.weekday().num_days_from_monday() >= 5 {
+                next += Duration::days(1);
+            }
+            next
+        }
+        RecurrencePattern::CustomWeekly => {
+            // Find the next day in the days_of_week list
+            if config.days_of_week.is_empty() {
+                return from + Duration::days(7);
+            }
+            let current_dow = from.weekday().num_days_from_monday() as i32; // 0=Mon
+                                                                            // Find next matching day this week or next week
+            let mut best_offset = 7i64; // worst case: same day next week
+            for &dow in &config.days_of_week {
+                let dow = dow.clamp(0, 6);
+                let offset = ((dow - current_dow).rem_euclid(7)) as i64;
+                let offset = if offset == 0 { 7 } else { offset };
+                if offset < best_offset {
+                    best_offset = offset;
+                }
+            }
+            from + Duration::days(best_offset)
+        }
         RecurrencePattern::Custom => {
-            let days = interval_days.unwrap_or(1) as i64;
+            let days = config.interval_days.unwrap_or(1) as i64;
             from + Duration::days(days)
         }
+    };
+
+    // Skip weekends if configured
+    if config.skip_weekends {
+        skip_to_weekday(next)
+    } else {
+        next
+    }
+}
+
+/// Advance a date to the next weekday (Mon-Fri) if it falls on a weekend
+fn skip_to_weekday(dt: DateTime<Utc>) -> DateTime<Utc> {
+    match dt.weekday().num_days_from_monday() {
+        5 => dt + Duration::days(2), // Saturday -> Monday
+        6 => dt + Duration::days(1), // Sunday -> Monday
+        _ => dt,
     }
 }
 
@@ -125,7 +253,12 @@ pub async fn get_config_for_task(
             tenant_id,
             created_by_id,
             created_at,
-            updated_at
+            updated_at,
+            end_date,
+            skip_weekends,
+            days_of_week,
+            day_of_month,
+            creation_mode
         FROM recurring_task_configs
         WHERE task_id = $1
         "#,
@@ -157,16 +290,26 @@ pub async fn create_config(
 
     let id = Uuid::new_v4();
     let now = Utc::now();
-    let next_run = calculate_next_run(now, &input.pattern, input.interval_days);
+    let skip_wk = input.skip_weekends.unwrap_or(false);
+    let dow = input.days_of_week.clone().unwrap_or_default();
+    let dom = input.day_of_month;
+    let creation_mode = input
+        .creation_mode
+        .clone()
+        .unwrap_or_else(|| "on_schedule".to_string());
+    let calc = build_calc_config(&input.pattern, input.interval_days, skip_wk, &dow, dom);
+    let next_run = calculate_next_run(now, &calc);
 
     let config = sqlx::query_as::<_, RecurringTaskConfig>(
         r#"
         INSERT INTO recurring_task_configs (
             id, task_id, pattern, cron_expression, interval_days,
             next_run_at, is_active, max_occurrences, occurrences_created,
-            board_id, tenant_id, created_by_id, created_at, updated_at
+            board_id, tenant_id, created_by_id,
+            end_date, skip_weekends, days_of_week, day_of_month, creation_mode,
+            created_at, updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, true, $7, 0, $8, $9, $10, $11, $11)
+        VALUES ($1, $2, $3, $4, $5, $6, true, $7, 0, $8, $9, $10, $11, $12, $13, $14, $15, $16, $16)
         RETURNING
             id,
             task_id,
@@ -182,7 +325,12 @@ pub async fn create_config(
             tenant_id,
             created_by_id,
             created_at,
-            updated_at
+            updated_at,
+            end_date,
+            skip_weekends,
+            days_of_week,
+            day_of_month,
+            creation_mode
         "#,
     )
     .bind(id)
@@ -195,6 +343,11 @@ pub async fn create_config(
     .bind(board_id)
     .bind(tenant_id)
     .bind(user_id)
+    .bind(input.end_date)
+    .bind(skip_wk)
+    .bind(&dow)
+    .bind(dom)
+    .bind(&creation_mode)
     .bind(now)
     .fetch_one(pool)
     .await?;
@@ -227,7 +380,12 @@ pub async fn update_config(
             tenant_id,
             created_by_id,
             created_at,
-            updated_at
+            updated_at,
+            end_date,
+            skip_weekends,
+            days_of_week,
+            day_of_month,
+            creation_mode
         FROM recurring_task_configs
         WHERE id = $1
         "#,
@@ -247,9 +405,21 @@ pub async fn update_config(
     let new_cron = input.cron_expression.or(existing.cron_expression);
     let new_max = input.max_occurrences.or(existing.max_occurrences);
     let new_active = input.is_active.unwrap_or(existing.is_active);
+    let new_end_date = input.end_date.or(existing.end_date);
+    let new_skip_wk = input.skip_weekends.unwrap_or(existing.skip_weekends);
+    let new_dow = input
+        .days_of_week
+        .clone()
+        .unwrap_or(existing.days_of_week.clone());
+    let new_dom = input.day_of_month.or(existing.day_of_month);
+    let new_creation_mode = input
+        .creation_mode
+        .clone()
+        .unwrap_or(existing.creation_mode.clone());
 
     // Recalculate next_run_at if pattern or interval changed
-    let new_next_run = calculate_next_run(Utc::now(), &new_pattern, new_interval);
+    let calc = build_calc_config(&new_pattern, new_interval, new_skip_wk, &new_dow, new_dom);
+    let new_next_run = calculate_next_run(Utc::now(), &calc);
 
     let config = sqlx::query_as::<_, RecurringTaskConfig>(
         r#"
@@ -260,6 +430,11 @@ pub async fn update_config(
             max_occurrences = $5,
             is_active = $6,
             next_run_at = $7,
+            end_date = $8,
+            skip_weekends = $9,
+            days_of_week = $10,
+            day_of_month = $11,
+            creation_mode = $12,
             updated_at = NOW()
         WHERE id = $1
         RETURNING
@@ -277,7 +452,12 @@ pub async fn update_config(
             tenant_id,
             created_by_id,
             created_at,
-            updated_at
+            updated_at,
+            end_date,
+            skip_weekends,
+            days_of_week,
+            day_of_month,
+            creation_mode
         "#,
     )
     .bind(config_id)
@@ -287,6 +467,11 @@ pub async fn update_config(
     .bind(new_max)
     .bind(new_active)
     .bind(new_next_run)
+    .bind(new_end_date)
+    .bind(new_skip_wk)
+    .bind(&new_dow)
+    .bind(new_dom)
+    .bind(&new_creation_mode)
     .fetch_one(pool)
     .await?;
 
@@ -317,7 +502,12 @@ pub async fn delete_config(
             tenant_id,
             created_by_id,
             created_at,
-            updated_at
+            updated_at,
+            end_date,
+            skip_weekends,
+            days_of_week,
+            day_of_month,
+            creation_mode
         FROM recurring_task_configs
         WHERE id = $1
         "#,
@@ -366,10 +556,16 @@ pub async fn get_due_configs(
             tenant_id,
             created_by_id,
             created_at,
-            updated_at
+            updated_at,
+            end_date,
+            skip_weekends,
+            days_of_week,
+            day_of_month,
+            creation_mode
         FROM recurring_task_configs
         WHERE next_run_at <= NOW()
           AND is_active = true
+          AND creation_mode = 'on_schedule'
         ORDER BY next_run_at ASC
         "#,
     )
@@ -394,7 +590,8 @@ pub async fn create_recurring_instance(
     // 1. Fetch source task
     let source_task = sqlx::query_as::<_, SourceTask>(
         r#"
-        SELECT id, title, description, priority, column_id, board_id, tenant_id, created_by_id
+        SELECT id, title, description, priority, column_id, board_id,
+               tenant_id, created_by_id, estimated_hours, start_date
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -417,9 +614,9 @@ pub async fn create_recurring_instance(
         INSERT INTO tasks (
             id, title, description, priority, due_date,
             column_id, board_id, position, tenant_id, created_by_id,
-            created_at, updated_at
+            estimated_hours, start_date, created_at, updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)
         "#,
     )
     .bind(new_task_id)
@@ -432,19 +629,73 @@ pub async fn create_recurring_instance(
     .bind(&position)
     .bind(source_task.tenant_id)
     .bind(source_task.created_by_id)
+    .bind(source_task.estimated_hours)
+    .bind(source_task.start_date)
     .bind(now)
+    .execute(&mut *tx)
+    .await?;
+
+    // Copy assignees from source task
+    sqlx::query(
+        r#"
+        INSERT INTO task_assignees (task_id, user_id)
+        SELECT $1, user_id FROM task_assignees WHERE task_id = $2
+        "#,
+    )
+    .bind(new_task_id)
+    .bind(source_task.id)
+    .execute(&mut *tx)
+    .await?;
+
+    // Copy labels from source task
+    sqlx::query(
+        r#"
+        INSERT INTO task_labels (id, task_id, label_id)
+        SELECT gen_random_uuid(), $1, label_id FROM task_labels WHERE task_id = $2
+        "#,
+    )
+    .bind(new_task_id)
+    .bind(source_task.id)
+    .execute(&mut *tx)
+    .await?;
+
+    // Copy subtasks (reset is_completed to false)
+    sqlx::query(
+        r#"
+        INSERT INTO subtasks (id, task_id, title, is_completed, position, created_at, updated_at)
+        SELECT gen_random_uuid(), $1, title, false, position, NOW(), NOW()
+        FROM subtasks WHERE task_id = $2
+        ORDER BY position
+        "#,
+    )
+    .bind(new_task_id)
+    .bind(source_task.id)
+    .execute(&mut *tx)
+    .await?;
+
+    // Copy custom field values
+    sqlx::query(
+        r#"
+        INSERT INTO task_custom_field_values (id, task_id, field_id, value, created_at, updated_at)
+        SELECT gen_random_uuid(), $1, field_id, value, NOW(), NOW()
+        FROM task_custom_field_values WHERE task_id = $2
+        "#,
+    )
+    .bind(new_task_id)
+    .bind(source_task.id)
     .execute(&mut *tx)
     .await?;
 
     // 3. Calculate next run
     let new_occurrences = config.occurrences_created + 1;
-    let next_run = calculate_next_run(config.next_run_at, &config.pattern, config.interval_days);
+    let next_run = calculate_next_run(config.next_run_at, config);
 
     // 4 & 5. Update config
     let should_deactivate = config
         .max_occurrences
         .map(|max| new_occurrences >= max)
-        .unwrap_or(false);
+        .unwrap_or(false)
+        || config.end_date.map(|end| next_run > end).unwrap_or(false);
 
     sqlx::query(
         r#"
@@ -473,7 +724,6 @@ pub async fn create_recurring_instance(
 /// Internal struct for fetching source task fields
 #[derive(sqlx::FromRow)]
 struct SourceTask {
-    #[allow(dead_code)]
     pub id: Uuid,
     pub title: String,
     pub description: Option<String>,
@@ -482,4 +732,6 @@ struct SourceTask {
     pub board_id: Uuid,
     pub tenant_id: Uuid,
     pub created_by_id: Uuid,
+    pub estimated_hours: Option<f64>,
+    pub start_date: Option<DateTime<Utc>>,
 }

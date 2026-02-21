@@ -8,7 +8,12 @@ export type AutomationTrigger =
   | 'task_assigned'
   | 'task_priority_changed'
   | 'task_due_date_passed'
-  | 'task_completed';
+  | 'task_completed'
+  | 'subtask_completed'
+  | 'comment_added'
+  | 'custom_field_changed'
+  | 'label_changed'
+  | 'due_date_approaching';
 
 export type AutomationActionType =
   | 'move_task'
@@ -16,7 +21,12 @@ export type AutomationActionType =
   | 'set_priority'
   | 'send_notification'
   | 'add_label'
-  | 'set_milestone';
+  | 'set_milestone'
+  | 'create_subtask'
+  | 'add_comment'
+  | 'set_due_date'
+  | 'set_custom_field'
+  | 'send_webhook';
 
 export interface AutomationRule {
   id: string;
@@ -29,6 +39,9 @@ export interface AutomationRule {
   created_by_id: string;
   created_at: string;
   updated_at: string;
+  conditions: Record<string, unknown> | null;
+  execution_count: number;
+  last_triggered_at: string | null;
 }
 
 export interface AutomationAction {
@@ -78,19 +91,33 @@ export class AutomationService {
   constructor(private http: HttpClient) {}
 
   listRules(boardId: string): Observable<AutomationRuleWithActions[]> {
-    return this.http.get<AutomationRuleWithActions[]>(`/api/boards/${boardId}/automations`);
+    return this.http.get<AutomationRuleWithActions[]>(
+      `/api/boards/${boardId}/automations`,
+    );
   }
 
-  createRule(boardId: string, req: CreateRuleRequest): Observable<AutomationRuleWithActions> {
-    return this.http.post<AutomationRuleWithActions>(`/api/boards/${boardId}/automations`, req);
+  createRule(
+    boardId: string,
+    req: CreateRuleRequest,
+  ): Observable<AutomationRuleWithActions> {
+    return this.http.post<AutomationRuleWithActions>(
+      `/api/boards/${boardId}/automations`,
+      req,
+    );
   }
 
   getRule(id: string): Observable<AutomationRuleWithActions> {
     return this.http.get<AutomationRuleWithActions>(`/api/automations/${id}`);
   }
 
-  updateRule(id: string, req: UpdateRuleRequest): Observable<AutomationRuleWithActions> {
-    return this.http.put<AutomationRuleWithActions>(`/api/automations/${id}`, req);
+  updateRule(
+    id: string,
+    req: UpdateRuleRequest,
+  ): Observable<AutomationRuleWithActions> {
+    return this.http.put<AutomationRuleWithActions>(
+      `/api/automations/${id}`,
+      req,
+    );
   }
 
   deleteRule(id: string): Observable<void> {
@@ -102,6 +129,8 @@ export class AutomationService {
     if (limit !== undefined) {
       params = params.set('limit', limit.toString());
     }
-    return this.http.get<AutomationLog[]>(`/api/automations/${id}/logs`, { params });
+    return this.http.get<AutomationLog[]>(`/api/automations/${id}/logs`, {
+      params,
+    });
   }
 }

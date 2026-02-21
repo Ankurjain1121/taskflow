@@ -33,9 +33,9 @@ describe('task-colors', () => {
       expect(PRIORITY_COLORS['high'].dot).toContain('orange');
     });
 
-    it('medium should use yellow color classes', () => {
-      expect(PRIORITY_COLORS['medium'].bg).toContain('yellow');
-      expect(PRIORITY_COLORS['medium'].dot).toContain('yellow');
+    it('medium should use amber color classes', () => {
+      expect(PRIORITY_COLORS['medium'].bg).toContain('amber');
+      expect(PRIORITY_COLORS['medium'].dot).toContain('amber');
     });
 
     it('low should use blue color classes', () => {

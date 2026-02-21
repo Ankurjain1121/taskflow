@@ -250,8 +250,10 @@ describe('DashboardComponent', () => {
       );
     });
 
-    it('should return default gray classes for unknown', () => {
-      expect(component.getActionBadgeClass('other')).toContain('bg-gray-100');
+    it('should return default classes for unknown', () => {
+      expect(component.getActionBadgeClass('other')).toContain(
+        'bg-[var(--secondary)]',
+      );
     });
   });
 
@@ -325,39 +327,7 @@ describe('DashboardComponent', () => {
     });
   });
 
-  describe('summaryStats computed', () => {
-    it('should derive summary stats from dashboard stats', () => {
-      component.stats.set(MOCK_STATS);
-
-      const summary = component.summaryStats();
-      expect(summary.totalTasks).toBe(42);
-      expect(summary.completedThisWeek).toBe(12);
-      expect(summary.overdueTasks).toBe(3);
-      expect(summary.completionRate).toBe(Math.round((12 / 42) * 100));
-    });
-
-    it('should return zeros when stats is null', () => {
-      component.stats.set(null);
-
-      const summary = component.summaryStats();
-      expect(summary.totalTasks).toBe(0);
-      expect(summary.completedThisWeek).toBe(0);
-      expect(summary.overdueTasks).toBe(0);
-      expect(summary.completionRate).toBe(0);
-    });
-
-    it('should handle zero total_tasks without division error', () => {
-      component.stats.set({
-        total_tasks: 0,
-        overdue: 0,
-        completed_this_week: 0,
-        due_today: 0,
-      });
-
-      const summary = component.summaryStats();
-      expect(summary.completionRate).toBe(0);
-    });
-  });
+  // Note: summaryStats was removed from the component; stats are used directly in the template
 
   describe('activeWorkspaceId computed', () => {
     it('should return undefined when selectedWorkspaceId is null', () => {

@@ -74,6 +74,9 @@ pub enum RecurrencePattern {
     Biweekly,
     Monthly,
     Custom,
+    Yearly,
+    Weekdays,
+    CustomWeekly,
 }
 
 #[cfg(test)]
@@ -168,6 +171,9 @@ mod tests {
             RecurrencePattern::Biweekly,
             RecurrencePattern::Monthly,
             RecurrencePattern::Custom,
+            RecurrencePattern::Yearly,
+            RecurrencePattern::Weekdays,
+            RecurrencePattern::CustomWeekly,
         ] {
             let json = serde_json::to_string(&variant).unwrap();
             let deserialized: RecurrencePattern = serde_json::from_str(&json).unwrap();

@@ -367,7 +367,7 @@ describe('RenderMentionsPipe', () => {
     const html = (result as any)
       .changingThisBreaksApplicationSecurity as string;
     expect(html).toContain('@Alice');
-    expect(html).toContain('class="text-indigo-600');
+    expect(html).toContain('class="font-medium px-1 rounded"');
     expect(html).not.toContain('@[Alice]');
   });
 
