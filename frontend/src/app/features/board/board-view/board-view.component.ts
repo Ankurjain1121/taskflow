@@ -27,13 +27,11 @@ import {
   Assignee,
   TaskListItem,
   Label,
-  BulkUpdateRequest,
 } from '../../../core/services/task.service';
 import {
   TaskGroupService,
   TaskGroupWithStats,
 } from '../../../core/services/task-group.service';
-import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
 import {
   CreateTaskDialogComponent,
   CreateTaskDialogResult,
@@ -47,7 +45,6 @@ import {
   CreateTaskGroupDialogResult,
 } from '../create-task-group-dialog/create-task-group-dialog.component';
 import { WebSocketService } from '../../../core/services/websocket.service';
-import { AuthService } from '../../../core/services/auth.service';
 import {
   MilestoneService,
   Milestone,
@@ -80,6 +77,10 @@ import { TaskGroupHeaderComponent } from '../task-group-header/task-group-header
 import { ShortcutHelpComponent } from '../../../shared/components/shortcut-help/shortcut-help.component';
 import { DependencyService } from '../../../core/services/dependency.service';
 
+import { BoardShortcutsService } from './board-shortcuts.service';
+import { BoardBulkActionsService } from './board-bulk-actions.service';
+import { BoardWsHandlerService } from './board-ws-handler.service';
+
 @Component({
   selector: 'app-board-view',
   standalone: true,
@@ -102,6 +103,7 @@ import { DependencyService } from '../../../core/services/dependency.service';
     TaskGroupHeaderComponent,
     ShortcutHelpComponent,
   ],
+  providers: [BoardShortcutsService, BoardBulkActionsService, BoardWsHandlerService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="h-screen flex flex-col bg-[var(--background)]">
@@ -415,10 +417,11 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   private taskService = inject(TaskService);
   private taskGroupService = inject(TaskGroupService);
   private wsService = inject(WebSocketService);
-  private authService = inject(AuthService);
   private dependencyService = inject(DependencyService);
   private milestoneService = inject(MilestoneService);
-  private shortcutsService = inject(KeyboardShortcutsService);
+  private shortcutsService = inject(BoardShortcutsService);
+  private bulkActionsService = inject(BoardBulkActionsService);
+  private wsHandler = inject(BoardWsHandlerService);
   private destroy$ = new Subject<void>();
 
   workspaceId = '';
@@ -465,7 +468,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   showCreateColumnDialog = false;
   showCreateGroupDialog = false;
 
-  // Computed: IDs of collapsed groups (tasks in collapsed groups are hidden)
   collapsedGroupIds = computed(() => {
     return new Set(
       this.boardGroups()
@@ -474,7 +476,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     );
   });
 
-  // Computed: filtered board state (applies text/priority/assignee filters + group collapse)
   filteredBoardState = computed(() => {
     const state = this.boardState();
     const f = this.filters();
@@ -491,7 +492,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     return result;
   });
 
-  // Computed: all unique assignees across tasks
   allAssignees = computed(() => {
     const assigneeMap = new Map<string, Assignee>();
     const state = this.boardState();
@@ -510,7 +510,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     return Array.from(assigneeMap.values());
   });
 
-  // Computed: all unique labels across tasks
   allLabels = computed(() => {
     const labelMap = new Map<string, Label>();
     const state = this.boardState();
@@ -529,7 +528,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     return Array.from(labelMap.values());
   });
 
-  // Computed: connected column IDs for drag-drop
   connectedColumnIds = computed(() => {
     return this.columns().map((col) => 'column-' + col.id);
   });
@@ -541,23 +539,36 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       this.loadBoard();
     });
 
-    // Connect to WebSocket for real-time updates
     this.wsService.connect();
     this.wsService.messages$
       .pipe(takeUntil(this.destroy$))
       .subscribe((message) => {
-        this.handleWebSocketMessage(message);
+        this.wsHandler.handleMessage(message, {
+          onTaskCreated: (task) => this.handleTaskCreated(task),
+          onTaskUpdated: (task) => this.handleTaskUpdated(task),
+          onTaskMoved: (task) => this.handleTaskMoved(task),
+          onTaskDeleted: (task) => this.handleTaskDeleted(task),
+        });
       });
 
-    // Register keyboard shortcuts
-    this.registerShortcuts();
+    this.shortcutsService.registerShortcuts({
+      createTask: () => this.onCreateTask(),
+      closePanel: () => this.closeTaskDetail(),
+      clearSelection: () => this.clearSelection(),
+      closeTaskDetail: () => this.closeTaskDetail(),
+      getFocusedTaskId: () => this.focusedTaskId(),
+      setFocusedTaskId: (id) => this.focusedTaskId.set(id),
+      getSelectedTaskIds: () => this.selectedTaskIds(),
+      getSelectedTaskId: () => this.selectedTaskId(),
+      setViewMode: (mode) => this.viewMode.set(mode),
+      onViewModeChanged: (mode) => this.onViewModeChanged(mode),
+    });
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    this.shortcutsService.unregisterByCategory('Board');
-    // Unsubscribe from board channel
+    this.shortcutsService.unregister();
     this.wsService.send('unsubscribe', { channel: `board:${this.boardId}` });
   }
 
@@ -597,11 +608,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   onTaskMoved(event: TaskMoveEvent): void {
     const snapshot = structuredClone(this.boardState());
 
-    // Build position from the PRE-MOVE snapshot to avoid stale signal issues.
-    // CDK drag-drop mutates the filtered view's backing array in place,
-    // but the signal's boardState may not reflect that mutation yet.
-    // Use the snapshot's target column (filtered, minus the moved task)
-    // so event.currentIndex maps to the correct insertion point.
     const filteredTarget = this.filterTasks(
       snapshot[event.targetColumnId] || [],
       this.filters(),
@@ -621,21 +627,16 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     try {
       newPosition = generateKeyBetween(beforePos, afterPos);
     } catch {
-      // Fallback if fractional indexing fails
       newPosition = Date.now().toString();
     }
 
-    // Rebuild state from scratch — CDK mutates arrays in place but signals
-    // need new references to trigger change detection.
     this.boardState.update((state) => {
       const newState: Record<string, Task[]> = {};
 
       for (const [columnId, tasks] of Object.entries(state)) {
-        // Remove the moved task from every column
         newState[columnId] = tasks.filter((t) => t.id !== event.task.id);
       }
 
-      // Insert the task at the correct position in the target column
       const updatedTask = {
         ...event.task,
         column_id: event.targetColumnId,
@@ -648,7 +649,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       return newState;
     });
 
-    // Celebrate if moved to a done column
     const targetColumn = this.columns().find(
       (c) => c.id === event.targetColumnId,
     );
@@ -660,7 +660,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       setTimeout(() => this.celebratingTaskId.set(null), 1200);
     }
 
-    // Call API
     this.taskService
       .moveTask(event.task.id, {
         column_id: event.targetColumnId,
@@ -668,7 +667,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       })
       .subscribe({
         error: () => {
-          // Rollback on error
           this.boardState.set(snapshot);
           this.showError('Failed to move task. Reverted.');
         },
@@ -697,7 +695,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   onCreateTask(): void {
-    // Open create task dialog with first column selected
     const firstColumn = this.columns()[0];
     if (firstColumn) {
       this.onAddTaskToColumn(firstColumn.id);
@@ -754,7 +751,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       })
       .subscribe({
         next: (task) => {
-          // Add task to the board state
           this.boardState.update((state) => {
             const newState = { ...state };
             const columnTasks = newState[columnId] || [];
@@ -779,9 +775,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   private createColumn(columnData: CreateColumnDialogResult): void {
-    const columns = this.columns();
-    const lastColumn = columns[columns.length - 1];
-
     this.boardService
       .createColumn(this.boardId, {
         name: columnData.name,
@@ -795,7 +788,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
               a.position.localeCompare(b.position),
             ),
           );
-          // Initialize empty task array for new column
           this.boardState.update((state) => ({
             ...state,
             [column.id]: [],
@@ -851,7 +843,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   onGroupToggleCollapse(group: TaskGroupWithStats): void {
     const newCollapsed = !group.group.collapsed;
 
-    // Optimistic update
     this.boardGroups.update((groups) =>
       groups.map((g) =>
         g.group.id === group.group.id
@@ -864,7 +855,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       .toggleCollapse(group.group.id, newCollapsed)
       .subscribe({
         error: () => {
-          // Revert on error
           this.boardGroups.update((groups) =>
             groups.map((g) =>
               g.group.id === group.group.id
@@ -881,7 +871,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     this.taskGroupService.deleteGroup(groupId).subscribe({
       next: () => {
         this.reloadGroups();
-        this.loadBoard(); // Reload tasks since they moved to Ungrouped
+        this.loadBoard();
       },
       error: () => this.showError('Failed to delete group'),
     });
@@ -895,6 +885,94 @@ export class BoardViewComponent implements OnInit, OnDestroy {
 
   clearError(): void {
     this.errorMessage.set(null);
+  }
+
+  // === Bulk Operations ===
+
+  toggleTaskSelection(taskId: string): void {
+    const current = this.selectedTaskIds();
+    if (current.includes(taskId)) {
+      this.selectedTaskIds.set(current.filter((id) => id !== taskId));
+    } else {
+      this.selectedTaskIds.set([...current, taskId]);
+    }
+  }
+
+  clearSelection(): void {
+    this.selectedTaskIds.set([]);
+    this.selectionMode.set(false);
+  }
+
+  onBulkAction(action: BulkAction): void {
+    this.bulkActionsService.executeBulkAction(
+      this.boardId,
+      action,
+      this.selectedTaskIds(),
+      {
+        onSuccess: () => {
+          this.clearSelection();
+          this.loadBoard();
+        },
+        onError: (message) => this.showError(message),
+      },
+    );
+  }
+
+  // === Card Keyboard Navigation (J/K/Enter) ===
+
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(event: KeyboardEvent): void {
+    this.shortcutsService.handleKeydown(
+      event,
+      this.viewMode(),
+      this.focusedTaskId(),
+      {
+        navigateCard: (direction) => this.navigateCard(direction),
+        openFocusedTask: () => this.openFocusedTask(),
+      },
+    );
+  }
+
+  private navigateCard(direction: number): void {
+    const allTasks = this.getAllVisibleTasks();
+    if (allTasks.length === 0) return;
+
+    const currentId = this.focusedTaskId();
+    const currentIndex = currentId
+      ? allTasks.findIndex((t) => t.id === currentId)
+      : -1;
+
+    const nextIndex = Math.max(
+      0,
+      Math.min(allTasks.length - 1, currentIndex + direction),
+    );
+    const nextTaskId = allTasks[nextIndex].id;
+    this.focusedTaskId.set(nextTaskId);
+
+    setTimeout(() => {
+      const el = document.querySelector(`[data-task-id="${nextTaskId}"]`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 0);
+  }
+
+  private getAllVisibleTasks(): Task[] {
+    const cols = this.columns();
+    const filtered = this.filteredBoardState();
+    const tasks: Task[] = [];
+
+    for (const col of cols) {
+      const colTasks = filtered[col.id] || [];
+      tasks.push(...colTasks);
+    }
+
+    return tasks;
+  }
+
+  private openFocusedTask(): void {
+    const taskId = this.focusedTaskId();
+    if (taskId) {
+      this.router.navigate(['/task', taskId]);
+    }
   }
 
   private loadFlatTasks(): void {
@@ -917,7 +995,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   private loadBoard(): void {
     this.loading.set(true);
 
-    // Batch endpoint for board + columns + tasks + members
     this.boardService.getBoardFull(this.boardId).subscribe({
       next: (response: BoardFullResponse) => {
         this.board.set(response.board);
@@ -927,7 +1004,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
           ),
         );
 
-        // Group tasks by column_id into Record<string, Task[]>
         const tasksByColumn: Record<string, Task[]> = {};
         for (const col of response.board.columns) {
           tasksByColumn[col.id] = [];
@@ -959,7 +1035,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
           }
           tasksByColumn[t.column_id].push(task);
         }
-        // Sort tasks within each column by position
         for (const colId of Object.keys(tasksByColumn)) {
           tasksByColumn[colId].sort((a, b) =>
             a.position.localeCompare(b.position),
@@ -970,7 +1045,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
         this.boardMembers.set(response.members);
         this.loading.set(false);
 
-        // Subscribe to board updates
         this.wsService.send('subscribe', { channel: `board:${this.boardId}` });
       },
       error: () => {
@@ -979,7 +1053,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       },
     });
 
-    // Milestones and groups are not in the batch response yet; load separately
     this.milestoneService.list(this.boardId).subscribe({
       next: (milestones) => this.boardMilestones.set(milestones),
     });
@@ -990,7 +1063,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
 
   private filterTasks(tasks: Task[], filters: TaskFilters): Task[] {
     return tasks.filter((task) => {
-      // Search filter
       if (
         filters.search &&
         !task.title.toLowerCase().includes(filters.search.toLowerCase())
@@ -998,7 +1070,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
         return false;
       }
 
-      // Priority filter
       if (
         filters.priorities.length > 0 &&
         !filters.priorities.includes(task.priority)
@@ -1006,7 +1077,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
         return false;
       }
 
-      // Assignee filter
       if (filters.assigneeIds.length > 0) {
         const taskAssigneeIds = task.assignees?.map((a) => a.id) || [];
         const hasMatchingAssignee = filters.assigneeIds.some((id) =>
@@ -1017,7 +1087,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
         }
       }
 
-      // Due date filter
       if (filters.dueDateStart || filters.dueDateEnd) {
         if (!task.due_date) {
           return false;
@@ -1031,7 +1100,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
         }
       }
 
-      // Label filter
       if (filters.labelIds.length > 0) {
         const taskLabelIds = task.labels?.map((l) => l.id) || [];
         const hasMatchingLabel = filters.labelIds.some((id) =>
@@ -1046,35 +1114,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     });
   }
 
-  private handleWebSocketMessage(message: {
-    type: string;
-    payload: unknown;
-  }): void {
-    if (!message.payload || typeof message.payload !== 'object') return;
-
-    const currentUserId = this.authService.currentUser()?.id;
-
-    // Skip own updates to avoid double-applying
-    const payload = message.payload as { userId?: string; task?: Task };
-    if (payload.userId && payload.userId === currentUserId) {
-      return;
-    }
-
-    switch (message.type) {
-      case 'task:created':
-        this.handleTaskCreated(payload.task!);
-        break;
-      case 'task:updated':
-        this.handleTaskUpdated(payload.task!);
-        break;
-      case 'task:moved':
-        this.handleTaskMoved(payload.task!);
-        break;
-      case 'task:deleted':
-        this.handleTaskDeleted(payload.task!);
-        break;
-    }
-  }
+  // === WebSocket Handlers ===
 
   private handleTaskCreated(task: Task): void {
     this.boardState.update((state) => {
@@ -1101,12 +1141,10 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     this.boardState.update((state) => {
       const newState = { ...state };
 
-      // Remove from all columns
       for (const [columnId, tasks] of Object.entries(newState)) {
         newState[columnId] = tasks.filter((t) => t.id !== task.id);
       }
 
-      // Add to target column
       const columnTasks = newState[task.column_id] || [];
       newState[task.column_id] = [...columnTasks, task].sort((a, b) =>
         a.position.localeCompare(b.position),
@@ -1129,241 +1167,5 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   private showError(message: string): void {
     this.errorMessage.set(message);
     setTimeout(() => this.clearError(), 5000);
-  }
-
-  // === Bulk Operations ===
-
-  toggleTaskSelection(taskId: string): void {
-    const current = this.selectedTaskIds();
-    if (current.includes(taskId)) {
-      this.selectedTaskIds.set(current.filter((id) => id !== taskId));
-    } else {
-      this.selectedTaskIds.set([...current, taskId]);
-    }
-  }
-
-  clearSelection(): void {
-    this.selectedTaskIds.set([]);
-    this.selectionMode.set(false);
-  }
-
-  onBulkAction(action: BulkAction): void {
-    const ids = this.selectedTaskIds();
-    if (ids.length === 0) return;
-
-    if (action.type === 'delete') {
-      this.taskService.bulkDelete(this.boardId, { task_ids: ids }).subscribe({
-        next: () => {
-          this.clearSelection();
-          this.loadBoard();
-        },
-        error: () => this.showError('Failed to delete tasks'),
-      });
-      return;
-    }
-
-    const req: BulkUpdateRequest = { task_ids: ids };
-    if (action.type === 'move' && action.column_id)
-      req.column_id = action.column_id;
-    if (action.type === 'priority' && action.priority)
-      req.priority = action.priority;
-    if (action.type === 'milestone') {
-      if (action.clear_milestone) {
-        req.clear_milestone = true;
-      } else if (action.milestone_id) {
-        req.milestone_id = action.milestone_id;
-      }
-    }
-    if (action.type === 'group') {
-      if (action.clear_group) {
-        req.clear_group = true;
-      } else if (action.group_id) {
-        req.group_id = action.group_id;
-      }
-    }
-
-    this.taskService.bulkUpdate(this.boardId, req).subscribe({
-      next: () => {
-        this.clearSelection();
-        this.loadBoard();
-      },
-      error: () => this.showError('Failed to update tasks'),
-    });
-  }
-
-  // === Card Keyboard Navigation (J/K/Enter) ===
-
-  @HostListener('document:keydown', ['$event'])
-  onKeydown(event: KeyboardEvent): void {
-    // Don't trigger when typing in inputs/textareas/select/contenteditable
-    const target = event.target as HTMLElement;
-    if (
-      target instanceof HTMLInputElement ||
-      target instanceof HTMLTextAreaElement ||
-      target.tagName === 'SELECT' ||
-      target.isContentEditable
-    ) {
-      return;
-    }
-
-    // Only handle J/K/Enter for card navigation when in kanban view
-    if (this.viewMode() !== 'kanban') return;
-
-    switch (event.key) {
-      case 'j':
-      case 'J':
-        this.navigateCard(1);
-        event.preventDefault();
-        break;
-      case 'k':
-      case 'K':
-        this.navigateCard(-1);
-        event.preventDefault();
-        break;
-      case 'Enter':
-        if (this.focusedTaskId()) {
-          this.openFocusedTask();
-          event.preventDefault();
-        }
-        break;
-    }
-  }
-
-  private navigateCard(direction: number): void {
-    const allTasks = this.getAllVisibleTasks();
-    if (allTasks.length === 0) return;
-
-    const currentId = this.focusedTaskId();
-    const currentIndex = currentId
-      ? allTasks.findIndex((t) => t.id === currentId)
-      : -1;
-
-    const nextIndex = Math.max(
-      0,
-      Math.min(allTasks.length - 1, currentIndex + direction),
-    );
-    const nextTaskId = allTasks[nextIndex].id;
-    this.focusedTaskId.set(nextTaskId);
-
-    // Scroll the focused card into view
-    setTimeout(() => {
-      const el = document.querySelector(`[data-task-id="${nextTaskId}"]`);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 0);
-  }
-
-  private getAllVisibleTasks(): Task[] {
-    const cols = this.columns();
-    const filtered = this.filteredBoardState();
-    const tasks: Task[] = [];
-
-    for (const col of cols) {
-      const colTasks = filtered[col.id] || [];
-      tasks.push(...colTasks);
-    }
-
-    return tasks;
-  }
-
-  private openFocusedTask(): void {
-    const taskId = this.focusedTaskId();
-    if (taskId) {
-      this.router.navigate(['/task', taskId]);
-    }
-  }
-
-  // === Keyboard Shortcuts ===
-
-  private registerShortcuts(): void {
-    this.shortcutsService.register('board-new-task', {
-      key: 'n',
-      description: 'Create new task',
-      category: 'Board',
-      action: () => this.onCreateTask(),
-    });
-
-    this.shortcutsService.register('board-search', {
-      key: '/',
-      description: 'Focus search',
-      category: 'Board',
-      action: () => {
-        const searchInput = document.querySelector<HTMLInputElement>(
-          'input[placeholder*="Search"]',
-        );
-        searchInput?.focus();
-      },
-    });
-
-    this.shortcutsService.register('board-escape', {
-      key: 'Escape',
-      description: 'Close panel / Clear selection / Clear focus',
-      category: 'Board',
-      action: () => {
-        if (this.focusedTaskId()) {
-          this.focusedTaskId.set(null);
-        } else if (this.selectedTaskIds().length > 0) {
-          this.clearSelection();
-        } else if (this.selectedTaskId()) {
-          this.closeTaskDetail();
-        }
-      },
-    });
-
-    this.shortcutsService.register('board-view-kanban', {
-      key: '1',
-      description: 'Kanban view',
-      category: 'Board',
-      action: () => this.viewMode.set('kanban'),
-    });
-
-    this.shortcutsService.register('board-view-list', {
-      key: '2',
-      description: 'List view',
-      category: 'Board',
-      action: () => {
-        this.viewMode.set('list');
-        this.onViewModeChanged('list');
-      },
-    });
-
-    this.shortcutsService.register('board-view-calendar', {
-      key: '3',
-      description: 'Calendar view',
-      category: 'Board',
-      action: () => {
-        this.viewMode.set('calendar');
-        this.onViewModeChanged('calendar');
-      },
-    });
-
-    this.shortcutsService.register('board-view-gantt', {
-      key: '4',
-      description: 'Gantt view',
-      category: 'Board',
-      action: () => {
-        this.viewMode.set('gantt');
-        this.onViewModeChanged('gantt');
-      },
-    });
-
-    this.shortcutsService.register('board-view-reports', {
-      key: '5',
-      description: 'Reports view',
-      category: 'Board',
-      action: () => {
-        this.viewMode.set('reports');
-        this.onViewModeChanged('reports');
-      },
-    });
-
-    this.shortcutsService.register('board-view-time-report', {
-      key: '6',
-      description: 'Time report view',
-      category: 'Board',
-      action: () => {
-        this.viewMode.set('time-report');
-        this.onViewModeChanged('time-report');
-      },
-    });
   }
 }
