@@ -20,6 +20,7 @@ use tower_http::trace::TraceLayer;
 use crate::config::Config;
 use crate::middleware::auth_middleware;
 use crate::middleware::rate_limit::{rate_limit_layer, rate_limit_middleware};
+use crate::middleware::request_id::request_id_middleware;
 use crate::routes::{
     activity_log_router, admin_audit_router, admin_trash_router, admin_users_router,
     archive_router, attachment_router, automation_router, board_columns_router, board_router,
@@ -232,9 +233,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", automation_router(state.clone()))
         // Task templates
         .nest("/api", task_template_router(state.clone()))
-        // Phase 4: Import/export
-        .nest("/api", routes::export::export_router(state.clone()))
-        .nest("/api", routes::import::import_router(state.clone()))
+        // Phase 4: Import/export (stricter rate limit: 10 req/min)
+        .nest(
+            "/api",
+            routes::export::export_router(state.clone())
+                .layer(from_fn(rate_limit_middleware))
+                .layer(rate_limit_layer(10, 60)),
+        )
+        .nest(
+            "/api",
+            routes::import::import_router(state.clone())
+                .layer(from_fn(rate_limit_middleware))
+                .layer(rate_limit_layer(10, 60)),
+        )
         // Phase 4: Client portal (board shares)
         .nest("/api", board_share_router(state.clone()))
         .nest("/api", shared_board_public_router())
@@ -250,7 +261,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Phase 5: Favorites & Archive
         .nest("/api/favorites", favorites_router(state.clone()))
         .nest("/api", archive_router(state.clone()))
+        // Global rate limit on all routes (60 req/min per IP)
+        .layer(from_fn(rate_limit_middleware))
+        .layer(rate_limit_layer(60, 60))
         .layer(TraceLayer::new_for_http())
+        .layer(from_fn(request_id_middleware))
         .layer(CompressionLayer::new())
         .layer(cors)
         .with_state(state.clone());

@@ -1,4 +1,5 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -16,6 +17,7 @@ import { AuthService } from '../../../core/services/auth.service';
 @Component({
   selector: 'app-sign-in',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     ReactiveFormsModule,

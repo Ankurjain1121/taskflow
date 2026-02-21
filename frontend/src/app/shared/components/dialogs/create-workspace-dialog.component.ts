@@ -1,4 +1,5 @@
-import { Component, inject, model, output } from '@angular/core';
+import { Component, inject, model, output, ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -18,6 +19,7 @@ export interface CreateWorkspaceDialogResult {
 @Component({
   selector: 'app-create-workspace-dialog',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     ReactiveFormsModule,

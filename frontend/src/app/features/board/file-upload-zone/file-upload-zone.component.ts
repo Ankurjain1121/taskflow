@@ -5,6 +5,7 @@ import {
   signal,
   inject,
   OnDestroy,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
@@ -35,6 +36,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 @Component({
   selector: 'app-file-upload-zone',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, ButtonModule, ProgressBar, Toast, FileSizePipe],
   providers: [MessageService],
   template: `

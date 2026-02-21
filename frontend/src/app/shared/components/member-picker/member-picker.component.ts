@@ -5,6 +5,7 @@ import {
   output,
   signal,
   OnInit,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -18,6 +19,7 @@ import {
 @Component({
   selector: 'app-member-picker',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, AutoComplete],
   template: `
     <p-autoComplete

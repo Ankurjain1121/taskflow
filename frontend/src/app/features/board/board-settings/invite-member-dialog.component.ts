@@ -1,4 +1,5 @@
-import { Component, inject, input, output, model } from '@angular/core';
+import { Component, inject, input, output, model, ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -19,6 +20,7 @@ export interface InviteMemberDialogResult {
 @Component({
   selector: 'app-board-invite-member-dialog',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     ReactiveFormsModule,

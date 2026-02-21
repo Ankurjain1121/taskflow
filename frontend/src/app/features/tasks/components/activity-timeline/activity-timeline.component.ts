@@ -5,6 +5,7 @@ import {
   effect,
   inject,
   OnDestroy,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
@@ -20,6 +21,7 @@ import {
 @Component({
   selector: 'app-activity-timeline',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, ButtonModule, ProgressSpinnerModule],
   template: `
     <div class="relative">

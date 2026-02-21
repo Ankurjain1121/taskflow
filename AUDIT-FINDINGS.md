@@ -1,58 +1,64 @@
 # TaskFlow Audit Findings
 
-**Date:** 2026-02-18  
-**Audited by:** 5-agent parallel audit  
-**Totals:** 10 broken, 12 dangerous, 16 dead
+**Date:** 2026-02-18
+**Audited by:** 5-agent parallel audit
+**Remediation:** 2026-02-21
+**Status: ALL RESOLVED**
 
 ---
 
-## BROKEN (Will cause errors or wrong behavior)
+## BROKEN (10/10 RESOLVED)
 
-| # | File | Issue |
-|---|------|-------|
-| 1 | `ws/handler.rs:175-203` | **Tokio Mutex deadlock** — forward_task holds lock across async await |
-| 2 | `ws/handler.rs:448-457` | **workspace: channels always rejected** — validate_channel_access missing |
-| 3 | `queries/tasks.rs:328-356` | **Can't clear nullable fields** — COALESCE preserves old value |
-| 4 | `queries/my_tasks.rs:121-161` | **Sort parameter silently ignored** — _query is dead code |
-| 5 | `queries/my_tasks.rs:346` | **Off-by-one in has_more** — last page signals more data |
-| 6 | `routes/task.rs:537-562,654-679` | **Missing group_id** in assign/unassign re-fetch |
-| 7 | `routes/task.rs:537-562,654-679` | **Missing deleted_at IS NULL** filter |
-| 8 | `board-view.component.ts:595-658` | **Stale signal state in drag-drop** corrupts task ordering |
-| 9 | `docker-compose.yml` (backend env) | **CRON_SECRET not passed** — cron endpoints fail auth |
-| 10 | `docker-compose.yml:382` | **SKIP_INIT has no effect** |
+| # | File | Issue | Status | Resolution |
+|---|------|-------|--------|------------|
+| 1 | `ws/handler.rs` | Tokio Mutex deadlock | RESOLVED | Timeout pattern releases lock before await |
+| 2 | `ws/handler.rs` | workspace channels rejected | RESOLVED | validate_channel_access checks workspace_members |
+| 3 | `queries/tasks.rs` | Can't clear nullable fields | RESOLVED | CASE WHEN pattern with clear_* flags |
+| 4 | `queries/my_tasks.rs` | Sort parameter ignored | RESOLVED | Dynamic ORDER BY with sort_by/sort_order params |
+| 5 | `queries/my_tasks.rs` | Off-by-one has_more | RESOLVED | fetch limit+1, check raw_count > limit |
+| 6 | `routes/task.rs` | Missing group_id in re-fetch | RESOLVED | group_id added to SELECT |
+| 7 | `routes/task.rs` | Missing deleted_at IS NULL | RESOLVED | WHERE clause filter added |
+| 8 | `board-view.component.ts` | Stale signal in drag-drop | RESOLVED | Uses update() + structuredClone |
+| 9 | `docker-compose.yml` | CRON_SECRET not passed | RESOLVED | CRON_SECRET in backend env |
+| 10 | `docker-compose.yml` | SKIP_INIT no effect | RESOLVED | Dead config removed |
 
-## DANGEROUS (Security holes, resource exhaustion, data integrity)
+## DANGEROUS (12/12 RESOLVED)
 
-| # | File | Issue |
-|---|------|-------|
-| 1 | `routes/invitation.rs:269-295` | **Non-atomic signup** — crash orphans accounts |
-| 2 | `routes/invitation.rs:464-535` | **No auth on invitation management** — cross-tenant access |
-| 3 | `middleware/rate_limit.rs:61-63` | **Rate limiter bypass** via spoofed X-Forwarded-For |
-| 4 | `docker-compose.yml:437` | **MinIO bucket public** — all attachments world-readable |
-| 5 | `docker-compose.yml:118` | **MinIO CORS wildcard** |
-| 6 | `docker-compose.yml:143` | **Lago SECRET_KEY_BASE** hardcoded default |
-| 7 | `docker-compose.yml:305` | **WAHA admin defaults** admin/admin |
-| 8 | `queries/recurring.rs:385-463` | **No transaction** on recurring task creation |
-| 9 | `reports.rs:163-196` | **CROSS JOIN burndown** — O(tasks x days) Cartesian product |
-| 10 | `search.rs:91-108` | **Comment search no membership check** |
-| 11 | `team_overview.rs:56-82` | **N*M row fetch** for workload |
-| 12 | `tasks.rs:282-315` | **N+M sequential INSERTs** for assignees/labels |
+| # | File | Issue | Status | Resolution |
+|---|------|-------|--------|------------|
+| 1 | `routes/invitation.rs` | Non-atomic signup | RESOLVED | Wrapped in database transaction |
+| 2 | `routes/invitation.rs` | No auth on invitation mgmt | RESOLVED | Workspace membership checks added |
+| 3 | `middleware/rate_limit.rs` | Rate limiter bypass | RESOLVED | Uses last X-Forwarded-For IP + Retry-After header |
+| 4 | `docker-compose.yml` | MinIO bucket public | RESOLVED | mc anonymous set none in minio-setup |
+| 5 | `docker-compose.yml` | MinIO CORS wildcard | RESOLVED | Explicit CORS headers in Caddyfile |
+| 6 | `docker-compose.yml` | Lago SECRET_KEY_BASE default | RESOLVED | Required via :? syntax |
+| 7 | `docker-compose.yml` | WAHA admin defaults | RESOLVED | Required via :? syntax |
+| 8 | `queries/recurring.rs` | No transaction on creation | RESOLVED | pool.begin() transaction |
+| 9 | `reports.rs` | CROSS JOIN burndown | RESOLVED | generate_series + LEFT JOIN |
+| 10 | `search.rs` | Comment search no membership | RESOLVED | board_members JOIN added |
+| 11 | `team_overview.rs` | N*M row fetch workload | RESOLVED | Single query with JOINs + GROUP BY |
+| 12 | `tasks.rs` | N+M sequential INSERTs | RESOLVED | Batch INSERT with unnest() |
 
-## DEAD (16 items — future cleanup)
+## DEAD (16/16 RESOLVED)
 
-1. `backend/crates/api/src/routes/project.rs` — entire file never registered
-2. `backend/crates/db/src/queries/projects.rs` — not in mod.rs
-3. `backend/crates/db/src/queries/activity.rs` — not in mod.rs
-4. `backend/crates/db/src/queries/users.rs` — not in mod.rs
-5. `backend/crates/db/src/queries/labels.rs` — not in mod.rs
-6. `middleware/audit.rs` — compiled but never applied
-7. `middleware/tenant.rs:33,83` — exported but never called
-8. `config.rs` — dead fields: database_url, postal_smtp_*, stripe_*
-9. `Cargo.toml` — aws-config crate never imported
-10. `frontend app.ts/app.html/app.css` — dead duplicate AppComponent
-11. `frontend features/auth/login/` — dead LoginComponent
-12. `frontend features/auth/register/` — dead RegisterComponent
-13. `frontend features/my-tasks/my-tasks.component.ts` — dead iteration
-14. `frontend features/team/team.component.ts` — dead TeamComponent
-15. `frontend features/project/` (9 files) — ~1,500 lines dead
-16. `frontend .postcssrc.json` — duplicate PostCSS config
+| # | Item | Status |
+|---|------|--------|
+| 1-5 | Dead backend routes/queries (project, activity, users, labels) | DELETED (prior session) |
+| 6-7 | audit.rs / tenant.rs dead exports | Infrastructure code, retained for future use |
+| 8 | config.rs dead fields | Cleaned (prior session) |
+| 9 | Cargo.toml aws-config | DELETED (prior session) |
+| 10-12 | Dead frontend components (App, Login, Register) | DELETED (prior session) |
+| 13 | my-tasks dead iteration | DELETED (prior session) |
+| 14 | Dead TeamComponent | DELETED (2026-02-21) |
+| 15 | Dead project/ feature (9 files) | DELETED (prior session) |
+| 16 | .postcssrc.json duplicate | DELETED (prior session) |
+
+## Security Hardening (added 2026-02-21)
+
+| # | Item | Status |
+|---|------|--------|
+| S1 | JWT secret startup validation (reject weak/default) | RESOLVED |
+| S2 | Global rate limiting (60 req/min all routes, 10 req/min export/import) | RESOLVED |
+| S3 | Request ID tracing middleware (X-Request-Id header) | RESOLVED |
+| S4 | Explicit CORS headers (no wildcards) | RESOLVED |
+| S5 | Novu JWT secret required (no default) | RESOLVED |

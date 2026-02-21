@@ -1,37 +1,21 @@
 import {
   Component,
-  signal,
-  computed,
   inject,
   OnInit,
   OnDestroy,
   ChangeDetectionStrategy,
   HostListener,
+  signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Subject, takeUntil, forkJoin } from 'rxjs';
+import { Subject, takeUntil } from 'rxjs';
 import { CdkDropListGroup } from '@angular/cdk/drag-drop';
-import { generateKeyBetween } from 'fractional-indexing';
 
-import {
-  BoardService,
-  Board,
-  Column,
-  BoardMember,
-  BoardFullResponse,
-} from '../../../core/services/board.service';
-import {
-  TaskService,
-  Task,
-  Assignee,
-  TaskListItem,
-  Label,
-} from '../../../core/services/task.service';
-import {
-  TaskGroupService,
-  TaskGroupWithStats,
-} from '../../../core/services/task-group.service';
+import { Task } from '../../../core/services/task.service';
+import { TaskGroupWithStats } from '../../../core/services/task-group.service';
+import { WebSocketService } from '../../../core/services/websocket.service';
+
 import {
   CreateTaskDialogComponent,
   CreateTaskDialogResult,
@@ -44,11 +28,6 @@ import {
   CreateTaskGroupDialogComponent,
   CreateTaskGroupDialogResult,
 } from '../create-task-group-dialog/create-task-group-dialog.component';
-import { WebSocketService } from '../../../core/services/websocket.service';
-import {
-  MilestoneService,
-  Milestone,
-} from '../../../core/services/milestone.service';
 
 import {
   KanbanColumnComponent,
@@ -62,11 +41,7 @@ import {
 import { TaskDetailComponent } from '../task-detail/task-detail.component';
 import { ListViewComponent } from '../list-view/list-view.component';
 import { CalendarViewComponent } from '../calendar-view/calendar-view.component';
-import {
-  GanttViewComponent,
-  GanttTask,
-  GanttDependency,
-} from '../gantt-view/gantt-view.component';
+import { GanttViewComponent } from '../gantt-view/gantt-view.component';
 import { ReportsViewComponent } from '../reports-view/reports-view.component';
 import { TimeReportComponent } from '../time-report/time-report.component';
 import {
@@ -75,11 +50,12 @@ import {
 } from '../bulk-actions/bulk-actions-bar.component';
 import { TaskGroupHeaderComponent } from '../task-group-header/task-group-header.component';
 import { ShortcutHelpComponent } from '../../../shared/components/shortcut-help/shortcut-help.component';
-import { DependencyService } from '../../../core/services/dependency.service';
 
 import { BoardShortcutsService } from './board-shortcuts.service';
 import { BoardBulkActionsService } from './board-bulk-actions.service';
-import { BoardWsHandlerService } from './board-ws-handler.service';
+import { BoardStateService } from './board-state.service';
+import { BoardWebsocketHandler } from './board-websocket.handler';
+import { BoardDragDropHandler } from './board-drag-drop.handler';
 
 @Component({
   selector: 'app-board-view',
@@ -103,7 +79,13 @@ import { BoardWsHandlerService } from './board-ws-handler.service';
     TaskGroupHeaderComponent,
     ShortcutHelpComponent,
   ],
-  providers: [BoardShortcutsService, BoardBulkActionsService, BoardWsHandlerService],
+  providers: [
+    BoardShortcutsService,
+    BoardBulkActionsService,
+    BoardStateService,
+    BoardWebsocketHandler,
+    BoardDragDropHandler,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="h-screen flex flex-col bg-[var(--background)]">
@@ -112,11 +94,11 @@ import { BoardWsHandlerService } from './board-ws-handler.service';
         <div class="flex items-center justify-between">
           <div>
             <h1 class="text-2xl font-bold text-[var(--foreground)]">
-              {{ board()?.name || 'Loading...' }}
+              {{ state.board()?.name || 'Loading...' }}
             </h1>
-            @if (board()?.description) {
+            @if (state.board()?.description) {
               <p class="text-sm text-[var(--muted-foreground)] mt-1">
-                {{ board()?.description }}
+                {{ state.board()?.description }}
               </p>
             }
           </div>
@@ -201,18 +183,18 @@ import { BoardWsHandlerService } from './board-ws-handler.service';
 
       <!-- Toolbar -->
       <app-board-toolbar
-        [assignees]="allAssignees()"
+        [assignees]="state.allAssignees()"
         [viewMode]="viewMode()"
         (filtersChanged)="onFiltersChanged($event)"
         (viewModeChanged)="onViewModeChanged($event)"
       ></app-board-toolbar>
 
       <!-- Task Group Headers -->
-      @if (boardGroups().length > 1) {
+      @if (state.boardGroups().length > 1) {
         <div
           class="px-4 py-2 bg-[var(--card)] border-b border-[var(--border)] space-y-1"
         >
-          @for (group of boardGroups(); track group.group.id) {
+          @for (group of state.boardGroups(); track group.group.id) {
             <app-task-group-header
               [groupData]="group"
               (nameChange)="onGroupNameChange(group.group.id, $event)"
@@ -225,7 +207,7 @@ import { BoardWsHandlerService } from './board-ws-handler.service';
       }
 
       <!-- Board Content -->
-      @if (loading()) {
+      @if (state.loading()) {
         <div class="flex-1 overflow-x-auto p-4">
           <div class="flex gap-2 h-full">
             @for (i of [1, 2, 3, 4]; track i) {
@@ -259,8 +241,8 @@ import { BoardWsHandlerService } from './board-ws-handler.service';
         <!-- List View -->
         <div class="flex-1 overflow-y-auto">
           <app-list-view
-            [tasks]="flatTasks()"
-            [loading]="listLoading()"
+            [tasks]="state.flatTasks()"
+            [loading]="state.listLoading()"
             (taskClicked)="onListTaskClicked($event)"
           ></app-list-view>
         </div>
@@ -276,8 +258,8 @@ import { BoardWsHandlerService } from './board-ws-handler.service';
         <!-- Gantt Chart View -->
         <div class="flex-1 overflow-hidden">
           <app-gantt-view
-            [tasks]="ganttTasks()"
-            [dependencies]="boardDependencies()"
+            [tasks]="state.ganttTasks()"
+            [dependencies]="state.boardDependencies()"
             (taskClicked)="onListTaskClicked($event)"
           ></app-gantt-view>
         </div>
@@ -295,13 +277,13 @@ import { BoardWsHandlerService } from './board-ws-handler.service';
         <!-- Kanban Board -->
         <div class="flex-1 overflow-x-auto p-4" cdkDropListGroup>
           <div class="flex gap-2 h-full">
-            @for (column of columns(); track column.id) {
+            @for (column of state.columns(); track column.id) {
               <app-kanban-column
                 [column]="column"
                 [tasks]="getFilteredTasksForColumn(column.id)"
-                [connectedLists]="connectedColumnIds()"
-                [celebratingTaskId]="celebratingTaskId()"
-                [focusedTaskId]="focusedTaskId()"
+                [connectedLists]="state.connectedColumnIds()"
+                [celebratingTaskId]="state.celebratingTaskId()"
+                [focusedTaskId]="state.focusedTaskId()"
                 (taskMoved)="onTaskMoved($event)"
                 (taskClicked)="onTaskClicked($event)"
                 (addTaskClicked)="onAddTaskToColumn($event)"
@@ -335,9 +317,9 @@ import { BoardWsHandlerService } from './board-ws-handler.service';
       }
 
       <!-- Task Detail Panel -->
-      @if (selectedTaskId()) {
+      @if (state.selectedTaskId()) {
         <app-task-detail
-          [taskId]="selectedTaskId()!"
+          [taskId]="state.selectedTaskId()!"
           [workspaceId]="workspaceId"
           [boardId]="boardId"
           (closed)="closeTaskDetail()"
@@ -346,12 +328,12 @@ import { BoardWsHandlerService } from './board-ws-handler.service';
       }
 
       <!-- Bulk Actions Bar -->
-      @if (selectedTaskIds().length > 0) {
+      @if (state.selectedTaskIds().length > 0) {
         <app-bulk-actions-bar
-          [selectedCount]="selectedTaskIds().length"
-          [columns]="columns()"
-          [milestones]="boardMilestones()"
-          [groups]="boardGroups()"
+          [selectedCount]="state.selectedTaskIds().length"
+          [columns]="state.columns()"
+          [milestones]="state.boardMilestones()"
+          [groups]="state.boardGroups()"
           (bulkAction)="onBulkAction($event)"
           (cancelSelection)="clearSelection()"
         ></app-bulk-actions-bar>
@@ -385,12 +367,12 @@ import { BoardWsHandlerService } from './board-ws-handler.service';
       />
 
       <!-- Snackbar for errors -->
-      @if (errorMessage()) {
+      @if (state.errorMessage()) {
         <div
           class="fixed bottom-4 right-4 bg-[var(--destructive)] text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3"
         >
-          <span>{{ errorMessage() }}</span>
-          <button (click)="clearError()" class="hover:opacity-70">
+          <span>{{ state.errorMessage() }}</span>
+          <button (click)="state.clearError()" class="hover:opacity-70">
             <svg
               class="w-5 h-5"
               fill="none"
@@ -413,46 +395,18 @@ import { BoardWsHandlerService } from './board-ws-handler.service';
 export class BoardViewComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private boardService = inject(BoardService);
-  private taskService = inject(TaskService);
-  private taskGroupService = inject(TaskGroupService);
   private wsService = inject(WebSocketService);
-  private dependencyService = inject(DependencyService);
-  private milestoneService = inject(MilestoneService);
   private shortcutsService = inject(BoardShortcutsService);
   private bulkActionsService = inject(BoardBulkActionsService);
-  private wsHandler = inject(BoardWsHandlerService);
+  private wsHandler = inject(BoardWebsocketHandler);
+  private dragDrop = inject(BoardDragDropHandler);
+  readonly state = inject(BoardStateService);
   private destroy$ = new Subject<void>();
 
   workspaceId = '';
   boardId = '';
 
-  loading = signal(true);
-  board = signal<Board | null>(null);
-  columns = signal<Column[]>([]);
-  boardState = signal<Record<string, Task[]>>({});
   viewMode = signal<ViewMode>('kanban');
-  flatTasks = signal<TaskListItem[]>([]);
-  ganttTasks = signal<GanttTask[]>([]);
-  boardDependencies = signal<GanttDependency[]>([]);
-  listLoading = signal(false);
-  filters = signal<TaskFilters>({
-    search: '',
-    priorities: [],
-    assigneeIds: [],
-    dueDateStart: null,
-    dueDateEnd: null,
-    labelIds: [],
-  });
-  celebratingTaskId = signal<string | null>(null);
-  focusedTaskId = signal<string | null>(null);
-  selectedTaskId = signal<string | null>(null);
-  selectedTaskIds = signal<string[]>([]);
-  selectionMode = signal(false);
-  errorMessage = signal<string | null>(null);
-  boardMembers = signal<BoardMember[]>([]);
-  boardMilestones = signal<Milestone[]>([]);
-  boardGroups = signal<TaskGroupWithStats[]>([]);
 
   // Dialog visibility state
   showCreateTaskDialog = false;
@@ -468,87 +422,18 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   showCreateColumnDialog = false;
   showCreateGroupDialog = false;
 
-  collapsedGroupIds = computed(() => {
-    return new Set(
-      this.boardGroups()
-        .filter((g) => g.group.collapsed)
-        .map((g) => g.group.id),
-    );
-  });
-
-  filteredBoardState = computed(() => {
-    const state = this.boardState();
-    const f = this.filters();
-    const collapsed = this.collapsedGroupIds();
-
-    const result: Record<string, Task[]> = {};
-
-    for (const [columnId, tasks] of Object.entries(state)) {
-      result[columnId] = this.filterTasks(tasks, f).filter(
-        (t) => !t.group_id || !collapsed.has(t.group_id),
-      );
-    }
-
-    return result;
-  });
-
-  allAssignees = computed(() => {
-    const assigneeMap = new Map<string, Assignee>();
-    const state = this.boardState();
-
-    for (const tasks of Object.values(state)) {
-      if (!Array.isArray(tasks)) continue;
-      for (const task of tasks) {
-        if (Array.isArray(task.assignees)) {
-          for (const assignee of task.assignees) {
-            assigneeMap.set(assignee.id, assignee);
-          }
-        }
-      }
-    }
-
-    return Array.from(assigneeMap.values());
-  });
-
-  allLabels = computed(() => {
-    const labelMap = new Map<string, Label>();
-    const state = this.boardState();
-
-    for (const tasks of Object.values(state)) {
-      if (!Array.isArray(tasks)) continue;
-      for (const task of tasks) {
-        if (Array.isArray(task.labels)) {
-          for (const label of task.labels) {
-            labelMap.set(label.id, label);
-          }
-        }
-      }
-    }
-
-    return Array.from(labelMap.values());
-  });
-
-  connectedColumnIds = computed(() => {
-    return this.columns().map((col) => 'column-' + col.id);
-  });
-
   ngOnInit(): void {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
       this.workspaceId = params['workspaceId'];
       this.boardId = params['boardId'];
-      this.loadBoard();
+      this.state.loadBoard(this.boardId, this.destroy$);
     });
 
     this.wsService.connect();
     this.wsService.messages$
       .pipe(takeUntil(this.destroy$))
       .subscribe((message) => {
-        this.wsHandler.handleMessage(message, {
-          onTaskCreated: (task) => this.handleTaskCreated(task),
-          onTaskUpdated: (task) => this.handleTaskUpdated(task),
-          onTaskMoved: (task) => this.handleTaskMoved(task),
-          onTaskDeleted: (task) => this.handleTaskDeleted(task),
-        });
+        this.wsHandler.handleMessage(message);
       });
 
     this.shortcutsService.registerShortcuts({
@@ -556,10 +441,10 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       closePanel: () => this.closeTaskDetail(),
       clearSelection: () => this.clearSelection(),
       closeTaskDetail: () => this.closeTaskDetail(),
-      getFocusedTaskId: () => this.focusedTaskId(),
-      setFocusedTaskId: (id) => this.focusedTaskId.set(id),
-      getSelectedTaskIds: () => this.selectedTaskIds(),
-      getSelectedTaskId: () => this.selectedTaskId(),
+      getFocusedTaskId: () => this.state.focusedTaskId(),
+      setFocusedTaskId: (id) => this.state.focusedTaskId.set(id),
+      getSelectedTaskIds: () => this.state.selectedTaskIds(),
+      getSelectedTaskId: () => this.state.selectedTaskId(),
       setViewMode: (mode) => this.viewMode.set(mode),
       onViewModeChanged: (mode) => this.onViewModeChanged(mode),
     });
@@ -573,32 +458,20 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   getFilteredTasksForColumn(columnId: string): Task[] {
-    return this.filteredBoardState()[columnId] || [];
+    return this.state.filteredBoardState()[columnId] || [];
   }
 
   onFiltersChanged(filters: TaskFilters): void {
-    this.filters.set(filters);
+    this.state.filters.set(filters);
   }
 
   onViewModeChanged(mode: ViewMode): void {
     this.viewMode.set(mode);
     if (mode === 'list') {
-      this.loadFlatTasks();
+      this.state.loadFlatTasks(this.boardId, this.destroy$);
     } else if (mode === 'gantt') {
-      this.loadGanttData();
+      this.state.loadGanttData(this.boardId);
     }
-  }
-
-  private loadGanttData(): void {
-    forkJoin({
-      tasks: this.taskService.listGanttTasks(this.boardId),
-      deps: this.dependencyService.getBoardDependencies(this.boardId),
-    }).subscribe({
-      next: ({ tasks, deps }) => {
-        this.ganttTasks.set(tasks as unknown as GanttTask[]);
-        this.boardDependencies.set(deps as unknown as GanttDependency[]);
-      },
-    });
   }
 
   onListTaskClicked(taskId: string): void {
@@ -606,71 +479,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   onTaskMoved(event: TaskMoveEvent): void {
-    const snapshot = structuredClone(this.boardState());
-
-    const filteredTarget = this.filterTasks(
-      snapshot[event.targetColumnId] || [],
-      this.filters(),
-    ).filter((t) => t.id !== event.task.id);
-
-    const beforeTask =
-      event.currentIndex > 0 ? filteredTarget[event.currentIndex - 1] : null;
-    const afterTask =
-      event.currentIndex < filteredTarget.length
-        ? filteredTarget[event.currentIndex]
-        : null;
-
-    const beforePos = beforeTask?.position ?? null;
-    const afterPos = afterTask?.position ?? null;
-
-    let newPosition: string;
-    try {
-      newPosition = generateKeyBetween(beforePos, afterPos);
-    } catch {
-      newPosition = Date.now().toString();
-    }
-
-    this.boardState.update((state) => {
-      const newState: Record<string, Task[]> = {};
-
-      for (const [columnId, tasks] of Object.entries(state)) {
-        newState[columnId] = tasks.filter((t) => t.id !== event.task.id);
-      }
-
-      const updatedTask = {
-        ...event.task,
-        column_id: event.targetColumnId,
-        position: newPosition,
-      };
-      const targetTasks = [...(newState[event.targetColumnId] || [])];
-      targetTasks.splice(event.currentIndex, 0, updatedTask);
-      newState[event.targetColumnId] = targetTasks;
-
-      return newState;
-    });
-
-    const targetColumn = this.columns().find(
-      (c) => c.id === event.targetColumnId,
-    );
-    if (
-      targetColumn?.status_mapping?.done &&
-      event.previousColumnId !== event.targetColumnId
-    ) {
-      this.celebratingTaskId.set(event.task.id);
-      setTimeout(() => this.celebratingTaskId.set(null), 1200);
-    }
-
-    this.taskService
-      .moveTask(event.task.id, {
-        column_id: event.targetColumnId,
-        position: newPosition,
-      })
-      .subscribe({
-        error: () => {
-          this.boardState.set(snapshot);
-          this.showError('Failed to move task. Reverted.');
-        },
-      });
+    this.dragDrop.onTaskMoved(event);
   }
 
   onTaskClicked(task: Task): void {
@@ -678,51 +487,44 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   closeTaskDetail(): void {
-    this.selectedTaskId.set(null);
+    this.state.selectedTaskId.set(null);
   }
 
   onTaskUpdated(task: Task): void {
-    this.boardState.update((state) => {
-      const newState = { ...state };
-      const columnTasks = newState[task.column_id];
-      if (columnTasks) {
-        newState[task.column_id] = columnTasks.map((t) =>
-          t.id === task.id ? task : t,
-        );
-      }
-      return newState;
-    });
+    this.state.updateTaskInState(task);
   }
 
+  // === Create Task Dialog ===
+
   onCreateTask(): void {
-    const firstColumn = this.columns()[0];
+    const firstColumn = this.state.columns()[0];
     if (firstColumn) {
       this.onAddTaskToColumn(firstColumn.id);
     }
   }
 
   onAddTaskToColumn(columnId: string): void {
-    const column = this.columns().find((c) => c.id === columnId);
+    const column = this.state.columns().find((c) => c.id === columnId);
     if (!column) return;
 
     this.createTaskDialogColumnId = columnId;
     this.createTaskDialogColumnName = column.name;
-    this.createTaskDialogMembers = this.boardMembers().map((m) => ({
+    this.createTaskDialogMembers = this.state.boardMembers().map((m) => ({
       id: m.user_id,
       name: m.name || m.email || 'Unknown',
       avatar_url: m.avatar_url ?? undefined,
     }));
-    this.createTaskDialogLabels = this.allLabels().map((l) => ({
+    this.createTaskDialogLabels = this.state.allLabels().map((l) => ({
       id: l.id,
       name: l.name,
       color: l.color,
     }));
-    this.createTaskDialogMilestones = this.boardMilestones().map((m) => ({
+    this.createTaskDialogMilestones = this.state.boardMilestones().map((m) => ({
       id: m.id,
       name: m.name,
       color: m.color,
     }));
-    this.createTaskDialogGroups = this.boardGroups().map((g) => ({
+    this.createTaskDialogGroups = this.state.boardGroups().map((g) => ({
       id: g.group.id,
       name: g.group.name,
       color: g.group.color,
@@ -731,72 +533,17 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   onCreateTaskResult(result: CreateTaskDialogResult): void {
-    this.createTask(this.createTaskDialogColumnId, result);
+    this.state.createTask(this.boardId, this.createTaskDialogColumnId, result);
   }
 
-  private createTask(columnId: string, taskData: CreateTaskDialogResult): void {
-    this.taskService
-      .createTask(this.boardId, {
-        title: taskData.title,
-        description: taskData.description,
-        priority: taskData.priority,
-        column_id: columnId,
-        due_date: taskData.due_date,
-        start_date: taskData.start_date,
-        estimated_hours: taskData.estimated_hours,
-        group_id: taskData.group_id,
-        milestone_id: taskData.milestone_id,
-        assignee_ids: taskData.assignee_ids,
-        label_ids: taskData.label_ids,
-      })
-      .subscribe({
-        next: (task) => {
-          this.boardState.update((state) => {
-            const newState = { ...state };
-            const columnTasks = newState[columnId] || [];
-            newState[columnId] = [...columnTasks, task].sort((a, b) =>
-              a.position.localeCompare(b.position),
-            );
-            return newState;
-          });
-        },
-        error: () => {
-          this.showError('Failed to create task');
-        },
-      });
-  }
+  // === Create Column Dialog ===
 
   onAddColumn(): void {
     this.showCreateColumnDialog = true;
   }
 
   onCreateColumnResult(result: CreateColumnDialogResult): void {
-    this.createColumn(result);
-  }
-
-  private createColumn(columnData: CreateColumnDialogResult): void {
-    this.boardService
-      .createColumn(this.boardId, {
-        name: columnData.name,
-        color: columnData.color,
-        status_mapping: columnData.isDone ? { done: true } : undefined,
-      })
-      .subscribe({
-        next: (column) => {
-          this.columns.update((cols) =>
-            [...cols, column].sort((a, b) =>
-              a.position.localeCompare(b.position),
-            ),
-          );
-          this.boardState.update((state) => ({
-            ...state,
-            [column.id]: [],
-          }));
-        },
-        error: () => {
-          this.showError('Failed to create column');
-        },
-      });
+    this.state.createColumn(this.boardId, result);
   }
 
   // === Task Group Operations ===
@@ -806,114 +553,42 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   onCreateGroupResult(result: CreateTaskGroupDialogResult): void {
-    const groups = this.boardGroups();
-    const lastGroup = groups[groups.length - 1];
-    const position = generateKeyBetween(
-      lastGroup?.group.position ?? null,
-      null,
-    );
-
-    this.taskGroupService
-      .createGroup(this.boardId, {
-        board_id: this.boardId,
-        name: result.name,
-        color: result.color,
-        position,
-      })
-      .subscribe({
-        next: () => this.reloadGroups(),
-        error: () => this.showError('Failed to create group'),
-      });
+    this.state.createGroup(this.boardId, result);
   }
 
   onGroupNameChange(groupId: string, name: string): void {
-    this.taskGroupService.updateGroup(groupId, { name }).subscribe({
-      next: () => this.reloadGroups(),
-      error: () => this.showError('Failed to rename group'),
-    });
+    this.state.updateGroupName(this.boardId, groupId, name);
   }
 
   onGroupColorChange(groupId: string, color: string): void {
-    this.taskGroupService.updateGroup(groupId, { color }).subscribe({
-      next: () => this.reloadGroups(),
-      error: () => this.showError('Failed to update group color'),
-    });
+    this.state.updateGroupColor(this.boardId, groupId, color);
   }
 
   onGroupToggleCollapse(group: TaskGroupWithStats): void {
-    const newCollapsed = !group.group.collapsed;
-
-    this.boardGroups.update((groups) =>
-      groups.map((g) =>
-        g.group.id === group.group.id
-          ? { ...g, group: { ...g.group, collapsed: newCollapsed } }
-          : g,
-      ),
-    );
-
-    this.taskGroupService
-      .toggleCollapse(group.group.id, newCollapsed)
-      .subscribe({
-        error: () => {
-          this.boardGroups.update((groups) =>
-            groups.map((g) =>
-              g.group.id === group.group.id
-                ? { ...g, group: { ...g.group, collapsed: !newCollapsed } }
-                : g,
-            ),
-          );
-          this.showError('Failed to toggle group');
-        },
-      });
+    this.state.toggleGroupCollapse(group);
   }
 
   onGroupDelete(groupId: string): void {
-    this.taskGroupService.deleteGroup(groupId).subscribe({
-      next: () => {
-        this.reloadGroups();
-        this.loadBoard();
-      },
-      error: () => this.showError('Failed to delete group'),
-    });
-  }
-
-  private reloadGroups(): void {
-    this.taskGroupService.listGroupsWithStats(this.boardId).subscribe({
-      next: (groups) => this.boardGroups.set(groups),
-    });
-  }
-
-  clearError(): void {
-    this.errorMessage.set(null);
+    this.state.deleteGroup(this.boardId, groupId);
   }
 
   // === Bulk Operations ===
 
-  toggleTaskSelection(taskId: string): void {
-    const current = this.selectedTaskIds();
-    if (current.includes(taskId)) {
-      this.selectedTaskIds.set(current.filter((id) => id !== taskId));
-    } else {
-      this.selectedTaskIds.set([...current, taskId]);
-    }
-  }
-
   clearSelection(): void {
-    this.selectedTaskIds.set([]);
-    this.selectionMode.set(false);
+    this.state.clearSelection();
   }
 
   onBulkAction(action: BulkAction): void {
     this.bulkActionsService.executeBulkAction(
       this.boardId,
       action,
-      this.selectedTaskIds(),
+      this.state.selectedTaskIds(),
       {
         onSuccess: () => {
-          this.clearSelection();
-          this.loadBoard();
+          this.state.clearSelection();
+          this.state.loadBoard(this.boardId, this.destroy$);
         },
-        onError: (message) => this.showError(message),
+        onError: (message) => this.state.showError(message),
       },
     );
   }
@@ -925,247 +600,11 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     this.shortcutsService.handleKeydown(
       event,
       this.viewMode(),
-      this.focusedTaskId(),
+      this.state.focusedTaskId(),
       {
-        navigateCard: (direction) => this.navigateCard(direction),
-        openFocusedTask: () => this.openFocusedTask(),
+        navigateCard: (direction) => this.dragDrop.navigateCard(direction),
+        openFocusedTask: () => this.dragDrop.openFocusedTask(),
       },
     );
-  }
-
-  private navigateCard(direction: number): void {
-    const allTasks = this.getAllVisibleTasks();
-    if (allTasks.length === 0) return;
-
-    const currentId = this.focusedTaskId();
-    const currentIndex = currentId
-      ? allTasks.findIndex((t) => t.id === currentId)
-      : -1;
-
-    const nextIndex = Math.max(
-      0,
-      Math.min(allTasks.length - 1, currentIndex + direction),
-    );
-    const nextTaskId = allTasks[nextIndex].id;
-    this.focusedTaskId.set(nextTaskId);
-
-    setTimeout(() => {
-      const el = document.querySelector(`[data-task-id="${nextTaskId}"]`);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 0);
-  }
-
-  private getAllVisibleTasks(): Task[] {
-    const cols = this.columns();
-    const filtered = this.filteredBoardState();
-    const tasks: Task[] = [];
-
-    for (const col of cols) {
-      const colTasks = filtered[col.id] || [];
-      tasks.push(...colTasks);
-    }
-
-    return tasks;
-  }
-
-  private openFocusedTask(): void {
-    const taskId = this.focusedTaskId();
-    if (taskId) {
-      this.router.navigate(['/task', taskId]);
-    }
-  }
-
-  private loadFlatTasks(): void {
-    this.listLoading.set(true);
-    this.taskService
-      .listFlat(this.boardId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (tasks) => {
-          this.flatTasks.set(tasks);
-          this.listLoading.set(false);
-        },
-        error: () => {
-          this.listLoading.set(false);
-          this.showError('Failed to load task list');
-        },
-      });
-  }
-
-  private loadBoard(): void {
-    this.loading.set(true);
-
-    this.boardService.getBoardFull(this.boardId).subscribe({
-      next: (response: BoardFullResponse) => {
-        this.board.set(response.board);
-        this.columns.set(
-          [...response.board.columns].sort((a, b) =>
-            a.position.localeCompare(b.position),
-          ),
-        );
-
-        const tasksByColumn: Record<string, Task[]> = {};
-        for (const col of response.board.columns) {
-          tasksByColumn[col.id] = [];
-        }
-        for (const t of response.tasks) {
-          const task: Task = {
-            id: t.id,
-            column_id: t.column_id,
-            group_id: t.group_id,
-            title: t.title,
-            description: t.description,
-            priority: t.priority as Task['priority'],
-            position: t.position,
-            milestone_id: t.milestone_id,
-            assignee_id: null,
-            due_date: t.due_date,
-            created_by: t.created_by_id,
-            created_at: t.created_at,
-            updated_at: t.updated_at,
-            assignees: t.assignees,
-            labels: t.labels as Label[],
-            subtask_completed: t.subtask_completed,
-            subtask_total: t.subtask_total,
-            has_running_timer: t.has_running_timer,
-            comment_count: t.comment_count,
-          };
-          if (!tasksByColumn[t.column_id]) {
-            tasksByColumn[t.column_id] = [];
-          }
-          tasksByColumn[t.column_id].push(task);
-        }
-        for (const colId of Object.keys(tasksByColumn)) {
-          tasksByColumn[colId].sort((a, b) =>
-            a.position.localeCompare(b.position),
-          );
-        }
-        this.boardState.set(tasksByColumn);
-
-        this.boardMembers.set(response.members);
-        this.loading.set(false);
-
-        this.wsService.send('subscribe', { channel: `board:${this.boardId}` });
-      },
-      error: () => {
-        this.loading.set(false);
-        this.showError('Failed to load board');
-      },
-    });
-
-    this.milestoneService.list(this.boardId).subscribe({
-      next: (milestones) => this.boardMilestones.set(milestones),
-    });
-    this.taskGroupService.listGroupsWithStats(this.boardId).subscribe({
-      next: (groups) => this.boardGroups.set(groups),
-    });
-  }
-
-  private filterTasks(tasks: Task[], filters: TaskFilters): Task[] {
-    return tasks.filter((task) => {
-      if (
-        filters.search &&
-        !task.title.toLowerCase().includes(filters.search.toLowerCase())
-      ) {
-        return false;
-      }
-
-      if (
-        filters.priorities.length > 0 &&
-        !filters.priorities.includes(task.priority)
-      ) {
-        return false;
-      }
-
-      if (filters.assigneeIds.length > 0) {
-        const taskAssigneeIds = task.assignees?.map((a) => a.id) || [];
-        const hasMatchingAssignee = filters.assigneeIds.some((id) =>
-          taskAssigneeIds.includes(id),
-        );
-        if (!hasMatchingAssignee) {
-          return false;
-        }
-      }
-
-      if (filters.dueDateStart || filters.dueDateEnd) {
-        if (!task.due_date) {
-          return false;
-        }
-        const dueDate = new Date(task.due_date);
-        if (filters.dueDateStart && dueDate < new Date(filters.dueDateStart)) {
-          return false;
-        }
-        if (filters.dueDateEnd && dueDate > new Date(filters.dueDateEnd)) {
-          return false;
-        }
-      }
-
-      if (filters.labelIds.length > 0) {
-        const taskLabelIds = task.labels?.map((l) => l.id) || [];
-        const hasMatchingLabel = filters.labelIds.some((id) =>
-          taskLabelIds.includes(id),
-        );
-        if (!hasMatchingLabel) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }
-
-  // === WebSocket Handlers ===
-
-  private handleTaskCreated(task: Task): void {
-    this.boardState.update((state) => {
-      const newState = { ...state };
-      const columnTasks = newState[task.column_id] || [];
-      newState[task.column_id] = [...columnTasks, task].sort((a, b) =>
-        a.position.localeCompare(b.position),
-      );
-      return newState;
-    });
-  }
-
-  private handleTaskUpdated(task: Task): void {
-    this.boardState.update((state) => {
-      const newState = { ...state };
-      for (const [columnId, tasks] of Object.entries(newState)) {
-        newState[columnId] = tasks.map((t) => (t.id === task.id ? task : t));
-      }
-      return newState;
-    });
-  }
-
-  private handleTaskMoved(task: Task): void {
-    this.boardState.update((state) => {
-      const newState = { ...state };
-
-      for (const [columnId, tasks] of Object.entries(newState)) {
-        newState[columnId] = tasks.filter((t) => t.id !== task.id);
-      }
-
-      const columnTasks = newState[task.column_id] || [];
-      newState[task.column_id] = [...columnTasks, task].sort((a, b) =>
-        a.position.localeCompare(b.position),
-      );
-
-      return newState;
-    });
-  }
-
-  private handleTaskDeleted(task: Task): void {
-    this.boardState.update((state) => {
-      const newState = { ...state };
-      for (const [columnId, tasks] of Object.entries(newState)) {
-        newState[columnId] = tasks.filter((t) => t.id !== task.id);
-      }
-      return newState;
-    });
-  }
-
-  private showError(message: string): void {
-    this.errorMessage.set(message);
-    setTimeout(() => this.clearError(), 5000);
   }
 }

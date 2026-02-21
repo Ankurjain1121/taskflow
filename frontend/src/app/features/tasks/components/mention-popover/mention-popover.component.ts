@@ -8,6 +8,7 @@ import {
   HostListener,
   inject,
   OnDestroy,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -37,6 +38,7 @@ export interface MemberSelectedEvent {
 @Component({
   selector: 'app-mention-popover',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, ProgressSpinnerModule],
   template: `
     <div

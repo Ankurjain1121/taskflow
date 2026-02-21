@@ -1,4 +1,5 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, ChangeDetectionStrategy,
+} from '@angular/core';
 
 import { RouterLink } from '@angular/router';
 import { TableModule } from 'primeng/table';
@@ -29,6 +30,7 @@ interface PreferenceRow {
 @Component({
   selector: 'app-notification-preferences',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     RouterLink,
     FormsModule,

@@ -7,6 +7,7 @@ import {
   OnDestroy,
   Pipe,
   PipeTransform,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -68,6 +69,7 @@ interface CommentCreatedPayload {
 @Component({
   selector: 'app-comment-list',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     ProgressSpinnerModule,

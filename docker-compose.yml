@@ -140,7 +140,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${LAGO_DB:-lago}
       REDIS_URL: redis://redis:6379/1
-      SECRET_KEY_BASE: ${LAGO_SECRET_KEY:-}
+      SECRET_KEY_BASE: ${LAGO_SECRET_KEY:?LAGO_SECRET_KEY must be set in .env}
       RAILS_ENV: production
       RAILS_LOG_TO_STDOUT: "true"
       LAGO_API_URL: http://lago-api:3000
@@ -205,7 +205,7 @@ services:
       REDIS_DB_INDEX: 2
       API_ROOT_URL: http://localhost:3001
       DISABLE_USER_REGISTRATION: "false"
-      JWT_SECRET: ${NOVU_JWT_SECRET:-your-novu-jwt-secret-change-in-production}  # WARNING: Change in production!
+      JWT_SECRET: ${NOVU_JWT_SECRET:?NOVU_JWT_SECRET must be set in .env}
     depends_on:
       mongodb:
         condition: service_healthy
@@ -301,8 +301,8 @@ services:
       WHATSAPP_HOOK_URL: http://backend:8080/api/webhooks/whatsapp
       WHATSAPP_HOOK_EVENTS: message,session.status
       WAHA_DASHBOARD_ENABLED: "true"
-      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USER:-}
-      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:-}
+      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USER:?WAHA_DASHBOARD_USER must be set in .env}
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:?WAHA_DASHBOARD_PASSWORD must be set in .env}
       WAHA_LOG_LEVEL: info
     ports:
       - "${WAHA_PORT:-3002}:3000"
@@ -353,8 +353,8 @@ services:
       PORT: 8080
       RUST_LOG: ${RUST_LOG:-info,sqlx=warn,tower_http=debug}
       # Auth
-      JWT_SECRET: ${JWT_SECRET:-your-jwt-secret-change-in-production}  # WARNING: Change in production!
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-jwt-refresh-secret-change-in-production}  # WARNING: Change in production!
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET must be set in .env}
       JWT_ACCESS_EXPIRY_SECS: ${JWT_ACCESS_EXPIRY_SECS:-900}
       JWT_REFRESH_EXPIRY_SECS: ${JWT_REFRESH_EXPIRY_SECS:-604800}
       # Redis
@@ -381,7 +381,6 @@ services:
       CRON_SECRET: ${CRON_SECRET:-}
       # App
       APP_URL: ${APP_URL:-http://localhost:4200}
-      SKIP_INIT: ${SKIP_INIT:-false}
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -436,7 +435,8 @@ services:
         sleep 2;
       done;
       mc mb myminio/$${MINIO_BUCKET} --ignore-existing;
-      echo 'MinIO setup complete!';
+      mc anonymous set none myminio/$${MINIO_BUCKET};
+      echo 'MinIO setup complete (bucket is private, use presigned URLs for access)!';
       "
     environment:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}

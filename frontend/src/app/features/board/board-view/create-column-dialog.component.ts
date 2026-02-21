@@ -1,4 +1,5 @@
-import { Component, inject, signal, model, output } from '@angular/core';
+import { Component, inject, signal, model, output, ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -17,6 +18,7 @@ export interface CreateColumnDialogResult {
 @Component({
   selector: 'app-create-column-dialog',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     ReactiveFormsModule,
