@@ -622,3 +622,190 @@ pub fn spawn_automation_evaluation(
         }
     });
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn make_context() -> TriggerContext {
+        TriggerContext {
+            task_id: Uuid::new_v4(),
+            board_id: Uuid::new_v4(),
+            tenant_id: Uuid::new_v4(),
+            user_id: Uuid::new_v4(),
+            previous_column_id: None,
+            new_column_id: None,
+            priority: None,
+        }
+    }
+
+    // --- parse_offset_days tests ---
+
+    #[test]
+    fn test_parse_offset_days_days() {
+        assert_eq!(parse_offset_days("+3d"), 3);
+        assert_eq!(parse_offset_days("3d"), 3);
+        assert_eq!(parse_offset_days("+1d"), 1);
+        assert_eq!(parse_offset_days("+0d"), 0);
+    }
+
+    #[test]
+    fn test_parse_offset_days_weeks() {
+        assert_eq!(parse_offset_days("+1w"), 7);
+        assert_eq!(parse_offset_days("+2w"), 14);
+        assert_eq!(parse_offset_days("3w"), 21);
+    }
+
+    #[test]
+    fn test_parse_offset_days_months() {
+        assert_eq!(parse_offset_days("+1m"), 30);
+        assert_eq!(parse_offset_days("+2m"), 60);
+        assert_eq!(parse_offset_days("3m"), 90);
+    }
+
+    #[test]
+    fn test_parse_offset_days_plain_number() {
+        assert_eq!(parse_offset_days("+5"), 5);
+        assert_eq!(parse_offset_days("10"), 10);
+    }
+
+    #[test]
+    fn test_parse_offset_days_invalid() {
+        assert_eq!(parse_offset_days("abc"), 0);
+        assert_eq!(parse_offset_days(""), 0);
+        assert_eq!(parse_offset_days("+"), 0);
+    }
+
+    // --- matches_trigger_config tests ---
+
+    #[test]
+    fn test_matches_trigger_config_null_config() {
+        let config = json!(null);
+        let ctx = make_context();
+        assert!(matches_trigger_config(&config, &ctx));
+    }
+
+    #[test]
+    fn test_matches_trigger_config_empty_object() {
+        let config = json!({});
+        let ctx = make_context();
+        assert!(matches_trigger_config(&config, &ctx));
+    }
+
+    #[test]
+    fn test_matches_trigger_config_source_column_match() {
+        let col_id = Uuid::new_v4();
+        let config = json!({"source_column_id": col_id.to_string()});
+        let mut ctx = make_context();
+        ctx.previous_column_id = Some(col_id);
+        assert!(matches_trigger_config(&config, &ctx));
+    }
+
+    #[test]
+    fn test_matches_trigger_config_source_column_mismatch() {
+        let col_id = Uuid::new_v4();
+        let other_col = Uuid::new_v4();
+        let config = json!({"source_column_id": col_id.to_string()});
+        let mut ctx = make_context();
+        ctx.previous_column_id = Some(other_col);
+        assert!(!matches_trigger_config(&config, &ctx));
+    }
+
+    #[test]
+    fn test_matches_trigger_config_target_column_match() {
+        let col_id = Uuid::new_v4();
+        let config = json!({"target_column_id": col_id.to_string()});
+        let mut ctx = make_context();
+        ctx.new_column_id = Some(col_id);
+        assert!(matches_trigger_config(&config, &ctx));
+    }
+
+    #[test]
+    fn test_matches_trigger_config_target_column_mismatch() {
+        let col_id = Uuid::new_v4();
+        let other_col = Uuid::new_v4();
+        let config = json!({"target_column_id": col_id.to_string()});
+        let mut ctx = make_context();
+        ctx.new_column_id = Some(other_col);
+        assert!(!matches_trigger_config(&config, &ctx));
+    }
+
+    #[test]
+    fn test_matches_trigger_config_priority_match() {
+        let config = json!({"priority": "high"});
+        let mut ctx = make_context();
+        ctx.priority = Some("high".to_string());
+        assert!(matches_trigger_config(&config, &ctx));
+    }
+
+    #[test]
+    fn test_matches_trigger_config_priority_mismatch() {
+        let config = json!({"priority": "high"});
+        let mut ctx = make_context();
+        ctx.priority = Some("low".to_string());
+        assert!(!matches_trigger_config(&config, &ctx));
+    }
+
+    #[test]
+    fn test_matches_trigger_config_combined_conditions() {
+        let source = Uuid::new_v4();
+        let target = Uuid::new_v4();
+        let config = json!({
+            "source_column_id": source.to_string(),
+            "target_column_id": target.to_string()
+        });
+        let mut ctx = make_context();
+        ctx.previous_column_id = Some(source);
+        ctx.new_column_id = Some(target);
+        assert!(matches_trigger_config(&config, &ctx));
+    }
+
+    #[test]
+    fn test_matches_trigger_config_combined_one_fails() {
+        let source = Uuid::new_v4();
+        let target = Uuid::new_v4();
+        let config = json!({
+            "source_column_id": source.to_string(),
+            "target_column_id": target.to_string()
+        });
+        let mut ctx = make_context();
+        ctx.previous_column_id = Some(source);
+        ctx.new_column_id = Some(Uuid::new_v4()); // wrong target
+        assert!(!matches_trigger_config(&config, &ctx));
+    }
+
+    // --- TriggerContext tests ---
+
+    #[test]
+    fn test_trigger_context_clone() {
+        let ctx = make_context();
+        let cloned = ctx.clone();
+        assert_eq!(cloned.task_id, ctx.task_id);
+        assert_eq!(cloned.board_id, ctx.board_id);
+    }
+
+    // --- AutomationRunResult tests ---
+
+    #[test]
+    fn test_automation_run_result_default_values() {
+        let result = AutomationRunResult {
+            rules_matched: 0,
+            actions_executed: 0,
+            errors: 0,
+        };
+        assert_eq!(result.rules_matched, 0);
+        assert_eq!(result.actions_executed, 0);
+        assert_eq!(result.errors, 0);
+    }
+
+    // --- AutomationExecutorError tests ---
+
+    #[test]
+    fn test_automation_executor_error_display() {
+        let err = AutomationExecutorError::ActionFailed("MoveTask: missing column_id".into());
+        let msg = format!("{}", err);
+        assert!(msg.contains("Action failed"));
+        assert!(msg.contains("missing column_id"));
+    }
+}

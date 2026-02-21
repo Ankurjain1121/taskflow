@@ -340,4 +340,129 @@ mod tests {
             "Access and refresh tokens must be different"
         );
     }
+
+    #[test]
+    fn test_access_token_wrong_issuer() {
+        let keys = JwtKeys::from_config("test-secret", "test-refresh-secret", None, None).unwrap();
+
+        let now = Utc::now();
+        let bad_claims = Claims {
+            sub: Uuid::new_v4(),
+            tenant_id: Uuid::new_v4(),
+            role: UserRole::Member,
+            token_id: None,
+            iat: now.timestamp(),
+            exp: (now + Duration::seconds(900)).timestamp(),
+            iss: "wrong-issuer".to_string(),
+            aud: JWT_AUDIENCE.to_string(),
+        };
+
+        let header = Header::new(keys.algorithm);
+        let token = encode(&header, &bad_claims, &keys.access_encoding).unwrap();
+
+        let result = verify_access_token(&token, &keys);
+        assert!(
+            result.is_err(),
+            "Token with wrong issuer should fail verification"
+        );
+    }
+
+    #[test]
+    fn test_expired_refresh_token() {
+        let keys = JwtKeys::from_config("test-secret", "test-refresh-secret", None, None).unwrap();
+
+        let pair = issue_tokens(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            UserRole::Member,
+            Uuid::new_v4(),
+            &keys,
+            900,
+            -120, // expired refresh token
+        )
+        .unwrap();
+
+        let result = verify_refresh_token(&pair.refresh_token, &keys);
+        assert!(
+            result.is_err(),
+            "Expired refresh token should fail verification"
+        );
+    }
+
+    #[test]
+    fn test_access_token_contains_token_id() {
+        let keys = JwtKeys::from_config("test-secret", "test-refresh-secret", None, None).unwrap();
+        let token_id = Uuid::new_v4();
+
+        let pair = issue_tokens(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            UserRole::Member,
+            token_id,
+            &keys,
+            900,
+            604800,
+        )
+        .unwrap();
+
+        let claims = verify_access_token(&pair.access_token, &keys).unwrap();
+        assert_eq!(claims.token_id, Some(token_id));
+    }
+
+    #[test]
+    fn test_verify_tampered_token_fails() {
+        let keys = JwtKeys::from_config("test-secret", "test-refresh-secret", None, None).unwrap();
+
+        let pair = issue_tokens(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            UserRole::Member,
+            Uuid::new_v4(),
+            &keys,
+            900,
+            604800,
+        )
+        .unwrap();
+
+        // Tamper with the token by changing a character
+        let mut tampered = pair.access_token.clone();
+        let len = tampered.len();
+        if len > 10 {
+            tampered.replace_range(len - 5..len - 4, "X");
+        }
+
+        let result = verify_access_token(&tampered, &keys);
+        assert!(result.is_err(), "Tampered token should fail verification");
+    }
+
+    #[test]
+    fn test_jwt_constants() {
+        assert_eq!(JWT_ISSUER, "taskflow");
+        assert_eq!(JWT_AUDIENCE, "taskflow-api");
+    }
+
+    #[test]
+    fn test_claims_iat_is_before_exp() {
+        let keys = JwtKeys::from_config("test-secret", "test-refresh-secret", None, None).unwrap();
+
+        let pair = issue_tokens(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            UserRole::Member,
+            Uuid::new_v4(),
+            &keys,
+            900,
+            604800,
+        )
+        .unwrap();
+
+        let claims = verify_access_token(&pair.access_token, &keys).unwrap();
+        assert!(claims.iat < claims.exp, "iat must be before exp");
+    }
+
+    #[test]
+    fn test_hs256_algorithm_used_without_rsa() {
+        let keys = JwtKeys::from_config("secret", "refresh-secret", None, None).unwrap();
+        assert_eq!(keys.algorithm, Algorithm::HS256);
+    }
 }
