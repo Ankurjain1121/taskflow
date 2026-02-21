@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterModule } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MessageService } from 'primeng/api';
 import { AppComponent } from './app.component';
 
 describe('AppComponent', () => {
@@ -29,6 +30,7 @@ describe('AppComponent', () => {
         NoopAnimationsModule,
         HttpClientTestingModule,
       ],
+      providers: [MessageService],
     }).compileComponents();
   });
 
