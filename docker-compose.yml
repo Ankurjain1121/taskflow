@@ -140,7 +140,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${LAGO_DB:-lago}
       REDIS_URL: redis://redis:6379/1
-      SECRET_KEY_BASE: ${LAGO_SECRET_KEY:?LAGO_SECRET_KEY must be set in .env}
+      SECRET_KEY_BASE: ${LAGO_SECRET_KEY:-changeme-lago-secret}
       RAILS_ENV: production
       RAILS_LOG_TO_STDOUT: "true"
       LAGO_API_URL: http://lago-api:3000
@@ -205,7 +205,7 @@ services:
       REDIS_DB_INDEX: 2
       API_ROOT_URL: http://localhost:3001
       DISABLE_USER_REGISTRATION: "false"
-      JWT_SECRET: ${NOVU_JWT_SECRET:?NOVU_JWT_SECRET must be set in .env}
+      JWT_SECRET: ${NOVU_JWT_SECRET:-changeme-novu-jwt-secret}
     depends_on:
       mongodb:
         condition: service_healthy
@@ -301,8 +301,8 @@ services:
       WHATSAPP_HOOK_URL: http://backend:8080/api/webhooks/whatsapp
       WHATSAPP_HOOK_EVENTS: message,session.status
       WAHA_DASHBOARD_ENABLED: "true"
-      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USER:?WAHA_DASHBOARD_USER must be set in .env}
-      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:?WAHA_DASHBOARD_PASSWORD must be set in .env}
+      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USER:-admin}
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD:-changeme}
       WAHA_LOG_LEVEL: info
     ports:
       - "${WAHA_PORT:-3002}:3000"
