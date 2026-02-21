@@ -1,0 +1,476 @@
+import { Injectable, signal, computed, inject } from '@angular/core';
+import { Subject, takeUntil, forkJoin } from 'rxjs';
+
+import {
+  BoardService,
+  Board,
+  Column,
+  BoardMember,
+  BoardFullResponse,
+} from '../../../core/services/board.service';
+import {
+  TaskService,
+  Task,
+  Assignee,
+  TaskListItem,
+  Label,
+} from '../../../core/services/task.service';
+import {
+  TaskGroupService,
+  TaskGroupWithStats,
+} from '../../../core/services/task-group.service';
+import {
+  MilestoneService,
+  Milestone,
+} from '../../../core/services/milestone.service';
+import { DependencyService } from '../../../core/services/dependency.service';
+import { WebSocketService } from '../../../core/services/websocket.service';
+import {
+  GanttTask,
+  GanttDependency,
+} from '../gantt-view/gantt-view.component';
+import { TaskFilters } from '../board-toolbar/board-toolbar.component';
+import { CreateTaskDialogResult } from './create-task-dialog.component';
+import { CreateColumnDialogResult } from './create-column-dialog.component';
+import { generateKeyBetween } from 'fractional-indexing';
+
+@Injectable()
+export class BoardStateService {
+  private boardService = inject(BoardService);
+  private taskService = inject(TaskService);
+  private taskGroupService = inject(TaskGroupService);
+  private milestoneService = inject(MilestoneService);
+  private dependencyService = inject(DependencyService);
+  private wsService = inject(WebSocketService);
+
+  // === Signals ===
+  readonly loading = signal(true);
+  readonly board = signal<Board | null>(null);
+  readonly columns = signal<Column[]>([]);
+  readonly boardState = signal<Record<string, Task[]>>({});
+  readonly flatTasks = signal<TaskListItem[]>([]);
+  readonly ganttTasks = signal<GanttTask[]>([]);
+  readonly boardDependencies = signal<GanttDependency[]>([]);
+  readonly listLoading = signal(false);
+  readonly filters = signal<TaskFilters>({
+    search: '',
+    priorities: [],
+    assigneeIds: [],
+    dueDateStart: null,
+    dueDateEnd: null,
+    labelIds: [],
+  });
+  readonly celebratingTaskId = signal<string | null>(null);
+  readonly focusedTaskId = signal<string | null>(null);
+  readonly selectedTaskId = signal<string | null>(null);
+  readonly selectedTaskIds = signal<string[]>([]);
+  readonly selectionMode = signal(false);
+  readonly errorMessage = signal<string | null>(null);
+  readonly boardMembers = signal<BoardMember[]>([]);
+  readonly boardMilestones = signal<Milestone[]>([]);
+  readonly boardGroups = signal<TaskGroupWithStats[]>([]);
+
+  // === Computed Signals ===
+  readonly collapsedGroupIds = computed(() => {
+    return new Set(
+      this.boardGroups()
+        .filter((g) => g.group.collapsed)
+        .map((g) => g.group.id),
+    );
+  });
+
+  readonly filteredBoardState = computed(() => {
+    const state = this.boardState();
+    const f = this.filters();
+    const collapsed = this.collapsedGroupIds();
+
+    const result: Record<string, Task[]> = {};
+
+    for (const [columnId, tasks] of Object.entries(state)) {
+      result[columnId] = this.filterTasks(tasks, f).filter(
+        (t) => !t.group_id || !collapsed.has(t.group_id),
+      );
+    }
+
+    return result;
+  });
+
+  readonly allAssignees = computed(() => {
+    const assigneeMap = new Map<string, Assignee>();
+    const state = this.boardState();
+
+    for (const tasks of Object.values(state)) {
+      if (!Array.isArray(tasks)) continue;
+      for (const task of tasks) {
+        if (Array.isArray(task.assignees)) {
+          for (const assignee of task.assignees) {
+            assigneeMap.set(assignee.id, assignee);
+          }
+        }
+      }
+    }
+
+    return Array.from(assigneeMap.values());
+  });
+
+  readonly allLabels = computed(() => {
+    const labelMap = new Map<string, Label>();
+    const state = this.boardState();
+
+    for (const tasks of Object.values(state)) {
+      if (!Array.isArray(tasks)) continue;
+      for (const task of tasks) {
+        if (Array.isArray(task.labels)) {
+          for (const label of task.labels) {
+            labelMap.set(label.id, label);
+          }
+        }
+      }
+    }
+
+    return Array.from(labelMap.values());
+  });
+
+  readonly connectedColumnIds = computed(() => {
+    return this.columns().map((col) => 'column-' + col.id);
+  });
+
+  // === Data Loading ===
+
+  loadBoard(boardId: string, destroy$: Subject<void>): void {
+    this.loading.set(true);
+
+    this.boardService.getBoardFull(boardId).subscribe({
+      next: (response: BoardFullResponse) => {
+        this.board.set(response.board);
+        this.columns.set(
+          [...response.board.columns].sort((a, b) =>
+            a.position.localeCompare(b.position),
+          ),
+        );
+
+        const tasksByColumn: Record<string, Task[]> = {};
+        for (const col of response.board.columns) {
+          tasksByColumn[col.id] = [];
+        }
+        for (const t of response.tasks) {
+          const task: Task = {
+            id: t.id,
+            column_id: t.column_id,
+            group_id: t.group_id,
+            title: t.title,
+            description: t.description,
+            priority: t.priority as Task['priority'],
+            position: t.position,
+            milestone_id: t.milestone_id,
+            assignee_id: null,
+            due_date: t.due_date,
+            created_by: t.created_by_id,
+            created_at: t.created_at,
+            updated_at: t.updated_at,
+            assignees: t.assignees,
+            labels: t.labels as Label[],
+            subtask_completed: t.subtask_completed,
+            subtask_total: t.subtask_total,
+            has_running_timer: t.has_running_timer,
+            comment_count: t.comment_count,
+          };
+          if (!tasksByColumn[t.column_id]) {
+            tasksByColumn[t.column_id] = [];
+          }
+          tasksByColumn[t.column_id].push(task);
+        }
+        for (const colId of Object.keys(tasksByColumn)) {
+          tasksByColumn[colId].sort((a, b) =>
+            a.position.localeCompare(b.position),
+          );
+        }
+        this.boardState.set(tasksByColumn);
+
+        this.boardMembers.set(response.members);
+        this.loading.set(false);
+
+        this.wsService.send('subscribe', { channel: `board:${boardId}` });
+      },
+      error: () => {
+        this.loading.set(false);
+        this.showError('Failed to load board');
+      },
+    });
+
+    this.milestoneService.list(boardId).subscribe({
+      next: (milestones) => this.boardMilestones.set(milestones),
+    });
+    this.taskGroupService.listGroupsWithStats(boardId).subscribe({
+      next: (groups) => this.boardGroups.set(groups),
+    });
+  }
+
+  loadFlatTasks(boardId: string, destroy$: Subject<void>): void {
+    this.listLoading.set(true);
+    this.taskService
+      .listFlat(boardId)
+      .pipe(takeUntil(destroy$))
+      .subscribe({
+        next: (tasks) => {
+          this.flatTasks.set(tasks);
+          this.listLoading.set(false);
+        },
+        error: () => {
+          this.listLoading.set(false);
+          this.showError('Failed to load task list');
+        },
+      });
+  }
+
+  loadGanttData(boardId: string): void {
+    forkJoin({
+      tasks: this.taskService.listGanttTasks(boardId),
+      deps: this.dependencyService.getBoardDependencies(boardId),
+    }).subscribe({
+      next: ({ tasks, deps }) => {
+        this.ganttTasks.set(tasks as unknown as GanttTask[]);
+        this.boardDependencies.set(deps as unknown as GanttDependency[]);
+      },
+    });
+  }
+
+  reloadGroups(boardId: string): void {
+    this.taskGroupService.listGroupsWithStats(boardId).subscribe({
+      next: (groups) => this.boardGroups.set(groups),
+    });
+  }
+
+  // === Task CRUD ===
+
+  createTask(boardId: string, columnId: string, taskData: CreateTaskDialogResult): void {
+    this.taskService
+      .createTask(boardId, {
+        title: taskData.title,
+        description: taskData.description,
+        priority: taskData.priority,
+        column_id: columnId,
+        due_date: taskData.due_date,
+        start_date: taskData.start_date,
+        estimated_hours: taskData.estimated_hours,
+        group_id: taskData.group_id,
+        milestone_id: taskData.milestone_id,
+        assignee_ids: taskData.assignee_ids,
+        label_ids: taskData.label_ids,
+      })
+      .subscribe({
+        next: (task) => {
+          this.boardState.update((state) => {
+            const newState = { ...state };
+            const columnTasks = newState[columnId] || [];
+            newState[columnId] = [...columnTasks, task].sort((a, b) =>
+              a.position.localeCompare(b.position),
+            );
+            return newState;
+          });
+        },
+        error: () => {
+          this.showError('Failed to create task');
+        },
+      });
+  }
+
+  updateTaskInState(task: Task): void {
+    this.boardState.update((state) => {
+      const newState = { ...state };
+      const columnTasks = newState[task.column_id];
+      if (columnTasks) {
+        newState[task.column_id] = columnTasks.map((t) =>
+          t.id === task.id ? task : t,
+        );
+      }
+      return newState;
+    });
+  }
+
+  // === Column Operations ===
+
+  createColumn(boardId: string, columnData: CreateColumnDialogResult): void {
+    this.boardService
+      .createColumn(boardId, {
+        name: columnData.name,
+        color: columnData.color,
+        status_mapping: columnData.isDone ? { done: true } : undefined,
+      })
+      .subscribe({
+        next: (column) => {
+          this.columns.update((cols) =>
+            [...cols, column].sort((a, b) =>
+              a.position.localeCompare(b.position),
+            ),
+          );
+          this.boardState.update((state) => ({
+            ...state,
+            [column.id]: [],
+          }));
+        },
+        error: () => {
+          this.showError('Failed to create column');
+        },
+      });
+  }
+
+  // === Task Group Operations ===
+
+  createGroup(
+    boardId: string,
+    result: { name: string; color: string },
+  ): void {
+    const groups = this.boardGroups();
+    const lastGroup = groups[groups.length - 1];
+    const position = generateKeyBetween(
+      lastGroup?.group.position ?? null,
+      null,
+    );
+
+    this.taskGroupService
+      .createGroup(boardId, {
+        board_id: boardId,
+        name: result.name,
+        color: result.color,
+        position,
+      })
+      .subscribe({
+        next: () => this.reloadGroups(boardId),
+        error: () => this.showError('Failed to create group'),
+      });
+  }
+
+  updateGroupName(boardId: string, groupId: string, name: string): void {
+    this.taskGroupService.updateGroup(groupId, { name }).subscribe({
+      next: () => this.reloadGroups(boardId),
+      error: () => this.showError('Failed to rename group'),
+    });
+  }
+
+  updateGroupColor(boardId: string, groupId: string, color: string): void {
+    this.taskGroupService.updateGroup(groupId, { color }).subscribe({
+      next: () => this.reloadGroups(boardId),
+      error: () => this.showError('Failed to update group color'),
+    });
+  }
+
+  toggleGroupCollapse(group: TaskGroupWithStats): void {
+    const newCollapsed = !group.group.collapsed;
+
+    this.boardGroups.update((groups) =>
+      groups.map((g) =>
+        g.group.id === group.group.id
+          ? { ...g, group: { ...g.group, collapsed: newCollapsed } }
+          : g,
+      ),
+    );
+
+    this.taskGroupService
+      .toggleCollapse(group.group.id, newCollapsed)
+      .subscribe({
+        error: () => {
+          this.boardGroups.update((groups) =>
+            groups.map((g) =>
+              g.group.id === group.group.id
+                ? { ...g, group: { ...g.group, collapsed: !newCollapsed } }
+                : g,
+            ),
+          );
+          this.showError('Failed to toggle group');
+        },
+      });
+  }
+
+  deleteGroup(boardId: string, groupId: string): void {
+    this.taskGroupService.deleteGroup(groupId).subscribe({
+      next: () => {
+        this.reloadGroups(boardId);
+        this.loadBoard(boardId, new Subject<void>());
+      },
+      error: () => this.showError('Failed to delete group'),
+    });
+  }
+
+  // === Selection ===
+
+  toggleTaskSelection(taskId: string): void {
+    const current = this.selectedTaskIds();
+    if (current.includes(taskId)) {
+      this.selectedTaskIds.set(current.filter((id) => id !== taskId));
+    } else {
+      this.selectedTaskIds.set([...current, taskId]);
+    }
+  }
+
+  clearSelection(): void {
+    this.selectedTaskIds.set([]);
+    this.selectionMode.set(false);
+  }
+
+  // === Error Handling ===
+
+  showError(message: string): void {
+    this.errorMessage.set(message);
+    setTimeout(() => this.clearError(), 5000);
+  }
+
+  clearError(): void {
+    this.errorMessage.set(null);
+  }
+
+  // === Filtering ===
+
+  filterTasks(tasks: Task[], filters: TaskFilters): Task[] {
+    return tasks.filter((task) => {
+      if (
+        filters.search &&
+        !task.title.toLowerCase().includes(filters.search.toLowerCase())
+      ) {
+        return false;
+      }
+
+      if (
+        filters.priorities.length > 0 &&
+        !filters.priorities.includes(task.priority)
+      ) {
+        return false;
+      }
+
+      if (filters.assigneeIds.length > 0) {
+        const taskAssigneeIds = task.assignees?.map((a) => a.id) || [];
+        const hasMatchingAssignee = filters.assigneeIds.some((id) =>
+          taskAssigneeIds.includes(id),
+        );
+        if (!hasMatchingAssignee) {
+          return false;
+        }
+      }
+
+      if (filters.dueDateStart || filters.dueDateEnd) {
+        if (!task.due_date) {
+          return false;
+        }
+        const dueDate = new Date(task.due_date);
+        if (filters.dueDateStart && dueDate < new Date(filters.dueDateStart)) {
+          return false;
+        }
+        if (filters.dueDateEnd && dueDate > new Date(filters.dueDateEnd)) {
+          return false;
+        }
+      }
+
+      if (filters.labelIds.length > 0) {
+        const taskLabelIds = task.labels?.map((l) => l.id) || [];
+        const hasMatchingLabel = filters.labelIds.some((id) =>
+          taskLabelIds.includes(id),
+        );
+        if (!hasMatchingLabel) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }
+}

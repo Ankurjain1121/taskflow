@@ -1,8 +1,23 @@
-import { Component, inject, OnInit, HostListener, signal } from '@angular/core';
+import {
+  Component,
+  inject,
+  OnInit,
+  HostListener,
+  signal,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
-import { trigger, transition, style, animate, query, group } from '@angular/animations';
+import {
+  trigger,
+  transition,
+  style,
+  animate,
+  query,
+  group,
+} from '@angular/animations';
 import { filter } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
+import { ToastModule } from 'primeng/toast';
 import { ThemeService } from './core/services/theme.service';
 import { GlobalSearchComponent } from './shared/components/global-search/global-search.component';
 import { ToastContainerComponent } from './shared/components/toast/toast.component';
@@ -10,23 +25,38 @@ import { SidebarComponent } from './shared/components/sidebar/sidebar.component'
 
 const routeTransition = trigger('routeAnimations', [
   transition('* <=> *', [
-    query(':enter', [
-      style({ opacity: 0, transform: 'translateY(8px)' }),
-    ], { optional: true }),
+    query(':enter', [style({ opacity: 0, transform: 'translateY(8px)' })], {
+      optional: true,
+    }),
     group([
-      query(':leave', [
-        animate('150ms ease-out', style({ opacity: 0 })),
-      ], { optional: true }),
-      query(':enter', [
-        animate('300ms 100ms ease-out', style({ opacity: 1, transform: 'translateY(0)' })),
-      ], { optional: true }),
+      query(':leave', [animate('150ms ease-out', style({ opacity: 0 }))], {
+        optional: true,
+      }),
+      query(
+        ':enter',
+        [
+          animate(
+            '300ms 100ms ease-out',
+            style({ opacity: 1, transform: 'translateY(0)' }),
+          ),
+        ],
+        { optional: true },
+      ),
     ]),
   ]),
 ]);
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, RouterOutlet, GlobalSearchComponent, ToastContainerComponent, SidebarComponent],
+  imports: [
+    CommonModule,
+    RouterOutlet,
+    ToastModule,
+    GlobalSearchComponent,
+    ToastContainerComponent,
+    SidebarComponent,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
   animations: [routeTransition],
@@ -47,17 +77,19 @@ export class AppComponent implements OnInit {
 
     // Listen to route changes to determine if sidebar should be shown
     this.router.events
-      .pipe(filter(event => event instanceof NavigationEnd))
+      .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe((event: NavigationEnd) => {
         const url = event.url;
         // Hide sidebar on auth and onboarding routes
-        const hideSidebar = url.startsWith('/auth') || url.startsWith('/onboarding');
+        const hideSidebar =
+          url.startsWith('/auth') || url.startsWith('/onboarding');
         this.showSidebar.set(!hideSidebar);
       });
 
     // Set initial sidebar visibility
     const currentUrl = this.router.url;
-    const hideSidebar = currentUrl.startsWith('/auth') || currentUrl.startsWith('/onboarding');
+    const hideSidebar =
+      currentUrl.startsWith('/auth') || currentUrl.startsWith('/onboarding');
     this.showSidebar.set(!hideSidebar);
   }
 
@@ -80,6 +112,10 @@ export class AppComponent implements OnInit {
 
   getRouteAnimationData(outlet: RouterOutlet): string {
     if (!outlet?.isActivated) return '';
-    return outlet.activatedRouteData?.['animation'] || outlet.activatedRoute?.snapshot?.url?.toString() || '';
+    return (
+      outlet.activatedRouteData?.['animation'] ||
+      outlet.activatedRoute?.snapshot?.url?.toString() ||
+      ''
+    );
   }
 }

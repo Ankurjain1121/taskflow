@@ -6,6 +6,7 @@ import {
   output,
   model,
   OnInit,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -49,6 +50,7 @@ export interface BoardTemplate {
 @Component({
   selector: 'app-create-board-dialog',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     ReactiveFormsModule,

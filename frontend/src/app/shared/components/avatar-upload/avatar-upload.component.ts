@@ -6,6 +6,7 @@ import {
   inject,
   ElementRef,
   viewChild,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
@@ -18,6 +19,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 @Component({
   selector: 'app-avatar-upload',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ButtonModule, ToastModule],
   providers: [MessageService],
   template: `

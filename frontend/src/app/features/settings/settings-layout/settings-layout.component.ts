@@ -1,9 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy,
+} from '@angular/core';
 import { RouterModule, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 
 @Component({
   selector: 'app-settings-layout',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterModule, RouterOutlet, RouterLink, RouterLinkActive],
   template: `
     <div class="settings-container">

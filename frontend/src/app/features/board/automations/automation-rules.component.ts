@@ -361,6 +361,11 @@ export class AutomationRulesComponent implements OnInit, OnChanges {
     task_priority_changed: 'Priority Changed',
     task_due_date_passed: 'Due Date Passed',
     task_completed: 'Task Completed',
+    subtask_completed: 'Subtask Completed',
+    comment_added: 'Comment Added',
+    custom_field_changed: 'Custom Field Changed',
+    label_changed: 'Label Changed',
+    due_date_approaching: 'Due Date Approaching',
   };
 
   private actionLabels: Record<AutomationActionType, string> = {
@@ -370,6 +375,11 @@ export class AutomationRulesComponent implements OnInit, OnChanges {
     send_notification: 'Send Notification',
     add_label: 'Add Label',
     set_milestone: 'Set Milestone',
+    create_subtask: 'Create Subtask',
+    add_comment: 'Add Comment',
+    set_due_date: 'Set Due Date',
+    set_custom_field: 'Set Custom Field',
+    send_webhook: 'Send Webhook',
   };
 
   ngOnInit(): void {
@@ -398,6 +408,11 @@ export class AutomationRulesComponent implements OnInit, OnChanges {
       task_priority_changed: 'bg-orange-100',
       task_due_date_passed: 'bg-red-100',
       task_completed: 'bg-emerald-100',
+      subtask_completed: 'bg-teal-100',
+      comment_added: 'bg-cyan-100',
+      custom_field_changed: 'bg-indigo-100',
+      label_changed: 'bg-yellow-100',
+      due_date_approaching: 'bg-amber-100',
     };
     return map[trigger] || 'bg-gray-100';
   }
@@ -410,6 +425,11 @@ export class AutomationRulesComponent implements OnInit, OnChanges {
       task_priority_changed: 'text-orange-600',
       task_due_date_passed: 'text-red-600',
       task_completed: 'text-emerald-600',
+      subtask_completed: 'text-teal-600',
+      comment_added: 'text-cyan-600',
+      custom_field_changed: 'text-indigo-600',
+      label_changed: 'text-yellow-600',
+      due_date_approaching: 'text-amber-600',
     };
     return map[trigger] || 'text-gray-600';
   }

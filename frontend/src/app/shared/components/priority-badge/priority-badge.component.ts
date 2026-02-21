@@ -1,4 +1,5 @@
-import { Component, input, computed } from '@angular/core';
+import { Component, input, computed, ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   PRIORITY_COLORS,
@@ -9,6 +10,7 @@ import { TaskPriority } from '../../../core/services/task.service';
 @Component({
   selector: 'app-priority-badge',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <span

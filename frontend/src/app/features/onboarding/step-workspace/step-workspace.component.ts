@@ -1,4 +1,5 @@
-import { Component, output } from '@angular/core';
+import { Component, output, ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -11,6 +12,7 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
 @Component({
   selector: 'app-step-workspace',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
     <div class="space-y-6">

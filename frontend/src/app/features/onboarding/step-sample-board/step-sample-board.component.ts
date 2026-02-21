@@ -1,4 +1,5 @@
-import { Component, input, signal } from '@angular/core';
+import { Component, input, signal, ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { OnboardingService } from '../../../core/services/onboarding.service';
@@ -12,6 +13,7 @@ interface SampleColumn {
 @Component({
   selector: 'app-step-sample-board',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <div class="space-y-6">

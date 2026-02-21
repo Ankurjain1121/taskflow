@@ -1,4 +1,5 @@
-import { Component, inject, signal, input, output, model } from '@angular/core';
+import { Component, inject, signal, input, output, model, ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -36,6 +37,7 @@ interface EmailValidation {
 @Component({
   selector: 'app-invite-member-dialog',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     ReactiveFormsModule,

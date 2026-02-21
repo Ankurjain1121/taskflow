@@ -1,4 +1,5 @@
-import { Component, inject, signal, input, output, model } from '@angular/core';
+import { Component, inject, signal, input, output, model, ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -37,6 +38,7 @@ export interface CreateTaskDialogResult {
 @Component({
   selector: 'app-create-task-dialog',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     ReactiveFormsModule,

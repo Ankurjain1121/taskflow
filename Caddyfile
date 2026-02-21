@@ -52,7 +52,8 @@ files.paraslace.in {
     header {
         Access-Control-Allow-Origin https://taskflow.paraslace.in
         Access-Control-Allow-Methods "GET, HEAD, PUT, POST, DELETE"
-        Access-Control-Allow-Headers "*"
+        Access-Control-Allow-Headers "Content-Type, Content-Disposition, x-amz-content-sha256, x-amz-date, x-amz-security-token, Authorization"
+        Access-Control-Expose-Headers "ETag, Content-Length"
     }
 
     encode gzip zstd

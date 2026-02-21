@@ -43,10 +43,22 @@ impl Config {
             }),
             host: env::var("HOST").unwrap_or_else(|_| "0.0.0.0".into()),
             port: env::var("PORT").unwrap_or_else(|_| "8080".into()).parse()?,
-            jwt_secret: env::var("JWT_SECRET")
-                .map_err(|_| "JWT_SECRET environment variable must be set")?,
-            jwt_refresh_secret: env::var("JWT_REFRESH_SECRET")
-                .map_err(|_| "JWT_REFRESH_SECRET environment variable must be set")?,
+            jwt_secret: {
+                let secret = env::var("JWT_SECRET")
+                    .map_err(|_| "JWT_SECRET environment variable must be set")?;
+                if secret.len() < 32 || secret.contains("change-in-production") {
+                    return Err("JWT_SECRET is too weak or uses the default value. Set a strong secret (32+ chars).".into());
+                }
+                secret
+            },
+            jwt_refresh_secret: {
+                let secret = env::var("JWT_REFRESH_SECRET")
+                    .map_err(|_| "JWT_REFRESH_SECRET environment variable must be set")?;
+                if secret.len() < 32 || secret.contains("change-in-production") {
+                    return Err("JWT_REFRESH_SECRET is too weak or uses the default value. Set a strong secret (32+ chars).".into());
+                }
+                secret
+            },
             jwt_access_expiry_secs: env::var("JWT_ACCESS_EXPIRY_SECS")
                 .unwrap_or_else(|_| "900".into())
                 .parse()?,
@@ -116,8 +128,8 @@ mod tests {
             app_database_url: "postgresql://test:test@localhost/testdb".into(),
             host: "0.0.0.0".into(),
             port: 8080,
-            jwt_secret: "actual-secret".into(),
-            jwt_refresh_secret: "actual-refresh-secret".into(),
+            jwt_secret: "actual-secret-that-is-long-enough-for-validation-check".into(),
+            jwt_refresh_secret: "actual-refresh-secret-long-enough-for-validation".into(),
             jwt_access_expiry_secs: 900,
             jwt_refresh_expiry_secs: 604800,
             jwt_rsa_private_key: None,
@@ -155,11 +167,11 @@ mod tests {
 
         // Should NOT contain any actual secret values
         assert!(
-            !debug_str.contains("actual-secret"),
+            !debug_str.contains("actual-secret-that-is-long-enough"),
             "Debug output must not leak jwt_secret"
         );
         assert!(
-            !debug_str.contains("actual-refresh-secret"),
+            !debug_str.contains("actual-refresh-secret-long-enough"),
             "Debug output must not leak jwt_refresh_secret"
         );
         assert!(
@@ -221,7 +233,10 @@ mod tests {
         let cloned = config.clone();
         assert_eq!(cloned.host, config.host);
         assert_eq!(cloned.port, config.port);
-        assert_eq!(cloned.jwt_secret, config.jwt_secret);
+        assert_eq!(
+            cloned.jwt_secret,
+            "actual-secret-that-is-long-enough-for-validation-check"
+        );
         assert_eq!(cloned.app_url, config.app_url);
     }
 

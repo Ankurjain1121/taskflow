@@ -1,4 +1,5 @@
-import { Component, inject, signal, HostListener } from '@angular/core';
+import { Component, inject, signal, HostListener, ChangeDetectionStrategy,
+} from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { NotificationBellComponent } from '../notification-bell/notification-bell.component';
@@ -15,6 +16,7 @@ import { PopoverModule } from 'primeng/popover';
 @Component({
   selector: 'app-layout',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SidebarComponent,
     RouterOutlet,
