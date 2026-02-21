@@ -176,4 +176,106 @@ mod tests {
         assert_eq!(error_obj["code"].as_str().unwrap(), "NOT_FOUND");
         assert_eq!(error_obj["message"].as_str().unwrap(), "resource missing");
     }
+
+    #[test]
+    fn test_precondition_failed_status() {
+        let response = AppError::PreconditionFailed("version mismatch".into()).into_response();
+        assert_eq!(response.status(), StatusCode::PRECONDITION_FAILED);
+    }
+
+    #[test]
+    fn test_all_error_variants_have_correct_codes() {
+        let test_cases: Vec<(AppError, StatusCode, &str)> = vec![
+            (
+                AppError::NotFound("x".into()),
+                StatusCode::NOT_FOUND,
+                "NOT_FOUND",
+            ),
+            (
+                AppError::BadRequest("x".into()),
+                StatusCode::BAD_REQUEST,
+                "BAD_REQUEST",
+            ),
+            (
+                AppError::Unauthorized("x".into()),
+                StatusCode::UNAUTHORIZED,
+                "UNAUTHORIZED",
+            ),
+            (
+                AppError::Forbidden("x".into()),
+                StatusCode::FORBIDDEN,
+                "FORBIDDEN",
+            ),
+            (
+                AppError::Conflict("x".into()),
+                StatusCode::CONFLICT,
+                "CONFLICT",
+            ),
+            (
+                AppError::PreconditionFailed("x".into()),
+                StatusCode::PRECONDITION_FAILED,
+                "PRECONDITION_FAILED",
+            ),
+            (
+                AppError::ValidationError("x".into()),
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "VALIDATION_ERROR",
+            ),
+            (
+                AppError::InternalError("x".into()),
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "INTERNAL_ERROR",
+            ),
+        ];
+
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        for (error, expected_status, expected_code) in test_cases {
+            let response = error.into_response();
+            assert_eq!(response.status(), expected_status);
+
+            let body = rt.block_on(async {
+                let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+                    .await
+                    .unwrap();
+                serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
+            });
+            assert_eq!(body["error"]["code"].as_str().unwrap(), expected_code);
+        }
+    }
+
+    #[test]
+    fn test_error_display_messages() {
+        assert_eq!(
+            format!("{}", AppError::NotFound("missing".into())),
+            "Not found: missing"
+        );
+        assert_eq!(
+            format!("{}", AppError::BadRequest("invalid".into())),
+            "Bad request: invalid"
+        );
+        assert_eq!(
+            format!("{}", AppError::Forbidden("denied".into())),
+            "Forbidden: denied"
+        );
+    }
+
+    #[test]
+    fn test_internal_error_does_not_leak_sqlx_details() {
+        // Simulate a database error message
+        let response =
+            AppError::InternalError("connection to database refused at 10.0.0.1:5432".into())
+                .into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+
+        let body = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
+            serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
+        });
+
+        let message = body["error"]["message"].as_str().unwrap();
+        assert!(!message.contains("10.0.0.1"), "IP address should not leak");
+        assert!(!message.contains("5432"), "Port should not leak");
+    }
 }

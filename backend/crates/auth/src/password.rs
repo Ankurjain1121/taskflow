@@ -90,4 +90,27 @@ mod tests {
         assert!(verify_password(password, &hash1).unwrap());
         assert!(verify_password(password, &hash2).unwrap());
     }
+
+    #[test]
+    fn test_unicode_password() {
+        let unicode_password = "\u{1F4A9}emoji\u{2603}snowman\u{00E9}accent";
+        let hash = hash_password(unicode_password).unwrap();
+        assert!(verify_password(unicode_password, &hash).unwrap());
+        assert!(!verify_password("wrong", &hash).unwrap());
+    }
+
+    #[test]
+    fn test_whitespace_password() {
+        let password = "   spaces and\ttabs\nnewlines   ";
+        let hash = hash_password(password).unwrap();
+        assert!(verify_password(password, &hash).unwrap());
+        assert!(!verify_password(password.trim(), &hash).unwrap());
+    }
+
+    #[test]
+    fn test_special_characters_password() {
+        let password = r#"!@#$%^&*()_+-={}[]|\":;'<>,.?/"#;
+        let hash = hash_password(password).unwrap();
+        assert!(verify_password(password, &hash).unwrap());
+    }
 }

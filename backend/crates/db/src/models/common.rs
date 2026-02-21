@@ -214,4 +214,56 @@ mod tests {
         let urgent: TaskPriority = serde_json::from_str("\"urgent\"").unwrap();
         assert_eq!(urgent, TaskPriority::Urgent);
     }
+
+    #[test]
+    fn test_task_priority_invalid_value_rejected() {
+        let result: std::result::Result<TaskPriority, _> = serde_json::from_str("\"critical\"");
+        assert!(result.is_err(), "Invalid priority should be rejected");
+    }
+
+    #[test]
+    fn test_user_role_invalid_value_rejected() {
+        let result: std::result::Result<UserRole, _> = serde_json::from_str("\"superadmin\"");
+        assert!(result.is_err(), "Invalid role should be rejected");
+    }
+
+    #[test]
+    fn test_board_member_role_clone_and_debug() {
+        let role = BoardMemberRole::Editor;
+        let cloned = role.clone();
+        assert_eq!(role, cloned);
+        let debug = format!("{:?}", role);
+        assert!(debug.contains("Editor"));
+    }
+
+    #[test]
+    fn test_activity_action_debug_format() {
+        let action = ActivityAction::StatusChanged;
+        let debug = format!("{:?}", action);
+        assert_eq!(debug, "StatusChanged");
+    }
+
+    #[test]
+    fn test_dependency_type_clone_and_eq() {
+        let dep = DependencyType::Blocks;
+        let cloned = dep.clone();
+        assert_eq!(dep, cloned);
+        assert_ne!(dep, DependencyType::BlockedBy);
+    }
+
+    #[test]
+    fn test_custom_field_type_clone_and_eq() {
+        let field = CustomFieldType::Dropdown;
+        let cloned = field.clone();
+        assert_eq!(field, cloned);
+        assert_ne!(field, CustomFieldType::Checkbox);
+    }
+
+    #[test]
+    fn test_recurrence_pattern_clone_and_eq() {
+        let pattern = RecurrencePattern::CustomWeekly;
+        let cloned = pattern.clone();
+        assert_eq!(pattern, cloned);
+        assert_ne!(pattern, RecurrencePattern::Daily);
+    }
 }

@@ -7,6 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "test:coverage": "ng test -- --coverage",
     "test:e2e": "npx playwright test --project=chromium",
     "test:e2e:headed": "npx playwright test --project=chromium --headed",
     "test:e2e:report": "npx playwright show-report playwright-report"
@@ -40,6 +41,7 @@
     "@angular/compiler-cli": "^19.2.0",
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.1.18",
+    "@vitest/coverage-v8": "^4.0.18",
     "angular-eslint": "^19.8.1",
     "eslint": "^9.39.2",
     "jsdom": "^26.0.0",
