@@ -1,10 +1,10 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, State},
     middleware::from_fn_with_state,
     routing::{delete, get, patch, post, put},
     Json, Router,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
@@ -12,19 +12,21 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
+use taskflow_db::models::automation::AutomationTrigger;
 use taskflow_db::models::{Task, TaskBroadcast, TaskPriority, WsBoardEvent};
 use taskflow_db::queries::{
-    assign_user, bulk_delete_tasks, bulk_update_tasks, create_task, get_task_assignee_ids,
-    get_task_board_id, get_task_by_id, list_tasks_by_board, list_tasks_flat,
-    list_tasks_for_calendar, list_tasks_for_gantt, move_task, soft_delete_task, unassign_user,
-    update_task, BulkUpdateInput, CalendarTask, CreateTaskInput, GanttTask, TaskListItem,
+    assign_user, create_task, get_task_assignee_ids, get_task_board_id, get_task_by_id,
+    list_tasks_by_board, move_task, soft_delete_task, unassign_user, update_task, CreateTaskInput,
     TaskQueryError, TaskWithDetails, UpdateTaskInput,
 };
 use taskflow_services::broadcast::events;
-use taskflow_services::BroadcastService;
+use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
+
+use super::task_bulk;
+use super::task_views;
 
 /// Response for listing tasks by board
-#[derive(Serialize)]
+#[derive(serde::Serialize)]
 pub struct ListTasksResponse {
     pub tasks: std::collections::HashMap<Uuid, Vec<Task>>,
 }
@@ -253,6 +255,21 @@ async fn create_task_handler(
         .await;
     }
 
+    // Trigger automations for TaskCreated
+    spawn_automation_evaluation(
+        state.db.clone(),
+        AutomationTrigger::TaskCreated,
+        TriggerContext {
+            task_id: task.id,
+            board_id,
+            tenant_id: tenant.tenant_id,
+            user_id: tenant.user_id,
+            previous_column_id: None,
+            new_column_id: Some(task.column_id),
+            priority: Some(format!("{:?}", task.priority).to_lowercase()),
+        },
+    );
+
     Ok(Json(task))
 }
 
@@ -286,6 +303,8 @@ async fn update_task_handler(
     if !is_member {
         return Err(AppError::Forbidden("Not a board member".into()));
     }
+
+    let priority_changed = body.priority.is_some();
 
     let input = UpdateTaskInput {
         title: body.title,
@@ -344,6 +363,23 @@ async fn update_task_handler(
             &assignee_ids,
         )
         .await;
+    }
+
+    // Trigger automations for priority changes
+    if priority_changed {
+        spawn_automation_evaluation(
+            state.db.clone(),
+            AutomationTrigger::TaskPriorityChanged,
+            TriggerContext {
+                task_id: task.id,
+                board_id,
+                tenant_id: tenant.tenant_id,
+                user_id: tenant.user_id,
+                previous_column_id: None,
+                new_column_id: None,
+                priority: Some(format!("{:?}", task.priority).to_lowercase()),
+            },
+        );
     }
 
     Ok(Json(task))
@@ -454,6 +490,14 @@ async fn move_task_handler(
         return Err(AppError::Forbidden("Not a board member".into()));
     }
 
+    // Capture previous column_id for automation trigger
+    let previous_column_id = sqlx::query_scalar::<_, Uuid>(
+        "SELECT column_id FROM tasks WHERE id = $1 AND deleted_at IS NULL",
+    )
+    .bind(task_id)
+    .fetch_optional(&state.db)
+    .await?;
+
     let task = move_task(&state.db, task_id, body.column_id, body.position.clone())
         .await
         .map_err(|e| match e {
@@ -492,6 +536,51 @@ async fn move_task_handler(
             &assignee_ids,
         )
         .await;
+    }
+
+    // Trigger automations for TaskMoved
+    spawn_automation_evaluation(
+        state.db.clone(),
+        AutomationTrigger::TaskMoved,
+        TriggerContext {
+            task_id,
+            board_id,
+            tenant_id: tenant.tenant_id,
+            user_id: tenant.user_id,
+            previous_column_id,
+            new_column_id: Some(body.column_id),
+            priority: None,
+        },
+    );
+
+    // Check if the task was moved to a "done" column — trigger TaskCompleted
+    let is_done_column = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT COALESCE((status_mapping->>'done')::boolean, false)
+        FROM board_columns WHERE id = $1
+        "#,
+    )
+    .bind(body.column_id)
+    .fetch_optional(&state.db)
+    .await
+    .ok()
+    .flatten()
+    .unwrap_or(false);
+
+    if is_done_column {
+        spawn_automation_evaluation(
+            state.db.clone(),
+            AutomationTrigger::TaskCompleted,
+            TriggerContext {
+                task_id,
+                board_id,
+                tenant_id: tenant.tenant_id,
+                user_id: tenant.user_id,
+                previous_column_id,
+                new_column_id: Some(body.column_id),
+                priority: None,
+            },
+        );
     }
 
     Ok(Json(task))
@@ -625,6 +714,21 @@ async fn assign_user_handler(
         .await;
     }
 
+    // Trigger automations for TaskAssigned
+    spawn_automation_evaluation(
+        state.db.clone(),
+        AutomationTrigger::TaskAssigned,
+        TriggerContext {
+            task_id,
+            board_id,
+            tenant_id: tenant.tenant_id,
+            user_id: tenant.user_id,
+            previous_column_id: None,
+            new_column_id: None,
+            priority: None,
+        },
+    );
+
     Ok(Json(json!({ "success": true })))
 }
 
@@ -725,152 +829,30 @@ async fn unassign_user_handler(
     Ok(Json(json!({ "success": true })))
 }
 
-/// GET /api/boards/:board_id/tasks/list
-/// List all tasks for a board as a flat list with column names
-async fn list_tasks_flat_handler(
-    State(state): State<AppState>,
-    tenant: TenantContext,
-    Path(board_id): Path<Uuid>,
-) -> Result<Json<Vec<TaskListItem>>> {
-    let tasks = list_tasks_flat(&state.db, board_id, tenant.user_id)
-        .await
-        .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
-            TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
-            TaskQueryError::Database(e) => AppError::SqlxError(e),
-        })?;
-    Ok(Json(tasks))
-}
-
-/// Query params for calendar endpoint
-#[derive(Deserialize)]
-pub struct CalendarQuery {
-    pub start: chrono::DateTime<chrono::Utc>,
-    pub end: chrono::DateTime<chrono::Utc>,
-}
-
-/// GET /api/boards/{board_id}/tasks/calendar?start=&end=
-async fn list_calendar_tasks_handler(
-    State(state): State<AppState>,
-    tenant: TenantContext,
-    Path(board_id): Path<Uuid>,
-    Query(query): Query<CalendarQuery>,
-) -> Result<Json<Vec<CalendarTask>>> {
-    let tasks =
-        list_tasks_for_calendar(&state.db, board_id, tenant.user_id, query.start, query.end)
-            .await
-            .map_err(|e| match e {
-                TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
-                TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
-                TaskQueryError::Database(e) => AppError::SqlxError(e),
-            })?;
-    Ok(Json(tasks))
-}
-
-/// GET /api/boards/{board_id}/tasks/gantt
-async fn list_gantt_tasks_handler(
-    State(state): State<AppState>,
-    tenant: TenantContext,
-    Path(board_id): Path<Uuid>,
-) -> Result<Json<Vec<GanttTask>>> {
-    let tasks = list_tasks_for_gantt(&state.db, board_id, tenant.user_id)
-        .await
-        .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
-            TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
-            TaskQueryError::Database(e) => AppError::SqlxError(e),
-        })?;
-    Ok(Json(tasks))
-}
-
 /// Create the task router
-/// Request body for bulk update
-#[derive(Deserialize)]
-pub struct BulkUpdateRequest {
-    pub task_ids: Vec<Uuid>,
-    pub column_id: Option<Uuid>,
-    pub priority: Option<TaskPriority>,
-    pub milestone_id: Option<Uuid>,
-    pub clear_milestone: Option<bool>,
-    pub group_id: Option<Uuid>,
-    pub clear_group: Option<bool>,
-}
-
-/// Request body for bulk delete
-#[derive(Deserialize)]
-pub struct BulkDeleteRequest {
-    pub task_ids: Vec<Uuid>,
-}
-
-/// POST /boards/{board_id}/tasks/bulk-update
-async fn bulk_update_handler(
-    State(state): State<AppState>,
-    ctx: TenantContext,
-    Path(board_id): Path<Uuid>,
-    Json(req): Json<BulkUpdateRequest>,
-) -> Result<Json<serde_json::Value>> {
-    let input = BulkUpdateInput {
-        task_ids: req.task_ids,
-        column_id: req.column_id,
-        priority: req.priority,
-        milestone_id: req.milestone_id,
-        clear_milestone: req.clear_milestone,
-        group_id: req.group_id,
-        clear_group: req.clear_group,
-    };
-
-    let updated = bulk_update_tasks(&state.db, board_id, ctx.user_id, input)
-        .await
-        .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
-            TaskQueryError::Database(e) => AppError::SqlxError(e),
-            _ => AppError::InternalError(format!("{}", e)),
-        })?;
-
-    Ok(Json(json!({ "updated": updated })))
-}
-
-/// POST /boards/{board_id}/tasks/bulk-delete
-async fn bulk_delete_handler(
-    State(state): State<AppState>,
-    ctx: TenantContext,
-    Path(board_id): Path<Uuid>,
-    Json(req): Json<BulkDeleteRequest>,
-) -> Result<Json<serde_json::Value>> {
-    let deleted = bulk_delete_tasks(&state.db, board_id, ctx.user_id, &req.task_ids)
-        .await
-        .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
-            TaskQueryError::Database(e) => AppError::SqlxError(e),
-            _ => AppError::InternalError(format!("{}", e)),
-        })?;
-
-    Ok(Json(json!({ "deleted": deleted })))
-}
-
 pub fn task_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Board-scoped task routes
         .route("/boards/{board_id}/tasks", get(list_tasks))
         .route(
             "/boards/{board_id}/tasks/list",
-            get(list_tasks_flat_handler),
+            get(task_views::list_tasks_flat_handler),
         )
         .route(
             "/boards/{board_id}/tasks/calendar",
-            get(list_calendar_tasks_handler),
+            get(task_views::list_calendar_tasks_handler),
         )
         .route(
             "/boards/{board_id}/tasks/gantt",
-            get(list_gantt_tasks_handler),
+            get(task_views::list_gantt_tasks_handler),
         )
         .route(
             "/boards/{board_id}/tasks/bulk-update",
-            post(bulk_update_handler),
+            post(task_bulk::bulk_update_handler),
         )
         .route(
             "/boards/{board_id}/tasks/bulk-delete",
-            post(bulk_delete_handler),
+            post(task_bulk::bulk_delete_handler),
         )
         .route("/boards/{board_id}/tasks", post(create_task_handler))
         // Task-specific routes

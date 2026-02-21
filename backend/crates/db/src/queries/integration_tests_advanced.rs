@@ -314,7 +314,7 @@ async fn test_assign_user_to_task() {
     )
     .await;
 
-    let assignee = super::tasks::assign_user(&pool, task.id, user_id)
+    let assignee = super::task_assignments::assign_user(&pool, task.id, user_id)
         .await
         .expect("assign_user should succeed");
 
@@ -322,7 +322,7 @@ async fn test_assign_user_to_task() {
     assert_eq!(assignee.user_id, user_id);
 
     // Verify via get_task_assignee_ids
-    let assignee_ids = super::tasks::get_task_assignee_ids(&pool, task.id)
+    let assignee_ids = super::task_assignments::get_task_assignee_ids(&pool, task.id)
         .await
         .expect("get_task_assignee_ids");
 
@@ -346,17 +346,17 @@ async fn test_unassign_user_from_task() {
     .await;
 
     // Assign first
-    super::tasks::assign_user(&pool, task.id, user_id)
+    super::task_assignments::assign_user(&pool, task.id, user_id)
         .await
         .expect("assign_user");
 
     // Then unassign
-    super::tasks::unassign_user(&pool, task.id, user_id)
+    super::task_assignments::unassign_user(&pool, task.id, user_id)
         .await
         .expect("unassign_user should succeed");
 
     // Verify gone
-    let assignee_ids = super::tasks::get_task_assignee_ids(&pool, task.id)
+    let assignee_ids = super::task_assignments::get_task_assignee_ids(&pool, task.id)
         .await
         .expect("get_task_assignee_ids");
 
@@ -440,7 +440,7 @@ async fn test_bulk_update_tasks() {
     )
     .await;
 
-    let input = super::tasks::BulkUpdateInput {
+    let input = super::task_bulk::BulkUpdateInput {
         task_ids: vec![t1.id, t2.id, t3.id],
         column_id: None,
         priority: Some(TaskPriority::Urgent),
@@ -450,7 +450,7 @@ async fn test_bulk_update_tasks() {
         clear_group: None,
     };
 
-    let updated_count = super::tasks::bulk_update_tasks(&pool, board_id, user_id, input)
+    let updated_count = super::task_bulk::bulk_update_tasks(&pool, board_id, user_id, input)
         .await
         .expect("bulk_update_tasks");
 
@@ -501,7 +501,7 @@ async fn test_bulk_delete_tasks() {
     .await;
 
     let deleted_count =
-        super::tasks::bulk_delete_tasks(&pool, board_id, user_id, &[t1.id, t2.id, t3.id])
+        super::task_bulk::bulk_delete_tasks(&pool, board_id, user_id, &[t1.id, t2.id, t3.id])
             .await
             .expect("bulk_delete_tasks");
 
@@ -694,7 +694,7 @@ async fn test_my_tasks_returns_assigned_tasks() {
     .await;
 
     // Assign the task to the user
-    super::tasks::assign_user(&pool, task.id, user_id)
+    super::task_assignments::assign_user(&pool, task.id, user_id)
         .await
         .expect("assign_user");
 
@@ -748,10 +748,10 @@ async fn test_dashboard_stats() {
     )
     .await;
 
-    super::tasks::assign_user(&pool, t1.id, user_id)
+    super::task_assignments::assign_user(&pool, t1.id, user_id)
         .await
         .expect("assign t1");
-    super::tasks::assign_user(&pool, t2.id, user_id)
+    super::task_assignments::assign_user(&pool, t2.id, user_id)
         .await
         .expect("assign t2");
 

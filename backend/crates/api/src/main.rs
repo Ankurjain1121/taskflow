@@ -7,6 +7,8 @@ pub mod services;
 mod state;
 pub mod ws;
 
+use std::time::Duration;
+
 use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
 use axum::http::Method;
 use axum::middleware::{from_fn, from_fn_with_state};
@@ -23,12 +25,13 @@ use crate::routes::{
     archive_router, attachment_router, automation_router, board_columns_router, board_router,
     board_share_router, board_templates_router, column_router, comment_router, cron_router,
     custom_field_router, dashboard_router, dependency_router, eisenhower_router, favorites_router,
-    health_handler, import_export_router, liveness_handler, milestone_router, my_tasks_router,
+    health_handler, liveness_handler, milestone_router, my_tasks_router,
     notification_preferences_router, notification_router, onboarding_router,
     project_template_router, readiness_handler, recurring_router, reports_router, search_router,
     sessions_router, shared_board_public_router, subtask_router, task_group_routes, task_router,
-    team_overview_router, themes_router, time_entry_router, upload_router, user_preferences_router,
-    webhook_router, workspace_api_keys_router, workspace_boards_router, workspace_router,
+    task_template_router, team_overview_router, themes_router, time_entry_router, upload_router,
+    user_preferences_router, webhook_router, workspace_api_keys_router, workspace_boards_router,
+    workspace_router,
 };
 use crate::state::AppState;
 use crate::ws::ws_handler;
@@ -77,13 +80,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .route(
             "/auth/me",
-            get(routes::auth::me_handler)
-                .patch(routes::auth::update_profile_handler)
-                .delete(routes::auth::delete_account_handler),
+            get(routes::auth_profile::me_handler)
+                .patch(routes::auth_profile::update_profile_handler)
+                .delete(routes::auth_password::delete_account_handler),
         )
         .route(
             "/auth/change-password",
-            axum::routing::post(routes::auth::change_password_handler),
+            axum::routing::post(routes::auth_password::change_password_handler),
         )
         .route(
             "/invitations",
@@ -120,7 +123,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .route(
             "/auth/forgot-password",
-            axum::routing::post(routes::auth::forgot_password_handler),
+            axum::routing::post(routes::auth_password::forgot_password_handler),
         )
         .layer(from_fn(rate_limit_middleware))
         .layer(rate_limit_layer(5, 60)); // 5 requests per 60 seconds per IP
@@ -145,7 +148,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .route(
             "/auth/reset-password",
-            axum::routing::post(routes::auth::reset_password_handler),
+            axum::routing::post(routes::auth_password::reset_password_handler),
         )
         .route(
             "/invitations/validate/{token}",
@@ -227,8 +230,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", project_template_router(state.clone()))
         // Phase 4: Workflow automation
         .nest("/api", automation_router(state.clone()))
+        // Task templates
+        .nest("/api", task_template_router(state.clone()))
         // Phase 4: Import/export
-        .nest("/api", import_export_router(state.clone()))
+        .nest("/api", routes::export::export_router(state.clone()))
+        .nest("/api", routes::import::import_router(state.clone()))
         // Phase 4: Client portal (board shares)
         .nest("/api", board_share_router(state.clone()))
         .nest("/api", shared_board_public_router())
@@ -247,7 +253,51 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(TraceLayer::new_for_http())
         .layer(CompressionLayer::new())
         .layer(cors)
-        .with_state(state);
+        .with_state(state.clone());
+
+    // Spawn background job: recurring task scheduler (every 10 minutes)
+    let recurring_pool = state.db.clone();
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(600));
+        // Skip the first immediate tick to let the server finish starting
+        interval.tick().await;
+        tracing::info!("Recurring task scheduler started (interval: 10 min)");
+        loop {
+            interval.tick().await;
+            match taskflow_db::queries::recurring::get_due_configs(&recurring_pool).await {
+                Ok(configs) => {
+                    if configs.is_empty() {
+                        tracing::debug!("Recurring scheduler: no configs due");
+                        continue;
+                    }
+                    let total = configs.len();
+                    let mut created = 0usize;
+                    let mut errors = 0usize;
+                    for config in &configs {
+                        match taskflow_db::queries::recurring::create_recurring_instance(
+                            &recurring_pool,
+                            config,
+                        )
+                        .await
+                        {
+                            Ok(_) => created += 1,
+                            Err(e) => {
+                                tracing::error!(
+                                    config_id = %config.id,
+                                    "Recurring instance creation failed: {e}"
+                                );
+                                errors += 1;
+                            }
+                        }
+                    }
+                    tracing::info!(total, created, errors, "Recurring scheduler tick completed");
+                }
+                Err(e) => {
+                    tracing::error!("Recurring scheduler: failed to fetch due configs: {e}");
+                }
+            }
+        }
+    });
 
     // Bind and serve
     let addr = format!("{}:{}", config.host, config.port);

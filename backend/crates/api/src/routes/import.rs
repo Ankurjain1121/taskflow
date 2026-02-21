@@ -1,13 +1,11 @@
-//! Import/Export REST endpoints
+//! Import REST endpoints
 //!
-//! Provides export (CSV, JSON) and import (JSON, CSV, Trello) for board tasks.
+//! Provides import (JSON, CSV, Trello) for board tasks.
 
 use axum::{
-    extract::{Path, Query, State},
-    http::header,
+    extract::{Path, State},
     middleware::from_fn_with_state,
-    response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::post,
     Json, Router,
 };
 use chrono::{DateTime, Utc};
@@ -20,13 +18,8 @@ use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
 // ============================================================================
-// Query / Request / Response DTOs
+// DTOs
 // ============================================================================
-
-#[derive(Deserialize)]
-struct ExportQuery {
-    format: String,
-}
 
 #[derive(Deserialize)]
 struct ImportTaskItem {
@@ -79,71 +72,14 @@ struct TrelloImportResult {
     skipped: i64,
 }
 
-// Export response types
-#[derive(Serialize)]
-struct ExportBoardJson {
-    board: ExportBoardMeta,
-    columns: Vec<ExportColumnJson>,
-    tasks: Vec<ExportTaskJson>,
-}
-
-#[derive(Serialize)]
-struct ExportBoardMeta {
-    id: Uuid,
-    name: String,
-    description: Option<String>,
-    exported_at: DateTime<Utc>,
-}
-
-#[derive(Serialize)]
-struct ExportColumnJson {
-    id: Uuid,
-    name: String,
-    position: String,
-    color: Option<String>,
-}
-
-#[derive(Serialize)]
-struct ExportTaskJson {
-    title: String,
-    description: Option<String>,
-    priority: String,
-    column_name: String,
-    due_date: Option<DateTime<Utc>>,
-    assignees: Vec<String>,
-    created_at: DateTime<Utc>,
-}
-
 // Internal row types for sqlx
-#[derive(sqlx::FromRow)]
-struct BoardRow {
-    id: Uuid,
-    name: String,
-    description: Option<String>,
-}
-
 #[derive(sqlx::FromRow)]
 struct ColumnRow {
     id: Uuid,
     name: String,
     position: String,
+    #[allow(dead_code)]
     color: Option<String>,
-}
-
-#[derive(sqlx::FromRow)]
-struct ExportTaskRow {
-    title: String,
-    description: Option<String>,
-    priority: String,
-    column_name: String,
-    due_date: Option<DateTime<Utc>>,
-    created_at: DateTime<Utc>,
-}
-
-#[derive(sqlx::FromRow)]
-struct TaskAssigneeRow {
-    task_title: String,
-    assignee_name: String,
 }
 
 #[derive(sqlx::FromRow)]
@@ -246,15 +182,6 @@ fn parse_csv(input: &str) -> Vec<Vec<String>> {
     rows
 }
 
-/// Escape a field for CSV output (wrap in quotes if it contains comma, quote, or newline).
-fn csv_escape(field: &str) -> String {
-    if field.contains(',') || field.contains('"') || field.contains('\n') {
-        format!("\"{}\"", field.replace('"', "\"\""))
-    } else {
-        field.to_string()
-    }
-}
-
 /// Resolve a column_name to a column_id for a given board.
 /// Falls back to the first column (by position) if the name is not found.
 async fn resolve_column_id(
@@ -293,10 +220,6 @@ async fn resolve_column_id(
 }
 
 /// Get the next position key for a column.
-///
-/// Uses a count-based approach: fetches the number of existing tasks and
-/// generates a zero-padded numeric string, ensuring monotonically increasing
-/// and fixed-width positions that sort correctly.
 async fn next_position_in_column(db: &sqlx::PgPool, column_id: Uuid) -> Result<String> {
     let count: i64 = sqlx::query_scalar(
         "SELECT COUNT(*) FROM tasks WHERE column_id = $1 AND deleted_at IS NULL",
@@ -306,243 +229,23 @@ async fn next_position_in_column(db: &sqlx::PgPool, column_id: Uuid) -> Result<S
     .await
     .map_err(AppError::from)?;
 
-    // Zero-padded 6-digit position ensures correct lexicographic ordering
-    // and supports up to 999,999 tasks per column
     Ok(format!("{:06}", count))
+}
+
+/// Synchronous fallback: pick the first column_id from the map or existing columns.
+fn resolve_column_id_sync(
+    name_map: &std::collections::HashMap<String, Uuid>,
+    existing: &[ColumnRow],
+) -> Uuid {
+    if let Some(id) = name_map.values().next() {
+        return *id;
+    }
+    existing.first().map(|c| c.id).unwrap_or(Uuid::nil())
 }
 
 // ============================================================================
 // Route Handlers
 // ============================================================================
-
-/// GET /boards/{board_id}/export?format=csv|json
-///
-/// Export board tasks in the requested format.
-async fn export_handler(
-    State(state): State<AppState>,
-    tenant: TenantContext,
-    Path(board_id): Path<Uuid>,
-    Query(query): Query<ExportQuery>,
-) -> Result<Response> {
-    verify_board_membership(&state.db, board_id, tenant.user_id).await?;
-
-    match query.format.as_str() {
-        "csv" => export_csv(&state.db, board_id).await,
-        "json" => export_json(&state.db, board_id).await,
-        _ => Err(AppError::BadRequest(
-            "Invalid format. Use 'csv' or 'json'.".into(),
-        )),
-    }
-}
-
-async fn export_csv(db: &sqlx::PgPool, board_id: Uuid) -> Result<Response> {
-    // Fetch tasks with column names
-    let tasks: Vec<ExportTaskRow> = sqlx::query_as(
-        r#"
-        SELECT
-            t.title,
-            t.description,
-            t.priority::text AS priority,
-            bc.name AS column_name,
-            t.due_date,
-            t.created_at
-        FROM tasks t
-        JOIN board_columns bc ON bc.id = t.column_id
-        WHERE t.board_id = $1 AND t.deleted_at IS NULL
-        ORDER BY bc.position, t.position
-        "#,
-    )
-    .bind(board_id)
-    .fetch_all(db)
-    .await
-    .map_err(AppError::from)?;
-
-    // Fetch assignees for all tasks on this board
-    let assignees: Vec<TaskAssigneeRow> = sqlx::query_as(
-        r#"
-        SELECT
-            t.title AS task_title,
-            u.name AS assignee_name
-        FROM task_assignees ta
-        JOIN tasks t ON t.id = ta.task_id
-        JOIN users u ON u.id = ta.user_id
-        WHERE t.board_id = $1 AND t.deleted_at IS NULL
-        ORDER BY t.title, u.name
-        "#,
-    )
-    .bind(board_id)
-    .fetch_all(db)
-    .await
-    .map_err(AppError::from)?;
-
-    // Build assignee lookup by task title
-    let mut assignee_map: std::collections::HashMap<String, Vec<String>> =
-        std::collections::HashMap::new();
-    for row in &assignees {
-        assignee_map
-            .entry(row.task_title.clone())
-            .or_default()
-            .push(row.assignee_name.clone());
-    }
-
-    // Build CSV
-    let mut csv = String::from("title,description,priority,status,due_date,assignee,created_at\n");
-
-    for task in &tasks {
-        let assignee_names = assignee_map
-            .get(&task.title)
-            .map(|names| names.join("; "))
-            .unwrap_or_default();
-
-        let due = task
-            .due_date
-            .map(|d| d.format("%Y-%m-%d").to_string())
-            .unwrap_or_default();
-        let created = task.created_at.format("%Y-%m-%dT%H:%M:%SZ").to_string();
-
-        csv.push_str(&format!(
-            "{},{},{},{},{},{},{}\n",
-            csv_escape(&task.title),
-            csv_escape(task.description.as_deref().unwrap_or("")),
-            csv_escape(&task.priority),
-            csv_escape(&task.column_name),
-            csv_escape(&due),
-            csv_escape(&assignee_names),
-            csv_escape(&created),
-        ));
-    }
-
-    // Get board name for the filename
-    let board_name: Option<String> = sqlx::query_scalar("SELECT name FROM boards WHERE id = $1")
-        .bind(board_id)
-        .fetch_optional(db)
-        .await
-        .map_err(AppError::from)?;
-
-    let filename = format!(
-        "{}_export.csv",
-        board_name
-            .unwrap_or_else(|| "board".into())
-            .replace(' ', "_")
-            .to_lowercase()
-    );
-
-    Ok((
-        [
-            (header::CONTENT_TYPE, "text/csv; charset=utf-8".to_string()),
-            (
-                header::CONTENT_DISPOSITION,
-                format!("attachment; filename=\"{}\"", filename),
-            ),
-        ],
-        csv,
-    )
-        .into_response())
-}
-
-async fn export_json(db: &sqlx::PgPool, board_id: Uuid) -> Result<Response> {
-    // Fetch board
-    let board: BoardRow = sqlx::query_as(
-        "SELECT id, name, description FROM boards WHERE id = $1 AND deleted_at IS NULL",
-    )
-    .bind(board_id)
-    .fetch_optional(db)
-    .await
-    .map_err(AppError::from)?
-    .ok_or_else(|| AppError::NotFound("Board not found".into()))?;
-
-    // Fetch columns
-    let columns: Vec<ColumnRow> = sqlx::query_as(
-        "SELECT id, name, position, color FROM board_columns WHERE board_id = $1 ORDER BY position",
-    )
-    .bind(board_id)
-    .fetch_all(db)
-    .await
-    .map_err(AppError::from)?;
-
-    // Fetch tasks with column names
-    let tasks: Vec<ExportTaskRow> = sqlx::query_as(
-        r#"
-        SELECT
-            t.title,
-            t.description,
-            t.priority::text AS priority,
-            bc.name AS column_name,
-            t.due_date,
-            t.created_at
-        FROM tasks t
-        JOIN board_columns bc ON bc.id = t.column_id
-        WHERE t.board_id = $1 AND t.deleted_at IS NULL
-        ORDER BY bc.position, t.position
-        "#,
-    )
-    .bind(board_id)
-    .fetch_all(db)
-    .await
-    .map_err(AppError::from)?;
-
-    // Fetch assignees
-    let assignees: Vec<TaskAssigneeRow> = sqlx::query_as(
-        r#"
-        SELECT
-            t.title AS task_title,
-            u.name AS assignee_name
-        FROM task_assignees ta
-        JOIN tasks t ON t.id = ta.task_id
-        JOIN users u ON u.id = ta.user_id
-        WHERE t.board_id = $1 AND t.deleted_at IS NULL
-        ORDER BY t.title, u.name
-        "#,
-    )
-    .bind(board_id)
-    .fetch_all(db)
-    .await
-    .map_err(AppError::from)?;
-
-    let mut assignee_map: std::collections::HashMap<String, Vec<String>> =
-        std::collections::HashMap::new();
-    for row in &assignees {
-        assignee_map
-            .entry(row.task_title.clone())
-            .or_default()
-            .push(row.assignee_name.clone());
-    }
-
-    let export = ExportBoardJson {
-        board: ExportBoardMeta {
-            id: board.id,
-            name: board.name,
-            description: board.description,
-            exported_at: Utc::now(),
-        },
-        columns: columns
-            .into_iter()
-            .map(|c| ExportColumnJson {
-                id: c.id,
-                name: c.name,
-                position: c.position,
-                color: c.color,
-            })
-            .collect(),
-        tasks: tasks
-            .iter()
-            .map(|t| {
-                let task_assignees = assignee_map.get(&t.title).cloned().unwrap_or_default();
-                ExportTaskJson {
-                    title: t.title.clone(),
-                    description: t.description.clone(),
-                    priority: t.priority.clone(),
-                    column_name: t.column_name.clone(),
-                    due_date: t.due_date,
-                    assignees: task_assignees,
-                    created_at: t.created_at,
-                }
-            })
-            .collect(),
-    };
-
-    Ok(Json(export).into_response())
-}
 
 /// POST /boards/{board_id}/import
 ///
@@ -628,8 +331,6 @@ async fn import_csv_handler(
 
     let data_rows = if has_header { &rows[1..] } else { &rows[..] };
 
-    // Expected columns: title, description, priority, column_name, due_date
-    // Minimal: at least title (first column)
     let mut imported: i64 = 0;
 
     for row in data_rows {
@@ -844,24 +545,12 @@ async fn import_trello_handler(
     }))
 }
 
-/// Synchronous fallback: pick the first column_id from the map or existing columns.
-fn resolve_column_id_sync(
-    name_map: &std::collections::HashMap<String, Uuid>,
-    existing: &[ColumnRow],
-) -> Uuid {
-    if let Some(id) = name_map.values().next() {
-        return *id;
-    }
-    existing.first().map(|c| c.id).unwrap_or(Uuid::nil())
-}
-
 // ============================================================================
 // Router
 // ============================================================================
 
-pub fn import_export_router(state: AppState) -> Router<AppState> {
+pub fn import_router(state: AppState) -> Router<AppState> {
     Router::new()
-        .route("/boards/{board_id}/export", get(export_handler))
         .route("/boards/{board_id}/import", post(import_json_handler))
         .route("/boards/{board_id}/import/csv", post(import_csv_handler))
         .route(
