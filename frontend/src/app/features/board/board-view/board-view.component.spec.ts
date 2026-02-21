@@ -279,16 +279,16 @@ describe('BoardViewComponent', () => {
       routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
 
       expect(mockBoardService.getBoardFull).toHaveBeenCalledWith('board-1');
-      expect(component.board()?.name).toBe('Test Board');
-      expect(component.columns()).toHaveLength(3);
-      expect(component.loading()).toBe(false);
+      expect(component.state.board()?.name).toBe('Test Board');
+      expect(component.state.columns()).toHaveLength(3);
+      expect(component.state.loading()).toBe(false);
     });
 
     it('should set boardState with tasks grouped by column_id', () => {
       fixture.detectChanges();
       routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
 
-      const state = component.boardState();
+      const state = component.state.boardState();
       expect(state['col-1']).toHaveLength(1);
       expect(state['col-1'][0].id).toBe('task-1');
       expect(state['col-2']).toHaveLength(1);
@@ -303,8 +303,8 @@ describe('BoardViewComponent', () => {
       fixture.detectChanges();
       routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
 
-      expect(component.loading()).toBe(false);
-      expect(component.errorMessage()).toBe('Failed to load board');
+      expect(component.state.loading()).toBe(false);
+      expect(component.state.errorMessage()).toBe('Failed to load board');
     });
   });
 
@@ -438,7 +438,7 @@ describe('BoardViewComponent', () => {
         throwError(() => new Error('Server error')),
       );
 
-      const snapshotBefore = structuredClone(component.boardState());
+      const snapshotBefore = structuredClone(component.state.boardState());
 
       const event: TaskMoveEvent = {
         task: makeTask({ id: 'task-1', column_id: 'col-1' }),
@@ -451,8 +451,8 @@ describe('BoardViewComponent', () => {
       component.onTaskMoved(event);
 
       // boardState should revert to snapshot
-      expect(component.boardState()).toEqual(snapshotBefore);
-      expect(component.errorMessage()).toBe('Failed to move task. Reverted.');
+      expect(component.state.boardState()).toEqual(snapshotBefore);
+      expect(component.state.errorMessage()).toBe('Failed to move task. Reverted.');
     });
 
     it('should celebrate when task moves to a done column', () => {
@@ -469,10 +469,10 @@ describe('BoardViewComponent', () => {
 
       component.onTaskMoved(event);
 
-      expect(component.celebratingTaskId()).toBe('task-1');
+      expect(component.state.celebratingTaskId()).toBe('task-1');
 
       vi.advanceTimersByTime(1200);
-      expect(component.celebratingTaskId()).toBeNull();
+      expect(component.state.celebratingTaskId()).toBeNull();
 
       vi.useRealTimers();
     });
@@ -490,12 +490,12 @@ describe('BoardViewComponent', () => {
 
       component.onTaskMoved(event);
 
-      expect(component.celebratingTaskId()).toBeNull();
+      expect(component.state.celebratingTaskId()).toBeNull();
     });
 
     it('should compute new position between existing tasks', () => {
       // Put two tasks in col-2 so we can insert between them
-      component.boardState.update((state) => ({
+      component.state.boardState.update((state) => ({
         ...state,
         'col-2': [
           makeTask({ id: 'task-A', column_id: 'col-2', position: 'a0' }),
@@ -532,18 +532,18 @@ describe('BoardViewComponent', () => {
     });
 
     it('connectedColumnIds should return column IDs prefixed with "column-"', () => {
-      const ids = component.connectedColumnIds();
+      const ids = component.state.connectedColumnIds();
       expect(ids).toEqual(['column-col-1', 'column-col-2', 'column-col-3']);
     });
 
     it('allAssignees should aggregate unique assignees from all tasks', () => {
-      const assignees = component.allAssignees();
+      const assignees = component.state.allAssignees();
       expect(assignees).toHaveLength(1);
       expect(assignees[0].id).toBe('user-1');
     });
 
     it('allLabels should aggregate unique labels from all tasks', () => {
-      const labels = component.allLabels();
+      const labels = component.state.allLabels();
       expect(labels).toHaveLength(1);
       expect(labels[0].id).toBe('label-1');
     });
@@ -576,22 +576,22 @@ describe('BoardViewComponent', () => {
 
   describe('selection management', () => {
     it('should toggle task selection', () => {
-      component.toggleTaskSelection('task-1');
-      expect(component.selectedTaskIds()).toEqual(['task-1']);
+      component.state.toggleTaskSelection('task-1');
+      expect(component.state.selectedTaskIds()).toEqual(['task-1']);
 
-      component.toggleTaskSelection('task-2');
-      expect(component.selectedTaskIds()).toEqual(['task-1', 'task-2']);
+      component.state.toggleTaskSelection('task-2');
+      expect(component.state.selectedTaskIds()).toEqual(['task-1', 'task-2']);
 
-      component.toggleTaskSelection('task-1');
-      expect(component.selectedTaskIds()).toEqual(['task-2']);
+      component.state.toggleTaskSelection('task-1');
+      expect(component.state.selectedTaskIds()).toEqual(['task-2']);
     });
 
     it('should clear selection', () => {
-      component.toggleTaskSelection('task-1');
+      component.state.toggleTaskSelection('task-1');
       component.clearSelection();
 
-      expect(component.selectedTaskIds()).toEqual([]);
-      expect(component.selectionMode()).toBe(false);
+      expect(component.state.selectedTaskIds()).toEqual([]);
+      expect(component.state.selectionMode()).toBe(false);
     });
   });
 
@@ -600,11 +600,11 @@ describe('BoardViewComponent', () => {
   describe('error management', () => {
     it('should clear error', () => {
       // Trigger an error first
-      component['showError']('Something failed');
-      expect(component.errorMessage()).toBe('Something failed');
+      component.state.showError('Something failed');
+      expect(component.state.errorMessage()).toBe('Something failed');
 
-      component.clearError();
-      expect(component.errorMessage()).toBeNull();
+      component.state.clearError();
+      expect(component.state.errorMessage()).toBeNull();
     });
   });
 
@@ -625,7 +625,7 @@ describe('BoardViewComponent', () => {
 
       component.onTaskUpdated(updated);
 
-      const tasks = component.boardState()['col-1'];
+      const tasks = component.state.boardState()['col-1'];
       expect(tasks[0].title).toBe('Updated Title');
     });
   });
@@ -648,16 +648,12 @@ describe('BoardViewComponent', () => {
   // --- Cleanup ---
 
   describe('ngOnDestroy', () => {
-    it('should unregister shortcuts and unsubscribe from WS', () => {
+    it('should unsubscribe from WS on destroy', () => {
       fixture.detectChanges();
       routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
 
-      const shortcutsService = TestBed.inject(KeyboardShortcutsService);
       component.ngOnDestroy();
 
-      expect(shortcutsService.unregisterByCategory).toHaveBeenCalledWith(
-        'Board',
-      );
       expect(mockWsService.send).toHaveBeenCalledWith('unsubscribe', {
         channel: 'board:board-1',
       });

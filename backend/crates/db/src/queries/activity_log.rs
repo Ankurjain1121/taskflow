@@ -67,7 +67,7 @@ pub async fn list_activity_by_task(
                 r#"
                 SELECT
                     al.id,
-                    al.action as "action: ActivityAction",
+                    al.action,
                     al.entity_type,
                     al.entity_id,
                     al.user_id,
@@ -97,7 +97,7 @@ pub async fn list_activity_by_task(
                 r#"
                 SELECT
                     al.id,
-                    al.action as "action: ActivityAction",
+                    al.action,
                     al.entity_type,
                     al.entity_id,
                     al.user_id,
@@ -123,7 +123,7 @@ pub async fn list_activity_by_task(
             r#"
             SELECT
                 al.id,
-                al.action as "action: ActivityAction",
+                al.action,
                 al.entity_type,
                 al.entity_id,
                 al.user_id,
@@ -180,7 +180,7 @@ pub async fn insert_activity_log(
         )
         SELECT
             i.id,
-            i.action as "action: ActivityAction",
+            i.action,
             i.entity_type,
             i.entity_id,
             i.user_id,
