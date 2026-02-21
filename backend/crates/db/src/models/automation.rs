@@ -12,6 +12,11 @@ pub enum AutomationTrigger {
     TaskPriorityChanged,
     TaskDueDatePassed,
     TaskCompleted,
+    SubtaskCompleted,
+    CommentAdded,
+    CustomFieldChanged,
+    LabelChanged,
+    DueDateApproaching,
 }
 
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -23,6 +28,11 @@ pub enum AutomationActionType {
     SendNotification,
     AddLabel,
     SetMilestone,
+    CreateSubtask,
+    AddComment,
+    SetDueDate,
+    SetCustomField,
+    SendWebhook,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
@@ -37,6 +47,9 @@ pub struct AutomationRule {
     pub created_by_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub conditions: Option<serde_json::Value>,
+    pub execution_count: i32,
+    pub last_triggered_at: Option<DateTime<Utc>>,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]

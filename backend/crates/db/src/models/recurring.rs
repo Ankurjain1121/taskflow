@@ -22,4 +22,9 @@ pub struct RecurringTaskConfig {
     pub created_by_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub end_date: Option<DateTime<Utc>>,
+    pub skip_weekends: bool,
+    pub days_of_week: Vec<i32>,
+    pub day_of_month: Option<i32>,
+    pub creation_mode: String,
 }

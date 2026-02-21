@@ -298,9 +298,9 @@ describe('svg-charts', () => {
       expect(CHART_COLORS.length).toBeGreaterThan(0);
     });
 
-    it('should contain hex color strings', () => {
+    it('should contain hex color strings or CSS variable references', () => {
       for (const color of CHART_COLORS) {
-        expect(color).toMatch(/^#[0-9a-fA-F]{6}$/);
+        expect(color).toMatch(/^(#[0-9a-fA-F]{6}|var\(--[\w-]+\))$/);
       }
     });
 

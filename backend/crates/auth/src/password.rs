@@ -76,4 +76,18 @@ mod tests {
         let result = verify_password("any_password", "not-a-valid-hash");
         assert!(result.is_err(), "Invalid hash format should return Err");
     }
+
+    #[test]
+    fn test_same_password_produces_different_hashes_salt_uniqueness() {
+        let password = "identical_password";
+        let hash1 = hash_password(password).unwrap();
+        let hash2 = hash_password(password).unwrap();
+        assert_ne!(
+            hash1, hash2,
+            "Two hashes of the same password should differ due to unique salts"
+        );
+        // Both must still verify against the original password
+        assert!(verify_password(password, &hash1).unwrap());
+        assert!(verify_password(password, &hash2).unwrap());
+    }
 }

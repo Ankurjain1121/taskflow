@@ -2,7 +2,17 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-export type RecurrencePattern = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'custom';
+export type RecurrencePattern =
+  | 'daily'
+  | 'weekly'
+  | 'biweekly'
+  | 'monthly'
+  | 'custom'
+  | 'yearly'
+  | 'weekdays'
+  | 'custom_weekly';
+
+export type CreationMode = 'on_schedule' | 'on_completion';
 
 export interface RecurringTaskConfig {
   id: string;
@@ -20,6 +30,11 @@ export interface RecurringTaskConfig {
   created_by_id: string;
   created_at: string;
   updated_at: string;
+  end_date: string | null;
+  skip_weekends: boolean;
+  days_of_week: number[];
+  day_of_month: number | null;
+  creation_mode: CreationMode;
 }
 
 export interface CreateRecurringRequest {
@@ -27,6 +42,11 @@ export interface CreateRecurringRequest {
   cron_expression?: string;
   interval_days?: number;
   max_occurrences?: number;
+  end_date?: string;
+  skip_weekends?: boolean;
+  days_of_week?: number[];
+  day_of_month?: number;
+  creation_mode?: CreationMode;
 }
 
 export interface UpdateRecurringRequest {
@@ -35,6 +55,11 @@ export interface UpdateRecurringRequest {
   interval_days?: number;
   max_occurrences?: number;
   is_active?: boolean;
+  end_date?: string;
+  skip_weekends?: boolean;
+  days_of_week?: number[];
+  day_of_month?: number;
+  creation_mode?: CreationMode;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -45,11 +70,20 @@ export class RecurringService {
     return this.http.get<RecurringTaskConfig>(`/api/tasks/${taskId}/recurring`);
   }
 
-  createConfig(taskId: string, req: CreateRecurringRequest): Observable<RecurringTaskConfig> {
-    return this.http.post<RecurringTaskConfig>(`/api/tasks/${taskId}/recurring`, req);
+  createConfig(
+    taskId: string,
+    req: CreateRecurringRequest,
+  ): Observable<RecurringTaskConfig> {
+    return this.http.post<RecurringTaskConfig>(
+      `/api/tasks/${taskId}/recurring`,
+      req,
+    );
   }
 
-  updateConfig(id: string, req: UpdateRecurringRequest): Observable<RecurringTaskConfig> {
+  updateConfig(
+    id: string,
+    req: UpdateRecurringRequest,
+  ): Observable<RecurringTaskConfig> {
     return this.http.put<RecurringTaskConfig>(`/api/recurring/${id}`, req);
   }
 

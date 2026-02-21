@@ -17,3 +17,6 @@ rand = "0.8"
 tracing.workspace = true
 
 taskflow-db = { path = "../db" }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util", "macros"] }

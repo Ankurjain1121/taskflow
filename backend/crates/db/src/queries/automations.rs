@@ -139,7 +139,10 @@ pub async fn list_rules(
             tenant_id,
             created_by_id,
             created_at,
-            updated_at
+            updated_at,
+            conditions,
+            execution_count,
+            last_triggered_at
         FROM automation_rules
         WHERE board_id = $1
         ORDER BY created_at DESC
@@ -177,7 +180,10 @@ pub async fn get_rule(
             tenant_id,
             created_by_id,
             created_at,
-            updated_at
+            updated_at,
+            conditions,
+            execution_count,
+            last_triggered_at
         FROM automation_rules
         WHERE id = $1
         "#,
@@ -231,7 +237,10 @@ pub async fn create_rule(
             tenant_id,
             created_by_id,
             created_at,
-            updated_at
+            updated_at,
+            conditions,
+            execution_count,
+            last_triggered_at
         "#,
     )
     .bind(rule_id)
@@ -314,7 +323,10 @@ pub async fn update_rule(
             tenant_id,
             created_by_id,
             created_at,
-            updated_at
+            updated_at,
+            conditions,
+            execution_count,
+            last_triggered_at
         "#,
     )
     .bind(rule_id)
@@ -477,7 +489,10 @@ pub async fn get_active_rules_for_trigger(
             tenant_id,
             created_by_id,
             created_at,
-            updated_at
+            updated_at,
+            conditions,
+            execution_count,
+            last_triggered_at
         FROM automation_rules
         WHERE board_id = $1
           AND trigger = $2
@@ -499,7 +514,7 @@ pub async fn get_active_rules_for_trigger(
     Ok(results)
 }
 
-/// Log an automation execution result.
+/// Log an automation execution result and update rule execution stats.
 pub async fn log_automation(
     pool: &PgPool,
     rule_id: Uuid,
@@ -526,6 +541,19 @@ pub async fn log_automation(
     .bind(status)
     .bind(&details)
     .fetch_one(pool)
+    .await?;
+
+    // Update execution stats on the rule
+    sqlx::query(
+        r#"
+        UPDATE automation_rules
+        SET execution_count = execution_count + 1,
+            last_triggered_at = NOW()
+        WHERE id = $1
+        "#,
+    )
+    .bind(rule_id)
+    .execute(pool)
     .await?;
 
     Ok(log)

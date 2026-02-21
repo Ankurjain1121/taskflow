@@ -152,7 +152,9 @@ describe('KanbanColumnComponent', () => {
       host.column.set(makeColumn({ status_mapping: { done: true } }));
       fixture.detectChanges();
 
-      const checkmark = fixture.debugElement.query(By.css('.text-green-500'));
+      const checkmark = fixture.debugElement.query(
+        By.css('.text-\\[var\\(--success\\)\\]'),
+      );
       expect(checkmark).toBeTruthy();
     });
 
@@ -160,7 +162,9 @@ describe('KanbanColumnComponent', () => {
       host.column.set(makeColumn({ status_mapping: null }));
       fixture.detectChanges();
 
-      const checkmark = fixture.debugElement.query(By.css('.text-green-500'));
+      const checkmark = fixture.debugElement.query(
+        By.css('.text-\\[var\\(--success\\)\\]'),
+      );
       expect(checkmark).toBeFalsy();
     });
   });
@@ -177,7 +181,9 @@ describe('KanbanColumnComponent', () => {
       ]);
       fixture.detectChanges();
 
-      const warning = fixture.debugElement.query(By.css('.text-amber-600'));
+      const warning = fixture.debugElement.query(
+        By.css('.text-\\[var\\(--status-amber-text\\)\\]'),
+      );
       expect(warning).toBeTruthy();
       expect(warning.nativeElement.textContent).toContain('WIP limit');
       expect(warning.nativeElement.textContent).toContain('2');
@@ -438,14 +444,7 @@ describe('KanbanColumnComponent', () => {
       expect(taskCards).toHaveLength(3);
     });
 
-    it('should set data-task-id attributes', () => {
-      host.tasks.set([makeTask({ id: 'my-task-id' })]);
-      fixture.detectChanges();
-
-      const taskWrapper = fixture.debugElement.query(
-        By.css('[data-task-id="my-task-id"]'),
-      );
-      expect(taskWrapper).toBeTruthy();
-    });
+    // Note: data-task-id attributes were removed from the template;
+    // tasks are rendered directly as <app-task-card> components
   });
 });

@@ -61,7 +61,9 @@ async fn update_preferences(
 
     let timezone = body.timezone.unwrap_or(existing.timezone);
     let date_format = body.date_format.unwrap_or(existing.date_format);
-    let default_board_view = body.default_board_view.unwrap_or(existing.default_board_view);
+    let default_board_view = body
+        .default_board_view
+        .unwrap_or(existing.default_board_view);
     let sidebar_density = body.sidebar_density.unwrap_or(existing.sidebar_density);
     let locale = body.locale.unwrap_or(existing.locale);
     let digest_frequency = body.digest_frequency.unwrap_or(existing.digest_frequency);
@@ -92,21 +94,21 @@ async fn update_preferences(
 
     // Parse quiet hours — prefer body value, fall back to existing
     let quiet_start = match body.quiet_hours_start {
-        Some(ref s) if !s.is_empty() => Some(
-            chrono::NaiveTime::parse_from_str(s, "%H:%M").map_err(|_| {
+        Some(ref s) if !s.is_empty() => {
+            Some(chrono::NaiveTime::parse_from_str(s, "%H:%M").map_err(|_| {
                 AppError::BadRequest("Invalid quiet_hours_start format, use HH:MM".into())
-            })?,
-        ),
+            })?)
+        }
         Some(_) => None, // empty string = clear
         None => existing.quiet_hours_start,
     };
 
     let quiet_end = match body.quiet_hours_end {
-        Some(ref s) if !s.is_empty() => Some(
-            chrono::NaiveTime::parse_from_str(s, "%H:%M").map_err(|_| {
+        Some(ref s) if !s.is_empty() => {
+            Some(chrono::NaiveTime::parse_from_str(s, "%H:%M").map_err(|_| {
                 AppError::BadRequest("Invalid quiet_hours_end format, use HH:MM".into())
-            })?,
-        ),
+            })?)
+        }
         Some(_) => None,
         None => existing.quiet_hours_end,
     };

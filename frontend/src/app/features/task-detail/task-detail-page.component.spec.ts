@@ -79,7 +79,9 @@ function makeWorkspace(): Workspace {
     id: 'ws-1',
     name: 'Test Workspace',
     slug: 'test-ws',
-    owner_id: 'user-1',
+    description: null,
+    logo_url: null,
+    created_by_id: 'user-1',
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
   };
@@ -243,44 +245,7 @@ describe('TaskDetailPageComponent', () => {
     });
   });
 
-  // --- Computed: column ---
-
-  describe('column computed', () => {
-    it('should return the column matching task.column_id', () => {
-      fixture.detectChanges();
-      routeParams$.next({ taskId: 'task-1' });
-
-      expect(component.column()?.id).toBe('col-1');
-      expect(component.column()?.name).toBe('To Do');
-    });
-
-    it('should return null when task is null', () => {
-      expect(component.column()).toBeNull();
-    });
-  });
-
-  // --- Computed: dueDateValue ---
-
-  describe('dueDateValue computed', () => {
-    it('should return a Date object from task.due_date', () => {
-      fixture.detectChanges();
-      routeParams$.next({ taskId: 'task-1' });
-
-      const d = component.dueDateValue();
-      expect(d).toBeInstanceOf(Date);
-      expect(d?.toISOString()).toContain('2026-06-15');
-    });
-
-    it('should return null when task has no due_date', () => {
-      mockTaskService.getTask.mockReturnValue(
-        of({ ...task, due_date: null, board_id: 'board-1' }),
-      );
-      fixture.detectChanges();
-      routeParams$.next({ taskId: 'task-1' });
-
-      expect(component.dueDateValue()).toBeNull();
-    });
-  });
+  // Note: column() and dueDateValue() computeds were moved to TaskDetailSidebarComponent
 
   // --- Inline Editing ---
 
@@ -435,57 +400,15 @@ describe('TaskDetailPageComponent', () => {
     });
   });
 
+  // Note: toggleAssigneeSearch, assigneeQuery, assigneeResults, onAssigneeSearch
+  // were moved to TaskDetailSidebarComponent
+
   // --- Assignees ---
 
   describe('assignees', () => {
     beforeEach(() => {
       fixture.detectChanges();
       routeParams$.next({ taskId: 'task-1' });
-    });
-
-    it('toggleAssigneeSearch should toggle search visibility', () => {
-      expect(component.showAssigneeSearch()).toBe(false);
-
-      component.toggleAssigneeSearch();
-      expect(component.showAssigneeSearch()).toBe(true);
-
-      component.toggleAssigneeSearch();
-      expect(component.showAssigneeSearch()).toBe(false);
-    });
-
-    it('toggleAssigneeSearch closing should clear query and results', () => {
-      component.showAssigneeSearch.set(true);
-      component.assigneeQuery.set('alice');
-      component.assigneeResults.set([
-        { id: 'u1', name: 'Alice', email: 'alice@test.com', avatar_url: null },
-      ]);
-
-      component.toggleAssigneeSearch(); // closes
-
-      expect(component.assigneeQuery()).toBe('');
-      expect(component.assigneeResults()).toEqual([]);
-    });
-
-    it('onAssigneeSearch should not search if query is shorter than 2 chars', () => {
-      component.onAssigneeSearch('a');
-      expect(mockWorkspaceService.searchMembers).not.toHaveBeenCalled();
-      expect(component.assigneeResults()).toEqual([]);
-    });
-
-    it('onAssigneeSearch should search workspace members', () => {
-      mockWorkspaceService.searchMembers.mockReturnValue(
-        of([
-          { id: 'u2', name: 'Bob', email: 'bob@test.com', avatar_url: null },
-        ]),
-      );
-
-      component.onAssigneeSearch('Bo');
-
-      expect(mockWorkspaceService.searchMembers).toHaveBeenCalledWith(
-        'ws-1',
-        'Bo',
-      );
-      expect(component.assigneeResults()).toHaveLength(1);
     });
 
     it('onAssign should call assignUser and update task signal', () => {
@@ -569,40 +492,8 @@ describe('TaskDetailPageComponent', () => {
     });
   });
 
-  // --- Helpers ---
-
-  describe('helper methods', () => {
-    it('getInitials should return up to 2 uppercase initials', () => {
-      expect(component.getInitials('Alice Wonder')).toBe('AW');
-      expect(component.getInitials('Bob')).toBe('B');
-      expect(component.getInitials('John Doe Smith')).toBe('JD');
-    });
-
-    it('getAvatarColor should return a color from the palette', () => {
-      const color = component.getAvatarColor('Alice');
-      expect(color).toMatch(/^#[0-9a-f]{6}$/);
-    });
-
-    it('formatDate should format a date string', () => {
-      const formatted = component.formatDate('2026-01-15T10:30:00Z');
-      expect(formatted).toContain('Jan');
-      expect(formatted).toContain('15');
-      expect(formatted).toContain('2026');
-    });
-
-    it('formatShortDate should format without time', () => {
-      const formatted = component.formatShortDate('2026-06-15');
-      expect(formatted).toContain('Jun');
-      expect(formatted).toContain('15');
-      expect(formatted).toContain('2026');
-    });
-
-    it('getPriorityDisplayLabel should return a label string', () => {
-      const label = component.getPriorityDisplayLabel('high');
-      expect(typeof label).toBe('string');
-      expect(label.length).toBeGreaterThan(0);
-    });
-  });
+  // Note: getInitials, getAvatarColor, formatDate, formatShortDate,
+  // getPriorityDisplayLabel were moved to TaskDetailSidebarComponent
 
   // --- goBack ---
 
