@@ -219,4 +219,83 @@ mod tests {
             "Second request should be blocked"
         );
     }
+
+    #[test]
+    fn test_rate_limiter_high_limit() {
+        let limiter = RateLimiter::new(100, 60);
+        for i in 0..100 {
+            assert!(
+                limiter.check_and_record("192.168.1.1").is_ok(),
+                "Request {} should be allowed under limit 100",
+                i + 1
+            );
+        }
+        assert!(
+            limiter.check_and_record("192.168.1.1").is_err(),
+            "Request 101 should be blocked"
+        );
+    }
+
+    #[test]
+    fn test_rate_limiter_clone_shares_state() {
+        let limiter = RateLimiter::new(2, 60);
+        let cloned = limiter.clone();
+
+        assert!(limiter.check_and_record("8.8.8.8").is_ok());
+        assert!(cloned.check_and_record("8.8.8.8").is_ok());
+        // Both clones share state, so the 3rd request should be blocked
+        assert!(limiter.check_and_record("8.8.8.8").is_err());
+    }
+
+    #[test]
+    fn test_rate_limiter_retry_after_is_reasonable() {
+        let limiter = RateLimiter::new(1, 120);
+        assert!(limiter.check_and_record("10.0.0.1").is_ok());
+
+        let result = limiter.check_and_record("10.0.0.1");
+        assert!(result.is_err());
+        let retry_after = result.expect_err("should be rate limited");
+        // retry_after should be between 1 and window_secs + 1
+        assert!(
+            (1..=121).contains(&retry_after),
+            "Retry-After {} should be between 1 and 121",
+            retry_after
+        );
+    }
+
+    #[test]
+    fn test_extract_ip_forwarded_for_last_entry() {
+        let req = Request::builder()
+            .header("X-Forwarded-For", "spoofed.ip, proxy.ip, real-client.ip")
+            .body(Body::empty())
+            .expect("build request");
+        let ip = extract_ip(&req);
+        // Should take the LAST IP (the one appended by the trusted reverse proxy)
+        assert_eq!(ip, "real-client.ip");
+    }
+
+    #[test]
+    fn test_extract_ip_forwarded_for_single_ip() {
+        let req = Request::builder()
+            .header("X-Forwarded-For", "1.2.3.4")
+            .body(Body::empty())
+            .expect("build request");
+        let ip = extract_ip(&req);
+        assert_eq!(ip, "1.2.3.4");
+    }
+
+    #[test]
+    fn test_extract_ip_no_headers_no_connect_info() {
+        let req = Request::builder()
+            .body(Body::empty())
+            .expect("build request");
+        let ip = extract_ip(&req);
+        assert_eq!(ip, "unknown");
+    }
+
+    #[test]
+    fn test_rate_limit_layer_creates_valid_layer() {
+        // Verify the layer can be constructed without panicking
+        let _layer = rate_limit_layer(10, 60);
+    }
 }

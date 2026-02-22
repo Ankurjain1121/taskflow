@@ -344,4 +344,274 @@ mod tests {
             Some("trash.permanent_delete")
         );
     }
+
+    #[test]
+    fn test_infer_route_id_trash_restore() {
+        assert_eq!(
+            infer_route_id("/api/admin/trash/restore", &Method::POST),
+            Some("trash.restore")
+        );
+    }
+
+    #[test]
+    fn test_infer_route_id_admin_update_role() {
+        let uuid = "12345678-1234-1234-1234-123456789abc";
+        assert_eq!(
+            infer_route_id(&format!("/api/admin/users/{}/role", uuid), &Method::PUT),
+            Some("admin.update_role")
+        );
+    }
+
+    #[test]
+    fn test_infer_route_id_admin_delete_user() {
+        let uuid = "12345678-1234-1234-1234-123456789abc";
+        assert_eq!(
+            infer_route_id(&format!("/api/admin/users/{}", uuid), &Method::DELETE),
+            Some("admin.delete_user")
+        );
+    }
+
+    #[test]
+    fn test_infer_route_id_task_unassign() {
+        let task_uuid = "12345678-1234-1234-1234-123456789abc";
+        let assignee_uuid = "abcdef12-3456-7890-abcd-ef1234567890";
+        assert_eq!(
+            infer_route_id(
+                &format!("/api/tasks/{}/assignees/{}", task_uuid, assignee_uuid),
+                &Method::DELETE,
+            ),
+            Some("tasks.unassign")
+        );
+    }
+
+    #[test]
+    fn test_infer_route_id_board_update() {
+        let uuid = "12345678-1234-1234-1234-123456789abc";
+        assert_eq!(
+            infer_route_id(&format!("/api/boards/{}", uuid), &Method::PUT),
+            Some("boards.update")
+        );
+    }
+
+    #[test]
+    fn test_infer_route_id_board_delete() {
+        let uuid = "12345678-1234-1234-1234-123456789abc";
+        assert_eq!(
+            infer_route_id(&format!("/api/boards/{}", uuid), &Method::DELETE),
+            Some("boards.delete")
+        );
+    }
+
+    #[test]
+    fn test_infer_route_id_attachment_upload() {
+        let uuid = "12345678-1234-1234-1234-123456789abc";
+        assert_eq!(
+            infer_route_id(&format!("/api/tasks/{}/attachments", uuid), &Method::POST),
+            Some("attachments.upload")
+        );
+    }
+
+    #[test]
+    fn test_infer_route_id_attachment_delete() {
+        let uuid = "12345678-1234-1234-1234-123456789abc";
+        assert_eq!(
+            infer_route_id(&format!("/api/attachments/{}", uuid), &Method::DELETE),
+            Some("attachments.delete")
+        );
+    }
+
+    #[test]
+    fn test_infer_route_id_workspace_update() {
+        let uuid = "12345678-1234-1234-1234-123456789abc";
+        assert_eq!(
+            infer_route_id(&format!("/api/workspaces/{}", uuid), &Method::PUT),
+            Some("workspaces.update")
+        );
+    }
+
+    #[test]
+    fn test_infer_route_id_workspace_delete() {
+        let uuid = "12345678-1234-1234-1234-123456789abc";
+        assert_eq!(
+            infer_route_id(&format!("/api/workspaces/{}", uuid), &Method::DELETE),
+            Some("workspaces.delete")
+        );
+    }
+
+    #[test]
+    fn test_infer_route_id_get_requests_not_matched() {
+        let uuid = "12345678-1234-1234-1234-123456789abc";
+        assert_eq!(
+            infer_route_id(&format!("/api/tasks/{}", uuid), &Method::GET),
+            None,
+        );
+    }
+
+    // --- extract_entity_from_path additional tests ---
+
+    #[test]
+    fn test_extract_entity_workspace() {
+        let uuid = Uuid::new_v4();
+        let path = format!("/api/workspaces/{}", uuid);
+        let result = extract_entity_from_path(&path);
+        assert!(result.is_some());
+        let (entity_type, entity_id) = result.expect("should extract workspace");
+        assert_eq!(entity_type, "workspace");
+        assert_eq!(entity_id, uuid);
+    }
+
+    #[test]
+    fn test_extract_entity_comment() {
+        let uuid = Uuid::new_v4();
+        let path = format!("/api/comments/{}", uuid);
+        let result = extract_entity_from_path(&path).expect("should extract comment");
+        assert_eq!(result.0, "comment");
+        assert_eq!(result.1, uuid);
+    }
+
+    #[test]
+    fn test_extract_entity_attachment() {
+        let uuid = Uuid::new_v4();
+        let path = format!("/api/attachments/{}", uuid);
+        let result = extract_entity_from_path(&path).expect("should extract attachment");
+        assert_eq!(result.0, "attachment");
+        assert_eq!(result.1, uuid);
+    }
+
+    #[test]
+    fn test_extract_entity_column() {
+        let uuid = Uuid::new_v4();
+        let path = format!("/api/columns/{}", uuid);
+        let result = extract_entity_from_path(&path).expect("should extract column");
+        assert_eq!(result.0, "column");
+        assert_eq!(result.1, uuid);
+    }
+
+    #[test]
+    fn test_extract_entity_user() {
+        let uuid = Uuid::new_v4();
+        let path = format!("/api/users/{}", uuid);
+        let result = extract_entity_from_path(&path).expect("should extract user");
+        assert_eq!(result.0, "user");
+        assert_eq!(result.1, uuid);
+    }
+
+    #[test]
+    fn test_extract_entity_nested_path() {
+        let board_uuid = Uuid::new_v4();
+        let task_uuid = Uuid::new_v4();
+        let path = format!("/api/boards/{}/tasks/{}", board_uuid, task_uuid);
+        // Should find the first UUID (boards -> board)
+        let result = extract_entity_from_path(&path).expect("should extract first entity");
+        assert_eq!(result.0, "board");
+        assert_eq!(result.1, board_uuid);
+    }
+
+    // --- extract_ip_address tests ---
+
+    #[test]
+    fn test_extract_ip_x_forwarded_for_single() {
+        let req = Request::builder()
+            .header("X-Forwarded-For", "203.0.113.50")
+            .body(Body::empty())
+            .expect("build request");
+        let ip = extract_ip_address(&req);
+        assert_eq!(ip, Some("203.0.113.50".to_string()));
+    }
+
+    #[test]
+    fn test_extract_ip_x_forwarded_for_multiple() {
+        let req = Request::builder()
+            .header(
+                "X-Forwarded-For",
+                "203.0.113.50, 70.41.3.18, 150.172.238.178",
+            )
+            .body(Body::empty())
+            .expect("build request");
+        // Takes the first IP (client IP)
+        let ip = extract_ip_address(&req);
+        assert_eq!(ip, Some("203.0.113.50".to_string()));
+    }
+
+    #[test]
+    fn test_extract_ip_x_real_ip() {
+        let req = Request::builder()
+            .header("X-Real-IP", "10.0.0.1")
+            .body(Body::empty())
+            .expect("build request");
+        let ip = extract_ip_address(&req);
+        assert_eq!(ip, Some("10.0.0.1".to_string()));
+    }
+
+    #[test]
+    fn test_extract_ip_x_forwarded_for_takes_priority() {
+        let req = Request::builder()
+            .header("X-Forwarded-For", "1.2.3.4")
+            .header("X-Real-IP", "5.6.7.8")
+            .body(Body::empty())
+            .expect("build request");
+        let ip = extract_ip_address(&req);
+        assert_eq!(ip, Some("1.2.3.4".to_string()));
+    }
+
+    #[test]
+    fn test_extract_ip_no_headers() {
+        let req = Request::builder()
+            .body(Body::empty())
+            .expect("build request");
+        let ip = extract_ip_address(&req);
+        assert_eq!(ip, None);
+    }
+
+    // --- extract_user_agent tests ---
+
+    #[test]
+    fn test_extract_user_agent_present() {
+        let req = Request::builder()
+            .header("User-Agent", "Mozilla/5.0 (Linux; TaskFlow/1.0)")
+            .body(Body::empty())
+            .expect("build request");
+        let ua = extract_user_agent(&req);
+        assert_eq!(ua, Some("Mozilla/5.0 (Linux; TaskFlow/1.0)".to_string()));
+    }
+
+    #[test]
+    fn test_extract_user_agent_missing() {
+        let req = Request::builder()
+            .body(Body::empty())
+            .expect("build request");
+        let ua = extract_user_agent(&req);
+        assert_eq!(ua, None);
+    }
+
+    // --- AuditRouteId and AuditEntity tests ---
+
+    #[test]
+    fn test_audit_route_id_debug() {
+        let route_id = AuditRouteId("tasks.create");
+        let debug = format!("{:?}", route_id);
+        assert!(debug.contains("tasks.create"), "got: {}", debug);
+    }
+
+    #[test]
+    fn test_audit_route_id_clone() {
+        let route_id = AuditRouteId("boards.update");
+        let cloned = route_id.clone();
+        assert_eq!(cloned.0, "boards.update");
+    }
+
+    #[test]
+    fn test_audit_entity_debug_and_clone() {
+        let entity = AuditEntity {
+            entity_type: "task".to_string(),
+            entity_id: Uuid::new_v4(),
+        };
+        let cloned = entity.clone();
+        assert_eq!(cloned.entity_type, entity.entity_type);
+        assert_eq!(cloned.entity_id, entity.entity_id);
+
+        let debug = format!("{:?}", entity);
+        assert!(debug.contains("AuditEntity"), "got: {}", debug);
+        assert!(debug.contains("task"), "got: {}", debug);
+    }
 }
