@@ -216,28 +216,27 @@ export class WorkspaceSettingsComponent implements OnInit {
         setTimeout(() => {
           this.generalTab?.patchForm(workspace);
         });
-        this.loadMembers();
-        this.loadBoards();
-      },
-      error: () => {
-        this.loading.set(false);
-      },
-    });
-  }
-
-  private loadMembers(): void {
-    this.workspaceService.getMembers(this.workspaceId).subscribe({
-      next: (members) => {
+        // Extract members from workspace response (embedded by backend)
+        const wsAny = workspace as unknown as Record<string, unknown>;
+        const embeddedMembers = (wsAny['members'] ?? []) as Array<{
+          user_id: string;
+          name: string;
+          email: string;
+          avatar_url: string | null;
+          role: string;
+          joined_at: string;
+        }>;
         this.members.set(
-          members.map((m) => ({
+          embeddedMembers.map((m) => ({
             ...m,
             workspace_id: this.workspaceId,
-            role: m.role as WorkspaceMember['role'],
+            role: m.role.toLowerCase() as WorkspaceMember['role'],
             display_name: m.name,
             joined_at: m.joined_at || new Date().toISOString(),
           })),
         );
         this.loading.set(false);
+        this.loadBoards();
       },
       error: () => {
         this.loading.set(false);

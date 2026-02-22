@@ -11,6 +11,7 @@ import { RouterModule } from '@angular/router';
 import { BoardService, Board } from '../../../core/services/board.service';
 import { Workspace } from '../../../core/services/workspace.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { WorkspaceSettingsDialogService } from '../../../core/services/workspace-settings-dialog.service';
 import {
   CreateBoardDialogComponent,
   CreateBoardDialogResult,
@@ -193,17 +194,16 @@ import {
               ></i>
               <span>Team Overview</span>
             </a>
-            <a
-              [routerLink]="['/workspace', workspace().id, 'settings']"
-              routerLinkActive="board-link-active"
-              class="board-link flex items-center gap-2 px-3 py-1 text-xs rounded-md"
+            <button
+              (click)="openSettings($event)"
+              class="board-link flex items-center gap-2 px-3 py-1 text-xs rounded-md w-full text-left"
             >
               <i
                 class="pi pi-cog text-[10px]"
                 style="color: var(--sidebar-text-muted)"
               ></i>
               <span>Settings</span>
-            </a>
+            </button>
           </div>
         </div>
       }
@@ -221,6 +221,7 @@ import {
 export class WorkspaceItemComponent implements OnInit {
   private boardService = inject(BoardService);
   private authService = inject(AuthService);
+  private settingsDialog = inject(WorkspaceSettingsDialogService);
 
   workspace = input.required<Workspace>();
 
@@ -260,6 +261,11 @@ export class WorkspaceItemComponent implements OnInit {
   canCreateBoard(): boolean {
     const user = this.authService.currentUser();
     return !!user;
+  }
+
+  openSettings(event: Event): void {
+    event.stopPropagation();
+    this.settingsDialog.open(this.workspace().id);
   }
 
   onAddBoardClick(event: Event): void {

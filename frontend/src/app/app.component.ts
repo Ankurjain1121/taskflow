@@ -22,6 +22,7 @@ import { ThemeService } from './core/services/theme.service';
 import { GlobalSearchComponent } from './shared/components/global-search/global-search.component';
 import { ToastContainerComponent } from './shared/components/toast/toast.component';
 import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
+import { WorkspaceSettingsDialogComponent } from './features/workspace/workspace-settings/workspace-settings-dialog.component';
 
 const routeTransition = trigger('routeAnimations', [
   transition('* <=> *', [
@@ -55,6 +56,7 @@ const routeTransition = trigger('routeAnimations', [
     GlobalSearchComponent,
     ToastContainerComponent,
     SidebarComponent,
+    WorkspaceSettingsDialogComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.component.html',
