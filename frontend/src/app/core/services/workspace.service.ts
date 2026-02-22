@@ -9,6 +9,7 @@ export interface Workspace {
   slug: string;
   description: string | null;
   logo_url: string | null;
+  visibility?: 'open' | 'closed';
   created_by_id: string;
   created_at: string;
   updated_at: string;
@@ -181,7 +182,6 @@ export interface InvitationWithStatus {
   email: string;
   workspace_id: string;
   role: string;
-  token: string;
   expires_at: string;
   created_at: string;
   status: 'pending' | 'accepted' | 'expired';

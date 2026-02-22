@@ -241,9 +241,7 @@ export class WorkspaceGeneralTabComponent {
     this.form.patchValue({
       name: workspace.name,
       description: workspace.description || '',
-      visibility:
-        (workspace as Workspace & { visibility?: string }).visibility ||
-        'closed',
+      visibility: workspace.visibility || 'closed',
     });
   }
 
@@ -258,9 +256,7 @@ export class WorkspaceGeneralTabComponent {
       .subscribe({
         next: (updated) => {
           // Also update visibility if it changed
-          const currentVisibility =
-            (this.workspace() as Workspace & { visibility?: string })
-              ?.visibility || 'closed';
+          const currentVisibility = this.workspace()?.visibility || 'closed';
           if (visibility && visibility !== currentVisibility) {
             this.workspaceService
               .updateVisibility(this.workspaceId(), visibility)
