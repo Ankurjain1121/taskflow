@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod integration_tests;
+
 pub mod activity_log;
 pub mod admin_audit;
 pub mod admin_trash;

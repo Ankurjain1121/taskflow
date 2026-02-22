@@ -5,6 +5,8 @@ pub mod middleware;
 pub mod routes;
 pub mod services;
 mod state;
+#[cfg(test)]
+mod test_helpers;
 pub mod ws;
 
 use std::time::Duration;
