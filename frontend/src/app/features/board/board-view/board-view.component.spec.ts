@@ -452,7 +452,9 @@ describe('BoardViewComponent', () => {
 
       // boardState should revert to snapshot
       expect(component.state.boardState()).toEqual(snapshotBefore);
-      expect(component.state.errorMessage()).toBe('Failed to move task. Reverted.');
+      expect(component.state.errorMessage()).toBe(
+        'Failed to move task. Reverted.',
+      );
     });
 
     it('should celebrate when task moves to a done column', () => {
@@ -642,6 +644,206 @@ describe('BoardViewComponent', () => {
     it('onListTaskClicked should navigate to /task/:id', () => {
       component.onListTaskClicked('task-42');
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/task', 'task-42']);
+    });
+  });
+
+  // --- Task Detail ---
+
+  describe('closeTaskDetail', () => {
+    it('should set selectedTaskId to null', () => {
+      component.state.selectedTaskId.set('task-1');
+      component.closeTaskDetail();
+      expect(component.state.selectedTaskId()).toBeNull();
+    });
+  });
+
+  // --- Create Task ---
+
+  describe('onCreateTask', () => {
+    beforeEach(() => {
+      fixture.detectChanges();
+      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+    });
+
+    it('should set up dialog with first column', () => {
+      component.onCreateTask();
+      expect(component.showCreateTaskDialog).toBe(true);
+      expect(component.createTaskDialogColumnId).toBe('col-1');
+    });
+
+    it('should not open dialog when no columns exist', () => {
+      component.state.columns.set([]);
+      component.onCreateTask();
+      expect(component.showCreateTaskDialog).toBeFalsy();
+    });
+  });
+
+  describe('onAddTaskToColumn', () => {
+    beforeEach(() => {
+      fixture.detectChanges();
+      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+    });
+
+    it('should set up dialog with the specified column', () => {
+      component.onAddTaskToColumn('col-2');
+      expect(component.showCreateTaskDialog).toBe(true);
+      expect(component.createTaskDialogColumnId).toBe('col-2');
+      expect(component.createTaskDialogColumnName).toBe('In Progress');
+    });
+
+    it('should do nothing if column not found', () => {
+      component.onAddTaskToColumn('nonexistent');
+      expect(component.showCreateTaskDialog).toBeFalsy();
+    });
+  });
+
+  // --- Create Column ---
+
+  describe('onAddColumn', () => {
+    it('should show create column dialog', () => {
+      component.onAddColumn();
+      expect(component.showCreateColumnDialog).toBe(true);
+    });
+  });
+
+  // --- Task Group Operations ---
+
+  describe('onCreateGroup', () => {
+    it('should show create group dialog', () => {
+      component.onCreateGroup();
+      expect(component.showCreateGroupDialog).toBe(true);
+    });
+  });
+
+  // --- Multiple filter combinations ---
+
+  describe('filterTasks advanced edge cases', () => {
+    beforeEach(() => {
+      fixture.detectChanges();
+      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+    });
+
+    it('should return empty array for non-existent column', () => {
+      const filtered = component.getFilteredTasksForColumn('nonexistent');
+      expect(filtered).toHaveLength(0);
+    });
+
+    it('should handle description search', () => {
+      // task-1 has null description, task-2 has null description
+      component.onFiltersChanged({
+        ...EMPTY_FILTERS,
+        search: 'nonexistent description',
+      });
+
+      expect(component.getFilteredTasksForColumn('col-1')).toHaveLength(0);
+      expect(component.getFilteredTasksForColumn('col-2')).toHaveLength(0);
+    });
+
+    it('should handle empty assigneeIds filter', () => {
+      component.onFiltersChanged({
+        ...EMPTY_FILTERS,
+        assigneeIds: [],
+      });
+
+      // Empty array means no filter
+      expect(component.getFilteredTasksForColumn('col-1')).toHaveLength(1);
+      expect(component.getFilteredTasksForColumn('col-2')).toHaveLength(1);
+    });
+
+    it('should handle empty priorities filter', () => {
+      component.onFiltersChanged({
+        ...EMPTY_FILTERS,
+        priorities: [],
+      });
+
+      // Empty array means no filter
+      expect(component.getFilteredTasksForColumn('col-1')).toHaveLength(1);
+      expect(component.getFilteredTasksForColumn('col-2')).toHaveLength(1);
+    });
+  });
+
+  // --- Error management ---
+
+  describe('error management', () => {
+    it('should clear error', () => {
+      component.state.showError('Something failed');
+      expect(component.state.errorMessage()).toBe('Something failed');
+
+      component.state.clearError();
+      expect(component.state.errorMessage()).toBeNull();
+    });
+
+    it('should overwrite previous error', () => {
+      component.state.showError('First error');
+      component.state.showError('Second error');
+      expect(component.state.errorMessage()).toBe('Second error');
+    });
+  });
+
+  // --- Selection / Bulk ---
+
+  describe('selection management', () => {
+    it('should toggle task selection', () => {
+      component.state.toggleTaskSelection('task-1');
+      expect(component.state.selectedTaskIds()).toEqual(['task-1']);
+
+      component.state.toggleTaskSelection('task-2');
+      expect(component.state.selectedTaskIds()).toEqual(['task-1', 'task-2']);
+
+      component.state.toggleTaskSelection('task-1');
+      expect(component.state.selectedTaskIds()).toEqual(['task-2']);
+    });
+
+    it('should clear selection', () => {
+      component.state.toggleTaskSelection('task-1');
+      component.clearSelection();
+
+      expect(component.state.selectedTaskIds()).toEqual([]);
+      expect(component.state.selectionMode()).toBe(false);
+    });
+
+    it('should reset selectionMode to false when clearing selection', () => {
+      component.state.selectionMode.set(true);
+      component.state.toggleTaskSelection('task-1');
+      component.clearSelection();
+
+      expect(component.state.selectionMode()).toBe(false);
+      expect(component.state.selectedTaskIds()).toEqual([]);
+    });
+  });
+
+  // --- Navigation ---
+
+  describe('navigation', () => {
+    it('onTaskClicked should navigate to /task/:id', () => {
+      const task = makeTask({ id: 'task-99' });
+      component.onTaskClicked(task);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/task', 'task-99']);
+    });
+
+    it('onListTaskClicked should navigate to /task/:id', () => {
+      component.onListTaskClicked('task-42');
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/task', 'task-42']);
+    });
+  });
+
+  // --- View mode edge cases ---
+
+  describe('view mode edge cases', () => {
+    beforeEach(() => {
+      fixture.detectChanges();
+      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+    });
+
+    it('should switch back to kanban from list', () => {
+      const mockTasks: TaskListItem[] = [];
+      mockTaskService.listFlat.mockReturnValue(of(mockTasks));
+
+      component.onViewModeChanged('list');
+      expect(component.viewMode()).toBe('list');
+
+      component.onViewModeChanged('kanban');
+      expect(component.viewMode()).toBe('kanban');
     });
   });
 
