@@ -171,3 +171,201 @@ pub async fn upsert(
     .fetch_one(pool)
     .await
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::queries::auth;
+
+    const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
+
+    async fn test_pool() -> PgPool {
+        PgPool::connect(
+            "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow",
+        )
+        .await
+        .expect("Failed to connect to test database")
+    }
+
+    fn unique_email() -> String {
+        format!("inttest-up-{}@example.com", Uuid::new_v4())
+    }
+
+    async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
+        let user = auth::create_user_with_tenant(pool, &unique_email(), "UP Test User", FAKE_HASH)
+            .await
+            .expect("create_user_with_tenant");
+        (user.tenant_id, user.id)
+    }
+
+    #[tokio::test]
+    async fn test_get_preferences_defaults() {
+        let pool = test_pool().await;
+        let (_tenant_id, user_id) = setup_user(&pool).await;
+
+        let prefs = get_by_user_id(&pool, user_id)
+            .await
+            .expect("get_by_user_id");
+
+        // Should return defaults since no preferences exist yet
+        assert_eq!(prefs.user_id, user_id);
+        assert_eq!(prefs.timezone, "UTC");
+        assert_eq!(prefs.date_format, "MMM dd, yyyy");
+        assert_eq!(prefs.default_board_view, "kanban");
+        assert_eq!(prefs.sidebar_density, "comfortable");
+        assert_eq!(prefs.locale, "en");
+        assert_eq!(prefs.digest_frequency, "realtime");
+        assert!(prefs.quiet_hours_start.is_none());
+        assert!(prefs.quiet_hours_end.is_none());
+        assert_eq!(prefs.color_mode.as_deref(), Some("system"));
+        assert_eq!(prefs.accent_color.as_deref(), Some("indigo"));
+    }
+
+    #[tokio::test]
+    async fn test_upsert_preferences() {
+        let pool = test_pool().await;
+        let (_tenant_id, user_id) = setup_user(&pool).await;
+
+        let prefs = upsert(
+            &pool,
+            user_id,
+            "America/New_York",
+            "yyyy-MM-dd",
+            "list",
+            "compact",
+            "en-US",
+            None,
+            None,
+            "daily",
+            Some("default"),
+            Some("default"),
+            Some("blue"),
+            Some("dark"),
+        )
+        .await
+        .expect("upsert preferences");
+
+        assert_eq!(prefs.user_id, user_id);
+        assert_eq!(prefs.timezone, "America/New_York");
+        assert_eq!(prefs.date_format, "yyyy-MM-dd");
+        assert_eq!(prefs.default_board_view, "list");
+        assert_eq!(prefs.sidebar_density, "compact");
+        assert_eq!(prefs.locale, "en-US");
+        assert_eq!(prefs.digest_frequency, "daily");
+        assert_eq!(prefs.accent_color.as_deref(), Some("blue"));
+        assert_eq!(prefs.color_mode.as_deref(), Some("dark"));
+    }
+
+    #[tokio::test]
+    async fn test_upsert_preferences_update_existing() {
+        let pool = test_pool().await;
+        let (_tenant_id, user_id) = setup_user(&pool).await;
+
+        // First upsert to create
+        upsert(
+            &pool,
+            user_id,
+            "UTC",
+            "MMM dd, yyyy",
+            "kanban",
+            "comfortable",
+            "en",
+            None,
+            None,
+            "realtime",
+            Some("default"),
+            Some("default"),
+            Some("indigo"),
+            Some("system"),
+        )
+        .await
+        .expect("first upsert");
+
+        // Second upsert to update
+        let updated = upsert(
+            &pool,
+            user_id,
+            "Europe/London",
+            "dd/MM/yyyy",
+            "list",
+            "compact",
+            "en-GB",
+            Some(NaiveTime::from_hms_opt(22, 0, 0).expect("valid time")),
+            Some(NaiveTime::from_hms_opt(8, 0, 0).expect("valid time")),
+            "hourly",
+            Some("default"),
+            Some("default"),
+            Some("green"),
+            Some("light"),
+        )
+        .await
+        .expect("second upsert");
+
+        assert_eq!(updated.timezone, "Europe/London");
+        assert_eq!(updated.date_format, "dd/MM/yyyy");
+        assert_eq!(updated.default_board_view, "list");
+        assert_eq!(updated.sidebar_density, "compact");
+        assert_eq!(updated.locale, "en-GB");
+        assert_eq!(updated.digest_frequency, "hourly");
+        assert!(updated.quiet_hours_start.is_some());
+        assert!(updated.quiet_hours_end.is_some());
+        assert_eq!(updated.accent_color.as_deref(), Some("green"));
+        assert_eq!(updated.color_mode.as_deref(), Some("light"));
+
+        // Verify by reading back
+        let fetched = get_by_user_id(&pool, user_id)
+            .await
+            .expect("get after update");
+        assert_eq!(fetched.timezone, "Europe/London");
+        assert_eq!(fetched.accent_color.as_deref(), Some("green"));
+    }
+
+    #[tokio::test]
+    async fn test_validate_preferences_valid() {
+        let result = validate_preferences(
+            "America/Chicago",
+            "yyyy-MM-dd",
+            "kanban",
+            "comfortable",
+            "daily",
+        );
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_validate_preferences_invalid_date_format() {
+        let result =
+            validate_preferences("UTC", "invalid-format", "kanban", "comfortable", "realtime");
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_validate_preferences_invalid_board_view() {
+        let result = validate_preferences(
+            "UTC",
+            "yyyy-MM-dd",
+            "invalid-view",
+            "comfortable",
+            "realtime",
+        );
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_validate_theme_preferences_valid() {
+        let result = validate_theme_preferences(Some("dark"), Some("blue"), None, None);
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_validate_theme_preferences_invalid_color_mode() {
+        let result = validate_theme_preferences(Some("neon"), Some("blue"), None, None);
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_validate_theme_preferences_invalid_accent() {
+        let result = validate_theme_preferences(Some("dark"), Some("rainbow"), None, None);
+        assert!(result.is_err());
+    }
+}

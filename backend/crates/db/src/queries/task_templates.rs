@@ -69,7 +69,7 @@ pub async fn list_task_templates(
     let templates = sqlx::query_as::<_, TaskTemplate>(
         r#"
         SELECT id, name, description, scope, board_id, tenant_id, created_by_id,
-               task_title, task_description, task_priority, task_estimated_hours,
+               task_title, task_description, task_priority, task_estimated_hours::float8 as task_estimated_hours,
                created_at, updated_at
         FROM task_templates
         WHERE tenant_id = $1
@@ -104,7 +104,7 @@ pub async fn get_task_template(
     let template = sqlx::query_as::<_, TaskTemplate>(
         r#"
         SELECT id, name, description, scope, board_id, tenant_id, created_by_id,
-               task_title, task_description, task_priority, task_estimated_hours,
+               task_title, task_description, task_priority, task_estimated_hours::float8 as task_estimated_hours,
                created_at, updated_at
         FROM task_templates
         WHERE id = $1 AND tenant_id = $2
@@ -176,7 +176,7 @@ pub async fn create_task_template(
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)
         RETURNING id, name, description, scope, board_id, tenant_id, created_by_id,
-                  task_title, task_description, task_priority, task_estimated_hours,
+                  task_title, task_description, task_priority, task_estimated_hours::float8 as task_estimated_hours,
                   created_at, updated_at
         "#,
     )
@@ -298,7 +298,7 @@ pub async fn save_task_as_template(
         )
         VALUES ($1, $2, NULL, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
         RETURNING id, name, description, scope, board_id, tenant_id, created_by_id,
-                  task_title, task_description, task_priority, task_estimated_hours,
+                  task_title, task_description, task_priority, task_estimated_hours::float8 as task_estimated_hours,
                   created_at, updated_at
         "#,
     )
@@ -412,14 +412,15 @@ pub async fn create_task_from_template(
     for subtask in &template.subtasks {
         sqlx::query(
             r#"
-            INSERT INTO subtasks (id, task_id, title, is_completed, position, created_at, updated_at)
-            VALUES ($1, $2, $3, false, $4, NOW(), NOW())
+            INSERT INTO subtasks (id, task_id, title, is_completed, position, created_by_id, created_at, updated_at)
+            VALUES ($1, $2, $3, false, $4, $5, NOW(), NOW())
             "#,
         )
         .bind(Uuid::new_v4())
         .bind(task_id)
         .bind(&subtask.title)
         .bind(subtask.position)
+        .bind(user_id)
         .execute(&mut *tx)
         .await?;
     }
@@ -444,7 +445,7 @@ pub async fn create_task_from_template(
     for cf in &template.custom_fields {
         sqlx::query(
             r#"
-            INSERT INTO task_custom_field_values (id, task_id, field_id, value, created_at, updated_at)
+            INSERT INTO task_custom_field_values (id, task_id, field_id, value_text, created_at, updated_at)
             VALUES ($1, $2, $3, $4, NOW(), NOW())
             ON CONFLICT DO NOTHING
             "#,
@@ -474,7 +475,7 @@ pub async fn update_task_template(
     let existing = sqlx::query_as::<_, TaskTemplate>(
         r#"
         SELECT id, name, description, scope, board_id, tenant_id, created_by_id,
-               task_title, task_description, task_priority, task_estimated_hours,
+               task_title, task_description, task_priority, task_estimated_hours::float8 as task_estimated_hours,
                created_at, updated_at
         FROM task_templates
         WHERE id = $1 AND tenant_id = $2
@@ -502,7 +503,7 @@ pub async fn update_task_template(
             updated_at = NOW()
         WHERE id = $1
         RETURNING id, name, description, scope, board_id, tenant_id, created_by_id,
-                  task_title, task_description, task_priority, task_estimated_hours,
+                  task_title, task_description, task_priority, task_estimated_hours::float8 as task_estimated_hours,
                   created_at, updated_at
         "#,
     )
@@ -556,4 +557,272 @@ struct SourceTaskForTemplate {
     priority: crate::models::TaskPriority,
     estimated_hours: Option<f64>,
     board_id: Uuid,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::queries::{auth, boards, workspaces};
+    use sqlx::PgPool;
+
+    const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
+
+    fn unique_email() -> String {
+        format!("inttest-ttmpl-{}@example.com", Uuid::new_v4())
+    }
+
+    async fn test_pool() -> PgPool {
+        PgPool::connect(
+            "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow",
+        )
+        .await
+        .expect("Failed to connect to test database")
+    }
+
+    async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
+        let user = auth::create_user_with_tenant(pool, &unique_email(), "TaskTmpl User", FAKE_HASH)
+            .await
+            .expect("create_user_with_tenant");
+        (user.tenant_id, user.id)
+    }
+
+    async fn setup_user_and_workspace(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id) = setup_user(pool).await;
+        let ws = workspaces::create_workspace(pool, "TaskTmpl WS", None, tenant_id, user_id)
+            .await
+            .expect("create_workspace");
+        (tenant_id, user_id, ws.id)
+    }
+
+    async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
+        let bwc = boards::create_board(pool, "TaskTmpl Board", None, ws_id, tenant_id, user_id)
+            .await
+            .expect("create_board");
+        let first_col_id = bwc.columns[0].id;
+        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+    }
+
+    #[tokio::test]
+    async fn test_create_task_template() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id) = setup_user(&pool).await;
+
+        let template_name = format!("TaskTmpl-{}", Uuid::new_v4());
+        let input = CreateTaskTemplateInput {
+            name: template_name.clone(),
+            description: Some("A task template".to_string()),
+            scope: Some("workspace".to_string()),
+            board_id: None,
+            task_title: "Template Task Title".to_string(),
+            task_description: Some("Template task desc".to_string()),
+            task_priority: Some("high".to_string()),
+            task_estimated_hours: Some(4.0),
+            subtasks: Some(vec!["Subtask A".to_string(), "Subtask B".to_string()]),
+            label_ids: None,
+            custom_fields: None,
+        };
+
+        let template = create_task_template(&pool, input, tenant_id, user_id)
+            .await
+            .expect("create_task_template should succeed");
+
+        assert_eq!(template.name, template_name);
+        assert_eq!(template.task_title, "Template Task Title");
+        assert_eq!(template.task_priority.as_deref(), Some("high"));
+        assert_eq!(template.task_estimated_hours, Some(4.0));
+        assert_eq!(template.scope, "workspace");
+        assert_eq!(template.tenant_id, tenant_id);
+        assert_eq!(template.created_by_id, user_id);
+    }
+
+    #[tokio::test]
+    async fn test_get_task_template() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id) = setup_user(&pool).await;
+
+        let input = CreateTaskTemplateInput {
+            name: format!("GetTTmpl-{}", Uuid::new_v4()),
+            description: None,
+            scope: None,
+            board_id: None,
+            task_title: "Get Task".to_string(),
+            task_description: None,
+            task_priority: None,
+            task_estimated_hours: None,
+            subtasks: Some(vec!["Sub1".to_string(), "Sub2".to_string()]),
+            label_ids: None,
+            custom_fields: None,
+        };
+
+        let created = create_task_template(&pool, input, tenant_id, user_id)
+            .await
+            .expect("create_task_template");
+
+        let details = get_task_template(&pool, created.id, tenant_id)
+            .await
+            .expect("get_task_template should succeed");
+
+        assert_eq!(details.template.id, created.id);
+        assert_eq!(details.template.task_title, "Get Task");
+        assert_eq!(details.subtasks.len(), 2, "should have 2 subtasks");
+        assert_eq!(details.subtasks[0].title, "Sub1");
+        assert_eq!(details.subtasks[1].title, "Sub2");
+    }
+
+    #[tokio::test]
+    async fn test_list_task_templates() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id) = setup_user(&pool).await;
+
+        let name1 = format!("ListTTmpl1-{}", Uuid::new_v4());
+        let name2 = format!("ListTTmpl2-{}", Uuid::new_v4());
+
+        create_task_template(
+            &pool,
+            CreateTaskTemplateInput {
+                name: name1.clone(),
+                description: None,
+                scope: None,
+                board_id: None,
+                task_title: "List Task 1".to_string(),
+                task_description: None,
+                task_priority: None,
+                task_estimated_hours: None,
+                subtasks: None,
+                label_ids: None,
+                custom_fields: None,
+            },
+            tenant_id,
+            user_id,
+        )
+        .await
+        .expect("create template 1");
+
+        create_task_template(
+            &pool,
+            CreateTaskTemplateInput {
+                name: name2.clone(),
+                description: None,
+                scope: None,
+                board_id: None,
+                task_title: "List Task 2".to_string(),
+                task_description: None,
+                task_priority: None,
+                task_estimated_hours: None,
+                subtasks: None,
+                label_ids: None,
+                custom_fields: None,
+            },
+            tenant_id,
+            user_id,
+        )
+        .await
+        .expect("create template 2");
+
+        let list = list_task_templates(&pool, tenant_id, None, None, user_id)
+            .await
+            .expect("list_task_templates should succeed");
+
+        let names: Vec<&str> = list.iter().map(|t| t.name.as_str()).collect();
+        assert!(
+            names.contains(&name1.as_str()),
+            "list should contain template 1"
+        );
+        assert!(
+            names.contains(&name2.as_str()),
+            "list should contain template 2"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_create_task_from_template() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&pool).await;
+
+        let input = CreateTaskTemplateInput {
+            name: format!("FromTmpl-{}", Uuid::new_v4()),
+            description: None,
+            scope: None,
+            board_id: None,
+            task_title: format!("Templated Task {}", Uuid::new_v4()),
+            task_description: Some("Created from template".to_string()),
+            task_priority: Some("high".to_string()),
+            task_estimated_hours: Some(2.5),
+            subtasks: Some(vec!["CheckA".to_string()]),
+            label_ids: None,
+            custom_fields: None,
+        };
+        let task_title_expected = input.task_title.clone();
+
+        let template = create_task_template(&pool, input, tenant_id, user_id)
+            .await
+            .expect("create_task_template");
+
+        let new_task_id =
+            create_task_from_template(&pool, template.id, board_id, col_id, tenant_id, user_id)
+                .await
+                .expect("create_task_from_template should succeed");
+
+        // Verify the task was created
+        let task = sqlx::query_as::<_, crate::models::Task>(
+            r#"
+            SELECT id, title, description, priority,
+                   due_date, start_date, estimated_hours, board_id, column_id,
+                   group_id, position, milestone_id, eisenhower_urgency,
+                   eisenhower_importance, tenant_id, created_by_id, deleted_at,
+                   created_at, updated_at
+            FROM tasks WHERE id = $1
+            "#,
+        )
+        .bind(new_task_id)
+        .fetch_one(&pool)
+        .await
+        .expect("task from template should exist");
+
+        assert_eq!(task.title, task_title_expected);
+        assert_eq!(task.description.as_deref(), Some("Created from template"));
+        assert_eq!(task.board_id, board_id);
+        assert_eq!(task.column_id, col_id);
+
+        // Verify subtasks were created
+        let subtask_count =
+            sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM subtasks WHERE task_id = $1")
+                .bind(new_task_id)
+                .fetch_one(&pool)
+                .await
+                .expect("count subtasks");
+        assert_eq!(subtask_count, 1, "should have 1 subtask from template");
+    }
+
+    #[tokio::test]
+    async fn test_delete_task_template() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id) = setup_user(&pool).await;
+
+        let input = CreateTaskTemplateInput {
+            name: format!("DelTTmpl-{}", Uuid::new_v4()),
+            description: None,
+            scope: None,
+            board_id: None,
+            task_title: "Delete Me".to_string(),
+            task_description: None,
+            task_priority: None,
+            task_estimated_hours: None,
+            subtasks: None,
+            label_ids: None,
+            custom_fields: None,
+        };
+
+        let created = create_task_template(&pool, input, tenant_id, user_id)
+            .await
+            .expect("create_task_template");
+
+        delete_task_template(&pool, created.id, tenant_id, user_id)
+            .await
+            .expect("delete_task_template should succeed");
+
+        let result = get_task_template(&pool, created.id, tenant_id).await;
+        assert!(result.is_err(), "template should be deleted");
+    }
 }

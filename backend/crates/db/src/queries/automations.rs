@@ -101,7 +101,7 @@ async fn fetch_actions_for_rule(
         SELECT
             id,
             rule_id,
-            action_type as "action_type: AutomationActionType",
+            action_type,
             action_config,
             position
         FROM automation_actions
@@ -133,7 +133,7 @@ pub async fn list_rules(
             id,
             name,
             board_id,
-            trigger as "trigger: AutomationTrigger",
+            trigger,
             trigger_config,
             is_active,
             tenant_id,
@@ -174,7 +174,7 @@ pub async fn get_rule(
             id,
             name,
             board_id,
-            trigger as "trigger: AutomationTrigger",
+            trigger,
             trigger_config,
             is_active,
             tenant_id,
@@ -231,7 +231,7 @@ pub async fn create_rule(
             id,
             name,
             board_id,
-            trigger as "trigger: AutomationTrigger",
+            trigger,
             trigger_config,
             is_active,
             tenant_id,
@@ -265,7 +265,7 @@ pub async fn create_rule(
             RETURNING
                 id,
                 rule_id,
-                action_type as "action_type: AutomationActionType",
+                action_type,
                 action_config,
                 position
             "#,
@@ -317,7 +317,7 @@ pub async fn update_rule(
             id,
             name,
             board_id,
-            trigger as "trigger: AutomationTrigger",
+            trigger,
             trigger_config,
             is_active,
             tenant_id,
@@ -361,7 +361,7 @@ pub async fn update_rule(
                 RETURNING
                     id,
                     rule_id,
-                    action_type as "action_type: AutomationActionType",
+                    action_type,
                     action_config,
                     position
                 "#,
@@ -384,7 +384,7 @@ pub async fn update_rule(
             SELECT
                 id,
                 rule_id,
-                action_type as "action_type: AutomationActionType",
+                action_type,
                 action_config,
                 position
             FROM automation_actions
@@ -483,7 +483,7 @@ pub async fn get_active_rules_for_trigger(
             id,
             name,
             board_id,
-            trigger as "trigger: AutomationTrigger",
+            trigger,
             trigger_config,
             is_active,
             tenant_id,
@@ -557,4 +557,298 @@ pub async fn log_automation(
     .await?;
 
     Ok(log)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::queries::{auth, boards, workspaces};
+    use sqlx::PgPool;
+
+    const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
+
+    fn unique_email() -> String {
+        format!("inttest-auto-{}@example.com", Uuid::new_v4())
+    }
+
+    async fn test_pool() -> PgPool {
+        PgPool::connect(
+            "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow",
+        )
+        .await
+        .expect("Failed to connect to test database")
+    }
+
+    async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
+        let user =
+            auth::create_user_with_tenant(pool, &unique_email(), "Automation User", FAKE_HASH)
+                .await
+                .expect("create_user_with_tenant");
+        (user.tenant_id, user.id)
+    }
+
+    async fn setup_user_and_workspace(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id) = setup_user(pool).await;
+        let ws = workspaces::create_workspace(pool, "Automation WS", None, tenant_id, user_id)
+            .await
+            .expect("create_workspace");
+        (tenant_id, user_id, ws.id)
+    }
+
+    async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
+        let bwc = boards::create_board(pool, "Automation Board", None, ws_id, tenant_id, user_id)
+            .await
+            .expect("create_board");
+        let first_col_id = bwc.columns[0].id;
+        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+    }
+
+    #[tokio::test]
+    async fn test_create_rule() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateRuleInput {
+            name: format!("Rule-{}", Uuid::new_v4()),
+            trigger: AutomationTrigger::TaskMoved,
+            trigger_config: serde_json::json!({"from_column": "To Do", "to_column": "Done"}),
+            actions: vec![CreateActionInput {
+                action_type: AutomationActionType::SendNotification,
+                action_config: serde_json::json!({"message": "Task completed!"}),
+            }],
+        };
+        let rule_name = input.name.clone();
+
+        let result = create_rule(&pool, board_id, input, user_id, tenant_id)
+            .await
+            .expect("create_rule should succeed");
+
+        assert_eq!(result.rule.name, rule_name);
+        assert_eq!(result.rule.board_id, board_id);
+        assert_eq!(result.rule.trigger, AutomationTrigger::TaskMoved);
+        assert!(result.rule.is_active);
+        assert_eq!(result.rule.tenant_id, tenant_id);
+        assert_eq!(result.rule.created_by_id, user_id);
+        assert_eq!(result.actions.len(), 1);
+        assert_eq!(
+            result.actions[0].action_type,
+            AutomationActionType::SendNotification
+        );
+        assert_eq!(result.actions[0].position, 0);
+    }
+
+    #[tokio::test]
+    async fn test_list_rules() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let input1 = CreateRuleInput {
+            name: format!("ListRule1-{}", Uuid::new_v4()),
+            trigger: AutomationTrigger::TaskCreated,
+            trigger_config: serde_json::json!({}),
+            actions: vec![CreateActionInput {
+                action_type: AutomationActionType::AssignTask,
+                action_config: serde_json::json!({"user_id": Uuid::new_v4()}),
+            }],
+        };
+        let name1 = input1.name.clone();
+
+        let input2 = CreateRuleInput {
+            name: format!("ListRule2-{}", Uuid::new_v4()),
+            trigger: AutomationTrigger::TaskCompleted,
+            trigger_config: serde_json::json!({}),
+            actions: vec![CreateActionInput {
+                action_type: AutomationActionType::MoveTask,
+                action_config: serde_json::json!({"column": "Archive"}),
+            }],
+        };
+        let name2 = input2.name.clone();
+
+        create_rule(&pool, board_id, input1, user_id, tenant_id)
+            .await
+            .expect("create rule 1");
+        create_rule(&pool, board_id, input2, user_id, tenant_id)
+            .await
+            .expect("create rule 2");
+
+        let rules = list_rules(&pool, board_id, user_id)
+            .await
+            .expect("list_rules should succeed");
+
+        let names: Vec<&str> = rules.iter().map(|r| r.rule.name.as_str()).collect();
+        assert!(names.contains(&name1.as_str()), "should contain rule 1");
+        assert!(names.contains(&name2.as_str()), "should contain rule 2");
+
+        // Each rule should have its actions loaded
+        for rwa in &rules {
+            assert!(
+                !rwa.actions.is_empty(),
+                "rule '{}' should have actions",
+                rwa.rule.name
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn test_create_rule_with_multiple_actions() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateRuleInput {
+            name: format!("MultiAction-{}", Uuid::new_v4()),
+            trigger: AutomationTrigger::TaskAssigned,
+            trigger_config: serde_json::json!({}),
+            actions: vec![
+                CreateActionInput {
+                    action_type: AutomationActionType::SetPriority,
+                    action_config: serde_json::json!({"priority": "high"}),
+                },
+                CreateActionInput {
+                    action_type: AutomationActionType::AddComment,
+                    action_config: serde_json::json!({"text": "Auto-commented"}),
+                },
+                CreateActionInput {
+                    action_type: AutomationActionType::SendNotification,
+                    action_config: serde_json::json!({"message": "Assigned"}),
+                },
+            ],
+        };
+
+        let result = create_rule(&pool, board_id, input, user_id, tenant_id)
+            .await
+            .expect("create_rule with multiple actions");
+
+        assert_eq!(result.actions.len(), 3);
+        assert_eq!(result.actions[0].position, 0);
+        assert_eq!(result.actions[1].position, 1);
+        assert_eq!(result.actions[2].position, 2);
+    }
+
+    #[tokio::test]
+    async fn test_toggle_active() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateRuleInput {
+            name: format!("ToggleRule-{}", Uuid::new_v4()),
+            trigger: AutomationTrigger::TaskMoved,
+            trigger_config: serde_json::json!({}),
+            actions: vec![CreateActionInput {
+                action_type: AutomationActionType::MoveTask,
+                action_config: serde_json::json!({}),
+            }],
+        };
+
+        let created = create_rule(&pool, board_id, input, user_id, tenant_id)
+            .await
+            .expect("create_rule");
+        assert!(created.rule.is_active, "should start active");
+
+        // Deactivate
+        let update_input = UpdateRuleInput {
+            name: None,
+            trigger: None,
+            trigger_config: None,
+            is_active: Some(false),
+            actions: None,
+        };
+
+        let updated = update_rule(&pool, created.rule.id, update_input, user_id)
+            .await
+            .expect("update_rule to deactivate");
+        assert!(!updated.rule.is_active, "should be inactive after toggle");
+
+        // Reactivate
+        let reactivate = UpdateRuleInput {
+            name: None,
+            trigger: None,
+            trigger_config: None,
+            is_active: Some(true),
+            actions: None,
+        };
+
+        let reactivated = update_rule(&pool, created.rule.id, reactivate, user_id)
+            .await
+            .expect("update_rule to reactivate");
+        assert!(reactivated.rule.is_active, "should be active again");
+    }
+
+    #[tokio::test]
+    async fn test_delete_rule() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateRuleInput {
+            name: format!("DelRule-{}", Uuid::new_v4()),
+            trigger: AutomationTrigger::TaskCreated,
+            trigger_config: serde_json::json!({}),
+            actions: vec![CreateActionInput {
+                action_type: AutomationActionType::SendNotification,
+                action_config: serde_json::json!({}),
+            }],
+        };
+
+        let created = create_rule(&pool, board_id, input, user_id, tenant_id)
+            .await
+            .expect("create_rule");
+
+        delete_rule(&pool, created.rule.id, user_id)
+            .await
+            .expect("delete_rule should succeed");
+
+        let result = get_rule(&pool, created.rule.id, user_id).await;
+        assert!(result.is_err(), "rule should be deleted");
+    }
+
+    #[tokio::test]
+    async fn test_log_automation_and_get_logs() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateRuleInput {
+            name: format!("LogRule-{}", Uuid::new_v4()),
+            trigger: AutomationTrigger::TaskMoved,
+            trigger_config: serde_json::json!({}),
+            actions: vec![CreateActionInput {
+                action_type: AutomationActionType::MoveTask,
+                action_config: serde_json::json!({}),
+            }],
+        };
+
+        let created = create_rule(&pool, board_id, input, user_id, tenant_id)
+            .await
+            .expect("create_rule");
+
+        // Log an execution
+        let log_entry = log_automation(
+            &pool,
+            created.rule.id,
+            None,
+            "success",
+            Some(serde_json::json!({"detail": "test log"})),
+        )
+        .await
+        .expect("log_automation should succeed");
+
+        assert_eq!(log_entry.rule_id, created.rule.id);
+        assert_eq!(log_entry.status, "success");
+
+        // Fetch logs
+        let logs = get_rule_logs(&pool, created.rule.id, user_id, 10)
+            .await
+            .expect("get_rule_logs should succeed");
+
+        assert!(!logs.is_empty(), "should have at least 1 log entry");
+        assert_eq!(logs[0].rule_id, created.rule.id);
+
+        // Verify execution count was incremented
+        let updated_rule = get_rule(&pool, created.rule.id, user_id)
+            .await
+            .expect("get_rule");
+        assert_eq!(
+            updated_rule.rule.execution_count, 1,
+            "execution_count should be 1"
+        );
+    }
 }

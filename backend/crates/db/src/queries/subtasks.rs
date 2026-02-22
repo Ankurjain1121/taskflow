@@ -260,3 +260,253 @@ pub async fn get_subtask_task_id(
     .fetch_optional(pool)
     .await
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::TaskPriority;
+    use crate::queries::{auth, boards, tasks, workspaces};
+
+    const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
+
+    async fn test_pool() -> sqlx::PgPool {
+        sqlx::PgPool::connect(
+            "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow",
+        )
+        .await
+        .expect("Failed to connect to test database")
+    }
+
+    fn unique_email() -> String {
+        format!("inttest-st-{}@example.com", Uuid::new_v4())
+    }
+
+    async fn setup_user(pool: &sqlx::PgPool) -> (Uuid, Uuid) {
+        let user = auth::create_user_with_tenant(pool, &unique_email(), "ST Test User", FAKE_HASH)
+            .await
+            .expect("create_user_with_tenant");
+        (user.tenant_id, user.id)
+    }
+
+    async fn setup_user_and_workspace(pool: &sqlx::PgPool) -> (Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id) = setup_user(pool).await;
+        let ws = workspaces::create_workspace(pool, "ST Test WS", None, tenant_id, user_id)
+            .await
+            .expect("create_workspace");
+        (tenant_id, user_id, ws.id)
+    }
+
+    async fn setup_full(pool: &sqlx::PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
+        let bwc = boards::create_board(pool, "ST Test Board", None, ws_id, tenant_id, user_id)
+            .await
+            .expect("create_board");
+        let first_col_id = bwc.columns[0].id;
+        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+    }
+
+    async fn setup_with_task(pool: &sqlx::PgPool) -> (Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(pool).await;
+        let input = tasks::CreateTaskInput {
+            title: "Subtask Parent".to_string(),
+            description: None,
+            priority: TaskPriority::Medium,
+            due_date: None,
+            start_date: None,
+            estimated_hours: None,
+            column_id: col_id,
+            group_id: None,
+            milestone_id: None,
+            assignee_ids: None,
+            label_ids: None,
+        };
+        let task = tasks::create_task(pool, board_id, input, tenant_id, user_id)
+            .await
+            .expect("create parent task for subtask tests");
+        (task.id, user_id, tenant_id)
+    }
+
+    #[tokio::test]
+    async fn test_create_subtask() {
+        let pool = test_pool().await;
+        let (task_id, user_id, _tenant_id) = setup_with_task(&pool).await;
+
+        let subtask = create_subtask(&pool, task_id, "Write unit tests", user_id)
+            .await
+            .expect("create_subtask");
+
+        assert_eq!(subtask.title, "Write unit tests");
+        assert_eq!(subtask.task_id, task_id);
+        assert_eq!(subtask.created_by_id, user_id);
+        assert!(!subtask.is_completed);
+        assert!(subtask.completed_at.is_none());
+        assert!(!subtask.position.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_list_subtasks_by_task() {
+        let pool = test_pool().await;
+        let (task_id, user_id, _tenant_id) = setup_with_task(&pool).await;
+
+        create_subtask(&pool, task_id, "Subtask A", user_id)
+            .await
+            .expect("create subtask A");
+        create_subtask(&pool, task_id, "Subtask B", user_id)
+            .await
+            .expect("create subtask B");
+
+        let subtasks = list_subtasks_by_task(&pool, task_id)
+            .await
+            .expect("list_subtasks_by_task");
+
+        assert!(subtasks.len() >= 2);
+        let titles: Vec<&str> = subtasks.iter().map(|s| s.title.as_str()).collect();
+        assert!(titles.contains(&"Subtask A"));
+        assert!(titles.contains(&"Subtask B"));
+    }
+
+    #[tokio::test]
+    async fn test_toggle_subtask() {
+        let pool = test_pool().await;
+        let (task_id, user_id, _tenant_id) = setup_with_task(&pool).await;
+
+        let subtask = create_subtask(&pool, task_id, "Toggle me", user_id)
+            .await
+            .expect("create subtask");
+
+        assert!(!subtask.is_completed);
+
+        // Toggle to completed
+        let toggled = toggle_subtask(&pool, subtask.id)
+            .await
+            .expect("toggle_subtask to completed");
+        assert!(toggled.is_completed);
+        assert!(toggled.completed_at.is_some());
+
+        // Toggle back to not completed
+        let toggled_back = toggle_subtask(&pool, toggled.id)
+            .await
+            .expect("toggle_subtask back");
+        assert!(!toggled_back.is_completed);
+        assert!(toggled_back.completed_at.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_update_subtask() {
+        let pool = test_pool().await;
+        let (task_id, user_id, _tenant_id) = setup_with_task(&pool).await;
+
+        let subtask = create_subtask(&pool, task_id, "Old Title", user_id)
+            .await
+            .expect("create subtask");
+
+        let updated = update_subtask(&pool, subtask.id, "New Title")
+            .await
+            .expect("update_subtask");
+
+        assert_eq!(updated.title, "New Title");
+        assert_eq!(updated.id, subtask.id);
+    }
+
+    #[tokio::test]
+    async fn test_delete_subtask() {
+        let pool = test_pool().await;
+        let (task_id, user_id, _tenant_id) = setup_with_task(&pool).await;
+
+        let subtask = create_subtask(&pool, task_id, "Delete me", user_id)
+            .await
+            .expect("create subtask");
+
+        delete_subtask(&pool, subtask.id)
+            .await
+            .expect("delete_subtask");
+
+        // Verify it is gone from the list
+        let subtasks = list_subtasks_by_task(&pool, task_id)
+            .await
+            .expect("list after delete");
+        assert!(
+            !subtasks.iter().any(|s| s.id == subtask.id),
+            "deleted subtask should not appear in list"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_delete_subtask_not_found() {
+        let pool = test_pool().await;
+        let random_id = Uuid::new_v4();
+
+        let result = delete_subtask(&pool, random_id).await;
+        assert!(result.is_err(), "deleting non-existent subtask should fail");
+    }
+
+    #[tokio::test]
+    async fn test_get_subtask_progress() {
+        let pool = test_pool().await;
+        let (task_id, user_id, _tenant_id) = setup_with_task(&pool).await;
+
+        // Initially no subtasks
+        let progress = get_subtask_progress(&pool, task_id)
+            .await
+            .expect("get_subtask_progress empty");
+        assert_eq!(progress.total, 0);
+        assert_eq!(progress.completed, 0);
+
+        // Add two subtasks, complete one
+        let s1 = create_subtask(&pool, task_id, "Progress A", user_id)
+            .await
+            .expect("create subtask A");
+        create_subtask(&pool, task_id, "Progress B", user_id)
+            .await
+            .expect("create subtask B");
+
+        toggle_subtask(&pool, s1.id)
+            .await
+            .expect("toggle subtask A");
+
+        let progress = get_subtask_progress(&pool, task_id)
+            .await
+            .expect("get_subtask_progress with data");
+        assert_eq!(progress.total, 2);
+        assert_eq!(progress.completed, 1);
+    }
+
+    #[tokio::test]
+    async fn test_reorder_subtask() {
+        let pool = test_pool().await;
+        let (task_id, user_id, _tenant_id) = setup_with_task(&pool).await;
+
+        let subtask = create_subtask(&pool, task_id, "Reorder me", user_id)
+            .await
+            .expect("create subtask");
+
+        let reordered = reorder_subtask(&pool, subtask.id, "zzz")
+            .await
+            .expect("reorder_subtask");
+
+        assert_eq!(reordered.position, "zzz");
+    }
+
+    #[tokio::test]
+    async fn test_get_subtask_task_id() {
+        let pool = test_pool().await;
+        let (task_id, user_id, _tenant_id) = setup_with_task(&pool).await;
+
+        let subtask = create_subtask(&pool, task_id, "Task ID lookup", user_id)
+            .await
+            .expect("create subtask");
+
+        let found_task_id = get_subtask_task_id(&pool, subtask.id)
+            .await
+            .expect("get_subtask_task_id")
+            .expect("should find task_id");
+
+        assert_eq!(found_task_id, task_id);
+
+        // Non-existent subtask
+        let not_found = get_subtask_task_id(&pool, Uuid::new_v4())
+            .await
+            .expect("get_subtask_task_id for nonexistent");
+        assert!(not_found.is_none());
+    }
+}

@@ -42,6 +42,8 @@ pub mod workspaces;
 mod integration_tests;
 #[cfg(test)]
 mod integration_tests_advanced;
+#[cfg(test)]
+mod integration_tests_extra;
 
 pub use activity_log::*;
 pub use attachments::*;

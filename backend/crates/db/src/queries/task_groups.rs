@@ -276,3 +276,289 @@ pub async fn soft_delete_task_group(
     tx.commit().await?;
     Ok(group)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::queries::{auth, boards, workspaces};
+
+    const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
+
+    async fn test_pool() -> PgPool {
+        PgPool::connect(
+            "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow",
+        )
+        .await
+        .expect("Failed to connect to test database")
+    }
+
+    fn unique_email() -> String {
+        format!("inttest-tg-{}@example.com", Uuid::new_v4())
+    }
+
+    async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
+        let user = auth::create_user_with_tenant(pool, &unique_email(), "TG Test User", FAKE_HASH)
+            .await
+            .expect("create_user_with_tenant");
+        (user.tenant_id, user.id)
+    }
+
+    async fn setup_user_and_workspace(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id) = setup_user(pool).await;
+        let ws = workspaces::create_workspace(pool, "TG Test WS", None, tenant_id, user_id)
+            .await
+            .expect("create_workspace");
+        (tenant_id, user_id, ws.id)
+    }
+
+    async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
+        let bwc = boards::create_board(pool, "TG Test Board", None, ws_id, tenant_id, user_id)
+            .await
+            .expect("create_board");
+        let first_col_id = bwc.columns[0].id;
+        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+    }
+
+    #[tokio::test]
+    async fn test_create_task_group() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let group = create_task_group(
+            &pool, board_id, "Sprint 1", "#ff5722", "a1", tenant_id, user_id,
+        )
+        .await
+        .expect("create_task_group");
+
+        assert_eq!(group.board_id, board_id);
+        assert_eq!(group.name, "Sprint 1");
+        assert_eq!(group.color, "#ff5722");
+        assert_eq!(group.position, "a1");
+        assert!(!group.collapsed);
+        assert_eq!(group.tenant_id, tenant_id);
+        assert_eq!(group.created_by_id, user_id);
+        assert!(group.deleted_at.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_list_task_groups_by_board() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        create_task_group(
+            &pool, board_id, "Group A", "#111111", "a1", tenant_id, user_id,
+        )
+        .await
+        .expect("create group A");
+
+        create_task_group(
+            &pool, board_id, "Group B", "#222222", "a2", tenant_id, user_id,
+        )
+        .await
+        .expect("create group B");
+
+        let groups = list_task_groups_by_board(&pool, board_id)
+            .await
+            .expect("list_task_groups_by_board");
+
+        // At minimum: Ungrouped (created by create_board) + our 2
+        assert!(groups.len() >= 2);
+        let names: Vec<&str> = groups.iter().map(|g| g.name.as_str()).collect();
+        assert!(names.contains(&"Group A"));
+        assert!(names.contains(&"Group B"));
+    }
+
+    #[tokio::test]
+    async fn test_get_task_group_by_id() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let group = create_task_group(
+            &pool, board_id, "Find Me", "#333333", "b1", tenant_id, user_id,
+        )
+        .await
+        .expect("create group");
+
+        let found = get_task_group_by_id(&pool, group.id)
+            .await
+            .expect("get_task_group_by_id")
+            .expect("should find group");
+
+        assert_eq!(found.id, group.id);
+        assert_eq!(found.name, "Find Me");
+    }
+
+    #[tokio::test]
+    async fn test_update_task_group_name() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let group = create_task_group(
+            &pool, board_id, "Old Name", "#444444", "c1", tenant_id, user_id,
+        )
+        .await
+        .expect("create group");
+
+        let updated = update_task_group_name(&pool, group.id, "New Name")
+            .await
+            .expect("update_task_group_name")
+            .expect("should return updated group");
+
+        assert_eq!(updated.name, "New Name");
+        assert_eq!(updated.id, group.id);
+    }
+
+    #[tokio::test]
+    async fn test_update_task_group_color() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let group = create_task_group(
+            &pool,
+            board_id,
+            "Color Test",
+            "#000000",
+            "d1",
+            tenant_id,
+            user_id,
+        )
+        .await
+        .expect("create group");
+
+        let updated = update_task_group_color(&pool, group.id, "#ff0000")
+            .await
+            .expect("update_task_group_color")
+            .expect("should return updated group");
+
+        assert_eq!(updated.color, "#ff0000");
+    }
+
+    #[tokio::test]
+    async fn test_update_task_group_position() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let group = create_task_group(
+            &pool,
+            board_id,
+            "Position Test",
+            "#555555",
+            "e1",
+            tenant_id,
+            user_id,
+        )
+        .await
+        .expect("create group");
+
+        let updated = update_task_group_position(&pool, group.id, "z9")
+            .await
+            .expect("update_task_group_position")
+            .expect("should return updated group");
+
+        assert_eq!(updated.position, "z9");
+    }
+
+    #[tokio::test]
+    async fn test_toggle_task_group_collapse() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let group = create_task_group(
+            &pool,
+            board_id,
+            "Collapse Test",
+            "#666666",
+            "f1",
+            tenant_id,
+            user_id,
+        )
+        .await
+        .expect("create group");
+
+        assert!(!group.collapsed);
+
+        let toggled = toggle_task_group_collapse(&pool, group.id, true)
+            .await
+            .expect("toggle collapse")
+            .expect("should return toggled group");
+
+        assert!(toggled.collapsed);
+
+        let toggled_back = toggle_task_group_collapse(&pool, group.id, false)
+            .await
+            .expect("toggle collapse back")
+            .expect("should return toggled group");
+
+        assert!(!toggled_back.collapsed);
+    }
+
+    #[tokio::test]
+    async fn test_soft_delete_task_group() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let group = create_task_group(
+            &pool,
+            board_id,
+            "Delete Me",
+            "#777777",
+            "g1",
+            tenant_id,
+            user_id,
+        )
+        .await
+        .expect("create group");
+
+        let deleted = soft_delete_task_group(&pool, group.id)
+            .await
+            .expect("soft_delete_task_group")
+            .expect("should return deleted group");
+
+        assert!(deleted.deleted_at.is_some());
+
+        // Should not appear in list
+        let groups = list_task_groups_by_board(&pool, board_id)
+            .await
+            .expect("list after delete");
+        assert!(
+            !groups.iter().any(|g| g.id == group.id),
+            "soft-deleted group should not appear in list"
+        );
+
+        // Should not be found by get
+        let found = get_task_group_by_id(&pool, group.id)
+            .await
+            .expect("get after delete");
+        assert!(found.is_none(), "soft-deleted group should not be found");
+    }
+
+    #[tokio::test]
+    async fn test_list_task_groups_with_stats() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        create_task_group(
+            &pool,
+            board_id,
+            "Stats Group",
+            "#888888",
+            "h1",
+            tenant_id,
+            user_id,
+        )
+        .await
+        .expect("create group for stats");
+
+        let stats = list_task_groups_with_stats(&pool, board_id)
+            .await
+            .expect("list_task_groups_with_stats");
+
+        assert!(!stats.is_empty());
+        let stats_group = stats.iter().find(|s| s.group.name == "Stats Group");
+        assert!(stats_group.is_some(), "should find the stats group");
+        let sg = stats_group.expect("stats group");
+        assert_eq!(sg.task_count, 0);
+        assert_eq!(sg.completed_count, 0);
+    }
+}

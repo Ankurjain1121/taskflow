@@ -132,7 +132,7 @@ pub async fn get_template(
         r#"
         SELECT
             id, template_id, column_index, title, description,
-            priority as "priority: TaskPriority",
+            priority,
             position
         FROM project_template_tasks
         WHERE template_id = $1
@@ -341,7 +341,7 @@ pub async fn save_board_as_template(
         r#"
         SELECT
             title, description,
-            priority as "priority: TaskPriority",
+            priority,
             column_id, position
         FROM tasks
         WHERE board_id = $1 AND deleted_at IS NULL
@@ -435,7 +435,7 @@ pub async fn create_board_from_template(
         r#"
         SELECT
             id, template_id, column_index, title, description,
-            priority as "priority: TaskPriority",
+            priority,
             position
         FROM project_template_tasks
         WHERE template_id = $1
@@ -562,4 +562,231 @@ pub async fn create_board_from_template(
         .map_err(ProjectTemplateQueryError::Database)?;
 
     Ok(board_id)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::UserRole;
+    use crate::queries::{auth, boards, workspaces};
+    use sqlx::PgPool;
+
+    const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
+
+    fn unique_email() -> String {
+        format!("inttest-ptmpl-{}@example.com", Uuid::new_v4())
+    }
+
+    async fn test_pool() -> PgPool {
+        PgPool::connect(
+            "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow",
+        )
+        .await
+        .expect("Failed to connect to test database")
+    }
+
+    async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
+        let user = auth::create_user_with_tenant(pool, &unique_email(), "ProjTmpl User", FAKE_HASH)
+            .await
+            .expect("create_user_with_tenant");
+        (user.tenant_id, user.id)
+    }
+
+    async fn setup_user_and_workspace(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id) = setup_user(pool).await;
+        let ws = workspaces::create_workspace(pool, "ProjTmpl WS", None, tenant_id, user_id)
+            .await
+            .expect("create_workspace");
+        (tenant_id, user_id, ws.id)
+    }
+
+    async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
+        let bwc = boards::create_board(pool, "ProjTmpl Board", None, ws_id, tenant_id, user_id)
+            .await
+            .expect("create_board");
+        let first_col_id = bwc.columns[0].id;
+        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+    }
+
+    #[tokio::test]
+    async fn test_create_template() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id) = setup_user(&pool).await;
+
+        let input = CreateTemplateInput {
+            name: format!("Template-{}", Uuid::new_v4()),
+            description: Some("A test project template".to_string()),
+            category: Some("Development".to_string()),
+        };
+        let name_clone = input.name.clone();
+
+        let template = create_template(&pool, input, user_id, tenant_id)
+            .await
+            .expect("create_template should succeed");
+
+        assert_eq!(template.name, name_clone);
+        assert_eq!(
+            template.description.as_deref(),
+            Some("A test project template")
+        );
+        assert_eq!(template.category.as_deref(), Some("Development"));
+        assert!(!template.is_public);
+        assert_eq!(template.tenant_id, tenant_id);
+        assert_eq!(template.created_by_id, user_id);
+    }
+
+    #[tokio::test]
+    async fn test_get_template() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id) = setup_user(&pool).await;
+
+        let input = CreateTemplateInput {
+            name: format!("GetTemplate-{}", Uuid::new_v4()),
+            description: None,
+            category: None,
+        };
+
+        let created = create_template(&pool, input, user_id, tenant_id)
+            .await
+            .expect("create_template");
+
+        let details = get_template(&pool, created.id)
+            .await
+            .expect("get_template should succeed");
+
+        assert_eq!(details.template.id, created.id);
+        assert_eq!(details.template.name, created.name);
+        assert!(
+            details.columns.is_empty(),
+            "new template should have no columns"
+        );
+        assert!(
+            details.tasks.is_empty(),
+            "new template should have no tasks"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_list_templates() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id) = setup_user(&pool).await;
+
+        let name1 = format!("ListTmpl1-{}", Uuid::new_v4());
+        let name2 = format!("ListTmpl2-{}", Uuid::new_v4());
+
+        create_template(
+            &pool,
+            CreateTemplateInput {
+                name: name1.clone(),
+                description: None,
+                category: None,
+            },
+            user_id,
+            tenant_id,
+        )
+        .await
+        .expect("create_template 1");
+
+        create_template(
+            &pool,
+            CreateTemplateInput {
+                name: name2.clone(),
+                description: None,
+                category: None,
+            },
+            user_id,
+            tenant_id,
+        )
+        .await
+        .expect("create_template 2");
+
+        let list = list_templates(&pool, tenant_id)
+            .await
+            .expect("list_templates should succeed");
+
+        let names: Vec<&str> = list.iter().map(|t| t.name.as_str()).collect();
+        assert!(
+            names.contains(&name1.as_str()),
+            "list should contain template 1"
+        );
+        assert!(
+            names.contains(&name2.as_str()),
+            "list should contain template 2"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_create_board_from_template() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        // First, save the board as a template (this creates template with columns)
+        let save_input = CreateTemplateFromBoardInput {
+            name: format!("BoardTemplate-{}", Uuid::new_v4()),
+            description: Some("Template from board".to_string()),
+            category: None,
+        };
+
+        let template = save_board_as_template(&pool, board_id, save_input, user_id, tenant_id)
+            .await
+            .expect("save_board_as_template should succeed");
+
+        // Verify template has columns copied from the board
+        let details = get_template(&pool, template.id)
+            .await
+            .expect("get_template for saved board template");
+        assert!(
+            !details.columns.is_empty(),
+            "template should have columns from board"
+        );
+
+        // Now create a board from this template
+        let new_board_name = format!("FromTemplate-{}", Uuid::new_v4());
+        let new_board_id = create_board_from_template(
+            &pool,
+            template.id,
+            ws_id,
+            new_board_name.clone(),
+            user_id,
+            tenant_id,
+        )
+        .await
+        .expect("create_board_from_template should succeed");
+
+        // Verify the new board exists
+        let new_board = boards::get_board_by_id(&pool, new_board_id, user_id)
+            .await
+            .expect("get_board_by_id")
+            .expect("new board should exist");
+
+        assert_eq!(new_board.board.name, new_board_name);
+        assert!(
+            !new_board.columns.is_empty(),
+            "new board should have columns from template"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_delete_template() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id) = setup_user(&pool).await;
+
+        let input = CreateTemplateInput {
+            name: format!("DeleteTmpl-{}", Uuid::new_v4()),
+            description: None,
+            category: None,
+        };
+
+        let created = create_template(&pool, input, user_id, tenant_id)
+            .await
+            .expect("create_template");
+
+        delete_template(&pool, created.id, user_id, tenant_id, UserRole::Admin)
+            .await
+            .expect("delete_template should succeed");
+
+        let result = get_template(&pool, created.id).await;
+        assert!(result.is_err(), "template should be deleted");
+    }
 }
