@@ -400,11 +400,11 @@ export class MembersListComponent implements OnInit {
     this.loadInvitations();
   }
 
-  pendingAndExpiredInvitations(): InvitationWithStatus[] {
-    return this.allInvitations().filter(
+  pendingAndExpiredInvitations = computed(() =>
+    this.allInvitations().filter(
       (inv) => inv.status === 'pending' || inv.status === 'expired',
-    );
-  }
+    ),
+  );
 
   loadInvitations(): void {
     this.loadingInvitations.set(true);
@@ -419,12 +419,12 @@ export class MembersListComponent implements OnInit {
     });
   }
 
-  isAdmin(): boolean {
+  isAdmin = computed(() => {
     const user = this.authService.currentUser();
     if (!user) return false;
     const member = this.members().find((m) => m.user_id === user.id);
     return member?.role === 'owner' || member?.role === 'admin';
-  }
+  });
 
   isOwner(member: MemberWithDetails): boolean {
     return member.role === 'owner';

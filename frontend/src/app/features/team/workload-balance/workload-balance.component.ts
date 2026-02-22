@@ -77,6 +77,7 @@ import {
                 <div class="divide-y divide-[var(--border)]">
                   @for (member of members(); track member.user_id) {
                     <button
+                      [attr.aria-label]="'View tasks for ' + member.user_name"
                       (click)="selectMember(member)"
                       [ngClass]="{
                         'w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-[var(--muted)] transition-colors': true,

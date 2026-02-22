@@ -1,5 +1,6 @@
 import {
   Component,
+  computed,
   signal,
   inject,
   OnInit,
@@ -167,12 +168,12 @@ export class WorkspaceSettingsComponent implements OnInit {
     });
   }
 
-  isAdmin(): boolean {
+  isAdmin = computed(() => {
     const user = this.authService.currentUser();
     if (!user) return false;
     const member = this.members().find((m) => m.user_id === user.id);
     return member?.role === 'owner' || member?.role === 'admin';
-  }
+  });
 
   onWorkspaceSaved(updated: Workspace): void {
     this.workspace.set(updated);
