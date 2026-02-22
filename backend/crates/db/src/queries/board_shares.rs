@@ -296,7 +296,7 @@ pub async fn access_shared_board(
         sqlx::query_as::<_, SharedTask>(
             r#"
             SELECT t.id, t.title, t.description,
-                   t.priority as "priority: TaskPriority",
+                   t.priority,
                    t.due_date, t.column_id, c.name as column_name
             FROM tasks t
             JOIN board_columns c ON c.id = t.column_id
@@ -349,4 +349,263 @@ pub struct SharedBoardAccess {
     pub permissions: serde_json::Value,
     pub columns: Vec<SharedColumn>,
     pub tasks: Vec<SharedTask>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::queries::{auth, boards, workspaces};
+    use sqlx::PgPool;
+
+    const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
+
+    fn unique_email() -> String {
+        format!("inttest-bshare-{}@example.com", Uuid::new_v4())
+    }
+
+    async fn test_pool() -> PgPool {
+        PgPool::connect(
+            "postgresql://taskflow:REDACTED_PG_PASSWORD@localhost:5433/taskflow",
+        )
+        .await
+        .expect("Failed to connect to test database")
+    }
+
+    async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
+        let user =
+            auth::create_user_with_tenant(pool, &unique_email(), "BoardShare User", FAKE_HASH)
+                .await
+                .expect("create_user_with_tenant");
+        (user.tenant_id, user.id)
+    }
+
+    async fn setup_user_and_workspace(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id) = setup_user(pool).await;
+        let ws = workspaces::create_workspace(pool, "BoardShare WS", None, tenant_id, user_id)
+            .await
+            .expect("create_workspace");
+        (tenant_id, user_id, ws.id)
+    }
+
+    async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
+        let bwc = boards::create_board(pool, "BoardShare Board", None, ws_id, tenant_id, user_id)
+            .await
+            .expect("create_board");
+        let first_col_id = bwc.columns[0].id;
+        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+    }
+
+    #[tokio::test]
+    async fn test_create_share_link() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateBoardShareInput {
+            name: Some("My Share Link".to_string()),
+            password: None,
+            expires_at: None,
+            permissions: None,
+        };
+
+        let share = create_board_share(&pool, board_id, input, user_id, tenant_id)
+            .await
+            .expect("create_board_share should succeed");
+
+        assert_eq!(share.board_id, board_id);
+        assert_eq!(share.name.as_deref(), Some("My Share Link"));
+        assert!(share.is_active);
+        assert!(share.password_hash.is_none());
+        assert!(share.expires_at.is_none());
+        assert!(!share.share_token.is_empty());
+        assert_eq!(share.tenant_id, tenant_id);
+        assert_eq!(share.created_by_id, user_id);
+    }
+
+    #[tokio::test]
+    async fn test_access_shared_board() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateBoardShareInput {
+            name: Some("Access Test".to_string()),
+            password: None,
+            expires_at: None,
+            permissions: Some(serde_json::json!({"view_tasks": true, "view_comments": true})),
+        };
+
+        let share = create_board_share(&pool, board_id, input, user_id, tenant_id)
+            .await
+            .expect("create_board_share");
+
+        let access = access_shared_board(&pool, &share.share_token, None)
+            .await
+            .expect("access_shared_board should succeed");
+
+        assert_eq!(access.board_id, board_id);
+        assert_eq!(access.board_name, "BoardShare Board");
+        assert!(!access.columns.is_empty(), "should have columns");
+    }
+
+    #[tokio::test]
+    async fn test_access_shared_board_with_password() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateBoardShareInput {
+            name: Some("Password Protected".to_string()),
+            password: Some("secret123".to_string()),
+            expires_at: None,
+            permissions: None,
+        };
+
+        let share = create_board_share(&pool, board_id, input, user_id, tenant_id)
+            .await
+            .expect("create_board_share with password");
+
+        // Access with correct password should succeed
+        let access = access_shared_board(&pool, &share.share_token, Some("secret123"))
+            .await
+            .expect("access with correct password should succeed");
+        assert_eq!(access.board_id, board_id);
+
+        // Access with wrong password should fail
+        let result = access_shared_board(&pool, &share.share_token, Some("wrongpass")).await;
+        assert!(result.is_err(), "wrong password should fail");
+
+        // Access without password should fail
+        let result = access_shared_board(&pool, &share.share_token, None).await;
+        assert!(result.is_err(), "no password should fail");
+    }
+
+    #[tokio::test]
+    async fn test_toggle_share() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateBoardShareInput {
+            name: None,
+            password: None,
+            expires_at: None,
+            permissions: None,
+        };
+
+        let share = create_board_share(&pool, board_id, input, user_id, tenant_id)
+            .await
+            .expect("create_board_share");
+        assert!(share.is_active, "should start active");
+
+        // Deactivate
+        let toggled = toggle_board_share(&pool, share.id, false, user_id)
+            .await
+            .expect("toggle_board_share to deactivate");
+        assert!(!toggled.is_active, "should be inactive after toggle off");
+
+        // Accessing an inactive share should fail
+        let result = access_shared_board(&pool, &share.share_token, None).await;
+        assert!(result.is_err(), "accessing inactive share should fail");
+
+        // Reactivate
+        let reactivated = toggle_board_share(&pool, share.id, true, user_id)
+            .await
+            .expect("toggle_board_share to reactivate");
+        assert!(reactivated.is_active, "should be active after reactivation");
+
+        // Access should work again
+        let access = access_shared_board(&pool, &share.share_token, None)
+            .await
+            .expect("accessing reactivated share should succeed");
+        assert_eq!(access.board_id, board_id);
+    }
+
+    #[tokio::test]
+    async fn test_delete_share() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateBoardShareInput {
+            name: Some("Delete Me".to_string()),
+            password: None,
+            expires_at: None,
+            permissions: None,
+        };
+
+        let share = create_board_share(&pool, board_id, input, user_id, tenant_id)
+            .await
+            .expect("create_board_share");
+
+        delete_board_share(&pool, share.id, user_id)
+            .await
+            .expect("delete_board_share should succeed");
+
+        // Accessing a deleted share should fail with InvalidToken
+        let result = access_shared_board(&pool, &share.share_token, None).await;
+        assert!(result.is_err(), "accessing deleted share should fail");
+    }
+
+    #[tokio::test]
+    async fn test_list_board_shares() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        create_board_share(
+            &pool,
+            board_id,
+            CreateBoardShareInput {
+                name: Some("Share A".to_string()),
+                password: None,
+                expires_at: None,
+                permissions: None,
+            },
+            user_id,
+            tenant_id,
+        )
+        .await
+        .expect("create share A");
+
+        create_board_share(
+            &pool,
+            board_id,
+            CreateBoardShareInput {
+                name: Some("Share B".to_string()),
+                password: None,
+                expires_at: None,
+                permissions: None,
+            },
+            user_id,
+            tenant_id,
+        )
+        .await
+        .expect("create share B");
+
+        let shares = list_board_shares(&pool, board_id, user_id)
+            .await
+            .expect("list_board_shares should succeed");
+
+        assert!(shares.len() >= 2, "should have at least 2 shares");
+        let names: Vec<Option<&str>> = shares.iter().map(|s| s.name.as_deref()).collect();
+        assert!(names.contains(&Some("Share A")), "should contain share A");
+        assert!(names.contains(&Some("Share B")), "should contain share B");
+    }
+
+    #[tokio::test]
+    async fn test_expired_share_access() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        // Create a share that has already expired
+        let input = CreateBoardShareInput {
+            name: Some("Expired Share".to_string()),
+            password: None,
+            expires_at: Some(Utc::now() - chrono::Duration::hours(1)),
+            permissions: None,
+        };
+
+        let share = create_board_share(&pool, board_id, input, user_id, tenant_id)
+            .await
+            .expect("create expired share");
+
+        let result = access_shared_board(&pool, &share.share_token, None).await;
+        assert!(result.is_err(), "accessing expired share should fail");
+    }
 }

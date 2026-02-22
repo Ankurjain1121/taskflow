@@ -290,3 +290,219 @@ pub async fn log_webhook_delivery(
 
     Ok(delivery)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::UserRole;
+    use crate::queries::{auth, boards, workspaces};
+
+    const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
+
+    async fn test_pool() -> PgPool {
+        PgPool::connect(
+            "postgresql://taskflow:REDACTED_PG_PASSWORD@localhost:5433/taskflow",
+        )
+        .await
+        .expect("Failed to connect to test database")
+    }
+
+    fn unique_email() -> String {
+        format!("inttest-wh-{}@example.com", Uuid::new_v4())
+    }
+
+    async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
+        let user = auth::create_user_with_tenant(pool, &unique_email(), "WH Test User", FAKE_HASH)
+            .await
+            .expect("create_user_with_tenant");
+        (user.tenant_id, user.id)
+    }
+
+    async fn setup_user_and_workspace(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id) = setup_user(pool).await;
+        let ws = workspaces::create_workspace(pool, "WH Test WS", None, tenant_id, user_id)
+            .await
+            .expect("create_workspace");
+        (tenant_id, user_id, ws.id)
+    }
+
+    async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
+        let bwc = boards::create_board(pool, "WH Test Board", None, ws_id, tenant_id, user_id)
+            .await
+            .expect("create_board");
+        let first_col_id = bwc.columns[0].id;
+        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+    }
+
+    #[tokio::test]
+    async fn test_create_webhook() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateWebhookInput {
+            url: "https://example.com/webhook".to_string(),
+            secret: Some("test-secret".to_string()),
+            events: vec!["task.created".to_string(), "task.updated".to_string()],
+        };
+
+        let webhook = create_webhook(&pool, board_id, input, user_id, tenant_id)
+            .await
+            .expect("create_webhook");
+
+        assert_eq!(webhook.board_id, board_id);
+        assert_eq!(webhook.url, "https://example.com/webhook");
+        assert_eq!(webhook.secret.as_deref(), Some("test-secret"));
+        assert_eq!(webhook.events.len(), 2);
+        assert!(webhook.is_active);
+        assert_eq!(webhook.tenant_id, tenant_id);
+        assert_eq!(webhook.created_by_id, user_id);
+    }
+
+    #[tokio::test]
+    async fn test_list_webhooks() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let input1 = CreateWebhookInput {
+            url: "https://example.com/hook1".to_string(),
+            secret: None,
+            events: vec!["task.created".to_string()],
+        };
+        create_webhook(&pool, board_id, input1, user_id, tenant_id)
+            .await
+            .expect("create webhook 1");
+
+        let input2 = CreateWebhookInput {
+            url: "https://example.com/hook2".to_string(),
+            secret: None,
+            events: vec!["task.deleted".to_string()],
+        };
+        create_webhook(&pool, board_id, input2, user_id, tenant_id)
+            .await
+            .expect("create webhook 2");
+
+        let webhooks = list_webhooks(&pool, board_id, user_id)
+            .await
+            .expect("list_webhooks");
+
+        assert!(webhooks.len() >= 2);
+        let urls: Vec<&str> = webhooks.iter().map(|w| w.url.as_str()).collect();
+        assert!(urls.contains(&"https://example.com/hook1"));
+        assert!(urls.contains(&"https://example.com/hook2"));
+    }
+
+    #[tokio::test]
+    async fn test_delete_webhook() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateWebhookInput {
+            url: "https://example.com/to-delete".to_string(),
+            secret: None,
+            events: vec!["task.created".to_string()],
+        };
+        let webhook = create_webhook(&pool, board_id, input, user_id, tenant_id)
+            .await
+            .expect("create webhook to delete");
+
+        delete_webhook(&pool, webhook.id, user_id)
+            .await
+            .expect("delete_webhook");
+
+        // Verify it is no longer listed
+        let webhooks = list_webhooks(&pool, board_id, user_id)
+            .await
+            .expect("list after delete");
+        assert!(
+            !webhooks.iter().any(|w| w.id == webhook.id),
+            "deleted webhook should not appear in list"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_update_webhook() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateWebhookInput {
+            url: "https://example.com/original".to_string(),
+            secret: None,
+            events: vec!["task.created".to_string()],
+        };
+        let webhook = create_webhook(&pool, board_id, input, user_id, tenant_id)
+            .await
+            .expect("create webhook to update");
+
+        let update_input = UpdateWebhookInput {
+            url: Some("https://example.com/updated".to_string()),
+            secret: None,
+            events: None,
+            is_active: Some(false),
+        };
+        let updated = update_webhook(&pool, webhook.id, update_input, user_id)
+            .await
+            .expect("update_webhook");
+
+        assert_eq!(updated.url, "https://example.com/updated");
+        assert!(!updated.is_active);
+    }
+
+    #[tokio::test]
+    async fn test_get_active_webhooks_for_event() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateWebhookInput {
+            url: "https://example.com/event-hook".to_string(),
+            secret: None,
+            events: vec!["task.created".to_string(), "task.deleted".to_string()],
+        };
+        create_webhook(&pool, board_id, input, user_id, tenant_id)
+            .await
+            .expect("create webhook for event test");
+
+        let active = get_active_webhooks_for_event(&pool, board_id, "task.created")
+            .await
+            .expect("get_active_webhooks_for_event");
+        assert!(
+            !active.is_empty(),
+            "should find at least one active webhook for task.created"
+        );
+
+        let no_match = get_active_webhooks_for_event(&pool, board_id, "nonexistent.event")
+            .await
+            .expect("get_active_webhooks_for_event nonexistent");
+        // Nonexistent event may or may not have matches, but shouldn't error
+        // (previous tests may have created webhooks with this event, so just check no error)
+        let _ = no_match;
+    }
+
+    #[tokio::test]
+    async fn test_webhook_not_board_member() {
+        let pool = test_pool().await;
+        let (tenant_id, _user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let other_user = auth::create_user(
+            &pool,
+            &unique_email(),
+            "Non-member",
+            FAKE_HASH,
+            UserRole::Member,
+            tenant_id,
+        )
+        .await
+        .expect("create other user");
+
+        let input = CreateWebhookInput {
+            url: "https://example.com/unauthorized".to_string(),
+            secret: None,
+            events: vec!["task.created".to_string()],
+        };
+        let result = create_webhook(&pool, board_id, input, other_user.id, tenant_id).await;
+        assert!(
+            result.is_err(),
+            "non-member should not be able to create webhook"
+        );
+    }
+}

@@ -118,7 +118,7 @@ pub async fn list_board_custom_fields(
         r#"
         SELECT
             id, board_id, name,
-            field_type as "field_type: CustomFieldType",
+            field_type,
             options, is_required, position,
             tenant_id, created_by_id,
             created_at, updated_at
@@ -165,7 +165,7 @@ pub async fn create_custom_field(
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING
             id, board_id, name,
-            field_type as "field_type: CustomFieldType",
+            field_type,
             options, is_required, position,
             tenant_id, created_by_id,
             created_at, updated_at
@@ -223,7 +223,7 @@ pub async fn update_custom_field(
         WHERE id = $1
         RETURNING
             id, board_id, name,
-            field_type as "field_type: CustomFieldType",
+            field_type,
             options, is_required, position,
             tenant_id, created_by_id,
             created_at, updated_at
@@ -311,7 +311,7 @@ pub async fn get_task_custom_field_values(
             $1::uuid as task_id,
             f.id as field_id,
             f.name as field_name,
-            f.field_type as "field_type: CustomFieldType",
+            f.field_type,
             f.options,
             f.is_required,
             v.value_text,
@@ -376,4 +376,257 @@ pub async fn set_task_custom_field_values(
     }
 
     Ok(results)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::{CustomFieldType, TaskPriority, UserRole};
+    use crate::queries::{auth, boards, tasks, workspaces};
+
+    const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
+
+    async fn test_pool() -> PgPool {
+        PgPool::connect(
+            "postgresql://taskflow:REDACTED_PG_PASSWORD@localhost:5433/taskflow",
+        )
+        .await
+        .expect("Failed to connect to test database")
+    }
+
+    fn unique_email() -> String {
+        format!("inttest-cf-{}@example.com", Uuid::new_v4())
+    }
+
+    async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
+        let user = auth::create_user_with_tenant(pool, &unique_email(), "CF Test User", FAKE_HASH)
+            .await
+            .expect("create_user_with_tenant");
+        (user.tenant_id, user.id)
+    }
+
+    async fn setup_user_and_workspace(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id) = setup_user(pool).await;
+        let ws = workspaces::create_workspace(pool, "CF Test WS", None, tenant_id, user_id)
+            .await
+            .expect("create_workspace");
+        (tenant_id, user_id, ws.id)
+    }
+
+    async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
+        let bwc = boards::create_board(pool, "CF Test Board", None, ws_id, tenant_id, user_id)
+            .await
+            .expect("create_board");
+        let first_col_id = bwc.columns[0].id;
+        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+    }
+
+    async fn setup_full_with_task(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(pool).await;
+        let input = tasks::CreateTaskInput {
+            title: "CF Test Task".to_string(),
+            description: None,
+            priority: TaskPriority::Medium,
+            due_date: None,
+            start_date: None,
+            estimated_hours: None,
+            column_id: col_id,
+            group_id: None,
+            milestone_id: None,
+            assignee_ids: None,
+            label_ids: None,
+        };
+        let task = tasks::create_task(pool, board_id, input, tenant_id, user_id)
+            .await
+            .expect("create_task for custom field tests");
+        (tenant_id, user_id, board_id, task.id)
+    }
+
+    #[tokio::test]
+    async fn test_create_custom_field() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateCustomFieldInput {
+            board_id,
+            name: "Priority Level".to_string(),
+            field_type: CustomFieldType::Text,
+            options: None,
+            is_required: false,
+            tenant_id,
+            created_by_id: user_id,
+        };
+
+        let field = create_custom_field(&pool, input)
+            .await
+            .expect("create_custom_field");
+
+        assert_eq!(field.name, "Priority Level");
+        assert_eq!(field.board_id, board_id);
+        assert_eq!(field.field_type, CustomFieldType::Text);
+        assert!(!field.is_required);
+        assert_eq!(field.tenant_id, tenant_id);
+        assert_eq!(field.created_by_id, user_id);
+        assert_eq!(field.position, 1);
+    }
+
+    #[tokio::test]
+    async fn test_list_board_custom_fields() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        // Create two fields
+        let input1 = CreateCustomFieldInput {
+            board_id,
+            name: "Field One".to_string(),
+            field_type: CustomFieldType::Text,
+            options: None,
+            is_required: false,
+            tenant_id,
+            created_by_id: user_id,
+        };
+        create_custom_field(&pool, input1)
+            .await
+            .expect("create field 1");
+
+        let input2 = CreateCustomFieldInput {
+            board_id,
+            name: "Field Two".to_string(),
+            field_type: CustomFieldType::Number,
+            options: None,
+            is_required: true,
+            tenant_id,
+            created_by_id: user_id,
+        };
+        create_custom_field(&pool, input2)
+            .await
+            .expect("create field 2");
+
+        let fields = list_board_custom_fields(&pool, board_id, user_id)
+            .await
+            .expect("list_board_custom_fields");
+
+        assert!(fields.len() >= 2);
+        let names: Vec<&str> = fields.iter().map(|f| f.name.as_str()).collect();
+        assert!(names.contains(&"Field One"));
+        assert!(names.contains(&"Field Two"));
+    }
+
+    #[tokio::test]
+    async fn test_set_and_get_task_custom_field_values() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, board_id, task_id) = setup_full_with_task(&pool).await;
+
+        // Create a text field
+        let field_input = CreateCustomFieldInput {
+            board_id,
+            name: "Notes".to_string(),
+            field_type: CustomFieldType::Text,
+            options: None,
+            is_required: false,
+            tenant_id,
+            created_by_id: user_id,
+        };
+        let field = create_custom_field(&pool, field_input)
+            .await
+            .expect("create_custom_field for value test");
+
+        // Set a value on the task
+        let values = vec![SetFieldValue {
+            field_id: field.id,
+            value_text: Some("Important note".to_string()),
+            value_number: None,
+            value_date: None,
+            value_bool: None,
+        }];
+
+        let results = set_task_custom_field_values(&pool, task_id, user_id, values)
+            .await
+            .expect("set_task_custom_field_values");
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].task_id, task_id);
+        assert_eq!(results[0].field_id, field.id);
+        assert_eq!(results[0].value_text.as_deref(), Some("Important note"));
+
+        // Get the values back
+        let fetched = get_task_custom_field_values(&pool, task_id, user_id)
+            .await
+            .expect("get_task_custom_field_values");
+
+        assert!(!fetched.is_empty());
+        let notes_field = fetched.iter().find(|v| v.field_id == field.id);
+        assert!(notes_field.is_some(), "should find the Notes field value");
+        assert_eq!(
+            notes_field.expect("notes field").value_text.as_deref(),
+            Some("Important note")
+        );
+    }
+
+    #[tokio::test]
+    async fn test_delete_custom_field() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateCustomFieldInput {
+            board_id,
+            name: "To Delete".to_string(),
+            field_type: CustomFieldType::Checkbox,
+            options: None,
+            is_required: false,
+            tenant_id,
+            created_by_id: user_id,
+        };
+        let field = create_custom_field(&pool, input)
+            .await
+            .expect("create field to delete");
+
+        delete_custom_field(&pool, field.id, user_id)
+            .await
+            .expect("delete_custom_field");
+
+        // Verify it no longer appears in list
+        let fields = list_board_custom_fields(&pool, board_id, user_id)
+            .await
+            .expect("list after delete");
+        assert!(
+            !fields.iter().any(|f| f.id == field.id),
+            "deleted field should not appear in list"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_create_custom_field_not_board_member() {
+        let pool = test_pool().await;
+        let (tenant_id, _user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        // Create a second user who is NOT a board member
+        let other_user = auth::create_user(
+            &pool,
+            &unique_email(),
+            "Other",
+            FAKE_HASH,
+            UserRole::Member,
+            tenant_id,
+        )
+        .await
+        .expect("create other user");
+
+        let input = CreateCustomFieldInput {
+            board_id,
+            name: "Unauthorized Field".to_string(),
+            field_type: CustomFieldType::Text,
+            options: None,
+            is_required: false,
+            tenant_id,
+            created_by_id: other_user.id,
+        };
+
+        let result = create_custom_field(&pool, input).await;
+        assert!(
+            result.is_err(),
+            "non-member should not be able to create custom field"
+        );
+    }
 }

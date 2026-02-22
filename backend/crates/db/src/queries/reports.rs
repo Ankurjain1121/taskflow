@@ -302,3 +302,160 @@ async fn get_overdue_analysis(
         .map(|(bucket, count)| OverdueBucket { bucket, count })
         .collect())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::TaskPriority;
+    use crate::queries::{auth, boards, tasks, workspaces};
+
+    const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
+
+    async fn test_pool() -> sqlx::PgPool {
+        sqlx::PgPool::connect(
+            "postgresql://taskflow:REDACTED_PG_PASSWORD@localhost:5433/taskflow",
+        )
+        .await
+        .expect("Failed to connect to test database")
+    }
+
+    fn unique_email() -> String {
+        format!("inttest-rp-{}@example.com", Uuid::new_v4())
+    }
+
+    async fn setup_user(pool: &sqlx::PgPool) -> (Uuid, Uuid) {
+        let user = auth::create_user_with_tenant(pool, &unique_email(), "RP Test User", FAKE_HASH)
+            .await
+            .expect("create_user_with_tenant");
+        (user.tenant_id, user.id)
+    }
+
+    async fn setup_user_and_workspace(pool: &sqlx::PgPool) -> (Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id) = setup_user(pool).await;
+        let ws = workspaces::create_workspace(pool, "RP Test WS", None, tenant_id, user_id)
+            .await
+            .expect("create_workspace");
+        (tenant_id, user_id, ws.id)
+    }
+
+    async fn setup_full(pool: &sqlx::PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
+        let bwc = boards::create_board(pool, "RP Test Board", None, ws_id, tenant_id, user_id)
+            .await
+            .expect("create_board");
+        let first_col_id = bwc.columns[0].id;
+        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+    }
+
+    #[tokio::test]
+    async fn test_get_board_report_empty_board() {
+        let pool = test_pool().await;
+        let (_tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let report = get_board_report(&pool, board_id, user_id, 30)
+            .await
+            .expect("get_board_report");
+
+        assert_eq!(report.completion_rate.total, 0);
+        assert_eq!(report.completion_rate.completed, 0);
+        assert_eq!(report.completion_rate.remaining, 0);
+        // Burndown should have 31 data points (30 days back + today)
+        assert_eq!(report.burndown.len(), 31);
+        // With no tasks, all remaining counts should be 0
+        for point in &report.burndown {
+            assert_eq!(point.remaining, 0);
+        }
+        // Priority distribution is empty when no tasks exist
+        assert!(report.priority_distribution.is_empty());
+        // Assignee workload is empty when no tasks exist
+        assert!(report.assignee_workload.is_empty());
+        // Overdue analysis should have 4 buckets with 0 counts
+        assert_eq!(report.overdue_analysis.len(), 4);
+    }
+
+    #[tokio::test]
+    async fn test_get_board_report_with_tasks() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&pool).await;
+
+        // Create a couple of tasks
+        let input1 = tasks::CreateTaskInput {
+            title: "Report Task 1".to_string(),
+            description: None,
+            priority: TaskPriority::High,
+            due_date: None,
+            start_date: None,
+            estimated_hours: None,
+            column_id: col_id,
+            group_id: None,
+            milestone_id: None,
+            assignee_ids: None,
+            label_ids: None,
+        };
+        tasks::create_task(&pool, board_id, input1, tenant_id, user_id)
+            .await
+            .expect("create task 1");
+
+        let input2 = tasks::CreateTaskInput {
+            title: "Report Task 2".to_string(),
+            description: None,
+            priority: TaskPriority::Medium,
+            due_date: None,
+            start_date: None,
+            estimated_hours: None,
+            column_id: col_id,
+            group_id: None,
+            milestone_id: None,
+            assignee_ids: None,
+            label_ids: None,
+        };
+        tasks::create_task(&pool, board_id, input2, tenant_id, user_id)
+            .await
+            .expect("create task 2");
+
+        let report = get_board_report(&pool, board_id, user_id, 7)
+            .await
+            .expect("get_board_report with tasks");
+
+        assert_eq!(report.completion_rate.total, 2);
+        // Both tasks are in "To Do" (first column), which is not done
+        assert_eq!(report.completion_rate.completed, 0);
+        assert_eq!(report.completion_rate.remaining, 2);
+
+        // Burndown should have 8 data points (7 days back + today)
+        assert_eq!(report.burndown.len(), 8);
+
+        // Priority distribution should have at least 2 entries
+        assert!(!report.priority_distribution.is_empty());
+        let priorities: Vec<&str> = report
+            .priority_distribution
+            .iter()
+            .map(|p| p.priority.as_str())
+            .collect();
+        assert!(priorities.contains(&"high"));
+        assert!(priorities.contains(&"medium"));
+    }
+
+    #[tokio::test]
+    async fn test_get_board_report_not_board_member() {
+        let pool = test_pool().await;
+        let (tenant_id, _user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+
+        let other_user = auth::create_user(
+            &pool,
+            &unique_email(),
+            "Non-member",
+            FAKE_HASH,
+            crate::models::UserRole::Member,
+            tenant_id,
+        )
+        .await
+        .expect("create other user");
+
+        let result = get_board_report(&pool, board_id, other_user.id, 30).await;
+        assert!(
+            result.is_err(),
+            "non-member should not be able to get board report"
+        );
+    }
+}

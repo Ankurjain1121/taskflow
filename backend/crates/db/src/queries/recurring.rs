@@ -241,7 +241,7 @@ pub async fn get_config_for_task(
         SELECT
             id,
             task_id,
-            pattern as "pattern: RecurrencePattern",
+            pattern,
             cron_expression,
             interval_days,
             next_run_at,
@@ -313,7 +313,7 @@ pub async fn create_config(
         RETURNING
             id,
             task_id,
-            pattern as "pattern: RecurrencePattern",
+            pattern,
             cron_expression,
             interval_days,
             next_run_at,
@@ -368,7 +368,7 @@ pub async fn update_config(
         SELECT
             id,
             task_id,
-            pattern as "pattern: RecurrencePattern",
+            pattern,
             cron_expression,
             interval_days,
             next_run_at,
@@ -440,7 +440,7 @@ pub async fn update_config(
         RETURNING
             id,
             task_id,
-            pattern as "pattern: RecurrencePattern",
+            pattern,
             cron_expression,
             interval_days,
             next_run_at,
@@ -490,7 +490,7 @@ pub async fn delete_config(
         SELECT
             id,
             task_id,
-            pattern as "pattern: RecurrencePattern",
+            pattern,
             cron_expression,
             interval_days,
             next_run_at,
@@ -544,7 +544,7 @@ pub async fn get_due_configs(
         SELECT
             id,
             task_id,
-            pattern as "pattern: RecurrencePattern",
+            pattern,
             cron_expression,
             interval_days,
             next_run_at,
@@ -676,8 +676,8 @@ pub async fn create_recurring_instance(
     // Copy custom field values
     sqlx::query(
         r#"
-        INSERT INTO task_custom_field_values (id, task_id, field_id, value, created_at, updated_at)
-        SELECT gen_random_uuid(), $1, field_id, value, NOW(), NOW()
+        INSERT INTO task_custom_field_values (id, task_id, field_id, value_text, value_number, value_date, value_bool, created_at, updated_at)
+        SELECT gen_random_uuid(), $1, field_id, value_text, value_number, value_date, value_bool, NOW(), NOW()
         FROM task_custom_field_values WHERE task_id = $2
         "#,
     )
@@ -734,4 +734,264 @@ struct SourceTask {
     pub created_by_id: Uuid,
     pub estimated_hours: Option<f64>,
     pub start_date: Option<DateTime<Utc>>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::TaskPriority;
+    use crate::queries::{auth, boards, tasks, workspaces};
+    use sqlx::PgPool;
+
+    const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
+
+    fn unique_email() -> String {
+        format!("inttest-recurring-{}@example.com", Uuid::new_v4())
+    }
+
+    async fn test_pool() -> PgPool {
+        PgPool::connect(
+            "postgresql://taskflow:REDACTED_PG_PASSWORD@localhost:5433/taskflow",
+        )
+        .await
+        .expect("Failed to connect to test database")
+    }
+
+    async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
+        let user =
+            auth::create_user_with_tenant(pool, &unique_email(), "Recurring Test User", FAKE_HASH)
+                .await
+                .expect("create_user_with_tenant");
+        (user.tenant_id, user.id)
+    }
+
+    async fn setup_user_and_workspace(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id) = setup_user(pool).await;
+        let ws = workspaces::create_workspace(pool, "Recurring WS", None, tenant_id, user_id)
+            .await
+            .expect("create_workspace");
+        (tenant_id, user_id, ws.id)
+    }
+
+    async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
+        let bwc = boards::create_board(pool, "Recurring Board", None, ws_id, tenant_id, user_id)
+            .await
+            .expect("create_board");
+        let first_col_id = bwc.columns[0].id;
+        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+    }
+
+    async fn setup_task(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(pool).await;
+        let input = tasks::CreateTaskInput {
+            title: format!("Recurring Source Task {}", Uuid::new_v4()),
+            description: Some("Source task for recurring".to_string()),
+            priority: TaskPriority::Medium,
+            due_date: None,
+            start_date: None,
+            estimated_hours: None,
+            column_id: col_id,
+            group_id: None,
+            milestone_id: None,
+            assignee_ids: None,
+            label_ids: None,
+        };
+        let task = tasks::create_task(pool, board_id, input, tenant_id, user_id)
+            .await
+            .expect("create task for recurring");
+        (tenant_id, user_id, board_id, task.id)
+    }
+
+    #[tokio::test]
+    async fn test_create_recurring_config() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _board_id, task_id) = setup_task(&pool).await;
+
+        let input = CreateRecurringInput {
+            pattern: RecurrencePattern::Daily,
+            cron_expression: None,
+            interval_days: None,
+            max_occurrences: Some(10),
+            end_date: None,
+            skip_weekends: Some(false),
+            days_of_week: None,
+            day_of_month: None,
+            creation_mode: None,
+        };
+
+        let config = create_config(&pool, task_id, input, user_id, tenant_id)
+            .await
+            .expect("create_config should succeed");
+
+        assert_eq!(config.task_id, task_id);
+        assert_eq!(config.pattern, RecurrencePattern::Daily);
+        assert!(config.is_active);
+        assert_eq!(config.max_occurrences, Some(10));
+        assert_eq!(config.occurrences_created, 0);
+        assert_eq!(config.tenant_id, tenant_id);
+        assert_eq!(config.created_by_id, user_id);
+        assert_eq!(config.creation_mode, "on_schedule");
+    }
+
+    #[tokio::test]
+    async fn test_get_config_for_task() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _board_id, task_id) = setup_task(&pool).await;
+
+        let input = CreateRecurringInput {
+            pattern: RecurrencePattern::Weekly,
+            cron_expression: None,
+            interval_days: None,
+            max_occurrences: None,
+            end_date: None,
+            skip_weekends: None,
+            days_of_week: None,
+            day_of_month: None,
+            creation_mode: Some("on_completion".to_string()),
+        };
+
+        let created = create_config(&pool, task_id, input, user_id, tenant_id)
+            .await
+            .expect("create_config");
+
+        let fetched = get_config_for_task(&pool, task_id, user_id)
+            .await
+            .expect("get_config_for_task should succeed");
+
+        assert_eq!(fetched.id, created.id);
+        assert_eq!(fetched.task_id, task_id);
+        assert_eq!(fetched.pattern, RecurrencePattern::Weekly);
+        assert_eq!(fetched.creation_mode, "on_completion");
+    }
+
+    #[tokio::test]
+    async fn test_update_recurring_config() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _board_id, task_id) = setup_task(&pool).await;
+
+        let input = CreateRecurringInput {
+            pattern: RecurrencePattern::Daily,
+            cron_expression: None,
+            interval_days: None,
+            max_occurrences: None,
+            end_date: None,
+            skip_weekends: Some(false),
+            days_of_week: None,
+            day_of_month: None,
+            creation_mode: None,
+        };
+
+        let created = create_config(&pool, task_id, input, user_id, tenant_id)
+            .await
+            .expect("create_config");
+
+        let update_input = UpdateRecurringInput {
+            pattern: Some(RecurrencePattern::Monthly),
+            cron_expression: None,
+            interval_days: None,
+            max_occurrences: Some(5),
+            is_active: Some(false),
+            end_date: None,
+            skip_weekends: Some(true),
+            days_of_week: None,
+            day_of_month: Some(15),
+            creation_mode: None,
+        };
+
+        let updated = update_config(&pool, created.id, update_input, user_id)
+            .await
+            .expect("update_config should succeed");
+
+        assert_eq!(updated.id, created.id);
+        assert_eq!(updated.pattern, RecurrencePattern::Monthly);
+        assert_eq!(updated.max_occurrences, Some(5));
+        assert!(!updated.is_active);
+        assert!(updated.skip_weekends);
+        assert_eq!(updated.day_of_month, Some(15));
+    }
+
+    #[tokio::test]
+    async fn test_delete_recurring_config() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _board_id, task_id) = setup_task(&pool).await;
+
+        let input = CreateRecurringInput {
+            pattern: RecurrencePattern::Daily,
+            cron_expression: None,
+            interval_days: None,
+            max_occurrences: None,
+            end_date: None,
+            skip_weekends: None,
+            days_of_week: None,
+            day_of_month: None,
+            creation_mode: None,
+        };
+
+        let created = create_config(&pool, task_id, input, user_id, tenant_id)
+            .await
+            .expect("create_config");
+
+        delete_config(&pool, created.id, user_id)
+            .await
+            .expect("delete_config should succeed");
+
+        // Verify it's gone
+        let result = get_config_for_task(&pool, task_id, user_id).await;
+        assert!(result.is_err(), "config should be deleted");
+    }
+
+    #[tokio::test]
+    async fn test_create_recurring_instance() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _board_id, task_id) = setup_task(&pool).await;
+
+        let input = CreateRecurringInput {
+            pattern: RecurrencePattern::Daily,
+            cron_expression: None,
+            interval_days: None,
+            max_occurrences: Some(3),
+            end_date: None,
+            skip_weekends: Some(false),
+            days_of_week: None,
+            day_of_month: None,
+            creation_mode: Some("on_schedule".to_string()),
+        };
+
+        let config = create_config(&pool, task_id, input, user_id, tenant_id)
+            .await
+            .expect("create_config");
+
+        let new_task_id = create_recurring_instance(&pool, &config)
+            .await
+            .expect("create_recurring_instance should succeed");
+
+        // Verify new task was created
+        let new_task = sqlx::query_as::<_, crate::models::Task>(
+            r#"
+            SELECT id, title, description, priority,
+                   due_date, start_date, estimated_hours, board_id, column_id,
+                   group_id, position, milestone_id, eisenhower_urgency,
+                   eisenhower_importance, tenant_id, created_by_id, deleted_at,
+                   created_at, updated_at
+            FROM tasks WHERE id = $1
+            "#,
+        )
+        .bind(new_task_id)
+        .fetch_one(&pool)
+        .await
+        .expect("new recurring task should exist");
+
+        assert!(
+            new_task.title.contains("(recurring)"),
+            "title should contain (recurring)"
+        );
+
+        // Verify config was updated
+        let updated_config = get_config_for_task(&pool, task_id, user_id)
+            .await
+            .expect("get updated config");
+        assert_eq!(updated_config.occurrences_created, 1);
+        assert!(updated_config.last_run_at.is_some());
+    }
 }

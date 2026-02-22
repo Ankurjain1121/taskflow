@@ -410,3 +410,291 @@ pub async fn get_running_timer(
 
     Ok(entry)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::TaskPriority;
+    use crate::queries::{auth, boards, tasks, workspaces};
+    use chrono::Duration;
+    use sqlx::PgPool;
+
+    const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
+
+    fn unique_email() -> String {
+        format!("inttest-time-{}@example.com", Uuid::new_v4())
+    }
+
+    async fn test_pool() -> PgPool {
+        PgPool::connect(
+            "postgresql://taskflow:REDACTED_PG_PASSWORD@localhost:5433/taskflow",
+        )
+        .await
+        .expect("Failed to connect to test database")
+    }
+
+    async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
+        let user =
+            auth::create_user_with_tenant(pool, &unique_email(), "TimeEntry User", FAKE_HASH)
+                .await
+                .expect("create_user_with_tenant");
+        (user.tenant_id, user.id)
+    }
+
+    async fn setup_user_and_workspace(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id) = setup_user(pool).await;
+        let ws = workspaces::create_workspace(pool, "TimeEntry WS", None, tenant_id, user_id)
+            .await
+            .expect("create_workspace");
+        (tenant_id, user_id, ws.id)
+    }
+
+    async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
+        let bwc = boards::create_board(pool, "TimeEntry Board", None, ws_id, tenant_id, user_id)
+            .await
+            .expect("create_board");
+        let first_col_id = bwc.columns[0].id;
+        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+    }
+
+    /// Setup full scenario with a task, returns (tenant_id, user_id, board_id, task_id)
+    async fn setup_with_task(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(pool).await;
+        let input = tasks::CreateTaskInput {
+            title: format!("TimeTask-{}", Uuid::new_v4()),
+            description: None,
+            priority: TaskPriority::Medium,
+            due_date: None,
+            start_date: None,
+            estimated_hours: None,
+            column_id: col_id,
+            group_id: None,
+            milestone_id: None,
+            assignee_ids: None,
+            label_ids: None,
+        };
+        let task = tasks::create_task(pool, board_id, input, tenant_id, user_id)
+            .await
+            .expect("create task for time entries");
+        (tenant_id, user_id, board_id, task.id)
+    }
+
+    #[tokio::test]
+    async fn test_start_timer() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, board_id, task_id) = setup_with_task(&pool).await;
+
+        let input = StartTimerInput {
+            task_id,
+            user_id,
+            description: Some("Working on it".to_string()),
+            board_id,
+            tenant_id,
+        };
+
+        let entry = start_timer(&pool, input)
+            .await
+            .expect("start_timer should succeed");
+
+        assert_eq!(entry.task_id, task_id);
+        assert_eq!(entry.user_id, user_id);
+        assert!(entry.is_running);
+        assert!(entry.ended_at.is_none());
+        assert_eq!(entry.description.as_deref(), Some("Working on it"));
+        assert_eq!(entry.board_id, board_id);
+        assert_eq!(entry.tenant_id, tenant_id);
+    }
+
+    #[tokio::test]
+    async fn test_stop_timer() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, board_id, task_id) = setup_with_task(&pool).await;
+
+        let input = StartTimerInput {
+            task_id,
+            user_id,
+            description: None,
+            board_id,
+            tenant_id,
+        };
+
+        let started = start_timer(&pool, input).await.expect("start_timer");
+
+        let stopped = stop_timer(&pool, started.id, user_id)
+            .await
+            .expect("stop_timer should succeed");
+
+        assert!(!stopped.is_running);
+        assert!(stopped.ended_at.is_some());
+        assert!(stopped.duration_minutes.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_create_manual_entry() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, board_id, task_id) = setup_with_task(&pool).await;
+
+        let started_at = Utc::now() - Duration::hours(2);
+        let ended_at = Utc::now() - Duration::hours(1);
+
+        let input = ManualEntryInput {
+            task_id,
+            user_id,
+            description: Some("Manual logging".to_string()),
+            started_at,
+            ended_at,
+            duration_minutes: 60,
+            board_id,
+            tenant_id,
+        };
+
+        let entry = create_manual_entry(&pool, input)
+            .await
+            .expect("create_manual_entry should succeed");
+
+        assert_eq!(entry.task_id, task_id);
+        assert_eq!(entry.user_id, user_id);
+        assert!(!entry.is_running);
+        assert!(entry.ended_at.is_some());
+        assert_eq!(entry.duration_minutes, Some(60));
+        assert_eq!(entry.description.as_deref(), Some("Manual logging"));
+    }
+
+    #[tokio::test]
+    async fn test_list_task_time_entries() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, board_id, task_id) = setup_with_task(&pool).await;
+
+        // Create two manual entries
+        let started1 = Utc::now() - Duration::hours(4);
+        let ended1 = Utc::now() - Duration::hours(3);
+        create_manual_entry(
+            &pool,
+            ManualEntryInput {
+                task_id,
+                user_id,
+                description: Some("Entry 1".to_string()),
+                started_at: started1,
+                ended_at: ended1,
+                duration_minutes: 60,
+                board_id,
+                tenant_id,
+            },
+        )
+        .await
+        .expect("create entry 1");
+
+        let started2 = Utc::now() - Duration::hours(2);
+        let ended2 = Utc::now() - Duration::hours(1);
+        create_manual_entry(
+            &pool,
+            ManualEntryInput {
+                task_id,
+                user_id,
+                description: Some("Entry 2".to_string()),
+                started_at: started2,
+                ended_at: ended2,
+                duration_minutes: 60,
+                board_id,
+                tenant_id,
+            },
+        )
+        .await
+        .expect("create entry 2");
+
+        let entries = list_task_time_entries(&pool, task_id, user_id)
+            .await
+            .expect("list_task_time_entries should succeed");
+
+        assert!(entries.len() >= 2, "should have at least 2 entries");
+        let descriptions: Vec<Option<&str>> =
+            entries.iter().map(|e| e.description.as_deref()).collect();
+        assert!(
+            descriptions.contains(&Some("Entry 1")),
+            "should contain entry 1"
+        );
+        assert!(
+            descriptions.contains(&Some("Entry 2")),
+            "should contain entry 2"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_get_board_time_report() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, board_id, task_id) = setup_with_task(&pool).await;
+
+        // Create a manual entry with known duration
+        let started = Utc::now() - Duration::hours(2);
+        let ended = Utc::now() - Duration::hours(1);
+        create_manual_entry(
+            &pool,
+            ManualEntryInput {
+                task_id,
+                user_id,
+                description: Some("Report entry".to_string()),
+                started_at: started,
+                ended_at: ended,
+                duration_minutes: 90,
+                board_id,
+                tenant_id,
+            },
+        )
+        .await
+        .expect("create entry for report");
+
+        let report = get_board_time_report(&pool, board_id, user_id)
+            .await
+            .expect("get_board_time_report should succeed");
+
+        assert!(!report.is_empty(), "report should have at least 1 task");
+        let task_report = report
+            .iter()
+            .find(|r| r.task_id == task_id)
+            .expect("should find report for our task");
+        assert_eq!(task_report.total_minutes, 90);
+        assert_eq!(task_report.entries_count, 1);
+    }
+
+    #[tokio::test]
+    async fn test_running_timer_auto_stops_previous() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, board_id, task_id) = setup_with_task(&pool).await;
+
+        // Start first timer
+        let input1 = StartTimerInput {
+            task_id,
+            user_id,
+            description: Some("Timer 1".to_string()),
+            board_id,
+            tenant_id,
+        };
+        let timer1 = start_timer(&pool, input1).await.expect("start first timer");
+        assert!(timer1.is_running);
+
+        // Start second timer - should auto-stop first
+        let input2 = StartTimerInput {
+            task_id,
+            user_id,
+            description: Some("Timer 2".to_string()),
+            board_id,
+            tenant_id,
+        };
+        let timer2 = start_timer(&pool, input2)
+            .await
+            .expect("start second timer");
+        assert!(timer2.is_running);
+
+        // Verify only the second timer is running
+        let running = get_running_timer(&pool, user_id)
+            .await
+            .expect("get_running_timer");
+        assert!(running.is_some(), "should have a running timer");
+        assert_eq!(
+            running.as_ref().expect("running timer").id,
+            timer2.id,
+            "running timer should be the second one"
+        );
+    }
+}
