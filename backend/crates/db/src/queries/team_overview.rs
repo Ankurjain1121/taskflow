@@ -2,10 +2,13 @@
 //!
 //! Provides queries for fetching team workload and member statistics.
 
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
+
+use crate::models::TaskPriority;
 
 /// Member workload information for team overview
 #[derive(Debug, Serialize, Clone)]
@@ -176,6 +179,107 @@ pub async fn get_overloaded_members(
             active_tasks: row.active_tasks,
         })
         .collect())
+}
+
+/// A member's active task for workload balancing view
+#[derive(Debug, Serialize, Clone, sqlx::FromRow)]
+pub struct MemberTask {
+    pub task_id: Uuid,
+    pub title: String,
+    pub board_name: String,
+    pub column_name: String,
+    pub priority: TaskPriority,
+    pub due_date: Option<DateTime<Utc>>,
+}
+
+/// Get active tasks assigned to a specific member within a workspace
+pub async fn get_member_active_tasks(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    user_id: Uuid,
+) -> Result<Vec<MemberTask>, sqlx::Error> {
+    sqlx::query_as::<_, MemberTask>(
+        r#"
+        SELECT
+            t.id as task_id,
+            t.title,
+            b.name as board_name,
+            bc.name as column_name,
+            t.priority,
+            t.due_date
+        FROM tasks t
+        INNER JOIN task_assignees ta ON ta.task_id = t.id
+        INNER JOIN boards b ON b.id = t.board_id
+        INNER JOIN board_columns bc ON bc.id = t.column_id
+        WHERE ta.user_id = $1
+          AND b.workspace_id = $2
+          AND t.deleted_at IS NULL
+          AND b.deleted_at IS NULL
+          AND (bc.status_mapping IS NULL OR (bc.status_mapping->>'done') IS DISTINCT FROM 'true')
+        ORDER BY
+            CASE t.priority
+                WHEN 'urgent' THEN 1
+                WHEN 'high' THEN 2
+                WHEN 'medium' THEN 3
+                WHEN 'low' THEN 4
+            END,
+            t.due_date ASC NULLS LAST
+        "#,
+    )
+    .bind(user_id)
+    .bind(workspace_id)
+    .fetch_all(pool)
+    .await
+}
+
+/// Reassign tasks from one user to another, returning the number of tasks updated
+pub async fn reassign_tasks(
+    pool: &PgPool,
+    task_ids: &[Uuid],
+    from_user_id: Uuid,
+    to_user_id: Uuid,
+) -> Result<usize, sqlx::Error> {
+    if task_ids.is_empty() {
+        return Ok(0);
+    }
+
+    let mut tx = pool.begin().await?;
+    let mut count = 0usize;
+
+    for task_id in task_ids {
+        // Remove old assignee
+        let removed = sqlx::query(
+            r#"
+            DELETE FROM task_assignees
+            WHERE task_id = $1 AND user_id = $2
+            "#,
+        )
+        .bind(task_id)
+        .bind(from_user_id)
+        .execute(&mut *tx)
+        .await?;
+
+        if removed.rows_affected() > 0 {
+            // Add new assignee (ignore conflict if already assigned)
+            sqlx::query(
+                r#"
+                INSERT INTO task_assignees (task_id, user_id)
+                VALUES ($1, $2)
+                ON CONFLICT (task_id, user_id) DO NOTHING
+                "#,
+            )
+            .bind(task_id)
+            .bind(to_user_id)
+            .execute(&mut *tx)
+            .await?;
+
+            count += 1;
+        }
+    }
+
+    tx.commit().await?;
+
+    Ok(count)
 }
 
 #[cfg(test)]

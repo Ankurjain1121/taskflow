@@ -135,12 +135,38 @@ export class WorkspaceService {
     return this.http.delete<void>(`/api/invitations/${invitationId}`);
   }
 
+  discoverWorkspaces(): Observable<DiscoverableWorkspace[]> {
+    return this.http.get<DiscoverableWorkspace[]>(`${this.apiUrl}/discover`);
+  }
+
+  joinWorkspace(workspaceId: string): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/${workspaceId}/join`, {});
+  }
+
+  updateVisibility(
+    workspaceId: string,
+    visibility: 'open' | 'closed',
+  ): Observable<Workspace> {
+    return this.http.patch<Workspace>(
+      `${this.apiUrl}/${workspaceId}/visibility`,
+      { visibility },
+    );
+  }
+
   resendInvitation(invitationId: string): Observable<InvitationWithStatus> {
     return this.http.post<InvitationWithStatus>(
       `/api/invitations/${invitationId}/resend`,
       {},
     );
   }
+}
+
+export interface DiscoverableWorkspace {
+  id: string;
+  name: string;
+  description: string | null;
+  member_count: number;
+  created_at: string;
 }
 
 export interface MemberSearchResult {

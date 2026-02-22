@@ -3,7 +3,9 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::{UserPublic, Workspace, WorkspaceMember};
+use crate::models::{
+    UserPublic, Workspace, WorkspaceMember, WorkspaceMemberRole, WorkspaceVisibility,
+};
 
 /// List workspaces for a user (by membership)
 pub async fn list_workspaces_for_user(
@@ -13,8 +15,8 @@ pub async fn list_workspaces_for_user(
 ) -> Result<Vec<Workspace>, sqlx::Error> {
     sqlx::query_as::<_, Workspace>(
         r#"
-        SELECT w.id, w.name, w.description, w.logo_url, w.tenant_id, w.created_by_id,
-               w.deleted_at, w.created_at, w.updated_at
+        SELECT w.id, w.name, w.description, w.logo_url, w.visibility,
+               w.tenant_id, w.created_by_id, w.deleted_at, w.created_at, w.updated_at
         FROM workspaces w
         INNER JOIN workspace_members wm ON w.id = wm.workspace_id
         WHERE wm.user_id = $1
@@ -43,6 +45,7 @@ pub struct WorkspaceMemberInfo {
     pub name: String,
     pub email: String,
     pub avatar_url: Option<String>,
+    pub role: WorkspaceMemberRole,
     pub joined_at: chrono::DateTime<chrono::Utc>,
 }
 
@@ -54,7 +57,7 @@ pub async fn get_workspace_by_id(
 ) -> Result<Option<WorkspaceWithMembers>, sqlx::Error> {
     let workspace = sqlx::query_as::<_, Workspace>(
         r#"
-        SELECT id, name, description, logo_url, tenant_id, created_by_id,
+        SELECT id, name, description, logo_url, visibility, tenant_id, created_by_id,
                deleted_at, created_at, updated_at
         FROM workspaces
         WHERE id = $1
@@ -71,7 +74,7 @@ pub async fn get_workspace_by_id(
         Some(ws) => {
             let members = sqlx::query_as::<_, WorkspaceMemberInfo>(
                 r#"
-                SELECT wm.user_id, u.name, u.email, u.avatar_url, wm.joined_at
+                SELECT wm.user_id, u.name, u.email, u.avatar_url, wm.role, wm.joined_at
                 FROM workspace_members wm
                 INNER JOIN users u ON wm.user_id = u.id
                 WHERE wm.workspace_id = $1
@@ -92,7 +95,7 @@ pub async fn get_workspace_by_id(
     }
 }
 
-/// Create a new workspace and add creator as member
+/// Create a new workspace and add creator as owner
 pub async fn create_workspace(
     pool: &PgPool,
     name: &str,
@@ -106,7 +109,7 @@ pub async fn create_workspace(
         r#"
         INSERT INTO workspaces (name, description, tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4)
-        RETURNING id, name, description, logo_url, tenant_id, created_by_id,
+        RETURNING id, name, description, logo_url, visibility, tenant_id, created_by_id,
                   deleted_at, created_at, updated_at
         "#,
     )
@@ -117,11 +120,11 @@ pub async fn create_workspace(
     .fetch_one(&mut *tx)
     .await?;
 
-    // Add creator as workspace member
+    // Add creator as workspace owner
     sqlx::query(
         r#"
-        INSERT INTO workspace_members (workspace_id, user_id)
-        VALUES ($1, $2)
+        INSERT INTO workspace_members (workspace_id, user_id, role)
+        VALUES ($1, $2, 'owner')
         "#,
     )
     .bind(workspace.id)
@@ -134,7 +137,7 @@ pub async fn create_workspace(
     Ok(workspace)
 }
 
-/// Update workspace name and description
+/// Update workspace name, description, and optionally visibility
 pub async fn update_workspace(
     pool: &PgPool,
     id: Uuid,
@@ -147,13 +150,35 @@ pub async fn update_workspace(
         SET name = $2, description = $3
         WHERE id = $1
           AND deleted_at IS NULL
-        RETURNING id, name, description, logo_url, tenant_id, created_by_id,
+        RETURNING id, name, description, logo_url, visibility, tenant_id, created_by_id,
                   deleted_at, created_at, updated_at
         "#,
     )
     .bind(id)
     .bind(name)
     .bind(description)
+    .fetch_optional(pool)
+    .await
+}
+
+/// Update workspace visibility
+pub async fn update_workspace_visibility(
+    pool: &PgPool,
+    id: Uuid,
+    visibility: WorkspaceVisibility,
+) -> Result<Option<Workspace>, sqlx::Error> {
+    sqlx::query_as::<_, Workspace>(
+        r#"
+        UPDATE workspaces
+        SET visibility = $2
+        WHERE id = $1
+          AND deleted_at IS NULL
+        RETURNING id, name, description, logo_url, visibility, tenant_id, created_by_id,
+                  deleted_at, created_at, updated_at
+        "#,
+    )
+    .bind(id)
+    .bind(visibility)
     .fetch_optional(pool)
     .await
 }
@@ -203,7 +228,7 @@ pub async fn search_workspace_members(
     .await
 }
 
-/// Add a user to a workspace
+/// Add a user to a workspace with a role (defaults to member)
 pub async fn add_workspace_member(
     pool: &PgPool,
     workspace_id: Uuid,
@@ -211,10 +236,10 @@ pub async fn add_workspace_member(
 ) -> Result<WorkspaceMember, sqlx::Error> {
     sqlx::query_as::<_, WorkspaceMember>(
         r#"
-        INSERT INTO workspace_members (workspace_id, user_id)
-        VALUES ($1, $2)
+        INSERT INTO workspace_members (workspace_id, user_id, role)
+        VALUES ($1, $2, 'member')
         ON CONFLICT (workspace_id, user_id) DO NOTHING
-        RETURNING id, workspace_id, user_id, joined_at
+        RETURNING id, workspace_id, user_id, role, joined_at
         "#,
     )
     .bind(workspace_id)
@@ -284,4 +309,112 @@ pub async fn is_workspace_member(
     .await?;
 
     Ok(result.0)
+}
+
+/// Get a workspace member's role
+pub async fn get_workspace_member_role(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    user_id: Uuid,
+) -> Result<Option<WorkspaceMemberRole>, sqlx::Error> {
+    let row = sqlx::query_as::<_, (WorkspaceMemberRole,)>(
+        r#"
+        SELECT role FROM workspace_members
+        WHERE workspace_id = $1 AND user_id = $2
+        "#,
+    )
+    .bind(workspace_id)
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row.map(|(role,)| role))
+}
+
+/// Update a workspace member's role
+pub async fn update_workspace_member_role(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    role: WorkspaceMemberRole,
+) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query(
+        r#"
+        UPDATE workspace_members
+        SET role = $3
+        WHERE workspace_id = $1 AND user_id = $2
+        "#,
+    )
+    .bind(workspace_id)
+    .bind(user_id)
+    .bind(role)
+    .execute(pool)
+    .await?;
+
+    Ok(result.rows_affected() > 0)
+}
+
+/// List open workspaces the user is NOT already a member of (for discovery)
+pub async fn list_open_workspaces(
+    pool: &PgPool,
+    tenant_id: Uuid,
+    user_id: Uuid,
+) -> Result<Vec<Workspace>, sqlx::Error> {
+    sqlx::query_as::<_, Workspace>(
+        r#"
+        SELECT w.id, w.name, w.description, w.logo_url, w.visibility,
+               w.tenant_id, w.created_by_id, w.deleted_at, w.created_at, w.updated_at
+        FROM workspaces w
+        WHERE w.tenant_id = $1
+          AND w.visibility = 'open'
+          AND w.deleted_at IS NULL
+          AND NOT EXISTS (
+              SELECT 1 FROM workspace_members wm
+              WHERE wm.workspace_id = w.id AND wm.user_id = $2
+          )
+        ORDER BY w.name ASC
+        "#,
+    )
+    .bind(tenant_id)
+    .bind(user_id)
+    .fetch_all(pool)
+    .await
+}
+
+/// Join an open workspace (adds user as member)
+pub async fn join_open_workspace(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    user_id: Uuid,
+) -> Result<WorkspaceMember, sqlx::Error> {
+    sqlx::query_as::<_, WorkspaceMember>(
+        r#"
+        INSERT INTO workspace_members (workspace_id, user_id, role)
+        VALUES ($1, $2, 'member')
+        ON CONFLICT (workspace_id, user_id) DO NOTHING
+        RETURNING id, workspace_id, user_id, role, joined_at
+        "#,
+    )
+    .bind(workspace_id)
+    .bind(user_id)
+    .fetch_one(pool)
+    .await
+}
+
+/// Get workspace visibility
+pub async fn get_workspace_visibility(
+    pool: &PgPool,
+    workspace_id: Uuid,
+) -> Result<Option<WorkspaceVisibility>, sqlx::Error> {
+    let row = sqlx::query_as::<_, (WorkspaceVisibility,)>(
+        r#"
+        SELECT visibility FROM workspaces
+        WHERE id = $1 AND deleted_at IS NULL
+        "#,
+    )
+    .bind(workspace_id)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row.map(|(v,)| v))
 }

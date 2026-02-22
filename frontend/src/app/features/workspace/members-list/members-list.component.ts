@@ -37,7 +37,9 @@ export interface MemberWithDetails extends WorkspaceMember {
       <!-- Header -->
       <div class="px-6 py-4 border-b border-[var(--border)]">
         <div class="flex items-center justify-between">
-          <h3 class="text-lg font-medium text-[var(--card-foreground)]">Members</h3>
+          <h3 class="text-lg font-medium text-[var(--card-foreground)]">
+            Members
+          </h3>
           @if (isAdmin()) {
             <button
               (click)="onInviteMember()"
@@ -93,7 +95,9 @@ export interface MemberWithDetails extends WorkspaceMember {
                 Joined
               </th>
               @if (isAdmin()) {
-                <th class="px-6 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">
+                <th
+                  class="px-6 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
+                >
                   Actions
                 </th>
               }
@@ -119,35 +123,56 @@ export interface MemberWithDetails extends WorkspaceMember {
                       }
                     </div>
                     <div>
-                      <p class="text-sm font-medium text-[var(--card-foreground)]">
+                      <p
+                        class="text-sm font-medium text-[var(--card-foreground)]"
+                      >
                         {{ member.display_name || 'Unknown' }}
                       </p>
-                      <p class="text-sm text-[var(--muted-foreground)]">{{ member.email }}</p>
+                      <p class="text-sm text-[var(--muted-foreground)]">
+                        {{ member.email }}
+                      </p>
                     </div>
                   </div>
                 </td>
 
-                <!-- Role (read-only badge) -->
+                <!-- Role -->
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span
-                    [class]="
-                      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' +
-                      getRoleBadgeClass(member.role)
-                    "
-                    [title]="'Roles are managed in the Admin panel'"
-                  >
-                    {{ getRoleLabel(member.role) }}
-                  </span>
+                  @if (isAdmin() && !isOwner(member) && !isSelf(member)) {
+                    <select
+                      [value]="member.role"
+                      (change)="onRoleChange(member, $any($event.target).value)"
+                      [disabled]="updatingMember() === member.user_id"
+                      class="text-xs font-medium rounded-full px-2.5 py-1 border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                    >
+                      <option value="admin">Admin</option>
+                      <option value="manager">Manager</option>
+                      <option value="member">Member</option>
+                      <option value="viewer">Viewer</option>
+                    </select>
+                  } @else {
+                    <span
+                      [class]="
+                        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' +
+                        getRoleBadgeClass(member.role)
+                      "
+                    >
+                      {{ getRoleLabel(member.role) }}
+                    </span>
+                  }
                 </td>
 
                 <!-- Joined Date -->
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--muted-foreground)]">
+                <td
+                  class="px-6 py-4 whitespace-nowrap text-sm text-[var(--muted-foreground)]"
+                >
                   {{ formatDate(member.joined_at) }}
                 </td>
 
                 <!-- Actions -->
                 @if (isAdmin()) {
-                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+                  >
                     @if (!isOwner(member) && !isSelf(member)) {
                       <button
                         (click)="onRemoveMember(member)"
@@ -181,9 +206,13 @@ export interface MemberWithDetails extends WorkspaceMember {
       <div class="bg-[var(--card)] rounded-lg shadow mt-6">
         <div class="px-6 py-4 border-b border-[var(--border)]">
           <div class="flex items-center justify-between">
-            <h3 class="text-lg font-medium text-[var(--card-foreground)]">Pending Invitations</h3>
+            <h3 class="text-lg font-medium text-[var(--card-foreground)]">
+              Pending Invitations
+            </h3>
             @if (loadingInvitations()) {
-              <span class="text-sm text-[var(--muted-foreground)]">Loading...</span>
+              <span class="text-sm text-[var(--muted-foreground)]"
+                >Loading...</span
+              >
             }
           </div>
         </div>
@@ -193,25 +222,38 @@ export interface MemberWithDetails extends WorkspaceMember {
             <table class="min-w-full divide-y divide-[var(--border)]">
               <thead class="bg-[var(--secondary)]">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
+                  >
                     Email
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
+                  >
                     Role
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
+                  >
                     Status
                   </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
+                  >
                     Sent
                   </th>
-                  <th class="px-6 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider">
+                  <th
+                    class="px-6 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
+                  >
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody class="bg-[var(--card)] divide-y divide-[var(--border)]">
-                @for (invitation of pendingAndExpiredInvitations(); track invitation.id) {
+                @for (
+                  invitation of pendingAndExpiredInvitations();
+                  track invitation.id
+                ) {
                   <tr class="hover:bg-[var(--muted)]">
                     <!-- Email -->
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -219,12 +261,23 @@ export interface MemberWithDetails extends WorkspaceMember {
                         <div
                           class="w-8 h-8 rounded-full bg-[var(--secondary)] flex items-center justify-center text-xs font-medium text-[var(--muted-foreground)]"
                         >
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          <svg
+                            class="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                            />
                           </svg>
                         </div>
-                        <span class="text-sm text-[var(--card-foreground)]">{{ invitation.email }}</span>
+                        <span class="text-sm text-[var(--card-foreground)]">{{
+                          invitation.email
+                        }}</span>
                       </div>
                     </td>
 
@@ -253,12 +306,16 @@ export interface MemberWithDetails extends WorkspaceMember {
                     </td>
 
                     <!-- Sent Date -->
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--muted-foreground)]">
+                    <td
+                      class="px-6 py-4 whitespace-nowrap text-sm text-[var(--muted-foreground)]"
+                    >
                       {{ formatDate(invitation.created_at) }}
                     </td>
 
                     <!-- Actions -->
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td
+                      class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+                    >
                       <div class="flex items-center justify-end gap-2">
                         @if (invitation.status === 'expired') {
                           <button
@@ -269,7 +326,10 @@ export interface MemberWithDetails extends WorkspaceMember {
                             Resend
                           </button>
                         }
-                        @if (invitation.status === 'pending' || invitation.status === 'expired') {
+                        @if (
+                          invitation.status === 'pending' ||
+                          invitation.status === 'expired'
+                        ) {
                           <button
                             (click)="onCancelInvitation(invitation)"
                             [disabled]="actionInProgress() === invitation.id"
@@ -313,7 +373,11 @@ export class MembersListComponent implements OnInit {
   boards = input<{ id: string; name: string }[]>([]);
 
   memberRemoved = output<string>();
-  memberInvited = output<{ emails: string[]; role: 'admin' | 'manager' | 'member' }>();
+  memberRoleChanged = output<{ userId: string; role: string }>();
+  memberInvited = output<{
+    emails: string[];
+    role: 'admin' | 'manager' | 'member';
+  }>();
 
   updatingMember = signal<string | null>(null);
   allInvitations = signal<InvitationWithStatus[]>([]);
@@ -327,8 +391,8 @@ export class MembersListComponent implements OnInit {
     if (!query) return this.members();
     return this.members().filter(
       (m) =>
-        (m.display_name?.toLowerCase().includes(query)) ||
-        (m.email?.toLowerCase().includes(query))
+        m.display_name?.toLowerCase().includes(query) ||
+        m.email?.toLowerCase().includes(query),
     );
   });
 
@@ -338,7 +402,7 @@ export class MembersListComponent implements OnInit {
 
   pendingAndExpiredInvitations(): InvitationWithStatus[] {
     return this.allInvitations().filter(
-      (inv) => inv.status === 'pending' || inv.status === 'expired'
+      (inv) => inv.status === 'pending' || inv.status === 'expired',
     );
   }
 
@@ -387,6 +451,7 @@ export class MembersListComponent implements OnInit {
       admin: 'Admin',
       manager: 'Manager',
       member: 'Member',
+      viewer: 'Viewer',
     };
     return labels[role] || role;
   }
@@ -397,6 +462,7 @@ export class MembersListComponent implements OnInit {
       admin: 'bg-blue-100 text-blue-800',
       manager: 'bg-primary/10 text-primary',
       member: 'bg-gray-100 text-gray-800',
+      viewer: 'bg-gray-100 text-gray-600',
     };
     return classes[role] || 'bg-gray-100 text-gray-800';
   }
@@ -438,7 +504,7 @@ export class MembersListComponent implements OnInit {
         result.emails,
         result.role,
         result.message,
-        result.boardIds
+        result.boardIds,
       )
       .subscribe({
         next: () => {
@@ -475,7 +541,7 @@ export class MembersListComponent implements OnInit {
     this.workspaceService.cancelInvitation(invitation.id).subscribe({
       next: () => {
         this.allInvitations.update((invitations) =>
-          invitations.filter((inv) => inv.id !== invitation.id)
+          invitations.filter((inv) => inv.id !== invitation.id),
         );
         this.actionInProgress.set(null);
       },
@@ -485,8 +551,37 @@ export class MembersListComponent implements OnInit {
     });
   }
 
+  onRoleChange(member: MemberWithDetails, newRole: string): void {
+    if (newRole === member.role) return;
+
+    this.updatingMember.set(member.user_id);
+
+    this.workspaceService
+      .updateMemberRole(
+        this.workspaceId(),
+        member.user_id,
+        newRole as 'admin' | 'manager' | 'member',
+      )
+      .subscribe({
+        next: () => {
+          this.memberRoleChanged.emit({
+            userId: member.user_id,
+            role: newRole,
+          });
+          this.updatingMember.set(null);
+        },
+        error: () => {
+          this.updatingMember.set(null);
+        },
+      });
+  }
+
   onRemoveMember(member: MemberWithDetails): void {
-    if (!confirm(`Remove ${member.display_name || member.email} from this workspace?`)) {
+    if (
+      !confirm(
+        `Remove ${member.display_name || member.email} from this workspace?`,
+      )
+    ) {
       return;
     }
 

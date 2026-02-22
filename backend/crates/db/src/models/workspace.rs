@@ -3,12 +3,15 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
+use crate::models::common::{WorkspaceMemberRole, WorkspaceVisibility};
+
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
 pub struct Workspace {
     pub id: Uuid,
     pub name: String,
     pub description: Option<String>,
     pub logo_url: Option<String>,
+    pub visibility: WorkspaceVisibility,
     pub tenant_id: Uuid,
     pub created_by_id: Uuid,
     pub deleted_at: Option<DateTime<Utc>>,
@@ -21,6 +24,7 @@ pub struct WorkspaceMember {
     pub id: Uuid,
     pub workspace_id: Uuid,
     pub user_id: Uuid,
+    pub role: WorkspaceMemberRole,
     pub joined_at: DateTime<Utc>,
 }
 
@@ -36,6 +40,7 @@ mod tests {
             name: "My Workspace".to_string(),
             description: Some("A description".to_string()),
             logo_url: None,
+            visibility: WorkspaceVisibility::Closed,
             tenant_id: Uuid::new_v4(),
             created_by_id: Uuid::new_v4(),
             deleted_at: None,
@@ -60,6 +65,7 @@ mod tests {
             name: "Deleted WS".to_string(),
             description: None,
             logo_url: None,
+            visibility: WorkspaceVisibility::Closed,
             tenant_id: Uuid::new_v4(),
             created_by_id: Uuid::new_v4(),
             deleted_at: Some(now),
@@ -79,6 +85,7 @@ mod tests {
             name: "Clone Test".to_string(),
             description: None,
             logo_url: None,
+            visibility: WorkspaceVisibility::Closed,
             tenant_id: Uuid::new_v4(),
             created_by_id: Uuid::new_v4(),
             deleted_at: None,
@@ -97,6 +104,7 @@ mod tests {
             id: Uuid::new_v4(),
             workspace_id: Uuid::new_v4(),
             user_id: Uuid::new_v4(),
+            role: WorkspaceMemberRole::Member,
             joined_at: now,
         };
         let json = serde_json::to_string(&member).unwrap();
@@ -114,6 +122,7 @@ mod tests {
             name: "Field Names".to_string(),
             description: None,
             logo_url: None,
+            visibility: WorkspaceVisibility::Closed,
             tenant_id: Uuid::new_v4(),
             created_by_id: Uuid::new_v4(),
             deleted_at: None,

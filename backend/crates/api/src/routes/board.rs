@@ -47,6 +47,11 @@ pub struct AddBoardMemberRequest {
     pub role: BoardMemberRole,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateBoardMemberRoleRequest {
+    pub role: BoardMemberRole,
+}
+
 #[derive(Debug, Serialize)]
 pub struct BoardResponse {
     pub id: Uuid,
@@ -499,6 +504,60 @@ async fn remove_board_member(
     }
 }
 
+/// PATCH /api/boards/:id/members/:user_id
+///
+/// Update a board member's role.
+/// Requires Editor role on the board.
+async fn update_board_member_role(
+    State(state): State<AppState>,
+    auth: AuthUserExtractor,
+    Path((id, user_id)): Path<(Uuid, Uuid)>,
+    Json(payload): Json<UpdateBoardMemberRoleRequest>,
+) -> Result<Json<BoardMemberResponse>> {
+    // Check board membership with editor role
+    let role = boards::get_board_member_role(&state.db, id, auth.0.user_id).await?;
+    match role {
+        Some(BoardMemberRole::Editor) => {}
+        Some(BoardMemberRole::Viewer) => {
+            return Err(AppError::Forbidden("Editor role required".into()));
+        }
+        None => {
+            return Err(AppError::NotFound(
+                "Board not found or access denied".into(),
+            ));
+        }
+    }
+
+    // Cannot change your own role
+    if auth.0.user_id == user_id {
+        return Err(AppError::BadRequest("Cannot change your own role".into()));
+    }
+
+    let updated = boards::update_board_member_role(&state.db, id, user_id, payload.role).await?;
+
+    if !updated {
+        return Err(AppError::NotFound("Board member not found".into()));
+    }
+
+    // Fetch the updated member info
+    let members = boards::list_board_members(&state.db, id).await?;
+    let member = members
+        .into_iter()
+        .find(|m| m.user_id == user_id)
+        .ok_or_else(|| AppError::NotFound("Board member not found".into()))?;
+
+    Ok(Json(BoardMemberResponse {
+        id: member.id,
+        board_id: member.board_id,
+        user_id: member.user_id,
+        role: member.role,
+        joined_at: member.joined_at,
+        name: member.name,
+        email: member.email,
+        avatar_url: member.avatar_url,
+    }))
+}
+
 /// GET /api/board-templates
 ///
 /// List available board templates.
@@ -654,7 +713,10 @@ pub fn board_router(state: AppState) -> Router<AppState> {
             "/{id}/members",
             get(list_board_members).post(add_board_member),
         )
-        .route("/{id}/members/{user_id}", delete(remove_board_member))
+        .route(
+            "/{id}/members/{user_id}",
+            delete(remove_board_member).patch(update_board_member_role),
+        )
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
