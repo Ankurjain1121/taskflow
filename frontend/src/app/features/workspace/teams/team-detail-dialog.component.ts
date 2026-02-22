@@ -112,7 +112,8 @@ const PRESET_COLORS = [
             @for (color of presetColors; track color) {
               <button
                 type="button"
-                class="w-8 h-8 rounded-full border-2 transition-all cursor-pointer"
+                [attr.aria-label]="'Select color ' + color"
+                class="w-8 h-8 rounded-full border-2 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 [style.background-color]="color"
                 [style.border-color]="
                   selectedColor() === color
@@ -186,6 +187,7 @@ const PRESET_COLORS = [
                   </div>
                   <button
                     type="button"
+                    [attr.aria-label]="'Remove ' + member.name"
                     class="p-1 rounded hover:bg-[var(--card)] transition-colors cursor-pointer"
                     (click)="removeMember(member.user_id)"
                   >
@@ -258,9 +260,9 @@ export class TeamDetailDialogComponent {
   presetColors = PRESET_COLORS;
   selectedColor = signal('#6366F1');
   memberSuggestions = signal<MemberSearchResult[]>([]);
-  selectedMembers = signal<
-    { user_id: string; name: string; email: string }[]
-  >([]);
+  selectedMembers = signal<{ user_id: string; name: string; email: string }[]>(
+    [],
+  );
   isSubmitting = signal(false);
 
   form: FormGroup = this.fb.group({
@@ -322,9 +324,7 @@ export class TeamDetailDialogComponent {
     const member = event.value;
     if (!member) return;
 
-    const already = this.selectedMembers().some(
-      (m) => m.user_id === member.id,
-    );
+    const already = this.selectedMembers().some((m) => m.user_id === member.id);
     if (!already) {
       this.selectedMembers.update((list) => [
         ...list,
@@ -417,9 +417,7 @@ export class TeamDetailDialogComponent {
       (m) => !existingIds.has(m.user_id),
     );
     // Remove old members
-    const toRemove = existingMembers.filter(
-      (m) => !selectedIds.has(m.user_id),
-    );
+    const toRemove = existingMembers.filter((m) => !selectedIds.has(m.user_id));
 
     const promises: Promise<void>[] = [];
 

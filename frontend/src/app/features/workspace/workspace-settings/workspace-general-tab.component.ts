@@ -13,6 +13,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { switchMap, map, finalize } from 'rxjs';
 import { Workspace } from '../../../core/services/workspace.service';
 import { WorkspaceService } from '../../../core/services/workspace.service';
 import { UploadService } from '../../../core/services/upload.service';
@@ -294,6 +295,12 @@ export class WorkspaceGeneralTabComponent {
     const file = input.files?.[0];
     if (!file) return;
 
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please select a PNG, JPG, or WebP image');
+      return;
+    }
+
     if (file.size > 2 * 1024 * 1024) {
       alert('File size must be under 2MB');
       return;
@@ -308,38 +315,27 @@ export class WorkspaceGeneralTabComponent {
     this.uploadingLogo.set(true);
     this.uploadService
       .getLogoUploadUrl(this.workspaceId(), file.name, file.size, file.type)
-      .subscribe({
-        next: (presigned) => {
+      .pipe(
+        switchMap((presigned) =>
           this.uploadService
             .uploadFileToPresignedUrl(presigned.upload_url, file)
-            .subscribe({
-              next: () => {
-                this.uploadService
-                  .confirmLogoUpload(this.workspaceId(), presigned.storage_key)
-                  .subscribe({
-                    next: (result) => {
-                      const ws = this.workspace();
-                      if (ws) {
-                        this.workspaceSaved.emit({
-                          ...ws,
-                          logo_url: result.logo_url,
-                        });
-                      }
-                      this.logoPreview.set(null);
-                      this.uploadingLogo.set(false);
-                    },
-                    error: () => {
-                      this.uploadingLogo.set(false);
-                    },
-                  });
-              },
-              error: () => {
-                this.uploadingLogo.set(false);
-              },
-            });
-        },
-        error: () => {
-          this.uploadingLogo.set(false);
+            .pipe(map(() => presigned)),
+        ),
+        switchMap((presigned) =>
+          this.uploadService.confirmLogoUpload(
+            this.workspaceId(),
+            presigned.storage_key,
+          ),
+        ),
+        finalize(() => this.uploadingLogo.set(false)),
+      )
+      .subscribe({
+        next: (result) => {
+          const ws = this.workspace();
+          if (ws) {
+            this.workspaceSaved.emit({ ...ws, logo_url: result.logo_url });
+          }
+          this.logoPreview.set(null);
         },
       });
 
