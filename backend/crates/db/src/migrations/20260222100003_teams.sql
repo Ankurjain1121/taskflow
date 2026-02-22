@@ -22,7 +22,3 @@ CREATE TABLE IF NOT EXISTS team_members (
 CREATE INDEX IF NOT EXISTS idx_teams_workspace_id ON teams(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_team_members_team_id ON team_members(team_id);
 CREATE INDEX IF NOT EXISTS idx_team_members_user_id ON team_members(user_id);
-
-CREATE TRIGGER update_teams_updated_at
-    BEFORE UPDATE ON teams
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
