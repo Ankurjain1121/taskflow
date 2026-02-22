@@ -20,6 +20,7 @@ import {
   CreateBoardDialogComponent,
   CreateBoardDialogResult,
 } from '../../shared/components/dialogs/create-board-dialog.component';
+import { WorkspaceSettingsDialogService } from '../../core/services/workspace-settings-dialog.service';
 
 @Component({
   selector: 'app-workspace',
@@ -71,13 +72,13 @@ import {
                 <i class="pi pi-users"></i>
                 Team Overview
               </a>
-              <a
-                [routerLink]="['/workspace', workspaceId(), 'settings']"
+              <button
+                (click)="openSettings()"
                 class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--muted-foreground)] bg-[var(--card)] border border-[var(--border)] rounded-md hover:bg-[var(--muted)]"
               >
                 <i class="pi pi-cog"></i>
                 Settings
-              </a>
+              </button>
             </div>
           </div>
 
@@ -259,6 +260,7 @@ export class WorkspaceComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private workspaceService = inject(WorkspaceService);
   private boardService = inject(BoardService);
+  private settingsDialog = inject(WorkspaceSettingsDialogService);
 
   workspaceId = signal<string>('');
   workspace = signal<Workspace | null>(null);
@@ -320,6 +322,10 @@ export class WorkspaceComponent implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  openSettings(): void {
+    this.settingsDialog.open(this.workspaceId());
   }
 
   openCreateBoardDialog(): void {

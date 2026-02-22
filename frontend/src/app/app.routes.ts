@@ -148,10 +148,8 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
-        loadComponent: () =>
-          import('./features/workspace/workspace-settings/workspace-settings.component').then(
-            (m) => m.WorkspaceSettingsComponent,
-          ),
+        redirectTo: '',
+        pathMatch: 'full' as const,
       },
       {
         path: 'team/balance',
