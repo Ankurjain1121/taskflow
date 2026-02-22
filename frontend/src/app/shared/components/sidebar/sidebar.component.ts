@@ -176,8 +176,19 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
               class="hidden md:flex items-center justify-center w-7 h-7 rounded-md hover:bg-[var(--sidebar-surface-hover)] text-[var(--sidebar-text-secondary)] transition-colors ml-auto"
               [title]="isCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
             >
-              <svg class="w-4 h-4 transition-transform duration-200" [class.rotate-180]="isCollapsed()" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+              <svg
+                class="w-4 h-4 transition-transform duration-200"
+                [class.rotate-180]="isCollapsed()"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+                />
               </svg>
             </button>
           </div>
@@ -360,7 +371,7 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
             </div>
           }
 
-          <!-- New Workspace Button -->
+          <!-- New Workspace & Discover -->
           @if (canCreateWorkspace()) {
             @if (!collapsed()) {
               <button
@@ -373,6 +384,15 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
                 <i class="pi pi-plus text-xs"></i>
                 <span>New Workspace</span>
               </button>
+              <a
+                routerLink="/discover"
+                routerLinkActive="active"
+                class="nav-item flex items-center gap-2 px-3 py-2 rounded-md text-sm"
+                style="color: var(--sidebar-text-muted)"
+              >
+                <i class="pi pi-compass text-xs"></i>
+                <span class="sidebar-text">Discover</span>
+              </a>
             } @else {
               <button
                 (click)="onCreateWorkspace()"
@@ -382,6 +402,15 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
               >
                 <i class="pi pi-plus sidebar-icon-color text-sm"></i>
               </button>
+              <a
+                routerLink="/discover"
+                routerLinkActive="active"
+                class="collapsed-icon-btn"
+                pTooltip="Discover Workspaces"
+                tooltipPosition="right"
+              >
+                <i class="pi pi-compass sidebar-icon-color text-sm"></i>
+              </a>
             }
           }
         </div>
@@ -609,7 +638,7 @@ export class SidebarComponent implements OnInit {
   ];
 
   toggleCollapseLocal(): void {
-    this.isCollapsed.update(v => !v);
+    this.isCollapsed.update((v) => !v);
     localStorage.setItem('sidebar-collapsed', String(this.isCollapsed()));
   }
 
