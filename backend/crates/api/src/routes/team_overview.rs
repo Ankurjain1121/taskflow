@@ -87,8 +87,9 @@ async fn get_overloaded_members_handler(
         return Err(AppError::Forbidden("Not a workspace member".into()));
     }
 
+    let threshold = query.threshold.max(1);
     let members =
-        get_overloaded_members(&state.db, workspace_id, auth.tenant_id, query.threshold).await?;
+        get_overloaded_members(&state.db, workspace_id, auth.tenant_id, threshold).await?;
 
     Ok(Json(members))
 }
@@ -137,6 +138,12 @@ async fn reassign_tasks_handler(
         return Err(AppError::BadRequest("No task IDs provided".into()));
     }
 
+    if payload.task_ids.len() > 100 {
+        return Err(AppError::BadRequest(
+            "Cannot reassign more than 100 tasks at once".into(),
+        ));
+    }
+
     if payload.from_user_id == payload.to_user_id {
         return Err(AppError::BadRequest(
             "Source and destination users must be different".into(),
@@ -160,6 +167,7 @@ async fn reassign_tasks_handler(
 
     let reassigned_count = reassign_tasks(
         &state.db,
+        workspace_id,
         &payload.task_ids,
         payload.from_user_id,
         payload.to_user_id,

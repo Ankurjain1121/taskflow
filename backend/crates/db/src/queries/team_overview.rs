@@ -232,9 +232,11 @@ pub async fn get_member_active_tasks(
     .await
 }
 
-/// Reassign tasks from one user to another, returning the number of tasks updated
+/// Reassign tasks from one user to another, scoped to a workspace.
+/// Only tasks belonging to boards in the given workspace will be reassigned.
 pub async fn reassign_tasks(
     pool: &PgPool,
+    workspace_id: Uuid,
     task_ids: &[Uuid],
     from_user_id: Uuid,
     to_user_id: Uuid,
@@ -247,15 +249,22 @@ pub async fn reassign_tasks(
     let mut count = 0usize;
 
     for task_id in task_ids {
-        // Remove old assignee
+        // Remove old assignee -- only if task belongs to this workspace
         let removed = sqlx::query(
             r#"
-            DELETE FROM task_assignees
-            WHERE task_id = $1 AND user_id = $2
+            DELETE FROM task_assignees ta
+            USING tasks t
+            INNER JOIN boards b ON b.id = t.board_id
+            WHERE ta.task_id = $1
+              AND ta.user_id = $2
+              AND t.id = ta.task_id
+              AND b.workspace_id = $3
+              AND t.deleted_at IS NULL
             "#,
         )
         .bind(task_id)
         .bind(from_user_id)
+        .bind(workspace_id)
         .execute(&mut *tx)
         .await?;
 
