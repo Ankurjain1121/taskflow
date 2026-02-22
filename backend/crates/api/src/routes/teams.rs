@@ -134,6 +134,14 @@ async fn create_team(
     }
 
     let color = payload.color.as_deref().unwrap_or("#6366F1");
+    if color.len() != 7
+        || !color.starts_with('#')
+        || !color[1..].chars().all(|c| c.is_ascii_hexdigit())
+    {
+        return Err(AppError::BadRequest(
+            "Invalid color format. Use #RRGGBB".into(),
+        ));
+    }
 
     let team = teams::create_team(
         &state.db,
@@ -173,6 +181,11 @@ async fn get_team(
     Path(id): Path<Uuid>,
 ) -> Result<Json<TeamDetailResponse>> {
     let team = teams::get_team_by_id(&state.db, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Team not found".into()))?;
+
+    // Verify workspace belongs to caller's tenant
+    workspaces::get_workspace_by_id(&state.db, team.workspace_id, auth.0.tenant_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Team not found".into()))?;
 
@@ -222,6 +235,11 @@ async fn update_team(
         .await?
         .ok_or_else(|| AppError::NotFound("Team not found".into()))?;
 
+    // Verify workspace belongs to caller's tenant
+    workspaces::get_workspace_by_id(&state.db, team.workspace_id, auth.0.tenant_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Team not found".into()))?;
+
     let is_member =
         workspaces::is_workspace_member(&state.db, team.workspace_id, auth.0.user_id).await?;
     if !is_member {
@@ -234,6 +252,14 @@ async fn update_team(
     }
 
     let color = payload.color.as_deref().unwrap_or(&team.color);
+    if color.len() != 7
+        || !color.starts_with('#')
+        || !color[1..].chars().all(|c| c.is_ascii_hexdigit())
+    {
+        return Err(AppError::BadRequest(
+            "Invalid color format. Use #RRGGBB".into(),
+        ));
+    }
 
     let updated = teams::update_team(&state.db, id, name, payload.description.as_deref(), color)
         .await
@@ -285,6 +311,11 @@ async fn delete_team(
         .await?
         .ok_or_else(|| AppError::NotFound("Team not found".into()))?;
 
+    // Verify workspace belongs to caller's tenant
+    workspaces::get_workspace_by_id(&state.db, team.workspace_id, auth.0.tenant_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Team not found".into()))?;
+
     let is_member =
         workspaces::is_workspace_member(&state.db, team.workspace_id, auth.0.user_id).await?;
     if !is_member {
@@ -310,6 +341,11 @@ async fn add_team_member(
     Json(payload): Json<AddTeamMemberRequest>,
 ) -> Result<Json<MessageResponse>> {
     let team = teams::get_team_by_id(&state.db, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Team not found".into()))?;
+
+    // Verify workspace belongs to caller's tenant
+    workspaces::get_workspace_by_id(&state.db, team.workspace_id, auth.0.tenant_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Team not found".into()))?;
 
@@ -342,6 +378,11 @@ async fn remove_team_member(
     Path((id, user_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<MessageResponse>> {
     let team = teams::get_team_by_id(&state.db, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Team not found".into()))?;
+
+    // Verify workspace belongs to caller's tenant
+    workspaces::get_workspace_by_id(&state.db, team.workspace_id, auth.0.tenant_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Team not found".into()))?;
 

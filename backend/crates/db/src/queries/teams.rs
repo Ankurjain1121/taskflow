@@ -163,7 +163,7 @@ pub async fn add_team_member(
         r#"
         INSERT INTO team_members (team_id, user_id)
         VALUES ($1, $2)
-        ON CONFLICT (team_id, user_id) DO NOTHING
+        ON CONFLICT (team_id, user_id) DO UPDATE SET added_at = team_members.added_at
         RETURNING id, team_id, user_id, added_at
         "#,
     )

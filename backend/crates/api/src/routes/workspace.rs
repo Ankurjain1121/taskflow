@@ -193,13 +193,14 @@ async fn create_workspace(
     auth: AuthUserExtractor,
     Json(payload): Json<CreateWorkspaceRequest>,
 ) -> Result<Json<WorkspaceResponse>> {
-    if payload.name.is_empty() {
+    let name = payload.name.trim();
+    if name.is_empty() {
         return Err(AppError::BadRequest("Workspace name is required".into()));
     }
 
     let workspace = workspaces::create_workspace(
         &state.db,
-        &payload.name,
+        name,
         payload.description.as_deref(),
         auth.0.tenant_id,
         auth.0.user_id,
@@ -234,12 +235,13 @@ async fn update_workspace(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
-    if payload.name.is_empty() {
+    let name = payload.name.trim();
+    if name.is_empty() {
         return Err(AppError::BadRequest("Workspace name is required".into()));
     }
 
     let workspace =
-        workspaces::update_workspace(&state.db, id, &payload.name, payload.description.as_deref())
+        workspaces::update_workspace(&state.db, id, name, payload.description.as_deref())
             .await?
             .ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
 
@@ -305,7 +307,8 @@ async fn search_members(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
-    let users = workspaces::search_workspace_members(&state.db, id, &query.q, query.limit).await?;
+    let limit = query.limit.clamp(1, 50);
+    let users = workspaces::search_workspace_members(&state.db, id, &query.q, limit).await?;
 
     let results: Vec<UserSearchResult> = users
         .into_iter()
@@ -356,6 +359,14 @@ async fn remove_member(
     let is_member = workspaces::is_workspace_member(&state.db, id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
+    }
+
+    // Prevent removing the workspace owner
+    let target_role = workspaces::get_workspace_member_role(&state.db, id, user_id).await?;
+    if matches!(target_role, Some(WorkspaceMemberRole::Owner)) {
+        return Err(AppError::BadRequest(
+            "Cannot remove the workspace owner".into(),
+        ));
     }
 
     let removed = workspaces::remove_workspace_member(&state.db, id, user_id).await?;
@@ -496,12 +507,12 @@ async fn join_workspace(
         ));
     }
 
-    // Check workspace is open
-    let visibility = workspaces::get_workspace_visibility(&state.db, id)
+    // Verify workspace belongs to user's tenant and is open
+    let workspace = workspaces::get_workspace_by_id(&state.db, id, auth.0.tenant_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
 
-    if visibility != WorkspaceVisibility::Open {
+    if workspace.workspace.visibility != WorkspaceVisibility::Open {
         return Err(AppError::Forbidden(
             "This workspace is not open for joining".into(),
         ));

@@ -248,13 +248,14 @@ async fn create_board(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
-    if payload.name.is_empty() {
+    let name = payload.name.trim();
+    if name.is_empty() {
         return Err(AppError::BadRequest("Board name is required".into()));
     }
 
     let board = boards::create_board(
         &state.db,
-        &payload.name,
+        name,
         payload.description.as_deref(),
         workspace_id,
         auth.0.tenant_id,
@@ -353,11 +354,12 @@ async fn update_board(
         }
     }
 
-    if payload.name.is_empty() {
+    let name = payload.name.trim();
+    if name.is_empty() {
         return Err(AppError::BadRequest("Board name is required".into()));
     }
 
-    let board = boards::update_board(&state.db, id, &payload.name, payload.description.as_deref())
+    let board = boards::update_board(&state.db, id, name, payload.description.as_deref())
         .await?
         .ok_or_else(|| AppError::NotFound("Board not found".into()))?;
 

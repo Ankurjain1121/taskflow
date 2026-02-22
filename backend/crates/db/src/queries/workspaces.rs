@@ -207,7 +207,11 @@ pub async fn search_workspace_members(
     query: &str,
     limit: i64,
 ) -> Result<Vec<UserPublic>, sqlx::Error> {
-    let pattern = format!("%{}%", query);
+    let escaped = query
+        .replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_");
+    let pattern = format!("%{}%", escaped);
     sqlx::query_as::<_, UserPublic>(
         r#"
         SELECT u.id, u.email, u.name, u.avatar_url,
@@ -238,7 +242,7 @@ pub async fn add_workspace_member(
         r#"
         INSERT INTO workspace_members (workspace_id, user_id, role)
         VALUES ($1, $2, 'member')
-        ON CONFLICT (workspace_id, user_id) DO NOTHING
+        ON CONFLICT (workspace_id, user_id) DO UPDATE SET joined_at = workspace_members.joined_at
         RETURNING id, workspace_id, user_id, role, joined_at
         "#,
     )
@@ -391,7 +395,7 @@ pub async fn join_open_workspace(
         r#"
         INSERT INTO workspace_members (workspace_id, user_id, role)
         VALUES ($1, $2, 'member')
-        ON CONFLICT (workspace_id, user_id) DO NOTHING
+        ON CONFLICT (workspace_id, user_id) DO UPDATE SET joined_at = workspace_members.joined_at
         RETURNING id, workspace_id, user_id, role, joined_at
         "#,
     )
