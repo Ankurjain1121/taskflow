@@ -21,60 +21,66 @@ import {
   standalone: true,
   imports: [CommonModule, RouterModule, CreateBoardDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: [`
-    :host { display: block; }
+  styles: [
+    `
+      :host {
+        display: block;
+      }
 
-    .workspace-header-btn {
-      transition: background var(--duration-fast) var(--ease-standard);
-    }
-    .workspace-header-btn:hover {
-      background: var(--sidebar-surface-hover);
-    }
+      .workspace-header-btn {
+        transition: background var(--duration-fast) var(--ease-standard);
+      }
+      .workspace-header-btn:hover {
+        background: var(--sidebar-surface-hover);
+      }
 
-    .workspace-icon {
-      transition: transform var(--duration-fast) var(--ease-standard);
-    }
-    .workspace-header-btn:hover .workspace-icon {
-      transform: scale(1.05);
-    }
+      .workspace-icon {
+        transition: transform var(--duration-fast) var(--ease-standard);
+      }
+      .workspace-header-btn:hover .workspace-icon {
+        transform: scale(1.05);
+      }
 
-    .board-link {
-      transition: background var(--duration-fast) var(--ease-standard),
-                  color var(--duration-fast) var(--ease-standard);
-      color: var(--sidebar-text-secondary);
-    }
-    .board-link:hover {
-      background: var(--sidebar-surface-hover);
-      color: var(--sidebar-text-primary);
-    }
+      .board-link {
+        transition:
+          background var(--duration-fast) var(--ease-standard),
+          color var(--duration-fast) var(--ease-standard);
+        color: var(--sidebar-text-secondary);
+      }
+      .board-link:hover {
+        background: var(--sidebar-surface-hover);
+        color: var(--sidebar-text-primary);
+      }
 
-    .board-link-active {
-      background: var(--sidebar-surface-active) !important;
-      color: var(--sidebar-text-primary) !important;
-    }
+      .board-link-active {
+        background: var(--sidebar-surface-active) !important;
+        color: var(--sidebar-text-primary) !important;
+      }
 
-    /* Tree-view vertical guide line */
-    .board-tree {
-      position: relative;
-    }
-    .board-tree::before {
-      content: '';
-      position: absolute;
-      left: 1.125rem;
-      top: 0;
-      bottom: 0.5rem;
-      width: 1px;
-      background: var(--sidebar-border);
-    }
+      /* Tree-view vertical guide line */
+      .board-tree {
+        position: relative;
+      }
+      .board-tree::before {
+        content: '';
+        position: absolute;
+        left: 1.125rem;
+        top: 0;
+        bottom: 0.5rem;
+        width: 1px;
+        background: var(--sidebar-border);
+      }
 
-    .add-board-btn {
-      transition: opacity var(--duration-fast) var(--ease-standard),
-                  background var(--duration-fast) var(--ease-standard);
-    }
-    .add-board-btn:hover {
-      background: var(--sidebar-surface-hover);
-    }
-  `],
+      .add-board-btn {
+        transition:
+          opacity var(--duration-fast) var(--ease-standard),
+          background var(--duration-fast) var(--ease-standard);
+      }
+      .add-board-btn:hover {
+        background: var(--sidebar-surface-hover);
+      }
+    `,
+  ],
   template: `
     <div class="mb-0.5">
       <!-- Workspace Header -->
@@ -86,7 +92,8 @@ import {
         <!-- Chevron -->
         <svg
           [class]="
-            'w-3.5 h-3.5 transition-transform duration-200 ' + (expanded() ? 'rotate-90' : '')
+            'w-3.5 h-3.5 transition-transform duration-200 ' +
+            (expanded() ? 'rotate-90' : '')
           "
           style="color: var(--sidebar-text-muted)"
           fill="none"
@@ -141,26 +148,63 @@ import {
       @if (expanded()) {
         <div class="board-tree ml-4 mt-0.5 space-y-0.5">
           @if (loading()) {
-            <div class="px-3 py-1.5 text-sm" style="color: var(--sidebar-text-muted)">Loading...</div>
+            <div
+              class="px-3 py-1.5 text-sm"
+              style="color: var(--sidebar-text-muted)"
+            >
+              Loading...
+            </div>
           } @else if (boards().length === 0) {
-            <div class="px-3 py-1.5 text-xs italic" style="color: var(--sidebar-text-muted)">No boards</div>
+            <div
+              class="px-3 py-1.5 text-xs italic"
+              style="color: var(--sidebar-text-muted)"
+            >
+              No boards
+            </div>
           } @else {
             @for (board of boards(); track board.id) {
               <a
-                [routerLink]="[
-                  '/workspace',
-                  workspace().id,
-                  'board',
-                  board.id
-                ]"
+                [routerLink]="['/workspace', workspace().id, 'board', board.id]"
                 routerLinkActive="board-link-active"
                 class="board-link flex items-center gap-2 px-3 py-1.5 text-sm rounded-md"
               >
-                <i class="pi pi-table text-xs" style="color: var(--sidebar-text-muted)"></i>
+                <i
+                  class="pi pi-table text-xs"
+                  style="color: var(--sidebar-text-muted)"
+                ></i>
                 <span class="truncate">{{ board.name }}</span>
               </a>
             }
           }
+
+          <!-- Workspace quick links -->
+          <div
+            class="mt-1 pt-1"
+            style="border-top: 1px solid var(--sidebar-border)"
+          >
+            <a
+              [routerLink]="['/workspace', workspace().id, 'team']"
+              routerLinkActive="board-link-active"
+              class="board-link flex items-center gap-2 px-3 py-1 text-xs rounded-md"
+            >
+              <i
+                class="pi pi-chart-bar text-[10px]"
+                style="color: var(--sidebar-text-muted)"
+              ></i>
+              <span>Team Overview</span>
+            </a>
+            <a
+              [routerLink]="['/workspace', workspace().id, 'settings']"
+              routerLinkActive="board-link-active"
+              class="board-link flex items-center gap-2 px-3 py-1 text-xs rounded-md"
+            >
+              <i
+                class="pi pi-cog text-[10px]"
+                style="color: var(--sidebar-text-muted)"
+              ></i>
+              <span>Settings</span>
+            </a>
+          </div>
         </div>
       }
     </div>
@@ -186,8 +230,14 @@ export class WorkspaceItemComponent implements OnInit {
   showCreateBoardDialog = signal(false);
 
   private readonly colors = [
-    '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e',
-    '#f97316', '#eab308', '#22c55e', '#06b6d4',
+    '#6366f1',
+    '#8b5cf6',
+    '#ec4899',
+    '#f43f5e',
+    '#f97316',
+    '#eab308',
+    '#22c55e',
+    '#06b6d4',
   ];
 
   ngOnInit(): void {
