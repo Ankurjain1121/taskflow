@@ -96,4 +96,49 @@ mod tests {
         let passes_filter = !client_id.is_empty() && client_id.len() <= 128;
         assert!(passes_filter, "Normal client request ID should pass");
     }
+
+    #[test]
+    fn test_uuid_v4_format_is_36_chars() {
+        let id = Uuid::new_v4().to_string();
+        assert_eq!(id.len(), 36, "UUID v4 string should be 36 characters");
+    }
+
+    #[test]
+    fn test_uuid_v4_passes_length_filter() {
+        let id = Uuid::new_v4().to_string();
+        let passes_filter = !id.is_empty() && id.len() <= 128;
+        assert!(
+            passes_filter,
+            "UUID v4 should pass the 128-char length filter"
+        );
+    }
+
+    #[test]
+    fn test_single_char_passes_filter() {
+        let id = "x";
+        let passes_filter = !id.is_empty() && id.len() <= 128;
+        assert!(passes_filter, "Single character should pass filter");
+    }
+
+    #[test]
+    fn test_string_at_127_chars_passes_filter() {
+        let exactly_127 = "a".repeat(127);
+        let passes_filter = !exactly_127.is_empty() && exactly_127.len() <= 128;
+        assert!(passes_filter, "String of 127 chars should pass");
+    }
+
+    #[test]
+    fn test_request_id_header_value_can_be_constructed() {
+        // Verify various valid request IDs can be turned into HTTP header values
+        let test_ids = [
+            "abc-123",
+            "req_001",
+            "550e8400-e29b-41d4-a716-446655440000",
+            "my.request.id",
+        ];
+        for id in test_ids {
+            let result = HeaderValue::from_str(id);
+            assert!(result.is_ok(), "ID '{}' should be a valid header value", id);
+        }
+    }
 }
