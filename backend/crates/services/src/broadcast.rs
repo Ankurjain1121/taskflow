@@ -259,10 +259,103 @@ mod tests {
             "event": event,
             "data": data
         });
-        let message_str = serde_json::to_string(&message).unwrap();
-        let parsed: serde_json::Value = serde_json::from_str(&message_str).unwrap();
+        let message_str = serde_json::to_string(&message).expect("serialize message");
+        let parsed: serde_json::Value = serde_json::from_str(&message_str).expect("parse message");
         assert_eq!(parsed["event"], "task:created");
         assert_eq!(parsed["data"]["id"], "abc");
         assert_eq!(parsed["data"]["title"], "Test");
+    }
+
+    #[test]
+    fn test_broadcast_message_with_complex_data() {
+        let data = json!({
+            "task_id": "550e8400-e29b-41d4-a716-446655440000",
+            "title": "Important Task",
+            "column_id": "660e8400-e29b-41d4-a716-446655440000",
+            "priority": "high",
+            "assignees": ["user1", "user2"],
+            "labels": [{"id": "l1", "name": "Bug", "color": "#ff0000"}]
+        });
+        let message = json!({
+            "event": events::TASK_UPDATED,
+            "data": data
+        });
+        let message_str = serde_json::to_string(&message).expect("serialize complex message");
+        let parsed: serde_json::Value = serde_json::from_str(&message_str).expect("parse message");
+        assert_eq!(parsed["event"], "task:updated");
+        assert_eq!(parsed["data"]["priority"], "high");
+        assert_eq!(
+            parsed["data"]["assignees"].as_array().expect("array").len(),
+            2
+        );
+    }
+
+    #[test]
+    fn test_broadcast_message_with_null_data() {
+        let message = json!({
+            "event": events::TASK_DELETED,
+            "data": null
+        });
+        let message_str = serde_json::to_string(&message).expect("serialize null data message");
+        let parsed: serde_json::Value = serde_json::from_str(&message_str).expect("parse message");
+        assert_eq!(parsed["event"], "task:deleted");
+        assert!(parsed["data"].is_null());
+    }
+
+    #[test]
+    fn test_broadcast_message_roundtrip_preserves_types() {
+        let data = json!({
+            "count": 42,
+            "active": true,
+            "ratio": 1.5,
+            "name": "test"
+        });
+        let message = json!({
+            "event": events::TASK_UPDATED,
+            "data": data
+        });
+        let serialized = serde_json::to_string(&message).expect("serialize");
+        let parsed: serde_json::Value = serde_json::from_str(&serialized).expect("parse");
+        assert!(parsed["data"]["count"].is_number());
+        assert!(parsed["data"]["active"].is_boolean());
+        assert!(parsed["data"]["ratio"].is_f64());
+        assert!(parsed["data"]["name"].is_string());
+    }
+
+    #[test]
+    fn test_event_names_no_duplicates() {
+        let all_events = [
+            events::TASK_CREATED,
+            events::TASK_UPDATED,
+            events::TASK_MOVED,
+            events::TASK_DELETED,
+            events::TASK_ASSIGNED,
+            events::TASK_UNASSIGNED,
+            events::COMMENT_CREATED,
+            events::COLUMN_CREATED,
+            events::COLUMN_UPDATED,
+            events::COLUMN_DELETED,
+            events::WORKLOAD_CHANGED,
+        ];
+        let mut seen = std::collections::HashSet::new();
+        for event in all_events {
+            assert!(
+                seen.insert(event),
+                "Duplicate event name found: '{}'",
+                event
+            );
+        }
+    }
+
+    #[test]
+    fn test_broadcast_error_from_redis_error() {
+        // Verify the From<redis::RedisError> impl exists and produces the Redis variant
+        let redis_err = redis::RedisError::from(std::io::Error::new(
+            std::io::ErrorKind::ConnectionRefused,
+            "connection refused",
+        ));
+        let err: BroadcastError = BroadcastError::Redis(redis_err);
+        let msg = format!("{}", err);
+        assert!(msg.contains("Redis error"), "got: {}", msg);
     }
 }

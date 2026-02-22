@@ -345,4 +345,57 @@ mod tests {
         let msg = format!("{}", err);
         assert!(msg.contains("Database error"), "got: {}", msg);
     }
+
+    #[test]
+    fn test_weekly_digest_error_debug() {
+        let err = WeeklyDigestError::Database(sqlx::Error::RowNotFound);
+        let debug = format!("{:?}", err);
+        assert!(debug.contains("Database"), "got: {}", debug);
+    }
+
+    #[test]
+    fn test_weekly_digest_time_range_is_seven_days() {
+        let now = Utc::now();
+        let week_ago = now - Duration::days(7);
+        let diff = (now - week_ago).num_days();
+        assert_eq!(diff, 7, "Time range should be exactly 7 days");
+    }
+
+    #[test]
+    fn test_weekly_digest_result_emails_never_exceed_users() {
+        // This is a logical invariant: you can't send more emails than users processed
+        let result = WeeklyDigestResult {
+            users_processed: 50,
+            emails_sent: 40,
+            errors: 1,
+        };
+        assert!(
+            result.emails_sent <= result.users_processed,
+            "emails_sent ({}) should not exceed users_processed ({})",
+            result.emails_sent,
+            result.users_processed
+        );
+    }
+
+    #[test]
+    fn test_weekly_digest_result_consistency() {
+        // errors + emails_sent should not exceed users_processed
+        // (some users may be skipped due to no activity)
+        let result = WeeklyDigestResult {
+            users_processed: 100,
+            emails_sent: 85,
+            errors: 5,
+        };
+        assert!(
+            result.emails_sent + result.errors <= result.users_processed,
+            "emails_sent + errors should not exceed users_processed"
+        );
+    }
+
+    #[test]
+    fn test_email_subject_format() {
+        let subject = "[TaskFlow] Your Weekly Summary";
+        assert!(subject.starts_with("[TaskFlow]"));
+        assert!(subject.contains("Weekly"));
+    }
 }

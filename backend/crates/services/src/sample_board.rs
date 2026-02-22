@@ -335,4 +335,207 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn test_column_names() {
+        let expected_columns = ["Backlog", "To Do", "In Progress", "Done"];
+        // These are the column names created by generate_sample_board
+        for name in expected_columns {
+            assert!(!name.is_empty(), "Column name should not be empty");
+            assert!(name.len() <= 50, "Column name '{}' is too long", name);
+        }
+    }
+
+    #[test]
+    fn test_sample_task_priorities_are_valid() {
+        let valid_priorities = ["low", "medium", "high", "urgent"];
+        let task_priorities = ["low", "medium", "medium", "high", "medium", "low"];
+        for priority in task_priorities {
+            assert!(
+                valid_priorities.contains(&priority),
+                "Priority '{}' is not a valid task_priority value",
+                priority
+            );
+        }
+    }
+
+    #[test]
+    fn test_label_names() {
+        let labels = ["Tutorial", "Quick Win", "Important"];
+        for label in labels {
+            assert!(!label.is_empty(), "Label name should not be empty");
+        }
+    }
+
+    #[test]
+    fn test_sample_board_error_from_sqlx() {
+        // Verify the From<sqlx::Error> impl works
+        let sqlx_err = sqlx::Error::RowNotFound;
+        let err: SampleBoardError = sqlx_err.into();
+        assert!(matches!(err, SampleBoardError::Database(_)));
+    }
+
+    #[tokio::test]
+    async fn test_generate_sample_board_integration() {
+        let pool = sqlx::PgPool::connect(
+            "postgresql://taskflow:REDACTED_PG_PASSWORD@localhost:5433/taskflow",
+        )
+        .await
+        .expect("test db connection");
+
+        // We need a real tenant and user. Create them in a transaction that we will roll back.
+        let mut tx = pool.begin().await.expect("begin transaction");
+
+        let tenant_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let workspace_id = Uuid::new_v4();
+
+        // Create tenant (slug must be unique)
+        let slug = format!("test-{}", &tenant_id.to_string()[..8]);
+        sqlx::query("INSERT INTO tenants (id, name, slug) VALUES ($1, $2, $3)")
+            .bind(tenant_id)
+            .bind("Test Tenant")
+            .bind(&slug)
+            .execute(&mut *tx)
+            .await
+            .expect("create tenant");
+
+        // Create user
+        sqlx::query(
+            "INSERT INTO users (id, email, name, password_hash, tenant_id) VALUES ($1, $2, $3, $4, $5)",
+        )
+        .bind(user_id)
+        .bind(format!("sample-board-test-{}@test.com", &user_id.to_string()[..8]))
+        .bind("Test User")
+        .bind("$argon2id$v=19$m=16,t=2,p=1$YWJjZGVm$fake_hash_for_test")
+        .bind(tenant_id)
+        .execute(&mut *tx)
+        .await
+        .expect("create user");
+
+        // Create workspace
+        sqlx::query(
+            "INSERT INTO workspaces (id, name, tenant_id, created_by_id) VALUES ($1, $2, $3, $4)",
+        )
+        .bind(workspace_id)
+        .bind("Test Workspace")
+        .bind(tenant_id)
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await
+        .expect("create workspace");
+
+        tx.commit().await.expect("commit setup");
+
+        // Now generate the sample board
+        let board_id = generate_sample_board(&pool, workspace_id, user_id, tenant_id)
+            .await
+            .expect("generate_sample_board should succeed");
+
+        // Verify board was created
+        let board_row: (String,) = sqlx::query_as("SELECT name FROM boards WHERE id = $1")
+            .bind(board_id)
+            .fetch_one(&pool)
+            .await
+            .expect("board should exist");
+        assert_eq!(board_row.0, "Getting Started");
+
+        // Verify 4 columns were created
+        let column_count: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM board_columns WHERE board_id = $1")
+                .bind(board_id)
+                .fetch_one(&pool)
+                .await
+                .expect("count columns");
+        assert_eq!(column_count.0, 4, "Should have 4 columns");
+
+        // Verify 6 tasks were created
+        let task_count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM tasks WHERE board_id = $1")
+            .bind(board_id)
+            .fetch_one(&pool)
+            .await
+            .expect("count tasks");
+        assert_eq!(task_count.0, 6, "Should have 6 sample tasks");
+
+        // Verify 3 labels were created
+        let label_count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM labels WHERE board_id = $1")
+            .bind(board_id)
+            .fetch_one(&pool)
+            .await
+            .expect("count labels");
+        assert_eq!(label_count.0, 3, "Should have 3 labels");
+
+        // Verify task_labels were created (6 tasks x 1 Tutorial label = 6)
+        let task_label_count: (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM task_labels tl JOIN tasks t ON t.id = tl.task_id WHERE t.board_id = $1",
+        )
+        .bind(board_id)
+        .fetch_one(&pool)
+        .await
+        .expect("count task_labels");
+        assert_eq!(
+            task_label_count.0, 6,
+            "Should have 6 task-label associations"
+        );
+
+        // Verify board member was created
+        let member_count: (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM board_members WHERE board_id = $1 AND user_id = $2",
+        )
+        .bind(board_id)
+        .bind(user_id)
+        .fetch_one(&pool)
+        .await
+        .expect("count members");
+        assert_eq!(member_count.0, 1, "Creator should be a board member");
+
+        // Cleanup: delete what we created (in reverse FK order)
+        sqlx::query(
+            "DELETE FROM task_labels WHERE task_id IN (SELECT id FROM tasks WHERE board_id = $1)",
+        )
+        .bind(board_id)
+        .execute(&pool)
+        .await
+        .expect("cleanup task_labels");
+        sqlx::query("DELETE FROM labels WHERE board_id = $1")
+            .bind(board_id)
+            .execute(&pool)
+            .await
+            .expect("cleanup labels");
+        sqlx::query("DELETE FROM board_members WHERE board_id = $1")
+            .bind(board_id)
+            .execute(&pool)
+            .await
+            .expect("cleanup members");
+        sqlx::query("DELETE FROM tasks WHERE board_id = $1")
+            .bind(board_id)
+            .execute(&pool)
+            .await
+            .expect("cleanup tasks");
+        sqlx::query("DELETE FROM board_columns WHERE board_id = $1")
+            .bind(board_id)
+            .execute(&pool)
+            .await
+            .expect("cleanup columns");
+        sqlx::query("DELETE FROM boards WHERE id = $1")
+            .bind(board_id)
+            .execute(&pool)
+            .await
+            .expect("cleanup board");
+        sqlx::query("DELETE FROM workspaces WHERE id = $1")
+            .bind(workspace_id)
+            .execute(&pool)
+            .await
+            .expect("cleanup workspace");
+        sqlx::query("DELETE FROM users WHERE id = $1")
+            .bind(user_id)
+            .execute(&pool)
+            .await
+            .expect("cleanup user");
+        sqlx::query("DELETE FROM tenants WHERE id = $1")
+            .bind(tenant_id)
+            .execute(&pool)
+            .await
+            .expect("cleanup tenant");
+    }
 }

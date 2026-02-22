@@ -327,4 +327,117 @@ mod tests {
         let err = MinioError::BucketCreationFailed("access denied".to_string());
         assert_eq!(format!("{}", err), "Bucket creation failed: access denied");
     }
+
+    #[tokio::test]
+    async fn test_minio_service_accessors() {
+        let config = MinioConfig {
+            endpoint: "http://minio:9000".to_string(),
+            public_url: "http://localhost:9000".to_string(),
+            access_key: "minioadmin".to_string(),
+            secret_key: "minioadmin".to_string(),
+            bucket: "test-attachments".to_string(),
+        };
+        let service = MinioService::new(config).await;
+
+        assert_eq!(service.bucket(), "test-attachments");
+        assert_eq!(service.public_url(), "http://localhost:9000");
+    }
+
+    #[tokio::test]
+    async fn test_minio_service_presigned_put_url_contains_bucket_and_key() {
+        let config = MinioConfig {
+            endpoint: "http://minio:9000".to_string(),
+            public_url: "http://localhost:9000".to_string(),
+            access_key: "minioadmin".to_string(),
+            secret_key: "minioadmin".to_string(),
+            bucket: "attachments".to_string(),
+        };
+        let service = MinioService::new(config).await;
+
+        let url = service
+            .presigned_put_url("uploads/test-file.pdf", "application/pdf", 3600)
+            .await
+            .expect("presigned put url should succeed");
+
+        assert!(
+            url.contains("attachments"),
+            "URL should contain bucket name, got: {}",
+            url
+        );
+        assert!(
+            url.contains("uploads/test-file.pdf") || url.contains("uploads%2Ftest-file.pdf"),
+            "URL should contain object key, got: {}",
+            url
+        );
+        assert!(
+            url.starts_with("http://localhost:9000"),
+            "URL should use public URL, got: {}",
+            url
+        );
+    }
+
+    #[tokio::test]
+    async fn test_minio_service_presigned_get_url_contains_bucket_and_key() {
+        let config = MinioConfig {
+            endpoint: "http://minio:9000".to_string(),
+            public_url: "https://cdn.example.com".to_string(),
+            access_key: "minioadmin".to_string(),
+            secret_key: "minioadmin".to_string(),
+            bucket: "my-bucket".to_string(),
+        };
+        let service = MinioService::new(config).await;
+
+        let url = service
+            .presigned_get_url("path/to/file.jpg", 600)
+            .await
+            .expect("presigned get url should succeed");
+
+        assert!(
+            url.starts_with("https://cdn.example.com"),
+            "URL should use public URL, got: {}",
+            url
+        );
+        assert!(
+            url.contains("my-bucket"),
+            "URL should contain bucket name, got: {}",
+            url
+        );
+    }
+
+    #[tokio::test]
+    async fn test_minio_service_clone() {
+        let config = MinioConfig {
+            endpoint: "http://minio:9000".to_string(),
+            public_url: "http://localhost:9000".to_string(),
+            access_key: "minioadmin".to_string(),
+            secret_key: "minioadmin".to_string(),
+            bucket: "clone-test".to_string(),
+        };
+        let service = MinioService::new(config).await;
+        let cloned = service.clone();
+
+        assert_eq!(service.bucket(), cloned.bucket());
+        assert_eq!(service.public_url(), cloned.public_url());
+    }
+
+    #[test]
+    fn test_minio_error_debug_output() {
+        let err = MinioError::S3Error("timeout".to_string());
+        let debug = format!("{:?}", err);
+        assert!(debug.contains("S3Error"), "got: {}", debug);
+        assert!(debug.contains("timeout"), "got: {}", debug);
+    }
+
+    #[test]
+    fn test_minio_error_variants_are_distinct() {
+        let s3 = format!("{}", MinioError::S3Error("x".to_string()));
+        let presign = format!("{}", MinioError::PresigningError("x".to_string()));
+        let not_found = format!("{}", MinioError::NotFound("x".to_string()));
+        let bucket = format!("{}", MinioError::BucketCreationFailed("x".to_string()));
+
+        // Each variant produces a unique prefix
+        assert_ne!(s3, presign);
+        assert_ne!(presign, not_found);
+        assert_ne!(not_found, bucket);
+    }
 }
