@@ -1,4 +1,11 @@
-import { Component, inject, signal, input, output, model, ChangeDetectionStrategy,
+import {
+  Component,
+  inject,
+  signal,
+  input,
+  output,
+  model,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -26,6 +33,7 @@ export interface InviteMemberDialogResult {
   role: 'admin' | 'manager' | 'member';
   boardIds: string[];
   message?: string;
+  jobTitle?: string;
 }
 
 interface EmailValidation {
@@ -159,6 +167,25 @@ interface EmailValidation {
           />
         </div>
 
+        <!-- Job Title (optional) -->
+        <div class="flex flex-col gap-1 mb-4">
+          <label
+            for="jobTitle"
+            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Job Title (optional)</label
+          >
+          <input
+            pInputText
+            id="jobTitle"
+            formControlName="jobTitle"
+            placeholder="e.g. Product Designer, Backend Engineer"
+            class="w-full"
+          />
+          <small class="text-gray-500 dark:text-gray-400"
+            >Pre-fill a job title for the invitee(s)</small
+          >
+        </div>
+
         <!-- Board Access Selection -->
         @if (boards() && boards().length > 0) {
           <div class="mb-4">
@@ -277,6 +304,7 @@ export class InviteMemberDialogComponent {
   form: FormGroup = this.fb.group({
     emailsText: ['', [Validators.required]],
     role: ['member', [Validators.required]],
+    jobTitle: [''],
     message: [''],
   });
 
@@ -293,7 +321,12 @@ export class InviteMemberDialogComponent {
   private readonly emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   onDialogShow(): void {
-    this.form.reset({ emailsText: '', role: 'member', message: '' });
+    this.form.reset({
+      emailsText: '',
+      role: 'member',
+      jobTitle: '',
+      message: '',
+    });
     this.parsedEmails.set([]);
     this.selectedBoardIds.set([]);
   }
@@ -376,6 +409,7 @@ export class InviteMemberDialogComponent {
       role: this.form.value.role,
       boardIds: this.selectedBoardIds(),
       message: this.form.value.message?.trim() || undefined,
+      jobTitle: this.form.value.jobTitle?.trim() || undefined,
     };
 
     this.visible.set(false);

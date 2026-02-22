@@ -1,4 +1,9 @@
-import { Component, inject, OnInit, signal, ChangeDetectionStrategy,
+import {
+  Component,
+  inject,
+  OnInit,
+  signal,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -287,6 +292,74 @@ type PageState =
                   ) {
                     <small class="p-error">Passwords do not match</small>
                   }
+                </div>
+
+                <div class="field-spacing">
+                  <label for="jobTitle" class="field-label">Job Title</label>
+                  <input
+                    pInputText
+                    id="jobTitle"
+                    type="text"
+                    formControlName="jobTitle"
+                    placeholder="e.g. Product Manager"
+                    class="w-full"
+                  />
+                </div>
+
+                <div class="field-spacing">
+                  <label for="department" class="field-label">Department</label>
+                  <input
+                    pInputText
+                    id="department"
+                    type="text"
+                    formControlName="department"
+                    placeholder="e.g. Engineering"
+                    class="w-full"
+                  />
+                </div>
+
+                <div class="field-spacing">
+                  <label for="bio" class="field-label">Short Bio</label>
+                  <textarea
+                    pInputText
+                    id="bio"
+                    formControlName="bio"
+                    placeholder="Tell us a bit about yourself (optional)"
+                    rows="3"
+                    class="w-full"
+                    style="resize: vertical"
+                  ></textarea>
+                  @if (
+                    acceptForm.get('bio')?.hasError('maxlength') &&
+                    acceptForm.get('bio')?.touched
+                  ) {
+                    <small class="p-error"
+                      >Bio must be 500 characters or less</small
+                    >
+                  }
+                </div>
+
+                <div class="field-spacing">
+                  <label for="timezone" class="field-label">Timezone</label>
+                  <select
+                    id="timezone"
+                    formControlName="timezone"
+                    class="w-full p-2 rounded-md border"
+                    style="border-color: var(--border); background: var(--background); color: var(--foreground)"
+                  >
+                    <option value="UTC">UTC</option>
+                    <option value="America/New_York">Eastern Time (US)</option>
+                    <option value="America/Chicago">Central Time (US)</option>
+                    <option value="America/Denver">Mountain Time (US)</option>
+                    <option value="America/Los_Angeles">
+                      Pacific Time (US)
+                    </option>
+                    <option value="Europe/London">London</option>
+                    <option value="Europe/Paris">Paris / Berlin</option>
+                    <option value="Asia/Kolkata">India (IST)</option>
+                    <option value="Asia/Tokyo">Tokyo</option>
+                    <option value="Australia/Sydney">Sydney</option>
+                  </select>
                 </div>
 
                 @if (errorMessage()) {
@@ -596,6 +669,10 @@ export class AcceptInviteComponent implements OnInit {
       name: ['', [Validators.required]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required]],
+      jobTitle: [''],
+      department: [''],
+      bio: ['', [Validators.maxLength(500)]],
+      timezone: [Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'],
     },
     { validators: this.passwordMatchValidator },
   );
@@ -625,6 +702,9 @@ export class AcceptInviteComponent implements OnInit {
           this.pageState.set('expired');
         } else if (response.valid) {
           this.pageState.set('valid');
+          if (response.job_title) {
+            this.acceptForm.patchValue({ jobTitle: response.job_title });
+          }
         } else {
           this.pageState.set('invalid');
         }
@@ -644,10 +724,19 @@ export class AcceptInviteComponent implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set('');
 
-    const { name, password } = this.acceptForm.value;
+    const { name, password, jobTitle, department, bio, timezone } =
+      this.acceptForm.value;
 
     this.invitationService
-      .accept({ token: this.token, name, password })
+      .accept({
+        token: this.token,
+        name,
+        password,
+        job_title: jobTitle?.trim() || undefined,
+        department: department?.trim() || undefined,
+        bio: bio?.trim() || undefined,
+        timezone: timezone || undefined,
+      })
       .subscribe({
         next: () => {
           this.pageState.set('success');

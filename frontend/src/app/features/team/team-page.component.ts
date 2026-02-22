@@ -165,7 +165,9 @@ interface WorkspaceTeam {
                         [workspaceId]="wm.workspace.id"
                         [workspaceName]="wm.workspace.name"
                         [boards]="wm.boards"
-                        (memberRemoved)="onMemberRemoved(wm.workspace.id, $event)"
+                        (memberRemoved)="
+                          onMemberRemoved(wm.workspace.id, $event)
+                        "
                       />
                     </div>
                   }
@@ -234,10 +236,7 @@ interface WorkspaceTeam {
                       <!-- Overview Sub-Tab -->
                       <p-tabpanel [value]="0">
                         <div class="py-6">
-                          @for (
-                            wt of workspaceTeams();
-                            track wt.workspace.id
-                          ) {
+                          @for (wt of workspaceTeams(); track wt.workspace.id) {
                             <div class="mb-10">
                               <div
                                 class="flex items-center justify-between mb-4"
@@ -251,7 +250,7 @@ interface WorkspaceTeam {
                                   [routerLink]="[
                                     '/workspace',
                                     wt.workspace.id,
-                                    'team'
+                                    'team',
                                   ]"
                                   class="text-sm text-primary hover:text-primary"
                                 >
@@ -279,15 +278,11 @@ interface WorkspaceTeam {
                                         member.is_overloaded
                                       "
                                     >
-                                      <div
-                                        class="flex items-center gap-3 mb-3"
-                                      >
+                                      <div class="flex items-center gap-3 mb-3">
                                         <div
                                           class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary"
                                         >
-                                          {{
-                                            getInitials(member.user_name)
-                                          }}
+                                          {{ getInitials(member.user_name) }}
                                         </div>
                                         <div class="min-w-0 flex-1">
                                           <p
@@ -360,10 +355,7 @@ interface WorkspaceTeam {
                       <!-- Workload Dashboard Sub-Tab -->
                       <p-tabpanel [value]="1">
                         <div class="py-6 space-y-6">
-                          @for (
-                            wt of workspaceTeams();
-                            track wt.workspace.id
-                          ) {
+                          @for (wt of workspaceTeams(); track wt.workspace.id) {
                             <div>
                               <h2
                                 class="text-lg font-semibold text-[var(--card-foreground)] mb-4"
@@ -413,9 +405,7 @@ interface WorkspaceTeam {
                                         getOverloadedCount(wt.members) > 0
                                       "
                                     >
-                                      {{
-                                        getOverloadedCount(wt.members)
-                                      }}
+                                      {{ getOverloadedCount(wt.members) }}
                                     </p>
                                     <p
                                       class="text-xs text-[var(--muted-foreground)]"
@@ -434,15 +424,11 @@ interface WorkspaceTeam {
                                     track member.user_id
                                   ) {
                                     <div class="px-6 py-4">
-                                      <div
-                                        class="flex items-center gap-3 mb-2"
-                                      >
+                                      <div class="flex items-center gap-3 mb-2">
                                         <div
                                           class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary flex-shrink-0"
                                         >
-                                          {{
-                                            getInitials(member.user_name)
-                                          }}
+                                          {{ getInitials(member.user_name) }}
                                         </div>
                                         <span
                                           class="text-sm font-medium text-[var(--foreground)] flex-1 truncate"
@@ -565,9 +551,7 @@ export class TeamPageComponent implements OnInit {
   filteredWorkspaceMembers = computed(() => {
     const filter = this.selectedWorkspaceFilter();
     if (filter === 'all') return this.workspaceMembers();
-    return this.workspaceMembers().filter(
-      (wm) => wm.workspace.id === filter,
-    );
+    return this.workspaceMembers().filter((wm) => wm.workspace.id === filter);
   });
 
   filteredWorkspaces = computed(() => {
@@ -642,12 +626,12 @@ export class TeamPageComponent implements OnInit {
         const memberRequests = workspaces.map((ws) =>
           forkJoin({
             workspace: of(ws),
-            details: this.workspaceService.get(ws.id).pipe(
-              catchError(() => of(null)),
-            ),
-            boards: this.boardService.listBoards(ws.id).pipe(
-              catchError(() => of([] as { id: string; name: string }[])),
-            ),
+            details: this.workspaceService
+              .get(ws.id)
+              .pipe(catchError(() => of(null))),
+            boards: this.boardService
+              .listBoards(ws.id)
+              .pipe(catchError(() => of([] as { id: string; name: string }[]))),
           }),
         );
 
@@ -704,6 +688,8 @@ export class TeamPageComponent implements OnInit {
       name: string;
       email: string;
       avatar_url: string | null;
+      job_title: string | null;
+      department: string | null;
       role: string;
       joined_at: string;
     }>;
@@ -714,6 +700,8 @@ export class TeamPageComponent implements OnInit {
       display_name: m.name,
       email: m.email,
       avatar_url: m.avatar_url,
+      job_title: m.job_title,
+      department: m.department,
       joined_at: m.joined_at || new Date().toISOString(),
     }));
   }

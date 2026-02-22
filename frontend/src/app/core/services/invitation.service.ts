@@ -23,12 +23,17 @@ export interface InvitationValidateResponse {
   role: string | null;
   expired: boolean;
   already_accepted: boolean;
+  job_title: string | null;
 }
 
 export interface AcceptInvitationRequest {
   token: string;
   name: string;
   password: string;
+  job_title?: string;
+  department?: string;
+  bio?: string;
+  timezone?: string;
 }
 
 @Injectable({ providedIn: 'root' })

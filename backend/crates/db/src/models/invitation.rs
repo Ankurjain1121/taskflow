@@ -18,6 +18,7 @@ pub struct Invitation {
     pub created_at: DateTime<Utc>,
     pub message: Option<String>,
     pub board_ids: Option<serde_json::Value>,
+    pub job_title: Option<String>,
 }
 
 #[cfg(test)]
@@ -39,6 +40,7 @@ mod tests {
             created_at: now,
             message: Some("Welcome to the team!".to_string()),
             board_ids: Some(serde_json::json!([Uuid::new_v4()])),
+            job_title: None,
         };
         let json = serde_json::to_string(&invitation).unwrap();
         let deserialized: Invitation = serde_json::from_str(&json).unwrap();
@@ -64,6 +66,7 @@ mod tests {
             created_at: now,
             message: None,
             board_ids: None,
+            job_title: None,
         };
         let json = serde_json::to_string(&invitation).unwrap();
         let deserialized: Invitation = serde_json::from_str(&json).unwrap();

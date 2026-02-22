@@ -31,6 +31,7 @@ pub struct CreateInvitationRequest {
     pub role: UserRole,
     pub message: Option<String>,
     pub board_ids: Option<Vec<Uuid>>,
+    pub job_title: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -40,6 +41,7 @@ pub struct BulkCreateInvitationRequest {
     pub role: UserRole,
     pub message: Option<String>,
     pub board_ids: Option<Vec<Uuid>>,
+    pub job_title: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -59,6 +61,10 @@ pub struct AcceptInvitationRequest {
     pub token: Uuid,
     pub name: String,
     pub password: String,
+    pub job_title: Option<String>,
+    pub department: Option<String>,
+    pub bio: Option<String>,
+    pub timezone: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -77,6 +83,7 @@ pub struct InvitationResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub message: Option<String>,
     pub board_ids: Option<serde_json::Value>,
+    pub job_title: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -90,6 +97,7 @@ pub struct InvitationWithStatusResponse {
     pub status: String,
     pub message: Option<String>,
     pub board_ids: Option<serde_json::Value>,
+    pub job_title: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -100,6 +108,7 @@ pub struct InvitationValidateResponse {
     pub role: Option<UserRole>,
     pub expired: bool,
     pub already_accepted: bool,
+    pub job_title: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -117,6 +126,9 @@ pub struct UserResponse {
     pub role: UserRole,
     pub tenant_id: Uuid,
     pub avatar_url: Option<String>,
+    pub job_title: Option<String>,
+    pub department: Option<String>,
+    pub bio: Option<String>,
     pub onboarding_completed: bool,
 }
 
@@ -132,6 +144,7 @@ impl From<Invitation> for InvitationResponse {
             created_at: inv.created_at,
             message: inv.message,
             board_ids: inv.board_ids,
+            job_title: inv.job_title,
         }
     }
 }
@@ -180,6 +193,7 @@ pub async fn create_handler(
         expires_at,
         payload.message.as_deref(),
         board_ids_json.as_ref(),
+        payload.job_title.as_deref(),
     )
     .await?;
 
@@ -210,6 +224,7 @@ pub async fn validate_handler(
                 role: Some(inv.role),
                 expired,
                 already_accepted,
+                job_title: inv.job_title,
             }))
         }
         None => Ok(Json(InvitationValidateResponse {
@@ -219,6 +234,7 @@ pub async fn validate_handler(
             role: None,
             expired: false,
             already_accepted: false,
+            job_title: None,
         })),
     }
 }
@@ -280,12 +296,18 @@ pub async fn accept_handler(
     // Wrap user creation, workspace membership, and invitation acceptance in a transaction
     let mut tx = state.db.begin().await?;
 
+    // Determine job_title: user's input takes priority, fallback to inviter's suggestion
+    let final_job_title = payload
+        .job_title
+        .as_deref()
+        .or(invitation.job_title.as_deref());
+
     // Create the user within the transaction
     let user = sqlx::query_as::<_, taskflow_db::models::User>(
         r#"
-        INSERT INTO users (id, email, name, password_hash, role, tenant_id, onboarding_completed, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, false, NOW(), NOW())
-        RETURNING id, email, name, password_hash, avatar_url, phone_number, role,
+        INSERT INTO users (id, email, name, password_hash, job_title, department, bio, role, tenant_id, onboarding_completed, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, NOW(), NOW())
+        RETURNING id, email, name, password_hash, avatar_url, phone_number, job_title, department, bio, role,
                   tenant_id, onboarding_completed, last_login_at, deleted_at, created_at, updated_at
         "#,
     )
@@ -293,6 +315,9 @@ pub async fn accept_handler(
     .bind(&invitation.email)
     .bind(&payload.name)
     .bind(&password_hash)
+    .bind(final_job_title)
+    .bind(payload.department.as_deref())
+    .bind(payload.bio.as_deref())
     .bind(invitation.role)
     .bind(tenant_id)
     .fetch_one(&mut *tx)
@@ -321,6 +346,21 @@ pub async fn accept_handler(
     .await?;
 
     tx.commit().await?;
+
+    // Save timezone to user_preferences if provided
+    if let Some(ref tz) = payload.timezone {
+        let _ = sqlx::query(
+            r#"INSERT INTO user_preferences (id, user_id, timezone, date_format, default_board_view,
+                sidebar_density, locale, digest_frequency, created_at, updated_at)
+            VALUES ($1, $2, $3, 'MMM D, YYYY', 'kanban', 'comfortable', 'en', 'daily', NOW(), NOW())
+            ON CONFLICT (user_id) DO UPDATE SET timezone = $3, updated_at = NOW()"#,
+        )
+        .bind(Uuid::new_v4())
+        .bind(user.id)
+        .bind(tz.as_str())
+        .execute(&state.db)
+        .await;
+    }
 
     // Create refresh token
     let refresh_expiry = Utc::now() + Duration::seconds(state.config.jwt_refresh_expiry_secs);
@@ -361,6 +401,9 @@ pub async fn accept_handler(
             role: user.role,
             tenant_id: user.tenant_id,
             avatar_url: user.avatar_url,
+            job_title: user.job_title,
+            department: user.department,
+            bio: user.bio,
             onboarding_completed: user.onboarding_completed,
         },
     }))
@@ -471,7 +514,7 @@ pub async fn bulk_create_handler(
             }
         }
 
-        // Create the invitation with message and board_ids
+        // Create the invitation with message, board_ids, and job_title
         match invitations::create_invitation_with_details(
             &state.db,
             &email,
@@ -481,6 +524,7 @@ pub async fn bulk_create_handler(
             expires_at,
             payload.message.as_deref(),
             board_ids_json.as_ref(),
+            payload.job_title.as_deref(),
         )
         .await
         {
@@ -539,6 +583,7 @@ pub async fn list_all_handler(
                 status,
                 message: inv.message,
                 board_ids: inv.board_ids,
+                job_title: inv.job_title,
             }
         })
         .collect();

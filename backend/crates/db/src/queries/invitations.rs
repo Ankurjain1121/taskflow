@@ -22,6 +22,7 @@ pub async fn create_invitation(
         expires_at,
         None,
         None,
+        None,
     )
     .await
 }
@@ -37,15 +38,16 @@ pub async fn create_invitation_with_details(
     expires_at: DateTime<Utc>,
     message: Option<&str>,
     board_ids: Option<&serde_json::Value>,
+    job_title: Option<&str>,
 ) -> Result<Invitation, sqlx::Error> {
     let id = Uuid::new_v4();
     let token = Uuid::new_v4();
 
     sqlx::query_as::<_, Invitation>(
         r#"
-        INSERT INTO invitations (id, email, workspace_id, role, token, invited_by_id, expires_at, message, board_ids, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
-        RETURNING id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids
+        INSERT INTO invitations (id, email, workspace_id, role, token, invited_by_id, expires_at, message, board_ids, job_title, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+        RETURNING id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids, job_title, job_title
         "#,
     )
     .bind(id)
@@ -57,6 +59,7 @@ pub async fn create_invitation_with_details(
     .bind(expires_at)
     .bind(message)
     .bind(board_ids)
+    .bind(job_title)
     .fetch_one(pool)
     .await
 }
@@ -68,7 +71,7 @@ pub async fn get_invitation_by_token(
 ) -> Result<Option<Invitation>, sqlx::Error> {
     sqlx::query_as::<_, Invitation>(
         r#"
-        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids
+        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids, job_title
         FROM invitations
         WHERE token = $1
         "#,
@@ -85,7 +88,7 @@ pub async fn get_invitation_by_id(
 ) -> Result<Option<Invitation>, sqlx::Error> {
     sqlx::query_as::<_, Invitation>(
         r#"
-        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids
+        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids, job_title
         FROM invitations
         WHERE id = $1
         "#,
@@ -118,7 +121,7 @@ pub async fn list_pending_invitations(
 ) -> Result<Vec<Invitation>, sqlx::Error> {
     sqlx::query_as::<_, Invitation>(
         r#"
-        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids
+        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids, job_title
         FROM invitations
         WHERE workspace_id = $1
           AND accepted_at IS NULL
@@ -177,7 +180,7 @@ pub async fn list_all_invitations(
 ) -> Result<Vec<Invitation>, sqlx::Error> {
     sqlx::query_as::<_, Invitation>(
         r#"
-        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids
+        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids, job_title
         FROM invitations
         WHERE workspace_id = $1
         ORDER BY created_at DESC
@@ -216,7 +219,7 @@ pub async fn resend_invitation(
         UPDATE invitations
         SET token = $1, expires_at = $2, accepted_at = NULL
         WHERE id = $3
-        RETURNING id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids
+        RETURNING id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids, job_title
         "#,
     )
     .bind(new_token)
@@ -234,7 +237,7 @@ pub async fn get_pending_invitation_by_email(
 ) -> Result<Option<Invitation>, sqlx::Error> {
     sqlx::query_as::<_, Invitation>(
         r#"
-        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids
+        SELECT id, email, workspace_id, role, token, invited_by_id, expires_at, accepted_at, created_at, message, board_ids, job_title
         FROM invitations
         WHERE email = $1
           AND workspace_id = $2

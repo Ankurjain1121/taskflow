@@ -116,6 +116,7 @@ export class WorkspaceService {
     role: 'admin' | 'manager' | 'member',
     message?: string,
     boardIds?: string[],
+    jobTitle?: string,
   ): Observable<BulkInviteResponse> {
     return this.http.post<BulkInviteResponse>('/api/invitations/bulk', {
       emails,
@@ -123,6 +124,7 @@ export class WorkspaceService {
       role,
       message: message || undefined,
       board_ids: boardIds && boardIds.length > 0 ? boardIds : undefined,
+      job_title: jobTitle || undefined,
     });
   }
 
