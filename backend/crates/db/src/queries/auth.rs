@@ -8,7 +8,7 @@ use crate::models::{RefreshToken, User};
 pub async fn get_user_by_email(pool: &PgPool, email: &str) -> Result<Option<User>, sqlx::Error> {
     sqlx::query_as::<_, User>(
         r#"
-        SELECT id, email, name, password_hash, avatar_url, phone_number, role,
+        SELECT id, email, name, password_hash, avatar_url, phone_number, job_title, department, bio, role,
                tenant_id, onboarding_completed, last_login_at, deleted_at, created_at, updated_at
         FROM users
         WHERE email = $1 AND deleted_at IS NULL
@@ -23,7 +23,7 @@ pub async fn get_user_by_email(pool: &PgPool, email: &str) -> Result<Option<User
 pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<Option<User>, sqlx::Error> {
     sqlx::query_as::<_, User>(
         r#"
-        SELECT id, email, name, password_hash, avatar_url, phone_number, role,
+        SELECT id, email, name, password_hash, avatar_url, phone_number, job_title, department, bio, role,
                tenant_id, onboarding_completed, last_login_at, deleted_at, created_at, updated_at
         FROM users
         WHERE id = $1 AND deleted_at IS NULL
@@ -125,7 +125,7 @@ pub async fn create_user_with_tenant(
         r#"
         INSERT INTO users (id, email, name, password_hash, role, tenant_id, onboarding_completed, created_at, updated_at)
         VALUES ($1, $2, $3, $4, 'admin', $5, false, NOW(), NOW())
-        RETURNING id, email, name, password_hash, avatar_url, phone_number, role,
+        RETURNING id, email, name, password_hash, avatar_url, phone_number, job_title, department, bio, role,
                   tenant_id, onboarding_completed, last_login_at, deleted_at, created_at, updated_at
         "#,
     )
@@ -166,7 +166,7 @@ pub async fn create_user(
         r#"
         INSERT INTO users (id, email, name, password_hash, role, tenant_id, onboarding_completed, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, false, NOW(), NOW())
-        RETURNING id, email, name, password_hash, avatar_url, phone_number, role,
+        RETURNING id, email, name, password_hash, avatar_url, phone_number, job_title, department, bio, role,
                   tenant_id, onboarding_completed, last_login_at, deleted_at, created_at, updated_at
         "#,
     )

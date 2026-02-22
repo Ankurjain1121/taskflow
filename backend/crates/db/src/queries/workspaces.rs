@@ -45,6 +45,8 @@ pub struct WorkspaceMemberInfo {
     pub name: String,
     pub email: String,
     pub avatar_url: Option<String>,
+    pub job_title: Option<String>,
+    pub department: Option<String>,
     pub role: WorkspaceMemberRole,
     pub joined_at: chrono::DateTime<chrono::Utc>,
 }
@@ -74,7 +76,7 @@ pub async fn get_workspace_by_id(
         Some(ws) => {
             let members = sqlx::query_as::<_, WorkspaceMemberInfo>(
                 r#"
-                SELECT wm.user_id, u.name, u.email, u.avatar_url, wm.role, wm.joined_at
+                SELECT wm.user_id, u.name, u.email, u.avatar_url, u.job_title, u.department, wm.role, wm.joined_at
                 FROM workspace_members wm
                 INNER JOIN users u ON wm.user_id = u.id
                 WHERE wm.workspace_id = $1
@@ -214,7 +216,7 @@ pub async fn search_workspace_members(
     let pattern = format!("%{}%", escaped);
     sqlx::query_as::<_, UserPublic>(
         r#"
-        SELECT u.id, u.email, u.name, u.avatar_url,
+        SELECT u.id, u.email, u.name, u.avatar_url, u.job_title, u.department,
                u.role, u.tenant_id, u.onboarding_completed, u.created_at
         FROM users u
         INNER JOIN workspace_members wm ON u.id = wm.user_id

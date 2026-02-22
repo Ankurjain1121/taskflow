@@ -89,6 +89,8 @@ pub struct MemberInfo {
     pub name: String,
     pub email: String,
     pub avatar_url: Option<String>,
+    pub job_title: Option<String>,
+    pub department: Option<String>,
     pub role: WorkspaceMemberRole,
     pub joined_at: chrono::DateTime<chrono::Utc>,
 }
@@ -178,6 +180,8 @@ async fn get_workspace(
                 name: m.name,
                 email: m.email,
                 avatar_url: m.avatar_url,
+                job_title: m.job_title,
+                department: m.department,
                 role: m.role,
                 joined_at: m.joined_at,
             })
@@ -459,6 +463,8 @@ async fn update_member_role(
         name: member_info.name,
         email: member_info.email,
         avatar_url: member_info.avatar_url,
+        job_title: member_info.job_title,
+        department: member_info.department,
         role: member_info.role,
         joined_at: member_info.joined_at,
     }))

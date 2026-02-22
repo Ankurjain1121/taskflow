@@ -1,4 +1,10 @@
-import { Component, inject, signal, OnInit, computed, ChangeDetectionStrategy,
+import {
+  Component,
+  inject,
+  signal,
+  OnInit,
+  computed,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -34,10 +40,7 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
       class="rounded-lg border shadow-sm p-6"
       style="background: var(--card); border-color: var(--border)"
     >
-      <h2
-        class="text-xl font-semibold mb-4"
-        style="color: var(--foreground)"
-      >
+      <h2 class="text-xl font-semibold mb-4" style="color: var(--foreground)">
         Profile
       </h2>
 
@@ -58,7 +61,8 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
               <span
                 class="text-2xl font-bold"
                 style="color: var(--muted-foreground)"
-              >{{ initials() }}</span>
+                >{{ initials() }}</span
+              >
             }
             @if (avatarUploading()) {
               <div
@@ -73,7 +77,9 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
           <div class="flex flex-col gap-2">
             <div
               class="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors"
-              [style.border-color]="dragOver() ? 'var(--primary)' : 'var(--border)'"
+              [style.border-color]="
+                dragOver() ? 'var(--primary)' : 'var(--border)'
+              "
               [style.background]="dragOver() ? 'var(--muted)' : 'transparent'"
               (click)="fileInput.click()"
               (dragover)="onDragOver($event)"
@@ -107,7 +113,8 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
             for="profileName"
             class="text-sm font-medium"
             style="color: var(--foreground)"
-          >Name</label>
+            >Name</label
+          >
           <div class="p-inputgroup">
             <span class="p-inputgroup-addon"><i class="pi pi-user"></i></span>
             <input
@@ -135,9 +142,12 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
             for="profileEmail"
             class="text-sm font-medium"
             style="color: var(--foreground)"
-          >Email</label>
+            >Email</label
+          >
           <div class="p-inputgroup">
-            <span class="p-inputgroup-addon"><i class="pi pi-envelope"></i></span>
+            <span class="p-inputgroup-addon"
+              ><i class="pi pi-envelope"></i
+            ></span>
             <input
               pInputText
               id="profileEmail"
@@ -148,7 +158,9 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
               class="w-full"
             />
           </div>
-          <small style="color: var(--muted-foreground)">Email cannot be changed</small>
+          <small style="color: var(--muted-foreground)"
+            >Email cannot be changed</small
+          >
         </div>
 
         <!-- Phone Number -->
@@ -157,7 +169,8 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
             for="profilePhone"
             class="text-sm font-medium"
             style="color: var(--foreground)"
-          >Phone Number</label>
+            >Phone Number</label
+          >
           <div class="p-inputgroup">
             <span class="p-inputgroup-addon"><i class="pi pi-phone"></i></span>
             <input
@@ -172,8 +185,84 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
             />
           </div>
           @if (phoneNumber && !isPhoneValid()) {
-            <small class="text-red-500">Use E.164 format (e.g. +1234567890)</small>
+            <small class="text-red-500"
+              >Use E.164 format (e.g. +1234567890)</small
+            >
           }
+        </div>
+
+        <!-- Job Title -->
+        <div class="flex flex-col gap-2">
+          <label
+            for="profileJobTitle"
+            class="text-sm font-medium"
+            style="color: var(--foreground)"
+            >Job Title</label
+          >
+          <div class="p-inputgroup">
+            <span class="p-inputgroup-addon"
+              ><i class="pi pi-briefcase"></i
+            ></span>
+            <input
+              pInputText
+              id="profileJobTitle"
+              type="text"
+              name="job_title"
+              [(ngModel)]="jobTitle"
+              maxlength="100"
+              placeholder="e.g. Product Manager"
+              class="w-full"
+            />
+          </div>
+        </div>
+
+        <!-- Department -->
+        <div class="flex flex-col gap-2">
+          <label
+            for="profileDepartment"
+            class="text-sm font-medium"
+            style="color: var(--foreground)"
+            >Department</label
+          >
+          <div class="p-inputgroup">
+            <span class="p-inputgroup-addon"
+              ><i class="pi pi-building"></i
+            ></span>
+            <input
+              pInputText
+              id="profileDepartment"
+              type="text"
+              name="department"
+              [(ngModel)]="department"
+              maxlength="100"
+              placeholder="e.g. Engineering"
+              class="w-full"
+            />
+          </div>
+        </div>
+
+        <!-- Bio -->
+        <div class="flex flex-col gap-2">
+          <label
+            for="profileBio"
+            class="text-sm font-medium"
+            style="color: var(--foreground)"
+            >Bio</label
+          >
+          <textarea
+            pInputText
+            id="profileBio"
+            name="bio"
+            [(ngModel)]="bio"
+            maxlength="500"
+            rows="3"
+            placeholder="A short bio about yourself"
+            class="w-full"
+            style="resize: vertical"
+          ></textarea>
+          <small style="color: var(--muted-foreground)"
+            >{{ bio.length }}/500 characters</small
+          >
         </div>
 
         <!-- Save -->
@@ -181,7 +270,11 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
           <p-button
             type="submit"
             [label]="profileLoading() ? 'Saving...' : 'Save Profile'"
-            [disabled]="profileLoading() || profileForm.invalid || (!!phoneNumber && !isPhoneValid())"
+            [disabled]="
+              profileLoading() ||
+              profileForm.invalid ||
+              (!!phoneNumber && !isPhoneValid())
+            "
             [loading]="profileLoading()"
           />
         </div>
@@ -195,7 +288,8 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
     >
       <h2 class="text-xl font-semibold mb-1 text-red-500">Danger Zone</h2>
       <p class="text-sm mb-4" style="color: var(--muted-foreground)">
-        Permanently delete your account and all associated data. This action cannot be undone.
+        Permanently delete your account and all associated data. This action
+        cannot be undone.
       </p>
 
       @if (!showDeleteConfirm()) {
@@ -247,7 +341,11 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
               label="Permanently Delete"
               severity="danger"
               icon="pi pi-trash"
-              [disabled]="deleteConfirmText !== 'DELETE' || !deletePassword || deleteLoading()"
+              [disabled]="
+                deleteConfirmText !== 'DELETE' ||
+                !deletePassword ||
+                deleteLoading()
+              "
               [loading]="deleteLoading()"
               (onClick)="confirmDeleteAccount()"
             />
@@ -272,6 +370,9 @@ export class ProfileSectionComponent implements OnInit {
   name = '';
   phoneNumber = '';
   avatarUrl = '';
+  jobTitle = '';
+  department = '';
+  bio = '';
 
   deleteConfirmText = '';
   deletePassword = '';
@@ -306,6 +407,9 @@ export class ProfileSectionComponent implements OnInit {
       this.name = user.name;
       this.avatarUrl = user.avatar_url ?? '';
       this.avatarPreview.set(user.avatar_url ?? null);
+      this.jobTitle = user.job_title ?? '';
+      this.department = user.department ?? '';
+      this.bio = user.bio ?? '';
     }
   }
 
@@ -372,7 +476,11 @@ export class ProfileSectionComponent implements OnInit {
         switchMap(({ upload_url, storage_key }) =>
           this.uploadService
             .uploadFileToPresignedUrl(upload_url, file)
-            .pipe(switchMap(() => this.uploadService.confirmAvatarUpload(storage_key))),
+            .pipe(
+              switchMap(() =>
+                this.uploadService.confirmAvatarUpload(storage_key),
+              ),
+            ),
         ),
       )
       .subscribe({
@@ -405,7 +513,14 @@ export class ProfileSectionComponent implements OnInit {
 
     this.profileLoading.set(true);
 
-    const updateData: { name?: string; phone_number?: string; avatar_url?: string } = {};
+    const updateData: {
+      name?: string;
+      phone_number?: string;
+      avatar_url?: string;
+      job_title?: string | null;
+      department?: string | null;
+      bio?: string | null;
+    } = {};
     if (this.name) {
       updateData.name = this.name;
     }
@@ -415,6 +530,9 @@ export class ProfileSectionComponent implements OnInit {
     if (this.avatarUrl) {
       updateData.avatar_url = this.avatarUrl;
     }
+    updateData.job_title = this.jobTitle || null;
+    updateData.department = this.department || null;
+    updateData.bio = this.bio || null;
 
     this.authService.updateProfile(updateData).subscribe({
       next: () => {

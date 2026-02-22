@@ -223,6 +223,8 @@ export class WorkspaceSettingsComponent implements OnInit {
           name: string;
           email: string;
           avatar_url: string | null;
+          job_title: string | null;
+          department: string | null;
           role: string;
           joined_at: string;
         }>;

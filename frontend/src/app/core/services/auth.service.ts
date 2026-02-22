@@ -20,6 +20,9 @@ export interface User {
   name: string; // Backend sends 'name', not 'display_name'
   phone_number: string | null;
   avatar_url: string | null;
+  job_title: string | null;
+  department: string | null;
+  bio: string | null;
   role: 'Admin' | 'Manager' | 'Member'; // Backend uses capitalized role names
   tenant_id: string;
   onboarding_completed: boolean;
@@ -223,6 +226,9 @@ export class AuthService {
     name?: string;
     phone_number?: string | null;
     avatar_url?: string;
+    job_title?: string | null;
+    department?: string | null;
+    bio?: string | null;
   }): Observable<User> {
     return this.http.patch<User>(`${this.apiUrl}/me`, data).pipe(
       tap((user) => {

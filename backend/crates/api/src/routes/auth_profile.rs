@@ -22,6 +22,9 @@ pub struct UpdateProfileRequest {
     pub name: Option<String>,
     pub phone_number: Option<String>,
     pub avatar_url: Option<String>,
+    pub job_title: Option<String>,
+    pub department: Option<String>,
+    pub bio: Option<String>,
 }
 
 // ============================================================================
@@ -47,6 +50,9 @@ pub async fn me_handler(
         tenant_id: user.tenant_id,
         avatar_url: user.avatar_url,
         phone_number: user.phone_number,
+        job_title: user.job_title,
+        department: user.department,
+        bio: user.bio,
         onboarding_completed: user.onboarding_completed,
         last_login_at: user.last_login_at,
     }))
@@ -83,6 +89,33 @@ pub async fn update_profile_handler(
         }
     }
 
+    // Validate job_title if provided
+    if let Some(ref title) = payload.job_title {
+        if title.len() > 100 {
+            return Err(AppError::BadRequest(
+                "Job title must be 100 characters or less".into(),
+            ));
+        }
+    }
+
+    // Validate department if provided
+    if let Some(ref dept) = payload.department {
+        if dept.len() > 100 {
+            return Err(AppError::BadRequest(
+                "Department must be 100 characters or less".into(),
+            ));
+        }
+    }
+
+    // Validate bio if provided
+    if let Some(ref bio) = payload.bio {
+        if bio.len() > 500 {
+            return Err(AppError::BadRequest(
+                "Bio must be 500 characters or less".into(),
+            ));
+        }
+    }
+
     // Validate avatar_url if provided (must be from MinIO or null)
     if let Some(ref url) = payload.avatar_url {
         if !url.is_empty() && !url.starts_with(&state.config.minio_public_url) {
@@ -99,13 +132,19 @@ pub async fn update_profile_handler(
             name = COALESCE($1, name),
             phone_number = COALESCE($2, phone_number),
             avatar_url = COALESCE($3, avatar_url),
+            job_title = COALESCE($4, job_title),
+            department = COALESCE($5, department),
+            bio = COALESCE($6, bio),
             updated_at = NOW()
-        WHERE id = $4
+        WHERE id = $7
         "#,
     )
     .bind(payload.name.as_deref().map(|s| s.trim()))
     .bind(&payload.phone_number)
     .bind(&payload.avatar_url)
+    .bind(&payload.job_title)
+    .bind(&payload.department)
+    .bind(&payload.bio)
     .bind(user_id)
     .execute(&state.db)
     .await?;
@@ -123,6 +162,9 @@ pub async fn update_profile_handler(
         tenant_id: user.tenant_id,
         avatar_url: user.avatar_url,
         phone_number: user.phone_number,
+        job_title: user.job_title,
+        department: user.department,
+        bio: user.bio,
         onboarding_completed: user.onboarding_completed,
         last_login_at: user.last_login_at,
     }))

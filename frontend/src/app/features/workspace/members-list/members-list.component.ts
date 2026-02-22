@@ -25,6 +25,8 @@ export interface MemberWithDetails extends WorkspaceMember {
   display_name?: string;
   email?: string;
   avatar_url?: string | null;
+  job_title?: string | null;
+  department?: string | null;
 }
 
 @Component({
@@ -87,6 +89,11 @@ export interface MemberWithDetails extends WorkspaceMember {
               <th
                 class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
               >
+                Title / Dept
+              </th>
+              <th
+                class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
+              >
                 Role
               </th>
               <th
@@ -132,6 +139,25 @@ export interface MemberWithDetails extends WorkspaceMember {
                         {{ member.email }}
                       </p>
                     </div>
+                  </div>
+                </td>
+
+                <!-- Title / Dept -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div>
+                    @if (member.job_title) {
+                      <p class="text-sm text-[var(--card-foreground)]">
+                        {{ member.job_title }}
+                      </p>
+                    }
+                    @if (member.department) {
+                      <p class="text-xs text-[var(--muted-foreground)]">
+                        {{ member.department }}
+                      </p>
+                    }
+                    @if (!member.job_title && !member.department) {
+                      <p class="text-sm text-[var(--muted-foreground)]">--</p>
+                    }
                   </div>
                 </td>
 
@@ -505,6 +531,7 @@ export class MembersListComponent implements OnInit {
         result.role,
         result.message,
         result.boardIds,
+        result.jobTitle,
       )
       .subscribe({
         next: () => {
