@@ -1,11 +1,13 @@
 import {
   Component,
+  DestroyRef,
   inject,
   OnInit,
   signal,
   computed,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -32,6 +34,20 @@ import {
             View member tasks and reassign work to balance the team
           </p>
         </div>
+
+        @if (error()) {
+          <div
+            class="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm flex items-center justify-between"
+          >
+            <span>{{ error() }}</span>
+            <button
+              (click)="error.set(null)"
+              class="text-red-500 hover:text-red-700 ml-2"
+            >
+              &times;
+            </button>
+          </div>
+        }
 
         @if (loadingMembers()) {
           <div class="space-y-4">
@@ -293,6 +309,7 @@ export class WorkloadBalanceComponent implements OnInit {
   loadingTasks = signal(false);
   reassigning = signal(false);
   showConfirmDialog = signal(false);
+  error = signal<string | null>(null);
 
   members = signal<MemberWorkload[]>([]);
   selectedMember = signal<MemberWorkload | null>(null);
@@ -306,21 +323,27 @@ export class WorkloadBalanceComponent implements OnInit {
     return this.members().filter((m) => m.user_id !== selected.user_id);
   });
 
+  private destroyRef = inject(DestroyRef);
+
   ngOnInit(): void {
-    this.route.params.subscribe((params) => {
-      this.workspaceId = params['workspaceId'];
-      this.loadMembers();
-    });
+    this.route.params
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        this.workspaceId = params['workspaceId'];
+        this.loadMembers();
+      });
   }
 
   loadMembers(): void {
     this.loadingMembers.set(true);
+    this.error.set(null);
     this.teamService.getTeamWorkload(this.workspaceId).subscribe({
       next: (members) => {
         this.members.set(members);
         this.loadingMembers.set(false);
       },
       error: () => {
+        this.error.set('Failed to load team workload. Please try again.');
         this.loadingMembers.set(false);
       },
     });
@@ -335,12 +358,14 @@ export class WorkloadBalanceComponent implements OnInit {
 
   loadMemberTasks(userId: string): void {
     this.loadingTasks.set(true);
+    this.error.set(null);
     this.teamService.getMemberTasks(this.workspaceId, userId).subscribe({
       next: (tasks) => {
         this.memberTasks.set(tasks);
         this.loadingTasks.set(false);
       },
       error: () => {
+        this.error.set('Failed to load member tasks. Please try again.');
         this.memberTasks.set([]);
         this.loadingTasks.set(false);
       },
@@ -388,6 +413,7 @@ export class WorkloadBalanceComponent implements OnInit {
           this.loadMemberTasks(selected.user_id);
         },
         error: () => {
+          this.error.set('Failed to reassign tasks. Please try again.');
           this.reassigning.set(false);
           this.showConfirmDialog.set(false);
         },
