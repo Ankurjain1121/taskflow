@@ -4,7 +4,7 @@
 
 use std::collections::HashSet;
 
-use taskflow_db::models::UserRole;
+use taskflow_db::models::{UserRole, WorkspaceMemberRole};
 use thiserror::Error;
 
 /// All available permissions in the system
@@ -119,6 +119,17 @@ pub fn require_permission(role: &UserRole, permission: &Permission) -> Result<()
     } else {
         Err(AuthError::PermissionDenied(*permission))
     }
+}
+
+/// Check if a user can manage a workspace (change roles, settings, etc.)
+///
+/// Returns true if the user is a global Admin, or if they are a workspace Owner/Admin.
+pub fn can_manage_workspace(global_role: &UserRole, ws_role: Option<&WorkspaceMemberRole>) -> bool {
+    matches!(global_role, UserRole::Admin)
+        || matches!(
+            ws_role,
+            Some(WorkspaceMemberRole::Owner | WorkspaceMemberRole::Admin)
+        )
 }
 
 /// Check if a user has at least the specified role level

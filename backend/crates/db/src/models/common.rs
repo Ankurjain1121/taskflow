@@ -10,6 +10,24 @@ pub enum UserRole {
     Member,
 }
 
+#[derive(sqlx::Type, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, TS)]
+#[sqlx(type_name = "workspace_member_role", rename_all = "snake_case")]
+#[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
+pub enum WorkspaceMemberRole {
+    Owner,
+    Admin,
+    Member,
+    Viewer,
+}
+
+#[derive(sqlx::Type, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, TS)]
+#[sqlx(type_name = "workspace_visibility", rename_all = "snake_case")]
+#[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
+pub enum WorkspaceVisibility {
+    Open,
+    Closed,
+}
+
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Debug, PartialEq, TS)]
 #[sqlx(type_name = "board_member_role", rename_all = "snake_case")]
 #[ts(export, export_to = "../../../frontend/src/app/shared/types/")]

@@ -21,6 +21,15 @@ export interface OverloadedMember {
   active_tasks: number;
 }
 
+export interface MemberTask {
+  task_id: string;
+  title: string;
+  board_name: string;
+  column_name: string;
+  priority: string;
+  due_date: string | null;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -42,6 +51,31 @@ export class TeamService {
           })),
         ),
       );
+  }
+
+  getMemberTasks(
+    workspaceId: string,
+    userId: string,
+  ): Observable<MemberTask[]> {
+    return this.http.get<MemberTask[]>(
+      `${this.apiUrl}/workspaces/${workspaceId}/members/${userId}/tasks`,
+    );
+  }
+
+  reassignTasks(
+    workspaceId: string,
+    taskIds: string[],
+    fromUserId: string,
+    toUserId: string,
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${this.apiUrl}/workspaces/${workspaceId}/reassign-tasks`,
+      {
+        task_ids: taskIds,
+        from_user_id: fromUserId,
+        to_user_id: toUserId,
+      },
+    );
   }
 
   getOverloadedMembers(

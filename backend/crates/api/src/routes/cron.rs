@@ -67,7 +67,32 @@ async fn deadline_scan_handler(
     validate_cron_secret(&headers)?;
 
     let broadcast = BroadcastService::new(state.redis.clone());
-    let notification_service = NotificationService::new(state.db.clone(), broadcast);
+
+    // Create Postal client if configured
+    let postal_client = {
+        let api_url = env::var("POSTAL_API_URL").ok();
+        let api_key = env::var("POSTAL_API_KEY").ok();
+        let from_address = env::var("POSTAL_FROM_ADDRESS").ok();
+        let from_name = env::var("POSTAL_FROM_NAME").ok();
+        match (api_url, api_key, from_address) {
+            (Some(url), Some(key), Some(from)) if !url.is_empty() && !key.is_empty() => {
+                Some(PostalClient::new(
+                    url,
+                    key,
+                    from,
+                    from_name.unwrap_or_else(|| "TaskFlow".to_string()),
+                ))
+            }
+            _ => None,
+        }
+    };
+
+    let notification_service = NotificationService::new(
+        state.db.clone(),
+        broadcast,
+        postal_client,
+        state.config.app_url.clone(),
+    );
 
     // Create Novu client if configured
     let novu_api_url = env::var("NOVU_API_URL").ok();

@@ -233,6 +233,29 @@ pub async fn add_board_member(
     .await
 }
 
+/// Update a board member's role
+pub async fn update_board_member_role(
+    pool: &PgPool,
+    board_id: Uuid,
+    user_id: Uuid,
+    role: BoardMemberRole,
+) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query(
+        r#"
+        UPDATE board_members
+        SET role = $3
+        WHERE board_id = $1 AND user_id = $2
+        "#,
+    )
+    .bind(board_id)
+    .bind(user_id)
+    .bind(role)
+    .execute(pool)
+    .await?;
+
+    Ok(result.rows_affected() > 0)
+}
+
 /// Remove a user from a board
 pub async fn remove_board_member(
     pool: &PgPool,

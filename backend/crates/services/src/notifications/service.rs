@@ -9,6 +9,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::broadcast::BroadcastService;
+use crate::notifications::email::PostalClient;
 use crate::notifications::events::NotificationEvent;
 
 /// Error type for notification service operations
@@ -25,12 +26,24 @@ pub enum NotificationServiceError {
 pub struct NotificationService {
     pool: PgPool,
     broadcast: BroadcastService,
+    email_client: Option<PostalClient>,
+    app_url: String,
 }
 
 impl NotificationService {
     /// Create a new notification service
-    pub fn new(pool: PgPool, broadcast: BroadcastService) -> Self {
-        Self { pool, broadcast }
+    pub fn new(
+        pool: PgPool,
+        broadcast: BroadcastService,
+        email_client: Option<PostalClient>,
+        app_url: String,
+    ) -> Self {
+        Self {
+            pool,
+            broadcast,
+            email_client,
+            app_url,
+        }
     }
 
     /// Create a notification and broadcast it via WebSocket
@@ -105,6 +118,80 @@ impl NotificationService {
                 error = %e,
                 "Failed to broadcast notification via WebSocket"
             );
+        }
+
+        // Send email notification asynchronously (fire-and-forget)
+        if let Some(ref email_client) = self.email_client {
+            let pool = self.pool.clone();
+            let email_client = email_client.clone();
+            let event_type_owned = event_type_str.to_string();
+            let title_owned = title.to_string();
+            let body_owned = body.to_string();
+            let link_url_owned = link_url.map(|s| s.to_string());
+            let app_url = self.app_url.clone();
+
+            tokio::spawn(async move {
+                // Check if user wants email notifications for this event type
+                let pref_row = sqlx::query_as::<_, (bool,)>(
+                    r#"
+                    SELECT COALESCE(
+                        (SELECT np.email FROM notification_preferences np
+                         WHERE np.user_id = $1 AND np.event_type = $2),
+                        true
+                    )
+                    "#,
+                )
+                .bind(recipient_id)
+                .bind(&event_type_owned)
+                .fetch_one(&pool)
+                .await;
+
+                match pref_row {
+                    Ok((true,)) => {
+                        // Fetch user email
+                        let user_email = sqlx::query_as::<_, (String,)>(
+                            r#"SELECT email FROM users WHERE id = $1 AND deleted_at IS NULL"#,
+                        )
+                        .bind(recipient_id)
+                        .fetch_optional(&pool)
+                        .await;
+
+                        if let Ok(Some((email,))) = user_email {
+                            if let Err(e) = email_client
+                                .send_notification_email(
+                                    &email,
+                                    &event_type_owned,
+                                    &title_owned,
+                                    &body_owned,
+                                    link_url_owned.as_deref(),
+                                    &app_url,
+                                )
+                                .await
+                            {
+                                tracing::error!(
+                                    recipient_id = %recipient_id,
+                                    error = %e,
+                                    "Failed to send notification email"
+                                );
+                            }
+                        }
+                    }
+                    Ok((false,)) => {
+                        tracing::debug!(
+                            recipient_id = %recipient_id,
+                            event_type = %event_type_owned,
+                            "User has email notifications disabled for this event"
+                        );
+                    }
+                    Err(e) => {
+                        tracing::error!(
+                            recipient_id = %recipient_id,
+                            error = %e,
+                            "Failed to check email notification preference"
+                        );
+                    }
+                }
+            });
         }
 
         Ok(notification.id)

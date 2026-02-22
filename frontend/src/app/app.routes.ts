@@ -107,6 +107,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'discover',
+    loadComponent: () =>
+      import('./features/workspace/discover/discover-workspaces.component').then(
+        (m) => m.DiscoverWorkspacesComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
     path: 'workspace/:workspaceId',
     canActivate: [authGuard],
     children: [
@@ -143,6 +151,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/workspace/workspace-settings/workspace-settings.component').then(
             (m) => m.WorkspaceSettingsComponent,
+          ),
+      },
+      {
+        path: 'team/balance',
+        loadComponent: () =>
+          import('./features/team/workload-balance/workload-balance.component').then(
+            (m) => m.WorkloadBalanceComponent,
           ),
       },
       {

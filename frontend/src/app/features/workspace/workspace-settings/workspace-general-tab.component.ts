@@ -94,8 +94,7 @@ import { UploadService } from '../../../core/services/upload.service';
               class="mt-1 block w-full rounded-md border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] px-3 py-2 shadow-sm focus:border-primary focus:ring-ring sm:text-sm"
             />
             @if (
-              form.controls['name'].invalid &&
-              form.controls['name'].touched
+              form.controls['name'].invalid && form.controls['name'].touched
             ) {
               <p class="mt-1 text-sm text-[var(--status-red-text)]">
                 Name is required
@@ -117,6 +116,29 @@ import { UploadService } from '../../../core/services/upload.service';
               class="mt-1 block w-full rounded-md border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] px-3 py-2 shadow-sm focus:border-primary focus:ring-ring sm:text-sm placeholder:text-[var(--muted-foreground)]"
             ></textarea>
           </div>
+
+          <!-- Visibility -->
+          @if (isAdmin()) {
+            <div>
+              <label
+                for="visibility"
+                class="block text-sm font-medium text-[var(--foreground)]"
+                >Visibility</label
+              >
+              <select
+                id="visibility"
+                formControlName="visibility"
+                class="mt-1 block w-full rounded-md border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] px-3 py-2 shadow-sm focus:border-primary focus:ring-ring sm:text-sm"
+              >
+                <option value="closed">Closed</option>
+                <option value="open">Open</option>
+              </select>
+              <p class="mt-1 text-xs text-[var(--muted-foreground)]">
+                Open workspaces can be discovered and joined by anyone in your
+                organization.
+              </p>
+            </div>
+          }
 
           <div class="flex justify-end pt-4">
             <button
@@ -155,29 +177,23 @@ import { UploadService } from '../../../core/services/upload.service';
 
       <!-- Danger Zone -->
       @if (isAdmin()) {
-        <div
-          class="widget-card border-2 border-[var(--status-red-border)]"
-        >
+        <div class="widget-card border-2 border-[var(--status-red-border)]">
           <div
             class="px-6 py-4 border-b border-[var(--status-red-border)] bg-[var(--status-red-bg)]"
           >
-            <h3
-              class="text-sm font-medium text-[var(--status-red-text)]"
-            >
+            <h3 class="text-sm font-medium text-[var(--status-red-text)]">
               Danger Zone
             </h3>
           </div>
           <div class="px-6 py-4">
             <div class="flex items-center justify-between">
               <div>
-                <h4
-                  class="text-sm font-medium text-[var(--foreground)]"
-                >
+                <h4 class="text-sm font-medium text-[var(--foreground)]">
                   Delete Workspace
                 </h4>
                 <p class="text-sm text-[var(--muted-foreground)]">
-                  Permanently delete this workspace and all its
-                  data. This action cannot be undone.
+                  Permanently delete this workspace and all its data. This
+                  action cannot be undone.
                 </p>
               </div>
               <button
@@ -218,12 +234,16 @@ export class WorkspaceGeneralTabComponent {
   form: FormGroup = this.fb.group({
     name: ['', Validators.required],
     description: [''],
+    visibility: ['closed'],
   });
 
   patchForm(workspace: Workspace): void {
     this.form.patchValue({
       name: workspace.name,
       description: workspace.description || '',
+      visibility:
+        (workspace as Workspace & { visibility?: string }).visibility ||
+        'closed',
     });
   }
 
@@ -231,15 +251,37 @@ export class WorkspaceGeneralTabComponent {
     if (this.form.invalid) return;
 
     this.saving.set(true);
-    const { name, description } = this.form.value;
+    const { name, description, visibility } = this.form.value;
 
     this.workspaceService
       .update(this.workspaceId(), { name, description })
       .subscribe({
         next: (updated) => {
-          this.workspaceSaved.emit(updated);
-          this.form.markAsPristine();
-          this.saving.set(false);
+          // Also update visibility if it changed
+          const currentVisibility =
+            (this.workspace() as Workspace & { visibility?: string })
+              ?.visibility || 'closed';
+          if (visibility && visibility !== currentVisibility) {
+            this.workspaceService
+              .updateVisibility(this.workspaceId(), visibility)
+              .subscribe({
+                next: () => {
+                  this.workspaceSaved.emit({ ...updated });
+                  this.form.markAsPristine();
+                  this.saving.set(false);
+                },
+                error: () => {
+                  // Visibility update failed but name/desc saved
+                  this.workspaceSaved.emit(updated);
+                  this.form.markAsPristine();
+                  this.saving.set(false);
+                },
+              });
+          } else {
+            this.workspaceSaved.emit(updated);
+            this.form.markAsPristine();
+            this.saving.set(false);
+          }
         },
         error: () => {
           this.saving.set(false);
@@ -282,7 +324,10 @@ export class WorkspaceGeneralTabComponent {
                     next: (result) => {
                       const ws = this.workspace();
                       if (ws) {
-                        this.workspaceSaved.emit({ ...ws, logo_url: result.logo_url });
+                        this.workspaceSaved.emit({
+                          ...ws,
+                          logo_url: result.logo_url,
+                        });
                       }
                       this.logoPreview.set(null);
                       this.uploadingLogo.set(false);

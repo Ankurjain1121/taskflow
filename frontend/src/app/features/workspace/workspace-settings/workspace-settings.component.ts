@@ -27,6 +27,7 @@ import {
 import { WorkspaceGeneralTabComponent } from './workspace-general-tab.component';
 import { WorkspaceApiKeysTabComponent } from './workspace-api-keys-tab.component';
 import { WorkspaceAdvancedTabComponent } from './workspace-advanced-tab.component';
+import { TeamsListComponent } from '../teams/teams-list.component';
 
 @Component({
   selector: 'app-workspace-settings',
@@ -42,6 +43,7 @@ import { WorkspaceAdvancedTabComponent } from './workspace-advanced-tab.componen
     WorkspaceGeneralTabComponent,
     WorkspaceApiKeysTabComponent,
     WorkspaceAdvancedTabComponent,
+    TeamsListComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -84,8 +86,9 @@ import { WorkspaceAdvancedTabComponent } from './workspace-advanced-tab.componen
             <p-tablist>
               <p-tab [value]="0">General</p-tab>
               <p-tab [value]="1">Members</p-tab>
-              <p-tab [value]="2">Integrations</p-tab>
-              <p-tab [value]="3">Advanced</p-tab>
+              <p-tab [value]="2">Teams</p-tab>
+              <p-tab [value]="3">Integrations</p-tab>
+              <p-tab [value]="4">Advanced</p-tab>
             </p-tablist>
             <p-tabpanels>
               <!-- Tab 1: General -->
@@ -112,15 +115,18 @@ import { WorkspaceAdvancedTabComponent } from './workspace-advanced-tab.componen
                 </div>
               </p-tabpanel>
 
-              <!-- Tab 3: Integrations -->
+              <!-- Tab 3: Teams -->
               <p-tabpanel [value]="2">
-                <app-workspace-api-keys-tab
-                  [workspaceId]="workspaceId"
-                />
+                <app-teams-list [workspaceId]="workspaceId" />
               </p-tabpanel>
 
-              <!-- Tab 4: Advanced -->
+              <!-- Tab 4: Integrations -->
               <p-tabpanel [value]="3">
+                <app-workspace-api-keys-tab [workspaceId]="workspaceId" />
+              </p-tabpanel>
+
+              <!-- Tab 5: Advanced -->
+              <p-tabpanel [value]="4">
                 <app-workspace-advanced-tab
                   [workspace]="workspace()"
                   [workspaceId]="workspaceId"
@@ -144,7 +150,8 @@ export class WorkspaceSettingsComponent implements OnInit {
   private boardService = inject(BoardService);
   private authService = inject(AuthService);
 
-  @ViewChild(WorkspaceGeneralTabComponent) generalTab?: WorkspaceGeneralTabComponent;
+  @ViewChild(WorkspaceGeneralTabComponent)
+  generalTab?: WorkspaceGeneralTabComponent;
 
   workspaceId = '';
 

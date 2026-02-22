@@ -11,6 +11,8 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use taskflow_auth::rbac::can_manage_workspace;
+use taskflow_db::models::{WorkspaceMemberRole, WorkspaceVisibility};
 use taskflow_db::queries::workspaces;
 
 use crate::errors::{AppError, Result};
@@ -32,6 +34,7 @@ pub struct CreateWorkspaceRequest {
 pub struct UpdateWorkspaceRequest {
     pub name: String,
     pub description: Option<String>,
+    pub visibility: Option<WorkspaceVisibility>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -50,11 +53,17 @@ pub struct AddMemberRequest {
     pub user_id: Uuid,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateMemberRoleRequest {
+    pub role: WorkspaceMemberRole,
+}
+
 #[derive(Debug, Serialize)]
 pub struct WorkspaceResponse {
     pub id: Uuid,
     pub name: String,
     pub description: Option<String>,
+    pub visibility: WorkspaceVisibility,
     pub tenant_id: Uuid,
     pub created_by_id: Uuid,
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -66,6 +75,7 @@ pub struct WorkspaceDetailResponse {
     pub id: Uuid,
     pub name: String,
     pub description: Option<String>,
+    pub visibility: WorkspaceVisibility,
     pub tenant_id: Uuid,
     pub created_by_id: Uuid,
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -79,6 +89,7 @@ pub struct MemberInfo {
     pub name: String,
     pub email: String,
     pub avatar_url: Option<String>,
+    pub role: WorkspaceMemberRole,
     pub joined_at: chrono::DateTime<chrono::Utc>,
 }
 
@@ -93,6 +104,12 @@ pub struct UserSearchResult {
 #[derive(Debug, Serialize)]
 pub struct MessageResponse {
     pub message: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct JoinWorkspaceResponse {
+    pub message: String,
+    pub workspace_id: Uuid,
 }
 
 // ============================================================================
@@ -115,6 +132,7 @@ async fn list_workspaces(
             id: w.id,
             name: w.name,
             description: w.description,
+            visibility: w.visibility,
             tenant_id: w.tenant_id,
             created_by_id: w.created_by_id,
             created_at: w.created_at,
@@ -147,6 +165,7 @@ async fn get_workspace(
         id: workspace.workspace.id,
         name: workspace.workspace.name,
         description: workspace.workspace.description,
+        visibility: workspace.workspace.visibility,
         tenant_id: workspace.workspace.tenant_id,
         created_by_id: workspace.workspace.created_by_id,
         created_at: workspace.workspace.created_at,
@@ -159,6 +178,7 @@ async fn get_workspace(
                 name: m.name,
                 email: m.email,
                 avatar_url: m.avatar_url,
+                role: m.role,
                 joined_at: m.joined_at,
             })
             .collect(),
@@ -190,6 +210,7 @@ async fn create_workspace(
         id: workspace.id,
         name: workspace.name,
         description: workspace.description,
+        visibility: workspace.visibility,
         tenant_id: workspace.tenant_id,
         created_by_id: workspace.created_by_id,
         created_at: workspace.created_at,
@@ -199,7 +220,7 @@ async fn create_workspace(
 
 /// PUT /api/workspaces/:id
 ///
-/// Update a workspace's name and description.
+/// Update a workspace's name, description, and optionally visibility.
 /// Requires Manager or Admin role.
 async fn update_workspace(
     State(state): State<AppState>,
@@ -222,10 +243,20 @@ async fn update_workspace(
             .await?
             .ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
 
+    // Update visibility if provided
+    let workspace = if let Some(visibility) = payload.visibility {
+        workspaces::update_workspace_visibility(&state.db, id, visibility)
+            .await?
+            .unwrap_or(workspace)
+    } else {
+        workspace
+    };
+
     Ok(Json(WorkspaceResponse {
         id: workspace.id,
         name: workspace.name,
         description: workspace.description,
+        visibility: workspace.visibility,
         tenant_id: workspace.tenant_id,
         created_by_id: workspace.created_by_id,
         created_at: workspace.created_at,
@@ -338,6 +369,152 @@ async fn remove_member(
     }
 }
 
+/// PATCH /api/workspaces/:id/members/:user_id
+///
+/// Update a workspace member's role.
+/// Caller must be ws owner/admin or global Admin.
+/// Cannot change own role, cannot change owner, cannot promote to owner.
+async fn update_member_role(
+    State(state): State<AppState>,
+    auth: AuthUserExtractor,
+    Path((workspace_id, target_user_id)): Path<(Uuid, Uuid)>,
+    Json(payload): Json<UpdateMemberRoleRequest>,
+) -> Result<Json<MemberInfo>> {
+    // Cannot change own role
+    if auth.0.user_id == target_user_id {
+        return Err(AppError::BadRequest("Cannot change your own role".into()));
+    }
+
+    // Cannot promote to owner
+    if payload.role == WorkspaceMemberRole::Owner {
+        return Err(AppError::BadRequest(
+            "Cannot promote a member to owner".into(),
+        ));
+    }
+
+    // Check caller's workspace role
+    let caller_ws_role =
+        workspaces::get_workspace_member_role(&state.db, workspace_id, auth.0.user_id).await?;
+
+    // Must be ws owner/admin or global admin
+    if !can_manage_workspace(&auth.0.role, caller_ws_role.as_ref()) {
+        return Err(AppError::Forbidden(
+            "Only workspace owners, admins, or global admins can change roles".into(),
+        ));
+    }
+
+    // Cannot change owner's role
+    let target_ws_role =
+        workspaces::get_workspace_member_role(&state.db, workspace_id, target_user_id).await?;
+    match target_ws_role {
+        Some(WorkspaceMemberRole::Owner) => {
+            return Err(AppError::BadRequest(
+                "Cannot change the workspace owner's role".into(),
+            ));
+        }
+        None => {
+            return Err(AppError::NotFound("Member not found in workspace".into()));
+        }
+        _ => {}
+    }
+
+    // Perform the update
+    let updated = workspaces::update_workspace_member_role(
+        &state.db,
+        workspace_id,
+        target_user_id,
+        payload.role,
+    )
+    .await?;
+
+    if !updated {
+        return Err(AppError::NotFound("Member not found".into()));
+    }
+
+    // Fetch the updated member info to return
+    let workspace_detail =
+        workspaces::get_workspace_by_id(&state.db, workspace_id, auth.0.tenant_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
+
+    let member_info = workspace_detail
+        .members
+        .into_iter()
+        .find(|m| m.user_id == target_user_id)
+        .ok_or_else(|| AppError::NotFound("Member not found".into()))?;
+
+    Ok(Json(MemberInfo {
+        user_id: member_info.user_id,
+        name: member_info.name,
+        email: member_info.email,
+        avatar_url: member_info.avatar_url,
+        role: member_info.role,
+        joined_at: member_info.joined_at,
+    }))
+}
+
+/// GET /api/workspaces/discover
+///
+/// List open workspaces the user can join.
+async fn discover_workspaces(
+    State(state): State<AppState>,
+    auth: AuthUserExtractor,
+) -> Result<Json<Vec<WorkspaceResponse>>> {
+    let workspaces =
+        workspaces::list_open_workspaces(&state.db, auth.0.tenant_id, auth.0.user_id).await?;
+
+    let response: Vec<WorkspaceResponse> = workspaces
+        .into_iter()
+        .map(|w| WorkspaceResponse {
+            id: w.id,
+            name: w.name,
+            description: w.description,
+            visibility: w.visibility,
+            tenant_id: w.tenant_id,
+            created_by_id: w.created_by_id,
+            created_at: w.created_at,
+            updated_at: w.updated_at,
+        })
+        .collect();
+
+    Ok(Json(response))
+}
+
+/// POST /api/workspaces/:id/join
+///
+/// Join an open workspace.
+async fn join_workspace(
+    State(state): State<AppState>,
+    auth: AuthUserExtractor,
+    Path(id): Path<Uuid>,
+) -> Result<Json<JoinWorkspaceResponse>> {
+    // Check if already a member
+    let is_member = workspaces::is_workspace_member(&state.db, id, auth.0.user_id).await?;
+    if is_member {
+        return Err(AppError::Conflict(
+            "Already a member of this workspace".into(),
+        ));
+    }
+
+    // Check workspace is open
+    let visibility = workspaces::get_workspace_visibility(&state.db, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
+
+    if visibility != WorkspaceVisibility::Open {
+        return Err(AppError::Forbidden(
+            "This workspace is not open for joining".into(),
+        ));
+    }
+
+    workspaces::join_open_workspace(&state.db, id, auth.0.user_id).await?;
+
+    Ok(Json(JoinWorkspaceResponse {
+        message: "Successfully joined the workspace".into(),
+        workspace_id: id,
+    }))
+}
+
 // ============================================================================
 // Router
 // ============================================================================
@@ -346,14 +523,19 @@ async fn remove_member(
 pub fn workspace_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(list_workspaces).post(create_workspace))
+        .route("/discover", get(discover_workspaces))
         .route(
             "/{id}",
             get(get_workspace)
                 .put(update_workspace)
                 .delete(delete_workspace),
         )
+        .route("/{id}/join", post(join_workspace))
         .route("/{id}/members/search", get(search_members))
         .route("/{id}/members", post(add_member))
-        .route("/{id}/members/{user_id}", delete(remove_member))
+        .route(
+            "/{id}/members/{user_id}",
+            delete(remove_member).patch(update_member_role),
+        )
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
