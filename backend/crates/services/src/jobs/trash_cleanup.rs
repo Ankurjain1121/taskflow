@@ -237,4 +237,58 @@ mod tests {
         let msg = format!("{}", err);
         assert!(msg.contains("Database error"), "got: {}", msg);
     }
+
+    #[test]
+    fn test_trash_cleanup_result_total_is_sum_of_parts() {
+        let result = TrashCleanupResult {
+            workspaces_deleted: 2,
+            boards_deleted: 5,
+            tasks_deleted: 20,
+            total_deleted: 27,
+            errors: 0,
+        };
+        assert_eq!(
+            result.total_deleted,
+            result.workspaces_deleted + result.boards_deleted + result.tasks_deleted,
+            "total_deleted should equal sum of component counts"
+        );
+    }
+
+    #[test]
+    fn test_trash_cleanup_error_display_cleanup_variant() {
+        let err = TrashCleanupError::Cleanup("permission denied".to_string());
+        assert_eq!(format!("{}", err), "Cleanup error: permission denied");
+    }
+
+    #[test]
+    fn test_trash_cleanup_error_debug_includes_variant() {
+        let err = TrashCleanupError::Cleanup("some error".to_string());
+        let debug = format!("{:?}", err);
+        assert!(debug.contains("Cleanup"), "got: {}", debug);
+        assert!(debug.contains("some error"), "got: {}", debug);
+    }
+
+    #[test]
+    fn test_trash_retention_days_used_in_cutoff() {
+        let now = Utc::now();
+        let cutoff = now - Duration::days(TRASH_RETENTION_DAYS);
+        // Cutoff should be approximately 30 days ago
+        let diff_days = (now - cutoff).num_days();
+        assert_eq!(diff_days, 30, "Cutoff should be exactly 30 days from now");
+    }
+
+    #[test]
+    fn test_trash_cleanup_result_with_errors() {
+        let result = TrashCleanupResult {
+            workspaces_deleted: 1,
+            boards_deleted: 3,
+            tasks_deleted: 10,
+            total_deleted: 14,
+            errors: 5,
+        };
+        let json = serde_json::to_string(&result).expect("serialize");
+        let parsed: serde_json::Value = serde_json::from_str(&json).expect("parse");
+        assert_eq!(parsed["errors"], 5);
+        assert_eq!(parsed["total_deleted"], 14);
+    }
 }

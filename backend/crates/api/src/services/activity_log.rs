@@ -342,12 +342,150 @@ mod tests {
     }
 
     #[test]
-    fn test_metadata_json_structure() {
+    fn test_record_params_with_metadata() {
+        let metadata = json!({"key": "value"});
+        let params = RecordParams {
+            task_id: Uuid::new_v4(),
+            actor_id: Uuid::new_v4(),
+            action: ActivityAction::Updated,
+            metadata: Some(metadata.clone()),
+            tenant_id: Uuid::new_v4(),
+        };
+        assert!(params.metadata.is_some());
+        assert_eq!(params.metadata.expect("metadata present")["key"], "value");
+    }
+
+    #[test]
+    fn test_metadata_json_structure_moved() {
         let metadata = json!({
             "from_column": "To Do",
             "to_column": "In Progress"
         });
         assert_eq!(metadata["from_column"], "To Do");
         assert_eq!(metadata["to_column"], "In Progress");
+    }
+
+    #[test]
+    fn test_metadata_json_structure_assigned() {
+        let assignee_id = Uuid::new_v4();
+        let metadata = json!({
+            "assignee_id": assignee_id,
+            "assignee_name": "Alice Johnson"
+        });
+        assert_eq!(metadata["assignee_name"], "Alice Johnson");
+        assert_eq!(
+            metadata["assignee_id"].as_str().expect("should be string"),
+            assignee_id.to_string()
+        );
+    }
+
+    #[test]
+    fn test_metadata_json_structure_unassigned() {
+        let prev_id = Uuid::new_v4();
+        let metadata = json!({
+            "previous_assignee_id": prev_id,
+            "previous_assignee_name": "Bob Smith"
+        });
+        assert_eq!(metadata["previous_assignee_name"], "Bob Smith");
+        assert_eq!(
+            metadata["previous_assignee_id"]
+                .as_str()
+                .expect("should be string"),
+            prev_id.to_string()
+        );
+    }
+
+    #[test]
+    fn test_metadata_json_structure_commented() {
+        let comment_id = Uuid::new_v4();
+        let metadata = json!({
+            "comment_id": comment_id
+        });
+        assert_eq!(
+            metadata["comment_id"].as_str().expect("should be string"),
+            comment_id.to_string()
+        );
+    }
+
+    #[test]
+    fn test_metadata_json_structure_attachment_added() {
+        let metadata = json!({
+            "file_name": "report.pdf",
+            "file_size": 1048576_i64
+        });
+        assert_eq!(metadata["file_name"], "report.pdf");
+        assert_eq!(metadata["file_size"], 1048576);
+    }
+
+    #[test]
+    fn test_metadata_json_structure_attachment_removed() {
+        let metadata = json!({
+            "type": "attachment",
+            "file_name": "old-file.docx"
+        });
+        assert_eq!(metadata["type"], "attachment");
+        assert_eq!(metadata["file_name"], "old-file.docx");
+    }
+
+    #[test]
+    fn test_metadata_json_structure_status_changed() {
+        let metadata = json!({
+            "from_status": "open",
+            "to_status": "closed"
+        });
+        assert_eq!(metadata["from_status"], "open");
+        assert_eq!(metadata["to_status"], "closed");
+    }
+
+    #[test]
+    fn test_metadata_json_structure_priority_changed() {
+        let metadata = json!({
+            "from_priority": "low",
+            "to_priority": "high"
+        });
+        assert_eq!(metadata["from_priority"], "low");
+        assert_eq!(metadata["to_priority"], "high");
+    }
+
+    #[test]
+    fn test_activity_log_error_display() {
+        let err = ActivityLogError::Database(sqlx::Error::RowNotFound);
+        let msg = format!("{}", err);
+        assert!(msg.contains("Database error"), "got: {}", msg);
+    }
+
+    #[test]
+    fn test_activity_log_error_debug() {
+        let err = ActivityLogError::Database(sqlx::Error::RowNotFound);
+        let debug = format!("{:?}", err);
+        assert!(debug.contains("Database"), "got: {}", debug);
+    }
+
+    #[test]
+    fn test_record_params_all_actions() {
+        let actions = vec![
+            ActivityAction::Created,
+            ActivityAction::Updated,
+            ActivityAction::Deleted,
+            ActivityAction::Moved,
+            ActivityAction::Assigned,
+            ActivityAction::Unassigned,
+            ActivityAction::Commented,
+            ActivityAction::Attached,
+            ActivityAction::StatusChanged,
+            ActivityAction::PriorityChanged,
+        ];
+
+        for action in actions {
+            let params = RecordParams {
+                task_id: Uuid::new_v4(),
+                actor_id: Uuid::new_v4(),
+                action,
+                metadata: None,
+                tenant_id: Uuid::new_v4(),
+            };
+            // Just verify the struct can be created with each action variant
+            let _ = format!("{:?}", params.task_id);
+        }
     }
 }

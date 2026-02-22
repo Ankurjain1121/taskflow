@@ -364,4 +364,78 @@ mod tests {
         let msg = format!("{}", err);
         assert!(msg.contains("Database error"), "got: {}", msg);
     }
+
+    #[test]
+    fn test_deadline_scanner_error_debug() {
+        let err = DeadlineScannerError::Database(sqlx::Error::RowNotFound);
+        let debug = format!("{:?}", err);
+        assert!(debug.contains("Database"), "got: {}", debug);
+    }
+
+    #[test]
+    fn test_deadline_scan_result_large_numbers() {
+        let result = DeadlineScanResult {
+            due_soon_count: 999_999,
+            overdue_count: 500_000,
+            notifications_sent: 1_499_999,
+            errors: 0,
+        };
+        let json = serde_json::to_string(&result).expect("serialize large numbers");
+        let parsed: serde_json::Value = serde_json::from_str(&json).expect("parse");
+        assert_eq!(parsed["due_soon_count"], 999_999);
+        assert_eq!(parsed["overdue_count"], 500_000);
+    }
+
+    #[test]
+    fn test_deadline_scan_link_url_format() {
+        let app_url = "https://taskflow.example.com";
+        let board_id = Uuid::new_v4();
+        let task_id = Uuid::new_v4();
+        let link_url = format!("{}/boards/{}/tasks/{}", app_url, board_id, task_id);
+
+        assert!(link_url.starts_with("https://taskflow.example.com/boards/"));
+        assert!(link_url.contains("/tasks/"));
+        assert!(link_url.contains(&board_id.to_string()));
+        assert!(link_url.contains(&task_id.to_string()));
+    }
+
+    #[test]
+    fn test_due_soon_notification_body_format() {
+        let task_title = "Fix login bug";
+        let board_name = "Sprint 42";
+        let hours_until_due = 12_i64;
+        let body = format!(
+            "Task \"{}\" on board \"{}\" is due in {} hours",
+            task_title, board_name, hours_until_due
+        );
+        assert_eq!(
+            body,
+            "Task \"Fix login bug\" on board \"Sprint 42\" is due in 12 hours"
+        );
+    }
+
+    #[test]
+    fn test_overdue_notification_body_format() {
+        let task_title = "Review PR";
+        let board_name = "Development";
+        let days_overdue = 3_i64;
+        let body = format!(
+            "Task \"{}\" on board \"{}\" is {} day(s) overdue",
+            task_title,
+            board_name,
+            days_overdue.max(1)
+        );
+        assert_eq!(
+            body,
+            "Task \"Review PR\" on board \"Development\" is 3 day(s) overdue"
+        );
+    }
+
+    #[test]
+    fn test_overdue_days_minimum_is_one() {
+        // When days_overdue is 0 (just barely past due), it should show at least 1
+        let days_overdue = 0_i64;
+        let clamped = days_overdue.max(1);
+        assert_eq!(clamped, 1);
+    }
 }
