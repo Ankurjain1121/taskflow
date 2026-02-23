@@ -366,6 +366,12 @@ pub mod helpers {
             .nest("/api", routes::workspace_api_keys_router(state.clone()))
             .nest("/api/favorites", routes::favorites_router(state.clone()))
             .nest("/api", routes::archive_router(state.clone()))
+            // Position routes
+            .nest(
+                "/api/boards/{board_id}/positions",
+                routes::board_positions_router(state.clone()),
+            )
+            .nest("/api/positions", routes::positions_router(state.clone()))
             .layer(cors)
             .with_state(state)
     }

@@ -2,15 +2,12 @@
 
 ## TaskFlow-Specific Notes
 
-**Backend builds**: Rust backend MUST be built in Docker on Windows (path has spaces). Use:
-```bash
-docker compose build --no-cache backend
-docker compose up -d
-```
+**This IS the VPS.** App path: `/home/ankur/taskflow`. Do NOT use `/root/taskflow` (deprecated).
 
-**VPS deployment**: Always pull latest and rebuild on VPS at `/root/taskflow`:
+**Deploy:**
 ```bash
-ssh vps-ankur "cd /root/taskflow && git pull origin master && docker compose build --no-cache && docker compose up -d"
+# From /home/ankur/taskflow:
+docker compose build && docker compose up -d
 ```
 
 ---

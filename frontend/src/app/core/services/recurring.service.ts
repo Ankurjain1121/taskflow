@@ -47,6 +47,7 @@ export interface CreateRecurringRequest {
   days_of_week?: number[];
   day_of_month?: number;
   creation_mode?: CreationMode;
+  position_id?: string;
 }
 
 export interface UpdateRecurringRequest {
@@ -60,6 +61,7 @@ export interface UpdateRecurringRequest {
   days_of_week?: number[];
   day_of_month?: number;
   creation_mode?: CreationMode;
+  position_id?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })

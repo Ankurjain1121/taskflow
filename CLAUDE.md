@@ -62,13 +62,15 @@ Fix ALL errors before continuing. Use `./scripts/quick-check.sh` for combined ch
 
 ---
 
-## VPS Access
+## VPS Deployment
 
-**SSH:** `vps-ankur` | **Path:** `/root/taskflow` | **Domain:** taskflow.paraslace.in
+**This IS the VPS.** App path: `/home/ankur/taskflow` | **Domain:** taskflow.paraslace.in
+
+> **IMPORTANT:** `/root/taskflow` is DEPRECATED. Do NOT use it. All work happens in `/home/ankur/taskflow`.
 
 ```bash
-# Deploy to VPS:
-ssh vps-ankur "cd /root/taskflow && git pull origin master && docker compose build --no-cache && docker compose up -d"
+# Deploy (from /home/ankur/taskflow):
+docker compose build && docker compose up -d
 ```
 
 ## Pre-Deploy Safety Protocol
