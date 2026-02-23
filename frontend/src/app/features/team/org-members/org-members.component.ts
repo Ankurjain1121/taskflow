@@ -14,16 +14,23 @@ import { InputTextModule } from 'primeng/inputtext';
 import { Checkbox } from 'primeng/checkbox';
 import { Tag } from 'primeng/tag';
 import { PopoverModule } from 'primeng/popover';
+import { Dialog } from 'primeng/dialog';
+import { Select } from 'primeng/select';
 import {
   WorkspaceService,
   Workspace,
   TenantMember,
   UserWorkspaceMembership,
 } from '../../../core/services/workspace.service';
+import { BoardService } from '../../../core/services/board.service';
 import {
   AddToWorkspaceDialogComponent,
   BulkAddResult,
 } from '../add-to-workspace-dialog/add-to-workspace-dialog.component';
+import {
+  InviteMemberDialogComponent,
+  InviteMemberDialogResult,
+} from '../../../shared/components/dialogs/invite-member-dialog.component';
 
 @Component({
   selector: 'app-org-members',
@@ -37,7 +44,10 @@ import {
     Checkbox,
     Tag,
     PopoverModule,
+    Dialog,
+    Select,
     AddToWorkspaceDialogComponent,
+    InviteMemberDialogComponent,
   ],
   template: `
     <div class="py-6">
@@ -62,6 +72,13 @@ import {
             (onClick)="openBulkAdd()"
           />
         }
+        <p-button
+          label="Invite Members"
+          icon="pi pi-user-plus"
+          size="small"
+          severity="primary"
+          (onClick)="openInviteFlow()"
+        />
       </div>
 
       <!-- Members Table -->
@@ -177,10 +194,7 @@ import {
                             Loading...
                           </p>
                         } @else {
-                          @for (
-                            wm of userWorkspaces();
-                            track wm.workspace_id
-                          ) {
+                          @for (wm of userWorkspaces(); track wm.workspace_id) {
                             <div
                               class="flex items-center justify-between py-1.5 text-sm"
                             >
@@ -196,9 +210,7 @@ import {
                             </div>
                           }
                           @if (userWorkspaces().length === 0) {
-                            <p
-                              class="text-xs text-[var(--muted-foreground)]"
-                            >
+                            <p class="text-xs text-[var(--muted-foreground)]">
                               No workspaces
                             </p>
                           }
@@ -243,15 +255,64 @@ import {
       [excludeWorkspaceIds]="addDialogExcludeIds()"
       (added)="onMembersAdded($event)"
     />
+
+    <!-- Workspace Picker for Invite -->
+    <p-dialog
+      header="Choose Workspace"
+      [(visible)]="showWorkspacePicker"
+      [modal]="true"
+      [style]="{ width: '400px' }"
+      [closable]="true"
+    >
+      <p class="text-sm text-[var(--muted-foreground)] mb-4">
+        Select which workspace to invite new members to.
+      </p>
+      <p-select
+        [options]="workspaceOptions()"
+        [(ngModel)]="selectedInviteWorkspaceId"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Select a workspace"
+        class="w-full"
+      />
+      <ng-template #footer>
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancel"
+            [text]="true"
+            severity="secondary"
+            (onClick)="showWorkspacePicker.set(false)"
+          />
+          <p-button
+            label="Next"
+            icon="pi pi-arrow-right"
+            iconPos="right"
+            (onClick)="onWorkspaceSelected()"
+            [disabled]="!selectedInviteWorkspaceId()"
+          />
+        </div>
+      </ng-template>
+    </p-dialog>
+
+    <!-- Invite Member Dialog -->
+    <app-invite-member-dialog
+      [(visible)]="showInviteDialog"
+      [workspaceId]="selectedInviteWorkspaceId() ?? ''"
+      [workspaceName]="inviteWorkspaceName()"
+      [boards]="inviteWorkspaceBoards()"
+      (created)="onInviteResult($event)"
+    />
   `,
 })
 export class OrgMembersComponent {
   private workspaceService = inject(WorkspaceService);
+  private boardService = inject(BoardService);
 
   members = input.required<TenantMember[]>();
   allWorkspaces = input.required<Workspace[]>();
 
   membersAdded = output<BulkAddResult>();
+  membersInvited = output<void>();
 
   searchQuery = signal('');
   selectedIds = signal<Set<string>>(new Set());
@@ -264,13 +325,28 @@ export class OrgMembersComponent {
   userWorkspaces = signal<UserWorkspaceMembership[]>([]);
   loadingWorkspaces = signal(false);
 
+  // Invite flow state
+  showWorkspacePicker = signal(false);
+  selectedInviteWorkspaceId = signal<string | null>(null);
+  showInviteDialog = signal(false);
+  inviteWorkspaceBoards = signal<{ id: string; name: string }[]>([]);
+
+  workspaceOptions = computed(() =>
+    this.allWorkspaces().map((ws) => ({ label: ws.name, value: ws.id })),
+  );
+
+  inviteWorkspaceName = computed(() => {
+    const id = this.selectedInviteWorkspaceId();
+    if (!id) return '';
+    return this.allWorkspaces().find((ws) => ws.id === id)?.name ?? '';
+  });
+
   filteredMembers = computed(() => {
     const q = this.searchQuery().toLowerCase().trim();
     if (!q) return this.members();
     return this.members().filter(
       (m) =>
-        m.name.toLowerCase().includes(q) ||
-        m.email.toLowerCase().includes(q),
+        m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q),
     );
   });
 
@@ -297,9 +373,7 @@ export class OrgMembersComponent {
 
   toggleSelectAll(): void {
     if (this.selectAll) {
-      const allIds = new Set(
-        this.filteredMembers().map((m) => m.user_id),
-      );
+      const allIds = new Set(this.filteredMembers().map((m) => m.user_id));
       this.selectedIds.set(allIds);
     } else {
       this.selectedIds.set(new Set());
@@ -351,5 +425,51 @@ export class OrgMembersComponent {
     this.selectedIds.set(new Set());
     this.selectAll = false;
     this.membersAdded.emit(result);
+  }
+
+  openInviteFlow(): void {
+    this.selectedInviteWorkspaceId.set(null);
+    this.showWorkspacePicker.set(true);
+  }
+
+  onWorkspaceSelected(): void {
+    const wsId = this.selectedInviteWorkspaceId();
+    if (!wsId) return;
+
+    this.showWorkspacePicker.set(false);
+
+    // Load boards for the selected workspace, then open invite dialog
+    this.boardService.listBoards(wsId).subscribe({
+      next: (boards) => {
+        this.inviteWorkspaceBoards.set(
+          boards.map((b) => ({ id: b.id, name: b.name })),
+        );
+        this.showInviteDialog.set(true);
+      },
+      error: () => {
+        this.inviteWorkspaceBoards.set([]);
+        this.showInviteDialog.set(true);
+      },
+    });
+  }
+
+  onInviteResult(result: InviteMemberDialogResult): void {
+    const wsId = this.selectedInviteWorkspaceId();
+    if (!wsId) return;
+
+    this.workspaceService
+      .bulkInviteMembers(
+        wsId,
+        result.emails,
+        result.role,
+        result.message,
+        result.boardIds,
+        result.jobTitle,
+      )
+      .subscribe({
+        next: () => {
+          this.membersInvited.emit();
+        },
+      });
   }
 }
