@@ -27,6 +27,7 @@ import {
   InviteMemberDialogComponent,
   InviteMemberDialogResult,
 } from './invite-member-dialog.component';
+import { PositionListComponent } from '../positions/position-list.component';
 
 @Component({
   selector: 'app-board-settings',
@@ -38,6 +39,7 @@ import {
     RouterModule,
     ColumnManagerComponent,
     InviteMemberDialogComponent,
+    PositionListComponent,
     ConfirmDialog,
   ],
   providers: [ConfirmationService],
@@ -291,6 +293,14 @@ import {
                 </div>
               }
             </div>
+          </section>
+
+          <!-- Positions Section -->
+          <section class="mb-8 animate-fade-in-up stagger-4">
+            <app-position-list
+              [boardId]="boardId"
+              [boardMembers]="members()"
+            />
           </section>
 
           <!-- Danger Zone -->

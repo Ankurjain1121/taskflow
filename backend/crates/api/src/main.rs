@@ -25,16 +25,17 @@ use crate::middleware::rate_limit::{rate_limit_layer, rate_limit_middleware};
 use crate::middleware::request_id::request_id_middleware;
 use crate::routes::{
     activity_log_router, admin_audit_router, admin_trash_router, admin_users_router,
-    archive_router, attachment_router, automation_router, board_columns_router, board_router,
-    board_share_router, board_templates_router, column_router, comment_router, cron_router,
-    custom_field_router, dashboard_router, dependency_router, eisenhower_router, favorites_router,
-    health_handler, liveness_handler, milestone_router, my_tasks_router,
-    notification_preferences_router, notification_router, onboarding_router,
-    project_template_router, readiness_handler, recurring_router, reports_router, search_router,
-    sessions_router, shared_board_public_router, subtask_router, task_group_routes, task_router,
-    task_template_router, team_overview_router, teams_router, themes_router, time_entry_router,
-    upload_router, user_preferences_router, webhook_router, workspace_api_keys_router,
-    workspace_boards_router, workspace_router, workspace_teams_router,
+    archive_router, attachment_router, automation_router, board_columns_router,
+    board_positions_router, board_router, board_share_router, board_templates_router,
+    column_router, comment_router, cron_router, custom_field_router, dashboard_router,
+    dependency_router, eisenhower_router, favorites_router, health_handler, liveness_handler,
+    milestone_router, my_tasks_router, notification_preferences_router, notification_router,
+    onboarding_router, positions_router, project_template_router, readiness_handler,
+    recurring_router, reports_router, search_router, sessions_router, shared_board_public_router,
+    subtask_router, task_group_routes, task_router, task_template_router, team_overview_router,
+    teams_router, themes_router, time_entry_router, upload_router, user_preferences_router,
+    webhook_router, workspace_api_keys_router, workspace_boards_router, workspace_router,
+    workspace_teams_router,
 };
 use crate::state::AppState;
 use crate::ws::ws_handler;
@@ -192,6 +193,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         // Team routes (direct)
         .nest("/api/teams", teams_router(state.clone()))
+        // Position routes (board-scoped)
+        .nest(
+            "/api/boards/{board_id}/positions",
+            board_positions_router(state.clone()),
+        )
+        // Position routes (direct)
+        .nest("/api/positions", positions_router(state.clone()))
         // Board routes
         .nest(
             "/api/board-templates",

@@ -27,4 +27,5 @@ pub struct RecurringTaskConfig {
     pub days_of_week: Vec<i32>,
     pub day_of_month: Option<i32>,
     pub creation_mode: String,
+    pub position_id: Option<Uuid>,
 }

@@ -30,6 +30,7 @@ pub struct CreateRecurringInput {
     pub days_of_week: Option<Vec<i32>>,
     pub day_of_month: Option<i32>,
     pub creation_mode: Option<String>,
+    pub position_id: Option<Uuid>,
 }
 
 /// Input for updating a recurring task config
@@ -76,6 +77,7 @@ fn build_calc_config(
         days_of_week: days_of_week.to_vec(),
         day_of_month,
         creation_mode: "on_schedule".to_string(),
+        position_id: None,
     }
 }
 
@@ -258,7 +260,8 @@ pub async fn get_config_for_task(
             skip_weekends,
             days_of_week,
             day_of_month,
-            creation_mode
+            creation_mode,
+            position_id
         FROM recurring_task_configs
         WHERE task_id = $1
         "#,
@@ -307,9 +310,9 @@ pub async fn create_config(
             next_run_at, is_active, max_occurrences, occurrences_created,
             board_id, tenant_id, created_by_id,
             end_date, skip_weekends, days_of_week, day_of_month, creation_mode,
-            created_at, updated_at
+            created_at, updated_at, position_id
         )
-        VALUES ($1, $2, $3, $4, $5, $6, true, $7, 0, $8, $9, $10, $11, $12, $13, $14, $15, $16, $16)
+        VALUES ($1, $2, $3, $4, $5, $6, true, $7, 0, $8, $9, $10, $11, $12, $13, $14, $15, $16, $16, $17)
         RETURNING
             id,
             task_id,
@@ -330,7 +333,8 @@ pub async fn create_config(
             skip_weekends,
             days_of_week,
             day_of_month,
-            creation_mode
+            creation_mode,
+            position_id
         "#,
     )
     .bind(id)
@@ -349,6 +353,7 @@ pub async fn create_config(
     .bind(dom)
     .bind(&creation_mode)
     .bind(now)
+    .bind(input.position_id)
     .fetch_one(pool)
     .await?;
 
@@ -385,7 +390,8 @@ pub async fn update_config(
             skip_weekends,
             days_of_week,
             day_of_month,
-            creation_mode
+            creation_mode,
+            position_id
         FROM recurring_task_configs
         WHERE id = $1
         "#,
@@ -457,7 +463,8 @@ pub async fn update_config(
             skip_weekends,
             days_of_week,
             day_of_month,
-            creation_mode
+            creation_mode,
+            position_id
         "#,
     )
     .bind(config_id)
@@ -507,7 +514,8 @@ pub async fn delete_config(
             skip_weekends,
             days_of_week,
             day_of_month,
-            creation_mode
+            creation_mode,
+            position_id
         FROM recurring_task_configs
         WHERE id = $1
         "#,
@@ -561,7 +569,8 @@ pub async fn get_due_configs(
             skip_weekends,
             days_of_week,
             day_of_month,
-            creation_mode
+            creation_mode,
+            position_id
         FROM recurring_task_configs
         WHERE next_run_at <= NOW()
           AND is_active = true
@@ -635,17 +644,37 @@ pub async fn create_recurring_instance(
     .execute(&mut *tx)
     .await?;
 
-    // Copy assignees from source task
-    sqlx::query(
-        r#"
-        INSERT INTO task_assignees (task_id, user_id)
-        SELECT $1, user_id FROM task_assignees WHERE task_id = $2
-        "#,
-    )
-    .bind(new_task_id)
-    .bind(source_task.id)
-    .execute(&mut *tx)
-    .await?;
+    // Position-based assignment or legacy copy
+    if let Some(pos_id) = config.position_id {
+        let assignee_ids = crate::queries::positions::resolve_assignees(
+            pool,
+            pos_id,
+            config.board_id,
+            config.tenant_id,
+        )
+        .await?;
+        for uid in &assignee_ids {
+            sqlx::query(
+                "INSERT INTO task_assignees (task_id, user_id) VALUES ($1, $2) ON CONFLICT (task_id, user_id) DO NOTHING",
+            )
+            .bind(new_task_id)
+            .bind(uid)
+            .execute(&mut *tx)
+            .await?;
+        }
+    } else {
+        // Legacy: copy from source task
+        sqlx::query(
+            r#"
+            INSERT INTO task_assignees (task_id, user_id)
+            SELECT $1, user_id FROM task_assignees WHERE task_id = $2
+            "#,
+        )
+        .bind(new_task_id)
+        .bind(source_task.id)
+        .execute(&mut *tx)
+        .await?;
+    }
 
     // Copy labels from source task
     sqlx::query(
@@ -818,6 +847,7 @@ mod tests {
             days_of_week: None,
             day_of_month: None,
             creation_mode: None,
+            position_id: None,
         };
 
         let config = create_config(&pool, task_id, input, user_id, tenant_id)
@@ -849,6 +879,7 @@ mod tests {
             days_of_week: None,
             day_of_month: None,
             creation_mode: Some("on_completion".to_string()),
+            position_id: None,
         };
 
         let created = create_config(&pool, task_id, input, user_id, tenant_id)
@@ -880,6 +911,7 @@ mod tests {
             days_of_week: None,
             day_of_month: None,
             creation_mode: None,
+            position_id: None,
         };
 
         let created = create_config(&pool, task_id, input, user_id, tenant_id)
@@ -926,6 +958,7 @@ mod tests {
             days_of_week: None,
             day_of_month: None,
             creation_mode: None,
+            position_id: None,
         };
 
         let created = create_config(&pool, task_id, input, user_id, tenant_id)
@@ -956,6 +989,7 @@ mod tests {
             days_of_week: None,
             day_of_month: None,
             creation_mode: Some("on_schedule".to_string()),
+            position_id: None,
         };
 
         let config = create_config(&pool, task_id, input, user_id, tenant_id)
