@@ -63,7 +63,7 @@ pub async fn assign_user_handler(
             priority as "priority: TaskPriority",
             due_date, start_date, estimated_hours,
             board_id, column_id, group_id, position,
-            milestone_id, eisenhower_urgency, eisenhower_importance,
+            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
@@ -175,7 +175,7 @@ pub async fn unassign_user_handler(
             priority as "priority: TaskPriority",
             due_date, start_date, estimated_hours,
             board_id, column_id, group_id, position,
-            milestone_id, eisenhower_urgency, eisenhower_importance,
+            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL

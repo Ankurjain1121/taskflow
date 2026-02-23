@@ -29,6 +29,9 @@ import { WorkspaceGeneralTabComponent } from './workspace-general-tab.component'
 import { WorkspaceApiKeysTabComponent } from './workspace-api-keys-tab.component';
 import { WorkspaceAdvancedTabComponent } from './workspace-advanced-tab.component';
 import { TeamsListComponent } from '../teams/teams-list.component';
+import { WorkspaceLabelsComponent } from '../labels/workspace-labels.component';
+import { AuditLogComponent } from '../audit-log/audit-log.component';
+import { TrashComponent } from '../trash/trash.component';
 
 @Component({
   selector: 'app-workspace-settings',
@@ -45,6 +48,9 @@ import { TeamsListComponent } from '../teams/teams-list.component';
     WorkspaceApiKeysTabComponent,
     WorkspaceAdvancedTabComponent,
     TeamsListComponent,
+    WorkspaceLabelsComponent,
+    AuditLogComponent,
+    TrashComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -88,11 +94,14 @@ import { TeamsListComponent } from '../teams/teams-list.component';
               <p-tab [value]="0">General</p-tab>
               <p-tab [value]="1">Members</p-tab>
               <p-tab [value]="2">Teams</p-tab>
-              <p-tab [value]="3">Integrations</p-tab>
-              <p-tab [value]="4">Advanced</p-tab>
+              <p-tab [value]="3">Labels</p-tab>
+              <p-tab [value]="4">Audit Log</p-tab>
+              <p-tab [value]="5">Trash</p-tab>
+              <p-tab [value]="6">Integrations</p-tab>
+              <p-tab [value]="7">Advanced</p-tab>
             </p-tablist>
             <p-tabpanels>
-              <!-- Tab 1: General -->
+              <!-- Tab 0: General -->
               <p-tabpanel [value]="0">
                 <app-workspace-general-tab
                   [workspace]="workspace()"
@@ -103,7 +112,7 @@ import { TeamsListComponent } from '../teams/teams-list.component';
                 />
               </p-tabpanel>
 
-              <!-- Tab 2: Members -->
+              <!-- Tab 1: Members -->
               <p-tabpanel [value]="1">
                 <div class="py-6">
                   <app-members-list
@@ -116,18 +125,33 @@ import { TeamsListComponent } from '../teams/teams-list.component';
                 </div>
               </p-tabpanel>
 
-              <!-- Tab 3: Teams -->
+              <!-- Tab 2: Teams -->
               <p-tabpanel [value]="2">
                 <app-teams-list [workspaceId]="workspaceId" />
               </p-tabpanel>
 
-              <!-- Tab 4: Integrations -->
+              <!-- Tab 3: Labels -->
               <p-tabpanel [value]="3">
+                <app-workspace-labels [workspaceId]="workspaceId" />
+              </p-tabpanel>
+
+              <!-- Tab 4: Audit Log -->
+              <p-tabpanel [value]="4">
+                <app-audit-log [workspaceId]="workspaceId" />
+              </p-tabpanel>
+
+              <!-- Tab 5: Trash -->
+              <p-tabpanel [value]="5">
+                <app-trash [workspaceId]="workspaceId" />
+              </p-tabpanel>
+
+              <!-- Tab 6: Integrations -->
+              <p-tabpanel [value]="6">
                 <app-workspace-api-keys-tab [workspaceId]="workspaceId" />
               </p-tabpanel>
 
-              <!-- Tab 5: Advanced -->
-              <p-tabpanel [value]="4">
+              <!-- Tab 7: Advanced -->
+              <p-tabpanel [value]="7">
                 <app-workspace-advanced-tab
                   [workspace]="workspace()"
                   [workspaceId]="workspaceId"

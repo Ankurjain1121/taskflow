@@ -38,6 +38,9 @@ futures-util = "0.3"
 regex.workspace = true
 once_cell.workspace = true
 
+# HTML sanitization
+ammonia = "4"
+
 # Local crates
 taskflow-db = { path = "../db" }
 taskflow-auth = { path = "../auth" }

@@ -242,9 +242,13 @@ async fn test_get_eisenhower_matrix_empty() {
     let pool = test_pool().await;
     let (_, user_id, _, _, _) = setup_full(&pool).await;
 
-    let matrix = super::eisenhower::get_eisenhower_matrix(&pool, user_id)
-        .await
-        .expect("get_eisenhower_matrix");
+    let matrix = super::eisenhower::get_eisenhower_matrix(
+        &pool,
+        user_id,
+        &super::eisenhower::EisenhowerFilters::default(),
+    )
+    .await
+    .expect("get_eisenhower_matrix");
 
     // No assigned tasks yet for this fresh user, all quadrants should be empty.
     // Just verify the query returns without error and produces a valid response.
@@ -280,9 +284,13 @@ async fn test_eisenhower_matrix_with_assigned_task() {
         .await
         .expect("assign_user");
 
-    let matrix = super::eisenhower::get_eisenhower_matrix(&pool, user_id)
-        .await
-        .expect("get_eisenhower_matrix");
+    let matrix = super::eisenhower::get_eisenhower_matrix(
+        &pool,
+        user_id,
+        &super::eisenhower::EisenhowerFilters::default(),
+    )
+    .await
+    .expect("get_eisenhower_matrix");
 
     // High priority, no due date -> auto: not urgent + important -> Schedule quadrant
     let found = matrix.schedule.iter().any(|t| t.id == task.id);
@@ -316,9 +324,13 @@ async fn test_update_eisenhower_overrides() {
         .await
         .expect("update_eisenhower_overrides");
 
-    let matrix = super::eisenhower::get_eisenhower_matrix(&pool, user_id)
-        .await
-        .expect("get_eisenhower_matrix");
+    let matrix = super::eisenhower::get_eisenhower_matrix(
+        &pool,
+        user_id,
+        &super::eisenhower::EisenhowerFilters::default(),
+    )
+    .await
+    .expect("get_eisenhower_matrix");
 
     // With overrides, task should be in DoFirst
     let found = matrix.do_first.iter().any(|t| t.id == task.id);
@@ -359,9 +371,13 @@ async fn test_reset_eisenhower_overrides() {
     assert!(rows >= 1, "should have reset at least 1 task");
 
     // After reset, Low priority + no due date -> Eliminate
-    let matrix = super::eisenhower::get_eisenhower_matrix(&pool, user_id)
-        .await
-        .expect("get_eisenhower_matrix");
+    let matrix = super::eisenhower::get_eisenhower_matrix(
+        &pool,
+        user_id,
+        &super::eisenhower::EisenhowerFilters::default(),
+    )
+    .await
+    .expect("get_eisenhower_matrix");
 
     let in_eliminate = matrix.eliminate.iter().any(|t| t.id == task.id);
     assert!(

@@ -44,6 +44,7 @@ export interface Task {
   priority: TaskPriority;
   position: string;
   milestone_id: string | null;
+  task_number?: number | null;
   assignee_id: string | null;
   due_date: string | null;
   created_by: string;
@@ -330,5 +331,9 @@ export class TaskService {
       `${this.apiUrl}/tasks/${parentTaskId}/subtasks`,
       request,
     );
+  }
+
+  duplicateTask(taskId: string): Observable<Task> {
+    return this.http.post<Task>(`${this.apiUrl}/tasks/${taskId}/duplicate`, {});
   }
 }

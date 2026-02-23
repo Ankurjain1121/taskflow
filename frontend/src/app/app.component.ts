@@ -2,6 +2,7 @@ import {
   Component,
   inject,
   OnInit,
+  OnDestroy,
   HostListener,
   signal,
   ChangeDetectionStrategy,
@@ -19,6 +20,7 @@ import { filter } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { ToastModule } from 'primeng/toast';
 import { ThemeService } from './core/services/theme.service';
+import { KeyboardShortcutsService } from './core/services/keyboard-shortcuts.service';
 import { GlobalSearchComponent } from './shared/components/global-search/global-search.component';
 import { ToastContainerComponent } from './shared/components/toast/toast.component';
 import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
@@ -63,7 +65,7 @@ const routeTransition = trigger('routeAnimations', [
   styleUrl: './app.component.css',
   animations: [routeTransition],
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   title = 'frontend';
 
   searchOpen = signal(false);
@@ -72,10 +74,14 @@ export class AppComponent implements OnInit {
   // Inject ThemeService to ensure theme is applied on app initialization
   private themeService = inject(ThemeService);
   private router = inject(Router);
+  private keyboardShortcuts = inject(KeyboardShortcutsService);
 
   ngOnInit(): void {
     // ThemeService constructor handles theme initialization
     // This ensures the service is instantiated and theme is applied
+
+    // Register global navigation shortcuts (G then X sequences)
+    this.registerGlobalShortcuts();
 
     // Listen to route changes to determine if sidebar should be shown
     this.router.events
@@ -93,6 +99,10 @@ export class AppComponent implements OnInit {
     const hideSidebar =
       currentUrl.startsWith('/auth') || currentUrl.startsWith('/onboarding');
     this.showSidebar.set(!hideSidebar);
+  }
+
+  ngOnDestroy(): void {
+    this.keyboardShortcuts.unregisterByCategory('Navigation');
   }
 
   @HostListener('document:keydown', ['$event'])
@@ -119,5 +129,31 @@ export class AppComponent implements OnInit {
       outlet.activatedRoute?.snapshot?.url?.toString() ||
       ''
     );
+  }
+
+  private registerGlobalShortcuts(): void {
+    this.keyboardShortcuts.register('nav-dashboard', {
+      prefix: 'g',
+      key: 'd',
+      description: 'Go to Dashboard',
+      category: 'Navigation',
+      action: () => this.router.navigate(['/dashboard']),
+    });
+
+    this.keyboardShortcuts.register('nav-my-tasks', {
+      prefix: 'g',
+      key: 'm',
+      description: 'Go to My Tasks',
+      category: 'Navigation',
+      action: () => this.router.navigate(['/my-tasks']),
+    });
+
+    this.keyboardShortcuts.register('nav-eisenhower', {
+      prefix: 'g',
+      key: 'e',
+      description: 'Go to Eisenhower Matrix',
+      category: 'Navigation',
+      action: () => this.router.navigate(['/eisenhower']),
+    });
   }
 }

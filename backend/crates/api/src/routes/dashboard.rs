@@ -15,6 +15,7 @@ use uuid::Uuid;
 use crate::errors::Result;
 use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
+use crate::services::cache;
 use crate::state::AppState;
 use taskflow_db::queries::dashboard::{
     get_completion_trend, get_dashboard_stats, get_overdue_tasks, get_recent_activity,
@@ -71,7 +72,17 @@ async fn get_stats_handler(
     tenant: TenantContext,
     Query(filter): Query<DashboardFilter>,
 ) -> Result<Json<DashboardStats>> {
+    // Check Redis cache first (30s TTL)
+    let cache_key = cache::dashboard_stats_key(&tenant.user_id, filter.workspace_id.as_ref());
+    if let Some(cached) = cache::cache_get::<DashboardStats>(&state.redis, &cache_key).await {
+        return Ok(Json(cached));
+    }
+
     let stats = get_dashboard_stats(&state.db, tenant.user_id, filter.workspace_id).await?;
+
+    // Store in cache (30 second TTL)
+    cache::cache_set(&state.redis, &cache_key, &stats, 30).await;
+
     Ok(Json(stats))
 }
 

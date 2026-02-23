@@ -12,7 +12,15 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
-import { TaskPriority, Assignee } from '../../../core/services/task.service';
+import {
+  TaskPriority,
+  Assignee,
+  Label,
+} from '../../../core/services/task.service';
+import {
+  FilterPresetsService,
+  FilterPreset,
+} from '../../../core/services/filter-presets.service';
 import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
@@ -20,6 +28,8 @@ import { MultiSelect } from 'primeng/multiselect';
 import { DatePicker } from 'primeng/datepicker';
 import { SelectButton } from 'primeng/selectbutton';
 import { ButtonModule } from 'primeng/button';
+import { Menu } from 'primeng/menu';
+import { Dialog } from 'primeng/dialog';
 
 export type ViewMode =
   | 'kanban'
@@ -60,6 +70,8 @@ const DEFAULT_FILTERS: TaskFilters = {
     DatePicker,
     SelectButton,
     ButtonModule,
+    Menu,
+    Dialog,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -125,6 +137,31 @@ const DEFAULT_FILTERS: TaskFilters = {
           </ng-template>
         </p-multiSelect>
 
+        <!-- Label Filter -->
+        @if (labels().length > 0) {
+          <p-multiSelect
+            [options]="labels()"
+            [(ngModel)]="selectedLabels"
+            (ngModelChange)="onLabelFilterChange($event)"
+            placeholder="Labels"
+            optionLabel="name"
+            optionValue="id"
+            [showHeader]="false"
+            [style]="{ 'min-width': '10rem' }"
+            styleClass="w-auto"
+          >
+            <ng-template #item let-label>
+              <div class="flex items-center gap-2">
+                <span
+                  class="w-2.5 h-2.5 rounded-full"
+                  [style.background-color]="label.color"
+                ></span>
+                <span>{{ label.name }}</span>
+              </div>
+            </ng-template>
+          </p-multiSelect>
+        }
+
         <!-- Due Date Range -->
         <div class="flex items-center gap-2">
           <p-datePicker
@@ -151,6 +188,33 @@ const DEFAULT_FILTERS: TaskFilters = {
             inputStyleClass="text-sm py-2"
           />
         </div>
+
+        <!-- Filter Presets -->
+        @if (boardId()) {
+          <div class="flex items-center gap-1">
+            @if (presets().length > 0) {
+              <p-button
+                icon="pi pi-bookmark"
+                severity="secondary"
+                [text]="true"
+                size="small"
+                (onClick)="presetsMenu.toggle($event)"
+                pTooltip="Load saved filter"
+              />
+              <p-menu #presetsMenu [popup]="true" [model]="presetMenuItems()" />
+            }
+            @if (activeFilterCount() > 0) {
+              <p-button
+                icon="pi pi-save"
+                severity="secondary"
+                [text]="true"
+                size="small"
+                (onClick)="showSavePresetDialog = true"
+                pTooltip="Save current filters"
+              />
+            }
+          </div>
+        }
 
         <!-- View Toggle -->
         <p-selectButton
@@ -179,6 +243,41 @@ const DEFAULT_FILTERS: TaskFilters = {
         }
       </div>
     </div>
+
+    <!-- Save Preset Dialog -->
+    <p-dialog
+      header="Save Filter Preset"
+      [(visible)]="showSavePresetDialog"
+      [modal]="true"
+      [style]="{ width: '400px' }"
+    >
+      <div class="flex flex-col gap-3">
+        <label class="text-sm font-medium text-[var(--foreground)]">
+          Preset name
+        </label>
+        <input
+          pInputText
+          [(ngModel)]="newPresetName"
+          placeholder="e.g. My urgent tasks"
+          class="w-full"
+          (keydown.enter)="savePreset()"
+        />
+      </div>
+      <ng-template #footer>
+        <p-button
+          label="Cancel"
+          severity="secondary"
+          [text]="true"
+          (onClick)="showSavePresetDialog = false"
+        />
+        <p-button
+          label="Save"
+          icon="pi pi-check"
+          (onClick)="savePreset()"
+          [disabled]="!newPresetName.trim()"
+        />
+      </ng-template>
+    </p-dialog>
   `,
   styles: [
     `
@@ -200,10 +299,13 @@ const DEFAULT_FILTERS: TaskFilters = {
 export class BoardToolbarComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private filterPresetsService = inject(FilterPresetsService);
   private destroy$ = new Subject<void>();
   private searchSubject = new Subject<string>();
 
+  boardId = input<string>('');
   assignees = input<Assignee[]>([]);
+  labels = input<Label[]>([]);
   viewMode = input<ViewMode>('kanban');
 
   filtersChanged = output<TaskFilters>();
@@ -211,6 +313,10 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
 
   searchTerm = signal('');
   filters = signal<TaskFilters>({ ...DEFAULT_FILTERS });
+  presets = signal<FilterPreset[]>([]);
+
+  showSavePresetDialog = false;
+  newPresetName = '';
 
   priorityOptions: TaskPriority[] = ['urgent', 'high', 'medium', 'low'];
 
@@ -222,6 +328,7 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
   ];
   selectedPriorities: string[] = [];
   selectedAssignees: string[] = [];
+  selectedLabels: string[] = [];
   dueDateStartValue: Date | null = null;
   dueDateEndValue: Date | null = null;
 
@@ -255,6 +362,7 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
         this.filters.set(filters);
         this.selectedPriorities = filters.priorities;
         this.selectedAssignees = filters.assigneeIds;
+        this.selectedLabels = filters.labelIds;
         this.dueDateStartValue = filters.dueDateStart
           ? new Date(filters.dueDateStart)
           : null;
@@ -269,6 +377,9 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
       .subscribe((term) => {
         this.updateFilter('search', term);
       });
+
+    // Load filter presets
+    this.loadPresets();
   }
 
   ngOnDestroy(): void {
@@ -309,6 +420,10 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
     this.updateFilter('assigneeIds', assigneeIds);
   }
 
+  onLabelFilterChange(labelIds: string[]): void {
+    this.updateFilter('labelIds', labelIds);
+  }
+
   onDueDateStartPickerChange(date: Date | null): void {
     this.updateFilter(
       'dueDateStart',
@@ -327,11 +442,60 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
     this.searchTerm.set('');
     this.selectedPriorities = [];
     this.selectedAssignees = [];
+    this.selectedLabels = [];
     this.dueDateStartValue = null;
     this.dueDateEndValue = null;
     this.filters.set({ ...DEFAULT_FILTERS });
     this.persistFilters(DEFAULT_FILTERS);
     this.filtersChanged.emit(DEFAULT_FILTERS);
+  }
+
+  presetMenuItems(): { label: string; icon: string; command: () => void }[] {
+    return this.presets().map((p) => ({
+      label: p.name,
+      icon: 'pi pi-bookmark',
+      command: () => this.loadPreset(p),
+    }));
+  }
+
+  loadPresets(): void {
+    const id = this.boardId();
+    if (!id) return;
+    this.filterPresetsService
+      .list(id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((presets) => this.presets.set(presets));
+  }
+
+  savePreset(): void {
+    const name = this.newPresetName.trim();
+    const id = this.boardId();
+    if (!name || !id) return;
+
+    this.filterPresetsService
+      .create(id, {
+        name,
+        filters: this.filters() as unknown as Record<string, unknown>,
+      })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.showSavePresetDialog = false;
+        this.newPresetName = '';
+        this.loadPresets();
+      });
+  }
+
+  loadPreset(preset: FilterPreset): void {
+    const f = preset.filters as unknown as TaskFilters;
+    this.searchTerm.set(f.search || '');
+    this.selectedPriorities = f.priorities || [];
+    this.selectedAssignees = f.assigneeIds || [];
+    this.selectedLabels = f.labelIds || [];
+    this.dueDateStartValue = f.dueDateStart ? new Date(f.dueDateStart) : null;
+    this.dueDateEndValue = f.dueDateEnd ? new Date(f.dueDateEnd) : null;
+    this.filters.set({ ...DEFAULT_FILTERS, ...f });
+    this.persistFilters(this.filters());
+    this.filtersChanged.emit(this.filters());
   }
 
   private updateFilter<K extends keyof TaskFilters>(

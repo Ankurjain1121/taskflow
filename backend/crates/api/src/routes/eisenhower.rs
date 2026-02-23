@@ -1,9 +1,9 @@
 //! Eisenhower Matrix API routes
 //!
-//! Provides endpoints for the Eisenhower Matrix view (2×2 prioritization grid).
+//! Provides endpoints for the Eisenhower Matrix view (2x2 prioritization grid).
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::{get, put},
     Json, Router,
@@ -17,9 +17,17 @@ use crate::middleware::auth_middleware;
 use crate::state::AppState;
 use taskflow_db::queries::eisenhower::{
     get_eisenhower_matrix, reset_eisenhower_overrides, update_eisenhower_overrides,
-    EisenhowerMatrixResponse,
+    EisenhowerFilters, EisenhowerMatrixResponse,
 };
 use taskflow_db::queries::get_task_board_id;
+
+/// Query parameters for filtering the Eisenhower Matrix
+#[derive(Debug, Deserialize)]
+pub struct EisenhowerQueryParams {
+    pub workspace_id: Option<Uuid>,
+    pub board_id: Option<Uuid>,
+    pub daily: Option<bool>,
+}
 
 /// Request body for updating Eisenhower overrides
 #[derive(Debug, Deserialize)]
@@ -36,16 +44,20 @@ pub struct ResetEisenhowerResponse {
 
 /// GET /api/eisenhower
 ///
-/// Get all tasks assigned to the current user, grouped by Eisenhower Matrix quadrants:
-/// - do_first: Urgent + Important
-/// - schedule: Not Urgent + Important
-/// - delegate: Urgent + Not Important
-/// - eliminate: Not Urgent + Not Important
+/// Get all tasks assigned to the current user, grouped by Eisenhower Matrix quadrants.
+/// Optional query params: workspace_id, board_id, daily (bool)
 async fn get_eisenhower_matrix_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
+    Query(params): Query<EisenhowerQueryParams>,
 ) -> Result<Json<EisenhowerMatrixResponse>> {
-    let matrix = get_eisenhower_matrix(&state.db, tenant.user_id).await?;
+    let filters = EisenhowerFilters {
+        workspace_id: params.workspace_id,
+        board_id: params.board_id,
+        daily: params.daily.unwrap_or(false),
+    };
+
+    let matrix = get_eisenhower_matrix(&state.db, tenant.user_id, &filters).await?;
 
     Ok(Json(matrix))
 }
@@ -98,7 +110,7 @@ async fn reset_eisenhower(
 /// Create the eisenhower router
 ///
 /// Routes:
-/// - GET / - Get Eisenhower Matrix with all quadrants
+/// - GET / - Get Eisenhower Matrix with all quadrants (supports ?workspace_id, ?board_id, ?daily)
 /// - PUT /tasks/:id - Update task's manual overrides
 /// - PUT /reset - Reset all overrides to auto-compute
 pub fn eisenhower_router(state: AppState) -> Router<AppState> {

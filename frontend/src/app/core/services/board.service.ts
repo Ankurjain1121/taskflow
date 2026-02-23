@@ -7,6 +7,7 @@ export interface Board {
   workspace_id: string;
   name: string;
   description: string | null;
+  prefix?: string | null;
   position: string;
   created_at: string;
   updated_at: string;

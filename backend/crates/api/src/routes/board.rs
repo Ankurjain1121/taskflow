@@ -22,6 +22,7 @@ use taskflow_services::board_templates;
 use crate::errors::{AppError, Result};
 use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
 use crate::middleware::auth_middleware;
+use crate::services::cache;
 use crate::state::AppState;
 
 // ============================================================================
@@ -52,12 +53,13 @@ pub struct UpdateBoardMemberRoleRequest {
     pub role: BoardMemberRole,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct BoardResponse {
     pub id: Uuid,
     pub name: String,
     pub description: Option<String>,
     pub slack_webhook_url: Option<String>,
+    pub prefix: Option<String>,
     pub workspace_id: Uuid,
     pub tenant_id: Uuid,
     pub created_by_id: Uuid,
@@ -71,6 +73,7 @@ pub struct BoardDetailResponse {
     pub name: String,
     pub description: Option<String>,
     pub slack_webhook_url: Option<String>,
+    pub prefix: Option<String>,
     pub workspace_id: Uuid,
     pub tenant_id: Uuid,
     pub created_by_id: Uuid,
@@ -173,6 +176,12 @@ async fn list_boards(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
+    // Check Redis cache first (30s TTL)
+    let cache_key = cache::workspace_boards_key(&workspace_id);
+    if let Some(cached) = cache::cache_get::<Vec<BoardResponse>>(&state.redis, &cache_key).await {
+        return Ok(Json(cached));
+    }
+
     let boards_list =
         boards::list_boards_by_workspace(&state.db, workspace_id, auth.0.user_id).await?;
 
@@ -183,6 +192,7 @@ async fn list_boards(
             name: b.name,
             description: b.description,
             slack_webhook_url: b.slack_webhook_url,
+            prefix: b.prefix,
             workspace_id: b.workspace_id,
             tenant_id: b.tenant_id,
             created_by_id: b.created_by_id,
@@ -190,6 +200,9 @@ async fn list_boards(
             updated_at: b.updated_at,
         })
         .collect();
+
+    // Store in cache (30 second TTL)
+    cache::cache_set(&state.redis, &cache_key, &response, 30).await;
 
     Ok(Json(response))
 }
@@ -211,6 +224,7 @@ async fn get_board(
         name: board.board.name,
         description: board.board.description,
         slack_webhook_url: board.board.slack_webhook_url,
+        prefix: board.board.prefix,
         workspace_id: board.board.workspace_id,
         tenant_id: board.board.tenant_id,
         created_by_id: board.board.created_by_id,
@@ -306,11 +320,15 @@ async fn create_board(
         }
     }
 
+    // Invalidate workspace boards cache
+    cache::cache_del(&state.redis, &cache::workspace_boards_key(&workspace_id)).await;
+
     Ok(Json(BoardDetailResponse {
         id: board.board.id,
         name: board.board.name,
         description: board.board.description,
         slack_webhook_url: board.board.slack_webhook_url,
+        prefix: board.board.prefix,
         workspace_id: board.board.workspace_id,
         tenant_id: board.board.tenant_id,
         created_by_id: board.board.created_by_id,
@@ -363,11 +381,19 @@ async fn update_board(
         .await?
         .ok_or_else(|| AppError::NotFound("Board not found".into()))?;
 
+    // Invalidate workspace boards cache
+    cache::cache_del(
+        &state.redis,
+        &cache::workspace_boards_key(&board.workspace_id),
+    )
+    .await;
+
     Ok(Json(BoardResponse {
         id: board.id,
         name: board.name,
         description: board.description,
         slack_webhook_url: board.slack_webhook_url,
+        prefix: board.prefix,
         workspace_id: board.workspace_id,
         tenant_id: board.tenant_id,
         created_by_id: board.created_by_id,
@@ -393,9 +419,20 @@ async fn delete_board(
         ));
     }
 
+    // Get workspace_id for cache invalidation before deletion
+    let board_info = boards::get_board_by_id(&state.db, id, auth.0.user_id).await?;
+
     let deleted = boards::soft_delete_board(&state.db, id).await?;
 
     if deleted {
+        // Invalidate workspace boards cache
+        if let Some(info) = board_info {
+            cache::cache_del(
+                &state.redis,
+                &cache::workspace_boards_key(&info.board.workspace_id),
+            )
+            .await;
+        }
         Ok(Json(MessageResponse {
             message: "Board deleted successfully".into(),
         }))
@@ -649,6 +686,7 @@ async fn get_board_full(
         name: board.board.name,
         description: board.board.description,
         slack_webhook_url: board.board.slack_webhook_url,
+        prefix: board.board.prefix,
         workspace_id: board.board.workspace_id,
         tenant_id: board.board.tenant_id,
         created_by_id: board.board.created_by_id,

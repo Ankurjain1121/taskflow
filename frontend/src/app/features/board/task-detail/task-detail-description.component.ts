@@ -6,40 +6,34 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Textarea } from 'primeng/textarea';
+import { RichTextEditorComponent } from '../../../shared/components/rich-text-editor/rich-text-editor.component';
 
 @Component({
   selector: 'app-task-detail-description',
   standalone: true,
-  imports: [CommonModule, FormsModule, Textarea],
+  imports: [CommonModule, RichTextEditorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div>
-      <label class="block text-sm font-medium text-gray-500 mb-1"
+      <label class="block text-sm font-medium text-[var(--muted-foreground)] mb-1"
         >Description</label
       >
       @if (editing()) {
-        <textarea
-          pTextarea
-          [ngModel]="draft()"
-          (ngModelChange)="draft.set($event)"
-          (blur)="onSave()"
-          rows="6"
-          class="w-full"
+        <app-rich-text-editor
+          [content]="draft()"
           placeholder="Add a description..."
-          autofocus
-        ></textarea>
+          (contentChanged)="draft.set($event)"
+        />
         <div class="flex items-center gap-2 mt-2">
           <button
             (click)="onSave()"
-            class="px-3 py-1.5 text-sm font-medium text-white bg-primary hover:bg-primary hover:brightness-90 rounded-md"
+            class="px-3 py-1.5 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] hover:opacity-90 rounded-md"
           >
             Save
           </button>
           <button
             (click)="onCancel()"
-            class="px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-md"
+            class="px-3 py-1.5 text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--muted)] rounded-md"
           >
             Cancel
           </button>
@@ -47,14 +41,15 @@ import { Textarea } from 'primeng/textarea';
       } @else {
         <div
           (click)="startEditing()"
-          class="min-h-[60px] px-3 py-2 rounded-md border border-transparent hover:border-gray-300 hover:bg-gray-50 cursor-text transition-colors"
+          class="min-h-[60px] px-3 py-2 rounded-md border border-transparent hover:border-[var(--border)] hover:bg-[var(--muted)] cursor-text transition-colors"
         >
           @if (description()) {
-            <p class="text-sm text-gray-700 whitespace-pre-wrap">
-              {{ description() }}
-            </p>
+            <app-rich-text-editor
+              [content]="description()!"
+              [readonly]="true"
+            />
           } @else {
-            <p class="text-sm text-gray-400 italic">
+            <p class="text-sm text-[var(--muted-foreground)] italic">
               Click to add a description...
             </p>
           }

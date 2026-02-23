@@ -788,9 +788,10 @@ async fn test_create_subtask() {
     .await;
 
     let subtask_title = format!("Subtask-{}", Uuid::new_v4());
-    let subtask = super::subtasks::create_subtask(&pool, task.id, &subtask_title, user_id)
-        .await
-        .expect("create_subtask");
+    let subtask =
+        super::subtasks::create_subtask(&pool, task.id, &subtask_title, user_id, None, None)
+            .await
+            .expect("create_subtask");
 
     assert_eq!(subtask.title, subtask_title);
     assert_eq!(subtask.task_id, task.id);
@@ -815,7 +816,7 @@ async fn test_toggle_subtask() {
     )
     .await;
 
-    let subtask = super::subtasks::create_subtask(&pool, task.id, "ToggleSub", user_id)
+    let subtask = super::subtasks::create_subtask(&pool, task.id, "ToggleSub", user_id, None, None)
         .await
         .expect("create_subtask");
 

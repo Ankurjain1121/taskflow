@@ -1,8 +1,9 @@
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::Subtask;
+use crate::models::{Subtask, SubtaskWithAssignee, Task, TaskPriority};
 use crate::utils::generate_key_between;
 
 /// Error type for subtask query operations
@@ -21,26 +22,31 @@ pub struct SubtaskProgress {
     pub total: i64,
 }
 
-/// List all subtasks for a task, ordered by position
+/// List all subtasks for a task, ordered by position, with assignee info
 pub async fn list_subtasks_by_task(
     pool: &PgPool,
     task_id: Uuid,
-) -> Result<Vec<Subtask>, SubtaskQueryError> {
-    let subtasks = sqlx::query_as::<_, Subtask>(
+) -> Result<Vec<SubtaskWithAssignee>, SubtaskQueryError> {
+    let subtasks = sqlx::query_as::<_, SubtaskWithAssignee>(
         r#"
         SELECT
-            id,
-            title,
-            is_completed,
-            position,
-            task_id,
-            created_by_id,
-            completed_at,
-            created_at,
-            updated_at
-        FROM subtasks
-        WHERE task_id = $1
-        ORDER BY position ASC
+            s.id,
+            s.title,
+            s.is_completed,
+            s.position,
+            s.task_id,
+            s.created_by_id,
+            s.assigned_to_id,
+            s.due_date,
+            s.completed_at,
+            s.created_at,
+            s.updated_at,
+            u.name as assignee_name,
+            u.avatar_url as assignee_avatar_url
+        FROM subtasks s
+        LEFT JOIN users u ON u.id = s.assigned_to_id
+        WHERE s.task_id = $1
+        ORDER BY s.position ASC
         "#,
     )
     .bind(task_id)
@@ -56,6 +62,8 @@ pub async fn create_subtask(
     task_id: Uuid,
     title: &str,
     created_by_id: Uuid,
+    assigned_to_id: Option<Uuid>,
+    due_date: Option<NaiveDate>,
 ) -> Result<Subtask, SubtaskQueryError> {
     // Get the last position to calculate the new one
     let last_position = sqlx::query_scalar::<_, String>(
@@ -77,8 +85,8 @@ pub async fn create_subtask(
 
     let subtask = sqlx::query_as::<_, Subtask>(
         r#"
-        INSERT INTO subtasks (id, title, position, task_id, created_by_id)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO subtasks (id, title, position, task_id, created_by_id, assigned_to_id, due_date)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING
             id,
             title,
@@ -86,6 +94,8 @@ pub async fn create_subtask(
             position,
             task_id,
             created_by_id,
+            assigned_to_id,
+            due_date,
             completed_at,
             created_at,
             updated_at
@@ -96,40 +106,67 @@ pub async fn create_subtask(
     .bind(&position)
     .bind(task_id)
     .bind(created_by_id)
+    .bind(assigned_to_id)
+    .bind(due_date)
     .fetch_one(pool)
     .await?;
 
     Ok(subtask)
 }
 
-/// Update a subtask's title
+/// Update a subtask's title, assignee, and due date
 pub async fn update_subtask(
     pool: &PgPool,
     subtask_id: Uuid,
-    title: &str,
+    title: Option<&str>,
+    assigned_to_id: Option<Option<Uuid>>,
+    due_date: Option<Option<NaiveDate>>,
 ) -> Result<Subtask, SubtaskQueryError> {
-    let subtask = sqlx::query_as::<_, Subtask>(
+    // Build SET clause dynamically based on which fields are provided
+    let mut set_parts = vec!["updated_at = NOW()".to_string()];
+    let mut param_idx = 2u32; // $1 is subtask_id
+
+    if title.is_some() {
+        set_parts.push(format!("title = ${param_idx}"));
+        param_idx += 1;
+    }
+    if assigned_to_id.is_some() {
+        set_parts.push(format!("assigned_to_id = ${param_idx}"));
+        param_idx += 1;
+    }
+    if due_date.is_some() {
+        set_parts.push(format!("due_date = ${param_idx}"));
+        // param_idx not needed after last use
+    }
+
+    let query = format!(
         r#"
         UPDATE subtasks
-        SET title = $2, updated_at = NOW()
+        SET {}
         WHERE id = $1
         RETURNING
-            id,
-            title,
-            is_completed,
-            position,
-            task_id,
-            created_by_id,
-            completed_at,
-            created_at,
-            updated_at
+            id, title, is_completed, position, task_id, created_by_id,
+            assigned_to_id, due_date, completed_at, created_at, updated_at
         "#,
-    )
-    .bind(subtask_id)
-    .bind(title)
-    .fetch_optional(pool)
-    .await?
-    .ok_or(SubtaskQueryError::NotFound)?;
+        set_parts.join(", ")
+    );
+
+    let mut q = sqlx::query_as::<_, Subtask>(&query).bind(subtask_id);
+
+    if let Some(t) = title {
+        q = q.bind(t);
+    }
+    if let Some(a) = assigned_to_id {
+        q = q.bind(a);
+    }
+    if let Some(d) = due_date {
+        q = q.bind(d);
+    }
+
+    let subtask = q
+        .fetch_optional(pool)
+        .await?
+        .ok_or(SubtaskQueryError::NotFound)?;
 
     Ok(subtask)
 }
@@ -151,6 +188,8 @@ pub async fn toggle_subtask(pool: &PgPool, subtask_id: Uuid) -> Result<Subtask, 
             position,
             task_id,
             created_by_id,
+            assigned_to_id,
+            due_date,
             completed_at,
             created_at,
             updated_at
@@ -202,6 +241,8 @@ pub async fn reorder_subtask(
             position,
             task_id,
             created_by_id,
+            assigned_to_id,
+            due_date,
             completed_at,
             created_at,
             updated_at
@@ -261,10 +302,109 @@ pub async fn get_subtask_task_id(
     .await
 }
 
+/// Promote a subtask to a full task in the same board/column
+/// Returns the newly created Task and deletes the subtask in a transaction
+pub async fn promote_subtask_to_task(
+    pool: &PgPool,
+    subtask_id: Uuid,
+    tenant_id: Uuid,
+    user_id: Uuid,
+) -> Result<Task, SubtaskQueryError> {
+    // Get the subtask and its parent task info
+    let row = sqlx::query_as::<_, SubtaskPromoteRow>(
+        r#"
+        SELECT s.id, s.title, s.assigned_to_id, s.due_date,
+               t.board_id, t.column_id, t.id as parent_task_id
+        FROM subtasks s
+        INNER JOIN tasks t ON t.id = s.task_id
+        WHERE s.id = $1
+        "#,
+    )
+    .bind(subtask_id)
+    .fetch_optional(pool)
+    .await?
+    .ok_or(SubtaskQueryError::NotFound)?;
+
+    // Get the last position in the column
+    let last_position = sqlx::query_scalar::<_, String>(
+        r#"
+        SELECT position FROM tasks
+        WHERE column_id = $1 AND deleted_at IS NULL
+        ORDER BY position DESC
+        LIMIT 1
+        "#,
+    )
+    .bind(row.column_id)
+    .fetch_optional(pool)
+    .await?;
+
+    let position = generate_key_between(last_position.as_deref(), None);
+    let task_id = Uuid::new_v4();
+
+    // Create the new task
+    let task = sqlx::query_as::<_, Task>(
+        r#"
+        INSERT INTO tasks (id, title, priority, column_id, board_id, position, tenant_id, created_by_id, due_date)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING id, title, description, priority, due_date, start_date, estimated_hours,
+                  board_id, column_id, group_id, position, milestone_id, task_number,
+                  eisenhower_urgency, eisenhower_importance,
+                  tenant_id, created_by_id, deleted_at, created_at, updated_at
+        "#,
+    )
+    .bind(task_id)
+    .bind(&row.title)
+    .bind(TaskPriority::Medium)
+    .bind(row.column_id)
+    .bind(row.board_id)
+    .bind(&position)
+    .bind(tenant_id)
+    .bind(user_id)
+    .bind(row.due_date)
+    .fetch_one(pool)
+    .await?;
+
+    // Assign the subtask's assignee to the new task if one existed
+    if let Some(assignee_id) = row.assigned_to_id {
+        sqlx::query(
+            r#"
+            INSERT INTO task_assignees (task_id, user_id)
+            VALUES ($1, $2)
+            ON CONFLICT DO NOTHING
+            "#,
+        )
+        .bind(task_id)
+        .bind(assignee_id)
+        .execute(pool)
+        .await?;
+    }
+
+    // Delete the subtask
+    sqlx::query("DELETE FROM subtasks WHERE id = $1")
+        .bind(subtask_id)
+        .execute(pool)
+        .await?;
+
+    Ok(task)
+}
+
+/// Internal row for promote operation
+#[derive(sqlx::FromRow)]
+struct SubtaskPromoteRow {
+    #[allow(dead_code)]
+    id: Uuid,
+    title: String,
+    assigned_to_id: Option<Uuid>,
+    due_date: Option<NaiveDate>,
+    board_id: Uuid,
+    column_id: Uuid,
+    #[allow(dead_code)]
+    parent_task_id: Uuid,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::TaskPriority;
     use crate::queries::{auth, boards, tasks, workspaces};
 
     const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
@@ -331,7 +471,7 @@ mod tests {
         let pool = test_pool().await;
         let (task_id, user_id, _tenant_id) = setup_with_task(&pool).await;
 
-        let subtask = create_subtask(&pool, task_id, "Write unit tests", user_id)
+        let subtask = create_subtask(&pool, task_id, "Write unit tests", user_id, None, None)
             .await
             .expect("create_subtask");
 
@@ -341,6 +481,29 @@ mod tests {
         assert!(!subtask.is_completed);
         assert!(subtask.completed_at.is_none());
         assert!(!subtask.position.is_empty());
+        assert!(subtask.assigned_to_id.is_none());
+        assert!(subtask.due_date.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_create_subtask_with_assignee_and_due_date() {
+        let pool = test_pool().await;
+        let (task_id, user_id, _tenant_id) = setup_with_task(&pool).await;
+        let due = NaiveDate::from_ymd_opt(2026, 3, 15).expect("valid date");
+
+        let subtask = create_subtask(
+            &pool,
+            task_id,
+            "With extras",
+            user_id,
+            Some(user_id),
+            Some(due),
+        )
+        .await
+        .expect("create_subtask with extras");
+
+        assert_eq!(subtask.assigned_to_id, Some(user_id));
+        assert_eq!(subtask.due_date, Some(due));
     }
 
     #[tokio::test]
@@ -348,10 +511,10 @@ mod tests {
         let pool = test_pool().await;
         let (task_id, user_id, _tenant_id) = setup_with_task(&pool).await;
 
-        create_subtask(&pool, task_id, "Subtask A", user_id)
+        create_subtask(&pool, task_id, "Subtask A", user_id, None, None)
             .await
             .expect("create subtask A");
-        create_subtask(&pool, task_id, "Subtask B", user_id)
+        create_subtask(&pool, task_id, "Subtask B", user_id, None, None)
             .await
             .expect("create subtask B");
 
@@ -370,7 +533,7 @@ mod tests {
         let pool = test_pool().await;
         let (task_id, user_id, _tenant_id) = setup_with_task(&pool).await;
 
-        let subtask = create_subtask(&pool, task_id, "Toggle me", user_id)
+        let subtask = create_subtask(&pool, task_id, "Toggle me", user_id, None, None)
             .await
             .expect("create subtask");
 
@@ -396,11 +559,11 @@ mod tests {
         let pool = test_pool().await;
         let (task_id, user_id, _tenant_id) = setup_with_task(&pool).await;
 
-        let subtask = create_subtask(&pool, task_id, "Old Title", user_id)
+        let subtask = create_subtask(&pool, task_id, "Old Title", user_id, None, None)
             .await
             .expect("create subtask");
 
-        let updated = update_subtask(&pool, subtask.id, "New Title")
+        let updated = update_subtask(&pool, subtask.id, Some("New Title"), None, None)
             .await
             .expect("update_subtask");
 
@@ -413,7 +576,7 @@ mod tests {
         let pool = test_pool().await;
         let (task_id, user_id, _tenant_id) = setup_with_task(&pool).await;
 
-        let subtask = create_subtask(&pool, task_id, "Delete me", user_id)
+        let subtask = create_subtask(&pool, task_id, "Delete me", user_id, None, None)
             .await
             .expect("create subtask");
 
@@ -453,10 +616,10 @@ mod tests {
         assert_eq!(progress.completed, 0);
 
         // Add two subtasks, complete one
-        let s1 = create_subtask(&pool, task_id, "Progress A", user_id)
+        let s1 = create_subtask(&pool, task_id, "Progress A", user_id, None, None)
             .await
             .expect("create subtask A");
-        create_subtask(&pool, task_id, "Progress B", user_id)
+        create_subtask(&pool, task_id, "Progress B", user_id, None, None)
             .await
             .expect("create subtask B");
 
@@ -476,7 +639,7 @@ mod tests {
         let pool = test_pool().await;
         let (task_id, user_id, _tenant_id) = setup_with_task(&pool).await;
 
-        let subtask = create_subtask(&pool, task_id, "Reorder me", user_id)
+        let subtask = create_subtask(&pool, task_id, "Reorder me", user_id, None, None)
             .await
             .expect("create subtask");
 
@@ -492,7 +655,7 @@ mod tests {
         let pool = test_pool().await;
         let (task_id, user_id, _tenant_id) = setup_with_task(&pool).await;
 
-        let subtask = create_subtask(&pool, task_id, "Task ID lookup", user_id)
+        let subtask = create_subtask(&pool, task_id, "Task ID lookup", user_id, None, None)
             .await
             .expect("create subtask");
 

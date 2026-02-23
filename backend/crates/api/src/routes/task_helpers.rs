@@ -7,6 +7,21 @@ use taskflow_db::models::TaskPriority;
 use taskflow_services::broadcast::events;
 use taskflow_services::BroadcastService;
 
+/// Sanitize HTML content from rich text editor.
+/// Allows safe formatting tags, removes scripts and dangerous attributes.
+pub fn sanitize_html(input: &str) -> String {
+    ammonia::Builder::default()
+        .tags(std::collections::HashSet::from([
+            "p", "br", "strong", "b", "em", "i", "u", "s", "strike", "del",
+            "ul", "ol", "li", "blockquote", "pre", "code", "a", "h1", "h2", "h3",
+            "h4", "h5", "h6", "hr", "span",
+        ]))
+        .link_rel(Some("noopener noreferrer"))
+        .url_relative(ammonia::UrlRelative::Deny)
+        .clean(input)
+        .to_string()
+}
+
 /// Response for listing tasks by board
 #[derive(serde::Serialize)]
 pub struct ListTasksResponse {
@@ -317,6 +332,7 @@ mod tests {
             group_id: None,
             position: "a0".to_string(),
             milestone_id: None,
+            task_number: Some(1),
             eisenhower_urgency: None,
             eisenhower_importance: None,
             tenant_id: Uuid::new_v4(),

@@ -4,14 +4,14 @@
 //! across all workspaces for a given user, with optional workspace filtering.
 
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::models::{ActivityAction, TaskPriority};
 
 /// Dashboard statistics for the authenticated user
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DashboardStats {
     pub total_tasks: i64,
     pub overdue: i64,

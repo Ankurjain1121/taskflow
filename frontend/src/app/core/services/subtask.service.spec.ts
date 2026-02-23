@@ -6,6 +6,7 @@ import {
 import {
   SubtaskService,
   Subtask,
+  SubtaskWithAssignee,
   SubtaskListResponse,
 } from './subtask.service';
 
@@ -15,13 +16,21 @@ const MOCK_SUBTASK: Subtask = {
   is_completed: false,
   position: '1000',
   task_id: 'task-1',
+  assigned_to_id: null,
+  due_date: null,
   completed_at: null,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 };
 
+const MOCK_SUBTASK_WITH_ASSIGNEE: SubtaskWithAssignee = {
+  ...MOCK_SUBTASK,
+  assignee_name: null,
+  assignee_avatar_url: null,
+};
+
 const MOCK_LIST_RESPONSE: SubtaskListResponse = {
-  subtasks: [MOCK_SUBTASK],
+  subtasks: [MOCK_SUBTASK_WITH_ASSIGNEE],
   progress: { completed: 0, total: 1 },
 };
 
@@ -68,8 +77,8 @@ describe('SubtaskService', () => {
   });
 
   describe('update()', () => {
-    it('should PUT /api/subtasks/:subtaskId with title', () => {
-      service.update('sub-1', 'Updated title').subscribe((result) => {
+    it('should PUT /api/subtasks/:subtaskId with request body', () => {
+      service.update('sub-1', { title: 'Updated title' }).subscribe((result) => {
         expect(result).toEqual(MOCK_SUBTASK);
       });
 
@@ -126,7 +135,7 @@ describe('SubtaskService', () => {
     it('should propagate HTTP errors on create', () => {
       let error: any;
       service.create('task-1', '').subscribe({
-        error: (e) => (error = e),
+        error: (e: any) => (error = e),
       });
 
       const req = httpMock.expectOne('/api/tasks/task-1/subtasks');
