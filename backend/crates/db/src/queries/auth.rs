@@ -34,25 +34,28 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<Option<User>
     .await
 }
 
-/// Create a new refresh token record
+/// Create a new refresh token record with pre-generated ID and optional metadata
 pub async fn create_refresh_token(
     pool: &PgPool,
+    id: Uuid,
     user_id: Uuid,
     token_hash: &str,
     expires_at: DateTime<Utc>,
+    ip_address: Option<&str>,
+    user_agent: Option<&str>,
 ) -> Result<Uuid, sqlx::Error> {
-    let id = Uuid::new_v4();
-
     sqlx::query(
         r#"
-        INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at)
-        VALUES ($1, $2, $3, $4, NOW())
+        INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, ip_address, user_agent, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
         "#,
     )
     .bind(id)
     .bind(user_id)
     .bind(token_hash)
     .bind(expires_at)
+    .bind(ip_address)
+    .bind(user_agent)
     .execute(pool)
     .await?;
 

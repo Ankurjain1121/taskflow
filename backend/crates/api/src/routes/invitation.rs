@@ -362,12 +362,10 @@ pub async fn accept_handler(
         .await;
     }
 
-    // Create refresh token
+    // Issue tokens and create refresh token record atomically (no "pending" hash)
     let refresh_expiry = Utc::now() + Duration::seconds(state.config.jwt_refresh_expiry_secs);
-    let token_id =
-        auth::create_refresh_token(&state.db, user.id, "pending", refresh_expiry).await?;
+    let token_id = Uuid::new_v4();
 
-    // Issue tokens
     let tokens = issue_tokens(
         user.id,
         user.tenant_id,
@@ -378,18 +376,22 @@ pub async fn accept_handler(
         state.config.jwt_refresh_expiry_secs,
     )?;
 
-    // Update token hash
     let token_hash = {
         use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
         hasher.update(tokens.refresh_token.as_bytes());
         format!("{:x}", hasher.finalize())
     };
-    sqlx::query("UPDATE refresh_tokens SET token_hash = $1 WHERE id = $2")
-        .bind(&token_hash)
-        .bind(token_id)
-        .execute(&state.db)
-        .await?;
+    auth::create_refresh_token(
+        &state.db,
+        token_id,
+        user.id,
+        &token_hash,
+        refresh_expiry,
+        None,
+        None,
+    )
+    .await?;
 
     Ok(Json(AcceptInvitationResponse {
         access_token: tokens.access_token,

@@ -1,5 +1,11 @@
-import { Component, inject, ChangeDetectionStrategy,
+import {
+  Component,
+  inject,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  DestroyRef,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -12,6 +18,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { PasswordModule } from 'primeng/password';
+import { finalize } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -579,6 +586,8 @@ export class SignInComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private cdr = inject(ChangeDetectorRef);
+  private destroyRef = inject(DestroyRef);
 
   signInForm: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -596,6 +605,15 @@ export class SignInComponent {
       this.sessionExpiredMessage =
         'Your session has expired. Please sign in again.';
     }
+
+    this.signInForm.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (this.errorMessage) {
+          this.errorMessage = '';
+          this.cdr.markForCheck();
+        }
+      });
   }
 
   onSubmit(): void {
@@ -609,28 +627,41 @@ export class SignInComponent {
 
     const { email, password } = this.signInForm.value;
 
-    this.authService.signIn(email, password).subscribe({
-      next: () => {
-        let returnUrl =
-          this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
-        // SECURITY: Validate returnUrl to prevent open redirect attacks
-        // Only allow relative URLs starting with a single slash (not protocol-relative //)
-        if (!returnUrl.startsWith('/') || returnUrl.startsWith('//')) {
-          returnUrl = '/dashboard';
-        }
-        this.router.navigateByUrl(returnUrl);
-      },
-      error: (error) => {
-        this.isLoading = false;
-        if (error.status === 401) {
-          this.errorMessage = 'Invalid email or password';
-        } else if (error.status === 0) {
-          this.errorMessage = 'Unable to connect to server. Please try again.';
-        } else {
-          this.errorMessage =
-            error.error?.message || 'An error occurred. Please try again.';
-        }
-      },
-    });
+    this.authService
+      .signIn(email, password)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.isLoading = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: () => {
+          let returnUrl =
+            this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+          // SECURITY: Validate returnUrl to prevent open redirect attacks
+          // Only allow relative URLs starting with a single slash (not protocol-relative //)
+          if (!returnUrl.startsWith('/') || returnUrl.startsWith('//')) {
+            returnUrl = '/dashboard';
+          }
+          this.router.navigateByUrl(returnUrl);
+        },
+        error: (error) => {
+          if (error.status === 401) {
+            this.errorMessage = 'Invalid email or password';
+          } else if (error.status === 429) {
+            this.errorMessage =
+              'Too many attempts. Please wait a minute and try again.';
+          } else if (error.status === 0) {
+            this.errorMessage =
+              'Unable to connect to server. Please try again.';
+          } else {
+            this.errorMessage =
+              error.error?.error?.message ||
+              'An error occurred. Please try again.';
+          }
+        },
+      });
   }
 }
