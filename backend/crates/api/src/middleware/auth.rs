@@ -135,7 +135,7 @@ fn extract_token_from_cookie(headers: &axum::http::HeaderMap) -> Option<String> 
         if let Some(value) = part.strip_prefix("access_token") {
             let value = value.trim_start();
             if let Some(value) = value.strip_prefix('=') {
-                return Some(value.to_string());
+                return Some(value.trim().to_string());
             }
         }
     }
@@ -266,10 +266,8 @@ mod tests {
         );
         let token = extract_token_from_cookie(&headers);
         // The implementation trims between "access_token" and "=",
-        // but preserves characters after "=", so a leading space in the value
-        // is preserved: "access_token = jwt-spaced" -> strip "access_token" -> " = jwt-spaced"
-        // -> trim_start -> "= jwt-spaced" -> strip "=" -> " jwt-spaced"
-        assert_eq!(token, Some(" jwt-spaced".to_string()));
+        // and also trims the value after "=" to handle whitespace
+        assert_eq!(token, Some("jwt-spaced".to_string()));
     }
 
     #[test]

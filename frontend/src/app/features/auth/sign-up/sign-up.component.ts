@@ -1,5 +1,11 @@
-import { Component, inject, ChangeDetectionStrategy,
+import {
+  Component,
+  inject,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  DestroyRef,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import {
   AbstractControl,
@@ -15,6 +21,7 @@ import { ButtonModule } from 'primeng/button';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { PasswordModule } from 'primeng/password';
 import { ProgressBar } from 'primeng/progressbar';
+import { finalize } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -642,6 +649,8 @@ export class SignUpComponent {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
+  private destroyRef = inject(DestroyRef);
 
   signUpForm: FormGroup = this.fb.group(
     {
@@ -657,6 +666,17 @@ export class SignUpComponent {
   hidePassword = true;
   hideConfirmPassword = true;
   errorMessage = '';
+
+  constructor() {
+    this.signUpForm.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (this.errorMessage) {
+          this.errorMessage = '';
+          this.cdr.markForCheck();
+        }
+      });
+  }
 
   get passwordStrength(): number {
     const password = this.signUpForm.get('password')?.value || '';
@@ -726,26 +746,38 @@ export class SignUpComponent {
 
     const { name, email, password } = this.signUpForm.value;
 
-    this.authService.signUp({ name, email, password }).subscribe({
-      next: () => {
-        this.router.navigate(['/onboarding']);
-      },
-      error: (error) => {
-        this.isLoading = false;
-        if (error.status === 409) {
-          this.errorMessage = 'An account with this email already exists.';
-        } else if (error.status === 400) {
-          this.errorMessage =
-            error.error?.error?.message ||
-            'Please check your input and try again.';
-        } else if (error.status === 0) {
-          this.errorMessage = 'Unable to connect to server. Please try again.';
-        } else {
-          this.errorMessage =
-            error.error?.error?.message ||
-            'An error occurred. Please try again.';
-        }
-      },
-    });
+    this.authService
+      .signUp({ name, email, password })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.isLoading = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: () => {
+          this.router.navigate(['/onboarding']);
+        },
+        error: (error) => {
+          if (error.status === 409) {
+            this.errorMessage = 'An account with this email already exists.';
+          } else if (error.status === 400) {
+            this.errorMessage =
+              error.error?.error?.message ||
+              'Please check your input and try again.';
+          } else if (error.status === 429) {
+            this.errorMessage =
+              'Too many attempts. Please wait a minute and try again.';
+          } else if (error.status === 0) {
+            this.errorMessage =
+              'Unable to connect to server. Please try again.';
+          } else {
+            this.errorMessage =
+              error.error?.error?.message ||
+              'An error occurred. Please try again.';
+          }
+        },
+      });
   }
 }

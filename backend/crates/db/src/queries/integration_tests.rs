@@ -120,9 +120,17 @@ async fn test_create_and_get_refresh_token() {
 
     let expires = Utc::now() + Duration::hours(24);
     let token_hash = format!("hash-{}", Uuid::new_v4());
-    let token_id = auth::create_refresh_token(&pool, user_id, &token_hash, expires)
-        .await
-        .expect("create_refresh_token");
+    let token_id = auth::create_refresh_token(
+        &pool,
+        Uuid::new_v4(),
+        user_id,
+        &token_hash,
+        expires,
+        None,
+        None,
+    )
+    .await
+    .expect("create_refresh_token");
 
     let token = auth::get_refresh_token(&pool, token_id)
         .await
@@ -141,9 +149,17 @@ async fn test_revoke_refresh_token() {
     let (_, user_id) = setup_user(&pool).await;
 
     let expires = Utc::now() + Duration::hours(24);
-    let token_id = auth::create_refresh_token(&pool, user_id, "revoke-test", expires)
-        .await
-        .unwrap();
+    let token_id = auth::create_refresh_token(
+        &pool,
+        Uuid::new_v4(),
+        user_id,
+        "revoke-test",
+        expires,
+        None,
+        None,
+    )
+    .await
+    .unwrap();
 
     auth::revoke_refresh_token(&pool, token_id).await.unwrap();
 
@@ -161,12 +177,14 @@ async fn test_revoke_all_user_tokens() {
     let (_, user_id) = setup_user(&pool).await;
 
     let expires = Utc::now() + Duration::hours(24);
-    let id1 = auth::create_refresh_token(&pool, user_id, "all-1", expires)
-        .await
-        .unwrap();
-    let id2 = auth::create_refresh_token(&pool, user_id, "all-2", expires)
-        .await
-        .unwrap();
+    let id1 =
+        auth::create_refresh_token(&pool, Uuid::new_v4(), user_id, "all-1", expires, None, None)
+            .await
+            .unwrap();
+    let id2 =
+        auth::create_refresh_token(&pool, Uuid::new_v4(), user_id, "all-2", expires, None, None)
+            .await
+            .unwrap();
 
     auth::revoke_all_user_tokens(&pool, user_id).await.unwrap();
 

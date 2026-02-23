@@ -86,6 +86,7 @@ pub struct MessageResponse {
 /// Returns access token, refresh token, and user profile.
 pub async fn sign_in_handler(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(payload): Json<SignInRequest>,
 ) -> Result<Response> {
     // Validate input
@@ -108,20 +109,26 @@ pub async fn sign_in_handler(
         return Err(AppError::Unauthorized("Invalid email or password".into()));
     }
 
-    // Calculate refresh token expiry
+    // Update last_login_at
+    sqlx::query("UPDATE users SET last_login_at = NOW() WHERE id = $1")
+        .bind(user.id)
+        .execute(&state.db)
+        .await?;
+
+    // Extract session metadata from headers
+    let ip_address = headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.split(',').next().unwrap_or(v).trim().to_string());
+    let user_agent_val = headers
+        .get("user-agent")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+
+    // Generate token ID first, issue JWT with it, hash, then INSERT — no "pending" race
     let refresh_expiry = Utc::now() + Duration::seconds(state.config.jwt_refresh_expiry_secs);
+    let token_id = Uuid::new_v4();
 
-    // Create refresh token record in DB first (to get the token_id)
-    // We use a placeholder hash initially, then update after generating the JWT
-    let token_id = auth::create_refresh_token(
-        &state.db,
-        user.id,
-        "pending", // Will be updated
-        refresh_expiry,
-    )
-    .await?;
-
-    // Issue JWT token pair
     let tokens = issue_tokens(
         user.id,
         user.tenant_id,
@@ -132,13 +139,17 @@ pub async fn sign_in_handler(
         state.config.jwt_refresh_expiry_secs,
     )?;
 
-    // Hash the refresh token and store it
     let token_hash = hash_token(&tokens.refresh_token);
-    sqlx::query("UPDATE refresh_tokens SET token_hash = $1 WHERE id = $2")
-        .bind(&token_hash)
-        .bind(token_id)
-        .execute(&state.db)
-        .await?;
+    auth::create_refresh_token(
+        &state.db,
+        token_id,
+        user.id,
+        &token_hash,
+        refresh_expiry,
+        ip_address.as_deref(),
+        user_agent_val.as_deref(),
+    )
+    .await?;
 
     // Set HttpOnly cookies
     let cookie_headers = build_auth_cookie_headers(
@@ -164,7 +175,7 @@ pub async fn sign_in_handler(
             department: user.department,
             bio: user.bio,
             onboarding_completed: user.onboarding_completed,
-            last_login_at: user.last_login_at,
+            last_login_at: Some(Utc::now()),
         },
     };
 
@@ -179,6 +190,7 @@ pub async fn sign_in_handler(
 /// Returns access token, refresh token, and user profile.
 pub async fn sign_up_handler(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(payload): Json<SignUpRequest>,
 ) -> Result<Response> {
     // Validate
@@ -213,10 +225,19 @@ pub async fn sign_up_handler(
         auth::create_user_with_tenant(&state.db, &payload.email, &payload.name, &password_hash)
             .await?;
 
-    // Issue tokens (same as sign-in)
+    // Extract session metadata from headers
+    let ip_address = headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.split(',').next().unwrap_or(v).trim().to_string());
+    let user_agent_val = headers
+        .get("user-agent")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+
+    // Generate token ID first, issue JWT, hash, then INSERT — no "pending" race
     let refresh_expiry = Utc::now() + Duration::seconds(state.config.jwt_refresh_expiry_secs);
-    let token_id =
-        auth::create_refresh_token(&state.db, user.id, "pending", refresh_expiry).await?;
+    let token_id = Uuid::new_v4();
 
     let tokens = issue_tokens(
         user.id,
@@ -229,11 +250,16 @@ pub async fn sign_up_handler(
     )?;
 
     let token_hash = hash_token(&tokens.refresh_token);
-    sqlx::query("UPDATE refresh_tokens SET token_hash = $1 WHERE id = $2")
-        .bind(&token_hash)
-        .bind(token_id)
-        .execute(&state.db)
-        .await?;
+    auth::create_refresh_token(
+        &state.db,
+        token_id,
+        user.id,
+        &token_hash,
+        refresh_expiry,
+        ip_address.as_deref(),
+        user_agent_val.as_deref(),
+    )
+    .await?;
 
     // Set HttpOnly cookies
     let cookie_headers = build_auth_cookie_headers(
@@ -304,6 +330,11 @@ pub async fn refresh_handler(
         ));
     }
 
+    // Check if token has expired (defense-in-depth alongside JWT exp)
+    if stored_token.expires_at < Utc::now() {
+        return Err(AppError::Unauthorized("Refresh token has expired".into()));
+    }
+
     // Verify token hash matches
     let provided_hash = hash_token(&refresh_token_value);
     if stored_token.token_hash != provided_hash {
@@ -318,12 +349,20 @@ pub async fn refresh_handler(
     // Revoke the old refresh token
     auth::revoke_refresh_token(&state.db, claims.token_id).await?;
 
-    // Create new refresh token record
-    let refresh_expiry = Utc::now() + Duration::seconds(state.config.jwt_refresh_expiry_secs);
-    let new_token_id =
-        auth::create_refresh_token(&state.db, user.id, "pending", refresh_expiry).await?;
+    // Extract session metadata from headers
+    let ip_address = headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.split(',').next().unwrap_or(v).trim().to_string());
+    let user_agent_val = headers
+        .get("user-agent")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
 
-    // Issue new token pair
+    // Generate token ID first, issue JWT, hash, then INSERT — no "pending" race
+    let refresh_expiry = Utc::now() + Duration::seconds(state.config.jwt_refresh_expiry_secs);
+    let new_token_id = Uuid::new_v4();
+
     let tokens = issue_tokens(
         user.id,
         user.tenant_id,
@@ -334,13 +373,17 @@ pub async fn refresh_handler(
         state.config.jwt_refresh_expiry_secs,
     )?;
 
-    // Update the token hash
     let token_hash = hash_token(&tokens.refresh_token);
-    sqlx::query("UPDATE refresh_tokens SET token_hash = $1 WHERE id = $2")
-        .bind(&token_hash)
-        .bind(new_token_id)
-        .execute(&state.db)
-        .await?;
+    auth::create_refresh_token(
+        &state.db,
+        new_token_id,
+        user.id,
+        &token_hash,
+        refresh_expiry,
+        ip_address.as_deref(),
+        user_agent_val.as_deref(),
+    )
+    .await?;
 
     // Set HttpOnly cookies
     let cookie_headers = build_auth_cookie_headers(
@@ -454,7 +497,7 @@ fn extract_cookie(headers: &HeaderMap, name: &str) -> Option<String> {
         if let Some(value) = part.strip_prefix(name) {
             let value = value.trim_start();
             if let Some(value) = value.strip_prefix('=') {
-                return Some(value.to_string());
+                return Some(value.trim().to_string());
             }
         }
     }

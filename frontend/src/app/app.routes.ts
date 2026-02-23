@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/guards/auth.guard';
+import { authGuard, publicOnlyGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
@@ -12,6 +12,7 @@ export const routes: Routes = [
           import('./features/auth/sign-in/sign-in.component').then(
             (m) => m.SignInComponent,
           ),
+        canActivate: [publicOnlyGuard],
       },
       {
         path: 'sign-up',
@@ -19,6 +20,7 @@ export const routes: Routes = [
           import('./features/auth/sign-up/sign-up.component').then(
             (m) => m.SignUpComponent,
           ),
+        canActivate: [publicOnlyGuard],
       },
       {
         path: 'forgot-password',
@@ -26,6 +28,7 @@ export const routes: Routes = [
           import('./features/auth/forgot-password/forgot-password.component').then(
             (m) => m.ForgotPasswordComponent,
           ),
+        canActivate: [publicOnlyGuard],
       },
       {
         path: 'reset-password',

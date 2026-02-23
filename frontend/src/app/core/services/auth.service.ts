@@ -11,6 +11,7 @@ import {
   filter,
   take,
   map,
+  timeout,
 } from 'rxjs';
 import { Router } from '@angular/router';
 
@@ -152,12 +153,15 @@ export class AuthService {
         { withCredentials: true },
       )
       .pipe(
+        timeout(10000),
         tap((response) => {
           this.handleAuthSuccess(response);
           this.refreshResult$.next('success');
+          setTimeout(() => this.refreshResult$.next('idle'), 100);
         }),
         catchError((error) => {
           this.refreshResult$.next('failed');
+          setTimeout(() => this.refreshResult$.next('idle'), 100);
           return throwError(() => error);
         }),
       );
