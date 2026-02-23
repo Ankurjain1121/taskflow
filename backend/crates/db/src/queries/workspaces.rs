@@ -407,6 +407,119 @@ pub async fn join_open_workspace(
     .await
 }
 
+// ============================================================================
+// Tenant-level queries
+// ============================================================================
+
+/// Tenant member with aggregated workspace count
+#[derive(sqlx::FromRow, serde::Serialize, Clone, Debug)]
+pub struct TenantMemberInfo {
+    pub user_id: Uuid,
+    pub name: String,
+    pub email: String,
+    pub avatar_url: Option<String>,
+    pub job_title: Option<String>,
+    pub department: Option<String>,
+    pub role: crate::models::UserRole,
+    pub workspace_count: i64,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// List all members in a tenant with their workspace count
+pub async fn list_tenant_members(
+    pool: &PgPool,
+    tenant_id: Uuid,
+) -> Result<Vec<TenantMemberInfo>, sqlx::Error> {
+    sqlx::query_as::<_, TenantMemberInfo>(
+        r#"
+        SELECT u.id AS user_id, u.name, u.email, u.avatar_url,
+               u.job_title, u.department, u.role,
+               COUNT(wm.workspace_id) AS workspace_count,
+               u.created_at
+        FROM users u
+        LEFT JOIN workspace_members wm ON u.id = wm.user_id
+            AND wm.workspace_id IN (
+                SELECT id FROM workspaces WHERE tenant_id = $1 AND deleted_at IS NULL
+            )
+        WHERE u.tenant_id = $1
+          AND u.deleted_at IS NULL
+        GROUP BY u.id, u.name, u.email, u.avatar_url,
+                 u.job_title, u.department, u.role, u.created_at
+        ORDER BY u.name ASC
+        "#,
+    )
+    .bind(tenant_id)
+    .fetch_all(pool)
+    .await
+}
+
+/// Workspace membership info for a specific user
+#[derive(sqlx::FromRow, serde::Serialize, Clone, Debug)]
+pub struct UserWorkspaceMembership {
+    pub workspace_id: Uuid,
+    pub workspace_name: String,
+    pub role: crate::models::WorkspaceMemberRole,
+    pub joined_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Get all workspaces a user belongs to within a tenant
+pub async fn get_user_workspaces(
+    pool: &PgPool,
+    user_id: Uuid,
+    tenant_id: Uuid,
+) -> Result<Vec<UserWorkspaceMembership>, sqlx::Error> {
+    sqlx::query_as::<_, UserWorkspaceMembership>(
+        r#"
+        SELECT w.id AS workspace_id, w.name AS workspace_name,
+               wm.role, wm.joined_at
+        FROM workspace_members wm
+        INNER JOIN workspaces w ON wm.workspace_id = w.id
+        WHERE wm.user_id = $1
+          AND w.tenant_id = $2
+          AND w.deleted_at IS NULL
+        ORDER BY w.name ASC
+        "#,
+    )
+    .bind(user_id)
+    .bind(tenant_id)
+    .fetch_all(pool)
+    .await
+}
+
+/// Bulk-add existing tenant users to a workspace.
+/// Returns the number of newly added members (skips existing via ON CONFLICT).
+pub async fn bulk_add_workspace_members(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    user_ids: &[Uuid],
+) -> Result<u64, sqlx::Error> {
+    if user_ids.is_empty() {
+        return Ok(0);
+    }
+
+    let mut tx = pool.begin().await?;
+    let mut added: u64 = 0;
+
+    for &uid in user_ids {
+        let result = sqlx::query(
+            r#"
+            INSERT INTO workspace_members (workspace_id, user_id, role)
+            VALUES ($1, $2, 'member')
+            ON CONFLICT (workspace_id, user_id) DO NOTHING
+            "#,
+        )
+        .bind(workspace_id)
+        .bind(uid)
+        .execute(&mut *tx)
+        .await?;
+
+        added += result.rows_affected();
+    }
+
+    tx.commit().await?;
+    Ok(added)
+}
+
 /// Get workspace visibility
 pub async fn get_workspace_visibility(
     pool: &PgPool,

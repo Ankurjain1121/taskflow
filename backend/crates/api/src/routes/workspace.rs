@@ -108,6 +108,16 @@ pub struct MessageResponse {
     pub message: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct BulkAddMembersRequest {
+    pub user_ids: Vec<Uuid>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BulkAddMembersResponse {
+    pub added: u64,
+}
+
 #[derive(Debug, Serialize)]
 pub struct JoinWorkspaceResponse {
     pub message: String,
@@ -532,6 +542,56 @@ async fn join_workspace(
     }))
 }
 
+/// POST /api/workspaces/:id/members/bulk
+///
+/// Bulk-add existing tenant users to a workspace.
+/// Requires Manager or Admin role.
+async fn bulk_add_members(
+    State(state): State<AppState>,
+    auth: ManagerOrAdmin,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<BulkAddMembersRequest>,
+) -> Result<Json<BulkAddMembersResponse>> {
+    if payload.user_ids.is_empty() {
+        return Err(AppError::BadRequest("No user IDs provided".into()));
+    }
+    if payload.user_ids.len() > 100 {
+        return Err(AppError::BadRequest(
+            "Cannot add more than 100 members at once".into(),
+        ));
+    }
+
+    // Check if auth user is a member of the workspace
+    let is_member = workspaces::is_workspace_member(&state.db, id, auth.0.user_id).await?;
+    if !is_member {
+        return Err(AppError::Forbidden("Not a member of this workspace".into()));
+    }
+
+    // Verify workspace belongs to user's tenant
+    let workspace = workspaces::get_workspace_by_id(&state.db, id, auth.0.tenant_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
+
+    // Verify all users belong to the same tenant
+    let tenant_members =
+        workspaces::list_tenant_members(&state.db, workspace.workspace.tenant_id).await?;
+    let tenant_user_ids: std::collections::HashSet<Uuid> =
+        tenant_members.iter().map(|m| m.user_id).collect();
+
+    for uid in &payload.user_ids {
+        if !tenant_user_ids.contains(uid) {
+            return Err(AppError::BadRequest(format!(
+                "User {} does not belong to this tenant",
+                uid
+            )));
+        }
+    }
+
+    let added = workspaces::bulk_add_workspace_members(&state.db, id, &payload.user_ids).await?;
+
+    Ok(Json(BulkAddMembersResponse { added }))
+}
+
 // ============================================================================
 // Router
 // ============================================================================
@@ -549,6 +609,7 @@ pub fn workspace_router(state: AppState) -> Router<AppState> {
         )
         .route("/{id}/join", post(join_workspace))
         .route("/{id}/members/search", get(search_members))
+        .route("/{id}/members/bulk", post(bulk_add_members))
         .route("/{id}/members", post(add_member))
         .route(
             "/{id}/members/{user_id}",
