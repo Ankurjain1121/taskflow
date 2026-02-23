@@ -1,26 +1,70 @@
 Codemap Diff Report
 ===================
-Generated: 2026-02-18
-Commit: dfb29e9
+Generated: 2026-02-23
+Previous: 2026-02-18 (commit dfb29e9)
+Current:  2026-02-23 (commit f6f3095)
 
-Status: INITIAL GENERATION (no previous version)
-Diff percentage: N/A (100% new)
+Status: UPDATE (5 days since last generation)
 
-Files created:
+Changes detected:
+  architecture.md  - ~25% changed
+    + Fixed reverse proxy: Caddy -> nginx
+    + Added task status derivation decision
+    + Added ts-rs type generation decision
+    + Added OnPush change detection decision
+    + Updated service count: 39 -> 51+
+    + Added discover, shared-board, task-detail features
+    + Added positions feature
+
+  backend.md       - ~35% changed
+    + Route files: 35+ -> 58 (new: teams, positions, sessions, tenant, upload, task_template, themes, user_preferences, workspace_api_keys)
+    + API endpoints: 100+ -> 150+
+    + Query modules: 35+ -> 38+
+    + Added extractors section
+    + Added request_id middleware
+    + Added background jobs section (automation_executor, deadline_scanner, trash_cleanup, weekly_digest)
+    + Added notification subsystem (email, slack, whatsapp)
+    + Added auth RBAC detail (workspace/board-level roles)
+    + Added WebSocket message types
+
+  frontend.md      - ~40% changed
+    + Services: 39 -> 51+ (new: session, team-groups, user-preferences, theme-api, api-key, task-template, position, upload, toast, workspace-settings-dialog)
+    + Added errorInterceptor
+    + Added discover, shared-board routes
+    + Added workspace sub-routes (team/balance, team/member/:uid)
+    + Added settings sub-routes (security, appearance)
+    + Expanded board feature tree (20+ sub-dirs)
+    + Expanded team feature tree (11 sub-components)
+    + Added workspace feature detail (settings tabs, teams, discover)
+    + Updated key dependencies versions
+
+  data.md          - ~40% changed
+    + Tables: 40 -> 45+ (new: teams, team_members, positions, position_holders, user_preferences, themes, task_templates, task_template_*)
+    + Migrations: 10 -> 21 (11 new migrations since Feb 18)
+    + Added enums: workspace_member_role, workspace_visibility
+    + Expanded enum values: recurrence_pattern (+yearly, weekdays, custom_weekly), automation_trigger (+5), automation_action_type (+5)
+    + Added positions/role-based assignment pattern
+    + Added theme system (themes table, user preference FKs)
+    + Added type generation pipeline section
+    + Updated entity relationships (teams, positions, user preferences)
+
+Overall diff percentage: ~35%
+
+Files updated:
   codemaps/architecture.md  - Overall system architecture
-  codemaps/backend.md       - Rust backend structure (100+ API endpoints, 35+ query modules)
-  codemaps/frontend.md      - Angular frontend structure (39 services, 25+ routes)
-  codemaps/data.md          - PostgreSQL schema (40 tables, 10 enums, 10 migrations)
+  codemaps/backend.md       - Rust backend structure (150+ API endpoints, 38+ query modules)
+  codemaps/frontend.md      - Angular frontend structure (51+ services, 30+ routes)
+  codemaps/data.md          - PostgreSQL schema (45+ tables, 11 enums, 21 migrations)
 
 Coverage:
   - 4 backend crates mapped (api, auth, db, services)
-  - 100+ API endpoints documented
-  - 35+ database query modules listed
-  - 39 frontend services cataloged
-  - 25+ frontend routes mapped
-  - 40 database tables with columns
+  - 150+ API endpoints documented (58 route files)
+  - 38+ database query modules listed
+  - 51+ frontend services cataloged
+  - 30+ frontend routes mapped
+  - 45+ database tables with columns
+  - 21 migrations documented
   - 15 Docker services documented
   - CI/CD pipeline (5 GitHub Actions jobs)
   - Key architectural decisions captured
-
-No approval needed (initial generation).
+  - Type generation pipeline documented

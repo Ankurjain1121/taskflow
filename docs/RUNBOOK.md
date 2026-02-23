@@ -1,14 +1,28 @@
 # TaskFlow Operations Runbook
 
-> Auto-generated from source-of-truth: scripts/, docker-compose.yml, .env.example
-> Last updated: 2026-02-18
+> Auto-generated from source-of-truth: scripts/, docker-compose.yml, .env.example, codemaps/
+> Last updated: 2026-02-23
 
 ## Deployment
 
-### Standard Deploy (from local machine)
+### VPS Info
+
+- **App path**: `/home/ankur/taskflow` (NEVER use `/root/taskflow` -- deprecated)
+- **Domain**: taskflow.paraslace.in
+- **Reverse proxy**: nginx (NOT Caddy)
+- **SSL**: Certbot (Let's Encrypt)
+
+### Standard Deploy (on VPS)
 
 ```bash
-# Runs pre-deploy checks, then deploys to VPS
+cd /home/ankur/taskflow
+docker compose build && docker compose up -d
+```
+
+### Deploy with Pre-Checks
+
+```bash
+# Runs pre-deploy checks, then deploys
 ./scripts/deploy-vps.sh
 ```
 
@@ -20,7 +34,7 @@ This script:
 5. Starts infrastructure (postgres, redis, mongodb, minio)
 6. Waits for PostgreSQL, runs migrations
 7. Starts backend + frontend
-8. Starts Caddy (HTTPS reverse proxy)
+8. Configures nginx reverse proxy
 9. Runs auth smoke test
 
 ### Hotfix Deploy (skip checks)
@@ -32,11 +46,10 @@ This script:
 ### Manual Deploy (step-by-step)
 
 ```bash
-# On VPS
-cd /root/taskflow
+cd /home/ankur/taskflow
 git pull origin master
-docker compose -f docker-compose.yml -f docker-compose.vps.yml build --no-cache
-docker compose -f docker-compose.yml -f docker-compose.vps.yml up -d
+docker compose build --no-cache
+docker compose up -d
 ```
 
 ### Deploy with Optional Services
@@ -55,20 +68,31 @@ docker compose --profile email up -d
 docker compose --profile whatsapp up -d
 ```
 
+## Docker Services (15)
+
+| Service | Always On | Profile |
+|---------|-----------|---------|
+| postgres | Yes | - |
+| redis | Yes | - |
+| mongodb | Yes | - |
+| minio, minio-setup | Yes | - |
+| migrate (one-shot) | Yes | - |
+| backend | Yes | - |
+| frontend | Yes | - |
+| lago-api, lago-front | No | billing |
+| novu | No | notifications |
+| postal-init, postal | No | email |
+| waha | No | whatsapp |
+
 ## Service Management
 
 ### Start/Stop/Restart
 
 ```bash
-# All services (dev)
+# All services
 docker compose up -d
 docker compose down
 docker compose restart
-
-# All services (VPS)
-docker compose -f docker-compose.yml -f docker-compose.vps.yml up -d
-docker compose -f docker-compose.yml -f docker-compose.vps.yml down
-docker compose -f docker-compose.yml -f docker-compose.vps.yml restart
 
 # Single service
 docker compose restart backend
@@ -104,15 +128,21 @@ docker compose logs --tail 100 backend
 # Quick health check
 curl http://localhost:8080/api/health
 curl http://localhost/health
+
+# Production
+curl https://taskflow.paraslace.in/api/health
 ```
 
 ## Database Operations
 
-### Run Migrations
+### Overview
 
-Migrations auto-run on backend startup via `sqlx::migrate!()`.
+- **PostgreSQL 16** with multi-tenant RLS
+- **45+ tables**, **12 enums**, **21 migrations**
+- Migrations auto-run on backend startup via `sqlx::migrate!()`
 
-To run manually:
+### Run Migrations Manually
+
 ```bash
 # Via the migrate one-shot container
 docker compose up migrate
@@ -139,6 +169,25 @@ docker compose exec postgres pg_dump -U postgres taskflow > backup_$(date +%Y%m%
 cat backup.sql | docker compose exec -T postgres psql -U postgres -d taskflow
 ```
 
+### Key Tables Reference
+
+| Category | Tables |
+|----------|--------|
+| Core Identity | tenants, users, accounts, refresh_tokens, password_reset_tokens, user_preferences |
+| Workspace & Board | workspaces, workspace_members, boards, board_members, board_columns |
+| Teams & Positions | teams, team_members, positions, position_holders |
+| Tasks | tasks, task_assignees, task_groups, subtasks, labels, task_labels, task_dependencies, milestones |
+| Collaboration | comments, attachments, activity_log |
+| Notifications | notifications, notification_preferences |
+| Time Tracking | time_entries |
+| Recurring Tasks | recurring_task_configs |
+| Custom Fields | board_custom_fields, task_custom_field_values |
+| Templates | project_templates (+columns/tasks), task_templates (+subtasks/labels/custom_fields) |
+| Automations | automation_rules, automation_actions, automation_logs |
+| Sharing | board_shares, webhooks, webhook_deliveries, favorites |
+| Themes | themes |
+| Billing | invitations, subscriptions, processed_webhooks |
+
 ## Common Issues and Fixes
 
 ### Backend won't start
@@ -153,6 +202,7 @@ cat backup.sql | docker compose exec -T postgres psql -U postgres -d taskflow
 | "connection refused" to redis | Ensure redis is running: `docker compose up -d redis` |
 | Migration error | Check migration SQL syntax; run `docker compose up migrate` separately |
 | JWT_SECRET not set | Check `.env` file has valid JWT_SECRET (min 32 chars) |
+| CRON_SECRET not set | Add CRON_SECRET to `.env` (required for cron endpoints) |
 
 ### Frontend build fails
 
@@ -171,7 +221,7 @@ cd frontend && npx tsc --noEmit
 **Check**:
 1. Browser console for WS errors
 2. Backend logs: `docker compose logs backend | grep -i websocket`
-3. Nginx/Caddy proxy config has WebSocket upgrade headers
+3. nginx proxy config has WebSocket upgrade headers (`proxy_set_header Upgrade $http_upgrade`)
 4. Cookie domain matches (HttpOnly `access_token` cookie)
 
 ### MinIO upload failures
@@ -180,7 +230,7 @@ cd frontend && npx tsc --noEmit
 1. MinIO is running: `curl http://localhost:9000/minio/health/live`
 2. Bucket exists: `docker compose exec minio mc ls local/task-attachments`
 3. CORS configured: `./scripts/configure-minio-cors.sh`
-4. `MINIO_PUBLIC_URL` matches what frontend uses
+4. `MINIO_PUBLIC_URL` matches what frontend uses (production: `https://files.paraslace.in`)
 
 ### Redis connection issues
 
@@ -190,7 +240,7 @@ docker compose exec redis redis-cli ping
 # Expected: PONG
 
 # Check database isolation
-docker compose exec redis redis-cli -n 0 DBSIZE  # App
+docker compose exec redis redis-cli -n 0 DBSIZE  # App (pub/sub, rate limiting)
 docker compose exec redis redis-cli -n 1 DBSIZE  # Lago
 docker compose exec redis redis-cli -n 2 DBSIZE  # Novu
 ```
@@ -200,8 +250,7 @@ docker compose exec redis redis-cli -n 2 DBSIZE  # Novu
 ### Quick Rollback (to previous commit)
 
 ```bash
-# On VPS
-cd /root/taskflow
+cd /home/ankur/taskflow
 git log --oneline -5                    # Find the commit to roll back to
 git checkout <commit-hash>              # Checkout that commit
 docker compose build --no-cache         # Rebuild
@@ -272,10 +321,70 @@ Set up external cron (e.g., system crontab or uptime monitor):
 
 ## SSL/TLS
 
-Caddy handles automatic HTTPS via Let's Encrypt:
-- Certificates auto-obtained on first request
-- Auto-renewed before expiry
+nginx handles HTTPS via Let's Encrypt (certbot):
+
+```bash
+# Certificate location
+/etc/letsencrypt/live/taskflow.paraslace.in/
+
+# Renewal (auto via certbot timer, or manual)
+sudo certbot renew
+
+# nginx config
+/etc/nginx/sites-available/taskflow.paraslace.in
+```
+
+- Certificates auto-renewed via certbot systemd timer
 - HTTP automatically redirected to HTTPS
 - Domain: `taskflow.paraslace.in`
 
-No manual certificate management needed.
+## nginx Configuration
+
+nginx reverse proxy config at `/etc/nginx/sites-available/`:
+
+Key proxy rules:
+- `/api/*` -> `backend:8080`
+- `/ws` -> `backend:8080` (with WebSocket upgrade headers)
+- `/` -> `frontend:80` (Angular SPA)
+- Static files served with caching headers
+
+WebSocket upgrade config:
+```nginx
+location /ws {
+    proxy_pass http://localhost:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+}
+```
+
+## Background Jobs
+
+| Job | Module | Purpose |
+|-----|--------|---------|
+| automation_executor | services/jobs/ | Evaluate automation trigger rules |
+| deadline_scanner | services/jobs/ | Scan for overdue/upcoming tasks |
+| trash_cleanup | services/jobs/ | Permanently delete expired trash (30-day retention) |
+| weekly_digest | services/jobs/ | Send weekly task summaries |
+
+## Architecture Quick Reference
+
+```
+                    INTERNET
+                        |
+                 [nginx :80/:443]
+                taskflow.paraslace.in
+                 /           \
+                /             \
+      [frontend:80]      [backend:8080]
+      nginx + Angular    Rust / Axum
+      SPA + API proxy         |
+                          /---+---\
+                         /    |    \
+                 [postgres] [redis] [minio]
+                   :5432    :6379   :9000
+                              |
+                        [mongodb:27017]
+```
+
+Backend crates: `api -> {auth, db, services}`, `services -> {auth, db}`, `auth -> db`
