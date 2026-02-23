@@ -20,6 +20,7 @@ import {
   WorkspaceService,
   Workspace,
   WorkspaceMember,
+  TenantMember,
 } from '../../core/services/workspace.service';
 import { BoardService } from '../../core/services/board.service';
 import { TeamService, MemberWorkload } from '../../core/services/team.service';
@@ -28,6 +29,8 @@ import {
   MemberWithDetails,
 } from '../workspace/members-list/members-list.component';
 import { TeamsListComponent } from '../workspace/teams/teams-list.component';
+import { WorkspacesPanelComponent } from './workspaces-panel/workspaces-panel.component';
+import { OrgMembersComponent } from './org-members/org-members.component';
 
 interface WorkspaceWithMembers {
   workspace: Workspace;
@@ -55,6 +58,8 @@ interface WorkspaceTeam {
     Select,
     MembersListComponent,
     TeamsListComponent,
+    WorkspacesPanelComponent,
+    OrgMembersComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -63,9 +68,11 @@ interface WorkspaceTeam {
         class="bg-[var(--card)] shadow-sm border-b border-[var(--border)]"
       >
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-          <h1 class="text-2xl font-bold text-[var(--card-foreground)]">Team</h1>
+          <h1 class="text-2xl font-bold text-[var(--card-foreground)]">
+            Team
+          </h1>
           <p class="text-[var(--muted-foreground)] mt-1 text-sm">
-            Manage members, teams, and workload across all workspaces
+            Central hub for managing members, workspaces, teams, and workload
           </p>
         </div>
       </header>
@@ -84,7 +91,9 @@ interface WorkspaceTeam {
                       class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-4"
                     >
                       <div class="flex items-center gap-3">
-                        <div class="skeleton skeleton-circle w-10 h-10"></div>
+                        <div
+                          class="skeleton skeleton-circle w-10 h-10"
+                        ></div>
                         <div class="space-y-2 flex-1">
                           <div class="skeleton skeleton-text w-24"></div>
                           <div
@@ -105,85 +114,89 @@ interface WorkspaceTeam {
           >
             {{ error() }}
           </div>
-        } @else if (allWorkspaces().length === 0) {
-          <div class="text-center py-16">
-            <svg
-              class="mx-auto h-12 w-12 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
-            <h3 class="mt-4 text-lg font-medium text-[var(--card-foreground)]">
-              No team data
-            </h3>
-            <p class="mt-2 text-sm text-[var(--muted-foreground)]">
-              Create a workspace and add team members to get started.
-            </p>
-          </div>
         } @else {
-          <p-tabs [value]="0">
+          <!-- Summary Stats -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div class="widget-card p-4">
+              <p class="text-2xl font-bold text-[var(--foreground)]">
+                {{ totalUniqueMembers() }}
+              </p>
+              <p class="text-xs text-[var(--muted-foreground)]">
+                Total Members
+              </p>
+            </div>
+            <div class="widget-card p-4">
+              <p class="text-2xl font-bold text-[var(--foreground)]">
+                {{ allWorkspaces().length }}
+              </p>
+              <p class="text-xs text-[var(--muted-foreground)]">
+                Workspaces
+              </p>
+            </div>
+            <div class="widget-card p-4">
+              <p class="text-2xl font-bold text-[var(--foreground)]">
+                {{ totalActiveTasks() }}
+              </p>
+              <p class="text-xs text-[var(--muted-foreground)]">
+                Active Tasks
+              </p>
+            </div>
+            <div class="widget-card p-4">
+              <p
+                class="text-2xl font-bold"
+                [class.text-red-600]="totalOverloaded() > 0"
+                [class.text-[var(--foreground)]]="totalOverloaded() === 0"
+              >
+                {{ totalOverloaded() }}
+              </p>
+              <p class="text-xs text-[var(--muted-foreground)]">
+                Overloaded
+              </p>
+            </div>
+          </div>
+
+          <p-tabs [value]="0" (valueChange)="onTabChange($event)">
             <p-tablist>
-              <p-tab [value]="0">Members</p-tab>
-              <p-tab [value]="1">Teams</p-tab>
-              <p-tab [value]="2">Workload</p-tab>
+              <p-tab [value]="0">Overview</p-tab>
+              <p-tab [value]="1">Members</p-tab>
+              <p-tab [value]="2">Teams</p-tab>
+              <p-tab [value]="3">Workload</p-tab>
             </p-tablist>
             <p-tabpanels>
-              <!-- Members Tab -->
+              <!-- Overview Tab -->
               <p-tabpanel [value]="0">
                 <div class="py-6">
-                  <!-- Workspace Filter -->
-                  <div class="mb-6">
-                    <p-select
-                      [options]="workspaceFilterOptions()"
-                      [(ngModel)]="selectedWorkspaceFilter"
-                      optionLabel="label"
-                      optionValue="value"
-                      placeholder="Filter by workspace"
-                      [style]="{ 'min-width': '220px' }"
-                    />
-                  </div>
-
-                  @for (
-                    wm of filteredWorkspaceMembers();
-                    track wm.workspace.id
-                  ) {
-                    <div class="mb-8">
-                      <h2
-                        class="text-lg font-semibold text-[var(--card-foreground)] mb-4"
-                      >
-                        {{ wm.workspace.name }}
-                      </h2>
-                      <app-members-list
-                        [members]="wm.members"
-                        [workspaceId]="wm.workspace.id"
-                        [workspaceName]="wm.workspace.name"
-                        [boards]="wm.boards"
-                        (memberRemoved)="
-                          onMemberRemoved(wm.workspace.id, $event)
-                        "
-                      />
-                    </div>
-                  }
-
-                  @if (filteredWorkspaceMembers().length === 0) {
-                    <div class="text-center py-8">
-                      <p class="text-sm text-[var(--muted-foreground)]">
-                        No members found for the selected workspace.
-                      </p>
-                    </div>
-                  }
+                  <app-workspaces-panel
+                    [workspaces]="allWorkspaces()"
+                    [workspaceMemberCounts]="workspaceMemberCounts()"
+                    (workspaceCreated)="onWorkspaceCreated($event)"
+                    (workspaceDeleted)="onWorkspaceDeleted($event)"
+                    (workspaceRenamed)="onWorkspaceRenamed($event)"
+                  />
                 </div>
               </p-tabpanel>
 
-              <!-- Teams Tab -->
+              <!-- Members Tab (Org-level) -->
               <p-tabpanel [value]="1">
+                @if (tenantMembersLoading()) {
+                  <div class="py-8 text-center">
+                    <p
+                      class="text-sm text-[var(--muted-foreground)] animate-pulse"
+                    >
+                      Loading members...
+                    </p>
+                  </div>
+                } @else {
+                  <app-org-members
+                    [members]="tenantMembers()"
+                    [allWorkspaces]="allWorkspaces()"
+                    (membersAdded)="onMembersAdded()"
+                  />
+                }
+              </p-tabpanel>
+
+              <!-- Teams Tab -->
+              <p-tabpanel [value]="2">
                 <div class="py-6">
                   <!-- Workspace Filter -->
                   <div class="mb-6">
@@ -219,7 +232,7 @@ interface WorkspaceTeam {
               </p-tabpanel>
 
               <!-- Workload Tab -->
-              <p-tabpanel [value]="2">
+              <p-tabpanel [value]="3">
                 @if (workspaceTeams().length === 0) {
                   <div class="text-center py-8">
                     <p class="text-sm text-[var(--muted-foreground)]">
@@ -236,7 +249,10 @@ interface WorkspaceTeam {
                       <!-- Overview Sub-Tab -->
                       <p-tabpanel [value]="0">
                         <div class="py-6">
-                          @for (wt of workspaceTeams(); track wt.workspace.id) {
+                          @for (
+                            wt of workspaceTeams();
+                            track wt.workspace.id
+                          ) {
                             <div class="mb-10">
                               <div
                                 class="flex items-center justify-between mb-4"
@@ -278,11 +294,15 @@ interface WorkspaceTeam {
                                         member.is_overloaded
                                       "
                                     >
-                                      <div class="flex items-center gap-3 mb-3">
+                                      <div
+                                        class="flex items-center gap-3 mb-3"
+                                      >
                                         <div
                                           class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary"
                                         >
-                                          {{ getInitials(member.user_name) }}
+                                          {{
+                                            getInitials(member.user_name)
+                                          }}
                                         </div>
                                         <div class="min-w-0 flex-1">
                                           <p
@@ -355,7 +375,10 @@ interface WorkspaceTeam {
                       <!-- Workload Dashboard Sub-Tab -->
                       <p-tabpanel [value]="1">
                         <div class="py-6 space-y-6">
-                          @for (wt of workspaceTeams(); track wt.workspace.id) {
+                          @for (
+                            wt of workspaceTeams();
+                            track wt.workspace.id
+                          ) {
                             <div>
                               <h2
                                 class="text-lg font-semibold text-[var(--card-foreground)] mb-4"
@@ -405,7 +428,9 @@ interface WorkspaceTeam {
                                         getOverloadedCount(wt.members) > 0
                                       "
                                     >
-                                      {{ getOverloadedCount(wt.members) }}
+                                      {{
+                                        getOverloadedCount(wt.members)
+                                      }}
                                     </p>
                                     <p
                                       class="text-xs text-[var(--muted-foreground)]"
@@ -420,15 +445,21 @@ interface WorkspaceTeam {
                                   class="widget-card divide-y divide-[var(--border)]"
                                 >
                                   @for (
-                                    member of getSortedMembers(wt.members);
+                                    member of getSortedMembers(
+                                      wt.members
+                                    );
                                     track member.user_id
                                   ) {
                                     <div class="px-6 py-4">
-                                      <div class="flex items-center gap-3 mb-2">
+                                      <div
+                                        class="flex items-center gap-3 mb-2"
+                                      >
                                         <div
                                           class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary flex-shrink-0"
                                         >
-                                          {{ getInitials(member.user_name) }}
+                                          {{
+                                            getInitials(member.user_name)
+                                          }}
                                         </div>
                                         <span
                                           class="text-sm font-medium text-[var(--foreground)] flex-1 truncate"
@@ -473,11 +504,15 @@ interface WorkspaceTeam {
                                           >
                                             {{ member.done_tasks }} done
                                           </span>
-                                          @if (member.overdue_tasks > 0) {
+                                          @if (
+                                            member.overdue_tasks > 0
+                                          ) {
                                             <span
                                               class="text-xs text-red-500 font-medium"
                                             >
-                                              {{ member.overdue_tasks }}
+                                              {{
+                                                member.overdue_tasks
+                                              }}
                                               overdue
                                             </span>
                                           }
@@ -538,6 +573,45 @@ export class TeamPageComponent implements OnInit {
   workspaceTeams = signal<WorkspaceTeam[]>([]);
   selectedWorkspaceFilter = signal<string>('all');
 
+  // Tenant members (lazy loaded on Members tab)
+  tenantMembers = signal<TenantMember[]>([]);
+  tenantMembersLoading = signal(false);
+  tenantMembersLoaded = signal(false);
+
+  // Summary stats
+  totalUniqueMembers = computed(() => {
+    const seen = new Set<string>();
+    for (const wm of this.workspaceMembers()) {
+      for (const m of wm.members) {
+        seen.add(m.user_id);
+      }
+    }
+    return seen.size;
+  });
+
+  totalActiveTasks = computed(() => {
+    return this.workspaceTeams().reduce(
+      (sum, wt) =>
+        sum + wt.members.reduce((s, m) => s + m.active_tasks, 0),
+      0,
+    );
+  });
+
+  totalOverloaded = computed(() => {
+    return this.workspaceTeams().reduce(
+      (sum, wt) => sum + wt.members.filter((m) => m.is_overloaded).length,
+      0,
+    );
+  });
+
+  workspaceMemberCounts = computed(() => {
+    const counts: Record<string, number> = {};
+    for (const wm of this.workspaceMembers()) {
+      counts[wm.workspace.id] = wm.members.length;
+    }
+    return counts;
+  });
+
   workspaceFilterOptions = computed(() => {
     const options: { label: string; value: string }[] = [
       { label: 'All Workspaces', value: 'all' },
@@ -546,12 +620,6 @@ export class TeamPageComponent implements OnInit {
       options.push({ label: ws.name, value: ws.id });
     }
     return options;
-  });
-
-  filteredWorkspaceMembers = computed(() => {
-    const filter = this.selectedWorkspaceFilter();
-    if (filter === 'all') return this.workspaceMembers();
-    return this.workspaceMembers().filter((wm) => wm.workspace.id === filter);
   });
 
   filteredWorkspaces = computed(() => {
@@ -564,11 +632,47 @@ export class TeamPageComponent implements OnInit {
     this.loadData();
   }
 
+  onTabChange(tabIndex: unknown): void {
+    if (tabIndex === 1 && !this.tenantMembersLoaded()) {
+      this.loadTenantMembers();
+    }
+  }
+
+  onWorkspaceCreated(ws: Workspace): void {
+    this.allWorkspaces.update((list) => [ws, ...list]);
+  }
+
+  onWorkspaceDeleted(wsId: string): void {
+    this.allWorkspaces.update((list) => list.filter((ws) => ws.id !== wsId));
+    this.workspaceMembers.update((list) =>
+      list.filter((wm) => wm.workspace.id !== wsId),
+    );
+    this.workspaceTeams.update((list) =>
+      list.filter((wt) => wt.workspace.id !== wsId),
+    );
+  }
+
+  onWorkspaceRenamed(updated: Workspace): void {
+    this.allWorkspaces.update((list) =>
+      list.map((ws) => (ws.id === updated.id ? updated : ws)),
+    );
+  }
+
+  onMembersAdded(): void {
+    // Reload tenant members to reflect updated workspace counts
+    this.loadTenantMembers();
+    // Reload workspace member data
+    this.loadData();
+  }
+
   onMemberRemoved(workspaceId: string, userId: string): void {
     this.workspaceMembers.update((wms) =>
       wms.map((wm) =>
         wm.workspace.id === workspaceId
-          ? { ...wm, members: wm.members.filter((m) => m.user_id !== userId) }
+          ? {
+              ...wm,
+              members: wm.members.filter((m) => m.user_id !== userId),
+            }
           : wm,
       ),
     );
@@ -609,6 +713,20 @@ export class TeamPageComponent implements OnInit {
     return Math.max((activeTasks / maxTasks) * 100, 2);
   }
 
+  private loadTenantMembers(): void {
+    this.tenantMembersLoading.set(true);
+    this.workspaceService.listTenantMembers().subscribe({
+      next: (members) => {
+        this.tenantMembers.set(members);
+        this.tenantMembersLoading.set(false);
+        this.tenantMembersLoaded.set(true);
+      },
+      error: () => {
+        this.tenantMembersLoading.set(false);
+      },
+    });
+  }
+
   private loadData(): void {
     this.loading.set(true);
     this.error.set(null);
@@ -631,7 +749,9 @@ export class TeamPageComponent implements OnInit {
               .pipe(catchError(() => of(null))),
             boards: this.boardService
               .listBoards(ws.id)
-              .pipe(catchError(() => of([] as { id: string; name: string }[]))),
+              .pipe(
+                catchError(() => of([] as { id: string; name: string }[])),
+              ),
           }),
         );
 
@@ -644,17 +764,22 @@ export class TeamPageComponent implements OnInit {
 
         forkJoin(memberRequests).subscribe({
           next: (results) => {
-            const wsMembers: WorkspaceWithMembers[] = results.map((r) => {
-              const embeddedMembers = this.extractMembers(
-                r.details,
-                r.workspace.id,
-              );
-              return {
-                workspace: r.workspace,
-                members: embeddedMembers,
-                boards: r.boards.map((b) => ({ id: b.id, name: b.name })),
-              };
-            });
+            const wsMembers: WorkspaceWithMembers[] = results.map(
+              (r) => {
+                const embeddedMembers = this.extractMembers(
+                  r.details,
+                  r.workspace.id,
+                );
+                return {
+                  workspace: r.workspace,
+                  members: embeddedMembers,
+                  boards: r.boards.map((b) => ({
+                    id: b.id,
+                    name: b.name,
+                  })),
+                };
+              },
+            );
             this.workspaceMembers.set(wsMembers);
           },
         });

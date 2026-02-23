@@ -162,6 +162,47 @@ export class WorkspaceService {
       {},
     );
   }
+
+  // Tenant-level endpoints
+
+  listTenantMembers(): Observable<TenantMember[]> {
+    return this.http.get<TenantMember[]>('/api/tenant/members');
+  }
+
+  getUserWorkspaces(userId: string): Observable<UserWorkspaceMembership[]> {
+    return this.http.get<UserWorkspaceMembership[]>(
+      `/api/tenant/members/${userId}/workspaces`,
+    );
+  }
+
+  bulkAddMembers(
+    workspaceId: string,
+    userIds: string[],
+  ): Observable<{ added: number }> {
+    return this.http.post<{ added: number }>(
+      `${this.apiUrl}/${workspaceId}/members/bulk`,
+      { user_ids: userIds },
+    );
+  }
+}
+
+export interface TenantMember {
+  user_id: string;
+  name: string;
+  email: string;
+  avatar_url: string | null;
+  job_title: string | null;
+  department: string | null;
+  role: string;
+  workspace_count: number;
+  created_at: string;
+}
+
+export interface UserWorkspaceMembership {
+  workspace_id: string;
+  workspace_name: string;
+  role: string;
+  joined_at: string;
 }
 
 export interface DiscoverableWorkspace {
