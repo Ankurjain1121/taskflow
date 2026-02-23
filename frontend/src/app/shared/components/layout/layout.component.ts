@@ -1,8 +1,14 @@
-import { Component, inject, signal, HostListener, ChangeDetectionStrategy,
+import {
+  Component,
+  inject,
+  signal,
+  HostListener,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { NotificationBellComponent } from '../notification-bell/notification-bell.component';
+import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component';
 import { AuthService } from '../../../core/services/auth.service';
 import {
   ThemeService,
@@ -21,6 +27,7 @@ import { PopoverModule } from 'primeng/popover';
     SidebarComponent,
     RouterOutlet,
     NotificationBellComponent,
+    BreadcrumbsComponent,
     TooltipModule,
     PopoverModule,
   ],
@@ -102,12 +109,9 @@ import { PopoverModule } from 'primeng/popover';
             <i class="pi pi-bars" style="font-size: 1.125rem;"></i>
           </button>
 
-          <!-- Breadcrumb placeholder -->
+          <!-- Breadcrumbs -->
           <div class="flex-1 min-w-0">
-            <div
-              class="text-sm truncate"
-              style="color: var(--muted-foreground)"
-            ></div>
+            <app-breadcrumbs />
           </div>
 
           <!-- Right-side actions -->

@@ -9,6 +9,7 @@ use serde::Deserialize;
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
 use crate::middleware::auth_middleware;
+use crate::services::cache;
 use crate::state::AppState;
 
 use taskflow_db::queries::user_prefs;
@@ -46,7 +47,19 @@ async fn get_preferences(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
 ) -> Result<Json<taskflow_db::models::UserPreferences>> {
+    // Check Redis cache first (5 minute TTL)
+    let cache_key = cache::user_prefs_key(&auth.0.user_id);
+    if let Some(cached) =
+        cache::cache_get::<taskflow_db::models::UserPreferences>(&state.redis, &cache_key).await
+    {
+        return Ok(Json(cached));
+    }
+
     let prefs = user_prefs::get_by_user_id(&state.db, auth.0.user_id).await?;
+
+    // Store in cache (5 minute TTL)
+    cache::cache_set(&state.redis, &cache_key, &prefs, 300).await;
+
     Ok(Json(prefs))
 }
 
@@ -130,6 +143,9 @@ async fn update_preferences(
         color_mode.as_deref(),
     )
     .await?;
+
+    // Invalidate preferences cache
+    cache::cache_del(&state.redis, &cache::user_prefs_key(&auth.0.user_id)).await;
 
     Ok(Json(prefs))
 }

@@ -9,10 +9,14 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, switchMap } from 'rxjs';
 import { CdkDropListGroup } from '@angular/cdk/drag-drop';
 
-import { Task } from '../../../core/services/task.service';
+import {
+  Task,
+  TaskService,
+  TaskPriority,
+} from '../../../core/services/task.service';
 import { TaskGroupWithStats } from '../../../core/services/task-group.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
 
@@ -56,6 +60,8 @@ import { BoardBulkActionsService } from './board-bulk-actions.service';
 import { BoardStateService } from './board-state.service';
 import { BoardWebsocketHandler } from './board-websocket.handler';
 import { BoardDragDropHandler } from './board-drag-drop.handler';
+import { UndoService } from '../../../shared/services/undo.service';
+import { MessageService } from 'primeng/api';
 
 @Component({
   selector: 'app-board-view',
@@ -183,7 +189,9 @@ import { BoardDragDropHandler } from './board-drag-drop.handler';
 
       <!-- Toolbar -->
       <app-board-toolbar
+        [boardId]="boardId"
         [assignees]="state.allAssignees()"
+        [labels]="state.allLabels()"
         [viewMode]="viewMode()"
         (filtersChanged)="onFiltersChanged($event)"
         (viewModeChanged)="onViewModeChanged($event)"
@@ -284,9 +292,20 @@ import { BoardDragDropHandler } from './board-drag-drop.handler';
                 [connectedLists]="state.connectedColumnIds()"
                 [celebratingTaskId]="state.celebratingTaskId()"
                 [focusedTaskId]="state.focusedTaskId()"
+                [selectedTaskIds]="state.selectedTaskIds()"
+                [allColumns]="state.columns()"
+                [boardPrefix]="state.board()?.prefix ?? null"
+                [isCollapsed]="state.isColumnCollapsed(column.id)"
                 (taskMoved)="onTaskMoved($event)"
                 (taskClicked)="onTaskClicked($event)"
                 (addTaskClicked)="onAddTaskToColumn($event)"
+                (selectionToggled)="onSelectionToggled($event)"
+                (priorityChanged)="onCardPriorityChanged($event)"
+                (columnMoveRequested)="onCardColumnMove($event)"
+                (duplicateRequested)="onCardDuplicate($event)"
+                (deleteRequested)="onCardDelete($event)"
+                (quickTaskCreated)="onQuickTaskCreated($event)"
+                (collapseToggled)="onColumnCollapseToggled($event)"
               ></app-kanban-column>
             }
 
@@ -400,6 +419,9 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   private bulkActionsService = inject(BoardBulkActionsService);
   private wsHandler = inject(BoardWebsocketHandler);
   private dragDrop = inject(BoardDragDropHandler);
+  private taskService = inject(TaskService);
+  private undoService = inject(UndoService);
+  private messageService = inject(MessageService);
   readonly state = inject(BoardStateService);
   private destroy$ = new Subject<void>();
 
@@ -591,6 +613,90 @@ export class BoardViewComponent implements OnInit, OnDestroy {
         onError: (message) => this.state.showError(message),
       },
     );
+  }
+
+  // === Card Context Menu Actions ===
+
+  onSelectionToggled(taskId: string): void {
+    this.state.toggleTaskSelection(taskId);
+  }
+
+  onCardPriorityChanged(event: { taskId: string; priority: string }): void {
+    this.taskService
+      .updateTask(event.taskId, { priority: event.priority as TaskPriority })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (task) => this.state.updateTaskInState(task),
+        error: () => this.state.showError('Failed to update priority'),
+      });
+  }
+
+  onCardColumnMove(event: { taskId: string; columnId: string }): void {
+    this.taskService
+      .moveTask(event.taskId, { column_id: event.columnId, position: 'a0' })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => this.state.loadBoard(this.boardId, this.destroy$),
+        error: () => this.state.showError('Failed to move task'),
+      });
+  }
+
+  onCardDuplicate(taskId: string): void {
+    this.taskService
+      .duplicateTask(taskId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (newTask) => {
+          this.state.loadBoard(this.boardId, this.destroy$);
+          this.undoService.setMessageService(this.messageService);
+          this.undoService.schedule({
+            id: `dup-${newTask.id}`,
+            summary: 'Task duplicated',
+            execute: () => {
+              // No-op: duplication already committed
+            },
+            rollback: () => {
+              this.taskService
+                .deleteTask(newTask.id)
+                .pipe(takeUntil(this.destroy$))
+                .subscribe({
+                  next: () => this.state.loadBoard(this.boardId, this.destroy$),
+                });
+            },
+          });
+        },
+        error: () => this.state.showError('Failed to duplicate task'),
+      });
+  }
+
+  onCardDelete(taskId: string): void {
+    this.taskService
+      .deleteTask(taskId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.state.boardState.update((boardState) => {
+            const newState: Record<string, Task[]> = {};
+            for (const [colId, tasks] of Object.entries(boardState)) {
+              newState[colId] = tasks.filter((t) => t.id !== taskId);
+            }
+            return newState;
+          });
+        },
+        error: () => this.state.showError('Failed to delete task'),
+      });
+  }
+
+  onColumnCollapseToggled(columnId: string): void {
+    this.state.toggleColumnCollapse(this.boardId, columnId);
+  }
+
+  onQuickTaskCreated(event: { columnId: string; title: string }): void {
+    this.state.createTask(this.boardId, event.columnId, {
+      title: event.title,
+      description: '',
+      priority: 'medium',
+    } as CreateTaskDialogResult);
   }
 
   // === Card Keyboard Navigation (J/K/Enter) ===

@@ -14,6 +14,7 @@ import {
   Assignee,
   TaskListItem,
   Label,
+  UpdateTaskRequest,
 } from '../../../core/services/task.service';
 import {
   TaskGroupService,
@@ -25,10 +26,7 @@ import {
 } from '../../../core/services/milestone.service';
 import { DependencyService } from '../../../core/services/dependency.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
-import {
-  GanttTask,
-  GanttDependency,
-} from '../gantt-view/gantt-view.component';
+import { GanttTask, GanttDependency } from '../gantt-view/gantt-view.component';
 import { TaskFilters } from '../board-toolbar/board-toolbar.component';
 import { CreateTaskDialogResult } from './create-task-dialog.component';
 import { CreateColumnDialogResult } from './create-column-dialog.component';
@@ -69,6 +67,7 @@ export class BoardStateService {
   readonly boardMembers = signal<BoardMember[]>([]);
   readonly boardMilestones = signal<Milestone[]>([]);
   readonly boardGroups = signal<TaskGroupWithStats[]>([]);
+  readonly collapsedColumnIds = signal<Set<string>>(new Set());
 
   // === Computed Signals ===
   readonly collapsedGroupIds = computed(() => {
@@ -140,6 +139,7 @@ export class BoardStateService {
   loadBoard(boardId: string, destroy$: Subject<void>): void {
     this.loading.set(true);
 
+    this.loadCollapsedColumns(boardId);
     this.boardService.getBoardFull(boardId).subscribe({
       next: (response: BoardFullResponse) => {
         this.board.set(response.board);
@@ -243,7 +243,43 @@ export class BoardStateService {
 
   // === Task CRUD ===
 
-  createTask(boardId: string, columnId: string, taskData: CreateTaskDialogResult): void {
+  createTask(
+    boardId: string,
+    columnId: string,
+    taskData: CreateTaskDialogResult,
+  ): void {
+    // Snapshot for rollback
+    const snapshot = structuredClone(this.boardState());
+
+    // Create optimistic temp task
+    const tempId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const tempTask: Task = {
+      id: tempId,
+      column_id: columnId,
+      group_id: taskData.group_id ?? null,
+      title: taskData.title,
+      description: taskData.description ?? null,
+      priority: (taskData.priority as Task['priority']) ?? 'medium',
+      position: 'zzzzzz', // sort to end
+      milestone_id: taskData.milestone_id ?? null,
+      assignee_id: null,
+      due_date: taskData.due_date ?? null,
+      created_by: '',
+      created_at: now,
+      updated_at: now,
+      assignees: [],
+      labels: [],
+    };
+
+    // Optimistically insert
+    this.boardState.update((state) => {
+      const newState = { ...state };
+      const columnTasks = newState[columnId] || [];
+      newState[columnId] = [...columnTasks, tempTask];
+      return newState;
+    });
+
     this.taskService
       .createTask(boardId, {
         title: taskData.title,
@@ -259,17 +295,20 @@ export class BoardStateService {
         label_ids: taskData.label_ids,
       })
       .subscribe({
-        next: (task) => {
+        next: (realTask) => {
+          // Replace temp task with server response
           this.boardState.update((state) => {
             const newState = { ...state };
             const columnTasks = newState[columnId] || [];
-            newState[columnId] = [...columnTasks, task].sort((a, b) =>
-              a.position.localeCompare(b.position),
-            );
+            newState[columnId] = columnTasks
+              .map((t) => (t.id === tempId ? realTask : t))
+              .sort((a, b) => a.position.localeCompare(b.position));
             return newState;
           });
         },
         error: () => {
+          // Rollback to snapshot
+          this.boardState.set(snapshot);
           this.showError('Failed to create task');
         },
       });
@@ -288,9 +327,75 @@ export class BoardStateService {
     });
   }
 
+  /**
+   * Optimistically update a task in boardState and send the update to the server.
+   * Rolls back to snapshot on error.
+   */
+  optimisticUpdateTask(
+    taskId: string,
+    updates: Partial<Task>,
+    serverUpdates?: Record<string, unknown>,
+  ): void {
+    const snapshot = structuredClone(this.boardState());
+
+    // Apply optimistic update
+    this.boardState.update((state) => {
+      const newState: Record<string, Task[]> = {};
+      for (const [columnId, tasks] of Object.entries(state)) {
+        newState[columnId] = tasks.map((t) =>
+          t.id === taskId ? { ...t, ...updates } : t,
+        );
+      }
+      return newState;
+    });
+
+    // Send to server
+    const req = serverUpdates ?? (updates as Record<string, unknown>);
+    this.taskService.updateTask(taskId, req as UpdateTaskRequest).subscribe({
+      next: (updatedTask) => {
+        // Replace with server-confirmed data
+        this.boardState.update((state) => {
+          const newState: Record<string, Task[]> = {};
+          for (const [columnId, tasks] of Object.entries(state)) {
+            newState[columnId] = tasks.map((t) =>
+              t.id === taskId ? { ...t, ...updatedTask } : t,
+            );
+          }
+          return newState;
+        });
+      },
+      error: () => {
+        this.boardState.set(snapshot);
+        this.showError('Failed to update task. Reverted.');
+      },
+    });
+  }
+
   // === Column Operations ===
 
   createColumn(boardId: string, columnData: CreateColumnDialogResult): void {
+    // Snapshot for rollback
+    const colSnapshot = structuredClone(this.columns());
+    const stateSnapshot = structuredClone(this.boardState());
+
+    // Optimistic temp column
+    const tempId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const tempColumn: Column = {
+      id: tempId,
+      board_id: boardId,
+      name: columnData.name,
+      position: 'zzzzzz',
+      color: columnData.color ?? '',
+      status_mapping: columnData.isDone ? { done: true } : null,
+      wip_limit: null,
+      created_at: now,
+      updated_at: now,
+    };
+
+    this.columns.update((cols) => [...cols, tempColumn]);
+    this.boardState.update((state) => ({ ...state, [tempId]: [] }));
+
     this.boardService
       .createColumn(boardId, {
         name: columnData.name,
@@ -298,29 +403,54 @@ export class BoardStateService {
         status_mapping: columnData.isDone ? { done: true } : undefined,
       })
       .subscribe({
-        next: (column) => {
+        next: (realColumn) => {
+          // Replace temp with real column
           this.columns.update((cols) =>
-            [...cols, column].sort((a, b) =>
-              a.position.localeCompare(b.position),
-            ),
+            cols
+              .map((c) => (c.id === tempId ? realColumn : c))
+              .sort((a, b) => a.position.localeCompare(b.position)),
           );
-          this.boardState.update((state) => ({
-            ...state,
-            [column.id]: [],
-          }));
+          this.boardState.update((state) => {
+            const newState = { ...state };
+            const tempTasks = newState[tempId] || [];
+            delete newState[tempId];
+            newState[realColumn.id] = tempTasks;
+            return newState;
+          });
         },
         error: () => {
+          this.columns.set(colSnapshot);
+          this.boardState.set(stateSnapshot);
           this.showError('Failed to create column');
         },
       });
   }
 
+  deleteColumn(boardId: string, columnId: string): void {
+    // Snapshot for rollback
+    const colSnapshot = structuredClone(this.columns());
+    const stateSnapshot = structuredClone(this.boardState());
+
+    // Optimistically remove column
+    this.columns.update((cols) => cols.filter((c) => c.id !== columnId));
+    this.boardState.update((state) => {
+      const newState = { ...state };
+      delete newState[columnId];
+      return newState;
+    });
+
+    this.boardService.deleteColumn(columnId).subscribe({
+      error: () => {
+        this.columns.set(colSnapshot);
+        this.boardState.set(stateSnapshot);
+        this.showError('Failed to delete column. Reverted.');
+      },
+    });
+  }
+
   // === Task Group Operations ===
 
-  createGroup(
-    boardId: string,
-    result: { name: string; color: string },
-  ): void {
+  createGroup(boardId: string, result: { name: string; color: string }): void {
     const groups = this.boardGroups();
     const lastGroup = groups[groups.length - 1];
     const position = generateKeyBetween(
@@ -406,6 +536,42 @@ export class BoardStateService {
   clearSelection(): void {
     this.selectedTaskIds.set([]);
     this.selectionMode.set(false);
+  }
+
+  // === Column Collapse ===
+
+  loadCollapsedColumns(boardId: string): void {
+    try {
+      const stored = localStorage.getItem(
+        `taskflow_collapsed_columns_${boardId}`,
+      );
+      if (stored) {
+        this.collapsedColumnIds.set(new Set(JSON.parse(stored)));
+      } else {
+        this.collapsedColumnIds.set(new Set());
+      }
+    } catch {
+      this.collapsedColumnIds.set(new Set());
+    }
+  }
+
+  toggleColumnCollapse(boardId: string, columnId: string): void {
+    const current = this.collapsedColumnIds();
+    const updated = new Set(current);
+    if (updated.has(columnId)) {
+      updated.delete(columnId);
+    } else {
+      updated.add(columnId);
+    }
+    this.collapsedColumnIds.set(updated);
+    localStorage.setItem(
+      `taskflow_collapsed_columns_${boardId}`,
+      JSON.stringify([...updated]),
+    );
+  }
+
+  isColumnCollapsed(columnId: string): boolean {
+    return this.collapsedColumnIds().has(columnId);
   }
 
   // === Error Handling ===

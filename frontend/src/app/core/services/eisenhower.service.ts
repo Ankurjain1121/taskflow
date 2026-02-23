@@ -1,8 +1,12 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-export type EisenhowerQuadrant = 'do_first' | 'schedule' | 'delegate' | 'eliminate';
+export type EisenhowerQuadrant =
+  | 'do_first'
+  | 'schedule'
+  | 'delegate'
+  | 'eliminate';
 
 export interface EisenhowerTask {
   id: string;
@@ -30,6 +34,12 @@ export interface EisenhowerMatrixResponse {
   eliminate: EisenhowerTask[];
 }
 
+export interface EisenhowerFilters {
+  workspace_id?: string;
+  board_id?: string;
+  daily?: boolean;
+}
+
 export interface UpdateEisenhowerRequest {
   urgency: boolean | null;
   importance: boolean | null;
@@ -47,21 +57,24 @@ export class EisenhowerService {
 
   constructor(private http: HttpClient) {}
 
-  /**
-   * Get Eisenhower Matrix with all tasks grouped by quadrants
-   */
-  getMatrix(): Observable<EisenhowerMatrixResponse> {
-    return this.http.get<EisenhowerMatrixResponse>(this.apiUrl);
+  getMatrix(filters?: EisenhowerFilters): Observable<EisenhowerMatrixResponse> {
+    let params = new HttpParams();
+    if (filters?.workspace_id) {
+      params = params.set('workspace_id', filters.workspace_id);
+    }
+    if (filters?.board_id) {
+      params = params.set('board_id', filters.board_id);
+    }
+    if (filters?.daily) {
+      params = params.set('daily', 'true');
+    }
+    return this.http.get<EisenhowerMatrixResponse>(this.apiUrl, { params });
   }
 
-  /**
-   * Update manual overrides for a task
-   * Set to null to use auto-computation
-   */
   updateTaskOverride(
     taskId: string,
     urgency: boolean | null,
-    importance: boolean | null
+    importance: boolean | null,
   ): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/tasks/${taskId}`, {
       urgency,
@@ -69,9 +82,6 @@ export class EisenhowerService {
     });
   }
 
-  /**
-   * Reset all manual overrides to auto-compute
-   */
   resetAllOverrides(): Observable<ResetEisenhowerResponse> {
     return this.http.put<ResetEisenhowerResponse>(`${this.apiUrl}/reset`, {});
   }

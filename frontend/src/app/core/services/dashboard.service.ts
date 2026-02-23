@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, shareReplay } from 'rxjs';
 
 export interface DashboardStats {
   total_tasks: number;
@@ -56,13 +56,39 @@ export interface UpcomingDeadline {
   days_until_due: number;
 }
 
+interface CacheEntry<T> {
+  observable: Observable<T>;
+  timestamp: number;
+}
+
+const CACHE_TTL_MS = 30_000;
+
 @Injectable({
   providedIn: 'root',
 })
 export class DashboardService {
   private readonly apiUrl = '/api/dashboard';
+  private cache = new Map<string, CacheEntry<unknown>>();
 
   constructor(private http: HttpClient) {}
+
+  /** Invalidate all cached dashboard data. */
+  invalidateCache(): void {
+    this.cache.clear();
+  }
+
+  private getCached<T>(
+    key: string,
+    factory: () => Observable<T>,
+  ): Observable<T> {
+    const existing = this.cache.get(key) as CacheEntry<T> | undefined;
+    if (existing && Date.now() - existing.timestamp < CACHE_TTL_MS) {
+      return existing.observable;
+    }
+    const obs = factory().pipe(shareReplay({ bufferSize: 1, refCount: true }));
+    this.cache.set(key, { observable: obs, timestamp: Date.now() });
+    return obs;
+  }
 
   private buildParams(
     workspaceId?: string,
@@ -81,9 +107,11 @@ export class DashboardService {
   }
 
   getStats(workspaceId?: string): Observable<DashboardStats> {
-    return this.http.get<DashboardStats>(`${this.apiUrl}/stats`, {
-      params: this.buildParams(workspaceId),
-    });
+    return this.getCached(`stats:${workspaceId ?? ''}`, () =>
+      this.http.get<DashboardStats>(`${this.apiUrl}/stats`, {
+        params: this.buildParams(workspaceId),
+      }),
+    );
   }
 
   getRecentActivity(
@@ -97,17 +125,18 @@ export class DashboardService {
   }
 
   getTasksByStatus(workspaceId?: string): Observable<TasksByStatus[]> {
-    return this.http.get<TasksByStatus[]>(`${this.apiUrl}/tasks-by-status`, {
-      params: this.buildParams(workspaceId),
-    });
+    return this.getCached(`tasks-by-status:${workspaceId ?? ''}`, () =>
+      this.http.get<TasksByStatus[]>(`${this.apiUrl}/tasks-by-status`, {
+        params: this.buildParams(workspaceId),
+      }),
+    );
   }
 
   getTasksByPriority(workspaceId?: string): Observable<TasksByPriority[]> {
-    return this.http.get<TasksByPriority[]>(
-      `${this.apiUrl}/tasks-by-priority`,
-      {
+    return this.getCached(`tasks-by-priority:${workspaceId ?? ''}`, () =>
+      this.http.get<TasksByPriority[]>(`${this.apiUrl}/tasks-by-priority`, {
         params: this.buildParams(workspaceId),
-      },
+      }),
     );
   }
 

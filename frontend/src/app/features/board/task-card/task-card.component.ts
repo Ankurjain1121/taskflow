@@ -2,6 +2,7 @@ import {
   Component,
   input,
   output,
+  ViewChild,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -10,7 +11,10 @@ import {
   CdkDragPreview,
   CdkDragPlaceholder,
 } from '@angular/cdk/drag-drop';
+import { Menu } from 'primeng/menu';
+import { MenuItem } from 'primeng/api';
 import { Task } from '../../../core/services/task.service';
+import { Column } from '../../../core/services/board.service';
 import {
   getPriorityColor,
   getPriorityLabel,
@@ -23,7 +27,7 @@ import {
 @Component({
   selector: 'app-task-card',
   standalone: true,
-  imports: [CommonModule, CdkDrag, CdkDragPreview, CdkDragPlaceholder],
+  imports: [CommonModule, CdkDrag, CdkDragPreview, CdkDragPlaceholder, Menu],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -36,10 +40,44 @@ import {
       [class.task-card--high]="task().priority === 'high'"
       [class.task-card--medium]="task().priority === 'medium'"
       [class.task-card--low]="task().priority === 'low'"
-      [class.ring-2]="isFocused()"
+      [class.ring-2]="isFocused() || isSelected()"
       [class.ring-ring]="isFocused()"
+      [class.ring-primary]="isSelected()"
       [class.shadow-lg]="isFocused()"
     >
+      <!-- Selection Checkbox -->
+      <div
+        class="absolute top-1 left-1 z-20 transition-opacity"
+        [class.opacity-0]="!isSelected()"
+        [class.opacity-100]="isSelected()"
+        [ngClass]="{ 'group-hover:opacity-100': !isSelected() }"
+      >
+        <button
+          (click)="onSelectToggle($event)"
+          class="w-5 h-5 rounded border flex items-center justify-center"
+          [class.bg-primary]="isSelected()"
+          [class.border-primary]="isSelected()"
+          [style.border-color]="!isSelected() ? 'var(--border)' : ''"
+          [style.background]="!isSelected() ? 'var(--card)' : ''"
+        >
+          @if (isSelected()) {
+            <svg
+              class="w-3 h-3 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              stroke-width="3"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          }
+        </button>
+      </div>
+
       <!-- Celebration Overlay -->
       @if (isCelebrating()) {
         <div
@@ -63,13 +101,13 @@ import {
         </div>
       }
 
-      <!-- Hover Quick-Action -->
+      <!-- Hover Quick-Action (Three-Dot Menu) -->
       <div
         class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-20"
       >
         <button
           class="w-6 h-6 rounded bg-[var(--card)]/90 shadow-sm flex items-center justify-center hover:bg-[var(--muted)] text-[var(--muted-foreground)] btn-snappy"
-          (click)="$event.stopPropagation()"
+          (click)="onMenuToggle($event)"
         >
           <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
             <path
@@ -77,6 +115,12 @@ import {
             />
           </svg>
         </button>
+        <p-menu
+          #cardMenu
+          [model]="contextMenuItems"
+          [popup]="true"
+          appendTo="body"
+        />
       </div>
 
       <!-- Labels -->
@@ -118,6 +162,15 @@ import {
             </svg>
             Blocked
           </div>
+        }
+
+        <!-- Short ID -->
+        @if (task().task_number && boardPrefix()) {
+          <span
+            class="text-[10px] font-medium text-[var(--muted-foreground)] mb-1 inline-block"
+          >
+            {{ boardPrefix() }}-{{ task().task_number }}
+          </span>
         }
 
         <!-- Title -->
@@ -232,6 +285,28 @@ import {
                 {{ subtaskProgress()!.completed }}/{{
                   subtaskProgress()!.total
                 }}
+              </span>
+            }
+
+            <!-- Comment Count -->
+            @if (task().comment_count && task().comment_count! > 0) {
+              <span
+                class="flex items-center gap-1 text-[11px] font-medium text-[var(--muted-foreground)]"
+              >
+                <svg
+                  class="w-3 h-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  />
+                </svg>
+                {{ task().comment_count }}
               </span>
             }
           </div>
@@ -395,10 +470,22 @@ export class TaskCardComponent {
   isBlocked = input<boolean>(false);
   isCelebrating = input<boolean>(false);
   isFocused = input<boolean>(false);
+  isSelected = input<boolean>(false);
   subtaskProgress = input<{ completed: number; total: number } | null>(null);
   hasRunningTimer = input<boolean>(false);
+  columns = input<Column[]>([]);
+  boardPrefix = input<string | null>(null);
 
   taskClicked = output<Task>();
+  selectionToggled = output<string>();
+  priorityChanged = output<{ taskId: string; priority: string }>();
+  columnMoveRequested = output<{ taskId: string; columnId: string }>();
+  duplicateRequested = output<string>();
+  deleteRequested = output<string>();
+
+  @ViewChild('cardMenu') cardMenu!: Menu;
+
+  contextMenuItems: MenuItem[] = [];
 
   get priorityColors() {
     return getPriorityColor(this.task().priority);
@@ -473,10 +560,88 @@ export class TaskCardComponent {
     return gradients[index % gradients.length];
   }
 
-  onCardClick(event: Event): void {
+  onCardClick(event: MouseEvent): void {
     // Only emit if not dragging
-    if (!(event.target as HTMLElement).closest('.cdk-drag-preview')) {
-      this.taskClicked.emit(this.task());
+    if ((event.target as HTMLElement).closest('.cdk-drag-preview')) {
+      return;
     }
+
+    // Ctrl/Cmd+click for bulk selection
+    if (event.ctrlKey || event.metaKey) {
+      event.preventDefault();
+      this.selectionToggled.emit(this.task().id);
+      return;
+    }
+
+    this.taskClicked.emit(this.task());
+  }
+
+  onSelectToggle(event: Event): void {
+    event.stopPropagation();
+    this.selectionToggled.emit(this.task().id);
+  }
+
+  onMenuToggle(event: Event): void {
+    event.stopPropagation();
+    this.buildContextMenu();
+    this.cardMenu.toggle(event);
+  }
+
+  private buildContextMenu(): void {
+    const priorities = [
+      { label: 'Urgent', value: 'urgent', color: '#ef4444' },
+      { label: 'High', value: 'high', color: '#f97316' },
+      { label: 'Medium', value: 'medium', color: '#facc15' },
+      { label: 'Low', value: 'low', color: '#60a5fa' },
+    ];
+
+    this.contextMenuItems = [
+      {
+        label: 'Set Priority',
+        icon: 'pi pi-flag',
+        items: priorities.map((p) => ({
+          label: p.label,
+          command: () =>
+            this.priorityChanged.emit({
+              taskId: this.task().id,
+              priority: p.value,
+            }),
+        })),
+      },
+      {
+        label: 'Move to Column',
+        icon: 'pi pi-arrow-right',
+        items: this.columns()
+          .filter((col) => col.id !== this.task().column_id)
+          .map((col) => ({
+            label: col.name,
+            command: () =>
+              this.columnMoveRequested.emit({
+                taskId: this.task().id,
+                columnId: col.id,
+              }),
+          })),
+      },
+      {
+        label: 'Duplicate',
+        icon: 'pi pi-copy',
+        command: () => this.duplicateRequested.emit(this.task().id),
+      },
+      {
+        label: 'Copy Link',
+        icon: 'pi pi-link',
+        command: () => {
+          const url = `${window.location.origin}/task/${this.task().id}`;
+          navigator.clipboard.writeText(url);
+        },
+      },
+      { separator: true },
+      {
+        label: 'Delete',
+        icon: 'pi pi-trash',
+        styleClass: 'text-red-500',
+        command: () => this.deleteRequested.emit(this.task().id),
+      },
+    ];
   }
 }

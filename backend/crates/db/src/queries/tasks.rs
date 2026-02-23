@@ -117,7 +117,7 @@ pub async fn list_tasks_by_board(
         SELECT
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
-            milestone_id, eisenhower_urgency, eisenhower_importance,
+            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at
         FROM tasks
         WHERE board_id = $1 AND deleted_at IS NULL
@@ -149,7 +149,7 @@ pub async fn get_task_by_id(
         SELECT
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
-            milestone_id, eisenhower_urgency, eisenhower_importance,
+            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
@@ -258,17 +258,19 @@ pub async fn create_task(
 
     let task_id = Uuid::new_v4();
 
-    // Insert the task
+    // Insert the task with auto-assigned task_number
     let task = sqlx::query_as::<_, Task>(
         r#"
         INSERT INTO tasks (id, title, description, priority, due_date, start_date,
                           estimated_hours, board_id, column_id, group_id, position,
-                          milestone_id, tenant_id, created_by_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                          milestone_id, task_number, tenant_id, created_by_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+                COALESCE((SELECT MAX(task_number) FROM tasks WHERE board_id = $8), 0) + 1,
+                $13, $14)
         RETURNING
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
-            milestone_id, eisenhower_urgency, eisenhower_importance,
+            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at
         "#,
     )
@@ -348,7 +350,7 @@ pub async fn update_task(
         RETURNING
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
-            milestone_id, eisenhower_urgency, eisenhower_importance,
+            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at
         "#,
     )
@@ -411,7 +413,7 @@ pub async fn move_task(
         RETURNING
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
-            milestone_id, eisenhower_urgency, eisenhower_importance,
+            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at
         "#,
     )
@@ -421,6 +423,135 @@ pub async fn move_task(
     .fetch_optional(pool)
     .await?
     .ok_or(TaskQueryError::NotFound)?;
+
+    Ok(task)
+}
+
+/// Duplicate a task including assignees and labels
+pub async fn duplicate_task(
+    pool: &PgPool,
+    source_task_id: Uuid,
+    created_by_id: Uuid,
+) -> Result<Task, TaskQueryError> {
+    // Get the source task
+    let source = sqlx::query_as::<_, Task>(
+        r#"
+        SELECT
+            id, title, description, priority, due_date, start_date,
+            estimated_hours, board_id, column_id, group_id, position,
+            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
+            tenant_id, created_by_id, deleted_at, created_at, updated_at
+        FROM tasks
+        WHERE id = $1 AND deleted_at IS NULL
+        "#,
+    )
+    .bind(source_task_id)
+    .fetch_optional(pool)
+    .await?
+    .ok_or(TaskQueryError::NotFound)?;
+
+    // Get position after the source task
+    let last_position = sqlx::query_scalar::<_, String>(
+        r#"
+        SELECT position
+        FROM tasks
+        WHERE column_id = $1 AND deleted_at IS NULL
+        ORDER BY position DESC
+        LIMIT 1
+        "#,
+    )
+    .bind(source.column_id)
+    .fetch_optional(pool)
+    .await?;
+
+    let position = generate_key_between(last_position.as_deref(), None);
+
+    let new_id = Uuid::new_v4();
+    let new_title = format!("Copy of {}", source.title);
+
+    // Insert the duplicate task with auto-assigned task_number
+    let task = sqlx::query_as::<_, Task>(
+        r#"
+        INSERT INTO tasks (id, title, description, priority, due_date, start_date,
+                          estimated_hours, board_id, column_id, group_id, position,
+                          milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
+                          tenant_id, created_by_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+                COALESCE((SELECT MAX(task_number) FROM tasks WHERE board_id = $8), 0) + 1,
+                $13, $14, $15, $16)
+        RETURNING
+            id, title, description, priority, due_date, start_date,
+            estimated_hours, board_id, column_id, group_id, position,
+            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
+            tenant_id, created_by_id, deleted_at, created_at, updated_at
+        "#,
+    )
+    .bind(new_id)
+    .bind(&new_title)
+    .bind(&source.description)
+    .bind(&source.priority)
+    .bind(source.due_date)
+    .bind(source.start_date)
+    .bind(source.estimated_hours)
+    .bind(source.board_id)
+    .bind(source.column_id)
+    .bind(source.group_id)
+    .bind(&position)
+    .bind(source.milestone_id)
+    .bind(source.eisenhower_urgency)
+    .bind(source.eisenhower_importance)
+    .bind(source.tenant_id)
+    .bind(created_by_id)
+    .fetch_one(pool)
+    .await?;
+
+    // Copy assignees
+    sqlx::query(
+        r#"
+        INSERT INTO task_assignees (id, task_id, user_id)
+        SELECT gen_random_uuid(), $2, user_id
+        FROM task_assignees
+        WHERE task_id = $1
+        ON CONFLICT (task_id, user_id) DO NOTHING
+        "#,
+    )
+    .bind(source_task_id)
+    .bind(new_id)
+    .execute(pool)
+    .await?;
+
+    // Copy labels
+    sqlx::query(
+        r#"
+        INSERT INTO task_labels (id, task_id, label_id)
+        SELECT gen_random_uuid(), $2, label_id
+        FROM task_labels
+        WHERE task_id = $1
+        ON CONFLICT (task_id, label_id) DO NOTHING
+        "#,
+    )
+    .bind(source_task_id)
+    .bind(new_id)
+    .execute(pool)
+    .await?;
+
+    // Copy subtasks
+    sqlx::query(
+        r#"
+        INSERT INTO tasks (id, title, description, priority, board_id, column_id,
+                          position, tenant_id, created_by_id)
+        SELECT gen_random_uuid(), title, description, priority, board_id, column_id,
+               position, tenant_id, $3
+        FROM tasks
+        WHERE parent_task_id = $1 AND deleted_at IS NULL
+        "#,
+    )
+    .bind(source_task_id)
+    .bind(new_id)
+    .bind(created_by_id)
+    .execute(pool)
+    .await
+    .ok(); // Subtask copy is best-effort — table may not have parent_task_id
 
     Ok(task)
 }

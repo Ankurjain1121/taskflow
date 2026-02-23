@@ -1,14 +1,18 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { Observable, shareReplay, tap } from 'rxjs';
 import { WorkspaceService, Workspace } from './workspace.service';
 
 @Injectable({ providedIn: 'root' })
 export class WorkspaceStateService {
   private workspaceService = inject(WorkspaceService);
 
+  /** Cached workspace list observable — shared across all subscribers. */
+  private workspaceList$: Observable<Workspace[]> | null = null;
+
   currentWorkspaceId = signal<string | null>(
     typeof localStorage !== 'undefined'
       ? localStorage.getItem('taskflow_active_workspace')
-      : null
+      : null,
   );
   workspaces = signal<Workspace[]>([]);
   loading = signal(false);
@@ -24,7 +28,7 @@ export class WorkspaceStateService {
 
   loadWorkspaces(): void {
     this.loading.set(true);
-    this.workspaceService.list().subscribe({
+    this.getWorkspaceList$().subscribe({
       next: (ws) => {
         this.workspaces.set(ws);
         this.loading.set(false);
@@ -33,5 +37,19 @@ export class WorkspaceStateService {
         this.loading.set(false);
       },
     });
+  }
+
+  /** Invalidate the cached workspace list so the next call re-fetches. */
+  invalidateCache(): void {
+    this.workspaceList$ = null;
+  }
+
+  private getWorkspaceList$(): Observable<Workspace[]> {
+    if (!this.workspaceList$) {
+      this.workspaceList$ = this.workspaceService
+        .list()
+        .pipe(shareReplay({ bufferSize: 1, refCount: true }));
+    }
+    return this.workspaceList$;
   }
 }

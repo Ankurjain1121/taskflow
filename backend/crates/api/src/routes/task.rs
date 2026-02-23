@@ -10,7 +10,8 @@ use crate::state::AppState;
 use super::task_assignment::{assign_user_handler, unassign_user_handler};
 use super::task_bulk;
 use super::task_crud::{
-    create_task_handler, delete_task_handler, get_task, list_tasks, update_task_handler,
+    create_task_handler, delete_task_handler, duplicate_task_handler, get_task, list_tasks,
+    update_task_handler,
 };
 use super::task_movement::move_task_handler;
 use super::task_views;
@@ -46,6 +47,7 @@ pub fn task_router(state: AppState) -> Router<AppState> {
         .route("/tasks/{id}", put(update_task_handler))
         .route("/tasks/{id}", delete(delete_task_handler))
         .route("/tasks/{id}/move", patch(move_task_handler))
+        .route("/tasks/{id}/duplicate", post(duplicate_task_handler))
         .route("/tasks/{id}/assignees", post(assign_user_handler))
         .route(
             "/tasks/{id}/assignees/{user_id}",

@@ -21,21 +21,25 @@ use tower_http::trace::TraceLayer;
 
 use crate::config::Config;
 use crate::middleware::auth_middleware;
-use crate::middleware::rate_limit::{rate_limit_layer, rate_limit_middleware};
+use crate::middleware::rate_limit::{
+    rate_limit_layer, rate_limit_middleware, user_rate_limit_layer, user_rate_limit_middleware,
+};
 use crate::middleware::request_id::request_id_middleware;
 use crate::routes::{
     activity_log_router, admin_audit_router, admin_trash_router, admin_users_router,
     archive_router, attachment_router, automation_router, board_columns_router,
     board_positions_router, board_router, board_share_router, board_templates_router,
     column_router, comment_router, cron_router, custom_field_router, dashboard_router,
-    dependency_router, eisenhower_router, favorites_router, health_handler, liveness_handler,
-    milestone_router, my_tasks_router, notification_preferences_router, notification_router,
-    onboarding_router, positions_router, project_template_router, readiness_handler,
-    recurring_router, reports_router, search_router, sessions_router, shared_board_public_router,
-    subtask_router, task_group_routes, task_router, task_template_router, team_overview_router,
-    teams_router, tenant_router, themes_router, time_entry_router, upload_router,
-    user_preferences_router, webhook_router, workspace_api_keys_router, workspace_boards_router,
-    workspace_router, workspace_teams_router,
+    dependency_router, eisenhower_router, favorites_router, filter_presets_router, health_handler,
+    liveness_handler, milestone_router, my_tasks_router, notification_preferences_router,
+    notification_router, onboarding_router, positions_router, project_template_router,
+    readiness_handler, recurring_router, reports_router, search_router, sessions_router,
+    shared_board_public_router, subtask_router, task_group_routes, task_router,
+    task_template_router, team_overview_router, teams_router, tenant_router, themes_router,
+    time_entry_router, upload_router, user_preferences_router, webhook_router,
+    workspace_api_keys_router, workspace_audit_router, workspace_boards_router,
+    workspace_export_router, workspace_labels_router, workspace_router, workspace_teams_router,
+    workspace_trash_router,
 };
 use crate::state::AppState;
 use crate::ws::ws_handler;
@@ -188,6 +192,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "/api/workspaces/{workspace_id}/boards",
             workspace_boards_router(state.clone()),
         )
+        // Workspace labels routes
+        .nest(
+            "/api/workspaces/{workspace_id}/labels",
+            workspace_labels_router(state.clone()),
+        )
+        // Workspace audit log routes
+        .nest(
+            "/api/workspaces/{workspace_id}",
+            workspace_audit_router(state.clone()),
+        )
+        // Workspace trash routes
+        .nest(
+            "/api/workspaces/{workspace_id}",
+            workspace_trash_router(state.clone()),
+        )
+        // Workspace export routes
+        .nest(
+            "/api/workspaces/{workspace_id}",
+            workspace_export_router(state.clone()),
+        )
         // Team routes (workspace-scoped)
         .nest(
             "/api/workspaces/{workspace_id}/teams",
@@ -195,6 +219,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         // Team routes (direct)
         .nest("/api/teams", teams_router(state.clone()))
+        // Filter presets (per-user per-board)
+        .nest(
+            "/api/boards/{board_id}/filter-presets",
+            filter_presets_router(state.clone()),
+        )
         // Position routes (board-scoped)
         .nest(
             "/api/boards/{board_id}/positions",
@@ -280,6 +309,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Phase 5: Favorites & Archive
         .nest("/api/favorites", favorites_router(state.clone()))
         .nest("/api", archive_router(state.clone()))
+        // Per-user rate limit (100 req/min per authenticated user)
+        .layer(from_fn(user_rate_limit_middleware))
+        .layer(user_rate_limit_layer(100, 60))
         // Global rate limit on all routes (60 req/min per IP)
         .layer(from_fn(rate_limit_middleware))
         .layer(rate_limit_layer(60, 60))

@@ -3,6 +3,8 @@ import { Subject } from 'rxjs';
 
 export interface KeyboardShortcut {
   key: string;
+  /** For multi-key sequences like "G then D", set prefix to the first key */
+  prefix?: string;
   ctrl?: boolean;
   shift?: boolean;
   alt?: boolean;
@@ -16,6 +18,9 @@ export class KeyboardShortcutsService implements OnDestroy {
   private shortcuts: Map<string, KeyboardShortcut> = new Map();
   private enabled = true;
   private listener: ((e: KeyboardEvent) => void) | null = null;
+  private pendingPrefix: string | null = null;
+  private pendingTimer: ReturnType<typeof setTimeout> | null = null;
+  private static readonly SEQUENCE_TIMEOUT_MS = 500;
 
   readonly helpRequested$ = new Subject<void>();
 
@@ -28,6 +33,7 @@ export class KeyboardShortcutsService implements OnDestroy {
     if (this.listener) {
       document.removeEventListener('keydown', this.listener);
     }
+    this.clearPending();
   }
 
   register(id: string, shortcut: KeyboardShortcut): void {
@@ -86,12 +92,57 @@ export class KeyboardShortcutsService implements OnDestroy {
       return;
     }
 
+    const key = e.key.toLowerCase();
+
+    // If we have a pending prefix, try to match a sequence shortcut
+    if (this.pendingPrefix) {
+      const prefix = this.pendingPrefix;
+      this.clearPending();
+
+      for (const shortcut of this.shortcuts.values()) {
+        if (
+          shortcut.prefix?.toLowerCase() === prefix &&
+          shortcut.key.toLowerCase() === key &&
+          !e.ctrlKey &&
+          !e.altKey
+        ) {
+          e.preventDefault();
+          shortcut.action();
+          return;
+        }
+      }
+      // No matching sequence, fall through to single-key matching
+    }
+
+    // Check if this key is a prefix for any sequence shortcut
+    const isPrefix = Array.from(this.shortcuts.values()).some(
+      (s) => s.prefix?.toLowerCase() === key,
+    );
+    if (isPrefix && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+      e.preventDefault();
+      this.pendingPrefix = key;
+      this.pendingTimer = setTimeout(
+        () => this.clearPending(),
+        KeyboardShortcutsService.SEQUENCE_TIMEOUT_MS,
+      );
+      return;
+    }
+
+    // Single-key shortcuts
     for (const shortcut of this.shortcuts.values()) {
-      if (this.matches(e, shortcut)) {
+      if (!shortcut.prefix && this.matches(e, shortcut)) {
         e.preventDefault();
         shortcut.action();
         return;
       }
+    }
+  }
+
+  private clearPending(): void {
+    this.pendingPrefix = null;
+    if (this.pendingTimer) {
+      clearTimeout(this.pendingTimer);
+      this.pendingTimer = null;
     }
   }
 
@@ -105,10 +156,14 @@ export class KeyboardShortcutsService implements OnDestroy {
 
   formatShortcut(s: KeyboardShortcut): string {
     const parts: string[] = [];
+    if (s.prefix) {
+      parts.push(s.prefix.toUpperCase());
+      parts.push('then');
+    }
     if (s.ctrl) parts.push('Ctrl');
     if (s.alt) parts.push('Alt');
     if (s.shift) parts.push('Shift');
     parts.push(s.key.length === 1 ? s.key.toUpperCase() : s.key);
-    return parts.join(' + ');
+    return parts.join(' ');
   }
 }

@@ -28,6 +28,8 @@ use taskflow_db::queries::get_task_board_id;
 use taskflow_services::broadcast::events;
 use taskflow_services::BroadcastService;
 
+use super::task_helpers::sanitize_html;
+
 /// Regex for extracting @mentions in format @[username](userId)
 static MENTION_REGEX: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"@\[([^\]]+)\]\(([a-f0-9-]+)\)").unwrap());
@@ -109,15 +111,16 @@ async fn create_comment_handler(
 
     verify_board_membership(&state, board_id, tenant.user_id).await?;
 
-    // Extract mentioned user IDs from content
-    let mentioned_user_ids = extract_mentioned_user_ids(&body.content);
+    // Sanitize and extract mentioned user IDs from content
+    let sanitized_content = sanitize_html(&body.content);
+    let mentioned_user_ids = extract_mentioned_user_ids(&sanitized_content);
 
     // Create the comment
     let comment = create_comment(
         &state.db,
         task_id,
         tenant.user_id,
-        &body.content,
+        &sanitized_content,
         body.parent_id,
         &mentioned_user_ids,
     )
@@ -278,11 +281,12 @@ async fn update_comment_handler(
 
     verify_board_membership(&state, board_id, tenant.user_id).await?;
 
-    // Extract mentioned user IDs from updated content
-    let mentioned_user_ids = extract_mentioned_user_ids(&body.content);
+    // Sanitize and extract mentioned user IDs from updated content
+    let sanitized_content = sanitize_html(&body.content);
+    let mentioned_user_ids = extract_mentioned_user_ids(&sanitized_content);
 
     // Update the comment
-    let comment = update_comment(&state.db, comment_id, &body.content, &mentioned_user_ids)
+    let comment = update_comment(&state.db, comment_id, &sanitized_content, &mentioned_user_ids)
         .await
         .map_err(|e| match e {
             taskflow_db::queries::comments::CommentQueryError::Database(e) => {

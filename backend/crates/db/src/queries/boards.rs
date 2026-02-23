@@ -16,7 +16,7 @@ pub async fn list_boards_by_workspace(
     sqlx::query_as!(
         Board,
         r#"
-        SELECT b.id, b.name, b.description, b.slack_webhook_url,
+        SELECT b.id, b.name, b.description, b.slack_webhook_url, b.prefix,
                b.workspace_id, b.tenant_id, b.created_by_id,
                b.deleted_at, b.created_at, b.updated_at
         FROM boards b
@@ -51,7 +51,7 @@ pub async fn get_board_by_id(
     let board = sqlx::query_as!(
         Board,
         r#"
-        SELECT b.id, b.name, b.description, b.slack_webhook_url,
+        SELECT b.id, b.name, b.description, b.slack_webhook_url, b.prefix,
                b.workspace_id, b.tenant_id, b.created_by_id,
                b.deleted_at, b.created_at, b.updated_at
         FROM boards b
@@ -104,7 +104,7 @@ pub async fn create_board(
         r#"
         INSERT INTO boards (name, description, workspace_id, tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, name, description, slack_webhook_url, workspace_id, tenant_id,
+        RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
                   created_by_id, deleted_at, created_at, updated_at
         "#,
         name,
@@ -182,7 +182,7 @@ pub async fn update_board(
         SET name = $2, description = $3
         WHERE id = $1
           AND deleted_at IS NULL
-        RETURNING id, name, description, slack_webhook_url, workspace_id, tenant_id,
+        RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
                   created_by_id, deleted_at, created_at, updated_at
         "#,
         id,
@@ -356,7 +356,7 @@ pub async fn get_board_internal(pool: &PgPool, id: Uuid) -> Result<Option<Board>
     sqlx::query_as!(
         Board,
         r#"
-        SELECT id, name, description, slack_webhook_url,
+        SELECT id, name, description, slack_webhook_url, prefix,
                workspace_id, tenant_id, created_by_id,
                deleted_at, created_at, updated_at
         FROM boards

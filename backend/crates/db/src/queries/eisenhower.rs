@@ -109,12 +109,34 @@ fn is_task_done(status_mapping: &Option<serde_json::Value>) -> bool {
         .unwrap_or(false)
 }
 
+/// Filter parameters for the Eisenhower Matrix query
+#[derive(Debug, Default)]
+pub struct EisenhowerFilters {
+    pub workspace_id: Option<Uuid>,
+    pub board_id: Option<Uuid>,
+    pub daily: bool,
+}
+
 /// Fetch all tasks assigned to user, grouped by Eisenhower Matrix quadrants
 pub async fn get_eisenhower_matrix(
     pool: &PgPool,
     user_id: Uuid,
+    filters: &EisenhowerFilters,
 ) -> Result<EisenhowerMatrixResponse, sqlx::Error> {
-    let rows: Vec<EisenhowerTaskRow> = sqlx::query_as::<_, EisenhowerTaskRow>(
+    // Build dynamic WHERE clauses
+    let mut extra_where = String::new();
+    if filters.workspace_id.is_some() {
+        extra_where.push_str(" AND b.workspace_id = $2");
+    }
+    if filters.board_id.is_some() {
+        let idx = if filters.workspace_id.is_some() { 3 } else { 2 };
+        extra_where.push_str(&format!(" AND t.board_id = ${idx}"));
+    }
+    if filters.daily {
+        extra_where.push_str(" AND t.due_date IS NOT NULL AND t.due_date::date <= CURRENT_DATE");
+    }
+
+    let query = format!(
         r#"
         SELECT
             t.id,
@@ -134,16 +156,26 @@ pub async fn get_eisenhower_matrix(
             t.updated_at
         FROM tasks t
         INNER JOIN task_assignees ta ON t.id = ta.task_id
-        INNER JOIN boards b ON t.board_id = b.id
+        INNER JOIN boards b ON t.board_id = b.id AND b.deleted_at IS NULL
         INNER JOIN board_columns c ON t.column_id = c.id
+        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
+          AND NOT COALESCE((c.status_mapping->>'done')::boolean, false)
+          {extra_where}
         ORDER BY t.due_date ASC NULLS LAST, t.created_at DESC
         "#,
-    )
-    .bind(user_id)
-    .fetch_all(pool)
-    .await?;
+    );
+
+    let mut q = sqlx::query_as::<_, EisenhowerTaskRow>(&query).bind(user_id);
+    if let Some(ws_id) = filters.workspace_id {
+        q = q.bind(ws_id);
+    }
+    if let Some(b_id) = filters.board_id {
+        q = q.bind(b_id);
+    }
+
+    let rows: Vec<EisenhowerTaskRow> = q.fetch_all(pool).await?;
 
     // Group tasks by quadrant
     let mut do_first = Vec::new();
@@ -240,6 +272,8 @@ pub async fn reset_eisenhower_overrides(pool: &PgPool, user_id: Uuid) -> Result<
             SELECT t.id
             FROM tasks t
             INNER JOIN task_assignees ta ON t.id = ta.task_id
+            INNER JOIN boards b ON t.board_id = b.id AND b.deleted_at IS NULL
+            INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
             WHERE ta.user_id = $1
               AND t.deleted_at IS NULL
         )

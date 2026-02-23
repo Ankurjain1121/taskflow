@@ -134,6 +134,71 @@ pub fn rate_limit_layer(
     })
 }
 
+// ============================================================================
+// Per-user rate limiting (keyed by user_id from AuthUser)
+// ============================================================================
+
+/// Per-user rate limiter state shared across requests.
+/// Uses user_id (UUID) as the key instead of IP address.
+#[derive(Clone)]
+pub struct UserRateLimiter {
+    inner: RateLimiter,
+}
+
+impl UserRateLimiter {
+    pub fn new(max_requests: u32, window_secs: u64) -> Self {
+        Self {
+            inner: RateLimiter::new(max_requests, window_secs),
+        }
+    }
+}
+
+/// Per-user rate limiting middleware.
+/// Must be applied AFTER the auth middleware so AuthUser is available in extensions.
+/// Falls back to IP-based limiting for unauthenticated requests.
+pub async fn user_rate_limit_middleware(
+    req: Request<Body>,
+    next: Next,
+) -> std::result::Result<Response, Response> {
+    let limiter = req
+        .extensions()
+        .get::<UserRateLimiter>()
+        .cloned()
+        .ok_or_else(|| StatusCode::INTERNAL_SERVER_ERROR.into_response())?;
+
+    // Use user_id if available (authenticated), otherwise fall back to IP
+    let key = if let Some(auth_user) = req.extensions().get::<crate::middleware::auth::AuthUser>() {
+        format!("user:{}", auth_user.user_id)
+    } else {
+        format!("ip:{}", extract_ip(&req))
+    };
+
+    if let Err(retry_after) = limiter.inner.check_and_record(&key) {
+        let response = (
+            StatusCode::TOO_MANY_REQUESTS,
+            [("Retry-After", retry_after.to_string())],
+            "Too many requests. Please try again later.",
+        )
+            .into_response();
+        return Err(response);
+    }
+
+    Ok(next.run(req).await)
+}
+
+/// Create an Axum layer that injects a UserRateLimiter for per-user rate limiting.
+/// Usage: `.layer(user_rate_limit_layer(100, 60))` for 100 requests per 60 seconds per user.
+pub fn user_rate_limit_layer(
+    max_requests: u32,
+    window_secs: u64,
+) -> tower::util::MapRequestLayer<impl Fn(Request<Body>) -> Request<Body> + Clone> {
+    let limiter = UserRateLimiter::new(max_requests, window_secs);
+    tower::util::MapRequestLayer::new(move |mut req: Request<Body>| {
+        req.extensions_mut().insert(limiter.clone());
+        req
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -297,5 +362,32 @@ mod tests {
     fn test_rate_limit_layer_creates_valid_layer() {
         // Verify the layer can be constructed without panicking
         let _layer = rate_limit_layer(10, 60);
+    }
+
+    // --- Per-user rate limiting tests ---
+
+    #[test]
+    fn test_user_rate_limiter_tracks_by_user_id() {
+        let limiter = UserRateLimiter::new(2, 60);
+        let user_a = "user:aaaa-bbbb";
+        let user_b = "user:cccc-dddd";
+
+        assert!(limiter.inner.check_and_record(user_a).is_ok());
+        assert!(limiter.inner.check_and_record(user_a).is_ok());
+        assert!(
+            limiter.inner.check_and_record(user_a).is_err(),
+            "User A should be blocked after 2 requests"
+        );
+
+        // User B should have independent counter
+        assert!(
+            limiter.inner.check_and_record(user_b).is_ok(),
+            "User B should still be allowed"
+        );
+    }
+
+    #[test]
+    fn test_user_rate_limit_layer_creates_valid_layer() {
+        let _layer = user_rate_limit_layer(100, 60);
     }
 }

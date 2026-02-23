@@ -4,6 +4,7 @@ use axum::{
     routing::{delete, get, post, put},
     Json, Router,
 };
+use chrono::NaiveDate;
 use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
@@ -12,24 +13,30 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
-use taskflow_db::models::Subtask;
+use taskflow_db::models::{Subtask, SubtaskWithAssignee, Task};
 use taskflow_db::queries::get_task_board_id;
 use taskflow_db::queries::subtasks::{
     create_subtask, delete_subtask, get_subtask_progress, get_subtask_task_id,
-    list_subtasks_by_task, reorder_subtask, toggle_subtask, update_subtask, SubtaskProgress,
-    SubtaskQueryError,
+    list_subtasks_by_task, promote_subtask_to_task, reorder_subtask, toggle_subtask,
+    update_subtask, SubtaskProgress, SubtaskQueryError,
 };
 
 /// Request body for creating a subtask
 #[derive(Deserialize)]
 pub struct CreateSubtaskRequest {
     pub title: String,
+    pub assigned_to_id: Option<Uuid>,
+    pub due_date: Option<NaiveDate>,
 }
 
 /// Request body for updating a subtask
 #[derive(Deserialize)]
 pub struct UpdateSubtaskRequest {
-    pub title: String,
+    pub title: Option<String>,
+    pub assigned_to_id: Option<Uuid>,
+    pub due_date: Option<NaiveDate>,
+    pub clear_assigned_to: Option<bool>,
+    pub clear_due_date: Option<bool>,
 }
 
 /// Request body for reordering a subtask
@@ -41,7 +48,7 @@ pub struct ReorderSubtaskRequest {
 /// Response for listing subtasks with progress
 #[derive(serde::Serialize)]
 pub struct SubtaskListResponse {
-    pub subtasks: Vec<Subtask>,
+    pub subtasks: Vec<SubtaskWithAssignee>,
     pub progress: SubtaskProgress,
 }
 
@@ -130,18 +137,25 @@ async fn create_subtask_handler(
         return Err(AppError::BadRequest("Title cannot be empty".into()));
     }
 
-    let subtask = create_subtask(&state.db, task_id, &body.title, tenant.user_id)
-        .await
-        .map_err(|e| match e {
-            SubtaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
-            SubtaskQueryError::Database(e) => AppError::SqlxError(e),
-        })?;
+    let subtask = create_subtask(
+        &state.db,
+        task_id,
+        &body.title,
+        tenant.user_id,
+        body.assigned_to_id,
+        body.due_date,
+    )
+    .await
+    .map_err(|e| match e {
+        SubtaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
+        SubtaskQueryError::Database(e) => AppError::SqlxError(e),
+    })?;
 
     Ok(Json(subtask))
 }
 
 /// PUT /api/subtasks/{id}
-/// Update a subtask's title
+/// Update a subtask
 async fn update_subtask_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
@@ -151,16 +165,36 @@ async fn update_subtask_handler(
     // Verify board membership through subtask -> task -> board
     verify_subtask_board_membership(&state, subtask_id, tenant.user_id).await?;
 
-    if body.title.trim().is_empty() {
-        return Err(AppError::BadRequest("Title cannot be empty".into()));
+    if let Some(ref title) = body.title {
+        if title.trim().is_empty() {
+            return Err(AppError::BadRequest("Title cannot be empty".into()));
+        }
     }
 
-    let subtask = update_subtask(&state.db, subtask_id, &body.title)
-        .await
-        .map_err(|e| match e {
-            SubtaskQueryError::NotFound => AppError::NotFound("Subtask not found".into()),
-            SubtaskQueryError::Database(e) => AppError::SqlxError(e),
-        })?;
+    let assigned_to = if body.clear_assigned_to.unwrap_or(false) {
+        Some(None) // Explicitly clear
+    } else {
+        body.assigned_to_id.map(Some) // Set if provided
+    };
+
+    let due_date = if body.clear_due_date.unwrap_or(false) {
+        Some(None) // Explicitly clear
+    } else {
+        body.due_date.map(Some) // Set if provided
+    };
+
+    let subtask = update_subtask(
+        &state.db,
+        subtask_id,
+        body.title.as_deref(),
+        assigned_to,
+        due_date,
+    )
+    .await
+    .map_err(|e| match e {
+        SubtaskQueryError::NotFound => AppError::NotFound("Subtask not found".into()),
+        SubtaskQueryError::Database(e) => AppError::SqlxError(e),
+    })?;
 
     Ok(Json(subtask))
 }
@@ -226,6 +260,26 @@ async fn delete_subtask_handler(
     Ok(Json(json!({ "success": true })))
 }
 
+/// POST /api/subtasks/{id}/promote
+/// Promote a subtask to a full task in the same board/column
+async fn promote_subtask_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+    Path(subtask_id): Path<Uuid>,
+) -> Result<Json<Task>> {
+    // Verify board membership through subtask -> task -> board
+    verify_subtask_board_membership(&state, subtask_id, tenant.user_id).await?;
+
+    let task = promote_subtask_to_task(&state.db, subtask_id, tenant.tenant_id, tenant.user_id)
+        .await
+        .map_err(|e| match e {
+            SubtaskQueryError::NotFound => AppError::NotFound("Subtask not found".into()),
+            SubtaskQueryError::Database(e) => AppError::SqlxError(e),
+        })?;
+
+    Ok(Json(task))
+}
+
 /// Create the subtask router
 pub fn subtask_router(state: AppState) -> Router<AppState> {
     Router::new()
@@ -239,6 +293,7 @@ pub fn subtask_router(state: AppState) -> Router<AppState> {
             axum::routing::patch(toggle_subtask_handler),
         )
         .route("/subtasks/{id}/reorder", put(reorder_subtask_handler))
+        .route("/subtasks/{id}/promote", post(promote_subtask_handler))
         .route("/subtasks/{id}", delete(delete_subtask_handler))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

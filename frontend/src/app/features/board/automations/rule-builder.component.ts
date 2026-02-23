@@ -36,6 +36,7 @@ interface ActionOption {
 }
 
 interface ActionFormItem {
+  id: string;
   action_type: AutomationActionType;
   action_config: Record<string, unknown>;
 }
@@ -227,7 +228,7 @@ interface ActionFormItem {
             </div>
           } @else {
             <div class="space-y-3">
-              @for (action of actions(); track $index; let i = $index) {
+              @for (action of actions(); track action.id; let i = $index) {
                 <div class="bg-[var(--secondary)] rounded-md p-3 relative">
                   <!-- Remove button -->
                   <button
@@ -538,7 +539,11 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
   addAction(): void {
     this.actions.update((actions) => [
       ...actions,
-      { action_type: 'move_task' as AutomationActionType, action_config: {} },
+      {
+        id: crypto.randomUUID(),
+        action_type: 'move_task' as AutomationActionType,
+        action_config: {},
+      },
     ]);
   }
 
@@ -671,6 +676,7 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
     // Populate actions
     this.actions.set(
       editing.actions.map((a) => ({
+        id: crypto.randomUUID(),
         action_type: a.action_type,
         action_config: { ...a.action_config },
       })),
