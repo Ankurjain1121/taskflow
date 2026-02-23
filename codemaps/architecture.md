@@ -1,13 +1,13 @@
 # TaskFlow Architecture Codemap
 
-> Generated: 2026-02-18 | Commit: dfb29e9
+> Generated: 2026-02-23 | Commit: f6f3095
 
 ## System Overview
 
 ```
                         INTERNET
                             |
-                     [Caddy :80/:443]
+                     [nginx :80/:443]
                     taskflow.paraslace.in
                      /           \
                     /             \
@@ -38,7 +38,7 @@
 | Database | PostgreSQL | 16 |
 | Cache/PubSub | Redis | 7 |
 | Object Storage | MinIO (S3-compat) | latest |
-| Reverse Proxy | Caddy (prod), nginx (frontend) | 2 |
+| Reverse Proxy | nginx (prod + frontend) | - |
 | Auth | JWT (RS256/HS256) + HttpOnly cookies | - |
 | Testing | Vitest (unit), Playwright (E2E), cargo test | - |
 
@@ -59,7 +59,7 @@ Dependencies: `api -> {auth, db, services}`, `services -> {auth, db}`, `auth -> 
 
 ```
 frontend/src/app/
-├── core/             Guards, interceptors, initializers, 39 services
+├── core/             Guards, interceptors, initializers, 51+ services
 ├── features/
 │   ├── auth/         Sign-in, sign-up, forgot/reset password, accept-invite
 │   ├── onboarding/   4-step wizard
@@ -67,12 +67,15 @@ frontend/src/app/
 │   ├── board/        Kanban, list, calendar, gantt, reports views
 │   ├── project/      Project-mode views (table, task-card, detail)
 │   ├── my-tasks/     Personal task timeline + Eisenhower matrix
-│   ├── team/         Team workload + overload detection
-│   ├── workspace/    Workspace settings + members
-│   ├── settings/     Profile + notification preferences
+│   ├── team/         Team hub (org members, workload, boards)
+│   ├── workspace/    Workspace settings, members, teams, discover
+│   ├── settings/     Profile, security, appearance, notifications
 │   ├── admin/        Audit log, users, trash (adminGuard)
 │   ├── favorites/    Bookmarked items
 │   ├── archive/      Archived items
+│   ├── shared-board/ Public board view
+│   ├── task-detail/  Standalone task page (/task/:id)
+│   ├── tasks/        Shared task sub-components
 │   └── help/         Help page
 └── shared/           Layout, sidebar, search, dialogs, pipes, utils
 ```
@@ -88,6 +91,9 @@ frontend/src/app/
 | File uploads | Presigned URLs | Client uploads directly to MinIO; backend confirms |
 | Position ordering | Fractional indexing | Stable kanban ordering without full re-index |
 | API design | RESTful nested resources | /api/boards/{id}/tasks, /api/tasks/{id}/comments |
+| Task status | Column-derived | No status column; derived from board_column.status_mapping |
+| Type generation | ts-rs crate | Auto-generates TypeScript from Rust models |
+| Change detection | OnPush | All components use OnPush + signals for perf |
 
 ## Docker Services (15)
 
@@ -99,7 +105,6 @@ frontend/src/app/
 | novu | No | notifications |
 | postal-init, postal | No | email |
 | waha | No | whatsapp |
-| caddy | VPS only | - |
 
 ## CI/CD Pipeline
 
