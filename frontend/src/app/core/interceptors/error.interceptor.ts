@@ -21,6 +21,11 @@ export const errorInterceptor: HttpInterceptorFn = (
         return throwError(() => error);
       }
 
+      // Skip auth endpoint errors - handled silently by auth service
+      if (req.url.includes('/auth/')) {
+        return throwError(() => error);
+      }
+
       const detail = extractErrorMessage(error);
 
       switch (error.status) {
