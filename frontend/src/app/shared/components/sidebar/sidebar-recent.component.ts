@@ -1,5 +1,6 @@
 import {
   Component,
+  effect,
   inject,
   signal,
   input,
@@ -102,7 +103,17 @@ export class SidebarRecentComponent implements OnInit, OnDestroy {
   private routerSub: Subscription | null = null;
 
   collapsed = input(false);
+  workspaceIds = input<string[]>([]);
   recentItems = signal<RecentBoardEntry[]>([]);
+
+  constructor() {
+    effect(() => {
+      const wsIds = this.workspaceIds();
+      if (wsIds.length > 0) {
+        this.filterByWorkspaces(wsIds);
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.loadFromStorage();
@@ -167,6 +178,17 @@ export class SidebarRecentComponent implements OnInit, OnDestroy {
     );
     this.recentItems.set(items);
     this.saveToStorage(items);
+  }
+
+  filterByWorkspaces(wsIds: string[]): void {
+    if (wsIds.length === 0) return;
+    const wsSet = new Set(wsIds);
+    const items = this.recentItems();
+    const filtered = items.filter((i) => wsSet.has(i.workspaceId));
+    if (filtered.length !== items.length) {
+      this.recentItems.set(filtered);
+      this.saveToStorage(filtered);
+    }
   }
 
   private loadFromStorage(): void {

@@ -1,5 +1,6 @@
 import {
   Component,
+  computed,
   signal,
   inject,
   input,
@@ -304,7 +305,10 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
         <div class="divider my-3 mx-1"></div>
 
         <!-- Recent Section -->
-        <app-sidebar-recent [collapsed]="collapsed()" />
+        <app-sidebar-recent
+          [collapsed]="collapsed()"
+          [workspaceIds]="workspaceIdList()"
+        />
 
         <div class="divider my-3 mx-1"></div>
 
@@ -623,6 +627,7 @@ export class SidebarComponent implements OnInit {
 
   loading = signal(false);
   workspaces = signal<Workspace[]>([]);
+  workspaceIdList = computed(() => this.workspaces().map((w) => w.id));
   currentUser = this.authService.currentUser;
   showCreateWorkspaceDialog = signal(false);
 
