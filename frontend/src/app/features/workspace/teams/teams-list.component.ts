@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
+import { MessageService } from 'primeng/api';
 import {
   TeamGroupsService,
   TeamGroup,
@@ -59,6 +60,34 @@ import { TeamDetailDialogComponent } from './team-detail-dialog.component';
             ></path>
           </svg>
         </div>
+      } @else if (loadError()) {
+        <div
+          class="text-center py-12 border border-dashed border-red-200 rounded-xl bg-red-50"
+        >
+          <svg
+            class="w-10 h-10 mx-auto text-red-400 mb-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <p class="text-red-700 font-medium mb-1">Could not load teams</p>
+          <p class="text-sm text-red-500 mb-4">
+            Something went wrong. Please try again.
+          </p>
+          <button
+            class="inline-flex items-center px-4 py-2 text-sm font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-lg transition-colors"
+            (click)="loadTeams()"
+          >
+            Retry
+          </button>
+        </div>
       } @else if (teams().length === 0) {
         <div
           class="text-center py-12 border border-dashed border-[var(--border)] rounded-xl"
@@ -96,9 +125,7 @@ import { TeamDetailDialogComponent } from './team-detail-dialog.component';
                   {{ team.name?.charAt(0)?.toUpperCase() }}
                 </div>
                 <div class="flex-1 min-w-0">
-                  <h3
-                    class="font-medium text-[var(--foreground)] truncate"
-                  >
+                  <h3 class="font-medium text-[var(--foreground)] truncate">
                     {{ team.name }}
                   </h3>
                   @if (team.description) {
@@ -150,11 +177,13 @@ import { TeamDetailDialogComponent } from './team-detail-dialog.component';
 })
 export class TeamsListComponent implements OnInit {
   private teamGroupsService = inject(TeamGroupsService);
+  private messageService = inject(MessageService);
 
   workspaceId = input.required<string>();
 
   teams = signal<TeamGroup[]>([]);
   loading = signal(true);
+  loadError = signal(false);
   dialogVisible = signal(false);
   editingTeam = signal<TeamGroupDetail | null>(null);
 
@@ -173,6 +202,13 @@ export class TeamsListComponent implements OnInit {
         this.editingTeam.set(detail);
         this.dialogVisible.set(true);
       },
+      error: () => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Could not load team details',
+        });
+      },
     });
   }
 
@@ -184,8 +220,9 @@ export class TeamsListComponent implements OnInit {
     this.teams.update((list) => list.filter((t) => t.id !== teamId));
   }
 
-  private loadTeams(): void {
+  loadTeams(): void {
     this.loading.set(true);
+    this.loadError.set(false);
     this.teamGroupsService.listTeams(this.workspaceId()).subscribe({
       next: (teams) => {
         this.teams.set(teams);
@@ -193,6 +230,7 @@ export class TeamsListComponent implements OnInit {
       },
       error: () => {
         this.loading.set(false);
+        this.loadError.set(true);
       },
     });
   }

@@ -5,6 +5,7 @@ import {
   input,
   output,
   model,
+  viewChild,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -19,6 +20,7 @@ import { Dialog } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { Textarea } from 'primeng/textarea';
 import { AutoComplete } from 'primeng/autocomplete';
+import { MessageService } from 'primeng/api';
 import {
   TeamGroupsService,
   TeamGroupDetail,
@@ -135,6 +137,7 @@ const PRESET_COLORS = [
             >Members</label
           >
           <p-autocomplete
+            #memberAc
             [suggestions]="memberSuggestions()"
             (completeMethod)="searchMembers($event)"
             (onSelect)="onMemberSelected($event)"
@@ -249,6 +252,9 @@ export class TeamDetailDialogComponent {
   private fb = inject(FormBuilder);
   private teamGroupsService = inject(TeamGroupsService);
   private workspaceService = inject(WorkspaceService);
+  private messageService = inject(MessageService);
+
+  private memberAc = viewChild<AutoComplete>('memberAc');
 
   visible = model(false);
   workspaceId = input.required<string>();
@@ -331,6 +337,12 @@ export class TeamDetailDialogComponent {
         { user_id: member.id, name: member.name, email: member.email },
       ]);
     }
+
+    // Clear the autocomplete input after selection
+    const ac = this.memberAc();
+    if (ac) {
+      ac.clear();
+    }
   }
 
   removeMember(userId: string): void {
@@ -358,6 +370,11 @@ export class TeamDetailDialogComponent {
       },
       error: () => {
         this.isSubmitting.set(false);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Could not delete team',
+        });
       },
     });
   }
@@ -383,24 +400,38 @@ export class TeamDetailDialogComponent {
     request$.subscribe({
       next: (result) => {
         // Sync members: add new ones, remove old ones
-        this.syncMembers(result.id, team?.members ?? []).then(() => {
-          // Re-fetch the team to get fresh member list
-          this.teamGroupsService.getTeam(result.id).subscribe({
-            next: (freshTeam) => {
-              this.isSubmitting.set(false);
-              this.visible.set(false);
-              this.saved.emit(freshTeam);
-            },
-            error: () => {
-              this.isSubmitting.set(false);
-              this.visible.set(false);
-              this.saved.emit(result);
-            },
-          });
-        });
+        this.syncMembers(result.id, team?.members ?? []).then(
+          (failureCount) => {
+            if (failureCount > 0) {
+              this.messageService.add({
+                severity: 'warn',
+                summary: 'Warning',
+                detail: `Team saved, but ${failureCount} member update(s) failed`,
+              });
+            }
+            // Re-fetch the team to get fresh member list
+            this.teamGroupsService.getTeam(result.id).subscribe({
+              next: (freshTeam) => {
+                this.isSubmitting.set(false);
+                this.visible.set(false);
+                this.saved.emit(freshTeam);
+              },
+              error: () => {
+                this.isSubmitting.set(false);
+                this.visible.set(false);
+                this.saved.emit(result);
+              },
+            });
+          },
+        );
       },
       error: () => {
         this.isSubmitting.set(false);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Could not save team',
+        });
       },
     });
   }
@@ -408,7 +439,7 @@ export class TeamDetailDialogComponent {
   private async syncMembers(
     teamId: string,
     existingMembers: TeamGroupMember[],
-  ): Promise<void> {
+  ): Promise<number> {
     const existingIds = new Set(existingMembers.map((m) => m.user_id));
     const selectedIds = new Set(this.selectedMembers().map((m) => m.user_id));
 
@@ -419,6 +450,7 @@ export class TeamDetailDialogComponent {
     // Remove old members
     const toRemove = existingMembers.filter((m) => !selectedIds.has(m.user_id));
 
+    let failureCount = 0;
     const promises: Promise<void>[] = [];
 
     for (const member of toAdd) {
@@ -426,7 +458,10 @@ export class TeamDetailDialogComponent {
         new Promise<void>((resolve) => {
           this.teamGroupsService.addMember(teamId, member.user_id).subscribe({
             next: () => resolve(),
-            error: () => resolve(),
+            error: () => {
+              failureCount++;
+              resolve();
+            },
           });
         }),
       );
@@ -439,12 +474,16 @@ export class TeamDetailDialogComponent {
             .removeMember(teamId, member.user_id)
             .subscribe({
               next: () => resolve(),
-              error: () => resolve(),
+              error: () => {
+                failureCount++;
+                resolve();
+              },
             });
         }),
       );
     }
 
     await Promise.all(promises);
+    return failureCount;
   }
 }
