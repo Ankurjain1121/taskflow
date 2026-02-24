@@ -95,7 +95,13 @@ import { MemberWorkload } from '../../../core/services/team.service';
 
       <!-- View Link -->
       <a
-        [routerLink]="['/workspace', workspaceId(), 'team', member().user_id]"
+        [routerLink]="[
+          '/workspace',
+          workspaceId(),
+          'team',
+          'member',
+          member().user_id,
+        ]"
         class="text-sm text-primary hover:text-primary font-medium"
       >
         View tasks

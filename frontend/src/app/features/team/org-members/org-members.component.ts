@@ -31,6 +31,7 @@ import {
   InviteMemberDialogComponent,
   InviteMemberDialogResult,
 } from '../../../shared/components/dialogs/invite-member-dialog.component';
+import { UserProfileDialogComponent } from '../../../shared/components/dialogs/user-profile-dialog.component';
 
 @Component({
   selector: 'app-org-members',
@@ -48,6 +49,7 @@ import {
     Select,
     AddToWorkspaceDialogComponent,
     InviteMemberDialogComponent,
+    UserProfileDialogComponent,
   ],
   template: `
     <div class="py-6">
@@ -122,8 +124,11 @@ import {
             </thead>
             <tbody class="divide-y divide-[var(--border)]">
               @for (member of filteredMembers(); track member.user_id) {
-                <tr class="hover:bg-[var(--secondary)]/30 transition-colors">
-                  <td class="py-3 px-4">
+                <tr
+                  class="hover:bg-[var(--secondary)]/30 transition-colors cursor-pointer"
+                  (click)="openProfileDialog(member)"
+                >
+                  <td class="py-3 px-4" (click)="$event.stopPropagation()">
                     <p-checkbox
                       [binary]="true"
                       [ngModel]="isSelected(member.user_id)"
@@ -174,7 +179,7 @@ import {
                       }
                     </div>
                   </td>
-                  <td class="py-3 px-4">
+                  <td class="py-3 px-4" (click)="$event.stopPropagation()">
                     <button
                       class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
                       (click)="toggleWorkspacePopover(member.user_id, $event)"
@@ -218,7 +223,7 @@ import {
                       </div>
                     }
                   </td>
-                  <td class="py-3 px-4">
+                  <td class="py-3 px-4" (click)="$event.stopPropagation()">
                     <p-button
                       icon="pi pi-plus"
                       label="Add to Workspace"
@@ -302,6 +307,20 @@ import {
       [boards]="inviteWorkspaceBoards()"
       (created)="onInviteResult($event)"
     />
+
+    <!-- User Profile Dialog -->
+    @if (profileDialogUserId()) {
+      <app-user-profile-dialog
+        [(visible)]="showProfileDialog"
+        [userId]="profileDialogUserId()!"
+        [userName]="profileDialogMember()?.name ?? ''"
+        [userEmail]="profileDialogMember()?.email ?? ''"
+        [userAvatar]="profileDialogMember()?.avatar_url ?? null"
+        [jobTitle]="profileDialogMember()?.job_title ?? null"
+        [department]="profileDialogMember()?.department ?? null"
+        [memberSince]="profileDialogMember()?.created_at ?? null"
+      />
+    }
   `,
 })
 export class OrgMembersComponent {
@@ -324,6 +343,11 @@ export class OrgMembersComponent {
   expandedUserId = signal<string | null>(null);
   userWorkspaces = signal<UserWorkspaceMembership[]>([]);
   loadingWorkspaces = signal(false);
+
+  // Profile dialog state
+  showProfileDialog = signal(false);
+  profileDialogUserId = signal<string | null>(null);
+  profileDialogMember = signal<TenantMember | null>(null);
 
   // Invite flow state
   showWorkspacePicker = signal(false);
@@ -387,6 +411,12 @@ export class OrgMembersComponent {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  }
+
+  openProfileDialog(member: TenantMember): void {
+    this.profileDialogUserId.set(member.user_id);
+    this.profileDialogMember.set(member);
+    this.showProfileDialog.set(true);
   }
 
   toggleWorkspacePopover(userId: string, event: Event): void {

@@ -12,6 +12,7 @@ import { WorkspaceService } from '../../../core/services/workspace.service';
 import {
   TeamService,
   MemberWorkload,
+  MemberTask,
 } from '../../../core/services/team.service';
 import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
 
@@ -95,6 +96,19 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                 <p class="text-sm text-[var(--muted-foreground)] mt-1">
                   {{ member()?.email }}
                 </p>
+                @if (member()?.job_title || member()?.department) {
+                  <div class="flex items-center gap-2 mt-2 text-sm text-[var(--foreground)]">
+                    @if (member()?.job_title) {
+                      <span>{{ member()?.job_title }}</span>
+                    }
+                    @if (member()?.job_title && member()?.department) {
+                      <span class="text-[var(--muted-foreground)]">&middot;</span>
+                    }
+                    @if (member()?.department) {
+                      <span class="text-[var(--muted-foreground)]">{{ member()?.department }}</span>
+                    }
+                  </div>
+                }
                 <div class="flex items-center gap-3 mt-3">
                   <span
                     [class]="
@@ -185,9 +199,7 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                 >
                   <svg
                     class="w-5 h-5"
-                    [class.text-red-600]="
-                      (workload()?.overdue_tasks || 0) > 0
-                    "
+                    [class.text-red-600]="(workload()?.overdue_tasks || 0) > 0"
                     [class.text-gray-400]="
                       (workload()?.overdue_tasks || 0) === 0
                     "
@@ -206,9 +218,7 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                 <div>
                   <p
                     class="text-2xl font-bold"
-                    [class.text-red-600]="
-                      (workload()?.overdue_tasks || 0) > 0
-                    "
+                    [class.text-red-600]="(workload()?.overdue_tasks || 0) > 0"
                     [class.text-[var(--foreground)]]="
                       (workload()?.overdue_tasks || 0) === 0
                     "
@@ -221,34 +231,58 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
             </div>
           </div>
 
-          <!-- Activity Feed -->
-          <div class="widget-card p-6">
-            <h2
-              class="text-lg font-semibold text-[var(--foreground)] mb-4"
-            >
-              Recent Activity
-            </h2>
-            <div class="text-center py-8">
-              <svg
-                class="mx-auto h-12 w-12 text-[var(--muted-foreground)] opacity-40"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1.5"
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <p class="text-sm text-[var(--muted-foreground)] mt-3">
-                Activity feed coming soon
-              </p>
-              <p class="text-xs text-[var(--muted-foreground)] mt-1">
-                Track task assignments, completions, and comments
-              </p>
+          <!-- Task List -->
+          <div class="widget-card mb-6">
+            <div class="px-6 py-4 border-b border-[var(--border)]">
+              <h2 class="text-lg font-semibold text-[var(--foreground)]">Assigned Tasks</h2>
             </div>
+            @if (tasksLoading()) {
+              <div class="px-6 py-8 text-center">
+                <p class="text-sm text-[var(--muted-foreground)] animate-pulse">Loading tasks...</p>
+              </div>
+            } @else if (tasks().length === 0) {
+              <div class="px-6 py-8 text-center">
+                <p class="text-sm text-[var(--muted-foreground)]">No tasks assigned to this member.</p>
+              </div>
+            } @else {
+              <div class="divide-y divide-[var(--border)]">
+                @for (task of tasks(); track task.task_id) {
+                  <div class="px-6 py-3 flex items-center gap-3">
+                    <!-- Priority dot -->
+                    <span
+                      class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      [class.bg-red-500]="task.priority === 'urgent' || task.priority === 'critical'"
+                      [class.bg-orange-500]="task.priority === 'high'"
+                      [class.bg-yellow-500]="task.priority === 'medium'"
+                      [class.bg-blue-400]="task.priority === 'low'"
+                      [class.bg-gray-300]="task.priority === 'none' || !task.priority"
+                      [title]="task.priority || 'none'"
+                    ></span>
+                    <!-- Title + board/column -->
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-[var(--foreground)] truncate">
+                        {{ task.title }}
+                      </p>
+                      <p class="text-xs text-[var(--muted-foreground)] truncate">
+                        {{ task.board_name }} &middot; {{ task.column_name }}
+                      </p>
+                    </div>
+                    <!-- Due date -->
+                    @if (task.due_date) {
+                      <span
+                        class="text-xs px-2 py-0.5 rounded-full flex-shrink-0 font-medium"
+                        [class.bg-red-100]="isOverdue(task.due_date)"
+                        [class.text-red-700]="isOverdue(task.due_date)"
+                        [class.bg-[var(--secondary)]]="!isOverdue(task.due_date)"
+                        [class.text-[var(--muted-foreground)]]="!isOverdue(task.due_date)"
+                      >
+                        {{ formatDate(task.due_date) }}
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+            }
           </div>
         }
       </div>
@@ -266,6 +300,8 @@ export class MemberDetailComponent implements OnInit {
   loading = signal(true);
   member = signal<WorkspaceMemberInfo | null>(null);
   workload = signal<MemberWorkload | null>(null);
+  tasks = signal<MemberTask[]>([]);
+  tasksLoading = signal(false);
 
   ngOnInit(): void {
     this.route.params.subscribe((params) => {
@@ -314,8 +350,13 @@ export class MemberDetailComponent implements OnInit {
     });
   }
 
+  isOverdue(dateString: string): boolean {
+    return new Date(dateString) < new Date();
+  }
+
   private loadData(): void {
     this.loading.set(true);
+    this.tasksLoading.set(true);
 
     forkJoin({
       members: this.workspaceService.getMembers(this.workspaceId),
@@ -336,5 +377,18 @@ export class MemberDetailComponent implements OnInit {
         this.loading.set(false);
       },
     });
+
+    this.teamService
+      .getMemberTasks(this.workspaceId, this.userId)
+      .pipe(catchError(() => of([] as MemberTask[])))
+      .subscribe({
+        next: (tasks) => {
+          this.tasks.set(tasks);
+          this.tasksLoading.set(false);
+        },
+        error: () => {
+          this.tasksLoading.set(false);
+        },
+      });
   }
 }
