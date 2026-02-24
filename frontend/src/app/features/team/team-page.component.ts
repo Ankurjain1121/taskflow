@@ -276,8 +276,15 @@ interface WorkspaceTeam {
                                     member of wt.members;
                                     track member.user_id
                                   ) {
-                                    <div
-                                      class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-4"
+                                    <a
+                                      [routerLink]="[
+                                        '/workspace',
+                                        wt.workspace.id,
+                                        'team',
+                                        'member',
+                                        member.user_id,
+                                      ]"
+                                      class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-4 block hover:shadow-md hover:border-primary/30 transition-all cursor-pointer no-underline"
                                       [class.border-red-300]="
                                         member.is_overloaded
                                       "
@@ -347,7 +354,7 @@ interface WorkspaceTeam {
                                           </p>
                                         </div>
                                       </div>
-                                    </div>
+                                    </a>
                                   }
                                 </div>
                               }
@@ -427,7 +434,16 @@ interface WorkspaceTeam {
                                     member of getSortedMembers(wt.members);
                                     track member.user_id
                                   ) {
-                                    <div class="px-6 py-4">
+                                    <a
+                                      [routerLink]="[
+                                        '/workspace',
+                                        wt.workspace.id,
+                                        'team',
+                                        'member',
+                                        member.user_id,
+                                      ]"
+                                      class="block px-6 py-4 hover:bg-[var(--secondary)]/50 transition-colors cursor-pointer no-underline"
+                                    >
                                       <div class="flex items-center gap-3 mb-2">
                                         <div
                                           class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary flex-shrink-0"
@@ -487,7 +503,7 @@ interface WorkspaceTeam {
                                           }
                                         </div>
                                       </div>
-                                    </div>
+                                    </a>
                                   }
                                 </div>
                               }
