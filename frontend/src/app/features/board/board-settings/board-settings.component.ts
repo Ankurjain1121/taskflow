@@ -87,6 +87,15 @@ import { PositionListComponent } from '../positions/position-list.component';
             </svg>
           </div>
         } @else if (board()) {
+          <!-- Error banner -->
+          @if (errorMessage()) {
+            <div
+              class="mb-4 p-3 rounded-md text-sm text-[var(--status-red-text)] bg-[var(--status-red-bg)] border border-[var(--status-red-border)]"
+            >
+              {{ errorMessage() }}
+            </div>
+          }
+
           <!-- General Settings -->
           <section class="mb-8 animate-fade-in-up">
             <div class="bg-[var(--card)] shadow rounded-lg">
@@ -297,10 +306,7 @@ import { PositionListComponent } from '../positions/position-list.component';
 
           <!-- Positions Section -->
           <section class="mb-8 animate-fade-in-up stagger-4">
-            <app-position-list
-              [boardId]="boardId"
-              [boardMembers]="members()"
-            />
+            <app-position-list [boardId]="boardId" [boardMembers]="members()" />
           </section>
 
           <!-- Danger Zone -->
@@ -403,6 +409,7 @@ export class BoardSettingsComponent implements OnInit {
   board = signal<Board | null>(null);
   members = signal<BoardMember[]>([]);
   showInviteDialog = signal(false);
+  errorMessage = signal<string | null>(null);
 
   form: FormGroup = this.fb.group({
     name: ['', Validators.required],
@@ -457,6 +464,19 @@ export class BoardSettingsComponent implements OnInit {
   }
 
   onInviteResult(result: InviteMemberDialogResult): void {
+    const snapshot = this.members();
+
+    // Optimistic: insert temp member
+    const tempMember: BoardMember = {
+      user_id: crypto.randomUUID(),
+      board_id: this.boardId,
+      role: result.role,
+      name: result.email,
+      email: result.email,
+      avatar_url: null,
+    };
+    this.members.update((members) => [...members, tempMember]);
+
     this.boardService
       .inviteBoardMember(this.boardId, {
         email: result.email,
@@ -464,15 +484,25 @@ export class BoardSettingsComponent implements OnInit {
       })
       .subscribe({
         next: (member) => {
-          this.members.update((members) => [...members, member]);
+          this.members.update((members) =>
+            members.map((m) => (m.user_id === tempMember.user_id ? member : m)),
+          );
         },
         error: () => {
-          // Error handling - invite failed
+          this.members.set(snapshot);
+          this.showError('Failed to invite member');
         },
       });
   }
 
   onMemberRoleChange(member: BoardMember, role: 'viewer' | 'editor'): void {
+    const snapshot = this.members();
+
+    // Optimistic: update role locally
+    this.members.update((members) =>
+      members.map((m) => (m.user_id === member.user_id ? { ...m, role } : m)),
+    );
+
     this.boardService
       .updateBoardMemberRole(this.boardId, member.user_id, { role })
       .subscribe({
@@ -484,8 +514,8 @@ export class BoardSettingsComponent implements OnInit {
           );
         },
         error: () => {
-          // Revert the UI by reloading members
-          this.loadBoardMembers();
+          this.members.set(snapshot);
+          this.showError('Failed to update member role');
         },
       });
   }
@@ -498,16 +528,19 @@ export class BoardSettingsComponent implements OnInit {
       acceptButtonStyleClass: 'p-button-danger p-button-sm',
       rejectButtonStyleClass: 'p-button-text p-button-sm',
       accept: () => {
+        const snapshot = this.members();
+
+        // Optimistic: remove immediately
+        this.members.update((members) =>
+          members.filter((m) => m.user_id !== member.user_id),
+        );
+
         this.boardService
           .removeBoardMember(this.boardId, member.user_id)
           .subscribe({
-            next: () => {
-              this.members.update((members) =>
-                members.filter((m) => m.user_id !== member.user_id),
-              );
-            },
             error: () => {
-              // Error handling - remove failed
+              this.members.set(snapshot);
+              this.showError('Failed to remove member');
             },
           });
       },
@@ -537,6 +570,11 @@ export class BoardSettingsComponent implements OnInit {
         });
       },
     });
+  }
+
+  private showError(message: string): void {
+    this.errorMessage.set(message);
+    setTimeout(() => this.errorMessage.set(null), 5000);
   }
 
   private loadBoard(): void {

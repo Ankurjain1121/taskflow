@@ -431,13 +431,23 @@ export class ColumnManagerComponent implements OnInit {
   onColorChange(column: Column, color: string): void {
     this.editingColorId.set(null);
 
+    const snapshot = this.columns();
+
+    // Optimistic: update color locally
+    this.columns.update((cols) =>
+      cols.map((c) => (c.id === column.id ? { ...c, color } : c)),
+    );
+
     this.boardService.updateColumn(column.id, { color }).subscribe({
       next: (updated) => {
         this.columns.update((cols) =>
           cols.map((c) => (c.id === column.id ? updated : c)),
         );
       },
-      error: (err) => console.error('Failed to update color:', err),
+      error: () => {
+        this.columns.set(snapshot);
+        this.showError('Failed to update column color');
+      },
     });
   }
 
@@ -457,16 +467,23 @@ export class ColumnManagerComponent implements OnInit {
       return;
     }
 
+    const snapshot = this.columns();
+
+    // Optimistic: update name locally
+    this.columns.update((cols) =>
+      cols.map((c) => (c.id === column.id ? { ...c, name } : c)),
+    );
+    this.pendingNames.delete(column.id);
+
     this.boardService.updateColumn(column.id, { name }).subscribe({
       next: (updated) => {
         this.columns.update((cols) =>
           cols.map((c) => (c.id === column.id ? updated : c)),
         );
-        this.pendingNames.delete(column.id);
       },
-      error: (err) => {
-        console.error('Failed to update name:', err);
-        this.pendingNames.delete(column.id);
+      error: () => {
+        this.columns.set(snapshot);
+        this.showError('Failed to update column name');
       },
     });
   }
@@ -476,6 +493,15 @@ export class ColumnManagerComponent implements OnInit {
       ? {}
       : { done: true };
 
+    const snapshot = this.columns();
+
+    // Optimistic: toggle status_mapping locally
+    this.columns.update((cols) =>
+      cols.map((c) =>
+        c.id === column.id ? { ...c, status_mapping: newMapping } : c,
+      ),
+    );
+
     this.boardService
       .updateColumn(column.id, { status_mapping: newMapping })
       .subscribe({
@@ -484,34 +510,33 @@ export class ColumnManagerComponent implements OnInit {
             cols.map((c) => (c.id === column.id ? updated : c)),
           );
         },
-        error: (err) => console.error('Failed to update status mapping:', err),
+        error: () => {
+          this.columns.set(snapshot);
+          this.showError('Failed to update column status');
+        },
       });
   }
 
   onDelete(column: Column): void {
     if (!confirm(`Delete column "${column.name}"?`)) return;
 
-    this.deleting.set(column.id);
+    const snapshot = this.columns();
     this.errorMessage.set(null);
 
+    // Optimistic: remove immediately
+    this.columns.update((cols) => cols.filter((c) => c.id !== column.id));
+
     this.boardService.deleteColumn(column.id).subscribe({
-      next: () => {
-        this.columns.update((cols) => cols.filter((c) => c.id !== column.id));
-        this.deleting.set(null);
-      },
       error: (err) => {
-        console.error('Failed to delete column:', err);
-        this.deleting.set(null);
+        this.columns.set(snapshot);
 
         if (err.status === 409) {
-          this.errorMessage.set(
+          this.showError(
             'Cannot delete column with tasks. Move or delete tasks first.',
           );
         } else {
-          this.errorMessage.set('Failed to delete column');
+          this.showError('Failed to delete column');
         }
-
-        setTimeout(() => this.errorMessage.set(null), 5000);
       },
     });
   }
@@ -519,7 +544,10 @@ export class ColumnManagerComponent implements OnInit {
   onAddColumn(): void {
     if (!this.newColumnName.trim()) return;
 
-    this.adding.set(true);
+    const snapshot = this.columns();
+    const savedName = this.newColumnName;
+    const savedColor = this.newColumnColor();
+    const savedIsDone = this.newColumnIsDone;
     this.errorMessage.set(null);
 
     const columns = this.columns();
@@ -528,25 +556,42 @@ export class ColumnManagerComponent implements OnInit {
       ? generateKeyBetween(lastColumn.position, null)
       : 'a0';
 
+    // Optimistic: insert temp column, clear form
+    const tempId = crypto.randomUUID();
+    const tempColumn: Column = {
+      id: tempId,
+      board_id: this.boardId(),
+      name: this.newColumnName.trim(),
+      position,
+      color: this.newColumnColor(),
+      status_mapping: this.newColumnIsDone ? { done: true } : null,
+      wip_limit: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    this.columns.update((cols) => [...cols, tempColumn]);
+    this.newColumnName = '';
+    this.newColumnIsDone = false;
+    this.newColumnColor.set('#6366f1');
+
     this.boardService
       .createColumn(this.boardId(), {
-        name: this.newColumnName.trim(),
-        color: this.newColumnColor(),
-        status_mapping: this.newColumnIsDone ? { done: true } : undefined,
+        name: tempColumn.name,
+        color: savedColor,
+        status_mapping: savedIsDone ? { done: true } : undefined,
       })
       .subscribe({
         next: (newColumn) => {
-          this.columns.update((cols) => [...cols, newColumn]);
-          this.newColumnName = '';
-          this.newColumnIsDone = false;
-          this.newColumnColor.set('#6366f1');
-          this.adding.set(false);
+          this.columns.update((cols) =>
+            cols.map((c) => (c.id === tempId ? newColumn : c)),
+          );
         },
-        error: (err) => {
-          console.error('Failed to create column:', err);
-          this.adding.set(false);
-          this.errorMessage.set('Failed to create column');
-          setTimeout(() => this.errorMessage.set(null), 5000);
+        error: () => {
+          this.columns.set(snapshot);
+          this.newColumnName = savedName;
+          this.newColumnIsDone = savedIsDone;
+          this.newColumnColor.set(savedColor);
+          this.showError('Failed to create column');
         },
       });
   }
@@ -557,6 +602,11 @@ export class ColumnManagerComponent implements OnInit {
       this.editingColorId.set(null);
       this.showNewColorPicker.set(false);
     }
+  }
+
+  private showError(message: string): void {
+    this.errorMessage.set(message);
+    setTimeout(() => this.errorMessage.set(null), 5000);
   }
 
   private loadColumns(): void {

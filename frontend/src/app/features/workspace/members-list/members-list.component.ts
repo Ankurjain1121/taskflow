@@ -35,6 +35,15 @@ export interface MemberWithDetails extends WorkspaceMember {
   imports: [CommonModule, FormsModule, InviteMemberDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <!-- Error banner -->
+    @if (errorMessage()) {
+      <div
+        class="mb-4 p-3 rounded-md text-sm text-[var(--status-red-text)] bg-[var(--status-red-bg)] border border-[var(--status-red-border)]"
+      >
+        {{ errorMessage() }}
+      </div>
+    }
+
     <div class="bg-[var(--card)] rounded-lg shadow">
       <!-- Header -->
       <div class="px-6 py-4 border-b border-[var(--border)]">
@@ -411,6 +420,7 @@ export class MembersListComponent implements OnInit {
   actionInProgress = signal<string | null>(null);
   showInviteDialog = signal(false);
   searchQuery = signal('');
+  errorMessage = signal<string | null>(null);
 
   filteredMembers = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
@@ -524,6 +534,9 @@ export class MembersListComponent implements OnInit {
   }
 
   onInviteResult(result: InviteMemberDialogResult): void {
+    // Optimistic: emit invited event immediately
+    this.memberInvited.emit({ emails: result.emails, role: result.role });
+
     this.workspaceService
       .bulkInviteMembers(
         this.workspaceId(),
@@ -535,25 +548,31 @@ export class MembersListComponent implements OnInit {
       )
       .subscribe({
         next: () => {
-          this.memberInvited.emit({ emails: result.emails, role: result.role });
           this.loadInvitations();
         },
         error: () => {
-          // Error handling - invite failed
+          this.showError('Failed to send invitation');
         },
       });
   }
 
   onResendInvitation(invitation: InvitationWithStatus): void {
-    this.actionInProgress.set(invitation.id);
+    const snapshotInvitations = this.allInvitations();
+
+    // Optimistic: update status to pending locally
+    this.allInvitations.update((invitations) =>
+      invitations.map((inv) =>
+        inv.id === invitation.id ? { ...inv, status: 'pending' } : inv,
+      ),
+    );
 
     this.workspaceService.resendInvitation(invitation.id).subscribe({
       next: () => {
         this.loadInvitations();
-        this.actionInProgress.set(null);
       },
       error: () => {
-        this.actionInProgress.set(null);
+        this.allInvitations.set(snapshotInvitations);
+        this.showError('Failed to resend invitation');
       },
     });
   }
@@ -581,7 +600,13 @@ export class MembersListComponent implements OnInit {
   onRoleChange(member: MemberWithDetails, newRole: string): void {
     if (newRole === member.role) return;
 
-    this.updatingMember.set(member.user_id);
+    const originalRole = member.role;
+
+    // Optimistic: emit role change immediately
+    this.memberRoleChanged.emit({
+      userId: member.user_id,
+      role: newRole,
+    });
 
     this.workspaceService
       .updateMemberRole(
@@ -590,15 +615,13 @@ export class MembersListComponent implements OnInit {
         newRole as 'admin' | 'manager' | 'member',
       )
       .subscribe({
-        next: () => {
+        error: () => {
+          // Rollback: emit original role
           this.memberRoleChanged.emit({
             userId: member.user_id,
-            role: newRole,
+            role: originalRole,
           });
-          this.updatingMember.set(null);
-        },
-        error: () => {
-          this.updatingMember.set(null);
+          this.showError('Failed to update member role');
         },
       });
   }
@@ -623,7 +646,13 @@ export class MembersListComponent implements OnInit {
         },
         error: () => {
           this.updatingMember.set(null);
+          this.showError('Failed to remove member');
         },
       });
+  }
+
+  private showError(message: string): void {
+    this.errorMessage.set(message);
+    setTimeout(() => this.errorMessage.set(null), 5000);
   }
 }
