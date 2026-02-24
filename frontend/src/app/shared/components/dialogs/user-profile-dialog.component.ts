@@ -59,41 +59,72 @@ import {
         <div class="space-y-3">
           @if (jobTitle()) {
             <div class="flex items-center gap-2">
-              <span class="text-xs text-[var(--muted-foreground)] w-20 flex-shrink-0">Title</span>
-              <span class="text-sm text-[var(--foreground)]">{{ jobTitle() }}</span>
+              <span
+                class="text-xs text-[var(--muted-foreground)] w-20 flex-shrink-0"
+                >Title</span
+              >
+              <span class="text-sm text-[var(--foreground)]">{{
+                jobTitle()
+              }}</span>
             </div>
           }
           @if (department()) {
             <div class="flex items-center gap-2">
-              <span class="text-xs text-[var(--muted-foreground)] w-20 flex-shrink-0">Dept</span>
-              <span class="text-sm text-[var(--foreground)]">{{ department() }}</span>
+              <span
+                class="text-xs text-[var(--muted-foreground)] w-20 flex-shrink-0"
+                >Dept</span
+              >
+              <span class="text-sm text-[var(--foreground)]">{{
+                department()
+              }}</span>
             </div>
           }
           @if (memberSince()) {
             <div class="flex items-center gap-2">
-              <span class="text-xs text-[var(--muted-foreground)] w-20 flex-shrink-0">Since</span>
-              <span class="text-sm text-[var(--foreground)]">{{ formatDate(memberSince()!) }}</span>
+              <span
+                class="text-xs text-[var(--muted-foreground)] w-20 flex-shrink-0"
+                >Since</span
+              >
+              <span class="text-sm text-[var(--foreground)]">{{
+                formatDate(memberSince()!)
+              }}</span>
             </div>
           }
         </div>
 
         <!-- Workspaces -->
         <div>
-          <h4 class="text-sm font-medium text-[var(--foreground)] mb-3">Workspaces</h4>
+          <h4 class="text-sm font-medium text-[var(--foreground)] mb-3">
+            Workspaces
+          </h4>
           @if (loadingWorkspaces()) {
-            <p class="text-xs text-[var(--muted-foreground)] animate-pulse">Loading workspaces...</p>
+            <p class="text-xs text-[var(--muted-foreground)] animate-pulse">
+              Loading workspaces...
+            </p>
           } @else if (workspaces().length === 0) {
             <p class="text-xs text-[var(--muted-foreground)]">No workspaces</p>
           } @else {
             <div class="space-y-2">
               @for (ws of workspaces(); track ws.workspace_id) {
                 <a
-                  [routerLink]="['/workspace', ws.workspace_id, 'team', 'member', userId()]"
+                  [routerLink]="[
+                    '/workspace',
+                    ws.workspace_id,
+                    'team',
+                    'member',
+                    userId(),
+                  ]"
                   (click)="visible.set(false)"
                   class="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-[var(--secondary)] transition-colors no-underline"
                 >
-                  <span class="text-sm text-[var(--foreground)] truncate">{{ ws.workspace_name }}</span>
-                  <p-tag [value]="ws.role" severity="secondary" class="flex-shrink-0" />
+                  <span class="text-sm text-[var(--foreground)] truncate">{{
+                    ws.workspace_name
+                  }}</span>
+                  <p-tag
+                    [value]="ws.role"
+                    severity="secondary"
+                    class="flex-shrink-0"
+                  />
                 </a>
               }
             </div>
@@ -107,7 +138,7 @@ export class UserProfileDialogComponent {
   private workspaceService = inject(WorkspaceService);
 
   visible = model(false);
-  userId = input.required<string>();
+  userId = input<string>('');
   userName = input<string>('');
   userEmail = input<string>('');
   userAvatar = input<string | null>(null);

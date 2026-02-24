@@ -309,18 +309,16 @@ import { UserProfileDialogComponent } from '../../../shared/components/dialogs/u
     />
 
     <!-- User Profile Dialog -->
-    @if (profileDialogUserId()) {
-      <app-user-profile-dialog
-        [(visible)]="showProfileDialog"
-        [userId]="profileDialogUserId()!"
-        [userName]="profileDialogMember()?.name ?? ''"
-        [userEmail]="profileDialogMember()?.email ?? ''"
-        [userAvatar]="profileDialogMember()?.avatar_url ?? null"
-        [jobTitle]="profileDialogMember()?.job_title ?? null"
-        [department]="profileDialogMember()?.department ?? null"
-        [memberSince]="profileDialogMember()?.created_at ?? null"
-      />
-    }
+    <app-user-profile-dialog
+      [(visible)]="showProfileDialog"
+      [userId]="profileDialogUserId() ?? ''"
+      [userName]="profileDialogMember()?.name ?? ''"
+      [userEmail]="profileDialogMember()?.email ?? ''"
+      [userAvatar]="profileDialogMember()?.avatar_url ?? null"
+      [jobTitle]="profileDialogMember()?.job_title ?? null"
+      [department]="profileDialogMember()?.department ?? null"
+      [memberSince]="profileDialogMember()?.created_at ?? null"
+    />
   `,
 })
 export class OrgMembersComponent {
