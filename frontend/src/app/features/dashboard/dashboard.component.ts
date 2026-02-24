@@ -1,6 +1,7 @@
 import {
   Component,
   inject,
+  Injector,
   OnInit,
   signal,
   computed,
@@ -468,6 +469,7 @@ export class DashboardComponent implements OnInit {
   private authService = inject(AuthService);
   private dashboardService = inject(DashboardService);
   private workspaceState = inject(WorkspaceStateService);
+  private injector = inject(Injector);
 
   workspaces = signal<Workspace[]>([]);
   loading = signal(true);
@@ -497,26 +499,6 @@ export class DashboardComponent implements OnInit {
     return id ?? undefined;
   });
 
-  constructor() {
-    // Sync workspace list and handle loading state
-    effect(() => {
-      const ws = this.workspaceState.workspaces();
-      const isLoading = this.workspaceState.loading();
-      untracked(() => {
-        this.workspaces.set(ws);
-        if (!isLoading && this.loading()) {
-          this.loading.set(false);
-          const saved = this.workspaceState.currentWorkspaceId();
-          if (saved && ws.some((w) => w.id === saved)) {
-            this.selectedWorkspaceId.set(saved);
-            this.loadStats(saved);
-            this.loadRecentActivity(saved);
-          }
-        }
-      });
-    });
-  }
-
   ngOnInit(): void {
     const user = this.authService.currentUser();
     if (!user) {
@@ -526,8 +508,28 @@ export class DashboardComponent implements OnInit {
 
     this.userName.set(user.name?.split(' ')[0] || null);
     this.loadWorkspaces();
-    this.loadStats();
-    this.loadRecentActivity();
+
+    // Sync workspace list and handle loading state
+    effect(
+      () => {
+        const ws = this.workspaceState.workspaces();
+        const isLoading = this.workspaceState.loading();
+        untracked(() => {
+          this.workspaces.set(ws);
+          if (!isLoading && this.loading()) {
+            this.loading.set(false);
+            const saved = this.workspaceState.currentWorkspaceId();
+            if (saved && ws.some((w) => w.id === saved)) {
+              this.selectedWorkspaceId.set(saved);
+            }
+          }
+          // Load stats for current selection (fires on init AND workspace changes)
+          this.loadStats(this.selectedWorkspaceId() ?? undefined);
+          this.loadRecentActivity(this.selectedWorkspaceId() ?? undefined);
+        });
+      },
+      { injector: this.injector },
+    );
   }
 
   onWorkspaceChange(value: string | null): void {
