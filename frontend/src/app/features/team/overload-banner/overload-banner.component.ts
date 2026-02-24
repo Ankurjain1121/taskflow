@@ -9,7 +9,10 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
-import { TeamService, OverloadedMember } from '../../../core/services/team.service';
+import {
+  TeamService,
+  OverloadedMember,
+} from '../../../core/services/team.service';
 
 @Component({
   selector: 'app-overload-banner',
@@ -37,7 +40,9 @@ import { TeamService, OverloadedMember } from '../../../core/services/team.servi
             <div>
               <p class="text-sm font-medium text-amber-800">
                 Workload alert: {{ overloadedMembers().length }} team
-                {{ overloadedMembers().length === 1 ? 'member is' : 'members are' }}
+                {{
+                  overloadedMembers().length === 1 ? 'member is' : 'members are'
+                }}
                 overloaded
               </p>
               <p class="text-xs text-amber-600 mt-0.5">
@@ -82,8 +87,8 @@ export class OverloadBannerComponent implements OnInit, OnDestroy {
         next: (members) => {
           this.overloadedMembers.set(members);
         },
-        error: (err) => {
-          console.error('Failed to load overloaded members:', err);
+        error: () => {
+          // Banner gracefully degrades — stays hidden when data unavailable
         },
       });
   }
@@ -91,7 +96,9 @@ export class OverloadBannerComponent implements OnInit, OnDestroy {
   scrollToOverloaded(): void {
     const firstOverloaded = this.overloadedMembers()[0];
     if (firstOverloaded) {
-      const element = document.getElementById(`member-${firstOverloaded.user_id}`);
+      const element = document.getElementById(
+        `member-${firstOverloaded.user_id}`,
+      );
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         // Add a temporary highlight effect

@@ -201,8 +201,7 @@ export class TeamOverviewComponent implements OnInit, OnDestroy {
           this.members.set(members);
           this.loading.set(false);
         },
-        error: (err) => {
-          console.error('Failed to load team workload:', err);
+        error: () => {
           this.error.set('Failed to load team workload. Please try again.');
           this.loading.set(false);
         },
