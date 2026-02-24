@@ -405,9 +405,11 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
       acceptButtonStyleClass: 'p-button-danger p-button-sm',
       rejectButtonStyleClass: 'p-button-text p-button-sm',
       accept: () => {
+        this.closed.emit(); // close drawer immediately
         this.taskService.deleteTask(task.id).subscribe({
-          next: () => this.closed.emit(),
-          error: () => {},
+          error: () => {
+            // Task will be restored by WebSocket or next board load
+          },
         });
       },
     });
@@ -692,12 +694,21 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     const task = this.task();
     if (!task) return;
 
+    // Apply optimistically to local signal
+    const optimisticTask = { ...task, ...updates };
+    this.task.set(optimisticTask);
+    this.taskUpdated.emit(optimisticTask);
+
     this.taskService.updateTask(task.id, updates).subscribe({
-      next: (updatedTask) => {
-        this.task.set(updatedTask);
-        this.taskUpdated.emit(updatedTask);
+      next: (serverTask) => {
+        this.task.set(serverTask);
+        this.taskUpdated.emit(serverTask);
       },
-      error: () => {},
+      error: () => {
+        // Rollback
+        this.task.set(task);
+        this.taskUpdated.emit(task);
+      },
     });
   }
 

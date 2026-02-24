@@ -1,10 +1,16 @@
 import { Injectable, inject } from '@angular/core';
-import { TaskService, BulkUpdateRequest } from '../../../core/services/task.service';
+import {
+  TaskService,
+  Task,
+  BulkUpdateRequest,
+} from '../../../core/services/task.service';
 import { BulkAction } from '../bulk-actions/bulk-actions-bar.component';
+import { BoardStateService } from './board-state.service';
 
 @Injectable()
 export class BoardBulkActionsService {
   private taskService = inject(TaskService);
+  private state = inject(BoardStateService);
 
   executeBulkAction(
     boardId: string,
@@ -17,10 +23,25 @@ export class BoardBulkActionsService {
   ): void {
     if (taskIds.length === 0) return;
 
+    const snapshot = structuredClone(this.state.boardState());
+
     if (action.type === 'delete') {
+      // Optimistically remove all matching tasks
+      this.state.boardState.update((state) => {
+        const newState: Record<string, Task[]> = {};
+        const idSet = new Set(taskIds);
+        for (const [colId, tasks] of Object.entries(state)) {
+          newState[colId] = tasks.filter((t) => !idSet.has(t.id));
+        }
+        return newState;
+      });
+
       this.taskService.bulkDelete(boardId, { task_ids: taskIds }).subscribe({
         next: () => callbacks.onSuccess(),
-        error: () => callbacks.onError('Failed to delete tasks'),
+        error: () => {
+          this.state.boardState.set(snapshot);
+          callbacks.onError('Failed to delete tasks');
+        },
       });
       return;
     }
@@ -45,9 +66,58 @@ export class BoardBulkActionsService {
       }
     }
 
+    // Optimistically apply bulk updates to board state
+    this.state.boardState.update((state) => {
+      const newState: Record<string, Task[]> = {};
+      const idSet = new Set(taskIds);
+
+      if (action.type === 'move' && action.column_id) {
+        // Move tasks to target column
+        const targetColId = action.column_id;
+        const movedTasks: Task[] = [];
+        for (const [colId, tasks] of Object.entries(state)) {
+          const staying = tasks.filter((t) => !idSet.has(t.id));
+          const moving = tasks.filter((t) => idSet.has(t.id));
+          movedTasks.push(
+            ...moving.map((t) => ({ ...t, column_id: targetColId })),
+          );
+          newState[colId] = staying;
+        }
+        newState[targetColId] = [
+          ...(newState[targetColId] || []),
+          ...movedTasks,
+        ];
+      } else {
+        // Apply field updates (priority, milestone, group)
+        const fieldUpdates: Partial<Task> = {};
+        if (action.type === 'priority' && action.priority) {
+          fieldUpdates.priority = action.priority as Task['priority'];
+        }
+        if (action.type === 'milestone') {
+          fieldUpdates.milestone_id = action.clear_milestone
+            ? null
+            : (action.milestone_id ?? null);
+        }
+        if (action.type === 'group') {
+          fieldUpdates.group_id = action.clear_group
+            ? null
+            : (action.group_id ?? null);
+        }
+        for (const [colId, tasks] of Object.entries(state)) {
+          newState[colId] = tasks.map((t) =>
+            idSet.has(t.id) ? { ...t, ...fieldUpdates } : t,
+          );
+        }
+      }
+      return newState;
+    });
+
     this.taskService.bulkUpdate(boardId, req).subscribe({
       next: () => callbacks.onSuccess(),
-      error: () => callbacks.onError('Failed to update tasks'),
+      error: () => {
+        this.state.boardState.set(snapshot);
+        callbacks.onError('Failed to update tasks');
+      },
     });
   }
 }

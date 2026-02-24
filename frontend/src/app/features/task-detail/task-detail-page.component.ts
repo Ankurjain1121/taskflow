@@ -498,6 +498,10 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
     const t = this.task();
     if (!t) return;
 
+    // Apply optimistically
+    const optimistic = { ...t, ...updates } as Task;
+    this.task.set(optimistic);
+
     this.taskService.updateTask(t.id, updates).subscribe({
       next: (updated) => {
         this.task.set({
@@ -511,6 +515,8 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
           this.editDescription.set(updated.description ?? '');
       },
       error: () => {
+        // Rollback
+        this.task.set(t);
         this.editTitle.set(t.title);
         this.editDescription.set(t.description ?? '');
       },
@@ -572,8 +578,8 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
     if (!t) return;
     if (!confirm('Are you sure you want to delete this task?')) return;
 
-    this.taskService.deleteTask(t.id).subscribe({
-      next: () => this.goBack(),
-    });
+    // Navigate back immediately, delete in background
+    this.goBack();
+    this.taskService.deleteTask(t.id).subscribe();
   }
 }
