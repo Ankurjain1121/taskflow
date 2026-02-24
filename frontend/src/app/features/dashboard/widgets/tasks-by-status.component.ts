@@ -2,10 +2,12 @@ import {
   Component,
   signal,
   inject,
+  Injector,
   input,
   computed,
   effect,
   untracked,
+  OnInit,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -79,20 +81,24 @@ import {
     </div>
   `,
 })
-export class TasksByStatusComponent {
+export class TasksByStatusComponent implements OnInit {
   private dashboardService = inject(DashboardService);
   private router = inject(Router);
+  private injector = inject(Injector);
 
   workspaceId = input<string | undefined>();
 
   loading = signal(true);
   data = signal<TasksByStatus[]>([]);
 
-  constructor() {
-    effect(() => {
-      this.workspaceId();
-      untracked(() => this.loadData());
-    });
+  ngOnInit(): void {
+    effect(
+      () => {
+        this.workspaceId();
+        untracked(() => this.loadData());
+      },
+      { injector: this.injector },
+    );
   }
 
   chartData = computed(() => {

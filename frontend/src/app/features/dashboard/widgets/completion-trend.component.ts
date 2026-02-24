@@ -2,10 +2,12 @@ import {
   Component,
   signal,
   inject,
+  Injector,
   input,
   computed,
   effect,
   untracked,
+  OnInit,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -90,8 +92,9 @@ import {
     </div>
   `,
 })
-export class CompletionTrendComponent {
+export class CompletionTrendComponent implements OnInit {
   private dashboardService = inject(DashboardService);
+  private injector = inject(Injector);
 
   workspaceId = input<string | undefined>();
 
@@ -100,11 +103,14 @@ export class CompletionTrendComponent {
   selectedDays = signal(30);
   totalCompleted = signal(0);
 
-  constructor() {
-    effect(() => {
-      this.workspaceId();
-      untracked(() => this.loadData());
-    });
+  ngOnInit(): void {
+    effect(
+      () => {
+        this.workspaceId();
+        untracked(() => this.loadData());
+      },
+      { injector: this.injector },
+    );
   }
 
   dayOptions = [30, 60, 90];

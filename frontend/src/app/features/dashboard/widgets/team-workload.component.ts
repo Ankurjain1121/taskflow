@@ -2,9 +2,11 @@ import {
   Component,
   signal,
   inject,
+  Injector,
   input,
   effect,
   untracked,
+  OnInit,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -112,25 +114,29 @@ import {
     </div>
   `,
 })
-export class TeamWorkloadComponent {
+export class TeamWorkloadComponent implements OnInit {
   private teamService = inject(TeamService);
+  private injector = inject(Injector);
 
   workspaceId = input<string | undefined>();
 
   loading = signal(false);
   members = signal<MemberWorkload[]>([]);
 
-  constructor() {
-    effect(() => {
-      const wsId = this.workspaceId();
-      untracked(() => {
-        if (wsId) {
-          this.loadWorkload(wsId);
-        } else {
-          this.members.set([]);
-        }
-      });
-    });
+  ngOnInit(): void {
+    effect(
+      () => {
+        const wsId = this.workspaceId();
+        untracked(() => {
+          if (wsId) {
+            this.loadWorkload(wsId);
+          } else {
+            this.members.set([]);
+          }
+        });
+      },
+      { injector: this.injector },
+    );
   }
 
   getBarColor(member: MemberWorkload): string {

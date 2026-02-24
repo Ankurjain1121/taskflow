@@ -2,9 +2,11 @@ import {
   Component,
   signal,
   inject,
+  Injector,
   input,
   effect,
   untracked,
+  OnInit,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -94,20 +96,24 @@ import {
     </div>
   `,
 })
-export class UpcomingDeadlinesComponent {
+export class UpcomingDeadlinesComponent implements OnInit {
   private dashboardService = inject(DashboardService);
   private router = inject(Router);
+  private injector = inject(Injector);
 
   workspaceId = input<string | undefined>();
 
   loading = signal(true);
   deadlines = signal<UpcomingDeadline[]>([]);
 
-  constructor() {
-    effect(() => {
-      this.workspaceId();
-      untracked(() => this.loadData());
-    });
+  ngOnInit(): void {
+    effect(
+      () => {
+        this.workspaceId();
+        untracked(() => this.loadData());
+      },
+      { injector: this.injector },
+    );
   }
 
   async loadData() {
