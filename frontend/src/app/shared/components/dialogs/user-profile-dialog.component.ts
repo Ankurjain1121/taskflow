@@ -5,6 +5,9 @@ import {
   signal,
   inject,
   effect,
+  Injector,
+  OnInit,
+  untracked,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -134,8 +137,9 @@ import {
     </p-dialog>
   `,
 })
-export class UserProfileDialogComponent {
+export class UserProfileDialogComponent implements OnInit {
   private workspaceService = inject(WorkspaceService);
+  private injector = inject(Injector);
 
   visible = model(false);
   userId = input<string>('');
@@ -149,14 +153,19 @@ export class UserProfileDialogComponent {
   workspaces = signal<UserWorkspaceMembership[]>([]);
   loadingWorkspaces = signal(false);
 
-  constructor() {
-    effect(() => {
-      const uid = this.userId();
-      const isVisible = this.visible();
-      if (uid && isVisible) {
-        this.loadWorkspaces(uid);
-      }
-    });
+  ngOnInit(): void {
+    effect(
+      () => {
+        const uid = this.userId();
+        const isVisible = this.visible();
+        untracked(() => {
+          if (uid && isVisible) {
+            this.loadWorkspaces(uid);
+          }
+        });
+      },
+      { injector: this.injector },
+    );
   }
 
   getInitials(name: string): string {

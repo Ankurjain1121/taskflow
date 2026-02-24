@@ -4,8 +4,10 @@ import {
   inject,
   signal,
   input,
+  Injector,
   OnInit,
   OnDestroy,
+  untracked,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -100,26 +102,30 @@ const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 export class SidebarRecentComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private boardService = inject(BoardService);
+  private injector = inject(Injector);
   private routerSub: Subscription | null = null;
 
   collapsed = input(false);
   workspaceIds = input<string[]>([]);
   recentItems = signal<RecentBoardEntry[]>([]);
 
-  constructor() {
-    effect(() => {
-      const wsIds = this.workspaceIds();
-      if (wsIds.length > 0) {
-        this.filterByWorkspaces(wsIds);
-      }
-    });
-  }
-
   ngOnInit(): void {
     this.loadFromStorage();
     this.routerSub = this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
       .subscribe((event) => this.onNavigationEnd(event));
+
+    effect(
+      () => {
+        const wsIds = this.workspaceIds();
+        untracked(() => {
+          if (wsIds.length > 0) {
+            this.filterByWorkspaces(wsIds);
+          }
+        });
+      },
+      { injector: this.injector },
+    );
   }
 
   ngOnDestroy(): void {

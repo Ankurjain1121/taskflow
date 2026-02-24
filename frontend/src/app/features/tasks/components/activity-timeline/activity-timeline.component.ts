@@ -4,7 +4,10 @@ import {
   signal,
   effect,
   inject,
+  Injector,
+  OnInit,
   OnDestroy,
+  untracked,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -126,8 +129,9 @@ import {
     `,
   ],
 })
-export class ActivityTimelineComponent implements OnDestroy {
+export class ActivityTimelineComponent implements OnInit, OnDestroy {
   private activityService = inject(ActivityService);
+  private injector = inject(Injector);
   private destroy$ = new Subject<void>();
 
   taskId = input.required<string>();
@@ -137,14 +141,19 @@ export class ActivityTimelineComponent implements OnDestroy {
   isLoading = signal(false);
   isLoadingMore = signal(false);
 
-  constructor() {
+  ngOnInit(): void {
     // Load activities when taskId changes
-    effect(() => {
-      const taskId = this.taskId();
-      if (taskId) {
-        this.loadActivities();
-      }
-    });
+    effect(
+      () => {
+        const taskId = this.taskId();
+        untracked(() => {
+          if (taskId) {
+            this.loadActivities();
+          }
+        });
+      },
+      { injector: this.injector },
+    );
   }
 
   ngOnDestroy(): void {

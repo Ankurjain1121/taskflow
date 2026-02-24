@@ -4,9 +4,12 @@ import {
   signal,
   effect,
   inject,
+  Injector,
+  OnInit,
   OnDestroy,
   Pipe,
   PipeTransform,
+  untracked,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -192,9 +195,10 @@ interface CommentCreatedPayload {
     `,
   ],
 })
-export class CommentListComponent implements OnDestroy {
+export class CommentListComponent implements OnInit, OnDestroy {
   private commentService = inject(CommentService);
   private wsService = inject(WebSocketService);
+  private injector = inject(Injector);
   private destroy$ = new Subject<void>();
 
   taskId = input.required<string>();
@@ -205,15 +209,20 @@ export class CommentListComponent implements OnDestroy {
   isLoading = signal(false);
   replyingTo = signal<string | null>(null);
 
-  constructor() {
+  ngOnInit(): void {
     // Load comments when taskId changes
-    effect(() => {
-      const taskId = this.taskId();
-      if (taskId) {
-        this.loadComments();
-        this.subscribeToWebSocket();
-      }
-    });
+    effect(
+      () => {
+        const taskId = this.taskId();
+        untracked(() => {
+          if (taskId) {
+            this.loadComments();
+            this.subscribeToWebSocket();
+          }
+        });
+      },
+      { injector: this.injector },
+    );
   }
 
   ngOnDestroy(): void {

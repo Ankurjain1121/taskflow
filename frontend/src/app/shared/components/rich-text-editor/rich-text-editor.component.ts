@@ -2,12 +2,15 @@ import {
   Component,
   input,
   output,
+  inject,
   OnInit,
   OnDestroy,
   ElementRef,
   ViewChild,
+  Injector,
   ChangeDetectionStrategy,
   effect,
+  untracked,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Editor } from '@tiptap/core';
@@ -356,22 +359,7 @@ export class RichTextEditorComponent implements OnInit, OnDestroy {
 
   editor: Editor | null = null;
   private skipNextUpdate = false;
-
-  constructor() {
-    // Sync external content changes
-    effect(() => {
-      const newContent = this.content();
-      if (this.editor && this.skipNextUpdate) {
-        this.skipNextUpdate = false;
-        return;
-      }
-      if (this.editor && newContent !== this.editor.getHTML()) {
-        this.editor.commands.setContent(newContent || '', {
-          emitUpdate: false,
-        });
-      }
-    });
-  }
+  private injector = inject(Injector);
 
   ngOnInit(): void {
     this.editor = new Editor({
@@ -395,6 +383,25 @@ export class RichTextEditorComponent implements OnInit, OnDestroy {
         this.contentChanged.emit(html === '<p></p>' ? '' : html);
       },
     });
+
+    // Sync external content changes (must be after editor creation)
+    effect(
+      () => {
+        const newContent = this.content();
+        untracked(() => {
+          if (this.editor && this.skipNextUpdate) {
+            this.skipNextUpdate = false;
+            return;
+          }
+          if (this.editor && newContent !== this.editor.getHTML()) {
+            this.editor.commands.setContent(newContent || '', {
+              emitUpdate: false,
+            });
+          }
+        });
+      },
+      { injector: this.injector },
+    );
   }
 
   ngOnDestroy(): void {
