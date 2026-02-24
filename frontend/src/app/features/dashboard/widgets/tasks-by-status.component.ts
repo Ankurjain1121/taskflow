@@ -1,11 +1,11 @@
 import {
   Component,
-  OnInit,
   signal,
   inject,
   input,
-  effect,
   computed,
+  effect,
+  untracked,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -79,7 +79,7 @@ import {
     </div>
   `,
 })
-export class TasksByStatusComponent implements OnInit {
+export class TasksByStatusComponent {
   private dashboardService = inject(DashboardService);
   private router = inject(Router);
 
@@ -90,8 +90,8 @@ export class TasksByStatusComponent implements OnInit {
 
   constructor() {
     effect(() => {
-      const _wsId = this.workspaceId();
-      this.loadData();
+      this.workspaceId();
+      untracked(() => this.loadData());
     });
   }
 
@@ -127,10 +127,6 @@ export class TasksByStatusComponent implements OnInit {
       },
     },
   };
-
-  ngOnInit() {
-    this.loadData();
-  }
 
   onChartClick(event: { element: { index: number } }): void {
     const items = this.data();

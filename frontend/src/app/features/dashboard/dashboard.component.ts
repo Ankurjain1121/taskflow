@@ -5,6 +5,7 @@ import {
   signal,
   computed,
   effect,
+  untracked,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -497,22 +498,22 @@ export class DashboardComponent implements OnInit {
   });
 
   constructor() {
+    // Sync workspace list and handle loading state
     effect(() => {
       const ws = this.workspaceState.workspaces();
-      this.workspaces.set(ws);
-      if (this.workspaceState.loading()) return;
-      this.loading.set(false);
-
-      const saved = this.workspaceState.currentWorkspaceId();
-      if (saved && ws.some((w) => w.id === saved)) {
-        this.selectedWorkspaceId.set(saved);
-      }
-    });
-
-    effect(() => {
-      const wsId = this.selectedWorkspaceId();
-      this.loadStats(wsId ?? undefined);
-      this.loadRecentActivity(wsId ?? undefined);
+      const isLoading = this.workspaceState.loading();
+      untracked(() => {
+        this.workspaces.set(ws);
+        if (!isLoading && this.loading()) {
+          this.loading.set(false);
+          const saved = this.workspaceState.currentWorkspaceId();
+          if (saved && ws.some((w) => w.id === saved)) {
+            this.selectedWorkspaceId.set(saved);
+            this.loadStats(saved);
+            this.loadRecentActivity(saved);
+          }
+        }
+      });
     });
   }
 
@@ -525,11 +526,15 @@ export class DashboardComponent implements OnInit {
 
     this.userName.set(user.name?.split(' ')[0] || null);
     this.loadWorkspaces();
+    this.loadStats();
+    this.loadRecentActivity();
   }
 
   onWorkspaceChange(value: string | null): void {
     this.selectedWorkspaceId.set(value);
     this.workspaceState.selectWorkspace(value);
+    this.loadStats(value ?? undefined);
+    this.loadRecentActivity(value ?? undefined);
   }
 
   getGreeting(): string {

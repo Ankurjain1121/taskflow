@@ -4,7 +4,7 @@ import {
   signal,
   inject,
   input,
-  effect,
+  computed,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -125,15 +125,9 @@ export class MyTasksTodayComponent implements OnInit {
 
   loading = signal(true);
   allTasks = signal<MyTask[]>([]);
-  filteredTasks = signal<MyTask[]>([]);
-
-  constructor() {
-    effect(() => {
-      const wsId = this.workspaceId();
-      const tasks = this.allTasks();
-      this.filteredTasks.set(this.filterTasks(tasks, wsId));
-    });
-  }
+  filteredTasks = computed(() =>
+    this.filterTasks(this.allTasks(), this.workspaceId()),
+  );
 
   ngOnInit(): void {
     this.loadTasks();

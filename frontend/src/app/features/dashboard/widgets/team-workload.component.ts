@@ -4,6 +4,7 @@ import {
   inject,
   input,
   effect,
+  untracked,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -122,11 +123,13 @@ export class TeamWorkloadComponent {
   constructor() {
     effect(() => {
       const wsId = this.workspaceId();
-      if (wsId) {
-        this.loadWorkload(wsId);
-      } else {
-        this.members.set([]);
-      }
+      untracked(() => {
+        if (wsId) {
+          this.loadWorkload(wsId);
+        } else {
+          this.members.set([]);
+        }
+      });
     });
   }
 
