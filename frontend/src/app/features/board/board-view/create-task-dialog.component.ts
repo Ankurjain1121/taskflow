@@ -1,7 +1,7 @@
 import { Component, inject, signal, input, output, model, ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { Dialog } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -12,6 +12,8 @@ import { InputNumber } from 'primeng/inputnumber';
 import { MultiSelect } from 'primeng/multiselect';
 
 import { TaskPriority } from '../../../core/services/task.service';
+import { TaskTemplateService, TaskTemplate } from '../../../core/services/task-template.service';
+import { ToggleSwitch } from 'primeng/toggleswitch';
 
 export interface CreateTaskDialogData {
   columnId: string;
@@ -42,6 +44,7 @@ export interface CreateTaskDialogResult {
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    FormsModule,
     ButtonModule,
     Dialog,
     InputTextModule,
@@ -50,6 +53,7 @@ export interface CreateTaskDialogResult {
     DatePicker,
     InputNumber,
     MultiSelect,
+    ToggleSwitch,
   ],
   template: `
     <p-dialog
@@ -65,6 +69,31 @@ export interface CreateTaskDialogResult {
         <p class="text-sm text-gray-500 dark:text-gray-400">
           Adding to column: <span class="font-medium">{{ columnName() }}</span>
         </p>
+
+        <!-- Template picker -->
+        <div class="flex items-center gap-3 p-3 rounded-lg bg-[var(--secondary)]">
+          <p-toggleSwitch [(ngModel)]="useTemplate" (onChange)="onTemplateToggle()" />
+          <span class="text-sm text-[var(--foreground)]">Use Template</span>
+        </div>
+
+        @if (useTemplate && templates().length > 0) {
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Template</label>
+            <select
+              [(ngModel)]="selectedTemplateId"
+              (ngModelChange)="onTemplateSelected($event)"
+              class="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-md"
+            >
+              <option value="">Select a template...</option>
+              @for (t of templates(); track t.id) {
+                <option [value]="t.id">{{ t.name }}</option>
+              }
+            </select>
+          </div>
+        }
+        @if (useTemplate && templates().length === 0) {
+          <p class="text-xs text-[var(--muted-foreground)]">No templates available for this board.</p>
+        }
 
         <!-- Title -->
         <div class="flex flex-col gap-1">
@@ -375,11 +404,18 @@ export class CreateTaskDialogComponent {
   labels = input<{ id: string; name: string; color: string }[]>([]);
   milestones = input<{ id: string; name: string; color: string }[]>([]);
   groups = input<{ id: string; name: string; color: string }[]>([]);
+  boardId = input<string>('');
 
   /** Emits result when dialog closes with a value */
   created = output<CreateTaskDialogResult>();
 
   saving = signal(false);
+
+  private taskTemplateService = inject(TaskTemplateService);
+  useTemplate = false;
+  templates = signal<TaskTemplate[]>([]);
+  selectedTemplateId = '';
+
 
   priorities = [
     { value: 'low', label: 'Low', color: '#60a5fa' },
@@ -422,6 +458,8 @@ export class CreateTaskDialogComponent {
     });
     this.milestoneOptions.set(this.milestones());
     this.groupOptions.set(this.groups());
+    this.useTemplate = false;
+    this.selectedTemplateId = '';
   }
 
   onCancel(): void {
@@ -471,5 +509,27 @@ export class CreateTaskDialogComponent {
 
     this.visible.set(false);
     this.created.emit(result);
+  }
+
+  onTemplateToggle(): void {
+    if (this.useTemplate && this.templates().length === 0) {
+      this.taskTemplateService.list(undefined, this.boardId()).subscribe({
+        next: (templates) => this.templates.set(templates),
+        error: () => this.templates.set([]),
+      });
+    }
+  }
+
+  onTemplateSelected(templateId: string): void {
+    if (!templateId) return;
+    const t = this.templates().find(tpl => tpl.id === templateId);
+    if (t) {
+      this.form.patchValue({
+        title: t.task_title || '',
+        description: t.task_description || '',
+        priority: (t.task_priority as TaskPriority) || 'medium',
+        estimatedHours: t.task_estimated_hours || null,
+      });
+    }
   }
 }

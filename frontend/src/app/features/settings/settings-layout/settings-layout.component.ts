@@ -160,5 +160,6 @@ export class SettingsLayoutComponent {
     { path: 'security', label: 'Security', icon: 'pi pi-shield' },
     { path: 'appearance', label: 'Appearance', icon: 'pi pi-palette' },
     { path: 'notifications', label: 'Notifications', icon: 'pi pi-bell' },
+    { path: 'templates', label: 'Templates', icon: 'pi pi-copy' },
   ];
 }

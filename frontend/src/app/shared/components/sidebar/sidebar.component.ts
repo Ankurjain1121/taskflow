@@ -397,6 +397,15 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
                 <i class="pi pi-compass text-xs"></i>
                 <span class="sidebar-text">Discover</span>
               </a>
+              <a
+                routerLink="/templates"
+                routerLinkActive="active"
+                class="nav-item flex items-center gap-2 px-3 py-2 rounded-md text-sm"
+                style="color: var(--sidebar-text-muted)"
+              >
+                <i class="pi pi-th-large text-xs"></i>
+                <span class="sidebar-text">Templates</span>
+              </a>
             } @else {
               <button
                 (click)="onCreateWorkspace()"
@@ -414,6 +423,15 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
                 tooltipPosition="right"
               >
                 <i class="pi pi-compass sidebar-icon-color text-sm"></i>
+              </a>
+              <a
+                routerLink="/templates"
+                routerLinkActive="active"
+                class="collapsed-icon-btn"
+                pTooltip="Templates"
+                tooltipPosition="right"
+              >
+                <i class="pi pi-th-large sidebar-icon-color text-sm"></i>
               </a>
             }
           }

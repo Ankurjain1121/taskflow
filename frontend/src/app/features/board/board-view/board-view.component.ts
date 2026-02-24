@@ -360,6 +360,7 @@ import { MessageService } from 'primeng/api';
       <!-- Inline Create Task Dialog -->
       <app-create-task-dialog
         [(visible)]="showCreateTaskDialog"
+        [boardId]="boardId"
         [columnId]="createTaskDialogColumnId"
         [columnName]="createTaskDialogColumnName"
         [members]="createTaskDialogMembers"
