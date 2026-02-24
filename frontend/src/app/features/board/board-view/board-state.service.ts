@@ -448,6 +448,26 @@ export class BoardStateService {
     });
   }
 
+  deleteTask(taskId: string): void {
+    const snapshot = structuredClone(this.boardState());
+
+    // Optimistically remove from all columns
+    this.boardState.update((state) => {
+      const newState: Record<string, Task[]> = {};
+      for (const [colId, tasks] of Object.entries(state)) {
+        newState[colId] = tasks.filter((t) => t.id !== taskId);
+      }
+      return newState;
+    });
+
+    this.taskService.deleteTask(taskId).subscribe({
+      error: () => {
+        this.boardState.set(snapshot);
+        this.showError('Failed to delete task. Reverted.');
+      },
+    });
+  }
+
   // === Task Group Operations ===
 
   createGroup(boardId: string, result: { name: string; color: string }): void {

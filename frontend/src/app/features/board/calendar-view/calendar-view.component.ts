@@ -291,13 +291,19 @@ export class CalendarViewComponent implements OnInit {
     event.preventDefault();
     if (!this.draggedTask) return;
 
+    const taskId = this.draggedTask.id;
     const newDueDate = date.toISOString();
-    this.taskService
-      .updateTask(this.draggedTask.id, { due_date: newDueDate })
-      .subscribe({
-        next: () => this.loadTasks(),
-      });
+    const snapshot = [...this.tasks()];
+
+    // Optimistic: update due_date locally
+    this.tasks.update((tasks) =>
+      tasks.map((t) => (t.id === taskId ? { ...t, due_date: newDueDate } : t)),
+    );
     this.draggedTask = null;
+
+    this.taskService.updateTask(taskId, { due_date: newDueDate }).subscribe({
+      error: () => this.tasks.set(snapshot),
+    });
   }
 
   private generateMonthCells(

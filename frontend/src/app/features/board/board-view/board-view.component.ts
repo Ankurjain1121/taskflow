@@ -12,11 +12,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil, switchMap } from 'rxjs';
 import { CdkDropListGroup } from '@angular/cdk/drag-drop';
 
-import {
-  Task,
-  TaskService,
-  TaskPriority,
-} from '../../../core/services/task.service';
+import { Task, TaskService } from '../../../core/services/task.service';
 import { TaskGroupWithStats } from '../../../core/services/task-group.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
 
@@ -622,69 +618,108 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   onCardPriorityChanged(event: { taskId: string; priority: string }): void {
-    this.taskService
-      .updateTask(event.taskId, { priority: event.priority as TaskPriority })
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (task) => this.state.updateTaskInState(task),
-        error: () => this.state.showError('Failed to update priority'),
-      });
+    this.state.optimisticUpdateTask(event.taskId, {
+      priority: event.priority as Task['priority'],
+    });
   }
 
   onCardColumnMove(event: { taskId: string; columnId: string }): void {
+    const snapshot = structuredClone(this.state.boardState());
+
+    // Optimistic: remove from old column, add to new column
+    this.state.boardState.update((state) => {
+      const newState: Record<string, Task[]> = {};
+      let movedTask: Task | null = null;
+      for (const [colId, tasks] of Object.entries(state)) {
+        const found = tasks.find((t) => t.id === event.taskId);
+        if (found)
+          movedTask = { ...found, column_id: event.columnId, position: 'a0' };
+        newState[colId] = tasks.filter((t) => t.id !== event.taskId);
+      }
+      if (movedTask) {
+        newState[event.columnId] = [
+          ...(newState[event.columnId] || []),
+          movedTask,
+        ].sort((a, b) => a.position.localeCompare(b.position));
+      }
+      return newState;
+    });
+
     this.taskService
       .moveTask(event.taskId, { column_id: event.columnId, position: 'a0' })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => this.state.loadBoard(this.boardId, this.destroy$),
-        error: () => this.state.showError('Failed to move task'),
+        error: () => {
+          this.state.boardState.set(snapshot);
+          this.state.showError('Failed to move task');
+        },
       });
   }
 
   onCardDuplicate(taskId: string): void {
+    // Find the task to duplicate
+    let originalTask: Task | null = null;
+    const currentState = this.state.boardState();
+    for (const tasks of Object.values(currentState)) {
+      const found = tasks.find((t) => t.id === taskId);
+      if (found) {
+        originalTask = found;
+        break;
+      }
+    }
+    if (!originalTask) return;
+
+    // Optimistic: insert temp duplicate
+    const tempId = crypto.randomUUID();
+    const tempTask: Task = {
+      ...originalTask,
+      id: tempId,
+      title: `${originalTask.title} (copy)`,
+      position: 'zzzzzz',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    const snapshot = structuredClone(currentState);
+    const origColumnId = originalTask.column_id;
+    this.state.boardState.update((state) => {
+      const newState = { ...state };
+      newState[origColumnId] = [...(newState[origColumnId] || []), tempTask];
+      return newState;
+    });
+
     this.taskService
       .duplicateTask(taskId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (newTask) => {
-          this.state.loadBoard(this.boardId, this.destroy$);
+        next: (realTask) => {
+          // Replace temp with real
+          this.state.boardState.update((state) => {
+            const newState = { ...state };
+            const col = newState[realTask.column_id] || [];
+            newState[realTask.column_id] = col
+              .map((t) => (t.id === tempId ? realTask : t))
+              .sort((a, b) => a.position.localeCompare(b.position));
+            return newState;
+          });
           this.undoService.setMessageService(this.messageService);
           this.undoService.schedule({
-            id: `dup-${newTask.id}`,
+            id: `dup-${realTask.id}`,
             summary: 'Task duplicated',
-            execute: () => {
-              // No-op: duplication already committed
-            },
+            execute: () => {},
             rollback: () => {
-              this.taskService
-                .deleteTask(newTask.id)
-                .pipe(takeUntil(this.destroy$))
-                .subscribe({
-                  next: () => this.state.loadBoard(this.boardId, this.destroy$),
-                });
+              this.state.deleteTask(realTask.id);
             },
           });
         },
-        error: () => this.state.showError('Failed to duplicate task'),
+        error: () => {
+          this.state.boardState.set(snapshot);
+          this.state.showError('Failed to duplicate task');
+        },
       });
   }
 
   onCardDelete(taskId: string): void {
-    this.taskService
-      .deleteTask(taskId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          this.state.boardState.update((boardState) => {
-            const newState: Record<string, Task[]> = {};
-            for (const [colId, tasks] of Object.entries(boardState)) {
-              newState[colId] = tasks.filter((t) => t.id !== taskId);
-            }
-            return newState;
-          });
-        },
-        error: () => this.state.showError('Failed to delete task'),
-      });
+    this.state.deleteTask(taskId);
   }
 
   onColumnCollapseToggled(columnId: string): void {
