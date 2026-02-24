@@ -49,6 +49,4 @@ taskflow-services = { path = "../services" }
 [dev-dependencies]
 tokio = { workspace = true, features = ["full", "test-util"] }
 serde_json = { workspace = true }
-mockall = { workspace = true }
-axum-test = "16"
 tower = { version = "0.5", features = ["util"] }
