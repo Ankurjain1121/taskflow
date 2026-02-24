@@ -1,10 +1,10 @@
 import {
   Component,
-  OnInit,
   signal,
   inject,
   input,
   effect,
+  untracked,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -121,7 +121,7 @@ import {
     </div>
   `,
 })
-export class OverdueTasksTableComponent implements OnInit {
+export class OverdueTasksTableComponent {
   private dashboardService = inject(DashboardService);
   private router = inject(Router);
 
@@ -132,13 +132,9 @@ export class OverdueTasksTableComponent implements OnInit {
 
   constructor() {
     effect(() => {
-      const _wsId = this.workspaceId();
-      this.loadData();
+      this.workspaceId();
+      untracked(() => this.loadData());
     });
-  }
-
-  ngOnInit() {
-    this.loadData();
   }
 
   async loadData() {

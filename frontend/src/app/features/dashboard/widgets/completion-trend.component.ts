@@ -1,11 +1,11 @@
 import {
   Component,
-  OnInit,
   signal,
   inject,
   input,
-  effect,
   computed,
+  effect,
+  untracked,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -90,7 +90,7 @@ import {
     </div>
   `,
 })
-export class CompletionTrendComponent implements OnInit {
+export class CompletionTrendComponent {
   private dashboardService = inject(DashboardService);
 
   workspaceId = input<string | undefined>();
@@ -102,8 +102,8 @@ export class CompletionTrendComponent implements OnInit {
 
   constructor() {
     effect(() => {
-      const _wsId = this.workspaceId();
-      this.loadData();
+      this.workspaceId();
+      untracked(() => this.loadData());
     });
   }
 
@@ -181,10 +181,6 @@ export class CompletionTrendComponent implements OnInit {
       },
     },
   };
-
-  ngOnInit() {
-    this.loadData();
-  }
 
   async loadData() {
     this.loading.set(true);

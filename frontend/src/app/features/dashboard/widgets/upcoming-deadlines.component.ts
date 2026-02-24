@@ -1,10 +1,10 @@
 import {
   Component,
-  OnInit,
   signal,
   inject,
   input,
   effect,
+  untracked,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -25,12 +25,14 @@ import {
     <div class="widget-card h-full flex flex-col overflow-hidden">
       <div class="px-5 py-3.5" style="border-bottom: 1px solid var(--border)">
         <h3 class="widget-title">Upcoming Deadlines</h3>
-        <p class="text-xs mt-0.5" style="color: var(--muted-foreground)">Next 14 days</p>
+        <p class="text-xs mt-0.5" style="color: var(--muted-foreground)">
+          Next 14 days
+        </p>
       </div>
 
       @if (loading()) {
         <div class="flex-1 p-5 space-y-3">
-          @for (i of [1,2,3,4]; track i) {
+          @for (i of [1, 2, 3, 4]; track i) {
             <div class="skeleton skeleton-row"></div>
           }
         </div>
@@ -50,7 +52,11 @@ import {
                 (click)="navigateToTask(item)"
               >
                 <div class="flex items-start justify-between gap-2">
-                  <span class="font-medium text-sm" style="color: var(--foreground)">{{ item.title }}</span>
+                  <span
+                    class="font-medium text-sm"
+                    style="color: var(--foreground)"
+                    >{{ item.title }}</span
+                  >
                   <span
                     class="px-2 py-0.5 text-[11px] font-medium rounded-md flex-shrink-0"
                     [class]="getPriorityClass(item.priority)"
@@ -58,7 +64,9 @@ import {
                     {{ item.priority }}
                   </span>
                 </div>
-                <span class="text-xs" style="color: var(--muted-foreground)">{{ item.board_name }}</span>
+                <span class="text-xs" style="color: var(--muted-foreground)">{{
+                  item.board_name
+                }}</span>
                 <span
                   class="text-xs font-medium"
                   [class]="getUrgencyTextColor(item.days_until_due)"
@@ -70,9 +78,15 @@ import {
           </p-timeline>
         </div>
       } @else {
-        <div class="flex-1 flex items-center justify-center" style="color: var(--muted-foreground)">
+        <div
+          class="flex-1 flex items-center justify-center"
+          style="color: var(--muted-foreground)"
+        >
           <div class="text-center">
-            <i class="pi pi-calendar text-3xl mb-2" style="color: var(--border)"></i>
+            <i
+              class="pi pi-calendar text-3xl mb-2"
+              style="color: var(--border)"
+            ></i>
             <p class="text-sm">No upcoming deadlines</p>
           </div>
         </div>
@@ -80,7 +94,7 @@ import {
     </div>
   `,
 })
-export class UpcomingDeadlinesComponent implements OnInit {
+export class UpcomingDeadlinesComponent {
   private dashboardService = inject(DashboardService);
   private router = inject(Router);
 
@@ -91,13 +105,9 @@ export class UpcomingDeadlinesComponent implements OnInit {
 
   constructor() {
     effect(() => {
-      const _wsId = this.workspaceId();
-      this.loadData();
+      this.workspaceId();
+      untracked(() => this.loadData());
     });
-  }
-
-  ngOnInit() {
-    this.loadData();
   }
 
   async loadData() {
