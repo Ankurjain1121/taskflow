@@ -1,19 +1,22 @@
 import { Injectable, signal, computed, OnDestroy, inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, interval, Subscription, tap, switchMap, filter, startWith } from 'rxjs';
+import {
+  Observable,
+  interval,
+  Subscription,
+  tap,
+  switchMap,
+  filter,
+  startWith,
+} from 'rxjs';
 import { WebSocketService, WebSocketMessage } from './websocket.service';
 import { AuthService } from './auth.service';
 import { ToastService } from '../../shared/components/toast/toast.service';
 import { NotificationSoundService } from './notification-sound.service';
 
-export type NotificationEventType =
-  | 'task_assigned'
-  | 'task_due_soon'
-  | 'task_overdue'
-  | 'task_commented'
-  | 'task_completed'
-  | 'mention_in_comment';
+import type { NotificationEventType } from './notification.types';
+export type { NotificationEventType } from './notification.types';
 
 export interface Notification {
   id: string;
@@ -71,7 +74,7 @@ export class NotificationService implements OnDestroy {
   constructor(
     private http: HttpClient,
     private wsService: WebSocketService,
-    private authService: AuthService
+    private authService: AuthService,
   ) {}
 
   /**
@@ -86,11 +89,16 @@ export class NotificationService implements OnDestroy {
     // Subscribe to WebSocket for real-time updates
     this.wsSubscription = this.wsService.messages$
       .pipe(
-        filter((message: WebSocketMessage) => message.type === 'notification:new')
+        filter(
+          (message: WebSocketMessage) => message.type === 'notification:new',
+        ),
       )
       .subscribe((message) => {
         const notification = message.payload as Notification;
-        this._notifications.update((notifications) => [notification, ...notifications]);
+        this._notifications.update((notifications) => [
+          notification,
+          ...notifications,
+        ]);
         this._unreadCount.update((count) => count + 1);
 
         // Show toast and play sound only when the page is visible
@@ -113,7 +121,7 @@ export class NotificationService implements OnDestroy {
     this.pollingSubscription = interval(this.POLLING_INTERVAL)
       .pipe(
         startWith(0),
-        switchMap(() => this.fetchUnreadCount())
+        switchMap(() => this.fetchUnreadCount()),
       )
       .subscribe();
   }
@@ -141,23 +149,25 @@ export class NotificationService implements OnDestroy {
       params = params.set('cursor', cursor);
     }
 
-    return this.http.get<NotificationListResponse>(this.apiUrl, { params }).pipe(
-      tap((response) => {
-        if (cursor) {
-          // Append to existing notifications
-          this._notifications.update((notifications) => [
-            ...notifications,
-            ...response.items,
-          ]);
-        } else {
-          // Replace notifications
-          this._notifications.set(response.items);
-        }
-        this._nextCursor.set(response.nextCursor);
-        this._hasMore.set(response.nextCursor !== null);
-        this._unreadCount.set(response.unreadCount);
-      })
-    );
+    return this.http
+      .get<NotificationListResponse>(this.apiUrl, { params })
+      .pipe(
+        tap((response) => {
+          if (cursor) {
+            // Append to existing notifications
+            this._notifications.update((notifications) => [
+              ...notifications,
+              ...response.items,
+            ]);
+          } else {
+            // Replace notifications
+            this._notifications.set(response.items);
+          }
+          this._nextCursor.set(response.nextCursor);
+          this._hasMore.set(response.nextCursor !== null);
+          this._unreadCount.set(response.unreadCount);
+        }),
+      );
   }
 
   /**
@@ -171,7 +181,7 @@ export class NotificationService implements OnDestroy {
 
     this._isLoading.set(true);
     return this.listNotifications(cursor).pipe(
-      tap(() => this._isLoading.set(false))
+      tap(() => this._isLoading.set(false)),
     );
   }
 
@@ -187,7 +197,7 @@ export class NotificationService implements OnDestroy {
    */
   private fetchUnreadCount(): Observable<UnreadCountResponse> {
     return this.getUnreadCount().pipe(
-      tap((response) => this._unreadCount.set(response.count))
+      tap((response) => this._unreadCount.set(response.count)),
     );
   }
 
@@ -198,12 +208,10 @@ export class NotificationService implements OnDestroy {
     return this.http.put<void>(`${this.apiUrl}/${id}/read`, {}).pipe(
       tap(() => {
         this._notifications.update((notifications) =>
-          notifications.map((n) =>
-            n.id === id ? { ...n, is_read: true } : n
-          )
+          notifications.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
         );
         this._unreadCount.update((count) => Math.max(0, count - 1));
-      })
+      }),
     );
   }
 
@@ -214,10 +222,10 @@ export class NotificationService implements OnDestroy {
     return this.http.put<void>(`${this.apiUrl}/read-all`, {}).pipe(
       tap(() => {
         this._notifications.update((notifications) =>
-          notifications.map((n) => ({ ...n, is_read: true }))
+          notifications.map((n) => ({ ...n, is_read: true })),
         );
         this._unreadCount.set(0);
-      })
+      }),
     );
   }
 

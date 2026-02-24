@@ -4,7 +4,10 @@ import {
   signal,
   effect,
   inject,
+  Injector,
+  OnInit,
   OnDestroy,
+  untracked,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -143,10 +146,11 @@ import { FileSizePipe } from '../../../shared/pipes/file-size.pipe';
     `,
   ],
 })
-export class AttachmentListComponent implements OnDestroy {
+export class AttachmentListComponent implements OnInit, OnDestroy {
   private attachmentService = inject(AttachmentService);
   private confirmationService = inject(ConfirmationService);
   private messageService = inject(MessageService);
+  private injector = inject(Injector);
   private destroy$ = new Subject<void>();
 
   taskId = input.required<string>();
@@ -156,14 +160,19 @@ export class AttachmentListComponent implements OnDestroy {
   downloadingId = signal<string | null>(null);
   deletingId = signal<string | null>(null);
 
-  constructor() {
+  ngOnInit(): void {
     // Load attachments when taskId changes
-    effect(() => {
-      const taskId = this.taskId();
-      if (taskId) {
-        this.loadAttachments();
-      }
-    });
+    effect(
+      () => {
+        const taskId = this.taskId();
+        untracked(() => {
+          if (taskId) {
+            this.loadAttachments();
+          }
+        });
+      },
+      { injector: this.injector },
+    );
   }
 
   ngOnDestroy(): void {

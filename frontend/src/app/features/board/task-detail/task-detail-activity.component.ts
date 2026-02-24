@@ -4,7 +4,10 @@ import {
   signal,
   inject,
   effect,
+  Injector,
+  OnInit,
   OnDestroy,
+  untracked,
   ChangeDetectionStrategy,
   ViewChild,
 } from '@angular/core';
@@ -17,12 +20,8 @@ import {
   Comment,
 } from '../../../core/services/comment.service';
 import { AuthService } from '../../../core/services/auth.service';
-import {
-  AttachmentListComponent,
-} from '../attachment-list/attachment-list.component';
-import {
-  FileUploadZoneComponent,
-} from '../file-upload-zone/file-upload-zone.component';
+import { AttachmentListComponent } from '../attachment-list/attachment-list.component';
+import { FileUploadZoneComponent } from '../file-upload-zone/file-upload-zone.component';
 import { Attachment } from '../../../core/services/attachment.service';
 import { RichTextEditorComponent } from '../../../shared/components/rich-text-editor/rich-text-editor.component';
 
@@ -48,9 +47,7 @@ interface CommentThread {
       <div>
         <div class="flex items-center gap-2 mb-4">
           <i class="pi pi-comments text-[var(--muted-foreground)]"></i>
-          <h3 class="text-sm font-medium text-[var(--foreground)]">
-            Comments
-          </h3>
+          <h3 class="text-sm font-medium text-[var(--foreground)]">Comments</h3>
           @if (comments().length > 0) {
             <span
               class="text-xs text-[var(--muted-foreground)] bg-[var(--secondary)] px-1.5 py-0.5 rounded-full"
@@ -125,12 +122,12 @@ interface CommentThread {
                       >
                         {{ thread.comment.author.display_name }}
                       </span>
-                      <span
-                        class="text-xs text-[var(--muted-foreground)]"
-                      >
+                      <span class="text-xs text-[var(--muted-foreground)]">
                         {{ formatTimestamp(thread.comment.created_at) }}
                       </span>
-                      @if (thread.comment.created_at !== thread.comment.updated_at) {
+                      @if (
+                        thread.comment.created_at !== thread.comment.updated_at
+                      ) {
                         <span
                           class="text-xs text-[var(--muted-foreground)] italic"
                         >
@@ -342,10 +339,7 @@ interface CommentThread {
         />
 
         <div class="mt-4">
-          <app-attachment-list
-            #attachmentList
-            [taskId]="taskId()"
-          />
+          <app-attachment-list #attachmentList [taskId]="taskId()" />
         </div>
       </div>
     </div>
@@ -391,9 +385,10 @@ interface CommentThread {
     `,
   ],
 })
-export class TaskDetailActivityComponent implements OnDestroy {
+export class TaskDetailActivityComponent implements OnInit, OnDestroy {
   private commentService = inject(CommentService);
   private authService = inject(AuthService);
+  private injector = inject(Injector);
   private destroy$ = new Subject<void>();
 
   @ViewChild('attachmentList') attachmentList!: AttachmentListComponent;
@@ -411,13 +406,18 @@ export class TaskDetailActivityComponent implements OnDestroy {
   editCommentText = '';
   replyText = '';
 
-  constructor() {
-    effect(() => {
-      const id = this.taskId();
-      if (id) {
-        this.loadComments();
-      }
-    });
+  ngOnInit(): void {
+    effect(
+      () => {
+        const id = this.taskId();
+        untracked(() => {
+          if (id) {
+            this.loadComments();
+          }
+        });
+      },
+      { injector: this.injector },
+    );
   }
 
   ngOnDestroy(): void {

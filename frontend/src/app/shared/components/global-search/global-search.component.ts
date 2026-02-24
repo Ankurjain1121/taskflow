@@ -6,12 +6,14 @@ import {
   signal,
   computed,
   inject,
+  Injector,
   OnInit,
   OnDestroy,
   ChangeDetectionStrategy,
   ElementRef,
   ViewChild,
   effect,
+  untracked,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -588,26 +590,32 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
 
   private searchSubject = new Subject<string>();
   private searchSubscription?: Subscription;
-
-  constructor() {
-    // Focus input when dialog opens
-    effect(() => {
-      if (this.isOpen) {
-        // Use setTimeout to wait for the DOM to render
-        setTimeout(() => {
-          this.searchInput?.nativeElement?.focus();
-        }, 50);
-      } else {
-        // Reset state when closed
-        this.query.set('');
-        this.results.set(null);
-        this.hasSearched.set(false);
-        this.loading.set(false);
-      }
-    });
-  }
+  private injector = inject(Injector);
 
   ngOnInit(): void {
+    // Focus input when dialog opens
+    effect(
+      () => {
+        if (this.isOpen) {
+          untracked(() => {
+            // Use setTimeout to wait for the DOM to render
+            setTimeout(() => {
+              this.searchInput?.nativeElement?.focus();
+            }, 50);
+          });
+        } else {
+          untracked(() => {
+            // Reset state when closed
+            this.query.set('');
+            this.results.set(null);
+            this.hasSearched.set(false);
+            this.loading.set(false);
+          });
+        }
+      },
+      { injector: this.injector },
+    );
+
     this.loadRecentSearches();
 
     this.searchSubscription = this.searchSubject

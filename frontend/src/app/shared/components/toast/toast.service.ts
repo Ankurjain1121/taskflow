@@ -1,5 +1,5 @@
 import { Injectable, signal, computed } from '@angular/core';
-import { NotificationEventType } from '../../../core/services/notification.service';
+import { NotificationEventType } from '../../../core/services/notification.types';
 
 export interface ToastNotification {
   id: string;
@@ -24,9 +24,7 @@ export class ToastService {
   private _entries = signal<ToastEntry[]>([]);
 
   /** Visible toasts for the component to consume (max 3, newest last). */
-  readonly toasts = computed(() =>
-    this._entries().map((e) => e.toast)
-  );
+  readonly toasts = computed(() => this._entries().map((e) => e.toast));
 
   /**
    * Show a toast notification. If the maximum number of toasts is already
