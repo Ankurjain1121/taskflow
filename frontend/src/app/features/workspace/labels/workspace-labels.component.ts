@@ -37,12 +37,10 @@ const PRESET_COLORS = [
     <div class="py-6 space-y-6">
       <div class="flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-semibold text-[var(--foreground)]">
-            Labels
-          </h3>
+          <h3 class="text-lg font-semibold text-[var(--foreground)]">Labels</h3>
           <p class="text-sm text-[var(--muted-foreground)] mt-1">
-            Manage workspace-wide labels that can be applied to tasks across
-            all boards.
+            Manage workspace-wide labels that can be applied to tasks across all
+            boards.
           </p>
         </div>
       </div>
@@ -77,6 +75,15 @@ const PRESET_COLORS = [
           </button>
         </div>
       </div>
+
+      <!-- Error banner -->
+      @if (errorMessage()) {
+        <div
+          class="p-3 rounded-md text-sm text-[var(--status-red-text)] bg-[var(--status-red-bg)] border border-[var(--status-red-border)]"
+        >
+          {{ errorMessage() }}
+        </div>
+      }
 
       <!-- Labels list -->
       @if (loading()) {
@@ -192,6 +199,7 @@ export class WorkspaceLabelsComponent implements OnInit {
   loading = signal(true);
   creating = signal(false);
   editingId = signal<string | null>(null);
+  errorMessage = signal<string | null>(null);
 
   presetColors = PRESET_COLORS;
 
@@ -221,17 +229,35 @@ export class WorkspaceLabelsComponent implements OnInit {
     const name = this.newName.trim();
     if (!name) return;
 
-    this.creating.set(true);
+    const snapshot = this.labels();
+    const savedName = this.newName;
+    const savedColor = this.newColor;
+
+    // Optimistic: insert temp label, clear input
+    const tempId = crypto.randomUUID();
+    const tempLabel: WorkspaceLabel = {
+      id: tempId,
+      name,
+      color: this.newColor,
+      workspace_id: this.workspaceId(),
+      board_id: null,
+      created_at: new Date().toISOString(),
+    };
+    this.labels.update((list) => [...list, tempLabel]);
+    this.newName = '';
+
     this.workspaceService
-      .createLabel(this.workspaceId(), name, this.newColor)
+      .createLabel(this.workspaceId(), name, savedColor)
       .subscribe({
         next: (label) => {
-          this.labels.update((list) => [...list, label]);
-          this.newName = '';
-          this.creating.set(false);
+          this.labels.update((list) =>
+            list.map((l) => (l.id === tempId ? label : l)),
+          );
         },
         error: () => {
-          this.creating.set(false);
+          this.labels.set(snapshot);
+          this.newName = savedName;
+          this.showError('Failed to create label');
         },
       });
   }
@@ -250,6 +276,16 @@ export class WorkspaceLabelsComponent implements OnInit {
     const name = this.editName.trim();
     if (!name) return;
 
+    const snapshot = this.labels();
+
+    // Optimistic: update name+color locally, clear edit state
+    this.labels.update((list) =>
+      list.map((l) =>
+        l.id === labelId ? { ...l, name, color: this.editColor } : l,
+      ),
+    );
+    this.editingId.set(null);
+
     this.workspaceService
       .updateLabel(this.workspaceId(), labelId, name, this.editColor)
       .subscribe({
@@ -257,18 +293,30 @@ export class WorkspaceLabelsComponent implements OnInit {
           this.labels.update((list) =>
             list.map((l) => (l.id === labelId ? updated : l)),
           );
-          this.editingId.set(null);
+        },
+        error: () => {
+          this.labels.set(snapshot);
+          this.showError('Failed to update label');
         },
       });
   }
 
   deleteLabel(labelId: string): void {
-    this.workspaceService
-      .deleteLabel(this.workspaceId(), labelId)
-      .subscribe({
-        next: () => {
-          this.labels.update((list) => list.filter((l) => l.id !== labelId));
-        },
-      });
+    const snapshot = this.labels();
+
+    // Optimistic: remove immediately
+    this.labels.update((list) => list.filter((l) => l.id !== labelId));
+
+    this.workspaceService.deleteLabel(this.workspaceId(), labelId).subscribe({
+      error: () => {
+        this.labels.set(snapshot);
+        this.showError('Failed to delete label');
+      },
+    });
+  }
+
+  private showError(message: string): void {
+    this.errorMessage.set(message);
+    setTimeout(() => this.errorMessage.set(null), 5000);
   }
 }

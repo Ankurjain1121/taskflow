@@ -57,6 +57,15 @@ interface CommentThread {
           }
         </div>
 
+        <!-- Error banner -->
+        @if (errorMessage()) {
+          <div
+            class="mb-3 p-2 rounded-md text-xs text-[var(--status-red-text)] bg-[var(--status-red-bg)] border border-[var(--status-red-border)]"
+          >
+            {{ errorMessage() }}
+          </div>
+        }
+
         <!-- Comment Compose -->
         <div class="mb-4">
           <app-rich-text-editor
@@ -401,6 +410,7 @@ export class TaskDetailActivityComponent implements OnInit, OnDestroy {
   submitting = signal(false);
   editingCommentId = signal<string | null>(null);
   replyingToId = signal<string | null>(null);
+  errorMessage = signal<string | null>(null);
 
   newCommentText = '';
   editCommentText = '';
@@ -446,19 +456,48 @@ export class TaskDetailActivityComponent implements OnInit, OnDestroy {
     const content = this.newCommentText.trim();
     if (!content) return;
 
-    this.submitting.set(true);
+    const user = this.authService.currentUser();
+    if (!user) return;
+
+    const snapshot = this.comments();
+    const savedText = this.newCommentText;
+
+    // Optimistic: build temp comment, insert, clear input
+    const tempId = crypto.randomUUID();
+    const tempComment: Comment = {
+      id: tempId,
+      task_id: this.taskId(),
+      content,
+      author_id: user.id,
+      parent_id: null,
+      mentioned_user_ids: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      author: {
+        id: user.id,
+        display_name: user.name,
+        avatar_url: user.avatar_url,
+      },
+    };
+    this.comments.update((c) => [...c, tempComment]);
+    this.threads.set(this.buildThreads(this.comments()));
+    this.newCommentText = '';
+
     this.commentService
       .create(this.taskId(), content)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (comment) => {
-          this.comments.update((c) => [...c, comment]);
+          this.comments.update((c) =>
+            c.map((item) => (item.id === tempId ? comment : item)),
+          );
           this.threads.set(this.buildThreads(this.comments()));
-          this.newCommentText = '';
-          this.submitting.set(false);
         },
         error: () => {
-          this.submitting.set(false);
+          this.comments.set(snapshot);
+          this.threads.set(this.buildThreads(snapshot));
+          this.newCommentText = savedText;
+          this.showError('Failed to post comment');
         },
       });
   }
@@ -467,20 +506,50 @@ export class TaskDetailActivityComponent implements OnInit, OnDestroy {
     const content = this.replyText.trim();
     if (!content) return;
 
-    this.submitting.set(true);
+    const user = this.authService.currentUser();
+    if (!user) return;
+
+    const snapshot = this.comments();
+    const savedReplyText = this.replyText;
+
+    // Optimistic: build temp reply, insert, clear input
+    const tempId = crypto.randomUUID();
+    const tempComment: Comment = {
+      id: tempId,
+      task_id: this.taskId(),
+      content,
+      author_id: user.id,
+      parent_id: parentId,
+      mentioned_user_ids: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      author: {
+        id: user.id,
+        display_name: user.name,
+        avatar_url: user.avatar_url,
+      },
+    };
+    this.comments.update((c) => [...c, tempComment]);
+    this.threads.set(this.buildThreads(this.comments()));
+    this.replyText = '';
+    this.replyingToId.set(null);
+
     this.commentService
       .create(this.taskId(), content, parentId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (comment) => {
-          this.comments.update((c) => [...c, comment]);
+          this.comments.update((c) =>
+            c.map((item) => (item.id === tempId ? comment : item)),
+          );
           this.threads.set(this.buildThreads(this.comments()));
-          this.replyText = '';
-          this.replyingToId.set(null);
-          this.submitting.set(false);
         },
         error: () => {
-          this.submitting.set(false);
+          this.comments.set(snapshot);
+          this.threads.set(this.buildThreads(snapshot));
+          this.replyText = savedReplyText;
+          this.replyingToId.set(parentId);
+          this.showError('Failed to post reply');
         },
       });
   }
@@ -499,7 +568,20 @@ export class TaskDetailActivityComponent implements OnInit, OnDestroy {
     const content = this.editCommentText.trim();
     if (!content) return;
 
-    this.submitting.set(true);
+    const snapshot = this.comments();
+
+    // Optimistic: update content locally, clear edit state
+    this.comments.update((comments) =>
+      comments.map((c) =>
+        c.id === commentId
+          ? { ...c, content, updated_at: new Date().toISOString() }
+          : c,
+      ),
+    );
+    this.threads.set(this.buildThreads(this.comments()));
+    this.editingCommentId.set(null);
+    this.editCommentText = '';
+
     this.commentService
       .update(commentId, content)
       .pipe(takeUntil(this.destroy$))
@@ -509,28 +591,32 @@ export class TaskDetailActivityComponent implements OnInit, OnDestroy {
             comments.map((c) => (c.id === commentId ? updated : c)),
           );
           this.threads.set(this.buildThreads(this.comments()));
-          this.editingCommentId.set(null);
-          this.editCommentText = '';
-          this.submitting.set(false);
         },
         error: () => {
-          this.submitting.set(false);
+          this.comments.set(snapshot);
+          this.threads.set(this.buildThreads(snapshot));
+          this.showError('Failed to update comment');
         },
       });
   }
 
   deleteComment(commentId: string): void {
+    const snapshot = this.comments();
+
+    // Optimistic: filter immediately
+    this.comments.update((comments) =>
+      comments.filter((c) => c.id !== commentId && c.parent_id !== commentId),
+    );
+    this.threads.set(this.buildThreads(this.comments()));
+
     this.commentService
       .delete(commentId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => {
-          this.comments.update((comments) =>
-            comments.filter(
-              (c) => c.id !== commentId && c.parent_id !== commentId,
-            ),
-          );
-          this.threads.set(this.buildThreads(this.comments()));
+        error: () => {
+          this.comments.set(snapshot);
+          this.threads.set(this.buildThreads(snapshot));
+          this.showError('Failed to delete comment');
         },
       });
   }
@@ -598,6 +684,11 @@ export class TaskDetailActivityComponent implements OnInit, OnDestroy {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
     return gradients[Math.abs(hash) % gradients.length];
+  }
+
+  private showError(message: string): void {
+    this.errorMessage.set(message);
+    setTimeout(() => this.errorMessage.set(null), 5000);
   }
 
   private buildThreads(comments: Comment[]): CommentThread[] {

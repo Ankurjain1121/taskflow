@@ -79,6 +79,15 @@ import {
         </div>
       }
 
+      <!-- Error banner -->
+      @if (errorMessage()) {
+        <div
+          class="p-2 rounded-md text-xs text-[var(--status-red-text)] bg-[var(--status-red-bg)] border border-[var(--status-red-border)]"
+        >
+          {{ errorMessage() }}
+        </div>
+      }
+
       <!-- Loading -->
       @if (loading()) {
         <div class="flex items-center justify-center py-4">
@@ -295,6 +304,7 @@ export class SubtaskListComponent implements OnInit, OnChanges {
   newSubtaskTitle = signal('');
   editingId = signal<string | null>(null);
   editingTitle = signal('');
+  errorMessage = signal<string | null>(null);
 
   ngOnInit(): void {
     this.loadSubtasks();
@@ -313,12 +323,28 @@ export class SubtaskListComponent implements OnInit, OnChanges {
   }
 
   onToggle(subtask: SubtaskWithAssignee): void {
+    const snapshot = this.subtasks();
+    const snapshotProgress = this.progress();
+    const newCompleted = !subtask.is_completed;
+
+    // Optimistic: toggle locally
+    this.subtasks.update((list) =>
+      list.map((s) =>
+        s.id === subtask.id ? { ...s, is_completed: newCompleted } : s,
+      ),
+    );
+    this.updateProgress(newCompleted ? 1 : -1);
+
     this.subtaskService.toggle(subtask.id).subscribe({
       next: (updated) => {
         this.subtasks.update((list) =>
           list.map((s) => (s.id === updated.id ? { ...s, ...updated } : s)),
         );
-        this.updateProgress(updated.is_completed ? 1 : -1);
+      },
+      error: () => {
+        this.subtasks.set(snapshot);
+        this.progress.set(snapshotProgress);
+        this.showError('Failed to update subtask');
       },
     });
   }
@@ -327,28 +353,67 @@ export class SubtaskListComponent implements OnInit, OnChanges {
     const title = this.newSubtaskTitle().trim();
     if (!title) return;
 
+    const snapshot = this.subtasks();
+    const snapshotProgress = this.progress();
+    const savedTitle = title;
+
+    // Optimistic: insert temp subtask
+    const tempId = crypto.randomUUID();
+    const tempSubtask: SubtaskWithAssignee = {
+      id: tempId,
+      task_id: this.taskId(),
+      title,
+      is_completed: false,
+      position: 'zzz',
+      assigned_to_id: null,
+      completed_at: null,
+      due_date: null,
+      assignee_name: null,
+      assignee_avatar_url: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    this.subtasks.update((list) => [...list, tempSubtask]);
+    this.progress.update((p) => ({ ...p, total: p.total + 1 }));
+    this.newSubtaskTitle.set('');
+
     this.subtaskService.create(this.taskId(), title).subscribe({
-      next: (subtask) => {
+      next: (created) => {
         const withAssignee: SubtaskWithAssignee = {
-          ...subtask,
+          ...created,
           assignee_name: null,
           assignee_avatar_url: null,
         };
-        this.subtasks.update((list) => [...list, withAssignee]);
-        this.progress.update((p) => ({ ...p, total: p.total + 1 }));
-        this.newSubtaskTitle.set('');
+        // Replace temp with real
+        this.subtasks.update((list) =>
+          list.map((s) => (s.id === tempId ? withAssignee : s)),
+        );
+      },
+      error: () => {
+        this.subtasks.set(snapshot);
+        this.progress.set(snapshotProgress);
+        this.newSubtaskTitle.set(savedTitle);
+        this.showError('Failed to add subtask');
       },
     });
   }
 
   onDelete(subtask: SubtaskWithAssignee): void {
+    const snapshot = this.subtasks();
+    const snapshotProgress = this.progress();
+
+    // Optimistic: remove immediately
+    this.subtasks.update((list) => list.filter((s) => s.id !== subtask.id));
+    this.progress.update((p) => ({
+      completed: subtask.is_completed ? p.completed - 1 : p.completed,
+      total: p.total - 1,
+    }));
+
     this.subtaskService.delete(subtask.id).subscribe({
-      next: () => {
-        this.subtasks.update((list) => list.filter((s) => s.id !== subtask.id));
-        this.progress.update((p) => ({
-          completed: subtask.is_completed ? p.completed - 1 : p.completed,
-          total: p.total - 1,
-        }));
+      error: () => {
+        this.subtasks.set(snapshot);
+        this.progress.set(snapshotProgress);
+        this.showError('Failed to delete subtask');
       },
     });
   }
@@ -361,15 +426,21 @@ export class SubtaskListComponent implements OnInit, OnChanges {
       acceptLabel: 'Promote',
       rejectLabel: 'Cancel',
       accept: () => {
+        const snapshot = this.subtasks();
+        const snapshotProgress = this.progress();
+
+        // Optimistic: remove from list
+        this.subtasks.update((list) => list.filter((s) => s.id !== subtask.id));
+        this.progress.update((p) => ({
+          completed: subtask.is_completed ? p.completed - 1 : p.completed,
+          total: p.total - 1,
+        }));
+
         this.subtaskService.promote(subtask.id).subscribe({
-          next: () => {
-            this.subtasks.update((list) =>
-              list.filter((s) => s.id !== subtask.id),
-            );
-            this.progress.update((p) => ({
-              completed: subtask.is_completed ? p.completed - 1 : p.completed,
-              total: p.total - 1,
-            }));
+          error: () => {
+            this.subtasks.set(snapshot);
+            this.progress.set(snapshotProgress);
+            this.showError('Failed to promote subtask');
           },
         });
       },
@@ -423,15 +494,23 @@ export class SubtaskListComponent implements OnInit, OnChanges {
       return;
     }
 
+    const snapshot = this.subtasks();
+
+    // Optimistic: update title locally
+    this.subtasks.update((list) =>
+      list.map((s) => (s.id === subtask.id ? { ...s, title: newTitle } : s)),
+    );
+    this.cancelEdit();
+
     this.subtaskService.update(subtask.id, { title: newTitle }).subscribe({
       next: (updated) => {
         this.subtasks.update((list) =>
           list.map((s) => (s.id === updated.id ? { ...s, ...updated } : s)),
         );
-        this.cancelEdit();
       },
       error: () => {
-        this.cancelEdit();
+        this.subtasks.set(snapshot);
+        this.showError('Failed to update subtask');
       },
     });
   }
@@ -476,6 +555,11 @@ export class SubtaskListComponent implements OnInit, OnChanges {
     if (diffDays < 0) return 'text-red-600 dark:text-red-400 font-medium';
     if (diffDays === 0) return 'text-amber-600 dark:text-amber-400 font-medium';
     return 'text-[var(--muted-foreground)]';
+  }
+
+  private showError(message: string): void {
+    this.errorMessage.set(message);
+    setTimeout(() => this.errorMessage.set(null), 5000);
   }
 
   private loadSubtasks(): void {

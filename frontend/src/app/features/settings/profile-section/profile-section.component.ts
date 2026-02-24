@@ -511,7 +511,12 @@ export class ProfileSectionComponent implements OnInit {
       return;
     }
 
-    this.profileLoading.set(true);
+    // Save snapshot for rollback
+    const snapshotName = this.name;
+    const snapshotPhone = this.phoneNumber;
+    const snapshotJobTitle = this.jobTitle;
+    const snapshotDepartment = this.department;
+    const snapshotBio = this.bio;
 
     const updateData: {
       name?: string;
@@ -534,17 +539,22 @@ export class ProfileSectionComponent implements OnInit {
     updateData.department = this.department || null;
     updateData.bio = this.bio || null;
 
+    // Optimistic: show success toast immediately
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'Profile updated successfully',
+    });
+
     this.authService.updateProfile(updateData).subscribe({
-      next: () => {
-        this.profileLoading.set(false);
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'Profile updated successfully',
-        });
-      },
       error: (error) => {
-        this.profileLoading.set(false);
+        // Rollback form values
+        this.name = snapshotName;
+        this.phoneNumber = snapshotPhone;
+        this.jobTitle = snapshotJobTitle;
+        this.department = snapshotDepartment;
+        this.bio = snapshotBio;
+
         const message = error.error?.message ?? 'Failed to update profile';
         this.messageService.add({
           severity: 'error',

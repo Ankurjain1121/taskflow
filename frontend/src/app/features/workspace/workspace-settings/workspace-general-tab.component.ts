@@ -25,6 +25,15 @@ import { UploadService } from '../../../core/services/upload.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="py-6 space-y-6">
+      <!-- Error banner -->
+      @if (errorMessage()) {
+        <div
+          class="p-3 rounded-md text-sm text-[var(--status-red-text)] bg-[var(--status-red-bg)] border border-[var(--status-red-border)]"
+        >
+          {{ errorMessage() }}
+        </div>
+      }
+
       <!-- Logo Upload -->
       <div class="widget-card p-6">
         <h3 class="text-sm font-medium text-[var(--foreground)] mb-4">
@@ -231,6 +240,7 @@ export class WorkspaceGeneralTabComponent {
   deleting = signal(false);
   logoPreview = signal<string | null>(null);
   uploadingLogo = signal(false);
+  errorMessage = signal<string | null>(null);
 
   form: FormGroup = this.fb.group({
     name: ['', Validators.required],
@@ -249,39 +259,56 @@ export class WorkspaceGeneralTabComponent {
   onSave(): void {
     if (this.form.invalid) return;
 
-    this.saving.set(true);
     const { name, description, visibility } = this.form.value;
+    const snapshotWorkspace = this.workspace();
+
+    // Optimistic: emit updated workspace to parent, mark pristine
+    if (snapshotWorkspace) {
+      this.workspaceSaved.emit({
+        ...snapshotWorkspace,
+        name,
+        description,
+        visibility: visibility || snapshotWorkspace.visibility,
+      });
+    }
+    this.form.markAsPristine();
 
     this.workspaceService
       .update(this.workspaceId(), { name, description })
       .subscribe({
         next: (updated) => {
           // Also update visibility if it changed
-          const currentVisibility = this.workspace()?.visibility || 'closed';
+          const currentVisibility = snapshotWorkspace?.visibility || 'closed';
           if (visibility && visibility !== currentVisibility) {
             this.workspaceService
               .updateVisibility(this.workspaceId(), visibility)
               .subscribe({
                 next: () => {
-                  this.workspaceSaved.emit({ ...updated });
-                  this.form.markAsPristine();
-                  this.saving.set(false);
+                  this.workspaceSaved.emit({ ...updated, visibility });
                 },
                 error: () => {
                   // Visibility update failed but name/desc saved
                   this.workspaceSaved.emit(updated);
-                  this.form.markAsPristine();
-                  this.saving.set(false);
+                  this.showError(
+                    'Saved name/description but failed to update visibility',
+                  );
                 },
               });
           } else {
             this.workspaceSaved.emit(updated);
-            this.form.markAsPristine();
-            this.saving.set(false);
           }
         },
         error: () => {
-          this.saving.set(false);
+          // Rollback: re-emit original workspace
+          if (snapshotWorkspace) {
+            this.workspaceSaved.emit(snapshotWorkspace);
+            this.form.patchValue({
+              name: snapshotWorkspace.name,
+              description: snapshotWorkspace.description || '',
+              visibility: snapshotWorkspace.visibility || 'closed',
+            });
+          }
+          this.showError('Failed to save workspace settings');
         },
       });
   }
@@ -340,5 +367,10 @@ export class WorkspaceGeneralTabComponent {
       });
 
     input.value = '';
+  }
+
+  private showError(message: string): void {
+    this.errorMessage.set(message);
+    setTimeout(() => this.errorMessage.set(null), 5000);
   }
 }
