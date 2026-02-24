@@ -97,15 +97,21 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                   {{ member()?.email }}
                 </p>
                 @if (member()?.job_title || member()?.department) {
-                  <div class="flex items-center gap-2 mt-2 text-sm text-[var(--foreground)]">
+                  <div
+                    class="flex items-center gap-2 mt-2 text-sm text-[var(--foreground)]"
+                  >
                     @if (member()?.job_title) {
                       <span>{{ member()?.job_title }}</span>
                     }
                     @if (member()?.job_title && member()?.department) {
-                      <span class="text-[var(--muted-foreground)]">&middot;</span>
+                      <span class="text-[var(--muted-foreground)]"
+                        >&middot;</span
+                      >
                     }
                     @if (member()?.department) {
-                      <span class="text-[var(--muted-foreground)]">{{ member()?.department }}</span>
+                      <span class="text-[var(--muted-foreground)]">{{
+                        member()?.department
+                      }}</span>
                     }
                   </div>
                 }
@@ -234,15 +240,21 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
           <!-- Task List -->
           <div class="widget-card mb-6">
             <div class="px-6 py-4 border-b border-[var(--border)]">
-              <h2 class="text-lg font-semibold text-[var(--foreground)]">Assigned Tasks</h2>
+              <h2 class="text-lg font-semibold text-[var(--foreground)]">
+                Assigned Tasks
+              </h2>
             </div>
             @if (tasksLoading()) {
               <div class="px-6 py-8 text-center">
-                <p class="text-sm text-[var(--muted-foreground)] animate-pulse">Loading tasks...</p>
+                <p class="text-sm text-[var(--muted-foreground)] animate-pulse">
+                  Loading tasks...
+                </p>
               </div>
             } @else if (tasks().length === 0) {
               <div class="px-6 py-8 text-center">
-                <p class="text-sm text-[var(--muted-foreground)]">No tasks assigned to this member.</p>
+                <p class="text-sm text-[var(--muted-foreground)]">
+                  No tasks assigned to this member.
+                </p>
               </div>
             } @else {
               <div class="divide-y divide-[var(--border)]">
@@ -251,19 +263,28 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                     <!-- Priority dot -->
                     <span
                       class="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                      [class.bg-red-500]="task.priority === 'urgent' || task.priority === 'critical'"
+                      [class.bg-red-500]="
+                        task.priority === 'urgent' ||
+                        task.priority === 'critical'
+                      "
                       [class.bg-orange-500]="task.priority === 'high'"
                       [class.bg-yellow-500]="task.priority === 'medium'"
                       [class.bg-blue-400]="task.priority === 'low'"
-                      [class.bg-gray-300]="task.priority === 'none' || !task.priority"
+                      [class.bg-gray-300]="
+                        task.priority === 'none' || !task.priority
+                      "
                       [title]="task.priority || 'none'"
                     ></span>
                     <!-- Title + board/column -->
                     <div class="flex-1 min-w-0">
-                      <p class="text-sm font-medium text-[var(--foreground)] truncate">
+                      <p
+                        class="text-sm font-medium text-[var(--foreground)] truncate"
+                      >
                         {{ task.title }}
                       </p>
-                      <p class="text-xs text-[var(--muted-foreground)] truncate">
+                      <p
+                        class="text-xs text-[var(--muted-foreground)] truncate"
+                      >
                         {{ task.board_name }} &middot; {{ task.column_name }}
                       </p>
                     </div>
@@ -273,8 +294,12 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                         class="text-xs px-2 py-0.5 rounded-full flex-shrink-0 font-medium"
                         [class.bg-red-100]="isOverdue(task.due_date)"
                         [class.text-red-700]="isOverdue(task.due_date)"
-                        [class.bg-[var(--secondary)]]="!isOverdue(task.due_date)"
-                        [class.text-[var(--muted-foreground)]]="!isOverdue(task.due_date)"
+                        [class.bg-[var(--secondary)]]="
+                          !isOverdue(task.due_date)
+                        "
+                        [class.text-[var(--muted-foreground)]]="
+                          !isOverdue(task.due_date)
+                        "
                       >
                         {{ formatDate(task.due_date) }}
                       </span>
@@ -359,14 +384,31 @@ export class MemberDetailComponent implements OnInit {
     this.tasksLoading.set(true);
 
     forkJoin({
-      members: this.workspaceService.getMembers(this.workspaceId),
+      wsDetail: this.workspaceService.get(this.workspaceId),
       workload: this.teamService
         .getTeamWorkload(this.workspaceId)
         .pipe(catchError(() => of([] as MemberWorkload[]))),
     }).subscribe({
-      next: ({ members, workload }) => {
-        const foundMember = members.find((m) => m.user_id === this.userId);
-        this.member.set(foundMember || null);
+      next: ({ wsDetail, workload }) => {
+        // Members are embedded in the workspace detail response
+        const wsAny = wsDetail as unknown as Record<string, unknown>;
+        const embedded = (wsAny['members'] ?? []) as Array<{
+          user_id: string;
+          name: string;
+          email: string;
+          avatar_url: string | null;
+          job_title: string | null;
+          department: string | null;
+          role: string;
+          joined_at: string;
+        }>;
+        const match = embedded.find((m) => m.user_id === this.userId);
+        if (match) {
+          this.member.set({
+            ...match,
+            role: match.role.toLowerCase() as WorkspaceMemberInfo['role'],
+          });
+        }
 
         const foundWorkload = workload.find((w) => w.user_id === this.userId);
         this.workload.set(foundWorkload || null);
