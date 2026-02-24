@@ -28,6 +28,9 @@ import {
   InviteMemberDialogResult,
 } from './invite-member-dialog.component';
 import { PositionListComponent } from '../positions/position-list.component';
+import { SaveTemplateDialogComponent } from '../project-templates/save-template-dialog.component';
+import { MessageService } from 'primeng/api';
+import { Toast } from 'primeng/toast';
 
 @Component({
   selector: 'app-board-settings',
@@ -41,8 +44,10 @@ import { PositionListComponent } from '../positions/position-list.component';
     InviteMemberDialogComponent,
     PositionListComponent,
     ConfirmDialog,
+    SaveTemplateDialogComponent,
+    Toast,
   ],
-  providers: [ConfirmationService],
+  providers: [ConfirmationService, MessageService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="min-h-screen bg-[var(--background)]">
@@ -309,6 +314,36 @@ import { PositionListComponent } from '../positions/position-list.component';
             <app-position-list [boardId]="boardId" [boardMembers]="members()" />
           </section>
 
+          <!-- Save as Template -->
+          <section class="mb-8 animate-fade-in-up stagger-4">
+            <div class="bg-[var(--card)] shadow rounded-lg">
+              <div class="px-6 py-4 border-b border-[var(--border)]">
+                <h2 class="text-lg font-medium text-[var(--foreground)]">
+                  Template
+                </h2>
+              </div>
+              <div class="px-6 py-4">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h3 class="text-sm font-medium text-[var(--foreground)]">
+                      Save Board as Template
+                    </h3>
+                    <p class="text-sm text-[var(--muted-foreground)]">
+                      Save this board's structure as a reusable template including all columns and tasks.
+                    </p>
+                  </div>
+                  <button
+                    (click)="showSaveTemplateDialog.set(true)"
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary border border-primary rounded-md hover:bg-primary/10 transition-colors"
+                  >
+                    <i class="pi pi-copy"></i>
+                    Save as Template
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <!-- Danger Zone -->
           @if (canDeleteBoard()) {
             <section>
@@ -390,6 +425,13 @@ import { PositionListComponent } from '../positions/position-list.component';
       (invited)="onInviteResult($event)"
     />
     <p-confirmDialog />
+    <app-save-template-dialog
+      [(visible)]="showSaveTemplateDialog"
+      [boardId]="boardId"
+      [boardName]="board()?.name || ''"
+      (saved)="onTemplateSaved()"
+    />
+    <p-toast />
   `,
 })
 export class BoardSettingsComponent implements OnInit {
@@ -399,6 +441,7 @@ export class BoardSettingsComponent implements OnInit {
   private boardService = inject(BoardService);
   private authService = inject(AuthService);
   private confirmationService = inject(ConfirmationService);
+  private messageService = inject(MessageService);
 
   workspaceId = '';
   boardId = '';
@@ -409,6 +452,7 @@ export class BoardSettingsComponent implements OnInit {
   board = signal<Board | null>(null);
   members = signal<BoardMember[]>([]);
   showInviteDialog = signal(false);
+  showSaveTemplateDialog = signal(false);
   errorMessage = signal<string | null>(null);
 
   form: FormGroup = this.fb.group({
@@ -569,6 +613,15 @@ export class BoardSettingsComponent implements OnInit {
           },
         });
       },
+    });
+  }
+
+  onTemplateSaved(): void {
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Template Saved',
+      detail: 'Board saved as template successfully.',
+      life: 3000,
     });
   }
 

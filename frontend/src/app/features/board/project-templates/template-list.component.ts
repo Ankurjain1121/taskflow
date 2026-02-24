@@ -65,8 +65,8 @@ export interface UseTemplateDialogResult {
       <!-- Header -->
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h2 class="text-2xl font-bold text-gray-900">Project Templates</h2>
-          <p class="mt-1 text-gray-500">
+          <h2 class="text-2xl font-bold text-[var(--foreground)]">Project Templates</h2>
+          <p class="mt-1 text-[var(--muted-foreground)]">
             Choose a template to quickly set up a new board with predefined
             columns and tasks.
           </p>
@@ -118,11 +118,11 @@ export interface UseTemplateDialogResult {
       } @else if (filteredTemplates().length === 0) {
         <!-- Empty State -->
         <div class="text-center py-16">
-          <i class="pi pi-th-large text-6xl text-gray-300 mb-4"></i>
-          <h3 class="text-lg font-medium text-gray-900 mb-1">
+          <i class="pi pi-th-large text-6xl text-[var(--muted-foreground)] mb-4"></i>
+          <h3 class="text-lg font-medium text-[var(--foreground)] mb-1">
             No templates found
           </h3>
-          <p class="text-gray-500">
+          <p class="text-[var(--muted-foreground)]">
             @if (selectedCategory()) {
               No templates match the selected category. Try clearing the filter.
             } @else {
@@ -150,7 +150,7 @@ export interface UseTemplateDialogResult {
                       </span>
                       @if (template.is_public) {
                         <span
-                          class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700"
+                          class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/10 text-green-500"
                         >
                           Public
                         </span>
@@ -159,7 +159,7 @@ export interface UseTemplateDialogResult {
                   }
                 </div>
               </ng-template>
-              <p class="text-sm text-gray-600 line-clamp-2 min-h-[2.5rem]">
+              <p class="text-sm text-[var(--muted-foreground)] line-clamp-2 min-h-[2.5rem]">
                 {{ template.description || 'No description' }}
               </p>
               <ng-template #footer>
@@ -192,7 +192,7 @@ export interface UseTemplateDialogResult {
       <!-- Error State -->
       @if (error()) {
         <div
-          class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700"
+          class="mt-4 p-4 bg-[var(--status-red-bg)] border border-[var(--status-red-border)] rounded-lg text-[var(--status-red-text)]"
         >
           {{ error() }}
         </div>
@@ -208,7 +208,7 @@ export interface UseTemplateDialogResult {
       [closable]="true"
     >
       <div class="flex flex-col gap-4">
-        <p class="text-gray-600">
+        <p class="text-[var(--muted-foreground)]">
           Create a new board using the "{{ dialogTemplateName() }}" template.
         </p>
         <div class="flex flex-col gap-2">

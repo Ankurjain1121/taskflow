@@ -207,6 +207,13 @@ export const routes: Routes = [
             (m) => m.NotificationsSectionComponent,
           ),
       },
+      {
+        path: 'templates',
+        loadComponent: () =>
+          import('./features/settings/task-templates/task-templates.component').then(
+            (m) => m.TaskTemplatesComponent,
+          ),
+      },
     ],
   },
   {
@@ -220,6 +227,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/task-detail/task-detail-page.component').then(
         (m) => m.TaskDetailPageComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'templates',
+    loadComponent: () =>
+      import('./features/board/project-templates/template-list.component').then(
+        (m) => m.TemplateListComponent,
       ),
     canActivate: [authGuard],
   },

@@ -191,6 +191,40 @@ interface ActionFormItem {
                   />
                 </div>
               }
+              @case ('due_date_approaching') {
+                <div>
+                  <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Days Before Due Date</label>
+                  <input
+                    type="number"
+                    [(ngModel)]="triggerConfigDaysBefore"
+                    placeholder="1"
+                    min="1"
+                    class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
+                  />
+                </div>
+              }
+              @case ('label_changed') {
+                <div>
+                  <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Label Name (optional filter)</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="triggerConfigLabelName"
+                    placeholder="Any label"
+                    class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
+                  />
+                </div>
+              }
+              @case ('custom_field_changed') {
+                <div>
+                  <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Field Name (optional filter)</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="triggerConfigFieldName"
+                    placeholder="Any field"
+                    class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
+                  />
+                </div>
+              }
               @default {
                 <p class="text-xs text-gray-400">
                   No additional configuration needed for this trigger.
@@ -378,6 +412,92 @@ interface ActionFormItem {
                           />
                         </div>
                       }
+                      @case ('create_subtask') {
+                        <div>
+                          <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Subtask Title</label>
+                          <input
+                            type="text"
+                            [ngModel]="action.action_config['subtask_title'] || ''"
+                            (ngModelChange)="updateActionConfig(i, 'subtask_title', $event)"
+                            placeholder="e.g., Review code changes"
+                            class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
+                          />
+                        </div>
+                      }
+                      @case ('add_comment') {
+                        <div>
+                          <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Comment Text</label>
+                          <textarea
+                            [ngModel]="action.action_config['comment_text'] || ''"
+                            (ngModelChange)="updateActionConfig(i, 'comment_text', $event)"
+                            placeholder="Comment to add..."
+                            rows="2"
+                            class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
+                          ></textarea>
+                        </div>
+                      }
+                      @case ('set_due_date') {
+                        <div>
+                          <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Days From Now</label>
+                          <input
+                            type="number"
+                            [ngModel]="action.action_config['days_from_now'] || ''"
+                            (ngModelChange)="updateActionConfig(i, 'days_from_now', $event)"
+                            placeholder="e.g., 7"
+                            min="0"
+                            class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
+                          />
+                        </div>
+                      }
+                      @case ('set_custom_field') {
+                        <div class="grid grid-cols-2 gap-3">
+                          <div>
+                            <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Field Name</label>
+                            <input
+                              type="text"
+                              [ngModel]="action.action_config['field_name'] || ''"
+                              (ngModelChange)="updateActionConfig(i, 'field_name', $event)"
+                              placeholder="Field name"
+                              class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
+                            />
+                          </div>
+                          <div>
+                            <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Field Value</label>
+                            <input
+                              type="text"
+                              [ngModel]="action.action_config['field_value'] || ''"
+                              (ngModelChange)="updateActionConfig(i, 'field_value', $event)"
+                              placeholder="Value"
+                              class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
+                            />
+                          </div>
+                        </div>
+                      }
+                      @case ('send_webhook') {
+                        <div class="space-y-2">
+                          <div>
+                            <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Webhook URL</label>
+                            <input
+                              type="text"
+                              [ngModel]="action.action_config['webhook_url'] || ''"
+                              (ngModelChange)="updateActionConfig(i, 'webhook_url', $event)"
+                              placeholder="https://example.com/webhook"
+                              class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
+                            />
+                          </div>
+                          <div>
+                            <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">HTTP Method</label>
+                            <select
+                              [ngModel]="action.action_config['method'] || 'POST'"
+                              (ngModelChange)="updateActionConfig(i, 'method', $event)"
+                              class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
+                            >
+                              <option value="GET">GET</option>
+                              <option value="POST">POST</option>
+                            </select>
+                          </div>
+                        </div>
+                      }
                     }
                   </div>
                 </div>
@@ -428,6 +548,10 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
   triggerConfigFromPriority = '';
   triggerConfigToPriority = '';
   triggerConfigAssignee = '';
+  triggerConfigDaysBefore = '';
+  triggerConfigLabelName = '';
+  triggerConfigFieldName = '';
+
 
   saving = signal(false);
 
@@ -462,6 +586,31 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
       label: 'Task Completed',
       description: 'Fires when a task is marked as completed.',
     },
+    {
+      value: 'subtask_completed',
+      label: 'Subtask Completed',
+      description: 'Fires when a subtask is marked complete.',
+    },
+    {
+      value: 'comment_added',
+      label: 'Comment Added',
+      description: 'Fires when a comment is added to a task.',
+    },
+    {
+      value: 'custom_field_changed',
+      label: 'Custom Field Changed',
+      description: 'Fires when a custom field value changes.',
+    },
+    {
+      value: 'label_changed',
+      label: 'Label Changed',
+      description: 'Fires when labels are added or removed.',
+    },
+    {
+      value: 'due_date_approaching',
+      label: 'Due Date Approaching',
+      description: 'Fires when a task due date is approaching.',
+    },
   ];
 
   actionOptions: ActionOption[] = [
@@ -494,6 +643,31 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
       value: 'set_milestone',
       label: 'Set Milestone',
       description: 'Assign the task to a milestone.',
+    },
+    {
+      value: 'create_subtask',
+      label: 'Create Subtask',
+      description: 'Create a subtask on the task.',
+    },
+    {
+      value: 'add_comment',
+      label: 'Add Comment',
+      description: 'Add a comment to the task.',
+    },
+    {
+      value: 'set_due_date',
+      label: 'Set Due Date',
+      description: 'Set the task due date relative to now.',
+    },
+    {
+      value: 'set_custom_field',
+      label: 'Set Custom Field',
+      description: 'Set a custom field value on the task.',
+    },
+    {
+      value: 'send_webhook',
+      label: 'Send Webhook',
+      description: 'Send an HTTP webhook to a URL.',
     },
   ];
 
@@ -534,6 +708,9 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
     this.triggerConfigFromPriority = '';
     this.triggerConfigToPriority = '';
     this.triggerConfigAssignee = '';
+    this.triggerConfigDaysBefore = '';
+    this.triggerConfigLabelName = '';
+    this.triggerConfigFieldName = '';
   }
 
   addAction(): void {
@@ -600,7 +777,6 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
           this.saved.emit(updated);
         },
         error: (err) => {
-          console.error('Failed to update automation rule:', err);
           this.saving.set(false);
         },
       });
@@ -619,7 +795,6 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
           this.saved.emit(created);
         },
         error: (err) => {
-          console.error('Failed to create automation rule:', err);
           this.saving.set(false);
         },
       });
@@ -650,6 +825,24 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
           config['assignee_id'] = this.triggerConfigAssignee.trim();
         return config;
       }
+      case 'due_date_approaching': {
+        const config: Record<string, unknown> = {};
+        if (this.triggerConfigDaysBefore.toString().trim())
+          config['days_before'] = parseInt(this.triggerConfigDaysBefore.toString(), 10) || 1;
+        return config;
+      }
+      case 'label_changed': {
+        const config: Record<string, unknown> = {};
+        if (this.triggerConfigLabelName.trim())
+          config['label_name'] = this.triggerConfigLabelName.trim();
+        return config;
+      }
+      case 'custom_field_changed': {
+        const config: Record<string, unknown> = {};
+        if (this.triggerConfigFieldName.trim())
+          config['field_name'] = this.triggerConfigFieldName.trim();
+        return config;
+      }
       default:
         return {};
     }
@@ -672,6 +865,9 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
     this.triggerConfigFromPriority = (tc['from_priority'] as string) || '';
     this.triggerConfigToPriority = (tc['to_priority'] as string) || '';
     this.triggerConfigAssignee = (tc['assignee_id'] as string) || '';
+    this.triggerConfigDaysBefore = (tc['days_before'] as string) || '';
+    this.triggerConfigLabelName = (tc['label_name'] as string) || '';
+    this.triggerConfigFieldName = (tc['field_name'] as string) || '';
 
     // Populate actions
     this.actions.set(
@@ -692,5 +888,8 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
     this.triggerConfigFromPriority = '';
     this.triggerConfigToPriority = '';
     this.triggerConfigAssignee = '';
+    this.triggerConfigDaysBefore = '';
+    this.triggerConfigLabelName = '';
+    this.triggerConfigFieldName = '';
   }
 }

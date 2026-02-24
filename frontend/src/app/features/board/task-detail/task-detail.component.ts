@@ -52,6 +52,12 @@ import {
 } from '../../../core/services/time-tracking.service';
 import { ConfirmDialog } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
+import { TaskTemplateService, SaveAsTemplateRequest } from '../../../core/services/task-template.service';
+import { Dialog } from 'primeng/dialog';
+import { MessageService } from 'primeng/api';
+import { FormsModule } from '@angular/forms';
+import { InputTextModule } from 'primeng/inputtext';
+import { Select } from 'primeng/select';
 
 import { TaskDetailHeaderComponent } from './task-detail-header.component';
 import { TaskDetailMetadataComponent } from './task-detail-metadata.component';
@@ -79,8 +85,12 @@ import { TaskDetailFieldsComponent } from './task-detail-fields.component';
     TaskDetailActivityComponent,
     TaskDetailFieldsComponent,
     ConfirmDialog,
+    Dialog,
+    FormsModule,
+    InputTextModule,
+    Select,
   ],
-  providers: [ConfirmationService],
+  providers: [ConfirmationService, MessageService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p-drawer
@@ -91,8 +101,17 @@ import { TaskDetailFieldsComponent } from './task-detail-fields.component';
       (onHide)="onClose()"
     >
       <ng-template #header>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 w-full">
           <span class="text-sm text-gray-500">Task Detail</span>
+          @if (task()) {
+            <button
+              (click)="showSaveTemplateDialog.set(true)"
+              class="ml-auto p-1.5 rounded-md hover:bg-[var(--muted)] transition-colors"
+              title="Save as Template"
+            >
+              <i class="pi pi-copy text-sm text-[var(--muted-foreground)]"></i>
+            </button>
+          }
         </div>
       </ng-template>
 
@@ -209,6 +228,44 @@ import { TaskDetailFieldsComponent } from './task-detail-fields.component';
       }
     </p-drawer>
     <p-confirmDialog />
+    <!-- Save as Template Dialog -->
+    <p-dialog
+      header="Save as Template"
+      [(visible)]="showSaveTemplateDialog"
+      [modal]="true"
+      [style]="{ width: '420px' }"
+    >
+      <div class="flex flex-col gap-4">
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium text-[var(--foreground)]">Template Name</label>
+          <input pInputText [(ngModel)]="templateName" placeholder="Enter template name" class="w-full" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium text-[var(--foreground)]">Scope</label>
+          <p-select
+            [(ngModel)]="templateScope"
+            [options]="scopeOptions"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full"
+            styleClass="w-full"
+          />
+        </div>
+      </div>
+      <ng-template #footer>
+        <div class="flex justify-end gap-2">
+          <button
+            class="px-4 py-2 text-sm text-[var(--muted-foreground)] hover:bg-[var(--muted)] rounded-md"
+            (click)="showSaveTemplateDialog.set(false)"
+          >Cancel</button>
+          <button
+            class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md disabled:opacity-50"
+            [disabled]="!templateName.trim() || savingTemplate()"
+            (click)="onSaveAsTemplate()"
+          >Save</button>
+        </div>
+      </ng-template>
+    </p-dialog>
   `,
 })
 export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
@@ -264,6 +321,19 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   runningTimerForTask = signal<TimeEntry | null>(null);
   elapsedTime = signal('00:00:00');
   private timerInterval: ReturnType<typeof setInterval> | null = null;
+
+  // Save as Template
+  private taskTemplateService = inject(TaskTemplateService);
+  private messageService = inject(MessageService);
+  showSaveTemplateDialog = signal(false);
+  templateName = '';
+  templateScope = 'personal';
+  savingTemplate = signal(false);
+  scopeOptions = [
+    { label: 'Personal', value: 'personal' },
+    { label: 'Board', value: 'board' },
+    { label: 'Workspace', value: 'workspace' },
+  ];
 
   // ── Lifecycle ──────────────────────────────────────────────
 
@@ -410,6 +480,41 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
           error: () => {
             // Task will be restored by WebSocket or next board load
           },
+        });
+      },
+    });
+  }
+
+  onSaveAsTemplate(): void {
+    const task = this.task();
+    if (!task || !this.templateName.trim()) return;
+
+    this.savingTemplate.set(true);
+    const req: SaveAsTemplateRequest = {
+      name: this.templateName.trim(),
+      scope: this.templateScope,
+    };
+
+    this.taskTemplateService.saveTaskAsTemplate(task.id, req).subscribe({
+      next: () => {
+        this.savingTemplate.set(false);
+        this.showSaveTemplateDialog.set(false);
+        this.templateName = '';
+        this.templateScope = 'personal';
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Template Saved',
+          detail: 'Task saved as template successfully.',
+          life: 3000,
+        });
+      },
+      error: () => {
+        this.savingTemplate.set(false);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to save task as template.',
+          life: 3000,
         });
       },
     });
