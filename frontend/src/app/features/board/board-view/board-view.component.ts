@@ -9,12 +9,21 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Subject, takeUntil, switchMap } from 'rxjs';
-import { CdkDropListGroup } from '@angular/cdk/drag-drop';
+import { Subject, takeUntil } from 'rxjs';
+import {
+  CdkDropListGroup,
+  CdkDropList,
+  CdkDrag,
+  CdkDragDrop,
+  CdkDragHandle,
+  moveItemInArray,
+} from '@angular/cdk/drag-drop';
 
 import { Task, TaskService } from '../../../core/services/task.service';
+import { BoardService, Column } from '../../../core/services/board.service';
 import { TaskGroupWithStats } from '../../../core/services/task-group.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
+import { FavoritesService } from '../../../core/services/favorites.service';
 
 import {
   CreateTaskDialogComponent,
@@ -66,6 +75,9 @@ import { MessageService } from 'primeng/api';
     CommonModule,
     RouterModule,
     CdkDropListGroup,
+    CdkDropList,
+    CdkDrag,
+    CdkDragHandle,
     CreateTaskDialogComponent,
     CreateColumnDialogComponent,
     CreateTaskGroupDialogComponent,
@@ -95,9 +107,46 @@ import { MessageService } from 'primeng/api';
       <div class="bg-[var(--card)] border-b border-[var(--border)] px-6 py-4">
         <div class="flex items-center justify-between">
           <div>
-            <h1 class="text-2xl font-bold text-[var(--foreground)]">
-              {{ state.board()?.name || 'Loading...' }}
-            </h1>
+            <div class="flex items-center gap-2">
+              <h1 class="text-2xl font-bold text-[var(--foreground)]">
+                {{ state.board()?.name || 'Loading...' }}
+              </h1>
+              @if (state.board()) {
+                <button
+                  (click)="toggleFavorite()"
+                  class="p-1 rounded hover:bg-[var(--muted)] transition-colors"
+                  [title]="
+                    isFavorited() ? 'Remove from favorites' : 'Add to favorites'
+                  "
+                >
+                  @if (isFavorited()) {
+                    <svg
+                      class="w-5 h-5 text-yellow-500"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                      />
+                    </svg>
+                  } @else {
+                    <svg
+                      class="w-5 h-5 text-[var(--muted-foreground)]"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                      />
+                    </svg>
+                  }
+                </button>
+              }
+            </div>
             @if (state.board()?.description) {
               <p class="text-sm text-[var(--muted-foreground)] mt-1">
                 {{ state.board()?.description }}
@@ -189,8 +238,10 @@ import { MessageService } from 'primeng/api';
         [assignees]="state.allAssignees()"
         [labels]="state.allLabels()"
         [viewMode]="viewMode()"
+        [density]="state.cardDensity()"
         (filtersChanged)="onFiltersChanged($event)"
         (viewModeChanged)="onViewModeChanged($event)"
+        (densityChanged)="state.setCardDensity($event)"
       ></app-board-toolbar>
 
       <!-- Task Group Headers -->
@@ -279,37 +330,32 @@ import { MessageService } from 'primeng/api';
         </div>
       } @else {
         <!-- Kanban Board -->
-        <div class="flex-1 overflow-x-auto p-4" cdkDropListGroup>
-          <div class="flex gap-2 h-full">
-            @for (column of state.columns(); track column.id) {
-              <app-kanban-column
-                [column]="column"
-                [tasks]="getFilteredTasksForColumn(column.id)"
-                [connectedLists]="state.connectedColumnIds()"
-                [celebratingTaskId]="state.celebratingTaskId()"
-                [focusedTaskId]="state.focusedTaskId()"
-                [selectedTaskIds]="state.selectedTaskIds()"
-                [allColumns]="state.columns()"
-                [boardPrefix]="state.board()?.prefix ?? null"
-                [isCollapsed]="state.isColumnCollapsed(column.id)"
-                (taskMoved)="onTaskMoved($event)"
-                (taskClicked)="onTaskClicked($event)"
-                (addTaskClicked)="onAddTaskToColumn($event)"
-                (selectionToggled)="onSelectionToggled($event)"
-                (priorityChanged)="onCardPriorityChanged($event)"
-                (columnMoveRequested)="onCardColumnMove($event)"
-                (duplicateRequested)="onCardDuplicate($event)"
-                (deleteRequested)="onCardDelete($event)"
-                (quickTaskCreated)="onQuickTaskCreated($event)"
-                (collapseToggled)="onColumnCollapseToggled($event)"
-              ></app-kanban-column>
-            }
-
-            <!-- Add Column Button -->
-            <div class="flex-shrink-0">
+        @if (state.columns().length === 0) {
+          <div class="flex-1 flex items-center justify-center">
+            <div class="text-center max-w-md">
+              <svg
+                class="w-16 h-16 mx-auto mb-4 text-[var(--muted-foreground)]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
+                />
+              </svg>
+              <h3 class="text-lg font-semibold text-[var(--foreground)] mb-2">
+                No columns yet
+              </h3>
+              <p class="text-sm text-[var(--muted-foreground)] mb-6">
+                Create your first column to start organizing tasks on this
+                board.
+              </p>
               <button
                 (click)="onAddColumn()"
-                class="w-[272px] h-12 flex items-center justify-center gap-2 bg-[var(--secondary)] hover:bg-[var(--muted)] rounded-lg text-[var(--muted-foreground)] transition-colors"
+                class="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] rounded-lg hover:opacity-90"
               >
                 <svg
                   class="w-5 h-5"
@@ -324,11 +370,74 @@ import { MessageService } from 'primeng/api';
                     d="M12 4v16m8-8H4"
                   />
                 </svg>
-                Add Column
+                Create Your First Column
               </button>
             </div>
           </div>
-        </div>
+        } @else {
+          <div class="flex-1 overflow-x-auto p-4" cdkDropListGroup>
+            <div
+              class="flex gap-2 h-full"
+              cdkDropList
+              [cdkDropListData]="state.columns()"
+              cdkDropListOrientation="horizontal"
+              (cdkDropListDropped)="onColumnDropped($event)"
+            >
+              @for (column of state.columns(); track column.id) {
+                <div cdkDrag [cdkDragData]="column">
+                  <app-kanban-column
+                    [column]="column"
+                    [tasks]="getFilteredTasksForColumn(column.id)"
+                    [connectedLists]="state.connectedColumnIds()"
+                    [celebratingTaskId]="state.celebratingTaskId()"
+                    [focusedTaskId]="state.focusedTaskId()"
+                    [selectedTaskIds]="state.selectedTaskIds()"
+                    [allColumns]="state.columns()"
+                    [boardPrefix]="state.board()?.prefix ?? null"
+                    [isCollapsed]="state.isColumnCollapsed(column.id)"
+                    [density]="state.cardDensity()"
+                    (taskMoved)="onTaskMoved($event)"
+                    (taskClicked)="onTaskClicked($event)"
+                    (addTaskClicked)="onAddTaskToColumn($event)"
+                    (selectionToggled)="onSelectionToggled($event)"
+                    (priorityChanged)="onCardPriorityChanged($event)"
+                    (columnMoveRequested)="onCardColumnMove($event)"
+                    (duplicateRequested)="onCardDuplicate($event)"
+                    (deleteRequested)="onCardDelete($event)"
+                    (quickTaskCreated)="onQuickTaskCreated($event)"
+                    (collapseToggled)="onColumnCollapseToggled($event)"
+                    (renameRequested)="onColumnRename($event)"
+                    (wipLimitRequested)="onColumnWipLimitEdit($event)"
+                    (deleteColumnRequested)="onColumnDelete($event)"
+                  ></app-kanban-column>
+                </div>
+              }
+
+              <!-- Add Column Button -->
+              <div class="flex-shrink-0" cdkDrag [cdkDragDisabled]="true">
+                <button
+                  (click)="onAddColumn()"
+                  class="w-[272px] h-12 flex items-center justify-center gap-2 bg-[var(--secondary)] hover:bg-[var(--muted)] rounded-lg text-[var(--muted-foreground)] transition-colors"
+                >
+                  <svg
+                    class="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  Add Column
+                </button>
+              </div>
+            </div>
+          </div>
+        }
       }
 
       <!-- Task Detail Panel -->
@@ -337,6 +446,7 @@ import { MessageService } from 'primeng/api';
           [taskId]="state.selectedTaskId()!"
           [workspaceId]="workspaceId"
           [boardId]="boardId"
+          [availableLabels]="state.allLabels()"
           (closed)="closeTaskDetail()"
           (taskUpdated)="onTaskUpdated($event)"
         ></app-task-detail>
@@ -417,6 +527,8 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   private wsHandler = inject(BoardWebsocketHandler);
   private dragDrop = inject(BoardDragDropHandler);
   private taskService = inject(TaskService);
+  private boardService = inject(BoardService);
+  private favoritesService = inject(FavoritesService);
   private undoService = inject(UndoService);
   private messageService = inject(MessageService);
   readonly state = inject(BoardStateService);
@@ -426,6 +538,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   boardId = '';
 
   viewMode = signal<ViewMode>('kanban');
+  isFavorited = signal(false);
 
   // Dialog visibility state
   showCreateTaskDialog = false;
@@ -446,6 +559,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       this.workspaceId = params['workspaceId'];
       this.boardId = params['boardId'];
       this.state.loadBoard(this.boardId, this.destroy$);
+      this.checkFavoriteStatus();
     });
 
     this.wsService.connect();
@@ -494,7 +608,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   onListTaskClicked(taskId: string): void {
-    this.router.navigate(['/task', taskId]);
+    this.state.selectedTaskId.set(taskId);
   }
 
   onTaskMoved(event: TaskMoveEvent): void {
@@ -502,7 +616,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   onTaskClicked(task: Task): void {
-    this.router.navigate(['/task', task.id]);
+    this.state.selectedTaskId.set(task.id);
   }
 
   closeTaskDetail(): void {
@@ -511,6 +625,114 @@ export class BoardViewComponent implements OnInit, OnDestroy {
 
   onTaskUpdated(task: Task): void {
     this.state.updateTaskInState(task);
+  }
+
+  // === Column Drag-Reorder ===
+
+  onColumnDropped(event: CdkDragDrop<Column[]>): void {
+    if (event.previousIndex === event.currentIndex) return;
+
+    const columns = [...this.state.columns()];
+    moveItemInArray(columns, event.previousIndex, event.currentIndex);
+    this.state.columns.set(columns);
+
+    const movedColumn = columns[event.currentIndex];
+    this.boardService
+      .reorderColumn(movedColumn.id, { new_index: event.currentIndex })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        error: () => {
+          this.state.loadBoard(this.boardId, this.destroy$);
+          this.state.showError('Failed to reorder column');
+        },
+      });
+  }
+
+  // === Column Header Menu Actions ===
+
+  onColumnRename(columnId: string): void {
+    const column = this.state.columns().find((c) => c.id === columnId);
+    if (!column) return;
+    const newName = prompt('Rename column:', column.name);
+    if (newName && newName.trim() && newName !== column.name) {
+      this.boardService
+        .renameColumn(columnId, newName.trim())
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (updated) => {
+            this.state.columns.update((cols) =>
+              cols.map((c) =>
+                c.id === updated.id ? { ...c, name: updated.name } : c,
+              ),
+            );
+          },
+          error: () => this.state.showError('Failed to rename column'),
+        });
+    }
+  }
+
+  onColumnWipLimitEdit(columnId: string): void {
+    const column = this.state.columns().find((c) => c.id === columnId);
+    if (!column) return;
+    const current = column.wip_limit?.toString() ?? '';
+    const userInput = prompt(
+      'Set WIP limit (leave empty for no limit):',
+      current,
+    );
+    if (userInput === null) return;
+    const wipLimit =
+      userInput.trim() === '' ? null : parseInt(userInput.trim(), 10);
+    if (wipLimit !== null && (isNaN(wipLimit) || wipLimit < 1)) {
+      this.state.showError('WIP limit must be a positive number');
+      return;
+    }
+    this.boardService
+      .updateColumnWipLimit(columnId, wipLimit)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (updated) => {
+          this.state.columns.update((cols) =>
+            cols.map((c) => (c.id === updated.id ? updated : c)),
+          );
+        },
+        error: () => this.state.showError('Failed to update WIP limit'),
+      });
+  }
+
+  onColumnDelete(columnId: string): void {
+    if (confirm('Delete this column? Columns with tasks cannot be deleted.')) {
+      this.state.deleteColumn(this.boardId, columnId);
+    }
+  }
+
+  // === Board Favorite ===
+
+  private checkFavoriteStatus(): void {
+    this.favoritesService
+      .check('board', this.boardId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res) => this.isFavorited.set(res.favorited),
+      });
+  }
+
+  toggleFavorite(): void {
+    const wasFavorited = this.isFavorited();
+    this.isFavorited.set(!wasFavorited);
+
+    const action$ = wasFavorited
+      ? this.favoritesService.remove('board', this.boardId)
+      : this.favoritesService.add({
+          entity_type: 'board',
+          entity_id: this.boardId,
+        });
+
+    action$.pipe(takeUntil(this.destroy$)).subscribe({
+      error: () => {
+        this.isFavorited.set(wasFavorited);
+        this.state.showError('Failed to update favorite');
+      },
+    });
   }
 
   // === Create Task Dialog ===

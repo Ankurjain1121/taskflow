@@ -394,25 +394,12 @@ export class ColumnManagerComponent implements OnInit {
     this.columns.set(columns);
 
     const movedColumn = columns[event.currentIndex];
-    const beforeColumn = columns[event.currentIndex - 1];
-    const afterColumn = columns[event.currentIndex + 1];
-
-    const beforePos = beforeColumn?.position || null;
-    const afterPos = afterColumn?.position || null;
-
-    let newPosition: string;
-    try {
-      newPosition = generateKeyBetween(beforePos, afterPos);
-    } catch {
-      newPosition = Date.now().toString();
-    }
 
     this.boardService
-      .reorderColumn(movedColumn.id, { position: newPosition })
+      .reorderColumn(movedColumn.id, { new_index: event.currentIndex })
       .subscribe({
         next: () => this.loadColumns(),
-        error: (err) => {
-          console.error('Failed to reorder column:', err);
+        error: () => {
           this.loadColumns();
         },
       });

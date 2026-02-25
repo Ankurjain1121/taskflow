@@ -54,6 +54,11 @@ pub struct UpdateColumnColorRequest {
     pub color: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateWipLimitRequest {
+    pub wip_limit: Option<i32>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct ColumnResponse {
     pub id: Uuid,
@@ -62,6 +67,7 @@ pub struct ColumnResponse {
     pub position: String,
     pub color: Option<String>,
     pub status_mapping: Option<serde_json::Value>,
+    pub wip_limit: Option<i32>,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
@@ -122,6 +128,7 @@ async fn list_columns(
             position: c.position,
             color: c.color,
             status_mapping: c.status_mapping,
+            wip_limit: c.wip_limit,
             created_at: c.created_at,
         })
         .collect();
@@ -190,6 +197,7 @@ async fn create_column(
         position: column.position,
         color: column.color,
         status_mapping: column.status_mapping,
+        wip_limit: column.wip_limit,
         created_at: column.created_at,
     }))
 }
@@ -225,6 +233,7 @@ async fn rename_column(
         position: column.position,
         color: column.color,
         status_mapping: column.status_mapping,
+        wip_limit: column.wip_limit,
         created_at: column.created_at,
     }))
 }
@@ -265,6 +274,7 @@ async fn reorder_column(
             position: existing.position,
             color: existing.color,
             status_mapping: existing.status_mapping,
+            wip_limit: existing.wip_limit,
             created_at: existing.created_at,
         }));
     }
@@ -303,6 +313,7 @@ async fn reorder_column(
         position: column.position,
         color: column.color,
         status_mapping: column.status_mapping,
+        wip_limit: column.wip_limit,
         created_at: column.created_at,
     }))
 }
@@ -334,6 +345,7 @@ async fn update_status_mapping(
         position: column.position,
         color: column.color,
         status_mapping: column.status_mapping,
+        wip_limit: column.wip_limit,
         created_at: column.created_at,
     }))
 }
@@ -365,6 +377,46 @@ async fn update_color(
         position: column.position,
         color: column.color,
         status_mapping: column.status_mapping,
+        wip_limit: column.wip_limit,
+        created_at: column.created_at,
+    }))
+}
+
+/// PUT /api/columns/:id/wip-limit
+///
+/// Update a column's WIP (Work In Progress) limit.
+async fn update_wip_limit(
+    State(state): State<AppState>,
+    auth: AuthUserExtractor,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<UpdateWipLimitRequest>,
+) -> Result<Json<ColumnResponse>> {
+    // Get column to find board_id
+    let existing = columns::get_column_by_id(&state.db, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
+
+    require_editor_access(&state, existing.board_id, auth.0.user_id).await?;
+
+    // Validate wip_limit if provided
+    if let Some(limit) = payload.wip_limit {
+        if limit < 1 {
+            return Err(AppError::BadRequest("WIP limit must be at least 1".into()));
+        }
+    }
+
+    let column = columns::update_wip_limit(&state.db, id, payload.wip_limit)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
+
+    Ok(Json(ColumnResponse {
+        id: column.id,
+        name: column.name,
+        board_id: column.board_id,
+        position: column.position,
+        color: column.color,
+        status_mapping: column.status_mapping,
+        wip_limit: column.wip_limit,
         created_at: column.created_at,
     }))
 }
@@ -416,5 +468,6 @@ pub fn column_router(state: AppState) -> Router<AppState> {
         .route("/{id}/position", put(reorder_column))
         .route("/{id}/status-mapping", put(update_status_mapping))
         .route("/{id}/color", put(update_color))
+        .route("/{id}/wip-limit", put(update_wip_limit))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

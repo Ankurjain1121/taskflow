@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        INSERT INTO board_columns (board_id, name, color, status_mapping, position)\n        VALUES ($1, $2, $3, $4, $5)\n        RETURNING id, name, board_id, position, color, status_mapping, created_at\n        ",
+  "query": "\n            INSERT INTO board_columns (name, board_id, position, color, status_mapping)\n            VALUES ($1, $2, $3, $4, $5)\n            RETURNING id, name, board_id, position, color, status_mapping, wip_limit, created_at\n            ",
   "describe": {
     "columns": [
       {
@@ -35,17 +35,22 @@
       },
       {
         "ordinal": 6,
+        "name": "wip_limit",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
         "name": "created_at",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
+        "Varchar",
         "Uuid",
+        "Text",
         "Varchar",
-        "Varchar",
-        "Jsonb",
-        "Text"
+        "Jsonb"
       ]
     },
     "nullable": [
@@ -55,8 +60,9 @@
       false,
       true,
       true,
+      true,
       false
     ]
   },
-  "hash": "8c8e5bd20fb58e6623e19361a96db18e5c0c5fb294891bae3f7ecf525d83ccd3"
+  "hash": "67042a2a3fbcb336a3e10ff1ecfa07181c04be5796fedf90e521f4daff5cfa33"
 }

@@ -56,7 +56,7 @@ export interface UpdateColumnRequest {
 }
 
 export interface ReorderColumnRequest {
-  position: string;
+  new_index: number;
 }
 
 export interface BoardMember {
@@ -168,9 +168,26 @@ export class BoardService {
     columnId: string,
     request: ReorderColumnRequest,
   ): Observable<Column> {
-    return this.http.patch<Column>(
-      `${this.apiUrl}/columns/${columnId}/reorder`,
+    return this.http.put<Column>(
+      `${this.apiUrl}/columns/${columnId}/position`,
       request,
+    );
+  }
+
+  renameColumn(columnId: string, name: string): Observable<Column> {
+    return this.http.put<Column>(
+      `${this.apiUrl}/columns/${columnId}/name`,
+      { name },
+    );
+  }
+
+  updateColumnWipLimit(
+    columnId: string,
+    wipLimit: number | null,
+  ): Observable<Column> {
+    return this.http.put<Column>(
+      `${this.apiUrl}/columns/${columnId}/wip-limit`,
+      { wip_limit: wipLimit },
     );
   }
 

@@ -71,7 +71,7 @@ pub async fn get_board_by_id(
             let columns = sqlx::query_as!(
                 BoardColumn,
                 r#"
-                SELECT id, name, board_id, position, color, status_mapping, created_at
+                SELECT id, name, board_id, position, color, status_mapping, wip_limit, created_at
                 FROM board_columns
                 WHERE board_id = $1
                 ORDER BY position ASC
@@ -135,7 +135,7 @@ pub async fn create_board(
             r#"
             INSERT INTO board_columns (name, board_id, position, color, status_mapping)
             VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, name, board_id, position, color, status_mapping, created_at
+            RETURNING id, name, board_id, position, color, status_mapping, wip_limit, created_at
             "#,
             col_name,
             board.id,

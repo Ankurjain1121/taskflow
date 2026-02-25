@@ -286,19 +286,22 @@ async fn update_comment_handler(
     let mentioned_user_ids = extract_mentioned_user_ids(&sanitized_content);
 
     // Update the comment
-    let comment = update_comment(&state.db, comment_id, &sanitized_content, &mentioned_user_ids)
-        .await
-        .map_err(|e| match e {
-            taskflow_db::queries::comments::CommentQueryError::Database(e) => {
-                AppError::SqlxError(e)
-            }
-            taskflow_db::queries::comments::CommentQueryError::NotFound => {
-                AppError::NotFound("Comment not found".into())
-            }
-            taskflow_db::queries::comments::CommentQueryError::NotAuthorized => {
-                AppError::Forbidden("Not authorized".into())
-            }
-        })?;
+    let comment = update_comment(
+        &state.db,
+        comment_id,
+        &sanitized_content,
+        &mentioned_user_ids,
+    )
+    .await
+    .map_err(|e| match e {
+        taskflow_db::queries::comments::CommentQueryError::Database(e) => AppError::SqlxError(e),
+        taskflow_db::queries::comments::CommentQueryError::NotFound => {
+            AppError::NotFound("Comment not found".into())
+        }
+        taskflow_db::queries::comments::CommentQueryError::NotAuthorized => {
+            AppError::Forbidden("Not authorized".into())
+        }
+    })?;
 
     Ok(Json(comment))
 }

@@ -5,11 +5,12 @@ import {
   inject,
   OnInit,
   ChangeDetectionStrategy,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, forkJoin } from 'rxjs';
 import { ConfirmationService } from 'primeng/api';
 import { ConfirmDialog } from 'primeng/confirmdialog';
 import {
@@ -31,7 +32,10 @@ import {
   Workspace,
 } from '../../../core/services/workspace.service';
 import { BoardService } from '../../../core/services/board.service';
-import { EisenhowerTaskCardComponent } from './eisenhower-task-card.component';
+import {
+  EisenhowerTaskCardComponent,
+  DelegateMember,
+} from './eisenhower-task-card.component';
 
 interface QuadrantConfig {
   key: EisenhowerQuadrant;
@@ -213,6 +217,8 @@ const QUADRANT_MAP: Record<
               <div
                 class="rounded-lg border-2 p-6 transition-all"
                 [class]="quadrant.bgClass + ' ' + quadrant.borderColor"
+                [class.ring-2]="selectedQuadrant() === quadrant.key"
+                [class.ring-primary]="selectedQuadrant() === quadrant.key"
               >
                 <!-- Quadrant Header -->
                 <div class="mb-4 pb-4 border-b border-[var(--border)]">
@@ -264,7 +270,10 @@ const QUADRANT_MAP: Record<
                       ></div>
                       <app-eisenhower-task-card
                         [task]="task"
+                        [quadrant]="quadrant.key"
+                        [members]="workspaceMembers()"
                         (priorityChanged)="onPriorityChange($event)"
+                        (assigneeChanged)="onAssigneeChange($event)"
                       />
                     </div>
                   } @empty {
@@ -279,8 +288,77 @@ const QUADRANT_MAP: Record<
             }
           </div>
         }
+
+        <!-- Keyboard shortcuts hint -->
+        <div class="mt-4 text-center text-xs text-[var(--muted-foreground)]">
+          Press
+          <kbd class="px-1.5 py-0.5 rounded bg-[var(--muted)] font-mono">?</kbd>
+          for keyboard shortcuts
+        </div>
       </div>
     </div>
+
+    <!-- Keyboard shortcuts help overlay -->
+    @if (showShortcutHelp()) {
+      <div
+        class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+        (click)="showShortcutHelp.set(false)"
+      >
+        <div
+          class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 max-w-sm shadow-xl"
+          (click)="$event.stopPropagation()"
+        >
+          <h3 class="text-lg font-semibold text-[var(--foreground)] mb-4">
+            Keyboard Shortcuts
+          </h3>
+          <div class="space-y-2 text-sm text-[var(--foreground)]">
+            <div class="flex justify-between">
+              <span>Select Do First</span
+              ><kbd
+                class="px-2 py-0.5 rounded bg-[var(--muted)] text-xs font-mono"
+                >1</kbd
+              >
+            </div>
+            <div class="flex justify-between">
+              <span>Select Schedule</span
+              ><kbd
+                class="px-2 py-0.5 rounded bg-[var(--muted)] text-xs font-mono"
+                >2</kbd
+              >
+            </div>
+            <div class="flex justify-between">
+              <span>Select Delegate</span
+              ><kbd
+                class="px-2 py-0.5 rounded bg-[var(--muted)] text-xs font-mono"
+                >3</kbd
+              >
+            </div>
+            <div class="flex justify-between">
+              <span>Select Eliminate</span
+              ><kbd
+                class="px-2 py-0.5 rounded bg-[var(--muted)] text-xs font-mono"
+                >4</kbd
+              >
+            </div>
+            <div class="flex justify-between">
+              <span>Deselect</span
+              ><kbd
+                class="px-2 py-0.5 rounded bg-[var(--muted)] text-xs font-mono"
+                >Esc</kbd
+              >
+            </div>
+            <div class="flex justify-between">
+              <span>Toggle help</span
+              ><kbd
+                class="px-2 py-0.5 rounded bg-[var(--muted)] text-xs font-mono"
+                >?</kbd
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
     <p-confirmDialog />
   `,
   styles: [
@@ -318,12 +396,19 @@ export class EisenhowerMatrixComponent implements OnInit {
   loading = signal(false);
   matrix = signal<EisenhowerMatrixResponse | null>(null);
 
+  // Keyboard shortcut state
+  selectedQuadrant = signal<EisenhowerQuadrant | null>(null);
+  showShortcutHelp = signal(false);
+
   // Filter state
   workspaces = signal<Workspace[]>([]);
   boards = signal<{ id: string; name: string }[]>([]);
   selectedWorkspaceId = signal('');
   selectedBoardId = signal('');
   dailyFocus = signal(false);
+
+  // Delegate members for assignee picker
+  workspaceMembers = signal<DelegateMember[]>([]);
 
   activeFilterCount = computed(() => {
     let count = 0;
@@ -345,16 +430,18 @@ export class EisenhowerMatrixComponent implements OnInit {
       key: 'do_first',
       title: 'Do First',
       subtitle: 'Urgent & Important',
-      bgClass: 'bg-red-500/5 dark:bg-red-500/10',
-      borderColor: 'border-red-300 dark:border-red-400/50',
+      bgClass: 'bg-[color-mix(in_srgb,var(--destructive)_8%,var(--card))]',
+      borderColor:
+        'border-[color-mix(in_srgb,var(--destructive)_30%,var(--border))]',
       coaching: 'Do these tasks immediately. They require your attention now.',
     },
     {
       key: 'schedule',
       title: 'Schedule',
       subtitle: 'Not Urgent & Important',
-      bgClass: 'bg-yellow-500/5 dark:bg-yellow-500/10',
-      borderColor: 'border-yellow-300 dark:border-yellow-400/50',
+      bgClass: 'bg-[color-mix(in_srgb,var(--warning,#eab308)_8%,var(--card))]',
+      borderColor:
+        'border-[color-mix(in_srgb,var(--warning,#eab308)_30%,var(--border))]',
       coaching:
         "Plan when you'll do these. They're important but not pressing.",
     },
@@ -362,8 +449,9 @@ export class EisenhowerMatrixComponent implements OnInit {
       key: 'delegate',
       title: 'Delegate',
       subtitle: 'Urgent & Not Important',
-      bgClass: 'bg-orange-500/5 dark:bg-orange-500/10',
-      borderColor: 'border-orange-300 dark:border-orange-400/50',
+      bgClass: 'bg-[color-mix(in_srgb,var(--primary)_8%,var(--card))]',
+      borderColor:
+        'border-[color-mix(in_srgb,var(--primary)_30%,var(--border))]',
       coaching: 'Can someone else handle these? Delegate if possible.',
       actionLabel: 'Reassign',
     },
@@ -371,12 +459,42 @@ export class EisenhowerMatrixComponent implements OnInit {
       key: 'eliminate',
       title: 'Eliminate',
       subtitle: 'Not Urgent & Not Important',
-      bgClass: 'bg-[var(--muted)]/50',
+      bgClass: 'bg-[var(--muted)]',
       borderColor: 'border-[var(--border)]',
       coaching: 'Consider removing these from your list entirely.',
       actionLabel: 'Archive',
     },
   ];
+
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(event: KeyboardEvent): void {
+    const tag = (event.target as HTMLElement).tagName;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
+      return;
+    }
+
+    switch (event.key) {
+      case '1':
+        this.selectedQuadrant.set('do_first');
+        break;
+      case '2':
+        this.selectedQuadrant.set('schedule');
+        break;
+      case '3':
+        this.selectedQuadrant.set('delegate');
+        break;
+      case '4':
+        this.selectedQuadrant.set('eliminate');
+        break;
+      case '?':
+        this.showShortcutHelp.update((v) => !v);
+        break;
+      case 'Escape':
+        this.selectedQuadrant.set(null);
+        this.showShortcutHelp.set(false);
+        break;
+    }
+  }
 
   ngOnInit() {
     this.loadWorkspaces();
@@ -413,6 +531,9 @@ export class EisenhowerMatrixComponent implements OnInit {
     this.boards.set([]);
     if (workspaceId) {
       this.loadBoards(workspaceId);
+      this.loadWorkspaceMembers(workspaceId);
+    } else {
+      this.loadAllMembers(this.workspaces());
     }
     this.loadMatrix();
   }
@@ -437,7 +558,55 @@ export class EisenhowerMatrixComponent implements OnInit {
 
   private loadWorkspaces() {
     this.workspaceService.list().subscribe({
-      next: (list) => this.workspaces.set(list),
+      next: (list) => {
+        this.workspaces.set(list);
+        this.loadAllMembers(list);
+      },
+    });
+  }
+
+  private loadAllMembers(workspaceList: Workspace[]) {
+    if (workspaceList.length === 0) {
+      this.workspaceMembers.set([]);
+      return;
+    }
+
+    const memberRequests = workspaceList.map((ws) =>
+      this.workspaceService.getMembers(ws.id),
+    );
+
+    forkJoin(memberRequests).subscribe({
+      next: (results) => {
+        const seen = new Set<string>();
+        const members: DelegateMember[] = [];
+        for (const memberList of results) {
+          for (const m of memberList) {
+            if (!seen.has(m.user_id)) {
+              seen.add(m.user_id);
+              members.push({
+                id: m.user_id,
+                name: m.name,
+                avatar_url: m.avatar_url,
+              });
+            }
+          }
+        }
+        this.workspaceMembers.set(members);
+      },
+    });
+  }
+
+  private loadWorkspaceMembers(workspaceId: string) {
+    this.workspaceService.getMembers(workspaceId).subscribe({
+      next: (memberList) => {
+        this.workspaceMembers.set(
+          memberList.map((m) => ({
+            id: m.user_id,
+            name: m.name,
+            avatar_url: m.avatar_url,
+          })),
+        );
+      },
     });
   }
 
@@ -460,6 +629,12 @@ export class EisenhowerMatrixComponent implements OnInit {
       .subscribe({
         next: () => this.loadMatrix(),
       });
+  }
+
+  onAssigneeChange(event: { taskId: string; assigneeId: string }) {
+    this.taskService.assignUser(event.taskId, event.assigneeId).subscribe({
+      next: () => this.loadMatrix(),
+    });
   }
 
   onDrop(
@@ -550,9 +725,9 @@ export class EisenhowerMatrixComponent implements OnInit {
     } else if (quadrant === 'delegate') {
       this.confirmationService.confirm({
         message:
-          'Reassign functionality is not yet implemented. Please reassign tasks individually from the task detail page.',
-        header: 'Not Available',
-        icon: 'pi pi-info-circle',
+          'Use the "Delegate to..." dropdown on each task card to assign it to a team member.',
+        header: 'Delegate Tasks',
+        icon: 'pi pi-users',
         acceptLabel: 'OK',
         rejectVisible: false,
       });

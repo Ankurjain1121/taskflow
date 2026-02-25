@@ -90,6 +90,7 @@ pub struct ColumnResponse {
     pub position: String,
     pub color: Option<String>,
     pub status_mapping: Option<serde_json::Value>,
+    pub wip_limit: Option<i32>,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
@@ -240,6 +241,7 @@ async fn get_board(
                 position: c.position,
                 color: c.color,
                 status_mapping: c.status_mapping,
+                wip_limit: c.wip_limit,
                 created_at: c.created_at,
             })
             .collect(),
@@ -343,6 +345,7 @@ async fn create_board(
                 position: c.position,
                 color: c.color,
                 status_mapping: c.status_mapping,
+                wip_limit: c.wip_limit,
                 created_at: c.created_at,
             })
             .collect(),
@@ -702,6 +705,7 @@ async fn get_board_full(
                 position: c.position,
                 color: c.color,
                 status_mapping: c.status_mapping,
+                wip_limit: c.wip_limit,
                 created_at: c.created_at,
             })
             .collect(),

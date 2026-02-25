@@ -56,6 +56,7 @@ export interface Task {
   subtask_total?: number;
   has_running_timer?: boolean;
   comment_count?: number;
+  attachment_count?: number;
 }
 
 export interface TaskLabel {

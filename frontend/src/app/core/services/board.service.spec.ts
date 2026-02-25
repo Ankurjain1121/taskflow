@@ -189,15 +189,15 @@ describe('BoardService', () => {
   });
 
   describe('reorderColumn()', () => {
-    it('should PATCH /api/columns/:columnId/reorder with position', () => {
-      const reorderReq: ReorderColumnRequest = { position: '3000' };
+    it('should PUT /api/columns/:columnId/position with new_index', () => {
+      const reorderReq: ReorderColumnRequest = { new_index: 2 };
 
       service.reorderColumn('col-1', reorderReq).subscribe((column) => {
         expect(column).toEqual(MOCK_COLUMN);
       });
 
-      const req = httpMock.expectOne('/api/columns/col-1/reorder');
-      expect(req.request.method).toBe('PATCH');
+      const req = httpMock.expectOne('/api/columns/col-1/position');
+      expect(req.request.method).toBe('PUT');
       expect(req.request.body).toEqual(reorderReq);
       req.flush(MOCK_COLUMN);
     });
