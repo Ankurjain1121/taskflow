@@ -6,7 +6,6 @@ import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
 export interface Workspace {
   id: string;
   name: string;
-  slug: string;
   description: string | null;
   logo_url: string | null;
   visibility?: 'open' | 'closed';
@@ -22,7 +21,6 @@ export interface CreateWorkspaceRequest {
 
 export interface UpdateWorkspaceRequest {
   name?: string;
-  slug?: string;
   description?: string;
 }
 
