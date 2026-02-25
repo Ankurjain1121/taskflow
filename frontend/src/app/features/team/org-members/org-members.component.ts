@@ -14,15 +14,12 @@ import { InputTextModule } from 'primeng/inputtext';
 import { Checkbox } from 'primeng/checkbox';
 import { Tag } from 'primeng/tag';
 import { PopoverModule } from 'primeng/popover';
-import { Dialog } from 'primeng/dialog';
-import { Select } from 'primeng/select';
 import {
   WorkspaceService,
   Workspace,
   TenantMember,
   UserWorkspaceMembership,
 } from '../../../core/services/workspace.service';
-import { BoardService } from '../../../core/services/board.service';
 import {
   AddToWorkspaceDialogComponent,
   BulkAddResult,
@@ -45,8 +42,6 @@ import { UserProfileDialogComponent } from '../../../shared/components/dialogs/u
     Checkbox,
     Tag,
     PopoverModule,
-    Dialog,
-    Select,
     AddToWorkspaceDialogComponent,
     InviteMemberDialogComponent,
     UserProfileDialogComponent,
@@ -261,50 +256,13 @@ import { UserProfileDialogComponent } from '../../../shared/components/dialogs/u
       (added)="onMembersAdded($event)"
     />
 
-    <!-- Workspace Picker for Invite -->
-    <p-dialog
-      header="Choose Workspace"
-      [(visible)]="showWorkspacePicker"
-      [modal]="true"
-      [style]="{ width: '400px' }"
-      [closable]="true"
-    >
-      <p class="text-sm text-[var(--muted-foreground)] mb-4">
-        Select which workspace to invite new members to.
-      </p>
-      <p-select
-        [options]="workspaceOptions()"
-        [(ngModel)]="selectedInviteWorkspaceId"
-        optionLabel="label"
-        optionValue="value"
-        placeholder="Select a workspace"
-        class="w-full"
-      />
-      <ng-template #footer>
-        <div class="flex justify-end gap-2">
-          <p-button
-            label="Cancel"
-            [text]="true"
-            severity="secondary"
-            (onClick)="showWorkspacePicker.set(false)"
-          />
-          <p-button
-            label="Next"
-            icon="pi pi-arrow-right"
-            iconPos="right"
-            (onClick)="onWorkspaceSelected()"
-            [disabled]="!selectedInviteWorkspaceId()"
-          />
-        </div>
-      </ng-template>
-    </p-dialog>
-
-    <!-- Invite Member Dialog -->
+    <!-- Invite Member Dialog (workspace selection embedded) -->
     <app-invite-member-dialog
       [(visible)]="showInviteDialog"
-      [workspaceId]="selectedInviteWorkspaceId() ?? ''"
-      [workspaceName]="inviteWorkspaceName()"
-      [boards]="inviteWorkspaceBoards()"
+      [workspaceId]="autoSelectedWorkspaceId()"
+      [workspaceName]="autoSelectedWorkspaceName()"
+      [boards]="autoSelectedWorkspaceBoards()"
+      [workspaces]="inviteWorkspaceOptions()"
       (created)="onInviteResult($event)"
     />
 
@@ -323,7 +281,6 @@ import { UserProfileDialogComponent } from '../../../shared/components/dialogs/u
 })
 export class OrgMembersComponent {
   private workspaceService = inject(WorkspaceService);
-  private boardService = inject(BoardService);
 
   members = input.required<TenantMember[]>();
   allWorkspaces = input.required<Workspace[]>();
@@ -348,19 +305,25 @@ export class OrgMembersComponent {
   profileDialogMember = signal<TenantMember | null>(null);
 
   // Invite flow state
-  showWorkspacePicker = signal(false);
-  selectedInviteWorkspaceId = signal<string | null>(null);
   showInviteDialog = signal(false);
-  inviteWorkspaceBoards = signal<{ id: string; name: string }[]>([]);
 
-  workspaceOptions = computed(() =>
-    this.allWorkspaces().map((ws) => ({ label: ws.name, value: ws.id })),
-  );
+  /** When exactly 1 workspace, auto-select it (skip picker) */
+  autoSelectedWorkspaceId = computed(() => {
+    const ws = this.allWorkspaces();
+    return ws.length === 1 ? ws[0].id : '';
+  });
 
-  inviteWorkspaceName = computed(() => {
-    const id = this.selectedInviteWorkspaceId();
-    if (!id) return '';
-    return this.allWorkspaces().find((ws) => ws.id === id)?.name ?? '';
+  autoSelectedWorkspaceName = computed(() => {
+    const ws = this.allWorkspaces();
+    return ws.length === 1 ? ws[0].name : '';
+  });
+
+  autoSelectedWorkspaceBoards = signal<{ id: string; name: string }[]>([]);
+
+  /** When multiple workspaces, pass the list for in-dialog selection */
+  inviteWorkspaceOptions = computed(() => {
+    const ws = this.allWorkspaces();
+    return ws.length > 1 ? ws : [];
   });
 
   filteredMembers = computed(() => {
@@ -456,33 +419,12 @@ export class OrgMembersComponent {
   }
 
   openInviteFlow(): void {
-    this.selectedInviteWorkspaceId.set(null);
-    this.showWorkspacePicker.set(true);
-  }
-
-  onWorkspaceSelected(): void {
-    const wsId = this.selectedInviteWorkspaceId();
-    if (!wsId) return;
-
-    this.showWorkspacePicker.set(false);
-
-    // Load boards for the selected workspace, then open invite dialog
-    this.boardService.listBoards(wsId).subscribe({
-      next: (boards) => {
-        this.inviteWorkspaceBoards.set(
-          boards.map((b) => ({ id: b.id, name: b.name })),
-        );
-        this.showInviteDialog.set(true);
-      },
-      error: () => {
-        this.inviteWorkspaceBoards.set([]);
-        this.showInviteDialog.set(true);
-      },
-    });
+    this.autoSelectedWorkspaceBoards.set([]);
+    this.showInviteDialog.set(true);
   }
 
   onInviteResult(result: InviteMemberDialogResult): void {
-    const wsId = this.selectedInviteWorkspaceId();
+    const wsId = result.workspaceId;
     if (!wsId) return;
 
     this.workspaceService

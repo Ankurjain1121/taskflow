@@ -5,6 +5,7 @@ import {
   input,
   output,
   model,
+  computed,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -21,6 +22,8 @@ import { Textarea } from 'primeng/textarea';
 import { Select } from 'primeng/select';
 import { Checkbox } from 'primeng/checkbox';
 import { FormsModule } from '@angular/forms';
+import { BoardService } from '../../../core/services/board.service';
+import { Workspace } from '../../../core/services/workspace.service';
 
 export interface InviteMemberDialogData {
   workspaceId: string;
@@ -34,6 +37,7 @@ export interface InviteMemberDialogResult {
   boardIds: string[];
   message?: string;
   jobTitle?: string;
+  workspaceId?: string;
 }
 
 interface EmailValidation {
@@ -66,10 +70,33 @@ interface EmailValidation {
       [closable]="true"
       (onShow)="onDialogShow()"
     >
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
-        Invite new members to {{ workspaceName() }}
-      </p>
+      @if (effectiveWorkspaceName()) {
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Invite new members to {{ effectiveWorkspaceName() }}
+        </p>
+      }
       <form [formGroup]="form">
+        <!-- Workspace Selector (shown when multiple workspaces available) -->
+        @if (showWorkspaceSelector()) {
+          <div class="flex flex-col gap-1 mb-4">
+            <label
+              for="workspace"
+              class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Workspace</label
+            >
+            <p-select
+              [options]="workspaceOptions()"
+              [ngModel]="internalWorkspaceId()"
+              (ngModelChange)="onWorkspaceChange($event)"
+              [ngModelOptions]="{ standalone: true }"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Select a workspace"
+              class="w-full"
+            />
+          </div>
+        }
+
         <!-- Bulk Email Input -->
         <div class="flex flex-col gap-1 mb-4">
           <label
@@ -187,7 +214,7 @@ interface EmailValidation {
         </div>
 
         <!-- Board Access Selection -->
-        @if (boards() && boards().length > 0) {
+        @if (effectiveBoards().length > 0) {
           <div class="mb-4">
             <label
               class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
@@ -214,7 +241,11 @@ interface EmailValidation {
                   >Select All</label
                 >
               </div>
-              @for (board of boards(); track board.id; let i = $index) {
+              @for (
+                board of effectiveBoards();
+                track board.id;
+                let i = $index
+              ) {
                 <div class="flex items-center gap-2">
                   <p-checkbox
                     [binary]="true"
@@ -289,6 +320,7 @@ interface EmailValidation {
 })
 export class InviteMemberDialogComponent {
   private fb = inject(FormBuilder);
+  private boardService = inject(BoardService);
 
   /** Two-way bound visibility */
   visible = model(false);
@@ -297,6 +329,9 @@ export class InviteMemberDialogComponent {
   workspaceId = input<string>('');
   workspaceName = input<string>('');
   boards = input<{ id: string; name: string }[]>([]);
+
+  /** Optional: pass available workspaces for embedded workspace selection */
+  workspaces = input<Workspace[]>([]);
 
   /** Emits result when dialog closes with a value */
   created = output<InviteMemberDialogResult>();
@@ -311,6 +346,34 @@ export class InviteMemberDialogComponent {
   parsedEmails = signal<EmailValidation[]>([]);
   selectedBoardIds = signal<string[]>([]);
   isSubmitting = false;
+
+  /** Internal workspace selection (when workspaces list is provided) */
+  internalWorkspaceId = signal<string | null>(null);
+  dynamicBoards = signal<{ id: string; name: string }[]>([]);
+  loadingBoards = signal(false);
+
+  /** Whether the dialog needs to show a workspace picker */
+  showWorkspaceSelector = computed(
+    () => this.workspaces().length > 0 && !this.workspaceId(),
+  );
+
+  workspaceOptions = computed(() =>
+    this.workspaces().map((ws) => ({ label: ws.name, value: ws.id })),
+  );
+
+  /** Effective workspace name for the header */
+  effectiveWorkspaceName = computed(() => {
+    if (this.workspaceName()) return this.workspaceName();
+    const wsId = this.internalWorkspaceId();
+    if (!wsId) return '';
+    return this.workspaces().find((ws) => ws.id === wsId)?.name ?? '';
+  });
+
+  /** Effective boards list: external input or dynamically loaded */
+  effectiveBoards = computed(() => {
+    if (this.boards().length > 0) return this.boards();
+    return this.dynamicBoards();
+  });
 
   roleOptions = [
     { label: 'Member - Can view and edit boards', value: 'member' },
@@ -329,6 +392,29 @@ export class InviteMemberDialogComponent {
     });
     this.parsedEmails.set([]);
     this.selectedBoardIds.set([]);
+    this.internalWorkspaceId.set(null);
+    this.dynamicBoards.set([]);
+  }
+
+  onWorkspaceChange(wsId: string | null): void {
+    this.internalWorkspaceId.set(wsId);
+    this.selectedBoardIds.set([]);
+    this.dynamicBoards.set([]);
+    if (wsId) {
+      this.loadingBoards.set(true);
+      this.boardService.listBoards(wsId).subscribe({
+        next: (boards) => {
+          this.dynamicBoards.set(
+            boards.map((b) => ({ id: b.id, name: b.name })),
+          );
+          this.loadingBoards.set(false);
+        },
+        error: () => {
+          this.dynamicBoards.set([]);
+          this.loadingBoards.set(false);
+        },
+      });
+    }
   }
 
   validEmailCount(): number {
@@ -340,7 +426,12 @@ export class InviteMemberDialogComponent {
   }
 
   canSubmit(): boolean {
-    return this.form.get('role')?.valid === true && this.validEmailCount() > 0;
+    const hasValidEmails =
+      this.form.get('role')?.valid === true && this.validEmailCount() > 0;
+    if (this.showWorkspaceSelector()) {
+      return hasValidEmails && !!this.internalWorkspaceId();
+    }
+    return hasValidEmails;
   }
 
   isBoardSelected(boardId: string): boolean {
@@ -349,8 +440,8 @@ export class InviteMemberDialogComponent {
 
   allBoardsSelected(): boolean {
     return (
-      this.boards()?.length > 0 &&
-      this.selectedBoardIds().length === this.boards().length
+      this.effectiveBoards().length > 0 &&
+      this.selectedBoardIds().length === this.effectiveBoards().length
     );
   }
 
@@ -362,7 +453,7 @@ export class InviteMemberDialogComponent {
 
   toggleAllBoards(checked: boolean): void {
     if (checked) {
-      this.selectedBoardIds.set(this.boards().map((b) => b.id));
+      this.selectedBoardIds.set(this.effectiveBoards().map((b) => b.id));
     } else {
       this.selectedBoardIds.set([]);
     }
@@ -404,12 +495,16 @@ export class InviteMemberDialogComponent {
       .filter((e) => e.valid)
       .map((e) => e.email);
 
+    const resolvedWorkspaceId =
+      this.workspaceId() || this.internalWorkspaceId() || undefined;
+
     const result: InviteMemberDialogResult = {
       emails: validEmails,
       role: this.form.value.role,
       boardIds: this.selectedBoardIds(),
       message: this.form.value.message?.trim() || undefined,
       jobTitle: this.form.value.jobTitle?.trim() || undefined,
+      workspaceId: resolvedWorkspaceId,
     };
 
     this.visible.set(false);
