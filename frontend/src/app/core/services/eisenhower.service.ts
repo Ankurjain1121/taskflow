@@ -8,6 +8,12 @@ export type EisenhowerQuadrant =
   | 'delegate'
   | 'eliminate';
 
+export interface EisenhowerAssignee {
+  id: string;
+  display_name: string;
+  avatar_url: string | null;
+}
+
 export interface EisenhowerTask {
   id: string;
   title: string;
@@ -23,6 +29,7 @@ export interface EisenhowerTask {
   eisenhower_urgency: boolean | null;
   eisenhower_importance: boolean | null;
   quadrant: EisenhowerQuadrant;
+  assignees: EisenhowerAssignee[];
   created_at: string;
   updated_at: string;
 }

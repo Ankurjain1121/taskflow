@@ -20,6 +20,8 @@ import {
   moveItemInArray,
   transferArrayItem,
 } from '@angular/cdk/drag-drop';
+import { Menu } from 'primeng/menu';
+import { MenuItem } from 'primeng/api';
 import { Column } from '../../../core/services/board.service';
 import { Task } from '../../../core/services/task.service';
 import { TaskCardComponent } from '../task-card/task-card.component';
@@ -35,7 +37,7 @@ export interface TaskMoveEvent {
 @Component({
   selector: 'app-kanban-column',
   standalone: true,
-  imports: [CommonModule, FormsModule, CdkDropList, TaskCardComponent],
+  imports: [CommonModule, FormsModule, CdkDropList, TaskCardComponent, Menu],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (isCollapsed()) {
@@ -128,6 +130,7 @@ export interface TaskMoveEvent {
 
               <!-- Column Menu -->
               <button
+                (click)="onColumnMenuToggle($event)"
                 class="p-1 hover:bg-[var(--secondary)] rounded opacity-0 group-hover:opacity-100 transition-opacity"
                 title="Column options"
               >
@@ -145,6 +148,12 @@ export interface TaskMoveEvent {
                   />
                 </svg>
               </button>
+              <p-menu
+                #columnMenu
+                [model]="columnMenuItems"
+                [popup]="true"
+                appendTo="body"
+              />
             </div>
           </div>
 
@@ -176,6 +185,7 @@ export interface TaskMoveEvent {
               [isSelected]="selectedTaskIds().includes(task.id)"
               [columns]="allColumns()"
               [boardPrefix]="boardPrefix()"
+              [density]="density()"
               [subtaskProgress]="
                 task.subtask_total
                   ? {
@@ -299,6 +309,7 @@ export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
   allColumns = input<Column[]>([]);
   boardPrefix = input<string | null>(null);
   isCollapsed = input<boolean>(false);
+  density = input<'compact' | 'normal'>('normal');
 
   taskMoved = output<TaskMoveEvent>();
   taskClicked = output<Task>();
@@ -310,6 +321,12 @@ export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
   deleteRequested = output<string>();
   quickTaskCreated = output<{ columnId: string; title: string }>();
   collapseToggled = output<string>();
+  renameRequested = output<string>();
+  wipLimitRequested = output<string>();
+  deleteColumnRequested = output<string>();
+
+  @ViewChild('columnMenu') columnMenu!: Menu;
+  columnMenuItems: MenuItem[] = [];
 
   isQuickAdding = signal(false);
   quickTaskTitle = '';
@@ -372,6 +389,30 @@ export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
     if (!limit) return false;
     return this.tasks().length > limit;
   });
+
+  onColumnMenuToggle(event: Event): void {
+    event.stopPropagation();
+    this.columnMenuItems = [
+      {
+        label: 'Rename',
+        icon: 'pi pi-pencil',
+        command: () => this.renameRequested.emit(this.column().id),
+      },
+      {
+        label: 'Set WIP Limit',
+        icon: 'pi pi-sliders-h',
+        command: () => this.wipLimitRequested.emit(this.column().id),
+      },
+      { separator: true },
+      {
+        label: 'Delete Column',
+        icon: 'pi pi-trash',
+        styleClass: 'text-red-500',
+        command: () => this.deleteColumnRequested.emit(this.column().id),
+      },
+    ];
+    this.columnMenu.toggle(event);
+  }
 
   onDrop(event: CdkDragDrop<Task[]>): void {
     const task = event.item.data as Task;

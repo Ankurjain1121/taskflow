@@ -20,6 +20,7 @@ import {
   TaskPriority,
   TaskListItem,
   Assignee,
+  Label,
 } from '../../../core/services/task.service';
 import {
   WorkspaceService,
@@ -52,7 +53,10 @@ import {
 } from '../../../core/services/time-tracking.service';
 import { ConfirmDialog } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
-import { TaskTemplateService, SaveAsTemplateRequest } from '../../../core/services/task-template.service';
+import {
+  TaskTemplateService,
+  SaveAsTemplateRequest,
+} from '../../../core/services/task-template.service';
 import { Dialog } from 'primeng/dialog';
 import { MessageService } from 'primeng/api';
 import { FormsModule } from '@angular/forms';
@@ -144,11 +148,13 @@ import { TaskDetailFieldsComponent } from './task-detail-fields.component';
               [milestones]="milestones()"
               [selectedMilestone]="selectedMilestone()"
               [searchResults]="memberSearchResults()"
+              [availableLabels]="availableLabels()"
               (priorityChanged)="onPriorityChange($event)"
               (dueDateChanged)="onDueDateChange($event)"
               (assigneeSearchChanged)="onAssigneeSearchChange($event)"
               (assignRequested)="onAssign($event)"
               (unassignRequested)="onUnassign($event)"
+              (labelAdded)="onAddLabel($event)"
               (labelRemoved)="onRemoveLabel($event)"
               (milestoneChanged)="onMilestoneChange($event)"
             />
@@ -237,11 +243,20 @@ import { TaskDetailFieldsComponent } from './task-detail-fields.component';
     >
       <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium text-[var(--foreground)]">Template Name</label>
-          <input pInputText [(ngModel)]="templateName" placeholder="Enter template name" class="w-full" />
+          <label class="text-sm font-medium text-[var(--foreground)]"
+            >Template Name</label
+          >
+          <input
+            pInputText
+            [(ngModel)]="templateName"
+            placeholder="Enter template name"
+            class="w-full"
+          />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium text-[var(--foreground)]">Scope</label>
+          <label class="text-sm font-medium text-[var(--foreground)]"
+            >Scope</label
+          >
           <p-select
             [(ngModel)]="templateScope"
             [options]="scopeOptions"
@@ -257,12 +272,16 @@ import { TaskDetailFieldsComponent } from './task-detail-fields.component';
           <button
             class="px-4 py-2 text-sm text-[var(--muted-foreground)] hover:bg-[var(--muted)] rounded-md"
             (click)="showSaveTemplateDialog.set(false)"
-          >Cancel</button>
+          >
+            Cancel
+          </button>
           <button
             class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md disabled:opacity-50"
             [disabled]="!templateName.trim() || savingTemplate()"
             (click)="onSaveAsTemplate()"
-          >Save</button>
+          >
+            Save
+          </button>
         </div>
       </ng-template>
     </p-dialog>
@@ -283,6 +302,7 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   taskId = input.required<string>();
   workspaceId = input.required<string>();
   boardId = input<string>('');
+  availableLabels = input<Label[]>([]);
 
   // Outputs
   closed = output<void>();
@@ -423,6 +443,37 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
         this.taskUpdated.emit(updatedTask);
       },
       error: () => {},
+    });
+  }
+
+  onAddLabel(labelId: string): void {
+    const task = this.task();
+    if (!task) return;
+
+    const label = this.availableLabels().find((l) => l.id === labelId);
+    if (!label) return;
+
+    // Optimistically add the label
+    const newLabel: Label = {
+      id: label.id,
+      workspace_id: label.workspace_id ?? '',
+      name: label.name,
+      color: label.color,
+      created_at: label.created_at ?? '',
+    };
+    const optimisticTask = {
+      ...task,
+      labels: [...(task.labels || []), newLabel],
+    };
+    this.task.set(optimisticTask);
+    this.taskUpdated.emit(optimisticTask);
+
+    this.taskService.addLabel(task.id, labelId).subscribe({
+      error: () => {
+        // Rollback on failure
+        this.task.set(task);
+        this.taskUpdated.emit(task);
+      },
     });
   }
 

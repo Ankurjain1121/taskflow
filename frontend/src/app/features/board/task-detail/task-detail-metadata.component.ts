@@ -181,24 +181,49 @@ import { Milestone } from '../../../core/services/milestone.service';
             class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
             >Labels</label
           >
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap gap-1.5 items-center">
             @if (t.labels && t.labels.length > 0) {
               @for (label of t.labels; track label.id) {
                 <span
-                  class="inline-flex items-center px-2.5 py-1 rounded text-sm font-medium"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-sm font-medium"
                   [style.background-color]="label.color + '20'"
                   [style.color]="label.color"
                 >
                   {{ label.name }}
                   <button
                     (click)="labelRemoved.emit(label.id)"
-                    class="ml-1.5 hover:opacity-70"
+                    class="hover:opacity-70"
                   >
                     <i class="pi pi-times text-xs"></i>
                   </button>
                 </span>
               }
-            } @else {
+            }
+            @if (filteredLabels().length > 0) {
+              <p-select
+                [ngModel]="null"
+                [options]="filteredLabels()"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="+ Add"
+                [filter]="true"
+                filterPlaceholder="Search labels..."
+                [showClear]="false"
+                (onChange)="onLabelSelected($event)"
+                styleClass="w-32"
+                size="small"
+              >
+                <ng-template #item let-label>
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="w-3 h-3 rounded-full flex-shrink-0"
+                      [style.background-color]="label.color"
+                    ></span>
+                    <span>{{ label.name }}</span>
+                  </div>
+                </ng-template>
+              </p-select>
+            } @else if (!t.labels || t.labels.length === 0) {
               <span class="text-sm text-gray-400">No labels</span>
             }
           </div>
@@ -249,12 +274,14 @@ export class TaskDetailMetadataComponent {
   task = input.required<Task | null>();
   milestones = input<Milestone[]>([]);
   selectedMilestone = input<Milestone | null>(null);
+  availableLabels = input<Label[]>([]);
 
   priorityChanged = output<TaskPriority>();
   dueDateChanged = output<string>();
   assigneeSearchChanged = output<string>();
   assignRequested = output<MemberSearchResult>();
   unassignRequested = output<Assignee>();
+  labelAdded = output<string>();
   labelRemoved = output<string>();
   milestoneChanged = output<string>();
 
@@ -272,6 +299,14 @@ export class TaskDetailMetadataComponent {
   dueDateValue = computed(() => {
     const d = this.task()?.due_date;
     return d ? new Date(d) : null;
+  });
+
+  filteredLabels = computed(() => {
+    const task = this.task();
+    const available = this.availableLabels();
+    if (!task) return available;
+    const assignedIds = new Set((task.labels || []).map((l) => l.id));
+    return available.filter((l) => !assignedIds.has(l.id));
   });
 
   milestoneSelectOptions = computed(() => {
@@ -306,6 +341,12 @@ export class TaskDetailMetadataComponent {
   onAssign(member: MemberSearchResult): void {
     this.assignRequested.emit(member);
     this.toggleAssigneeSearch();
+  }
+
+  onLabelSelected(event: { value: string }): void {
+    if (event.value) {
+      this.labelAdded.emit(event.value);
+    }
   }
 
   onDueDatePickerChange(date: Date | null): void {

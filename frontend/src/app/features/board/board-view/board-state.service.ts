@@ -68,6 +68,10 @@ export class BoardStateService {
   readonly boardMilestones = signal<Milestone[]>([]);
   readonly boardGroups = signal<TaskGroupWithStats[]>([]);
   readonly collapsedColumnIds = signal<Set<string>>(new Set());
+  readonly cardDensity = signal<'compact' | 'normal'>(
+    (localStorage.getItem('taskflow_card_density') as 'compact' | 'normal') ||
+      'normal',
+  );
 
   // === Computed Signals ===
   readonly collapsedGroupIds = computed(() => {
@@ -592,6 +596,13 @@ export class BoardStateService {
 
   isColumnCollapsed(columnId: string): boolean {
     return this.collapsedColumnIds().has(columnId);
+  }
+
+  // === Card Density ===
+
+  setCardDensity(density: 'compact' | 'normal'): void {
+    this.cardDensity.set(density);
+    localStorage.setItem('taskflow_card_density', density);
   }
 
   // === Error Handling ===

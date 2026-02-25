@@ -12,9 +12,31 @@ use taskflow_services::BroadcastService;
 pub fn sanitize_html(input: &str) -> String {
     ammonia::Builder::default()
         .tags(std::collections::HashSet::from([
-            "p", "br", "strong", "b", "em", "i", "u", "s", "strike", "del",
-            "ul", "ol", "li", "blockquote", "pre", "code", "a", "h1", "h2", "h3",
-            "h4", "h5", "h6", "hr", "span",
+            "p",
+            "br",
+            "strong",
+            "b",
+            "em",
+            "i",
+            "u",
+            "s",
+            "strike",
+            "del",
+            "ul",
+            "ol",
+            "li",
+            "blockquote",
+            "pre",
+            "code",
+            "a",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "hr",
+            "span",
         ]))
         .link_rel(Some("noopener noreferrer"))
         .url_relative(ammonia::UrlRelative::Deny)

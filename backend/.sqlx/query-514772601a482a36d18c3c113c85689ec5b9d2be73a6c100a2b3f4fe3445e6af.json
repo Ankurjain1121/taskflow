@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        UPDATE board_columns\n        SET status_mapping = $2\n        WHERE id = $1\n        RETURNING id, name, board_id, position, color, status_mapping, created_at\n        ",
+  "query": "\n                SELECT id, name, board_id, position, color, status_mapping, wip_limit, created_at\n                FROM board_columns\n                WHERE board_id = $1\n                ORDER BY position ASC\n                ",
   "describe": {
     "columns": [
       {
@@ -35,14 +35,18 @@
       },
       {
         "ordinal": 6,
+        "name": "wip_limit",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
         "name": "created_at",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid",
-        "Jsonb"
+        "Uuid"
       ]
     },
     "nullable": [
@@ -52,8 +56,9 @@
       false,
       true,
       true,
+      true,
       false
     ]
   },
-  "hash": "f7e14f4debffce34efa09ab9bf203c603e1842e38635b7137e35525d40663bd0"
+  "hash": "514772601a482a36d18c3c113c85689ec5b9d2be73a6c100a2b3f4fe3445e6af"
 }

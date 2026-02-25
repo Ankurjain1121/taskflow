@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT id, name, board_id, position, color, status_mapping, created_at\n        FROM board_columns\n        WHERE board_id = $1\n        ORDER BY position ASC\n        ",
+  "query": "\n        UPDATE board_columns\n        SET name = $2\n        WHERE id = $1\n        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, created_at\n        ",
   "describe": {
     "columns": [
       {
@@ -35,13 +35,19 @@
       },
       {
         "ordinal": 6,
+        "name": "wip_limit",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
         "name": "created_at",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Uuid",
+        "Varchar"
       ]
     },
     "nullable": [
@@ -51,8 +57,9 @@
       false,
       true,
       true,
+      true,
       false
     ]
   },
-  "hash": "935ce66ca34bd896ab20eda5b14a70387489883e4494f978a2b9225a9601044f"
+  "hash": "41744f4aec6c3d94479952262f93f2119ec01c96e06b4832182aea3182804da0"
 }

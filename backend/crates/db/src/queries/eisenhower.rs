@@ -23,6 +23,23 @@ pub enum EisenhowerQuadrant {
     Eliminate, // Not Urgent + Not Important
 }
 
+/// Assignee info returned with Eisenhower tasks
+#[derive(Debug, Serialize, Clone)]
+pub struct EisenhowerAssignee {
+    pub id: Uuid,
+    pub display_name: String,
+    pub avatar_url: Option<String>,
+}
+
+/// Internal row type for assignee query
+#[derive(sqlx::FromRow)]
+struct AssigneeRow {
+    task_id: Uuid,
+    user_id: Uuid,
+    display_name: String,
+    avatar_url: Option<String>,
+}
+
 /// Task item for Eisenhower Matrix with computed quadrant
 #[derive(Debug, Serialize, Clone)]
 pub struct EisenhowerTaskItem {
@@ -40,6 +57,7 @@ pub struct EisenhowerTaskItem {
     pub eisenhower_urgency: Option<bool>,
     pub eisenhower_importance: Option<bool>,
     pub quadrant: EisenhowerQuadrant,
+    pub assignees: Vec<EisenhowerAssignee>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -177,6 +195,39 @@ pub async fn get_eisenhower_matrix(
 
     let rows: Vec<EisenhowerTaskRow> = q.fetch_all(pool).await?;
 
+    // Collect task IDs to fetch assignees in one batch query
+    let task_ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
+
+    // Fetch all assignees for the task IDs
+    let mut assignee_map: std::collections::HashMap<Uuid, Vec<EisenhowerAssignee>> =
+        std::collections::HashMap::new();
+
+    if !task_ids.is_empty() {
+        let assignee_rows = sqlx::query_as::<_, AssigneeRow>(
+            r#"
+            SELECT ta.task_id, ta.user_id, u.name as display_name, u.avatar_url
+            FROM task_assignees ta
+            INNER JOIN users u ON ta.user_id = u.id
+            WHERE ta.task_id = ANY($1)
+            ORDER BY ta.created_at ASC
+            "#,
+        )
+        .bind(&task_ids)
+        .fetch_all(pool)
+        .await?;
+
+        for arow in assignee_rows {
+            assignee_map
+                .entry(arow.task_id)
+                .or_default()
+                .push(EisenhowerAssignee {
+                    id: arow.user_id,
+                    display_name: arow.display_name,
+                    avatar_url: arow.avatar_url,
+                });
+        }
+    }
+
     // Group tasks by quadrant
     let mut do_first = Vec::new();
     let mut schedule = Vec::new();
@@ -198,6 +249,8 @@ pub async fn get_eisenhower_matrix(
 
         let quadrant = determine_quadrant(urgent, important);
 
+        let assignees = assignee_map.remove(&row.id).unwrap_or_default();
+
         let task = EisenhowerTaskItem {
             id: row.id,
             title: row.title,
@@ -213,6 +266,7 @@ pub async fn get_eisenhower_matrix(
             eisenhower_urgency: row.eisenhower_urgency,
             eisenhower_importance: row.eisenhower_importance,
             quadrant,
+            assignees,
             created_at: row.created_at,
             updated_at: row.updated_at,
         };

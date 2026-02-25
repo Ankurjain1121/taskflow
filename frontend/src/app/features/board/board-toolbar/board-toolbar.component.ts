@@ -216,6 +216,56 @@ const DEFAULT_FILTERS: TaskFilters = {
           </div>
         }
 
+        <!-- Card Density Toggle -->
+        <div class="flex items-center gap-1 ml-auto">
+          <button
+            (click)="densityChanged.emit('compact')"
+            class="p-1.5 rounded transition-colors"
+            [class.bg-primary]="density() === 'compact'"
+            [class.text-primary-foreground]="density() === 'compact'"
+            [class.text-muted-foreground]="density() !== 'compact'"
+            [class.hover:bg-muted]="density() !== 'compact'"
+            title="Compact view"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+          <button
+            (click)="densityChanged.emit('normal')"
+            class="p-1.5 rounded transition-colors"
+            [class.bg-primary]="density() === 'normal'"
+            [class.text-primary-foreground]="density() === 'normal'"
+            [class.text-muted-foreground]="density() !== 'normal'"
+            [class.hover:bg-muted]="density() !== 'normal'"
+            title="Normal view"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 5h16a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V6a1 1 0 011-1zM4 14h16a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3a1 1 0 011-1z"
+              />
+            </svg>
+          </button>
+        </div>
+
         <!-- View Toggle -->
         <p-selectButton
           [options]="viewModeOptions"
@@ -223,7 +273,6 @@ const DEFAULT_FILTERS: TaskFilters = {
           (ngModelChange)="viewModeChanged.emit($event)"
           optionLabel="icon"
           optionValue="value"
-          class="ml-auto"
         >
           <ng-template #item let-item>
             <i [class]="item.icon" [title]="item.tooltip"></i>
@@ -307,9 +356,11 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
   assignees = input<Assignee[]>([]);
   labels = input<Label[]>([]);
   viewMode = input<ViewMode>('kanban');
+  density = input<'compact' | 'normal'>('normal');
 
   filtersChanged = output<TaskFilters>();
   viewModeChanged = output<ViewMode>();
+  densityChanged = output<'compact' | 'normal'>();
 
   searchTerm = signal('');
   filters = signal<TaskFilters>({ ...DEFAULT_FILTERS });
