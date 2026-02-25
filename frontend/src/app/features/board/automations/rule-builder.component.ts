@@ -193,7 +193,10 @@ interface ActionFormItem {
               }
               @case ('due_date_approaching') {
                 <div>
-                  <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Days Before Due Date</label>
+                  <label
+                    class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                    >Days Before Due Date</label
+                  >
                   <input
                     type="number"
                     [(ngModel)]="triggerConfigDaysBefore"
@@ -205,7 +208,10 @@ interface ActionFormItem {
               }
               @case ('label_changed') {
                 <div>
-                  <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Label Name (optional filter)</label>
+                  <label
+                    class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                    >Label Name (optional filter)</label
+                  >
                   <input
                     type="text"
                     [(ngModel)]="triggerConfigLabelName"
@@ -216,7 +222,10 @@ interface ActionFormItem {
               }
               @case ('custom_field_changed') {
                 <div>
-                  <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Field Name (optional filter)</label>
+                  <label
+                    class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                    >Field Name (optional filter)</label
+                  >
                   <input
                     type="text"
                     [(ngModel)]="triggerConfigFieldName"
@@ -315,7 +324,9 @@ interface ActionFormItem {
                           >
                           <input
                             type="text"
-                            [ngModel]="action.action_config.target_column || ''"
+                            [ngModel]="
+                              action.action_config['target_column'] || ''
+                            "
                             (ngModelChange)="
                               updateActionConfig(i, 'target_column', $event)
                             "
@@ -332,7 +343,9 @@ interface ActionFormItem {
                           >
                           <input
                             type="text"
-                            [ngModel]="action.action_config.assignee_id || ''"
+                            [ngModel]="
+                              action.action_config['assignee_id'] || ''
+                            "
                             (ngModelChange)="
                               updateActionConfig(i, 'assignee_id', $event)
                             "
@@ -348,7 +361,7 @@ interface ActionFormItem {
                             >Priority</label
                           >
                           <select
-                            [ngModel]="action.action_config.priority || ''"
+                            [ngModel]="action.action_config['priority'] || ''"
                             (ngModelChange)="
                               updateActionConfig(i, 'priority', $event)
                             "
@@ -369,7 +382,7 @@ interface ActionFormItem {
                           >
                           <input
                             type="text"
-                            [ngModel]="action.action_config.message || ''"
+                            [ngModel]="action.action_config['message'] || ''"
                             (ngModelChange)="
                               updateActionConfig(i, 'message', $event)
                             "
@@ -386,7 +399,7 @@ interface ActionFormItem {
                           >
                           <input
                             type="text"
-                            [ngModel]="action.action_config.label || ''"
+                            [ngModel]="action.action_config['label'] || ''"
                             (ngModelChange)="
                               updateActionConfig(i, 'label', $event)
                             "
@@ -403,7 +416,9 @@ interface ActionFormItem {
                           >
                           <input
                             type="text"
-                            [ngModel]="action.action_config.milestone_id || ''"
+                            [ngModel]="
+                              action.action_config['milestone_id'] || ''
+                            "
                             (ngModelChange)="
                               updateActionConfig(i, 'milestone_id', $event)
                             "
@@ -414,11 +429,18 @@ interface ActionFormItem {
                       }
                       @case ('create_subtask') {
                         <div>
-                          <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Subtask Title</label>
+                          <label
+                            class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                            >Subtask Title</label
+                          >
                           <input
                             type="text"
-                            [ngModel]="action.action_config['subtask_title'] || ''"
-                            (ngModelChange)="updateActionConfig(i, 'subtask_title', $event)"
+                            [ngModel]="
+                              action.action_config['subtask_title'] || ''
+                            "
+                            (ngModelChange)="
+                              updateActionConfig(i, 'subtask_title', $event)
+                            "
                             placeholder="e.g., Review code changes"
                             class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                           />
@@ -426,10 +448,17 @@ interface ActionFormItem {
                       }
                       @case ('add_comment') {
                         <div>
-                          <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Comment Text</label>
+                          <label
+                            class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                            >Comment Text</label
+                          >
                           <textarea
-                            [ngModel]="action.action_config['comment_text'] || ''"
-                            (ngModelChange)="updateActionConfig(i, 'comment_text', $event)"
+                            [ngModel]="
+                              action.action_config['comment_text'] || ''
+                            "
+                            (ngModelChange)="
+                              updateActionConfig(i, 'comment_text', $event)
+                            "
                             placeholder="Comment to add..."
                             rows="2"
                             class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
@@ -438,11 +467,18 @@ interface ActionFormItem {
                       }
                       @case ('set_due_date') {
                         <div>
-                          <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Days From Now</label>
+                          <label
+                            class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                            >Days From Now</label
+                          >
                           <input
                             type="number"
-                            [ngModel]="action.action_config['days_from_now'] || ''"
-                            (ngModelChange)="updateActionConfig(i, 'days_from_now', $event)"
+                            [ngModel]="
+                              action.action_config['days_from_now'] || ''
+                            "
+                            (ngModelChange)="
+                              updateActionConfig(i, 'days_from_now', $event)
+                            "
                             placeholder="e.g., 7"
                             min="0"
                             class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
@@ -452,21 +488,35 @@ interface ActionFormItem {
                       @case ('set_custom_field') {
                         <div class="grid grid-cols-2 gap-3">
                           <div>
-                            <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Field Name</label>
+                            <label
+                              class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                              >Field Name</label
+                            >
                             <input
                               type="text"
-                              [ngModel]="action.action_config['field_name'] || ''"
-                              (ngModelChange)="updateActionConfig(i, 'field_name', $event)"
+                              [ngModel]="
+                                action.action_config['field_name'] || ''
+                              "
+                              (ngModelChange)="
+                                updateActionConfig(i, 'field_name', $event)
+                              "
                               placeholder="Field name"
                               class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                             />
                           </div>
                           <div>
-                            <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Field Value</label>
+                            <label
+                              class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                              >Field Value</label
+                            >
                             <input
                               type="text"
-                              [ngModel]="action.action_config['field_value'] || ''"
-                              (ngModelChange)="updateActionConfig(i, 'field_value', $event)"
+                              [ngModel]="
+                                action.action_config['field_value'] || ''
+                              "
+                              (ngModelChange)="
+                                updateActionConfig(i, 'field_value', $event)
+                              "
                               placeholder="Value"
                               class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                             />
@@ -476,20 +526,34 @@ interface ActionFormItem {
                       @case ('send_webhook') {
                         <div class="space-y-2">
                           <div>
-                            <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Webhook URL</label>
+                            <label
+                              class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                              >Webhook URL</label
+                            >
                             <input
                               type="text"
-                              [ngModel]="action.action_config['webhook_url'] || ''"
-                              (ngModelChange)="updateActionConfig(i, 'webhook_url', $event)"
+                              [ngModel]="
+                                action.action_config['webhook_url'] || ''
+                              "
+                              (ngModelChange)="
+                                updateActionConfig(i, 'webhook_url', $event)
+                              "
                               placeholder="https://example.com/webhook"
                               class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                             />
                           </div>
                           <div>
-                            <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">HTTP Method</label>
+                            <label
+                              class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                              >HTTP Method</label
+                            >
                             <select
-                              [ngModel]="action.action_config['method'] || 'POST'"
-                              (ngModelChange)="updateActionConfig(i, 'method', $event)"
+                              [ngModel]="
+                                action.action_config['method'] || 'POST'
+                              "
+                              (ngModelChange)="
+                                updateActionConfig(i, 'method', $event)
+                              "
                               class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
                             >
                               <option value="GET">GET</option>
@@ -551,7 +615,6 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
   triggerConfigDaysBefore = '';
   triggerConfigLabelName = '';
   triggerConfigFieldName = '';
-
 
   saving = signal(false);
 
@@ -828,7 +891,8 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
       case 'due_date_approaching': {
         const config: Record<string, unknown> = {};
         if (this.triggerConfigDaysBefore.toString().trim())
-          config['days_before'] = parseInt(this.triggerConfigDaysBefore.toString(), 10) || 1;
+          config['days_before'] =
+            parseInt(this.triggerConfigDaysBefore.toString(), 10) || 1;
         return config;
       }
       case 'label_changed': {

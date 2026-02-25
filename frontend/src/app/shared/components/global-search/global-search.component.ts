@@ -1,8 +1,7 @@
 import {
   Component,
-  Input,
-  Output,
-  EventEmitter,
+  input,
+  output,
   signal,
   computed,
   inject,
@@ -52,7 +51,7 @@ const MAX_RECENT_SEARCHES = 5;
   imports: [CommonModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (isOpen) {
+    @if (isOpen()) {
       <!-- Backdrop -->
       <div
         class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-center pt-[15vh]"
@@ -519,8 +518,8 @@ const MAX_RECENT_SEARCHES = 5;
   `,
 })
 export class GlobalSearchComponent implements OnInit, OnDestroy {
-  @Input() isOpen = false;
-  @Output() closed = new EventEmitter<void>();
+  isOpen = input(false);
+  closed = output<void>();
 
   @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
 
@@ -593,10 +592,11 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
   private injector = inject(Injector);
 
   ngOnInit(): void {
-    // Focus input when dialog opens
+    // Focus input when dialog opens, reset state when closed
     effect(
       () => {
-        if (this.isOpen) {
+        const open = this.isOpen();
+        if (open) {
           untracked(() => {
             // Use setTimeout to wait for the DOM to render
             setTimeout(() => {
@@ -683,7 +683,7 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
   }
 
   close(): void {
-    this.closed.emit();
+    this.closed.emit(undefined);
   }
 
   onRecentClick(query: string): void {

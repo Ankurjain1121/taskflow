@@ -16,7 +16,6 @@ import {
   Workspace,
 } from '../../../core/services/workspace.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { ThemeService, Theme } from '../../../core/services/theme.service';
 import {
   CreateWorkspaceDialogComponent,
   CreateWorkspaceDialogResult,
@@ -96,11 +95,6 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
       .divider {
         height: 1px;
         background: var(--sidebar-border);
-      }
-
-      .user-section {
-        background: var(--sidebar-surface);
-        border-top: 1px solid var(--sidebar-border);
       }
 
       .collapsed-icon-btn {
@@ -508,114 +502,6 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
           ></i>
         </button>
       </div>
-
-      <!-- User Profile Section -->
-      <div class="user-section px-3 py-2.5" [class.px-2]="collapsed()">
-        @if (currentUser(); as user) {
-          @if (!collapsed()) {
-            <div class="flex items-center gap-2.5">
-              <!-- Avatar -->
-              <div class="flex-shrink-0">
-                @if (user.avatar_url) {
-                  <img
-                    [src]="user.avatar_url"
-                    [alt]="user.name"
-                    class="w-8 h-8 rounded-full object-cover"
-                    style="border: 2px solid var(--sidebar-border)"
-                  />
-                } @else {
-                  <div
-                    class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"
-                    style="border: 2px solid var(--sidebar-border)"
-                  >
-                    <span class="text-xs font-medium text-white">{{
-                      user.name?.charAt(0)?.toUpperCase() || 'U'
-                    }}</span>
-                  </div>
-                }
-              </div>
-              <!-- User Info -->
-              <div class="flex-1 min-w-0">
-                <p
-                  class="text-sm font-medium truncate"
-                  style="color: var(--sidebar-text-primary)"
-                >
-                  {{ user.name }}
-                </p>
-                <p
-                  class="text-xs truncate"
-                  style="color: var(--sidebar-text-muted)"
-                >
-                  {{ user.email }}
-                </p>
-              </div>
-              <!-- Theme Toggle -->
-              <button
-                (click)="cycleTheme()"
-                class="p-1.5 rounded-md transition-colors"
-                style="color: var(--sidebar-text-muted)"
-                [title]="'Theme: ' + themeLabel"
-              >
-                <i
-                  [class]="
-                    'pi ' +
-                    themeIcon +
-                    ' text-sm hover:text-primary transition-colors'
-                  "
-                ></i>
-              </button>
-              <!-- Sign Out -->
-              <button
-                (click)="onSignOut()"
-                class="p-1.5 rounded-md transition-colors"
-                style="color: var(--sidebar-text-muted)"
-                title="Sign out"
-              >
-                <i
-                  class="pi pi-sign-out text-sm hover:text-red-400 transition-colors"
-                ></i>
-              </button>
-            </div>
-          } @else {
-            <div class="flex flex-col items-center gap-1">
-              <button
-                (click)="onSignOut()"
-                class="rounded-full"
-                pTooltip="Sign out"
-                tooltipPosition="right"
-              >
-                @if (user.avatar_url) {
-                  <img
-                    [src]="user.avatar_url"
-                    [alt]="user.name"
-                    class="w-7 h-7 rounded-full object-cover"
-                    style="border: 2px solid var(--sidebar-border)"
-                  />
-                } @else {
-                  <div
-                    class="w-7 h-7 rounded-full bg-primary flex items-center justify-center"
-                    style="border: 2px solid var(--sidebar-border)"
-                  >
-                    <span class="text-xs font-medium text-white">{{
-                      user.name?.charAt(0)?.toUpperCase() || 'U'
-                    }}</span>
-                  </div>
-                }
-              </button>
-              <button
-                (click)="cycleTheme()"
-                class="collapsed-icon-btn mt-1"
-                [pTooltip]="'Theme: ' + themeLabel"
-                tooltipPosition="right"
-              >
-                <i
-                  [class]="'pi ' + themeIcon + ' sidebar-icon-color text-sm'"
-                ></i>
-              </button>
-            </div>
-          }
-        }
-      </div>
     </aside>
 
     <!-- Create Workspace Dialog -->
@@ -636,7 +522,6 @@ export class SidebarComponent implements OnInit {
 
   private workspaceService = inject(WorkspaceService);
   private authService = inject(AuthService);
-  private themeService = inject(ThemeService);
   private router = inject(Router);
 
   constructor() {
@@ -692,27 +577,6 @@ export class SidebarComponent implements OnInit {
         // Error handling - workspace creation failed
       },
     });
-  }
-
-  get themeIcon(): string {
-    const t = this.themeService.theme();
-    return t === 'light' ? 'pi-sun' : t === 'dark' ? 'pi-moon' : 'pi-desktop';
-  }
-
-  get themeLabel(): string {
-    const t = this.themeService.theme();
-    return t === 'light' ? 'Light' : t === 'dark' ? 'Dark' : 'System';
-  }
-
-  cycleTheme(): void {
-    const current = this.themeService.theme();
-    const next: Theme =
-      current === 'light' ? 'dark' : current === 'dark' ? 'system' : 'light';
-    this.themeService.setTheme(next);
-  }
-
-  onSignOut(): void {
-    this.authService.signOut();
   }
 
   private loadWorkspaces(): void {
