@@ -9,21 +9,13 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
-import {
-  CdkDropListGroup,
-  CdkDropList,
-  CdkDrag,
-  CdkDragDrop,
-  CdkDragHandle,
-  moveItemInArray,
-} from '@angular/cdk/drag-drop';
+import { Subject, takeUntil, switchMap } from 'rxjs';
+import { CdkDropListGroup } from '@angular/cdk/drag-drop';
 
 import { Task, TaskService } from '../../../core/services/task.service';
-import { BoardService, Column } from '../../../core/services/board.service';
+import { BoardService } from '../../../core/services/board.service';
 import { TaskGroupWithStats } from '../../../core/services/task-group.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
-import { FavoritesService } from '../../../core/services/favorites.service';
 
 import {
   CreateTaskDialogComponent,
@@ -66,7 +58,16 @@ import { BoardStateService } from './board-state.service';
 import { BoardWebsocketHandler } from './board-websocket.handler';
 import { BoardDragDropHandler } from './board-drag-drop.handler';
 import { UndoService } from '../../../shared/services/undo.service';
-import { MessageService } from 'primeng/api';
+import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
+import { Menu } from 'primeng/menu';
+import { ImportDialogComponent } from '../import-export/import-dialog.component';
+import { ExportDialogComponent } from '../import-export/export-dialog.component';
+import { Dialog } from 'primeng/dialog';
+import { ConfirmDialog } from 'primeng/confirmdialog';
+import { InputTextModule } from 'primeng/inputtext';
+import { InputNumber } from 'primeng/inputnumber';
+import { ButtonModule } from 'primeng/button';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-board-view',
@@ -74,10 +75,8 @@ import { MessageService } from 'primeng/api';
   imports: [
     CommonModule,
     RouterModule,
+    FormsModule,
     CdkDropListGroup,
-    CdkDropList,
-    CdkDrag,
-    CdkDragHandle,
     CreateTaskDialogComponent,
     CreateColumnDialogComponent,
     CreateTaskGroupDialogComponent,
@@ -92,6 +91,14 @@ import { MessageService } from 'primeng/api';
     BulkActionsBarComponent,
     TaskGroupHeaderComponent,
     ShortcutHelpComponent,
+    Menu,
+    ImportDialogComponent,
+    ExportDialogComponent,
+    Dialog,
+    ConfirmDialog,
+    InputTextModule,
+    InputNumber,
+    ButtonModule,
   ],
   providers: [
     BoardShortcutsService,
@@ -99,6 +106,7 @@ import { MessageService } from 'primeng/api';
     BoardStateService,
     BoardWebsocketHandler,
     BoardDragDropHandler,
+    ConfirmationService,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -107,46 +115,9 @@ import { MessageService } from 'primeng/api';
       <div class="bg-[var(--card)] border-b border-[var(--border)] px-6 py-4">
         <div class="flex items-center justify-between">
           <div>
-            <div class="flex items-center gap-2">
-              <h1 class="text-2xl font-bold text-[var(--foreground)]">
-                {{ state.board()?.name || 'Loading...' }}
-              </h1>
-              @if (state.board()) {
-                <button
-                  (click)="toggleFavorite()"
-                  class="p-1 rounded hover:bg-[var(--muted)] transition-colors"
-                  [title]="
-                    isFavorited() ? 'Remove from favorites' : 'Add to favorites'
-                  "
-                >
-                  @if (isFavorited()) {
-                    <svg
-                      class="w-5 h-5 text-yellow-500"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
-                      />
-                    </svg>
-                  } @else {
-                    <svg
-                      class="w-5 h-5 text-[var(--muted-foreground)]"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-                      />
-                    </svg>
-                  }
-                </button>
-              }
-            </div>
+            <h1 class="text-2xl font-bold text-[var(--foreground)]">
+              {{ state.board()?.name || 'Loading...' }}
+            </h1>
             @if (state.board()?.description) {
               <p class="text-sm text-[var(--muted-foreground)] mt-1">
                 {{ state.board()?.description }}
@@ -186,6 +157,15 @@ import { MessageService } from 'primeng/api';
               </svg>
               Settings
             </a>
+
+            <!-- More Menu -->
+            <button
+              (click)="moreMenu.toggle($event)"
+              class="inline-flex items-center justify-center w-9 h-9 text-[var(--foreground)] bg-[var(--card)] border border-[var(--border)] rounded-md hover:bg-[var(--muted)]"
+            >
+              <i class="pi pi-ellipsis-v text-sm"></i>
+            </button>
+            <p-menu #moreMenu [popup]="true" [model]="moreMenuItems" />
 
             <!-- Add Group Button -->
             <button
@@ -238,10 +218,8 @@ import { MessageService } from 'primeng/api';
         [assignees]="state.allAssignees()"
         [labels]="state.allLabels()"
         [viewMode]="viewMode()"
-        [density]="state.cardDensity()"
         (filtersChanged)="onFiltersChanged($event)"
         (viewModeChanged)="onViewModeChanged($event)"
-        (densityChanged)="state.setCardDensity($event)"
       ></app-board-toolbar>
 
       <!-- Task Group Headers -->
@@ -330,32 +308,40 @@ import { MessageService } from 'primeng/api';
         </div>
       } @else {
         <!-- Kanban Board -->
-        @if (state.columns().length === 0) {
-          <div class="flex-1 flex items-center justify-center">
-            <div class="text-center max-w-md">
-              <svg
-                class="w-16 h-16 mx-auto mb-4 text-[var(--muted-foreground)]"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1.5"
-                  d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"
-                />
-              </svg>
-              <h3 class="text-lg font-semibold text-[var(--foreground)] mb-2">
-                No columns yet
-              </h3>
-              <p class="text-sm text-[var(--muted-foreground)] mb-6">
-                Create your first column to start organizing tasks on this
-                board.
-              </p>
+        <div class="flex-1 overflow-x-auto p-4" cdkDropListGroup>
+          <div class="flex gap-2 h-full">
+            @for (column of state.columns(); track column.id) {
+              <app-kanban-column
+                [column]="column"
+                [tasks]="getFilteredTasksForColumn(column.id)"
+                [connectedLists]="state.connectedColumnIds()"
+                [celebratingTaskId]="state.celebratingTaskId()"
+                [focusedTaskId]="state.focusedTaskId()"
+                [selectedTaskIds]="state.selectedTaskIds()"
+                [allColumns]="state.columns()"
+                [boardPrefix]="state.board()?.prefix ?? null"
+                [isCollapsed]="state.isColumnCollapsed(column.id)"
+                (taskMoved)="onTaskMoved($event)"
+                (taskClicked)="onTaskClicked($event)"
+                (addTaskClicked)="onAddTaskToColumn($event)"
+                (selectionToggled)="onSelectionToggled($event)"
+                (priorityChanged)="onCardPriorityChanged($event)"
+                (columnMoveRequested)="onCardColumnMove($event)"
+                (duplicateRequested)="onCardDuplicate($event)"
+                (deleteRequested)="onCardDelete($event)"
+                (quickTaskCreated)="onQuickTaskCreated($event)"
+                (collapseToggled)="onColumnCollapseToggled($event)"
+                (renameRequested)="onColumnRenameRequested($event)"
+                (wipLimitRequested)="onColumnWipLimitRequested($event)"
+                (columnDeleteRequested)="onColumnDeleteRequested($event)"
+              ></app-kanban-column>
+            }
+
+            <!-- Add Column Button -->
+            <div class="flex-shrink-0">
               <button
                 (click)="onAddColumn()"
-                class="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] rounded-lg hover:opacity-90"
+                class="w-[272px] h-12 flex items-center justify-center gap-2 bg-[var(--secondary)] hover:bg-[var(--muted)] rounded-lg text-[var(--muted-foreground)] transition-colors"
               >
                 <svg
                   class="w-5 h-5"
@@ -370,74 +356,11 @@ import { MessageService } from 'primeng/api';
                     d="M12 4v16m8-8H4"
                   />
                 </svg>
-                Create Your First Column
+                Add Column
               </button>
             </div>
           </div>
-        } @else {
-          <div class="flex-1 overflow-x-auto p-4" cdkDropListGroup>
-            <div
-              class="flex gap-2 h-full"
-              cdkDropList
-              [cdkDropListData]="state.columns()"
-              cdkDropListOrientation="horizontal"
-              (cdkDropListDropped)="onColumnDropped($event)"
-            >
-              @for (column of state.columns(); track column.id) {
-                <div cdkDrag [cdkDragData]="column">
-                  <app-kanban-column
-                    [column]="column"
-                    [tasks]="getFilteredTasksForColumn(column.id)"
-                    [connectedLists]="state.connectedColumnIds()"
-                    [celebratingTaskId]="state.celebratingTaskId()"
-                    [focusedTaskId]="state.focusedTaskId()"
-                    [selectedTaskIds]="state.selectedTaskIds()"
-                    [allColumns]="state.columns()"
-                    [boardPrefix]="state.board()?.prefix ?? null"
-                    [isCollapsed]="state.isColumnCollapsed(column.id)"
-                    [density]="state.cardDensity()"
-                    (taskMoved)="onTaskMoved($event)"
-                    (taskClicked)="onTaskClicked($event)"
-                    (addTaskClicked)="onAddTaskToColumn($event)"
-                    (selectionToggled)="onSelectionToggled($event)"
-                    (priorityChanged)="onCardPriorityChanged($event)"
-                    (columnMoveRequested)="onCardColumnMove($event)"
-                    (duplicateRequested)="onCardDuplicate($event)"
-                    (deleteRequested)="onCardDelete($event)"
-                    (quickTaskCreated)="onQuickTaskCreated($event)"
-                    (collapseToggled)="onColumnCollapseToggled($event)"
-                    (renameRequested)="onColumnRename($event)"
-                    (wipLimitRequested)="onColumnWipLimitEdit($event)"
-                    (deleteColumnRequested)="onColumnDelete($event)"
-                  ></app-kanban-column>
-                </div>
-              }
-
-              <!-- Add Column Button -->
-              <div class="flex-shrink-0" cdkDrag [cdkDragDisabled]="true">
-                <button
-                  (click)="onAddColumn()"
-                  class="w-[272px] h-12 flex items-center justify-center gap-2 bg-[var(--secondary)] hover:bg-[var(--muted)] rounded-lg text-[var(--muted-foreground)] transition-colors"
-                >
-                  <svg
-                    class="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
-                  Add Column
-                </button>
-              </div>
-            </div>
-          </div>
-        }
+        </div>
       }
 
       <!-- Task Detail Panel -->
@@ -446,7 +369,6 @@ import { MessageService } from 'primeng/api';
           [taskId]="state.selectedTaskId()!"
           [workspaceId]="workspaceId"
           [boardId]="boardId"
-          [availableLabels]="state.allLabels()"
           (closed)="closeTaskDetail()"
           (taskUpdated)="onTaskUpdated($event)"
         ></app-task-detail>
@@ -492,6 +414,91 @@ import { MessageService } from 'primeng/api';
         (created)="onCreateGroupResult($event)"
       />
 
+      <!-- Column Rename Dialog -->
+      <p-dialog
+        header="Rename Column"
+        [(visible)]="showRenameDialog"
+        [modal]="true"
+        [style]="{ width: '400px' }"
+      >
+        <div class="flex flex-col gap-3">
+          <label class="text-sm font-medium text-[var(--foreground)]"
+            >Column name</label
+          >
+          <input
+            pInputText
+            [(ngModel)]="renameDialogValue"
+            placeholder="Column name"
+            class="w-full"
+            (keydown.enter)="confirmRename()"
+          />
+        </div>
+        <ng-template #footer>
+          <p-button
+            label="Cancel"
+            severity="secondary"
+            [text]="true"
+            (onClick)="showRenameDialog = false"
+          />
+          <p-button
+            label="Rename"
+            icon="pi pi-check"
+            (onClick)="confirmRename()"
+            [disabled]="!renameDialogValue.trim()"
+          />
+        </ng-template>
+      </p-dialog>
+
+      <!-- WIP Limit Dialog -->
+      <p-dialog
+        header="Set WIP Limit"
+        [(visible)]="showWipLimitDialog"
+        [modal]="true"
+        [style]="{ width: '400px' }"
+      >
+        <div class="flex flex-col gap-3">
+          <label class="text-sm font-medium text-[var(--foreground)]">
+            Maximum tasks in this column (0 = no limit)
+          </label>
+          <p-inputNumber
+            [(ngModel)]="wipLimitDialogValue"
+            [min]="0"
+            [max]="999"
+            [showButtons]="true"
+            placeholder="No limit"
+            inputStyleClass="w-full"
+          />
+        </div>
+        <ng-template #footer>
+          <p-button
+            label="Cancel"
+            severity="secondary"
+            [text]="true"
+            (onClick)="showWipLimitDialog = false"
+          />
+          <p-button
+            label="Save"
+            icon="pi pi-check"
+            (onClick)="confirmWipLimit()"
+          />
+        </ng-template>
+      </p-dialog>
+
+      <!-- Import/Export Dialogs -->
+      <app-import-dialog
+        [(visible)]="showImportDialog"
+        [boardId]="boardId"
+        [boardName]="state.board()?.name || ''"
+      />
+      <app-export-dialog
+        [(visible)]="showExportDialog"
+        [boardId]="boardId"
+        [boardName]="state.board()?.name || ''"
+      />
+
+      <!-- Column Delete Confirmation -->
+      <p-confirmDialog />
+
       <!-- Snackbar for errors -->
       @if (state.errorMessage()) {
         <div
@@ -528,9 +535,9 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   private dragDrop = inject(BoardDragDropHandler);
   private taskService = inject(TaskService);
   private boardService = inject(BoardService);
-  private favoritesService = inject(FavoritesService);
   private undoService = inject(UndoService);
   private messageService = inject(MessageService);
+  private confirmationService = inject(ConfirmationService);
   readonly state = inject(BoardStateService);
   private destroy$ = new Subject<void>();
 
@@ -538,7 +545,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   boardId = '';
 
   viewMode = signal<ViewMode>('kanban');
-  isFavorited = signal(false);
 
   // Dialog visibility state
   showCreateTaskDialog = false;
@@ -554,12 +560,27 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   showCreateColumnDialog = false;
   showCreateGroupDialog = false;
 
+  // Column operation dialogs
+  showRenameDialog = false;
+  renameDialogColumnId = '';
+  renameDialogValue = '';
+
+  showWipLimitDialog = false;
+  wipLimitDialogColumnId = '';
+  wipLimitDialogValue: number | null = null;
+
+  // Import/Export dialogs
+  showImportDialog = false;
+  showExportDialog = false;
+
+  // More menu items
+  moreMenuItems: MenuItem[] = [];
+
   ngOnInit(): void {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
       this.workspaceId = params['workspaceId'];
       this.boardId = params['boardId'];
       this.state.loadBoard(this.boardId, this.destroy$);
-      this.checkFavoriteStatus();
     });
 
     this.wsService.connect();
@@ -568,6 +589,8 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       .subscribe((message) => {
         this.wsHandler.handleMessage(message);
       });
+
+    this.buildMoreMenuItems();
 
     this.shortcutsService.registerShortcuts({
       createTask: () => this.onCreateTask(),
@@ -608,7 +631,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   onListTaskClicked(taskId: string): void {
-    this.state.selectedTaskId.set(taskId);
+    this.router.navigate(['/task', taskId]);
   }
 
   onTaskMoved(event: TaskMoveEvent): void {
@@ -616,7 +639,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   onTaskClicked(task: Task): void {
-    this.state.selectedTaskId.set(task.id);
+    this.router.navigate(['/task', task.id]);
   }
 
   closeTaskDetail(): void {
@@ -625,114 +648,6 @@ export class BoardViewComponent implements OnInit, OnDestroy {
 
   onTaskUpdated(task: Task): void {
     this.state.updateTaskInState(task);
-  }
-
-  // === Column Drag-Reorder ===
-
-  onColumnDropped(event: CdkDragDrop<Column[]>): void {
-    if (event.previousIndex === event.currentIndex) return;
-
-    const columns = [...this.state.columns()];
-    moveItemInArray(columns, event.previousIndex, event.currentIndex);
-    this.state.columns.set(columns);
-
-    const movedColumn = columns[event.currentIndex];
-    this.boardService
-      .reorderColumn(movedColumn.id, { new_index: event.currentIndex })
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        error: () => {
-          this.state.loadBoard(this.boardId, this.destroy$);
-          this.state.showError('Failed to reorder column');
-        },
-      });
-  }
-
-  // === Column Header Menu Actions ===
-
-  onColumnRename(columnId: string): void {
-    const column = this.state.columns().find((c) => c.id === columnId);
-    if (!column) return;
-    const newName = prompt('Rename column:', column.name);
-    if (newName && newName.trim() && newName !== column.name) {
-      this.boardService
-        .renameColumn(columnId, newName.trim())
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (updated) => {
-            this.state.columns.update((cols) =>
-              cols.map((c) =>
-                c.id === updated.id ? { ...c, name: updated.name } : c,
-              ),
-            );
-          },
-          error: () => this.state.showError('Failed to rename column'),
-        });
-    }
-  }
-
-  onColumnWipLimitEdit(columnId: string): void {
-    const column = this.state.columns().find((c) => c.id === columnId);
-    if (!column) return;
-    const current = column.wip_limit?.toString() ?? '';
-    const userInput = prompt(
-      'Set WIP limit (leave empty for no limit):',
-      current,
-    );
-    if (userInput === null) return;
-    const wipLimit =
-      userInput.trim() === '' ? null : parseInt(userInput.trim(), 10);
-    if (wipLimit !== null && (isNaN(wipLimit) || wipLimit < 1)) {
-      this.state.showError('WIP limit must be a positive number');
-      return;
-    }
-    this.boardService
-      .updateColumnWipLimit(columnId, wipLimit)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (updated) => {
-          this.state.columns.update((cols) =>
-            cols.map((c) => (c.id === updated.id ? updated : c)),
-          );
-        },
-        error: () => this.state.showError('Failed to update WIP limit'),
-      });
-  }
-
-  onColumnDelete(columnId: string): void {
-    if (confirm('Delete this column? Columns with tasks cannot be deleted.')) {
-      this.state.deleteColumn(this.boardId, columnId);
-    }
-  }
-
-  // === Board Favorite ===
-
-  private checkFavoriteStatus(): void {
-    this.favoritesService
-      .check('board', this.boardId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (res) => this.isFavorited.set(res.favorited),
-      });
-  }
-
-  toggleFavorite(): void {
-    const wasFavorited = this.isFavorited();
-    this.isFavorited.set(!wasFavorited);
-
-    const action$ = wasFavorited
-      ? this.favoritesService.remove('board', this.boardId)
-      : this.favoritesService.add({
-          entity_type: 'board',
-          entity_id: this.boardId,
-        });
-
-    action$.pipe(takeUntil(this.destroy$)).subscribe({
-      error: () => {
-        this.isFavorited.set(wasFavorited);
-        this.state.showError('Failed to update favorite');
-      },
-    });
   }
 
   // === Create Task Dialog ===
@@ -949,12 +864,123 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     this.state.toggleColumnCollapse(this.boardId, columnId);
   }
 
+  // === Column Operations (PrimeNG Dialogs) ===
+
+  onColumnRenameRequested(columnId: string): void {
+    const column = this.state.columns().find((c) => c.id === columnId);
+    if (!column) return;
+    this.renameDialogColumnId = columnId;
+    this.renameDialogValue = column.name;
+    this.showRenameDialog = true;
+  }
+
+  confirmRename(): void {
+    const name = this.renameDialogValue.trim();
+    if (!name) return;
+
+    this.boardService
+      .updateColumn(this.renameDialogColumnId, { name })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (updatedColumn) => {
+          this.state.columns.update((cols) =>
+            cols.map((c) => (c.id === updatedColumn.id ? updatedColumn : c)),
+          );
+        },
+        error: () => this.state.showError('Failed to rename column'),
+      });
+
+    this.showRenameDialog = false;
+  }
+
+  onColumnWipLimitRequested(columnId: string): void {
+    const column = this.state.columns().find((c) => c.id === columnId);
+    if (!column) return;
+    this.wipLimitDialogColumnId = columnId;
+    this.wipLimitDialogValue = column.wip_limit;
+    this.showWipLimitDialog = true;
+  }
+
+  confirmWipLimit(): void {
+    const wipLimit =
+      this.wipLimitDialogValue && this.wipLimitDialogValue > 0
+        ? this.wipLimitDialogValue
+        : null;
+
+    this.boardService
+      .updateColumn(this.wipLimitDialogColumnId, { wip_limit: wipLimit })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (updatedColumn) => {
+          this.state.columns.update((cols) =>
+            cols.map((c) => (c.id === updatedColumn.id ? updatedColumn : c)),
+          );
+        },
+        error: () => this.state.showError('Failed to update WIP limit'),
+      });
+
+    this.showWipLimitDialog = false;
+  }
+
+  onColumnDeleteRequested(columnId: string): void {
+    const column = this.state.columns().find((c) => c.id === columnId);
+    if (!column) return;
+
+    this.confirmationService.confirm({
+      message: `Delete column "${column.name}"? Tasks in this column must be moved first.`,
+      header: 'Delete Column',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => {
+        this.state.deleteColumn(this.boardId, columnId);
+      },
+    });
+  }
+
   onQuickTaskCreated(event: { columnId: string; title: string }): void {
     this.state.createTask(this.boardId, event.columnId, {
       title: event.title,
       description: '',
       priority: 'medium',
     } as CreateTaskDialogResult);
+  }
+
+  // === More Menu ===
+
+  private buildMoreMenuItems(): void {
+    this.moreMenuItems = [
+      {
+        label: 'Settings',
+        icon: 'pi pi-cog',
+        command: () =>
+          this.router.navigate([
+            '/workspace',
+            this.workspaceId,
+            'board',
+            this.boardId,
+            'settings',
+          ]),
+      },
+      {
+        label: 'Import',
+        icon: 'pi pi-upload',
+        command: () => (this.showImportDialog = true),
+      },
+      {
+        label: 'Export',
+        icon: 'pi pi-download',
+        command: () => (this.showExportDialog = true),
+      },
+      {
+        label: 'Share',
+        icon: 'pi pi-share-alt',
+        command: () =>
+          this.router.navigate(
+            ['/workspace', this.workspaceId, 'board', this.boardId, 'settings'],
+            { queryParams: { tab: 6 } },
+          ),
+      },
+    ];
   }
 
   // === Card Keyboard Navigation (J/K/Enter) ===

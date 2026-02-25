@@ -3,6 +3,7 @@ import {
   input,
   output,
   signal,
+  computed,
   inject,
   OnInit,
   OnDestroy,
@@ -21,6 +22,7 @@ import {
   FilterPresetsService,
   FilterPreset,
 } from '../../../core/services/filter-presets.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
@@ -189,6 +191,28 @@ const DEFAULT_FILTERS: TaskFilters = {
           />
         </div>
 
+        <!-- Quick Filters -->
+        <div class="flex items-center gap-1.5">
+          <p-button
+            label="My Tasks"
+            [outlined]="!isMyTasksActive()"
+            size="small"
+            (onClick)="toggleMyTasks()"
+          />
+          <p-button
+            label="Due This Week"
+            [outlined]="!isDueThisWeekActive()"
+            size="small"
+            (onClick)="toggleDueThisWeek()"
+          />
+          <p-button
+            label="High Priority"
+            [outlined]="!isHighPriorityActive()"
+            size="small"
+            (onClick)="toggleHighPriority()"
+          />
+        </div>
+
         <!-- Filter Presets -->
         @if (boardId()) {
           <div class="flex items-center gap-1">
@@ -216,56 +240,6 @@ const DEFAULT_FILTERS: TaskFilters = {
           </div>
         }
 
-        <!-- Card Density Toggle -->
-        <div class="flex items-center gap-1 ml-auto">
-          <button
-            (click)="densityChanged.emit('compact')"
-            class="p-1.5 rounded transition-colors"
-            [class.bg-primary]="density() === 'compact'"
-            [class.text-primary-foreground]="density() === 'compact'"
-            [class.text-muted-foreground]="density() !== 'compact'"
-            [class.hover:bg-muted]="density() !== 'compact'"
-            title="Compact view"
-          >
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          </button>
-          <button
-            (click)="densityChanged.emit('normal')"
-            class="p-1.5 rounded transition-colors"
-            [class.bg-primary]="density() === 'normal'"
-            [class.text-primary-foreground]="density() === 'normal'"
-            [class.text-muted-foreground]="density() !== 'normal'"
-            [class.hover:bg-muted]="density() !== 'normal'"
-            title="Normal view"
-          >
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 5h16a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V6a1 1 0 011-1zM4 14h16a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3a1 1 0 011-1z"
-              />
-            </svg>
-          </button>
-        </div>
-
         <!-- View Toggle -->
         <p-selectButton
           [options]="viewModeOptions"
@@ -273,6 +247,7 @@ const DEFAULT_FILTERS: TaskFilters = {
           (ngModelChange)="viewModeChanged.emit($event)"
           optionLabel="icon"
           optionValue="value"
+          class="ml-auto"
         >
           <ng-template #item let-item>
             <i [class]="item.icon" [title]="item.tooltip"></i>
@@ -349,6 +324,7 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private filterPresetsService = inject(FilterPresetsService);
+  private authService = inject(AuthService);
   private destroy$ = new Subject<void>();
   private searchSubject = new Subject<string>();
 
@@ -356,11 +332,9 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
   assignees = input<Assignee[]>([]);
   labels = input<Label[]>([]);
   viewMode = input<ViewMode>('kanban');
-  density = input<'compact' | 'normal'>('normal');
 
   filtersChanged = output<TaskFilters>();
   viewModeChanged = output<ViewMode>();
-  densityChanged = output<'compact' | 'normal'>();
 
   searchTerm = signal('');
   filters = signal<TaskFilters>({ ...DEFAULT_FILTERS });
@@ -382,6 +356,30 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
   selectedLabels: string[] = [];
   dueDateStartValue: Date | null = null;
   dueDateEndValue: Date | null = null;
+
+  // Quick filter computed signals
+  readonly isMyTasksActive = computed(() => {
+    const userId = this.authService.currentUser()?.id;
+    if (!userId) return false;
+    const f = this.filters();
+    return f.assigneeIds.length === 1 && f.assigneeIds[0] === userId;
+  });
+
+  readonly isDueThisWeekActive = computed(() => {
+    const f = this.filters();
+    if (!f.dueDateStart || !f.dueDateEnd) return false;
+    const { start, end } = this.getCurrentWeekRange();
+    return f.dueDateStart === start && f.dueDateEnd === end;
+  });
+
+  readonly isHighPriorityActive = computed(() => {
+    const f = this.filters();
+    return (
+      f.priorities.length === 2 &&
+      f.priorities.includes('high') &&
+      f.priorities.includes('urgent')
+    );
+  });
 
   viewModeOptions = [
     { value: 'kanban', icon: 'pi pi-objects-column', tooltip: 'Kanban View' },
@@ -547,6 +545,63 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
     this.filters.set({ ...DEFAULT_FILTERS, ...f });
     this.persistFilters(this.filters());
     this.filtersChanged.emit(this.filters());
+  }
+
+  toggleMyTasks(): void {
+    const userId = this.authService.currentUser()?.id;
+    if (!userId) return;
+
+    if (this.isMyTasksActive()) {
+      this.selectedAssignees = [];
+      this.updateFilter('assigneeIds', []);
+    } else {
+      this.selectedAssignees = [userId];
+      this.updateFilter('assigneeIds', [userId]);
+    }
+  }
+
+  toggleDueThisWeek(): void {
+    if (this.isDueThisWeekActive()) {
+      this.dueDateStartValue = null;
+      this.dueDateEndValue = null;
+      this.updateFilter('dueDateStart', null);
+      this.updateFilter('dueDateEnd', null);
+    } else {
+      const { start, end } = this.getCurrentWeekRange();
+      this.dueDateStartValue = new Date(start);
+      this.dueDateEndValue = new Date(end);
+      this.updateFilter('dueDateStart', start);
+      this.updateFilter('dueDateEnd', end);
+    }
+  }
+
+  toggleHighPriority(): void {
+    if (this.isHighPriorityActive()) {
+      this.selectedPriorities = [];
+      this.updateFilter('priorities', []);
+    } else {
+      this.selectedPriorities = ['high', 'urgent'];
+      this.updateFilter('priorities', ['high', 'urgent']);
+    }
+  }
+
+  private getCurrentWeekRange(): { start: string; end: string } {
+    const now = new Date();
+    const day = now.getDay();
+    // Monday = start of week (day 0 = Sunday, so Monday = 1)
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+    monday.setHours(0, 0, 0, 0);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
+    return {
+      start: monday.toISOString().split('T')[0],
+      end: sunday.toISOString().split('T')[0],
+    };
   }
 
   private updateFilter<K extends keyof TaskFilters>(

@@ -31,6 +31,14 @@ import { PositionListComponent } from '../positions/position-list.component';
 import { SaveTemplateDialogComponent } from '../project-templates/save-template-dialog.component';
 import { MessageService } from 'primeng/api';
 import { Toast } from 'primeng/toast';
+import { Tabs, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
+import { AutomationRulesComponent } from '../automations/automation-rules.component';
+import { CustomFieldsManagerComponent } from '../custom-fields/custom-fields-manager.component';
+import { MilestoneListComponent } from '../milestone-list/milestone-list.component';
+import { ShareSettingsComponent } from '../share/share-settings.component';
+import { WebhookSettingsComponent } from '../webhooks/webhook-settings.component';
+import { ImportDialogComponent } from '../import-export/import-dialog.component';
+import { ExportDialogComponent } from '../import-export/export-dialog.component';
 
 @Component({
   selector: 'app-board-settings',
@@ -46,6 +54,18 @@ import { Toast } from 'primeng/toast';
     ConfirmDialog,
     SaveTemplateDialogComponent,
     Toast,
+    Tabs,
+    TabList,
+    Tab,
+    TabPanels,
+    TabPanel,
+    AutomationRulesComponent,
+    CustomFieldsManagerComponent,
+    MilestoneListComponent,
+    ShareSettingsComponent,
+    WebhookSettingsComponent,
+    ImportDialogComponent,
+    ExportDialogComponent,
   ],
   providers: [ConfirmationService, MessageService],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -65,7 +85,7 @@ import { Toast } from 'primeng/toast';
             Board Settings
           </h1>
           <p class="mt-2 text-[var(--muted-foreground)]">
-            Configure your board's settings, columns, and members
+            Configure your board's settings, columns, members, and integrations
           </p>
         </div>
 
@@ -101,314 +121,467 @@ import { Toast } from 'primeng/toast';
             </div>
           }
 
-          <!-- General Settings -->
-          <section class="mb-8 animate-fade-in-up">
-            <div class="bg-[var(--card)] shadow rounded-lg">
-              <div class="px-6 py-4 border-b border-[var(--border)]">
-                <h2 class="text-lg font-medium text-[var(--foreground)]">
-                  General
-                </h2>
-              </div>
-              <form
-                [formGroup]="form"
-                (ngSubmit)="onSave()"
-                class="px-6 py-4 space-y-4"
-              >
-                <div>
-                  <label
-                    for="name"
-                    class="block text-sm font-medium text-[var(--foreground)]"
-                    >Name</label
-                  >
-                  <input
-                    type="text"
-                    id="name"
-                    formControlName="name"
-                    class="mt-1 block w-full rounded-md border-[var(--border)] shadow-sm focus:border-primary focus:ring-ring sm:text-sm"
-                  />
-                  @if (
-                    form.controls['name'].invalid &&
-                    form.controls['name'].touched
-                  ) {
-                    <p class="mt-1 text-sm text-red-600">Name is required</p>
+          <p-tabs [value]="activeTab()" (valueChange)="onTabChange($event)">
+            <p-tablist>
+              <p-tab [value]="0">General</p-tab>
+              <p-tab [value]="1">Columns</p-tab>
+              <p-tab [value]="2">Members</p-tab>
+              <p-tab [value]="3">Automations</p-tab>
+              <p-tab [value]="4">Custom Fields</p-tab>
+              <p-tab [value]="5">Milestones</p-tab>
+              <p-tab [value]="6">Integrations</p-tab>
+              <p-tab [value]="7">Advanced</p-tab>
+            </p-tablist>
+            <p-tabpanels>
+              <!-- Tab 0: General -->
+              <p-tabpanel [value]="0">
+                <div class="py-6 space-y-8">
+                  <!-- General Settings -->
+                  <section class="animate-fade-in-up">
+                    <div class="bg-[var(--card)] shadow rounded-lg">
+                      <div class="px-6 py-4 border-b border-[var(--border)]">
+                        <h2 class="text-lg font-medium text-[var(--foreground)]">
+                          General
+                        </h2>
+                      </div>
+                      <form
+                        [formGroup]="form"
+                        (ngSubmit)="onSave()"
+                        class="px-6 py-4 space-y-4"
+                      >
+                        <div>
+                          <label
+                            for="name"
+                            class="block text-sm font-medium text-[var(--foreground)]"
+                            >Name</label
+                          >
+                          <input
+                            type="text"
+                            id="name"
+                            formControlName="name"
+                            class="mt-1 block w-full rounded-md border-[var(--border)] shadow-sm focus:border-primary focus:ring-ring sm:text-sm"
+                          />
+                          @if (
+                            form.controls['name'].invalid &&
+                            form.controls['name'].touched
+                          ) {
+                            <p class="mt-1 text-sm text-red-600">Name is required</p>
+                          }
+                        </div>
+
+                        <div>
+                          <label
+                            for="description"
+                            class="block text-sm font-medium text-[var(--foreground)]"
+                            >Description</label
+                          >
+                          <textarea
+                            id="description"
+                            formControlName="description"
+                            rows="3"
+                            class="mt-1 block w-full rounded-md border-[var(--border)] shadow-sm focus:border-primary focus:ring-ring sm:text-sm"
+                            placeholder="Add a description for this board..."
+                          ></textarea>
+                        </div>
+
+                        <div class="flex justify-end pt-4">
+                          <button
+                            type="submit"
+                            [disabled]="saving() || form.invalid || !form.dirty"
+                            class="btn-press inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            @if (saving()) {
+                              <svg
+                                class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  class="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  stroke-width="4"
+                                ></circle>
+                                <path
+                                  class="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
+                              </svg>
+                              Saving...
+                            } @else {
+                              Save Changes
+                            }
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </section>
+
+                  <!-- Save as Template -->
+                  <section class="animate-fade-in-up">
+                    <div class="bg-[var(--card)] shadow rounded-lg">
+                      <div class="px-6 py-4 border-b border-[var(--border)]">
+                        <h2 class="text-lg font-medium text-[var(--foreground)]">
+                          Template
+                        </h2>
+                      </div>
+                      <div class="px-6 py-4">
+                        <div class="flex items-center justify-between">
+                          <div>
+                            <h3 class="text-sm font-medium text-[var(--foreground)]">
+                              Save Board as Template
+                            </h3>
+                            <p class="text-sm text-[var(--muted-foreground)]">
+                              Save this board's structure as a reusable template including all columns and tasks.
+                            </p>
+                          </div>
+                          <button
+                            (click)="showSaveTemplateDialog.set(true)"
+                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary border border-primary rounded-md hover:bg-primary/10 transition-colors"
+                          >
+                            <i class="pi pi-copy"></i>
+                            Save as Template
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </p-tabpanel>
+
+              <!-- Tab 1: Columns -->
+              <p-tabpanel [value]="1">
+                <div class="py-6">
+                  <app-column-manager [boardId]="boardId"></app-column-manager>
+                </div>
+              </p-tabpanel>
+
+              <!-- Tab 2: Members -->
+              <p-tabpanel [value]="2">
+                <div class="py-6 space-y-6">
+                  <!-- Members Table -->
+                  <div class="bg-[var(--card)] shadow rounded-lg">
+                    <div class="px-6 py-4 border-b border-[var(--border)]">
+                      <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-medium text-[var(--foreground)]">
+                          Board Members
+                        </h3>
+                        <button
+                          (click)="onInviteMember()"
+                          class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-primary hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
+                        >
+                          <svg
+                            class="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                            />
+                          </svg>
+                          Add Member
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                      <table class="min-w-full divide-y divide-[var(--border)]">
+                        <thead class="bg-[var(--muted)]">
+                          <tr>
+                            <th
+                              class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
+                            >
+                              Member
+                            </th>
+                            <th
+                              class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
+                            >
+                              Role
+                            </th>
+                            <th
+                              class="px-6 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
+                            >
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody
+                          class="bg-[var(--card)] divide-y divide-[var(--border)]"
+                        >
+                          @for (member of members(); track member.user_id) {
+                            <tr class="hover:bg-[var(--muted)]">
+                              <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center gap-3">
+                                  <div
+                                    class="w-10 h-10 rounded-full bg-[var(--secondary)] flex items-center justify-center text-sm font-medium text-[var(--muted-foreground)]"
+                                  >
+                                    @if (member.avatar_url) {
+                                      <img
+                                        [src]="member.avatar_url"
+                                        [alt]="member.name"
+                                        class="w-full h-full rounded-full object-cover"
+                                      />
+                                    } @else {
+                                      {{ getInitials(member.name || member.email) }}
+                                    }
+                                  </div>
+                                  <div>
+                                    <p
+                                      class="text-sm font-medium text-[var(--foreground)]"
+                                    >
+                                      {{ member.name || 'Unknown' }}
+                                    </p>
+                                    <p class="text-sm text-[var(--muted-foreground)]">
+                                      {{ member.email }}
+                                    </p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td class="px-6 py-4 whitespace-nowrap">
+                                <select
+                                  [ngModel]="member.role"
+                                  (ngModelChange)="onMemberRoleChange(member, $event)"
+                                  class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-primary focus:ring-ring"
+                                >
+                                  <option value="viewer">Viewer</option>
+                                  <option value="editor">Editor</option>
+                                </select>
+                              </td>
+                              <td
+                                class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+                              >
+                                <button
+                                  (click)="onRemoveMember(member)"
+                                  class="text-red-600 hover:text-red-900"
+                                >
+                                  Remove
+                                </button>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+
+                    @if (members().length === 0) {
+                      <div
+                        class="px-6 py-8 text-center text-[var(--muted-foreground)]"
+                      >
+                        No members found
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Positions -->
+                  <app-position-list [boardId]="boardId" [boardMembers]="members()" />
+                </div>
+              </p-tabpanel>
+
+              <!-- Tab 3: Automations -->
+              <p-tabpanel [value]="3">
+                <div class="py-6">
+                  @defer {
+                    <app-automation-rules [boardId]="boardId" />
+                  } @placeholder {
+                    <div class="flex items-center justify-center py-12">
+                      <svg class="animate-spin h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </div>
                   }
                 </div>
+              </p-tabpanel>
 
-                <div>
-                  <label
-                    for="description"
-                    class="block text-sm font-medium text-[var(--foreground)]"
-                    >Description</label
-                  >
-                  <textarea
-                    id="description"
-                    formControlName="description"
-                    rows="3"
-                    class="mt-1 block w-full rounded-md border-[var(--border)] shadow-sm focus:border-primary focus:ring-ring sm:text-sm"
-                    placeholder="Add a description for this board..."
-                  ></textarea>
-                </div>
-
-                <div class="flex justify-end pt-4">
-                  <button
-                    type="submit"
-                    [disabled]="saving() || form.invalid || !form.dirty"
-                    class="btn-press inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    @if (saving()) {
-                      <svg
-                        class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          class="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          stroke-width="4"
-                        ></circle>
-                        <path
-                          class="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
+              <!-- Tab 4: Custom Fields -->
+              <p-tabpanel [value]="4">
+                <div class="py-6">
+                  @defer {
+                    <app-custom-fields-manager [boardId]="boardId" />
+                  } @placeholder {
+                    <div class="flex items-center justify-center py-12">
+                      <svg class="animate-spin h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Saving...
-                    } @else {
-                      Save Changes
-                    }
-                  </button>
-                </div>
-              </form>
-            </div>
-          </section>
-
-          <!-- Columns Section -->
-          <section class="mb-8 animate-fade-in-up stagger-2">
-            <app-column-manager [boardId]="boardId"></app-column-manager>
-          </section>
-
-          <!-- Members Section -->
-          <section class="mb-8 animate-fade-in-up stagger-3">
-            <div class="bg-[var(--card)] shadow rounded-lg">
-              <div class="px-6 py-4 border-b border-[var(--border)]">
-                <div class="flex items-center justify-between">
-                  <h3 class="text-lg font-medium text-[var(--foreground)]">
-                    Board Members
-                  </h3>
-                  <button
-                    (click)="onInviteMember()"
-                    class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-primary hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
-                  >
-                    <svg
-                      class="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                      />
-                    </svg>
-                    Add Member
-                  </button>
-                </div>
-              </div>
-
-              <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-[var(--border)]">
-                  <thead class="bg-[var(--muted)]">
-                    <tr>
-                      <th
-                        class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
-                      >
-                        Member
-                      </th>
-                      <th
-                        class="px-6 py-3 text-left text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
-                      >
-                        Role
-                      </th>
-                      <th
-                        class="px-6 py-3 text-right text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wider"
-                      >
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody
-                    class="bg-[var(--card)] divide-y divide-[var(--border)]"
-                  >
-                    @for (member of members(); track member.user_id) {
-                      <tr class="hover:bg-[var(--muted)]">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                          <div class="flex items-center gap-3">
-                            <div
-                              class="w-10 h-10 rounded-full bg-[var(--secondary)] flex items-center justify-center text-sm font-medium text-[var(--muted-foreground)]"
-                            >
-                              @if (member.avatar_url) {
-                                <img
-                                  [src]="member.avatar_url"
-                                  [alt]="member.name"
-                                  class="w-full h-full rounded-full object-cover"
-                                />
-                              } @else {
-                                {{ getInitials(member.name || member.email) }}
-                              }
-                            </div>
-                            <div>
-                              <p
-                                class="text-sm font-medium text-[var(--foreground)]"
-                              >
-                                {{ member.name || 'Unknown' }}
-                              </p>
-                              <p class="text-sm text-[var(--muted-foreground)]">
-                                {{ member.email }}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                          <select
-                            [ngModel]="member.role"
-                            (ngModelChange)="onMemberRoleChange(member, $event)"
-                            class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-primary focus:ring-ring"
-                          >
-                            <option value="viewer">Viewer</option>
-                            <option value="editor">Editor</option>
-                          </select>
-                        </td>
-                        <td
-                          class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
-                        >
-                          <button
-                            (click)="onRemoveMember(member)"
-                            class="text-red-600 hover:text-red-900"
-                          >
-                            Remove
-                          </button>
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-
-              @if (members().length === 0) {
-                <div
-                  class="px-6 py-8 text-center text-[var(--muted-foreground)]"
-                >
-                  No members found
-                </div>
-              }
-            </div>
-          </section>
-
-          <!-- Positions Section -->
-          <section class="mb-8 animate-fade-in-up stagger-4">
-            <app-position-list [boardId]="boardId" [boardMembers]="members()" />
-          </section>
-
-          <!-- Save as Template -->
-          <section class="mb-8 animate-fade-in-up stagger-4">
-            <div class="bg-[var(--card)] shadow rounded-lg">
-              <div class="px-6 py-4 border-b border-[var(--border)]">
-                <h2 class="text-lg font-medium text-[var(--foreground)]">
-                  Template
-                </h2>
-              </div>
-              <div class="px-6 py-4">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <h3 class="text-sm font-medium text-[var(--foreground)]">
-                      Save Board as Template
-                    </h3>
-                    <p class="text-sm text-[var(--muted-foreground)]">
-                      Save this board's structure as a reusable template including all columns and tasks.
-                    </p>
-                  </div>
-                  <button
-                    (click)="showSaveTemplateDialog.set(true)"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary border border-primary rounded-md hover:bg-primary/10 transition-colors"
-                  >
-                    <i class="pi pi-copy"></i>
-                    Save as Template
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Danger Zone -->
-          @if (canDeleteBoard()) {
-            <section>
-              <div
-                class="shadow rounded-lg border-2"
-                style="background: var(--card); border-color: var(--status-red-border)"
-              >
-                <div
-                  class="px-6 py-4"
-                  style="border-bottom: 1px solid var(--status-red-border); background: var(--status-red-bg)"
-                >
-                  <h2
-                    class="text-lg font-medium"
-                    style="color: var(--status-red-text)"
-                  >
-                    Danger Zone
-                  </h2>
-                </div>
-                <div class="px-6 py-4">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <h3 class="text-sm font-medium text-[var(--foreground)]">
-                        Delete Board
-                      </h3>
-                      <p class="text-sm text-[var(--muted-foreground)]">
-                        Permanently delete this board and all its tasks. This
-                        action cannot be undone.
-                      </p>
                     </div>
-                    <button
-                      (click)="onDeleteBoard()"
-                      [disabled]="deleting()"
-                      class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-                      style="border: 1px solid var(--status-red-border); color: var(--status-red-text); background: var(--card)"
-                    >
-                      @if (deleting()) {
-                        <svg
-                          class="animate-spin -ml-1 mr-2 h-4 w-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            class="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            stroke-width="4"
-                          ></circle>
-                          <path
-                            class="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        Deleting...
-                      } @else {
-                        Delete Board
-                      }
-                    </button>
-                  </div>
+                  }
                 </div>
-              </div>
-            </section>
-          }
+              </p-tabpanel>
+
+              <!-- Tab 5: Milestones -->
+              <p-tabpanel [value]="5">
+                <div class="py-6">
+                  @defer {
+                    <app-milestone-list [boardId]="boardId" />
+                  } @placeholder {
+                    <div class="flex items-center justify-center py-12">
+                      <svg class="animate-spin h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </div>
+                  }
+                </div>
+              </p-tabpanel>
+
+              <!-- Tab 6: Integrations -->
+              <p-tabpanel [value]="6">
+                <div class="py-6 space-y-8">
+                  <!-- Share Settings -->
+                  @defer {
+                    <section>
+                      <app-share-settings [boardId]="boardId" />
+                    </section>
+                  } @placeholder {
+                    <div class="flex items-center justify-center py-8">
+                      <svg class="animate-spin h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </div>
+                  }
+
+                  <!-- Webhooks -->
+                  @defer {
+                    <section>
+                      <app-webhook-settings [boardId]="boardId" />
+                    </section>
+                  } @placeholder {
+                    <div class="flex items-center justify-center py-8">
+                      <svg class="animate-spin h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </div>
+                  }
+
+                  <!-- Import / Export -->
+                  <section class="bg-[var(--card)] shadow rounded-lg">
+                    <div class="px-6 py-4 border-b border-[var(--border)]">
+                      <h2 class="text-lg font-medium text-[var(--foreground)]">
+                        Import / Export
+                      </h2>
+                    </div>
+                    <div class="px-6 py-4 space-y-4">
+                      <div class="flex items-center justify-between">
+                        <div>
+                          <h3 class="text-sm font-medium text-[var(--foreground)]">
+                            Import Tasks
+                          </h3>
+                          <p class="text-sm text-[var(--muted-foreground)]">
+                            Import tasks from JSON, CSV, or Trello exports.
+                          </p>
+                        </div>
+                        <button
+                          (click)="showImportDialog.set(true)"
+                          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary border border-primary rounded-md hover:bg-primary/10 transition-colors"
+                        >
+                          <i class="pi pi-upload"></i>
+                          Import
+                        </button>
+                      </div>
+                      <div class="border-t border-[var(--border)]"></div>
+                      <div class="flex items-center justify-between">
+                        <div>
+                          <h3 class="text-sm font-medium text-[var(--foreground)]">
+                            Export Board
+                          </h3>
+                          <p class="text-sm text-[var(--muted-foreground)]">
+                            Export all tasks to CSV or JSON format.
+                          </p>
+                        </div>
+                        <button
+                          (click)="showExportDialog.set(true)"
+                          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary border border-primary rounded-md hover:bg-primary/10 transition-colors"
+                        >
+                          <i class="pi pi-download"></i>
+                          Export
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </p-tabpanel>
+
+              <!-- Tab 7: Advanced (Danger Zone) -->
+              <p-tabpanel [value]="7">
+                <div class="py-6">
+                  @if (canDeleteBoard()) {
+                    <section>
+                      <div
+                        class="shadow rounded-lg border-2"
+                        style="background: var(--card); border-color: var(--status-red-border)"
+                      >
+                        <div
+                          class="px-6 py-4"
+                          style="border-bottom: 1px solid var(--status-red-border); background: var(--status-red-bg)"
+                        >
+                          <h2
+                            class="text-lg font-medium"
+                            style="color: var(--status-red-text)"
+                          >
+                            Danger Zone
+                          </h2>
+                        </div>
+                        <div class="px-6 py-4">
+                          <div class="flex items-center justify-between">
+                            <div>
+                              <h3 class="text-sm font-medium text-[var(--foreground)]">
+                                Delete Board
+                              </h3>
+                              <p class="text-sm text-[var(--muted-foreground)]">
+                                Permanently delete this board and all its tasks. This
+                                action cannot be undone.
+                              </p>
+                            </div>
+                            <button
+                              (click)="onDeleteBoard()"
+                              [disabled]="deleting()"
+                              class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                              style="border: 1px solid var(--status-red-border); color: var(--status-red-text); background: var(--card)"
+                            >
+                              @if (deleting()) {
+                                <svg
+                                  class="animate-spin -ml-1 mr-2 h-4 w-4"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <circle
+                                    class="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    stroke-width="4"
+                                  ></circle>
+                                  <path
+                                    class="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                  ></path>
+                                </svg>
+                                Deleting...
+                              } @else {
+                                Delete Board
+                              }
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+                  }
+                </div>
+              </p-tabpanel>
+            </p-tabpanels>
+          </p-tabs>
         } @else {
           <div class="text-center py-12">
             <p class="text-[var(--muted-foreground)]">Board not found</p>
@@ -430,6 +603,16 @@ import { Toast } from 'primeng/toast';
       [boardId]="boardId"
       [boardName]="board()?.name || ''"
       (saved)="onTemplateSaved()"
+    />
+    <app-import-dialog
+      [(visible)]="showImportDialog"
+      [boardId]="boardId"
+      [boardName]="board()?.name || ''"
+    />
+    <app-export-dialog
+      [(visible)]="showExportDialog"
+      [boardId]="boardId"
+      [boardName]="board()?.name || ''"
     />
     <p-toast />
   `,
@@ -453,7 +636,10 @@ export class BoardSettingsComponent implements OnInit {
   members = signal<BoardMember[]>([]);
   showInviteDialog = signal(false);
   showSaveTemplateDialog = signal(false);
+  showImportDialog = signal(false);
+  showExportDialog = signal(false);
   errorMessage = signal<string | null>(null);
+  activeTab = signal(0);
 
   form: FormGroup = this.fb.group({
     name: ['', Validators.required],
@@ -466,6 +652,22 @@ export class BoardSettingsComponent implements OnInit {
       this.boardId = params['boardId'];
       this.loadBoard();
     });
+
+    // Support ?tab=N query param to open specific tab
+    this.route.queryParams.subscribe((queryParams) => {
+      const tabParam = queryParams['tab'];
+      if (tabParam !== undefined && tabParam !== null) {
+        const tabIndex = parseInt(tabParam, 10);
+        if (!isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 7) {
+          this.activeTab.set(tabIndex);
+        }
+      }
+    });
+  }
+
+  onTabChange(tabValue: unknown): void {
+    const value = tabValue as number;
+    this.activeTab.set(value);
   }
 
   canDeleteBoard(): boolean {
