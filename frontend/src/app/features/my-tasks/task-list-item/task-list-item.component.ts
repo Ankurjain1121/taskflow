@@ -15,6 +15,7 @@ import {
   standalone: true,
   imports: [CommonModule, RouterModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block' },
   template: `
     <a
       [routerLink]="['/task', task().id]"
