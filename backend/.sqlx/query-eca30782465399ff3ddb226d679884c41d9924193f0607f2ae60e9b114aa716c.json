@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        UPDATE boards\n        SET name = $2, description = $3\n        WHERE id = $1\n          AND deleted_at IS NULL\n        RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,\n                  created_by_id, deleted_at, created_at, updated_at\n        ",
+  "query": "\n        SELECT b.id, b.name, b.description, b.slack_webhook_url, b.prefix,\n               b.workspace_id, b.tenant_id, b.created_by_id,\n               b.background_color, b.deleted_at, b.created_at, b.updated_at\n        FROM boards b\n        INNER JOIN board_members bm ON b.id = bm.board_id\n        WHERE b.workspace_id = $1\n          AND bm.user_id = $2\n          AND b.deleted_at IS NULL\n        ORDER BY b.created_at DESC\n        ",
   "describe": {
     "columns": [
       {
@@ -45,16 +45,21 @@
       },
       {
         "ordinal": 8,
+        "name": "background_color",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
         "name": "deleted_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "updated_at",
         "type_info": "Timestamptz"
       }
@@ -62,8 +67,7 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Varchar",
-        "Text"
+        "Uuid"
       ]
     },
     "nullable": [
@@ -76,9 +80,10 @@
       false,
       false,
       true,
+      true,
       false,
       false
     ]
   },
-  "hash": "bd90537ef9e51619ef6345cd105afc05af55dcdbf8c368ebfba9c1d6fe737df3"
+  "hash": "eca30782465399ff3ddb226d679884c41d9924193f0607f2ae60e9b114aa716c"
 }

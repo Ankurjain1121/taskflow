@@ -8,6 +8,7 @@ export interface Board {
   name: string;
   description: string | null;
   prefix?: string | null;
+  background_color?: string | null;
   position: string;
   created_at: string;
   updated_at: string;
@@ -40,6 +41,7 @@ export interface CreateBoardRequest {
 export interface UpdateBoardRequest {
   name?: string;
   description?: string;
+  background_color?: string | null;
 }
 
 export interface CreateColumnRequest {
@@ -63,7 +65,7 @@ export interface ReorderColumnRequest {
 export interface BoardMember {
   user_id: string;
   board_id: string;
-  role: 'viewer' | 'editor';
+  role: 'viewer' | 'editor' | 'owner';
   name?: string;
   email?: string;
   avatar_url?: string | null;
@@ -71,11 +73,16 @@ export interface BoardMember {
 
 export interface InviteMemberRequest {
   email: string;
-  role: 'viewer' | 'editor';
+  role: 'viewer' | 'editor' | 'owner';
 }
 
 export interface UpdateMemberRoleRequest {
-  role: 'viewer' | 'editor';
+  role: 'viewer' | 'editor' | 'owner';
+}
+
+export interface DuplicateBoardRequest {
+  name: string;
+  include_tasks?: boolean;
 }
 
 export interface TaskWithBadges {
@@ -243,6 +250,16 @@ export class BoardService {
   getBoardFull(boardId: string): Observable<BoardFullResponse> {
     return this.http.get<BoardFullResponse>(
       `${this.apiUrl}/boards/${boardId}/full`,
+    );
+  }
+
+  duplicateBoard(
+    boardId: string,
+    request: DuplicateBoardRequest,
+  ): Observable<Board> {
+    return this.http.post<Board>(
+      `${this.apiUrl}/boards/${boardId}/duplicate`,
+      request,
     );
   }
 }

@@ -30,10 +30,12 @@ pub enum WorkspaceVisibility {
 
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Debug, PartialEq, TS)]
 #[sqlx(type_name = "board_member_role", rename_all = "snake_case")]
+#[serde(rename_all = "lowercase")]
 #[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
 pub enum BoardMemberRole {
     Viewer,
     Editor,
+    Owner,
 }
 
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Debug, PartialEq, TS)]
@@ -112,7 +114,7 @@ mod tests {
 
     #[test]
     fn test_board_member_role_serde() {
-        for variant in [BoardMemberRole::Viewer, BoardMemberRole::Editor] {
+        for variant in [BoardMemberRole::Viewer, BoardMemberRole::Editor, BoardMemberRole::Owner] {
             let json = serde_json::to_string(&variant).unwrap();
             let deserialized: BoardMemberRole = serde_json::from_str(&json).unwrap();
             assert_eq!(variant, deserialized);

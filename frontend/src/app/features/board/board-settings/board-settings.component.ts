@@ -39,6 +39,7 @@ import { ShareSettingsComponent } from '../share/share-settings.component';
 import { WebhookSettingsComponent } from '../webhooks/webhook-settings.component';
 import { ImportDialogComponent } from '../import-export/import-dialog.component';
 import { ExportDialogComponent } from '../import-export/export-dialog.component';
+import { ArchiveService } from '../../../core/services/archive.service';
 
 @Component({
   selector: 'app-board-settings',
@@ -220,6 +221,42 @@ import { ExportDialogComponent } from '../import-export/export-dialog.component'
                     </div>
                   </section>
 
+                  <!-- Board Color -->
+                  <section class="animate-fade-in-up">
+                    <div class="bg-[var(--card)] shadow rounded-lg">
+                      <div class="px-6 py-4 border-b border-[var(--border)]">
+                        <h2 class="text-lg font-medium text-[var(--foreground)]">
+                          Board Color
+                        </h2>
+                      </div>
+                      <div class="px-6 py-4">
+                        <p class="text-sm text-[var(--muted-foreground)] mb-3">
+                          Choose a background color for this board.
+                        </p>
+                        <div class="flex flex-wrap items-center gap-2">
+                          @for (color of presetColors; track color) {
+                            <button
+                              [style.background-color]="color"
+                              class="w-8 h-8 rounded-full border-2 border-transparent hover:scale-110 transition-transform"
+                              [class.ring-2]="selectedColor() === color"
+                              [class.ring-primary]="selectedColor() === color"
+                              [class.ring-offset-2]="selectedColor() === color"
+                              (click)="selectBoardColor(color)"
+                              [title]="color"
+                            ></button>
+                          }
+                          <button
+                            class="w-8 h-8 rounded-full border-2 border-dashed border-[var(--border)] flex items-center justify-center text-[var(--muted-foreground)] hover:border-[var(--foreground)] transition-colors"
+                            (click)="clearBoardColor()"
+                            title="Clear color"
+                          >
+                            <i class="pi pi-times text-xs"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
                   <!-- Save as Template -->
                   <section class="animate-fade-in-up">
                     <div class="bg-[var(--card)] shadow rounded-lg">
@@ -345,14 +382,20 @@ import { ExportDialogComponent } from '../import-export/export-dialog.component'
                                 </div>
                               </td>
                               <td class="px-6 py-4 whitespace-nowrap">
-                                <select
-                                  [ngModel]="member.role"
-                                  (ngModelChange)="onMemberRoleChange(member, $event)"
-                                  class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-primary focus:ring-ring"
-                                >
-                                  <option value="viewer">Viewer</option>
-                                  <option value="editor">Editor</option>
-                                </select>
+                                @if (member.role === 'owner') {
+                                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                    Owner
+                                  </span>
+                                } @else {
+                                  <select
+                                    [ngModel]="member.role"
+                                    (ngModelChange)="onMemberRoleChange(member, $event)"
+                                    class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-primary focus:ring-ring"
+                                  >
+                                    <option value="viewer">Viewer</option>
+                                    <option value="editor">Editor</option>
+                                  </select>
+                                }
                               </td>
                               <td
                                 class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
@@ -513,7 +556,46 @@ import { ExportDialogComponent } from '../import-export/export-dialog.component'
 
               <!-- Tab 7: Advanced (Danger Zone) -->
               <p-tabpanel [value]="7">
-                <div class="py-6">
+                <div class="py-6 space-y-6">
+                  <!-- Archive Board -->
+                  <section>
+                    <div class="bg-[var(--card)] shadow rounded-lg">
+                      <div class="px-6 py-4 border-b border-[var(--border)]">
+                        <h2 class="text-lg font-medium text-[var(--foreground)]">
+                          Archive
+                        </h2>
+                      </div>
+                      <div class="px-6 py-4">
+                        <div class="flex items-center justify-between">
+                          <div>
+                            <h3 class="text-sm font-medium text-[var(--foreground)]">
+                              Archive Board
+                            </h3>
+                            <p class="text-sm text-[var(--muted-foreground)]">
+                              Hide this board from the sidebar. It can be restored later from the Archived section.
+                            </p>
+                          </div>
+                          <button
+                            (click)="onArchiveBoard()"
+                            [disabled]="archiving()"
+                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-amber-700 border border-amber-300 rounded-md hover:bg-amber-50 transition-colors disabled:opacity-50"
+                          >
+                            @if (archiving()) {
+                              <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Archiving...
+                            } @else {
+                              <i class="pi pi-inbox"></i>
+                              Archive Board
+                            }
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
                   @if (canDeleteBoard()) {
                     <section>
                       <div
@@ -625,6 +707,7 @@ export class BoardSettingsComponent implements OnInit {
   private authService = inject(AuthService);
   private confirmationService = inject(ConfirmationService);
   private messageService = inject(MessageService);
+  private archiveService = inject(ArchiveService);
 
   workspaceId = '';
   boardId = '';
@@ -632,14 +715,23 @@ export class BoardSettingsComponent implements OnInit {
   loading = signal(true);
   saving = signal(false);
   deleting = signal(false);
+  archiving = signal(false);
   board = signal<Board | null>(null);
   members = signal<BoardMember[]>([]);
+  selectedColor = signal<string | null>(null);
   showInviteDialog = signal(false);
   showSaveTemplateDialog = signal(false);
   showImportDialog = signal(false);
   showExportDialog = signal(false);
   errorMessage = signal<string | null>(null);
   activeTab = signal(0);
+
+  readonly presetColors = [
+    '#6366f1', '#3b82f6', '#06b6d4', '#22c55e',
+    '#eab308', '#f97316', '#f43f5e', '#8b5cf6',
+    '#ec4899', '#14b8a6', '#84cc16', '#a855f7',
+    '#ef4444', '#0ea5e9', '#10b981', '#f59e0b',
+  ];
 
   form: FormGroup = this.fb.group({
     name: ['', Validators.required],
@@ -818,6 +910,73 @@ export class BoardSettingsComponent implements OnInit {
     });
   }
 
+  selectBoardColor(color: string): void {
+    this.selectedColor.set(color);
+    this.boardService
+      .updateBoard(this.boardId, { background_color: color })
+      .subscribe({
+        next: (updated) => {
+          this.board.set(updated);
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Color Updated',
+            detail: 'Board color has been updated.',
+            life: 2000,
+          });
+        },
+        error: () => this.showError('Failed to update board color'),
+      });
+  }
+
+  clearBoardColor(): void {
+    this.selectedColor.set(null);
+    this.boardService
+      .updateBoard(this.boardId, { background_color: null })
+      .subscribe({
+        next: (updated) => {
+          this.board.set(updated);
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Color Cleared',
+            detail: 'Board color has been removed.',
+            life: 2000,
+          });
+        },
+        error: () => this.showError('Failed to clear board color'),
+      });
+  }
+
+  onArchiveBoard(): void {
+    const board = this.board();
+    if (!board) return;
+
+    this.confirmationService.confirm({
+      message: `Archive "${board.name}"? It will be hidden from the sidebar but can be restored later.`,
+      header: 'Archive Board',
+      icon: 'pi pi-inbox',
+      acceptButtonStyleClass: 'p-button-warning p-button-sm',
+      rejectButtonStyleClass: 'p-button-text p-button-sm',
+      accept: () => {
+        this.archiving.set(true);
+        this.boardService.deleteBoard(this.boardId).subscribe({
+          next: () => {
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Board Archived',
+              detail: `"${board.name}" has been archived.`,
+              life: 4000,
+            });
+            this.router.navigate(['/workspace', this.workspaceId]);
+          },
+          error: () => {
+            this.archiving.set(false);
+            this.showError('Failed to archive board');
+          },
+        });
+      },
+    });
+  }
+
   onTemplateSaved(): void {
     this.messageService.add({
       severity: 'success',
@@ -838,6 +997,7 @@ export class BoardSettingsComponent implements OnInit {
     this.boardService.getBoard(this.boardId).subscribe({
       next: (board) => {
         this.board.set(board);
+        this.selectedColor.set(board.background_color ?? null);
         this.form.patchValue({
           name: board.name,
           description: board.description || '',
