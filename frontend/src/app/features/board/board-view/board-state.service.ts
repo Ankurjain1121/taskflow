@@ -430,6 +430,24 @@ export class BoardStateService {
       });
   }
 
+  reorderColumn(prevIdx: number, currIdx: number): void {
+    const snapshot = structuredClone(this.columns());
+
+    // Optimistic reorder
+    const cols = [...snapshot];
+    const [removed] = cols.splice(prevIdx, 1);
+    cols.splice(currIdx, 0, removed);
+    this.columns.set(cols);
+
+    const movedColumn = cols[currIdx];
+    this.boardService.reorderColumn(movedColumn.id, { new_index: currIdx }).subscribe({
+      error: () => {
+        this.columns.set(snapshot);
+        this.showError('Failed to reorder column');
+      },
+    });
+  }
+
   deleteColumn(boardId: string, columnId: string): void {
     // Snapshot for rollback
     const colSnapshot = structuredClone(this.columns());

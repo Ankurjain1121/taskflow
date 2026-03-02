@@ -17,6 +17,7 @@ import { FormsModule } from '@angular/forms';
 import {
   CdkDropList,
   CdkDragDrop,
+  CdkDragHandle,
   moveItemInArray,
   transferArrayItem,
 } from '@angular/cdk/drag-drop';
@@ -37,7 +38,7 @@ export interface TaskMoveEvent {
 @Component({
   selector: 'app-kanban-column',
   standalone: true,
-  imports: [CommonModule, FormsModule, CdkDropList, TaskCardComponent, Menu],
+  imports: [CommonModule, FormsModule, CdkDropList, CdkDragHandle, TaskCardComponent, Menu],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (isCollapsed()) {
@@ -75,9 +76,20 @@ export interface TaskMoveEvent {
         ></div>
 
         <!-- Column Header -->
-        <div class="px-3 py-3 border-b border-[var(--border)]">
+        <div class="px-3 py-3 border-b border-[var(--border)] group">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
+              <!-- Drag Handle -->
+              <div
+                cdkDragHandle
+                class="cursor-grab opacity-0 group-hover:opacity-100 transition-opacity text-[var(--muted-foreground)] hover:text-[var(--foreground)] flex-shrink-0"
+                title="Drag to reorder"
+              >
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 22a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/>
+                </svg>
+              </div>
+
               <!-- Column Name -->
               <h3 class="font-medium text-[var(--foreground)]">
                 {{ column().name }}
