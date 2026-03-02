@@ -240,6 +240,39 @@ const DEFAULT_FILTERS: TaskFilters = {
           </div>
         }
 
+        <!-- Density Toggle (kanban only) -->
+        @if (viewMode() === 'kanban') {
+          <div class="flex items-center gap-0.5 ml-auto border border-[var(--border)] rounded-md p-0.5">
+            <button
+              (click)="densityChanged.emit('compact')"
+              [class]="density() === 'compact'
+                ? 'px-2 py-1 rounded text-xs font-medium bg-[var(--primary)] text-[var(--primary-foreground)] transition-colors'
+                : 'px-2 py-1 rounded text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors'"
+              title="Compact"
+            >
+              <i class="pi pi-minus text-xs"></i>
+            </button>
+            <button
+              (click)="densityChanged.emit('normal')"
+              [class]="density() === 'normal'
+                ? 'px-2 py-1 rounded text-xs font-medium bg-[var(--primary)] text-[var(--primary-foreground)] transition-colors'
+                : 'px-2 py-1 rounded text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors'"
+              title="Normal"
+            >
+              <i class="pi pi-bars text-xs"></i>
+            </button>
+            <button
+              (click)="densityChanged.emit('expanded')"
+              [class]="density() === 'expanded'
+                ? 'px-2 py-1 rounded text-xs font-medium bg-[var(--primary)] text-[var(--primary-foreground)] transition-colors'
+                : 'px-2 py-1 rounded text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors'"
+              title="Expanded"
+            >
+              <i class="pi pi-th-large text-xs"></i>
+            </button>
+          </div>
+        }
+
         <!-- View Toggle -->
         <p-selectButton
           [options]="viewModeOptions"
@@ -247,7 +280,7 @@ const DEFAULT_FILTERS: TaskFilters = {
           (ngModelChange)="viewModeChanged.emit($event)"
           optionLabel="icon"
           optionValue="value"
-          class="ml-auto"
+          [class]="viewMode() !== 'kanban' ? 'ml-auto' : ''"
         >
           <ng-template #item let-item>
             <i [class]="item.icon" [title]="item.tooltip"></i>
@@ -332,9 +365,11 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
   assignees = input<Assignee[]>([]);
   labels = input<Label[]>([]);
   viewMode = input<ViewMode>('kanban');
+  density = input<'compact' | 'normal' | 'expanded'>('normal');
 
   filtersChanged = output<TaskFilters>();
   viewModeChanged = output<ViewMode>();
+  densityChanged = output<'compact' | 'normal' | 'expanded'>();
 
   searchTerm = signal('');
   filters = signal<TaskFilters>({ ...DEFAULT_FILTERS });

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskFlow Dark Mode Audit & Plan</title>
+<style>
+  :root { --bg: #0d1117; --card: #161b22; --border: #30363d; --text: #c9d1d9; --text-muted: #8b949e; --accent: #bd93f9; --red: #ff5555; --orange: #ffb86c; --green: #50fa7b; --yellow: #f1fa8c; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding: 2rem; max-width: 1100px; margin: 0 auto; }
+  h1 { color: var(--accent); margin-bottom: 0.5rem; font-size: 2rem; }
+  h2 { color: var(--accent); margin: 2rem 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); font-size: 1.5rem; }
+  h3 { color: var(--green); margin: 1.5rem 0 0.5rem; font-size: 1.15rem; }
+  h4 { color: var(--orange); margin: 1rem 0 0.5rem; }
+  p, li { color: var(--text); margin-bottom: 0.5rem; }
+  code { background: var(--card); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; color: var(--green); }
+  pre { background: var(--card); padding: 1rem; border-radius: 8px; overflow-x: auto; margin: 1rem 0; border: 1px solid var(--border); }
+  pre code { padding: 0; background: none; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+  th { background: var(--card); color: var(--accent); text-align: left; padding: 0.75rem; border: 1px solid var(--border); }
+  td { padding: 0.75rem; border: 1px solid var(--border); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: 600; }
+  .critical { background: rgba(255,85,85,0.2); color: var(--red); }
+  .high { background: rgba(255,183,108,0.2); color: var(--orange); }
+  .medium { background: rgba(241,250,140,0.2); color: var(--yellow); }
+  .low { background: rgba(80,250,123,0.2); color: var(--green); }
+  .summary-box { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin: 1rem 0; }
+  .color-swatch { display: inline-block; width: 20px; height: 20px; border-radius: 4px; vertical-align: middle; margin-right: 6px; border: 1px solid var(--border); }
+  ul { padding-left: 1.5rem; }
+  .toc { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin: 1.5rem 0; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .check { color: var(--green); } .cross { color: var(--red); } .warn { color: var(--orange); }
+</style>
+</head>
+<body>
+
+<h1>TaskFlow Dark Mode Audit & Overhaul Plan</h1>
+<p style="color: var(--text-muted);">Generated 2026-02-19 | 15+ components audited | 3 phases planned</p>
+
+<div class="toc">
+  <strong>Table of Contents</strong>
+  <ul>
+    <li><a href="#context">Context & Current State</a></li>
+    <li><a href="#audit">Audit Results: Broken Components</a></li>
+    <li><a href="#missing">Missing Industry Features</a></li>
+    <li><a href="#plan">Implementation Plan (3 Phases)</a></li>
+    <li><a href="#themes">Theme Research: Dracula, Dimmed, Deep Navy</a></li>
+    <li><a href="#verification">Verification Checklist</a></li>
+  </ul>
+</div>
+
+<h2 id="context">Context & Current State</h2>
+
+<div class="summary-box">
+  <p>TaskFlow has dark mode <strong>infrastructure</strong> (ThemeService, CSS variables, settings UI) but the <strong>implementation is broken across 15+ components</strong> with hardcoded light-mode colors, missing <code>dark:</code> variants, no surface elevation system, and unstyled PrimeNG components.</p>
+  <p style="margin-top: 0.5rem;"><strong>Completion:</strong> ~60% | <strong>Goal:</strong> Fix all issues + add Dracula/Dimmed themes</p>
+</div>
+
+<h3>Current Dark Mode Colors</h3>
+<table>
+  <tr><th>Token</th><th>Value</th><th>Preview</th></tr>
+  <tr><td><code>--background</code></td><td>#181B34</td><td><span class="color-swatch" style="background:#181B34"></span> Dark blue-purple</td></tr>
+  <tr><td><code>--card</code></td><td>#30324E</td><td><span class="color-swatch" style="background:#30324E"></span> Muted slate</td></tr>
+  <tr><td><code>--foreground</code></td><td>#f8fafc</td><td><span class="color-swatch" style="background:#f8fafc"></span> Near-white</td></tr>
+  <tr><td><code>--border</code></td><td>rgba(255,255,255,0.1)</td><td><span class="color-swatch" style="background:rgba(255,255,255,0.1)"></span> Semi-transparent</td></tr>
+  <tr><td><code>--primary</code></td><td>#818cf8</td><td><span class="color-swatch" style="background:#818cf8"></span> Light indigo</td></tr>
+  <tr><td><code>--muted</code></td><td>#1e293b</td><td><span class="color-swatch" style="background:#1e293b"></span> Dark slate</td></tr>
+</table>
+
+<h3>Key Files</h3>
+<ul>
+  <li><code>frontend/src/styles.css</code> — CSS variables (light + dark)</li>
+  <li><code>frontend/src/app/core/services/theme.service.ts</code> — Theme logic</li>
+  <li><code>frontend/src/app/features/settings/settings.component.ts</code> — Settings UI</li>
+  <li><code>frontend/src/app/shared/utils/task-colors.ts</code> — Priority/status colors</li>
+  <li><code>frontend/src/app/app.config.ts</code> — PrimeNG theme config</li>
+</ul>
+
+<!-- ======================== AUDIT ======================== -->
+
+<h2 id="audit">Audit Results: Broken Components</h2>
+
+<h3><span class="badge critical">CRITICAL</span> — Broken in Dark Mode</h3>
+
+<h4>1. Mention Popover (Entire component non-functional)</h4>
+<p><code>frontend/src/app/features/tasks/components/mention-popover/mention-popover.component.ts</code></p>
+<table>
+  <tr><th>Line</th><th>Issue</th></tr>
+  <tr><td>35</td><td><code>bg-white</code> popover background — pure white on dark</td></tr>
+  <tr><td>45</td><td><code>text-gray-500</code> searching text — nearly invisible</td></tr>
+  <tr><td>48</td><td><code>text-gray-500</code> empty state — nearly invisible</td></tr>
+  <tr><td>60</td><td><code>bg-indigo-50</code> selected item — invisible highlight</td></tr>
+  <tr><td>61</td><td><code>hover:bg-gray-50</code> hover — invisible</td></tr>
+  <tr><td>80</td><td><code>text-gray-900</code> member name — pure dark text</td></tr>
+  <tr><td>83</td><td><code>text-gray-500</code> email — nearly invisible</td></tr>
+</table>
+
+<h4>2. Members List (30+ hardcoded light colors)</h4>
+<p><code>frontend/src/app/features/workspace/members-list/members-list.component.ts</code></p>
+<p><span class="cross">&#10007;</span> <code>bg-white</code>, <code>text-gray-900</code>, <code>bg-gray-50</code>, <code>divide-gray-200</code> everywhere. Tables, rows, avatars, badges all hardcoded. <strong>Completely broken.</strong></p>
+
+<h4>3. Eisenhower Matrix Reset Button (Invisible)</h4>
+<p><code>frontend/src/app/features/my-tasks/eisenhower-matrix/eisenhower-matrix.component.ts</code></p>
+<p>Line 51: <code>bg-white border border-gray-300 text-gray-700 hover:bg-gray-50</code> — white button on dark background = invisible</p>
+
+<h4>4. Create Board Dialog Column Chips</h4>
+<p><code>frontend/src/app/shared/components/dialogs/create-board-dialog.component.ts</code></p>
+<table>
+  <tr><th>Line</th><th>Issue</th></tr>
+  <tr><td>120</td><td><code>border-gray-200</code> — invisible border</td></tr>
+  <tr><td>121</td><td><code>hover:border-gray-300</code> — invisible hover</td></tr>
+  <tr><td>138</td><td><code>bg-white border border-gray-200</code> — white chips on dark</td></tr>
+</table>
+
+<h4>5. Custom Fields Manager Cards</h4>
+<p><code>frontend/src/app/features/board/custom-fields/custom-fields-manager.component.ts</code></p>
+<table>
+  <tr><th>Line</th><th>Issue</th></tr>
+  <tr><td>30</td><td><code>text-gray-900</code> header</td></tr>
+  <tr><td>69</td><td><code>border-gray-300 text-indigo-600</code> checkbox — invisible border</td></tr>
+  <tr><td>124</td><td><code>bg-white border border-gray-200</code> card — white on dark</td></tr>
+  <tr><td>149</td><td><code>border-gray-300 text-indigo-600</code> checkbox</td></tr>
+  <tr><td>190</td><td><code>text-gray-900</code> field name</td></tr>
+</table>
+
+<h4>6. Import Dialog Upload Buttons</h4>
+<p><code>frontend/src/app/features/board/import-export/import-dialog.component.ts</code></p>
+<p>Lines 100, 135, 177: <code>text-indigo-600 hover:bg-indigo-50 border-indigo-200</code> — unreadable in dark mode</p>
+
+<h4>7. Shortcut Help Kbd Badges</h4>
+<p><code>frontend/src/app/shared/components/shortcut-help/shortcut-help.component.ts</code></p>
+<p>Lines 53-67: <code>bg-gray-100 border border-gray-300 text-gray-600</code> — invisible/unreadable</p>
+
+<h4>8. Subtask List Checkboxes</h4>
+<p><code>frontend/src/app/features/board/subtask-list/subtask-list.component.ts</code></p>
+<p>Line 97: <code>border-gray-300</code> invisible | Line 127: <code>text-gray-400</code> delete button too faint</p>
+
+<h3><span class="badge high">HIGH</span> — Poor Contrast / Looks Bad</h3>
+
+<h4>9. Dashboard Icon Backgrounds</h4>
+<p><code>frontend/src/app/features/dashboard/dashboard.component.ts</code></p>
+<table>
+  <tr><th>Line</th><th>Issue</th><th>Status</th></tr>
+  <tr><td>131</td><td><code>bg-indigo-50</code> — no dark variant</td><td><span class="cross">&#10007;</span></td></tr>
+  <tr><td>165</td><td><code>bg-red-50</code> — no dark variant</td><td><span class="cross">&#10007;</span></td></tr>
+  <tr><td>192</td><td><code>bg-orange-50</code> — no dark variant</td><td><span class="cross">&#10007;</span></td></tr>
+  <tr><td>216</td><td><code>bg-emerald-50 dark:bg-emerald-900/30</code></td><td><span class="check">&#10003;</span></td></tr>
+  <tr><td>266</td><td>Avatar <code>bg-indigo-600</code> — no dark variant</td><td><span class="cross">&#10007;</span></td></tr>
+</table>
+
+<h4>10. My Tasks Empty State Icons</h4>
+<p><code>frontend/src/app/features/my-tasks/my-tasks/my-tasks.component.ts</code></p>
+<p>Line 112: <code>bg-red-100</code> (no dark) | Line 141: <code>bg-green-100</code> (no dark) | Line 251: uses <code>dark:bg-gray-800</code> instead of CSS vars</p>
+
+<h4>11. Task Card Subtask Progress</h4>
+<p><code>frontend/src/app/features/board/task-card/task-card.component.ts</code></p>
+<p>Lines 212-216: <code>text-emerald-600</code> missing <code>dark:text-emerald-400</code></p>
+
+<h3><span class="badge medium">MEDIUM</span> — Inconsistent</h3>
+
+<h4>12. Priority Colors HEX (Not Dark-Aware)</h4>
+<p><code>frontend/src/app/shared/utils/task-colors.ts</code> Lines 40-64</p>
+<p>All <code>PRIORITY_COLORS_HEX</code> are hardcoded — too saturated for dark backgrounds (used in SVG/Canvas)</p>
+
+<h4>13. Chart Tooltip Colors</h4>
+<p><code>frontend/src/app/features/dashboard/widgets/completion-trend.component.ts</code> Line 133: <code>backgroundColor: '#1e293b'</code> hardcoded</p>
+
+<h4>14. Due Date Chip Text</h4>
+<p><code>frontend/src/app/shared/utils/task-colors.ts</code> Lines 207, 209: <code>text-white</code> hardcoded</p>
+
+<!-- ======================== MISSING ======================== -->
+
+<h2 id="missing">Missing Industry-Standard Features</h2>
+
+<table>
+  <tr><th>Feature</th><th>Status</th><th>What's Needed</th></tr>
+  <tr><td>Surface Elevation System</td><td><span class="cross">&#10007;</span> MISSING</td><td>Only 1 card bg level. Need 3-4 (base, card, elevated, modal)</td></tr>
+  <tr><td>Scrollbar Dark Styling</td><td><span class="cross">&#10007;</span> MISSING</td><td>No <code>html.dark *::-webkit-scrollbar-thumb</code></td></tr>
+  <tr><td>Form Disabled States</td><td><span class="cross">&#10007;</span> MISSING</td><td>No <code>input:disabled</code>, <code>textarea:disabled</code> dark styling</td></tr>
+  <tr><td>Placeholder Text</td><td><span class="cross">&#10007;</span> MISSING</td><td>No <code>::placeholder</code> dark mode colors</td></tr>
+  <tr><td>PrimeNG Overrides</td><td><span class="cross">&#10007;</span> MISSING</td><td>p-dialog, p-toast, p-tooltip, p-dropdown unstyled</td></tr>
+  <tr><td>FOUC Prevention</td><td><span class="cross">&#10007;</span> MISSING</td><td>No preload script — flashes light theme briefly</td></tr>
+  <tr><td>Skeleton Loading</td><td><span class="warn">~</span> PARTIAL</td><td>Shimmer exists but low contrast in dark</td></tr>
+  <tr><td>Selection Colors</td><td><span class="check">&#10003;</span> OK</td><td>Uses rgba-based selection (works in both)</td></tr>
+  <tr><td>Focus Rings</td><td><span class="check">&#10003;</span> OK</td><td>Uses <code>var(--background)</code> offset</td></tr>
+</table>
+
+<div class="summary-box">
+  <strong>Total Issues Found:</strong><br>
+  <span class="badge critical">CRITICAL</span> 8 components &nbsp;|&nbsp;
+  <span class="badge high">HIGH</span> 3 components &nbsp;|&nbsp;
+  <span class="badge medium">MEDIUM</span> 3 utilities &nbsp;|&nbsp;
+  <span class="cross">&#10007;</span> 6 missing features
+</div>
+
+<!-- ======================== PLAN ======================== -->
+
+<h2 id="plan">Implementation Plan</h2>
+
+<h3>Phase 1: Fix Broken Dark Mode <span class="badge critical">CRITICAL</span></h3>
+
+<h4>Step 1.1 — Fix Hardcoded Colors (10 component files)</h4>
+<p>Replace pattern:</p>
+<pre><code>bg-white          → bg-[var(--card)]
+text-gray-900     → text-[var(--card-foreground)]
+text-gray-500     → text-[var(--muted-foreground)]
+border-gray-200   → border-[var(--border)]
+hover:bg-gray-50  → hover:bg-[var(--muted)]
+bg-indigo-50      → bg-indigo-50 dark:bg-indigo-900/30
+text-indigo-600   → text-indigo-600 dark:text-indigo-400
+border-indigo-200 → border-indigo-200 dark:border-indigo-800</code></pre>
+
+<h4>Step 1.2 — Add Missing CSS Infrastructure</h4>
+<pre><code>/* Surface elevation system */
+:root {
+  --surface-0: #F6F7FB;  --surface-1: #ffffff;
+  --surface-2: #ffffff;  --surface-3: #ffffff;
+}
+html.dark {
+  --surface-0: var(--background);
+  --surface-1: var(--card);
+  --surface-2: #3a3c58;  /* dropdowns, popovers */
+  --surface-3: #42446a;  /* modals, dialogs */
+}
+
+/* Scrollbar */
+html.dark *::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); }
+html.dark *::-webkit-scrollbar-track { background: var(--background); }
+
+/* Form controls */
+html.dark ::placeholder { color: var(--muted-foreground); }
+html.dark input:disabled, html.dark textarea:disabled {
+  background: var(--muted); color: var(--muted-foreground); opacity: 0.5;
+}</code></pre>
+
+<h4>Step 1.3 — PrimeNG Dark Overrides</h4>
+<p>Verify Aura dark mode handles: <code>p-dialog</code>, <code>p-toast</code>, <code>p-tooltip</code>, <code>p-dropdown</code>, <code>p-inputtext</code>. Add overrides where needed.</p>
+
+<h3>Phase 2: Add Multiple Themes <span class="badge high">NEW</span></h3>
+
+<h4>Step 2.1 — Update ThemeService</h4>
+<pre><code>export type Theme = 'light' | 'dark' | 'dracula' | 'dimmed' | 'system';
+export type ResolvedTheme = 'light' | 'dark' | 'dracula' | 'dimmed';
+
+// applyTheme():
+// light   → no class
+// dark    → class="dark"
+// dracula → class="dark dracula"
+// dimmed  → class="dark dimmed"</code></pre>
+
+<h4>Step 2.2 — Add Dracula Palette</h4>
+<pre><code>html.dark.dracula {
+  --background: #282A36;  --foreground: #F8F8F2;
+  --card: #44475A;        --card-foreground: #F8F8F2;
+  --border: #6272A4;      --primary: #BD93F9;
+  --accent: #FF79C6;      --success: #50FA7B;
+  --destructive: #FF5555; --muted: #343746;
+  --muted-foreground: #6272A4;
+  --sidebar-bg: #21222C;  --sidebar-surface: rgba(189,147,249,0.05);
+}</code></pre>
+
+<h4>Step 2.3 — Add Dimmed Palette (GitHub-style)</h4>
+<pre><code>html.dark.dimmed {
+  --background: #22272E;  --foreground: #ADBAC7;
+  --card: #2D333B;        --card-foreground: #ADBAC7;
+  --border: #444C56;      --primary: #539BF5;
+  --muted: #2D333B;       --muted-foreground: #768390;
+  --sidebar-bg: #1C2128;
+}</code></pre>
+
+<h4>Step 2.4 — Update Settings UI</h4>
+<p>5 theme options with color preview swatches: Light, Dark, Dracula, Dimmed, System</p>
+
+<h3>Phase 3: Polish</h3>
+<ul>
+  <li>Smooth transition on <code>&lt;html&gt;</code> for theme switching</li>
+  <li>Verify chart/data viz colors across all themes</li>
+  <li>Verify priority colors readable on all backgrounds</li>
+  <li>Test PrimeNG components in each theme</li>
+  <li>WCAG contrast check (4.5:1 minimum)</li>
+</ul>
+
+<!-- ======================== THEMES ======================== -->
+
+<h2 id="themes">Theme Research</h2>
+
+<h3>Dracula (User's Choice)</h3>
+<table>
+  <tr><th>Token</th><th>Value</th><th>Preview</th></tr>
+  <tr><td>Background</td><td>#282A36</td><td><span class="color-swatch" style="background:#282A36"></span></td></tr>
+  <tr><td>Current Line</td><td>#44475A</td><td><span class="color-swatch" style="background:#44475A"></span></td></tr>
+  <tr><td>Foreground</td><td>#F8F8F2</td><td><span class="color-swatch" style="background:#F8F8F2"></span></td></tr>
+  <tr><td>Comment</td><td>#6272A4</td><td><span class="color-swatch" style="background:#6272A4"></span></td></tr>
+  <tr><td>Cyan</td><td>#8BE9FD</td><td><span class="color-swatch" style="background:#8BE9FD"></span></td></tr>
+  <tr><td>Green</td><td>#50FA7B</td><td><span class="color-swatch" style="background:#50FA7B"></span></td></tr>
+  <tr><td>Orange</td><td>#FFB86C</td><td><span class="color-swatch" style="background:#FFB86C"></span></td></tr>
+  <tr><td>Pink</td><td>#FF79C6</td><td><span class="color-swatch" style="background:#FF79C6"></span></td></tr>
+  <tr><td>Purple</td><td>#BD93F9</td><td><span class="color-swatch" style="background:#BD93F9"></span></td></tr>
+  <tr><td>Red</td><td>#FF5555</td><td><span class="color-swatch" style="background:#FF5555"></span></td></tr>
+  <tr><td>Yellow</td><td>#F1FA8C</td><td><span class="color-swatch" style="background:#F1FA8C"></span></td></tr>
+</table>
+
+<h3>GitHub Dark Dimmed</h3>
+<table>
+  <tr><th>Token</th><th>Value</th><th>Preview</th></tr>
+  <tr><td>Background</td><td>#22272E</td><td><span class="color-swatch" style="background:#22272E"></span></td></tr>
+  <tr><td>Surface</td><td>#2D333B</td><td><span class="color-swatch" style="background:#2D333B"></span></td></tr>
+  <tr><td>Overlay</td><td>#373E47</td><td><span class="color-swatch" style="background:#373E47"></span></td></tr>
+  <tr><td>Text Primary</td><td>#ADBAC7</td><td><span class="color-swatch" style="background:#ADBAC7"></span></td></tr>
+  <tr><td>Border</td><td>#444C56</td><td><span class="color-swatch" style="background:#444C56"></span></td></tr>
+  <tr><td>Accent</td><td>#539BF5</td><td><span class="color-swatch" style="background:#539BF5"></span></td></tr>
+</table>
+
+<!-- ======================== VERIFICATION ======================== -->
+
+<h2 id="verification">Verification Checklist</h2>
+
+<ul>
+  <li>&#9744; Switch between all 5 themes — each distinct and correct</li>
+  <li>&#9744; Dashboard: widgets, charts, stats look good</li>
+  <li>&#9744; Board view: kanban columns, task cards, drag-drop</li>
+  <li>&#9744; My Tasks: eisenhower, task list, empty states</li>
+  <li>&#9744; Dialogs: create board, import, custom fields, mentions</li>
+  <li>&#9744; Workspace members list table</li>
+  <li>&#9744; <code>npx tsc --noEmit</code> — no type errors</li>
+  <li>&#9744; <code>npm run build -- --configuration=production</code> — clean build</li>
+  <li>&#9744; All text meets WCAG AA 4.5:1 contrast</li>
+</ul>
+
+</body>
+</html>

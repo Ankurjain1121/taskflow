@@ -24,6 +24,7 @@ import { KeyboardShortcutsService } from './core/services/keyboard-shortcuts.ser
 import { GlobalSearchComponent } from './shared/components/global-search/global-search.component';
 import { ToastContainerComponent } from './shared/components/toast/toast.component';
 import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
+import { TopNavComponent } from './shared/components/top-nav/top-nav.component';
 import { WorkspaceSettingsDialogComponent } from './features/workspace/workspace-settings/workspace-settings-dialog.component';
 
 const routeTransition = trigger('routeAnimations', [
@@ -58,6 +59,7 @@ const routeTransition = trigger('routeAnimations', [
     GlobalSearchComponent,
     ToastContainerComponent,
     SidebarComponent,
+    TopNavComponent,
     WorkspaceSettingsDialogComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -71,30 +73,38 @@ export class AppComponent implements OnInit, OnDestroy {
   searchOpen = signal(false);
   showSidebar = signal(false);
 
-  // Inject ThemeService to ensure theme is applied on app initialization
+  sidebarCollapsed = signal(
+    typeof localStorage !== 'undefined'
+      ? localStorage.getItem('taskflow_sidebar_collapsed') === 'true'
+      : false,
+  );
+
+  mobileOpen = signal(false);
+
+  private isMobile = signal(
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false,
+  );
+
   private themeService = inject(ThemeService);
   private router = inject(Router);
   private keyboardShortcuts = inject(KeyboardShortcutsService);
 
   ngOnInit(): void {
-    // ThemeService constructor handles theme initialization
-    // This ensures the service is instantiated and theme is applied
-
-    // Register global navigation shortcuts (G then X sequences)
     this.registerGlobalShortcuts();
 
-    // Listen to route changes to determine if sidebar should be shown
     this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe((event: NavigationEnd) => {
         const url = event.url;
-        // Hide sidebar on auth and onboarding routes
         const hideSidebar =
           url.startsWith('/auth') || url.startsWith('/onboarding');
         this.showSidebar.set(!hideSidebar);
+        // Close mobile sidebar on navigation
+        if (this.mobileOpen()) {
+          this.closeMobileSidebar();
+        }
       });
 
-    // Set initial sidebar visibility
     const currentUrl = this.router.url;
     const hideSidebar =
       currentUrl.startsWith('/auth') || currentUrl.startsWith('/onboarding');
@@ -105,9 +115,17 @@ export class AppComponent implements OnInit, OnDestroy {
     this.keyboardShortcuts.unregisterByCategory('Navigation');
   }
 
+  @HostListener('window:resize')
+  onResize(): void {
+    const mobile = window.innerWidth < 768;
+    this.isMobile.set(mobile);
+    if (!mobile && this.mobileOpen()) {
+      this.closeMobileSidebar();
+    }
+  }
+
   @HostListener('document:keydown', ['$event'])
   onKeydown(event: KeyboardEvent): void {
-    // Ctrl+K (Windows/Linux) or Cmd+K (Mac) to open search
     if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
       event.preventDefault();
       this.searchOpen.set(true);
@@ -120,6 +138,39 @@ export class AppComponent implements OnInit, OnDestroy {
 
   closeSearch(): void {
     this.searchOpen.set(false);
+  }
+
+  onToggleSidebar(): void {
+    if (this.isMobile()) {
+      this.mobileOpen.update((v) => !v);
+    } else {
+      this.sidebarCollapsed.update((v) => {
+        const next = !v;
+        localStorage.setItem('taskflow_sidebar_collapsed', String(next));
+        return next;
+      });
+    }
+  }
+
+  openMobileSidebar(): void {
+    this.mobileOpen.set(true);
+  }
+
+  closeMobileSidebar(): void {
+    this.mobileOpen.set(false);
+  }
+
+  onQuickCreate(): void {
+    // Will be connected to task creation dialog in a later feature
+  }
+
+  getSidebarClasses(): string {
+    if (this.isMobile()) {
+      return this.mobileOpen()
+        ? 'sidebar-wrapper fixed left-0 translate-x-0'
+        : 'sidebar-wrapper fixed left-0 -translate-x-full';
+    }
+    return 'relative';
   }
 
   getRouteAnimationData(outlet: RouterOutlet): string {

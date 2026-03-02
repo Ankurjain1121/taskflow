@@ -193,6 +193,7 @@ export interface TaskMoveEvent {
           @for (task of visibleTasks(); track task.id) {
             <app-task-card
               [task]="task"
+              [density]="density()"
               [isBlocked]="false"
               [isCelebrating]="celebratingTaskId() === task.id"
               [isFocused]="focusedTaskId() === task.id"
@@ -211,6 +212,7 @@ export interface TaskMoveEvent {
               (taskClicked)="onTaskClicked($event)"
               (selectionToggled)="selectionToggled.emit($event)"
               (priorityChanged)="priorityChanged.emit($event)"
+              (titleChanged)="titleChanged.emit($event)"
               (columnMoveRequested)="columnMoveRequested.emit($event)"
               (duplicateRequested)="duplicateRequested.emit($event)"
               (deleteRequested)="deleteRequested.emit($event)"
@@ -326,6 +328,7 @@ export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
   connectedLists = input<string[]>([]);
   celebratingTaskId = input<string | null>(null);
   focusedTaskId = input<string | null>(null);
+  density = input<'compact' | 'normal' | 'expanded'>('normal');
 
   selectedTaskIds = input<string[]>([]);
   allColumns = input<Column[]>([]);
@@ -337,6 +340,7 @@ export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
   addTaskClicked = output<string>();
   selectionToggled = output<string>();
   priorityChanged = output<{ taskId: string; priority: string }>();
+  titleChanged = output<{ taskId: string; title: string }>();
   columnMoveRequested = output<{ taskId: string; columnId: string }>();
   duplicateRequested = output<string>();
   deleteRequested = output<string>();

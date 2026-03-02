@@ -9,6 +9,7 @@ Multi-tenant project management SaaS with kanban boards, task tracking, team col
 - **No Silent Workarounds:** Report failures, ask user
 - **Visual Over Verbal:** Tables > paragraphs
 - **Full-Stack Features:** Every feature MUST be implemented end-to-end (backend API + frontend UI). Never build frontend calling endpoints that don't exist, or backend endpoints with no frontend consumer. Optimize the implementation before moving on.
+- **Use Subagents & Teams:** Use subagents, worker agents, and TeamCreate wherever possible. Parallelize independent work across agents (research, implementation, review). Prefer multi-agent teams over doing everything sequentially in the main context.
 
 ## Tech Stack
 
@@ -18,7 +19,7 @@ Multi-tenant project management SaaS with kanban boards, task tracking, team col
 | Frontend | Angular 19, TypeScript 5.7, Tailwind CSS 4, PrimeNG 19 |
 | Database | PostgreSQL 16, Redis 7 |
 | Storage | MinIO (S3-compatible) |
-| Infra | Docker Compose, Caddy reverse proxy |
+| Infra | Docker Compose, Nginx reverse proxy |
 
 ## Project Structure
 
@@ -31,9 +32,12 @@ backend/
     services/src/     # Background jobs, notifications
 frontend/src/app/
   core/               # Guards, interceptors, services, initializers
-  features/           # Feature modules (auth, board, dashboard, my-tasks, etc.)
+  features/           # 15 modules: admin, archive, auth, board, dashboard,
+                      #   favorites, help, my-tasks, onboarding, settings,
+                      #   shared-board, task-detail, tasks, team, workspace
   shared/             # Reusable components, pipes, types, utils
-scripts/              # quick-check.sh, pre-deploy-check.sh, deploy-vps.sh
+scripts/              # quick-check.sh, pre-deploy-check.sh, deploy-vps.sh,
+                      #   setup-hooks.sh, smoke-test-*.sh, init-db.sh, run_seed.sh
 ```
 
 ## Organization Rules
@@ -59,6 +63,17 @@ cd frontend && npx tsc --noEmit && npm run build -- --configuration=production
 ```
 
 Fix ALL errors before continuing. Use `./scripts/quick-check.sh` for combined checks.
+
+---
+
+## Test Credentials
+
+| Email | Password | Role |
+|-------|----------|------|
+| alice@acme.com | Password123! | Admin |
+| bob@acme.com | Password123! | Member |
+
+Use `alice@acme.com / Password123!` for all testing and browser verification.
 
 ---
 

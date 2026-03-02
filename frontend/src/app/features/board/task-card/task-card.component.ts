@@ -2,7 +2,10 @@ import {
   Component,
   input,
   output,
+  signal,
+  viewChild,
   ViewChild,
+  ElementRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -13,8 +16,10 @@ import {
 } from '@angular/cdk/drag-drop';
 import { Menu } from 'primeng/menu';
 import { MenuItem } from 'primeng/api';
+import { Tooltip } from 'primeng/tooltip';
 import { Task } from '../../../core/services/task.service';
 import { Column } from '../../../core/services/board.service';
+import { PriorityBadgeComponent } from '../../../shared/components/priority-badge/priority-badge.component';
 import {
   getPriorityColor,
   getPriorityLabel,
@@ -27,12 +32,13 @@ import {
 @Component({
   selector: 'app-task-card',
   standalone: true,
-  imports: [CommonModule, CdkDrag, CdkDragPreview, CdkDragPlaceholder, Menu],
+  imports: [CommonModule, CdkDrag, CdkDragPreview, CdkDragPlaceholder, Menu, Tooltip, PriorityBadgeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
       cdkDrag
       [cdkDragData]="task()"
+      [cdkDragDisabled]="isEditingTitle()"
       (click)="onCardClick($event)"
       (contextmenu)="onRightClick($event)"
       class="task-card rounded-lg border border-[var(--border)] cursor-grab group relative overflow-hidden"
@@ -143,52 +149,69 @@ import {
       </div>
 
       @if (density() === 'compact') {
-        <!-- Compact card: title + tiny assignees -->
+        <!-- Compact card: title + metadata row -->
         <div class="px-2.5 py-2">
           <h4
             class="text-xs font-medium text-[var(--card-foreground)] line-clamp-1 leading-tight"
           >
             {{ task().title }}
           </h4>
-          @if (task().assignees && task().assignees!.length > 0) {
-            <div class="flex -space-x-1 mt-1">
-              @for (
-                assignee of task().assignees!.slice(0, 2);
-                track assignee.id;
-                let i = $index
-              ) {
-                <div
-                  class="w-5 h-5 rounded-full ring-1 ring-[var(--card)] flex items-center justify-center text-[8px] font-bold text-white"
-                  [title]="assignee.display_name"
-                  [style.background]="
-                    assignee.avatar_url ? 'transparent' : getAvatarGradient(i)
-                  "
+          <!-- Priority dot + due date + assignees -->
+          <div class="flex items-center justify-between mt-1">
+            <div class="flex items-center gap-1.5">
+              <span
+                class="w-2 h-2 rounded-full flex-shrink-0"
+                [style.background-color]="getPriorityFlagColor()"
+              ></span>
+              @if (task().due_date) {
+                <span
+                  class="text-[9px] font-medium"
+                  [ngClass]="dueDateColors.class"
                 >
-                  @if (assignee.avatar_url) {
-                    <img
-                      [src]="assignee.avatar_url"
-                      [alt]="assignee.display_name"
-                      class="w-full h-full rounded-full object-cover"
-                    />
-                  } @else {
-                    {{ getInitials(assignee.display_name) }}
-                  }
-                </div>
-              }
-              @if (task().assignees!.length > 2) {
-                <div
-                  class="w-5 h-5 rounded-full ring-1 ring-[var(--card)] bg-[var(--secondary)] flex items-center justify-center text-[8px] font-bold text-[var(--muted-foreground)]"
-                >
-                  +{{ task().assignees!.length - 2 }}
-                </div>
+                  {{ formatDueDate(task().due_date!) }}
+                </span>
               }
             </div>
-          }
+            @if (task().assignees && task().assignees!.length > 0) {
+              <div class="flex -space-x-1">
+                @for (
+                  assignee of task().assignees!.slice(0, 2);
+                  track assignee.id;
+                  let i = $index
+                ) {
+                  <div
+                    class="w-5 h-5 rounded-full ring-1 ring-[var(--card)] flex items-center justify-center text-[8px] font-bold text-white"
+                    [title]="assignee.display_name"
+                    [style.background]="
+                      assignee.avatar_url ? 'transparent' : getAvatarGradient(i)
+                    "
+                  >
+                    @if (assignee.avatar_url) {
+                      <img
+                        [src]="assignee.avatar_url"
+                        [alt]="assignee.display_name"
+                        class="w-full h-full rounded-full object-cover"
+                      />
+                    } @else {
+                      {{ getInitials(assignee.display_name) }}
+                    }
+                  </div>
+                }
+                @if (task().assignees!.length > 2) {
+                  <div
+                    class="w-5 h-5 rounded-full ring-1 ring-[var(--card)] bg-[var(--secondary)] flex items-center justify-center text-[8px] font-bold text-[var(--muted-foreground)]"
+                  >
+                    +{{ task().assignees!.length - 2 }}
+                  </div>
+                }
+              </div>
+            }
+          </div>
         </div>
-      } @else {
-        <!-- Normal card: full layout -->
+      } @else if (density() === 'expanded') {
+        <!-- Expanded card: all labels, 2-line description, all assignees -->
 
-        <!-- Labels -->
+        <!-- All Labels (no cap) -->
         @if (task().labels && task().labels!.length > 0) {
           <div class="flex flex-wrap gap-1 px-3 pt-3">
             @for (label of task().labels!; track label.id) {
@@ -198,6 +221,272 @@ import {
                 [style.text-shadow]="'1px 1px 0 rgba(0,0,0,0.2)'"
               >
                 {{ label.name }}
+              </span>
+            }
+          </div>
+        }
+
+        <div
+          class="p-4"
+          [class.pt-2]="task().labels && task().labels!.length > 0"
+        >
+          <!-- Blocked Indicator -->
+          @if (isBlocked()) {
+            <div
+              class="flex items-center gap-1.5 mb-2.5 px-2 py-1 bg-[var(--status-red-bg)] rounded-lg text-xs font-semibold text-[var(--status-red-text)] border border-[var(--status-red-border)]"
+            >
+              <svg
+                class="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+              Blocked
+            </div>
+          }
+
+          <!-- Short ID -->
+          @if (task().task_number && boardPrefix()) {
+            <span
+              class="text-[10px] font-medium text-[var(--muted-foreground)] mb-1 inline-block"
+            >
+              {{ boardPrefix() }}-{{ task().task_number }}
+            </span>
+          }
+
+          <!-- Title -->
+          @if (!isEditingTitle()) {
+            <div class="flex items-start gap-1.5 group/title mb-2.5">
+              <h4
+                class="text-sm font-semibold text-[var(--card-foreground)] line-clamp-2 leading-snug tracking-tight flex-1 min-w-0"
+              >{{ task().title }}</h4>
+              <button
+                (click)="onTitleEditStart($event)"
+                class="flex-shrink-0 mt-0.5 opacity-0 group-hover/title:opacity-100 transition-opacity duration-150 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                title="Edit title"
+                aria-label="Edit task title"
+              >
+                <i class="pi pi-pencil text-xs"></i>
+              </button>
+            </div>
+          }
+          @if (isEditingTitle()) {
+            <input
+              #titleInput
+              type="text"
+              [value]="editTitleValue()"
+              (input)="onTitleInput($event)"
+              (blur)="onTitleSave()"
+              (keydown.enter)="onTitleSave()"
+              (keydown.escape)="onTitleCancel()"
+              (click)="$event.stopPropagation()"
+              maxlength="200"
+              aria-label="Edit task title"
+              class="w-full text-sm font-semibold mb-2.5
+                     bg-[var(--card)] text-[var(--card-foreground)]
+                     border border-[var(--border)] rounded-md px-2 py-1
+                     focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-0
+                     transition-shadow duration-150"
+            />
+          }
+
+          <!-- Description preview (2 lines in expanded mode) -->
+          @if (task().description && task().description!.trim()) {
+            <p class="text-[11px] text-[var(--muted-foreground)] line-clamp-2 leading-snug mb-2.5 -mt-1">
+              {{ task().description }}
+            </p>
+          }
+
+          <!-- Running Timer Indicator -->
+          @if (hasRunningTimer()) {
+            <div
+              class="flex items-center gap-1.5 mb-2.5 px-2 py-1 bg-[var(--status-green-bg)] rounded-lg text-xs font-semibold text-[var(--status-green-text)] border border-[var(--status-green-border)]"
+            >
+              <span
+                class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"
+              ></span>
+              <svg
+                class="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              Timer running
+            </div>
+          }
+
+          <!-- Bottom Row -->
+          <div
+            class="flex items-center justify-between mt-3 pt-2.5 border-t border-[var(--border)]"
+          >
+            <div class="flex items-center gap-2">
+              <!-- Priority Badge -->
+              <app-priority-badge [priority]="task().priority" />
+
+              <!-- Due Date -->
+              @if (task().due_date) {
+                <span
+                  [class]="
+                    'flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded ' +
+                    dueDateColors.class +
+                    ' ' +
+                    dueDateColors.chipClass
+                  "
+                >
+                  <svg
+                    class="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                  {{ formatDueDate(task().due_date!) }}
+                </span>
+              }
+
+              <!-- Subtask Progress Bar -->
+              @if (subtaskProgress() && subtaskProgress()!.total > 0) {
+                <div class="flex items-center gap-1.5">
+                  <div class="w-12 h-1 rounded-full bg-[var(--border)] overflow-hidden">
+                    <div
+                      class="h-full rounded-full transition-all duration-300"
+                      [class.bg-emerald-500]="subtaskProgress()!.completed === subtaskProgress()!.total"
+                      [style.background]="subtaskProgress()!.completed !== subtaskProgress()!.total ? 'var(--primary)' : null"
+                      [style.width.%]="(subtaskProgress()!.completed / subtaskProgress()!.total) * 100"
+                    ></div>
+                  </div>
+                  <span
+                    class="text-[11px] font-medium"
+                    [class.text-emerald-600]="subtaskProgress()!.completed === subtaskProgress()!.total"
+                    [class.text-gray-400]="subtaskProgress()!.completed !== subtaskProgress()!.total"
+                  >
+                    {{ subtaskProgress()!.completed }}/{{ subtaskProgress()!.total }}
+                  </span>
+                </div>
+              }
+
+              <!-- Comment Count -->
+              @if (task().comment_count && task().comment_count! > 0) {
+                <span
+                  class="flex items-center gap-1 text-[11px] font-medium text-[var(--muted-foreground)]"
+                >
+                  <svg
+                    class="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    />
+                  </svg>
+                  {{ task().comment_count }}
+                </span>
+              }
+
+              <!-- Attachment Count -->
+              @if (task().attachment_count && task().attachment_count! > 0) {
+                <span
+                  class="flex items-center gap-1 text-[11px] font-medium text-[var(--muted-foreground)]"
+                >
+                  <svg
+                    class="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                    />
+                  </svg>
+                  {{ task().attachment_count }}
+                </span>
+              }
+            </div>
+
+            <!-- All Assignees (no cap in expanded mode) -->
+            <div class="flex items-center">
+              @if (task().assignees && task().assignees!.length > 0) {
+                <div class="flex -space-x-2">
+                  @for (
+                    assignee of task().assignees!;
+                    track assignee.id;
+                    let i = $index
+                  ) {
+                    <div
+                      class="assignee-avatar w-7 h-7 rounded-full ring-2 ring-[var(--card)] flex items-center justify-center text-[10px] font-bold text-white shadow-sm"
+                      [title]="assignee.display_name"
+                      [style.z-index]="task().assignees!.length - i"
+                      [style.background]="
+                        assignee.avatar_url
+                          ? 'transparent'
+                          : getAvatarGradient(i)
+                      "
+                    >
+                      @if (assignee.avatar_url) {
+                        <img
+                          [src]="assignee.avatar_url"
+                          [alt]="assignee.display_name"
+                          class="w-full h-full rounded-full object-cover"
+                        />
+                      } @else {
+                        {{ getInitials(assignee.display_name) }}
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      } @else {
+        <!-- Normal card: full layout -->
+
+        <!-- Labels (capped at 2 + overflow pill) -->
+        @if (task().labels && task().labels!.length > 0) {
+          <div class="flex flex-wrap gap-1 px-3 pt-3">
+            @for (label of task().labels!.slice(0, 2); track label.id) {
+              <span
+                class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
+                [style.background-color]="label.color"
+                [style.text-shadow]="'1px 1px 0 rgba(0,0,0,0.2)'"
+              >
+                {{ label.name }}
+              </span>
+            }
+            @if (task().labels!.length > 2) {
+              <span
+                class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--secondary)] text-[var(--muted-foreground)]"
+                [pTooltip]="getOverflowLabelsTooltip()"
+                tooltipPosition="top"
+              >
+                +{{ task().labels!.length - 2 }}
               </span>
             }
           </div>
@@ -239,11 +528,47 @@ import {
           }
 
           <!-- Title -->
-          <h4
-            class="text-sm font-semibold text-[var(--card-foreground)] line-clamp-2 mb-2.5 leading-snug tracking-tight"
-          >
-            {{ task().title }}
-          </h4>
+          @if (!isEditingTitle()) {
+            <div class="flex items-start gap-1.5 group/title mb-2.5">
+              <h4
+                class="text-sm font-semibold text-[var(--card-foreground)] line-clamp-2 leading-snug tracking-tight flex-1 min-w-0"
+              >{{ task().title }}</h4>
+              <button
+                (click)="onTitleEditStart($event)"
+                class="flex-shrink-0 mt-0.5 opacity-0 group-hover/title:opacity-100 transition-opacity duration-150 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                title="Edit title"
+                aria-label="Edit task title"
+              >
+                <i class="pi pi-pencil text-xs"></i>
+              </button>
+            </div>
+          }
+          @if (isEditingTitle()) {
+            <input
+              #titleInput
+              type="text"
+              [value]="editTitleValue()"
+              (input)="onTitleInput($event)"
+              (blur)="onTitleSave()"
+              (keydown.enter)="onTitleSave()"
+              (keydown.escape)="onTitleCancel()"
+              (click)="$event.stopPropagation()"
+              maxlength="200"
+              aria-label="Edit task title"
+              class="w-full text-sm font-semibold mb-2.5
+                     bg-[var(--card)] text-[var(--card-foreground)]
+                     border border-[var(--border)] rounded-md px-2 py-1
+                     focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-0
+                     transition-shadow duration-150"
+            />
+          }
+
+          <!-- Description preview (1 line, only when non-empty) -->
+          @if (task().description && task().description!.trim()) {
+            <p class="text-[11px] text-[var(--muted-foreground)] line-clamp-1 leading-snug mb-2.5 -mt-1">
+              {{ task().description }}
+            </p>
+          }
 
           <!-- Running Timer Indicator -->
           @if (hasRunningTimer()) {
@@ -275,26 +600,8 @@ import {
             class="flex items-center justify-between mt-3 pt-2.5 border-t border-[var(--border)]"
           >
             <div class="flex items-center gap-2">
-              <!-- Priority Flag Icon -->
-              <svg
-                class="w-3.5 h-3.5 flex-shrink-0"
-                viewBox="0 0 12 12"
-                fill="none"
-              >
-                <path
-                  d="M2 1v10M2 1h7l-2 3 2 3H2"
-                  [attr.stroke]="getPriorityFlagColor()"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-              <span
-                class="text-[10px] font-semibold uppercase tracking-wider"
-                [style.color]="getPriorityFlagColor()"
-              >
-                {{ priorityLabel }}
-              </span>
+              <!-- Priority Badge -->
+              <app-priority-badge [priority]="task().priority" />
 
               <!-- Due Date -->
               @if (task().due_date) {
@@ -323,34 +630,25 @@ import {
                 </span>
               }
 
-              <!-- Subtask Progress -->
+              <!-- Subtask Progress Bar -->
               @if (subtaskProgress() && subtaskProgress()!.total > 0) {
-                <span
-                  class="flex items-center gap-1 text-[11px] font-medium"
-                  [class.text-emerald-600]="
-                    subtaskProgress()!.completed === subtaskProgress()!.total
-                  "
-                  [class.text-gray-400]="
-                    subtaskProgress()!.completed !== subtaskProgress()!.total
-                  "
-                >
-                  <svg
-                    class="w-3 h-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                <div class="flex items-center gap-1.5">
+                  <div class="w-12 h-1 rounded-full bg-[var(--border)] overflow-hidden">
+                    <div
+                      class="h-full rounded-full transition-all duration-300"
+                      [class.bg-emerald-500]="subtaskProgress()!.completed === subtaskProgress()!.total"
+                      [style.background]="subtaskProgress()!.completed !== subtaskProgress()!.total ? 'var(--primary)' : null"
+                      [style.width.%]="(subtaskProgress()!.completed / subtaskProgress()!.total) * 100"
+                    ></div>
+                  </div>
+                  <span
+                    class="text-[11px] font-medium"
+                    [class.text-emerald-600]="subtaskProgress()!.completed === subtaskProgress()!.total"
+                    [class.text-gray-400]="subtaskProgress()!.completed !== subtaskProgress()!.total"
                   >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  {{ subtaskProgress()!.completed }}/{{
-                    subtaskProgress()!.total
-                  }}
-                </span>
+                    {{ subtaskProgress()!.completed }}/{{ subtaskProgress()!.total }}
+                  </span>
+                </div>
               }
 
               <!-- Comment Count -->
@@ -572,14 +870,20 @@ export class TaskCardComponent {
   hasRunningTimer = input<boolean>(false);
   columns = input<Column[]>([]);
   boardPrefix = input<string | null>(null);
-  density = input<'compact' | 'normal'>('normal');
+  density = input<'compact' | 'normal' | 'expanded'>('normal');
 
   taskClicked = output<Task>();
   selectionToggled = output<string>();
   priorityChanged = output<{ taskId: string; priority: string }>();
+  titleChanged = output<{ taskId: string; title: string }>();
   columnMoveRequested = output<{ taskId: string; columnId: string }>();
   duplicateRequested = output<string>();
   deleteRequested = output<string>();
+
+  isEditingTitle = signal(false);
+  editTitleValue = signal('');
+  titleInput = viewChild<ElementRef>('titleInput');
+  private isSaving = false;
 
   @ViewChild('cardMenu') cardMenu!: Menu;
 
@@ -648,6 +952,12 @@ export class TaskCardComponent {
       .slice(0, 2);
   }
 
+  getOverflowLabelsTooltip(): string {
+    const labels = this.task().labels;
+    if (!labels || labels.length <= 2) return '';
+    return labels.slice(2).map((l) => l.name).join(', ');
+  }
+
   getAvatarGradient(index: number): string {
     const gradients = [
       'linear-gradient(135deg, #6366f1, #8b5cf6)',
@@ -708,6 +1018,40 @@ export class TaskCardComponent {
       taskId: this.task().id,
       priority: this.priorityOrder[nextIndex],
     });
+  }
+
+  onTitleEditStart(event: MouseEvent): void {
+    event.stopPropagation();
+    this.isSaving = false;
+    this.editTitleValue.set(this.task().title);
+    this.isEditingTitle.set(true);
+    setTimeout(() => {
+      const el = this.titleInput()?.nativeElement as HTMLInputElement | undefined;
+      el?.select();
+    }, 0);
+  }
+
+  onTitleInput(event: Event): void {
+    this.editTitleValue.set((event.target as HTMLInputElement).value);
+  }
+
+  onTitleSave(): void {
+    if (this.isSaving) return;
+    const newTitle = this.editTitleValue().trim();
+    if (!newTitle) {
+      this.onTitleCancel();
+      return;
+    }
+    if (newTitle !== this.task().title) {
+      this.isSaving = true;
+      this.titleChanged.emit({ taskId: this.task().id, title: newTitle });
+    }
+    this.isEditingTitle.set(false);
+  }
+
+  onTitleCancel(): void {
+    this.isSaving = false;
+    this.isEditingTitle.set(false);
   }
 
   private buildContextMenu(): void {

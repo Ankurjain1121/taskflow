@@ -1,0 +1,138 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-02-23",
+  "contracts": {
+    "TaskPriority": {
+      "file": "backend/crates/db/src/models/common.rs",
+      "line": "40-48",
+      "producers": ["backend/crates/db/src/queries/tasks.rs", "backend/crates/api/src/routes/task_crud.rs"],
+      "consumers": ["backend/crates/api/src/routes/task_crud.rs", "backend/crates/api/src/routes/task_bulk.rs", "backend/crates/api/src/routes/task_views.rs", "backend/crates/api/src/routes/board.rs", "backend/crates/services/src/jobs/automation_executor.rs", "backend/crates/db/src/queries/boards.rs"]
+    },
+    "UserRole": {
+      "file": "backend/crates/db/src/models/common.rs",
+      "line": "7-11",
+      "producers": ["backend/crates/api/src/routes/auth.rs", "backend/crates/api/src/routes/admin_users.rs"],
+      "consumers": ["backend/crates/auth/src/rbac.rs", "backend/crates/auth/src/jwt.rs", "backend/crates/api/src/middleware/auth.rs", "backend/crates/db/src/queries/users.rs"]
+    },
+    "ActivityAction": {
+      "file": "backend/crates/db/src/models/common.rs",
+      "line": "53-64",
+      "producers": ["backend/crates/api/src/services/activity_log.rs", "backend/crates/services/src/audit.rs"],
+      "consumers": ["backend/crates/db/src/queries/activity_log.rs", "backend/crates/api/src/routes/admin_audit.rs"]
+    },
+    "WorkspaceMemberRole": {
+      "file": "backend/crates/db/src/models/common.rs",
+      "line": "16-21",
+      "producers": ["backend/crates/api/src/routes/workspace.rs"],
+      "consumers": ["backend/crates/db/src/models/workspace.rs", "backend/crates/db/src/queries/workspaces.rs", "backend/crates/auth/src/rbac.rs"]
+    },
+    "BoardMemberRole": {
+      "file": "backend/crates/db/src/models/common.rs",
+      "line": "34-37",
+      "producers": ["backend/crates/api/src/routes/board.rs"],
+      "consumers": ["backend/crates/db/src/models/board.rs", "backend/crates/db/src/queries/boards.rs", "backend/crates/db/src/queries/board_shares.rs"]
+    },
+    "AutomationTrigger": {
+      "file": "backend/crates/db/src/models/automation.rs",
+      "line": "8-20",
+      "producers": ["backend/crates/api/src/routes/task_crud.rs", "backend/crates/api/src/routes/task_assignment.rs", "backend/crates/api/src/routes/task_movement.rs"],
+      "consumers": ["backend/crates/services/src/jobs/automation_executor.rs", "backend/crates/db/src/queries/automations.rs"]
+    },
+    "AutomationActionType": {
+      "file": "backend/crates/db/src/models/automation.rs",
+      "line": "24-36",
+      "producers": ["backend/crates/api/src/routes/automation.rs"],
+      "consumers": ["backend/crates/services/src/jobs/automation_executor.rs", "backend/crates/db/src/queries/automations.rs"]
+    },
+    "WsBoardEvent": {
+      "file": "backend/crates/db/src/models/ws_events.rs",
+      "line": "8-42",
+      "producers": ["backend/crates/api/src/routes/task_crud.rs", "backend/crates/api/src/routes/task_assignment.rs", "backend/crates/api/src/routes/task_movement.rs"],
+      "consumers": ["backend/crates/services/src/broadcast.rs", "backend/crates/api/src/ws/handler.rs"]
+    },
+    "TaskBroadcast": {
+      "file": "backend/crates/db/src/models/ws_events.rs",
+      "line": "44-54",
+      "producers": ["backend/crates/api/src/routes/task_crud.rs", "backend/crates/api/src/routes/task_assignment.rs"],
+      "consumers": ["backend/crates/services/src/broadcast.rs"]
+    },
+    "CustomFieldType": {
+      "file": "backend/crates/db/src/models/common.rs",
+      "line": "78-84",
+      "producers": ["backend/crates/api/src/routes/custom_field.rs"],
+      "consumers": ["backend/crates/db/src/models/custom_field.rs", "backend/crates/db/src/queries/custom_fields.rs"]
+    },
+    "WorkspaceVisibility": {
+      "file": "backend/crates/db/src/models/common.rs",
+      "line": "26-29",
+      "producers": ["backend/crates/api/src/routes/workspace.rs"],
+      "consumers": ["backend/crates/db/src/models/workspace.rs", "backend/crates/db/src/queries/workspaces.rs"]
+    },
+    "RecurrencePattern": {
+      "file": "backend/crates/db/src/models/common.rs",
+      "line": "89-98",
+      "producers": ["backend/crates/db/src/queries/recurring.rs"],
+      "consumers": ["backend/crates/db/src/models/recurring.rs", "backend/crates/api/src/routes/recurring.rs"]
+    },
+    "DependencyType": {
+      "file": "backend/crates/db/src/models/common.rs",
+      "line": "69-73",
+      "producers": ["backend/crates/db/src/queries/dependencies.rs"],
+      "consumers": ["backend/crates/db/src/models/dependency.rs", "backend/crates/api/src/routes/dependency.rs"]
+    },
+    "Task_FE": {
+      "file": "frontend/src/app/core/services/task.service.ts",
+      "line": "38-58",
+      "producers": ["frontend/src/app/core/services/task.service.ts"],
+      "consumers": ["frontend/src/app/features/board/board-view/board-view.component.ts", "frontend/src/app/features/board/kanban-column/kanban-column.component.ts", "frontend/src/app/shared/components/task-card/task-card.component.ts", "frontend/src/app/features/task-detail/task-detail-header/task-detail-header.component.ts"]
+    },
+    "Column_FE": {
+      "file": "frontend/src/app/core/services/board.service.ts",
+      "line": "20-30",
+      "producers": ["frontend/src/app/core/services/board.service.ts"],
+      "consumers": ["frontend/src/app/features/board/kanban-column/kanban-column.component.ts", "frontend/src/app/features/board/board-view/board-view.component.ts", "frontend/src/app/features/task-detail/task-detail-sidebar/task-detail-sidebar.component.ts"]
+    },
+    "Board_FE": {
+      "file": "frontend/src/app/core/services/board.service.ts",
+      "line": "5-13",
+      "producers": ["frontend/src/app/core/services/board.service.ts"],
+      "consumers": ["frontend/src/app/features/workspace/workspace.component.ts", "frontend/src/app/features/workspace/workspace-item/workspace-item.component.ts", "frontend/src/app/features/task-detail/task-detail-page/task-detail-page.component.ts"]
+    },
+    "Workspace_FE": {
+      "file": "frontend/src/app/core/services/workspace.service.ts",
+      "line": "6-16",
+      "producers": ["frontend/src/app/core/services/workspace.service.ts"],
+      "consumers": ["frontend/src/app/features/workspace/workspace.component.ts", "frontend/src/app/features/dashboard/dashboard.component.ts", "frontend/src/app/shared/components/sidebar/sidebar.component.ts"]
+    },
+    "MemberWorkload_FE": {
+      "file": "frontend/src/app/core/services/team.service.ts",
+      "line": "5-15",
+      "producers": ["frontend/src/app/core/services/team.service.ts"],
+      "consumers": ["frontend/src/app/features/team/team-page.component.ts", "frontend/src/app/features/team/member-workload-card/member-workload-card.component.ts", "frontend/src/app/features/team/workload-dashboard/workload-dashboard.component.ts"]
+    },
+    "Theme_FE": {
+      "file": "frontend/src/app/shared/types/theme.types.ts",
+      "line": "95-109",
+      "producers": ["frontend/src/app/core/services/theme-api.service.ts"],
+      "consumers": ["frontend/src/app/shared/components/sidebar/sidebar.component.ts", "frontend/src/app/features/settings/appearance-section/appearance-section.component.ts"]
+    },
+    "Notification_FE": {
+      "file": "frontend/src/app/core/services/notification.service.ts",
+      "line": "18-27",
+      "producers": ["frontend/src/app/core/services/notification.service.ts"],
+      "consumers": ["frontend/src/app/shared/components/notification-bell/notification-bell.component.ts", "frontend/src/app/shared/components/notification-item/notification-item.component.ts", "frontend/src/app/shared/components/toast/toast.component.ts"]
+    },
+    "WebSocketMessage_FE": {
+      "file": "frontend/src/app/core/services/websocket.service.ts",
+      "line": "5-8",
+      "producers": ["frontend/src/app/core/services/websocket.service.ts"],
+      "consumers": ["frontend/src/app/core/services/notification.service.ts"]
+    },
+    "TaskPriority_FE": {
+      "file": "frontend/src/app/core/services/task.service.ts",
+      "line": "13",
+      "producers": ["frontend/src/app/core/services/task.service.ts"],
+      "consumers": ["frontend/src/app/shared/components/priority-badge/priority-badge.component.ts", "frontend/src/app/features/board/create-task-dialog/create-task-dialog.component.ts", "frontend/src/app/shared/utils/task-colors.ts"]
+    }
+  }
+}
