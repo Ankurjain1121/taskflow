@@ -38,8 +38,8 @@ use crate::routes::{
     task_template_router, team_overview_router, teams_router, tenant_router, themes_router,
     time_entry_router, upload_router, user_preferences_router, webhook_router,
     workspace_api_keys_router, workspace_audit_router, workspace_boards_router,
-    workspace_export_router, workspace_labels_router, workspace_router, workspace_teams_router,
-    workspace_trash_router,
+    workspace_export_router, workspace_job_roles_router, workspace_labels_router, workspace_router,
+    workspace_teams_router, workspace_trash_router,
 };
 use crate::state::AppState;
 use crate::ws::ws_handler;
@@ -188,6 +188,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api/tenant", tenant_router(state.clone()))
         // Workspace routes
         .nest("/api/workspaces", workspace_router(state.clone()))
+        .nest("/api/workspaces", workspace_job_roles_router(state.clone()))
         .nest(
             "/api/workspaces/{workspace_id}/boards",
             workspace_boards_router(state.clone()),

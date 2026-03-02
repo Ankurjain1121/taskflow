@@ -28,6 +28,26 @@ pub struct WorkspaceMember {
     pub joined_at: DateTime<Utc>,
 }
 
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
+pub struct WorkspaceJobRole {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub name: String,
+    pub color: Option<String>,
+    pub description: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
+pub struct WorkspaceMemberJobRole {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub user_id: Uuid,
+    pub job_role_id: Uuid,
+    pub assigned_at: DateTime<Utc>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

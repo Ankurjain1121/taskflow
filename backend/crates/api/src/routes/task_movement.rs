@@ -95,6 +95,7 @@ pub async fn move_task_handler(
             previous_column_id,
             new_column_id: Some(body.column_id),
             priority: None,
+            member_user_id: None,
         },
     );
 
@@ -124,6 +125,7 @@ pub async fn move_task_handler(
                 previous_column_id,
                 new_column_id: Some(body.column_id),
                 priority: None,
+                member_user_id: None,
             },
         );
     }

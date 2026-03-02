@@ -64,6 +64,7 @@ pub struct TaskWithDetails {
     pub task: Task,
     pub assignees: Vec<AssigneeInfo>,
     pub labels: Vec<Label>,
+    pub watchers: Vec<super::task_watchers::WatcherInfo>,
     pub comment_count: i64,
     pub attachment_count: i64,
 }
@@ -223,10 +224,14 @@ pub async fn get_task_by_id(
     .fetch_one(pool)
     .await?;
 
+    // Fetch watchers with user info
+    let watchers = super::task_watchers::get_watcher_info(pool, task_id).await?;
+
     Ok(Some(TaskWithDetails {
         task,
         assignees,
         labels,
+        watchers,
         comment_count,
         attachment_count,
     }))

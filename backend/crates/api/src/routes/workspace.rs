@@ -15,10 +15,49 @@ use taskflow_auth::rbac::can_manage_workspace;
 use taskflow_db::models::{WorkspaceMemberRole, WorkspaceVisibility};
 use taskflow_db::queries::workspaces;
 
+use taskflow_db::models::automation::AutomationTrigger;
+use taskflow_services::{spawn_automation_evaluation, TriggerContext};
+
 use crate::errors::{AppError, Result};
 use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
+
+/// Fire MemberJoined trigger for all boards in a workspace
+fn fire_member_joined_trigger(
+    pool: sqlx::PgPool,
+    workspace_id: Uuid,
+    member_user_id: Uuid,
+    tenant_id: Uuid,
+) {
+    tokio::spawn(async move {
+        let board_ids = sqlx::query_scalar::<_, Uuid>(
+            "SELECT id FROM boards WHERE workspace_id = $1 AND deleted_at IS NULL",
+        )
+        .bind(workspace_id)
+        .fetch_all(&pool)
+        .await
+        .unwrap_or_default();
+
+        for board_id in board_ids {
+            // Use a dummy task_id (Nil) since MemberJoined doesn't relate to a specific task
+            spawn_automation_evaluation(
+                pool.clone(),
+                AutomationTrigger::MemberJoined,
+                TriggerContext {
+                    task_id: Uuid::nil(),
+                    board_id,
+                    tenant_id,
+                    user_id: member_user_id,
+                    previous_column_id: None,
+                    new_column_id: None,
+                    priority: None,
+                    member_user_id: Some(member_user_id),
+                },
+            );
+        }
+    });
+}
 
 // ============================================================================
 // Request/Response DTOs
@@ -355,6 +394,9 @@ async fn add_member(
 
     workspaces::add_workspace_member(&state.db, id, payload.user_id).await?;
 
+    // Fire MemberJoined automation trigger
+    fire_member_joined_trigger(state.db.clone(), id, payload.user_id, auth.0.tenant_id);
+
     Ok(Json(MessageResponse {
         message: "Member added successfully".into(),
     }))
@@ -535,6 +577,9 @@ async fn join_workspace(
     }
 
     workspaces::join_open_workspace(&state.db, id, auth.0.user_id).await?;
+
+    // Fire MemberJoined automation trigger
+    fire_member_joined_trigger(state.db.clone(), id, auth.0.user_id, auth.0.tenant_id);
 
     Ok(Json(JoinWorkspaceResponse {
         message: "Successfully joined the workspace".into(),

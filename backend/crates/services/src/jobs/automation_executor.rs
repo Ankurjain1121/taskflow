@@ -34,6 +34,8 @@ pub struct TriggerContext {
     pub new_column_id: Option<Uuid>,
     /// Priority value (for TaskPriorityChanged)
     pub priority: Option<String>,
+    /// User ID of the member who joined (for MemberJoined trigger)
+    pub member_user_id: Option<Uuid>,
 }
 
 /// Result of processing automation rules
@@ -211,6 +213,9 @@ async fn execute_action(
             execute_set_custom_field(pool, config, context).await
         }
         AutomationActionType::SendWebhook => execute_send_webhook(config, context).await,
+        AutomationActionType::AssignToRoleMembers => {
+            execute_assign_to_role_members(pool, config, context).await
+        }
     }
 }
 
@@ -602,6 +607,39 @@ async fn execute_send_webhook(
     Ok(())
 }
 
+/// AssignToRoleMembers action: assigns all members of a workspace job role to the task
+async fn execute_assign_to_role_members(
+    pool: &PgPool,
+    config: &serde_json::Value,
+    context: &TriggerContext,
+) -> Result<(), AutomationExecutorError> {
+    let role_id = config
+        .get("role_id")
+        .and_then(|v| v.as_str())
+        .and_then(|s| s.parse::<Uuid>().ok())
+        .ok_or_else(|| {
+            AutomationExecutorError::ActionFailed("AssignToRoleMembers: missing role_id".into())
+        })?;
+
+    let member_ids = taskflow_db::queries::get_members_with_role(pool, role_id).await?;
+
+    for member_id in member_ids {
+        sqlx::query(
+            r#"
+            INSERT INTO task_assignees (task_id, user_id)
+            VALUES ($1, $2)
+            ON CONFLICT (task_id, user_id) DO NOTHING
+            "#,
+        )
+        .bind(context.task_id)
+        .bind(member_id)
+        .execute(pool)
+        .await?;
+    }
+
+    Ok(())
+}
+
 /// Convenience function to spawn automation evaluation as a background task.
 /// Call this from route handlers — it won't block the response.
 pub fn spawn_automation_evaluation(
@@ -637,6 +675,7 @@ mod tests {
             previous_column_id: None,
             new_column_id: None,
             priority: None,
+            member_user_id: None,
         }
     }
 

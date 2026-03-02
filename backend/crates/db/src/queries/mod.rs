@@ -28,8 +28,10 @@ pub mod subtasks;
 pub mod task_assignments;
 pub mod task_bulk;
 pub mod task_groups;
+pub mod task_reminders;
 pub mod task_templates;
 pub mod task_views;
+pub mod task_watchers;
 pub mod tasks;
 pub mod team_overview;
 pub mod teams;
@@ -38,6 +40,7 @@ pub mod time_entries;
 pub mod user_preferences;
 pub mod webhooks;
 pub mod workspace_api_keys;
+pub mod workspace_job_roles;
 pub mod workspaces;
 
 #[cfg(test)]
@@ -68,14 +71,18 @@ pub use subtasks::*;
 pub use task_assignments::*;
 pub use task_bulk::*;
 pub use task_groups::*;
+pub use task_reminders::*;
 pub use task_templates::*;
 pub use task_views::*;
+pub use task_watchers::*;
 pub use tasks::*;
 pub use team_overview::*;
 pub use teams::*;
 pub use time_entries::*;
 pub use webhooks::*;
 pub use workspaces::*;
+
+pub use workspace_job_roles::*;
 
 pub use archive::*;
 pub use auth::*;

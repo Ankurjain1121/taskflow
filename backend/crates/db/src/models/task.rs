@@ -53,6 +53,25 @@ pub struct TaskLabel {
     pub label_id: Uuid,
 }
 
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
+pub struct TaskWatcher {
+    pub id: Uuid,
+    pub task_id: Uuid,
+    pub user_id: Uuid,
+    pub watched_at: DateTime<Utc>,
+}
+
+#[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
+pub struct TaskReminder {
+    pub id: Uuid,
+    pub task_id: Uuid,
+    pub user_id: Uuid,
+    pub remind_before_minutes: i32,
+    pub is_sent: bool,
+    pub sent_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

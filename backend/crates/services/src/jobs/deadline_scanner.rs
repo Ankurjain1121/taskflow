@@ -26,6 +26,7 @@ pub enum DeadlineScannerError {
 pub struct DeadlineScanResult {
     pub due_soon_count: usize,
     pub overdue_count: usize,
+    pub reminder_count: usize,
     pub notifications_sent: usize,
     pub errors: usize,
 }
@@ -63,6 +64,7 @@ pub async fn scan_deadlines(
     let mut result = DeadlineScanResult {
         due_soon_count: 0,
         overdue_count: 0,
+        reminder_count: 0,
         notifications_sent: 0,
         errors: 0,
     };
@@ -286,9 +288,64 @@ pub async fn scan_deadlines(
         offset += batch_size;
     }
 
+    // --- Task Reminders (configurable per-user) ---
+    match taskflow_db::queries::get_pending_reminders(pool, now).await {
+        Ok(pending) => {
+            result.reminder_count = pending.len();
+            for reminder in pending {
+                let link_url = format!(
+                    "{}/boards/{}/tasks/{}",
+                    app_url, reminder.board_id, reminder.task_id
+                );
+                let body = format!(
+                    "Reminder: Task \"{}\" on board \"{}\" is due in {} minutes",
+                    reminder.task_title, reminder.board_name, reminder.remind_before_minutes
+                );
+
+                match notification_service
+                    .create_notification(
+                        reminder.user_id,
+                        NotificationEvent::TaskReminder,
+                        NotificationEvent::TaskReminder.title(),
+                        &body,
+                        Some(&link_url),
+                    )
+                    .await
+                {
+                    Ok(_) => {
+                        result.notifications_sent += 1;
+                        if let Err(e) =
+                            taskflow_db::queries::mark_reminder_sent(pool, reminder.id).await
+                        {
+                            tracing::error!(
+                                reminder_id = %reminder.id,
+                                error = %e,
+                                "Failed to mark reminder as sent"
+                            );
+                        }
+                    }
+                    Err(e) => {
+                        tracing::error!(
+                            task_id = %reminder.task_id,
+                            user_id = %reminder.user_id,
+                            error = %e,
+                            "Failed to create reminder notification"
+                        );
+                        result.errors += 1;
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            tracing::error!(error = %e, "Failed to fetch pending reminders");
+            result.errors += 1;
+        }
+    }
+
     tracing::info!(
         due_soon = result.due_soon_count,
         overdue = result.overdue_count,
+        reminders = result.reminder_count,
         notifications = result.notifications_sent,
         errors = result.errors,
         "Deadline scan completed"
@@ -306,6 +363,7 @@ mod tests {
         let result = DeadlineScanResult {
             due_soon_count: 5,
             overdue_count: 3,
+            reminder_count: 0,
             notifications_sent: 8,
             errors: 0,
         };
@@ -318,6 +376,7 @@ mod tests {
         let result = DeadlineScanResult {
             due_soon_count: 10,
             overdue_count: 7,
+            reminder_count: 0,
             notifications_sent: 15,
             errors: 2,
         };
@@ -334,6 +393,7 @@ mod tests {
         let result = DeadlineScanResult {
             due_soon_count: 0,
             overdue_count: 0,
+            reminder_count: 0,
             notifications_sent: 0,
             errors: 0,
         };
@@ -350,6 +410,7 @@ mod tests {
         let result = DeadlineScanResult {
             due_soon_count: 1,
             overdue_count: 2,
+            reminder_count: 0,
             notifications_sent: 3,
             errors: 0,
         };
@@ -377,6 +438,7 @@ mod tests {
         let result = DeadlineScanResult {
             due_soon_count: 999_999,
             overdue_count: 500_000,
+            reminder_count: 0,
             notifications_sent: 1_499_999,
             errors: 0,
         };

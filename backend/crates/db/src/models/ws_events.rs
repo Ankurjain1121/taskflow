@@ -50,6 +50,7 @@ pub struct TaskBroadcast {
     pub column_id: Uuid,
     pub position: String,
     pub assignee_ids: Vec<Uuid>,
+    pub watcher_ids: Vec<Uuid>,
     pub updated_at: DateTime<Utc>,
 }
 
@@ -86,6 +87,7 @@ mod tests {
                 column_id: Uuid::new_v4(),
                 position: "a0".to_string(),
                 assignee_ids: vec![Uuid::new_v4()],
+                watcher_ids: vec![],
                 updated_at: now,
             },
             origin_user_id: Uuid::new_v4(),
@@ -108,6 +110,7 @@ mod tests {
                 column_id: Uuid::new_v4(),
                 position: "a1".to_string(),
                 assignee_ids: vec![],
+                watcher_ids: vec![],
                 updated_at: now,
             },
             origin_user_id: Uuid::new_v4(),
@@ -226,6 +229,7 @@ mod tests {
             column_id: Uuid::new_v4(),
             position: "z9".to_string(),
             assignee_ids: vec![Uuid::new_v4(), Uuid::new_v4()],
+            watcher_ids: vec![],
             updated_at: now,
         };
         let json = serde_json::to_string(&task).unwrap();
@@ -263,6 +267,7 @@ mod tests {
             column_id: Uuid::new_v4(),
             position: "a0".to_string(),
             assignee_ids: vec![],
+            watcher_ids: vec![],
             updated_at: now,
         };
         let col = ColumnBroadcast {

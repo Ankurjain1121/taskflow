@@ -17,6 +17,7 @@ pub enum AutomationTrigger {
     CustomFieldChanged,
     LabelChanged,
     DueDateApproaching,
+    MemberJoined,
 }
 
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -33,6 +34,7 @@ pub enum AutomationActionType {
     SetDueDate,
     SetCustomField,
     SendWebhook,
+    AssignToRoleMembers,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
@@ -89,6 +91,7 @@ mod tests {
             AutomationTrigger::CustomFieldChanged,
             AutomationTrigger::LabelChanged,
             AutomationTrigger::DueDateApproaching,
+            AutomationTrigger::MemberJoined,
         ];
         for trigger in triggers {
             let json = serde_json::to_string(&trigger).unwrap();
@@ -111,6 +114,7 @@ mod tests {
             AutomationActionType::SetDueDate,
             AutomationActionType::SetCustomField,
             AutomationActionType::SendWebhook,
+            AutomationActionType::AssignToRoleMembers,
         ];
         for action in actions {
             let json = serde_json::to_string(&action).unwrap();

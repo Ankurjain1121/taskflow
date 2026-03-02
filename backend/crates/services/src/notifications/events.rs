@@ -16,6 +16,8 @@ pub enum NotificationEvent {
     TaskCommented,
     TaskCompleted,
     MentionInComment,
+    TaskUpdatedWatcher,
+    TaskReminder,
 }
 
 impl NotificationEvent {
@@ -28,6 +30,8 @@ impl NotificationEvent {
             NotificationEvent::TaskCommented => "task-commented",
             NotificationEvent::TaskCompleted => "task-completed",
             NotificationEvent::MentionInComment => "mention-in-comment",
+            NotificationEvent::TaskUpdatedWatcher => "task-updated-watcher",
+            NotificationEvent::TaskReminder => "task-reminder",
         }
     }
 
@@ -40,6 +44,8 @@ impl NotificationEvent {
             NotificationEvent::TaskCommented => "New Comment",
             NotificationEvent::TaskCompleted => "Task Completed",
             NotificationEvent::MentionInComment => "You Were Mentioned",
+            NotificationEvent::TaskUpdatedWatcher => "Task Updated",
+            NotificationEvent::TaskReminder => "Task Reminder",
         }
     }
 
@@ -55,6 +61,10 @@ impl NotificationEvent {
             "mention-in-comment" | "mention_in_comment" => {
                 Some(NotificationEvent::MentionInComment)
             }
+            "task-updated-watcher" | "task_updated_watcher" => {
+                Some(NotificationEvent::TaskUpdatedWatcher)
+            }
+            "task-reminder" | "task_reminder" => Some(NotificationEvent::TaskReminder),
             _ => None,
         }
     }
@@ -68,6 +78,8 @@ impl NotificationEvent {
             NotificationEvent::TaskCommented,
             NotificationEvent::TaskCompleted,
             NotificationEvent::MentionInComment,
+            NotificationEvent::TaskUpdatedWatcher,
+            NotificationEvent::TaskReminder,
         ]
     }
 }
@@ -161,6 +173,11 @@ mod tests {
             NotificationEvent::MentionInComment.name(),
             "mention-in-comment"
         );
+        assert_eq!(
+            NotificationEvent::TaskUpdatedWatcher.name(),
+            "task-updated-watcher"
+        );
+        assert_eq!(NotificationEvent::TaskReminder.name(), "task-reminder");
     }
 
     #[test]
@@ -179,7 +196,7 @@ mod tests {
     #[test]
     fn test_all_events() {
         let all = NotificationEvent::all();
-        assert_eq!(all.len(), 6);
+        assert_eq!(all.len(), 8);
     }
 
     #[test]
@@ -193,6 +210,11 @@ mod tests {
             NotificationEvent::MentionInComment.title(),
             "You Were Mentioned"
         );
+        assert_eq!(
+            NotificationEvent::TaskUpdatedWatcher.title(),
+            "Task Updated"
+        );
+        assert_eq!(NotificationEvent::TaskReminder.title(), "Task Reminder");
     }
 
     #[test]
@@ -221,6 +243,14 @@ mod tests {
             NotificationEvent::from_str("mention-in-comment"),
             Some(NotificationEvent::MentionInComment)
         );
+        assert_eq!(
+            NotificationEvent::from_str("task-updated-watcher"),
+            Some(NotificationEvent::TaskUpdatedWatcher)
+        );
+        assert_eq!(
+            NotificationEvent::from_str("task-reminder"),
+            Some(NotificationEvent::TaskReminder)
+        );
     }
 
     #[test]
@@ -248,6 +278,14 @@ mod tests {
         assert_eq!(
             NotificationEvent::from_str("mention_in_comment"),
             Some(NotificationEvent::MentionInComment)
+        );
+        assert_eq!(
+            NotificationEvent::from_str("task_updated_watcher"),
+            Some(NotificationEvent::TaskUpdatedWatcher)
+        );
+        assert_eq!(
+            NotificationEvent::from_str("task_reminder"),
+            Some(NotificationEvent::TaskReminder)
         );
     }
 
