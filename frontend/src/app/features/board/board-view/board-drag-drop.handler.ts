@@ -194,6 +194,105 @@ export class BoardDragDropHandler {
     }
   }
 
+  navigateCardColumn(direction: -1 | 1): void {
+    const taskId = this.state.focusedTaskId();
+    if (!taskId) return;
+    const cols = this.state.columns();
+    const filtered = this.state.filteredBoardState();
+
+    let currentColIdx = -1;
+    for (let i = 0; i < cols.length; i++) {
+      const tasks = filtered[cols[i].id] || [];
+      if (tasks.some((t) => t.id === taskId)) {
+        currentColIdx = i;
+        break;
+      }
+    }
+    if (currentColIdx === -1) return;
+
+    const targetIdx = currentColIdx + direction;
+    if (targetIdx < 0 || targetIdx >= cols.length) return;
+
+    const targetCol = cols[targetIdx];
+    const targetTasks = filtered[targetCol.id] || [];
+    if (targetTasks.length > 0) {
+      this.state.focusedTaskId.set(targetTasks[0].id);
+      setTimeout(() => {
+        const el = document.querySelector(`[data-task-id="${targetTasks[0].id}"]`);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 0);
+    }
+  }
+
+  pickUpCard(): void {
+    const taskId = this.state.focusedTaskId();
+    if (!taskId) return;
+    const cols = this.state.columns();
+    const filtered = this.state.filteredBoardState();
+    for (const col of cols) {
+      const tasks = filtered[col.id] || [];
+      if (tasks.some((t) => t.id === taskId)) {
+        this.state.dragSimulationActive.set(true);
+        this.state.dragSimulationSourceColumnId.set(col.id);
+        this.state.dragSimulationCurrentColumnId.set(col.id);
+        return;
+      }
+    }
+  }
+
+  moveCardToAdjacentColumn(direction: -1 | 1): void {
+    if (!this.state.dragSimulationActive()) return;
+    const currentColId = this.state.dragSimulationCurrentColumnId();
+    const cols = this.state.columns();
+    const currentIdx = cols.findIndex((c) => c.id === currentColId);
+    if (currentIdx === -1) return;
+    const targetIdx = currentIdx + direction;
+    if (targetIdx < 0 || targetIdx >= cols.length) return;
+    this.state.dragSimulationCurrentColumnId.set(cols[targetIdx].id);
+  }
+
+  dropCard(): void {
+    if (!this.state.dragSimulationActive()) return;
+    const taskId = this.state.focusedTaskId();
+    const targetColId = this.state.dragSimulationCurrentColumnId();
+    const sourceColId = this.state.dragSimulationSourceColumnId();
+    this.cancelDrag();
+    if (!taskId || !targetColId || targetColId === sourceColId) return;
+
+    const state = this.state.boardState();
+    let task: Task | null = null;
+    for (const tasks of Object.values(state)) {
+      const found = tasks.find((t) => t.id === taskId);
+      if (found) {
+        task = found;
+        break;
+      }
+    }
+    if (!task) return;
+    this.onTaskMoved({
+      task,
+      targetColumnId: targetColId,
+      previousIndex: 0,
+      currentIndex: 0,
+      previousColumnId: sourceColId ?? task.column_id,
+    });
+  }
+
+  cancelDrag(): void {
+    this.state.dragSimulationActive.set(false);
+    this.state.dragSimulationSourceColumnId.set(null);
+    this.state.dragSimulationCurrentColumnId.set(null);
+  }
+
+  scrollToColumn(index: number): void {
+    const cols = this.state.columns();
+    if (index < 0 || index >= cols.length) return;
+    setTimeout(() => {
+      const el = document.querySelector(`[data-column-index="${index}"]`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+    }, 0);
+  }
+
   private getAllVisibleTasks(): Task[] {
     const cols = this.state.columns();
     const filtered = this.state.filteredBoardState();

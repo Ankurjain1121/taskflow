@@ -2,11 +2,17 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
 import { ViewMode } from '../board-toolbar/board-toolbar.component';
+import { BoardStateService } from './board-state.service';
 
 @Injectable()
 export class BoardShortcutsService {
   private shortcutsService = inject(KeyboardShortcutsService);
   private router = inject(Router);
+  private boardState = inject(BoardStateService);
+
+  private isDragSimActive(): boolean {
+    return this.boardState.dragSimulationActive();
+  }
 
   registerShortcuts(callbacks: {
     createTask: () => void;
@@ -20,6 +26,16 @@ export class BoardShortcutsService {
     setViewMode: (mode: ViewMode) => void;
     onViewModeChanged: (mode: ViewMode) => void;
     focusFilter: () => void;
+    clearFilters: () => void;
+    cycleDensity: () => void;
+    navigateCardColumn: (direction: -1 | 1) => void;
+    pickUpCard: () => void;
+    moveCardToAdjacentColumn: (direction: -1 | 1) => void;
+    dropCard: () => void;
+    cancelDrag: () => void;
+    scrollToColumn: (index: number) => void;
+    editFocusedTaskTitle: () => void;
+    deleteFocusedTask: () => void;
   }): void {
     this.shortcutsService.register('board-new-task', {
       key: 'n',
@@ -118,10 +134,79 @@ export class BoardShortcutsService {
         callbacks.onViewModeChanged('time-report');
       },
     });
+
+    this.shortcutsService.register('board-clear-filters', {
+      key: 'c',
+      description: 'Clear all filters',
+      category: 'Board',
+      action: () => callbacks.clearFilters(),
+    });
+
+    this.shortcutsService.register('board-cycle-density', {
+      key: 'd',
+      description: 'Cycle card density',
+      category: 'Board',
+      action: () => callbacks.cycleDensity(),
+    });
+
+    this.shortcutsService.register('board-nav-col-left', {
+      key: 'h',
+      description: 'Navigate to left column',
+      category: 'Navigation',
+      action: () => {
+        if (this.isDragSimActive()) {
+          callbacks.moveCardToAdjacentColumn(-1);
+        } else {
+          callbacks.navigateCardColumn(-1);
+        }
+      },
+    });
+
+    this.shortcutsService.register('board-nav-col-right', {
+      key: 'l',
+      description: 'Navigate to right column',
+      category: 'Navigation',
+      action: () => {
+        if (this.isDragSimActive()) {
+          callbacks.moveCardToAdjacentColumn(1);
+        } else {
+          callbacks.navigateCardColumn(1);
+        }
+      },
+    });
+
+    this.shortcutsService.register('board-drag-pick-drop', {
+      key: ' ',
+      description: 'Pick up / drop card',
+      category: 'Navigation',
+      action: () => {
+        if (this.isDragSimActive()) {
+          callbacks.dropCard();
+        } else {
+          callbacks.pickUpCard();
+        }
+      },
+    });
+
+    this.shortcutsService.register('board-card-edit-title', {
+      key: 'e',
+      description: 'Edit focused card title',
+      category: 'Card Actions',
+      action: () => callbacks.editFocusedTaskTitle(),
+    });
+
+    this.shortcutsService.register('board-card-delete', {
+      key: 'Delete',
+      description: 'Delete focused card',
+      category: 'Card Actions',
+      action: () => callbacks.deleteFocusedTask(),
+    });
   }
 
   unregister(): void {
     this.shortcutsService.unregisterByCategory('Board');
+    this.shortcutsService.unregisterByCategory('Navigation');
+    this.shortcutsService.unregisterByCategory('Card Actions');
   }
 
   handleKeydown(
@@ -131,8 +216,15 @@ export class BoardShortcutsService {
     callbacks: {
       navigateCard: (direction: number) => void;
       openFocusedTask: () => void;
+      cancelDrag: () => void;
     },
   ): void {
+    if (event.key === 'Escape' && this.isDragSimActive()) {
+      callbacks.cancelDrag();
+      event.preventDefault();
+      return;
+    }
+
     const target = event.target as HTMLElement;
     if (
       target instanceof HTMLInputElement ||

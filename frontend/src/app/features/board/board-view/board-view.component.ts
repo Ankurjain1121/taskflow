@@ -355,6 +355,11 @@ import { FormsModule } from '@angular/forms';
       } @else {
         <!-- Kanban Board -->
         <div class="flex-1 overflow-x-auto p-4">
+          @if (state.dragSimulationActive()) {
+            <div class="fixed top-16 left-1/2 -translate-x-1/2 z-30 bg-[var(--primary)] text-[var(--primary-foreground)] px-4 py-2 rounded-full text-sm font-medium shadow-lg pointer-events-none">
+              Drag mode · ← → to move · Space to drop · Esc to cancel
+            </div>
+          }
           <div
             class="flex gap-2 h-full"
             cdkDropList
@@ -365,7 +370,10 @@ import { FormsModule } from '@angular/forms';
               <app-kanban-column
                 cdkDrag
                 [cdkDragData]="column"
+                [attr.data-column-index]="$index"
                 [column]="column"
+                [dragSimActive]="state.dragSimulationActive()"
+                [dragSimCurrentColId]="state.dragSimulationCurrentColumnId()"
                 [tasks]="getFilteredTasksForColumn(column.id)"
                 [connectedLists]="state.connectedColumnIds()"
                 [celebratingTaskId]="state.celebratingTaskId()"
@@ -585,6 +593,9 @@ import { FormsModule } from '@angular/forms';
       <!-- Column Delete Confirmation -->
       <p-confirmDialog />
 
+      <!-- ARIA live region for keyboard announcements -->
+      <div aria-live="polite" class="sr-only" id="board-announcements"></div>
+
       <!-- Snackbar for errors -->
       @if (state.errorMessage()) {
         <div
@@ -697,6 +708,42 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       setViewMode: (mode) => this.viewMode.set(mode),
       onViewModeChanged: (mode) => this.onViewModeChanged(mode),
       focusFilter: () => this.boardToolbar()?.focusSearchInput(),
+      clearFilters: () =>
+        this.state.filters.set({
+          search: '',
+          priorities: [],
+          assigneeIds: [],
+          dueDateStart: null,
+          dueDateEnd: null,
+          labelIds: [],
+          overdue: false,
+        }),
+      cycleDensity: () => {
+        const densities: ('compact' | 'normal' | 'expanded')[] = [
+          'compact',
+          'normal',
+          'expanded',
+        ];
+        const current = this.state.cardDensity();
+        const next = densities[(densities.indexOf(current) + 1) % densities.length];
+        this.state.setCardDensity(next);
+      },
+      navigateCardColumn: (dir: -1 | 1) => this.dragDrop.navigateCardColumn(dir),
+      pickUpCard: () => this.dragDrop.pickUpCard(),
+      moveCardToAdjacentColumn: (dir: -1 | 1) => this.dragDrop.moveCardToAdjacentColumn(dir),
+      dropCard: () => this.dragDrop.dropCard(),
+      cancelDrag: () => this.dragDrop.cancelDrag(),
+      scrollToColumn: (i: number) => this.dragDrop.scrollToColumn(i),
+      editFocusedTaskTitle: () => {
+        const id = this.state.focusedTaskId();
+        if (!id) return;
+        const el = document.querySelector<HTMLElement>(`[data-task-id="${id}"] [data-title-edit]`);
+        el?.click();
+      },
+      deleteFocusedTask: () => {
+        const id = this.state.focusedTaskId();
+        if (id) this.state.deleteTask(id);
+      },
     });
   }
 
@@ -1134,6 +1181,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       {
         navigateCard: (direction) => this.dragDrop.navigateCard(direction),
         openFocusedTask: () => this.dragDrop.openFocusedTask(),
+        cancelDrag: () => this.dragDrop.cancelDrag(),
       },
     );
   }

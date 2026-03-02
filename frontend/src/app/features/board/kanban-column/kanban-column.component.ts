@@ -68,6 +68,7 @@ export interface TaskMoveEvent {
     } @else {
       <div
         class="flex flex-col bg-[var(--muted)] rounded-lg min-h-[500px] w-[272px] flex-shrink-0"
+        [class.ring-2]="isDragTarget()"
       >
         <!-- Color Accent Bar -->
         <div
@@ -339,6 +340,10 @@ export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
   allColumns = input<Column[]>([]);
   boardPrefix = input<string | null>(null);
   isCollapsed = input<boolean>(false);
+  dragSimActive = input<boolean>(false);
+  dragSimCurrentColId = input<string | null>(null);
+
+  isDragTarget = computed(() => this.dragSimActive() && this.dragSimCurrentColId() === this.column().id);
 
   taskMoved = output<TaskMoveEvent>();
   taskClicked = output<Task>();
