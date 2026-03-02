@@ -403,6 +403,98 @@ export class BoardStateService {
     });
   }
 
+  optimisticAssignUser(taskId: string, userId: string): void {
+    const snapshot = structuredClone(this.boardState());
+    const member = this.boardMembers().find((m) => m.user_id === userId);
+    this.boardState.update((state) => {
+      const newState: Record<string, Task[]> = {};
+      for (const [colId, tasks] of Object.entries(state)) {
+        newState[colId] = tasks.map((t) => {
+          if (t.id !== taskId) return t;
+          const existing = t.assignees ?? [];
+          if (existing.some((a) => a.id === userId)) return t;
+          const newAssignee: Assignee = {
+            id: userId,
+            display_name: member?.name ?? 'Unknown',
+            avatar_url: member?.avatar_url ?? null,
+          };
+          return { ...t, assignees: [...existing, newAssignee] };
+        });
+      }
+      return newState;
+    });
+    this.taskService.assignUser(taskId, userId).subscribe({
+      error: () => {
+        this.boardState.set(snapshot);
+        this.showError('Failed to assign user. Reverted.');
+      },
+    });
+  }
+
+  optimisticUnassignUser(taskId: string, userId: string): void {
+    const snapshot = structuredClone(this.boardState());
+    this.boardState.update((state) => {
+      const newState: Record<string, Task[]> = {};
+      for (const [colId, tasks] of Object.entries(state)) {
+        newState[colId] = tasks.map((t) => {
+          if (t.id !== taskId) return t;
+          return { ...t, assignees: (t.assignees ?? []).filter((a) => a.id !== userId) };
+        });
+      }
+      return newState;
+    });
+    this.taskService.unassignUser(taskId, userId).subscribe({
+      error: () => {
+        this.boardState.set(snapshot);
+        this.showError('Failed to unassign user. Reverted.');
+      },
+    });
+  }
+
+  optimisticAddLabel(taskId: string, labelId: string): void {
+    const snapshot = structuredClone(this.boardState());
+    const label = this.allLabels().find((l) => l.id === labelId);
+    if (!label) return;
+    this.boardState.update((state) => {
+      const newState: Record<string, Task[]> = {};
+      for (const [colId, tasks] of Object.entries(state)) {
+        newState[colId] = tasks.map((t) => {
+          if (t.id !== taskId) return t;
+          const existing = t.labels ?? [];
+          if (existing.some((l) => l.id === labelId)) return t;
+          return { ...t, labels: [...existing, label] };
+        });
+      }
+      return newState;
+    });
+    this.taskService.addLabel(taskId, labelId).subscribe({
+      error: () => {
+        this.boardState.set(snapshot);
+        this.showError('Failed to add label. Reverted.');
+      },
+    });
+  }
+
+  optimisticRemoveLabel(taskId: string, labelId: string): void {
+    const snapshot = structuredClone(this.boardState());
+    this.boardState.update((state) => {
+      const newState: Record<string, Task[]> = {};
+      for (const [colId, tasks] of Object.entries(state)) {
+        newState[colId] = tasks.map((t) => {
+          if (t.id !== taskId) return t;
+          return { ...t, labels: (t.labels ?? []).filter((l) => l.id !== labelId) };
+        });
+      }
+      return newState;
+    });
+    this.taskService.removeLabel(taskId, labelId).subscribe({
+      error: () => {
+        this.boardState.set(snapshot);
+        this.showError('Failed to remove label. Reverted.');
+      },
+    });
+  }
+
   // === Column Operations ===
 
   createColumn(boardId: string, columnData: CreateColumnDialogResult): void {

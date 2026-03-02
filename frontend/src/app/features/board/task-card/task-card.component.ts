@@ -7,6 +7,7 @@ import {
   ViewChild,
   ElementRef,
   ChangeDetectionStrategy,
+  inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -19,6 +20,10 @@ import { MenuItem } from 'primeng/api';
 import { Tooltip } from 'primeng/tooltip';
 import { Task } from '../../../core/services/task.service';
 import { Column } from '../../../core/services/board.service';
+import {
+  CardQuickEditService,
+  QuickEditField,
+} from '../board-view/card-quick-edit/card-quick-edit.service';
 import { PriorityBadgeComponent } from '../../../shared/components/priority-badge/priority-badge.component';
 import {
   getPriorityColor,
@@ -113,11 +118,11 @@ import {
       <div
         class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-20 flex items-center gap-0.5"
       >
-        <!-- Priority cycle button -->
+        <!-- Priority edit button -->
         <button
           class="w-6 h-6 rounded bg-[var(--card)]/90 shadow-sm flex items-center justify-center hover:bg-[var(--muted)] btn-snappy"
-          (click)="onPriorityCycle($event)"
-          title="Cycle priority"
+          (click)="openQuickEdit($event, 'priority')"
+          title="Set priority"
         >
           <svg class="w-3.5 h-3.5" viewBox="0 0 12 12" fill="none">
             <path
@@ -126,6 +131,69 @@ import {
               stroke-width="1.5"
               stroke-linecap="round"
               stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+
+        <!-- Assignee edit button -->
+        <button
+          class="w-6 h-6 rounded bg-[var(--card)]/90 shadow-sm flex items-center justify-center hover:bg-[var(--muted)] btn-snappy text-[var(--muted-foreground)]"
+          (click)="openQuickEdit($event, 'assignee')"
+          title="Set assignees"
+        >
+          <svg
+            class="w-3.5 h-3.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+            />
+          </svg>
+        </button>
+
+        <!-- Due date edit button -->
+        <button
+          class="w-6 h-6 rounded bg-[var(--card)]/90 shadow-sm flex items-center justify-center hover:bg-[var(--muted)] btn-snappy text-[var(--muted-foreground)]"
+          (click)="openQuickEdit($event, 'due-date')"
+          title="Set due date"
+        >
+          <svg
+            class="w-3.5 h-3.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+        </button>
+
+        <!-- Labels edit button -->
+        <button
+          class="w-6 h-6 rounded bg-[var(--card)]/90 shadow-sm flex items-center justify-center hover:bg-[var(--muted)] btn-snappy text-[var(--muted-foreground)]"
+          (click)="openQuickEdit($event, 'label')"
+          title="Set labels"
+        >
+          <svg
+            class="w-3.5 h-3.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
             />
           </svg>
         </button>
@@ -862,6 +930,10 @@ import {
   ],
 })
 export class TaskCardComponent {
+  private readonly quickEditService = inject(CardQuickEditService, {
+    optional: true,
+  });
+
   task = input.required<Task>();
   isBlocked = input<boolean>(false);
   isCelebrating = input<boolean>(false);
@@ -1009,6 +1081,12 @@ export class TaskCardComponent {
     'high',
     'urgent',
   ];
+
+  openQuickEdit(event: Event, field: QuickEditField): void {
+    if (!this.quickEditService) return;
+    event.stopPropagation();
+    this.quickEditService.open(event.currentTarget as HTMLElement, field, this.task());
+  }
 
   onPriorityCycle(event: Event): void {
     event.stopPropagation();

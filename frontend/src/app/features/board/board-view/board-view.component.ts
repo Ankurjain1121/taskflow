@@ -7,6 +7,7 @@ import {
   HostListener,
   signal,
   viewChild,
+  effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -64,6 +65,8 @@ import { BoardBulkActionsService } from './board-bulk-actions.service';
 import { BoardStateService } from './board-state.service';
 import { BoardWebsocketHandler } from './board-websocket.handler';
 import { BoardDragDropHandler } from './board-drag-drop.handler';
+import { CardQuickEditService } from './card-quick-edit/card-quick-edit.service';
+import { CardQuickEditPopoverComponent } from './card-quick-edit/card-quick-edit-popover.component';
 import { UndoService } from '../../../shared/services/undo.service';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { Menu } from 'primeng/menu';
@@ -100,6 +103,7 @@ import { FormsModule } from '@angular/forms';
     TaskGroupHeaderComponent,
     ShortcutHelpComponent,
     SwimlaneContainerComponent,
+    CardQuickEditPopoverComponent,
     Menu,
     ImportDialogComponent,
     ExportDialogComponent,
@@ -115,6 +119,7 @@ import { FormsModule } from '@angular/forms';
     BoardStateService,
     BoardWebsocketHandler,
     BoardDragDropHandler,
+    CardQuickEditService,
     ConfirmationService,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -450,6 +455,22 @@ import { FormsModule } from '@angular/forms';
         ></app-bulk-actions-bar>
       }
 
+      <!-- Card Quick-Edit Popover -->
+      @if (quickEditService.isOpen() && quickEditService.anchorRect()) {
+        <div
+          class="fixed inset-0 z-40"
+          (click)="quickEditService.close()"
+          aria-hidden="true"
+        ></div>
+        <div
+          class="fixed z-50"
+          [style.left.px]="quickEditService.anchorRect()!.left"
+          [style.top.px]="quickEditService.anchorRect()!.bottom + 4"
+        >
+          <app-card-quick-edit-popover />
+        </div>
+      }
+
       <!-- Keyboard Shortcuts Help -->
       <app-shortcut-help></app-shortcut-help>
 
@@ -636,6 +657,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
   readonly state = inject(BoardStateService);
+  readonly quickEditService = inject(CardQuickEditService);
   private destroy$ = new Subject<void>();
 
   workspaceId = '';
@@ -679,6 +701,15 @@ export class BoardViewComponent implements OnInit, OnDestroy {
 
   // More menu items
   moreMenuItems: MenuItem[] = [];
+
+  constructor() {
+    effect(() => {
+      this.quickEditService.setBoardMembers(this.state.boardMembers());
+    });
+    effect(() => {
+      this.quickEditService.setAvailableLabels(this.state.allLabels());
+    });
+  }
 
   ngOnInit(): void {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
