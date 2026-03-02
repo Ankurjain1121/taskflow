@@ -18,7 +18,7 @@ pub async fn list_boards_by_workspace(
         r#"
         SELECT b.id, b.name, b.description, b.slack_webhook_url, b.prefix,
                b.workspace_id, b.tenant_id, b.created_by_id,
-               b.deleted_at, b.created_at, b.updated_at
+               b.background_color, b.deleted_at, b.created_at, b.updated_at
         FROM boards b
         INNER JOIN board_members bm ON b.id = bm.board_id
         WHERE b.workspace_id = $1
@@ -53,7 +53,7 @@ pub async fn get_board_by_id(
         r#"
         SELECT b.id, b.name, b.description, b.slack_webhook_url, b.prefix,
                b.workspace_id, b.tenant_id, b.created_by_id,
-               b.deleted_at, b.created_at, b.updated_at
+               b.background_color, b.deleted_at, b.created_at, b.updated_at
         FROM boards b
         INNER JOIN board_members bm ON b.id = bm.board_id
         WHERE b.id = $1
@@ -105,7 +105,7 @@ pub async fn create_board(
         INSERT INTO boards (name, description, workspace_id, tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
-                  created_by_id, deleted_at, created_at, updated_at
+                  created_by_id, background_color, deleted_at, created_at, updated_at
         "#,
         name,
         description,
@@ -152,7 +152,7 @@ pub async fn create_board(
     sqlx::query!(
         r#"
         INSERT INTO board_members (board_id, user_id, role)
-        VALUES ($1, $2, 'editor')
+        VALUES ($1, $2, 'owner')
         "#,
         board.id,
         created_by_id
@@ -168,29 +168,56 @@ pub async fn create_board(
     })
 }
 
-/// Update board name and description
+/// Update board name, description, and background color
 pub async fn update_board(
     pool: &PgPool,
     id: Uuid,
-    name: &str,
+    name: Option<&str>,
     description: Option<&str>,
+    background_color: Option<Option<&str>>,
 ) -> Result<Option<Board>, sqlx::Error> {
-    sqlx::query_as!(
-        Board,
-        r#"
-        UPDATE boards
-        SET name = $2, description = $3
-        WHERE id = $1
-          AND deleted_at IS NULL
-        RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
-                  created_by_id, deleted_at, created_at, updated_at
-        "#,
-        id,
-        name,
-        description
-    )
-    .fetch_optional(pool)
-    .await
+    match background_color {
+        Some(color) => {
+            sqlx::query_as!(
+                Board,
+                r#"
+                UPDATE boards
+                SET name = COALESCE($2, name),
+                    description = COALESCE($3, description),
+                    background_color = $4
+                WHERE id = $1
+                  AND deleted_at IS NULL
+                RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
+                          created_by_id, background_color, deleted_at, created_at, updated_at
+                "#,
+                id,
+                name,
+                description,
+                color
+            )
+            .fetch_optional(pool)
+            .await
+        }
+        None => {
+            sqlx::query_as!(
+                Board,
+                r#"
+                UPDATE boards
+                SET name = COALESCE($2, name),
+                    description = COALESCE($3, description)
+                WHERE id = $1
+                  AND deleted_at IS NULL
+                RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
+                          created_by_id, background_color, deleted_at, created_at, updated_at
+                "#,
+                id,
+                name,
+                description
+            )
+            .fetch_optional(pool)
+            .await
+        }
+    }
 }
 
 /// Soft-delete a board
@@ -358,7 +385,7 @@ pub async fn get_board_internal(pool: &PgPool, id: Uuid) -> Result<Option<Board>
         r#"
         SELECT id, name, description, slack_webhook_url, prefix,
                workspace_id, tenant_id, created_by_id,
-               deleted_at, created_at, updated_at
+               background_color, deleted_at, created_at, updated_at
         FROM boards
         WHERE id = $1
           AND deleted_at IS NULL
@@ -512,4 +539,88 @@ pub async fn list_board_task_labels(
     .bind(board_id)
     .fetch_all(pool)
     .await
+}
+
+/// Duplicate a board with its columns and optionally its tasks.
+/// Returns the new board with columns.
+pub async fn duplicate_board(
+    pool: &PgPool,
+    source_id: Uuid,
+    new_name: &str,
+    include_tasks: bool,
+    user_id: Uuid,
+) -> Result<BoardWithColumns, sqlx::Error> {
+    let mut tx = pool.begin().await?;
+
+    // 1. Copy the board
+    let new_board = sqlx::query_as::<_, Board>(
+        r#"
+        INSERT INTO boards (name, description, workspace_id, tenant_id, created_by_id, background_color)
+        SELECT $2, description, workspace_id, tenant_id, $3, background_color
+        FROM boards WHERE id = $1 AND deleted_at IS NULL
+        RETURNING id, name, description, slack_webhook_url, prefix,
+                  workspace_id, tenant_id, created_by_id,
+                  background_color, deleted_at, created_at, updated_at
+        "#,
+    )
+    .bind(source_id)
+    .bind(new_name)
+    .bind(user_id)
+    .fetch_one(&mut *tx)
+    .await?;
+
+    // 2. Copy columns
+    let new_columns = sqlx::query_as::<_, BoardColumn>(
+        r#"
+        INSERT INTO board_columns (name, board_id, position, color, status_mapping, wip_limit, icon)
+        SELECT name, $2, position, color, status_mapping, wip_limit, icon
+        FROM board_columns WHERE board_id = $1
+        ORDER BY position ASC
+        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
+        "#,
+    )
+    .bind(source_id)
+    .bind(new_board.id)
+    .fetch_all(&mut *tx)
+    .await?;
+
+    // 3. Copy tasks (optional) — map old column positions to new column IDs
+    if include_tasks {
+        sqlx::query(
+            r#"
+            INSERT INTO tasks (title, description, priority, due_date, position, board_id, column_id,
+                               created_by_id, tenant_id)
+            SELECT t.title, t.description, t.priority, t.due_date, t.position, $2, nc.id,
+                   $3, t.tenant_id
+            FROM tasks t
+            JOIN board_columns oc ON t.column_id = oc.id AND oc.board_id = $1
+            JOIN board_columns nc ON nc.board_id = $2 AND nc.position = oc.position
+            WHERE t.board_id = $1 AND t.deleted_at IS NULL
+            "#,
+        )
+        .bind(source_id)
+        .bind(new_board.id)
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    // 4. Add user as Owner
+    sqlx::query(
+        r#"
+        INSERT INTO board_members (board_id, user_id, role)
+        VALUES ($1, $2, 'owner')
+        "#,
+    )
+    .bind(new_board.id)
+    .bind(user_id)
+    .execute(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(BoardWithColumns {
+        board: new_board,
+        columns: new_columns,
+    })
 }

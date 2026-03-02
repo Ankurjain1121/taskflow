@@ -233,6 +233,15 @@ import {
                       <i class="pi pi-link text-xs"></i>
                       <span>Copy link</span>
                     </button>
+                    <div style="border-top: 1px solid var(--sidebar-border); margin: 2px 0"></div>
+                    <button
+                      (click)="archiveBoard(board, $event)"
+                      class="flex items-center gap-2 px-3 py-1.5 text-xs w-full text-left hover:bg-[var(--sidebar-surface-hover)]"
+                      style="color: var(--sidebar-text-secondary)"
+                    >
+                      <i class="pi pi-inbox text-xs"></i>
+                      <span>Archive</span>
+                    </button>
                   </div>
                 }
               </div>
@@ -397,6 +406,17 @@ export class WorkspaceItemComponent implements OnInit {
 
   closeBoardMenu(): void {
     this.activeMenuBoardId.set(null);
+  }
+
+  archiveBoard(board: Board, event: Event): void {
+    event.stopPropagation();
+    this.activeMenuBoardId.set(null);
+    this.boardService.deleteBoard(board.id).subscribe({
+      next: () => {
+        this.boards.update((boards) => boards.filter((b) => b.id !== board.id));
+      },
+      error: () => {},
+    });
   }
 
   copyBoardLink(board: Board, event: Event): void {

@@ -90,7 +90,7 @@ pub struct MessageResponse {
 async fn require_editor_access(state: &AppState, board_id: Uuid, user_id: Uuid) -> Result<()> {
     let role = boards::get_board_member_role(&state.db, board_id, user_id).await?;
     match role {
-        Some(BoardMemberRole::Editor) => Ok(()),
+        Some(BoardMemberRole::Owner | BoardMemberRole::Editor) => Ok(()),
         Some(BoardMemberRole::Viewer) => Err(AppError::Forbidden("Editor role required".into())),
         None => Err(AppError::NotFound(
             "Board not found or access denied".into(),

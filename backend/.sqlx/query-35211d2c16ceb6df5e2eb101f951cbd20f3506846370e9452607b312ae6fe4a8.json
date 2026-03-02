@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT id, name, description, slack_webhook_url, prefix,\n               workspace_id, tenant_id, created_by_id,\n               deleted_at, created_at, updated_at\n        FROM boards\n        WHERE id = $1\n          AND deleted_at IS NULL\n        ",
+  "query": "\n        SELECT id, name, description, slack_webhook_url, prefix,\n               workspace_id, tenant_id, created_by_id,\n               background_color, deleted_at, created_at, updated_at\n        FROM boards\n        WHERE id = $1\n          AND deleted_at IS NULL\n        ",
   "describe": {
     "columns": [
       {
@@ -45,16 +45,21 @@
       },
       {
         "ordinal": 8,
+        "name": "background_color",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
         "name": "deleted_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "updated_at",
         "type_info": "Timestamptz"
       }
@@ -74,9 +79,10 @@
       false,
       false,
       true,
+      true,
       false,
       false
     ]
   },
-  "hash": "4b2042e23f4107251207714c7fbbee9d74ce28703790e726cad53bf36f7a1fe5"
+  "hash": "35211d2c16ceb6df5e2eb101f951cbd20f3506846370e9452607b312ae6fe4a8"
 }

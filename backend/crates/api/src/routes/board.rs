@@ -38,8 +38,9 @@ pub struct CreateBoardRequest {
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateBoardRequest {
-    pub name: String,
+    pub name: Option<String>,
     pub description: Option<String>,
+    pub background_color: Option<Option<String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -63,6 +64,7 @@ pub struct BoardResponse {
     pub workspace_id: Uuid,
     pub tenant_id: Uuid,
     pub created_by_id: Uuid,
+    pub background_color: Option<String>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
@@ -77,6 +79,7 @@ pub struct BoardDetailResponse {
     pub workspace_id: Uuid,
     pub tenant_id: Uuid,
     pub created_by_id: Uuid,
+    pub background_color: Option<String>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
     pub columns: Vec<ColumnResponse>,
@@ -197,6 +200,7 @@ async fn list_boards(
             workspace_id: b.workspace_id,
             tenant_id: b.tenant_id,
             created_by_id: b.created_by_id,
+            background_color: b.background_color,
             created_at: b.created_at,
             updated_at: b.updated_at,
         })
@@ -229,6 +233,7 @@ async fn get_board(
         workspace_id: board.board.workspace_id,
         tenant_id: board.board.tenant_id,
         created_by_id: board.board.created_by_id,
+        background_color: board.board.background_color.clone(),
         created_at: board.board.created_at,
         updated_at: board.board.updated_at,
         columns: board
@@ -334,6 +339,7 @@ async fn create_board(
         workspace_id: board.board.workspace_id,
         tenant_id: board.board.tenant_id,
         created_by_id: board.board.created_by_id,
+        background_color: board.board.background_color.clone(),
         created_at: board.board.created_at,
         updated_at: board.board.updated_at,
         columns: final_columns
@@ -361,10 +367,10 @@ async fn update_board(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateBoardRequest>,
 ) -> Result<Json<BoardResponse>> {
-    // Check board membership with editor role
+    // Check board membership with editor or owner role
     let role = boards::get_board_member_role(&state.db, id, auth.0.user_id).await?;
     match role {
-        Some(BoardMemberRole::Editor) => {}
+        Some(BoardMemberRole::Owner | BoardMemberRole::Editor) => {}
         Some(BoardMemberRole::Viewer) => {
             return Err(AppError::Forbidden("Editor role required".into()));
         }
@@ -375,12 +381,18 @@ async fn update_board(
         }
     }
 
-    let name = payload.name.trim();
-    if name.is_empty() {
-        return Err(AppError::BadRequest("Board name is required".into()));
+    let name = payload.name.as_deref().map(|n| n.trim());
+    if let Some(n) = name {
+        if n.is_empty() {
+            return Err(AppError::BadRequest("Board name is required".into()));
+        }
     }
 
-    let board = boards::update_board(&state.db, id, name, payload.description.as_deref())
+    let bg_color = payload
+        .background_color
+        .as_ref()
+        .map(|c| c.as_deref());
+    let board = boards::update_board(&state.db, id, name, payload.description.as_deref(), bg_color)
         .await?
         .ok_or_else(|| AppError::NotFound("Board not found".into()))?;
 
@@ -400,6 +412,7 @@ async fn update_board(
         workspace_id: board.workspace_id,
         tenant_id: board.tenant_id,
         created_by_id: board.created_by_id,
+        background_color: board.background_color,
         created_at: board.created_at,
         updated_at: board.updated_at,
     }))
@@ -556,10 +569,10 @@ async fn update_board_member_role(
     Path((id, user_id)): Path<(Uuid, Uuid)>,
     Json(payload): Json<UpdateBoardMemberRoleRequest>,
 ) -> Result<Json<BoardMemberResponse>> {
-    // Check board membership with editor role
+    // Check board membership with owner or editor role
     let role = boards::get_board_member_role(&state.db, id, auth.0.user_id).await?;
     match role {
-        Some(BoardMemberRole::Editor) => {}
+        Some(BoardMemberRole::Owner | BoardMemberRole::Editor) => {}
         Some(BoardMemberRole::Viewer) => {
             return Err(AppError::Forbidden("Editor role required".into()));
         }
@@ -597,6 +610,79 @@ async fn update_board_member_role(
         name: member.name,
         email: member.email,
         avatar_url: member.avatar_url,
+    }))
+}
+
+// ============================================================================
+// Duplicate Board
+// ============================================================================
+
+#[derive(Debug, Deserialize)]
+pub struct DuplicateBoardRequest {
+    pub name: String,
+    pub include_tasks: Option<bool>,
+}
+
+/// POST /api/boards/:id/duplicate
+///
+/// Duplicate a board with columns and optionally tasks.
+async fn duplicate_board(
+    State(state): State<AppState>,
+    auth: AuthUserExtractor,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<DuplicateBoardRequest>,
+) -> Result<Json<BoardDetailResponse>> {
+    // Verify membership
+    let is_member = boards::is_board_member(&state.db, id, auth.0.user_id).await?;
+    if !is_member {
+        return Err(AppError::NotFound(
+            "Board not found or access denied".into(),
+        ));
+    }
+
+    let name = payload.name.trim();
+    if name.is_empty() {
+        return Err(AppError::BadRequest("Board name is required".into()));
+    }
+
+    let include_tasks = payload.include_tasks.unwrap_or(false);
+
+    let result =
+        boards::duplicate_board(&state.db, id, name, include_tasks, auth.0.user_id).await?;
+
+    // Invalidate workspace boards cache
+    cache::cache_del(
+        &state.redis,
+        &cache::workspace_boards_key(&result.board.workspace_id),
+    )
+    .await;
+
+    Ok(Json(BoardDetailResponse {
+        id: result.board.id,
+        name: result.board.name,
+        description: result.board.description,
+        slack_webhook_url: result.board.slack_webhook_url,
+        prefix: result.board.prefix,
+        workspace_id: result.board.workspace_id,
+        tenant_id: result.board.tenant_id,
+        created_by_id: result.board.created_by_id,
+        background_color: result.board.background_color,
+        created_at: result.board.created_at,
+        updated_at: result.board.updated_at,
+        columns: result
+            .columns
+            .into_iter()
+            .map(|c| ColumnResponse {
+                id: c.id,
+                name: c.name,
+                board_id: c.board_id,
+                position: c.position,
+                color: c.color,
+                status_mapping: c.status_mapping,
+                wip_limit: c.wip_limit,
+                created_at: c.created_at,
+            })
+            .collect(),
     }))
 }
 
@@ -693,6 +779,7 @@ async fn get_board_full(
         workspace_id: board.board.workspace_id,
         tenant_id: board.board.tenant_id,
         created_by_id: board.board.created_by_id,
+        background_color: board.board.background_color.clone(),
         created_at: board.board.created_at,
         updated_at: board.board.updated_at,
         columns: board
@@ -750,9 +837,10 @@ pub fn board_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route(
             "/{id}",
-            get(get_board).put(update_board).delete(delete_board),
+            get(get_board).put(update_board).patch(update_board).delete(delete_board),
         )
         .route("/{id}/full", get(get_board_full))
+        .route("/{id}/duplicate", axum::routing::post(duplicate_board))
         .route(
             "/{id}/members",
             get(list_board_members).post(add_board_member),

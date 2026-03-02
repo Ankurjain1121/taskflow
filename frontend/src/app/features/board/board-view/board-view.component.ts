@@ -78,6 +78,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { InputNumber } from 'primeng/inputnumber';
 import { ButtonModule } from 'primeng/button';
 import { FormsModule } from '@angular/forms';
+import { Checkbox } from 'primeng/checkbox';
 
 @Component({
   selector: 'app-board-view',
@@ -112,6 +113,7 @@ import { FormsModule } from '@angular/forms';
     InputTextModule,
     InputNumber,
     ButtonModule,
+    Checkbox,
   ],
   providers: [
     BoardShortcutsService,
@@ -130,7 +132,9 @@ import { FormsModule } from '@angular/forms';
     }
   `],
   template: `
-    <div class="board-root flex flex-col bg-[var(--background)]">
+    <div class="board-root flex flex-col transition-colors duration-300"
+         [style.background-color]="state.board()?.background_color || 'var(--background)'"
+    >
       <!-- Header -->
       <div class="bg-[var(--card)] border-b border-[var(--border)] px-6 py-4">
         <div class="flex items-center justify-between">
@@ -611,6 +615,29 @@ import { FormsModule } from '@angular/forms';
         [boardName]="state.board()?.name || ''"
       />
 
+      <!-- Duplicate Board Dialog -->
+      <p-dialog
+        header="Duplicate Board"
+        [(visible)]="showDuplicateDialog"
+        [modal]="true"
+        [style]="{ width: '420px' }"
+      >
+        <div class="flex flex-col gap-4">
+          <div>
+            <label class="block text-sm font-medium text-[var(--foreground)] mb-1">Board Name</label>
+            <input pInputText [(ngModel)]="duplicateBoardName" class="w-full" placeholder="Enter board name" />
+          </div>
+          <label class="flex items-center gap-2">
+            <p-checkbox [(ngModel)]="duplicateIncludeTasks" [binary]="true" />
+            <span class="text-sm text-[var(--foreground)]">Include tasks</span>
+          </label>
+        </div>
+        <ng-template #footer>
+          <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="showDuplicateDialog = false" />
+          <p-button label="Duplicate" icon="pi pi-copy" (onClick)="onDuplicateBoard()" [loading]="duplicating()" [disabled]="!duplicateBoardName.trim()" />
+        </ng-template>
+      </p-dialog>
+
       <!-- Column Delete Confirmation -->
       <p-confirmDialog />
 
@@ -698,6 +725,12 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   // Import/Export dialogs
   showImportDialog = false;
   showExportDialog = false;
+
+  // Duplicate board dialog
+  showDuplicateDialog = false;
+  duplicateBoardName = '';
+  duplicateIncludeTasks = false;
+  duplicating = signal(false);
 
   // More menu items
   moreMenuItems: MenuItem[] = [];
@@ -1198,7 +1231,49 @@ export class BoardViewComponent implements OnInit, OnDestroy {
             { queryParams: { tab: 6 } },
           ),
       },
+      { separator: true },
+      {
+        label: 'Duplicate Board',
+        icon: 'pi pi-copy',
+        command: () => {
+          const boardName = this.state.board()?.name || 'Board';
+          this.duplicateBoardName = `Copy of ${boardName}`;
+          this.duplicateIncludeTasks = false;
+          this.showDuplicateDialog = true;
+        },
+      },
     ];
+  }
+
+  // === Duplicate Board ===
+
+  onDuplicateBoard(): void {
+    const name = this.duplicateBoardName.trim();
+    if (!name) return;
+
+    this.duplicating.set(true);
+    this.boardService
+      .duplicateBoard(this.boardId, {
+        name,
+        include_tasks: this.duplicateIncludeTasks,
+      })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (newBoard) => {
+          this.duplicating.set(false);
+          this.showDuplicateDialog = false;
+          this.router.navigate([
+            '/workspace',
+            this.workspaceId,
+            'board',
+            newBoard.id,
+          ]);
+        },
+        error: () => {
+          this.duplicating.set(false);
+          this.state.showError('Failed to duplicate board');
+        },
+      });
   }
 
   // === Card Keyboard Navigation (J/K/Enter) ===

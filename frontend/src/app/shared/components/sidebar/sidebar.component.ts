@@ -303,6 +303,37 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
           </a>
         }
 
+        <!-- Archived -->
+        @if (!collapsed()) {
+          <a
+            routerLink="/archive"
+            routerLinkActive="active"
+            (click)="onNavItemClick()"
+            class="nav-item flex items-center gap-3 px-3 py-2 rounded-md text-sm"
+          >
+            <span class="nav-indicator"></span>
+            <i
+              class="pi pi-inbox text-sm flex-shrink-0 sidebar-icon-color"
+            ></i>
+            <span
+              class="sidebar-text"
+              style="color: var(--sidebar-text-secondary)"
+              >Archived</span
+            >
+          </a>
+        } @else {
+          <a
+            routerLink="/archive"
+            routerLinkActive="active"
+            (click)="onNavItemClick()"
+            class="collapsed-icon-btn"
+            pTooltip="Archived"
+            tooltipPosition="right"
+          >
+            <i class="pi pi-inbox sidebar-icon-color text-sm"></i>
+          </a>
+        }
+
         <div class="divider my-3 mx-1"></div>
 
         <!-- Favorites Section -->

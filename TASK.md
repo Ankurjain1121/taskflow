@@ -20,7 +20,7 @@ then moving through Kanban, search, performance, real-time, notifications, and v
 | B5 | Column Customization | ✅ Done | [RESEARCH.md](RESEARCH.md) | [comp.md#b5](comp.md#b5-column-customization) |
 | B6 | Swimlanes | ✅ Done | [RESEARCH.md](RESEARCH.md) · [plan-b6](plans2/plan-b6.md) | [comp.md#b6](comp.md#b6-swimlanes) |
 | B7 | Board Keyboard Shortcuts | ✅ Done | [RESEARCH.md](RESEARCH.md) · [plan-b7](plans2/plan-b7.md) | [comp.md#b7](comp.md#b7-board-keyboard-shortcuts) |
-| B8 | Card Quick-Edit | Pending | [mutable-zooming-moler](.claude/plans/mutable-zooming-moler.md) · [RESEARCH.md](RESEARCH.md) · [plan-b8](plans2/plan-b8.md) | [comp.md#b8](comp.md#b8-card-quick-edit) |
+| B8 | Card Quick-Edit | ✅ Done | [mutable-zooming-moler](.claude/plans/mutable-zooming-moler.md) · [RESEARCH.md](RESEARCH.md) · [plan-b8](plans2/plan-b8.md) | [comp.md#b8](comp.md#b8-card-quick-edit) |
 | C1-C9 | Board Settings & Orphaned Features | Pending | [section-01-board-settings-overhaul](.ultraplan/sections/section-01-board-settings-overhaul.md) | [comp.md#c](comp.md#board-settings--orphaned-features-c1c9) |
 | D1-D4 | Search & Discovery | Pending | [section-03-command-palette](.ultraplan/sections/section-03-command-palette.md) | [comp.md#d](comp.md#search--discovery-d1d4) |
 | E1-E3 | Performance | Pending | [section-05-list-performance](.ultraplan/sections/section-05-list-performance.md) · [performance-optimization](.claude/plans/performance-optimization.md) | [comp.md#e](comp.md#performance-e1e3) |
@@ -48,6 +48,7 @@ then moving through Kanban, search, performance, real-time, notifications, and v
 - 2026-03-02: B3 complete — Quick Filter Bar: rounded pill chips (native buttons), Overdue pill (red when active), Clear all link, `overdue` in URL/state/filter logic, `F` keyboard shortcut to focus search
 - 2026-03-02: B6 complete — Swimlanes / Group By: dropdown in toolbar (Assignee/Priority/Label/None), 2D swimlane grid with sticky row labels + sticky column header, cross-lane drag updates task properties (assignee unassign/reassign, priority patch, label remove/add), optimistic updates with rollback, localStorage persistence, "Group: X" chip with × clear button
 - 2026-03-02: B7 complete — Board Keyboard Shortcuts: h/l column navigation, Space drag-simulation (pick-up/move/drop), Esc cancel, c clear filters, d cycle density, e edit title, Delete delete card; shortcut help modal upgraded (2-col grid, search, recently used, ARIA); PrimeNG Tooltip hints on toolbar buttons; pushDisable/popDisable stack for modal-open suppression
+- 2026-03-02: B8 complete — Card Quick-Edit Popovers: hover-reveal edit buttons on task cards for priority, assignee, due-date, labels; CDK focus-trap popover with @switch pickers; 4 optimistic board-state methods (assign/unassign user, add/remove label); PrimeNG DatePicker inline with Clear; ARIA role="dialog", cdkTrapFocus
 
 ## Success Criteria
 - Each feature: matches or exceeds competitor implementations in UX quality
