@@ -388,13 +388,16 @@ async fn update_board(
         }
     }
 
-    let bg_color = payload
-        .background_color
-        .as_ref()
-        .map(|c| c.as_deref());
-    let board = boards::update_board(&state.db, id, name, payload.description.as_deref(), bg_color)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Board not found".into()))?;
+    let bg_color = payload.background_color.as_ref().map(|c| c.as_deref());
+    let board = boards::update_board(
+        &state.db,
+        id,
+        name,
+        payload.description.as_deref(),
+        bg_color,
+    )
+    .await?
+    .ok_or_else(|| AppError::NotFound("Board not found".into()))?;
 
     // Invalidate workspace boards cache
     cache::cache_del(
@@ -837,7 +840,10 @@ pub fn board_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route(
             "/{id}",
-            get(get_board).put(update_board).patch(update_board).delete(delete_board),
+            get(get_board)
+                .put(update_board)
+                .patch(update_board)
+                .delete(delete_board),
         )
         .route("/{id}/full", get(get_board_full))
         .route("/{id}/duplicate", axum::routing::post(duplicate_board))

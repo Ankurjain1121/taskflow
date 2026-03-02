@@ -658,9 +658,11 @@ async fn test_search_tasks_by_title() {
     )
     .await;
 
-    let results = super::search::search_all(&pool, tenant_id, user_id, &unique_needle, 10)
-        .await
-        .expect("search_all");
+    let filters = super::search::SearchFilters::default();
+    let results =
+        super::search::search_all(&pool, tenant_id, user_id, &unique_needle, 10, &filters)
+            .await
+            .expect("search_all");
 
     assert!(
         !results.tasks.is_empty(),

@@ -114,7 +114,11 @@ mod tests {
 
     #[test]
     fn test_board_member_role_serde() {
-        for variant in [BoardMemberRole::Viewer, BoardMemberRole::Editor, BoardMemberRole::Owner] {
+        for variant in [
+            BoardMemberRole::Viewer,
+            BoardMemberRole::Editor,
+            BoardMemberRole::Owner,
+        ] {
             let json = serde_json::to_string(&variant).unwrap();
             let deserialized: BoardMemberRole = serde_json::from_str(&json).unwrap();
             assert_eq!(variant, deserialized);
