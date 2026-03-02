@@ -34,39 +34,43 @@ const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
   template: `
     @if (!collapsed()) {
       <div class="mb-1">
-        <div class="sidebar-section-label">
+        <button
+          (click)="toggleSection()"
+          class="sidebar-section-label w-full flex items-center gap-1 hover:text-[var(--sidebar-text-primary)] transition-colors cursor-pointer"
+        >
           <i class="pi pi-clock text-xs"></i>
-          <span>Recent</span>
-        </div>
+          <span class="flex-1 text-left">Recent</span>
+          <i
+            class="pi pi-chevron-down text-xs transition-transform duration-200 ml-auto"
+            [class.rotate-180]="sectionExpanded()"
+          ></i>
+        </button>
 
-        @if (recentItems().length === 0) {
-          <p
-            class="px-3 py-2 text-xs italic"
-            style="color: var(--sidebar-text-muted)"
-          >
-            No recent boards
-          </p>
-        } @else {
-          <div class="space-y-0.5">
-            @for (item of recentItems(); track item.id) {
-              <a
-                [routerLink]="[
-                  '/workspace',
-                  item.workspaceId,
-                  'board',
-                  item.id,
-                ]"
-                routerLinkActive="active"
-                class="nav-item flex items-center gap-2 px-3 py-1.5 rounded-md text-sm"
-              >
-                <i
-                  class="pi pi-table text-xs"
-                  style="color: var(--sidebar-text-muted)"
-                ></i>
-                <span class="truncate">{{ item.name }}</span>
-              </a>
-            }
-          </div>
+        @if (sectionExpanded()) {
+          @if (recentItems().length === 0) {
+            <p
+              class="px-3 py-2 text-xs italic"
+              style="color: var(--sidebar-text-muted)"
+            >
+              No recent boards
+            </p>
+          } @else {
+            <div class="space-y-0.5">
+              @for (item of recentItems(); track item.id) {
+                <a
+                  [routerLink]="['/workspace', item.workspaceId, 'board', item.id]"
+                  routerLinkActive="active"
+                  class="nav-item flex items-center gap-2 px-3 py-1.5 rounded-md text-sm"
+                >
+                  <i
+                    class="pi pi-table text-xs"
+                    style="color: var(--sidebar-text-muted)"
+                  ></i>
+                  <span class="truncate">{{ item.name }}</span>
+                </a>
+              }
+            </div>
+          }
         }
       </div>
     } @else {
@@ -108,6 +112,16 @@ export class SidebarRecentComponent implements OnInit, OnDestroy {
   collapsed = input(false);
   workspaceIds = input<string[]>([]);
   recentItems = signal<RecentBoardEntry[]>([]);
+  sectionExpanded = signal(
+    typeof localStorage !== 'undefined'
+      ? localStorage.getItem('taskflow_recent_expanded') !== 'false'
+      : true
+  );
+
+  toggleSection(): void {
+    this.sectionExpanded.update(v => !v);
+    localStorage.setItem('taskflow_recent_expanded', String(this.sectionExpanded()));
+  }
 
   ngOnInit(): void {
     this.loadFromStorage();
