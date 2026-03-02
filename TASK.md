@@ -21,7 +21,7 @@ then moving through Kanban, search, performance, real-time, notifications, and v
 | B6 | Swimlanes | ✅ Done | [RESEARCH.md](RESEARCH.md) · [plan-b6](plans2/plan-b6.md) | [comp.md#b6](comp.md#b6-swimlanes) |
 | B7 | Board Keyboard Shortcuts | ✅ Done | [RESEARCH.md](RESEARCH.md) · [plan-b7](plans2/plan-b7.md) | [comp.md#b7](comp.md#b7-board-keyboard-shortcuts) |
 | B8 | Card Quick-Edit | ✅ Done | [mutable-zooming-moler](.claude/plans/mutable-zooming-moler.md) · [RESEARCH.md](RESEARCH.md) · [plan-b8](plans2/plan-b8.md) | [comp.md#b8](comp.md#b8-card-quick-edit) |
-| C1-C9 | Board Settings & Orphaned Features | Pending | [section-01-board-settings-overhaul](.ultraplan/sections/section-01-board-settings-overhaul.md) | [comp.md#c](comp.md#board-settings--orphaned-features-c1c9) |
+| C1-C9 | Board Settings & Orphaned Features | ✅ Done | [section-01-board-settings-overhaul](.ultraplan/sections/section-01-board-settings-overhaul.md) · [plan-c1c9](.claude/plans/reflective-whistling-eclipse.md) | [comp.md#c](comp.md#board-settings--orphaned-features-c1c9) |
 | D1-D4 | Search & Discovery | Pending | [section-03-command-palette](.ultraplan/sections/section-03-command-palette.md) | [comp.md#d](comp.md#search--discovery-d1d4) |
 | E1-E3 | Performance | Pending | [section-05-list-performance](.ultraplan/sections/section-05-list-performance.md) · [performance-optimization](.claude/plans/performance-optimization.md) | [comp.md#e](comp.md#performance-e1e3) |
 | F1-F3 | Real-Time Collaboration | Pending | [section-06-presence-collaboration](.ultraplan/sections/section-06-presence-collaboration.md) | [comp.md#f](comp.md#real-time-collaboration-f1f3) |
@@ -49,6 +49,7 @@ then moving through Kanban, search, performance, real-time, notifications, and v
 - 2026-03-02: B6 complete — Swimlanes / Group By: dropdown in toolbar (Assignee/Priority/Label/None), 2D swimlane grid with sticky row labels + sticky column header, cross-lane drag updates task properties (assignee unassign/reassign, priority patch, label remove/add), optimistic updates with rollback, localStorage persistence, "Group: X" chip with × clear button
 - 2026-03-02: B7 complete — Board Keyboard Shortcuts: h/l column navigation, Space drag-simulation (pick-up/move/drop), Esc cancel, c clear filters, d cycle density, e edit title, Delete delete card; shortcut help modal upgraded (2-col grid, search, recently used, ARIA); PrimeNG Tooltip hints on toolbar buttons; pushDisable/popDisable stack for modal-open suppression
 - 2026-03-02: B8 complete — Card Quick-Edit Popovers: hover-reveal edit buttons on task cards for priority, assignee, due-date, labels; CDK focus-trap popover with @switch pickers; 4 optimistic board-state methods (assign/unassign user, add/remove label); PrimeNG DatePicker inline with Clear; ARIA role="dialog", cdkTrapFocus
+- 2026-03-02: C1-C9 complete — C1: board color picker (16 presets, CSS custom prop on board-view); C2: archive board button in Settings > Advanced, sidebar Archived link; C4: owner role (DB enum, badge in Members tab, permission matrix); C8: duplicate board (deep copy board+columns+tasks, position-based column mapping); C3/C5/C6/C7/C9 verified already working
 
 ## Success Criteria
 - Each feature: matches or exceeds competitor implementations in UX quality
