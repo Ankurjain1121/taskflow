@@ -7,7 +7,7 @@ import {
   provideRouter,
   withComponentInputBinding,
   withPreloading,
-  PreloadAllModules,
+  NoPreloading,
 } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
@@ -25,7 +25,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(
       routes,
       withComponentInputBinding(),
-      withPreloading(PreloadAllModules),
+      withPreloading(NoPreloading),
     ),
     provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
     MessageService,

@@ -21,7 +21,7 @@ import { CommonModule } from '@angular/common';
 import { ToastModule } from 'primeng/toast';
 import { ThemeService } from './core/services/theme.service';
 import { KeyboardShortcutsService } from './core/services/keyboard-shortcuts.service';
-import { GlobalSearchComponent } from './shared/components/global-search/global-search.component';
+import { CommandPaletteComponent } from './shared/components/command-palette/command-palette.component';
 import { ToastContainerComponent } from './shared/components/toast/toast.component';
 import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
 import { TopNavComponent } from './shared/components/top-nav/top-nav.component';
@@ -56,7 +56,7 @@ const routeTransition = trigger('routeAnimations', [
     CommonModule,
     RouterOutlet,
     ToastModule,
-    GlobalSearchComponent,
+    CommandPaletteComponent,
     ToastContainerComponent,
     SidebarComponent,
     TopNavComponent,

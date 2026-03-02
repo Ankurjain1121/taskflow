@@ -46,8 +46,8 @@
   </div>
 </div>
 
-<!-- Global Search Overlay -->
-<app-global-search
+<!-- Command Palette -->
+<app-command-palette
   [isOpen]="searchOpen()"
   (closed)="closeSearch()"
 />
@@ -61,5 +61,7 @@
 <!-- Undo Toast (for undo service) -->
 <p-toast key="undo" position="bottom-center" />
 
-<!-- Workspace Settings Dialog (global) -->
-<app-workspace-settings-dialog />
+<!-- Workspace Settings Dialog (global, deferred to idle) -->
+@defer (on idle) {
+  <app-workspace-settings-dialog />
+}
