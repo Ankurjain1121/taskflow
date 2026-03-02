@@ -14,6 +14,7 @@ import { WebSocketService, WebSocketMessage } from './websocket.service';
 import { AuthService } from './auth.service';
 import { ToastService } from '../../shared/components/toast/toast.service';
 import { NotificationSoundService } from './notification-sound.service';
+import { PushNotificationService } from './push-notification.service';
 
 import type { NotificationEventType } from './notification.types';
 export type { NotificationEventType } from './notification.types';
@@ -69,6 +70,7 @@ export class NotificationService implements OnDestroy {
 
   private toastService = inject(ToastService);
   private soundService = inject(NotificationSoundService);
+  private pushService = inject(PushNotificationService);
   private document = inject(DOCUMENT);
 
   constructor(
@@ -112,6 +114,7 @@ export class NotificationService implements OnDestroy {
           });
           this.soundService.playNotificationSound();
         }
+        this.pushService.notify(notification.title, notification.body, notification.id);
       });
 
     // Connect WebSocket if not already connected
@@ -227,6 +230,18 @@ export class NotificationService implements OnDestroy {
         this._unreadCount.set(0);
       }),
     );
+  }
+
+  /**
+   * Dismiss (archive) a notification - removes it from the list optimistically
+   */
+  dismissNotification(id: string): Observable<void> {
+    const notification = this._notifications().find(n => n.id === id);
+    this._notifications.update(notifications => notifications.filter(n => n.id !== id));
+    if (notification && !notification.is_read) {
+      this._unreadCount.update(count => Math.max(0, count - 1));
+    }
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
   /**

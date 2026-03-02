@@ -16,6 +16,7 @@ import {
   UpdatePreferenceRequest,
 } from '../../../core/services/profile.service';
 import { UserPreferencesService } from '../../../core/services/user-preferences.service';
+import { PushNotificationService } from '../../../core/services/push-notification.service';
 
 interface PreferenceRow {
   eventType: string;
@@ -43,6 +44,51 @@ interface PreferenceRow {
   providers: [MessageService],
   template: `
     <p-toast />
+
+    <!-- Desktop / Browser Notifications -->
+    <div
+      class="rounded-lg border shadow-sm p-6 mb-6"
+      style="background: var(--card); border-color: var(--border)"
+    >
+      <div class="flex items-start justify-between mb-3">
+        <div>
+          <h2 class="text-xl font-semibold mb-1" style="color: var(--foreground)">Desktop Notifications</h2>
+          <p class="text-sm" style="color: var(--muted-foreground)">
+            Get notified about assignments and mentions even when TaskFlow isn't your active tab.
+          </p>
+        </div>
+        @if (pushService.permission() === 'granted') {
+          <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 ml-4 shrink-0">Enabled</span>
+        } @else if (pushService.permission() === 'denied') {
+          <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 ml-4 shrink-0">Blocked</span>
+        } @else {
+          <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 ml-4 shrink-0">Not set up</span>
+        }
+      </div>
+      @if (!pushService.isSupported) {
+        <p class="text-sm" style="color: var(--muted-foreground)">
+          <i class="pi pi-exclamation-triangle text-orange-500 mr-1"></i>
+          Your browser does not support desktop notifications.
+        </p>
+      } @else if (pushService.permission() === 'granted') {
+        <p class="text-sm flex items-center gap-2" style="color: var(--muted-foreground)">
+          <i class="pi pi-check-circle text-green-500"></i>
+          Desktop notifications are active.
+        </p>
+      } @else if (pushService.permission() === 'denied') {
+        <p class="text-sm flex items-center gap-2" style="color: var(--muted-foreground)">
+          <i class="pi pi-info-circle text-orange-500"></i>
+          Notifications are blocked. Enable them in your browser settings, then refresh this page.
+        </p>
+      } @else {
+        <p-button
+          label="Enable Desktop Notifications"
+          icon="pi pi-bell"
+          severity="secondary"
+          (onClick)="enablePushNotifications()"
+        />
+      }
+    </div>
 
     <!-- Notification Channels Table -->
     <div
@@ -162,39 +208,50 @@ interface PreferenceRow {
         Pause non-critical notifications during these hours
       </p>
 
-      <div class="flex items-center gap-4 flex-wrap">
-        <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium" style="color: var(--foreground)">
-            Start Time
-          </label>
-          <input
-            type="time"
-            [(ngModel)]="quietHoursStart"
-            class="px-3 py-2 rounded-lg border text-sm"
-            style="
-              background: var(--secondary);
-              border-color: var(--border);
-              color: var(--foreground);
-            "
-          />
-        </div>
-        <span class="text-sm mt-6" style="color: var(--muted-foreground)">to</span>
-        <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium" style="color: var(--foreground)">
-            End Time
-          </label>
-          <input
-            type="time"
-            [(ngModel)]="quietHoursEnd"
-            class="px-3 py-2 rounded-lg border text-sm"
-            style="
-              background: var(--secondary);
-              border-color: var(--border);
-              color: var(--foreground);
-            "
-          />
-        </div>
+      <div class="flex items-center gap-3 mb-4">
+        <p-toggleSwitch
+          [ngModel]="quietHoursEnabled()"
+          (ngModelChange)="quietHoursEnabled.set($event)"
+        />
+        <label class="text-sm font-medium" style="color: var(--foreground)">
+          Enable quiet hours
+        </label>
       </div>
+      @if (quietHoursEnabled()) {
+        <div class="flex items-center gap-4 flex-wrap">
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--foreground)">
+              Start Time
+            </label>
+            <input
+              type="time"
+              [(ngModel)]="quietHoursStart"
+              class="px-3 py-2 rounded-lg border text-sm"
+              style="
+                background: var(--secondary);
+                border-color: var(--border);
+                color: var(--foreground);
+              "
+            />
+          </div>
+          <span class="text-sm mt-6" style="color: var(--muted-foreground)">to</span>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium" style="color: var(--foreground)">
+              End Time
+            </label>
+            <input
+              type="time"
+              [(ngModel)]="quietHoursEnd"
+              class="px-3 py-2 rounded-lg border text-sm"
+              style="
+                background: var(--secondary);
+                border-color: var(--border);
+                color: var(--foreground);
+              "
+            />
+          </div>
+        </div>
+      }
     </div>
 
     <!-- Digest Frequency -->
@@ -257,6 +314,7 @@ export class NotificationsSectionComponent implements OnInit {
   private readonly profileService = inject(ProfileService);
   private readonly userPreferencesService = inject(UserPreferencesService);
   private readonly messageService = inject(MessageService);
+  readonly pushService = inject(PushNotificationService);
 
   isLoading = signal(true);
   isSaving = signal(false);
@@ -265,6 +323,7 @@ export class NotificationsSectionComponent implements OnInit {
   quietHoursStart = '22:00';
   quietHoursEnd = '08:00';
   digestFrequency = 'realtime';
+  quietHoursEnabled = signal<boolean>(false);
 
   digestOptions = [
     { label: 'Realtime', value: 'realtime' },
@@ -342,6 +401,10 @@ export class NotificationsSectionComponent implements OnInit {
     });
   }
 
+  enablePushNotifications(): void {
+    this.pushService.requestPermission();
+  }
+
   resetToDefaults(): void {
     if (
       !confirm(
@@ -377,8 +440,8 @@ export class NotificationsSectionComponent implements OnInit {
     this.isSavingExtra.set(true);
     this.userPreferencesService
       .updatePreferences({
-        quiet_hours_start: this.quietHoursStart,
-        quiet_hours_end: this.quietHoursEnd,
+        quiet_hours_start: this.quietHoursEnabled() ? this.quietHoursStart : '',
+        quiet_hours_end: this.quietHoursEnabled() ? this.quietHoursEnd : '',
         digest_frequency: this.digestFrequency,
       })
       .subscribe({
@@ -436,6 +499,7 @@ export class NotificationsSectionComponent implements OnInit {
         if (prefs) {
           this.quietHoursStart = prefs.quiet_hours_start || '22:00';
           this.quietHoursEnd = prefs.quiet_hours_end || '08:00';
+          this.quietHoursEnabled.set(!!prefs.quiet_hours_start);
           this.digestFrequency = prefs.digest_frequency || 'realtime';
         }
       },

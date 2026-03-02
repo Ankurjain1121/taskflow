@@ -47,7 +47,7 @@ pub async fn list_notifications(
     let unread_count = get_unread_count(pool, user_id).await?;
 
     // Fetch notifications with cursor-based pagination
-    let notifications = if let Some(cursor_id) = cursor {
+    let notifications: Vec<Notification> = if let Some(cursor_id) = cursor {
         // Get the created_at of the cursor notification for comparison
         let cursor_created_at: Option<DateTime<Utc>> = sqlx::query_scalar!(
             r#"SELECT created_at FROM notifications WHERE id = $1"#,
@@ -61,9 +61,10 @@ pub async fn list_notifications(
                 sqlx::query_as!(
                     Notification,
                     r#"
-                    SELECT id, recipient_id, event_type, title, body, link_url, is_read, created_at
+                    SELECT id, recipient_id, event_type, title, body, link_url, is_read, archived_at, created_at
                     FROM notifications
                     WHERE recipient_id = $1
+                      AND archived_at IS NULL
                       AND (created_at, id) < ($2, $3)
                     ORDER BY created_at DESC, id DESC
                     LIMIT $4
@@ -81,9 +82,10 @@ pub async fn list_notifications(
                 sqlx::query_as!(
                     Notification,
                     r#"
-                    SELECT id, recipient_id, event_type, title, body, link_url, is_read, created_at
+                    SELECT id, recipient_id, event_type, title, body, link_url, is_read, archived_at, created_at
                     FROM notifications
                     WHERE recipient_id = $1
+                      AND archived_at IS NULL
                     ORDER BY created_at DESC, id DESC
                     LIMIT $2
                     "#,
@@ -98,9 +100,10 @@ pub async fn list_notifications(
         sqlx::query_as!(
             Notification,
             r#"
-            SELECT id, recipient_id, event_type, title, body, link_url, is_read, created_at
+            SELECT id, recipient_id, event_type, title, body, link_url, is_read, archived_at, created_at
             FROM notifications
             WHERE recipient_id = $1
+              AND archived_at IS NULL
             ORDER BY created_at DESC, id DESC
             LIMIT $2
             "#,
@@ -137,7 +140,7 @@ pub async fn get_unread_count(pool: &PgPool, user_id: Uuid) -> Result<i64, Notif
         r#"
         SELECT COUNT(*) as "count!"
         FROM notifications
-        WHERE recipient_id = $1 AND is_read = false
+        WHERE recipient_id = $1 AND is_read = false AND archived_at IS NULL
         "#,
         user_id
     )
@@ -216,6 +219,42 @@ pub async fn delete_old_notifications(
     .await?;
 
     Ok(result.rows_affected() as i64)
+}
+
+/// Archive (soft-delete) a notification for a user
+pub async fn archive_notification(
+    pool: &PgPool,
+    notification_id: Uuid,
+    user_id: Uuid,
+) -> Result<(), NotificationQueryError> {
+    let result: sqlx::postgres::PgQueryResult = sqlx::query!(
+        r#"
+        UPDATE notifications
+        SET archived_at = NOW()
+        WHERE id = $1 AND recipient_id = $2 AND archived_at IS NULL
+        "#,
+        notification_id,
+        user_id
+    )
+    .execute(pool)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        let exists = sqlx::query_scalar!(
+            r#"SELECT EXISTS(SELECT 1 FROM notifications WHERE id = $1) as "exists!""#,
+            notification_id
+        )
+        .fetch_one(pool)
+        .await?;
+
+        if exists {
+            return Err(NotificationQueryError::Unauthorized);
+        } else {
+            return Err(NotificationQueryError::NotFound);
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]

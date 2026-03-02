@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                    SELECT id, recipient_id, event_type, title, body, link_url, is_read, created_at\n                    FROM notifications\n                    WHERE recipient_id = $1\n                    ORDER BY created_at DESC, id DESC\n                    LIMIT $2\n                    ",
+  "query": "\n                    SELECT id, recipient_id, event_type, title, body, link_url, is_read, archived_at, created_at\n                    FROM notifications\n                    WHERE recipient_id = $1\n                      AND archived_at IS NULL\n                    ORDER BY created_at DESC, id DESC\n                    LIMIT $2\n                    ",
   "describe": {
     "columns": [
       {
@@ -40,6 +40,11 @@
       },
       {
         "ordinal": 7,
+        "name": "archived_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
         "name": "created_at",
         "type_info": "Timestamptz"
       }
@@ -58,8 +63,9 @@
       false,
       true,
       false,
+      true,
       false
     ]
   },
-  "hash": "5795ab70b76f9a070621aa749cc5cc52f8f6167c75959d4764f2aef0a509ebf7"
+  "hash": "4e9aefb4f2928a641a30df1f389f5daa39ba7b678a23577dba56f6f6fbb85cc2"
 }
