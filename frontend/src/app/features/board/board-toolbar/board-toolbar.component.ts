@@ -35,6 +35,7 @@ import { SelectButton } from 'primeng/selectbutton';
 import { ButtonModule } from 'primeng/button';
 import { Menu } from 'primeng/menu';
 import { Dialog } from 'primeng/dialog';
+import { Tooltip } from 'primeng/tooltip';
 
 export type ViewMode =
   | 'kanban'
@@ -79,6 +80,7 @@ const DEFAULT_FILTERS: TaskFilters = {
     ButtonModule,
     Menu,
     Dialog,
+    Tooltip,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -225,7 +227,9 @@ const DEFAULT_FILTERS: TaskFilters = {
           </button>
           @if (anyQuickFilterActive()) {
             <button (click)="clearQuickFilters()"
-              class="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] underline">
+              class="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] underline"
+              pTooltip="Clear filters (C)"
+              tooltipPosition="bottom">
               Clear all
             </button>
           }
@@ -267,6 +271,8 @@ const DEFAULT_FILTERS: TaskFilters = {
                 ? 'px-2 py-1 rounded text-xs font-medium bg-[var(--primary)] text-[var(--primary-foreground)] transition-colors'
                 : 'px-2 py-1 rounded text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors'"
               title="Compact"
+              pTooltip="Compact density (D)"
+              tooltipPosition="bottom"
             >
               <i class="pi pi-minus text-xs"></i>
             </button>
@@ -276,6 +282,8 @@ const DEFAULT_FILTERS: TaskFilters = {
                 ? 'px-2 py-1 rounded text-xs font-medium bg-[var(--primary)] text-[var(--primary-foreground)] transition-colors'
                 : 'px-2 py-1 rounded text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors'"
               title="Normal"
+              pTooltip="Normal density (D)"
+              tooltipPosition="bottom"
             >
               <i class="pi pi-bars text-xs"></i>
             </button>
@@ -285,6 +293,8 @@ const DEFAULT_FILTERS: TaskFilters = {
                 ? 'px-2 py-1 rounded text-xs font-medium bg-[var(--primary)] text-[var(--primary-foreground)] transition-colors'
                 : 'px-2 py-1 rounded text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors'"
               title="Expanded"
+              pTooltip="Expanded density (D)"
+              tooltipPosition="bottom"
             >
               <i class="pi pi-th-large text-xs"></i>
             </button>

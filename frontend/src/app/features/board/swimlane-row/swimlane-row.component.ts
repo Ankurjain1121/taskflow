@@ -30,7 +30,7 @@ import { makeCellId, parseCellId, NONE_KEY } from '../board-view/swimlane-utils'
         class="sticky left-0 z-10 flex-shrink-0 w-40 bg-[var(--card)] border-r border-[var(--border)] flex flex-col"
         [style.border-left]="swimlaneGroup().color ? '3px solid ' + swimlaneGroup().color : '3px solid var(--border)'"
       >
-        <div class="flex items-center gap-2 px-2 py-3 h-full">
+        <div class="sticky top-0 flex items-center gap-2 px-2 py-3">
           <!-- Collapse toggle -->
           <button
             (click)="toggleCollapse()"

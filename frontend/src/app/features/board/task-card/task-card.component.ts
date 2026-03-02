@@ -42,6 +42,7 @@ import {
       (click)="onCardClick($event)"
       (contextmenu)="onRightClick($event)"
       class="task-card rounded-lg border border-[var(--border)] cursor-grab group relative overflow-hidden"
+      [attr.data-task-id]="task().id"
       [style.border-top]="'3px solid ' + getBorderColor()"
       [class.task-card--urgent]="task().priority === 'urgent'"
       [class.task-card--high]="task().priority === 'high'"

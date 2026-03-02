@@ -84,6 +84,9 @@ export class BoardStateService {
           | 'expanded')
       : 'normal'),
   );
+  readonly dragSimulationActive = signal<boolean>(false);
+  readonly dragSimulationSourceColumnId = signal<string | null>(null);
+  readonly dragSimulationCurrentColumnId = signal<string | null>(null);
 
   // === Computed Signals ===
   readonly collapsedGroupIds = computed(() => {

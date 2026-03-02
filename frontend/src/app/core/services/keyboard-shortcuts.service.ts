@@ -1,4 +1,4 @@
-import { Injectable, OnDestroy } from '@angular/core';
+import { Injectable, OnDestroy, signal } from '@angular/core';
 import { Subject } from 'rxjs';
 
 export interface KeyboardShortcut {
@@ -16,13 +16,20 @@ export interface KeyboardShortcut {
 @Injectable({ providedIn: 'root' })
 export class KeyboardShortcutsService implements OnDestroy {
   private shortcuts: Map<string, KeyboardShortcut> = new Map();
-  private enabled = true;
+  private disableCount = 0;
   private listener: ((e: KeyboardEvent) => void) | null = null;
   private pendingPrefix: string | null = null;
   private pendingTimer: ReturnType<typeof setTimeout> | null = null;
   private static readonly SEQUENCE_TIMEOUT_MS = 500;
 
   readonly helpRequested$ = new Subject<void>();
+
+  readonly recentlyUsedIds = signal<string[]>([]);
+
+  markUsed(description: string): void {
+    const arr = [description, ...this.recentlyUsedIds().filter(x => x !== description)].slice(0, 5);
+    this.recentlyUsedIds.set(arr);
+  }
 
   constructor() {
     this.listener = (e: KeyboardEvent) => this.handleKeydown(e);
@@ -52,8 +59,12 @@ export class KeyboardShortcutsService implements OnDestroy {
     }
   }
 
-  setEnabled(enabled: boolean): void {
-    this.enabled = enabled;
+  pushDisable(): void {
+    this.disableCount++;
+  }
+
+  popDisable(): void {
+    this.disableCount = Math.max(0, this.disableCount - 1);
   }
 
   getAll(): KeyboardShortcut[] {
@@ -71,7 +82,7 @@ export class KeyboardShortcutsService implements OnDestroy {
   }
 
   private handleKeydown(e: KeyboardEvent): void {
-    if (!this.enabled) return;
+    if (this.disableCount > 0) return;
 
     // Don't intercept when typing in inputs/textareas/contenteditable
     const target = e.target as HTMLElement;
@@ -108,6 +119,7 @@ export class KeyboardShortcutsService implements OnDestroy {
         ) {
           e.preventDefault();
           shortcut.action();
+          this.markUsed(shortcut.description);
           return;
         }
       }
@@ -133,6 +145,7 @@ export class KeyboardShortcutsService implements OnDestroy {
       if (!shortcut.prefix && this.matches(e, shortcut)) {
         e.preventDefault();
         shortcut.action();
+        this.markUsed(shortcut.description);
         return;
       }
     }
@@ -156,14 +169,11 @@ export class KeyboardShortcutsService implements OnDestroy {
 
   formatShortcut(s: KeyboardShortcut): string {
     const parts: string[] = [];
-    if (s.prefix) {
-      parts.push(s.prefix.toUpperCase());
-      parts.push('then');
-    }
     if (s.ctrl) parts.push('Ctrl');
     if (s.alt) parts.push('Alt');
     if (s.shift) parts.push('Shift');
     parts.push(s.key.length === 1 ? s.key.toUpperCase() : s.key);
-    return parts.join(' ');
+    const combo = parts.join('+');
+    return s.prefix ? `${s.prefix.toUpperCase()} then ${combo}` : combo;
   }
 }
