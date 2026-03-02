@@ -114,8 +114,14 @@ import { FormsModule } from '@angular/forms';
     ConfirmationService,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [`
+    .board-root {
+      height: calc(100vh - var(--nav-height));
+      height: calc(100dvh - var(--nav-height));
+    }
+  `],
   template: `
-    <div class="h-screen flex flex-col bg-[var(--background)]">
+    <div class="board-root flex flex-col bg-[var(--background)]">
       <!-- Header -->
       <div class="bg-[var(--card)] border-b border-[var(--border)] px-6 py-4">
         <div class="flex items-center justify-between">

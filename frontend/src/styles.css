@@ -92,6 +92,11 @@
   --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--primary) 8%, transparent), 0 4px 16px color-mix(in srgb, var(--primary) 6%, transparent);
   --widget-hover-border: color-mix(in srgb, var(--primary) 20%, transparent);
 
+  /* Layout tokens */
+  --nav-height: 48px;
+  --sidebar-width: 16rem;            /* w-64 = 256px */
+  --sidebar-width-collapsed: 3.5rem; /* w-14 = 56px  */
+
   /* Transition tokens */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
@@ -477,7 +482,7 @@ button:active, [role="button"]:active {
    ============================================ */
 .route-transition-wrapper {
   position: relative;
-  overflow: hidden;
+  overflow: clip;
 }
 
 /* ============================================
