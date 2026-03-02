@@ -25,6 +25,7 @@ import {
   FilterPreset,
 } from '../../../core/services/filter-presets.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { GroupByMode } from '../board-view/swimlane.types';
 import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
@@ -290,6 +291,37 @@ const DEFAULT_FILTERS: TaskFilters = {
           </div>
         }
 
+        <!-- Group By (kanban only) -->
+        @if (viewMode() === 'kanban') {
+          <div class="flex items-center">
+            @if (groupBy() !== 'none') {
+              <button
+                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-l-md border border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)]/10 transition-colors"
+                (click)="groupByMenu.toggle($event)"
+              >
+                <i class="pi pi-table text-xs"></i>
+                Group: {{ groupByLabel() }}
+              </button>
+              <button
+                class="flex items-center px-1.5 py-1.5 text-xs font-medium rounded-r-md border border-l-0 border-[var(--primary)] text-[var(--primary)] hover:bg-red-50 hover:border-red-400 hover:text-red-500 transition-colors"
+                (click)="groupByChanged.emit('none')"
+                title="Clear grouping"
+              >
+                <i class="pi pi-times text-xs"></i>
+              </button>
+            } @else {
+              <button
+                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)] transition-colors"
+                (click)="groupByMenu.toggle($event)"
+              >
+                <i class="pi pi-table text-xs"></i>
+                Group By
+              </button>
+            }
+            <p-menu #groupByMenu [popup]="true" [model]="groupByMenuItems()" />
+          </div>
+        }
+
         <!-- View Toggle -->
         <p-selectButton
           [options]="viewModeOptions"
@@ -383,10 +415,12 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
   labels = input<Label[]>([]);
   viewMode = input<ViewMode>('kanban');
   density = input<'compact' | 'normal' | 'expanded'>('normal');
+  groupBy = input<GroupByMode>('none');
 
   filtersChanged = output<TaskFilters>();
   viewModeChanged = output<ViewMode>();
   densityChanged = output<'compact' | 'normal' | 'expanded'>();
+  groupByChanged = output<GroupByMode>();
 
   searchTerm = signal('');
   filters = signal<TaskFilters>({ ...DEFAULT_FILTERS });
@@ -442,6 +476,27 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
     this.isHighPriorityActive() ||
     this.isOverdueActive(),
   );
+
+  // Group By helpers
+  groupByLabel(): string {
+    const map: Record<GroupByMode, string> = {
+      none: 'None',
+      assignee: 'Assignee',
+      priority: 'Priority',
+      label: 'Label',
+    };
+    return map[this.groupBy()];
+  }
+
+  groupByMenuItems(): { label: string; icon?: string; command: () => void }[] {
+    const current = this.groupBy();
+    return [
+      { label: 'None',     icon: current === 'none'     ? 'pi pi-check' : '', command: () => this.groupByChanged.emit('none') },
+      { label: 'Assignee', icon: current === 'assignee' ? 'pi pi-check' : '', command: () => this.groupByChanged.emit('assignee') },
+      { label: 'Priority', icon: current === 'priority' ? 'pi pi-check' : '', command: () => this.groupByChanged.emit('priority') },
+      { label: 'Label',    icon: current === 'label'    ? 'pi pi-check' : '', command: () => this.groupByChanged.emit('label') },
+    ];
+  }
 
   viewModeOptions = [
     { value: 'kanban', icon: 'pi pi-objects-column', tooltip: 'Kanban View' },
