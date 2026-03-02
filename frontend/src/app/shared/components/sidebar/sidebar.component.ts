@@ -16,6 +16,7 @@ import {
   Workspace,
 } from '../../../core/services/workspace.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { NotificationService } from '../../../core/services/notification.service';
 import {
   CreateWorkspaceDialogComponent,
   CreateWorkspaceDialogResult,
@@ -141,7 +142,6 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
       class="sidebar-root h-full flex flex-col transition-all duration-300"
       [class.w-64]="!collapsed()"
       [class.w-14]="collapsed()"
-      [class.sidebar-collapsed]="isCollapsed()"
       [class.sidebar-open]="isMobileOpen()"
     >
       <!-- Header: Logo & Search -->
@@ -167,13 +167,13 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
               >TaskFlow</span
             >
             <button
-              (click)="toggleCollapseLocal(); $event.stopPropagation()"
+              (click)="toggleCollapse.emit(); $event.stopPropagation()"
               class="hidden md:flex items-center justify-center w-7 h-7 rounded-md hover:bg-[var(--sidebar-surface-hover)] text-[var(--sidebar-text-secondary)] transition-colors ml-auto"
-              [title]="isCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+              [title]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
             >
               <svg
                 class="w-4 h-4 transition-transform duration-200"
-                [class.rotate-180]="isCollapsed()"
+                [class.rotate-180]="collapsed()"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -211,13 +211,13 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
           >
             <i class="pi pi-search text-xs"></i>
             <span class="sidebar-text">Search</span>
-            <span class="ml-auto text-xs sidebar-icon-color">&#8984;K</span>
+            <span class="ml-auto text-xs sidebar-icon-color">{{ searchShortcut }}</span>
           </button>
         } @else {
           <button
             (click)="searchOpen.emit()"
             class="collapsed-icon-btn"
-            pTooltip="Search (Cmd+K)"
+            pTooltip="Search ({{ searchShortcut }})"
             tooltipPosition="right"
           >
             <i class="pi pi-search sidebar-icon-color text-sm"></i>
@@ -237,6 +237,7 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
             routerLink="/dashboard"
             routerLinkActive="active"
             [routerLinkActiveOptions]="{ exact: true }"
+            (click)="onNavItemClick()"
             class="nav-item flex items-center gap-3 px-3 py-2 rounded-md text-sm"
           >
             <span class="nav-indicator"></span>
@@ -254,6 +255,7 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
             routerLink="/dashboard"
             routerLinkActive="active"
             [routerLinkActiveOptions]="{ exact: true }"
+            (click)="onNavItemClick()"
             class="collapsed-icon-btn"
             pTooltip="Dashboard"
             tooltipPosition="right"
@@ -267,6 +269,7 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
           <a
             routerLink="/my-tasks"
             routerLinkActive="active"
+            (click)="onNavItemClick()"
             class="nav-item flex items-center gap-3 px-3 py-2 rounded-md text-sm"
           >
             <span class="nav-indicator"></span>
@@ -278,16 +281,25 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
               style="color: var(--sidebar-text-secondary)"
               >My Work</span
             >
+            @if (unreadCount() > 0) {
+              <span class="ml-auto min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
+                {{ unreadCount() > 99 ? '99+' : unreadCount() }}
+              </span>
+            }
           </a>
         } @else {
           <a
             routerLink="/my-tasks"
             routerLinkActive="active"
-            class="collapsed-icon-btn"
+            (click)="onNavItemClick()"
+            class="collapsed-icon-btn relative"
             pTooltip="My Work"
             tooltipPosition="right"
           >
             <i class="pi pi-clipboard sidebar-icon-color text-sm"></i>
+            @if (unreadCount() > 0) {
+              <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500"></span>
+            }
           </a>
         }
 
@@ -369,7 +381,7 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
             </div>
           }
 
-          <!-- New Workspace & Discover -->
+          <!-- New Workspace -->
           @if (canCreateWorkspace()) {
             @if (!collapsed()) {
               <button
@@ -382,24 +394,6 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
                 <i class="pi pi-plus text-xs"></i>
                 <span>New Workspace</span>
               </button>
-              <a
-                routerLink="/discover"
-                routerLinkActive="active"
-                class="nav-item flex items-center gap-2 px-3 py-2 rounded-md text-sm"
-                style="color: var(--sidebar-text-muted)"
-              >
-                <i class="pi pi-compass text-xs"></i>
-                <span class="sidebar-text">Discover</span>
-              </a>
-              <a
-                routerLink="/templates"
-                routerLinkActive="active"
-                class="nav-item flex items-center gap-2 px-3 py-2 rounded-md text-sm"
-                style="color: var(--sidebar-text-muted)"
-              >
-                <i class="pi pi-th-large text-xs"></i>
-                <span class="sidebar-text">Templates</span>
-              </a>
             } @else {
               <button
                 (click)="onCreateWorkspace()"
@@ -409,86 +403,111 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
               >
                 <i class="pi pi-plus sidebar-icon-color text-sm"></i>
               </button>
-              <a
-                routerLink="/discover"
-                routerLinkActive="active"
-                class="collapsed-icon-btn"
-                pTooltip="Discover Workspaces"
-                tooltipPosition="right"
-              >
-                <i class="pi pi-compass sidebar-icon-color text-sm"></i>
-              </a>
-              <a
-                routerLink="/templates"
-                routerLinkActive="active"
-                class="collapsed-icon-btn"
-                pTooltip="Templates"
-                tooltipPosition="right"
-              >
-                <i class="pi pi-th-large sidebar-icon-color text-sm"></i>
-              </a>
             }
-          }
-        </div>
-
-        <div class="divider my-3 mx-1"></div>
-
-        <!-- Settings & Team -->
-        <div class="space-y-0.5">
-          @if (!collapsed()) {
-            <a
-              routerLink="/settings/profile"
-              routerLinkActive="active"
-              class="nav-item flex items-center gap-3 px-3 py-2 rounded-md text-sm"
-            >
-              <span class="nav-indicator"></span>
-              <i class="pi pi-cog text-sm flex-shrink-0 sidebar-icon-color"></i>
-              <span
-                class="sidebar-text"
-                style="color: var(--sidebar-text-secondary)"
-                >Settings</span
-              >
-            </a>
-            <a
-              routerLink="/team"
-              routerLinkActive="active"
-              class="nav-item flex items-center gap-3 px-3 py-2 rounded-md text-sm"
-            >
-              <span class="nav-indicator"></span>
-              <i
-                class="pi pi-users text-sm flex-shrink-0 sidebar-icon-color"
-              ></i>
-              <span
-                class="sidebar-text"
-                style="color: var(--sidebar-text-secondary)"
-                >Team</span
-              >
-            </a>
-          } @else {
-            <a
-              routerLink="/settings/profile"
-              routerLinkActive="active"
-              class="collapsed-icon-btn"
-              pTooltip="Settings"
-              tooltipPosition="right"
-            >
-              <i class="pi pi-cog sidebar-icon-color text-sm"></i>
-            </a>
-            <a
-              routerLink="/team"
-              routerLinkActive="active"
-              class="collapsed-icon-btn"
-              pTooltip="Team"
-              tooltipPosition="right"
-            >
-              <i class="pi pi-users sidebar-icon-color text-sm"></i>
-            </a>
           }
         </div>
       </nav>
 
-      <!-- Collapse Toggle Button -->
+      <!-- Footer -->
+      @if (!collapsed()) {
+        <div class="flex-shrink-0 px-2 pb-2 space-y-0.5 relative">
+          <!-- Profile popup backdrop -->
+          @if (profileMenuOpen()) {
+            <div class="fixed inset-0 z-10" (click)="profileMenuOpen.set(false)"></div>
+          }
+
+          <!-- Profile popup -->
+          @if (profileMenuOpen()) {
+            <div class="absolute bottom-full left-2 right-2 mb-1 z-20 rounded-lg shadow-lg border py-1"
+                 style="background: var(--surface-overlay); border-color: var(--sidebar-border)">
+              @if (currentUser()) {
+                <div class="px-3 py-2 border-b" style="border-color: var(--sidebar-border)">
+                  <div class="font-medium text-sm truncate" style="color: var(--sidebar-text-primary)">{{ currentUser()!.name }}</div>
+                  <div class="text-xs truncate" style="color: var(--sidebar-text-muted)">{{ currentUser()!.email }}</div>
+                </div>
+              }
+              <a routerLink="/settings/profile" (click)="profileMenuOpen.set(false)"
+                 class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--sidebar-surface-hover)] cursor-pointer"
+                 style="color: var(--sidebar-text-secondary)">
+                <i class="pi pi-cog text-xs"></i>
+                <span>Settings</span>
+              </a>
+              <button (click)="handleSignOut()"
+                      class="flex items-center gap-2 px-3 py-2 text-sm w-full text-left hover:bg-[var(--sidebar-surface-hover)]"
+                      style="color: var(--sidebar-text-secondary)">
+                <i class="pi pi-sign-out text-xs"></i>
+                <span>Sign Out</span>
+              </button>
+            </div>
+          }
+
+          <!-- Divider -->
+          <div class="divider mx-1 mb-2"></div>
+
+          <!-- Settings link -->
+          <a routerLink="/settings/profile" routerLinkActive="active"
+             class="nav-item flex items-center gap-3 px-3 py-2 rounded-md text-sm">
+            <span class="nav-indicator"></span>
+            <i class="pi pi-cog text-sm flex-shrink-0 sidebar-icon-color"></i>
+            <span class="sidebar-text" style="color: var(--sidebar-text-secondary)">Settings</span>
+          </a>
+
+          <!-- Help link -->
+          <a routerLink="/help" routerLinkActive="active"
+             class="nav-item flex items-center gap-3 px-3 py-2 rounded-md text-sm">
+            <span class="nav-indicator"></span>
+            <i class="pi pi-question-circle text-sm flex-shrink-0 sidebar-icon-color"></i>
+            <span class="sidebar-text" style="color: var(--sidebar-text-secondary)">Help</span>
+          </a>
+
+          <!-- User profile button -->
+          <button (click)="toggleProfileMenu(); $event.stopPropagation()"
+                  class="w-full flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-[var(--sidebar-surface-hover)] transition-colors">
+            @if (currentUser()?.avatar_url) {
+              <img [src]="currentUser()!.avatar_url" class="w-7 h-7 rounded-full object-cover flex-shrink-0" [alt]="currentUser()!.name" />
+            } @else {
+              <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                   style="background: var(--primary)">
+                {{ getUserInitials(currentUser()?.name || '?') }}
+              </div>
+            }
+            <span class="flex-1 text-left text-sm truncate sidebar-text" style="color: var(--sidebar-text-secondary)">
+              {{ currentUser()?.name || 'Profile' }}
+            </span>
+            <i class="pi pi-chevron-up text-xs sidebar-icon-color sidebar-text transition-transform duration-200"
+               [class.rotate-180]="profileMenuOpen()"></i>
+          </button>
+        </div>
+      }
+
+      <!-- Collapse Toggle Button (with collapsed footer) -->
       <div class="px-2 py-1.5">
+        @if (collapsed()) {
+          <!-- Collapsed footer icons -->
+          <div class="px-2 space-y-0.5 mb-1">
+            <a routerLink="/settings/profile" routerLinkActive="active"
+               class="collapsed-icon-btn" pTooltip="Settings" tooltipPosition="right">
+              <i class="pi pi-cog sidebar-icon-color text-sm"></i>
+            </a>
+            <a routerLink="/help" routerLinkActive="active"
+               class="collapsed-icon-btn" pTooltip="Help" tooltipPosition="right">
+              <i class="pi pi-question-circle sidebar-icon-color text-sm"></i>
+            </a>
+            <button (click)="toggleProfileMenu(); $event.stopPropagation()"
+                    class="collapsed-icon-btn"
+                    [pTooltip]="currentUser()?.name || 'Profile'"
+                    tooltipPosition="right">
+              @if (currentUser()?.avatar_url) {
+                <img [src]="currentUser()!.avatar_url" class="w-6 h-6 rounded-full object-cover" [alt]="currentUser()!.name" />
+              } @else {
+                <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                     style="background: var(--primary)">
+                  {{ getUserInitials(currentUser()?.name || '?') }}
+                </div>
+              }
+            </button>
+          </div>
+        }
         <button
           (click)="toggleCollapse.emit()"
           class="collapsed-icon-btn"
@@ -518,21 +537,23 @@ export class SidebarComponent implements OnInit {
   sidebarClose = output<void>();
   searchOpen = output<void>();
 
-  isCollapsed = signal(false);
-
   private workspaceService = inject(WorkspaceService);
   private authService = inject(AuthService);
+  private notificationService = inject(NotificationService);
   private router = inject(Router);
-
-  constructor() {
-    this.isCollapsed.set(localStorage.getItem('sidebar-collapsed') === 'true');
-  }
 
   loading = signal(false);
   workspaces = signal<Workspace[]>([]);
   workspaceIdList = computed(() => this.workspaces().map((w) => w.id));
   currentUser = this.authService.currentUser;
   showCreateWorkspaceDialog = signal(false);
+  unreadCount = this.notificationService.unreadCount;
+  profileMenuOpen = signal(false);
+  searchShortcut =
+    typeof navigator !== 'undefined' &&
+    navigator.platform.toLowerCase().includes('mac')
+      ? '\u2318K'
+      : 'Ctrl+K';
 
   private readonly workspaceColors = [
     '#6366f1',
@@ -544,11 +565,6 @@ export class SidebarComponent implements OnInit {
     '#22c55e',
     '#06b6d4',
   ];
-
-  toggleCollapseLocal(): void {
-    this.isCollapsed.update((v) => !v);
-    localStorage.setItem('sidebar-collapsed', String(this.isCollapsed()));
-  }
 
   ngOnInit(): void {
     this.loadWorkspaces();
@@ -577,6 +593,28 @@ export class SidebarComponent implements OnInit {
         // Error handling - workspace creation failed
       },
     });
+  }
+
+  toggleProfileMenu(): void {
+    this.profileMenuOpen.update((v) => !v);
+  }
+
+  handleSignOut(): void {
+    this.profileMenuOpen.set(false);
+    this.authService.signOut('manual');
+  }
+
+  getUserInitials(name: string): string {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+  }
+
+  onNavItemClick(): void {
+    if (this.isMobileOpen()) this.sidebarClose.emit();
   }
 
   private loadWorkspaces(): void {

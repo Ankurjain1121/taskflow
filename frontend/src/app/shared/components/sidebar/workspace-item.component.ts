@@ -8,9 +8,11 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { BoardService, Board } from '../../../core/services/board.service';
 import { Workspace } from '../../../core/services/workspace.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { FavoritesService } from '../../../core/services/favorites.service';
 import { WorkspaceSettingsDialogService } from '../../../core/services/workspace-settings-dialog.service';
 import {
   CreateBoardDialogComponent,
@@ -79,6 +81,10 @@ import {
       }
       .add-board-btn:hover {
         background: var(--sidebar-surface-hover);
+      }
+
+      .sidebar-icon-color {
+        color: var(--sidebar-text-muted);
       }
     `,
   ],
@@ -164,17 +170,72 @@ import {
             </div>
           } @else {
             @for (board of boards(); track board.id) {
-              <a
-                [routerLink]="['/workspace', workspace().id, 'board', board.id]"
-                routerLinkActive="board-link-active"
-                class="board-link flex items-center gap-2 px-3 py-1.5 text-sm rounded-md"
-              >
-                <i
-                  class="pi pi-table text-xs"
-                  style="color: var(--sidebar-text-muted)"
-                ></i>
-                <span class="truncate">{{ board.name }}</span>
-              </a>
+              <div class="relative group/board">
+                <!-- Board menu backdrop -->
+                @if (activeMenuBoardId() === board.id) {
+                  <div class="fixed inset-0 z-10" (click)="closeBoardMenu()"></div>
+                }
+                <a
+                  [routerLink]="['/workspace', workspace().id, 'board', board.id]"
+                  routerLinkActive="board-link-active"
+                  class="board-link flex items-center gap-2 px-3 py-1.5 text-sm rounded-md pr-16"
+                >
+                  <i
+                    class="pi pi-table text-xs flex-shrink-0"
+                    style="color: var(--sidebar-text-muted)"
+                  ></i>
+                  <span class="truncate flex-1">{{ board.name }}</span>
+                </a>
+                <!-- Hover action buttons -->
+                <div class="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover/board:opacity-100 transition-opacity">
+                  <!-- Star toggle -->
+                  <button
+                    (click)="toggleFavorite(board, $event)"
+                    class="p-1 rounded hover:bg-[var(--sidebar-surface-hover)] transition-colors"
+                    [title]="isFavorited(board.id) ? 'Remove from favorites' : 'Add to favorites'"
+                  >
+                    <i
+                      class="text-xs"
+                      [class.pi-star-fill]="isFavorited(board.id)"
+                      [class.pi-star]="!isFavorited(board.id)"
+                      [class]="'pi ' + (isFavorited(board.id) ? 'text-amber-400' : '') + ' sidebar-icon-color'"
+                    ></i>
+                  </button>
+                  <!-- Context menu trigger -->
+                  <button
+                    (click)="openBoardMenu(board.id, $event)"
+                    class="p-1 rounded hover:bg-[var(--sidebar-surface-hover)] transition-colors"
+                    title="More options"
+                  >
+                    <i class="pi pi-ellipsis-h text-xs sidebar-icon-color"></i>
+                  </button>
+                </div>
+                <!-- Context menu dropdown -->
+                @if (activeMenuBoardId() === board.id) {
+                  <div
+                    class="absolute right-0 top-full mt-0.5 w-40 rounded-md shadow-lg border py-1 z-20"
+                    style="background: var(--surface-overlay); border-color: var(--sidebar-border)"
+                  >
+                    <a
+                      [routerLink]="['/workspace', workspace().id, 'board', board.id]"
+                      (click)="closeBoardMenu()"
+                      class="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-[var(--sidebar-surface-hover)] cursor-pointer"
+                      style="color: var(--sidebar-text-secondary)"
+                    >
+                      <i class="pi pi-external-link text-xs"></i>
+                      <span>Open</span>
+                    </a>
+                    <button
+                      (click)="copyBoardLink(board, $event)"
+                      class="flex items-center gap-2 px-3 py-1.5 text-xs w-full text-left hover:bg-[var(--sidebar-surface-hover)]"
+                      style="color: var(--sidebar-text-secondary)"
+                    >
+                      <i class="pi pi-link text-xs"></i>
+                      <span>Copy link</span>
+                    </button>
+                  </div>
+                }
+              </div>
             }
           }
 
@@ -221,6 +282,7 @@ import {
 export class WorkspaceItemComponent implements OnInit {
   private boardService = inject(BoardService);
   private authService = inject(AuthService);
+  private favoritesService = inject(FavoritesService);
   private settingsDialog = inject(WorkspaceSettingsDialogService);
 
   workspace = input.required<Workspace>();
@@ -229,6 +291,8 @@ export class WorkspaceItemComponent implements OnInit {
   loading = signal(false);
   boards = signal<Board[]>([]);
   showCreateBoardDialog = signal(false);
+  favoriteIds = signal<Set<string>>(new Set());
+  activeMenuBoardId = signal<string | null>(null);
 
   private readonly colors = [
     '#6366f1',
@@ -242,7 +306,8 @@ export class WorkspaceItemComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.expanded.set(true);
+    const saved = localStorage.getItem(`taskflow_ws_expanded_${this.workspace().id}`);
+    this.expanded.set(saved !== null ? saved === 'true' : true);
     this.loadBoards();
   }
 
@@ -253,6 +318,7 @@ export class WorkspaceItemComponent implements OnInit {
 
   toggleExpanded(): void {
     this.expanded.update((v) => !v);
+    localStorage.setItem(`taskflow_ws_expanded_${this.workspace().id}`, String(this.expanded()));
     if (this.expanded() && this.boards().length === 0) {
       this.loadBoards();
     }
@@ -293,11 +359,65 @@ export class WorkspaceItemComponent implements OnInit {
       });
   }
 
+  isFavorited(boardId: string): boolean {
+    return this.favoriteIds().has(boardId);
+  }
+
+  toggleFavorite(board: Board, event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+    if (this.isFavorited(board.id)) {
+      this.favoritesService.remove('board', board.id).subscribe({
+        next: () => {
+          this.favoriteIds.update((s) => {
+            const next = new Set(s);
+            next.delete(board.id);
+            return next;
+          });
+        },
+        error: () => {},
+      });
+    } else {
+      this.favoritesService.add({ entity_type: 'board', entity_id: board.id }).subscribe({
+        next: () => {
+          this.favoriteIds.update((s) => new Set([...s, board.id]));
+        },
+        error: () => {},
+      });
+    }
+  }
+
+  openBoardMenu(boardId: string, event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.activeMenuBoardId.set(
+      this.activeMenuBoardId() === boardId ? null : boardId
+    );
+  }
+
+  closeBoardMenu(): void {
+    this.activeMenuBoardId.set(null);
+  }
+
+  copyBoardLink(board: Board, event: Event): void {
+    event.stopPropagation();
+    const url = `${window.location.origin}/workspace/${this.workspace().id}/board/${board.id}`;
+    navigator.clipboard.writeText(url).catch(() => {});
+    this.activeMenuBoardId.set(null);
+  }
+
   private loadBoards(): void {
     this.loading.set(true);
-    this.boardService.listBoards(this.workspace().id).subscribe({
-      next: (boards) => {
+    forkJoin({
+      boards: this.boardService.listBoards(this.workspace().id),
+      favorites: this.favoritesService.list(),
+    }).subscribe({
+      next: ({ boards, favorites }) => {
         this.boards.set(boards);
+        const favSet = new Set(
+          favorites.filter((f) => f.entity_type === 'board').map((f) => f.entity_id)
+        );
+        this.favoriteIds.set(favSet);
         this.loading.set(false);
       },
       error: () => {
