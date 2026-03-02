@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT id, name, board_id, position, color, status_mapping, wip_limit, created_at\n        FROM board_columns\n        WHERE id = $1\n        ",
+  "query": "\n            INSERT INTO board_columns (name, board_id, position, color, status_mapping)\n            VALUES ($1, $2, $3, $4, $5)\n            RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at\n            ",
   "describe": {
     "columns": [
       {
@@ -40,13 +40,22 @@
       },
       {
         "ordinal": 7,
+        "name": "icon",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
         "name": "created_at",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Varchar",
+        "Uuid",
+        "Text",
+        "Varchar",
+        "Jsonb"
       ]
     },
     "nullable": [
@@ -57,8 +66,9 @@
       true,
       true,
       true,
+      true,
       false
     ]
   },
-  "hash": "5856775d3608dd907c3b1b7d5a3370fe8635006946cf2156b0874c482b3ad3ce"
+  "hash": "04fa23b0164f6773f168138f7db43f0603e7d46ac1bb779b38f60f250faf0939"
 }

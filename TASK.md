@@ -16,8 +16,8 @@ then moving through Kanban, search, performance, real-time, notifications, and v
 | B1 | Rich Task Cards | Pending | [stateless-weaving-orbit](.claude/plans/stateless-weaving-orbit.md) · [RESEARCH.md](RESEARCH.md) | [comp.md#b1](comp.md#b1-rich-task-cards) |
 | B2 | Column Pagination | Pending | [RESEARCH.md](RESEARCH.md) | [comp.md#b2](comp.md#b2-column-pagination) |
 | B3 | Quick Filter Bar | ✅ Done | [RESEARCH.md](RESEARCH.md) · [plan-b3](plans2/plan-b3.md) | [comp.md#b3](comp.md#b3-quick-filter-bar) |
-| B4 | Card Density Toggle | Pending | [RESEARCH.md](RESEARCH.md) | [comp.md#b4](comp.md#b4-card-density-toggle) |
-| B5 | Column Customization | Pending | [RESEARCH.md](RESEARCH.md) | [comp.md#b5](comp.md#b5-column-customization) |
+| B4 | Card Density Toggle | ✅ Done | [RESEARCH.md](RESEARCH.md) | [comp.md#b4](comp.md#b4-card-density-toggle) |
+| B5 | Column Customization | ✅ Done | [RESEARCH.md](RESEARCH.md) | [comp.md#b5](comp.md#b5-column-customization) |
 | B6 | Swimlanes | Pending | [RESEARCH.md](RESEARCH.md) · [plan-b6](plans2/plan-b6.md) | [comp.md#b6](comp.md#b6-swimlanes) |
 | B7 | Board Keyboard Shortcuts | Pending | [RESEARCH.md](RESEARCH.md) | [comp.md#b7](comp.md#b7-board-keyboard-shortcuts) |
 | B8 | Card Quick-Edit | Pending | [mutable-zooming-moler](.claude/plans/mutable-zooming-moler.md) · [RESEARCH.md](RESEARCH.md) | [comp.md#b8](comp.md#b8-card-quick-edit) |
@@ -44,6 +44,7 @@ then moving through Kanban, search, performance, real-time, notifications, and v
 - 2026-03-02: A4 complete — layout grid: CSS variables (--nav-height, --sidebar-width*), overflow:clip on route-transition-wrapper, board-view h-screen → .board-root with dvh calc
 - 2026-03-02: B1-B8 research complete — competitor analysis (10 competitors × 8 features), file breakdowns, 3-phase plan written to RESEARCH.md
 - 2026-03-02: comp.md created — unified competitor analysis index for all A–I phases (44 sub-features); TASK.md updated with Comp column linking to comp.md anchors
+- 2026-03-02: B4 complete — Compact/Normal/Expanded density toggle in toolbar, persists to localStorage; B5 complete — column icon picker (emoji), WIP limit dialog, Rename, Delete; full-stack (Rust migration + PUT endpoints + Angular dialogs)
 - 2026-03-02: B3 complete — Quick Filter Bar: rounded pill chips (native buttons), Overdue pill (red when active), Clear all link, `overdue` in URL/state/filter logic, `F` keyboard shortcut to focus search
 
 ## Success Criteria

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        UPDATE board_columns\n        SET status_mapping = $2\n        WHERE id = $1\n        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, created_at\n        ",
+  "query": "\n        UPDATE board_columns\n        SET name = $2\n        WHERE id = $1\n        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at\n        ",
   "describe": {
     "columns": [
       {
@@ -40,6 +40,11 @@
       },
       {
         "ordinal": 7,
+        "name": "icon",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
         "name": "created_at",
         "type_info": "Timestamptz"
       }
@@ -47,7 +52,7 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Jsonb"
+        "Varchar"
       ]
     },
     "nullable": [
@@ -58,8 +63,9 @@
       true,
       true,
       true,
+      true,
       false
     ]
   },
-  "hash": "77e2305f45809fe5ff27f25a416f18f416b77358b8331c2cf7051fc20c25926c"
+  "hash": "9168e2f3f18bee3e9888002d8f63385f85e6550eeaa711c112afcdf3570572c4"
 }

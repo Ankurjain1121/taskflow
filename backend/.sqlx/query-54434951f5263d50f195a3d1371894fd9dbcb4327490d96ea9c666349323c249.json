@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        UPDATE board_columns\n        SET wip_limit = $2\n        WHERE id = $1\n        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, created_at\n        ",
+  "query": "\n        UPDATE board_columns\n        SET wip_limit = $2\n        WHERE id = $1\n        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at\n        ",
   "describe": {
     "columns": [
       {
@@ -40,6 +40,11 @@
       },
       {
         "ordinal": 7,
+        "name": "icon",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
         "name": "created_at",
         "type_info": "Timestamptz"
       }
@@ -58,8 +63,9 @@
       true,
       true,
       true,
+      true,
       false
     ]
   },
-  "hash": "3773260a2c1a76599dd3cf3b9118737e18c82e4b42d047970efb0f874c33352e"
+  "hash": "54434951f5263d50f195a3d1371894fd9dbcb4327490d96ea9c666349323c249"
 }

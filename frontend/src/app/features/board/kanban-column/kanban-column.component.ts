@@ -90,6 +90,11 @@ export interface TaskMoveEvent {
                 </svg>
               </div>
 
+              <!-- Column Icon -->
+              @if (column().icon) {
+                <span class="text-base leading-none flex-shrink-0">{{ column().icon }}</span>
+              }
+
               <!-- Column Name -->
               <h3 class="font-medium text-[var(--foreground)]">
                 {{ column().name }}
@@ -349,6 +354,7 @@ export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
   renameRequested = output<string>();
   wipLimitRequested = output<string>();
   columnDeleteRequested = output<string>();
+  iconChangeRequested = output<{ columnId: string; currentIcon: string | null }>();
 
   readonly columnMenuItems = computed((): MenuItem[] => [
     {
@@ -360,6 +366,11 @@ export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
       label: 'Set WIP Limit',
       icon: 'pi pi-sliders-h',
       command: () => this.wipLimitRequested.emit(this.column().id),
+    },
+    {
+      label: 'Set Icon',
+      icon: 'pi pi-tag',
+      command: () => this.iconChangeRequested.emit({ columnId: this.column().id, currentIcon: this.column().icon ?? null }),
     },
     { separator: true },
     {
