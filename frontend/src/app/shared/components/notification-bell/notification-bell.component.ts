@@ -128,6 +128,7 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
                   <app-notification-item
                     [notification]="notification"
                     (notificationClick)="onNotificationClick($event)"
+                    (dismiss)="onDismissNotification($event)"
                   />
                 }
               }
@@ -141,6 +142,7 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
                   <app-notification-item
                     [notification]="notification"
                     (notificationClick)="onNotificationClick($event)"
+                    (dismiss)="onDismissNotification($event)"
                   />
                 }
               }
@@ -319,5 +321,14 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   goToSettings(): void {
     this.notifPopover.hide();
     this.router.navigate(['/settings/notifications']);
+  }
+
+  onDismissNotification(id: string): void {
+    this.notificationService.dismissNotification(id).subscribe({
+      error: () => {
+        // Reload notifications on error to restore state
+        this.notificationService.listNotifications().subscribe();
+      }
+    });
   }
 }

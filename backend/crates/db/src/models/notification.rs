@@ -12,6 +12,7 @@ pub struct Notification {
     pub body: String,
     pub link_url: Option<String>,
     pub is_read: bool,
+    pub archived_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -43,6 +44,7 @@ mod tests {
             body: "You have been assigned a task".to_string(),
             link_url: Some("/boards/123/tasks/456".to_string()),
             is_read: false,
+            archived_at: None,
             created_at: now,
         };
         let json = serde_json::to_string(&notif).unwrap();

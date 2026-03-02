@@ -5,8 +5,9 @@
 
 use axum::{
     extract::{Path, Query, State},
+    http::StatusCode,
     middleware::from_fn_with_state,
-    routing::{get, put},
+    routing::{delete, get, put},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
@@ -18,8 +19,8 @@ use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 use taskflow_db::queries::notifications::{
-    get_unread_count, list_notifications, mark_all_read, mark_read, NotificationListResponse,
-    NotificationQueryError,
+    archive_notification, get_unread_count, list_notifications, mark_all_read, mark_read,
+    NotificationListResponse, NotificationQueryError,
 };
 
 /// Query parameters for listing notifications
@@ -124,11 +125,33 @@ async fn mark_all_read_handler(
     })))
 }
 
+/// DELETE /api/notifications/:id
+///
+/// Archive (soft-delete) a notification. Only affects the authenticated user's notifications.
+async fn archive_notification_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+    Path(notification_id): Path<Uuid>,
+) -> Result<StatusCode> {
+    archive_notification(&state.db, notification_id, tenant.user_id)
+        .await
+        .map_err(|e| match e {
+            NotificationQueryError::Database(e) => AppError::SqlxError(e),
+            NotificationQueryError::NotFound => AppError::NotFound("Notification not found".into()),
+            NotificationQueryError::Unauthorized => {
+                AppError::Forbidden("Not authorized to modify this notification".into())
+            }
+        })?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
 /// Create the notification router
 pub fn notification_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/notifications", get(list_notifications_handler))
         .route("/notifications/unread-count", get(get_unread_count_handler))
+        .route("/notifications/{id}", delete(archive_notification_handler))
         .route("/notifications/{id}/read", put(mark_read_handler))
         .route("/notifications/read-all", put(mark_all_read_handler))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
