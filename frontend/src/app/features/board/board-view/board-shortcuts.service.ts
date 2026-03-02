@@ -19,6 +19,7 @@ export class BoardShortcutsService {
     getSelectedTaskId: () => string | null;
     setViewMode: (mode: ViewMode) => void;
     onViewModeChanged: (mode: ViewMode) => void;
+    focusFilter: () => void;
   }): void {
     this.shortcutsService.register('board-new-task', {
       key: 'n',
@@ -37,6 +38,13 @@ export class BoardShortcutsService {
         );
         searchInput?.focus();
       },
+    });
+
+    this.shortcutsService.register('board-focus-filter', {
+      key: 'f',
+      description: 'Focus filter bar',
+      category: 'Board',
+      action: () => callbacks.focusFilter(),
     });
 
     this.shortcutsService.register('board-escape', {

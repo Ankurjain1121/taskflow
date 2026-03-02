@@ -6,6 +6,7 @@ import {
   ChangeDetectionStrategy,
   HostListener,
   signal,
+  viewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -356,6 +357,7 @@ import { FormsModule } from '@angular/forms';
                 (renameRequested)="onColumnRenameRequested($event)"
                 (wipLimitRequested)="onColumnWipLimitRequested($event)"
                 (columnDeleteRequested)="onColumnDeleteRequested($event)"
+                (iconChangeRequested)="onColumnIconChangeRequested($event)"
               ></app-kanban-column>
             }
 
@@ -506,6 +508,36 @@ import { FormsModule } from '@angular/forms';
         </ng-template>
       </p-dialog>
 
+      <!-- Column Icon Picker Dialog -->
+      <p-dialog
+        header="Choose Column Icon"
+        [(visible)]="showIconPicker"
+        [modal]="true"
+        [style]="{ width: '320px' }"
+      >
+        <div class="flex flex-col gap-3">
+          <p class="text-sm text-[var(--muted-foreground)]">Select an emoji for this column, or clear to remove it.</p>
+          <div class="grid grid-cols-6 gap-2">
+            @for (emoji of columnIconOptions; track emoji) {
+              <button
+                (click)="selectColumnIcon(emoji)"
+                class="text-2xl p-2 rounded hover:bg-[var(--muted)] transition-colors text-center"
+                [class.ring-2]="iconPickerCurrentIcon === emoji"
+                [title]="emoji"
+              >{{ emoji }}</button>
+            }
+          </div>
+          <div class="border-t border-[var(--border)] pt-2">
+            <button
+              (click)="selectColumnIcon(null)"
+              class="w-full px-3 py-2 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] rounded transition-colors"
+            >
+              Clear icon
+            </button>
+          </div>
+        </div>
+      </p-dialog>
+
       <!-- Import/Export Dialogs -->
       <app-import-dialog
         [(visible)]="showImportDialog"
@@ -567,6 +599,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   boardId = '';
 
   viewMode = signal<ViewMode>('kanban');
+  boardToolbar = viewChild(BoardToolbarComponent);
 
   // Dialog visibility state
   showCreateTaskDialog = false;
@@ -590,6 +623,12 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   showWipLimitDialog = false;
   wipLimitDialogColumnId = '';
   wipLimitDialogValue: number | null = null;
+
+  // Column icon picker
+  showIconPicker = false;
+  iconPickerColumnId = '';
+  iconPickerCurrentIcon: string | null = null;
+  readonly columnIconOptions = ['📋', '✅', '🚀', '🐛', '📌', '🎯', '💡', '🔥', '⚡', '🏗️', '🧪', '📦'];
 
   // Import/Export dialogs
   showImportDialog = false;
@@ -625,6 +664,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       getSelectedTaskId: () => this.state.selectedTaskId(),
       setViewMode: (mode) => this.viewMode.set(mode),
       onViewModeChanged: (mode) => this.onViewModeChanged(mode),
+      focusFilter: () => this.boardToolbar()?.focusSearchInput(),
     });
   }
 
@@ -929,6 +969,27 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     this.wipLimitDialogColumnId = columnId;
     this.wipLimitDialogValue = column.wip_limit;
     this.showWipLimitDialog = true;
+  }
+
+  onColumnIconChangeRequested(event: { columnId: string; currentIcon: string | null }): void {
+    this.iconPickerColumnId = event.columnId;
+    this.iconPickerCurrentIcon = event.currentIcon;
+    this.showIconPicker = true;
+  }
+
+  selectColumnIcon(icon: string | null): void {
+    this.boardService
+      .updateColumnIcon(this.iconPickerColumnId, icon)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (updatedColumn) => {
+          this.state.columns.update((cols) =>
+            cols.map((c) => (c.id === updatedColumn.id ? updatedColumn : c)),
+          );
+          this.showIconPicker = false;
+        },
+        error: () => this.state.showError('Failed to update column icon'),
+      });
   }
 
   confirmWipLimit(): void {

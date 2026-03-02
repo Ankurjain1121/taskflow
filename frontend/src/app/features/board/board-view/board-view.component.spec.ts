@@ -68,6 +68,7 @@ const EMPTY_FILTERS: TaskFilters = {
   dueDateStart: null,
   dueDateEnd: null,
   labelIds: [],
+  overdue: false,
 };
 
 // --- Mocks ---

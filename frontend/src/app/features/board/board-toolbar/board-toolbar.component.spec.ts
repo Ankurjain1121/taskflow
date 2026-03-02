@@ -240,4 +240,115 @@ describe('BoardToolbarComponent', () => {
       expect(emitSpy).toHaveBeenCalled();
     });
   });
+
+  describe('isOverdueActive', () => {
+    it('should return false by default', () => {
+      expect(component.isOverdueActive()).toBe(false);
+    });
+
+    it('should return true after toggleOverdue()', () => {
+      component.ngOnInit();
+      queryParamsSubject.next({});
+      component.toggleOverdue();
+      expect(component.isOverdueActive()).toBe(true);
+    });
+
+    it('should toggle back to false on second toggleOverdue()', () => {
+      component.ngOnInit();
+      queryParamsSubject.next({});
+      component.toggleOverdue();
+      component.toggleOverdue();
+      expect(component.isOverdueActive()).toBe(false);
+    });
+  });
+
+  describe('anyQuickFilterActive', () => {
+    it('should return false when no quick filters are active', () => {
+      expect(component.anyQuickFilterActive()).toBe(false);
+    });
+
+    it('should return true after toggleOverdue()', () => {
+      component.ngOnInit();
+      queryParamsSubject.next({});
+      component.toggleOverdue();
+      expect(component.anyQuickFilterActive()).toBe(true);
+    });
+
+    it('should return true when high priority is active', () => {
+      component.ngOnInit();
+      queryParamsSubject.next({});
+      component.toggleHighPriority();
+      expect(component.anyQuickFilterActive()).toBe(true);
+    });
+  });
+
+  describe('clearQuickFilters', () => {
+    it('should reset priorities, assignees, date range, and overdue to defaults', () => {
+      component.ngOnInit();
+      queryParamsSubject.next({});
+      const emitSpy = vi.spyOn(component.filtersChanged, 'emit');
+
+      component.filters.set({
+        ...component.filters(),
+        priorities: ['high', 'urgent'] as any,
+        assigneeIds: ['u-1'],
+        dueDateStart: '2026-01-01',
+        dueDateEnd: '2026-01-07',
+        overdue: true,
+      });
+
+      component.clearQuickFilters();
+
+      expect(component.filters().priorities).toEqual([]);
+      expect(component.filters().assigneeIds).toEqual([]);
+      expect(component.filters().dueDateStart).toBeNull();
+      expect(component.filters().dueDateEnd).toBeNull();
+      expect(component.filters().overdue).toBe(false);
+      expect(component.selectedPriorities).toEqual([]);
+      expect(component.selectedAssignees).toEqual([]);
+      expect(emitSpy).toHaveBeenCalled();
+    });
+
+    it('should preserve search and labelIds when clearing quick filters', () => {
+      component.ngOnInit();
+      queryParamsSubject.next({});
+
+      component.filters.set({
+        ...component.filters(),
+        search: 'important',
+        labelIds: ['l-1'],
+        overdue: true,
+      });
+
+      component.clearQuickFilters();
+
+      expect(component.filters().search).toBe('important');
+      expect(component.filters().labelIds).toEqual(['l-1']);
+    });
+  });
+
+  describe('activeFilterCount with overdue', () => {
+    it('should count overdue as one filter when active', () => {
+      component.filters.set({ ...component.filters(), overdue: true });
+      expect(component.activeFilterCount()).toBe(1);
+    });
+
+    it('should not count overdue when inactive', () => {
+      component.filters.set({ ...component.filters(), overdue: false });
+      expect(component.activeFilterCount()).toBe(0);
+    });
+
+    it('should sum overdue with other active filters', () => {
+      component.filters.set({
+        search: 'test',
+        priorities: ['high'] as any,
+        assigneeIds: [],
+        dueDateStart: null,
+        dueDateEnd: null,
+        labelIds: [],
+        overdue: true,
+      });
+      expect(component.activeFilterCount()).toBe(3);
+    });
+  });
 });

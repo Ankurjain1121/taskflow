@@ -1,5 +1,6 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { Subject, takeUntil, forkJoin } from 'rxjs';
+import { isOverdue } from '../../../shared/utils/task-colors';
 
 import {
   BoardService,
@@ -57,6 +58,7 @@ export class BoardStateService {
     dueDateStart: null,
     dueDateEnd: null,
     labelIds: [],
+    overdue: false,
   });
   readonly celebratingTaskId = signal<string | null>(null);
   readonly focusedTaskId = signal<string | null>(null);
@@ -687,6 +689,12 @@ export class BoardStateService {
           taskLabelIds.includes(id),
         );
         if (!hasMatchingLabel) {
+          return false;
+        }
+      }
+
+      if (filters.overdue) {
+        if (!task.due_date || !isOverdue(task.due_date)) {
           return false;
         }
       }
