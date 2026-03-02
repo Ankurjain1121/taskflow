@@ -38,6 +38,7 @@ pub struct BoardColumn {
     pub color: Option<String>,
     pub status_mapping: Option<serde_json::Value>,
     pub wip_limit: Option<i32>,
+    pub icon: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -135,6 +136,7 @@ mod tests {
             color: Some("#3B82F6".to_string()),
             status_mapping: Some(serde_json::json!({"status": "in_progress"})),
             wip_limit: Some(5),
+            icon: None,
             created_at: now,
         };
         let json = serde_json::to_string(&col).unwrap();
@@ -155,6 +157,7 @@ mod tests {
             color: None,
             status_mapping: None,
             wip_limit: None,
+            icon: None,
             created_at: now,
         };
         let json = serde_json::to_string(&col).unwrap();

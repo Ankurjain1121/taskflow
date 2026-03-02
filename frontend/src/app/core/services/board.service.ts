@@ -26,6 +26,7 @@ export interface Column {
   color: string;
   status_mapping: ColumnStatusMapping | null;
   wip_limit: number | null;
+  icon?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -188,6 +189,16 @@ export class BoardService {
     return this.http.put<Column>(
       `${this.apiUrl}/columns/${columnId}/wip-limit`,
       { wip_limit: wipLimit },
+    );
+  }
+
+  updateColumnIcon(
+    columnId: string,
+    icon: string | null,
+  ): Observable<Column> {
+    return this.http.put<Column>(
+      `${this.apiUrl}/columns/${columnId}/icon`,
+      { icon },
     );
   }
 

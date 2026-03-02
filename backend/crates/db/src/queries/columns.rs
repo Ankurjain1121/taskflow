@@ -13,7 +13,7 @@ pub async fn list_columns_by_board(
     sqlx::query_as!(
         BoardColumn,
         r#"
-        SELECT id, name, board_id, position, color, status_mapping, wip_limit, created_at
+        SELECT id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
         FROM board_columns
         WHERE board_id = $1
         ORDER BY position ASC
@@ -38,7 +38,7 @@ pub async fn add_column(
         r#"
         INSERT INTO board_columns (board_id, name, color, status_mapping, position)
         VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, created_at
+        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
         "#,
         board_id,
         name,
@@ -62,7 +62,7 @@ pub async fn rename_column(
         UPDATE board_columns
         SET name = $2
         WHERE id = $1
-        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, created_at
+        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
         "#,
         id,
         name
@@ -83,7 +83,7 @@ pub async fn reorder_column(
         UPDATE board_columns
         SET position = $2
         WHERE id = $1
-        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, created_at
+        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
         "#,
         id,
         new_position
@@ -104,7 +104,7 @@ pub async fn update_status_mapping(
         UPDATE board_columns
         SET status_mapping = $2
         WHERE id = $1
-        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, created_at
+        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
         "#,
         id,
         status_mapping
@@ -125,7 +125,7 @@ pub async fn update_column_color(
         UPDATE board_columns
         SET color = $2
         WHERE id = $1
-        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, created_at
+        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
         "#,
         id,
         color
@@ -146,12 +146,33 @@ pub async fn update_wip_limit(
         UPDATE board_columns
         SET wip_limit = $2
         WHERE id = $1
-        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, created_at
+        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
         "#,
         id,
         wip_limit
     )
     .fetch_optional(pool)
+    .await
+}
+
+/// Update column icon
+pub async fn update_icon(
+    pool: &PgPool,
+    column_id: Uuid,
+    icon: Option<&str>,
+) -> Result<BoardColumn, sqlx::Error> {
+    sqlx::query_as!(
+        BoardColumn,
+        r#"
+        UPDATE board_columns
+        SET icon = $2
+        WHERE id = $1
+        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
+        "#,
+        column_id,
+        icon,
+    )
+    .fetch_one(pool)
     .await
 }
 
@@ -211,7 +232,7 @@ pub async fn get_column_by_id(pool: &PgPool, id: Uuid) -> Result<Option<BoardCol
     sqlx::query_as!(
         BoardColumn,
         r#"
-        SELECT id, name, board_id, position, color, status_mapping, wip_limit, created_at
+        SELECT id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
         FROM board_columns
         WHERE id = $1
         "#,

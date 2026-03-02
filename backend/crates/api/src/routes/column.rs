@@ -59,6 +59,11 @@ pub struct UpdateWipLimitRequest {
     pub wip_limit: Option<i32>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateColumnIconRequest {
+    pub icon: Option<String>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct ColumnResponse {
     pub id: Uuid,
@@ -68,6 +73,7 @@ pub struct ColumnResponse {
     pub color: Option<String>,
     pub status_mapping: Option<serde_json::Value>,
     pub wip_limit: Option<i32>,
+    pub icon: Option<String>,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
@@ -129,6 +135,7 @@ async fn list_columns(
             color: c.color,
             status_mapping: c.status_mapping,
             wip_limit: c.wip_limit,
+            icon: c.icon,
             created_at: c.created_at,
         })
         .collect();
@@ -198,6 +205,7 @@ async fn create_column(
         color: column.color,
         status_mapping: column.status_mapping,
         wip_limit: column.wip_limit,
+        icon: column.icon,
         created_at: column.created_at,
     }))
 }
@@ -234,6 +242,7 @@ async fn rename_column(
         color: column.color,
         status_mapping: column.status_mapping,
         wip_limit: column.wip_limit,
+        icon: column.icon,
         created_at: column.created_at,
     }))
 }
@@ -275,6 +284,7 @@ async fn reorder_column(
             color: existing.color,
             status_mapping: existing.status_mapping,
             wip_limit: existing.wip_limit,
+            icon: existing.icon,
             created_at: existing.created_at,
         }));
     }
@@ -314,6 +324,7 @@ async fn reorder_column(
         color: column.color,
         status_mapping: column.status_mapping,
         wip_limit: column.wip_limit,
+        icon: column.icon,
         created_at: column.created_at,
     }))
 }
@@ -346,6 +357,7 @@ async fn update_status_mapping(
         color: column.color,
         status_mapping: column.status_mapping,
         wip_limit: column.wip_limit,
+        icon: column.icon,
         created_at: column.created_at,
     }))
 }
@@ -378,6 +390,7 @@ async fn update_color(
         color: column.color,
         status_mapping: column.status_mapping,
         wip_limit: column.wip_limit,
+        icon: column.icon,
         created_at: column.created_at,
     }))
 }
@@ -417,6 +430,45 @@ async fn update_wip_limit(
         color: column.color,
         status_mapping: column.status_mapping,
         wip_limit: column.wip_limit,
+        icon: column.icon,
+        created_at: column.created_at,
+    }))
+}
+
+/// PUT /api/columns/:id/icon
+///
+/// Update a column's icon (emoji).
+async fn update_icon(
+    State(state): State<AppState>,
+    auth: AuthUserExtractor,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<UpdateColumnIconRequest>,
+) -> Result<Json<ColumnResponse>> {
+    let existing = columns::get_column_by_id(&state.db, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
+
+    require_editor_access(&state, existing.board_id, auth.0.user_id).await?;
+
+    if let Some(ref icon) = payload.icon {
+        if icon.chars().count() > 10 {
+            return Err(AppError::BadRequest("Icon too long".into()));
+        }
+    }
+
+    let column = columns::update_icon(&state.db, id, payload.icon.as_deref())
+        .await
+        .map_err(|_| AppError::InternalError("Failed to update icon".into()))?;
+
+    Ok(Json(ColumnResponse {
+        id: column.id,
+        name: column.name,
+        board_id: column.board_id,
+        position: column.position,
+        color: column.color,
+        status_mapping: column.status_mapping,
+        wip_limit: column.wip_limit,
+        icon: column.icon,
         created_at: column.created_at,
     }))
 }
@@ -469,5 +521,6 @@ pub fn column_router(state: AppState) -> Router<AppState> {
         .route("/{id}/status-mapping", put(update_status_mapping))
         .route("/{id}/color", put(update_color))
         .route("/{id}/wip-limit", put(update_wip_limit))
+        .route("/{id}/icon", put(update_icon))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

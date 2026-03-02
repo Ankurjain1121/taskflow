@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO board_columns (name, board_id, position, color, status_mapping)\n            VALUES ($1, $2, $3, $4, $5)\n            RETURNING id, name, board_id, position, color, status_mapping, wip_limit, created_at\n            ",
+  "query": "\n        UPDATE board_columns\n        SET color = $2\n        WHERE id = $1\n        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at\n        ",
   "describe": {
     "columns": [
       {
@@ -40,17 +40,19 @@
       },
       {
         "ordinal": 7,
+        "name": "icon",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
         "name": "created_at",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Varchar",
         "Uuid",
-        "Text",
-        "Varchar",
-        "Jsonb"
+        "Varchar"
       ]
     },
     "nullable": [
@@ -61,8 +63,9 @@
       true,
       true,
       true,
+      true,
       false
     ]
   },
-  "hash": "67042a2a3fbcb336a3e10ff1ecfa07181c04be5796fedf90e521f4daff5cfa33"
+  "hash": "6a42084f63a962c8518c6dd6999bc9f067cfdec133556594f5912670915a1d77"
 }

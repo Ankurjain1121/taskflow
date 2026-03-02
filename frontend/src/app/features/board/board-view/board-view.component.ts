@@ -999,7 +999,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
         : null;
 
     this.boardService
-      .updateColumn(this.wipLimitDialogColumnId, { wip_limit: wipLimit })
+      .updateColumnWipLimit(this.wipLimitDialogColumnId, wipLimit)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (updatedColumn) => {
