@@ -8,6 +8,8 @@ import {
   OnInit,
   OnDestroy,
   ChangeDetectionStrategy,
+  viewChild,
+  ElementRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -48,6 +50,7 @@ export interface TaskFilters {
   dueDateStart: string | null;
   dueDateEnd: string | null;
   labelIds: string[];
+  overdue: boolean;
 }
 
 const DEFAULT_FILTERS: TaskFilters = {
@@ -57,6 +60,7 @@ const DEFAULT_FILTERS: TaskFilters = {
   dueDateStart: null,
   dueDateEnd: null,
   labelIds: [],
+  overdue: false,
 };
 
 @Component({
@@ -83,6 +87,7 @@ const DEFAULT_FILTERS: TaskFilters = {
         <p-iconfield class="flex-1 min-w-[200px] max-w-md">
           <p-inputicon styleClass="pi pi-search" />
           <input
+            #searchInput
             pInputText
             type="text"
             [ngModel]="searchTerm()"
@@ -192,25 +197,37 @@ const DEFAULT_FILTERS: TaskFilters = {
         </div>
 
         <!-- Quick Filters -->
-        <div class="flex items-center gap-1.5">
-          <p-button
-            label="My Tasks"
-            [outlined]="!isMyTasksActive()"
-            size="small"
-            (onClick)="toggleMyTasks()"
-          />
-          <p-button
-            label="Due This Week"
-            [outlined]="!isDueThisWeekActive()"
-            size="small"
-            (onClick)="toggleDueThisWeek()"
-          />
-          <p-button
-            label="High Priority"
-            [outlined]="!isHighPriorityActive()"
-            size="small"
-            (onClick)="toggleHighPriority()"
-          />
+        <div class="flex items-center gap-2">
+          <button (click)="toggleMyTasks()"
+            [class]="isMyTasksActive()
+              ? 'px-3 py-1 rounded-full text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)]'
+              : 'px-3 py-1 rounded-full text-sm font-medium border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]'">
+            My Tasks
+          </button>
+          <button (click)="toggleDueThisWeek()"
+            [class]="isDueThisWeekActive()
+              ? 'px-3 py-1 rounded-full text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)]'
+              : 'px-3 py-1 rounded-full text-sm font-medium border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]'">
+            Due This Week
+          </button>
+          <button (click)="toggleHighPriority()"
+            [class]="isHighPriorityActive()
+              ? 'px-3 py-1 rounded-full text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)]'
+              : 'px-3 py-1 rounded-full text-sm font-medium border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]'">
+            High Priority
+          </button>
+          <button (click)="toggleOverdue()"
+            [class]="isOverdueActive()
+              ? 'px-3 py-1 rounded-full text-sm font-medium bg-red-500 text-white'
+              : 'px-3 py-1 rounded-full text-sm font-medium border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]'">
+            Overdue
+          </button>
+          @if (anyQuickFilterActive()) {
+            <button (click)="clearQuickFilters()"
+              class="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] underline">
+              Clear all
+            </button>
+          }
         </div>
 
         <!-- Filter Presets -->
@@ -374,6 +391,7 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
   searchTerm = signal('');
   filters = signal<TaskFilters>({ ...DEFAULT_FILTERS });
   presets = signal<FilterPreset[]>([]);
+  searchInputRef = viewChild<ElementRef<HTMLInputElement>>('searchInput');
 
   showSavePresetDialog = false;
   newPresetName = '';
@@ -416,6 +434,15 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
     );
   });
 
+  readonly isOverdueActive = computed(() => this.filters().overdue);
+
+  readonly anyQuickFilterActive = computed(() =>
+    this.isMyTasksActive() ||
+    this.isDueThisWeekActive() ||
+    this.isHighPriorityActive() ||
+    this.isOverdueActive(),
+  );
+
   viewModeOptions = [
     { value: 'kanban', icon: 'pi pi-objects-column', tooltip: 'Kanban View' },
     { value: 'list', icon: 'pi pi-list', tooltip: 'List View' },
@@ -441,6 +468,7 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
           dueDateStart: params['dueDateStart'] || null,
           dueDateEnd: params['dueDateEnd'] || null,
           labelIds: params['labels'] ? params['labels'].split(',') : [],
+          overdue: params['overdue'] === 'true',
         };
         this.searchTerm.set(filters.search);
         this.filters.set(filters);
@@ -479,6 +507,7 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
     if (f.assigneeIds.length) count++;
     if (f.dueDateStart || f.dueDateEnd) count++;
     if (f.labelIds.length) count++;
+    if (f.overdue) count++;
     return count;
   }
 
@@ -620,6 +649,32 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
     }
   }
 
+  toggleOverdue(): void {
+    this.updateFilter('overdue', !this.filters().overdue);
+  }
+
+  clearQuickFilters(): void {
+    this.selectedPriorities = [];
+    this.selectedAssignees = [];
+    this.dueDateStartValue = null;
+    this.dueDateEndValue = null;
+    const updated: TaskFilters = {
+      ...this.filters(),
+      priorities: [],
+      assigneeIds: [],
+      dueDateStart: null,
+      dueDateEnd: null,
+      overdue: false,
+    };
+    this.filters.set(updated);
+    this.persistFilters(updated);
+    this.filtersChanged.emit(updated);
+  }
+
+  focusSearchInput(): void {
+    this.searchInputRef()?.nativeElement.focus();
+  }
+
   private getCurrentWeekRange(): { start: string; end: string } {
     const now = new Date();
     const day = now.getDay();
@@ -661,6 +716,7 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
       dueDateStart: filters.dueDateStart,
       dueDateEnd: filters.dueDateEnd,
       labels: filters.labelIds.length ? filters.labelIds.join(',') : null,
+      overdue: filters.overdue ? 'true' : null,
     };
 
     this.router.navigate([], {
