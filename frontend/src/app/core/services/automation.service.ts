@@ -13,7 +13,8 @@ export type AutomationTrigger =
   | 'comment_added'
   | 'custom_field_changed'
   | 'label_changed'
-  | 'due_date_approaching';
+  | 'due_date_approaching'
+  | 'member_joined';
 
 export type AutomationActionType =
   | 'move_task'
@@ -26,7 +27,8 @@ export type AutomationActionType =
   | 'add_comment'
   | 'set_due_date'
   | 'set_custom_field'
-  | 'send_webhook';
+  | 'send_webhook'
+  | 'assign_to_role_members';
 
 export interface AutomationRule {
   id: string;

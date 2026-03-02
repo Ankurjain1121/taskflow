@@ -298,6 +298,83 @@ export class WorkspaceService {
       responseType: 'blob',
     });
   }
+
+  // ---- Job Roles ----
+
+  listJobRoles(workspaceId: string): Observable<WorkspaceJobRole[]> {
+    return this.http.get<WorkspaceJobRole[]>(
+      `${this.apiUrl}/${workspaceId}/roles`,
+    );
+  }
+
+  createJobRole(
+    workspaceId: string,
+    name: string,
+    color?: string,
+    description?: string,
+  ): Observable<WorkspaceJobRole> {
+    return this.http.post<WorkspaceJobRole>(
+      `${this.apiUrl}/${workspaceId}/roles`,
+      {
+        name,
+        color: color || undefined,
+        description: description || undefined,
+      },
+    );
+  }
+
+  updateJobRole(
+    workspaceId: string,
+    roleId: string,
+    data: { name?: string; color?: string; description?: string },
+  ): Observable<WorkspaceJobRole> {
+    return this.http.put<WorkspaceJobRole>(
+      `${this.apiUrl}/${workspaceId}/roles/${roleId}`,
+      data,
+    );
+  }
+
+  deleteJobRole(workspaceId: string, roleId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/${workspaceId}/roles/${roleId}`,
+    );
+  }
+
+  listAllMemberRoles(workspaceId: string): Observable<MemberRoleBatch[]> {
+    return this.http.get<MemberRoleBatch[]>(
+      `${this.apiUrl}/${workspaceId}/roles/members`,
+    );
+  }
+
+  assignJobRole(
+    workspaceId: string,
+    userId: string,
+    jobRoleId: string,
+  ): Observable<void> {
+    return this.http.post<void>(
+      `${this.apiUrl}/${workspaceId}/members/${userId}/roles`,
+      { job_role_id: jobRoleId },
+    );
+  }
+
+  removeJobRole(
+    workspaceId: string,
+    userId: string,
+    roleId: string,
+  ): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/${workspaceId}/members/${userId}/roles/${roleId}`,
+    );
+  }
+
+  getMemberJobRoles(
+    workspaceId: string,
+    userId: string,
+  ): Observable<MemberJobRoleInfo[]> {
+    return this.http.get<MemberJobRoleInfo[]>(
+      `${this.apiUrl}/${workspaceId}/members/${userId}/roles`,
+    );
+  }
 }
 
 export interface TenantMember {
@@ -406,4 +483,28 @@ export interface TrashItem {
 export interface PaginatedTrashItems {
   items: TrashItem[];
   next_cursor: string | null;
+}
+
+export interface WorkspaceJobRole {
+  id: string;
+  workspace_id: string;
+  name: string;
+  color: string | null;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MemberRoleBatch {
+  user_id: string;
+  role_id: string;
+  role_name: string;
+  role_color: string | null;
+}
+
+export interface MemberJobRoleInfo {
+  role_id: string;
+  role_name: string;
+  role_color: string | null;
+  assigned_at: string;
 }

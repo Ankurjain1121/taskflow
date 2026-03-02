@@ -75,6 +75,20 @@ import { MemberWorkload } from '../../../core/services/team.service';
         >
           Done: {{ member().done_tasks }}
         </span>
+        @if ((member().due_today ?? 0) > 0) {
+          <span
+            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
+          >
+            Due Today: {{ member().due_today }}
+          </span>
+        }
+        @if ((member().due_this_week ?? 0) > 0) {
+          <span
+            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+          >
+            This Week: {{ member().due_this_week }}
+          </span>
+        }
       </div>
 
       <!-- Progress Bar -->

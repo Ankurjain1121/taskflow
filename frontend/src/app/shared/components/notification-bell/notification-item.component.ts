@@ -1,7 +1,16 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Ripple } from 'primeng/ripple';
-import { Notification, NotificationEventType } from '../../../core/services/notification.service';
+import {
+  Notification,
+  NotificationEventType,
+} from '../../../core/services/notification.service';
 
 interface EventTypeConfig {
   icon: string;
@@ -15,6 +24,8 @@ const EVENT_TYPE_ICONS: Record<NotificationEventType, EventTypeConfig> = {
   task_commented: { icon: 'pi pi-comment', color: 'text-green-500' },
   task_completed: { icon: 'pi pi-check-circle', color: 'text-emerald-500' },
   mention_in_comment: { icon: 'pi pi-at', color: 'text-purple-500' },
+  task_updated_watcher: { icon: 'pi pi-eye', color: 'text-indigo-500' },
+  task_reminder: { icon: 'pi pi-bell', color: 'text-amber-500' },
 };
 
 const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
@@ -24,6 +35,8 @@ const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
   task_commented: 'bg-green-100 dark:bg-green-900/30',
   task_completed: 'bg-emerald-100 dark:bg-emerald-900/30',
   mention_in_comment: 'bg-purple-100 dark:bg-purple-900/30',
+  task_updated_watcher: 'bg-indigo-100 dark:bg-indigo-900/30',
+  task_reminder: 'bg-amber-100 dark:bg-amber-900/30',
 };
 
 @Component({
@@ -36,8 +49,9 @@ const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
       pRipple
       class="flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-700"
       [ngClass]="{
-        'border-l-4 border-l-blue-500 bg-blue-50/70 dark:bg-blue-900/20 hover:bg-blue-50 dark:hover:bg-blue-900/30': !notification.is_read,
-        'hover:bg-gray-50 dark:hover:bg-gray-800': notification.is_read
+        'border-l-4 border-l-blue-500 bg-blue-50/70 dark:bg-blue-900/20 hover:bg-blue-50 dark:hover:bg-blue-900/30':
+          !notification.is_read,
+        'hover:bg-gray-50 dark:hover:bg-gray-800': notification.is_read,
       }"
       (click)="onClick()"
     >
@@ -46,7 +60,10 @@ const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
         class="flex-shrink-0 mt-0.5 w-8 h-8 rounded-full flex items-center justify-center"
         [ngClass]="getIconBgClass()"
       >
-        <i [class]="getIconConfig().icon + ' ' + getIconConfig().color" style="font-size: 1rem;"></i>
+        <i
+          [class]="getIconConfig().icon + ' ' + getIconConfig().color"
+          style="font-size: 1rem;"
+        ></i>
       </div>
 
       <!-- Content -->
@@ -54,8 +71,10 @@ const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
         <p
           class="text-sm truncate"
           [ngClass]="{
-            'font-semibold text-gray-900 dark:text-gray-100': !notification.is_read,
-            'font-medium text-gray-700 dark:text-gray-300': notification.is_read
+            'font-semibold text-gray-900 dark:text-gray-100':
+              !notification.is_read,
+            'font-medium text-gray-700 dark:text-gray-300':
+              notification.is_read,
           }"
         >
           {{ notification.title }}
@@ -64,7 +83,7 @@ const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
           class="text-sm line-clamp-2 mt-0.5"
           [ngClass]="{
             'text-gray-600 dark:text-gray-400': !notification.is_read,
-            'text-gray-500 dark:text-gray-500': notification.is_read
+            'text-gray-500 dark:text-gray-500': notification.is_read,
           }"
         >
           {{ notification.body }}
@@ -74,11 +93,7 @@ const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
             {{ getRelativeTime() }}
           </p>
           @if (notification.link_url) {
-            <span
-              class="text-xs text-blue-500 dark:text-blue-400"
-            >
-              View
-            </span>
+            <span class="text-xs text-blue-500 dark:text-blue-400"> View </span>
           }
         </div>
       </div>
@@ -117,7 +132,8 @@ export class NotificationItemComponent {
 
   getIconBgClass(): string {
     return (
-      EVENT_TYPE_BG[this.notification.event_type] || 'bg-gray-100 dark:bg-gray-800'
+      EVENT_TYPE_BG[this.notification.event_type] ||
+      'bg-gray-100 dark:bg-gray-800'
     );
   }
 
@@ -148,7 +164,8 @@ export class NotificationItemComponent {
       return created.toLocaleDateString(undefined, {
         month: 'short',
         day: 'numeric',
-        year: created.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+        year:
+          created.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
       });
     }
   }

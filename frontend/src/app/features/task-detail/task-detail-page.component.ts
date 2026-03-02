@@ -22,8 +22,11 @@ import {
   Task,
   TaskPriority,
   Assignee,
+  Watcher,
+  TaskReminder,
   UpdateTaskRequest,
 } from '../../core/services/task.service';
+import { AuthService } from '../../core/services/auth.service';
 import { BoardService, Board, Column } from '../../core/services/board.service';
 import {
   WorkspaceService,
@@ -329,12 +332,18 @@ import { TaskDetailSidebarComponent } from './task-detail-sidebar.component';
             [task]="task()!"
             [columns]="columns()"
             [workspaceId]="workspace()?.id || ''"
+            [reminders]="reminders()"
             (priorityChanged)="onPriorityChange($event)"
             (dueDateChanged)="onDueDateChange($event)"
             (assigneeAdded)="onAssign($event)"
             (assigneeRemoved)="onUnassign($event)"
+            (watcherAdded)="onWatch($event)"
+            (watcherRemoved)="onUnwatch($event)"
+            (watchSelf)="onWatchSelf()"
             (labelRemoved)="onRemoveLabel($event)"
             (deleteRequested)="onDelete()"
+            (reminderSet)="onSetReminder($event)"
+            (reminderRemoved)="onRemoveReminder($event)"
           />
         </div>
       </div>
@@ -349,6 +358,7 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
   private taskService = inject(TaskService);
   private boardService = inject(BoardService);
   private workspaceService = inject(WorkspaceService);
+  private authService = inject(AuthService);
   private routeSub: Subscription | null = null;
 
   taskId = signal('');
@@ -356,6 +366,7 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
   board = signal<Board | null>(null);
   workspace = signal<Workspace | null>(null);
   columns = signal<Column[]>([]);
+  reminders = signal<TaskReminder[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
 
@@ -402,6 +413,7 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
           this.loadBoardContext(boardId);
         }
 
+        this.loadReminders(taskId);
         this.loading.set(false);
       },
       error: (err) => {
@@ -490,7 +502,7 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
   }
 
   onDueDateChange(date: Date | null): void {
-    const due_date = date ? date.toISOString().split('T')[0] : null;
+    const due_date = date ? date.toISOString() : null;
     this.updateTask({ due_date } as UpdateTaskRequest);
   }
 
@@ -567,6 +579,88 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
           ...t,
           labels: (t.labels ?? []).filter((l) => l.id !== labelId),
         });
+      },
+    });
+  }
+
+  // --- Watchers ---
+
+  onWatch(member: MemberSearchResult): void {
+    const t = this.task();
+    if (!t) return;
+    this.taskService.addWatcher(t.id, member.id).subscribe({
+      next: () => {
+        const newWatcher: Watcher = {
+          user_id: member.id,
+          name: member.name || member.email,
+          avatar_url: null,
+          watched_at: new Date().toISOString(),
+        };
+        this.task.set({
+          ...t,
+          watchers: [...(t.watchers ?? []), newWatcher],
+        });
+      },
+    });
+  }
+
+  onUnwatch(watcher: Watcher): void {
+    const t = this.task();
+    if (!t) return;
+    this.taskService.removeWatcher(t.id, watcher.user_id).subscribe({
+      next: () => {
+        this.task.set({
+          ...t,
+          watchers: (t.watchers ?? []).filter(
+            (w) => w.user_id !== watcher.user_id,
+          ),
+        });
+      },
+    });
+  }
+
+  onWatchSelf(): void {
+    const user = this.authService.currentUser();
+    if (!user) return;
+    this.onWatch({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    } as MemberSearchResult);
+  }
+
+  // --- Reminders ---
+
+  private loadReminders(taskId: string): void {
+    this.taskService.listReminders(taskId).subscribe({
+      next: (reminders) => this.reminders.set(reminders),
+      error: () => this.reminders.set([]),
+    });
+  }
+
+  onSetReminder(minutes: number): void {
+    const t = this.task();
+    if (!t) return;
+    this.taskService.setReminder(t.id, minutes).subscribe({
+      next: (resp) => {
+        const newReminder: TaskReminder = {
+          id: resp.id,
+          task_id: t.id,
+          remind_before_minutes: minutes,
+          is_sent: false,
+          created_at: new Date().toISOString(),
+        };
+        this.reminders.set([...this.reminders(), newReminder]);
+      },
+    });
+  }
+
+  onRemoveReminder(reminderId: string): void {
+    const t = this.task();
+    if (!t) return;
+    this.taskService.removeReminder(t.id, reminderId).subscribe({
+      next: () => {
+        this.reminders.set(this.reminders().filter((r) => r.id !== reminderId));
       },
     });
   }
