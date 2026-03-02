@@ -229,8 +229,10 @@ import { FormsModule } from '@angular/forms';
         [assignees]="state.allAssignees()"
         [labels]="state.allLabels()"
         [viewMode]="viewMode()"
+        [density]="state.cardDensity()"
         (filtersChanged)="onFiltersChanged($event)"
         (viewModeChanged)="onViewModeChanged($event)"
+        (densityChanged)="onDensityChanged($event)"
       ></app-board-toolbar>
 
       <!-- Task Group Headers -->
@@ -339,11 +341,13 @@ import { FormsModule } from '@angular/forms';
                 [allColumns]="state.columns()"
                 [boardPrefix]="state.board()?.prefix ?? null"
                 [isCollapsed]="state.isColumnCollapsed(column.id)"
+                [density]="state.cardDensity()"
                 (taskMoved)="onTaskMoved($event)"
                 (taskClicked)="onTaskClicked($event)"
                 (addTaskClicked)="onAddTaskToColumn($event)"
                 (selectionToggled)="onSelectionToggled($event)"
                 (priorityChanged)="onCardPriorityChanged($event)"
+                (titleChanged)="onCardTitleChanged($event)"
                 (columnMoveRequested)="onCardColumnMove($event)"
                 (duplicateRequested)="onCardDuplicate($event)"
                 (deleteRequested)="onCardDelete($event)"
@@ -639,6 +643,10 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     this.state.filters.set(filters);
   }
 
+  onDensityChanged(density: 'compact' | 'normal' | 'expanded'): void {
+    this.state.setCardDensity(density);
+  }
+
   onViewModeChanged(mode: ViewMode): void {
     this.viewMode.set(mode);
     if (mode === 'list') {
@@ -777,6 +785,10 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     this.state.optimisticUpdateTask(event.taskId, {
       priority: event.priority as Task['priority'],
     });
+  }
+
+  onCardTitleChanged(event: { taskId: string; title: string }): void {
+    this.state.optimisticUpdateTask(event.taskId, { title: event.title });
   }
 
   onCardColumnMove(event: { taskId: string; columnId: string }): void {

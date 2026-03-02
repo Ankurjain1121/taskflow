@@ -5,10 +5,13 @@ import {
   OnInit,
   OnDestroy,
   ChangeDetectionStrategy,
+  DestroyRef,
 } from '@angular/core';
 import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WorkspaceStateService } from '../../../core/services/workspace-state.service';
+import { BoardService } from '../../../core/services/board.service';
 
 export interface Breadcrumb {
   label: string;
@@ -47,9 +50,14 @@ export class BreadcrumbsComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private activatedRoute = inject(ActivatedRoute);
   private workspaceState = inject(WorkspaceStateService);
+  private boardService = inject(BoardService);
+  private destroyRef = inject(DestroyRef);
 
   breadcrumbs = signal<Breadcrumb[]>([]);
   private sub: Subscription | null = null;
+  private boardNameCache = new Map<string, string>();
+  // Tracks the board ID currently shown in breadcrumbs; guards stale async responses.
+  private activeBoardId: string | null = null;
 
   ngOnInit(): void {
     this.updateBreadcrumbs();
@@ -73,13 +81,15 @@ export class BreadcrumbsComponent implements OnInit, OnDestroy {
     const segments = url.split('/').filter(Boolean);
     const crumbs: Breadcrumb[] = [];
 
+    // Reset board tracking; re-set only inside the board branch.
+    this.activeBoardId = null;
+
     if (segments.length === 0 || (segments.length === 1 && segments[0] === 'dashboard')) {
       crumbs.push({ label: 'Dashboard', url: null });
       this.breadcrumbs.set(crumbs);
       return;
     }
 
-    // Route-specific breadcrumb logic
     if (segments[0] === 'dashboard') {
       crumbs.push({ label: 'Dashboard', url: null });
     } else if (segments[0] === 'my-tasks') {
@@ -114,12 +124,18 @@ export class BreadcrumbsComponent implements OnInit, OnDestroy {
 
       if (segments[2] === 'board' && segments[3]) {
         const boardId = segments[3];
-        const boardName = this.resolveBoardName(workspaceId, boardId);
-        crumbs.push({ label: boardName, url: `/workspace/${workspaceId}/board/${boardId}` });
+        this.activeBoardId = boardId;
+
+        // Set 'Board' placeholder immediately so the nav is never blank.
+        crumbs.push({ label: 'Board', url: `/workspace/${workspaceId}/board/${boardId}` });
 
         if (segments[4] === 'settings') {
           crumbs.push({ label: 'Settings', url: null });
         }
+
+        this.breadcrumbs.set(crumbs);
+        this.resolveBoardName(boardId);
+        return; // label updated asynchronously via resolveBoardName
       } else if (segments[2] === 'team') {
         crumbs.push({ label: 'Team', url: null });
       } else if (segments[2] === 'settings') {
@@ -149,10 +165,35 @@ export class BreadcrumbsComponent implements OnInit, OnDestroy {
     return ws?.name ?? 'Workspace';
   }
 
-  private resolveBoardName(_workspaceId: string, _boardId: string): string {
-    // Board name resolution relies on URL or cached data.
-    // For now, use a generic label; board name will be resolved
-    // when board data is available from the sidebar/board-state.
-    return 'Board';
+  private resolveBoardName(boardId: string): void {
+    // Fast path: name already cached from a previous visit.
+    const cached = this.boardNameCache.get(boardId);
+    if (cached) {
+      this.setBoardName(boardId, cached);
+      return;
+    }
+
+    // Async path: fetch name and cache it.
+    this.boardService
+      .getBoard(boardId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (board) => {
+          this.boardNameCache.set(boardId, board.name);
+          this.setBoardName(boardId, board.name);
+        },
+        error: () => {
+          // 'Board' placeholder already set; silently keep it.
+        },
+      });
+  }
+
+  // Guards against stale responses: only applies the name if we're still
+  // viewing the same board (user may have navigated away mid-flight).
+  private setBoardName(boardId: string, name: string): void {
+    if (this.activeBoardId !== boardId) return;
+    this.breadcrumbs.update((crumbs) =>
+      crumbs.map((c) => (c.label === 'Board' ? { ...c, label: name } : c)),
+    );
   }
 }

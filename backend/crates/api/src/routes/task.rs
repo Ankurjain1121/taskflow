@@ -1,6 +1,6 @@
 use axum::{
     middleware::from_fn_with_state,
-    routing::{delete, get, patch, post, put},
+    routing::{delete, get, patch, post},
     Router,
 };
 
@@ -46,7 +46,7 @@ pub fn task_router(state: AppState) -> Router<AppState> {
         .route("/boards/{board_id}/tasks", post(create_task_handler))
         // Task-specific routes
         .route("/tasks/{id}", get(get_task))
-        .route("/tasks/{id}", put(update_task_handler))
+        .route("/tasks/{id}", patch(update_task_handler))
         .route("/tasks/{id}", delete(delete_task_handler))
         .route("/tasks/{id}/move", patch(move_task_handler))
         .route("/tasks/{id}/duplicate", post(duplicate_task_handler))

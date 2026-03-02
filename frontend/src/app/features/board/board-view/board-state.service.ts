@@ -68,9 +68,15 @@ export class BoardStateService {
   readonly boardMilestones = signal<Milestone[]>([]);
   readonly boardGroups = signal<TaskGroupWithStats[]>([]);
   readonly collapsedColumnIds = signal<Set<string>>(new Set());
-  readonly cardDensity = signal<'compact' | 'normal'>(
-    (localStorage.getItem('taskflow_card_density') as 'compact' | 'normal') ||
-      'normal',
+  readonly cardDensity = signal<'compact' | 'normal' | 'expanded'>(
+    (['compact', 'normal', 'expanded'].includes(
+      localStorage.getItem('taskflow_card_density') ?? '',
+    )
+      ? (localStorage.getItem('taskflow_card_density') as
+          | 'compact'
+          | 'normal'
+          | 'expanded')
+      : 'normal'),
   );
 
   // === Computed Signals ===
@@ -173,7 +179,7 @@ export class BoardStateService {
             created_at: t.created_at,
             updated_at: t.updated_at,
             assignees: t.assignees,
-            labels: t.labels as Label[],
+            labels: t.labels as unknown as Label[],
             subtask_completed: t.subtask_completed,
             subtask_total: t.subtask_total,
             has_running_timer: t.has_running_timer,
@@ -618,7 +624,7 @@ export class BoardStateService {
 
   // === Card Density ===
 
-  setCardDensity(density: 'compact' | 'normal'): void {
+  setCardDensity(density: 'compact' | 'normal' | 'expanded'): void {
     this.cardDensity.set(density);
     localStorage.setItem('taskflow_card_density', density);
   }
