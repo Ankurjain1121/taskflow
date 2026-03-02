@@ -36,6 +36,7 @@ pub async fn list_tasks(
             TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
+            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
         })?;
 
     Ok(Json(ListTasksResponse { tasks }))
@@ -54,6 +55,7 @@ pub async fn get_task(
             TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
+            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
         })?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
@@ -93,6 +95,7 @@ pub async fn create_task_handler(
             TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Column not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
+            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
         })?;
 
     // Broadcast the task created event
@@ -111,6 +114,8 @@ pub async fn create_task_handler(
                 .await
                 .unwrap_or_default(),
             updated_at: task.updated_at,
+            changed_fields: None,
+            origin_user_name: None,
         },
         origin_user_id: tenant.user_id,
     };
@@ -174,6 +179,14 @@ pub async fn update_task_handler(
     let priority_changed = body.priority.is_some();
     let due_date_changed = body.due_date.is_some() || body.clear_due_date.unwrap_or(false);
 
+    // Fetch old task before update to compute changed fields
+    let old_task: Option<Task> =
+        sqlx::query_as("SELECT * FROM tasks WHERE id = $1 AND deleted_at IS NULL")
+            .bind(task_id)
+            .fetch_optional(&state.db)
+            .await
+            .map_err(AppError::SqlxError)?;
+
     let input = UpdateTaskInput {
         title: body.title,
         description: body.description.map(|d| sanitize_html(&d)),
@@ -187,6 +200,7 @@ pub async fn update_task_handler(
         clear_start_date: body.clear_start_date,
         clear_estimated_hours: body.clear_estimated_hours,
         clear_milestone: body.clear_milestone,
+        expected_version: body.expected_version,
     };
 
     let task = update_task(&state.db, task_id, input)
@@ -195,7 +209,49 @@ pub async fn update_task_handler(
             TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
+            TaskQueryError::VersionConflict(current_task) => {
+                AppError::VersionConflict(serde_json::to_value(&*current_task).unwrap_or_default())
+            }
         })?;
+
+    // Compute changed fields by comparing old and new task
+    let changed_fields = old_task.map(|old| {
+        let mut fields = Vec::new();
+        if old.title != task.title {
+            fields.push("title".to_string());
+        }
+        if old.description != task.description {
+            fields.push("description".to_string());
+        }
+        if old.priority != task.priority {
+            fields.push("priority".to_string());
+        }
+        if old.due_date != task.due_date {
+            fields.push("due_date".to_string());
+        }
+        if old.start_date != task.start_date {
+            fields.push("start_date".to_string());
+        }
+        if old.estimated_hours != task.estimated_hours {
+            fields.push("estimated_hours".to_string());
+        }
+        if old.milestone_id != task.milestone_id {
+            fields.push("milestone_id".to_string());
+        }
+        if old.column_id != task.column_id {
+            fields.push("column_id".to_string());
+        }
+        fields
+    });
+
+    // Fetch user display_name for conflict notifications
+    let origin_user_name: Option<String> =
+        sqlx::query_scalar("SELECT display_name FROM users WHERE id = $1")
+            .bind(tenant.user_id)
+            .fetch_optional(&state.db)
+            .await
+            .ok()
+            .flatten();
 
     // Broadcast the task updated event
     let broadcast_service = BroadcastService::new(state.redis.clone());
@@ -213,6 +269,8 @@ pub async fn update_task_handler(
                 .await
                 .unwrap_or_default(),
             updated_at: task.updated_at,
+            changed_fields,
+            origin_user_name,
         },
         origin_user_id: tenant.user_id,
     };
@@ -287,6 +345,7 @@ pub async fn delete_task_handler(
             TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
+            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
         })?;
 
     // Broadcast the task deleted event
@@ -348,6 +407,7 @@ pub async fn duplicate_task_handler(
             TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
+            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
         })?;
 
     // Broadcast the task created event
@@ -366,6 +426,8 @@ pub async fn duplicate_task_handler(
                 .await
                 .unwrap_or_default(),
             updated_at: task.updated_at,
+            changed_fields: None,
+            origin_user_name: None,
         },
         origin_user_id: tenant.user_id,
     };

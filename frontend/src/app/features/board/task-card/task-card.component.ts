@@ -20,6 +20,7 @@ import { MenuItem } from 'primeng/api';
 import { Tooltip } from 'primeng/tooltip';
 import { Task } from '../../../core/services/task.service';
 import { Column } from '../../../core/services/board.service';
+import { TaskLockInfo } from '../../../core/services/presence.service';
 import {
   CardQuickEditService,
   QuickEditField,
@@ -53,9 +54,10 @@ import {
       [class.task-card--high]="task().priority === 'high'"
       [class.task-card--medium]="task().priority === 'medium'"
       [class.task-card--low]="task().priority === 'low'"
-      [class.ring-2]="isFocused() || isSelected()"
+      [class.ring-2]="isFocused() || isSelected() || lockedBy()"
       [class.ring-ring]="isFocused()"
       [class.ring-primary]="isSelected()"
+      [class.ring-amber-400]="lockedBy() && !isFocused() && !isSelected()"
       [class.shadow-lg]="isFocused()"
     >
       <!-- Selection Checkbox -->
@@ -90,6 +92,17 @@ import {
           }
         </button>
       </div>
+
+      <!-- Lock Indicator -->
+      @if (lockedBy()) {
+        <div
+          class="absolute top-1 right-1 z-10 flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 rounded text-[10px] font-medium text-amber-700"
+          [pTooltip]="lockedBy()!.user_name + ' is editing'"
+          tooltipPosition="top"
+        >
+          <i class="pi pi-lock text-[10px]"></i>
+        </div>
+      }
 
       <!-- Celebration Overlay -->
       @if (isCelebrating()) {
@@ -944,6 +957,7 @@ export class TaskCardComponent {
   columns = input<Column[]>([]);
   boardPrefix = input<string | null>(null);
   density = input<'compact' | 'normal' | 'expanded'>('normal');
+  lockedBy = input<TaskLockInfo | null>(null);
 
   taskClicked = output<Task>();
   selectionToggled = output<string>();

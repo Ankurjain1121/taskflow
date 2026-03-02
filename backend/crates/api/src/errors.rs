@@ -19,6 +19,9 @@ pub enum AppError {
     #[error("Conflict: {0}")]
     Conflict(String),
 
+    #[error("Version conflict")]
+    VersionConflict(serde_json::Value),
+
     #[error("Precondition failed: {0}")]
     PreconditionFailed(String),
 
@@ -43,6 +46,16 @@ impl IntoResponse for AppError {
             AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, "UNAUTHORIZED", msg.clone()),
             AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, "FORBIDDEN", msg.clone()),
             AppError::Conflict(msg) => (StatusCode::CONFLICT, "CONFLICT", msg.clone()),
+            AppError::VersionConflict(ref current_task) => {
+                let body = json!({
+                    "error": {
+                        "code": "VERSION_CONFLICT",
+                        "message": "Task was modified by another user",
+                    },
+                    "current_task": current_task,
+                });
+                return (StatusCode::CONFLICT, axum::Json(body)).into_response();
+            }
             AppError::PreconditionFailed(msg) => (
                 StatusCode::PRECONDITION_FAILED,
                 "PRECONDITION_FAILED",

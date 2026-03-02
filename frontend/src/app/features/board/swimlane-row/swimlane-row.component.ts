@@ -4,6 +4,7 @@ import {
   output,
   signal,
   computed,
+  inject,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -13,6 +14,8 @@ import {
 } from '@angular/cdk/drag-drop';
 import { Task } from '../../../core/services/task.service';
 import { Column } from '../../../core/services/board.service';
+import { PresenceService } from '../../../core/services/presence.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { TaskCardComponent } from '../task-card/task-card.component';
 import { SwimlaneGroup, SwimlaneTaskMoveEvent, GroupByMode } from '../board-view/swimlane.types';
 import { makeCellId, parseCellId, NONE_KEY } from '../board-view/swimlane-utils';
@@ -97,6 +100,7 @@ import { makeCellId, parseCellId, NONE_KEY } from '../board-view/swimlane-utils'
                 [boardPrefix]="boardPrefix()"
                 [subtaskProgress]="task.subtask_total ? { completed: task.subtask_completed ?? 0, total: task.subtask_total } : null"
                 [hasRunningTimer]="task.has_running_timer ?? false"
+                [lockedBy]="getTaskLockInfo(task.id)"
                 (taskClicked)="taskClicked.emit($event)"
                 (selectionToggled)="selectionToggled.emit($event)"
                 (priorityChanged)="priorityChanged.emit($event)"
@@ -129,6 +133,9 @@ import { makeCellId, parseCellId, NONE_KEY } from '../board-view/swimlane-utils'
   `,
 })
 export class SwimlaneRowComponent {
+  private presenceService = inject(PresenceService);
+  private authService = inject(AuthService);
+
   swimlaneGroup = input.required<SwimlaneGroup>();
   columns = input.required<Column[]>();
   /** Record<colId, Task[]> for this swimlane row */
@@ -180,6 +187,14 @@ export class SwimlaneRowComponent {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  }
+
+  getTaskLockInfo(taskId: string): { user_id: string; user_name: string } | null {
+    const lock = this.presenceService.taskLocks().get(taskId);
+    if (!lock) return null;
+    const currentUserId = this.authService.currentUser()?.id;
+    if (lock.user_id === currentUserId) return null;
+    return lock;
   }
 
   onDrop(event: CdkDragDrop<Task[]>, targetColumnId: string): void {

@@ -52,6 +52,7 @@ pub async fn assign_user_handler(
             TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
+            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
         })?;
 
     // Broadcast the task updated event
@@ -64,7 +65,7 @@ pub async fn assign_user_handler(
             due_date, start_date, estimated_hours,
             board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, created_at, updated_at
+            tenant_id, created_by_id, deleted_at, created_at, updated_at, version
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -87,6 +88,8 @@ pub async fn assign_user_handler(
                 .await
                 .unwrap_or_default(),
             updated_at: task.updated_at,
+            changed_fields: Some(vec!["assignee_ids".to_string()]),
+            origin_user_name: None,
         },
         origin_user_id: tenant.user_id,
     };
@@ -168,6 +171,7 @@ pub async fn unassign_user_handler(
             TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Assignment not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
+            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
         })?;
 
     // Broadcast the task updated event
@@ -180,7 +184,7 @@ pub async fn unassign_user_handler(
             due_date, start_date, estimated_hours,
             board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, created_at, updated_at
+            tenant_id, created_by_id, deleted_at, created_at, updated_at, version
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -203,6 +207,8 @@ pub async fn unassign_user_handler(
                 .await
                 .unwrap_or_default(),
             updated_at: task.updated_at,
+            changed_fields: Some(vec!["assignee_ids".to_string()]),
+            origin_user_name: None,
         },
         origin_user_id: tenant.user_id,
     };

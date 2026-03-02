@@ -81,6 +81,8 @@ pub struct UpdateTaskRequest {
     pub clear_start_date: Option<bool>,
     pub clear_estimated_hours: Option<bool>,
     pub clear_milestone: Option<bool>,
+    /// For optimistic concurrency: the version the client last saw.
+    pub expected_version: Option<i32>,
 }
 
 /// Request body for moving a task
@@ -362,6 +364,7 @@ mod tests {
             deleted_at: None,
             created_at: now,
             updated_at: now,
+            version: 1,
         };
         let mut tasks = std::collections::HashMap::new();
         tasks.insert(col_id, vec![task]);

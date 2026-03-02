@@ -16,6 +16,8 @@ pub enum TaskQueryError {
     NotBoardMember,
     #[error("Task not found")]
     NotFound,
+    #[error("Version conflict: task was modified by another user")]
+    VersionConflict(Box<Task>),
 }
 
 /// Input for creating a new task
@@ -55,6 +57,10 @@ pub struct UpdateTaskInput {
     pub clear_estimated_hours: Option<bool>,
     #[serde(default)]
     pub clear_milestone: Option<bool>,
+    /// Expected version for optimistic concurrency control.
+    /// When set, the update will only succeed if the task's current version matches.
+    #[serde(default)]
+    pub expected_version: Option<i32>,
 }
 
 /// Task with all associated details
@@ -119,7 +125,7 @@ pub async fn list_tasks_by_board(
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, created_at, updated_at
+            tenant_id, created_by_id, deleted_at, created_at, updated_at, version
         FROM tasks
         WHERE board_id = $1 AND deleted_at IS NULL
         ORDER BY position ASC
@@ -151,7 +157,7 @@ pub async fn get_task_by_id(
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, created_at, updated_at
+            tenant_id, created_by_id, deleted_at, created_at, updated_at, version
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -276,7 +282,7 @@ pub async fn create_task(
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, created_at, updated_at
+            tenant_id, created_by_id, deleted_at, created_at, updated_at, version
         "#,
     )
     .bind(task_id)
@@ -333,7 +339,10 @@ pub async fn create_task(
     Ok(task)
 }
 
-/// Update an existing task
+/// Update an existing task.
+/// If `expected_version` is set, uses optimistic concurrency control:
+/// the update only succeeds when the current DB version matches.
+/// Returns `VersionConflict(current_task)` on mismatch.
 pub async fn update_task(
     pool: &PgPool,
     task_id: Uuid,
@@ -350,13 +359,15 @@ pub async fn update_task(
             start_date = CASE WHEN $11 = true THEN NULL WHEN $6 IS NOT NULL THEN $6 ELSE start_date END,
             estimated_hours = CASE WHEN $12 = true THEN NULL WHEN $7 IS NOT NULL THEN $7 ELSE estimated_hours END,
             milestone_id = CASE WHEN $13 = true THEN NULL WHEN $8 IS NOT NULL THEN $8 ELSE milestone_id END,
+            version = version + 1,
             updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
+            AND ($14::int IS NULL OR version = $14)
         RETURNING
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, created_at, updated_at
+            tenant_id, created_by_id, deleted_at, created_at, updated_at, version
         "#,
     )
     .bind(task_id)
@@ -372,11 +383,36 @@ pub async fn update_task(
     .bind(input.clear_start_date.unwrap_or(false))
     .bind(input.clear_estimated_hours.unwrap_or(false))
     .bind(input.clear_milestone.unwrap_or(false))
+    .bind(input.expected_version)
     .fetch_optional(pool)
-    .await?
-    .ok_or(TaskQueryError::NotFound)?;
+    .await?;
 
-    Ok(task)
+    match task {
+        Some(t) => Ok(t),
+        None => {
+            // Row not found — either deleted or version mismatch.
+            // Check if the task still exists (version conflict) or is truly gone.
+            if input.expected_version.is_some() {
+                let current = sqlx::query_as::<_, Task>(
+                    r#"
+                    SELECT id, title, description, priority, due_date, start_date,
+                           estimated_hours, board_id, column_id, group_id, position,
+                           milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
+                           tenant_id, created_by_id, deleted_at, created_at, updated_at, version
+                    FROM tasks WHERE id = $1 AND deleted_at IS NULL
+                    "#,
+                )
+                .bind(task_id)
+                .fetch_optional(pool)
+                .await?;
+
+                if let Some(current_task) = current {
+                    return Err(TaskQueryError::VersionConflict(Box::new(current_task)));
+                }
+            }
+            Err(TaskQueryError::NotFound)
+        }
+    }
 }
 
 /// Soft delete a task
@@ -419,7 +455,7 @@ pub async fn move_task(
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, created_at, updated_at
+            tenant_id, created_by_id, deleted_at, created_at, updated_at, version
         "#,
     )
     .bind(task_id)
@@ -445,7 +481,7 @@ pub async fn duplicate_task(
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, created_at, updated_at
+            tenant_id, created_by_id, deleted_at, created_at, updated_at, version
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -488,7 +524,7 @@ pub async fn duplicate_task(
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, created_at, updated_at
+            tenant_id, created_by_id, deleted_at, created_at, updated_at, version
         "#,
     )
     .bind(new_id)

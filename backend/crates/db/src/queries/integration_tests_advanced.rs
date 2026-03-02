@@ -187,6 +187,7 @@ async fn test_update_task_title() {
         clear_start_date: None,
         clear_estimated_hours: None,
         clear_milestone: None,
+        expected_version: None,
     };
 
     let updated = super::tasks::update_task(&pool, task.id, input)
@@ -226,6 +227,7 @@ async fn test_update_task_priority() {
         clear_start_date: None,
         clear_estimated_hours: None,
         clear_milestone: None,
+        expected_version: None,
     };
 
     let updated = super::tasks::update_task(&pool, task.id, input)

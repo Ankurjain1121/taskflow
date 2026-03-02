@@ -21,6 +21,7 @@ import {
   TaskListItem,
   Assignee,
   Label,
+  ConflictError,
 } from '../../../core/services/task.service';
 import {
   WorkspaceService,
@@ -58,11 +59,19 @@ import {
   SaveAsTemplateRequest,
 } from '../../../core/services/task-template.service';
 import { Dialog } from 'primeng/dialog';
+import { SaveStatusService } from '../../../core/services/save-status.service';
 import { MessageService } from 'primeng/api';
 import { FormsModule } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 
+import { PresenceService, TaskLockInfo } from '../../../core/services/presence.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { ConflictNotificationService } from '../../../core/services/conflict-notification.service';
+import {
+  ConflictDialogComponent,
+  ConflictResolution,
+} from '../../../shared/components/conflict-dialog/conflict-dialog.component';
 import { TaskDetailHeaderComponent } from './task-detail-header.component';
 import { TaskDetailMetadataComponent } from './task-detail-metadata.component';
 import { TaskDetailDescriptionComponent } from './task-detail-description.component';
@@ -93,6 +102,7 @@ import { TaskDetailFieldsComponent } from './task-detail-fields.component';
     FormsModule,
     InputTextModule,
     Select,
+    ConflictDialogComponent,
   ],
   providers: [ConfirmationService, MessageService],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -134,6 +144,13 @@ import { TaskDetailFieldsComponent } from './task-detail-fields.component';
         </div>
       } @else if (task()) {
         <div class="flex-1 overflow-y-auto">
+          @if (lockedByOther()) {
+            <div class="mx-2 mt-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-sm text-amber-800">
+              <i class="pi pi-lock text-amber-500"></i>
+              <span class="font-medium">{{ lockedByOther()!.user_name }}</span>
+              <span>is editing this task</span>
+            </div>
+          }
           <div class="px-2 py-4 space-y-4">
             <!-- Header: title, column badge, created date -->
             <app-task-detail-header
@@ -233,6 +250,15 @@ import { TaskDetailFieldsComponent } from './task-detail-fields.component';
         </div>
       }
     </p-drawer>
+    <app-conflict-dialog
+      [visible]="showConflictDialog()"
+      [yourChanges]="conflictYourChanges()"
+      [serverVersion]="conflictServerVersion()"
+      [originalTask]="conflictOriginalTask()"
+      (resolved)="onConflictResolved($event)"
+      (accepted)="onConflictAccepted()"
+      (cancelled)="onConflictCancelled()"
+    />
     <p-confirmDialog />
     <!-- Save as Template Dialog -->
     <p-dialog
@@ -297,6 +323,10 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   private recurringService = inject(RecurringService);
   private timeTrackingService = inject(TimeTrackingService);
   private confirmationService = inject(ConfirmationService);
+  private saveStatus = inject(SaveStatusService);
+  private presenceService = inject(PresenceService);
+  private authService = inject(AuthService);
+  private conflictNotification = inject(ConflictNotificationService);
 
   // Inputs
   taskId = input.required<string>();
@@ -355,19 +385,40 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     { label: 'Workspace', value: 'workspace' },
   ];
 
+  // Conflict dialog
+  showConflictDialog = signal(false);
+  conflictYourChanges = signal<Partial<Task>>({});
+  conflictServerVersion = signal<Task | null>(null);
+  conflictOriginalTask = signal<Task | null>(null);
+
+  // Lock info: who else is editing this task?
+  lockedByOther = signal<TaskLockInfo | null>(null);
+  private lockCheckInterval: ReturnType<typeof setInterval> | null = null;
+
   // ── Lifecycle ──────────────────────────────────────────────
 
   ngOnInit(): void {
     this.loadTask();
+    this.presenceService.lockTask(this.taskId());
+    this.startLockCheck();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['taskId'] && !changes['taskId'].firstChange) {
+      // Unlock old task, lock new one
+      const prev = changes['taskId'].previousValue;
+      if (prev) {
+        this.presenceService.unlockTask(prev);
+      }
       this.loadTask();
+      this.presenceService.lockTask(this.taskId());
     }
   }
 
   ngOnDestroy(): void {
+    this.presenceService.unlockTask(this.taskId());
+    this.conflictNotification.clearEdits(this.taskId());
+    this.stopLockCheck();
     this.clearTimerInterval();
     if (this.customFieldDebounceTimer) {
       clearTimeout(this.customFieldDebounceTimer);
@@ -377,23 +428,29 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   // ── Event handlers from sub-components ─────────────────────
 
   onClose(): void {
+    this.presenceService.unlockTask(this.taskId());
+    this.conflictNotification.clearEdits(this.taskId());
     this.closed.emit();
   }
 
   onTitleSave(title: string): void {
-    this.updateTask({ title });
+    this.conflictNotification.registerEdit(this.taskId(), 'title');
+    this.updateTask({ title }, 'title');
   }
 
   onDescriptionSave(description: string): void {
-    this.updateTask({ description: description || null });
+    this.conflictNotification.registerEdit(this.taskId(), 'description');
+    this.updateTask({ description: description || null }, 'description');
   }
 
   onPriorityChange(priority: TaskPriority): void {
-    this.updateTask({ priority });
+    this.conflictNotification.registerEdit(this.taskId(), 'priority');
+    this.updateTask({ priority }, 'priority');
   }
 
   onDueDateChange(dueDate: string): void {
-    this.updateTask({ due_date: dueDate || null });
+    this.conflictNotification.registerEdit(this.taskId(), 'due_date');
+    this.updateTask({ due_date: dueDate || null }, 'due_date');
   }
 
   onAssigneeSearchChange(query: string): void {
@@ -867,7 +924,7 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     });
   }
 
-  private updateTask(updates: Partial<Task>): void {
+  private updateTask(updates: Partial<Task>, editField?: string): void {
     const task = this.task();
     if (!task) return;
 
@@ -876,17 +933,89 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     this.task.set(optimisticTask);
     this.taskUpdated.emit(optimisticTask);
 
-    this.taskService.updateTask(task.id, updates).subscribe({
+    // Include version for OCC if available
+    const request = task.version
+      ? { ...updates, version: task.version }
+      : updates;
+
+    this.saveStatus.markSaving();
+    this.taskService.updateTask(task.id, request).subscribe({
       next: (serverTask) => {
+        this.saveStatus.markSaved();
         this.task.set(serverTask);
         this.taskUpdated.emit(serverTask);
+        if (editField) {
+          this.conflictNotification.unregisterEdit(this.taskId(), editField);
+        }
       },
-      error: () => {
+      error: (error) => {
+        if (editField) {
+          this.conflictNotification.unregisterEdit(this.taskId(), editField);
+        }
+        // Handle 409 Conflict
+        if (this.isConflictError(error)) {
+          this.saveStatus.markSaved(); // Not a true error
+          this.conflictOriginalTask.set(task);
+          this.conflictYourChanges.set(updates);
+          this.conflictServerVersion.set(error.serverTask);
+          this.showConflictDialog.set(true);
+          return;
+        }
+        this.saveStatus.markError();
         // Rollback
         this.task.set(task);
         this.taskUpdated.emit(task);
       },
     });
+  }
+
+  private isConflictError(error: unknown): error is ConflictError {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'status' in error &&
+      (error as ConflictError).status === 409
+    );
+  }
+
+  onConflictResolved(resolution: ConflictResolution): void {
+    this.showConflictDialog.set(false);
+    if (resolution.action === 'keep_mine' && resolution.yourChanges) {
+      // Re-submit with server's version
+      const task = this.task();
+      if (!task) return;
+      const request = {
+        ...resolution.yourChanges,
+        version: resolution.serverVersion,
+      };
+      this.saveStatus.markSaving();
+      this.taskService.updateTask(task.id, request).subscribe({
+        next: (serverTask) => {
+          this.saveStatus.markSaved();
+          this.task.set(serverTask);
+          this.taskUpdated.emit(serverTask);
+        },
+        error: () => {
+          this.saveStatus.markError();
+        },
+      });
+    }
+  }
+
+  onConflictAccepted(): void {
+    this.showConflictDialog.set(false);
+    // Reload task from server (accept their version)
+    this.loadTask();
+  }
+
+  onConflictCancelled(): void {
+    this.showConflictDialog.set(false);
+    // Rollback to original
+    const original = this.conflictOriginalTask();
+    if (original) {
+      this.task.set(original);
+      this.taskUpdated.emit(original);
+    }
   }
 
   private onClearMilestone(): void {
@@ -982,5 +1111,28 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
       this.timerInterval = null;
     }
     this.elapsedTime.set('00:00:00');
+  }
+
+  private startLockCheck(): void {
+    this.stopLockCheck();
+    const check = (): void => {
+      const locks = this.presenceService.taskLocks();
+      const lock = locks.get(this.taskId());
+      const currentUserId = this.authService.currentUser()?.id;
+      if (lock && lock.user_id !== currentUserId) {
+        this.lockedByOther.set(lock);
+      } else {
+        this.lockedByOther.set(null);
+      }
+    };
+    check();
+    this.lockCheckInterval = setInterval(check, 2000);
+  }
+
+  private stopLockCheck(): void {
+    if (this.lockCheckInterval) {
+      clearInterval(this.lockCheckInterval);
+      this.lockCheckInterval = null;
+    }
   }
 }

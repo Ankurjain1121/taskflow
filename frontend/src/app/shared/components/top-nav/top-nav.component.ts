@@ -13,6 +13,7 @@ import { PopoverModule } from 'primeng/popover';
 import { MenuItem } from 'primeng/api';
 import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component';
 import { NotificationBellComponent } from '../notification-bell/notification-bell.component';
+import { SaveStatusIndicatorComponent } from '../save-status-indicator/save-status-indicator.component';
 import { AuthService } from '../../../core/services/auth.service';
 import {
   ThemeService,
@@ -32,6 +33,7 @@ import {
     PopoverModule,
     BreadcrumbsComponent,
     NotificationBellComponent,
+    SaveStatusIndicatorComponent,
   ],
   styles: [
     `
@@ -111,8 +113,10 @@ import {
         >
       </button>
 
-      <!-- Right: Quick create + Notifications + Theme + User -->
+      <!-- Right: Save status + Quick create + Notifications + Theme + User -->
       <div class="flex items-center gap-1">
+        <app-save-status-indicator />
+
         <button
           class="nav-icon-btn p-2 rounded-md"
           (click)="quickCreate.emit()"
