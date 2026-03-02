@@ -34,10 +34,26 @@ pub struct CommentSearchResult {
 }
 
 #[derive(Debug, Serialize)]
+pub struct SearchResultCounts {
+    pub tasks: i64,
+    pub boards: i64,
+    pub comments: i64,
+}
+
+#[derive(Debug, Serialize)]
 pub struct SearchResults {
     pub tasks: Vec<TaskSearchResult>,
     pub boards: Vec<BoardSearchResult>,
     pub comments: Vec<CommentSearchResult>,
+    pub counts: SearchResultCounts,
+}
+
+#[derive(Default)]
+pub struct SearchFilters {
+    pub assignee: Option<String>,
+    pub label: Option<String>,
+    pub status: Option<String>,
+    pub board_id: Option<Uuid>,
 }
 
 pub async fn search_all(
@@ -46,10 +62,12 @@ pub async fn search_all(
     user_id: Uuid,
     query: &str,
     limit: i64,
+    filters: &SearchFilters,
 ) -> Result<SearchResults, sqlx::Error> {
     let like_query = format!("%{}%", query);
 
     // Search tasks using full-text search with ILIKE fallback (board membership enforced)
+    // Optional filters use the ($N::text IS NULL OR ...) pattern for conditional filtering
     let tasks = sqlx::query_as::<_, TaskSearchResult>(
         r#"
         SELECT t.id, t.title, t.description, t.board_id,
@@ -61,7 +79,23 @@ pub async fn search_all(
         JOIN board_members bm ON bm.board_id = b.id AND bm.user_id = $5
         WHERE t.tenant_id = $1 AND t.deleted_at IS NULL AND b.deleted_at IS NULL
           AND (t.search_vector @@ plainto_tsquery('english', $2) OR t.title ILIKE $3)
-        ORDER BY ts_rank(t.search_vector, plainto_tsquery('english', $2)) DESC
+          AND ($6::uuid IS NULL OR t.board_id = $6)
+          AND ($7::text IS NULL OR EXISTS (
+              SELECT 1 FROM task_assignees ta
+              JOIN users u ON u.id = ta.user_id
+              WHERE ta.task_id = t.id AND u.name ILIKE '%' || $7 || '%'
+          ))
+          AND ($8::text IS NULL OR EXISTS (
+              SELECT 1 FROM task_labels tl
+              JOIN labels l ON l.id = tl.label_id
+              WHERE tl.task_id = t.id AND l.name ILIKE '%' || $8 || '%'
+          ))
+          AND ($9::text IS NULL OR EXISTS (
+              SELECT 1 FROM board_columns col
+              WHERE col.id = t.column_id AND col.name ILIKE '%' || $9 || '%'
+          ))
+        ORDER BY ts_rank(t.search_vector, plainto_tsquery('english', $2)) DESC,
+                 t.updated_at DESC
         LIMIT $4
         "#,
     )
@@ -70,10 +104,15 @@ pub async fn search_all(
     .bind(&like_query)
     .bind(limit)
     .bind(user_id)
+    .bind(filters.board_id)
+    .bind(&filters.assignee)
+    .bind(&filters.label)
+    .bind(&filters.status)
     .fetch_all(pool)
     .await?;
 
     // Search boards (board membership enforced)
+    // board_id filter applies here too (match only that board)
     let boards = sqlx::query_as::<_, BoardSearchResult>(
         r#"
         SELECT b.id, b.name, b.description, b.workspace_id,
@@ -83,6 +122,7 @@ pub async fn search_all(
         JOIN board_members bm ON bm.board_id = b.id AND bm.user_id = $4
         WHERE b.tenant_id = $1 AND b.deleted_at IS NULL
           AND (b.name ILIKE $2 OR b.description ILIKE $2)
+          AND ($5::uuid IS NULL OR b.id = $5)
         LIMIT $3
         "#,
     )
@@ -90,10 +130,12 @@ pub async fn search_all(
     .bind(&like_query)
     .bind(limit)
     .bind(user_id)
+    .bind(filters.board_id)
     .fetch_all(pool)
     .await?;
 
     // Search comments (board membership enforced)
+    // board_id filter applies to the parent task's board
     let comments = sqlx::query_as::<_, CommentSearchResult>(
         r#"
         SELECT c.id, c.content, c.task_id,
@@ -105,6 +147,7 @@ pub async fn search_all(
         JOIN board_members bm ON bm.board_id = b.id AND bm.user_id = $4
         WHERE b.tenant_id = $1 AND c.deleted_at IS NULL AND t.deleted_at IS NULL
           AND c.content ILIKE $2
+          AND ($5::uuid IS NULL OR t.board_id = $5)
         LIMIT $3
         "#,
     )
@@ -112,12 +155,20 @@ pub async fn search_all(
     .bind(&like_query)
     .bind(limit)
     .bind(user_id)
+    .bind(filters.board_id)
     .fetch_all(pool)
     .await?;
+
+    let counts = SearchResultCounts {
+        tasks: tasks.len() as i64,
+        boards: boards.len() as i64,
+        comments: comments.len() as i64,
+    };
 
     Ok(SearchResults {
         tasks,
         boards,
         comments,
+        counts,
     })
 }

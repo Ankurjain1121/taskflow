@@ -5,6 +5,7 @@ use axum::{
     Json, Router,
 };
 use serde::Deserialize;
+use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
@@ -17,6 +18,10 @@ pub struct SearchQuery {
     pub q: String,
     #[serde(default = "default_limit")]
     pub limit: i64,
+    pub assignee: Option<String>,
+    pub label: Option<String>,
+    pub status: Option<String>,
+    pub board_id: Option<String>,
 }
 
 fn default_limit() -> i64 {
@@ -32,6 +37,22 @@ async fn search_handler(
         return Err(AppError::BadRequest("Search query is required".into()));
     }
 
+    let board_id = params
+        .board_id
+        .as_deref()
+        .filter(|s| !s.is_empty())
+        .map(|s| {
+            Uuid::parse_str(s).map_err(|_| AppError::BadRequest("Invalid board_id UUID".into()))
+        })
+        .transpose()?;
+
+    let filters = search::SearchFilters {
+        assignee: params.assignee.filter(|s| !s.is_empty()),
+        label: params.label.filter(|s| !s.is_empty()),
+        status: params.status.filter(|s| !s.is_empty()),
+        board_id,
+    };
+
     let limit = params.limit.clamp(1, 50);
     let results = search::search_all(
         &state.db,
@@ -39,6 +60,7 @@ async fn search_handler(
         tenant.user_id,
         &params.q,
         limit,
+        &filters,
     )
     .await
     .map_err(AppError::SqlxError)?;

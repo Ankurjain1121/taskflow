@@ -1079,7 +1079,8 @@ async fn test_search_finds_task_by_title() {
     )
     .await;
 
-    let results = super::search::search_all(&pool, tenant_id, user_id, &needle, 10)
+    let filters = super::search::SearchFilters::default();
+    let results = super::search::search_all(&pool, tenant_id, user_id, &needle, 10, &filters)
         .await
         .expect("search_all");
 
@@ -1097,7 +1098,8 @@ async fn test_search_finds_board_by_name() {
         .await
         .expect("create_board");
 
-    let results = super::search::search_all(&pool, tenant_id, user_id, &needle, 10)
+    let filters = super::search::SearchFilters::default();
+    let results = super::search::search_all(&pool, tenant_id, user_id, &needle, 10, &filters)
         .await
         .expect("search_all");
 
@@ -1111,7 +1113,8 @@ async fn test_search_returns_empty_for_random_string() {
     let (tenant_id, user_id, _, _, _) = setup_full(&pool).await;
 
     let random = format!("ZZZNonExistent{}", Uuid::new_v4().as_simple());
-    let results = super::search::search_all(&pool, tenant_id, user_id, &random, 10)
+    let filters = super::search::SearchFilters::default();
+    let results = super::search::search_all(&pool, tenant_id, user_id, &random, 10, &filters)
         .await
         .expect("search_all");
 

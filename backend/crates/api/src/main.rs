@@ -33,8 +33,8 @@ use crate::routes::{
     dependency_router, eisenhower_router, favorites_router, filter_presets_router, health_handler,
     liveness_handler, milestone_router, my_tasks_router, notification_preferences_router,
     notification_router, onboarding_router, positions_router, project_template_router,
-    readiness_handler, recurring_router, reports_router, search_router, sessions_router,
-    shared_board_public_router, subtask_router, task_group_routes, task_router,
+    readiness_handler, recent_items_router, recurring_router, reports_router, search_router,
+    sessions_router, shared_board_public_router, subtask_router, task_group_routes, task_router,
     task_template_router, team_overview_router, teams_router, tenant_router, themes_router,
     time_entry_router, upload_router, user_preferences_router, webhook_router,
     workspace_api_keys_router, workspace_audit_router, workspace_boards_router,
@@ -270,6 +270,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", reports_router(state.clone()))
         // Search routes
         .nest("/api", search_router(state.clone()))
+        // Recent items routes
+        .nest("/api", recent_items_router(state.clone()))
         // Phase 3: Recurring tasks
         .nest("/api", recurring_router(state.clone()))
         // Phase 3: Custom fields
