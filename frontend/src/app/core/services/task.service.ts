@@ -125,6 +125,7 @@ export interface UpdateTaskRequest {
   priority?: TaskPriority;
   assignee_id?: string | null;
   due_date?: string | null;
+  clear_due_date?: boolean;
   milestone_id?: string | null;
 }
 
