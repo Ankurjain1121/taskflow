@@ -420,7 +420,7 @@ export class MyTasksTimelineComponent implements OnInit, OnDestroy {
         this.myTasksService.getMyTasks({
           sort_by: 'due_date',
           sort_order: 'asc',
-          limit: 1000, // Load all tasks for grouping
+          limit: 200,
         }),
       );
 

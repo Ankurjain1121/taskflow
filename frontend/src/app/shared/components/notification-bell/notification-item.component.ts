@@ -1,8 +1,7 @@
 import {
   Component,
-  Input,
-  Output,
-  EventEmitter,
+  input,
+  output,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -50,8 +49,8 @@ const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
       class="flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-700"
       [ngClass]="{
         'border-l-4 border-l-blue-500 bg-blue-50/70 dark:bg-blue-900/20 hover:bg-blue-50 dark:hover:bg-blue-900/30':
-          !notification.is_read,
-        'hover:bg-gray-50 dark:hover:bg-gray-800': notification.is_read,
+          !notification().is_read,
+        'hover:bg-gray-50 dark:hover:bg-gray-800': notification().is_read,
       }"
       (click)="onClick()"
     >
@@ -72,34 +71,34 @@ const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
           class="text-sm truncate"
           [ngClass]="{
             'font-semibold text-gray-900 dark:text-gray-100':
-              !notification.is_read,
+              !notification().is_read,
             'font-medium text-gray-700 dark:text-gray-300':
-              notification.is_read,
+              notification().is_read,
           }"
         >
-          {{ notification.title }}
+          {{ notification().title }}
         </p>
         <p
           class="text-sm line-clamp-2 mt-0.5"
           [ngClass]="{
-            'text-gray-600 dark:text-gray-400': !notification.is_read,
-            'text-gray-500 dark:text-gray-500': notification.is_read,
+            'text-gray-600 dark:text-gray-400': !notification().is_read,
+            'text-gray-500 dark:text-gray-500': notification().is_read,
           }"
         >
-          {{ notification.body }}
+          {{ notification().body }}
         </p>
         <div class="flex items-center gap-2 mt-1">
           <p class="text-xs text-gray-400 dark:text-gray-500">
             {{ getRelativeTime() }}
           </p>
-          @if (notification.link_url) {
+          @if (notification().link_url) {
             <span class="text-xs text-blue-500 dark:text-blue-400"> View </span>
           }
         </div>
       </div>
 
       <!-- Unread indicator dot -->
-      @if (!notification.is_read) {
+      @if (!notification().is_read) {
         <div
           class="flex-shrink-0 w-2.5 h-2.5 bg-blue-500 rounded-full mt-2 shadow-sm"
         ></div>
@@ -118,12 +117,12 @@ const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
   ],
 })
 export class NotificationItemComponent {
-  @Input({ required: true }) notification!: Notification;
-  @Output() notificationClick = new EventEmitter<Notification>();
+  notification = input.required<Notification>();
+  notificationClick = output<Notification>();
 
   getIconConfig(): EventTypeConfig {
     return (
-      EVENT_TYPE_ICONS[this.notification.event_type] || {
+      EVENT_TYPE_ICONS[this.notification().event_type] || {
         icon: 'pi pi-bell',
         color: 'text-gray-500',
       }
@@ -132,14 +131,14 @@ export class NotificationItemComponent {
 
   getIconBgClass(): string {
     return (
-      EVENT_TYPE_BG[this.notification.event_type] ||
+      EVENT_TYPE_BG[this.notification().event_type] ||
       'bg-gray-100 dark:bg-gray-800'
     );
   }
 
   getRelativeTime(): string {
     const now = new Date();
-    const created = new Date(this.notification.created_at);
+    const created = new Date(this.notification().created_at);
     const diffMs = now.getTime() - created.getTime();
     const diffSeconds = Math.floor(diffMs / 1000);
     const diffMinutes = Math.floor(diffSeconds / 60);
@@ -171,6 +170,6 @@ export class NotificationItemComponent {
   }
 
   onClick(): void {
-    this.notificationClick.emit(this.notification);
+    this.notificationClick.emit(this.notification());
   }
 }
