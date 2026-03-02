@@ -10,7 +10,11 @@ import {
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil, switchMap } from 'rxjs';
-import { CdkDropListGroup } from '@angular/cdk/drag-drop';
+import {
+  CdkDrag,
+  CdkDropList,
+  CdkDragDrop,
+} from '@angular/cdk/drag-drop';
 
 import { Task, TaskService } from '../../../core/services/task.service';
 import { BoardService } from '../../../core/services/board.service';
@@ -76,7 +80,8 @@ import { FormsModule } from '@angular/forms';
     CommonModule,
     RouterModule,
     FormsModule,
-    CdkDropListGroup,
+    CdkDrag,
+    CdkDropList,
     CreateTaskDialogComponent,
     CreateColumnDialogComponent,
     CreateTaskGroupDialogComponent,
@@ -308,10 +313,17 @@ import { FormsModule } from '@angular/forms';
         </div>
       } @else {
         <!-- Kanban Board -->
-        <div class="flex-1 overflow-x-auto p-4" cdkDropListGroup>
-          <div class="flex gap-2 h-full">
+        <div class="flex-1 overflow-x-auto p-4">
+          <div
+            class="flex gap-2 h-full"
+            cdkDropList
+            cdkDropListOrientation="horizontal"
+            (cdkDropListDropped)="onColumnDrop($event)"
+          >
             @for (column of state.columns(); track column.id) {
               <app-kanban-column
+                cdkDrag
+                [cdkDragData]="column"
                 [column]="column"
                 [tasks]="getFilteredTasksForColumn(column.id)"
                 [connectedLists]="state.connectedColumnIds()"
@@ -935,6 +947,11 @@ export class BoardViewComponent implements OnInit, OnDestroy {
         this.state.deleteColumn(this.boardId, columnId);
       },
     });
+  }
+
+  onColumnDrop(event: CdkDragDrop<unknown>): void {
+    if (event.previousIndex === event.currentIndex) return;
+    this.state.reorderColumn(event.previousIndex, event.currentIndex);
   }
 
   onQuickTaskCreated(event: { columnId: string; title: string }): void {
