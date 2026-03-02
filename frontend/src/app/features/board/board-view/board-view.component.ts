@@ -22,6 +22,7 @@ import { Task, TaskService } from '../../../core/services/task.service';
 import { BoardService } from '../../../core/services/board.service';
 import { TaskGroupWithStats } from '../../../core/services/task-group.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
+import { PresenceService } from '../../../core/services/presence.service';
 
 import {
   CreateTaskDialogComponent,
@@ -67,6 +68,7 @@ import { BoardWebsocketHandler } from './board-websocket.handler';
 import { BoardDragDropHandler } from './board-drag-drop.handler';
 import { CardQuickEditService } from './card-quick-edit/card-quick-edit.service';
 import { CardQuickEditPopoverComponent } from './card-quick-edit/card-quick-edit-popover.component';
+import { BoardPresenceComponent } from '../../../shared/components/board-presence/board-presence.component';
 import { UndoService } from '../../../shared/services/undo.service';
 import { MessageService, ConfirmationService, MenuItem } from 'primeng/api';
 import { Menu } from 'primeng/menu';
@@ -105,6 +107,7 @@ import { Checkbox } from 'primeng/checkbox';
     ShortcutHelpComponent,
     SwimlaneContainerComponent,
     CardQuickEditPopoverComponent,
+    BoardPresenceComponent,
     Menu,
     ImportDialogComponent,
     ExportDialogComponent,
@@ -149,6 +152,9 @@ import { Checkbox } from 'primeng/checkbox';
             }
           </div>
           <div class="flex items-center gap-3">
+            <!-- Board Presence -->
+            <app-board-presence />
+
             <!-- Settings Button -->
             <a
               [routerLink]="[
@@ -708,6 +714,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   private bulkActionsService = inject(BoardBulkActionsService);
   private wsHandler = inject(BoardWebsocketHandler);
   private dragDrop = inject(BoardDragDropHandler);
+  private presenceService = inject(PresenceService);
   private taskService = inject(TaskService);
   private boardService = inject(BoardService);
   private undoService = inject(UndoService);
@@ -779,13 +786,14 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       this.workspaceId = params['workspaceId'];
       this.boardId = params['boardId'];
       this.state.loadBoard(this.boardId, this.destroy$);
+      this.presenceService.joinBoard(this.boardId);
     });
 
     this.wsService.connect();
     this.wsService.messages$
       .pipe(takeUntil(this.destroy$))
       .subscribe((message) => {
-        this.wsHandler.handleMessage(message);
+        this.wsHandler.handleMessage(message as unknown as Record<string, unknown>);
       });
 
     this.buildMoreMenuItems();
@@ -842,6 +850,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.presenceService.leaveBoard();
     this.destroy$.next();
     this.destroy$.complete();
     this.shortcutsService.unregister();

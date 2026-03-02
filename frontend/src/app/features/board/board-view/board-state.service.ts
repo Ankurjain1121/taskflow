@@ -27,6 +27,7 @@ import {
 } from '../../../core/services/milestone.service';
 import { DependencyService } from '../../../core/services/dependency.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
+import { SaveStatusService } from '../../../core/services/save-status.service';
 import { GanttTask, GanttDependency } from '../gantt-view/gantt-view.component';
 import { TaskFilters } from '../board-toolbar/board-toolbar.component';
 import { CreateTaskDialogResult } from './create-task-dialog.component';
@@ -43,6 +44,7 @@ export class BoardStateService {
   private milestoneService = inject(MilestoneService);
   private dependencyService = inject(DependencyService);
   private wsService = inject(WebSocketService);
+  private saveStatus = inject(SaveStatusService);
 
   // === Signals ===
   readonly loading = signal(true);
@@ -312,6 +314,7 @@ export class BoardStateService {
       return newState;
     });
 
+    this.saveStatus.markSaving();
     this.taskService
       .createTask(boardId, {
         title: taskData.title,
@@ -328,6 +331,7 @@ export class BoardStateService {
       })
       .subscribe({
         next: (realTask) => {
+          this.saveStatus.markSaved();
           // Replace temp task with server response
           this.boardState.update((state) => {
             const newState = { ...state };
@@ -339,6 +343,7 @@ export class BoardStateService {
           });
         },
         error: () => {
+          this.saveStatus.markError();
           // Rollback to snapshot
           this.boardState.set(snapshot);
           this.showError('Failed to create task');
@@ -382,9 +387,11 @@ export class BoardStateService {
     });
 
     // Send to server
+    this.saveStatus.markSaving();
     const req = serverUpdates ?? (updates as Record<string, unknown>);
     this.taskService.updateTask(taskId, req as UpdateTaskRequest).subscribe({
       next: (updatedTask) => {
+        this.saveStatus.markSaved();
         // Replace with server-confirmed data
         this.boardState.update((state) => {
           const newState: Record<string, Task[]> = {};
@@ -397,6 +404,7 @@ export class BoardStateService {
         });
       },
       error: () => {
+        this.saveStatus.markError();
         this.boardState.set(snapshot);
         this.showError('Failed to update task. Reverted.');
       },
@@ -423,8 +431,11 @@ export class BoardStateService {
       }
       return newState;
     });
+    this.saveStatus.markSaving();
     this.taskService.assignUser(taskId, userId).subscribe({
+      next: () => this.saveStatus.markSaved(),
       error: () => {
+        this.saveStatus.markError();
         this.boardState.set(snapshot);
         this.showError('Failed to assign user. Reverted.');
       },
@@ -443,8 +454,11 @@ export class BoardStateService {
       }
       return newState;
     });
+    this.saveStatus.markSaving();
     this.taskService.unassignUser(taskId, userId).subscribe({
+      next: () => this.saveStatus.markSaved(),
       error: () => {
+        this.saveStatus.markError();
         this.boardState.set(snapshot);
         this.showError('Failed to unassign user. Reverted.');
       },
@@ -467,8 +481,11 @@ export class BoardStateService {
       }
       return newState;
     });
+    this.saveStatus.markSaving();
     this.taskService.addLabel(taskId, labelId).subscribe({
+      next: () => this.saveStatus.markSaved(),
       error: () => {
+        this.saveStatus.markError();
         this.boardState.set(snapshot);
         this.showError('Failed to add label. Reverted.');
       },
@@ -487,8 +504,11 @@ export class BoardStateService {
       }
       return newState;
     });
+    this.saveStatus.markSaving();
     this.taskService.removeLabel(taskId, labelId).subscribe({
+      next: () => this.saveStatus.markSaved(),
       error: () => {
+        this.saveStatus.markError();
         this.boardState.set(snapshot);
         this.showError('Failed to remove label. Reverted.');
       },
@@ -520,6 +540,7 @@ export class BoardStateService {
     this.columns.update((cols) => [...cols, tempColumn]);
     this.boardState.update((state) => ({ ...state, [tempId]: [] }));
 
+    this.saveStatus.markSaving();
     this.boardService
       .createColumn(boardId, {
         name: columnData.name,
@@ -528,6 +549,7 @@ export class BoardStateService {
       })
       .subscribe({
         next: (realColumn) => {
+          this.saveStatus.markSaved();
           // Replace temp with real column
           this.columns.update((cols) =>
             cols
@@ -543,6 +565,7 @@ export class BoardStateService {
           });
         },
         error: () => {
+          this.saveStatus.markError();
           this.columns.set(colSnapshot);
           this.boardState.set(stateSnapshot);
           this.showError('Failed to create column');
@@ -602,8 +625,11 @@ export class BoardStateService {
       return newState;
     });
 
+    this.saveStatus.markSaving();
     this.taskService.deleteTask(taskId).subscribe({
+      next: () => this.saveStatus.markSaved(),
       error: () => {
+        this.saveStatus.markError();
         this.boardState.set(snapshot);
         this.showError('Failed to delete task. Reverted.');
       },

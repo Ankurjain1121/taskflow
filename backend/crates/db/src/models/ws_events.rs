@@ -39,6 +39,19 @@ pub enum WsBoardEvent {
         column_id: Uuid,
         origin_user_id: Uuid,
     },
+    PresenceUpdate {
+        board_id: Uuid,
+        user_ids: Vec<Uuid>,
+    },
+    TaskLocked {
+        task_id: Uuid,
+        user_id: Uuid,
+        user_name: String,
+    },
+    TaskUnlocked {
+        task_id: Uuid,
+        user_id: Uuid,
+    },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, TS)]
@@ -52,6 +65,10 @@ pub struct TaskBroadcast {
     pub assignee_ids: Vec<Uuid>,
     pub watcher_ids: Vec<Uuid>,
     pub updated_at: DateTime<Utc>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub changed_fields: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub origin_user_name: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, TS)]
@@ -89,6 +106,8 @@ mod tests {
                 assignee_ids: vec![Uuid::new_v4()],
                 watcher_ids: vec![],
                 updated_at: now,
+                changed_fields: None,
+                origin_user_name: None,
             },
             origin_user_id: Uuid::new_v4(),
         };
@@ -112,6 +131,8 @@ mod tests {
                 assignee_ids: vec![],
                 watcher_ids: vec![],
                 updated_at: now,
+                changed_fields: None,
+                origin_user_name: None,
             },
             origin_user_id: Uuid::new_v4(),
         };
@@ -231,6 +252,8 @@ mod tests {
             assignee_ids: vec![Uuid::new_v4(), Uuid::new_v4()],
             watcher_ids: vec![],
             updated_at: now,
+            changed_fields: None,
+            origin_user_name: None,
         };
         let json = serde_json::to_string(&task).unwrap();
         let deserialized: TaskBroadcast = serde_json::from_str(&json).unwrap();
@@ -269,6 +292,8 @@ mod tests {
             assignee_ids: vec![],
             watcher_ids: vec![],
             updated_at: now,
+            changed_fields: None,
+            origin_user_name: None,
         };
         let col = ColumnBroadcast {
             id: Uuid::new_v4(),
@@ -329,6 +354,28 @@ mod tests {
                 WsBoardEvent::ColumnDeleted {
                     column_id: uid,
                     origin_user_id: uid,
+                },
+            ),
+            (
+                "PresenceUpdate",
+                WsBoardEvent::PresenceUpdate {
+                    board_id: uid,
+                    user_ids: vec![uid],
+                },
+            ),
+            (
+                "TaskLocked",
+                WsBoardEvent::TaskLocked {
+                    task_id: uid,
+                    user_id: uid,
+                    user_name: "Test".to_string(),
+                },
+            ),
+            (
+                "TaskUnlocked",
+                WsBoardEvent::TaskUnlocked {
+                    task_id: uid,
+                    user_id: uid,
                 },
             ),
         ];

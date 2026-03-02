@@ -349,7 +349,7 @@ pub async fn promote_subtask_to_task(
         RETURNING id, title, description, priority, due_date, start_date, estimated_hours,
                   board_id, column_id, group_id, position, milestone_id, task_number,
                   eisenhower_urgency, eisenhower_importance,
-                  tenant_id, created_by_id, deleted_at, created_at, updated_at
+                  tenant_id, created_by_id, deleted_at, created_at, updated_at, version
         "#,
     )
     .bind(task_id)

@@ -23,6 +23,8 @@ import {
 } from '@angular/cdk/drag-drop';
 import { Column } from '../../../core/services/board.service';
 import { Task } from '../../../core/services/task.service';
+import { PresenceService } from '../../../core/services/presence.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { TaskCardComponent } from '../task-card/task-card.component';
 import { Menu } from 'primeng/menu';
 import { MenuItem } from 'primeng/api';
@@ -215,6 +217,7 @@ export interface TaskMoveEvent {
                   : null
               "
               [hasRunningTimer]="task.has_running_timer ?? false"
+              [lockedBy]="getTaskLockInfo(task.id)"
               (taskClicked)="onTaskClicked($event)"
               (selectionToggled)="selectionToggled.emit($event)"
               (priorityChanged)="priorityChanged.emit($event)"
@@ -328,6 +331,8 @@ export interface TaskMoveEvent {
 })
 export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
   private ngZone = inject(NgZone);
+  private presenceService = inject(PresenceService);
+  private authService = inject(AuthService);
 
   column = input.required<Column>();
   tasks = input.required<Task[]>();
@@ -466,6 +471,14 @@ export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
     if (!limit) return false;
     return this.tasks().length > limit;
   });
+
+  getTaskLockInfo(taskId: string): { user_id: string; user_name: string } | null {
+    const lock = this.presenceService.taskLocks().get(taskId);
+    if (!lock) return null;
+    const currentUserId = this.authService.currentUser()?.id;
+    if (lock.user_id === currentUserId) return null;
+    return lock;
+  }
 
   onDrop(event: CdkDragDrop<Task[]>): void {
     const task = event.item.data as Task;

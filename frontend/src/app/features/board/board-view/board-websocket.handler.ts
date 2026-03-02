@@ -1,70 +1,173 @@
 import { Injectable, inject } from '@angular/core';
 import { Task } from '../../../core/services/task.service';
+import { Column } from '../../../core/services/board.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { PresenceService } from '../../../core/services/presence.service';
+import { ConflictNotificationService } from '../../../core/services/conflict-notification.service';
 import { BoardStateService } from './board-state.service';
 
+/**
+ * Handles incoming WebSocket board events from the backend.
+ *
+ * Backend sends events in the format:
+ *   { "type": "TaskCreated", "task": {...}, "origin_user_id": "..." }
+ * The RxJS webSocket operator JSON-parses the frame, so all fields
+ * are at the message root (NOT nested in a "payload" wrapper).
+ */
 @Injectable()
 export class BoardWebsocketHandler {
   private authService = inject(AuthService);
+  private presenceService = inject(PresenceService);
+  private conflictNotification = inject(ConflictNotificationService);
   private state = inject(BoardStateService);
 
-  handleMessage(message: { type: string; payload: unknown }): void {
-    if (!message.payload || typeof message.payload !== 'object') return;
-
+  handleMessage(message: Record<string, unknown>): void {
+    const originUserId = message['origin_user_id'] as string | undefined;
     const currentUserId = this.authService.currentUser()?.id;
 
-    const payload = message.payload as { userId?: string; task?: Task };
-    if (payload.userId && payload.userId === currentUserId) {
+    // Skip own actions — the local optimistic update already applied
+    if (originUserId && originUserId === currentUserId) {
       return;
     }
 
-    switch (message.type) {
-      case 'task:created':
-        if (payload.task) this.handleTaskCreated(payload.task);
+    switch (message['type']) {
+      case 'TaskCreated':
+        this.handleTaskCreated(message['task'] as Partial<Task>);
         break;
-      case 'task:updated':
-        if (payload.task) this.handleTaskUpdated(payload.task);
+      case 'TaskUpdated': {
+        const task = message['task'] as Partial<Task>;
+        const changedFields = message['changed_fields'] as string[] | undefined;
+        const originUserName = message['origin_user_name'] as string | undefined;
+        this.handleTaskUpdated(task);
+        if (task?.id && changedFields && originUserName) {
+          this.conflictNotification.checkConflict(
+            task.id,
+            changedFields,
+            originUserName,
+          );
+        }
         break;
-      case 'task:moved':
-        if (payload.task) this.handleTaskMoved(payload.task);
+      }
+      case 'TaskMoved':
+        this.handleTaskMoved(
+          message['task_id'] as string,
+          message['column_id'] as string,
+          message['position'] as string,
+        );
         break;
-      case 'task:deleted':
-        if (payload.task) this.handleTaskDeleted(payload.task);
+      case 'TaskDeleted':
+        this.handleTaskDeleted(message['task_id'] as string);
+        break;
+      case 'ColumnCreated':
+        this.handleColumnCreated(message['column'] as Column);
+        break;
+      case 'ColumnUpdated':
+        this.handleColumnUpdated(message['column'] as Partial<Column>);
+        break;
+      case 'ColumnDeleted':
+        this.handleColumnDeleted(message['column_id'] as string);
+        break;
+      case 'PresenceUpdate':
+        this.presenceService.updateViewers(
+          (message['user_ids'] as string[]) || [],
+        );
+        break;
+      case 'TaskLocked':
+        this.presenceService.setTaskLock(
+          message['task_id'] as string,
+          {
+            user_id: message['user_id'] as string,
+            user_name: message['user_name'] as string,
+          },
+        );
+        this.presenceService.updateViewerName(
+          message['user_id'] as string,
+          message['user_name'] as string,
+        );
+        break;
+      case 'TaskUnlocked':
+        this.presenceService.removeTaskLock(
+          message['task_id'] as string,
+        );
         break;
     }
   }
 
-  private handleTaskCreated(task: Task): void {
+  private handleTaskCreated(broadcast: Partial<Task>): void {
+    if (!broadcast?.id || !broadcast?.column_id) return;
+
     this.state.boardState.update((state) => {
       const newState = { ...state };
-      const columnTasks = newState[task.column_id] || [];
-      newState[task.column_id] = [...columnTasks, task].sort((a, b) =>
+      const columnTasks = newState[broadcast.column_id!] || [];
+
+      // Avoid duplicates (e.g. if we already inserted optimistically)
+      if (columnTasks.some((t) => t.id === broadcast.id)) return state;
+
+      // Build a minimal Task from the broadcast fields
+      const task: Task = {
+        id: broadcast.id!,
+        column_id: broadcast.column_id!,
+        title: broadcast.title ?? '',
+        description: null,
+        priority: broadcast.priority ?? 'medium',
+        position: broadcast.position ?? 'zzzzzz',
+        milestone_id: null,
+        assignee_id: null,
+        due_date: null,
+        created_by: '',
+        created_at: new Date().toISOString(),
+        updated_at: broadcast.updated_at ?? new Date().toISOString(),
+        assignees: [],
+        labels: [],
+      };
+
+      newState[broadcast.column_id!] = [...columnTasks, task].sort((a, b) =>
         a.position.localeCompare(b.position),
       );
       return newState;
     });
   }
 
-  private handleTaskUpdated(task: Task): void {
+  private handleTaskUpdated(broadcast: Partial<Task>): void {
+    if (!broadcast?.id) return;
+
     this.state.boardState.update((state) => {
-      const newState = { ...state };
-      for (const [columnId, tasks] of Object.entries(newState)) {
-        newState[columnId] = tasks.map((t) => (t.id === task.id ? task : t));
+      const newState: Record<string, Task[]> = {};
+      for (const [columnId, tasks] of Object.entries(state)) {
+        newState[columnId] = tasks.map((t) => {
+          if (t.id !== broadcast.id) return t;
+          // MERGE: only overwrite fields present in the broadcast, preserve the rest
+          return { ...t, ...broadcast };
+        });
       }
       return newState;
     });
   }
 
-  private handleTaskMoved(task: Task): void {
+  private handleTaskMoved(
+    taskId: string,
+    targetColumnId: string,
+    position: string,
+  ): void {
+    if (!taskId || !targetColumnId) return;
+
     this.state.boardState.update((state) => {
       const newState = { ...state };
+      let movedTask: Task | undefined;
 
+      // Remove from all columns
       for (const [columnId, tasks] of Object.entries(newState)) {
-        newState[columnId] = tasks.filter((t) => t.id !== task.id);
+        const found = tasks.find((t) => t.id === taskId);
+        if (found) movedTask = found;
+        newState[columnId] = tasks.filter((t) => t.id !== taskId);
       }
 
-      const columnTasks = newState[task.column_id] || [];
-      newState[task.column_id] = [...columnTasks, task].sort((a, b) =>
+      if (!movedTask) return state;
+
+      // Insert into target column with updated position
+      const updated = { ...movedTask, column_id: targetColumnId, position };
+      const columnTasks = newState[targetColumnId] || [];
+      newState[targetColumnId] = [...columnTasks, updated].sort((a, b) =>
         a.position.localeCompare(b.position),
       );
 
@@ -72,12 +175,51 @@ export class BoardWebsocketHandler {
     });
   }
 
-  private handleTaskDeleted(task: Task): void {
+  private handleTaskDeleted(taskId: string): void {
+    if (!taskId) return;
+
+    this.state.boardState.update((state) => {
+      const newState: Record<string, Task[]> = {};
+      for (const [columnId, tasks] of Object.entries(state)) {
+        newState[columnId] = tasks.filter((t) => t.id !== taskId);
+      }
+      return newState;
+    });
+  }
+
+  private handleColumnCreated(column: Column): void {
+    if (!column?.id) return;
+
+    // Add column if not already present
+    this.state.columns.update((cols) => {
+      if (cols.some((c) => c.id === column.id)) return cols;
+      return [...cols, column].sort((a, b) =>
+        a.position.localeCompare(b.position),
+      );
+    });
+    this.state.boardState.update((state) => {
+      if (state[column.id]) return state;
+      return { ...state, [column.id]: [] };
+    });
+  }
+
+  private handleColumnUpdated(broadcast: Partial<Column>): void {
+    if (!broadcast?.id) return;
+
+    this.state.columns.update((cols) =>
+      cols
+        .map((c) => (c.id === broadcast.id ? { ...c, ...broadcast } : c))
+        .sort((a, b) => a.position.localeCompare(b.position)),
+    );
+  }
+
+  private handleColumnDeleted(columnId: string): void {
+    if (!columnId) return;
+
+    this.state.columns.update((cols) => cols.filter((c) => c.id !== columnId));
     this.state.boardState.update((state) => {
       const newState = { ...state };
-      for (const [columnId, tasks] of Object.entries(newState)) {
-        newState[columnId] = tasks.filter((t) => t.id !== task.id);
-      }
+      delete newState[columnId];
       return newState;
     });
   }

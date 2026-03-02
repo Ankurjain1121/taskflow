@@ -28,6 +28,7 @@ pub struct Task {
     pub deleted_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub version: i32,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
@@ -99,6 +100,7 @@ mod tests {
             deleted_at: None,
             created_at: now,
             updated_at: now,
+            version: 1,
         }
     }
 
@@ -137,6 +139,7 @@ mod tests {
             deleted_at: None,
             created_at: now,
             updated_at: now,
+            version: 1,
         };
         let json = serde_json::to_string(&task).unwrap();
         let deserialized: Task = serde_json::from_str(&json).unwrap();

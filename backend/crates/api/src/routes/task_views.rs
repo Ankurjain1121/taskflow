@@ -35,6 +35,7 @@ pub async fn list_tasks_flat_handler(
             TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
+            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
         })?;
     Ok(Json(tasks))
 }
@@ -53,6 +54,7 @@ pub async fn list_calendar_tasks_handler(
                 TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
                 TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
                 TaskQueryError::Database(e) => AppError::SqlxError(e),
+                TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
             })?;
     Ok(Json(tasks))
 }
@@ -69,6 +71,7 @@ pub async fn list_gantt_tasks_handler(
             TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
+            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
         })?;
     Ok(Json(tasks))
 }

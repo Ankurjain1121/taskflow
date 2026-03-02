@@ -15,7 +15,9 @@ use uuid::Uuid;
 use crate::errors::{AppError, Result};
 use crate::state::AppState;
 use taskflow_auth::jwt::verify_access_token;
+use taskflow_db::models::WsBoardEvent;
 use taskflow_db::queries::boards::is_board_member;
+use taskflow_services::{BroadcastService, PresenceService};
 
 /// Query parameters for WebSocket connection (token is now optional - can be sent via first message)
 #[derive(Debug, Deserialize, Default)]
@@ -32,6 +34,11 @@ pub enum ClientMessage {
     Subscribe { payload: ChannelPayload },
     Unsubscribe { payload: ChannelPayload },
     Ping,
+    PresenceJoin { payload: PresencePayload },
+    PresenceLeave { payload: PresencePayload },
+    Heartbeat { payload: PresencePayload },
+    LockTask { payload: TaskIdPayload },
+    UnlockTask { payload: TaskIdPayload },
 }
 
 /// Payload for auth message
@@ -44,6 +51,18 @@ pub struct AuthPayload {
 #[derive(Debug, Deserialize)]
 pub struct ChannelPayload {
     pub channel: String,
+}
+
+/// Payload for presence messages (join/leave/heartbeat a board)
+#[derive(Debug, Deserialize)]
+pub struct PresencePayload {
+    pub board_id: Uuid,
+}
+
+/// Payload for task lock/unlock messages
+#[derive(Debug, Deserialize)]
+pub struct TaskIdPayload {
+    pub task_id: Uuid,
 }
 
 /// Server message format
@@ -152,8 +171,22 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
 
     tracing::info!(user_id = %user_id, "WebSocket authenticated");
 
-    // Track subscribed channels
+    // Create presence + broadcast services
+    let presence = PresenceService::new(state.redis.clone());
+    let broadcast = BroadcastService::new(state.redis.clone());
+
+    // Fetch user display_name for lock broadcasts
+    let user_name: String = sqlx::query_scalar("SELECT display_name FROM users WHERE id = $1")
+        .bind(user_id)
+        .fetch_optional(&state.db)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or_else(|| "Unknown".to_string());
+
+    // Track subscribed channels and boards joined for presence
     let mut subscribed_channels: HashSet<String> = HashSet::new();
+    let mut presence_boards: HashSet<Uuid> = HashSet::new();
 
     // Clone redis connection for pub/sub
     let redis_client = match redis::Client::open(state.config.redis_url.as_str()) {
@@ -329,6 +362,125 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                         let response = ServerMessage::Pong;
                         let _ = tx.send(serde_json::to_string(&response).unwrap()).await;
                     }
+                    ClientMessage::PresenceJoin { payload } => {
+                        let board_id = payload.board_id;
+                        if let Err(e) = presence.join_board(board_id, user_id).await {
+                            tracing::error!("Presence join error: {}", e);
+                        } else {
+                            presence_boards.insert(board_id);
+                            // Broadcast updated viewer list
+                            if let Ok(viewers) = presence.get_board_viewers(board_id).await {
+                                let event = WsBoardEvent::PresenceUpdate {
+                                    board_id,
+                                    user_ids: viewers,
+                                };
+                                if let Err(e) =
+                                    broadcast.broadcast_board_event(board_id, &event).await
+                                {
+                                    tracing::error!("Presence broadcast error: {}", e);
+                                }
+                            }
+                        }
+                    }
+                    ClientMessage::PresenceLeave { payload } => {
+                        let board_id = payload.board_id;
+                        if let Err(e) = presence.leave_board(board_id, user_id).await {
+                            tracing::error!("Presence leave error: {}", e);
+                        } else {
+                            presence_boards.remove(&board_id);
+                            // Broadcast updated viewer list
+                            if let Ok(viewers) = presence.get_board_viewers(board_id).await {
+                                let event = WsBoardEvent::PresenceUpdate {
+                                    board_id,
+                                    user_ids: viewers,
+                                };
+                                if let Err(e) =
+                                    broadcast.broadcast_board_event(board_id, &event).await
+                                {
+                                    tracing::error!("Presence broadcast error: {}", e);
+                                }
+                            }
+                        }
+                    }
+                    ClientMessage::Heartbeat { payload } => {
+                        let board_id = payload.board_id;
+                        match presence.heartbeat(board_id, user_id).await {
+                            Ok(active_users) => {
+                                let event = WsBoardEvent::PresenceUpdate {
+                                    board_id,
+                                    user_ids: active_users,
+                                };
+                                if let Err(e) =
+                                    broadcast.broadcast_board_event(board_id, &event).await
+                                {
+                                    tracing::error!("Heartbeat broadcast error: {}", e);
+                                }
+                            }
+                            Err(e) => {
+                                tracing::error!("Heartbeat error: {}", e);
+                            }
+                        }
+                    }
+                    ClientMessage::LockTask { payload } => {
+                        let task_id = payload.task_id;
+                        match presence.lock_task(task_id, user_id, &user_name).await {
+                            Ok(true) => {
+                                // Track the lock for cleanup
+                                if let Err(e) = presence.track_user_lock(user_id, task_id).await {
+                                    tracing::error!("Track user lock error: {}", e);
+                                }
+                                // Broadcast lock acquired to all board channels
+                                // We need the task's board_id to broadcast
+                                if let Ok(Some(board_id)) =
+                                    taskflow_db::queries::get_task_board_id(&state.db, task_id)
+                                        .await
+                                {
+                                    let event = WsBoardEvent::TaskLocked {
+                                        task_id,
+                                        user_id,
+                                        user_name: user_name.clone(),
+                                    };
+                                    if let Err(e) =
+                                        broadcast.broadcast_board_event(board_id, &event).await
+                                    {
+                                        tracing::error!("Lock broadcast error: {}", e);
+                                    }
+                                }
+                            }
+                            Ok(false) => {
+                                let error_msg = ServerMessage::Error {
+                                    message: "Task is already locked by another user".into(),
+                                };
+                                let _ = tx
+                                    .send(serde_json::to_string(&error_msg).unwrap_or_default())
+                                    .await;
+                            }
+                            Err(e) => {
+                                tracing::error!("Lock task error: {}", e);
+                            }
+                        }
+                    }
+                    ClientMessage::UnlockTask { payload } => {
+                        let task_id = payload.task_id;
+                        if let Err(e) = presence.unlock_task(task_id, user_id).await {
+                            tracing::error!("Unlock task error: {}", e);
+                        } else {
+                            if let Err(e) = presence.untrack_user_lock(user_id, task_id).await {
+                                tracing::error!("Untrack user lock error: {}", e);
+                            }
+                            // Broadcast unlock
+                            if let Ok(Some(board_id)) =
+                                taskflow_db::queries::get_task_board_id(&state.db, task_id).await
+                            {
+                                let event = WsBoardEvent::TaskUnlocked { task_id, user_id };
+                                if let Err(e) =
+                                    broadcast.broadcast_board_event(board_id, &event).await
+                                {
+                                    tracing::error!("Unlock broadcast error: {}", e);
+                                }
+                            }
+                        }
+                    }
                 }
             }
             Message::Ping(data) => {
@@ -355,6 +507,29 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
     // Clean up
     forward_task.abort();
     send_task.abort();
+
+    // Cleanup presence: leave all boards this user joined
+    for board_id in &presence_boards {
+        if let Err(e) = presence.leave_board(*board_id, user_id).await {
+            tracing::error!("Presence cleanup error for board {}: {}", board_id, e);
+        } else {
+            // Broadcast updated viewer list after removal
+            if let Ok(viewers) = presence.get_board_viewers(*board_id).await {
+                let event = WsBoardEvent::PresenceUpdate {
+                    board_id: *board_id,
+                    user_ids: viewers,
+                };
+                if let Err(e) = broadcast.broadcast_board_event(*board_id, &event).await {
+                    tracing::error!("Presence cleanup broadcast error: {}", e);
+                }
+            }
+        }
+    }
+
+    // Cleanup locks held by this user
+    if let Err(e) = presence.cleanup_user_locks(user_id).await {
+        tracing::error!("Lock cleanup error for user {}: {}", user_id, e);
+    }
 
     // Unsubscribe from all channels
     {
@@ -544,6 +719,66 @@ mod tests {
                 assert_eq!(payload.token, "test-token-123");
             }
             _ => panic!("Expected Auth message"),
+        }
+    }
+
+    #[test]
+    fn test_presence_join_message_deserialize() {
+        let json = r#"{"type": "presence_join", "payload": {"board_id": "00000000-0000-0000-0000-000000000001"}}"#;
+        let msg: ClientMessage = serde_json::from_str(json).unwrap();
+        match msg {
+            ClientMessage::PresenceJoin { payload } => {
+                assert_eq!(
+                    payload.board_id,
+                    Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+                );
+            }
+            _ => panic!("Expected PresenceJoin message"),
+        }
+    }
+
+    #[test]
+    fn test_heartbeat_message_deserialize() {
+        let json = r#"{"type": "heartbeat", "payload": {"board_id": "00000000-0000-0000-0000-000000000001"}}"#;
+        let msg: ClientMessage = serde_json::from_str(json).unwrap();
+        match msg {
+            ClientMessage::Heartbeat { payload } => {
+                assert_eq!(
+                    payload.board_id,
+                    Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+                );
+            }
+            _ => panic!("Expected Heartbeat message"),
+        }
+    }
+
+    #[test]
+    fn test_lock_task_message_deserialize() {
+        let json = r#"{"type": "lock_task", "payload": {"task_id": "00000000-0000-0000-0000-000000000001"}}"#;
+        let msg: ClientMessage = serde_json::from_str(json).unwrap();
+        match msg {
+            ClientMessage::LockTask { payload } => {
+                assert_eq!(
+                    payload.task_id,
+                    Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+                );
+            }
+            _ => panic!("Expected LockTask message"),
+        }
+    }
+
+    #[test]
+    fn test_unlock_task_message_deserialize() {
+        let json = r#"{"type": "unlock_task", "payload": {"task_id": "00000000-0000-0000-0000-000000000001"}}"#;
+        let msg: ClientMessage = serde_json::from_str(json).unwrap();
+        match msg {
+            ClientMessage::UnlockTask { payload } => {
+                assert_eq!(
+                    payload.task_id,
+                    Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
+                );
+            }
+            _ => panic!("Expected UnlockTask message"),
         }
     }
 

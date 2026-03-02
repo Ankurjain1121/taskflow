@@ -5,6 +5,7 @@ pub mod jobs;
 pub mod minio;
 pub mod notifications;
 pub mod novu;
+pub mod presence;
 pub mod sample_board;
 pub mod trash_bin;
 
@@ -23,6 +24,7 @@ pub use notifications::{
     NotificationServiceError, PostalClient, SlackError, WhatsAppError,
 };
 pub use novu::{NovuClient, NovuError};
+pub use presence::{PresenceError, PresenceService, TaskLockInfo};
 pub use sample_board::{generate_sample_board, SampleBoardError};
 pub use trash_bin::{
     get_trash_items, move_to_trash, permanently_delete, restore_from_trash, PaginatedTrashItems,

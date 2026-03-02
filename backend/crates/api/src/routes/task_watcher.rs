@@ -39,6 +39,7 @@ pub async fn add_watcher_handler(
             TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
+            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
         })?;
 
     Ok(Json(json!({ "success": true })))
@@ -64,6 +65,7 @@ pub async fn remove_watcher_handler(
             TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Watcher not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
+            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
         })?;
 
     Ok(Json(json!({ "success": true })))

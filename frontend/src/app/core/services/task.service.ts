@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import {
   TaskWithDetails as TaskDetailResponse,
   TaskFilters,
@@ -66,6 +66,7 @@ export interface Task {
   created_by: string;
   created_at: string;
   updated_at: string;
+  version?: number;
   assignees?: Assignee[];
   watchers?: Watcher[];
   labels?: Label[];
@@ -127,6 +128,12 @@ export interface UpdateTaskRequest {
   due_date?: string | null;
   clear_due_date?: boolean;
   milestone_id?: string | null;
+  version?: number;
+}
+
+export interface ConflictError {
+  status: 409;
+  serverTask: Task;
 }
 
 export interface CalendarTask {
@@ -196,7 +203,18 @@ export class TaskService {
   }
 
   updateTask(taskId: string, request: UpdateTaskRequest): Observable<Task> {
-    return this.http.patch<Task>(`${this.apiUrl}/tasks/${taskId}`, request);
+    return this.http.patch<Task>(`${this.apiUrl}/tasks/${taskId}`, request).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 409 && error.error?.current_task) {
+          const conflictErr: ConflictError = {
+            status: 409,
+            serverTask: error.error.current_task as Task,
+          };
+          return throwError(() => conflictErr);
+        }
+        return throwError(() => error);
+      }),
+    );
   }
 
   moveTask(taskId: string, request: MoveTaskRequest): Observable<Task> {
