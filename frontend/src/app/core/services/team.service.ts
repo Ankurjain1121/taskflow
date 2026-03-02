@@ -8,6 +8,8 @@ export interface MemberWorkload {
   user_avatar: string | null;
   active_tasks: number;
   overdue_tasks: number;
+  due_today: number;
+  due_this_week: number;
   done_tasks: number;
   total_tasks: number;
   tasks_by_status?: Record<string, number>;
@@ -28,6 +30,7 @@ export interface MemberTask {
   column_name: string;
   priority: string;
   due_date: string | null;
+  due_status: string;
 }
 
 @Injectable({

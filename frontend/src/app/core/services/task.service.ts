@@ -18,6 +18,21 @@ export interface Assignee {
   avatar_url: string | null;
 }
 
+export interface Watcher {
+  user_id: string;
+  name: string;
+  avatar_url: string | null;
+  watched_at: string;
+}
+
+export interface TaskReminder {
+  id: string;
+  task_id: string;
+  remind_before_minutes: number;
+  is_sent: boolean;
+  created_at: string;
+}
+
 export interface TaskWithDetails {
   id: string;
   column_id: string;
@@ -30,6 +45,7 @@ export interface TaskWithDetails {
   created_at: string;
   updated_at: string;
   assignees: Assignee[];
+  watchers: Watcher[];
   labels: Label[];
   comments_count: number;
   attachments_count: number;
@@ -51,6 +67,7 @@ export interface Task {
   created_at: string;
   updated_at: string;
   assignees?: Assignee[];
+  watchers?: Watcher[];
   labels?: Label[];
   subtask_completed?: number;
   subtask_total?: number;
@@ -336,5 +353,43 @@ export class TaskService {
 
   duplicateTask(taskId: string): Observable<Task> {
     return this.http.post<Task>(`${this.apiUrl}/tasks/${taskId}/duplicate`, {});
+  }
+
+  // --- Watchers ---
+
+  addWatcher(taskId: string, userId: string): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/tasks/${taskId}/watchers`, {
+      user_id: userId,
+    });
+  }
+
+  removeWatcher(taskId: string, userId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/tasks/${taskId}/watchers/${userId}`,
+    );
+  }
+
+  // --- Reminders ---
+
+  setReminder(
+    taskId: string,
+    remindBeforeMinutes: number,
+  ): Observable<{ success: boolean; id: string }> {
+    return this.http.post<{ success: boolean; id: string }>(
+      `${this.apiUrl}/tasks/${taskId}/reminders`,
+      { remind_before_minutes: remindBeforeMinutes },
+    );
+  }
+
+  listReminders(taskId: string): Observable<TaskReminder[]> {
+    return this.http.get<TaskReminder[]>(
+      `${this.apiUrl}/tasks/${taskId}/reminders`,
+    );
+  }
+
+  removeReminder(taskId: string, reminderId: string): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/tasks/${taskId}/reminders/${reminderId}`,
+    );
   }
 }

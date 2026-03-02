@@ -19,6 +19,7 @@ import {
   Workspace,
   TenantMember,
   UserWorkspaceMembership,
+  MemberRoleBatch,
 } from '../../../core/services/workspace.service';
 import {
   AddToWorkspaceDialogComponent,
@@ -172,6 +173,23 @@ import { UserProfileDialogComponent } from '../../../shared/components/dialogs/u
                           >--</span
                         >
                       }
+                      @if (getMemberRoles(member.user_id).length > 0) {
+                        <div class="flex flex-wrap gap-1 mt-1">
+                          @for (
+                            role of getMemberRoles(member.user_id);
+                            track role.role_id
+                          ) {
+                            <span
+                              class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium text-white"
+                              [style.background-color]="
+                                role.role_color || '#6366f1'
+                              "
+                            >
+                              {{ role.role_name }}
+                            </span>
+                          }
+                        </div>
+                      }
                     </div>
                   </td>
                   <td class="py-3 px-4" (click)="$event.stopPropagation()">
@@ -284,6 +302,7 @@ export class OrgMembersComponent {
 
   members = input.required<TenantMember[]>();
   allWorkspaces = input.required<Workspace[]>();
+  memberRoles = input<MemberRoleBatch[]>([]);
 
   membersAdded = output<BulkAddResult>();
   membersInvited = output<void>();
@@ -363,6 +382,10 @@ export class OrgMembersComponent {
     } else {
       this.selectedIds.set(new Set());
     }
+  }
+
+  getMemberRoles(userId: string): MemberRoleBatch[] {
+    return this.memberRoles().filter((r) => r.user_id === userId);
   }
 
   getInitials(name: string): string {

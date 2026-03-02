@@ -21,6 +21,7 @@ import {
   Workspace,
   WorkspaceMember,
   TenantMember,
+  MemberRoleBatch,
 } from '../../core/services/workspace.service';
 import { BoardService } from '../../core/services/board.service';
 import { TeamService, MemberWorkload } from '../../core/services/team.service';
@@ -31,6 +32,8 @@ import {
 import { TeamsListComponent } from '../workspace/teams/teams-list.component';
 import { WorkspacesPanelComponent } from './workspaces-panel/workspaces-panel.component';
 import { OrgMembersComponent } from './org-members/org-members.component';
+import { TasksDuePanelComponent } from './tasks-due-panel/tasks-due-panel.component';
+import { WorkspaceRolesComponent } from './workspace-roles/workspace-roles.component';
 
 interface WorkspaceWithMembers {
   workspace: Workspace;
@@ -60,6 +63,8 @@ interface WorkspaceTeam {
     TeamsListComponent,
     WorkspacesPanelComponent,
     OrgMembersComponent,
+    TasksDuePanelComponent,
+    WorkspaceRolesComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -112,7 +117,7 @@ interface WorkspaceTeam {
           </div>
         } @else {
           <!-- Summary Stats -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
             <div class="widget-card p-4">
               <p class="text-2xl font-bold text-[var(--foreground)]">
                 {{ totalUniqueMembers() }}
@@ -136,6 +141,16 @@ interface WorkspaceTeam {
             <div class="widget-card p-4">
               <p
                 class="text-2xl font-bold"
+                [class.text-amber-600]="totalDueToday() > 0"
+                [class.text-[var(--foreground)]]="totalDueToday() === 0"
+              >
+                {{ totalDueToday() }}
+              </p>
+              <p class="text-xs text-[var(--muted-foreground)]">Due Today</p>
+            </div>
+            <div class="widget-card p-4">
+              <p
+                class="text-2xl font-bold"
                 [class.text-red-600]="totalOverloaded() > 0"
                 [class.text-[var(--foreground)]]="totalOverloaded() === 0"
               >
@@ -151,6 +166,8 @@ interface WorkspaceTeam {
               <p-tab [value]="1">Members</p-tab>
               <p-tab [value]="2">Teams</p-tab>
               <p-tab [value]="3">Workload</p-tab>
+              <p-tab [value]="4">Tasks Due</p-tab>
+              <p-tab [value]="5">Job Roles</p-tab>
             </p-tablist>
             <p-tabpanels>
               <!-- Overview Tab -->
@@ -180,6 +197,7 @@ interface WorkspaceTeam {
                   <app-org-members
                     [members]="tenantMembers()"
                     [allWorkspaces]="allWorkspaces()"
+                    [memberRoles]="allMemberRoles()"
                     (membersAdded)="onMembersAdded()"
                     (membersInvited)="onMembersInvited()"
                   />
@@ -310,7 +328,7 @@ interface WorkspaceTeam {
                                         </div>
                                       </div>
                                       <div
-                                        class="grid grid-cols-3 gap-2 text-center"
+                                        class="grid grid-cols-5 gap-1 text-center"
                                       >
                                         <div>
                                           <p
@@ -319,7 +337,7 @@ interface WorkspaceTeam {
                                             {{ member.active_tasks }}
                                           </p>
                                           <p
-                                            class="text-xs text-[var(--muted-foreground)]"
+                                            class="text-[10px] text-[var(--muted-foreground)]"
                                           >
                                             Active
                                           </p>
@@ -336,9 +354,38 @@ interface WorkspaceTeam {
                                             {{ member.overdue_tasks }}
                                           </p>
                                           <p
-                                            class="text-xs text-[var(--muted-foreground)]"
+                                            class="text-[10px] text-[var(--muted-foreground)]"
                                           >
                                             Overdue
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <p
+                                            class="text-lg font-semibold"
+                                            [class]="
+                                              (member.due_today ?? 0) > 0
+                                                ? 'text-amber-600'
+                                                : 'text-[var(--card-foreground)]'
+                                            "
+                                          >
+                                            {{ member.due_today ?? 0 }}
+                                          </p>
+                                          <p
+                                            class="text-[10px] text-[var(--muted-foreground)]"
+                                          >
+                                            Today
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <p
+                                            class="text-lg font-semibold text-blue-600"
+                                          >
+                                            {{ member.due_this_week ?? 0 }}
+                                          </p>
+                                          <p
+                                            class="text-[10px] text-[var(--muted-foreground)]"
+                                          >
+                                            This Wk
                                           </p>
                                         </div>
                                         <div>
@@ -348,7 +395,7 @@ interface WorkspaceTeam {
                                             {{ member.done_tasks }}
                                           </p>
                                           <p
-                                            class="text-xs text-[var(--muted-foreground)]"
+                                            class="text-[10px] text-[var(--muted-foreground)]"
                                           >
                                             Done
                                           </p>
@@ -501,6 +548,23 @@ interface WorkspaceTeam {
                                               overdue
                                             </span>
                                           }
+                                          @if ((member.due_today ?? 0) > 0) {
+                                            <span
+                                              class="text-xs text-amber-600 font-medium"
+                                            >
+                                              {{ member.due_today }} due today
+                                            </span>
+                                          }
+                                          @if (
+                                            (member.due_this_week ?? 0) > 0
+                                          ) {
+                                            <span
+                                              class="text-xs text-blue-500 font-medium"
+                                            >
+                                              {{ member.due_this_week }} this
+                                              week
+                                            </span>
+                                          }
                                         </div>
                                       </div>
                                     </a>
@@ -539,6 +603,36 @@ interface WorkspaceTeam {
                   </p-tabs>
                 }
               </p-tabpanel>
+
+              <!-- Tasks Due Tab -->
+              <p-tabpanel [value]="4">
+                <div class="py-6">
+                  <app-tasks-due-panel [workspaceTeams]="workspaceTeams()" />
+                </div>
+              </p-tabpanel>
+
+              <!-- Job Roles Tab -->
+              <p-tabpanel [value]="5">
+                <div class="py-6 space-y-8">
+                  @for (ws of allWorkspaces(); track ws.id) {
+                    <div>
+                      <h2
+                        class="text-lg font-semibold text-[var(--card-foreground)] mb-4"
+                      >
+                        {{ ws.name }}
+                      </h2>
+                      <app-workspace-roles [workspaceId]="ws.id" />
+                    </div>
+                  }
+                  @if (allWorkspaces().length === 0) {
+                    <div class="text-center py-8">
+                      <p class="text-sm text-[var(--muted-foreground)]">
+                        No workspaces found.
+                      </p>
+                    </div>
+                  }
+                </div>
+              </p-tabpanel>
             </p-tabpanels>
           </p-tabs>
         }
@@ -563,6 +657,9 @@ export class TeamPageComponent implements OnInit {
   tenantMembersLoading = signal(false);
   tenantMembersLoaded = signal(false);
 
+  // Member job roles (batch loaded for all workspaces)
+  allMemberRoles = signal<MemberRoleBatch[]>([]);
+
   // Summary stats
   totalUniqueMembers = computed(() => {
     const seen = new Set<string>();
@@ -584,6 +681,13 @@ export class TeamPageComponent implements OnInit {
   totalOverloaded = computed(() => {
     return this.workspaceTeams().reduce(
       (sum, wt) => sum + wt.members.filter((m) => m.is_overloaded).length,
+      0,
+    );
+  });
+
+  totalDueToday = computed(() => {
+    return this.workspaceTeams().reduce(
+      (sum, wt) => sum + wt.members.reduce((s, m) => s + (m.due_today ?? 0), 0),
       0,
     );
   });
@@ -713,6 +817,22 @@ export class TeamPageComponent implements OnInit {
         this.tenantMembersLoading.set(false);
       },
     });
+
+    // Load member job roles from all workspaces
+    const workspaces = this.allWorkspaces();
+    if (workspaces.length > 0) {
+      const roleRequests = workspaces.map((ws) =>
+        this.workspaceService
+          .listAllMemberRoles(ws.id)
+          .pipe(catchError(() => of([] as MemberRoleBatch[]))),
+      );
+      forkJoin(roleRequests).subscribe({
+        next: (results) => {
+          const allRoles = results.flat();
+          this.allMemberRoles.set(allRoles);
+        },
+      });
+    }
   }
 
   private loadData(): void {

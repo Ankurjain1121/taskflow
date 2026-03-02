@@ -17,6 +17,8 @@ const EVENT_TYPE_ICONS: Record<NotificationEventType, EventTypeConfig> = {
   task_commented: { icon: 'pi pi-comment', color: 'text-green-500' },
   task_completed: { icon: 'pi pi-check-circle', color: 'text-emerald-500' },
   mention_in_comment: { icon: 'pi pi-at', color: 'text-purple-500' },
+  task_updated_watcher: { icon: 'pi pi-eye', color: 'text-indigo-500' },
+  task_reminder: { icon: 'pi pi-bell', color: 'text-amber-500' },
 };
 
 @Component({

@@ -366,6 +366,7 @@ export class AutomationRulesComponent implements OnInit, OnChanges {
     custom_field_changed: 'Custom Field Changed',
     label_changed: 'Label Changed',
     due_date_approaching: 'Due Date Approaching',
+    member_joined: 'Member Joined',
   };
 
   private actionLabels: Record<AutomationActionType, string> = {
@@ -380,6 +381,7 @@ export class AutomationRulesComponent implements OnInit, OnChanges {
     set_due_date: 'Set Due Date',
     set_custom_field: 'Set Custom Field',
     send_webhook: 'Send Webhook',
+    assign_to_role_members: 'Assign to Role Members',
   };
 
   ngOnInit(): void {
@@ -413,6 +415,7 @@ export class AutomationRulesComponent implements OnInit, OnChanges {
       custom_field_changed: 'bg-indigo-100',
       label_changed: 'bg-yellow-100',
       due_date_approaching: 'bg-amber-100',
+      member_joined: 'bg-pink-100',
     };
     return map[trigger] || 'bg-gray-100';
   }
@@ -430,6 +433,7 @@ export class AutomationRulesComponent implements OnInit, OnChanges {
       custom_field_changed: 'text-indigo-600',
       label_changed: 'text-yellow-600',
       due_date_approaching: 'text-amber-600',
+      member_joined: 'text-pink-600',
     };
     return map[trigger] || 'text-gray-600';
   }

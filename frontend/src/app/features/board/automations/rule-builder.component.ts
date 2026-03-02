@@ -562,6 +562,27 @@ interface ActionFormItem {
                           </div>
                         </div>
                       }
+                      @case ('assign_to_role_members') {
+                        <div>
+                          <label
+                            class="block text-xs font-medium text-[var(--muted-foreground)] mb-1"
+                            >Job Role ID</label
+                          >
+                          <input
+                            type="text"
+                            [ngModel]="action.action_config['role_id'] || ''"
+                            (ngModelChange)="
+                              updateActionConfig(i, 'role_id', $event)
+                            "
+                            placeholder="Workspace Job Role ID"
+                            class="w-full px-3 py-1.5 text-sm border border-[var(--border)] rounded-md focus:border-primary focus:ring-1 focus:ring-ring"
+                          />
+                          <p class="mt-0.5 text-xs text-gray-400">
+                            All members with this role will be assigned to the
+                            task.
+                          </p>
+                        </div>
+                      }
                     }
                   </div>
                 </div>
@@ -674,6 +695,11 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
       label: 'Due Date Approaching',
       description: 'Fires when a task due date is approaching.',
     },
+    {
+      value: 'member_joined',
+      label: 'Member Joined',
+      description: 'Fires when a new member joins the workspace.',
+    },
   ];
 
   actionOptions: ActionOption[] = [
@@ -731,6 +757,11 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
       value: 'send_webhook',
       label: 'Send Webhook',
       description: 'Send an HTTP webhook to a URL.',
+    },
+    {
+      value: 'assign_to_role_members',
+      label: 'Assign to Role Members',
+      description: 'Assign the task to all members with a specific job role.',
     },
   ];
 
