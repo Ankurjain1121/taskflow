@@ -32,6 +32,8 @@ import { TaskFilters } from '../board-toolbar/board-toolbar.component';
 import { CreateTaskDialogResult } from './create-task-dialog.component';
 import { CreateColumnDialogResult } from './create-column-dialog.component';
 import { generateKeyBetween } from 'fractional-indexing';
+import { GroupByMode, SwimlaneGroup, SwimlaneState } from './swimlane.types';
+import { buildSwimlaneGroups, buildSwimlaneState } from './swimlane-utils';
 
 @Injectable()
 export class BoardStateService {
@@ -70,6 +72,8 @@ export class BoardStateService {
   readonly boardMilestones = signal<Milestone[]>([]);
   readonly boardGroups = signal<TaskGroupWithStats[]>([]);
   readonly collapsedColumnIds = signal<Set<string>>(new Set());
+  readonly groupBy = signal<GroupByMode>('none');
+  readonly collapsedSwimlaneIds = signal<Set<string>>(new Set());
   readonly cardDensity = signal<'compact' | 'normal' | 'expanded'>(
     (['compact', 'normal', 'expanded'].includes(
       localStorage.getItem('taskflow_card_density') ?? '',
@@ -146,12 +150,25 @@ export class BoardStateService {
     return this.columns().map((col) => 'column-' + col.id);
   });
 
+  readonly swimlaneGroups = computed((): SwimlaneGroup[] => {
+    const mode = this.groupBy();
+    if (mode === 'none') return [];
+    return buildSwimlaneGroups(this.boardState(), mode);
+  });
+
+  readonly swimlaneState = computed((): SwimlaneState => {
+    const mode = this.groupBy();
+    if (mode === 'none') return {};
+    return buildSwimlaneState(this.filteredBoardState(), this.swimlaneGroups(), mode);
+  });
+
   // === Data Loading ===
 
   loadBoard(boardId: string, destroy$: Subject<void>): void {
     this.loading.set(true);
 
     this.loadCollapsedColumns(boardId);
+    this.loadGroupBy(boardId);
     this.boardService.getBoardFull(boardId).subscribe({
       next: (response: BoardFullResponse) => {
         this.board.set(response.board);
@@ -629,6 +646,37 @@ export class BoardStateService {
   setCardDensity(density: 'compact' | 'normal' | 'expanded'): void {
     this.cardDensity.set(density);
     localStorage.setItem('taskflow_card_density', density);
+  }
+
+  // === Swimlane Group By ===
+
+  loadGroupBy(boardId: string): void {
+    try {
+      const stored = localStorage.getItem(`tf_swimlane_${boardId}`);
+      if (stored && ['none', 'assignee', 'priority', 'label'].includes(stored)) {
+        this.groupBy.set(stored as GroupByMode);
+      } else {
+        this.groupBy.set('none');
+      }
+    } catch {
+      this.groupBy.set('none');
+    }
+  }
+
+  setGroupBy(mode: GroupByMode, boardId: string): void {
+    this.groupBy.set(mode);
+    localStorage.setItem(`tf_swimlane_${boardId}`, mode);
+  }
+
+  toggleSwimlaneCollapse(groupKey: string): void {
+    const current = this.collapsedSwimlaneIds();
+    const updated = new Set(current);
+    if (updated.has(groupKey)) {
+      updated.delete(groupKey);
+    } else {
+      updated.add(groupKey);
+    }
+    this.collapsedSwimlaneIds.set(updated);
   }
 
   // === Error Handling ===

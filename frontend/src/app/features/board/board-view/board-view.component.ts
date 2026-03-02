@@ -56,6 +56,8 @@ import {
 } from '../bulk-actions/bulk-actions-bar.component';
 import { TaskGroupHeaderComponent } from '../task-group-header/task-group-header.component';
 import { ShortcutHelpComponent } from '../../../shared/components/shortcut-help/shortcut-help.component';
+import { SwimlaneContainerComponent } from '../swimlane-container/swimlane-container.component';
+import { GroupByMode, SwimlaneTaskMoveEvent } from './swimlane.types';
 
 import { BoardShortcutsService } from './board-shortcuts.service';
 import { BoardBulkActionsService } from './board-bulk-actions.service';
@@ -97,6 +99,7 @@ import { FormsModule } from '@angular/forms';
     BulkActionsBarComponent,
     TaskGroupHeaderComponent,
     ShortcutHelpComponent,
+    SwimlaneContainerComponent,
     Menu,
     ImportDialogComponent,
     ExportDialogComponent,
@@ -231,9 +234,11 @@ import { FormsModule } from '@angular/forms';
         [labels]="state.allLabels()"
         [viewMode]="viewMode()"
         [density]="state.cardDensity()"
+        [groupBy]="state.groupBy()"
         (filtersChanged)="onFiltersChanged($event)"
         (viewModeChanged)="onViewModeChanged($event)"
         (densityChanged)="onDensityChanged($event)"
+        (groupByChanged)="onGroupByChanged($event)"
       ></app-board-toolbar>
 
       <!-- Task Group Headers -->
@@ -319,6 +324,33 @@ import { FormsModule } from '@angular/forms';
         <!-- Time Report View -->
         <div class="flex-1 overflow-y-auto">
           <app-time-report [boardId]="boardId"></app-time-report>
+        </div>
+      } @else if (state.groupBy() !== 'none') {
+        <!-- Swimlane View -->
+        <div class="flex-1 overflow-auto">
+          <app-swimlane-container
+            [swimlaneGroups]="state.swimlaneGroups()"
+            [swimlaneState]="state.swimlaneState()"
+            [columns]="state.columns()"
+            [boardPrefix]="state.board()?.prefix ?? null"
+            [density]="state.cardDensity()"
+            [celebratingTaskId]="state.celebratingTaskId()"
+            [focusedTaskId]="state.focusedTaskId()"
+            [selectedTaskIds]="state.selectedTaskIds()"
+            [allColumns]="state.columns()"
+            [groupBy]="state.groupBy()"
+            [collapsedSwimlaneIds]="state.collapsedSwimlaneIds()"
+            (taskMoved)="onSwimlaneTaskMoved($event)"
+            (taskClicked)="onTaskClicked($event)"
+            (addTaskClicked)="onAddTaskToColumn($event)"
+            (selectionToggled)="onSelectionToggled($event)"
+            (priorityChanged)="onCardPriorityChanged($event)"
+            (titleChanged)="onCardTitleChanged($event)"
+            (columnMoveRequested)="onCardColumnMove($event)"
+            (duplicateRequested)="onCardDuplicate($event)"
+            (deleteRequested)="onCardDelete($event)"
+            (swimlaneToggled)="onSwimlaneToggled($event)"
+          />
         </div>
       } @else {
         <!-- Kanban Board -->
@@ -702,6 +734,18 @@ export class BoardViewComponent implements OnInit, OnDestroy {
 
   onTaskMoved(event: TaskMoveEvent): void {
     this.dragDrop.onTaskMoved(event);
+  }
+
+  onSwimlaneTaskMoved(event: SwimlaneTaskMoveEvent): void {
+    this.dragDrop.onSwimlaneTaskMoved(event);
+  }
+
+  onGroupByChanged(mode: GroupByMode): void {
+    this.state.setGroupBy(mode, this.boardId);
+  }
+
+  onSwimlaneToggled(groupKey: string): void {
+    this.state.toggleSwimlaneCollapse(groupKey);
   }
 
   onTaskClicked(task: Task): void {

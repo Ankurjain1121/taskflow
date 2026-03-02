@@ -18,9 +18,9 @@ then moving through Kanban, search, performance, real-time, notifications, and v
 | B3 | Quick Filter Bar | ✅ Done | [RESEARCH.md](RESEARCH.md) · [plan-b3](plans2/plan-b3.md) | [comp.md#b3](comp.md#b3-quick-filter-bar) |
 | B4 | Card Density Toggle | ✅ Done | [RESEARCH.md](RESEARCH.md) | [comp.md#b4](comp.md#b4-card-density-toggle) |
 | B5 | Column Customization | ✅ Done | [RESEARCH.md](RESEARCH.md) | [comp.md#b5](comp.md#b5-column-customization) |
-| B6 | Swimlanes | Pending | [RESEARCH.md](RESEARCH.md) · [plan-b6](plans2/plan-b6.md) | [comp.md#b6](comp.md#b6-swimlanes) |
-| B7 | Board Keyboard Shortcuts | Pending | [RESEARCH.md](RESEARCH.md) | [comp.md#b7](comp.md#b7-board-keyboard-shortcuts) |
-| B8 | Card Quick-Edit | Pending | [mutable-zooming-moler](.claude/plans/mutable-zooming-moler.md) · [RESEARCH.md](RESEARCH.md) | [comp.md#b8](comp.md#b8-card-quick-edit) |
+| B6 | Swimlanes | ✅ Done | [RESEARCH.md](RESEARCH.md) · [plan-b6](plans2/plan-b6.md) | [comp.md#b6](comp.md#b6-swimlanes) |
+| B7 | Board Keyboard Shortcuts | Pending | [RESEARCH.md](RESEARCH.md) · [plan-b7](plans2/plan-b7.md) | [comp.md#b7](comp.md#b7-board-keyboard-shortcuts) |
+| B8 | Card Quick-Edit | Pending | [mutable-zooming-moler](.claude/plans/mutable-zooming-moler.md) · [RESEARCH.md](RESEARCH.md) · [plan-b8](plans2/plan-b8.md) | [comp.md#b8](comp.md#b8-card-quick-edit) |
 | C1-C9 | Board Settings & Orphaned Features | Pending | [section-01-board-settings-overhaul](.ultraplan/sections/section-01-board-settings-overhaul.md) | [comp.md#c](comp.md#board-settings--orphaned-features-c1c9) |
 | D1-D4 | Search & Discovery | Pending | [section-03-command-palette](.ultraplan/sections/section-03-command-palette.md) | [comp.md#d](comp.md#search--discovery-d1d4) |
 | E1-E3 | Performance | Pending | [section-05-list-performance](.ultraplan/sections/section-05-list-performance.md) · [performance-optimization](.claude/plans/performance-optimization.md) | [comp.md#e](comp.md#performance-e1e3) |
@@ -46,6 +46,7 @@ then moving through Kanban, search, performance, real-time, notifications, and v
 - 2026-03-02: comp.md created — unified competitor analysis index for all A–I phases (44 sub-features); TASK.md updated with Comp column linking to comp.md anchors
 - 2026-03-02: B4 complete — Compact/Normal/Expanded density toggle in toolbar, persists to localStorage; B5 complete — column icon picker (emoji), WIP limit dialog, Rename, Delete; full-stack (Rust migration + PUT endpoints + Angular dialogs)
 - 2026-03-02: B3 complete — Quick Filter Bar: rounded pill chips (native buttons), Overdue pill (red when active), Clear all link, `overdue` in URL/state/filter logic, `F` keyboard shortcut to focus search
+- 2026-03-02: B6 complete — Swimlanes / Group By: dropdown in toolbar (Assignee/Priority/Label/None), 2D swimlane grid with sticky row labels + sticky column header, cross-lane drag updates task properties (assignee unassign/reassign, priority patch, label remove/add), optimistic updates with rollback, localStorage persistence, "Group: X" chip with × clear button
 
 ## Success Criteria
 - Each feature: matches or exceeds competitor implementations in UX quality

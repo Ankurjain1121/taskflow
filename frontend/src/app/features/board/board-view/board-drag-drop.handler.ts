@@ -4,6 +4,8 @@ import { generateKeyBetween } from 'fractional-indexing';
 import { Task, TaskService } from '../../../core/services/task.service';
 import { TaskMoveEvent } from '../kanban-column/kanban-column.component';
 import { BoardStateService } from './board-state.service';
+import { SwimlaneTaskMoveEvent } from './swimlane.types';
+import { NONE_KEY } from './swimlane-utils';
 
 @Injectable()
 export class BoardDragDropHandler {
@@ -79,6 +81,86 @@ export class BoardDragDropHandler {
           this.state.showError('Failed to move task. Reverted.');
         },
       });
+  }
+
+  onSwimlaneTaskMoved(event: SwimlaneTaskMoveEvent): void {
+    // Always handle the column-position change (same logic as flat kanban)
+    this.onTaskMoved({
+      task: event.task,
+      targetColumnId: event.targetColumnId,
+      previousIndex: event.previousIndex,
+      currentIndex: event.currentIndex,
+      previousColumnId: event.previousColumnId,
+    });
+
+    // If same lane, no property update needed
+    if (event.fromGroupKey === event.toGroupKey) return;
+
+    const taskId = event.task.id;
+    const { fromGroupKey, toGroupKey, groupBy } = event;
+
+    if (groupBy === 'priority' && toGroupKey !== NONE_KEY) {
+      // optimisticUpdateTask handles its own snapshot + rollback
+      this.state.optimisticUpdateTask(
+        taskId,
+        { priority: toGroupKey as Task['priority'] },
+        { priority: toGroupKey },
+      );
+    } else if (groupBy === 'assignee') {
+      const snapshot = structuredClone(this.state.boardState());
+
+      // Optimistic: strip old assignee from the task
+      this.state.boardState.update((state) => {
+        const newState: Record<string, Task[]> = {};
+        for (const [colId, tasks] of Object.entries(state)) {
+          newState[colId] = tasks.map((t) => {
+            if (t.id !== taskId) return t;
+            const kept = (t.assignees ?? []).filter((a) => a.id !== fromGroupKey);
+            return { ...t, assignees: kept };
+          });
+        }
+        return newState;
+      });
+
+      const rollback = () => {
+        this.state.boardState.set(snapshot);
+        this.state.showError('Failed to update assignee. Reverted.');
+      };
+
+      if (fromGroupKey !== NONE_KEY) {
+        this.taskService.unassignUser(taskId, fromGroupKey).subscribe({ error: rollback });
+      }
+      if (toGroupKey !== NONE_KEY) {
+        this.taskService.assignUser(taskId, toGroupKey).subscribe({ error: rollback });
+      }
+    } else if (groupBy === 'label') {
+      const snapshot = structuredClone(this.state.boardState());
+
+      // Optimistic: strip old label from the task
+      this.state.boardState.update((state) => {
+        const newState: Record<string, Task[]> = {};
+        for (const [colId, tasks] of Object.entries(state)) {
+          newState[colId] = tasks.map((t) => {
+            if (t.id !== taskId) return t;
+            const kept = (t.labels ?? []).filter((l) => l.id !== fromGroupKey);
+            return { ...t, labels: kept };
+          });
+        }
+        return newState;
+      });
+
+      const rollback = () => {
+        this.state.boardState.set(snapshot);
+        this.state.showError('Failed to update label. Reverted.');
+      };
+
+      if (fromGroupKey !== NONE_KEY) {
+        this.taskService.removeLabel(taskId, fromGroupKey).subscribe({ error: rollback });
+      }
+      if (toGroupKey !== NONE_KEY) {
+        this.taskService.addLabel(taskId, toGroupKey).subscribe({ error: rollback });
+      }
+    }
   }
 
   // === Card Keyboard Navigation ===
