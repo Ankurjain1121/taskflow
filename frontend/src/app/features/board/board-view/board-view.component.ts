@@ -301,38 +301,68 @@ import { Checkbox } from 'primeng/checkbox';
       } @else if (viewMode() === 'list') {
         <!-- List View -->
         <div class="flex-1 overflow-y-auto">
-          <app-list-view
-            [tasks]="state.flatTasks()"
-            [loading]="state.listLoading()"
-            (taskClicked)="onListTaskClicked($event)"
-          ></app-list-view>
+          @defer (when viewMode() === 'list') {
+            <app-list-view
+              [tasks]="state.flatTasks()"
+              [loading]="state.listLoading()"
+              (taskClicked)="onListTaskClicked($event)"
+            ></app-list-view>
+          } @placeholder {
+            <div class="flex-1 flex items-center justify-center py-12 text-[var(--muted-foreground)]">
+              <i class="pi pi-spin pi-spinner text-xl"></i>
+            </div>
+          }
         </div>
       } @else if (viewMode() === 'calendar') {
         <!-- Calendar View -->
         <div class="flex-1 overflow-hidden">
-          <app-calendar-view
-            [boardId]="boardId"
-            (taskClicked)="onListTaskClicked($event)"
-          ></app-calendar-view>
+          @defer (when viewMode() === 'calendar') {
+            <app-calendar-view
+              [boardId]="boardId"
+              (taskClicked)="onListTaskClicked($event)"
+            ></app-calendar-view>
+          } @placeholder {
+            <div class="flex-1 flex items-center justify-center py-12 text-[var(--muted-foreground)]">
+              <i class="pi pi-spin pi-spinner text-xl"></i>
+            </div>
+          }
         </div>
       } @else if (viewMode() === 'gantt') {
         <!-- Gantt Chart View -->
         <div class="flex-1 overflow-hidden">
-          <app-gantt-view
-            [tasks]="state.ganttTasks()"
-            [dependencies]="state.boardDependencies()"
-            (taskClicked)="onListTaskClicked($event)"
-          ></app-gantt-view>
+          @defer (when viewMode() === 'gantt') {
+            <app-gantt-view
+              [tasks]="state.ganttTasks()"
+              [dependencies]="state.boardDependencies()"
+              (taskClicked)="onListTaskClicked($event)"
+            ></app-gantt-view>
+          } @placeholder {
+            <div class="flex-1 flex items-center justify-center py-12 text-[var(--muted-foreground)]">
+              <i class="pi pi-spin pi-spinner text-xl"></i>
+            </div>
+          }
         </div>
       } @else if (viewMode() === 'reports') {
         <!-- Reports View -->
         <div class="flex-1 overflow-y-auto">
-          <app-reports-view [boardId]="boardId"></app-reports-view>
+          @defer (when viewMode() === 'reports') {
+            <app-reports-view [boardId]="boardId"></app-reports-view>
+          } @placeholder {
+            <div class="flex-1 flex items-center justify-center py-12 text-[var(--muted-foreground)]">
+              <i class="pi pi-spin pi-spinner text-xl"></i>
+            </div>
+          }
         </div>
       } @else if (viewMode() === 'time-report') {
         <!-- Time Report View -->
         <div class="flex-1 overflow-y-auto">
-          <app-time-report [boardId]="boardId"></app-time-report>
+          @defer (when viewMode() === 'time-report') {
+            <app-time-report [boardId]="boardId"></app-time-report>
+          } @placeholder {
+            <div class="flex-1 flex items-center justify-center py-12 text-[var(--muted-foreground)]">
+              <i class="pi pi-spin pi-spinner text-xl"></i>
+            </div>
+          }
         </div>
       } @else if (state.groupBy() !== 'none') {
         <!-- Swimlane View -->

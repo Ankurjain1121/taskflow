@@ -37,6 +37,9 @@ import { SubtaskListComponent } from '../board/subtask-list/subtask-list.compone
 import { CommentListComponent } from '../tasks/components/comment-list/comment-list.component';
 import { ActivityTimelineComponent } from '../tasks/components/activity-timeline/activity-timeline.component';
 import { TaskDetailSidebarComponent } from './task-detail-sidebar.component';
+import { RecentItemsService } from '../../core/services/recent-items.service';
+import { MessageService } from 'primeng/api';
+import { Toast } from 'primeng/toast';
 
 @Component({
   selector: 'app-task-detail-page',
@@ -58,7 +61,9 @@ import { TaskDetailSidebarComponent } from './task-detail-sidebar.component';
     CommentListComponent,
     ActivityTimelineComponent,
     TaskDetailSidebarComponent,
+    Toast,
   ],
+  providers: [MessageService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [
     `
@@ -101,6 +106,7 @@ import { TaskDetailSidebarComponent } from './task-detail-sidebar.component';
     `,
   ],
   template: `
+    <p-toast />
     <!-- Top Bar: Back + Breadcrumbs -->
     <div
       class="sticky top-0 z-10 border-b"
@@ -359,6 +365,8 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
   private boardService = inject(BoardService);
   private workspaceService = inject(WorkspaceService);
   private authService = inject(AuthService);
+  private recentItemsService = inject(RecentItemsService);
+  private messageService = inject(MessageService);
   private routeSub: Subscription | null = null;
 
   taskId = signal('');
@@ -437,7 +445,21 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
         this.columns.set(columns);
 
         this.workspaceService.get(board.workspace_id).subscribe({
-          next: (ws) => this.workspace.set(ws),
+          next: (ws) => {
+            this.workspace.set(ws);
+            // Record task view for recent items
+            const t = this.task();
+            if (t) {
+              this.recentItemsService.recordTaskView({
+                id: t.id,
+                title: t.title,
+                boardName: board.name,
+                workspaceId: board.workspace_id,
+                workspaceName: ws.name,
+                boardId: board.id,
+              });
+            }
+          },
           error: () => {
             // Non-critical
           },
@@ -540,17 +562,23 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
   onAssign(member: MemberSearchResult): void {
     const t = this.task();
     if (!t) return;
+
+    const snapshot = t;
+    const newAssignee: Assignee = {
+      id: member.id,
+      display_name: member.name || member.email,
+      avatar_url: null,
+    };
+    this.task.set({
+      ...t,
+      assignees: [...(t.assignees ?? []), newAssignee],
+    });
+
     this.taskService.assignUser(t.id, member.id).subscribe({
-      next: () => {
-        const newAssignee: Assignee = {
-          id: member.id,
-          display_name: member.name || member.email,
-          avatar_url: null,
-        };
-        this.task.set({
-          ...t,
-          assignees: [...(t.assignees ?? []), newAssignee],
-        });
+      next: () => { /* already applied */ },
+      error: () => {
+        this.task.set(snapshot);
+        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: 'Could not assign member.', life: 4000 });
       },
     });
   }
@@ -558,12 +586,18 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
   onUnassign(assignee: Assignee): void {
     const t = this.task();
     if (!t) return;
+
+    const snapshot = t;
+    this.task.set({
+      ...t,
+      assignees: (t.assignees ?? []).filter((a) => a.id !== assignee.id),
+    });
+
     this.taskService.unassignUser(t.id, assignee.id).subscribe({
-      next: () => {
-        this.task.set({
-          ...t,
-          assignees: (t.assignees ?? []).filter((a) => a.id !== assignee.id),
-        });
+      next: () => { /* already applied */ },
+      error: () => {
+        this.task.set(snapshot);
+        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: 'Could not unassign member.', life: 4000 });
       },
     });
   }
@@ -573,12 +607,18 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
   onRemoveLabel(labelId: string): void {
     const t = this.task();
     if (!t) return;
+
+    const snapshot = t;
+    this.task.set({
+      ...t,
+      labels: (t.labels ?? []).filter((l) => l.id !== labelId),
+    });
+
     this.taskService.removeLabel(t.id, labelId).subscribe({
-      next: () => {
-        this.task.set({
-          ...t,
-          labels: (t.labels ?? []).filter((l) => l.id !== labelId),
-        });
+      next: () => { /* already applied */ },
+      error: () => {
+        this.task.set(snapshot);
+        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: 'Could not remove label.', life: 4000 });
       },
     });
   }

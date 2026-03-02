@@ -411,21 +411,26 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     const task = this.task();
     if (!task) return;
 
+    const snapshot = task;
+    const newAssignee: Assignee = {
+      id: member.id,
+      display_name: member.name || 'Unknown',
+      avatar_url: member.avatar_url,
+    };
+    const optimisticTask = {
+      ...task,
+      assignees: [...(task.assignees || []), newAssignee],
+    };
+    this.task.set(optimisticTask);
+    this.taskUpdated.emit(optimisticTask);
+
     this.taskService.assignUser(task.id, member.id).subscribe({
-      next: () => {
-        const newAssignee: Assignee = {
-          id: member.id,
-          display_name: member.name || 'Unknown',
-          avatar_url: member.avatar_url,
-        };
-        const updatedTask = {
-          ...task,
-          assignees: [...(task.assignees || []), newAssignee],
-        };
-        this.task.set(updatedTask);
-        this.taskUpdated.emit(updatedTask);
+      next: () => { /* already applied */ },
+      error: () => {
+        this.task.set(snapshot);
+        this.taskUpdated.emit(snapshot);
+        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: 'Could not assign member.', life: 4000 });
       },
-      error: () => {},
     });
   }
 
@@ -433,16 +438,21 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     const task = this.task();
     if (!task) return;
 
+    const snapshot = task;
+    const optimisticTask = {
+      ...task,
+      assignees: (task.assignees || []).filter((a) => a.id !== assignee.id),
+    };
+    this.task.set(optimisticTask);
+    this.taskUpdated.emit(optimisticTask);
+
     this.taskService.unassignUser(task.id, assignee.id).subscribe({
-      next: () => {
-        const updatedTask = {
-          ...task,
-          assignees: (task.assignees || []).filter((a) => a.id !== assignee.id),
-        };
-        this.task.set(updatedTask);
-        this.taskUpdated.emit(updatedTask);
+      next: () => { /* already applied */ },
+      error: () => {
+        this.task.set(snapshot);
+        this.taskUpdated.emit(snapshot);
+        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: 'Could not unassign member.', life: 4000 });
       },
-      error: () => {},
     });
   }
 
@@ -481,16 +491,21 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     const task = this.task();
     if (!task) return;
 
+    const snapshot = task;
+    const optimisticTask = {
+      ...task,
+      labels: (task.labels || []).filter((l) => l.id !== labelId),
+    };
+    this.task.set(optimisticTask);
+    this.taskUpdated.emit(optimisticTask);
+
     this.taskService.removeLabel(task.id, labelId).subscribe({
-      next: () => {
-        const updatedTask = {
-          ...task,
-          labels: (task.labels || []).filter((l) => l.id !== labelId),
-        };
-        this.task.set(updatedTask);
-        this.taskUpdated.emit(updatedTask);
+      next: () => { /* already applied */ },
+      error: () => {
+        this.task.set(snapshot);
+        this.taskUpdated.emit(snapshot);
+        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: 'Could not remove label.', life: 4000 });
       },
-      error: () => {},
     });
   }
 
@@ -499,16 +514,22 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     if (!task) return;
 
     if (milestoneId) {
+      const snapshot = task;
+      const previousMilestone = this.selectedMilestone();
+      const optimisticTask = { ...task, milestone_id: milestoneId };
+      const ms = this.milestones().find((m) => m.id === milestoneId) || null;
+      this.task.set(optimisticTask);
+      this.taskUpdated.emit(optimisticTask);
+      this.selectedMilestone.set(ms);
+
       this.milestoneService.assignTask(task.id, milestoneId).subscribe({
-        next: () => {
-          const updatedTask = { ...task, milestone_id: milestoneId };
-          this.task.set(updatedTask);
-          this.taskUpdated.emit(updatedTask);
-          const ms =
-            this.milestones().find((m) => m.id === milestoneId) || null;
-          this.selectedMilestone.set(ms);
+        next: () => { /* already applied */ },
+        error: () => {
+          this.task.set(snapshot);
+          this.taskUpdated.emit(snapshot);
+          this.selectedMilestone.set(previousMilestone);
+          this.messageService.add({ severity: 'error', summary: 'Update failed', detail: 'Could not assign milestone.', life: 4000 });
         },
-        error: () => {},
       });
     } else {
       this.onClearMilestone();
@@ -872,14 +893,21 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     const task = this.task();
     if (!task) return;
 
+    const snapshot = task;
+    const previousMilestone = this.selectedMilestone();
+    const optimisticTask = { ...task, milestone_id: null };
+    this.task.set(optimisticTask);
+    this.taskUpdated.emit(optimisticTask);
+    this.selectedMilestone.set(null);
+
     this.milestoneService.unassignTask(task.id).subscribe({
-      next: () => {
-        const updatedTask = { ...task, milestone_id: null };
-        this.task.set(updatedTask);
-        this.taskUpdated.emit(updatedTask);
-        this.selectedMilestone.set(null);
+      next: () => { /* already applied */ },
+      error: () => {
+        this.task.set(snapshot);
+        this.taskUpdated.emit(snapshot);
+        this.selectedMilestone.set(previousMilestone);
+        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: 'Could not remove milestone.', life: 4000 });
       },
-      error: () => {},
     });
   }
 

@@ -21,13 +21,13 @@ import {
 } from '../../core/services/dashboard.service';
 import { WorkspaceStateService } from '../../core/services/workspace-state.service';
 import { Workspace } from '../../core/services/workspace.service';
+import { MyTasksTodayComponent } from './widgets/my-tasks-today.component';
+import { OverdueTasksTableComponent } from './widgets/overdue-tasks-table.component';
+import { TeamWorkloadComponent } from './widgets/team-workload.component';
+import { CompletionTrendComponent } from './widgets/completion-trend.component';
 import { TasksByStatusComponent } from './widgets/tasks-by-status.component';
 import { TasksByPriorityComponent } from './widgets/tasks-by-priority.component';
-import { OverdueTasksTableComponent } from './widgets/overdue-tasks-table.component';
-import { CompletionTrendComponent } from './widgets/completion-trend.component';
 import { UpcomingDeadlinesComponent } from './widgets/upcoming-deadlines.component';
-import { MyTasksTodayComponent } from './widgets/my-tasks-today.component';
-import { TeamWorkloadComponent } from './widgets/team-workload.component';
 
 interface WorkspaceOption {
   label: string;
@@ -43,13 +43,13 @@ interface WorkspaceOption {
     RouterLink,
     FormsModule,
     SelectModule,
+    MyTasksTodayComponent,
+    OverdueTasksTableComponent,
+    TeamWorkloadComponent,
+    CompletionTrendComponent,
     TasksByStatusComponent,
     TasksByPriorityComponent,
-    OverdueTasksTableComponent,
-    CompletionTrendComponent,
     UpcomingDeadlinesComponent,
-    MyTasksTodayComponent,
-    TeamWorkloadComponent,
   ],
   template: `
     <div class="min-h-screen" style="background: var(--background)">
@@ -335,36 +335,47 @@ interface WorkspaceOption {
               <h2 class="widget-title text-sm">Analytics & Insights</h2>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              <!-- Completion trend: full-width hero -->
-              <app-completion-trend
-                [workspaceId]="activeWorkspaceId()"
-                class="lg:col-span-2 min-h-[360px]"
-              />
-              <!-- Status + Priority: 2-col -->
-              <app-tasks-by-status
-                [workspaceId]="activeWorkspaceId()"
-                class="min-h-[360px]"
-              />
-              <app-tasks-by-priority
-                [workspaceId]="activeWorkspaceId()"
-                class="min-h-[360px]"
-              />
-              <!-- Deadlines + Workload: 2-col -->
-              <app-upcoming-deadlines
-                [workspaceId]="activeWorkspaceId()"
-                class="min-h-[360px]"
-              />
-              <app-team-workload
-                [workspaceId]="activeWorkspaceId()"
-                class="min-h-[360px]"
-              />
-              <!-- Overdue table: full-width bottom -->
-              <app-overdue-tasks-table
-                [workspaceId]="activeWorkspaceId()"
-                class="lg:col-span-2 min-h-[360px]"
-              />
-            </div>
+            @defer (on viewport) {
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <!-- Completion trend: full-width hero -->
+                <app-completion-trend
+                  [workspaceId]="activeWorkspaceId()"
+                  class="lg:col-span-2 min-h-[360px]"
+                />
+                <!-- Status + Priority: 2-col -->
+                <app-tasks-by-status
+                  [workspaceId]="activeWorkspaceId()"
+                  class="min-h-[360px]"
+                />
+                <app-tasks-by-priority
+                  [workspaceId]="activeWorkspaceId()"
+                  class="min-h-[360px]"
+                />
+                <!-- Deadlines + Workload: 2-col -->
+                <app-upcoming-deadlines
+                  [workspaceId]="activeWorkspaceId()"
+                  class="min-h-[360px]"
+                />
+                <app-team-workload
+                  [workspaceId]="activeWorkspaceId()"
+                  class="min-h-[360px]"
+                />
+                <!-- Overdue table: full-width bottom -->
+                <app-overdue-tasks-table
+                  [workspaceId]="activeWorkspaceId()"
+                  class="lg:col-span-2 min-h-[360px]"
+                />
+              </div>
+            } @placeholder {
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                @for (i of [1,2,3,4]; track i) {
+                  <div class="widget-card p-5 min-h-[360px] animate-pulse">
+                    <div class="h-4 w-32 rounded mb-4" style="background: var(--muted)"></div>
+                    <div class="h-64 w-full rounded-lg" style="background: var(--muted)"></div>
+                  </div>
+                }
+              </div>
+            }
           </div>
 
           <!-- Workspaces Section -->
