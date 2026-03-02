@@ -107,6 +107,9 @@ pub async fn create_task_handler(
             column_id: task.column_id,
             position: task.position.clone(),
             assignee_ids: assignee_ids.clone(),
+            watcher_ids: taskflow_db::queries::get_task_watcher_ids(&state.db, task.id)
+                .await
+                .unwrap_or_default(),
             updated_at: task.updated_at,
         },
         origin_user_id: tenant.user_id,
@@ -143,6 +146,7 @@ pub async fn create_task_handler(
             previous_column_id: None,
             new_column_id: Some(task.column_id),
             priority: Some(format!("{:?}", task.priority).to_lowercase()),
+            member_user_id: None,
         },
     );
 
@@ -168,6 +172,7 @@ pub async fn update_task_handler(
     }
 
     let priority_changed = body.priority.is_some();
+    let due_date_changed = body.due_date.is_some() || body.clear_due_date.unwrap_or(false);
 
     let input = UpdateTaskInput {
         title: body.title,
@@ -204,6 +209,9 @@ pub async fn update_task_handler(
             column_id: task.column_id,
             position: task.position.clone(),
             assignee_ids: assignee_ids.clone(),
+            watcher_ids: taskflow_db::queries::get_task_watcher_ids(&state.db, task.id)
+                .await
+                .unwrap_or_default(),
             updated_at: task.updated_at,
         },
         origin_user_id: tenant.user_id,
@@ -228,6 +236,13 @@ pub async fn update_task_handler(
         .await;
     }
 
+    // Reset reminders when due_date changes
+    if due_date_changed {
+        if let Err(e) = taskflow_db::queries::reset_reminders_for_task(&state.db, task_id).await {
+            tracing::error!(task_id = %task_id, error = %e, "Failed to reset reminders after due_date change");
+        }
+    }
+
     // Trigger automations for priority changes
     if priority_changed {
         spawn_automation_evaluation(
@@ -241,6 +256,7 @@ pub async fn update_task_handler(
                 previous_column_id: None,
                 new_column_id: None,
                 priority: Some(format!("{:?}", task.priority).to_lowercase()),
+                member_user_id: None,
             },
         );
     }
@@ -346,6 +362,9 @@ pub async fn duplicate_task_handler(
             column_id: task.column_id,
             position: task.position.clone(),
             assignee_ids: assignee_ids.clone(),
+            watcher_ids: taskflow_db::queries::get_task_watcher_ids(&state.db, task.id)
+                .await
+                .unwrap_or_default(),
             updated_at: task.updated_at,
         },
         origin_user_id: tenant.user_id,

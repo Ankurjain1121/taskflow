@@ -83,6 +83,9 @@ pub async fn assign_user_handler(
             column_id: task.column_id,
             position: task.position,
             assignee_ids: assignee_ids.clone(),
+            watcher_ids: taskflow_db::queries::get_task_watcher_ids(&state.db, task_id)
+                .await
+                .unwrap_or_default(),
             updated_at: task.updated_at,
         },
         origin_user_id: tenant.user_id,
@@ -135,6 +138,7 @@ pub async fn assign_user_handler(
             previous_column_id: None,
             new_column_id: None,
             priority: None,
+            member_user_id: None,
         },
     );
 
@@ -195,6 +199,9 @@ pub async fn unassign_user_handler(
             column_id: task.column_id,
             position: task.position,
             assignee_ids: assignee_ids.clone(),
+            watcher_ids: taskflow_db::queries::get_task_watcher_ids(&state.db, task_id)
+                .await
+                .unwrap_or_default(),
             updated_at: task.updated_at,
         },
         origin_user_id: tenant.user_id,

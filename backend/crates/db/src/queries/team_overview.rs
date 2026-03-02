@@ -19,6 +19,8 @@ pub struct MemberWorkload {
     pub total_tasks: i64,
     pub active_tasks: i64,
     pub overdue_tasks: i64,
+    pub due_today: i64,
+    pub due_this_week: i64,
     pub tasks_by_status: HashMap<String, i64>,
     pub is_overloaded: bool,
 }
@@ -51,6 +53,8 @@ struct WorkloadAgg {
     active_tasks: i64,
     overdue_tasks: i64,
     done_tasks: i64,
+    due_today: i64,
+    due_this_week: i64,
 }
 
 /// Get workload for all members of a workspace
@@ -85,7 +89,18 @@ pub async fn get_workload(
             COUNT(DISTINCT t.id) FILTER (
                 WHERE t.id IS NOT NULL
                 AND bc.status_mapping->>'done' = 'true'
-            ) as done_tasks
+            ) as done_tasks,
+            COUNT(DISTINCT t.id) FILTER (
+                WHERE t.id IS NOT NULL AND t.due_date IS NOT NULL
+                AND t.due_date::date = CURRENT_DATE
+                AND (bc.status_mapping IS NULL OR (bc.status_mapping->>'done') IS DISTINCT FROM 'true')
+            ) as due_today,
+            COUNT(DISTINCT t.id) FILTER (
+                WHERE t.id IS NOT NULL AND t.due_date IS NOT NULL
+                AND t.due_date::date > CURRENT_DATE
+                AND t.due_date::date <= (CURRENT_DATE + INTERVAL '7 days')::date
+                AND (bc.status_mapping IS NULL OR (bc.status_mapping->>'done') IS DISTINCT FROM 'true')
+            ) as due_this_week
         FROM workspace_members wm
         INNER JOIN users u ON u.id = wm.user_id
         LEFT JOIN task_assignees ta ON ta.user_id = u.id
@@ -117,6 +132,8 @@ pub async fn get_workload(
                 total_tasks: r.total_tasks,
                 active_tasks: r.active_tasks,
                 overdue_tasks: r.overdue_tasks,
+                due_today: r.due_today,
+                due_this_week: r.due_this_week,
                 tasks_by_status,
                 is_overloaded: r.active_tasks >= 10,
             }
@@ -182,7 +199,7 @@ pub async fn get_overloaded_members(
 }
 
 /// A member's active task for workload balancing view
-#[derive(Debug, Serialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Clone)]
 pub struct MemberTask {
     pub task_id: Uuid,
     pub title: String,
@@ -190,6 +207,38 @@ pub struct MemberTask {
     pub column_name: String,
     pub priority: TaskPriority,
     pub due_date: Option<DateTime<Utc>>,
+    pub due_status: String,
+}
+
+/// Raw row from the member tasks query (before computing due_status)
+#[derive(sqlx::FromRow)]
+struct MemberTaskRow {
+    task_id: Uuid,
+    title: String,
+    board_name: String,
+    column_name: String,
+    priority: TaskPriority,
+    due_date: Option<DateTime<Utc>>,
+}
+
+/// Compute a due-status label from an optional due date
+fn compute_due_status(due_date: Option<DateTime<Utc>>) -> String {
+    let Some(due) = due_date else {
+        return "no_due_date".to_string();
+    };
+    let now = Utc::now();
+    let today = now.date_naive();
+    let due_day = due.date_naive();
+
+    if due_day < today {
+        "overdue".to_string()
+    } else if due_day == today {
+        "due_today".to_string()
+    } else if due_day <= today + chrono::Duration::days(7) {
+        "due_this_week".to_string()
+    } else {
+        "upcoming".to_string()
+    }
 }
 
 /// Get active tasks assigned to a specific member within a workspace
@@ -198,7 +247,7 @@ pub async fn get_member_active_tasks(
     workspace_id: Uuid,
     user_id: Uuid,
 ) -> Result<Vec<MemberTask>, sqlx::Error> {
-    sqlx::query_as::<_, MemberTask>(
+    let rows = sqlx::query_as::<_, MemberTaskRow>(
         r#"
         SELECT
             t.id as task_id,
@@ -229,7 +278,20 @@ pub async fn get_member_active_tasks(
     .bind(user_id)
     .bind(workspace_id)
     .fetch_all(pool)
-    .await
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|r| MemberTask {
+            due_status: compute_due_status(r.due_date),
+            task_id: r.task_id,
+            title: r.title,
+            board_name: r.board_name,
+            column_name: r.column_name,
+            priority: r.priority,
+            due_date: r.due_date,
+        })
+        .collect())
 }
 
 /// Reassign tasks from one user to another, scoped to a workspace.
@@ -304,10 +366,31 @@ mod tests {
             total_tasks: 5,
             active_tasks: 3,
             overdue_tasks: 1,
+            due_today: 2,
+            due_this_week: 1,
             tasks_by_status: HashMap::new(),
             is_overloaded: false,
         };
         let json = serde_json::to_string(&workload).unwrap();
         assert!(json.contains("total_tasks"));
+        assert!(json.contains("due_today"));
+        assert!(json.contains("due_this_week"));
+    }
+
+    #[test]
+    fn test_compute_due_status() {
+        assert_eq!(compute_due_status(None), "no_due_date");
+
+        let yesterday = Utc::now() - chrono::Duration::days(1);
+        assert_eq!(compute_due_status(Some(yesterday)), "overdue");
+
+        let today = Utc::now();
+        assert_eq!(compute_due_status(Some(today)), "due_today");
+
+        let in_3_days = Utc::now() + chrono::Duration::days(3);
+        assert_eq!(compute_due_status(Some(in_3_days)), "due_this_week");
+
+        let in_30_days = Utc::now() + chrono::Duration::days(30);
+        assert_eq!(compute_due_status(Some(in_30_days)), "upcoming");
     }
 }

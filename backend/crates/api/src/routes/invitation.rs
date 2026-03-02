@@ -13,8 +13,10 @@ use uuid::Uuid;
 
 use taskflow_auth::jwt::issue_tokens;
 use taskflow_auth::password::hash_password;
+use taskflow_db::models::automation::AutomationTrigger;
 use taskflow_db::models::{Invitation, UserRole};
 use taskflow_db::queries::{auth, invitations, workspaces};
+use taskflow_services::{spawn_automation_evaluation, TriggerContext};
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
@@ -346,6 +348,40 @@ pub async fn accept_handler(
     .await?;
 
     tx.commit().await?;
+
+    // Fire MemberJoined automation trigger for all boards in the workspace
+    {
+        let pool = state.db.clone();
+        let ws_id = invitation.workspace_id;
+        let new_user_id = user.id;
+        let tid = tenant_id;
+        tokio::spawn(async move {
+            let board_ids = sqlx::query_scalar::<_, Uuid>(
+                "SELECT id FROM boards WHERE workspace_id = $1 AND deleted_at IS NULL",
+            )
+            .bind(ws_id)
+            .fetch_all(&pool)
+            .await
+            .unwrap_or_default();
+
+            for board_id in board_ids {
+                spawn_automation_evaluation(
+                    pool.clone(),
+                    AutomationTrigger::MemberJoined,
+                    TriggerContext {
+                        task_id: Uuid::nil(),
+                        board_id,
+                        tenant_id: tid,
+                        user_id: new_user_id,
+                        previous_column_id: None,
+                        new_column_id: None,
+                        priority: None,
+                        member_user_id: Some(new_user_id),
+                    },
+                );
+            }
+        });
+    }
 
     // Save timezone to user_preferences if provided
     if let Some(ref tz) = payload.timezone {

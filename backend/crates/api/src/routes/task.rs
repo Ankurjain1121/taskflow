@@ -14,7 +14,9 @@ use super::task_crud::{
     update_task_handler,
 };
 use super::task_movement::move_task_handler;
+use super::task_reminder::{list_reminders_handler, remove_reminder_handler, set_reminder_handler};
 use super::task_views;
+use super::task_watcher::{add_watcher_handler, remove_watcher_handler};
 
 /// Create the task router
 pub fn task_router(state: AppState) -> Router<AppState> {
@@ -52,6 +54,21 @@ pub fn task_router(state: AppState) -> Router<AppState> {
         .route(
             "/tasks/{id}/assignees/{user_id}",
             delete(unassign_user_handler),
+        )
+        // Watcher routes
+        .route("/tasks/{id}/watchers", post(add_watcher_handler))
+        .route(
+            "/tasks/{id}/watchers/{user_id}",
+            delete(remove_watcher_handler),
+        )
+        // Reminder routes
+        .route(
+            "/tasks/{id}/reminders",
+            post(set_reminder_handler).get(list_reminders_handler),
+        )
+        .route(
+            "/tasks/{id}/reminders/{reminder_id}",
+            delete(remove_reminder_handler),
         )
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
