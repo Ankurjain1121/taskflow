@@ -209,7 +209,7 @@ pub async fn get_eisenhower_matrix(
             FROM task_assignees ta
             INNER JOIN users u ON ta.user_id = u.id
             WHERE ta.task_id = ANY($1)
-            ORDER BY ta.created_at ASC
+            ORDER BY ta.assigned_at ASC
             "#,
         )
         .bind(&task_ids)
