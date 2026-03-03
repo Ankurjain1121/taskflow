@@ -97,6 +97,7 @@ function createMockTaskService() {
     unassignUser: vi.fn(),
     removeLabel: vi.fn(),
     deleteTask: vi.fn(),
+    listReminders: vi.fn(),
   };
 }
 
@@ -144,6 +145,7 @@ describe('TaskDetailPageComponent', () => {
     mockTaskService.getTask.mockReturnValue(
       of({ ...task, board_id: 'board-1' }),
     );
+    mockTaskService.listReminders.mockReturnValue(of([]));
     mockBoardService.getBoard.mockReturnValue(of(board));
     mockBoardService.listColumns.mockReturnValue(of(columns));
     mockWorkspaceService.get.mockReturnValue(of(workspace));
@@ -383,7 +385,7 @@ describe('TaskDetailPageComponent', () => {
 
       expect(mockTaskService.updateTask).toHaveBeenCalledWith(
         'task-1',
-        expect.objectContaining({ due_date: '2026-12-25' }),
+        expect.objectContaining({ due_date: '2026-12-25T00:00:00.000Z' }),
       );
     });
 
