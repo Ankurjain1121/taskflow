@@ -237,7 +237,9 @@ async fn execute_move_task(
 
     sqlx::query(
         r#"
-        UPDATE tasks SET column_id = $2, position = $3, updated_at = NOW()
+        UPDATE tasks SET column_id = $2, position = $3,
+            column_entered_at = CASE WHEN column_id != $2 THEN NOW() ELSE column_entered_at END,
+            updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
         "#,
     )

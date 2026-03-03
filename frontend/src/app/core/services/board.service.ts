@@ -102,6 +102,7 @@ export interface TaskWithBadges {
   subtask_total: number;
   has_running_timer: boolean;
   comment_count: number;
+  column_entered_at: string;
   assignees: { id: string; display_name: string; avatar_url: string | null }[];
   labels: { id: string; name: string; color: string }[];
 }

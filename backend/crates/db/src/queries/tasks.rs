@@ -125,7 +125,7 @@ pub async fn list_tasks_by_board(
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, created_at, updated_at, version
+            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
         FROM tasks
         WHERE board_id = $1 AND deleted_at IS NULL
         ORDER BY position ASC
@@ -157,7 +157,7 @@ pub async fn get_task_by_id(
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, created_at, updated_at, version
+            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -282,7 +282,7 @@ pub async fn create_task(
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, created_at, updated_at, version
+            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
         "#,
     )
     .bind(task_id)
@@ -367,7 +367,7 @@ pub async fn update_task(
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, created_at, updated_at, version
+            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
         "#,
     )
     .bind(task_id)
@@ -398,7 +398,7 @@ pub async fn update_task(
                     SELECT id, title, description, priority, due_date, start_date,
                            estimated_hours, board_id, column_id, group_id, position,
                            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-                           tenant_id, created_by_id, deleted_at, created_at, updated_at, version
+                           tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
                     FROM tasks WHERE id = $1 AND deleted_at IS NULL
                     "#,
                 )
@@ -449,13 +449,14 @@ pub async fn move_task(
         SET
             column_id = $2,
             position = $3,
+            column_entered_at = CASE WHEN column_id != $2 THEN NOW() ELSE column_entered_at END,
             updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
         RETURNING
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, created_at, updated_at, version
+            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
         "#,
     )
     .bind(task_id)
@@ -481,7 +482,7 @@ pub async fn duplicate_task(
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, created_at, updated_at, version
+            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -524,7 +525,7 @@ pub async fn duplicate_task(
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, created_at, updated_at, version
+            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
         "#,
     )
     .bind(new_id)

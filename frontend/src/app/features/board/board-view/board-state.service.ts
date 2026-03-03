@@ -36,6 +36,32 @@ import { generateKeyBetween } from 'fractional-indexing';
 import { GroupByMode, SwimlaneGroup, SwimlaneState } from './swimlane.types';
 import { buildSwimlaneGroups, buildSwimlaneState } from './swimlane-utils';
 
+export interface CardFields {
+  showPriority: boolean;
+  showDueDate: boolean;
+  showAssignees: boolean;
+  showLabels: boolean;
+  showSubtaskProgress: boolean;
+  showComments: boolean;
+  showAttachments: boolean;
+  showTaskId: boolean;
+  showDescription: boolean;
+  showDaysInColumn: boolean;
+}
+
+export const DEFAULT_CARD_FIELDS: CardFields = {
+  showPriority: true,
+  showDueDate: true,
+  showAssignees: true,
+  showLabels: true,
+  showSubtaskProgress: true,
+  showComments: true,
+  showAttachments: true,
+  showTaskId: true,
+  showDescription: true,
+  showDaysInColumn: true,
+};
+
 @Injectable()
 export class BoardStateService {
   private boardService = inject(BoardService);
@@ -89,6 +115,15 @@ export class BoardStateService {
   readonly dragSimulationActive = signal<boolean>(false);
   readonly dragSimulationSourceColumnId = signal<string | null>(null);
   readonly dragSimulationCurrentColumnId = signal<string | null>(null);
+  readonly cardFields = signal<CardFields>(
+    (() => {
+      try {
+        const stored = localStorage.getItem('taskflow_card_fields');
+        if (stored) return { ...DEFAULT_CARD_FIELDS, ...JSON.parse(stored) };
+      } catch { /* ignore */ }
+      return DEFAULT_CARD_FIELDS;
+    })(),
+  );
 
   // === Computed Signals ===
   readonly collapsedGroupIds = computed(() => {
@@ -208,6 +243,7 @@ export class BoardStateService {
             subtask_total: t.subtask_total,
             has_running_timer: t.has_running_timer,
             comment_count: t.comment_count,
+            column_entered_at: t.column_entered_at,
           };
           if (!tasksByColumn[t.column_id]) {
             tasksByColumn[t.column_id] = [];
@@ -767,6 +803,21 @@ export class BoardStateService {
   setCardDensity(density: 'compact' | 'normal' | 'expanded'): void {
     this.cardDensity.set(density);
     localStorage.setItem('taskflow_card_density', density);
+  }
+
+  // === Card Fields ===
+
+  updateCardField(key: keyof CardFields, value: boolean): void {
+    this.cardFields.update(f => {
+      const next = { ...f, [key]: value };
+      localStorage.setItem('taskflow_card_fields', JSON.stringify(next));
+      return next;
+    });
+  }
+
+  resetCardFields(): void {
+    this.cardFields.set({ ...DEFAULT_CARD_FIELDS });
+    localStorage.setItem('taskflow_card_fields', JSON.stringify(DEFAULT_CARD_FIELDS));
   }
 
   // === Swimlane Group By ===

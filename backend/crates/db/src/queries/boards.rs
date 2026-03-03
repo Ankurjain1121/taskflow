@@ -419,6 +419,7 @@ pub struct TaskWithBadgesRow {
     pub subtask_completed: i64,
     pub has_running_timer: bool,
     pub comment_count: i64,
+    pub column_entered_at: DateTime<Utc>,
 }
 
 /// Assignee info returned for a board's tasks
@@ -460,6 +461,7 @@ pub async fn list_board_tasks_with_badges(
             t.created_by_id,
             t.created_at,
             t.updated_at,
+            t.column_entered_at,
             COALESCE(sub.total, 0) AS "subtask_total",
             COALESCE(sub.completed, 0) AS "subtask_completed",
             COALESCE(tmr.has_running, false) AS "has_running_timer",

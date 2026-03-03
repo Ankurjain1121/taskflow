@@ -1,5 +1,6 @@
 import {
   Component,
+  computed,
   input,
   output,
   signal,
@@ -20,6 +21,7 @@ import { MenuItem } from 'primeng/api';
 import { Tooltip } from 'primeng/tooltip';
 import { Task } from '../../../core/services/task.service';
 import { Column } from '../../../core/services/board.service';
+import { CardFields, DEFAULT_CARD_FIELDS } from '../board-view/board-state.service';
 import { TaskLockInfo } from '../../../core/services/presence.service';
 import {
   CardQuickEditService,
@@ -241,11 +243,13 @@ import {
           <!-- Priority dot + due date + assignees -->
           <div class="flex items-center justify-between mt-1">
             <div class="flex items-center gap-1.5">
-              <span
-                class="w-2 h-2 rounded-full flex-shrink-0"
-                [style.background-color]="getPriorityFlagColor()"
-              ></span>
-              @if (task().due_date) {
+              @if (cardFields().showPriority) {
+                <span
+                  class="w-2 h-2 rounded-full flex-shrink-0"
+                  [style.background-color]="getPriorityFlagColor()"
+                ></span>
+              }
+              @if (task().due_date && cardFields().showDueDate) {
                 <span
                   class="text-[9px] font-medium"
                   [ngClass]="dueDateColors.class"
@@ -254,7 +258,7 @@ import {
                 </span>
               }
             </div>
-            @if (task().assignees && task().assignees!.length > 0) {
+            @if (task().assignees && task().assignees!.length > 0 && cardFields().showAssignees) {
               <div class="flex -space-x-1">
                 @for (
                   assignee of task().assignees!.slice(0, 2);
@@ -294,7 +298,7 @@ import {
         <!-- Expanded card: all labels, 2-line description, all assignees -->
 
         <!-- All Labels (no cap) -->
-        @if (task().labels && task().labels!.length > 0) {
+        @if (task().labels && task().labels!.length > 0 && cardFields().showLabels) {
           <div class="flex flex-wrap gap-1 px-3 pt-3">
             @for (label of task().labels!; track label.id) {
               <span
@@ -335,7 +339,7 @@ import {
           }
 
           <!-- Short ID -->
-          @if (task().task_number && boardPrefix()) {
+          @if (task().task_number && boardPrefix() && cardFields().showTaskId) {
             <span
               class="text-[10px] font-medium text-[var(--muted-foreground)] mb-1 inline-block"
             >
@@ -380,7 +384,7 @@ import {
           }
 
           <!-- Description preview (2 lines in expanded mode) -->
-          @if (task().description && task().description!.trim()) {
+          @if (task().description && task().description!.trim() && cardFields().showDescription) {
             <p class="text-[11px] text-[var(--muted-foreground)] line-clamp-2 leading-snug mb-2.5 -mt-1">
               {{ task().description }}
             </p>
@@ -417,10 +421,12 @@ import {
           >
             <div class="flex items-center gap-2">
               <!-- Priority Badge -->
-              <app-priority-badge [priority]="task().priority" />
+              @if (cardFields().showPriority) {
+                <app-priority-badge [priority]="task().priority" />
+              }
 
               <!-- Due Date -->
-              @if (task().due_date) {
+              @if (task().due_date && cardFields().showDueDate) {
                 <span
                   [class]="
                     'flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded ' +
@@ -447,7 +453,7 @@ import {
               }
 
               <!-- Subtask Progress Bar -->
-              @if (subtaskProgress() && subtaskProgress()!.total > 0) {
+              @if (subtaskProgress() && subtaskProgress()!.total > 0 && cardFields().showSubtaskProgress) {
                 <div class="flex items-center gap-1.5">
                   <div class="w-12 h-1 rounded-full bg-[var(--border)] overflow-hidden">
                     <div
@@ -468,7 +474,7 @@ import {
               }
 
               <!-- Comment Count -->
-              @if (task().comment_count && task().comment_count! > 0) {
+              @if (task().comment_count && task().comment_count! > 0 && cardFields().showComments) {
                 <span
                   class="flex items-center gap-1 text-[11px] font-medium text-[var(--muted-foreground)]"
                 >
@@ -490,7 +496,7 @@ import {
               }
 
               <!-- Attachment Count -->
-              @if (task().attachment_count && task().attachment_count! > 0) {
+              @if (task().attachment_count && task().attachment_count! > 0 && cardFields().showAttachments) {
                 <span
                   class="flex items-center gap-1 text-[11px] font-medium text-[var(--muted-foreground)]"
                 >
@@ -514,7 +520,7 @@ import {
 
             <!-- All Assignees (no cap in expanded mode) -->
             <div class="flex items-center">
-              @if (task().assignees && task().assignees!.length > 0) {
+              @if (task().assignees && task().assignees!.length > 0 && cardFields().showAssignees) {
                 <div class="flex -space-x-2">
                   @for (
                     assignee of task().assignees!;
@@ -546,12 +552,29 @@ import {
               }
             </div>
           </div>
+
+          <!-- Days-in-Column Indicator -->
+          @if (daysInColumn() > 0 && cardFields().showDaysInColumn) {
+            <div class="flex items-center gap-0.5 px-4 pb-3">
+              @for (d of dotsArray(); track $index) {
+                <span class="w-1.5 h-1.5 rounded-full"
+                  [class.bg-white]="daysInColumn() < 4"
+                  [class.opacity-30]="daysInColumn() < 4"
+                  [class.bg-amber-400]="daysInColumn() >= 4 && daysInColumn() < 8"
+                  [class.bg-red-500]="daysInColumn() >= 8"
+                ></span>
+              }
+              @if (daysInColumn() >= 8) {
+                <span class="text-[10px] text-red-400 ml-0.5">{{ daysInColumn() }}d</span>
+              }
+            </div>
+          }
         </div>
       } @else {
         <!-- Normal card: full layout -->
 
         <!-- Labels (capped at 2 + overflow pill) -->
-        @if (task().labels && task().labels!.length > 0) {
+        @if (task().labels && task().labels!.length > 0 && cardFields().showLabels) {
           <div class="flex flex-wrap gap-1 px-3 pt-3">
             @for (label of task().labels!.slice(0, 2); track label.id) {
               <span
@@ -601,7 +624,7 @@ import {
           }
 
           <!-- Short ID -->
-          @if (task().task_number && boardPrefix()) {
+          @if (task().task_number && boardPrefix() && cardFields().showTaskId) {
             <span
               class="text-[10px] font-medium text-[var(--muted-foreground)] mb-1 inline-block"
             >
@@ -646,7 +669,7 @@ import {
           }
 
           <!-- Description preview (1 line, only when non-empty) -->
-          @if (task().description && task().description!.trim()) {
+          @if (task().description && task().description!.trim() && cardFields().showDescription) {
             <p class="text-[11px] text-[var(--muted-foreground)] line-clamp-1 leading-snug mb-2.5 -mt-1">
               {{ task().description }}
             </p>
@@ -683,10 +706,12 @@ import {
           >
             <div class="flex items-center gap-2">
               <!-- Priority Badge -->
-              <app-priority-badge [priority]="task().priority" />
+              @if (cardFields().showPriority) {
+                <app-priority-badge [priority]="task().priority" />
+              }
 
               <!-- Due Date -->
-              @if (task().due_date) {
+              @if (task().due_date && cardFields().showDueDate) {
                 <span
                   [class]="
                     'flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded ' +
@@ -713,7 +738,7 @@ import {
               }
 
               <!-- Subtask Progress Bar -->
-              @if (subtaskProgress() && subtaskProgress()!.total > 0) {
+              @if (subtaskProgress() && subtaskProgress()!.total > 0 && cardFields().showSubtaskProgress) {
                 <div class="flex items-center gap-1.5">
                   <div class="w-12 h-1 rounded-full bg-[var(--border)] overflow-hidden">
                     <div
@@ -734,7 +759,7 @@ import {
               }
 
               <!-- Comment Count -->
-              @if (task().comment_count && task().comment_count! > 0) {
+              @if (task().comment_count && task().comment_count! > 0 && cardFields().showComments) {
                 <span
                   class="flex items-center gap-1 text-[11px] font-medium text-[var(--muted-foreground)]"
                 >
@@ -756,7 +781,7 @@ import {
               }
 
               <!-- Attachment Count -->
-              @if (task().attachment_count && task().attachment_count! > 0) {
+              @if (task().attachment_count && task().attachment_count! > 0 && cardFields().showAttachments) {
                 <span
                   class="flex items-center gap-1 text-[11px] font-medium text-[var(--muted-foreground)]"
                 >
@@ -780,7 +805,7 @@ import {
 
             <!-- Assignees -->
             <div class="flex items-center">
-              @if (task().assignees && task().assignees!.length > 0) {
+              @if (task().assignees && task().assignees!.length > 0 && cardFields().showAssignees) {
                 <div class="flex -space-x-2">
                   @for (
                     assignee of task().assignees!.slice(0, 3);
@@ -820,6 +845,23 @@ import {
               }
             </div>
           </div>
+
+          <!-- Days-in-Column Indicator -->
+          @if (daysInColumn() > 0 && cardFields().showDaysInColumn) {
+            <div class="flex items-center gap-0.5 mt-1.5">
+              @for (d of dotsArray(); track $index) {
+                <span class="w-1.5 h-1.5 rounded-full"
+                  [class.bg-white]="daysInColumn() < 4"
+                  [class.opacity-30]="daysInColumn() < 4"
+                  [class.bg-amber-400]="daysInColumn() >= 4 && daysInColumn() < 8"
+                  [class.bg-red-500]="daysInColumn() >= 8"
+                ></span>
+              }
+              @if (daysInColumn() >= 8) {
+                <span class="text-[10px] text-red-400 ml-0.5">{{ daysInColumn() }}d</span>
+              }
+            </div>
+          }
         </div>
       }
 
@@ -958,6 +1000,15 @@ export class TaskCardComponent {
   boardPrefix = input<string | null>(null);
   density = input<'compact' | 'normal' | 'expanded'>('normal');
   lockedBy = input<TaskLockInfo | null>(null);
+  cardFields = input<CardFields>(DEFAULT_CARD_FIELDS);
+
+  readonly daysInColumn = computed(() => {
+    const entered = this.task().column_entered_at;
+    if (!entered) return 0;
+    return Math.floor((Date.now() - new Date(entered).getTime()) / 86_400_000);
+  });
+
+  readonly dotsArray = computed(() => Array(Math.min(this.daysInColumn(), 7)).fill(0));
 
   taskClicked = output<Task>();
   selectionToggled = output<string>();

@@ -362,6 +362,7 @@ mod tests {
             tenant_id: Uuid::new_v4(),
             created_by_id: Uuid::new_v4(),
             deleted_at: None,
+            column_entered_at: now,
             created_at: now,
             updated_at: now,
             version: 1,
