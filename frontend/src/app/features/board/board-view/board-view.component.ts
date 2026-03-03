@@ -58,6 +58,7 @@ import {
 } from '../bulk-actions/bulk-actions-bar.component';
 import { TaskGroupHeaderComponent } from '../task-group-header/task-group-header.component';
 import { ShortcutHelpComponent } from '../../../shared/components/shortcut-help/shortcut-help.component';
+import { ShortcutDiscoveryBannerComponent } from '../../../shared/components/shortcut-discovery-banner/shortcut-discovery-banner.component';
 import { SwimlaneContainerComponent } from '../swimlane-container/swimlane-container.component';
 import { GroupByMode, SwimlaneTaskMoveEvent } from './swimlane.types';
 
@@ -105,6 +106,7 @@ import { Checkbox } from 'primeng/checkbox';
     BulkActionsBarComponent,
     TaskGroupHeaderComponent,
     ShortcutHelpComponent,
+    ShortcutDiscoveryBannerComponent,
     SwimlaneContainerComponent,
     CardQuickEditPopoverComponent,
     BoardPresenceComponent,
@@ -250,11 +252,17 @@ import { Checkbox } from 'primeng/checkbox';
         [viewMode]="viewMode()"
         [density]="state.cardDensity()"
         [groupBy]="state.groupBy()"
+        [cardFields]="state.cardFields()"
         (filtersChanged)="onFiltersChanged($event)"
         (viewModeChanged)="onViewModeChanged($event)"
         (densityChanged)="onDensityChanged($event)"
         (groupByChanged)="onGroupByChanged($event)"
+        (cardFieldChanged)="state.updateCardField($event.key, $event.value)"
+        (cardFieldsReset)="state.resetCardFields()"
       ></app-board-toolbar>
+
+      <!-- Shortcut Discovery Banner (first-visit only) -->
+      <app-shortcut-discovery-banner />
 
       <!-- Task Group Headers -->
       @if (state.boardGroups().length > 1) {
@@ -379,6 +387,7 @@ import { Checkbox } from 'primeng/checkbox';
             [columns]="state.columns()"
             [boardPrefix]="state.board()?.prefix ?? null"
             [density]="state.cardDensity()"
+            [cardFields]="state.cardFields()"
             [celebratingTaskId]="state.celebratingTaskId()"
             [focusedTaskId]="state.focusedTaskId()"
             [selectedTaskIds]="state.selectedTaskIds()"
@@ -428,6 +437,7 @@ import { Checkbox } from 'primeng/checkbox';
                 [boardPrefix]="state.board()?.prefix ?? null"
                 [isCollapsed]="state.isColumnCollapsed(column.id)"
                 [density]="state.cardDensity()"
+                [cardFields]="state.cardFields()"
                 (taskMoved)="onTaskMoved($event)"
                 (taskClicked)="onTaskClicked($event)"
                 (addTaskClicked)="onAddTaskToColumn($event)"

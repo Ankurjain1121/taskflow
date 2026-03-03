@@ -11,6 +11,7 @@ import { Task } from '../../../core/services/task.service';
 import { Column } from '../../../core/services/board.service';
 import { SwimlaneGroup, SwimlaneState, SwimlaneTaskMoveEvent, GroupByMode } from '../board-view/swimlane.types';
 import { SwimlaneRowComponent } from '../swimlane-row/swimlane-row.component';
+import { CardFields, DEFAULT_CARD_FIELDS } from '../board-view/board-state.service';
 import { makeCellId } from '../board-view/swimlane-utils';
 
 @Component({
@@ -56,6 +57,7 @@ import { makeCellId } from '../board-view/swimlane-utils';
           [allColumns]="allColumns()"
           [boardPrefix]="boardPrefix()"
           [density]="density()"
+          [cardFields]="cardFields()"
           [groupBy]="groupBy()"
           (taskMoved)="taskMoved.emit($event)"
           (taskClicked)="taskClicked.emit($event)"
@@ -88,6 +90,7 @@ export class SwimlaneContainerComponent {
   columns = input.required<Column[]>();
   boardPrefix = input<string | null>(null);
   density = input<'compact' | 'normal' | 'expanded'>('normal');
+  cardFields = input<CardFields>(DEFAULT_CARD_FIELDS);
   celebratingTaskId = input<string | null>(null);
   focusedTaskId = input<string | null>(null);
   selectedTaskIds = input<string[]>([]);

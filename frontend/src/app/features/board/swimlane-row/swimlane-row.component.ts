@@ -18,6 +18,7 @@ import { PresenceService } from '../../../core/services/presence.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { TaskCardComponent } from '../task-card/task-card.component';
 import { SwimlaneGroup, SwimlaneTaskMoveEvent, GroupByMode } from '../board-view/swimlane.types';
+import { CardFields, DEFAULT_CARD_FIELDS } from '../board-view/board-state.service';
 import { makeCellId, parseCellId, NONE_KEY } from '../board-view/swimlane-utils';
 
 @Component({
@@ -92,6 +93,7 @@ import { makeCellId, parseCellId, NONE_KEY } from '../board-view/swimlane-utils'
               <app-task-card
                 [task]="task"
                 [density]="density()"
+                [cardFields]="cardFields()"
                 [isBlocked]="false"
                 [isCelebrating]="celebratingTaskId() === task.id"
                 [isFocused]="focusedTaskId() === task.id"
@@ -148,6 +150,7 @@ export class SwimlaneRowComponent {
   allColumns = input<Column[]>([]);
   boardPrefix = input<string | null>(null);
   density = input<'compact' | 'normal' | 'expanded'>('normal');
+  cardFields = input<CardFields>(DEFAULT_CARD_FIELDS);
   groupBy = input<GroupByMode>('none');
 
   taskMoved = output<SwimlaneTaskMoveEvent>();

@@ -75,6 +75,7 @@ export interface Task {
   has_running_timer?: boolean;
   comment_count?: number;
   attachment_count?: number;
+  column_entered_at?: string;
 }
 
 export interface TaskLabel {

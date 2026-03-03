@@ -23,6 +23,7 @@ import {
 } from '@angular/cdk/drag-drop';
 import { Column } from '../../../core/services/board.service';
 import { Task } from '../../../core/services/task.service';
+import { CardFields } from '../board-view/board-state.service';
 import { PresenceService } from '../../../core/services/presence.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { TaskCardComponent } from '../task-card/task-card.component';
@@ -218,6 +219,7 @@ export interface TaskMoveEvent {
               "
               [hasRunningTimer]="task.has_running_timer ?? false"
               [lockedBy]="getTaskLockInfo(task.id)"
+              [cardFields]="cardFields()"
               (taskClicked)="onTaskClicked($event)"
               (selectionToggled)="selectionToggled.emit($event)"
               (priorityChanged)="priorityChanged.emit($event)"
@@ -347,6 +349,12 @@ export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
   isCollapsed = input<boolean>(false);
   dragSimActive = input<boolean>(false);
   dragSimCurrentColId = input<string | null>(null);
+  cardFields = input<CardFields>({
+    showPriority: true, showDueDate: true, showAssignees: true,
+    showLabels: true, showSubtaskProgress: true, showComments: true,
+    showAttachments: true, showTaskId: true, showDescription: true,
+    showDaysInColumn: true,
+  });
 
   isDragTarget = computed(() => this.dragSimActive() && this.dragSimCurrentColId() === this.column().id);
 

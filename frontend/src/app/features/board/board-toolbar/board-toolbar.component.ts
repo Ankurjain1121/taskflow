@@ -26,6 +26,7 @@ import {
 } from '../../../core/services/filter-presets.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { GroupByMode } from '../board-view/swimlane.types';
+import { CardFields } from '../board-view/board-state.service';
 import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
@@ -36,6 +37,7 @@ import { ButtonModule } from 'primeng/button';
 import { Menu } from 'primeng/menu';
 import { Dialog } from 'primeng/dialog';
 import { Tooltip } from 'primeng/tooltip';
+import { Popover } from 'primeng/popover';
 
 export type ViewMode =
   | 'kanban'
@@ -81,6 +83,7 @@ const DEFAULT_FILTERS: TaskFilters = {
     Menu,
     Dialog,
     Tooltip,
+    Popover,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -301,6 +304,41 @@ const DEFAULT_FILTERS: TaskFilters = {
           </div>
         }
 
+        <!-- Fields Toggle (kanban only) -->
+        @if (viewMode() === 'kanban') {
+          <button
+            (click)="fieldsPopover.toggle($event)"
+            class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)] transition-colors"
+            pTooltip="Configure card fields"
+            tooltipPosition="bottom"
+          >
+            <i class="pi pi-sliders-v text-xs"></i>
+            Fields
+          </button>
+          <p-popover #fieldsPopover>
+            <div class="p-3 min-w-[200px]">
+              <div class="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide mb-2">Card Fields</div>
+              @for (field of cardFieldOptions; track field.key) {
+                <label class="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-[var(--secondary)] rounded px-1">
+                  <input
+                    type="checkbox"
+                    [checked]="cardFields()[field.key]"
+                    (change)="onCardFieldToggle(field.key, $any($event.target).checked)"
+                    class="w-3.5 h-3.5 rounded border-[var(--border)] accent-[var(--primary)]"
+                  />
+                  <span class="text-sm text-[var(--foreground)]">{{ field.label }}</span>
+                </label>
+              }
+              <div class="border-t border-[var(--border)] mt-2 pt-2">
+                <button
+                  (click)="resetFields()"
+                  class="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] underline"
+                >Reset to defaults</button>
+              </div>
+            </div>
+          </p-popover>
+        }
+
         <!-- Group By (kanban only) -->
         @if (viewMode() === 'kanban') {
           <div class="flex items-center">
@@ -426,16 +464,37 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
   viewMode = input<ViewMode>('kanban');
   density = input<'compact' | 'normal' | 'expanded'>('normal');
   groupBy = input<GroupByMode>('none');
+  cardFields = input<CardFields>({
+    showPriority: true, showDueDate: true, showAssignees: true,
+    showLabels: true, showSubtaskProgress: true, showComments: true,
+    showAttachments: true, showTaskId: true, showDescription: true,
+    showDaysInColumn: true,
+  });
 
   filtersChanged = output<TaskFilters>();
   viewModeChanged = output<ViewMode>();
   densityChanged = output<'compact' | 'normal' | 'expanded'>();
   groupByChanged = output<GroupByMode>();
+  cardFieldChanged = output<{ key: keyof CardFields; value: boolean }>();
+  cardFieldsReset = output<void>();
 
   searchTerm = signal('');
   filters = signal<TaskFilters>({ ...DEFAULT_FILTERS });
   presets = signal<FilterPreset[]>([]);
   searchInputRef = viewChild<ElementRef<HTMLInputElement>>('searchInput');
+
+  readonly cardFieldOptions: { key: keyof CardFields; label: string }[] = [
+    { key: 'showPriority', label: 'Priority' },
+    { key: 'showDueDate', label: 'Due Date' },
+    { key: 'showAssignees', label: 'Assignees' },
+    { key: 'showLabels', label: 'Labels' },
+    { key: 'showSubtaskProgress', label: 'Subtask Progress' },
+    { key: 'showComments', label: 'Comments' },
+    { key: 'showAttachments', label: 'Attachments' },
+    { key: 'showTaskId', label: 'Task ID' },
+    { key: 'showDescription', label: 'Description' },
+    { key: 'showDaysInColumn', label: 'Days in Column' },
+  ];
 
   showSavePresetDialog = false;
   newPresetName = '';
@@ -509,12 +568,12 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
   }
 
   viewModeOptions = [
-    { value: 'kanban', icon: 'pi pi-objects-column', tooltip: 'Kanban View' },
-    { value: 'list', icon: 'pi pi-list', tooltip: 'List View' },
-    { value: 'calendar', icon: 'pi pi-calendar', tooltip: 'Calendar View' },
-    { value: 'gantt', icon: 'pi pi-align-left', tooltip: 'Gantt Chart' },
-    { value: 'reports', icon: 'pi pi-chart-bar', tooltip: 'Reports' },
-    { value: 'time-report', icon: 'pi pi-clock', tooltip: 'Time Report' },
+    { value: 'kanban', icon: 'pi pi-objects-column', tooltip: 'Kanban view (1)' },
+    { value: 'list', icon: 'pi pi-list', tooltip: 'List view (2)' },
+    { value: 'calendar', icon: 'pi pi-calendar', tooltip: 'Calendar view (3)' },
+    { value: 'gantt', icon: 'pi pi-align-left', tooltip: 'Gantt chart (4)' },
+    { value: 'reports', icon: 'pi pi-chart-bar', tooltip: 'Reports view (5)' },
+    { value: 'time-report', icon: 'pi pi-clock', tooltip: 'Time report (6)' },
   ];
 
   ngOnInit(): void {
@@ -738,6 +797,14 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
 
   focusSearchInput(): void {
     this.searchInputRef()?.nativeElement.focus();
+  }
+
+  onCardFieldToggle(key: keyof CardFields, value: boolean): void {
+    this.cardFieldChanged.emit({ key, value });
+  }
+
+  resetFields(): void {
+    this.cardFieldsReset.emit();
   }
 
   private getCurrentWeekRange(): { start: string; end: string } {
