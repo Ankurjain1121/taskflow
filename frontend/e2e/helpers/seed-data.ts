@@ -67,13 +67,6 @@ export function loadSeedData(): SeedData {
   return JSON.parse(raw) as SeedData;
 }
 
-export function saveSeedData(data: SeedData): void {
-  fs.writeFileSync(SEED_DATA_PATH, JSON.stringify(data, null, 2), 'utf-8');
-}
-
-export function getSeedDataPath(): string {
-  return SEED_DATA_PATH;
-}
 
 /** Get all workspaces a user (by index) belongs to */
 export function getWorkspacesForUser(
