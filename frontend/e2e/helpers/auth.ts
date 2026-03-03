@@ -125,59 +125,7 @@ export async function signInTestUser(
 }
 
 /**
- * Complete the full onboarding flow after sign-up:
- *  1. Create workspace
- *  2. Skip invite step
- *  3. Generate sample board
- *  4. Go to dashboard
- */
-export async function completeOnboarding(
-  page: Page,
-  workspaceName: string = 'E2E Test Workspace',
-): Promise<void> {
-  // Step 1 - Create workspace
-  await expect(page.locator('text=Create Your Workspace')).toBeVisible({
-    timeout: 10000,
-  });
-  await page.locator('app-step-workspace input#name').fill(workspaceName);
-  await page.locator('button[type="submit"]:has-text("Continue")').click();
-
-  // Step 2 - Invite team (skip it)
-  await expect(page.locator('text=Invite Your Team')).toBeVisible({
-    timeout: 10000,
-  });
-  await page.locator('button:has-text("Skip this step")').click();
-
-  // Step 3 - Generate sample board
-  await expect(page.locator('text=Sample Board Preview')).toBeVisible({
-    timeout: 10000,
-  });
-  await page.locator('button:has-text("Generate Sample Board")').click();
-
-  // Wait for board generation success
-  await expect(
-    page.locator('text=Sample board created successfully!'),
-  ).toBeVisible({ timeout: 20000 });
-
-  // Step 4 - Go to dashboard
-  const goToDashboard = page.locator('button:has-text("Go to Dashboard")');
-  await expect(goToDashboard).toBeVisible({ timeout: 10000 });
-  await goToDashboard.click();
-
-  // Wait for dashboard to load (may take a moment for onboarding finalization)
-  await page.waitForURL('**/dashboard', { timeout: 30000 });
-  // Dashboard shows a time-based greeting like "Good morning, E2E Test User"
-  await expect(
-    page
-      .locator(
-        'h1:has-text("Good morning"), h1:has-text("Good afternoon"), h1:has-text("Good evening")',
-      )
-      .first(),
-  ).toBeVisible({ timeout: 10000 });
-}
-
-/**
- * Full flow: sign up + complete onboarding. Returns the email used.
+ * Full flow: sign up + onboarding. Returns the email used.
  */
 export async function signUpAndOnboard(
   page: Page,
