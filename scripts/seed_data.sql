@@ -117,7 +117,8 @@ BEGIN
             (17, 'quinn@acme.com',  'Quinn Rodriguez',   'Product Designer',    'Product'),
             (18, 'rachel@acme.com', 'Rachel Lewis',      'QA Lead',             'QA'),
             (19, 'sam@acme.com',    'Sam Robinson',      'QA Engineer',         'QA'),
-            (20, 'tara@acme.com',   'Tara Walker',       'Automation QA',       'QA')
+            (20, 'tara@acme.com',   'Tara Walker',       'Automation QA',       'QA'),
+            (21, 'rockyyyy@gmail.com', 'Rocky Kumar',    'Product Manager',     'Product')
     ),
     inserted AS (
         INSERT INTO users (id, email, name, password_hash, role, tenant_id,
