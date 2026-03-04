@@ -136,6 +136,9 @@ pub async fn create_workspace(
 
     tx.commit().await?;
 
+    // Seed system automation templates for the new workspace (best-effort)
+    let _ = crate::queries::automation_templates::seed_system_templates(pool, workspace.id).await;
+
     Ok(workspace)
 }
 

@@ -21,26 +21,28 @@ use tower_http::trace::TraceLayer;
 
 use crate::config::Config;
 use crate::middleware::auth_middleware;
+use crate::middleware::cache_headers_middleware;
 use crate::middleware::rate_limit::{
     rate_limit_layer, rate_limit_middleware, user_rate_limit_layer, user_rate_limit_middleware,
 };
 use crate::middleware::request_id::request_id_middleware;
 use crate::routes::{
     activity_log_router, admin_audit_router, admin_trash_router, admin_users_router,
-    archive_router, attachment_router, automation_router, board_columns_router,
-    board_positions_router, board_router, board_share_router, board_templates_router,
-    column_router, comment_router, cron_router, custom_field_router, dashboard_router,
-    dependency_router, eisenhower_router, favorites_router, filter_presets_router, health_handler,
-    liveness_handler, milestone_router, my_tasks_router, notification_preferences_router,
-    notification_router, onboarding_router, positions_router, project_template_router,
-    readiness_handler, recent_items_router, recurring_router, reports_router, search_router,
-    sessions_router, shared_board_public_router, subtask_router, task_group_routes, task_router,
-    task_template_router, team_overview_router, teams_router, tenant_router, themes_router,
-    time_entry_router, upload_router, user_preferences_router, webhook_router,
-    workspace_api_keys_router, workspace_audit_router, workspace_boards_router,
+    archive_router, attachment_router, automation_router, automation_templates_router,
+    board_columns_router, board_positions_router, board_router, board_share_router,
+    board_templates_router, bulk_ops_router, column_router, comment_router, cron_router,
+    custom_field_router, dashboard_router, dependency_router, eisenhower_router, favorites_router,
+    filter_presets_router, health_handler, liveness_handler, milestone_router, my_tasks_router,
+    notification_preferences_router, notification_router, onboarding_router, positions_router,
+    project_template_router, readiness_handler, recent_items_router, recurring_router,
+    reports_router, search_router, sessions_router, shared_board_public_router, subtask_router,
+    task_group_routes, task_router, task_template_router, team_overview_router, teams_router,
+    tenant_router, themes_router, time_entry_router, upload_router, user_preferences_router,
+    webhook_router, workspace_api_keys_router, workspace_audit_router, workspace_boards_router,
     workspace_export_router, workspace_job_roles_router, workspace_labels_router, workspace_router,
     workspace_teams_router, workspace_trash_router,
 };
+use crate::routes::{metrics_cron_router, metrics_router};
 use crate::state::AppState;
 use crate::ws::ws_handler;
 
@@ -249,6 +251,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", notification_preferences_router(state.clone()))
         // Cron routes (no auth middleware - uses X-Cron-Secret)
         .nest("/api", cron_router())
+        .nest("/api", metrics_cron_router())
+        // Metrics routes (auth required)
+        .nest("/api", metrics_router(state.clone()))
         // Onboarding routes
         .nest("/api/onboarding", onboarding_router(state.clone()))
         // Team overview routes (nested under workspace)
@@ -282,6 +287,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", project_template_router(state.clone()))
         // Phase 4: Workflow automation
         .nest("/api", automation_router(state.clone()))
+        // Automation templates (Phase J)
+        .nest("/api", automation_templates_router(state.clone()))
+        // Bulk operations with undo (Phase J)
+        .nest("/api", bulk_ops_router(state.clone()))
         // Task templates
         .nest("/api", task_template_router(state.clone()))
         // Phase 4: Import/export (stricter rate limit: 10 req/min)
@@ -318,6 +327,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Global rate limit on all routes (60 req/min per IP)
         .layer(from_fn(rate_limit_middleware))
         .layer(rate_limit_layer(60, 60))
+        // HTTP caching headers (Cache-Control)
+        .layer(from_fn(cache_headers_middleware))
         .layer(TraceLayer::new_for_http())
         .layer(from_fn(request_id_middleware))
         .layer(CompressionLayer::new())
