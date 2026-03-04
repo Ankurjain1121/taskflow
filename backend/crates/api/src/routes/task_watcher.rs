@@ -40,6 +40,7 @@ pub async fn add_watcher_handler(
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
+            TaskQueryError::Other(msg) => AppError::BadRequest(msg),
         })?;
 
     Ok(Json(json!({ "success": true })))
@@ -66,6 +67,7 @@ pub async fn remove_watcher_handler(
             TaskQueryError::NotFound => AppError::NotFound("Watcher not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
+            TaskQueryError::Other(msg) => AppError::BadRequest(msg),
         })?;
 
     Ok(Json(json!({ "success": true })))

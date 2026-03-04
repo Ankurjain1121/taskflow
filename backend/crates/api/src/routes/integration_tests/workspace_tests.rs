@@ -1,0 +1,317 @@
+use super::common::*;
+
+// =========================================================================
+// WORKSPACE ROUTES — HAPPY PATH
+// =========================================================================
+
+#[tokio::test]
+async fn test_list_workspaces_empty() {
+    let (app, state) = test_app().await;
+    let (tenant_id, user_id) = setup_user(&state.db).await;
+    let token = test_jwt_token(&state, user_id, tenant_id);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri("/api/workspaces")
+                .header("Authorization", format!("Bearer {}", token))
+                .body(Body::empty())
+                .expect("build request"),
+        )
+        .await
+        .expect("request failed");
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .expect("read body");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("parse JSON");
+    assert!(json.is_array(), "Expected JSON array");
+}
+
+#[tokio::test]
+async fn test_create_workspace() {
+    let (app, state) = test_app().await;
+    let (tenant_id, user_id) = setup_user(&state.db).await;
+    let token = test_jwt_token(&state, user_id, tenant_id);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/workspaces")
+                .header("Authorization", format!("Bearer {}", token))
+                .header("Content-Type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&serde_json::json!({
+                        "name": "Test Workspace",
+                        "description": "A test workspace"
+                    }))
+                    .expect("serialize"),
+                ))
+                .expect("build request"),
+        )
+        .await
+        .expect("request failed");
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .expect("read body");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("parse JSON");
+    assert_eq!(json["name"], "Test Workspace");
+    assert!(json.get("id").is_some(), "Response should have 'id'");
+}
+
+#[tokio::test]
+async fn test_get_workspace_by_id() {
+    let (app, state) = test_app().await;
+    let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&state.db).await;
+    let token = test_jwt_token(&state, user_id, tenant_id);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/workspaces/{}", ws_id))
+                .header("Authorization", format!("Bearer {}", token))
+                .body(Body::empty())
+                .expect("build request"),
+        )
+        .await
+        .expect("request failed");
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .expect("read body");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("parse JSON");
+    assert_eq!(json["id"], ws_id.to_string());
+    assert!(json.get("members").is_some(), "Should include members list");
+}
+
+#[tokio::test]
+async fn test_update_workspace() {
+    let (app, state) = test_app().await;
+    let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&state.db).await;
+    let token = test_jwt_token(&state, user_id, tenant_id);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("PUT")
+                .uri(format!("/api/workspaces/{}", ws_id))
+                .header("Authorization", format!("Bearer {}", token))
+                .header("Content-Type", "application/json")
+                .body(Body::from(
+                    serde_json::to_string(&serde_json::json!({
+                        "name": "Updated WS Name",
+                        "description": "Updated description"
+                    }))
+                    .expect("serialize"),
+                ))
+                .expect("build request"),
+        )
+        .await
+        .expect("request failed");
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .expect("read body");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("parse JSON");
+    assert_eq!(json["name"], "Updated WS Name");
+}
+
+#[tokio::test]
+async fn test_delete_workspace() {
+    let (app, state) = test_app().await;
+    let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&state.db).await;
+    let token = test_jwt_token(&state, user_id, tenant_id);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(format!("/api/workspaces/{}", ws_id))
+                .header("Authorization", format!("Bearer {}", token))
+                .body(Body::empty())
+                .expect("build request"),
+        )
+        .await
+        .expect("request failed");
+
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+// =========================================================================
+// WORKSPACE ROUTES — ERROR SCENARIOS
+// =========================================================================
+
+#[tokio::test]
+async fn test_create_workspace_empty_name_returns_400() {
+    let (app, state) = test_app().await;
+    let (tenant_id, user_id) = setup_user(&state.db).await;
+    let token = test_jwt_token(&state, user_id, tenant_id);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/workspaces")
+                .header("Authorization", format!("Bearer {}", token))
+                .header("Content-Type", "application/json")
+                .body(Body::from(r#"{"name": ""}"#))
+                .expect("build request"),
+        )
+        .await
+        .expect("request failed");
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn test_workspace_member_role_enforcement() {
+    let (app, state) = test_app().await;
+    let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&state.db).await;
+    // Member role cannot update workspace
+    let token = test_jwt_token_with_role(&state, user_id, tenant_id, UserRole::Member);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("PUT")
+                .uri(format!("/api/workspaces/{}", ws_id))
+                .header("Authorization", format!("Bearer {}", token))
+                .header("Content-Type", "application/json")
+                .body(Body::from(r#"{"name": "Should Fail"}"#))
+                .expect("build request"),
+        )
+        .await
+        .expect("request failed");
+
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+async fn test_get_workspace_nonexistent_returns_404() {
+    let (app, state) = test_app().await;
+    let (tenant_id, user_id) = setup_user(&state.db).await;
+    let token = test_jwt_token(&state, user_id, tenant_id);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri(format!("/api/workspaces/{}", Uuid::new_v4()))
+                .header("Authorization", format!("Bearer {}", token))
+                .body(Body::empty())
+                .expect("build request"),
+        )
+        .await
+        .expect("request failed");
+
+    assert!(
+        response.status() == StatusCode::NOT_FOUND || response.status() == StatusCode::FORBIDDEN,
+        "Expected 404 or 403 for non-existent workspace, got {}",
+        response.status()
+    );
+}
+
+#[tokio::test]
+async fn test_update_workspace_nonexistent_returns_404() {
+    let (app, state) = test_app().await;
+    let (tenant_id, user_id) = setup_user(&state.db).await;
+    let token = test_jwt_token(&state, user_id, tenant_id);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("PUT")
+                .uri(format!("/api/workspaces/{}", Uuid::new_v4()))
+                .header("Authorization", format!("Bearer {}", token))
+                .header("Content-Type", "application/json")
+                .body(Body::from(r#"{"name": "Phantom"}"#))
+                .expect("build request"),
+        )
+        .await
+        .expect("request failed");
+
+    // Should be 404 or 403 depending on authorization check order
+    assert!(
+        response.status() == StatusCode::NOT_FOUND || response.status() == StatusCode::FORBIDDEN,
+        "Expected 404 or 403, got {}",
+        response.status()
+    );
+}
+
+#[tokio::test]
+async fn test_delete_workspace_nonexistent_returns_404() {
+    let (app, state) = test_app().await;
+    let (tenant_id, user_id) = setup_user(&state.db).await;
+    let token = test_jwt_token(&state, user_id, tenant_id);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(format!("/api/workspaces/{}", Uuid::new_v4()))
+                .header("Authorization", format!("Bearer {}", token))
+                .body(Body::empty())
+                .expect("build request"),
+        )
+        .await
+        .expect("request failed");
+
+    assert!(
+        response.status() == StatusCode::NOT_FOUND || response.status() == StatusCode::FORBIDDEN,
+        "Expected 404 or 403, got {}",
+        response.status()
+    );
+}
+
+#[tokio::test]
+async fn test_create_workspace_missing_body_returns_400() {
+    let (app, state) = test_app().await;
+    let (tenant_id, user_id) = setup_user(&state.db).await;
+    let token = test_jwt_token(&state, user_id, tenant_id);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/workspaces")
+                .header("Authorization", format!("Bearer {}", token))
+                .header("Content-Type", "application/json")
+                .body(Body::empty())
+                .expect("build request"),
+        )
+        .await
+        .expect("request failed");
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn test_create_workspace_invalid_json_returns_400() {
+    let (app, state) = test_app().await;
+    let (tenant_id, user_id) = setup_user(&state.db).await;
+    let token = test_jwt_token(&state, user_id, tenant_id);
+
+    let response = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/workspaces")
+                .header("Authorization", format!("Bearer {}", token))
+                .header("Content-Type", "application/json")
+                .body(Body::from("not valid json"))
+                .expect("build request"),
+        )
+        .await
+        .expect("request failed");
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}

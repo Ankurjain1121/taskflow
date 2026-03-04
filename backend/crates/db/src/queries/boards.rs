@@ -18,7 +18,7 @@ pub async fn list_boards_by_workspace(
         r#"
         SELECT b.id, b.name, b.description, b.slack_webhook_url, b.prefix,
                b.workspace_id, b.tenant_id, b.created_by_id,
-               b.background_color, b.deleted_at, b.created_at, b.updated_at
+               b.background_color, b.is_sample, b.deleted_at, b.created_at, b.updated_at
         FROM boards b
         INNER JOIN board_members bm ON b.id = bm.board_id
         WHERE b.workspace_id = $1
@@ -53,7 +53,7 @@ pub async fn get_board_by_id(
         r#"
         SELECT b.id, b.name, b.description, b.slack_webhook_url, b.prefix,
                b.workspace_id, b.tenant_id, b.created_by_id,
-               b.background_color, b.deleted_at, b.created_at, b.updated_at
+               b.background_color, b.is_sample, b.deleted_at, b.created_at, b.updated_at
         FROM boards b
         INNER JOIN board_members bm ON b.id = bm.board_id
         WHERE b.id = $1
@@ -105,7 +105,7 @@ pub async fn create_board(
         INSERT INTO boards (name, description, workspace_id, tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
-                  created_by_id, background_color, deleted_at, created_at, updated_at
+                  created_by_id, background_color, is_sample, deleted_at, created_at, updated_at
         "#,
         name,
         description,
@@ -188,7 +188,7 @@ pub async fn update_board(
                 WHERE id = $1
                   AND deleted_at IS NULL
                 RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
-                          created_by_id, background_color, deleted_at, created_at, updated_at
+                          created_by_id, background_color, is_sample, deleted_at, created_at, updated_at
                 "#,
                 id,
                 name,
@@ -208,7 +208,7 @@ pub async fn update_board(
                 WHERE id = $1
                   AND deleted_at IS NULL
                 RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
-                          created_by_id, background_color, deleted_at, created_at, updated_at
+                          created_by_id, background_color, is_sample, deleted_at, created_at, updated_at
                 "#,
                 id,
                 name,
@@ -385,7 +385,7 @@ pub async fn get_board_internal(pool: &PgPool, id: Uuid) -> Result<Option<Board>
         r#"
         SELECT id, name, description, slack_webhook_url, prefix,
                workspace_id, tenant_id, created_by_id,
-               background_color, deleted_at, created_at, updated_at
+               background_color, is_sample, deleted_at, created_at, updated_at
         FROM boards
         WHERE id = $1
           AND deleted_at IS NULL
@@ -440,13 +440,32 @@ pub struct BoardTaskLabel {
     pub color: String,
 }
 
-/// Fetch all tasks for a board with badge counts (subtasks, timers, comments)
-/// in a single query using LEFT JOINs and subqueries.
+/// Result of paginated task queries: rows + total count
+pub struct PaginatedTasks {
+    pub tasks: Vec<TaskWithBadgesRow>,
+    pub total_count: i64,
+}
+
+/// Fetch tasks for a board with badge counts (subtasks, timers, comments).
+/// Supports optional pagination via limit/offset. Returns total count for pagination metadata.
 pub async fn list_board_tasks_with_badges(
     pool: &PgPool,
     board_id: Uuid,
-) -> Result<Vec<TaskWithBadgesRow>, sqlx::Error> {
-    sqlx::query_as::<_, TaskWithBadgesRow>(
+    limit: Option<i64>,
+    offset: Option<i64>,
+) -> Result<PaginatedTasks, sqlx::Error> {
+    let limit_val = limit.unwrap_or(1000).clamp(1, 1000);
+    let offset_val = offset.unwrap_or(0).max(0);
+
+    // Get total count first (cheap indexed query)
+    let total_count: i64 = sqlx::query_scalar(
+        r#"SELECT COUNT(*) FROM tasks WHERE board_id = $1 AND deleted_at IS NULL"#,
+    )
+    .bind(board_id)
+    .fetch_one(pool)
+    .await?;
+
+    let tasks = sqlx::query_as::<_, TaskWithBadgesRow>(
         r#"
         SELECT
             t.id,
@@ -487,14 +506,19 @@ pub async fn list_board_tasks_with_badges(
         ) cmt ON true
         WHERE t.board_id = $1 AND t.deleted_at IS NULL
         ORDER BY t.position ASC
+        LIMIT $2 OFFSET $3
         "#,
     )
     .bind(board_id)
+    .bind(limit_val)
+    .bind(offset_val)
     .fetch_all(pool)
-    .await
+    .await?;
+
+    Ok(PaginatedTasks { tasks, total_count })
 }
 
-/// Fetch all assignees for tasks in a board
+/// Fetch assignees for tasks in a board (capped at 5000 rows)
 pub async fn list_board_task_assignees(
     pool: &PgPool,
     board_id: Uuid,
@@ -512,6 +536,7 @@ pub async fn list_board_task_assignees(
         WHERE t.board_id = $1
           AND t.deleted_at IS NULL
           AND u.deleted_at IS NULL
+        LIMIT 5000
         "#,
     )
     .bind(board_id)
@@ -519,7 +544,7 @@ pub async fn list_board_task_assignees(
     .await
 }
 
-/// Fetch all labels for tasks in a board
+/// Fetch labels for tasks in a board (capped at 5000 rows)
 pub async fn list_board_task_labels(
     pool: &PgPool,
     board_id: Uuid,
@@ -536,6 +561,7 @@ pub async fn list_board_task_labels(
         JOIN tasks t ON t.id = tl.task_id
         WHERE t.board_id = $1
           AND t.deleted_at IS NULL
+        LIMIT 5000
         "#,
     )
     .bind(board_id)
@@ -562,7 +588,7 @@ pub async fn duplicate_board(
         FROM boards WHERE id = $1 AND deleted_at IS NULL
         RETURNING id, name, description, slack_webhook_url, prefix,
                   workspace_id, tenant_id, created_by_id,
-                  background_color, deleted_at, created_at, updated_at
+                  background_color, is_sample, deleted_at, created_at, updated_at
         "#,
     )
     .bind(source_id)

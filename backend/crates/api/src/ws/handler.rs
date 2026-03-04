@@ -6,14 +6,16 @@ use axum::{
     http::header::COOKIE,
     response::Response,
 };
+use chrono::Utc;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::state::AppState;
+use crate::ws::batch_handler::{BatchHandler, BatchMessage};
 use taskflow_auth::jwt::verify_access_token;
 use taskflow_db::models::WsBoardEvent;
 use taskflow_db::queries::boards::is_board_member;
@@ -184,79 +186,63 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
         .flatten()
         .unwrap_or_else(|| "Unknown".to_string());
 
-    // Track subscribed channels and boards joined for presence
-    let mut subscribed_channels: HashSet<String> = HashSet::new();
+    // Track subscribed channels and their forwarder tasks, plus boards joined for presence
+    let mut subscribed_channels: HashMap<String, tokio::task::JoinHandle<()>> = HashMap::new();
     let mut presence_boards: HashSet<Uuid> = HashSet::new();
 
-    // Clone redis connection for pub/sub
-    let redis_client = match redis::Client::open(state.config.redis_url.as_str()) {
-        Ok(client) => client,
-        Err(e) => {
-            tracing::error!("Failed to create Redis client: {}", e);
-            return;
-        }
-    };
+    // Task to send messages from the channel to WebSocket
+    // Batches WsBoardEvent messages to reduce frame count
+    let send_task = tokio::spawn(async move {
+        let mut batch_handler = BatchHandler::new();
+        let mut last_flush = std::time::Instant::now();
 
-    let pubsub_conn = match redis_client.get_async_pubsub().await {
-        Ok(conn) => conn,
-        Err(e) => {
-            tracing::error!("Failed to get Redis pubsub connection: {}", e);
-            return;
-        }
-    };
-
-    // Wrap pubsub in Arc<Mutex> for shared access
-    let pubsub = std::sync::Arc::new(tokio::sync::Mutex::new(pubsub_conn));
-    let pubsub_clone = pubsub.clone();
-
-    // Task to forward messages from channel to WebSocket
-    let tx_clone = tx.clone();
-    let forward_task = tokio::spawn(async move {
         loop {
-            // Acquire lock, get next message with timeout, then release lock immediately.
-            // The timeout ensures the lock is periodically released so the main loop
-            // can subscribe/unsubscribe without deadlocking.
-            let msg = {
-                let mut guard = pubsub_clone.lock().await;
-                let mut stream = guard.on_message();
-                let result =
-                    tokio::time::timeout(std::time::Duration::from_millis(100), stream.next())
-                        .await;
-                drop(stream);
-                drop(guard);
-                match result {
-                    Ok(msg) => msg,
-                    Err(_) => continue, // Timeout — release lock and retry
-                }
-            };
-
-            match msg {
-                Some(msg) => {
-                    let payload: String = match msg.get_payload() {
-                        Ok(p) => p,
-                        Err(e) => {
-                            tracing::error!("Failed to get message payload: {}", e);
-                            continue;
+            // Use a select to handle both message receipt and periodic flushing
+            tokio::select! {
+                msg = rx.recv() => {
+                    match msg {
+                        Some(payload) => {
+                            // Try to parse as WsBoardEvent for batching
+                            if let Ok(event) = serde_json::from_str::<WsBoardEvent>(&payload) {
+                                if let Some(batch) = batch_handler.add_event(event) {
+                                    // Buffer is full, send the batch
+                                    let batch_msg = BatchMessage {
+                                        events: batch,
+                                        timestamp: Utc::now().to_rfc3339(),
+                                    };
+                                    if let Ok(batch_json) = serde_json::to_string(&batch_msg) {
+                                        if ws_sender.send(Message::Text(batch_json.into())).await.is_err() {
+                                            break;
+                                        }
+                                    }
+                                }
+                            } else {
+                                // Not a WsBoardEvent (probably a control message), send immediately
+                                if ws_sender.send(Message::Text(payload.into())).await.is_err() {
+                                    break;
+                                }
+                            }
                         }
-                    };
-
-                    if tx_clone.send(payload).await.is_err() {
-                        break;
+                        None => break,
                     }
                 }
-                None => {
-                    // Connection closed
-                    break;
+                _ = tokio::time::sleep(std::time::Duration::from_millis(50)), if last_flush.elapsed() > std::time::Duration::from_millis(50) => {
+                    // Periodic flush
+                    if let Some(batch) = batch_handler.flush_if_ready() {
+                        if !batch.is_empty() {
+                            let batch_msg = BatchMessage {
+                                events: batch,
+                                timestamp: Utc::now().to_rfc3339(),
+                            };
+                            if let Ok(batch_json) = serde_json::to_string(&batch_msg) {
+                                if ws_sender.send(Message::Text(batch_json.into())).await.is_err() {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    last_flush = std::time::Instant::now();
                 }
-            }
-        }
-    });
-
-    // Task to send messages from the channel to WebSocket
-    let send_task = tokio::spawn(async move {
-        while let Some(msg) = rx.recv().await {
-            if ws_sender.send(Message::Text(msg.into())).await.is_err() {
-                break;
             }
         }
     });
@@ -279,7 +265,9 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                         let error_msg = ServerMessage::Error {
                             message: format!("Invalid message format: {}", e),
                         };
-                        let _ = tx.send(serde_json::to_string(&error_msg).unwrap()).await;
+                        let _ = tx
+                            .send(serde_json::to_string(&error_msg).unwrap_or_default())
+                            .await;
                         continue;
                     }
                 };
@@ -290,7 +278,9 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                         let error_msg = ServerMessage::Error {
                             message: "Already authenticated".into(),
                         };
-                        let _ = tx.send(serde_json::to_string(&error_msg).unwrap()).await;
+                        let _ = tx
+                            .send(serde_json::to_string(&error_msg).unwrap_or_default())
+                            .await;
                     }
                     ClientMessage::Subscribe { payload } => {
                         let channel = payload.channel;
@@ -302,7 +292,9 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                                 let error_msg = ServerMessage::Error {
                                     message: "Invalid or unauthorized channel".into(),
                                 };
-                                let _ = tx.send(serde_json::to_string(&error_msg).unwrap()).await;
+                                let _ = tx
+                                    .send(serde_json::to_string(&error_msg).unwrap_or_default())
+                                    .await;
                                 continue;
                             }
                             Err(e) => {
@@ -310,29 +302,45 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                                 let error_msg = ServerMessage::Error {
                                     message: "Failed to validate channel access".into(),
                                 };
-                                let _ = tx.send(serde_json::to_string(&error_msg).unwrap()).await;
+                                let _ = tx
+                                    .send(serde_json::to_string(&error_msg).unwrap_or_default())
+                                    .await;
                                 continue;
                             }
                         }
 
-                        // Subscribe to Redis channel
-                        {
-                            let mut guard = pubsub.lock().await;
-                            if let Err(e) = guard.subscribe(&channel).await {
-                                tracing::error!(
-                                    "Failed to subscribe to channel {}: {}",
-                                    channel,
-                                    e
-                                );
-                                let error_msg = ServerMessage::Error {
-                                    message: "Failed to subscribe".into(),
-                                };
-                                let _ = tx.send(serde_json::to_string(&error_msg).unwrap()).await;
-                                continue;
-                            }
+                        // Subscribe via shared pubsub relay (no per-connection Redis)
+                        if subscribed_channels.contains_key(&channel) {
+                            // Already subscribed
+                            continue;
                         }
 
-                        subscribed_channels.insert(channel.clone());
+                        let mut rx = state.pubsub_relay.subscribe(&channel);
+                        let tx_fwd = tx.clone();
+
+                        // Spawn a lightweight forwarder task for this channel
+                        let handle = tokio::spawn(async move {
+                            loop {
+                                match rx.recv().await {
+                                    Ok(payload) => {
+                                        if tx_fwd.send(payload).await.is_err() {
+                                            break; // WS sender closed
+                                        }
+                                    }
+                                    Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                                        tracing::warn!(
+                                            "PubSub relay lagged, skipped {} messages",
+                                            n
+                                        );
+                                    }
+                                    Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                                        break; // Channel closed
+                                    }
+                                }
+                            }
+                        });
+
+                        subscribed_channels.insert(channel.clone(), handle);
                         tracing::info!(
                             user_id = %user_id,
                             channel = %channel,
@@ -340,13 +348,15 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                         );
 
                         let response = ServerMessage::Subscribed { channel };
-                        let _ = tx.send(serde_json::to_string(&response).unwrap()).await;
+                        let _ = tx
+                            .send(serde_json::to_string(&response).unwrap_or_default())
+                            .await;
                     }
                     ClientMessage::Unsubscribe { payload } => {
                         let channel = payload.channel;
-                        if subscribed_channels.remove(&channel) {
-                            let mut guard = pubsub.lock().await;
-                            let _ = guard.unsubscribe(&channel).await;
+                        if let Some(handle) = subscribed_channels.remove(&channel) {
+                            handle.abort();
+                            state.pubsub_relay.unsubscribe(&channel);
 
                             tracing::info!(
                                 user_id = %user_id,
@@ -355,12 +365,16 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                             );
 
                             let response = ServerMessage::Unsubscribed { channel };
-                            let _ = tx.send(serde_json::to_string(&response).unwrap()).await;
+                            let _ = tx
+                                .send(serde_json::to_string(&response).unwrap_or_default())
+                                .await;
                         }
                     }
                     ClientMessage::Ping => {
                         let response = ServerMessage::Pong;
-                        let _ = tx.send(serde_json::to_string(&response).unwrap()).await;
+                        let _ = tx
+                            .send(serde_json::to_string(&response).unwrap_or_default())
+                            .await;
                     }
                     ClientMessage::PresenceJoin { payload } => {
                         let board_id = payload.board_id;
@@ -499,14 +513,21 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                 let error_msg = ServerMessage::Error {
                     message: "Binary messages not supported".into(),
                 };
-                let _ = tx.send(serde_json::to_string(&error_msg).unwrap()).await;
+                let _ = tx
+                    .send(serde_json::to_string(&error_msg).unwrap_or_default())
+                    .await;
             }
         }
     }
 
     // Clean up
-    forward_task.abort();
     send_task.abort();
+
+    // Abort all channel forwarder tasks and unsubscribe from relay
+    for (channel, handle) in subscribed_channels.drain() {
+        handle.abort();
+        state.pubsub_relay.unsubscribe(&channel);
+    }
 
     // Cleanup presence: leave all boards this user joined
     for board_id in &presence_boards {
@@ -529,14 +550,6 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
     // Cleanup locks held by this user
     if let Err(e) = presence.cleanup_user_locks(user_id).await {
         tracing::error!("Lock cleanup error for user {}: {}", user_id, e);
-    }
-
-    // Unsubscribe from all channels
-    {
-        let mut guard = pubsub.lock().await;
-        for channel in subscribed_channels {
-            let _ = guard.unsubscribe(&channel).await;
-        }
     }
 
     tracing::info!(user_id = %user_id, "WebSocket connection closed");
@@ -568,7 +581,9 @@ async fn wait_for_auth(
                             let error_msg = ServerMessage::Error {
                                 message: format!("Invalid message format: {}", e),
                             };
-                            let _ = tx.send(serde_json::to_string(&error_msg).unwrap()).await;
+                            let _ = tx
+                                .send(serde_json::to_string(&error_msg).unwrap_or_default())
+                                .await;
                             continue;
                         }
                     };
@@ -578,16 +593,18 @@ async fn wait_for_auth(
                             match verify_access_token(&payload.token, &state.jwt_keys) {
                                 Ok(claims) => {
                                     let response = ServerMessage::Authenticated;
-                                    let _ =
-                                        tx.send(serde_json::to_string(&response).unwrap()).await;
+                                    let _ = tx
+                                        .send(serde_json::to_string(&response).unwrap_or_default())
+                                        .await;
                                     return Some((claims.sub, claims.tenant_id));
                                 }
                                 Err(_) => {
                                     let error_msg = ServerMessage::Error {
                                         message: "Invalid or expired token".into(),
                                     };
-                                    let _ =
-                                        tx.send(serde_json::to_string(&error_msg).unwrap()).await;
+                                    let _ = tx
+                                        .send(serde_json::to_string(&error_msg).unwrap_or_default())
+                                        .await;
                                     return None;
                                 }
                             }
@@ -596,7 +613,9 @@ async fn wait_for_auth(
                             let error_msg = ServerMessage::Error {
                                 message: "Authentication required. Send auth message first.".into(),
                             };
-                            let _ = tx.send(serde_json::to_string(&error_msg).unwrap()).await;
+                            let _ = tx
+                                .send(serde_json::to_string(&error_msg).unwrap_or_default())
+                                .await;
                         }
                     }
                 }
@@ -619,7 +638,9 @@ async fn wait_for_auth(
             let error_msg = ServerMessage::Error {
                 message: "Authentication timeout".into(),
             };
-            let _ = tx.send(serde_json::to_string(&error_msg).unwrap()).await;
+            let _ = tx
+                .send(serde_json::to_string(&error_msg).unwrap_or_default())
+                .await;
             None
         }
     }

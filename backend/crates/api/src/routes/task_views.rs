@@ -36,6 +36,7 @@ pub async fn list_tasks_flat_handler(
             TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
+            TaskQueryError::Other(msg) => AppError::BadRequest(msg),
         })?;
     Ok(Json(tasks))
 }
@@ -55,6 +56,7 @@ pub async fn list_calendar_tasks_handler(
                 TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
                 TaskQueryError::Database(e) => AppError::SqlxError(e),
                 TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
+                TaskQueryError::Other(msg) => AppError::BadRequest(msg),
             })?;
     Ok(Json(tasks))
 }
@@ -72,6 +74,7 @@ pub async fn list_gantt_tasks_handler(
             TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
+            TaskQueryError::Other(msg) => AppError::BadRequest(msg),
         })?;
     Ok(Json(tasks))
 }

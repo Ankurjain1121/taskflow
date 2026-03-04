@@ -37,6 +37,8 @@ pub mod helpers {
             app_database_url: TEST_DB_URL.to_string(),
             host: "127.0.0.1".to_string(),
             port: 0,
+            db_max_connections: 20,
+            db_min_connections: 5,
             jwt_secret: "test-jwt-secret-that-is-long-enough-for-hs256-validation".to_string(),
             jwt_refresh_secret: "test-jwt-refresh-secret-long-enough-for-hs256-validation"
                 .to_string(),
@@ -107,6 +109,7 @@ pub mod helpers {
         let s3_client = aws_sdk_s3::Client::from_conf(s3_config);
 
         let board_channels = Arc::new(DashMap::new());
+        let pubsub_relay = crate::ws::PubSubRelay::dummy();
 
         AppState {
             db,
@@ -114,6 +117,7 @@ pub mod helpers {
             jwt_keys,
             redis,
             board_channels,
+            pubsub_relay,
             s3_client,
         }
     }

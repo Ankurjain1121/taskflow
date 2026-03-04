@@ -13,9 +13,10 @@ pub use audit::{get_action_for_route, record_audit_event, AuditError, ROUTE_ACTI
 pub use board_templates::{get_template, BoardTemplate, TEMPLATES as BOARD_TEMPLATES};
 pub use broadcast::{BroadcastError, BroadcastService};
 pub use jobs::{
-    cleanup_expired_trash, evaluate_trigger, scan_deadlines, send_weekly_digests,
-    spawn_automation_evaluation, AutomationRunResult, DeadlineScanResult, TrashCleanupResult,
-    TriggerContext, WeeklyDigestResult,
+    cleanup_expired_trash, evaluate_trigger, resolve_column_by_name, resolve_label_by_name,
+    scan_deadlines, send_weekly_digests, spawn_automation_evaluation, AutomationExecutorError,
+    AutomationRunResult, DeadlineScanResult, TrashCleanupResult, TriggerContext,
+    WeeklyDigestResult,
 };
 pub use minio::{MinioConfig, MinioError, MinioService};
 pub use notifications::{

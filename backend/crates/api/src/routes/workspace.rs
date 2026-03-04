@@ -26,6 +26,7 @@ use crate::state::AppState;
 /// Fire MemberJoined trigger for all boards in a workspace
 fn fire_member_joined_trigger(
     pool: sqlx::PgPool,
+    redis: redis::aio::ConnectionManager,
     workspace_id: Uuid,
     member_user_id: Uuid,
     tenant_id: Uuid,
@@ -43,6 +44,7 @@ fn fire_member_joined_trigger(
             // Use a dummy task_id (Nil) since MemberJoined doesn't relate to a specific task
             spawn_automation_evaluation(
                 pool.clone(),
+                redis.clone(),
                 AutomationTrigger::MemberJoined,
                 TriggerContext {
                     task_id: Uuid::nil(),
@@ -395,7 +397,13 @@ async fn add_member(
     workspaces::add_workspace_member(&state.db, id, payload.user_id).await?;
 
     // Fire MemberJoined automation trigger
-    fire_member_joined_trigger(state.db.clone(), id, payload.user_id, auth.0.tenant_id);
+    fire_member_joined_trigger(
+        state.db.clone(),
+        state.redis.clone(),
+        id,
+        payload.user_id,
+        auth.0.tenant_id,
+    );
 
     Ok(Json(MessageResponse {
         message: "Member added successfully".into(),
@@ -579,7 +587,13 @@ async fn join_workspace(
     workspaces::join_open_workspace(&state.db, id, auth.0.user_id).await?;
 
     // Fire MemberJoined automation trigger
-    fire_member_joined_trigger(state.db.clone(), id, auth.0.user_id, auth.0.tenant_id);
+    fire_member_joined_trigger(
+        state.db.clone(),
+        state.redis.clone(),
+        id,
+        auth.0.user_id,
+        auth.0.tenant_id,
+    );
 
     Ok(Json(JoinWorkspaceResponse {
         message: "Successfully joined the workspace".into(),

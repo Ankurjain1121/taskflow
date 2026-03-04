@@ -53,6 +53,7 @@ pub async fn assign_user_handler(
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
+            TaskQueryError::Other(msg) => AppError::BadRequest(msg),
         })?;
 
     // Broadcast the task updated event
@@ -132,6 +133,7 @@ pub async fn assign_user_handler(
     // Trigger automations for TaskAssigned
     spawn_automation_evaluation(
         state.db.clone(),
+        state.redis.clone(),
         AutomationTrigger::TaskAssigned,
         TriggerContext {
             task_id,
@@ -172,6 +174,7 @@ pub async fn unassign_user_handler(
             TaskQueryError::NotFound => AppError::NotFound("Assignment not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
+            TaskQueryError::Other(msg) => AppError::BadRequest(msg),
         })?;
 
     // Broadcast the task updated event

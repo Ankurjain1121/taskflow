@@ -21,6 +21,7 @@ use taskflow_db::queries::auth;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
+use crate::middleware::store_csrf_token;
 use crate::state::AppState;
 
 use super::auth_password;
@@ -52,6 +53,7 @@ pub struct RefreshRequest {
 pub struct AuthResponse {
     pub access_token: String,
     pub refresh_token: String,
+    pub csrf_token: String,
     pub user: UserResponse,
 }
 
@@ -151,6 +153,23 @@ pub async fn sign_in_handler(
     )
     .await?;
 
+    // Create session in Redis (30 minutes idle timeout)
+    let session_key = format!("session:{}", user.id);
+    const SESSION_TTL_SECS: usize = 30 * 60;
+    redis::cmd("SET")
+        .arg(&session_key)
+        .arg("1")
+        .arg("EX")
+        .arg(SESSION_TTL_SECS)
+        .query_async::<()>(&mut state.redis.clone())
+        .await
+        .map_err(|e| AppError::InternalError(format!("Failed to create session: {}", e)))?;
+
+    // Generate and store CSRF token
+    let csrf_token = store_csrf_token(&state, user.id, SESSION_TTL_SECS)
+        .await
+        .map_err(|e| AppError::InternalError(format!("Failed to create CSRF token: {}", e)))?;
+
     // Set HttpOnly cookies
     let cookie_headers = build_auth_cookie_headers(
         &tokens.access_token,
@@ -158,11 +177,12 @@ pub async fn sign_in_handler(
         state.config.jwt_access_expiry_secs,
         state.config.jwt_refresh_expiry_secs,
         &state.config.app_url,
-    );
+    )?;
 
     let response_body = AuthResponse {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
+        csrf_token,
         user: UserResponse {
             id: user.id,
             name: user.name,
@@ -261,6 +281,23 @@ pub async fn sign_up_handler(
     )
     .await?;
 
+    // Create session in Redis (30 minutes idle timeout)
+    let session_key = format!("session:{}", user.id);
+    const SESSION_TTL_SECS: usize = 30 * 60;
+    redis::cmd("SET")
+        .arg(&session_key)
+        .arg("1")
+        .arg("EX")
+        .arg(SESSION_TTL_SECS)
+        .query_async::<()>(&mut state.redis.clone())
+        .await
+        .map_err(|e| AppError::InternalError(format!("Failed to create session: {}", e)))?;
+
+    // Generate and store CSRF token
+    let csrf_token = store_csrf_token(&state, user.id, SESSION_TTL_SECS)
+        .await
+        .map_err(|e| AppError::InternalError(format!("Failed to create CSRF token: {}", e)))?;
+
     // Set HttpOnly cookies
     let cookie_headers = build_auth_cookie_headers(
         &tokens.access_token,
@@ -268,11 +305,12 @@ pub async fn sign_up_handler(
         state.config.jwt_access_expiry_secs,
         state.config.jwt_refresh_expiry_secs,
         &state.config.app_url,
-    );
+    )?;
 
     let response_body = AuthResponse {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
+        csrf_token,
         user: UserResponse {
             id: user.id,
             name: user.name,
@@ -385,6 +423,12 @@ pub async fn refresh_handler(
     )
     .await?;
 
+    // Generate a new CSRF token
+    const SESSION_TTL_SECS: usize = 30 * 60;
+    let csrf_token = store_csrf_token(&state, user.id, SESSION_TTL_SECS)
+        .await
+        .map_err(|e| AppError::InternalError(format!("Failed to create CSRF token: {}", e)))?;
+
     // Set HttpOnly cookies
     let cookie_headers = build_auth_cookie_headers(
         &tokens.access_token,
@@ -392,11 +436,12 @@ pub async fn refresh_handler(
         state.config.jwt_access_expiry_secs,
         state.config.jwt_refresh_expiry_secs,
         &state.config.app_url,
-    );
+    )?;
 
     let response_body = AuthResponse {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
+        csrf_token,
         user: UserResponse {
             id: user.id,
             name: user.name,
@@ -420,7 +465,7 @@ pub async fn refresh_handler(
 
 /// POST /api/auth/sign-out
 ///
-/// Sign out by revoking the current refresh token.
+/// Sign out by revoking the current refresh token and session.
 /// Requires authentication.
 pub async fn sign_out_handler(
     State(state): State<AppState>,
@@ -441,8 +486,16 @@ pub async fn sign_out_handler(
         }
     }
 
+    // Revoke session from Redis
+    let session_key = format!("session:{}", auth.0.user_id);
+    let _: () = redis::cmd("DEL")
+        .arg(&session_key)
+        .query_async(&mut state.redis.clone())
+        .await
+        .unwrap_or(());
+
     // Clear cookies regardless
-    let clear_headers = build_clear_cookie_headers(&state.config.app_url);
+    let clear_headers = build_clear_cookie_headers(&state.config.app_url)?;
 
     Ok((
         clear_headers,
@@ -468,7 +521,7 @@ pub async fn logout_handler(
     }
 
     // Clear cookies
-    let clear_headers = build_clear_cookie_headers(&state.config.app_url);
+    let clear_headers = build_clear_cookie_headers(&state.config.app_url)?;
 
     Ok((
         clear_headers,
@@ -513,7 +566,7 @@ fn build_auth_cookie_headers(
     access_expiry_secs: i64,
     refresh_expiry_secs: i64,
     app_url: &str,
-) -> HeaderMap {
+) -> Result<HeaderMap> {
     let secure_flag = if app_url.starts_with("https://") {
         "; Secure"
     } else {
@@ -532,17 +585,19 @@ fn build_auth_cookie_headers(
     let mut headers = HeaderMap::new();
     headers.append(
         SET_COOKIE,
-        HeaderValue::from_str(&access_cookie).expect("valid cookie value"),
+        HeaderValue::from_str(&access_cookie)
+            .map_err(|_| AppError::InternalError("Invalid access cookie header value".into()))?,
     );
     headers.append(
         SET_COOKIE,
-        HeaderValue::from_str(&refresh_cookie).expect("valid cookie value"),
+        HeaderValue::from_str(&refresh_cookie)
+            .map_err(|_| AppError::InternalError("Invalid refresh cookie header value".into()))?,
     );
-    headers
+    Ok(headers)
 }
 
 /// Build Set-Cookie headers that clear both auth cookies.
-fn build_clear_cookie_headers(app_url: &str) -> HeaderMap {
+fn build_clear_cookie_headers(app_url: &str) -> Result<HeaderMap> {
     let secure_flag = if app_url.starts_with("https://") {
         "; Secure"
     } else {
@@ -561,13 +616,17 @@ fn build_clear_cookie_headers(app_url: &str) -> HeaderMap {
     let mut headers = HeaderMap::new();
     headers.append(
         SET_COOKIE,
-        HeaderValue::from_str(&clear_access).expect("valid cookie value"),
+        HeaderValue::from_str(&clear_access).map_err(|_| {
+            AppError::InternalError("Invalid clear access cookie header value".into())
+        })?,
     );
     headers.append(
         SET_COOKIE,
-        HeaderValue::from_str(&clear_refresh).expect("valid cookie value"),
+        HeaderValue::from_str(&clear_refresh).map_err(|_| {
+            AppError::InternalError("Invalid clear refresh cookie header value".into())
+        })?,
     );
-    headers
+    Ok(headers)
 }
 
 // ============================================================================
@@ -685,7 +744,8 @@ mod tests {
 
     #[test]
     fn test_build_auth_cookie_headers_http() {
-        let headers = build_auth_cookie_headers("tok", "ref", 3600, 86400, "http://localhost:4200");
+        let headers = build_auth_cookie_headers("tok", "ref", 3600, 86400, "http://localhost:4200")
+            .expect("should build cookie headers");
         let cookies: Vec<String> = headers
             .get_all(SET_COOKIE)
             .iter()
@@ -704,7 +764,8 @@ mod tests {
     #[test]
     fn test_build_auth_cookie_headers_https() {
         let headers =
-            build_auth_cookie_headers("tok", "ref", 3600, 86400, "https://taskflow.example.com");
+            build_auth_cookie_headers("tok", "ref", 3600, 86400, "https://taskflow.example.com")
+                .expect("should build cookie headers");
         let cookies: Vec<String> = headers
             .get_all(SET_COOKIE)
             .iter()
@@ -722,7 +783,8 @@ mod tests {
 
     #[test]
     fn test_build_clear_cookie_headers() {
-        let headers = build_clear_cookie_headers("http://localhost:4200");
+        let headers = build_clear_cookie_headers("http://localhost:4200")
+            .expect("should build clear headers");
         let cookies: Vec<String> = headers
             .get_all(SET_COOKIE)
             .iter()

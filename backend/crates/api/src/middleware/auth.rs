@@ -22,6 +22,9 @@ use taskflow_db::models::UserRole;
 
 use crate::state::AppState;
 
+/// Session timeout in seconds (30 minutes)
+const SESSION_IDLE_TIMEOUT_SECS: usize = 30 * 60;
+
 /// Authenticated user extracted from JWT token
 #[derive(Debug, Clone)]
 pub struct AuthUser {
@@ -51,7 +54,8 @@ impl AuthErrorResponse {
 /// 1. Cookie header (`access_token` cookie) - preferred for browser clients
 /// 2. Authorization header (`Bearer <token>`) - fallback for API clients
 ///
-/// Returns 401 Unauthorized if no valid token is found.
+/// Validates session is still active in Redis and not expired.
+/// Returns 401 Unauthorized if no valid token is found or session is expired.
 pub async fn auth_middleware(
     State(state): State<AppState>,
     mut request: Request<Body>,
@@ -85,6 +89,22 @@ pub async fn auth_middleware(
         }
     };
 
+    // Validate session exists in Redis (session timeout enforcement)
+    let session_key = format!("session:{}", claims.sub);
+    match check_and_refresh_session(&state, &session_key).await {
+        Ok(_) => {
+            // Session is valid, refresh TTL
+        }
+        Err(e) => {
+            tracing::debug!("Session validation failed: {:?}", e);
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(AuthErrorResponse::unauthorized()),
+            )
+                .into_response();
+        }
+    }
+
     // Insert AuthUser into request extensions
     let auth_user = AuthUser {
         user_id: claims.sub,
@@ -102,6 +122,7 @@ pub async fn auth_middleware(
 ///
 /// If a valid token is present, inserts AuthUser into extensions.
 /// If no token or invalid token, continues without inserting AuthUser.
+/// Validates session is still active in Redis.
 pub async fn optional_auth_middleware(
     State(state): State<AppState>,
     mut request: Request<Body>,
@@ -113,13 +134,20 @@ pub async fn optional_auth_middleware(
 
     if let Some(token) = token {
         if let Ok(claims) = verify_access_token(&token, &state.jwt_keys) {
-            let auth_user = AuthUser {
-                user_id: claims.sub,
-                tenant_id: claims.tenant_id,
-                role: claims.role,
-                token_id: claims.token_id.unwrap_or_default(),
-            };
-            request.extensions_mut().insert(auth_user);
+            // Validate session exists in Redis
+            let session_key = format!("session:{}", claims.sub);
+            if check_and_refresh_session(&state, &session_key)
+                .await
+                .is_ok()
+            {
+                let auth_user = AuthUser {
+                    user_id: claims.sub,
+                    tenant_id: claims.tenant_id,
+                    role: claims.role,
+                    token_id: claims.token_id.unwrap_or_default(),
+                };
+                request.extensions_mut().insert(auth_user);
+            }
         }
     }
 
@@ -146,6 +174,33 @@ fn extract_token_from_cookie(headers: &axum::http::HeaderMap) -> Option<String> 
 fn extract_token_from_auth_header(headers: &axum::http::HeaderMap) -> Option<String> {
     let auth_header = headers.get(AUTHORIZATION)?.to_str().ok()?;
     auth_header.strip_prefix("Bearer ").map(|t| t.to_string())
+}
+
+/// Check if session exists in Redis and refresh its TTL (idle timeout enforcement)
+/// Returns Ok(()) if session is valid, Err if session is expired or not found
+async fn check_and_refresh_session(state: &AppState, session_key: &str) -> Result<(), String> {
+    // Check if session exists
+    let mut redis_conn = state.redis.clone();
+    let exists: bool = redis::cmd("EXISTS")
+        .arg(session_key)
+        .query_async(&mut redis_conn)
+        .await
+        .map_err(|e| format!("Redis query error: {}", e))?;
+
+    if !exists {
+        return Err("Session expired".to_string());
+    }
+
+    // Refresh session TTL (30 minutes from now)
+    let mut redis_conn = state.redis.clone();
+    let _: () = redis::cmd("EXPIRE")
+        .arg(session_key)
+        .arg(SESSION_IDLE_TIMEOUT_SECS)
+        .query_async(&mut redis_conn)
+        .await
+        .map_err(|e| format!("Redis command error: {}", e))?;
+
+    Ok(())
 }
 
 #[cfg(test)]

@@ -352,6 +352,7 @@ pub async fn accept_handler(
     // Fire MemberJoined automation trigger for all boards in the workspace
     {
         let pool = state.db.clone();
+        let redis = state.redis.clone();
         let ws_id = invitation.workspace_id;
         let new_user_id = user.id;
         let tid = tenant_id;
@@ -367,6 +368,7 @@ pub async fn accept_handler(
             for board_id in board_ids {
                 spawn_automation_evaluation(
                     pool.clone(),
+                    redis.clone(),
                     AutomationTrigger::MemberJoined,
                     TriggerContext {
                         task_id: Uuid::nil(),
