@@ -86,15 +86,15 @@ describe('GlobalSearchComponent', () => {
       helpRequested$: new Subject<void>(),
     };
 
-    // Mock localStorage
+    // Mock localStorage (use localStorage directly, not Storage.prototype)
     const storage: Record<string, string> = {};
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(
+    vi.spyOn(localStorage, 'getItem').mockImplementation(
       (key) => storage[key] ?? null,
     );
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => {
-      storage[key] = value;
+    vi.spyOn(localStorage, 'setItem').mockImplementation((key, value) => {
+      storage[key] = String(value);
     });
-    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation((key) => {
+    vi.spyOn(localStorage, 'removeItem').mockImplementation((key) => {
       delete storage[key];
     });
 
@@ -447,7 +447,7 @@ describe('GlobalSearchComponent', () => {
 
   describe('loadRecentSearches', () => {
     it('should load recent searches from localStorage on init', () => {
-      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(
+      vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(
         JSON.stringify(['search1', 'search2']),
       );
 
@@ -457,7 +457,7 @@ describe('GlobalSearchComponent', () => {
     });
 
     it('should handle invalid JSON in localStorage gracefully', () => {
-      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(
+      vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(
         'invalid json{',
       );
 
@@ -465,7 +465,7 @@ describe('GlobalSearchComponent', () => {
     });
 
     it('should handle null localStorage value', () => {
-      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null);
+      vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
 
       component.ngOnInit();
 
