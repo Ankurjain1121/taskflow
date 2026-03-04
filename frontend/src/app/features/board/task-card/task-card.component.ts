@@ -1379,6 +1379,7 @@ export class TaskCardComponent {
         label: 'Delete',
         icon: 'pi pi-trash',
         styleClass: 'text-red-500',
+        disabled: false,
         command: () => this.deleteRequested.emit(this.task().id),
       },
     ];
