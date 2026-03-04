@@ -10,7 +10,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { AvatarModule } from 'primeng/avatar';
 import { MenuModule } from 'primeng/menu';
 import { PopoverModule } from 'primeng/popover';
-import { MenuItem } from 'primeng/api';
+import { MenuItem, PrimeIcons } from 'primeng/api';
 import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component';
 import { NotificationBellComponent } from '../notification-bell/notification-bell.component';
 import { SaveStatusIndicatorComponent } from '../save-status-indicator/save-status-indicator.component';
