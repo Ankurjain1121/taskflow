@@ -1053,6 +1053,13 @@ import {
         transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
       }
 
+      /* Ensure PrimeNG menu items are not visually disabled */
+      :host ::ng-deep .p-menu .p-menuitem:not(.p-disabled) {
+        opacity: 1;
+        pointer-events: auto;
+        cursor: pointer;
+      }
+
       .task-card--urgent {
         background: linear-gradient(
           135deg,
@@ -1378,9 +1385,13 @@ export class TaskCardComponent {
       {
         label: 'Delete',
         icon: 'pi pi-trash',
-        styleClass: 'text-red-500',
         disabled: false,
-        command: () => this.deleteRequested.emit(this.task().id),
+        style: { color: 'var(--red-500)' },
+        command: () => {
+          if (confirm(`Delete "${this.task().title}"?`)) {
+            this.deleteRequested.emit(this.task().id);
+          }
+        },
       },
     ];
   }
