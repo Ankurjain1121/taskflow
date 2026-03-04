@@ -86,17 +86,25 @@ describe('GlobalSearchComponent', () => {
       helpRequested$: new Subject<void>(),
     };
 
-    // Mock localStorage (use localStorage directly, not Storage.prototype)
-    const storage: Record<string, string> = {};
-    vi.spyOn(localStorage, 'getItem').mockImplementation(
-      (key) => storage[key] ?? null,
-    );
-    vi.spyOn(localStorage, 'setItem').mockImplementation((key, value) => {
-      storage[key] = String(value);
-    });
-    vi.spyOn(localStorage, 'removeItem').mockImplementation((key) => {
-      delete storage[key];
-    });
+    // localStorage is mocked globally in test-setup.ts
+    // Just ensure it's available
+    if (!globalThis.localStorage) {
+      const storage: Record<string, string> = {};
+      globalThis.localStorage = {
+        getItem: (key) => storage[key] ?? null,
+        setItem: (key, value) => {
+          storage[key] = String(value);
+        },
+        removeItem: (key) => {
+          delete storage[key];
+        },
+        clear: () => {
+          Object.keys(storage).forEach(key => delete storage[key]);
+        },
+        length: 0,
+        key: () => null,
+      } as Storage;
+    }
 
     await TestBed.configureTestingModule({
       imports: [GlobalSearchComponent],
@@ -384,8 +392,9 @@ describe('GlobalSearchComponent', () => {
     });
 
     it('clearRecentSearches should remove from localStorage', () => {
+      const removeItemSpy = vi.spyOn(localStorage, 'removeItem').mockImplementation(() => {});
       component.clearRecentSearches();
-      expect(localStorage.removeItem).toHaveBeenCalledWith(
+      expect(removeItemSpy).toHaveBeenCalledWith(
         'taskflow_recent_searches',
       );
     });
@@ -447,7 +456,7 @@ describe('GlobalSearchComponent', () => {
 
   describe('loadRecentSearches', () => {
     it('should load recent searches from localStorage on init', () => {
-      vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(
+      vi.spyOn(localStorage, 'getItem').mockReturnValue(
         JSON.stringify(['search1', 'search2']),
       );
 
@@ -457,7 +466,7 @@ describe('GlobalSearchComponent', () => {
     });
 
     it('should handle invalid JSON in localStorage gracefully', () => {
-      vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(
+      vi.spyOn(localStorage, 'getItem').mockReturnValue(
         'invalid json{',
       );
 
@@ -465,7 +474,7 @@ describe('GlobalSearchComponent', () => {
     });
 
     it('should handle null localStorage value', () => {
-      vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
+      vi.spyOn(localStorage, 'getItem').mockReturnValue(null);
 
       component.ngOnInit();
 
