@@ -6,42 +6,70 @@ import {
   BrowserDynamicTestingModule,
   platformBrowserDynamicTesting,
 } from '@angular/platform-browser-dynamic/testing';
-import { afterEach, beforeEach, vi } from 'vitest';
+import { afterEach, beforeEach } from 'vitest';
 
-// Mock localStorage and sessionStorage globally
-const createStorageMock = () => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => {
-      store[key] = String(value);
-    },
-    removeItem: (key: string) => {
-      delete store[key];
-    },
-    clear: () => {
-      store = {};
-    },
-    key: (index: number) => {
-      const keys = Object.keys(store);
-      return keys[index] || null;
-    },
-    get length() {
-      return Object.keys(store).length;
-    },
-  };
-};
+// Define Storage interface/class for tests
+class MockStorage implements Storage {
+  private store: Record<string, string> = {};
 
-// Set up global mocks before test environment initialization
+  clear(): void {
+    this.store = {};
+  }
+
+  getItem(key: string): string | null {
+    return this.store[key] || null;
+  }
+
+  key(index: number): string | null {
+    const keys = Object.keys(this.store);
+    return keys[index] || null;
+  }
+
+  removeItem(key: string): void {
+    delete this.store[key];
+  }
+
+  setItem(key: string, value: string): void {
+    this.store[key] = String(value);
+  }
+
+  get length(): number {
+    return Object.keys(this.store).length;
+  }
+
+  [key: string]: any;
+  [index: number]: string;
+}
+
+// Set up Storage mocks globally BEFORE TestBed
+const mockLocalStorage = new MockStorage();
+const mockSessionStorage = new MockStorage();
+
 Object.defineProperty(global, 'localStorage', {
-  value: createStorageMock(),
+  value: mockLocalStorage,
   writable: true,
+  configurable: true,
 });
 
 Object.defineProperty(global, 'sessionStorage', {
-  value: createStorageMock(),
+  value: mockSessionStorage,
   writable: true,
+  configurable: true,
 });
+
+// Also set on globalThis for broader compatibility
+if (typeof globalThis !== 'undefined') {
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: mockLocalStorage,
+    writable: true,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'sessionStorage', {
+    value: mockSessionStorage,
+    writable: true,
+    configurable: true,
+  });
+}
 
 getTestBed().initTestEnvironment(
   BrowserDynamicTestingModule,
@@ -49,12 +77,12 @@ getTestBed().initTestEnvironment(
 );
 
 beforeEach(() => {
-  localStorage.clear();
-  sessionStorage.clear();
+  mockLocalStorage.clear();
+  mockSessionStorage.clear();
 });
 
 afterEach(() => {
   getTestBed().resetTestingModule();
-  localStorage.clear();
-  sessionStorage.clear();
+  mockLocalStorage.clear();
+  mockSessionStorage.clear();
 });
