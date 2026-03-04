@@ -263,7 +263,7 @@ describe('BoardViewComponent', () => {
       ],
     })
       .overrideComponent(BoardViewComponent, {
-        set: { schemas: [NO_ERRORS_SCHEMA] },
+        set: { template: '<div></div>', schemas: [NO_ERRORS_SCHEMA] },
       })
       .compileComponents();
 

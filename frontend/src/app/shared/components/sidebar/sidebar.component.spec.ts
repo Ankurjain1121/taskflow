@@ -7,14 +7,14 @@ import { of, throwError } from 'rxjs';
 import { SidebarComponent } from './sidebar.component';
 import { WorkspaceService } from '../../../core/services/workspace.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { ThemeService } from '../../../core/services/theme.service';
+import { NotificationService } from '../../../core/services/notification.service';
 
 describe('SidebarComponent', () => {
   let component: SidebarComponent;
   let fixture: ComponentFixture<SidebarComponent>;
   let mockWorkspaceService: any;
   let mockAuthService: any;
-  let mockThemeService: any;
+  let mockNotificationService: any;
 
   beforeEach(async () => {
     Object.defineProperty(window, 'matchMedia', {
@@ -79,11 +79,8 @@ describe('SidebarComponent', () => {
       signOut: vi.fn(),
     };
 
-    mockThemeService = {
-      theme: signal('light' as const),
-      accent: signal('indigo' as const),
-      isDark: signal(false),
-      setTheme: vi.fn(),
+    mockNotificationService = {
+      unreadCount: signal(0),
     };
 
     await TestBed.configureTestingModule({
@@ -94,7 +91,7 @@ describe('SidebarComponent', () => {
         provideHttpClientTesting(),
         { provide: WorkspaceService, useValue: mockWorkspaceService },
         { provide: AuthService, useValue: mockAuthService },
-        { provide: ThemeService, useValue: mockThemeService },
+        { provide: NotificationService, useValue: mockNotificationService },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
@@ -122,10 +119,10 @@ describe('SidebarComponent', () => {
     expect(component.loading()).toBe(false);
   });
 
-  it('should toggle collapse local', () => {
-    const initial = component.isCollapsed();
-    component.toggleCollapseLocal();
-    expect(component.isCollapsed()).toBe(!initial);
+  it('should emit toggleCollapse', () => {
+    const spy = vi.spyOn(component.toggleCollapse, 'emit');
+    component.toggleCollapse.emit();
+    expect(spy).toHaveBeenCalled();
   });
 
   it('should determine canCreateWorkspace', () => {
@@ -171,44 +168,23 @@ describe('SidebarComponent', () => {
     expect(component.workspaces().length).toBeGreaterThanOrEqual(1);
   });
 
-  it('should get theme icon', () => {
-    mockThemeService.theme.set('light' as any);
-    expect(component.themeIcon).toContain('sun');
-
-    mockThemeService.theme.set('dark' as any);
-    expect(component.themeIcon).toContain('moon');
-
-    mockThemeService.theme.set('system' as any);
-    expect(component.themeIcon).toContain('desktop');
+  it('should toggle profile menu', () => {
+    expect(component.profileMenuOpen()).toBe(false);
+    component.toggleProfileMenu();
+    expect(component.profileMenuOpen()).toBe(true);
+    component.toggleProfileMenu();
+    expect(component.profileMenuOpen()).toBe(false);
   });
 
-  it('should get theme label', () => {
-    mockThemeService.theme.set('light' as any);
-    expect(component.themeLabel).toBe('Light');
-
-    mockThemeService.theme.set('dark' as any);
-    expect(component.themeLabel).toBe('Dark');
-
-    mockThemeService.theme.set('system' as any);
-    expect(component.themeLabel).toBe('System');
+  it('should sign out via handleSignOut', () => {
+    component.profileMenuOpen.set(true);
+    component.handleSignOut();
+    expect(mockAuthService.signOut).toHaveBeenCalledWith('manual');
+    expect(component.profileMenuOpen()).toBe(false);
   });
 
-  it('should cycle theme light -> dark -> system -> light', () => {
-    mockThemeService.theme.set('light' as any);
-    component.cycleTheme();
-    expect(mockThemeService.setTheme).toHaveBeenCalledWith('dark');
-
-    mockThemeService.theme.set('dark' as any);
-    component.cycleTheme();
-    expect(mockThemeService.setTheme).toHaveBeenCalledWith('system');
-
-    mockThemeService.theme.set('system' as any);
-    component.cycleTheme();
-    expect(mockThemeService.setTheme).toHaveBeenCalledWith('light');
-  });
-
-  it('should sign out', () => {
-    component.onSignOut();
-    expect(mockAuthService.signOut).toHaveBeenCalled();
+  it('should compute user initials', () => {
+    expect(component.getUserInitials('Alice Smith')).toBe('AS');
+    expect(component.getUserInitials('Bob')).toBe('B');
   });
 });

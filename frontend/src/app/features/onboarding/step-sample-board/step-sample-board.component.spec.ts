@@ -58,13 +58,13 @@ describe('StepSampleBoardComponent', () => {
       expect(component.error()).toBeNull();
     });
 
-    it('should have 4 sample columns', () => {
-      expect(component.sampleColumns).toHaveLength(4);
+    it('should have 5 sample columns for default software use case', () => {
+      expect(component.previewColumns()).toHaveLength(5);
     });
 
     it('should have correct sample column names', () => {
-      const names = component.sampleColumns.map((c) => c.name);
-      expect(names).toEqual(['To Do', 'In Progress', 'Review', 'Done']);
+      const names = component.previewColumns().map((c: any) => c.name);
+      expect(names).toEqual(['Backlog', 'To Do', 'In Progress', 'Code Review', 'Done']);
     });
   });
 
@@ -104,7 +104,7 @@ describe('StepSampleBoardComponent', () => {
       expect(component.error()).toBeNull();
     });
 
-    it('should call generateSampleBoard with workspaceId', () => {
+    it('should call generateSampleBoard with workspaceId and useCase', () => {
       mockOnboardingService.generateSampleBoard.mockReturnValue(
         of({ board_id: 'board-1' }),
       );
@@ -113,6 +113,7 @@ describe('StepSampleBoardComponent', () => {
 
       expect(mockOnboardingService.generateSampleBoard).toHaveBeenCalledWith(
         'ws-test',
+        'software',
       );
     });
 

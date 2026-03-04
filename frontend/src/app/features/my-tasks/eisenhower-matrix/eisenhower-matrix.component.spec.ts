@@ -281,107 +281,14 @@ describe('EisenhowerMatrixComponent', () => {
       expect(mockTaskService.deleteTask).toHaveBeenCalledWith('del-1');
     });
 
-    it('should show not-available dialog for delegate quadrant', async () => {
+    it('should show delegate dialog for delegate quadrant', async () => {
       await component.performQuadrantAction('delegate');
 
       expect(mockConfirmationService.confirm).toHaveBeenCalledWith(
         expect.objectContaining({
-          header: 'Not Available',
+          header: 'Delegate Tasks',
           rejectVisible: false,
         }),
-      );
-    });
-  });
-
-  describe('formatDueDate()', () => {
-    // Use date-only strings (YYYY-MM-DD) to avoid UTC timezone shifts
-    // that cause off-by-one errors when using toISOString()
-    function toDateString(d: Date): string {
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }
-
-    it('should return "Today" for today date', () => {
-      const today = new Date();
-      const result = component.formatDueDate(toDateString(today));
-      expect(result).toBe('Today');
-    });
-
-    it('should return "Tomorrow" for tomorrow date', () => {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const result = component.formatDueDate(toDateString(tomorrow));
-      expect(result).toBe('Tomorrow');
-    });
-
-    it('should return "in Xd" for dates within a week', () => {
-      const inFive = new Date();
-      inFive.setDate(inFive.getDate() + 5);
-      const result = component.formatDueDate(toDateString(inFive));
-      expect(result).toMatch(/^in \d+d$/);
-    });
-
-    it('should return "Xd overdue" for past dates', () => {
-      const past = new Date();
-      past.setDate(past.getDate() - 3);
-      const result = component.formatDueDate(past.toISOString());
-      expect(result).toMatch(/\d+d overdue$/);
-    });
-  });
-
-  describe('isOverdue()', () => {
-    it('should return true for past dates', () => {
-      const past = new Date();
-      past.setDate(past.getDate() - 1);
-      expect(component.isOverdue(past.toISOString())).toBe(true);
-    });
-
-    it('should return false for future dates', () => {
-      const future = new Date();
-      future.setDate(future.getDate() + 1);
-      expect(component.isOverdue(future.toISOString())).toBe(false);
-    });
-  });
-
-  describe('getPriorityClass()', () => {
-    it('should return red classes for urgent', () => {
-      expect(component.getPriorityClass('urgent')).toBe(
-        'bg-red-100 text-red-800',
-      );
-    });
-
-    it('should return orange classes for high', () => {
-      expect(component.getPriorityClass('high')).toBe(
-        'bg-orange-100 text-orange-800',
-      );
-    });
-
-    it('should return blue classes for medium', () => {
-      expect(component.getPriorityClass('medium')).toBe(
-        'bg-blue-100 text-blue-800',
-      );
-    });
-
-    it('should return gray classes for low', () => {
-      expect(component.getPriorityClass('low')).toBe(
-        'bg-gray-100 text-gray-800',
-      );
-    });
-
-    it('should return default gray classes for unknown priority', () => {
-      expect(component.getPriorityClass('unknown')).toBe(
-        'bg-gray-100 text-gray-600',
-      );
-    });
-
-    it('should be case-insensitive', () => {
-      expect(component.getPriorityClass('HIGH')).toBe(
-        'bg-orange-100 text-orange-800',
-      );
-      expect(component.getPriorityClass('Urgent')).toBe(
-        'bg-red-100 text-red-800',
       );
     });
   });

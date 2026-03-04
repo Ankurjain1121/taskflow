@@ -5,12 +5,14 @@ import { of, throwError } from 'rxjs';
 import { TeamPageComponent } from './team-page.component';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { TeamService } from '../../core/services/team.service';
+import { BoardService } from '../../core/services/board.service';
 
 describe('TeamPageComponent', () => {
   let component: TeamPageComponent;
   let fixture: ComponentFixture<TeamPageComponent>;
   let mockWorkspaceService: any;
   let mockTeamService: any;
+  let mockBoardService: any;
 
   beforeEach(async () => {
     mockWorkspaceService = {
@@ -63,11 +65,16 @@ describe('TeamPageComponent', () => {
       ),
     };
 
+    mockBoardService = {
+      listBoards: vi.fn().mockReturnValue(of([])),
+    };
+
     await TestBed.configureTestingModule({
       imports: [TeamPageComponent, HttpClientTestingModule],
       providers: [
         { provide: WorkspaceService, useValue: mockWorkspaceService },
         { provide: TeamService, useValue: mockTeamService },
+        { provide: BoardService, useValue: mockBoardService },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
