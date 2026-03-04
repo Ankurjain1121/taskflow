@@ -16,7 +16,7 @@ import {
   CdkDragPreview,
   CdkDragPlaceholder,
 } from '@angular/cdk/drag-drop';
-import { Menu } from 'primeng/menu';
+import { TieredMenu } from 'primeng/tieredmenu';
 import { MenuItem } from 'primeng/api';
 import { Tooltip } from 'primeng/tooltip';
 import { Task } from '../../../core/services/task.service';
@@ -48,7 +48,7 @@ import {
     CdkDrag,
     CdkDragPreview,
     CdkDragPlaceholder,
-    Menu,
+    TieredMenu,
     Tooltip,
     PriorityBadgeComponent,
   ],
@@ -235,7 +235,7 @@ import {
             />
           </svg>
         </button>
-        <p-menu
+        <p-tieredmenu
           #cardMenu
           [model]="contextMenuItems"
           [popup]="true"
@@ -1149,7 +1149,7 @@ export class TaskCardComponent {
   titleInput = viewChild<ElementRef>('titleInput');
   private isSaving = false;
 
-  @ViewChild('cardMenu') cardMenu!: Menu;
+  @ViewChild('cardMenu') cardMenu!: TieredMenu;
 
   contextMenuItems: MenuItem[] = [];
 
