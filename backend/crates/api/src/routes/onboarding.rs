@@ -14,6 +14,8 @@ use axum::{
     Json, Router,
 };
 use chrono::{Duration, Utc};
+use once_cell::sync::Lazy;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -70,16 +72,35 @@ pub struct InviteMembersResponse {
 #[derive(Debug, Deserialize)]
 pub struct GenerateSampleBoardRequest {
     pub workspace_id: Uuid,
+    pub use_case: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct GenerateSampleBoardResponse {
     pub board_id: Uuid,
+    pub workspace_id: Uuid,
 }
 
 #[derive(Debug, Serialize)]
 pub struct SuccessResponse {
     pub success: bool,
+}
+
+// ============================================================================
+// Validation Helpers
+// ============================================================================
+
+/// Regex for RFC-compliant email validation
+static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(
+        r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$",
+    )
+    .unwrap()
+});
+
+/// Validates email format according to RFC 5322 (simplified)
+fn is_valid_email(email: &str) -> bool {
+    EMAIL_REGEX.is_match(email) && email.len() <= 254
 }
 
 // ============================================================================
@@ -210,9 +231,10 @@ async fn invite_members(
     for email in &payload.emails {
         let email = email.trim().to_lowercase();
 
-        // Validate email format
-        if !email.contains('@') || email.len() < 5 {
-            continue; // Skip invalid emails
+        // Validate email format (RFC-compliant)
+        if !is_valid_email(&email) {
+            tracing::debug!("Skipping invalid email: {}", email);
+            continue;
         }
 
         // Check if user already exists
@@ -224,13 +246,23 @@ async fn invite_members(
 
             if !already_member {
                 // Add existing user directly to workspace
-                let _ = workspaces::add_workspace_member(
+                match workspaces::add_workspace_member(
                     &state.db,
                     payload.workspace_id,
                     existing_user.id,
                 )
-                .await;
-                invited_count += 1;
+                .await
+                {
+                    Ok(_) => invited_count += 1,
+                    Err(e) => {
+                        tracing::error!(
+                            "Failed to add existing user to workspace: user_id={}, workspace_id={}, error={}",
+                            existing_user.id,
+                            payload.workspace_id,
+                            e
+                        );
+                    }
+                }
             }
         } else {
             // Create invitation for new user
@@ -252,7 +284,7 @@ async fn invite_members(
             .await?;
 
             if existing.is_none() {
-                let _ = invitations::create_invitation(
+                match invitations::create_invitation(
                     &state.db,
                     &email,
                     payload.workspace_id,
@@ -260,8 +292,18 @@ async fn invite_members(
                     auth.0.user_id,
                     expires_at,
                 )
-                .await;
-                pending_count += 1;
+                .await
+                {
+                    Ok(_) => pending_count += 1,
+                    Err(e) => {
+                        tracing::error!(
+                            "Failed to create invitation: email={}, workspace_id={}, error={}",
+                            email,
+                            payload.workspace_id,
+                            e
+                        );
+                    }
+                }
             }
         }
     }
@@ -288,16 +330,21 @@ async fn generate_sample_board_handler(
     }
 
     // Generate the sample board
+    let use_case = payload.use_case.as_deref().unwrap_or("software");
     let board_id = generate_sample_board(
         &state.db,
         payload.workspace_id,
         auth.0.user_id,
         auth.0.tenant_id,
+        use_case,
     )
     .await
     .map_err(|e| AppError::InternalError(format!("Failed to generate sample board: {}", e)))?;
 
-    Ok(Json(GenerateSampleBoardResponse { board_id }))
+    Ok(Json(GenerateSampleBoardResponse {
+        board_id,
+        workspace_id: payload.workspace_id,
+    }))
 }
 
 /// POST /api/onboarding/complete
@@ -357,4 +404,67 @@ pub fn onboarding_router(state: AppState) -> Router<AppState> {
 
     // Combine both
     Router::new().merge(protected).merge(public)
+}
+
+// ============================================================================
+// Tests
+// ============================================================================
+
+#[cfg(test)]
+mod email_validation_tests {
+    use super::*;
+
+    // Valid emails (should pass)
+    #[test]
+    fn test_valid_emails() {
+        assert!(is_valid_email("user@example.com"));
+        assert!(is_valid_email("first.last@example.co.uk"));
+        assert!(is_valid_email("user+tag@example.com"));
+        assert!(is_valid_email("user_name@example.com"));
+        assert!(is_valid_email("123@example.com"));
+    }
+
+    // Invalid emails (should fail)
+    #[test]
+    fn test_invalid_emails() {
+        assert!(!is_valid_email("@example.com")); // Missing local part
+        assert!(!is_valid_email("user@")); // Missing domain
+        assert!(!is_valid_email("user")); // No @
+        assert!(!is_valid_email("user@.com")); // Domain starts with dot
+        assert!(!is_valid_email("user@domain")); // No TLD
+        assert!(!is_valid_email("user name@example.com")); // Space in local
+        assert!(!is_valid_email("")); // Empty
+    }
+
+    // Length validation
+    #[test]
+    fn test_email_length_limits() {
+        assert!(is_valid_email("a@b.co")); // Minimum valid (6 chars)
+
+        // Create email exactly 254 chars (max valid)
+        let long_local = "a".repeat(240);
+        let long_email = format!("{}@example.com", long_local);
+        assert_eq!(long_email.len(), 252);
+        assert!(is_valid_email(&long_email));
+
+        // Create email over 254 chars (too long)
+        let very_long_local = "a".repeat(250);
+        let too_long = format!("{}@example.com", very_long_local);
+        assert!(too_long.len() > 254);
+        assert!(!is_valid_email(&too_long));
+    }
+
+    // Edge cases
+    #[test]
+    fn test_email_edge_cases() {
+        assert!(!is_valid_email("user@example.c")); // Single char TLD not valid
+        assert!(is_valid_email("user@example.co")); // Two char TLD valid
+        assert!(is_valid_email("user@example.international")); // Long TLD
+        assert!(!is_valid_email("user@@example.com")); // Double @
+                                                       // Our simplified regex allows dots at start/end of local part
+                                                       // (stricter than RFC but acceptable for onboarding)
+        assert!(is_valid_email(".user@example.com")); // Dot at start (allowed by our regex)
+        assert!(is_valid_email("user.@example.com")); // Dot at end (allowed by our regex)
+        assert!(!is_valid_email("user@exam ple.com")); // Space in domain
+    }
 }

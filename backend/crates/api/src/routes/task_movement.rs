@@ -50,6 +50,7 @@ pub async fn move_task_handler(
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
+            TaskQueryError::Other(msg) => AppError::BadRequest(msg),
         })?;
 
     // Broadcast the task moved event
@@ -87,6 +88,7 @@ pub async fn move_task_handler(
     // Trigger automations for TaskMoved
     spawn_automation_evaluation(
         state.db.clone(),
+        state.redis.clone(),
         AutomationTrigger::TaskMoved,
         TriggerContext {
             task_id,
@@ -117,6 +119,7 @@ pub async fn move_task_handler(
     if is_done_column {
         spawn_automation_evaluation(
             state.db.clone(),
+            state.redis.clone(),
             AutomationTrigger::TaskCompleted,
             TriggerContext {
                 task_id,

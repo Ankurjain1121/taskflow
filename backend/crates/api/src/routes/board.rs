@@ -5,8 +5,9 @@
 use std::collections::HashMap;
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     middleware::from_fn_with_state,
+    response::IntoResponse,
     routing::{delete, get},
     Json, Router,
 };
@@ -23,6 +24,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
 use crate::middleware::auth_middleware;
 use crate::services::cache;
+use crate::services::http_cache::{check_if_none_match, generate_etag};
 use crate::state::AppState;
 
 // ============================================================================
@@ -118,11 +120,25 @@ pub struct MessageResponse {
 // Board Full (batch) Response DTOs
 // ============================================================================
 
+#[derive(Debug, Deserialize)]
+pub struct BoardFullQuery {
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BoardMeta {
+    pub total_task_count: i64,
+    pub current_limit: i64,
+    pub current_offset: i64,
+}
+
 #[derive(Debug, Serialize)]
 pub struct BoardFullResponse {
     pub board: BoardDetailResponse,
     pub tasks: Vec<TaskWithBadges>,
     pub members: Vec<BoardMemberResponse>,
+    pub meta: BoardMeta,
 }
 
 #[derive(Debug, Serialize)]
@@ -139,6 +155,7 @@ pub struct TaskWithBadges {
     pub created_by_id: Uuid,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub column_entered_at: chrono::DateTime<chrono::Utc>,
     pub subtask_completed: i64,
     pub subtask_total: i64,
     pub has_running_timer: bool,
@@ -215,16 +232,18 @@ async fn list_boards(
 /// GET /api/boards/:id
 ///
 /// Get a board by ID with its columns.
+/// Returns 304 Not Modified if the ETag matches (If-None-Match header).
 async fn get_board(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
-) -> Result<Json<BoardDetailResponse>> {
+    headers: axum::http::HeaderMap,
+) -> Result<axum::response::Response> {
     let board = boards::get_board_by_id(&state.db, id, auth.0.user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Board not found or access denied".into()))?;
 
-    Ok(Json(BoardDetailResponse {
+    let response = BoardDetailResponse {
         id: board.board.id,
         name: board.board.name,
         description: board.board.description,
@@ -250,7 +269,29 @@ async fn get_board(
                 created_at: c.created_at,
             })
             .collect(),
-    }))
+    };
+
+    // Generate ETag from response JSON
+    let json_str = serde_json::to_string(&response).unwrap_or_else(|_| String::from("{}"));
+    let etag = generate_etag(&json_str);
+
+    // Check if client has matching ETag
+    if check_if_none_match(&headers, &etag) {
+        return Ok(axum::response::Response::builder()
+            .status(axum::http::StatusCode::NOT_MODIFIED)
+            .header("etag", etag)
+            .body(axum::body::Body::empty())
+            .unwrap());
+    }
+
+    // Return response with ETag header
+    let mut response_json = Json(response).into_response();
+    response_json.headers_mut().insert(
+        "etag",
+        axum::http::HeaderValue::from_str(&format!("\"{}\"", etag))
+            .unwrap_or_else(|_| axum::http::HeaderValue::from_static("")),
+    );
+    Ok(response_json)
 }
 
 /// POST /api/workspaces/:workspace_id/boards
@@ -700,15 +741,20 @@ async fn list_board_templates() -> Json<Vec<board_templates::BoardTemplate>> {
 ///
 /// Get a board with columns, tasks (with badge data), and members in a single request.
 /// This batch endpoint replaces 6+ separate API calls needed to render a board view.
+/// Supports optional `?limit=` and `?offset=` query params for task pagination.
 async fn get_board_full(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
+    Query(query): Query<BoardFullQuery>,
 ) -> Result<Json<BoardFullResponse>> {
+    let limit = query.limit.unwrap_or(1000).clamp(1, 1000);
+    let offset = query.offset.unwrap_or(0).max(0);
+
     // Fetch board+columns, tasks with badges, members, assignees, and labels in parallel
     let (board_result, tasks_result, members_result, assignees_result, labels_result) = tokio::join!(
         boards::get_board_by_id(&state.db, id, auth.0.user_id),
-        boards::list_board_tasks_with_badges(&state.db, id),
+        boards::list_board_tasks_with_badges(&state.db, id, Some(limit), Some(offset)),
         boards::list_board_members(&state.db, id),
         boards::list_board_task_assignees(&state.db, id),
         boards::list_board_task_labels(&state.db, id),
@@ -717,7 +763,9 @@ async fn get_board_full(
     let board = board_result?
         .ok_or_else(|| AppError::NotFound("Board not found or access denied".into()))?;
 
-    let task_rows = tasks_result?;
+    let paginated = tasks_result?;
+    let task_rows = paginated.tasks;
+    let total_task_count = paginated.total_count;
     let members = members_result?;
     let assignee_rows = assignees_result?;
     let label_rows = labels_result?;
@@ -763,6 +811,7 @@ async fn get_board_full(
                 created_by_id: t.created_by_id,
                 created_at: t.created_at,
                 updated_at: t.updated_at,
+                column_entered_at: t.column_entered_at,
                 subtask_completed: t.subtask_completed,
                 subtask_total: t.subtask_total,
                 has_running_timer: t.has_running_timer,
@@ -819,6 +868,11 @@ async fn get_board_full(
         board: board_detail,
         tasks,
         members: member_responses,
+        meta: BoardMeta {
+            total_task_count,
+            current_limit: limit,
+            current_offset: offset,
+        },
     }))
 }
 

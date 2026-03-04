@@ -9,8 +9,8 @@ pub mod trash_cleanup;
 pub mod weekly_digest;
 
 pub use automation_executor::{
-    evaluate_trigger, spawn_automation_evaluation, AutomationExecutorError, AutomationRunResult,
-    TriggerContext,
+    evaluate_trigger, resolve_column_by_name, resolve_label_by_name, spawn_automation_evaluation,
+    AutomationExecutorError, AutomationRunResult, TriggerContext,
 };
 pub use deadline_scanner::{scan_deadlines, DeadlineScanResult, DeadlineScannerError};
 pub use trash_cleanup::{cleanup_expired_trash, TrashCleanupError, TrashCleanupResult};

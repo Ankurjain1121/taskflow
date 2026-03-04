@@ -1,11 +1,13 @@
 use std::sync::Arc;
+use std::time::Duration;
 
 use dashmap::DashMap;
-use sqlx::PgPool;
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use tokio::sync::broadcast;
 use uuid::Uuid;
 
 use crate::config::Config;
+use crate::ws::PubSubRelay;
 use taskflow_auth::jwt::JwtKeys;
 
 #[derive(Clone)]
@@ -15,13 +17,19 @@ pub struct AppState {
     pub jwt_keys: Arc<JwtKeys>,
     pub redis: redis::aio::ConnectionManager,
     pub board_channels: Arc<DashMap<Uuid, broadcast::Sender<String>>>,
+    pub pubsub_relay: PubSubRelay,
     pub s3_client: aws_sdk_s3::Client,
 }
 
 impl AppState {
     pub async fn new(config: Config) -> Result<Self, Box<dyn std::error::Error>> {
-        // Connect to PostgreSQL
-        let db = PgPool::connect(&config.app_database_url).await?;
+        // Connect to PostgreSQL with configured pool
+        let db = PgPoolOptions::new()
+            .max_connections(config.db_max_connections)
+            .min_connections(config.db_min_connections)
+            .acquire_timeout(Duration::from_secs(5))
+            .connect(&config.app_database_url)
+            .await?;
 
         // Run pending migrations
         sqlx::migrate!("../db/src/migrations").run(&db).await?;
@@ -49,6 +57,10 @@ impl AppState {
 
         let board_channels = Arc::new(DashMap::new());
 
+        // Spawn shared Redis pubsub relay (single connection for all WebSocket clients)
+        let pubsub_relay = PubSubRelay::spawn(config.redis_url.as_str());
+        tracing::info!("PubSub relay started (shared Redis connection)");
+
         // Build JWT keys (RS256 if RSA keys provided, else HS256 fallback)
         let jwt_keys = Arc::new(JwtKeys::from_config(
             &config.jwt_secret,
@@ -63,6 +75,7 @@ impl AppState {
             jwt_keys,
             redis,
             board_channels,
+            pubsub_relay,
             s3_client,
         })
     }

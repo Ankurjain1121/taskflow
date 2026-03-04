@@ -217,3 +217,7 @@ where
         )))
     }
 }
+
+#[cfg(test)]
+#[path = "auth.spec.rs"]
+mod auth_spec;

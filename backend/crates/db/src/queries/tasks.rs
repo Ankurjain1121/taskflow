@@ -18,6 +18,8 @@ pub enum TaskQueryError {
     NotFound,
     #[error("Version conflict: task was modified by another user")]
     VersionConflict(Box<Task>),
+    #[error("{0}")]
+    Other(String),
 }
 
 /// Input for creating a new task
@@ -106,7 +108,7 @@ pub(crate) async fn verify_board_membership(
     Ok(result)
 }
 
-/// List all tasks for a board, grouped by column_id
+/// List tasks for a board, grouped by column_id (capped at 1000 rows).
 /// Returns HashMap<column_id, Vec<Task>>
 pub async fn list_tasks_by_board(
     pool: &PgPool,
@@ -118,7 +120,7 @@ pub async fn list_tasks_by_board(
         return Err(TaskQueryError::NotBoardMember);
     }
 
-    // Fetch all tasks for the board
+    // Fetch tasks for the board with safety limit
     let tasks = sqlx::query_as::<_, Task>(
         r#"
         SELECT
@@ -129,6 +131,7 @@ pub async fn list_tasks_by_board(
         FROM tasks
         WHERE board_id = $1 AND deleted_at IS NULL
         ORDER BY position ASC
+        LIMIT 1000
         "#,
     )
     .bind(board_id)

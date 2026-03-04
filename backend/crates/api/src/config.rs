@@ -6,6 +6,8 @@ pub struct Config {
     pub app_database_url: String,
     pub host: String,
     pub port: u16,
+    pub db_max_connections: u32,
+    pub db_min_connections: u32,
     pub jwt_secret: String,
     pub jwt_refresh_secret: String,
     pub jwt_access_expiry_secs: i64,
@@ -43,6 +45,12 @@ impl Config {
             }),
             host: env::var("HOST").unwrap_or_else(|_| "0.0.0.0".into()),
             port: env::var("PORT").unwrap_or_else(|_| "8080".into()).parse()?,
+            db_max_connections: env::var("DB_MAX_CONNECTIONS")
+                .unwrap_or_else(|_| "20".into())
+                .parse()?,
+            db_min_connections: env::var("DB_MIN_CONNECTIONS")
+                .unwrap_or_else(|_| "5".into())
+                .parse()?,
             jwt_secret: {
                 let secret = env::var("JWT_SECRET")
                     .map_err(|_| "JWT_SECRET environment variable must be set")?;
@@ -128,6 +136,8 @@ mod tests {
             app_database_url: "postgresql://test:test@localhost/testdb".into(),
             host: "0.0.0.0".into(),
             port: 8080,
+            db_max_connections: 20,
+            db_min_connections: 5,
             jwt_secret: "actual-secret-that-is-long-enough-for-validation-check".into(),
             jwt_refresh_secret: "actual-refresh-secret-long-enough-for-validation".into(),
             jwt_access_expiry_secs: 900,

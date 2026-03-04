@@ -48,6 +48,7 @@ pub async fn set_reminder_handler(
         TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
         TaskQueryError::Database(e) => AppError::SqlxError(e),
         TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
+        TaskQueryError::Other(msg) => AppError::BadRequest(msg),
     })?;
 
     Ok(Json(json!({ "success": true, "id": reminder.id })))
@@ -93,6 +94,7 @@ pub async fn remove_reminder_handler(
             TaskQueryError::NotFound => AppError::NotFound("Reminder not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
+            TaskQueryError::Other(msg) => AppError::BadRequest(msg),
         })?;
 
     Ok(Json(json!({ "success": true })))

@@ -37,6 +37,7 @@ pub async fn list_tasks(
             TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
+            TaskQueryError::Other(msg) => AppError::InternalError(msg),
         })?;
 
     Ok(Json(ListTasksResponse { tasks }))
@@ -56,6 +57,7 @@ pub async fn get_task(
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
+            TaskQueryError::Other(msg) => AppError::InternalError(msg),
         })?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
@@ -96,6 +98,7 @@ pub async fn create_task_handler(
             TaskQueryError::NotFound => AppError::NotFound("Column not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
+            TaskQueryError::Other(msg) => AppError::InternalError(msg),
         })?;
 
     // Broadcast the task created event
@@ -142,6 +145,7 @@ pub async fn create_task_handler(
     // Trigger automations for TaskCreated
     spawn_automation_evaluation(
         state.db.clone(),
+        state.redis.clone(),
         AutomationTrigger::TaskCreated,
         TriggerContext {
             task_id: task.id,
@@ -212,6 +216,7 @@ pub async fn update_task_handler(
             TaskQueryError::VersionConflict(current_task) => {
                 AppError::VersionConflict(serde_json::to_value(&*current_task).unwrap_or_default())
             }
+            TaskQueryError::Other(msg) => AppError::InternalError(msg),
         })?;
 
     // Compute changed fields by comparing old and new task
@@ -305,6 +310,7 @@ pub async fn update_task_handler(
     if priority_changed {
         spawn_automation_evaluation(
             state.db.clone(),
+            state.redis.clone(),
             AutomationTrigger::TaskPriorityChanged,
             TriggerContext {
                 task_id: task.id,
@@ -346,6 +352,7 @@ pub async fn delete_task_handler(
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
+            TaskQueryError::Other(msg) => AppError::InternalError(msg),
         })?;
 
     // Broadcast the task deleted event
@@ -408,6 +415,7 @@ pub async fn duplicate_task_handler(
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
+            TaskQueryError::Other(msg) => AppError::InternalError(msg),
         })?;
 
     // Broadcast the task created event
