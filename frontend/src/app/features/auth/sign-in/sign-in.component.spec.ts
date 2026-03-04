@@ -161,7 +161,8 @@ describe('SignInComponent', () => {
         'test@example.com',
         'password123',
       );
-      expect(component.isLoading).toBe(true);
+      // finalize() sets isLoading to false after subscribe completes
+      expect(component.isLoading).toBe(false);
       expect(navigateSpy).toHaveBeenCalledWith('/dashboard');
     });
 
@@ -228,7 +229,7 @@ describe('SignInComponent', () => {
 
     it('should show generic error for other status codes', () => {
       mockAuthService.signIn.mockReturnValue(
-        throwError(() => ({ status: 500, error: { message: 'Server error' } })),
+        throwError(() => ({ status: 500, error: { error: { message: 'Server error' } } })),
       );
 
       component.signInForm.setValue({

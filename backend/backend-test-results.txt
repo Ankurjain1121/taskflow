@@ -1,0 +1,1106 @@
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+warning: failed to parse serde attribute
+  | 
+  | #[serde(skip_serializing_if = "Option::is_none")]
+  | 
+  = note: ts-rs failed to parse this attribute. It will be ignored.
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.42s
+     Running unittests src/bin/hash_password.rs (target/debug/deps/hash_password-a1cb42005eb590ed)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/seed.rs (target/debug/deps/seed-6023467628beeffc)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/taskflow_api-6dc7534a96188631)
+
+running 348 tests
+test config::tests::test_config_debug_contains_config_struct_name ... ok
+test config::tests::test_config_clone ... ok
+test config::tests::test_config_debug_redacts_all_seven_secrets ... ok
+test config::tests::test_config_debug_shows_non_sensitive_fields ... ok
+test config::tests::test_config_debug_redacts_secrets ... ok
+test errors::tests::test_bad_request_status ... ok
+test errors::tests::test_conflict_status ... ok
+test errors::tests::test_error_display_messages ... ok
+test errors::tests::test_forbidden_status ... ok
+test errors::tests::test_error_response_json_shape ... ok
+test errors::tests::test_all_error_variants_have_correct_codes ... ok
+test errors::tests::test_not_found_status ... ok
+test errors::tests::test_jwt_error_returns_unauthorized ... ok
+test errors::tests::test_internal_error_does_not_leak_sqlx_details ... ok
+test errors::tests::test_unauthorized_status ... ok
+test errors::tests::test_validation_error_status ... ok
+test extractors::auth::auth_spec::tests::admin_user_extractor::should_fail_with_manager_role ... ok
+test errors::tests::test_precondition_failed_status ... ok
+test errors::tests::test_internal_error_hides_details ... ok
+test extractors::auth::auth_spec::tests::admin_user_extractor::should_fail_with_member_role ... ok
+test extractors::auth::auth_spec::tests::admin_user_extractor::should_return_401_when_no_auth_user ... ok
+test extractors::auth::auth_spec::tests::auth_user_extractor::should_extract_auth_user_when_present ... ok
+test extractors::auth::auth_spec::tests::auth_user_extractor::should_return_401_when_no_auth_user ... ok
+test extractors::auth::auth_spec::tests::edge_cases::admin_extractor_should_preserve_all_user_fields ... ok
+test extractors::auth::auth_spec::tests::edge_cases::all_extractors_return_401_when_no_auth ... ok
+test extractors::auth::auth_spec::tests::admin_user_extractor::should_pass_with_admin_role ... ok
+test extractors::auth::auth_spec::tests::edge_cases::manager_or_admin_should_preserve_all_user_fields ... ok
+test errors::tests::test_version_conflict_status_and_shape ... ok
+test extractors::auth::auth_spec::tests::edge_cases::member_role_should_only_pass_basic_extractors ... ok
+test extractors::auth::auth_spec::tests::manager_or_admin_extractor::should_fail_with_member_role ... ok
+test extractors::auth::auth_spec::tests::manager_or_admin_extractor::should_pass_with_manager_role ... ok
+test extractors::auth::auth_spec::tests::manager_or_admin_extractor::should_return_401_when_no_auth_user ... ok
+test extractors::auth::auth_spec::tests::optional_auth_user_extractor::should_never_reject ... ok
+test extractors::auth::auth_spec::tests::optional_auth_user_extractor::should_return_some_when_authenticated ... ok
+test extractors::auth::auth_spec::tests::tenant_context_extractor::should_extract_tenant_and_user_ids ... ok
+test extractors::auth::auth_spec::tests::tenant_context_extractor::should_isolate_different_tenants ... ok
+test extractors::auth::auth_spec::tests::optional_auth_user_extractor::should_return_none_without_auth ... ok
+test extractors::auth::auth_spec::tests::tenant_context_extractor::should_preserve_role_in_context ... ok
+test extractors::auth::auth_spec::tests::manager_or_admin_extractor::should_pass_with_admin_role ... ok
+test extractors::auth::auth_spec::tests::tenant_context_extractor::should_return_401_without_auth_user ... ok
+test middleware::audit::tests::test_audit_route_id_debug ... ok
+test middleware::audit::tests::test_extract_entity_attachment ... ok
+test middleware::audit::tests::test_extract_entity_column ... ok
+test middleware::audit::tests::test_audit_route_id_clone ... ok
+test middleware::audit::tests::test_extract_entity_comment ... ok
+test middleware::audit::tests::test_extract_entity_from_path ... ok
+test middleware::audit::tests::test_extract_entity_from_path_board ... ok
+test middleware::audit::tests::test_extract_entity_from_path_no_uuid ... ok
+test middleware::audit::tests::test_audit_entity_debug_and_clone ... ok
+test middleware::audit::tests::test_extract_entity_workspace ... ok
+test middleware::audit::tests::test_extract_ip_no_headers ... ok
+test middleware::audit::tests::test_extract_ip_x_forwarded_for_multiple ... ok
+test middleware::audit::tests::test_extract_ip_x_forwarded_for_single ... ok
+test middleware::audit::tests::test_extract_ip_x_forwarded_for_takes_priority ... ok
+test middleware::audit::tests::test_extract_ip_x_real_ip ... ok
+test middleware::audit::tests::test_extract_entity_user ... ok
+test middleware::audit::tests::test_extract_user_agent_missing ... ok
+test middleware::audit::tests::test_infer_route_id ... ok
+test middleware::audit::tests::test_infer_route_id_admin_delete_user ... ok
+test middleware::audit::tests::test_infer_route_id_admin_trash ... ok
+test middleware::audit::tests::test_infer_route_id_admin_update_role ... ok
+test middleware::audit::tests::test_infer_route_id_attachment_delete ... ok
+test middleware::audit::tests::test_infer_route_id_attachment_upload ... ok
+test middleware::audit::tests::test_infer_route_id_board_create ... ok
+test middleware::audit::tests::test_infer_route_id_board_delete ... ok
+test middleware::audit::tests::test_extract_entity_nested_path ... ok
+test middleware::audit::tests::test_infer_route_id_comment_create ... ok
+test middleware::audit::tests::test_infer_route_id_get_requests_not_matched ... ok
+test middleware::audit::tests::test_infer_route_id_board_update ... ok
+test middleware::audit::tests::test_infer_route_id_task_assign ... ok
+test middleware::audit::tests::test_infer_route_id_task_unassign ... ok
+test middleware::audit::tests::test_infer_route_id_task_update ... ok
+test middleware::audit::tests::test_infer_route_id_task_move ... ok
+test middleware::audit::tests::test_infer_route_id_workspace_create ... ok
+test middleware::audit::tests::test_infer_route_id_workspace_delete ... ok
+test middleware::audit::tests::test_infer_route_id_workspace_update ... ok
+test middleware::audit::tests::test_extract_user_agent_present ... ok
+test middleware::auth::tests::test_auth_user_clone ... ok
+test middleware::audit::tests::test_infer_route_id_trash_restore ... ok
+test middleware::auth::tests::test_auth_user_debug ... ok
+test middleware::auth::tests::test_extract_bearer_case_sensitive ... ok
+test middleware::auth::tests::test_auth_error_response_serializes ... ok
+test middleware::auth::tests::test_auth_error_response_unauthorized ... ok
+test middleware::auth::tests::test_extract_bearer_token ... ok
+test middleware::auth::tests::test_extract_bearer_token_empty_after_prefix ... ok
+test middleware::auth::tests::test_extract_bearer_token_missing_header ... ok
+test middleware::auth::tests::test_extract_bearer_token_wrong_scheme ... ok
+test middleware::auth::tests::test_extract_cookie_multiple_cookies ... ok
+test middleware::auth::tests::test_extract_cookie_missing ... ok
+test middleware::auth::tests::test_extract_cookie_no_cookie_header ... ok
+test middleware::auth::tests::test_extract_cookie_with_spaces_around_equals ... ok
+test middleware::auth::tests::test_extract_cookie_similar_name_no_match ... ok
+test middleware::auth::tests::test_extract_cookie_single ... ok
+test middleware::cache_headers::tests::test_determine_cache_type ... ok
+test middleware::csrf::tests::test_generate_csrf_token_unique ... ok
+test middleware::csrf::tests::test_extract_csrf_token_case_sensitive_header ... ok
+test middleware::csrf::tests::test_extract_csrf_token_valid ... ok
+test middleware::csrf::tests::test_hash_csrf_token_deterministic ... ok
+test middleware::csrf::tests::test_hash_csrf_token_different_inputs ... ok
+test middleware::csrf::tests::test_hash_csrf_token_hex_format ... ok
+test middleware::csrf::tests::test_generate_csrf_token_valid_uuid ... ok
+test middleware::rate_limit::tests::test_extract_ip_forwarded_for_single_ip ... ok
+test middleware::csrf::tests::test_extract_csrf_token_missing ... ok
+test middleware::rate_limit::tests::test_extract_ip_no_headers_no_connect_info ... ok
+test middleware::rate_limit::tests::test_extract_ip_forwarded_for_last_entry ... ok
+test middleware::rate_limit::tests::test_rate_limit_layer_creates_valid_layer ... ok
+test middleware::rate_limit::tests::test_rate_limiter_allows_under_limit ... ok
+test middleware::rate_limit::tests::test_rate_limiter_clone_shares_state ... ok
+test middleware::rate_limit::tests::test_rate_limiter_different_ips ... ok
+test middleware::rate_limit::tests::test_rate_limiter_blocks_with_retry_after ... ok
+test middleware::rate_limit::tests::test_rate_limiter_high_limit ... ok
+test middleware::rate_limit::tests::test_rate_limiter_retry_after_is_reasonable ... ok
+test middleware::rate_limit::tests::test_user_rate_limit_layer_creates_valid_layer ... ok
+test middleware::rate_limit::tests::test_user_rate_limiter_tracks_by_user_id ... ok
+test middleware::request_id::tests::test_empty_string_filtered_out ... ok
+test middleware::request_id::tests::test_request_id_header_constant ... ok
+test middleware::request_id::tests::test_request_id_header_is_valid_http_header_name ... ok
+test middleware::request_id::tests::test_request_id_header_value_can_be_constructed ... ok
+test middleware::request_id::tests::test_single_char_passes_filter ... ok
+test middleware::request_id::tests::test_string_at_127_chars_passes_filter ... ok
+test middleware::request_id::tests::test_string_at_128_chars_passes_filter ... ok
+test middleware::rate_limit::tests::test_rate_limiter_single_request_limit ... ok
+test middleware::request_id::tests::test_string_exceeding_128_chars_filtered_out ... ok
+test middleware::request_id::tests::test_uuid_v4_format_is_36_chars ... ok
+test middleware::request_id::tests::test_uuid_v4_is_valid_header_value ... ok
+test middleware::request_id::tests::test_uuid_v4_passes_length_filter ... ok
+test middleware::rate_limit::tests::test_rate_limiter_blocks_over_limit ... ok
+test middleware::request_id::tests::test_valid_client_request_id_passes_filter ... ok
+test middleware::tenant::tests::test_set_tenant_context_sets_session_variable ... ok
+test middleware::tenant::tests::test_tenant_context_is_transaction_scoped ... ok
+test routes::activity_log::tests::test_default_limit ... ok
+test routes::activity_log::tests::test_query_params_defaults ... ok
+test routes::activity_log::tests::test_query_params_deserialize ... ok
+test routes::admin_audit::tests::test_default_page_size ... ok
+test routes::admin_audit::tests::test_query_params_deserialize ... ok
+test routes::admin_trash::tests::test_default_page_size ... ok
+test routes::admin_trash::tests::test_restore_request_deserialize ... ok
+test routes::admin_users::tests::test_list_users_query_deserialize ... ok
+test routes::admin_users::tests::test_update_role_request_deserialize ... ok
+test routes::auth::tests::test_build_auth_cookie_headers_http ... ok
+test routes::auth::tests::test_build_auth_cookie_headers_https ... ok
+test routes::auth::tests::test_build_clear_cookie_headers ... ok
+test routes::auth::tests::test_extract_cookie_missing ... ok
+test routes::auth::tests::test_extract_cookie_multiple ... ok
+test routes::auth::tests::test_extract_cookie_no_header ... ok
+test routes::auth::tests::test_extract_cookie_refresh_token ... ok
+test routes::auth::tests::test_extract_cookie_single ... ok
+test routes::auth::tests::test_hash_token_deterministic ... ok
+test routes::auth::tests::test_hash_token_different_inputs ... ok
+test routes::auth::tests::test_hash_token_hex_format ... ok
+test middleware::tenant::tests::test_set_tenant_context_helper ... ok
+test middleware::tenant::tests::test_with_tenant_executes_closure ... ok
+test middleware::tenant::tests::test_with_tenant_tx_executes_and_commits ... ok
+test routes::dashboard::tests::test_dashboard_filter_empty ... ok
+test routes::dashboard::tests::test_default_limit ... ok
+test routes::dashboard::tests::test_query_params_defaults ... ok
+test routes::dashboard::tests::test_query_params_with_workspace_id ... ok
+test routes::health::tests::test_health_response_serialization ... ok
+test routes::health::tests::test_health_status_serialization ... ok
+test routes::health::tests::test_service_status_serialization ... ok
+test routes::health::tests::test_service_statuses_all_up ... ok
+test routes::health::tests::test_service_statuses_mixed ... ok
+test routes::comments::tests::test_extract_mentioned_user_ids_no_mentions ... ok
+test routes::comments::tests::test_extract_mentioned_user_ids ... ok
+test routes::comments::tests::test_extract_mentioned_user_ids_invalid_uuid ... ok
+test routes::integration_tests::auth_tests::test_empty_bearer_token_returns_401 ... ok
+test routes::integration_tests::auth_tests::test_expired_token_format_returns_401 ... ok
+test routes::integration_tests::auth_tests::test_auth_via_cookie ... FAILED
+test routes::integration_tests::auth_tests::test_get_user_preferences ... FAILED
+test routes::integration_tests::auth_tests::test_missing_bearer_prefix_returns_401 ... ok
+test routes::integration_tests::auth_tests::test_list_sessions ... FAILED
+test routes::integration_tests::auth_tests::test_protected_route_with_invalid_token_returns_401 ... ok
+test routes::integration_tests::auth_tests::test_protected_route_without_token_returns_401 ... ok
+test routes::integration_tests::auth_tests::test_revoke_nonexistent_session_returns_404 ... FAILED
+test routes::integration_tests::auth_tests::test_session_expiration_returns_401 ... ok
+test routes::integration_tests::auth_tests::test_update_user_preferences ... FAILED
+test routes::integration_tests::board_tests::test_board_templates_list ... FAILED
+test routes::integration_tests::board_tests::test_create_board_empty_name_returns_400 ... FAILED
+test routes::integration_tests::board_tests::test_create_board ... FAILED
+test routes::integration_tests::board_tests::test_create_board_invalid_workspace_returns_error ... FAILED
+test routes::integration_tests::auth_tests::test_csrf_token_provided_in_login_response ... ok
+test routes::integration_tests::board_tests::test_create_board_invalid_json_returns_400 ... FAILED
+test routes::integration_tests::auth_tests::test_session_created_on_login ... FAILED
+test routes::integration_tests::board_tests::test_create_board_missing_body_returns_400 ... FAILED
+test routes::integration_tests::board_tests::test_create_milestone ... FAILED
+test routes::integration_tests::board_tests::test_delete_board_nonexistent_returns_404 ... FAILED
+test routes::integration_tests::board_tests::test_delete_board ... FAILED
+test routes::integration_tests::board_tests::test_get_board_full_nonexistent_returns_404 ... FAILED
+test routes::integration_tests::board_tests::test_get_board_nonexistent_returns_404 ... FAILED
+test routes::integration_tests::board_tests::test_get_board_by_id ... FAILED
+test routes::integration_tests::board_tests::test_get_board_full ... FAILED
+test routes::integration_tests::board_tests::test_list_board_members_nonexistent_board ... FAILED
+test routes::integration_tests::board_tests::test_list_board_members ... FAILED
+test routes::integration_tests::board_tests::test_list_automations ... FAILED
+test routes::integration_tests::board_tests::test_list_board_shares ... FAILED
+test routes::integration_tests::board_tests::test_list_custom_fields ... FAILED
+test routes::integration_tests::board_tests::test_list_milestones ... FAILED
+test routes::integration_tests::board_tests::test_list_boards_for_workspace ... FAILED
+test routes::integration_tests::board_tests::test_list_task_groups ... FAILED
+test routes::integration_tests::board_tests::test_reports_board_auth_required ... ok
+test routes::integration_tests::board_tests::test_update_board_nonexistent_returns_404 ... FAILED
+test routes::integration_tests::board_tests::test_list_webhooks ... FAILED
+test routes::integration_tests::board_tests::test_update_board ... FAILED
+test routes::integration_tests::board_tests::test_reports_board_returns_data ... FAILED
+test routes::integration_tests::column_tests::test_create_column_for_nonexistent_board_returns_error ... FAILED
+test routes::integration_tests::column_tests::test_delete_column_nonexistent_returns_404 ... FAILED
+test routes::integration_tests::column_tests::test_create_column ... FAILED
+test routes::integration_tests::column_tests::test_list_columns ... FAILED
+test routes::integration_tests::column_tests::test_rename_column_nonexistent_returns_404 ... FAILED
+test routes::integration_tests::column_tests::test_delete_column_empty_succeeds ... FAILED
+test routes::integration_tests::column_tests::test_rename_column ... FAILED
+test routes::integration_tests::dashboard_tests::test_add_favorite_invalid_type_returns_400 ... FAILED
+test routes::integration_tests::dashboard_tests::test_dashboard_recent_activity ... FAILED
+test routes::integration_tests::dashboard_tests::test_dashboard_completion_trend ... FAILED
+test routes::integration_tests::dashboard_tests::test_dashboard_stats ... FAILED
+test routes::integration_tests::dashboard_tests::test_add_board_favorite ... FAILED
+test routes::integration_tests::dashboard_tests::test_dashboard_stats_unauthorized ... ok
+test routes::integration_tests::dashboard_tests::test_dashboard_upcoming_deadlines ... FAILED
+test routes::integration_tests::dashboard_tests::test_dashboard_tasks_by_priority ... FAILED
+test routes::integration_tests::dashboard_tests::test_get_theme_nonexistent_returns_404 ... ok
+test routes::integration_tests::dashboard_tests::test_health_live_returns_ok ... ok
+test routes::integration_tests::dashboard_tests::test_health_full_returns_json ... ok
+test routes::integration_tests::dashboard_tests::test_list_favorites_empty ... FAILED
+test routes::integration_tests::dashboard_tests::test_health_ready_returns_ok ... ok
+test routes::integration_tests::dashboard_tests::test_list_notification_preferences ... FAILED
+test routes::integration_tests::dashboard_tests::test_list_notifications ... FAILED
+test routes::integration_tests::dashboard_tests::test_mark_all_notifications_read ... FAILED
+test routes::integration_tests::dashboard_tests::test_list_themes ... ok
+test routes::integration_tests::dashboard_tests::test_notification_unread_count ... FAILED
+test routes::integration_tests::invitation_tests::test_accept_invitation_invalid_token_returns_error ... ok
+test routes::integration_tests::dashboard_tests::test_search_empty_query_returns_400 ... FAILED
+test routes::integration_tests::dashboard_tests::test_search_with_query ... FAILED
+test routes::integration_tests::dashboard_tests::test_search_unauthorized ... ok
+test routes::integration_tests::invitation_tests::test_create_invitation_invalid_workspace_returns_error ... FAILED
+test routes::integration_tests::invitation_tests::test_create_invitation_missing_body_returns_400 ... FAILED
+test routes::integration_tests::invitation_tests::test_create_invitation_invalid_email_returns_error ... FAILED
+test routes::integration_tests::invitation_tests::test_create_invitation_missing_email_returns_400 ... FAILED
+test routes::integration_tests::invitation_tests::test_create_invitation ... FAILED
+test routes::integration_tests::invitation_tests::test_delete_nonexistent_invitation_returns_error ... FAILED
+test routes::integration_tests::invitation_tests::test_validate_invalid_invitation_token ... ok
+test routes::integration_tests::invitation_tests::test_list_invitations ... FAILED
+test routes::integration_tests::task_tests::test_create_and_list_comments ... FAILED
+test routes::integration_tests::task_tests::test_assign_user_to_task ... FAILED
+test routes::integration_tests::task_tests::test_create_task_for_nonexistent_board_returns_error ... FAILED
+test routes::integration_tests::task_tests::test_create_task ... FAILED
+test routes::integration_tests::task_tests::test_create_and_list_subtasks ... FAILED
+test routes::integration_tests::task_tests::test_create_task_missing_title_returns_400 ... FAILED
+test routes::integration_tests::task_tests::test_create_task_invalid_json_returns_400 ... FAILED
+test routes::integration_tests::task_tests::test_delete_task_nonexistent_returns_404 ... FAILED
+test routes::integration_tests::task_tests::test_delete_task ... FAILED
+test routes::integration_tests::task_tests::test_eisenhower_matrix ... FAILED
+test routes::integration_tests::task_tests::test_get_task_nonexistent_returns_404 ... FAILED
+test routes::integration_tests::task_tests::test_list_task_dependencies ... FAILED
+test routes::integration_tests::task_tests::test_get_task_after_delete_returns_404 ... FAILED
+test routes::integration_tests::task_tests::test_get_task_by_id ... FAILED
+test routes::integration_tests::task_tests::test_move_task_nonexistent_returns_404 ... FAILED
+test routes::integration_tests::task_tests::test_list_tasks_by_board ... FAILED
+test routes::integration_tests::task_tests::test_list_time_entries ... FAILED
+test routes::integration_tests::task_tests::test_my_tasks ... FAILED
+test routes::integration_tests::task_tests::test_move_task ... FAILED
+test routes::integration_tests::task_tests::test_move_task_to_invalid_column_returns_error ... FAILED
+test routes::integration_tests::task_tests::test_update_task_nonexistent_returns_404 ... FAILED
+test routes::integration_tests::workspace_tests::test_create_workspace ... FAILED
+test routes::integration_tests::task_tests::test_unassign_user_from_task ... FAILED
+test routes::integration_tests::workspace_tests::test_create_workspace_empty_name_returns_400 ... FAILED
+test routes::integration_tests::task_tests::test_update_task ... FAILED
+test routes::integration_tests::workspace_tests::test_create_workspace_invalid_json_returns_400 ... FAILED
+test routes::integration_tests::workspace_tests::test_create_workspace_missing_body_returns_400 ... FAILED
+test routes::integration_tests::workspace_tests::test_delete_workspace_nonexistent_returns_404 ... FAILED
+test routes::integration_tests::workspace_tests::test_delete_workspace ... FAILED
+test routes::integration_tests::workspace_tests::test_list_workspaces_empty ... FAILED
+test routes::integration_tests::workspace_tests::test_get_workspace_nonexistent_returns_404 ... FAILED
+test routes::integration_tests::workspace_tests::test_get_workspace_by_id ... FAILED
+test routes::metrics::tests::test_cache_key_formats ... ok
+test routes::metrics::tests::test_metrics_cache_ttl ... ok
+test routes::metrics::tests::test_refresh_response_serializes ... ok
+test routes::onboarding::email_validation_tests::test_email_edge_cases ... ok
+test routes::onboarding::email_validation_tests::test_email_length_limits ... ok
+test routes::onboarding::email_validation_tests::test_invalid_emails ... ok
+test routes::onboarding::email_validation_tests::test_valid_emails ... ok
+test routes::task_helpers::tests::test_assign_user_request_deserialize ... ok
+test routes::task_helpers::tests::test_create_task_request_all_priorities ... ok
+test routes::task_helpers::tests::test_create_task_request_deserialize_full ... ok
+test routes::task_helpers::tests::test_create_task_request_deserialize_minimal ... ok
+test routes::task_helpers::tests::test_create_task_request_invalid_priority ... ok
+test routes::task_helpers::tests::test_create_task_request_missing_required_field ... ok
+test routes::task_helpers::tests::test_list_tasks_response_serialize_empty ... ok
+test routes::task_helpers::tests::test_list_tasks_response_serialize_with_data ... ok
+test routes::task_helpers::tests::test_move_task_request_deserialize ... ok
+test routes::task_helpers::tests::test_sanitize_html_adds_noopener_to_links ... ok
+test routes::task_helpers::tests::test_sanitize_html_allows_headings ... ok
+test routes::task_helpers::tests::test_sanitize_html_allows_lists ... ok
+test routes::task_helpers::tests::test_sanitize_html_allows_safe_tags ... ok
+test routes::task_helpers::tests::test_sanitize_html_denies_relative_urls ... ok
+test routes::task_helpers::tests::test_sanitize_html_empty_input ... ok
+test routes::task_helpers::tests::test_sanitize_html_nested_scripts ... ok
+test routes::task_helpers::tests::test_sanitize_html_plain_text_passthrough ... ok
+test routes::task_helpers::tests::test_sanitize_html_removes_form_elements ... ok
+test routes::task_helpers::tests::test_sanitize_html_removes_iframe ... ok
+test routes::task_helpers::tests::test_sanitize_html_removes_javascript_href ... ok
+test routes::task_helpers::tests::test_sanitize_html_removes_onerror_event ... ok
+test routes::task_helpers::tests::test_sanitize_html_removes_script_tags ... ok
+test routes::task_helpers::tests::test_sanitize_html_removes_style_tag ... ok
+test routes::task_helpers::tests::test_update_task_request_deserialize_empty ... ok
+test routes::task_helpers::tests::test_update_task_request_partial_fields ... ok
+test services::activity_log::tests::test_activity_log_error_debug ... ok
+test services::activity_log::tests::test_activity_log_error_display ... ok
+test services::activity_log::tests::test_metadata_json_structure_assigned ... ok
+test services::activity_log::tests::test_metadata_json_structure_attachment_added ... ok
+test services::activity_log::tests::test_metadata_json_structure_attachment_removed ... ok
+test services::activity_log::tests::test_metadata_json_structure_commented ... ok
+test services::activity_log::tests::test_metadata_json_structure_moved ... ok
+test services::activity_log::tests::test_metadata_json_structure_priority_changed ... ok
+test services::activity_log::tests::test_metadata_json_structure_status_changed ... ok
+test services::activity_log::tests::test_metadata_json_structure_unassigned ... ok
+test services::activity_log::tests::test_record_params_all_actions ... ok
+test services::activity_log::tests::test_record_params_creation ... ok
+test services::activity_log::tests::test_record_params_with_metadata ... ok
+test services::cache::tests::test_cache_key_formats ... ok
+test services::http_cache::tests::test_add_cache_headers ... ok
+test services::http_cache::tests::test_cache_type_headers ... ok
+test services::http_cache::tests::test_check_if_none_match ... ok
+test services::http_cache::tests::test_etag_generation ... ok
+test ws::batch_handler::tests::test_add_event_below_max ... ok
+test ws::batch_handler::tests::test_add_event_to_max_size ... ok
+test ws::batch_handler::tests::test_batch_handler_creation ... ok
+test ws::batch_handler::tests::test_batch_handler_event_ordering ... ok
+test ws::batch_handler::tests::test_batch_handler_max_batch_size ... ok
+test ws::batch_handler::tests::test_batch_message_serialization ... ok
+test ws::batch_handler::tests::test_default_trait_implementation ... ok
+test ws::batch_handler::tests::test_flush_empties_buffer ... ok
+test ws::batch_handler::tests::test_flush_empty_buffer ... ok
+test ws::batch_handler::tests::test_flush_if_ready_empty_buffer ... ok
+test routes::integration_tests::workspace_tests::test_update_workspace_nonexistent_returns_404 ... FAILED
+test ws::batch_handler::tests::test_multiple_flushes_reset_timer ... ok
+test ws::batch_handler::tests::test_flush_if_ready_with_data ... ok
+test ws::handler::tests::test_client_message_deserialize ... ok
+test ws::handler::tests::test_heartbeat_message_deserialize ... ok
+test ws::handler::tests::test_is_valid_channel ... ok
+test ws::handler::tests::test_lock_task_message_deserialize ... ok
+test ws::handler::tests::test_presence_join_message_deserialize ... ok
+test ws::handler::tests::test_unlock_task_message_deserialize ... ok
+test ws::pubsub_relay::tests::test_pubsub_relay_dummy_subscribe_unsubscribe ... ok
+test ws::pubsub_relay::tests::test_pubsub_relay_multiple_channels ... ok
+test ws::pubsub_relay::tests::test_pubsub_relay_unsubscribe_nonexistent ... ok
+test ws::batch_handler::tests::test_time_since_last_flush ... ok
+test routes::integration_tests::workspace_tests::test_workspace_member_role_enforcement ... FAILED
+test routes::integration_tests::workspace_tests::test_update_workspace ... FAILED
+
+failures:
+
+---- routes::integration_tests::auth_tests::test_auth_via_cookie stdout ----
+
+thread 'routes::integration_tests::auth_tests::test_auth_via_cookie' (3171214) panicked at crates/api/src/routes/integration_tests/auth_tests.rs:59:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- routes::integration_tests::auth_tests::test_get_user_preferences stdout ----
+
+thread 'routes::integration_tests::auth_tests::test_get_user_preferences' (3171272) panicked at crates/api/src/routes/integration_tests/auth_tests.rs:194:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::auth_tests::test_list_sessions stdout ----
+
+thread 'routes::integration_tests::auth_tests::test_list_sessions' (3171275) panicked at crates/api/src/routes/integration_tests/auth_tests.rs:149:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::auth_tests::test_revoke_nonexistent_session_returns_404 stdout ----
+
+thread 'routes::integration_tests::auth_tests::test_revoke_nonexistent_session_returns_404' (3171288) panicked at crates/api/src/routes/integration_tests/auth_tests.rs:170:5:
+assertion `left == right` failed
+  left: 401
+ right: 404
+
+---- routes::integration_tests::auth_tests::test_update_user_preferences stdout ----
+
+thread 'routes::integration_tests::auth_tests::test_update_user_preferences' (3171318) panicked at crates/api/src/routes/integration_tests/auth_tests.rs:222:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::board_tests::test_board_templates_list stdout ----
+
+thread 'routes::integration_tests::board_tests::test_board_templates_list' (3171326) panicked at crates/api/src/routes/integration_tests/board_tests.rs:217:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::board_tests::test_create_board_empty_name_returns_400 stdout ----
+
+thread 'routes::integration_tests::board_tests::test_create_board_empty_name_returns_400' (3171335) panicked at crates/api/src/routes/integration_tests/board_tests.rs:249:5:
+assertion `left == right` failed
+  left: 401
+ right: 400
+
+---- routes::integration_tests::board_tests::test_create_board stdout ----
+
+thread 'routes::integration_tests::board_tests::test_create_board' (3171330) panicked at crates/api/src/routes/integration_tests/board_tests.rs:51:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::board_tests::test_create_board_invalid_workspace_returns_error stdout ----
+
+thread 'routes::integration_tests::board_tests::test_create_board_invalid_workspace_returns_error' (3171381) panicked at crates/api/src/routes/integration_tests/board_tests.rs:292:5:
+Expected 404/403/500 for non-existent workspace, got 401 Unauthorized
+
+---- routes::integration_tests::board_tests::test_create_board_invalid_json_returns_400 stdout ----
+
+thread 'routes::integration_tests::board_tests::test_create_board_invalid_json_returns_400' (3171353) panicked at crates/api/src/routes/integration_tests/board_tests.rs:342:5:
+assertion `left == right` failed
+  left: 401
+ right: 400
+
+---- routes::integration_tests::auth_tests::test_session_created_on_login stdout ----
+
+thread 'routes::integration_tests::auth_tests::test_session_created_on_login' (3171291) panicked at crates/api/src/routes/integration_tests/auth_tests.rs:302:5:
+Session should exist in Redis after login
+
+---- routes::integration_tests::board_tests::test_create_board_missing_body_returns_400 stdout ----
+
+thread 'routes::integration_tests::board_tests::test_create_board_missing_body_returns_400' (3171400) panicked at crates/api/src/routes/integration_tests/board_tests.rs:320:5:
+assertion `left == right` failed
+  left: 401
+ right: 400
+
+---- routes::integration_tests::board_tests::test_create_milestone stdout ----
+
+thread 'routes::integration_tests::board_tests::test_create_milestone' (3171420) panicked at crates/api/src/routes/integration_tests/board_tests.rs:586:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::board_tests::test_delete_board_nonexistent_returns_404 stdout ----
+
+thread 'routes::integration_tests::board_tests::test_delete_board_nonexistent_returns_404' (3171432) panicked at crates/api/src/routes/integration_tests/board_tests.rs:385:5:
+assertion `left == right` failed
+  left: 401
+ right: 404
+
+---- routes::integration_tests::board_tests::test_delete_board stdout ----
+
+thread 'routes::integration_tests::board_tests::test_delete_board' (3171425) panicked at crates/api/src/routes/integration_tests/board_tests.rs:139:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::board_tests::test_get_board_full_nonexistent_returns_404 stdout ----
+
+thread 'routes::integration_tests::board_tests::test_get_board_full_nonexistent_returns_404' (3171479) panicked at crates/api/src/routes/integration_tests/board_tests.rs:405:5:
+assertion `left == right` failed
+  left: 401
+ right: 404
+
+---- routes::integration_tests::board_tests::test_get_board_nonexistent_returns_404 stdout ----
+
+thread 'routes::integration_tests::board_tests::test_get_board_nonexistent_returns_404' (3171489) panicked at crates/api/src/routes/integration_tests/board_tests.rs:269:5:
+assertion `left == right` failed
+  left: 401
+ right: 404
+
+---- routes::integration_tests::board_tests::test_get_board_by_id stdout ----
+
+thread 'routes::integration_tests::board_tests::test_get_board_by_id' (3171448) panicked at crates/api/src/routes/integration_tests/board_tests.rs:78:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::board_tests::test_get_board_full stdout ----
+
+thread 'routes::integration_tests::board_tests::test_get_board_full' (3171461) panicked at crates/api/src/routes/integration_tests/board_tests.rs:159:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::board_tests::test_list_board_members_nonexistent_board stdout ----
+
+thread 'routes::integration_tests::board_tests::test_list_board_members_nonexistent_board' (3171542) panicked at crates/api/src/routes/integration_tests/board_tests.rs:426:5:
+Expected 404 or 200 (empty), got 401 Unauthorized
+
+---- routes::integration_tests::board_tests::test_list_board_members stdout ----
+
+thread 'routes::integration_tests::board_tests::test_list_board_members' (3171519) panicked at crates/api/src/routes/integration_tests/board_tests.rs:187:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::board_tests::test_list_automations stdout ----
+
+thread 'routes::integration_tests::board_tests::test_list_automations' (3171509) panicked at crates/api/src/routes/integration_tests/board_tests.rs:535:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::board_tests::test_list_board_shares stdout ----
+
+thread 'routes::integration_tests::board_tests::test_list_board_shares' (3171545) panicked at crates/api/src/routes/integration_tests/board_tests.rs:454:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::board_tests::test_list_custom_fields stdout ----
+
+thread 'routes::integration_tests::board_tests::test_list_custom_fields' (3171552) panicked at crates/api/src/routes/integration_tests/board_tests.rs:610:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::board_tests::test_list_milestones stdout ----
+
+thread 'routes::integration_tests::board_tests::test_list_milestones' (3171564) panicked at crates/api/src/routes/integration_tests/board_tests.rs:559:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::board_tests::test_list_boards_for_workspace stdout ----
+
+thread 'routes::integration_tests::board_tests::test_list_boards_for_workspace' (3171549) panicked at crates/api/src/routes/integration_tests/board_tests.rs:24:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::board_tests::test_list_task_groups stdout ----
+
+thread 'routes::integration_tests::board_tests::test_list_task_groups' (3171580) panicked at crates/api/src/routes/integration_tests/board_tests.rs:634:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::board_tests::test_update_board_nonexistent_returns_404 stdout ----
+
+thread 'routes::integration_tests::board_tests::test_update_board_nonexistent_returns_404' (3171601) panicked at crates/api/src/routes/integration_tests/board_tests.rs:364:5:
+assertion `left == right` failed
+  left: 401
+ right: 404
+
+---- routes::integration_tests::board_tests::test_list_webhooks stdout ----
+
+thread 'routes::integration_tests::board_tests::test_list_webhooks' (3171587) panicked at crates/api/src/routes/integration_tests/board_tests.rs:515:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::board_tests::test_update_board stdout ----
+
+thread 'routes::integration_tests::board_tests::test_update_board' (3171597) panicked at crates/api/src/routes/integration_tests/board_tests.rs:112:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::board_tests::test_reports_board_returns_data stdout ----
+
+thread 'routes::integration_tests::board_tests::test_reports_board_returns_data' (3171593) panicked at crates/api/src/routes/integration_tests/board_tests.rs:495:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::column_tests::test_create_column_for_nonexistent_board_returns_error stdout ----
+
+thread 'routes::integration_tests::column_tests::test_create_column_for_nonexistent_board_returns_error' (3171610) panicked at crates/api/src/routes/integration_tests/column_tests.rs:210:5:
+Expected 404 or 500 for non-existent board, got 401 Unauthorized
+
+---- routes::integration_tests::column_tests::test_delete_column_nonexistent_returns_404 stdout ----
+
+thread 'routes::integration_tests::column_tests::test_delete_column_nonexistent_returns_404' (3171639) panicked at crates/api/src/routes/integration_tests/column_tests.rs:177:5:
+Expected 404 or 500 for non-existent column, got 401 Unauthorized
+
+---- routes::integration_tests::column_tests::test_create_column stdout ----
+
+thread 'routes::integration_tests::column_tests::test_create_column' (3171606) panicked at crates/api/src/routes/integration_tests/column_tests.rs:58:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::column_tests::test_list_columns stdout ----
+
+thread 'routes::integration_tests::column_tests::test_list_columns' (3171651) panicked at crates/api/src/routes/integration_tests/column_tests.rs:24:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::column_tests::test_rename_column_nonexistent_returns_404 stdout ----
+
+thread 'routes::integration_tests::column_tests::test_rename_column_nonexistent_returns_404' (3171700) panicked at crates/api/src/routes/integration_tests/column_tests.rs:151:5:
+Expected 404 or 500 for non-existent column, got 401 Unauthorized
+
+---- routes::integration_tests::column_tests::test_delete_column_empty_succeeds stdout ----
+
+thread 'routes::integration_tests::column_tests::test_delete_column_empty_succeeds' (3171634) panicked at crates/api/src/routes/integration_tests/column_tests.rs:125:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::column_tests::test_rename_column stdout ----
+
+thread 'routes::integration_tests::column_tests::test_rename_column' (3171679) panicked at crates/api/src/routes/integration_tests/column_tests.rs:86:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::dashboard_tests::test_add_favorite_invalid_type_returns_400 stdout ----
+
+thread 'routes::integration_tests::dashboard_tests::test_add_favorite_invalid_type_returns_400' (3171708) panicked at crates/api/src/routes/integration_tests/dashboard_tests.rs:266:5:
+assertion `left == right` failed
+  left: 401
+ right: 400
+
+---- routes::integration_tests::dashboard_tests::test_dashboard_recent_activity stdout ----
+
+thread 'routes::integration_tests::dashboard_tests::test_dashboard_recent_activity' (3171723) panicked at crates/api/src/routes/integration_tests/dashboard_tests.rs:44:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::dashboard_tests::test_dashboard_completion_trend stdout ----
+
+thread 'routes::integration_tests::dashboard_tests::test_dashboard_completion_trend' (3171711) panicked at crates/api/src/routes/integration_tests/dashboard_tests.rs:84:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::dashboard_tests::test_dashboard_stats stdout ----
+
+thread 'routes::integration_tests::dashboard_tests::test_dashboard_stats' (3171739) panicked at crates/api/src/routes/integration_tests/dashboard_tests.rs:24:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::dashboard_tests::test_add_board_favorite stdout ----
+
+thread 'routes::integration_tests::dashboard_tests::test_add_board_favorite' (3171705) panicked at crates/api/src/routes/integration_tests/dashboard_tests.rs:238:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::dashboard_tests::test_dashboard_upcoming_deadlines stdout ----
+
+thread 'routes::integration_tests::dashboard_tests::test_dashboard_upcoming_deadlines' (3171779) panicked at crates/api/src/routes/integration_tests/dashboard_tests.rs:104:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::dashboard_tests::test_dashboard_tasks_by_priority stdout ----
+
+thread 'routes::integration_tests::dashboard_tests::test_dashboard_tasks_by_priority' (3171752) panicked at crates/api/src/routes/integration_tests/dashboard_tests.rs:64:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::dashboard_tests::test_list_favorites_empty stdout ----
+
+thread 'routes::integration_tests::dashboard_tests::test_list_favorites_empty' (3171799) panicked at crates/api/src/routes/integration_tests/dashboard_tests.rs:210:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::dashboard_tests::test_list_notification_preferences stdout ----
+
+thread 'routes::integration_tests::dashboard_tests::test_list_notification_preferences' (3171802) panicked at crates/api/src/routes/integration_tests/dashboard_tests.rs:357:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::dashboard_tests::test_list_notifications stdout ----
+
+thread 'routes::integration_tests::dashboard_tests::test_list_notifications' (3171808) panicked at crates/api/src/routes/integration_tests/dashboard_tests.rs:290:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::dashboard_tests::test_mark_all_notifications_read stdout ----
+
+thread 'routes::integration_tests::dashboard_tests::test_mark_all_notifications_read' (3171821) panicked at crates/api/src/routes/integration_tests/dashboard_tests.rs:337:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::dashboard_tests::test_notification_unread_count stdout ----
+
+thread 'routes::integration_tests::dashboard_tests::test_notification_unread_count' (3171825) panicked at crates/api/src/routes/integration_tests/dashboard_tests.rs:310:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::dashboard_tests::test_search_empty_query_returns_400 stdout ----
+
+thread 'routes::integration_tests::dashboard_tests::test_search_empty_query_returns_400' (3171835) panicked at crates/api/src/routes/integration_tests/dashboard_tests.rs:169:5:
+assertion `left == right` failed
+  left: 401
+ right: 400
+
+---- routes::integration_tests::dashboard_tests::test_search_with_query stdout ----
+
+thread 'routes::integration_tests::dashboard_tests::test_search_with_query' (3171844) panicked at crates/api/src/routes/integration_tests/dashboard_tests.rs:149:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::invitation_tests::test_create_invitation_invalid_workspace_returns_error stdout ----
+
+thread 'routes::integration_tests::invitation_tests::test_create_invitation_invalid_workspace_returns_error' (3171856) panicked at crates/api/src/routes/integration_tests/invitation_tests.rs:187:5:
+Expected error for non-existent workspace, got 401 Unauthorized
+
+---- routes::integration_tests::invitation_tests::test_create_invitation_missing_body_returns_400 stdout ----
+
+thread 'routes::integration_tests::invitation_tests::test_create_invitation_missing_body_returns_400' (3171859) panicked at crates/api/src/routes/integration_tests/invitation_tests.rs:216:5:
+assertion `left == right` failed
+  left: 401
+ right: 400
+
+---- routes::integration_tests::invitation_tests::test_create_invitation_invalid_email_returns_error stdout ----
+
+thread 'routes::integration_tests::invitation_tests::test_create_invitation_invalid_email_returns_error' (3171852) panicked at crates/api/src/routes/integration_tests/invitation_tests.rs:152:5:
+Expected 400 or 422 for invalid email, got 401 Unauthorized
+
+---- routes::integration_tests::invitation_tests::test_create_invitation_missing_email_returns_400 stdout ----
+
+thread 'routes::integration_tests::invitation_tests::test_create_invitation_missing_email_returns_400' (3171862) panicked at crates/api/src/routes/integration_tests/invitation_tests.rs:118:5:
+Expected 400 or 422 for missing email, got 401 Unauthorized
+
+---- routes::integration_tests::invitation_tests::test_create_invitation stdout ----
+
+thread 'routes::integration_tests::invitation_tests::test_create_invitation' (3171850) panicked at crates/api/src/routes/integration_tests/invitation_tests.rs:54:5:
+Expected OK or 422, got 401 Unauthorized
+
+---- routes::integration_tests::invitation_tests::test_delete_nonexistent_invitation_returns_error stdout ----
+
+thread 'routes::integration_tests::invitation_tests::test_delete_nonexistent_invitation_returns_error' (3171874) panicked at crates/api/src/routes/integration_tests/invitation_tests.rs:237:5:
+Expected 404 or 500 for non-existent invitation, got 401 Unauthorized
+
+---- routes::integration_tests::invitation_tests::test_list_invitations stdout ----
+
+thread 'routes::integration_tests::invitation_tests::test_list_invitations' (3172074) panicked at crates/api/src/routes/integration_tests/invitation_tests.rs:24:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::task_tests::test_create_and_list_comments stdout ----
+
+thread 'routes::integration_tests::task_tests::test_create_and_list_comments' (3172087) panicked at crates/api/src/routes/integration_tests/task_tests.rs:500:5:
+assertion `left == right` failed
+  left: 401
+ right: 201
+
+---- routes::integration_tests::task_tests::test_assign_user_to_task stdout ----
+
+thread 'routes::integration_tests::task_tests::test_assign_user_to_task' (3172085) panicked at crates/api/src/routes/integration_tests/task_tests.rs:328:5:
+Expected OK or 500 (broadcast failure), got 401 Unauthorized
+
+---- routes::integration_tests::task_tests::test_create_task_for_nonexistent_board_returns_error stdout ----
+
+thread 'routes::integration_tests::task_tests::test_create_task_for_nonexistent_board_returns_error' (3172181) panicked at crates/api/src/routes/integration_tests/task_tests.rs:757:5:
+Expected 404, 403, or 500 for non-existent board, got 401 Unauthorized
+
+---- routes::integration_tests::task_tests::test_create_task stdout ----
+
+thread 'routes::integration_tests::task_tests::test_create_task' (3172174) panicked at crates/api/src/routes/integration_tests/task_tests.rs:53:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::task_tests::test_create_and_list_subtasks stdout ----
+
+thread 'routes::integration_tests::task_tests::test_create_and_list_subtasks' (3172129) panicked at crates/api/src/routes/integration_tests/task_tests.rs:430:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::task_tests::test_create_task_missing_title_returns_400 stdout ----
+
+thread 'routes::integration_tests::task_tests::test_create_task_missing_title_returns_400' (3172187) panicked at crates/api/src/routes/integration_tests/task_tests.rs:701:5:
+Expected 400 or 422 for missing title, got 401 Unauthorized
+
+---- routes::integration_tests::task_tests::test_create_task_invalid_json_returns_400 stdout ----
+
+thread 'routes::integration_tests::task_tests::test_create_task_invalid_json_returns_400' (3172184) panicked at crates/api/src/routes/integration_tests/task_tests.rs:728:5:
+assertion `left == right` failed
+  left: 401
+ right: 400
+
+---- routes::integration_tests::task_tests::test_delete_task_nonexistent_returns_404 stdout ----
+
+thread 'routes::integration_tests::task_tests::test_delete_task_nonexistent_returns_404' (3172221) panicked at crates/api/src/routes/integration_tests/task_tests.rs:673:5:
+assertion `left == right` failed
+  left: 401
+ right: 404
+
+---- routes::integration_tests::task_tests::test_delete_task stdout ----
+
+thread 'routes::integration_tests::task_tests::test_delete_task' (3172200) panicked at crates/api/src/routes/integration_tests/task_tests.rs:207:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::task_tests::test_eisenhower_matrix stdout ----
+
+thread 'routes::integration_tests::task_tests::test_eisenhower_matrix' (3172251) panicked at crates/api/src/routes/integration_tests/task_tests.rs:958:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::task_tests::test_get_task_nonexistent_returns_404 stdout ----
+
+thread 'routes::integration_tests::task_tests::test_get_task_nonexistent_returns_404' (3172266) panicked at crates/api/src/routes/integration_tests/task_tests.rs:630:5:
+assertion `left == right` failed
+  left: 401
+ right: 404
+
+---- routes::integration_tests::task_tests::test_list_task_dependencies stdout ----
+
+thread 'routes::integration_tests::task_tests::test_list_task_dependencies' (3172270) panicked at crates/api/src/routes/integration_tests/task_tests.rs:560:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::task_tests::test_get_task_after_delete_returns_404 stdout ----
+
+thread 'routes::integration_tests::task_tests::test_get_task_after_delete_returns_404' (3172257) panicked at crates/api/src/routes/integration_tests/task_tests.rs:896:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::task_tests::test_get_task_by_id stdout ----
+
+thread 'routes::integration_tests::task_tests::test_get_task_by_id' (3172263) panicked at crates/api/src/routes/integration_tests/task_tests.rs:102:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::task_tests::test_move_task_nonexistent_returns_404 stdout ----
+
+thread 'routes::integration_tests::task_tests::test_move_task_nonexistent_returns_404' (3172322) panicked at crates/api/src/routes/integration_tests/task_tests.rs:791:5:
+Expected 404 or 500, got 401 Unauthorized
+
+---- routes::integration_tests::task_tests::test_list_tasks_by_board stdout ----
+
+thread 'routes::integration_tests::task_tests::test_list_tasks_by_board' (3172287) panicked at crates/api/src/routes/integration_tests/task_tests.rs:24:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::task_tests::test_list_time_entries stdout ----
+
+thread 'routes::integration_tests::task_tests::test_list_time_entries' (3172298) panicked at crates/api/src/routes/integration_tests/task_tests.rs:606:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::task_tests::test_my_tasks stdout ----
+
+thread 'routes::integration_tests::task_tests::test_my_tasks' (3172332) panicked at crates/api/src/routes/integration_tests/task_tests.rs:934:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::task_tests::test_move_task stdout ----
+
+thread 'routes::integration_tests::task_tests::test_move_task' (3172302) panicked at crates/api/src/routes/integration_tests/task_tests.rs:269:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::task_tests::test_move_task_to_invalid_column_returns_error stdout ----
+
+thread 'routes::integration_tests::task_tests::test_move_task_to_invalid_column_returns_error' (3172331) panicked at crates/api/src/routes/integration_tests/task_tests.rs:847:5:
+Expected error for invalid column, got 401 Unauthorized
+
+---- routes::integration_tests::task_tests::test_update_task_nonexistent_returns_404 stdout ----
+
+thread 'routes::integration_tests::task_tests::test_update_task_nonexistent_returns_404' (3172356) panicked at crates/api/src/routes/integration_tests/task_tests.rs:652:5:
+assertion `left == right` failed
+  left: 401
+ right: 404
+
+---- routes::integration_tests::workspace_tests::test_create_workspace stdout ----
+
+thread 'routes::integration_tests::workspace_tests::test_create_workspace' (3172370) panicked at crates/api/src/routes/integration_tests/workspace_tests.rs:58:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::task_tests::test_unassign_user_from_task stdout ----
+
+thread 'routes::integration_tests::task_tests::test_unassign_user_from_task' (3172348) panicked at crates/api/src/routes/integration_tests/task_tests.rs:376:5:
+Expected OK or 500, got 401 Unauthorized
+
+---- routes::integration_tests::workspace_tests::test_create_workspace_empty_name_returns_400 stdout ----
+
+thread 'routes::integration_tests::workspace_tests::test_create_workspace_empty_name_returns_400' (3172378) panicked at crates/api/src/routes/integration_tests/workspace_tests.rs:173:5:
+assertion `left == right` failed
+  left: 401
+ right: 400
+
+---- routes::integration_tests::task_tests::test_update_task stdout ----
+
+thread 'routes::integration_tests::task_tests::test_update_task' (3172353) panicked at crates/api/src/routes/integration_tests/task_tests.rs:158:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::workspace_tests::test_create_workspace_invalid_json_returns_400 stdout ----
+
+thread 'routes::integration_tests::workspace_tests::test_create_workspace_invalid_json_returns_400' (3172383) panicked at crates/api/src/routes/integration_tests/workspace_tests.rs:316:5:
+assertion `left == right` failed
+  left: 401
+ right: 400
+
+---- routes::integration_tests::workspace_tests::test_create_workspace_missing_body_returns_400 stdout ----
+
+thread 'routes::integration_tests::workspace_tests::test_create_workspace_missing_body_returns_400' (3172388) panicked at crates/api/src/routes/integration_tests/workspace_tests.rs:294:5:
+assertion `left == right` failed
+  left: 401
+ right: 400
+
+---- routes::integration_tests::workspace_tests::test_delete_workspace_nonexistent_returns_404 stdout ----
+
+thread 'routes::integration_tests::workspace_tests::test_delete_workspace_nonexistent_returns_404' (3172395) panicked at crates/api/src/routes/integration_tests/workspace_tests.rs:268:5:
+Expected 404 or 403, got 401 Unauthorized
+
+---- routes::integration_tests::workspace_tests::test_delete_workspace stdout ----
+
+thread 'routes::integration_tests::workspace_tests::test_delete_workspace' (3172394) panicked at crates/api/src/routes/integration_tests/workspace_tests.rs:147:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::workspace_tests::test_list_workspaces_empty stdout ----
+
+thread 'routes::integration_tests::workspace_tests::test_list_workspaces_empty' (3172421) panicked at crates/api/src/routes/integration_tests/workspace_tests.rs:24:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::workspace_tests::test_get_workspace_nonexistent_returns_404 stdout ----
+
+thread 'routes::integration_tests::workspace_tests::test_get_workspace_nonexistent_returns_404' (3172418) panicked at crates/api/src/routes/integration_tests/workspace_tests.rs:216:5:
+Expected 404 or 403 for non-existent workspace, got 401 Unauthorized
+
+---- routes::integration_tests::workspace_tests::test_get_workspace_by_id stdout ----
+
+thread 'routes::integration_tests::workspace_tests::test_get_workspace_by_id' (3172406) panicked at crates/api/src/routes/integration_tests/workspace_tests.rs:85:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+---- routes::integration_tests::workspace_tests::test_update_workspace_nonexistent_returns_404 stdout ----
+
+thread 'routes::integration_tests::workspace_tests::test_update_workspace_nonexistent_returns_404' (3172437) panicked at crates/api/src/routes/integration_tests/workspace_tests.rs:243:5:
+Expected 404 or 403, got 401 Unauthorized
+
+---- routes::integration_tests::workspace_tests::test_workspace_member_role_enforcement stdout ----
+
+thread 'routes::integration_tests::workspace_tests::test_workspace_member_role_enforcement' (3172440) panicked at crates/api/src/routes/integration_tests/workspace_tests.rs:196:5:
+assertion `left == right` failed
+  left: 401
+ right: 403
+
+---- routes::integration_tests::workspace_tests::test_update_workspace stdout ----
+
+thread 'routes::integration_tests::workspace_tests::test_update_workspace' (3172432) panicked at crates/api/src/routes/integration_tests/workspace_tests.rs:120:5:
+assertion `left == right` failed
+  left: 401
+ right: 200
+
+
+failures:
+    routes::integration_tests::auth_tests::test_auth_via_cookie
+    routes::integration_tests::auth_tests::test_get_user_preferences
+    routes::integration_tests::auth_tests::test_list_sessions
+    routes::integration_tests::auth_tests::test_revoke_nonexistent_session_returns_404
+    routes::integration_tests::auth_tests::test_session_created_on_login
+    routes::integration_tests::auth_tests::test_update_user_preferences
+    routes::integration_tests::board_tests::test_board_templates_list
+    routes::integration_tests::board_tests::test_create_board
+    routes::integration_tests::board_tests::test_create_board_empty_name_returns_400
+    routes::integration_tests::board_tests::test_create_board_invalid_json_returns_400
+    routes::integration_tests::board_tests::test_create_board_invalid_workspace_returns_error
+    routes::integration_tests::board_tests::test_create_board_missing_body_returns_400
+    routes::integration_tests::board_tests::test_create_milestone
+    routes::integration_tests::board_tests::test_delete_board
+    routes::integration_tests::board_tests::test_delete_board_nonexistent_returns_404
+    routes::integration_tests::board_tests::test_get_board_by_id
+    routes::integration_tests::board_tests::test_get_board_full
+    routes::integration_tests::board_tests::test_get_board_full_nonexistent_returns_404
+    routes::integration_tests::board_tests::test_get_board_nonexistent_returns_404
+    routes::integration_tests::board_tests::test_list_automations
+    routes::integration_tests::board_tests::test_list_board_members
+    routes::integration_tests::board_tests::test_list_board_members_nonexistent_board
+    routes::integration_tests::board_tests::test_list_board_shares
+    routes::integration_tests::board_tests::test_list_boards_for_workspace
+    routes::integration_tests::board_tests::test_list_custom_fields
+    routes::integration_tests::board_tests::test_list_milestones
+    routes::integration_tests::board_tests::test_list_task_groups
+    routes::integration_tests::board_tests::test_list_webhooks
+    routes::integration_tests::board_tests::test_reports_board_returns_data
+    routes::integration_tests::board_tests::test_update_board
+    routes::integration_tests::board_tests::test_update_board_nonexistent_returns_404
+    routes::integration_tests::column_tests::test_create_column
+    routes::integration_tests::column_tests::test_create_column_for_nonexistent_board_returns_error
+    routes::integration_tests::column_tests::test_delete_column_empty_succeeds
+    routes::integration_tests::column_tests::test_delete_column_nonexistent_returns_404
+    routes::integration_tests::column_tests::test_list_columns
+    routes::integration_tests::column_tests::test_rename_column
+    routes::integration_tests::column_tests::test_rename_column_nonexistent_returns_404
+    routes::integration_tests::dashboard_tests::test_add_board_favorite
+    routes::integration_tests::dashboard_tests::test_add_favorite_invalid_type_returns_400
+    routes::integration_tests::dashboard_tests::test_dashboard_completion_trend
+    routes::integration_tests::dashboard_tests::test_dashboard_recent_activity
+    routes::integration_tests::dashboard_tests::test_dashboard_stats
+    routes::integration_tests::dashboard_tests::test_dashboard_tasks_by_priority
+    routes::integration_tests::dashboard_tests::test_dashboard_upcoming_deadlines
+    routes::integration_tests::dashboard_tests::test_list_favorites_empty
+    routes::integration_tests::dashboard_tests::test_list_notification_preferences
+    routes::integration_tests::dashboard_tests::test_list_notifications
+    routes::integration_tests::dashboard_tests::test_mark_all_notifications_read
+    routes::integration_tests::dashboard_tests::test_notification_unread_count
+    routes::integration_tests::dashboard_tests::test_search_empty_query_returns_400
+    routes::integration_tests::dashboard_tests::test_search_with_query
+    routes::integration_tests::invitation_tests::test_create_invitation
+    routes::integration_tests::invitation_tests::test_create_invitation_invalid_email_returns_error
+    routes::integration_tests::invitation_tests::test_create_invitation_invalid_workspace_returns_error
+    routes::integration_tests::invitation_tests::test_create_invitation_missing_body_returns_400
+    routes::integration_tests::invitation_tests::test_create_invitation_missing_email_returns_400
+    routes::integration_tests::invitation_tests::test_delete_nonexistent_invitation_returns_error
+    routes::integration_tests::invitation_tests::test_list_invitations
+    routes::integration_tests::task_tests::test_assign_user_to_task
+    routes::integration_tests::task_tests::test_create_and_list_comments
+    routes::integration_tests::task_tests::test_create_and_list_subtasks
+    routes::integration_tests::task_tests::test_create_task
+    routes::integration_tests::task_tests::test_create_task_for_nonexistent_board_returns_error
+    routes::integration_tests::task_tests::test_create_task_invalid_json_returns_400
+    routes::integration_tests::task_tests::test_create_task_missing_title_returns_400
+    routes::integration_tests::task_tests::test_delete_task
+    routes::integration_tests::task_tests::test_delete_task_nonexistent_returns_404
+    routes::integration_tests::task_tests::test_eisenhower_matrix
+    routes::integration_tests::task_tests::test_get_task_after_delete_returns_404
+    routes::integration_tests::task_tests::test_get_task_by_id
+    routes::integration_tests::task_tests::test_get_task_nonexistent_returns_404
+    routes::integration_tests::task_tests::test_list_task_dependencies
+    routes::integration_tests::task_tests::test_list_tasks_by_board
+    routes::integration_tests::task_tests::test_list_time_entries
+    routes::integration_tests::task_tests::test_move_task
+    routes::integration_tests::task_tests::test_move_task_nonexistent_returns_404
+    routes::integration_tests::task_tests::test_move_task_to_invalid_column_returns_error
+    routes::integration_tests::task_tests::test_my_tasks
+    routes::integration_tests::task_tests::test_unassign_user_from_task
+    routes::integration_tests::task_tests::test_update_task
+    routes::integration_tests::task_tests::test_update_task_nonexistent_returns_404
+    routes::integration_tests::workspace_tests::test_create_workspace
+    routes::integration_tests::workspace_tests::test_create_workspace_empty_name_returns_400
+    routes::integration_tests::workspace_tests::test_create_workspace_invalid_json_returns_400
+    routes::integration_tests::workspace_tests::test_create_workspace_missing_body_returns_400
+    routes::integration_tests::workspace_tests::test_delete_workspace
+    routes::integration_tests::workspace_tests::test_delete_workspace_nonexistent_returns_404
+    routes::integration_tests::workspace_tests::test_get_workspace_by_id
+    routes::integration_tests::workspace_tests::test_get_workspace_nonexistent_returns_404
+    routes::integration_tests::workspace_tests::test_list_workspaces_empty
+    routes::integration_tests::workspace_tests::test_update_workspace
+    routes::integration_tests::workspace_tests::test_update_workspace_nonexistent_returns_404
+    routes::integration_tests::workspace_tests::test_workspace_member_role_enforcement
+
+test result: FAILED. 254 passed; 94 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.52s
+
+error: test failed, to rerun pass `-p taskflow-api --bin taskflow-api`

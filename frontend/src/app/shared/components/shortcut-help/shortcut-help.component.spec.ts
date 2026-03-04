@@ -14,6 +14,10 @@ describe('ShortcutHelpComponent', () => {
     helpRequested$: Subject<void>;
     getByCategory: ReturnType<typeof vi.fn>;
     formatShortcut: ReturnType<typeof vi.fn>;
+    pushDisable: ReturnType<typeof vi.fn>;
+    popDisable: ReturnType<typeof vi.fn>;
+    getAll: ReturnType<typeof vi.fn>;
+    recentlyUsedIds: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -21,6 +25,10 @@ describe('ShortcutHelpComponent', () => {
       helpRequested$: new Subject<void>(),
       getByCategory: vi.fn().mockReturnValue(new Map()),
       formatShortcut: vi.fn((s: KeyboardShortcut) => s.key),
+      pushDisable: vi.fn(),
+      popDisable: vi.fn(),
+      getAll: vi.fn().mockReturnValue([]),
+      recentlyUsedIds: vi.fn().mockReturnValue([]),
     };
 
     await TestBed.configureTestingModule({
@@ -45,7 +53,7 @@ describe('ShortcutHelpComponent', () => {
     });
 
     it('should have empty categories initially', () => {
-      expect(component.categories()).toEqual([]);
+      expect(component.filteredCategories()).toEqual([]);
     });
   });
 
@@ -81,9 +89,9 @@ describe('ShortcutHelpComponent', () => {
       component.ngOnInit();
       mockShortcutsService.helpRequested$.next();
 
-      expect(component.categories()).toHaveLength(2);
-      expect(component.categories()[0].name).toBe('Navigation');
-      expect(component.categories()[1].name).toBe('Tasks');
+      expect(component.filteredCategories()).toHaveLength(2);
+      expect(component.filteredCategories()[0].name).toBe('Navigation');
+      expect(component.filteredCategories()[1].name).toBe('Tasks');
     });
   });
 

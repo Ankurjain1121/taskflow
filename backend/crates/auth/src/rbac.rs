@@ -298,4 +298,157 @@ mod tests {
         );
         assert_eq!(member_perms.len(), 6, "Member should have 6 permissions");
     }
+
+    // ========================================================================
+    // can_manage_workspace tests
+    // ========================================================================
+
+    #[test]
+    fn test_can_manage_workspace_global_admin() {
+        // Global admin can manage any workspace regardless of workspace role
+        assert!(can_manage_workspace(&UserRole::Admin, None));
+        assert!(can_manage_workspace(
+            &UserRole::Admin,
+            Some(&WorkspaceMemberRole::Member)
+        ));
+        assert!(can_manage_workspace(
+            &UserRole::Admin,
+            Some(&WorkspaceMemberRole::Viewer)
+        ));
+    }
+
+    #[test]
+    fn test_can_manage_workspace_owner() {
+        assert!(can_manage_workspace(
+            &UserRole::Member,
+            Some(&WorkspaceMemberRole::Owner)
+        ));
+        assert!(can_manage_workspace(
+            &UserRole::Manager,
+            Some(&WorkspaceMemberRole::Owner)
+        ));
+    }
+
+    #[test]
+    fn test_can_manage_workspace_ws_admin() {
+        assert!(can_manage_workspace(
+            &UserRole::Member,
+            Some(&WorkspaceMemberRole::Admin)
+        ));
+        assert!(can_manage_workspace(
+            &UserRole::Manager,
+            Some(&WorkspaceMemberRole::Admin)
+        ));
+    }
+
+    #[test]
+    fn test_cannot_manage_workspace_member_or_viewer() {
+        assert!(!can_manage_workspace(
+            &UserRole::Member,
+            Some(&WorkspaceMemberRole::Member)
+        ));
+        assert!(!can_manage_workspace(
+            &UserRole::Member,
+            Some(&WorkspaceMemberRole::Viewer)
+        ));
+        assert!(!can_manage_workspace(
+            &UserRole::Manager,
+            Some(&WorkspaceMemberRole::Member)
+        ));
+        assert!(!can_manage_workspace(
+            &UserRole::Manager,
+            Some(&WorkspaceMemberRole::Viewer)
+        ));
+    }
+
+    #[test]
+    fn test_cannot_manage_workspace_no_ws_role_non_admin() {
+        assert!(!can_manage_workspace(&UserRole::Member, None));
+        assert!(!can_manage_workspace(&UserRole::Manager, None));
+    }
+
+    // ========================================================================
+    // Role hierarchy superset property
+    // ========================================================================
+
+    #[test]
+    fn test_admin_permissions_superset_of_manager() {
+        let admin_perms = permissions_for_role(&UserRole::Admin);
+        let manager_perms = permissions_for_role(&UserRole::Manager);
+        for perm in &manager_perms {
+            assert!(
+                admin_perms.contains(perm),
+                "Admin should have all Manager permissions, missing {:?}",
+                perm
+            );
+        }
+    }
+
+    #[test]
+    fn test_manager_permissions_superset_of_member() {
+        let manager_perms = permissions_for_role(&UserRole::Manager);
+        let member_perms = permissions_for_role(&UserRole::Member);
+        for perm in &member_perms {
+            assert!(
+                manager_perms.contains(perm),
+                "Manager should have all Member permissions, missing {:?}",
+                perm
+            );
+        }
+    }
+
+    // ========================================================================
+    // AuthError display messages
+    // ========================================================================
+
+    #[test]
+    fn test_auth_error_permission_denied_display() {
+        let err = AuthError::PermissionDenied(Permission::AdminAccess);
+        let msg = format!("{}", err);
+        assert!(
+            msg.contains("Permission denied"),
+            "Error should mention permission denied: {}",
+            msg
+        );
+    }
+
+    #[test]
+    fn test_auth_error_insufficient_role_display() {
+        let err = AuthError::InsufficientRole {
+            required: UserRole::Admin,
+            actual: UserRole::Member,
+        };
+        let msg = format!("{}", err);
+        assert!(
+            msg.contains("Insufficient role"),
+            "Error should mention insufficient role: {}",
+            msg
+        );
+    }
+
+    // ========================================================================
+    // require_role_level success cases
+    // ========================================================================
+
+    #[test]
+    fn test_require_role_level_succeeds() {
+        assert!(require_role_level(&UserRole::Admin, &UserRole::Admin).is_ok());
+        assert!(require_role_level(&UserRole::Admin, &UserRole::Member).is_ok());
+        assert!(require_role_level(&UserRole::Manager, &UserRole::Member).is_ok());
+        assert!(require_role_level(&UserRole::Member, &UserRole::Member).is_ok());
+    }
+
+    // ========================================================================
+    // Member cannot delete or assign tasks
+    // ========================================================================
+
+    #[test]
+    fn test_member_cannot_delete_tasks() {
+        assert!(!has_permission(&UserRole::Member, &Permission::TaskDelete));
+    }
+
+    #[test]
+    fn test_member_cannot_assign_tasks() {
+        assert!(!has_permission(&UserRole::Member, &Permission::TaskAssign));
+    }
 }

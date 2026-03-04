@@ -201,6 +201,10 @@ describe('AcceptInviteComponent', () => {
         name: 'Test User',
         password: 'password123',
         confirmPassword: 'password123',
+        jobTitle: '',
+        department: '',
+        bio: '',
+        timezone: 'UTC',
       });
 
       component.onSubmit();
@@ -209,6 +213,10 @@ describe('AcceptInviteComponent', () => {
         token: 'valid-token',
         name: 'Test User',
         password: 'password123',
+        job_title: undefined,
+        department: undefined,
+        bio: undefined,
+        timezone: 'UTC',
       });
       expect(component.pageState()).toBe('success');
       expect(component.isLoading()).toBe(false);
@@ -223,6 +231,10 @@ describe('AcceptInviteComponent', () => {
         name: 'Test User',
         password: 'password123',
         confirmPassword: 'password123',
+        jobTitle: '',
+        department: '',
+        bio: '',
+        timezone: 'UTC',
       });
 
       component.onSubmit();
@@ -239,6 +251,10 @@ describe('AcceptInviteComponent', () => {
         name: 'Test User',
         password: 'password123',
         confirmPassword: 'password123',
+        jobTitle: '',
+        department: '',
+        bio: '',
+        timezone: 'UTC',
       });
 
       component.onSubmit();
@@ -258,6 +274,10 @@ describe('AcceptInviteComponent', () => {
         name: 'Test User',
         password: 'password123',
         confirmPassword: 'password123',
+        jobTitle: '',
+        department: '',
+        bio: '',
+        timezone: 'UTC',
       });
 
       component.onSubmit();

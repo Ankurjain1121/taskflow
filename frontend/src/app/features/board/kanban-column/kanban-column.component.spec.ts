@@ -1,4 +1,5 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { Component, signal } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import {
@@ -99,7 +100,7 @@ describe('KanbanColumnComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [TestHostComponent, DragDropModule],
+      imports: [TestHostComponent, DragDropModule, HttpClientTestingModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(TestHostComponent);
@@ -220,7 +221,7 @@ describe('KanbanColumnComponent', () => {
       fixture.detectChanges();
 
       const emptyText = fixture.nativeElement.textContent;
-      expect(emptyText).toContain('Drop tasks here');
+      expect(emptyText).toContain('Drag tasks here');
     });
 
     it('should NOT show empty state when tasks exist', () => {

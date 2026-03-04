@@ -5,6 +5,7 @@ import {
   tick,
 } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { provideRouter, Router, ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
 import { BoardToolbarComponent } from './board-toolbar.component';
@@ -35,7 +36,7 @@ describe('BoardToolbarComponent', () => {
     queryParamsSubject = new Subject();
 
     await TestBed.configureTestingModule({
-      imports: [BoardToolbarComponent],
+      imports: [BoardToolbarComponent, HttpClientTestingModule],
       providers: [
         provideRouter([]),
         {

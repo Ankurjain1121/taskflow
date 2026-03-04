@@ -273,6 +273,49 @@ mod tests {
     }
 
     #[test]
+    fn test_version_conflict_status_and_shape() {
+        let task_data = json!({"id": "123", "version": 5, "title": "Latest"});
+        let response = AppError::VersionConflict(task_data.clone()).into_response();
+        assert_eq!(response.status(), StatusCode::CONFLICT);
+
+        let body = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
+            serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
+        });
+
+        assert_eq!(body["error"]["code"].as_str().unwrap(), "VERSION_CONFLICT");
+        assert!(body["current_task"].is_object(), "Should include current_task");
+        assert_eq!(body["current_task"]["version"], 5);
+    }
+
+    #[test]
+    fn test_jwt_error_returns_unauthorized() {
+        // Create a real JWT error
+        let jwt_err = jsonwebtoken::errors::Error::from(
+            jsonwebtoken::errors::ErrorKind::InvalidToken,
+        );
+        let response = AppError::JwtError(jwt_err).into_response();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let body = tokio::runtime::Runtime::new().unwrap().block_on(async {
+            let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
+            serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
+        });
+
+        assert_eq!(body["error"]["code"].as_str().unwrap(), "UNAUTHORIZED");
+        // Should not leak JWT error details
+        let message = body["error"]["message"].as_str().unwrap();
+        assert!(
+            !message.contains("InvalidToken"),
+            "JWT error details should not leak"
+        );
+    }
+
+    #[test]
     fn test_internal_error_does_not_leak_sqlx_details() {
         // Simulate a database error message
         let response =

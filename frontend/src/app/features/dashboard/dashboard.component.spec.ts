@@ -13,6 +13,8 @@ import {
   DashboardActivityEntry,
 } from '../../core/services/dashboard.service';
 import { WorkspaceStateService } from '../../core/services/workspace-state.service';
+import { TeamGroupsService } from '../../core/services/team-groups.service';
+import { OnboardingChecklistService } from '../../core/services/onboarding-checklist.service';
 
 const MOCK_STATS: DashboardStats = {
   total_tasks: 42,
@@ -64,6 +66,10 @@ describe('DashboardComponent', () => {
   const mockDashboardService = {
     getStats: vi.fn().mockReturnValue(of(MOCK_STATS)),
     getRecentActivity: vi.fn().mockReturnValue(of(MOCK_ACTIVITY)),
+    getWorkspaceDashboard: vi.fn().mockReturnValue(of({ cycle_time: [], velocity: [], workload_balance: [], on_time: null })),
+    getTeamDashboard: vi.fn().mockReturnValue(of({ cycle_time: [], velocity: [], workload_balance: [], on_time: null })),
+    getPersonalDashboard: vi.fn().mockReturnValue(of({ cycle_time: [], velocity: [], on_time: null })),
+    exportDashboardCsv: vi.fn(),
   };
 
   const mockWorkspaceState = {
@@ -108,6 +114,8 @@ describe('DashboardComponent', () => {
         { provide: AuthService, useValue: mockAuthService },
         { provide: DashboardService, useValue: mockDashboardService },
         { provide: WorkspaceStateService, useValue: mockWorkspaceState },
+        { provide: TeamGroupsService, useValue: { listTeams: vi.fn().mockReturnValue(of([])) } },
+        { provide: OnboardingChecklistService, useValue: { initialize: vi.fn() } },
       ],
     }).compileComponents();
 
@@ -140,6 +148,8 @@ describe('DashboardComponent', () => {
           { provide: AuthService, useValue: nullAuthService },
           { provide: DashboardService, useValue: mockDashboardService },
           { provide: WorkspaceStateService, useValue: mockWorkspaceState },
+          { provide: TeamGroupsService, useValue: { listTeams: vi.fn().mockReturnValue(of([])) } },
+          { provide: OnboardingChecklistService, useValue: { initialize: vi.fn() } },
         ],
       }).compileComponents();
 

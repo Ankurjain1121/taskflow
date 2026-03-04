@@ -26,6 +26,18 @@ describe('WorkspaceSettingsComponent', () => {
           owner_id: 'u-1',
           created_at: '2026-01-01',
           updated_at: '2026-01-01',
+          members: [
+            {
+              user_id: 'u-1',
+              name: 'Alice',
+              email: 'alice@test.com',
+              avatar_url: null,
+              job_title: null,
+              department: null,
+              role: 'Owner',
+              joined_at: '2026-01-01',
+            },
+          ],
         }),
       ),
       getMembers: vi
@@ -107,8 +119,9 @@ describe('WorkspaceSettingsComponent', () => {
   it('should load members after workspace', () => {
     component.ngOnInit();
     paramsSubject.next({ workspaceId: 'ws-1' });
-    expect(mockWorkspaceService.getMembers).toHaveBeenCalledWith('ws-1');
+    // Members are extracted from embedded workspace response, not from getMembers
     expect(component.members().length).toBe(1);
+    expect(component.members()[0].user_id).toBe('u-1');
   });
 
   it('should load boards after workspace', () => {

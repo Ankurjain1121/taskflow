@@ -129,7 +129,7 @@ cd /home/ankur/taskflow/frontend && npx playwright test --project=chromium 2>&1
 
 #### Run specific E2E spec
 ```bash
-cd /home/ankflow/frontend && npx playwright test e2e/board.spec.ts --project=chromium 2>&1
+cd /home/ankur/taskflow/frontend && npx playwright test e2e/board.spec.ts --project=chromium 2>&1
 ```
 
 #### Run E2E tests with visible browser (headed)
@@ -360,6 +360,129 @@ npx playwright install chromium
 // localStorage is available in jsdom
 localStorage.setItem('key', 'value');
 expect(localStorage.getItem('key')).toBe('value');
+```
+
+---
+
+## Testing Best Practices
+
+### Unit vs Integration vs E2E
+
+| Type | Scope | Speed | When to Use |
+|------|-------|-------|-------------|
+| **Unit** | Single function/component | Fast (ms) | Pure logic, utilities, transformations |
+| **Integration** | Module + dependencies | Medium (s) | API routes with DB, services with HTTP |
+| **E2E** | Full user flow | Slow (10s+) | Critical paths: login, create task, drag-drop |
+
+**Testing pyramid**: Many unit tests, fewer integration, minimal E2E.
+
+### Mocking Strategies
+
+**Backend (Rust)**:
+```rust
+// Use trait objects for mockable dependencies
+#[cfg(test)]
+mod tests {
+    use mockall::predicate::*;
+    // Mock external services, not internal logic
+    // Prefer real DB (test transactions) over mocking queries
+}
+```
+
+**Frontend (Angular + Vitest)**:
+```typescript
+// Mock HTTP with HttpTestingController
+const httpMock = TestBed.inject(HttpTestingController);
+const req = httpMock.expectOne('/api/tasks');
+req.flush({ success: true, data: mockTasks });
+
+// Mock services with vi.fn()
+const mockService = { getTasks: vi.fn().mockReturnValue(of(mockTasks)) };
+TestBed.configureTestingModule({
+  providers: [{ provide: TaskService, useValue: mockService }]
+});
+```
+
+### Async Test Handling
+
+**Rust**: Use `#[tokio::test]` for async tests. Wrap DB operations in transactions and roll back.
+
+**Angular**: Use `fakeAsync` + `tick()` for timer-based code, `waitForAsync` for real async, `firstValueFrom` for observables.
+
+```typescript
+it('should debounce search', fakeAsync(() => {
+  component.searchQuery.set('test');
+  tick(300); // wait for debounce
+  expect(mockService.search).toHaveBeenCalledWith('test');
+}));
+```
+
+### Debugging Failing Tests
+
+1. Run the single failing test with verbose output
+2. Check if the test is flaky (run 3 times)
+3. Verify mocks match current service signatures
+4. Check for shared state between tests (missing cleanup)
+5. Use `--reporter=verbose` for detailed failure output
+
+---
+
+## CI/CD Testing Instructions
+
+### Required Test Coverage Thresholds
+
+| Suite | Threshold | Blocks Deploy? |
+|-------|-----------|----------------|
+| Backend (`cargo test`) | All pass | YES |
+| Frontend unit (`vitest`) | 60% coverage | YES |
+| Frontend E2E (`playwright`) | All pass | YES |
+| Clippy warnings | Zero warnings | YES |
+| TypeScript (`tsc --noEmit`) | Zero errors | YES |
+
+### Pre-Merge Checklist
+
+Run before merging any PR or deploying:
+```bash
+# Full validation (backend + frontend build + lint)
+./scripts/pre-deploy-check.sh
+
+# Quick check (no Docker build)
+./scripts/quick-check.sh
+```
+
+### Test Execution Order in CI
+
+1. **Lint & Type Check** (fast, catch early)
+   - `cargo clippy -- -D warnings`
+   - `npx tsc --noEmit`
+2. **Unit Tests** (medium, catch logic bugs)
+   - `cargo test --workspace`
+   - `npx vitest run --coverage`
+3. **E2E Tests** (slow, catch integration bugs)
+   - `npx playwright test --project=chromium`
+4. **Build Verification** (final gate)
+   - `cargo build --release`
+   - `npm run build -- --configuration=production`
+
+### Parallel Test Execution
+
+- Backend crate tests run in parallel by default (`cargo test`)
+- Frontend Vitest runs test files in parallel by default
+- E2E Playwright: use `--workers=1` on VPS (limited resources), `--workers=4` on CI with more CPU
+- Backend and frontend test suites can run in parallel in CI (separate jobs)
+
+### Environment Requirements for CI
+
+```yaml
+# Required services
+- PostgreSQL 16 (for integration tests)
+- Redis 7 (for cache/undo tests)
+
+# Required env vars
+DATABASE_URL: postgres://test:test@localhost/taskflow_test
+REDIS_URL: redis://localhost:6379
+JWT_SECRET: test-secret-for-ci
+SQLX_OFFLINE: true  # Use cached query metadata
 ```
 
 ---

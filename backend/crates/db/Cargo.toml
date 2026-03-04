@@ -17,3 +17,6 @@ sha2.workspace = true
 [dev-dependencies]
 tokio = { workspace = true, features = ["full", "test-util"] }
 serde_json = { workspace = true }
+mockall.workspace = true
+rstest.workspace = true
+proptest.workspace = true

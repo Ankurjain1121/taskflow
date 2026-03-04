@@ -339,6 +339,129 @@ mod tests {
         assert!(json["tasks"].as_object().unwrap().is_empty());
     }
 
+    // ========================================================================
+    // HTML sanitization tests (XSS prevention — CRITICAL)
+    // ========================================================================
+
+    #[test]
+    fn test_sanitize_html_removes_script_tags() {
+        let input = r#"<p>Hello</p><script>alert('xss')</script>"#;
+        let output = sanitize_html(input);
+        assert!(!output.contains("<script>"), "Script tags must be removed");
+        assert!(!output.contains("alert"), "Script content must be removed");
+        assert!(output.contains("<p>Hello</p>"), "Safe tags should remain");
+    }
+
+    #[test]
+    fn test_sanitize_html_removes_onerror_event() {
+        let input = r#"<img onerror="alert('xss')" src="x">"#;
+        let output = sanitize_html(input);
+        assert!(
+            !output.contains("onerror"),
+            "Event handlers must be stripped"
+        );
+        assert!(!output.contains("alert"), "Event handler JS must be removed");
+    }
+
+    #[test]
+    fn test_sanitize_html_removes_javascript_href() {
+        let input = r#"<a href="javascript:alert('xss')">Click</a>"#;
+        let output = sanitize_html(input);
+        assert!(
+            !output.contains("javascript:"),
+            "javascript: URIs must be removed"
+        );
+    }
+
+    #[test]
+    fn test_sanitize_html_allows_safe_tags() {
+        let input = "<p><strong>Bold</strong> and <em>italic</em></p>";
+        let output = sanitize_html(input);
+        assert!(output.contains("<strong>Bold</strong>"));
+        assert!(output.contains("<em>italic</em>"));
+    }
+
+    #[test]
+    fn test_sanitize_html_allows_lists() {
+        let input = "<ul><li>Item 1</li><li>Item 2</li></ul>";
+        let output = sanitize_html(input);
+        assert!(output.contains("<ul>"));
+        assert!(output.contains("<li>Item 1</li>"));
+    }
+
+    #[test]
+    fn test_sanitize_html_allows_headings() {
+        let input = "<h1>Title</h1><h2>Subtitle</h2>";
+        let output = sanitize_html(input);
+        assert!(output.contains("<h1>Title</h1>"));
+        assert!(output.contains("<h2>Subtitle</h2>"));
+    }
+
+    #[test]
+    fn test_sanitize_html_removes_iframe() {
+        let input = r#"<iframe src="http://evil.com"></iframe>"#;
+        let output = sanitize_html(input);
+        assert!(!output.contains("<iframe"), "iframes must be removed");
+    }
+
+    #[test]
+    fn test_sanitize_html_removes_style_tag() {
+        let input = "<style>body { display: none; }</style><p>Content</p>";
+        let output = sanitize_html(input);
+        assert!(!output.contains("<style>"), "Style tags must be removed");
+        assert!(output.contains("<p>Content</p>"));
+    }
+
+    #[test]
+    fn test_sanitize_html_adds_noopener_to_links() {
+        let input = r#"<a href="https://example.com">Link</a>"#;
+        let output = sanitize_html(input);
+        assert!(
+            output.contains("noopener"),
+            "Links should have rel=noopener: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_sanitize_html_denies_relative_urls() {
+        let input = r#"<a href="/internal/path">Link</a>"#;
+        let output = sanitize_html(input);
+        assert!(
+            !output.contains("/internal/path"),
+            "Relative URLs should be denied: {}",
+            output
+        );
+    }
+
+    #[test]
+    fn test_sanitize_html_empty_input() {
+        assert_eq!(sanitize_html(""), "");
+    }
+
+    #[test]
+    fn test_sanitize_html_plain_text_passthrough() {
+        let input = "Just plain text with no HTML";
+        let output = sanitize_html(input);
+        assert_eq!(output, input);
+    }
+
+    #[test]
+    fn test_sanitize_html_removes_form_elements() {
+        let input = r#"<form action="http://evil.com"><input type="text"><button>Submit</button></form>"#;
+        let output = sanitize_html(input);
+        assert!(!output.contains("<form"), "Form elements must be removed");
+        assert!(!output.contains("<input"), "Input elements must be removed");
+    }
+
+    #[test]
+    fn test_sanitize_html_nested_scripts() {
+        let input = r#"<div><p>Text<script>alert(1)</script></p></div>"#;
+        let output = sanitize_html(input);
+        assert!(!output.contains("script"), "Nested scripts must be removed");
+        assert!(output.contains("Text"), "Text content should remain");
+    }
+
     #[test]
     fn test_list_tasks_response_serialize_with_data() {
         let col_id = Uuid::new_v4();

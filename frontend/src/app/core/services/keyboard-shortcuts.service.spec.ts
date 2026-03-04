@@ -113,7 +113,7 @@ describe('KeyboardShortcutsService', () => {
       };
 
       const formatted = service.formatShortcut(shortcut);
-      expect(formatted).toBe('Ctrl + Shift + N');
+      expect(formatted).toBe('Ctrl+Shift+N');
     });
 
     it('should format shortcut without modifiers', () => {
@@ -138,7 +138,7 @@ describe('KeyboardShortcutsService', () => {
       };
 
       const formatted = service.formatShortcut(shortcut);
-      expect(formatted).toBe('Alt + S');
+      expect(formatted).toBe('Alt+S');
     });
   });
 
@@ -154,11 +154,11 @@ describe('KeyboardShortcutsService', () => {
         },
       });
 
-      service.setEnabled(false);
+      service.pushDisable();
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'x' }));
       expect(called).toBe(false);
 
-      service.setEnabled(true);
+      service.popDisable();
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'x' }));
       expect(called).toBe(true);
     });

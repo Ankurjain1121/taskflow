@@ -22,8 +22,8 @@ describe('SettingsLayoutComponent', () => {
   });
 
   describe('navItems', () => {
-    it('should have 4 navigation items', () => {
-      expect(component.navItems).toHaveLength(4);
+    it('should have 5 navigation items', () => {
+      expect(component.navItems).toHaveLength(5);
     });
 
     it('should include profile, security, appearance, notifications', () => {

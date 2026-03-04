@@ -4,6 +4,7 @@ import {
   fakeAsync,
   tick,
 } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { TaskDetailComponent } from './task-detail.component';
@@ -194,7 +195,7 @@ describe('TaskDetailComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [TaskDetailComponent],
+      imports: [TaskDetailComponent, HttpClientTestingModule],
       providers: [
         { provide: TaskService, useValue: mockTaskService },
         { provide: WorkspaceService, useValue: mockWorkspaceService },

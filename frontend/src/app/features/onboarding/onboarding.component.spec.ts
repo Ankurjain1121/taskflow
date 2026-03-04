@@ -165,7 +165,7 @@ describe('OnboardingComponent', () => {
 
     it('currentSteps should return full flow steps for full flow', () => {
       component.flow.set('full');
-      expect(component.currentSteps()).toHaveLength(3);
+      expect(component.currentSteps()).toHaveLength(4);
     });
 
     it('currentSteps should return abbreviated steps for abbreviated flow', () => {
@@ -182,6 +182,9 @@ describe('OnboardingComponent', () => {
       expect(component.currentFullStep()).toBe('invite');
 
       component.currentStepIndex.set(2);
+      expect(component.currentFullStep()).toBe('use-case');
+
+      component.currentStepIndex.set(3);
       expect(component.currentFullStep()).toBe('sample-board');
     });
 

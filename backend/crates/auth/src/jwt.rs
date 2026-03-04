@@ -465,4 +465,130 @@ mod tests {
         let keys = JwtKeys::from_config("secret", "refresh-secret", None, None).unwrap();
         assert_eq!(keys.algorithm, Algorithm::HS256);
     }
+
+    #[test]
+    fn test_verify_completely_invalid_token() {
+        let keys = JwtKeys::from_config("test-secret", "test-refresh-secret", None, None).unwrap();
+        let result = verify_access_token("not-a-jwt-token-at-all", &keys);
+        assert!(result.is_err(), "Completely invalid token should fail");
+    }
+
+    #[test]
+    fn test_verify_empty_token() {
+        let keys = JwtKeys::from_config("test-secret", "test-refresh-secret", None, None).unwrap();
+        let result = verify_access_token("", &keys);
+        assert!(result.is_err(), "Empty token should fail verification");
+    }
+
+    #[test]
+    fn test_verify_refresh_with_access_key_fails() {
+        // Access token verified with refresh key should fail (different secrets)
+        let keys = JwtKeys::from_config(
+            "access-secret-123",
+            "different-refresh-secret-456",
+            None,
+            None,
+        )
+        .unwrap();
+
+        let pair = issue_tokens(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            UserRole::Member,
+            Uuid::new_v4(),
+            &keys,
+            900,
+            604800,
+        )
+        .unwrap();
+
+        // Try to verify access token as refresh (should fail since secrets differ)
+        let result = verify_refresh_token(&pair.access_token, &keys);
+        assert!(
+            result.is_err(),
+            "Access token should not verify as refresh token with different secrets"
+        );
+    }
+
+    #[test]
+    fn test_multiple_tokens_are_unique() {
+        let keys = JwtKeys::from_config("test-secret", "test-refresh-secret", None, None).unwrap();
+
+        let pair1 = issue_tokens(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            UserRole::Member,
+            Uuid::new_v4(),
+            &keys,
+            900,
+            604800,
+        )
+        .unwrap();
+
+        let pair2 = issue_tokens(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            UserRole::Member,
+            Uuid::new_v4(),
+            &keys,
+            900,
+            604800,
+        )
+        .unwrap();
+
+        assert_ne!(
+            pair1.access_token, pair2.access_token,
+            "Different users should get different tokens"
+        );
+    }
+
+    #[test]
+    fn test_token_expiry_times_are_correct() {
+        let keys = JwtKeys::from_config("test-secret", "test-refresh-secret", None, None).unwrap();
+
+        let pair = issue_tokens(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            UserRole::Member,
+            Uuid::new_v4(),
+            &keys,
+            3600,   // 1 hour access
+            604800, // 7 days refresh
+        )
+        .unwrap();
+
+        let access_claims = verify_access_token(&pair.access_token, &keys).unwrap();
+        let refresh_claims = verify_refresh_token(&pair.refresh_token, &keys).unwrap();
+
+        // Access token should expire ~1 hour from iat
+        let access_duration = access_claims.exp - access_claims.iat;
+        assert_eq!(
+            access_duration, 3600,
+            "Access token expiry should be 3600 seconds from iat"
+        );
+
+        // Refresh token should expire ~7 days from iat
+        let refresh_duration = refresh_claims.exp - refresh_claims.iat;
+        assert_eq!(
+            refresh_duration, 604800,
+            "Refresh token expiry should be 604800 seconds from iat"
+        );
+    }
+
+    #[test]
+    fn test_jwt_keys_from_config_with_partial_rsa_falls_back_to_hs256() {
+        // Only private key, no public key — should fall back to HS256
+        let keys = JwtKeys::from_config(
+            "secret",
+            "refresh-secret",
+            Some("private-pem"),
+            None, // missing public key
+        )
+        .unwrap();
+        assert_eq!(
+            keys.algorithm,
+            Algorithm::HS256,
+            "Should fall back to HS256 without both RSA keys"
+        );
+    }
 }

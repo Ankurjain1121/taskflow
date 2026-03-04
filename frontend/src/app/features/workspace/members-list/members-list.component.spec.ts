@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import {
@@ -85,7 +86,7 @@ describe('MembersListComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [MembersListComponent],
+      imports: [MembersListComponent, HttpClientTestingModule],
       providers: [
         { provide: WorkspaceService, useValue: mockWorkspaceService },
         { provide: AuthService, useValue: mockAuthService },

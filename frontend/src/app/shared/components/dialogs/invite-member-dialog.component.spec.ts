@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import {
   InviteMemberDialogComponent,
   InviteMemberDialogResult,
@@ -19,6 +20,7 @@ describe('InviteMemberDialogComponent', () => {
         ReactiveFormsModule,
         FormsModule,
         NoopAnimationsModule,
+        HttpClientTestingModule,
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();

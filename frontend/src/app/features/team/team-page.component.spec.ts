@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { of, throwError } from 'rxjs';
 import { TeamPageComponent } from './team-page.component';
 import { WorkspaceService } from '../../core/services/workspace.service';
@@ -25,6 +26,17 @@ describe('TeamPageComponent', () => {
             updated_at: '',
           },
         ]),
+      ),
+      get: vi.fn().mockReturnValue(
+        of({
+          id: 'ws-1',
+          name: 'Workspace 1',
+          description: null,
+          logo_url: null,
+          created_by_id: 'u-1',
+          created_at: '',
+          updated_at: '',
+        }),
       ),
     };
 
@@ -52,7 +64,7 @@ describe('TeamPageComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [TeamPageComponent],
+      imports: [TeamPageComponent, HttpClientTestingModule],
       providers: [
         { provide: WorkspaceService, useValue: mockWorkspaceService },
         { provide: TeamService, useValue: mockTeamService },
@@ -79,7 +91,7 @@ describe('TeamPageComponent', () => {
 
   it('should handle empty workspaces', () => {
     mockWorkspaceService.list.mockReturnValue(of([]));
-    component.loadTeamData();
+    component.ngOnInit();
     expect(component.workspaceTeams()).toEqual([]);
     expect(component.loading()).toBe(false);
   });
@@ -88,7 +100,7 @@ describe('TeamPageComponent', () => {
     mockWorkspaceService.list.mockReturnValue(
       throwError(() => new Error('fail')),
     );
-    component.loadTeamData();
+    component.ngOnInit();
     expect(component.error()).toBe(
       'Failed to load workspaces. Please try again.',
     );
