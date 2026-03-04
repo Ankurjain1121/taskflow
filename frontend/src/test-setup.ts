@@ -57,7 +57,7 @@ Object.defineProperty(global, 'sessionStorage', {
   configurable: true,
 });
 
-// Also set on globalThis for broader compatibility
+// Also set on globalThis and window for broader compatibility
 if (typeof globalThis !== 'undefined') {
   Object.defineProperty(globalThis, 'localStorage', {
     value: mockLocalStorage,
@@ -65,6 +65,19 @@ if (typeof globalThis !== 'undefined') {
     configurable: true,
   });
   Object.defineProperty(globalThis, 'sessionStorage', {
+    value: mockSessionStorage,
+    writable: true,
+    configurable: true,
+  });
+}
+
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'localStorage', {
+    value: mockLocalStorage,
+    writable: true,
+    configurable: true,
+  });
+  Object.defineProperty(window, 'sessionStorage', {
     value: mockSessionStorage,
     writable: true,
     configurable: true,

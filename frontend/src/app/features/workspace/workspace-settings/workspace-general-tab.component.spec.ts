@@ -169,6 +169,8 @@ describe('WorkspaceGeneralTabComponent', () => {
     Object.defineProperty(mockFile, 'size', { value: 1024 });
 
     const inputEl = { files: [mockFile], value: 'C:\\logo.png' };
+    // Suppress unhandled error during test
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     component.onLogoSelected({ target: inputEl } as any);
 
     expect(component.uploadingLogo()).toBe(false);

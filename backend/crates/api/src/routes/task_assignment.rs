@@ -61,8 +61,7 @@ pub async fn assign_user_handler(
     let task = sqlx::query_as::<_, Task>(
         r#"
         SELECT
-            id, title, description,
-            priority as "priority: TaskPriority",
+            id, title, description, priority,
             due_date, start_date, estimated_hours,
             board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
@@ -182,8 +181,7 @@ pub async fn unassign_user_handler(
     let task = sqlx::query_as::<_, Task>(
         r#"
         SELECT
-            id, title, description,
-            priority as "priority: TaskPriority",
+            id, title, description, priority,
             due_date, start_date, estimated_hours,
             board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
