@@ -2,7 +2,7 @@ import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Router } from '@angular/router';
-import { signal } from '@angular/core';
+import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 
 import { DashboardComponent } from './dashboard.component';
@@ -103,6 +103,9 @@ describe('DashboardComponent', () => {
     // Re-set default mock return values after clearAllMocks
     mockDashboardService.getStats.mockReturnValue(of(MOCK_STATS));
     mockDashboardService.getRecentActivity.mockReturnValue(of(MOCK_ACTIVITY));
+    mockDashboardService.getWorkspaceDashboard.mockReturnValue(of({ cycle_time: [], velocity: [], workload_balance: [], on_time: null }));
+    mockDashboardService.getTeamDashboard.mockReturnValue(of({ cycle_time: [], velocity: [], workload_balance: [], on_time: null }));
+    mockDashboardService.getPersonalDashboard.mockReturnValue(of({ cycle_time: [], velocity: [], on_time: null }));
 
     await TestBed.configureTestingModule({
       imports: [
@@ -115,8 +118,22 @@ describe('DashboardComponent', () => {
         { provide: DashboardService, useValue: mockDashboardService },
         { provide: WorkspaceStateService, useValue: mockWorkspaceState },
         { provide: TeamGroupsService, useValue: { listTeams: vi.fn().mockReturnValue(of([])) } },
-        { provide: OnboardingChecklistService, useValue: { initialize: vi.fn() } },
+        { provide: OnboardingChecklistService, useValue: {
+          initialize: vi.fn(),
+          shouldShow: signal(false),
+          items: signal([]),
+          completedCount: signal(0),
+          totalCount: signal(0),
+          allComplete: signal(false),
+          isDismissed: signal(false),
+          isSkipped: signal(false),
+          toggle: vi.fn(),
+          dismiss: vi.fn(),
+          skip: vi.fn(),
+          reset: vi.fn(),
+        } },
       ],
+      schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
 
     router = TestBed.inject(Router);
@@ -149,8 +166,22 @@ describe('DashboardComponent', () => {
           { provide: DashboardService, useValue: mockDashboardService },
           { provide: WorkspaceStateService, useValue: mockWorkspaceState },
           { provide: TeamGroupsService, useValue: { listTeams: vi.fn().mockReturnValue(of([])) } },
-          { provide: OnboardingChecklistService, useValue: { initialize: vi.fn() } },
+          { provide: OnboardingChecklistService, useValue: {
+            initialize: vi.fn(),
+            shouldShow: signal(false),
+            items: signal([]),
+            completedCount: signal(0),
+            totalCount: signal(0),
+            allComplete: signal(false),
+            isDismissed: signal(false),
+            isSkipped: signal(false),
+            toggle: vi.fn(),
+            dismiss: vi.fn(),
+            skip: vi.fn(),
+            reset: vi.fn(),
+          } },
         ],
+        schemas: [NO_ERRORS_SCHEMA],
       }).compileComponents();
 
       const newRouter = TestBed.inject(Router);

@@ -6,8 +6,13 @@ import {
   BrowserDynamicTestingModule,
   platformBrowserDynamicTesting,
 } from '@angular/platform-browser-dynamic/testing';
+import { afterEach } from 'vitest';
 
 getTestBed().initTestEnvironment(
   BrowserDynamicTestingModule,
   platformBrowserDynamicTesting(),
 );
+
+afterEach(() => {
+  getTestBed().resetTestingModule();
+});
