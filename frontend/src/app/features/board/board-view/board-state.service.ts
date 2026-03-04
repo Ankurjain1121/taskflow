@@ -1,6 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { Subject, takeUntil, forkJoin } from 'rxjs';
-import { isOverdue } from '../../../shared/utils/task-colors';
+
+export const MAX_SELECTION = 500;
 
 import {
   BoardService,
@@ -8,14 +9,14 @@ import {
   Column,
   BoardMember,
   BoardFullResponse,
+  BoardMeta,
 } from '../../../core/services/board.service';
 import {
   TaskService,
   Task,
   Assignee,
-  TaskListItem,
   Label,
-  UpdateTaskRequest,
+  TaskListItem,
 } from '../../../core/services/task.service';
 import {
   TaskGroupService,
@@ -27,14 +28,15 @@ import {
 } from '../../../core/services/milestone.service';
 import { DependencyService } from '../../../core/services/dependency.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
-import { SaveStatusService } from '../../../core/services/save-status.service';
 import { GanttTask, GanttDependency } from '../gantt-view/gantt-view.component';
 import { TaskFilters } from '../board-toolbar/board-toolbar.component';
 import { CreateTaskDialogResult } from './create-task-dialog.component';
 import { CreateColumnDialogResult } from './create-column-dialog.component';
-import { generateKeyBetween } from 'fractional-indexing';
 import { GroupByMode, SwimlaneGroup, SwimlaneState } from './swimlane.types';
 import { buildSwimlaneGroups, buildSwimlaneState } from './swimlane-utils';
+import { BoardFilterService } from './board-filter.service';
+import { BoardGroupingService } from './board-grouping.service';
+import { BoardMutationsService } from './board-mutations.service';
 
 export interface CardFields {
   showPriority: boolean;
@@ -70,7 +72,22 @@ export class BoardStateService {
   private milestoneService = inject(MilestoneService);
   private dependencyService = inject(DependencyService);
   private wsService = inject(WebSocketService);
-  private saveStatus = inject(SaveStatusService);
+  private filterService = inject(BoardFilterService);
+  private groupingService = inject(BoardGroupingService);
+  private mutations = inject(BoardMutationsService);
+
+  constructor() {
+    this.mutations.init({
+      boardState: this.boardState,
+      columns: this.columns,
+      boardMembers: this.boardMembers,
+      boardGroups: this.boardGroups,
+      allLabels: () => this.allLabels(),
+      showError: (msg) => this.showError(msg),
+      reloadGroups: (boardId) => this.reloadGroups(boardId),
+      loadBoard: (boardId, destroy$) => this.loadBoard(boardId, destroy$),
+    });
+  }
 
   // === Signals ===
   readonly loading = signal(true);
@@ -100,30 +117,41 @@ export class BoardStateService {
   readonly boardMilestones = signal<Milestone[]>([]);
   readonly boardGroups = signal<TaskGroupWithStats[]>([]);
   readonly collapsedColumnIds = signal<Set<string>>(new Set());
-  readonly groupBy = signal<GroupByMode>('none');
-  readonly collapsedSwimlaneIds = signal<Set<string>>(new Set());
+  readonly taskMeta = signal<BoardMeta | null>(null);
+  readonly tasksLoaded = signal<number>(0);
+  readonly canLoadMore = computed(() => {
+    const meta = this.taskMeta();
+    if (!meta) return false;
+    return this.tasksLoaded() < meta.total_task_count;
+  });
+  readonly dragSimulationActive = signal<boolean>(false);
+  readonly dragSimulationSourceColumnId = signal<string | null>(null);
+  readonly dragSimulationCurrentColumnId = signal<string | null>(null);
   readonly cardDensity = signal<'compact' | 'normal' | 'expanded'>(
-    (['compact', 'normal', 'expanded'].includes(
+    ['compact', 'normal', 'expanded'].includes(
       localStorage.getItem('taskflow_card_density') ?? '',
     )
       ? (localStorage.getItem('taskflow_card_density') as
           | 'compact'
           | 'normal'
           | 'expanded')
-      : 'normal'),
+      : 'normal',
   );
-  readonly dragSimulationActive = signal<boolean>(false);
-  readonly dragSimulationSourceColumnId = signal<string | null>(null);
-  readonly dragSimulationCurrentColumnId = signal<string | null>(null);
   readonly cardFields = signal<CardFields>(
     (() => {
       try {
         const stored = localStorage.getItem('taskflow_card_fields');
         if (stored) return { ...DEFAULT_CARD_FIELDS, ...JSON.parse(stored) };
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       return DEFAULT_CARD_FIELDS;
     })(),
   );
+
+  // === Delegated Signals (from grouping service) ===
+  readonly groupBy = this.groupingService.groupBy;
+  readonly collapsedSwimlaneIds = this.groupingService.collapsedSwimlaneIds;
 
   // === Computed Signals ===
   readonly collapsedGroupIds = computed(() => {
@@ -142,9 +170,9 @@ export class BoardStateService {
     const result: Record<string, Task[]> = {};
 
     for (const [columnId, tasks] of Object.entries(state)) {
-      result[columnId] = this.filterTasks(tasks, f).filter(
-        (t) => !t.group_id || !collapsed.has(t.group_id),
-      );
+      result[columnId] = this.filterService
+        .filterTasks(tasks, f)
+        .filter((t) => !t.group_id || !collapsed.has(t.group_id));
     }
 
     return result;
@@ -186,6 +214,10 @@ export class BoardStateService {
     return Array.from(labelMap.values());
   });
 
+  readonly selectionAtLimit = computed(
+    () => this.selectedTaskIds().length >= MAX_SELECTION,
+  );
+
   readonly connectedColumnIds = computed(() => {
     return this.columns().map((col) => 'column-' + col.id);
   });
@@ -199,7 +231,11 @@ export class BoardStateService {
   readonly swimlaneState = computed((): SwimlaneState => {
     const mode = this.groupBy();
     if (mode === 'none') return {};
-    return buildSwimlaneState(this.filteredBoardState(), this.swimlaneGroups(), mode);
+    return buildSwimlaneState(
+      this.filteredBoardState(),
+      this.swimlaneGroups(),
+      mode,
+    );
   });
 
   // === Data Loading ===
@@ -208,7 +244,7 @@ export class BoardStateService {
     this.loading.set(true);
 
     this.loadCollapsedColumns(boardId);
-    this.loadGroupBy(boardId);
+    this.groupingService.loadGroupBy(boardId);
     this.boardService.getBoardFull(boardId).subscribe({
       next: (response: BoardFullResponse) => {
         this.board.set(response.board);
@@ -257,6 +293,12 @@ export class BoardStateService {
         }
         this.boardState.set(tasksByColumn);
 
+        // Track pagination metadata
+        if (response.meta) {
+          this.taskMeta.set(response.meta);
+          this.tasksLoaded.set(response.tasks.length);
+        }
+
         this.boardMembers.set(response.members);
         this.loading.set(false);
 
@@ -273,6 +315,59 @@ export class BoardStateService {
     });
     this.taskGroupService.listGroupsWithStats(boardId).subscribe({
       next: (groups) => this.boardGroups.set(groups),
+    });
+  }
+
+  loadMoreTasks(boardId: string): void {
+    const offset = this.tasksLoaded();
+    this.boardService.getBoardFull(boardId, { limit: 100, offset }).subscribe({
+      next: (response: BoardFullResponse) => {
+        if (response.meta) {
+          this.taskMeta.set(response.meta);
+        }
+        this.tasksLoaded.update((loaded) => loaded + response.tasks.length);
+
+        this.boardState.update((state) => {
+          const newState = { ...state };
+          for (const t of response.tasks) {
+            const task: Task = {
+              id: t.id,
+              column_id: t.column_id,
+              group_id: t.group_id,
+              title: t.title,
+              description: t.description,
+              priority: t.priority as Task['priority'],
+              position: t.position,
+              milestone_id: t.milestone_id,
+              assignee_id: null,
+              due_date: t.due_date,
+              created_by: t.created_by_id,
+              created_at: t.created_at,
+              updated_at: t.updated_at,
+              assignees: t.assignees,
+              labels: t.labels as unknown as Label[],
+              subtask_completed: t.subtask_completed,
+              subtask_total: t.subtask_total,
+              has_running_timer: t.has_running_timer,
+              comment_count: t.comment_count,
+              column_entered_at: t.column_entered_at,
+            };
+            if (!newState[t.column_id]) {
+              newState[t.column_id] = [];
+            }
+            newState[t.column_id] = [...newState[t.column_id], task];
+          }
+          for (const colId of Object.keys(newState)) {
+            newState[colId] = [...newState[colId]].sort((a, b) =>
+              a.position.localeCompare(b.position),
+            );
+          }
+          return newState;
+        });
+      },
+      error: () => {
+        this.showError('Failed to load more tasks');
+      },
     });
   }
 
@@ -311,450 +406,97 @@ export class BoardStateService {
     });
   }
 
-  // === Task CRUD ===
+  // === Task CRUD (delegated) ===
 
   createTask(
     boardId: string,
     columnId: string,
     taskData: CreateTaskDialogResult,
   ): void {
-    // Snapshot for rollback
-    const snapshot = structuredClone(this.boardState());
-
-    // Create optimistic temp task
-    const tempId = crypto.randomUUID();
-    const now = new Date().toISOString();
-    const tempTask: Task = {
-      id: tempId,
-      column_id: columnId,
-      group_id: taskData.group_id ?? null,
-      title: taskData.title,
-      description: taskData.description ?? null,
-      priority: (taskData.priority as Task['priority']) ?? 'medium',
-      position: 'zzzzzz', // sort to end
-      milestone_id: taskData.milestone_id ?? null,
-      assignee_id: null,
-      due_date: taskData.due_date ?? null,
-      created_by: '',
-      created_at: now,
-      updated_at: now,
-      assignees: [],
-      labels: [],
-    };
-
-    // Optimistically insert
-    this.boardState.update((state) => {
-      const newState = { ...state };
-      const columnTasks = newState[columnId] || [];
-      newState[columnId] = [...columnTasks, tempTask];
-      return newState;
-    });
-
-    this.saveStatus.markSaving();
-    this.taskService
-      .createTask(boardId, {
-        title: taskData.title,
-        description: taskData.description,
-        priority: taskData.priority,
-        column_id: columnId,
-        due_date: taskData.due_date,
-        start_date: taskData.start_date,
-        estimated_hours: taskData.estimated_hours,
-        group_id: taskData.group_id,
-        milestone_id: taskData.milestone_id,
-        assignee_ids: taskData.assignee_ids,
-        label_ids: taskData.label_ids,
-      })
-      .subscribe({
-        next: (realTask) => {
-          this.saveStatus.markSaved();
-          // Replace temp task with server response
-          this.boardState.update((state) => {
-            const newState = { ...state };
-            const columnTasks = newState[columnId] || [];
-            newState[columnId] = columnTasks
-              .map((t) => (t.id === tempId ? realTask : t))
-              .sort((a, b) => a.position.localeCompare(b.position));
-            return newState;
-          });
-        },
-        error: () => {
-          this.saveStatus.markError();
-          // Rollback to snapshot
-          this.boardState.set(snapshot);
-          this.showError('Failed to create task');
-        },
-      });
+    this.mutations.createTask(boardId, columnId, taskData);
   }
 
   updateTaskInState(task: Task): void {
-    this.boardState.update((state) => {
-      const newState = { ...state };
-      const columnTasks = newState[task.column_id];
-      if (columnTasks) {
-        newState[task.column_id] = columnTasks.map((t) =>
-          t.id === task.id ? task : t,
-        );
-      }
-      return newState;
-    });
+    this.mutations.updateTaskInState(task);
   }
 
-  /**
-   * Optimistically update a task in boardState and send the update to the server.
-   * Rolls back to snapshot on error.
-   */
   optimisticUpdateTask(
     taskId: string,
     updates: Partial<Task>,
     serverUpdates?: Record<string, unknown>,
   ): void {
-    const snapshot = structuredClone(this.boardState());
-
-    // Apply optimistic update
-    this.boardState.update((state) => {
-      const newState: Record<string, Task[]> = {};
-      for (const [columnId, tasks] of Object.entries(state)) {
-        newState[columnId] = tasks.map((t) =>
-          t.id === taskId ? { ...t, ...updates } : t,
-        );
-      }
-      return newState;
-    });
-
-    // Send to server
-    this.saveStatus.markSaving();
-    const req = serverUpdates ?? (updates as Record<string, unknown>);
-    this.taskService.updateTask(taskId, req as UpdateTaskRequest).subscribe({
-      next: (updatedTask) => {
-        this.saveStatus.markSaved();
-        // Replace with server-confirmed data
-        this.boardState.update((state) => {
-          const newState: Record<string, Task[]> = {};
-          for (const [columnId, tasks] of Object.entries(state)) {
-            newState[columnId] = tasks.map((t) =>
-              t.id === taskId ? { ...t, ...updatedTask } : t,
-            );
-          }
-          return newState;
-        });
-      },
-      error: () => {
-        this.saveStatus.markError();
-        this.boardState.set(snapshot);
-        this.showError('Failed to update task. Reverted.');
-      },
-    });
+    this.mutations.optimisticUpdateTask(taskId, updates, serverUpdates);
   }
 
   optimisticAssignUser(taskId: string, userId: string): void {
-    const snapshot = structuredClone(this.boardState());
-    const member = this.boardMembers().find((m) => m.user_id === userId);
-    this.boardState.update((state) => {
-      const newState: Record<string, Task[]> = {};
-      for (const [colId, tasks] of Object.entries(state)) {
-        newState[colId] = tasks.map((t) => {
-          if (t.id !== taskId) return t;
-          const existing = t.assignees ?? [];
-          if (existing.some((a) => a.id === userId)) return t;
-          const newAssignee: Assignee = {
-            id: userId,
-            display_name: member?.name ?? 'Unknown',
-            avatar_url: member?.avatar_url ?? null,
-          };
-          return { ...t, assignees: [...existing, newAssignee] };
-        });
-      }
-      return newState;
-    });
-    this.saveStatus.markSaving();
-    this.taskService.assignUser(taskId, userId).subscribe({
-      next: () => this.saveStatus.markSaved(),
-      error: () => {
-        this.saveStatus.markError();
-        this.boardState.set(snapshot);
-        this.showError('Failed to assign user. Reverted.');
-      },
-    });
+    this.mutations.optimisticAssignUser(taskId, userId);
   }
 
   optimisticUnassignUser(taskId: string, userId: string): void {
-    const snapshot = structuredClone(this.boardState());
-    this.boardState.update((state) => {
-      const newState: Record<string, Task[]> = {};
-      for (const [colId, tasks] of Object.entries(state)) {
-        newState[colId] = tasks.map((t) => {
-          if (t.id !== taskId) return t;
-          return { ...t, assignees: (t.assignees ?? []).filter((a) => a.id !== userId) };
-        });
-      }
-      return newState;
-    });
-    this.saveStatus.markSaving();
-    this.taskService.unassignUser(taskId, userId).subscribe({
-      next: () => this.saveStatus.markSaved(),
-      error: () => {
-        this.saveStatus.markError();
-        this.boardState.set(snapshot);
-        this.showError('Failed to unassign user. Reverted.');
-      },
-    });
+    this.mutations.optimisticUnassignUser(taskId, userId);
   }
 
   optimisticAddLabel(taskId: string, labelId: string): void {
-    const snapshot = structuredClone(this.boardState());
-    const label = this.allLabels().find((l) => l.id === labelId);
-    if (!label) return;
-    this.boardState.update((state) => {
-      const newState: Record<string, Task[]> = {};
-      for (const [colId, tasks] of Object.entries(state)) {
-        newState[colId] = tasks.map((t) => {
-          if (t.id !== taskId) return t;
-          const existing = t.labels ?? [];
-          if (existing.some((l) => l.id === labelId)) return t;
-          return { ...t, labels: [...existing, label] };
-        });
-      }
-      return newState;
-    });
-    this.saveStatus.markSaving();
-    this.taskService.addLabel(taskId, labelId).subscribe({
-      next: () => this.saveStatus.markSaved(),
-      error: () => {
-        this.saveStatus.markError();
-        this.boardState.set(snapshot);
-        this.showError('Failed to add label. Reverted.');
-      },
-    });
+    this.mutations.optimisticAddLabel(taskId, labelId);
   }
 
   optimisticRemoveLabel(taskId: string, labelId: string): void {
-    const snapshot = structuredClone(this.boardState());
-    this.boardState.update((state) => {
-      const newState: Record<string, Task[]> = {};
-      for (const [colId, tasks] of Object.entries(state)) {
-        newState[colId] = tasks.map((t) => {
-          if (t.id !== taskId) return t;
-          return { ...t, labels: (t.labels ?? []).filter((l) => l.id !== labelId) };
-        });
-      }
-      return newState;
-    });
-    this.saveStatus.markSaving();
-    this.taskService.removeLabel(taskId, labelId).subscribe({
-      next: () => this.saveStatus.markSaved(),
-      error: () => {
-        this.saveStatus.markError();
-        this.boardState.set(snapshot);
-        this.showError('Failed to remove label. Reverted.');
-      },
-    });
-  }
-
-  // === Column Operations ===
-
-  createColumn(boardId: string, columnData: CreateColumnDialogResult): void {
-    // Snapshot for rollback
-    const colSnapshot = structuredClone(this.columns());
-    const stateSnapshot = structuredClone(this.boardState());
-
-    // Optimistic temp column
-    const tempId = crypto.randomUUID();
-    const now = new Date().toISOString();
-    const tempColumn: Column = {
-      id: tempId,
-      board_id: boardId,
-      name: columnData.name,
-      position: 'zzzzzz',
-      color: columnData.color ?? '',
-      status_mapping: columnData.isDone ? { done: true } : null,
-      wip_limit: null,
-      created_at: now,
-      updated_at: now,
-    };
-
-    this.columns.update((cols) => [...cols, tempColumn]);
-    this.boardState.update((state) => ({ ...state, [tempId]: [] }));
-
-    this.saveStatus.markSaving();
-    this.boardService
-      .createColumn(boardId, {
-        name: columnData.name,
-        color: columnData.color,
-        status_mapping: columnData.isDone ? { done: true } : undefined,
-      })
-      .subscribe({
-        next: (realColumn) => {
-          this.saveStatus.markSaved();
-          // Replace temp with real column
-          this.columns.update((cols) =>
-            cols
-              .map((c) => (c.id === tempId ? realColumn : c))
-              .sort((a, b) => a.position.localeCompare(b.position)),
-          );
-          this.boardState.update((state) => {
-            const newState = { ...state };
-            const tempTasks = newState[tempId] || [];
-            delete newState[tempId];
-            newState[realColumn.id] = tempTasks;
-            return newState;
-          });
-        },
-        error: () => {
-          this.saveStatus.markError();
-          this.columns.set(colSnapshot);
-          this.boardState.set(stateSnapshot);
-          this.showError('Failed to create column');
-        },
-      });
-  }
-
-  reorderColumn(prevIdx: number, currIdx: number): void {
-    const snapshot = structuredClone(this.columns());
-
-    // Optimistic reorder
-    const cols = [...snapshot];
-    const [removed] = cols.splice(prevIdx, 1);
-    cols.splice(currIdx, 0, removed);
-    this.columns.set(cols);
-
-    const movedColumn = cols[currIdx];
-    this.boardService.reorderColumn(movedColumn.id, { new_index: currIdx }).subscribe({
-      error: () => {
-        this.columns.set(snapshot);
-        this.showError('Failed to reorder column');
-      },
-    });
-  }
-
-  deleteColumn(boardId: string, columnId: string): void {
-    // Snapshot for rollback
-    const colSnapshot = structuredClone(this.columns());
-    const stateSnapshot = structuredClone(this.boardState());
-
-    // Optimistically remove column
-    this.columns.update((cols) => cols.filter((c) => c.id !== columnId));
-    this.boardState.update((state) => {
-      const newState = { ...state };
-      delete newState[columnId];
-      return newState;
-    });
-
-    this.boardService.deleteColumn(columnId).subscribe({
-      error: () => {
-        this.columns.set(colSnapshot);
-        this.boardState.set(stateSnapshot);
-        this.showError('Failed to delete column. Reverted.');
-      },
-    });
+    this.mutations.optimisticRemoveLabel(taskId, labelId);
   }
 
   deleteTask(taskId: string): void {
-    const snapshot = structuredClone(this.boardState());
-
-    // Optimistically remove from all columns
-    this.boardState.update((state) => {
-      const newState: Record<string, Task[]> = {};
-      for (const [colId, tasks] of Object.entries(state)) {
-        newState[colId] = tasks.filter((t) => t.id !== taskId);
-      }
-      return newState;
-    });
-
-    this.saveStatus.markSaving();
-    this.taskService.deleteTask(taskId).subscribe({
-      next: () => this.saveStatus.markSaved(),
-      error: () => {
-        this.saveStatus.markError();
-        this.boardState.set(snapshot);
-        this.showError('Failed to delete task. Reverted.');
-      },
-    });
+    this.mutations.deleteTask(taskId);
   }
 
-  // === Task Group Operations ===
+  // === Column Operations (delegated) ===
+
+  createColumn(boardId: string, columnData: CreateColumnDialogResult): void {
+    this.mutations.createColumn(boardId, columnData);
+  }
+
+  reorderColumn(prevIdx: number, currIdx: number): void {
+    this.mutations.reorderColumn(prevIdx, currIdx);
+  }
+
+  deleteColumn(boardId: string, columnId: string): void {
+    this.mutations.deleteColumn(boardId, columnId);
+  }
+
+  // === Task Group Operations (delegated) ===
 
   createGroup(boardId: string, result: { name: string; color: string }): void {
-    const groups = this.boardGroups();
-    const lastGroup = groups[groups.length - 1];
-    const position = generateKeyBetween(
-      lastGroup?.group.position ?? null,
-      null,
-    );
-
-    this.taskGroupService
-      .createGroup(boardId, {
-        board_id: boardId,
-        name: result.name,
-        color: result.color,
-        position,
-      })
-      .subscribe({
-        next: () => this.reloadGroups(boardId),
-        error: () => this.showError('Failed to create group'),
-      });
+    this.mutations.createGroup(boardId, result);
   }
 
   updateGroupName(boardId: string, groupId: string, name: string): void {
-    this.taskGroupService.updateGroup(groupId, { name }).subscribe({
-      next: () => this.reloadGroups(boardId),
-      error: () => this.showError('Failed to rename group'),
-    });
+    this.mutations.updateGroupName(boardId, groupId, name);
   }
 
   updateGroupColor(boardId: string, groupId: string, color: string): void {
-    this.taskGroupService.updateGroup(groupId, { color }).subscribe({
-      next: () => this.reloadGroups(boardId),
-      error: () => this.showError('Failed to update group color'),
-    });
+    this.mutations.updateGroupColor(boardId, groupId, color);
   }
 
   toggleGroupCollapse(group: TaskGroupWithStats): void {
-    const newCollapsed = !group.group.collapsed;
-
-    this.boardGroups.update((groups) =>
-      groups.map((g) =>
-        g.group.id === group.group.id
-          ? { ...g, group: { ...g.group, collapsed: newCollapsed } }
-          : g,
-      ),
-    );
-
-    this.taskGroupService
-      .toggleCollapse(group.group.id, newCollapsed)
-      .subscribe({
-        error: () => {
-          this.boardGroups.update((groups) =>
-            groups.map((g) =>
-              g.group.id === group.group.id
-                ? { ...g, group: { ...g.group, collapsed: !newCollapsed } }
-                : g,
-            ),
-          );
-          this.showError('Failed to toggle group');
-        },
-      });
+    this.mutations.toggleGroupCollapse(group);
   }
 
   deleteGroup(boardId: string, groupId: string): void {
-    this.taskGroupService.deleteGroup(groupId).subscribe({
-      next: () => {
-        this.reloadGroups(boardId);
-        this.loadBoard(boardId, new Subject<void>());
-      },
-      error: () => this.showError('Failed to delete group'),
-    });
+    this.mutations.deleteGroup(boardId, groupId);
   }
 
   // === Selection ===
 
-  toggleTaskSelection(taskId: string): void {
+  toggleTaskSelection(taskId: string): boolean {
     const current = this.selectedTaskIds();
     if (current.includes(taskId)) {
       this.selectedTaskIds.set(current.filter((id) => id !== taskId));
-    } else {
-      this.selectedTaskIds.set([...current, taskId]);
+      return false;
     }
+    if (current.length >= MAX_SELECTION) {
+      return true;
+    }
+    this.selectedTaskIds.set([...current, taskId]);
+    return false;
   }
 
   clearSelection(): void {
@@ -808,7 +550,7 @@ export class BoardStateService {
   // === Card Fields ===
 
   updateCardField(key: keyof CardFields, value: boolean): void {
-    this.cardFields.update(f => {
+    this.cardFields.update((f) => {
       const next = { ...f, [key]: value };
       localStorage.setItem('taskflow_card_fields', JSON.stringify(next));
       return next;
@@ -817,38 +559,24 @@ export class BoardStateService {
 
   resetCardFields(): void {
     this.cardFields.set({ ...DEFAULT_CARD_FIELDS });
-    localStorage.setItem('taskflow_card_fields', JSON.stringify(DEFAULT_CARD_FIELDS));
+    localStorage.setItem(
+      'taskflow_card_fields',
+      JSON.stringify(DEFAULT_CARD_FIELDS),
+    );
   }
 
-  // === Swimlane Group By ===
+  // === Swimlane Group By (delegated) ===
 
   loadGroupBy(boardId: string): void {
-    try {
-      const stored = localStorage.getItem(`tf_swimlane_${boardId}`);
-      if (stored && ['none', 'assignee', 'priority', 'label'].includes(stored)) {
-        this.groupBy.set(stored as GroupByMode);
-      } else {
-        this.groupBy.set('none');
-      }
-    } catch {
-      this.groupBy.set('none');
-    }
+    this.groupingService.loadGroupBy(boardId);
   }
 
   setGroupBy(mode: GroupByMode, boardId: string): void {
-    this.groupBy.set(mode);
-    localStorage.setItem(`tf_swimlane_${boardId}`, mode);
+    this.groupingService.setGroupBy(mode, boardId);
   }
 
   toggleSwimlaneCollapse(groupKey: string): void {
-    const current = this.collapsedSwimlaneIds();
-    const updated = new Set(current);
-    if (updated.has(groupKey)) {
-      updated.delete(groupKey);
-    } else {
-      updated.add(groupKey);
-    }
-    this.collapsedSwimlaneIds.set(updated);
+    this.groupingService.toggleSwimlaneCollapse(groupKey);
   }
 
   // === Error Handling ===
@@ -862,64 +590,9 @@ export class BoardStateService {
     this.errorMessage.set(null);
   }
 
-  // === Filtering ===
+  // === Filtering (delegated) ===
 
   filterTasks(tasks: Task[], filters: TaskFilters): Task[] {
-    return tasks.filter((task) => {
-      if (
-        filters.search &&
-        !task.title.toLowerCase().includes(filters.search.toLowerCase())
-      ) {
-        return false;
-      }
-
-      if (
-        filters.priorities.length > 0 &&
-        !filters.priorities.includes(task.priority)
-      ) {
-        return false;
-      }
-
-      if (filters.assigneeIds.length > 0) {
-        const taskAssigneeIds = task.assignees?.map((a) => a.id) || [];
-        const hasMatchingAssignee = filters.assigneeIds.some((id) =>
-          taskAssigneeIds.includes(id),
-        );
-        if (!hasMatchingAssignee) {
-          return false;
-        }
-      }
-
-      if (filters.dueDateStart || filters.dueDateEnd) {
-        if (!task.due_date) {
-          return false;
-        }
-        const dueDate = new Date(task.due_date);
-        if (filters.dueDateStart && dueDate < new Date(filters.dueDateStart)) {
-          return false;
-        }
-        if (filters.dueDateEnd && dueDate > new Date(filters.dueDateEnd)) {
-          return false;
-        }
-      }
-
-      if (filters.labelIds.length > 0) {
-        const taskLabelIds = task.labels?.map((l) => l.id) || [];
-        const hasMatchingLabel = filters.labelIds.some((id) =>
-          taskLabelIds.includes(id),
-        );
-        if (!hasMatchingLabel) {
-          return false;
-        }
-      }
-
-      if (filters.overdue) {
-        if (!task.due_date || !isOverdue(task.due_date)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
+    return this.filterService.filterTasks(tasks, filters);
   }
 }

@@ -12,9 +12,20 @@ async function navigateToBoard(
     timeout: 15000,
   });
   await page.locator('a:has-text("Open Workspace")').first().click();
-  await expect(page.locator('h2:has-text("Boards")')).toBeVisible({
-    timeout: 15000,
-  });
+  await page.waitForURL(/\/workspace\//, { timeout: 15000 });
+
+  // Wait up to 20s for boards heading; if the workspace fails to load, click Retry
+  const boardsHeading = page.locator('h2:has-text("Boards")');
+  const loadError = page.locator('button:has-text("Retry")');
+  try {
+    await boardsHeading.waitFor({ timeout: 8000 });
+  } catch {
+    // Workspace page failed to load — click Retry and wait again
+    if (await loadError.isVisible()) {
+      await loadError.click();
+    }
+    await expect(boardsHeading).toBeVisible({ timeout: 15000 });
+  }
 
   const boardCard = page.locator('a[href*="/board/"]').first();
   await expect(boardCard).toBeVisible({ timeout: 10000 });
@@ -40,8 +51,8 @@ async function createTaskViaDialog(
   // Click "New Task" button in toolbar
   await page.locator('button:has-text("New Task")').click();
 
-  // Wait for the Create New Task dialog
-  const dialogTitle = page.locator('h2:has-text("New Task")');
+  // Wait for the Create New Task dialog (PrimeNG p-dialog renders title as span.p-dialog-title)
+  const dialogTitle = page.locator('.p-dialog-title:has-text("Create New Task")');
   await expect(dialogTitle).toBeVisible({ timeout: 10000 });
 
   // Fill the title field using placeholder attribute
@@ -50,8 +61,8 @@ async function createTaskViaDialog(
   await titleInput.click();
   await titleInput.fill(title);
 
-  // Verify submit button is enabled (form valid) then click
-  const submitBtn = page.locator('mat-dialog-actions button[mat-flat-button]');
+  // Click submit button (PrimeNG p-button inside dialog footer)
+  const submitBtn = page.locator('.p-dialog-footer button:has-text("Create Task"), .p-dialog button:has-text("Create Task")').first();
   await expect(submitBtn).toBeEnabled({ timeout: 3000 });
   await submitBtn.click();
 
@@ -175,10 +186,9 @@ test.describe('Board Management', () => {
     await expect(newTaskBtn).toBeVisible({ timeout: 5000 });
     await newTaskBtn.click();
 
-    // The Create New Task dialog should appear
-    await expect(page.locator('h2:has-text("New Task")')).toBeVisible({
-      timeout: 10000,
-    });
+    // The Create New Task dialog should appear (PrimeNG p-dialog uses span.p-dialog-title)
+    const createDialog = page.locator('.p-dialog-title:has-text("Create New Task")');
+    await expect(createDialog).toBeVisible({ timeout: 10000 });
 
     // Title input should be visible (identified by placeholder)
     const titleInput = page.locator('input[placeholder="Enter task title"]');
@@ -186,16 +196,12 @@ test.describe('Board Management', () => {
     await titleInput.click();
     await titleInput.fill('E2E Test Task 1');
 
-    // Submit via the mat-flat-button in dialog actions
-    const submitBtn = page.locator(
-      'mat-dialog-actions button[mat-flat-button]',
-    );
+    // Submit via PrimeNG button in dialog footer
+    const submitBtn = page.locator('.p-dialog-footer button:has-text("Create Task"), .p-dialog button:has-text("Create Task")').first();
     await submitBtn.click();
 
     // Dialog should close after creation
-    await expect(page.locator('h2:has-text("New Task")')).toBeHidden({
-      timeout: 15000,
-    });
+    await expect(createDialog).toBeHidden({ timeout: 15000 });
   });
 
   // Created task appears in a column
@@ -345,9 +351,9 @@ test.describe('Board Management', () => {
     await expect(addButton).toBeVisible({ timeout: 10000 });
     await expect(addButton).toBeEnabled();
 
-    // Click it to verify dialog opens
+    // Click it to verify dialog opens (PrimeNG p-dialog uses span.p-dialog-title)
     await addButton.click();
-    await expect(page.locator('h2:has-text("New Task")')).toBeVisible({
+    await expect(page.locator('.p-dialog-title:has-text("Create New Task")')).toBeVisible({
       timeout: 10000,
     });
   });

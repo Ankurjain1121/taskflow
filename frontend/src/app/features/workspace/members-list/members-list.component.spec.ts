@@ -1,7 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
-import { MembersListComponent, MemberWithDetails } from './members-list.component';
+import {
+  MembersListComponent,
+  MemberWithDetails,
+} from './members-list.component';
 import { WorkspaceService } from '../../../core/services/workspace.service';
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -12,8 +15,26 @@ describe('MembersListComponent', () => {
   let mockAuthService: any;
 
   const testMembers: MemberWithDetails[] = [
-    { user_id: 'u-1', workspace_id: 'ws-1', role: 'owner', display_name: 'Alice Admin', email: 'alice@test.com', avatar_url: null, joined_at: '2026-01-01', name: 'Alice Admin' },
-    { user_id: 'u-2', workspace_id: 'ws-1', role: 'member', display_name: 'Bob Member', email: 'bob@test.com', avatar_url: null, joined_at: '2026-01-15', name: 'Bob Member' },
+    {
+      user_id: 'u-1',
+      workspace_id: 'ws-1',
+      role: 'owner',
+      display_name: 'Alice Admin',
+      email: 'alice@test.com',
+      avatar_url: null,
+      joined_at: '2026-01-01',
+      name: 'Alice Admin',
+    },
+    {
+      user_id: 'u-2',
+      workspace_id: 'ws-1',
+      role: 'member',
+      display_name: 'Bob Member',
+      email: 'bob@test.com',
+      avatar_url: null,
+      joined_at: '2026-01-15',
+      name: 'Bob Member',
+    },
   ];
 
   beforeEach(async () => {
@@ -32,9 +53,19 @@ describe('MembersListComponent', () => {
     });
 
     mockWorkspaceService = {
-      listAllInvitations: vi.fn().mockReturnValue(of([
-        { id: 'inv-1', email: 'new@test.com', role: 'member', status: 'pending', created_at: '2026-01-20' },
-      ])),
+      listAllInvitations: vi
+        .fn()
+        .mockReturnValue(
+          of([
+            {
+              id: 'inv-1',
+              email: 'new@test.com',
+              role: 'member',
+              status: 'pending',
+              created_at: '2026-01-20',
+            },
+          ]),
+        ),
       bulkInviteMembers: vi.fn().mockReturnValue(of({})),
       resendInvitation: vi.fn().mockReturnValue(of(void 0)),
       cancelInvitation: vi.fn().mockReturnValue(of(void 0)),
@@ -74,22 +105,44 @@ describe('MembersListComponent', () => {
 
   it('should load invitations on init', () => {
     component.ngOnInit();
-    expect(mockWorkspaceService.listAllInvitations).toHaveBeenCalledWith('ws-1');
+    expect(mockWorkspaceService.listAllInvitations).toHaveBeenCalledWith(
+      'ws-1',
+    );
     expect(component.allInvitations().length).toBe(1);
     expect(component.loadingInvitations()).toBe(false);
   });
 
   it('should handle invitations load error', () => {
-    mockWorkspaceService.listAllInvitations.mockReturnValue(throwError(() => new Error('fail')));
+    mockWorkspaceService.listAllInvitations.mockReturnValue(
+      throwError(() => new Error('fail')),
+    );
     component.ngOnInit();
     expect(component.loadingInvitations()).toBe(false);
   });
 
   it('should filter pending and expired invitations', () => {
     component.allInvitations.set([
-      { id: 'inv-1', email: 'a@test.com', role: 'member', status: 'pending', created_at: '2026-01-20' } as any,
-      { id: 'inv-2', email: 'b@test.com', role: 'member', status: 'accepted', created_at: '2026-01-20' } as any,
-      { id: 'inv-3', email: 'c@test.com', role: 'member', status: 'expired', created_at: '2026-01-20' } as any,
+      {
+        id: 'inv-1',
+        email: 'a@test.com',
+        role: 'member',
+        status: 'pending',
+        created_at: '2026-01-20',
+      } as any,
+      {
+        id: 'inv-2',
+        email: 'b@test.com',
+        role: 'member',
+        status: 'accepted',
+        created_at: '2026-01-20',
+      } as any,
+      {
+        id: 'inv-3',
+        email: 'c@test.com',
+        role: 'member',
+        status: 'expired',
+        created_at: '2026-01-20',
+      } as any,
     ]);
     const result = component.pendingAndExpiredInvitations();
     expect(result.length).toBe(2);
@@ -107,7 +160,10 @@ describe('MembersListComponent', () => {
   });
 
   it('should return false for isAdmin when user is regular member', () => {
-    mockAuthService.currentUser.set({ ...mockAuthService.currentUser(), id: 'u-2' });
+    mockAuthService.currentUser.set({
+      ...mockAuthService.currentUser(),
+      id: 'u-2',
+    });
     expect(component.isAdmin()).toBe(false);
   });
 
@@ -170,15 +226,31 @@ describe('MembersListComponent', () => {
   });
 
   it('should handle invite result', () => {
-    component.onInviteResult({ emails: ['new@test.com'], role: 'member', message: '', boardIds: [] } as any);
+    component.onInviteResult({
+      emails: ['new@test.com'],
+      role: 'member',
+      message: '',
+      boardIds: [],
+    } as any);
     expect(mockWorkspaceService.bulkInviteMembers).toHaveBeenCalledWith(
-      'ws-1', ['new@test.com'], 'member', '', [],
+      'ws-1',
+      ['new@test.com'],
+      'member',
+      '',
+      [],
     );
   });
 
   it('should handle invite error', () => {
-    mockWorkspaceService.bulkInviteMembers.mockReturnValue(throwError(() => new Error('fail')));
-    component.onInviteResult({ emails: ['new@test.com'], role: 'member', message: '', boardIds: [] } as any);
+    mockWorkspaceService.bulkInviteMembers.mockReturnValue(
+      throwError(() => new Error('fail')),
+    );
+    component.onInviteResult({
+      emails: ['new@test.com'],
+      role: 'member',
+      message: '',
+      boardIds: [],
+    } as any);
     // Should not throw
   });
 
@@ -189,7 +261,9 @@ describe('MembersListComponent', () => {
   });
 
   it('should handle resend invitation error', () => {
-    mockWorkspaceService.resendInvitation.mockReturnValue(throwError(() => new Error('fail')));
+    mockWorkspaceService.resendInvitation.mockReturnValue(
+      throwError(() => new Error('fail')),
+    );
     component.onResendInvitation({ id: 'inv-1' } as any);
     expect(component.actionInProgress()).toBe(null);
   });
@@ -214,7 +288,10 @@ describe('MembersListComponent', () => {
     vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
     const emitSpy = vi.spyOn(component.memberRemoved, 'emit');
     component.onRemoveMember(testMembers[1]);
-    expect(mockWorkspaceService.removeMember).toHaveBeenCalledWith('ws-1', 'u-2');
+    expect(mockWorkspaceService.removeMember).toHaveBeenCalledWith(
+      'ws-1',
+      'u-2',
+    );
     expect(emitSpy).toHaveBeenCalledWith('u-2');
     expect(component.updatingMember()).toBe(null);
     vi.restoreAllMocks();
@@ -229,7 +306,9 @@ describe('MembersListComponent', () => {
 
   it('should handle remove member error', () => {
     vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
-    mockWorkspaceService.removeMember.mockReturnValue(throwError(() => new Error('fail')));
+    mockWorkspaceService.removeMember.mockReturnValue(
+      throwError(() => new Error('fail')),
+    );
     component.onRemoveMember(testMembers[1]);
     expect(component.updatingMember()).toBe(null);
     vi.restoreAllMocks();

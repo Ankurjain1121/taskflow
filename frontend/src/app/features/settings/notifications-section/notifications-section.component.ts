@@ -1,4 +1,10 @@
-import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy,
+import {
+  Component,
+  OnInit,
+  inject,
+  signal,
+  computed,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
@@ -52,17 +58,32 @@ interface PreferenceRow {
     >
       <div class="flex items-start justify-between mb-3">
         <div>
-          <h2 class="text-xl font-semibold mb-1" style="color: var(--foreground)">Desktop Notifications</h2>
+          <h2
+            class="text-xl font-semibold mb-1"
+            style="color: var(--foreground)"
+          >
+            Desktop Notifications
+          </h2>
           <p class="text-sm" style="color: var(--muted-foreground)">
-            Get notified about assignments and mentions even when TaskFlow isn't your active tab.
+            Get notified about assignments and mentions even when TaskFlow isn't
+            your active tab.
           </p>
         </div>
         @if (pushService.permission() === 'granted') {
-          <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 ml-4 shrink-0">Enabled</span>
+          <span
+            class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 ml-4 shrink-0"
+            >Enabled</span
+          >
         } @else if (pushService.permission() === 'denied') {
-          <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 ml-4 shrink-0">Blocked</span>
+          <span
+            class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 ml-4 shrink-0"
+            >Blocked</span
+          >
         } @else {
-          <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 ml-4 shrink-0">Not set up</span>
+          <span
+            class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 ml-4 shrink-0"
+            >Not set up</span
+          >
         }
       </div>
       @if (!pushService.isSupported) {
@@ -71,14 +92,21 @@ interface PreferenceRow {
           Your browser does not support desktop notifications.
         </p>
       } @else if (pushService.permission() === 'granted') {
-        <p class="text-sm flex items-center gap-2" style="color: var(--muted-foreground)">
+        <p
+          class="text-sm flex items-center gap-2"
+          style="color: var(--muted-foreground)"
+        >
           <i class="pi pi-check-circle text-green-500"></i>
           Desktop notifications are active.
         </p>
       } @else if (pushService.permission() === 'denied') {
-        <p class="text-sm flex items-center gap-2" style="color: var(--muted-foreground)">
+        <p
+          class="text-sm flex items-center gap-2"
+          style="color: var(--muted-foreground)"
+        >
           <i class="pi pi-info-circle text-orange-500"></i>
-          Notifications are blocked. Enable them in your browser settings, then refresh this page.
+          Notifications are blocked. Enable them in your browser settings, then
+          refresh this page.
         </p>
       } @else {
         <p-button
@@ -131,7 +159,10 @@ interface PreferenceRow {
                   class="cursor-help"
                 >
                   Slack
-                  <i class="pi pi-lock text-xs ml-1" style="color: var(--muted-foreground)"></i>
+                  <i
+                    class="pi pi-lock text-xs ml-1"
+                    style="color: var(--muted-foreground)"
+                  ></i>
                 </span>
               </th>
               <th class="!font-semibold !text-center">
@@ -141,7 +172,10 @@ interface PreferenceRow {
                   class="cursor-help"
                 >
                   WhatsApp
-                  <i class="pi pi-lock text-xs ml-1" style="color: var(--muted-foreground)"></i>
+                  <i
+                    class="pi pi-lock text-xs ml-1"
+                    style="color: var(--muted-foreground)"
+                  ></i>
                 </span>
               </th>
             </tr>
@@ -159,7 +193,9 @@ interface PreferenceRow {
               <td class="!text-center">
                 <p-toggleSwitch
                   [(ngModel)]="row.email"
-                  (onChange)="onToggleChange(row.eventType, 'email', $event.checked)"
+                  (onChange)="
+                    onToggleChange(row.eventType, 'email', $event.checked)
+                  "
                 />
               </td>
               <td class="!text-center">
@@ -234,7 +270,9 @@ interface PreferenceRow {
               "
             />
           </div>
-          <span class="text-sm mt-6" style="color: var(--muted-foreground)">to</span>
+          <span class="text-sm mt-6" style="color: var(--muted-foreground)"
+            >to</span
+          >
           <div class="flex flex-col gap-2">
             <label class="text-sm font-medium" style="color: var(--foreground)">
               End Time
@@ -381,7 +419,8 @@ export class NotificationsSectionComponent implements OnInit {
         const map = new Map(this.preferencesMap());
         map.set(updatedPref.event_type, {
           eventType: updatedPref.event_type,
-          label: EVENT_TYPE_LABELS[updatedPref.event_type] || updatedPref.event_type,
+          label:
+            EVENT_TYPE_LABELS[updatedPref.event_type] || updatedPref.event_type,
           inApp: updatedPref.in_app,
           email: updatedPref.email,
           slack: updatedPref.slack,

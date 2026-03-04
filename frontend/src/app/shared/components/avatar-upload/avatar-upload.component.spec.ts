@@ -29,21 +29,23 @@ describe('AvatarUploadComponent', () => {
 
   beforeEach(async () => {
     mockUploadService = {
-      getAvatarUploadUrl: vi.fn().mockReturnValue(of({
-        upload_url: 'https://storage.example.com/upload',
-        storage_key: 'key-1',
-      })),
+      getAvatarUploadUrl: vi.fn().mockReturnValue(
+        of({
+          upload_url: 'https://storage.example.com/upload',
+          storage_key: 'key-1',
+        }),
+      ),
       uploadFileToPresignedUrl: vi.fn().mockReturnValue(of(void 0)),
-      confirmAvatarUpload: vi.fn().mockReturnValue(of({
-        avatar_url: 'https://cdn.example.com/avatar.jpg',
-      })),
+      confirmAvatarUpload: vi.fn().mockReturnValue(
+        of({
+          avatar_url: 'https://cdn.example.com/avatar.jpg',
+        }),
+      ),
     };
 
     await TestBed.configureTestingModule({
       imports: [TestHostComponent],
-      providers: [
-        { provide: UploadService, useValue: mockUploadService },
-      ],
+      providers: [{ provide: UploadService, useValue: mockUploadService }],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
 

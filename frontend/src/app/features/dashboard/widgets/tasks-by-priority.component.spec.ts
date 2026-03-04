@@ -23,9 +23,14 @@ describe('TasksByPriorityComponent', () => {
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
         value: vi.fn().mockImplementation((query: string) => ({
-          matches: false, media: query, onchange: null,
-          addListener: vi.fn(), removeListener: vi.fn(),
-          addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
         })),
       });
     }
@@ -56,7 +61,9 @@ describe('TasksByPriorityComponent', () => {
   describe('loadData', () => {
     it('should load tasks by priority', async () => {
       await component.loadData();
-      expect(mockDashboardService.getTasksByPriority).toHaveBeenCalledWith(undefined);
+      expect(mockDashboardService.getTasksByPriority).toHaveBeenCalledWith(
+        undefined,
+      );
       expect(component.data().length).toBe(4);
       expect(component.loading()).toBe(false);
     });
@@ -68,7 +75,9 @@ describe('TasksByPriorityComponent', () => {
     });
 
     it('should handle error', async () => {
-      mockDashboardService.getTasksByPriority.mockReturnValue(throwError(() => new Error('fail')));
+      mockDashboardService.getTasksByPriority.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
       await component.loadData();
       expect(component.loading()).toBe(false);
     });

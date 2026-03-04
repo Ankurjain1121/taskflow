@@ -35,7 +35,10 @@ import {
 
         @if (sectionExpanded()) {
           @if (favorites().length === 0) {
-            <p class="px-3 py-2 text-xs italic" style="color: var(--sidebar-text-muted)">
+            <p
+              class="px-3 py-2 text-xs italic"
+              style="color: var(--sidebar-text-muted)"
+            >
               Star boards to pin them here
             </p>
           } @else {
@@ -56,25 +59,33 @@ import {
       </div>
     } @else {
       <div class="flex justify-center py-2" title="Favorites">
-        <i class="pi pi-star text-xs" style="color: var(--sidebar-text-muted)"></i>
+        <i
+          class="pi pi-star text-xs"
+          style="color: var(--sidebar-text-muted)"
+        ></i>
       </div>
     }
   `,
-  styles: [`
-    :host { display: block; }
-    .nav-item {
-      transition: background var(--duration-fast) var(--ease-standard),
-                  color var(--duration-fast) var(--ease-standard);
-      color: var(--sidebar-text-secondary);
-    }
-    .nav-item:hover {
-      background: var(--sidebar-surface-hover);
-    }
-    .nav-item.active {
-      background: var(--sidebar-surface-active);
-      color: var(--sidebar-text-primary);
-    }
-  `],
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+      .nav-item {
+        transition:
+          background var(--duration-fast) var(--ease-standard),
+          color var(--duration-fast) var(--ease-standard);
+        color: var(--sidebar-text-secondary);
+      }
+      .nav-item:hover {
+        background: var(--sidebar-surface-hover);
+      }
+      .nav-item.active {
+        background: var(--sidebar-surface-active);
+        color: var(--sidebar-text-primary);
+      }
+    `,
+  ],
 })
 export class SidebarFavoritesComponent implements OnInit {
   private favoritesService = inject(FavoritesService);
@@ -84,12 +95,15 @@ export class SidebarFavoritesComponent implements OnInit {
   sectionExpanded = signal(
     typeof localStorage !== 'undefined'
       ? localStorage.getItem('taskflow_fav_expanded') !== 'false'
-      : true
+      : true,
   );
 
   toggleSection(): void {
-    this.sectionExpanded.update(v => !v);
-    localStorage.setItem('taskflow_fav_expanded', String(this.sectionExpanded()));
+    this.sectionExpanded.update((v) => !v);
+    localStorage.setItem(
+      'taskflow_fav_expanded',
+      String(this.sectionExpanded()),
+    );
   }
 
   ngOnInit(): void {

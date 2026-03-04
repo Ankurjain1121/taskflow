@@ -1,4 +1,9 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import {
+  ComponentFixture,
+  TestBed,
+  fakeAsync,
+  tick,
+} from '@angular/core/testing';
 import { Component, signal } from '@angular/core';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { TaskFilterBarComponent } from './task-filter-bar.component';
@@ -112,7 +117,8 @@ describe('TaskFilterBarComponent', () => {
   it('should handle due date filter for today', () => {
     component.selectedDueDateFilter.set('today');
     component.onFilterChange();
-    const call = host.onFilters.mock.calls[host.onFilters.mock.calls.length - 1][0];
+    const call =
+      host.onFilters.mock.calls[host.onFilters.mock.calls.length - 1][0];
     expect(call.due_after).toBeDefined();
     expect(call.due_before).toBeDefined();
   });
@@ -120,7 +126,8 @@ describe('TaskFilterBarComponent', () => {
   it('should handle due date filter for week', () => {
     component.selectedDueDateFilter.set('week');
     component.onFilterChange();
-    const call = host.onFilters.mock.calls[host.onFilters.mock.calls.length - 1][0];
+    const call =
+      host.onFilters.mock.calls[host.onFilters.mock.calls.length - 1][0];
     expect(call.due_after).toBeDefined();
     expect(call.due_before).toBeDefined();
   });

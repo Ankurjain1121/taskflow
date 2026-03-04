@@ -1,19 +1,58 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
-import { GanttViewComponent, GanttTask, GanttDependency } from './gantt-view.component';
+import {
+  GanttViewComponent,
+  GanttTask,
+  GanttDependency,
+} from './gantt-view.component';
 
 describe('GanttViewComponent', () => {
   let component: GanttViewComponent;
   let fixture: ComponentFixture<GanttViewComponent>;
 
   const mockTasks: GanttTask[] = [
-    { id: 't-1', title: 'Task A', priority: 'high', start_date: '2026-02-01', due_date: '2026-02-10', column_id: 'c-1', column_name: 'Todo', is_done: false, milestone_id: null },
-    { id: 't-2', title: 'Task B', priority: 'medium', start_date: '2026-02-05', due_date: '2026-02-15', column_id: 'c-1', column_name: 'In Progress', is_done: false, milestone_id: null },
-    { id: 't-3', title: 'Task C', priority: 'low', start_date: null, due_date: '2026-02-20', column_id: 'c-2', column_name: 'Done', is_done: true, milestone_id: null },
+    {
+      id: 't-1',
+      title: 'Task A',
+      priority: 'high',
+      start_date: '2026-02-01',
+      due_date: '2026-02-10',
+      column_id: 'c-1',
+      column_name: 'Todo',
+      is_done: false,
+      milestone_id: null,
+    },
+    {
+      id: 't-2',
+      title: 'Task B',
+      priority: 'medium',
+      start_date: '2026-02-05',
+      due_date: '2026-02-15',
+      column_id: 'c-1',
+      column_name: 'In Progress',
+      is_done: false,
+      milestone_id: null,
+    },
+    {
+      id: 't-3',
+      title: 'Task C',
+      priority: 'low',
+      start_date: null,
+      due_date: '2026-02-20',
+      column_id: 'c-2',
+      column_name: 'Done',
+      is_done: true,
+      milestone_id: null,
+    },
   ];
 
   const mockDeps: GanttDependency[] = [
-    { id: 'dep-1', source_task_id: 't-1', target_task_id: 't-2', dependency_type: 'blocks' },
+    {
+      id: 'dep-1',
+      source_task_id: 't-1',
+      target_task_id: 't-2',
+      dependency_type: 'blocks',
+    },
   ];
 
   beforeEach(async () => {
@@ -21,9 +60,14 @@ describe('GanttViewComponent', () => {
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
         value: vi.fn().mockImplementation((query: string) => ({
-          matches: false, media: query, onchange: null,
-          addListener: vi.fn(), removeListener: vi.fn(),
-          addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
         })),
       });
     }
@@ -52,8 +96,28 @@ describe('GanttViewComponent', () => {
 
     it('should handle tasks with no start_date using due_date', () => {
       fixture.componentRef.setInput('tasks', [
-        { id: 't-1', title: 'A', priority: 'low', start_date: null, due_date: '2026-03-01', column_id: 'c', column_name: 'X', is_done: false, milestone_id: null },
-        { id: 't-2', title: 'B', priority: 'low', start_date: '2026-01-01', due_date: null, column_id: 'c', column_name: 'X', is_done: false, milestone_id: null },
+        {
+          id: 't-1',
+          title: 'A',
+          priority: 'low',
+          start_date: null,
+          due_date: '2026-03-01',
+          column_id: 'c',
+          column_name: 'X',
+          is_done: false,
+          milestone_id: null,
+        },
+        {
+          id: 't-2',
+          title: 'B',
+          priority: 'low',
+          start_date: '2026-01-01',
+          due_date: null,
+          column_id: 'c',
+          column_name: 'X',
+          is_done: false,
+          milestone_id: null,
+        },
       ]);
       fixture.detectChanges();
       const sorted = component.sortedTasks();
@@ -117,7 +181,7 @@ describe('GanttViewComponent', () => {
       fixture.detectChanges();
       const bars = component.ganttBars();
       expect(bars.length).toBe(3);
-      bars.forEach(bar => {
+      bars.forEach((bar) => {
         expect(bar.x).toBeDefined();
         expect(bar.width).toBeGreaterThanOrEqual(0);
         expect(bar.y).toBeDefined();
@@ -127,7 +191,17 @@ describe('GanttViewComponent', () => {
 
     it('should handle tasks with only due_date', () => {
       fixture.componentRef.setInput('tasks', [
-        { id: 't-1', title: 'A', priority: 'low', start_date: null, due_date: '2026-02-10', column_id: 'c', column_name: 'X', is_done: false, milestone_id: null },
+        {
+          id: 't-1',
+          title: 'A',
+          priority: 'low',
+          start_date: null,
+          due_date: '2026-02-10',
+          column_id: 'c',
+          column_name: 'X',
+          is_done: false,
+          milestone_id: null,
+        },
       ]);
       fixture.detectChanges();
       const bars = component.ganttBars();
@@ -149,7 +223,12 @@ describe('GanttViewComponent', () => {
     it('should filter out non-blocking dependencies', () => {
       fixture.componentRef.setInput('tasks', mockTasks);
       fixture.componentRef.setInput('dependencies', [
-        { id: 'dep-1', source_task_id: 't-1', target_task_id: 't-2', dependency_type: 'related' },
+        {
+          id: 'dep-1',
+          source_task_id: 't-1',
+          target_task_id: 't-2',
+          dependency_type: 'related',
+        },
       ]);
       fixture.detectChanges();
       expect(component.dependencyArrows().length).toBe(0);
@@ -158,7 +237,12 @@ describe('GanttViewComponent', () => {
     it('should handle missing source/target in bars', () => {
       fixture.componentRef.setInput('tasks', mockTasks);
       fixture.componentRef.setInput('dependencies', [
-        { id: 'dep-1', source_task_id: 'nonexistent', target_task_id: 't-2', dependency_type: 'blocks' },
+        {
+          id: 'dep-1',
+          source_task_id: 'nonexistent',
+          target_task_id: 't-2',
+          dependency_type: 'blocks',
+        },
       ]);
       fixture.detectChanges();
       expect(component.dependencyArrows().length).toBe(0);

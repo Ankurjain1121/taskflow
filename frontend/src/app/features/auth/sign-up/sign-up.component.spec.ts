@@ -26,9 +26,7 @@ describe('SignUpComponent', () => {
         HttpClientTestingModule,
         RouterTestingModule.withRoutes([]),
       ],
-      providers: [
-        { provide: AuthService, useValue: mockAuthService },
-      ],
+      providers: [{ provide: AuthService, useValue: mockAuthService }],
     }).compileComponents();
 
     router = TestBed.inject(Router);
@@ -98,7 +96,9 @@ describe('SignUpComponent', () => {
       component.signUpForm.updateValueAndValidity();
 
       expect(
-        component.signUpForm.get('confirmPassword')?.hasError('passwordMismatch'),
+        component.signUpForm
+          .get('confirmPassword')
+          ?.hasError('passwordMismatch'),
       ).toBe(true);
     });
 
@@ -108,7 +108,9 @@ describe('SignUpComponent', () => {
       component.signUpForm.updateValueAndValidity();
 
       expect(
-        component.signUpForm.get('confirmPassword')?.hasError('passwordMismatch'),
+        component.signUpForm
+          .get('confirmPassword')
+          ?.hasError('passwordMismatch'),
       ).toBe(false);
     });
   });
@@ -225,9 +227,7 @@ describe('SignUpComponent', () => {
     });
 
     it('should show connection error on status 0', () => {
-      mockAuthService.signUp.mockReturnValue(
-        throwError(() => ({ status: 0 })),
-      );
+      mockAuthService.signUp.mockReturnValue(throwError(() => ({ status: 0 })));
 
       component.signUpForm.setValue({
         name: 'Test',

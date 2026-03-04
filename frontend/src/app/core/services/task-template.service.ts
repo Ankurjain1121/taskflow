@@ -102,17 +102,23 @@ export class TaskTemplateService {
     return this.http.delete<{ success: boolean }>(`/api/task-templates/${id}`);
   }
 
-  saveTaskAsTemplate(taskId: string, req: SaveAsTemplateRequest): Observable<TaskTemplate> {
-    return this.http.post<TaskTemplate>(`/api/tasks/${taskId}/save-as-template`, req);
+  saveTaskAsTemplate(
+    taskId: string,
+    req: SaveAsTemplateRequest,
+  ): Observable<TaskTemplate> {
+    return this.http.post<TaskTemplate>(
+      `/api/tasks/${taskId}/save-as-template`,
+      req,
+    );
   }
 
   createTaskFromTemplate(
     templateId: string,
-    req: CreateFromTemplateRequest
+    req: CreateFromTemplateRequest,
   ): Observable<{ task_id: string }> {
     return this.http.post<{ task_id: string }>(
       `/api/task-templates/${templateId}/create-task`,
-      req
+      req,
     );
   }
 }

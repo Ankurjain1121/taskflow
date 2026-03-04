@@ -208,7 +208,9 @@ import { BoardMember } from '../../../core/services/board.service';
                         }
                       </div>
                     } @else {
-                      <span class="text-xs text-amber-500">None (will use fallback)</span>
+                      <span class="text-xs text-amber-500"
+                        >None (will use fallback)</span
+                      >
                     }
 
                     <!-- Add holder button -->
@@ -291,8 +293,7 @@ import { BoardMember } from '../../../core/services/board.service';
     >
       <div class="space-y-4 pt-2">
         <div>
-          <label
-            class="block text-sm font-medium text-[var(--foreground)] mb-1"
+          <label class="block text-sm font-medium text-[var(--foreground)] mb-1"
             >Name</label
           >
           <input
@@ -303,8 +304,7 @@ import { BoardMember } from '../../../core/services/board.service';
           />
         </div>
         <div>
-          <label
-            class="block text-sm font-medium text-[var(--foreground)] mb-1"
+          <label class="block text-sm font-medium text-[var(--foreground)] mb-1"
             >Description (optional)</label
           >
           <textarea
@@ -316,8 +316,7 @@ import { BoardMember } from '../../../core/services/board.service';
           ></textarea>
         </div>
         <div>
-          <label
-            class="block text-sm font-medium text-[var(--foreground)] mb-1"
+          <label class="block text-sm font-medium text-[var(--foreground)] mb-1"
             >Fallback Position (optional)</label
           >
           <p-select
@@ -376,9 +375,7 @@ import { BoardMember } from '../../../core/services/board.service';
 
         @if (holderPosition()?.holders?.length) {
           <div>
-            <p
-              class="text-xs font-medium text-[var(--muted-foreground)] mb-2"
-            >
+            <p class="text-xs font-medium text-[var(--muted-foreground)] mb-2">
               Current holders:
             </p>
             <div class="space-y-1">
@@ -466,9 +463,7 @@ export class PositionListComponent implements OnInit, OnChanges {
 
   availableHolderOptions = computed(() => {
     const pos = this.holderPosition();
-    const currentHolderIds = new Set(
-      pos?.holders.map((h) => h.user_id) ?? [],
-    );
+    const currentHolderIds = new Set(pos?.holders.map((h) => h.user_id) ?? []);
     return this.boardMembers()
       .filter((m) => !currentHolderIds.has(m.user_id))
       .map((m) => ({

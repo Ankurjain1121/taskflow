@@ -114,7 +114,11 @@ export class NotificationService implements OnDestroy {
           });
           this.soundService.playNotificationSound();
         }
-        this.pushService.notify(notification.title, notification.body, notification.id);
+        this.pushService.notify(
+          notification.title,
+          notification.body,
+          notification.id,
+        );
       });
 
     // Connect WebSocket if not already connected
@@ -236,10 +240,12 @@ export class NotificationService implements OnDestroy {
    * Dismiss (archive) a notification - removes it from the list optimistically
    */
   dismissNotification(id: string): Observable<void> {
-    const notification = this._notifications().find(n => n.id === id);
-    this._notifications.update(notifications => notifications.filter(n => n.id !== id));
+    const notification = this._notifications().find((n) => n.id === id);
+    this._notifications.update((notifications) =>
+      notifications.filter((n) => n.id !== id),
+    );
     if (notification && !notification.is_read) {
-      this._unreadCount.update(count => Math.max(0, count - 1));
+      this._unreadCount.update((count) => Math.max(0, count - 1));
     }
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }

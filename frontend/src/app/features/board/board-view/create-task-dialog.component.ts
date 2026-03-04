@@ -1,7 +1,19 @@
-import { Component, inject, signal, input, output, model, ChangeDetectionStrategy,
+import {
+  Component,
+  inject,
+  signal,
+  input,
+  output,
+  model,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  ReactiveFormsModule,
+  FormsModule,
+  Validators,
+} from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { Dialog } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -12,7 +24,10 @@ import { InputNumber } from 'primeng/inputnumber';
 import { MultiSelect } from 'primeng/multiselect';
 
 import { TaskPriority } from '../../../core/services/task.service';
-import { TaskTemplateService, TaskTemplate } from '../../../core/services/task-template.service';
+import {
+  TaskTemplateService,
+  TaskTemplate,
+} from '../../../core/services/task-template.service';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 
 export interface CreateTaskDialogData {
@@ -71,14 +86,21 @@ export interface CreateTaskDialogResult {
         </p>
 
         <!-- Template picker -->
-        <div class="flex items-center gap-3 p-3 rounded-lg bg-[var(--secondary)]">
-          <p-toggleSwitch [(ngModel)]="useTemplate" (onChange)="onTemplateToggle()" />
+        <div
+          class="flex items-center gap-3 p-3 rounded-lg bg-[var(--secondary)]"
+        >
+          <p-toggleSwitch
+            [(ngModel)]="useTemplate"
+            (onChange)="onTemplateToggle()"
+          />
           <span class="text-sm text-[var(--foreground)]">Use Template</span>
         </div>
 
         @if (useTemplate && templates().length > 0) {
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Template</label>
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Template</label
+            >
             <select
               [(ngModel)]="selectedTemplateId"
               (ngModelChange)="onTemplateSelected($event)"
@@ -92,7 +114,9 @@ export interface CreateTaskDialogResult {
           </div>
         }
         @if (useTemplate && templates().length === 0) {
-          <p class="text-xs text-[var(--muted-foreground)]">No templates available for this board.</p>
+          <p class="text-xs text-[var(--muted-foreground)]">
+            No templates available for this board.
+          </p>
         }
 
         <!-- Title -->
@@ -416,7 +440,6 @@ export class CreateTaskDialogComponent {
   templates = signal<TaskTemplate[]>([]);
   selectedTemplateId = '';
 
-
   priorities = [
     { value: 'low', label: 'Low', color: '#60a5fa' },
     { value: 'medium', label: 'Medium', color: '#facc15' },
@@ -522,7 +545,7 @@ export class CreateTaskDialogComponent {
 
   onTemplateSelected(templateId: string): void {
     if (!templateId) return;
-    const t = this.templates().find(tpl => tpl.id === templateId);
+    const t = this.templates().find((tpl) => tpl.id === templateId);
     if (t) {
       this.form.patchValue({
         title: t.task_title || '',

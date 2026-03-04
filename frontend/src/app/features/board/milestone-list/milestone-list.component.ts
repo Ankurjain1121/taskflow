@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import {
   MilestoneService,
   Milestone,
@@ -20,7 +21,7 @@ import {
 @Component({
   selector: 'app-milestone-list',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">
@@ -142,24 +143,10 @@ import {
           </svg>
         </div>
       } @else if (milestones().length === 0 && !showCreateForm()) {
-        <div class="bg-[var(--secondary)] rounded-lg p-6 text-center">
-          <svg
-            class="w-10 h-10 text-gray-400 mx-auto mb-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-              d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
-            />
-          </svg>
-          <p class="text-sm text-[var(--muted-foreground)]">
-            No milestones yet. Create one to track project progress.
-          </p>
-        </div>
+        <app-empty-state
+          variant="milestones"
+          (ctaClicked)="toggleCreateForm()"
+        />
       } @else {
         <!-- Milestone Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

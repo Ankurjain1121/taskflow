@@ -3,12 +3,14 @@ import { Router } from '@angular/router';
 import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
 import { ViewMode } from '../board-toolbar/board-toolbar.component';
 import { BoardStateService } from './board-state.service';
+import { BoardDragDropHandler } from './board-drag-drop.handler';
 
 @Injectable()
 export class BoardShortcutsService {
   private shortcutsService = inject(KeyboardShortcutsService);
   private router = inject(Router);
   private boardState = inject(BoardStateService);
+  private dragDrop = inject(BoardDragDropHandler);
 
   private isDragSimActive(): boolean {
     return this.boardState.dragSimulationActive();
@@ -16,26 +18,11 @@ export class BoardShortcutsService {
 
   registerShortcuts(callbacks: {
     createTask: () => void;
-    closePanel: () => void;
-    clearSelection: () => void;
-    closeTaskDetail: () => void;
-    getFocusedTaskId: () => string | null;
-    setFocusedTaskId: (id: string | null) => void;
-    getSelectedTaskIds: () => string[];
-    getSelectedTaskId: () => string | null;
     setViewMode: (mode: ViewMode) => void;
     onViewModeChanged: (mode: ViewMode) => void;
     focusFilter: () => void;
     clearFilters: () => void;
     cycleDensity: () => void;
-    navigateCardColumn: (direction: -1 | 1) => void;
-    pickUpCard: () => void;
-    moveCardToAdjacentColumn: (direction: -1 | 1) => void;
-    dropCard: () => void;
-    cancelDrag: () => void;
-    scrollToColumn: (index: number) => void;
-    editFocusedTaskTitle: () => void;
-    deleteFocusedTask: () => void;
   }): void {
     this.shortcutsService.register('board-new-task', {
       key: 'n',
@@ -68,12 +55,12 @@ export class BoardShortcutsService {
       description: 'Close panel / Clear selection / Clear focus',
       category: 'Board',
       action: () => {
-        if (callbacks.getFocusedTaskId()) {
-          callbacks.setFocusedTaskId(null);
-        } else if (callbacks.getSelectedTaskIds().length > 0) {
-          callbacks.clearSelection();
-        } else if (callbacks.getSelectedTaskId()) {
-          callbacks.closeTaskDetail();
+        if (this.boardState.focusedTaskId()) {
+          this.boardState.focusedTaskId.set(null);
+        } else if (this.boardState.selectedTaskIds().length > 0) {
+          this.boardState.clearSelection();
+        } else if (this.boardState.selectedTaskId()) {
+          this.boardState.selectedTaskId.set(null);
         }
       },
     });
@@ -155,9 +142,9 @@ export class BoardShortcutsService {
       category: 'Navigation',
       action: () => {
         if (this.isDragSimActive()) {
-          callbacks.moveCardToAdjacentColumn(-1);
+          this.dragDrop.moveCardToAdjacentColumn(-1);
         } else {
-          callbacks.navigateCardColumn(-1);
+          this.dragDrop.navigateCardColumn(-1);
         }
       },
     });
@@ -168,9 +155,9 @@ export class BoardShortcutsService {
       category: 'Navigation',
       action: () => {
         if (this.isDragSimActive()) {
-          callbacks.moveCardToAdjacentColumn(1);
+          this.dragDrop.moveCardToAdjacentColumn(1);
         } else {
-          callbacks.navigateCardColumn(1);
+          this.dragDrop.navigateCardColumn(1);
         }
       },
     });
@@ -181,9 +168,9 @@ export class BoardShortcutsService {
       category: 'Navigation',
       action: () => {
         if (this.isDragSimActive()) {
-          callbacks.dropCard();
+          this.dragDrop.dropCard();
         } else {
-          callbacks.pickUpCard();
+          this.dragDrop.pickUpCard();
         }
       },
     });
@@ -192,14 +179,24 @@ export class BoardShortcutsService {
       key: 'e',
       description: 'Edit focused card title',
       category: 'Card Actions',
-      action: () => callbacks.editFocusedTaskTitle(),
+      action: () => {
+        const id = this.boardState.focusedTaskId();
+        if (!id) return;
+        const el = document.querySelector<HTMLElement>(
+          `[data-task-id="${id}"] [data-title-edit]`,
+        );
+        el?.click();
+      },
     });
 
     this.shortcutsService.register('board-card-delete', {
       key: 'Delete',
       description: 'Delete focused card',
       category: 'Card Actions',
-      action: () => callbacks.deleteFocusedTask(),
+      action: () => {
+        const id = this.boardState.focusedTaskId();
+        if (id) this.boardState.deleteTask(id);
+      },
     });
   }
 
@@ -209,18 +206,15 @@ export class BoardShortcutsService {
     this.shortcutsService.unregisterByCategory('Card Actions');
   }
 
-  handleKeydown(
-    event: KeyboardEvent,
-    viewMode: ViewMode,
-    focusedTaskId: string | null,
-    callbacks: {
-      navigateCard: (direction: number) => void;
-      openFocusedTask: () => void;
-      cancelDrag: () => void;
-    },
-  ): void {
+  private currentViewMode: () => ViewMode = () => 'kanban';
+
+  setViewModeGetter(getter: () => ViewMode): void {
+    this.currentViewMode = getter;
+  }
+
+  handleKeydown(event: KeyboardEvent): void {
     if (event.key === 'Escape' && this.isDragSimActive()) {
-      callbacks.cancelDrag();
+      this.dragDrop.cancelDrag();
       event.preventDefault();
       return;
     }
@@ -235,22 +229,24 @@ export class BoardShortcutsService {
       return;
     }
 
-    if (viewMode !== 'kanban') return;
+    if (this.currentViewMode() !== 'kanban') return;
 
     switch (event.key) {
       case 'j':
       case 'J':
-        callbacks.navigateCard(1);
+      case 'ArrowDown':
+        this.dragDrop.navigateCard(1);
         event.preventDefault();
         break;
       case 'k':
       case 'K':
-        callbacks.navigateCard(-1);
+      case 'ArrowUp':
+        this.dragDrop.navigateCard(-1);
         event.preventDefault();
         break;
       case 'Enter':
-        if (focusedTaskId) {
-          callbacks.openFocusedTask();
+        if (this.boardState.focusedTaskId()) {
+          this.dragDrop.openFocusedTask();
           event.preventDefault();
         }
         break;

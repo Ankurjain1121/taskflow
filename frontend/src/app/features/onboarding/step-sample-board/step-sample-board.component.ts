@@ -1,4 +1,9 @@
-import { Component, input, signal, ChangeDetectionStrategy,
+import {
+  Component,
+  input,
+  signal,
+  computed,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -40,14 +45,14 @@ interface SampleColumn {
           ></div>
           <span
             class="font-medium text-[var(--card-foreground)] dark:text-white"
-            >Getting Started Board</span
+            >{{ previewBoardName() }}</span
           >
         </div>
 
-        <div class="grid grid-cols-4 gap-3">
-          @for (column of sampleColumns; track column.name) {
+        <div class="flex gap-3 overflow-x-auto">
+          @for (column of previewColumns(); track column.name) {
             <div
-              class="bg-[var(--card)] rounded-lg p-3 shadow-sm border border-[var(--border)]"
+              class="bg-[var(--card)] rounded-lg p-3 shadow-sm border border-[var(--border)] flex-1 min-w-0"
             >
               <div class="flex items-center justify-between mb-2">
                 <div class="flex items-center">
@@ -190,7 +195,7 @@ interface SampleColumn {
                 Finishing up...
               </span>
             } @else {
-              Go to Dashboard
+              Go to your board
             }
           </button>
         }
@@ -208,6 +213,7 @@ interface SampleColumn {
 })
 export class StepSampleBoardComponent {
   workspaceId = input.required<string>();
+  useCase = input<string>('software');
 
   isLoading = signal(false);
   isGenerated = signal(false);
@@ -215,13 +221,54 @@ export class StepSampleBoardComponent {
   error = signal<string | null>(null);
 
   private generatedBoardId: string | null = null;
+  private generatedWorkspaceId: string | null = null;
 
-  sampleColumns: SampleColumn[] = [
-    { name: 'To Do', color: '#6366f1', taskCount: 3 },
-    { name: 'In Progress', color: '#3b82f6', taskCount: 2 },
-    { name: 'Review', color: '#f59e0b', taskCount: 2 },
-    { name: 'Done', color: '#22c55e', taskCount: 1 },
-  ];
+  private sampleColumnsMap: Record<string, SampleColumn[]> = {
+    software: [
+      { name: 'Backlog', color: '#94a3b8', taskCount: 2 },
+      { name: 'To Do', color: '#6366f1', taskCount: 2 },
+      { name: 'In Progress', color: '#3b82f6', taskCount: 2 },
+      { name: 'Code Review', color: '#f59e0b', taskCount: 1 },
+      { name: 'Done', color: '#22c55e', taskCount: 1 },
+    ],
+    marketing: [
+      { name: 'Ideas', color: '#94a3b8', taskCount: 2 },
+      { name: 'Planning', color: '#6366f1', taskCount: 2 },
+      { name: 'In Progress', color: '#3b82f6', taskCount: 2 },
+      { name: 'Review', color: '#f59e0b', taskCount: 1 },
+      { name: 'Published', color: '#22c55e', taskCount: 1 },
+    ],
+    personal: [
+      { name: 'To Do', color: '#6366f1', taskCount: 3 },
+      { name: 'Doing', color: '#3b82f6', taskCount: 2 },
+      { name: 'Waiting', color: '#f59e0b', taskCount: 2 },
+      { name: 'Done', color: '#22c55e', taskCount: 1 },
+    ],
+    design: [
+      { name: 'Research', color: '#94a3b8', taskCount: 2 },
+      { name: 'Wireframes', color: '#6366f1', taskCount: 2 },
+      { name: 'Design', color: '#3b82f6', taskCount: 2 },
+      { name: 'Feedback', color: '#f59e0b', taskCount: 1 },
+      { name: 'Shipped', color: '#22c55e', taskCount: 1 },
+    ],
+  };
+
+  private boardNameMap: Record<string, string> = {
+    software: 'Sprint Board',
+    marketing: 'Campaign Tracker',
+    personal: 'My Projects',
+    design: 'Design Sprint',
+  };
+
+  previewColumns = computed(
+    () =>
+      this.sampleColumnsMap[this.useCase()] ??
+      this.sampleColumnsMap['software'],
+  );
+
+  previewBoardName = computed(
+    () => this.boardNameMap[this.useCase()] ?? 'Getting Started Board',
+  );
 
   constructor(
     private router: Router,
@@ -238,20 +285,23 @@ export class StepSampleBoardComponent {
     this.isLoading.set(true);
     this.error.set(null);
 
-    this.onboardingService.generateSampleBoard(this.workspaceId()).subscribe({
-      next: (response) => {
-        this.isLoading.set(false);
-        this.isGenerated.set(true);
-        this.generatedBoardId = response.board_id;
-      },
-      error: (err) => {
-        this.isLoading.set(false);
-        this.error.set(
-          err.error?.message ||
-            'Failed to generate sample board. Please try again.',
-        );
-      },
-    });
+    this.onboardingService
+      .generateSampleBoard(this.workspaceId(), this.useCase())
+      .subscribe({
+        next: (response) => {
+          this.isLoading.set(false);
+          this.isGenerated.set(true);
+          this.generatedBoardId = response.board_id;
+          this.generatedWorkspaceId = response.workspace_id;
+        },
+        error: (err) => {
+          this.isLoading.set(false);
+          this.error.set(
+            err.error?.message ||
+              'Failed to generate sample board. Please try again.',
+          );
+        },
+      });
   }
 
   goToDashboard(): void {
@@ -261,7 +311,16 @@ export class StepSampleBoardComponent {
     this.onboardingService.completeOnboarding().subscribe({
       next: () => {
         this.isNavigating.set(false);
-        this.router.navigate(['/dashboard']);
+        if (this.generatedBoardId && this.generatedWorkspaceId) {
+          this.router.navigate([
+            '/workspace',
+            this.generatedWorkspaceId,
+            'board',
+            this.generatedBoardId,
+          ]);
+        } else {
+          this.router.navigate(['/dashboard']);
+        }
       },
       error: (err) => {
         this.isNavigating.set(false);

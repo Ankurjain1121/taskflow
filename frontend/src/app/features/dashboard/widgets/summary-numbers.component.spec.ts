@@ -1,6 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
-import { SummaryNumbersComponent, SummaryStats } from './summary-numbers.component';
+import {
+  SummaryNumbersComponent,
+  SummaryStats,
+} from './summary-numbers.component';
 
 describe('SummaryNumbersComponent', () => {
   let component: SummaryNumbersComponent;
@@ -21,9 +24,14 @@ describe('SummaryNumbersComponent', () => {
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
         value: vi.fn().mockImplementation((query: string) => ({
-          matches: false, media: query, onchange: null,
-          addListener: vi.fn(), removeListener: vi.fn(),
-          addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
         })),
       });
     }
@@ -49,14 +57,18 @@ describe('SummaryNumbersComponent', () => {
     });
 
     it('should have Total Tasks card', () => {
-      const totalCard = component.cards().find(c => c.label === 'Total Tasks');
+      const totalCard = component
+        .cards()
+        .find((c) => c.label === 'Total Tasks');
       expect(totalCard).toBeTruthy();
       expect(totalCard!.value).toBe(50);
       expect(totalCard!.isPercentage).toBe(false);
     });
 
     it('should have Completed This Week card with trend', () => {
-      const completedCard = component.cards().find(c => c.label === 'Completed This Week');
+      const completedCard = component
+        .cards()
+        .find((c) => c.label === 'Completed This Week');
       expect(completedCard).toBeTruthy();
       expect(completedCard!.value).toBe(12);
       // Trend: (12 - 8) / 8 * 100 = 50%
@@ -65,7 +77,7 @@ describe('SummaryNumbersComponent', () => {
     });
 
     it('should have Overdue card with negative trend', () => {
-      const overdueCard = component.cards().find(c => c.label === 'Overdue');
+      const overdueCard = component.cards().find((c) => c.label === 'Overdue');
       expect(overdueCard).toBeTruthy();
       expect(overdueCard!.value).toBe(3);
       // Trend: (3 - 5) / 5 * 100 = -40%
@@ -74,7 +86,9 @@ describe('SummaryNumbersComponent', () => {
     });
 
     it('should have Completion Rate card as percentage', () => {
-      const rateCard = component.cards().find(c => c.label === 'Completion Rate');
+      const rateCard = component
+        .cards()
+        .find((c) => c.label === 'Completion Rate');
       expect(rateCard).toBeTruthy();
       expect(rateCard!.value).toBe(75);
       expect(rateCard!.isPercentage).toBe(true);
@@ -90,7 +104,9 @@ describe('SummaryNumbersComponent', () => {
         completionRateLastWeek: 0,
       });
       fixture.detectChanges();
-      const completedCard = component.cards().find(c => c.label === 'Completed This Week');
+      const completedCard = component
+        .cards()
+        .find((c) => c.label === 'Completed This Week');
       expect(completedCard!.trend).toBe(0);
     });
   });

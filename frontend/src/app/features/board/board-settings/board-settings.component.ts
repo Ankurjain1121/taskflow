@@ -33,6 +33,7 @@ import { MessageService } from 'primeng/api';
 import { Toast } from 'primeng/toast';
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
 import { AutomationRulesComponent } from '../automations/automation-rules.component';
+import { AutomationTemplatesComponent } from '../automation-templates/automation-templates.component';
 import { CustomFieldsManagerComponent } from '../custom-fields/custom-fields-manager.component';
 import { MilestoneListComponent } from '../milestone-list/milestone-list.component';
 import { ShareSettingsComponent } from '../share/share-settings.component';
@@ -61,6 +62,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
     TabPanels,
     TabPanel,
     AutomationRulesComponent,
+    AutomationTemplatesComponent,
     CustomFieldsManagerComponent,
     MilestoneListComponent,
     ShareSettingsComponent,
@@ -128,10 +130,11 @@ import { ArchiveService } from '../../../core/services/archive.service';
               <p-tab [value]="1">Columns</p-tab>
               <p-tab [value]="2">Members</p-tab>
               <p-tab [value]="3">Automations</p-tab>
-              <p-tab [value]="4">Custom Fields</p-tab>
-              <p-tab [value]="5">Milestones</p-tab>
-              <p-tab [value]="6">Integrations</p-tab>
-              <p-tab [value]="7">Advanced</p-tab>
+              <p-tab [value]="4">Templates</p-tab>
+              <p-tab [value]="5">Custom Fields</p-tab>
+              <p-tab [value]="6">Milestones</p-tab>
+              <p-tab [value]="7">Integrations</p-tab>
+              <p-tab [value]="8">Advanced</p-tab>
             </p-tablist>
             <p-tabpanels>
               <!-- Tab 0: General -->
@@ -141,7 +144,9 @@ import { ArchiveService } from '../../../core/services/archive.service';
                   <section class="animate-fade-in-up">
                     <div class="bg-[var(--card)] shadow rounded-lg">
                       <div class="px-6 py-4 border-b border-[var(--border)]">
-                        <h2 class="text-lg font-medium text-[var(--foreground)]">
+                        <h2
+                          class="text-lg font-medium text-[var(--foreground)]"
+                        >
                           General
                         </h2>
                       </div>
@@ -166,7 +171,9 @@ import { ArchiveService } from '../../../core/services/archive.service';
                             form.controls['name'].invalid &&
                             form.controls['name'].touched
                           ) {
-                            <p class="mt-1 text-sm text-red-600">Name is required</p>
+                            <p class="mt-1 text-sm text-red-600">
+                              Name is required
+                            </p>
                           }
                         </div>
 
@@ -225,7 +232,9 @@ import { ArchiveService } from '../../../core/services/archive.service';
                   <section class="animate-fade-in-up">
                     <div class="bg-[var(--card)] shadow rounded-lg">
                       <div class="px-6 py-4 border-b border-[var(--border)]">
-                        <h2 class="text-lg font-medium text-[var(--foreground)]">
+                        <h2
+                          class="text-lg font-medium text-[var(--foreground)]"
+                        >
                           Board Color
                         </h2>
                       </div>
@@ -253,6 +262,28 @@ import { ArchiveService } from '../../../core/services/archive.service';
                             <i class="pi pi-times text-xs"></i>
                           </button>
                         </div>
+                        <p
+                          class="text-sm text-[var(--muted-foreground)] mb-2 mt-4"
+                        >
+                          Gradients
+                        </p>
+                        <div class="flex flex-wrap items-center gap-2">
+                          @for (gradient of presetGradients; track gradient) {
+                            <button
+                              [style.background]="gradient"
+                              class="w-8 h-8 rounded-full border-2 border-transparent hover:scale-110 transition-transform"
+                              [class.ring-2]="selectedColor() === gradient"
+                              [class.ring-primary]="
+                                selectedColor() === gradient
+                              "
+                              [class.ring-offset-2]="
+                                selectedColor() === gradient
+                              "
+                              (click)="selectBoardColor(gradient)"
+                              title="Gradient"
+                            ></button>
+                          }
+                        </div>
                       </div>
                     </div>
                   </section>
@@ -261,18 +292,23 @@ import { ArchiveService } from '../../../core/services/archive.service';
                   <section class="animate-fade-in-up">
                     <div class="bg-[var(--card)] shadow rounded-lg">
                       <div class="px-6 py-4 border-b border-[var(--border)]">
-                        <h2 class="text-lg font-medium text-[var(--foreground)]">
+                        <h2
+                          class="text-lg font-medium text-[var(--foreground)]"
+                        >
                           Template
                         </h2>
                       </div>
                       <div class="px-6 py-4">
                         <div class="flex items-center justify-between">
                           <div>
-                            <h3 class="text-sm font-medium text-[var(--foreground)]">
+                            <h3
+                              class="text-sm font-medium text-[var(--foreground)]"
+                            >
                               Save Board as Template
                             </h3>
                             <p class="text-sm text-[var(--muted-foreground)]">
-                              Save this board's structure as a reusable template including all columns and tasks.
+                              Save this board's structure as a reusable template
+                              including all columns and tasks.
                             </p>
                           </div>
                           <button
@@ -303,7 +339,9 @@ import { ArchiveService } from '../../../core/services/archive.service';
                   <div class="bg-[var(--card)] shadow rounded-lg">
                     <div class="px-6 py-4 border-b border-[var(--border)]">
                       <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-medium text-[var(--foreground)]">
+                        <h3
+                          class="text-lg font-medium text-[var(--foreground)]"
+                        >
                           Board Members
                         </h3>
                         <button
@@ -366,7 +404,9 @@ import { ArchiveService } from '../../../core/services/archive.service';
                                         class="w-full h-full rounded-full object-cover"
                                       />
                                     } @else {
-                                      {{ getInitials(member.name || member.email) }}
+                                      {{
+                                        getInitials(member.name || member.email)
+                                      }}
                                     }
                                   </div>
                                   <div>
@@ -375,7 +415,9 @@ import { ArchiveService } from '../../../core/services/archive.service';
                                     >
                                       {{ member.name || 'Unknown' }}
                                     </p>
-                                    <p class="text-sm text-[var(--muted-foreground)]">
+                                    <p
+                                      class="text-sm text-[var(--muted-foreground)]"
+                                    >
                                       {{ member.email }}
                                     </p>
                                   </div>
@@ -383,13 +425,17 @@ import { ArchiveService } from '../../../core/services/archive.service';
                               </td>
                               <td class="px-6 py-4 whitespace-nowrap">
                                 @if (member.role === 'owner') {
-                                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                  <span
+                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
+                                  >
                                     Owner
                                   </span>
                                 } @else {
                                   <select
                                     [ngModel]="member.role"
-                                    (ngModelChange)="onMemberRoleChange(member, $event)"
+                                    (ngModelChange)="
+                                      onMemberRoleChange(member, $event)
+                                    "
                                     class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-primary focus:ring-ring"
                                   >
                                     <option value="viewer">Viewer</option>
@@ -423,7 +469,10 @@ import { ArchiveService } from '../../../core/services/archive.service';
                   </div>
 
                   <!-- Positions -->
-                  <app-position-list [boardId]="boardId" [boardMembers]="members()" />
+                  <app-position-list
+                    [boardId]="boardId"
+                    [boardMembers]="members()"
+                  />
                 </div>
               </p-tabpanel>
 
@@ -434,49 +483,125 @@ import { ArchiveService } from '../../../core/services/archive.service';
                     <app-automation-rules [boardId]="boardId" />
                   } @placeholder {
                     <div class="flex items-center justify-center py-12">
-                      <svg class="animate-spin h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <svg
+                        class="animate-spin h-6 w-6 text-primary"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          class="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          stroke-width="4"
+                        ></circle>
+                        <path
+                          class="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
                       </svg>
                     </div>
                   }
                 </div>
               </p-tabpanel>
 
-              <!-- Tab 4: Custom Fields -->
+              <!-- Tab 4: Automation Templates -->
               <p-tabpanel [value]="4">
+                <div class="py-6">
+                  @defer {
+                    <app-automation-templates [workspaceId]="workspaceId" />
+                  } @placeholder {
+                    <div class="flex items-center justify-center py-12">
+                      <svg
+                        class="animate-spin h-6 w-6 text-primary"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          class="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          stroke-width="4"
+                        ></circle>
+                        <path
+                          class="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                    </div>
+                  }
+                </div>
+              </p-tabpanel>
+
+              <!-- Tab 5: Custom Fields -->
+              <p-tabpanel [value]="5">
                 <div class="py-6">
                   @defer {
                     <app-custom-fields-manager [boardId]="boardId" />
                   } @placeholder {
                     <div class="flex items-center justify-center py-12">
-                      <svg class="animate-spin h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <svg
+                        class="animate-spin h-6 w-6 text-primary"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          class="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          stroke-width="4"
+                        ></circle>
+                        <path
+                          class="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
                       </svg>
                     </div>
                   }
                 </div>
               </p-tabpanel>
 
-              <!-- Tab 5: Milestones -->
-              <p-tabpanel [value]="5">
+              <!-- Tab 6: Milestones -->
+              <p-tabpanel [value]="6">
                 <div class="py-6">
                   @defer {
                     <app-milestone-list [boardId]="boardId" />
                   } @placeholder {
                     <div class="flex items-center justify-center py-12">
-                      <svg class="animate-spin h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <svg
+                        class="animate-spin h-6 w-6 text-primary"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          class="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          stroke-width="4"
+                        ></circle>
+                        <path
+                          class="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
                       </svg>
                     </div>
                   }
                 </div>
               </p-tabpanel>
 
-              <!-- Tab 6: Integrations -->
-              <p-tabpanel [value]="6">
+              <!-- Tab 7: Integrations -->
+              <p-tabpanel [value]="7">
                 <div class="py-6 space-y-8">
                   <!-- Share Settings -->
                   @defer {
@@ -485,9 +610,24 @@ import { ArchiveService } from '../../../core/services/archive.service';
                     </section>
                   } @placeholder {
                     <div class="flex items-center justify-center py-8">
-                      <svg class="animate-spin h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <svg
+                        class="animate-spin h-6 w-6 text-primary"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          class="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          stroke-width="4"
+                        ></circle>
+                        <path
+                          class="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
                       </svg>
                     </div>
                   }
@@ -499,9 +639,24 @@ import { ArchiveService } from '../../../core/services/archive.service';
                     </section>
                   } @placeholder {
                     <div class="flex items-center justify-center py-8">
-                      <svg class="animate-spin h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <svg
+                        class="animate-spin h-6 w-6 text-primary"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          class="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          stroke-width="4"
+                        ></circle>
+                        <path
+                          class="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
                       </svg>
                     </div>
                   }
@@ -516,7 +671,9 @@ import { ArchiveService } from '../../../core/services/archive.service';
                     <div class="px-6 py-4 space-y-4">
                       <div class="flex items-center justify-between">
                         <div>
-                          <h3 class="text-sm font-medium text-[var(--foreground)]">
+                          <h3
+                            class="text-sm font-medium text-[var(--foreground)]"
+                          >
                             Import Tasks
                           </h3>
                           <p class="text-sm text-[var(--muted-foreground)]">
@@ -534,7 +691,9 @@ import { ArchiveService } from '../../../core/services/archive.service';
                       <div class="border-t border-[var(--border)]"></div>
                       <div class="flex items-center justify-between">
                         <div>
-                          <h3 class="text-sm font-medium text-[var(--foreground)]">
+                          <h3
+                            class="text-sm font-medium text-[var(--foreground)]"
+                          >
                             Export Board
                           </h3>
                           <p class="text-sm text-[var(--muted-foreground)]">
@@ -554,25 +713,30 @@ import { ArchiveService } from '../../../core/services/archive.service';
                 </div>
               </p-tabpanel>
 
-              <!-- Tab 7: Advanced (Danger Zone) -->
-              <p-tabpanel [value]="7">
+              <!-- Tab 8: Advanced (Danger Zone) -->
+              <p-tabpanel [value]="8">
                 <div class="py-6 space-y-6">
                   <!-- Archive Board -->
                   <section>
                     <div class="bg-[var(--card)] shadow rounded-lg">
                       <div class="px-6 py-4 border-b border-[var(--border)]">
-                        <h2 class="text-lg font-medium text-[var(--foreground)]">
+                        <h2
+                          class="text-lg font-medium text-[var(--foreground)]"
+                        >
                           Archive
                         </h2>
                       </div>
                       <div class="px-6 py-4">
                         <div class="flex items-center justify-between">
                           <div>
-                            <h3 class="text-sm font-medium text-[var(--foreground)]">
+                            <h3
+                              class="text-sm font-medium text-[var(--foreground)]"
+                            >
                               Archive Board
                             </h3>
                             <p class="text-sm text-[var(--muted-foreground)]">
-                              Hide this board from the sidebar. It can be restored later from the Archived section.
+                              Hide this board from the sidebar. It can be
+                              restored later from the Archived section.
                             </p>
                           </div>
                           <button
@@ -581,9 +745,24 @@ import { ArchiveService } from '../../../core/services/archive.service';
                             class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-amber-700 border border-amber-300 rounded-md hover:bg-amber-50 transition-colors disabled:opacity-50"
                           >
                             @if (archiving()) {
-                              <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              <svg
+                                class="animate-spin h-4 w-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  class="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  stroke-width="4"
+                                ></circle>
+                                <path
+                                  class="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
                               </svg>
                               Archiving...
                             } @else {
@@ -616,12 +795,14 @@ import { ArchiveService } from '../../../core/services/archive.service';
                         <div class="px-6 py-4">
                           <div class="flex items-center justify-between">
                             <div>
-                              <h3 class="text-sm font-medium text-[var(--foreground)]">
+                              <h3
+                                class="text-sm font-medium text-[var(--foreground)]"
+                              >
                                 Delete Board
                               </h3>
                               <p class="text-sm text-[var(--muted-foreground)]">
-                                Permanently delete this board and all its tasks. This
-                                action cannot be undone.
+                                Permanently delete this board and all its tasks.
+                                This action cannot be undone.
                               </p>
                             </div>
                             <button
@@ -727,10 +908,33 @@ export class BoardSettingsComponent implements OnInit {
   activeTab = signal(0);
 
   readonly presetColors = [
-    '#6366f1', '#3b82f6', '#06b6d4', '#22c55e',
-    '#eab308', '#f97316', '#f43f5e', '#8b5cf6',
-    '#ec4899', '#14b8a6', '#84cc16', '#a855f7',
-    '#ef4444', '#0ea5e9', '#10b981', '#f59e0b',
+    '#6366f1',
+    '#3b82f6',
+    '#06b6d4',
+    '#22c55e',
+    '#eab308',
+    '#f97316',
+    '#f43f5e',
+    '#8b5cf6',
+    '#ec4899',
+    '#14b8a6',
+    '#84cc16',
+    '#a855f7',
+    '#ef4444',
+    '#0ea5e9',
+    '#10b981',
+    '#f59e0b',
+  ];
+
+  readonly presetGradients = [
+    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+    'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+    'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+    'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
+    'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+    'linear-gradient(135deg, #2af598 0%, #009efd 100%)',
   ];
 
   form: FormGroup = this.fb.group({
@@ -750,7 +954,7 @@ export class BoardSettingsComponent implements OnInit {
       const tabParam = queryParams['tab'];
       if (tabParam !== undefined && tabParam !== null) {
         const tabIndex = parseInt(tabParam, 10);
-        if (!isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 7) {
+        if (!isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 8) {
           this.activeTab.set(tabIndex);
         }
       }

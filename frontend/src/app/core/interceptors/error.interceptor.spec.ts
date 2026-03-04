@@ -20,16 +20,11 @@ describe('errorInterceptor', () => {
     };
 
     TestBed.configureTestingModule({
-      providers: [
-        { provide: MessageService, useValue: mockMessageService },
-      ],
+      providers: [{ provide: MessageService, useValue: mockMessageService }],
     });
   });
 
-  function runInterceptor(
-    req: HttpRequest<unknown>,
-    next: HttpHandlerFn,
-  ) {
+  function runInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn) {
     return TestBed.runInInjectionContext(() => errorInterceptor(req, next));
   }
 

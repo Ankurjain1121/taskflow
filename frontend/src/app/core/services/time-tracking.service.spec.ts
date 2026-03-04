@@ -143,7 +143,12 @@ describe('TimeTrackingService', () => {
   describe('getBoardTimeReport()', () => {
     it('should GET /api/boards/:boardId/time-report', () => {
       const report: TaskTimeReport[] = [
-        { task_id: 'task-1', task_title: 'Task 1', total_minutes: 120, entries_count: 3 },
+        {
+          task_id: 'task-1',
+          task_title: 'Task 1',
+          total_minutes: 120,
+          entries_count: 3,
+        },
       ];
 
       service.getBoardTimeReport('board-1').subscribe((result) => {

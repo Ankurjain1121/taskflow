@@ -34,13 +34,18 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* CSS Custom Properties for Theme System */
 :root {
-  --background: #F6F7FB;
+  --background: #f6f7fb;
   --foreground: #0f172a;
   --card: #ffffff;
   --card-foreground: #0f172a;
@@ -65,7 +70,7 @@
   --radius: 0.75rem;
 
   /* Sidebar tokens (light mode) */
-  --sidebar-bg: #F0F1F5;
+  --sidebar-bg: #f0f1f5;
   --sidebar-surface: rgba(0, 0, 0, 0.03);
   --sidebar-surface-hover: rgba(0, 0, 0, 0.05);
   --sidebar-surface-active: color-mix(in srgb, var(--primary) 8%, transparent);
@@ -89,12 +94,14 @@
   --status-amber-text: #92400e;
 
   /* Elevation tokens */
-  --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--primary) 8%, transparent), 0 4px 16px color-mix(in srgb, var(--primary) 6%, transparent);
+  --shadow-glow:
+    0 0 0 1px color-mix(in srgb, var(--primary) 8%, transparent),
+    0 4px 16px color-mix(in srgb, var(--primary) 6%, transparent);
   --widget-hover-border: color-mix(in srgb, var(--primary) 20%, transparent);
 
   /* Layout tokens */
   --nav-height: 48px;
-  --sidebar-width: 16rem;            /* w-64 = 256px */
+  --sidebar-width: 16rem; /* w-64 = 256px */
   --sidebar-width-collapsed: 3.5rem; /* w-14 = 56px  */
 
   /* Transition tokens */
@@ -105,10 +112,10 @@
   --duration-normal: 200ms;
 
   /* Shadow tokens */
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow-sm: 0 2px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
-  --shadow-lg: 0 12px 32px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06);
 
   /* Chart tokens */
   --chart-1: #6366f1;
@@ -124,9 +131,9 @@
 }
 
 html.dark {
-  --background: #181B34;
+  --background: #181b34;
   --foreground: #f8fafc;
-  --card: #30324E;
+  --card: #30324e;
   --card-foreground: #f8fafc;
   --border: rgba(255, 255, 255, 0.1);
   --input: rgba(255, 255, 255, 0.15);
@@ -147,7 +154,7 @@ html.dark {
   --secondary-foreground: #f8fafc;
   --ring: #818cf8;
 
-  --sidebar-bg: #13152A;
+  --sidebar-bg: #13152a;
   --sidebar-surface: rgba(255, 255, 255, 0.03);
   --sidebar-surface-hover: rgba(255, 255, 255, 0.06);
   --sidebar-surface-active: color-mix(in srgb, var(--primary) 14%, transparent);
@@ -155,7 +162,9 @@ html.dark {
   --sidebar-text-primary: rgba(255, 255, 255, 0.95);
   --sidebar-text-secondary: rgba(203, 213, 225, 0.8);
   --sidebar-text-muted: rgba(148, 163, 184, 0.5);
-  --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--primary) 10%, transparent), 0 4px 16px color-mix(in srgb, var(--primary) 8%, transparent);
+  --shadow-glow:
+    0 0 0 1px color-mix(in srgb, var(--primary) 10%, transparent),
+    0 4px 16px color-mix(in srgb, var(--primary) 8%, transparent);
   --widget-hover-border: color-mix(in srgb, var(--primary) 25%, transparent);
 
   --status-red-bg: rgba(220, 38, 38, 0.12);
@@ -222,20 +231,40 @@ html.dark select:disabled {
 
 /* Dark skeleton shimmer fix */
 html.dark .skeleton-shimmer {
-  background: linear-gradient(90deg, var(--muted) 25%, color-mix(in srgb, var(--muted) 60%, white) 50%, var(--muted) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    color-mix(in srgb, var(--muted) 60%, white) 50%,
+    var(--muted) 75%
+  );
 }
 html.dark .skeleton {
-  background: linear-gradient(90deg, var(--muted) 25%, color-mix(in srgb, var(--muted) 60%, white) 50%, var(--muted) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    color-mix(in srgb, var(--muted) 60%, white) 50%,
+    var(--muted) 75%
+  );
   background-size: 200% 100%;
 }
 
-html, body { height: 100%; }
+html,
+body {
+  height: 100%;
+}
 body {
   margin: 0;
-  font-family: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    "Figtree",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   background-color: var(--background);
   color: var(--foreground);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 /* ============================================
@@ -289,7 +318,9 @@ body {
    ============================================ */
 *:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px color-mix(in srgb, var(--primary) 50%, transparent);
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px color-mix(in srgb, var(--primary) 50%, transparent);
   border-radius: 4px;
 }
 
@@ -302,11 +333,20 @@ body {
 /* ============================================
    Global Button Hover Transitions
    ============================================ */
-button, [role="button"], a {
-  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
+button,
+[role="button"],
+a {
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease,
+    transform 0.1s ease;
 }
 
-button:active, [role="button"]:active {
+button:active,
+[role="button"]:active {
   transform: scale(0.98);
 }
 
@@ -345,12 +385,21 @@ button:active, [role="button"]:active {
    Skeleton Loading Shimmer
    ============================================ */
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .skeleton {
-  background: linear-gradient(90deg, var(--muted) 25%, rgba(148, 163, 184, 0.15) 50%, var(--muted) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    rgba(148, 163, 184, 0.15) 50%,
+    var(--muted) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: 0.5rem;
@@ -390,8 +439,12 @@ button:active, [role="button"]:active {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideInRight {
@@ -433,35 +486,118 @@ button:active, [role="button"]:active {
 }
 
 /* Stagger delays for lists */
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.1s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.2s; }
-.stagger-5 { animation-delay: 0.25s; }
-.stagger-6 { animation-delay: 0.3s; }
-.stagger-7 { animation-delay: 0.35s; }
-.stagger-8 { animation-delay: 0.4s; }
+.stagger-1 {
+  animation-delay: 0.05s;
+}
+.stagger-2 {
+  animation-delay: 0.1s;
+}
+.stagger-3 {
+  animation-delay: 0.15s;
+}
+.stagger-4 {
+  animation-delay: 0.2s;
+}
+.stagger-5 {
+  animation-delay: 0.25s;
+}
+.stagger-6 {
+  animation-delay: 0.3s;
+}
+.stagger-7 {
+  animation-delay: 0.35s;
+}
+.stagger-8 {
+  animation-delay: 0.4s;
+}
+
+/* ============================================
+   View Transition API — route animations
+   ============================================ */
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+::view-transition-old(root) {
+  animation: 90ms ease-out both fade-out;
+}
+::view-transition-new(root) {
+  animation: 210ms ease-in both fade-in;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
+/* ============================================
+   Task Card Hover Lift
+   ============================================ */
+.task-card {
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+.task-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
 
 /* ============================================
    Success / Celebration Animations
    ============================================ */
 @keyframes celebrateCheck {
-  0% { transform: scale(0); opacity: 0; }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 @keyframes celebratePop {
-  0% { transform: scale(1); }
-  30% { transform: scale(1.08); }
-  60% { transform: scale(0.96); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.08);
+  }
+  60% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 @keyframes celebrateGlow {
-  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
 }
 
 .animate-celebrate-check {
@@ -475,7 +611,6 @@ button:active, [role="button"]:active {
 .animate-celebrate-glow {
   animation: celebrateGlow 0.6s ease both;
 }
-
 
 /* ============================================
    Route Transition Wrapper
@@ -506,9 +641,10 @@ button:active, [role="button"]:active {
   color: var(--card-foreground);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  transition: border-color var(--duration-normal) var(--ease-standard),
-              box-shadow var(--duration-normal) var(--ease-standard),
-              transform var(--duration-normal) var(--ease-standard);
+  transition:
+    border-color var(--duration-normal) var(--ease-standard),
+    box-shadow var(--duration-normal) var(--ease-standard),
+    transform var(--duration-normal) var(--ease-standard);
 }
 .widget-card:hover {
   border-color: var(--widget-hover-border);
@@ -561,8 +697,9 @@ button:active, [role="button"]:active {
   font-weight: 500;
   white-space: nowrap;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  transition: opacity var(--duration-fast) var(--ease-standard),
-              transform 300ms var(--ease-bounce);
+  transition:
+    opacity var(--duration-fast) var(--ease-standard),
+    transform 300ms var(--ease-bounce);
   z-index: 50;
 }
 .sidebar-tooltip-trigger:hover .sidebar-tooltip {
@@ -591,7 +728,11 @@ button:active, [role="button"]:active {
    Display Font Utility
    ============================================ */
 .font-display {
-  font-family: 'Figtree', system-ui, -apple-system, sans-serif;
+  font-family:
+    "Figtree",
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 /* ============================================
@@ -637,7 +778,12 @@ button:active, [role="button"]:active {
    Enhanced Shimmer Skeleton
    ============================================ */
 .skeleton-shimmer {
-  background: linear-gradient(90deg, var(--muted) 25%, color-mix(in srgb, var(--muted) 80%, white) 50%, var(--muted) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    color-mix(in srgb, var(--muted) 80%, white) 50%,
+    var(--muted) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
 }
@@ -646,37 +792,78 @@ button:active, [role="button"]:active {
    Micro-interactions
    ============================================ */
 @keyframes slideInFromTop {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-.row-enter { animation: slideInFromTop 250ms ease-out; }
+.row-enter {
+  animation: slideInFromTop 250ms ease-out;
+}
 
 @keyframes popoverIn {
-  from { opacity: 0; transform: scale(0.95) translateY(-4px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
-.popover-enter { animation: popoverIn 150ms ease-out; }
+.popover-enter {
+  animation: popoverIn 150ms ease-out;
+}
 
-.btn-press:active { transform: scale(0.97); transition: transform 100ms ease; }
+.btn-press:active {
+  transform: scale(0.97);
+  transition: transform 100ms ease;
+}
 
-.btn-snappy { transition: background 85ms ease-in, color 85ms ease-in; }
+.btn-snappy {
+  transition:
+    background 85ms ease-in,
+    color 85ms ease-in;
+}
 
-.chip-overdue { background-color: var(--chip-overdue); color: white; }
-.chip-due-soon { background-color: var(--chip-due-soon); color: white; }
-.chip-completed { background-color: var(--chip-completed); color: white; }
+.chip-overdue {
+  background-color: var(--chip-overdue);
+  color: white;
+}
+.chip-due-soon {
+  background-color: var(--chip-due-soon);
+  color: white;
+}
+.chip-completed {
+  background-color: var(--chip-completed);
+  color: white;
+}
 
 @keyframes bellPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-  50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
 }
-.bell-has-notification { animation: bellPulse 2s infinite; }
+.bell-has-notification {
+  animation: bellPulse 2s infinite;
+}
 
 /* ============================================
    Card Drag Styles
    ============================================ */
 .cdk-drag-preview {
   transform: rotate(1.5deg) !important;
-  box-shadow: 0 16px 32px rgba(0,0,0,0.18), 0 4px 8px rgba(0,0,0,0.1) !important;
+  box-shadow:
+    0 16px 32px rgba(0, 0, 0, 0.18),
+    0 4px 8px rgba(0, 0, 0, 0.1) !important;
   border-radius: var(--radius);
   z-index: 1000 !important;
 }
@@ -708,7 +895,7 @@ button:active, [role="button"]:active {
   .sidebar-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
     z-index: 49;
   }
   .board-columns {
@@ -737,8 +924,53 @@ button:active, [role="button"]:active {
    Reduced Motion (extended)
    ============================================ */
 @media (prefers-reduced-motion: reduce) {
-  .skeleton-shimmer, .row-enter, .popover-enter, .bell-has-notification {
+  .skeleton-shimmer,
+  .row-enter,
+  .popover-enter,
+  .bell-has-notification {
     animation: none !important;
   }
-  .cdk-drag-preview { transform: none !important; }
+  .cdk-drag-preview {
+    transform: none !important;
+  }
+}
+
+/* =========================================
+   PrimeNG Theme Polish — I5
+   ========================================= */
+/* Consistent border radius across PrimeNG components */
+.p-button {
+  border-radius: 0.5rem;
+}
+.p-inputtext,
+.p-textarea,
+.p-select .p-select-label {
+  border-radius: 0.375rem;
+}
+.p-dialog .p-dialog-content {
+  padding: 0 1.5rem 1.5rem;
+}
+.p-dialog .p-dialog-header {
+  padding: 1.25rem 1.5rem;
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+/* Warm card hover state */
+.p-card {
+  border-radius: 0.75rem;
+}
+/* Smooth transitions on interactive PrimeNG elements */
+.p-button,
+.p-inputtext {
+  transition: all 150ms ease;
+}
+
+/* Virtual scroll viewport inside kanban columns */
+app-kanban-column cdk-virtual-scroll-viewport {
+  overflow-y: auto;
+}
+app-kanban-column
+  cdk-virtual-scroll-viewport
+  .cdk-virtual-scroll-content-wrapper {
+  display: flex;
+  flex-direction: column;
 }

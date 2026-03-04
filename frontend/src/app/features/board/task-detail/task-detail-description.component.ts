@@ -15,7 +15,8 @@ import { RichTextEditorComponent } from '../../../shared/components/rich-text-ed
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div>
-      <label class="block text-sm font-medium text-[var(--muted-foreground)] mb-1"
+      <label
+        class="block text-sm font-medium text-[var(--muted-foreground)] mb-1"
         >Description</label
       >
       @if (editing()) {

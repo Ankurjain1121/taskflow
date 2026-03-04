@@ -22,9 +22,14 @@ describe('TasksByStatusComponent', () => {
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
         value: vi.fn().mockImplementation((query: string) => ({
-          matches: false, media: query, onchange: null,
-          addListener: vi.fn(), removeListener: vi.fn(),
-          addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
         })),
       });
     }
@@ -55,7 +60,9 @@ describe('TasksByStatusComponent', () => {
   describe('loadData', () => {
     it('should load tasks by status', async () => {
       await component.loadData();
-      expect(mockDashboardService.getTasksByStatus).toHaveBeenCalledWith(undefined);
+      expect(mockDashboardService.getTasksByStatus).toHaveBeenCalledWith(
+        undefined,
+      );
       expect(component.data().length).toBe(3);
       expect(component.loading()).toBe(false);
     });
@@ -67,7 +74,9 @@ describe('TasksByStatusComponent', () => {
     });
 
     it('should handle error', async () => {
-      mockDashboardService.getTasksByStatus.mockReturnValue(throwError(() => new Error('fail')));
+      mockDashboardService.getTasksByStatus.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
       await component.loadData();
       expect(component.loading()).toBe(false);
     });
@@ -79,7 +88,11 @@ describe('TasksByStatusComponent', () => {
       const chart = component.chartData();
       expect(chart.labels).toEqual(['Todo', 'In Progress', 'Done']);
       expect(chart.datasets[0].data).toEqual([10, 5, 8]);
-      expect(chart.datasets[0].backgroundColor).toEqual(['#6366f1', '#f97316', '#22c55e']);
+      expect(chart.datasets[0].backgroundColor).toEqual([
+        '#6366f1',
+        '#f97316',
+        '#22c55e',
+      ]);
     });
   });
 

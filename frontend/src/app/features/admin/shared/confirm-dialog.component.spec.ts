@@ -1,6 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
-import { AdminConfirmDialogComponent, ConfirmDialogData } from './confirm-dialog.component';
+import {
+  AdminConfirmDialogComponent,
+  ConfirmDialogData,
+} from './confirm-dialog.component';
 
 describe('AdminConfirmDialogComponent', () => {
   let component: AdminConfirmDialogComponent;
@@ -19,9 +22,14 @@ describe('AdminConfirmDialogComponent', () => {
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
         value: vi.fn().mockImplementation((query: string) => ({
-          matches: false, media: query, onchange: null,
-          addListener: vi.fn(), removeListener: vi.fn(),
-          addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
         })),
       });
     }

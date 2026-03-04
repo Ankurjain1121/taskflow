@@ -43,16 +43,22 @@ export class ArchiveService {
     return this.http.get<PaginatedArchive>(this.apiUrl, { params: httpParams });
   }
 
-  restore(entityType: string, entityId: string): Observable<{ success: boolean; message: string }> {
+  restore(
+    entityType: string,
+    entityId: string,
+  ): Observable<{ success: boolean; message: string }> {
     return this.http.post<{ success: boolean; message: string }>(
       `${this.apiUrl}/restore`,
-      { entity_type: entityType, entity_id: entityId }
+      { entity_type: entityType, entity_id: entityId },
     );
   }
 
-  permanentlyDelete(entityType: string, entityId: string): Observable<{ success: boolean; message: string }> {
+  permanentlyDelete(
+    entityType: string,
+    entityId: string,
+  ): Observable<{ success: boolean; message: string }> {
     return this.http.delete<{ success: boolean; message: string }>(
-      `${this.apiUrl}/${entityType}/${entityId}`
+      `${this.apiUrl}/${entityType}/${entityId}`,
     );
   }
 }

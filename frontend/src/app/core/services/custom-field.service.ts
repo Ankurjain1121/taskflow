@@ -2,7 +2,12 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-export type CustomFieldType = 'text' | 'number' | 'date' | 'dropdown' | 'checkbox';
+export type CustomFieldType =
+  | 'text'
+  | 'number'
+  | 'date'
+  | 'dropdown'
+  | 'checkbox';
 
 export interface BoardCustomField {
   id: string;
@@ -71,14 +76,25 @@ export class CustomFieldService {
   constructor(private http: HttpClient) {}
 
   listBoardFields(boardId: string): Observable<BoardCustomField[]> {
-    return this.http.get<BoardCustomField[]>(`/api/boards/${boardId}/custom-fields`);
+    return this.http.get<BoardCustomField[]>(
+      `/api/boards/${boardId}/custom-fields`,
+    );
   }
 
-  createField(boardId: string, req: CreateCustomFieldRequest): Observable<BoardCustomField> {
-    return this.http.post<BoardCustomField>(`/api/boards/${boardId}/custom-fields`, req);
+  createField(
+    boardId: string,
+    req: CreateCustomFieldRequest,
+  ): Observable<BoardCustomField> {
+    return this.http.post<BoardCustomField>(
+      `/api/boards/${boardId}/custom-fields`,
+      req,
+    );
   }
 
-  updateField(id: string, req: UpdateCustomFieldRequest): Observable<BoardCustomField> {
+  updateField(
+    id: string,
+    req: UpdateCustomFieldRequest,
+  ): Observable<BoardCustomField> {
     return this.http.put<BoardCustomField>(`/api/custom-fields/${id}`, req);
   }
 
@@ -87,10 +103,18 @@ export class CustomFieldService {
   }
 
   getTaskValues(taskId: string): Observable<TaskCustomFieldValueWithField[]> {
-    return this.http.get<TaskCustomFieldValueWithField[]>(`/api/tasks/${taskId}/custom-fields`);
+    return this.http.get<TaskCustomFieldValueWithField[]>(
+      `/api/tasks/${taskId}/custom-fields`,
+    );
   }
 
-  setTaskValues(taskId: string, values: SetFieldValue[]): Observable<TaskCustomFieldValue[]> {
-    return this.http.put<TaskCustomFieldValue[]>(`/api/tasks/${taskId}/custom-fields`, { values });
+  setTaskValues(
+    taskId: string,
+    values: SetFieldValue[],
+  ): Observable<TaskCustomFieldValue[]> {
+    return this.http.put<TaskCustomFieldValue[]>(
+      `/api/tasks/${taskId}/custom-fields`,
+      { values },
+    );
   }
 }

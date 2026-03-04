@@ -149,7 +149,9 @@ describe('KeyboardShortcutsService', () => {
         key: 'x',
         description: 'Test',
         category: 'general',
-        action: () => { called = true; },
+        action: () => {
+          called = true;
+        },
       });
 
       service.setEnabled(false);

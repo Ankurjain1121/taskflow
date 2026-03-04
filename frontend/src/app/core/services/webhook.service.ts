@@ -46,7 +46,10 @@ export class WebhookService {
     return this.http.get<Webhook[]>(`/api/boards/${boardId}/webhooks`);
   }
 
-  createWebhook(boardId: string, req: CreateWebhookRequest): Observable<Webhook> {
+  createWebhook(
+    boardId: string,
+    req: CreateWebhookRequest,
+  ): Observable<Webhook> {
     return this.http.post<Webhook>(`/api/boards/${boardId}/webhooks`, req);
   }
 
@@ -60,6 +63,9 @@ export class WebhookService {
 
   getDeliveries(webhookId: string, limit = 20): Observable<WebhookDelivery[]> {
     const params = new HttpParams().set('limit', limit.toString());
-    return this.http.get<WebhookDelivery[]>(`/api/webhooks/${webhookId}/deliveries`, { params });
+    return this.http.get<WebhookDelivery[]>(
+      `/api/webhooks/${webhookId}/deliveries`,
+      { params },
+    );
   }
 }

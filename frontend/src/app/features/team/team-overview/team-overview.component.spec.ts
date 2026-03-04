@@ -3,7 +3,10 @@ import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { of, throwError, Subject } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import { TeamOverviewComponent } from './team-overview.component';
-import { TeamService, MemberWorkload } from '../../../core/services/team.service';
+import {
+  TeamService,
+  MemberWorkload,
+} from '../../../core/services/team.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
 
 describe('TeamOverviewComponent', () => {
@@ -14,8 +17,26 @@ describe('TeamOverviewComponent', () => {
   let messagesSubject: Subject<any>;
 
   const mockMembers: MemberWorkload[] = [
-    { user_id: 'u-1', user_name: 'Alice', user_avatar: null, active_tasks: 5, overdue_tasks: 0, done_tasks: 10, total_tasks: 15, is_overloaded: false },
-    { user_id: 'u-2', user_name: 'Bob', user_avatar: null, active_tasks: 12, overdue_tasks: 3, done_tasks: 5, total_tasks: 17, is_overloaded: true },
+    {
+      user_id: 'u-1',
+      user_name: 'Alice',
+      user_avatar: null,
+      active_tasks: 5,
+      overdue_tasks: 0,
+      done_tasks: 10,
+      total_tasks: 15,
+      is_overloaded: false,
+    },
+    {
+      user_id: 'u-2',
+      user_name: 'Bob',
+      user_avatar: null,
+      active_tasks: 12,
+      overdue_tasks: 3,
+      done_tasks: 5,
+      total_tasks: 17,
+      is_overloaded: true,
+    },
   ];
 
   beforeEach(async () => {
@@ -23,9 +44,14 @@ describe('TeamOverviewComponent', () => {
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
         value: vi.fn().mockImplementation((query: string) => ({
-          matches: false, media: query, onchange: null,
-          addListener: vi.fn(), removeListener: vi.fn(),
-          addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
         })),
       });
     }
@@ -87,10 +113,14 @@ describe('TeamOverviewComponent', () => {
     });
 
     it('should handle errors', () => {
-      mockTeamService.getTeamWorkload.mockReturnValue(throwError(() => new Error('fail')));
+      mockTeamService.getTeamWorkload.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
       component.workspaceId = 'ws-1';
       component.loadTeamWorkload();
-      expect(component.error()).toBe('Failed to load team workload. Please try again.');
+      expect(component.error()).toBe(
+        'Failed to load team workload. Please try again.',
+      );
       expect(component.loading()).toBe(false);
     });
   });
@@ -108,7 +138,10 @@ describe('TeamOverviewComponent', () => {
     it('should handle workload:updated event with direct data', () => {
       component.ngOnInit();
       const updatedMembers = [{ ...mockMembers[0], active_tasks: 8 }];
-      messagesSubject.next({ type: 'workload:updated', payload: { members: updatedMembers } });
+      messagesSubject.next({
+        type: 'workload:updated',
+        payload: { members: updatedMembers },
+      });
       expect(component.members()).toEqual(updatedMembers);
     });
   });

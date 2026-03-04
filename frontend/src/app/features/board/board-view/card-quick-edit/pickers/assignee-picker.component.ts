@@ -40,7 +40,9 @@ import { BoardMember } from '../../../../../core/services/board.service';
             <!-- Avatar -->
             <div
               class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden"
-              [style.background]="member.avatar_url ? 'transparent' : getGradient(member.user_id)"
+              [style.background]="
+                member.avatar_url ? 'transparent' : getGradient(member.user_id)
+              "
             >
               @if (member.avatar_url) {
                 <img
@@ -63,13 +65,22 @@ import { BoardMember } from '../../../../../core/services/board.service';
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
             }
           </button>
         }
         @if (filteredMembers().length === 0) {
-          <p class="text-xs text-[var(--muted-foreground)] px-2 py-3 text-center">No members found</p>
+          <p
+            class="text-xs text-[var(--muted-foreground)] px-2 py-3 text-center"
+          >
+            No members found
+          </p>
         }
       </div>
     </div>
@@ -135,7 +146,7 @@ export class AssigneePickerComponent implements OnInit {
     ];
     let hash = 0;
     for (let i = 0; i < id.length; i++) {
-      hash = ((hash << 5) - hash) + id.charCodeAt(i);
+      hash = (hash << 5) - hash + id.charCodeAt(i);
     }
     return gradients[Math.abs(hash) % gradients.length];
   }

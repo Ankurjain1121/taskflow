@@ -189,7 +189,13 @@ describe('TaskService', () => {
   describe('getLabels()', () => {
     it('should GET /api/tasks/:taskId/labels', () => {
       const mockLabels: Label[] = [
-        { id: 'label-1', workspace_id: 'ws-1', name: 'Bug', color: '#ff0000', created_at: '2026-01-01T00:00:00Z' },
+        {
+          id: 'label-1',
+          workspace_id: 'ws-1',
+          name: 'Bug',
+          color: '#ff0000',
+          created_at: '2026-01-01T00:00:00Z',
+        },
       ];
 
       service.getLabels('task-1').subscribe((labels) => {
@@ -263,9 +269,11 @@ describe('TaskService', () => {
         },
       ];
 
-      service.listCalendarTasks('board-1', '2026-02-01', '2026-02-28').subscribe((tasks) => {
-        expect(tasks).toEqual(mockCalendarTasks);
-      });
+      service
+        .listCalendarTasks('board-1', '2026-02-01', '2026-02-28')
+        .subscribe((tasks) => {
+          expect(tasks).toEqual(mockCalendarTasks);
+        });
 
       const req = httpMock.expectOne(
         (r) => r.url === '/api/boards/board-1/tasks/calendar',

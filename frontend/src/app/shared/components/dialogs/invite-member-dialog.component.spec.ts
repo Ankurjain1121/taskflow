@@ -63,7 +63,9 @@ describe('InviteMemberDialogComponent', () => {
 
   describe('validateEmails()', () => {
     it('should parse valid emails', () => {
-      component.form.patchValue({ emailsText: 'alice@example.com, bob@example.com' });
+      component.form.patchValue({
+        emailsText: 'alice@example.com, bob@example.com',
+      });
       component.validateEmails();
 
       expect(component.parsedEmails()).toHaveLength(2);
@@ -97,7 +99,9 @@ describe('InviteMemberDialogComponent', () => {
     });
 
     it('should mark invalid emails', () => {
-      component.form.patchValue({ emailsText: 'not-an-email, bob@example.com' });
+      component.form.patchValue({
+        emailsText: 'not-an-email, bob@example.com',
+      });
       component.validateEmails();
 
       expect(component.parsedEmails()).toHaveLength(2);
@@ -130,7 +134,9 @@ describe('InviteMemberDialogComponent', () => {
     });
 
     it('should trim whitespace around emails', () => {
-      component.form.patchValue({ emailsText: '  alice@example.com  ,  bob@example.com  ' });
+      component.form.patchValue({
+        emailsText: '  alice@example.com  ,  bob@example.com  ',
+      });
       component.validateEmails();
 
       expect(component.parsedEmails()[0].email).toBe('alice@example.com');
@@ -180,7 +186,10 @@ describe('InviteMemberDialogComponent', () => {
     });
 
     it('should return true when valid emails exist and role is set', () => {
-      component.form.patchValue({ emailsText: 'alice@example.com', role: 'member' });
+      component.form.patchValue({
+        emailsText: 'alice@example.com',
+        role: 'member',
+      });
       component.validateEmails();
 
       expect(component.canSubmit()).toBe(true);
@@ -311,9 +320,7 @@ describe('InviteMemberDialogComponent', () => {
     it('should include selected board IDs', () => {
       const createdSpy = vi.spyOn(component.created, 'emit');
 
-      fixture.componentRef.setInput('boards', [
-        { id: 'b-1', name: 'Board 1' },
-      ]);
+      fixture.componentRef.setInput('boards', [{ id: 'b-1', name: 'Board 1' }]);
       fixture.detectChanges();
 
       component.form.patchValue({

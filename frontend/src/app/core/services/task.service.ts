@@ -1,7 +1,12 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import {
+  HttpClient,
+  HttpErrorResponse,
+  HttpParams,
+} from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
+import { CacheService } from './cache.service';
 import {
   TaskWithDetails as TaskDetailResponse,
   TaskFilters,
@@ -185,91 +190,161 @@ export interface BulkDeleteRequest {
 })
 export class TaskService {
   private readonly apiUrl = '/api';
+  private cache = inject(CacheService);
 
   constructor(private http: HttpClient) {}
 
   listTasks(columnId: string): Observable<Task[]> {
-    return this.http.get<Task[]>(`${this.apiUrl}/columns/${columnId}/tasks`);
-  }
-
-  getTask(taskId: string): Observable<Task> {
-    return this.http.get<Task>(`${this.apiUrl}/tasks/${taskId}`);
-  }
-
-  createTask(boardId: string, request: CreateTaskRequest): Observable<Task> {
-    return this.http.post<Task>(
-      `${this.apiUrl}/boards/${boardId}/tasks`,
-      request,
+    return this.cache.get(
+      `tasks:${columnId}`,
+      () => this.http.get<Task[]>(`${this.apiUrl}/columns/${columnId}/tasks`),
+      60000, // 1 min TTL
     );
   }
 
+  getTask(taskId: string): Observable<Task> {
+    return this.cache.get(
+      `task:${taskId}`,
+      () => this.http.get<Task>(`${this.apiUrl}/tasks/${taskId}`),
+      60000, // 1 min TTL
+    );
+  }
+
+  createTask(boardId: string, request: CreateTaskRequest): Observable<Task> {
+    return this.http
+      .post<Task>(`${this.apiUrl}/boards/${boardId}/tasks`, request)
+      .pipe(
+        tap(() => {
+          this.cache.invalidate(`tasks:.*`);
+          this.cache.invalidate(`board-full:${boardId}:.*`);
+        }),
+      );
+  }
+
   updateTask(taskId: string, request: UpdateTaskRequest): Observable<Task> {
-    return this.http.patch<Task>(`${this.apiUrl}/tasks/${taskId}`, request).pipe(
-      catchError((error: HttpErrorResponse) => {
-        if (error.status === 409 && error.error?.current_task) {
-          const conflictErr: ConflictError = {
-            status: 409,
-            serverTask: error.error.current_task as Task,
-          };
-          return throwError(() => conflictErr);
-        }
-        return throwError(() => error);
+    return this.http
+      .patch<Task>(`${this.apiUrl}/tasks/${taskId}`, request)
+      .pipe(
+        tap(() => {
+          this.cache.invalidateKey(`task:${taskId}`);
+          this.cache.invalidate(`tasks:.*`);
+          this.cache.invalidate(`board-full:.*`);
+        }),
+        catchError((error: HttpErrorResponse) => {
+          if (error.status === 409 && error.error?.current_task) {
+            const conflictErr: ConflictError = {
+              status: 409,
+              serverTask: error.error.current_task as Task,
+            };
+            return throwError(() => conflictErr);
+          }
+          return throwError(() => error);
+        }),
+      );
+  }
+
+  moveTask(taskId: string, request: MoveTaskRequest): Observable<Task> {
+    return this.http
+      .patch<Task>(`${this.apiUrl}/tasks/${taskId}/move`, request)
+      .pipe(
+        tap(() => {
+          this.cache.invalidateKey(`task:${taskId}`);
+          this.cache.invalidate(`tasks:.*`);
+          this.cache.invalidate(`board-full:.*`);
+        }),
+      );
+  }
+
+  deleteTask(taskId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/tasks/${taskId}`).pipe(
+      tap(() => {
+        this.cache.invalidateKey(`task:${taskId}`);
+        this.cache.invalidate(`tasks:.*`);
+        this.cache.invalidate(`board-full:.*`);
       }),
     );
   }
 
-  moveTask(taskId: string, request: MoveTaskRequest): Observable<Task> {
-    return this.http.patch<Task>(
-      `${this.apiUrl}/tasks/${taskId}/move`,
-      request,
-    );
-  }
-
-  deleteTask(taskId: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/tasks/${taskId}`);
-  }
-
   addLabel(taskId: string, labelId: string): Observable<void> {
-    return this.http.post<void>(
-      `${this.apiUrl}/tasks/${taskId}/labels/${labelId}`,
-      {},
-    );
+    return this.http
+      .post<void>(`${this.apiUrl}/tasks/${taskId}/labels/${labelId}`, {})
+      .pipe(
+        tap(() => {
+          this.cache.invalidateKey(`task:${taskId}`);
+          this.cache.invalidate(`tasks:.*`);
+          this.cache.invalidate(`board-full:.*`);
+        }),
+      );
   }
 
   removeLabel(taskId: string, labelId: string): Observable<void> {
-    return this.http.delete<void>(
-      `${this.apiUrl}/tasks/${taskId}/labels/${labelId}`,
-    );
+    return this.http
+      .delete<void>(`${this.apiUrl}/tasks/${taskId}/labels/${labelId}`)
+      .pipe(
+        tap(() => {
+          this.cache.invalidateKey(`task:${taskId}`);
+          this.cache.invalidate(`tasks:.*`);
+          this.cache.invalidate(`board-full:.*`);
+        }),
+      );
   }
 
   getLabels(taskId: string): Observable<Label[]> {
-    return this.http.get<Label[]>(`${this.apiUrl}/tasks/${taskId}/labels`);
+    return this.cache.get(
+      `task-labels:${taskId}`,
+      () => this.http.get<Label[]>(`${this.apiUrl}/tasks/${taskId}/labels`),
+      120000, // 2 min TTL
+    );
   }
 
   listByBoard(boardId: string): Observable<Record<string, Task[]>> {
-    return this.http
-      .get<{
-        tasks: Record<string, Task[]>;
-      }>(`${this.apiUrl}/boards/${boardId}/tasks`)
-      .pipe(map((response) => response.tasks));
+    return this.cache.get(
+      `board-tasks:${boardId}`,
+      () =>
+        this.http
+          .get<{
+            tasks: Record<string, Task[]>;
+          }>(`${this.apiUrl}/boards/${boardId}/tasks`)
+          .pipe(map((response) => response.tasks)),
+      60000, // 1 min TTL
+    );
   }
 
   listFlat(boardId: string): Observable<TaskListItem[]> {
-    return this.http.get<TaskListItem[]>(
-      `${this.apiUrl}/boards/${boardId}/tasks/list`,
+    return this.cache.get(
+      `flat-tasks:${boardId}`,
+      () =>
+        this.http.get<TaskListItem[]>(
+          `${this.apiUrl}/boards/${boardId}/tasks/list`,
+        ),
+      60000, // 1 min TTL
     );
   }
 
   assignUser(taskId: string, userId: string): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/tasks/${taskId}/assignees`, {
-      user_id: userId,
-    });
+    return this.http
+      .post<void>(`${this.apiUrl}/tasks/${taskId}/assignees`, {
+        user_id: userId,
+      })
+      .pipe(
+        tap(() => {
+          this.cache.invalidateKey(`task:${taskId}`);
+          this.cache.invalidate(`tasks:.*`);
+          this.cache.invalidate(`board-full:.*`);
+        }),
+      );
   }
 
   unassignUser(taskId: string, userId: string): Observable<void> {
-    return this.http.delete<void>(
-      `${this.apiUrl}/tasks/${taskId}/assignees/${userId}`,
-    );
+    return this.http
+      .delete<void>(`${this.apiUrl}/tasks/${taskId}/assignees/${userId}`)
+      .pipe(
+        tap(() => {
+          this.cache.invalidateKey(`task:${taskId}`);
+          this.cache.invalidate(`tasks:.*`);
+          this.cache.invalidate(`board-full:.*`);
+        }),
+      );
   }
 
   listCalendarTasks(
@@ -277,15 +352,25 @@ export class TaskService {
     start: string,
     end: string,
   ): Observable<CalendarTask[]> {
-    return this.http.get<CalendarTask[]>(
-      `${this.apiUrl}/boards/${boardId}/tasks/calendar`,
-      { params: { start, end } },
+    return this.cache.get(
+      `calendar-tasks:${boardId}:${start}:${end}`,
+      () =>
+        this.http.get<CalendarTask[]>(
+          `${this.apiUrl}/boards/${boardId}/tasks/calendar`,
+          { params: { start, end } },
+        ),
+      180000, // 3 min TTL
     );
   }
 
   listGanttTasks(boardId: string): Observable<GanttTask[]> {
-    return this.http.get<GanttTask[]>(
-      `${this.apiUrl}/boards/${boardId}/tasks/gantt`,
+    return this.cache.get(
+      `gantt-tasks:${boardId}`,
+      () =>
+        this.http.get<GanttTask[]>(
+          `${this.apiUrl}/boards/${boardId}/tasks/gantt`,
+        ),
+      120000, // 2 min TTL
     );
   }
 
@@ -312,8 +397,13 @@ export class TaskService {
   // --- Methods used by project/ components (task.types.ts shapes) ---
 
   getTaskDetails(taskId: string): Observable<TaskDetailResponse> {
-    return this.http.get<TaskDetailResponse>(
-      `${this.apiUrl}/tasks/${taskId}/details`,
+    return this.cache.get(
+      `task-details:${taskId}`,
+      () =>
+        this.http.get<TaskDetailResponse>(
+          `${this.apiUrl}/tasks/${taskId}/details`,
+        ),
+      60000, // 1 min TTL
     );
   }
 
@@ -329,9 +419,16 @@ export class TaskService {
         }
       }
     }
-    return this.http.get<TaskDetailResponse[]>(
-      `${this.apiUrl}/projects/${projectId}/tasks`,
-      { params },
+    // Build cache key from filters
+    const filterKey = filters ? JSON.stringify(filters) : 'no-filters';
+    return this.cache.get(
+      `project-tasks:${projectId}:${filterKey}`,
+      () =>
+        this.http.get<TaskDetailResponse[]>(
+          `${this.apiUrl}/projects/${projectId}/tasks`,
+          { params },
+        ),
+      60000, // 1 min TTL
     );
   }
 
@@ -339,25 +436,38 @@ export class TaskService {
     taskId: string,
     request: ProjectMoveRequest,
   ): Observable<Task> {
-    return this.http.patch<Task>(
-      `${this.apiUrl}/tasks/${taskId}/move`,
-      request,
-    );
+    return this.http
+      .patch<Task>(`${this.apiUrl}/tasks/${taskId}/move`, request)
+      .pipe(
+        tap(() => {
+          this.cache.invalidateKey(`task:${taskId}`);
+          this.cache.invalidate(`tasks:.*`);
+          this.cache.invalidate(`board-full:.*`);
+        }),
+      );
   }
 
   createProjectTask(
     projectId: string,
     request: ProjectCreateRequest,
   ): Observable<Task> {
-    return this.http.post<Task>(
-      `${this.apiUrl}/projects/${projectId}/tasks`,
-      request,
-    );
+    return this.http
+      .post<Task>(`${this.apiUrl}/projects/${projectId}/tasks`, request)
+      .pipe(
+        tap(() => {
+          this.cache.invalidate(`project-tasks:${projectId}:.*`);
+        }),
+      );
   }
 
   listSubtasks(parentTaskId: string): Observable<TaskDetailResponse[]> {
-    return this.http.get<TaskDetailResponse[]>(
-      `${this.apiUrl}/tasks/${parentTaskId}/subtasks`,
+    return this.cache.get(
+      `subtasks:${parentTaskId}`,
+      () =>
+        this.http.get<TaskDetailResponse[]>(
+          `${this.apiUrl}/tasks/${parentTaskId}/subtasks`,
+        ),
+      60000, // 1 min TTL
     );
   }
 
@@ -365,28 +475,49 @@ export class TaskService {
     parentTaskId: string,
     request: { title: string; priority?: string },
   ): Observable<Task> {
-    return this.http.post<Task>(
-      `${this.apiUrl}/tasks/${parentTaskId}/subtasks`,
-      request,
-    );
+    return this.http
+      .post<Task>(`${this.apiUrl}/tasks/${parentTaskId}/subtasks`, request)
+      .pipe(
+        tap(() => {
+          this.cache.invalidateKey(`subtasks:${parentTaskId}`);
+          this.cache.invalidateKey(`task-details:${parentTaskId}`);
+        }),
+      );
   }
 
   duplicateTask(taskId: string): Observable<Task> {
-    return this.http.post<Task>(`${this.apiUrl}/tasks/${taskId}/duplicate`, {});
+    return this.http
+      .post<Task>(`${this.apiUrl}/tasks/${taskId}/duplicate`, {})
+      .pipe(
+        tap(() => {
+          this.cache.invalidate(`tasks:.*`);
+          this.cache.invalidate(`board-full:.*`);
+        }),
+      );
   }
 
   // --- Watchers ---
 
   addWatcher(taskId: string, userId: string): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/tasks/${taskId}/watchers`, {
-      user_id: userId,
-    });
+    return this.http
+      .post<void>(`${this.apiUrl}/tasks/${taskId}/watchers`, {
+        user_id: userId,
+      })
+      .pipe(
+        tap(() => {
+          this.cache.invalidateKey(`task-details:${taskId}`);
+        }),
+      );
   }
 
   removeWatcher(taskId: string, userId: string): Observable<void> {
-    return this.http.delete<void>(
-      `${this.apiUrl}/tasks/${taskId}/watchers/${userId}`,
-    );
+    return this.http
+      .delete<void>(`${this.apiUrl}/tasks/${taskId}/watchers/${userId}`)
+      .pipe(
+        tap(() => {
+          this.cache.invalidateKey(`task-details:${taskId}`);
+        }),
+      );
   }
 
   // --- Reminders ---
@@ -395,21 +526,36 @@ export class TaskService {
     taskId: string,
     remindBeforeMinutes: number,
   ): Observable<{ success: boolean; id: string }> {
-    return this.http.post<{ success: boolean; id: string }>(
-      `${this.apiUrl}/tasks/${taskId}/reminders`,
-      { remind_before_minutes: remindBeforeMinutes },
-    );
+    return this.http
+      .post<{
+        success: boolean;
+        id: string;
+      }>(`${this.apiUrl}/tasks/${taskId}/reminders`, { remind_before_minutes: remindBeforeMinutes })
+      .pipe(
+        tap(() => {
+          this.cache.invalidateKey(`task-reminders:${taskId}`);
+        }),
+      );
   }
 
   listReminders(taskId: string): Observable<TaskReminder[]> {
-    return this.http.get<TaskReminder[]>(
-      `${this.apiUrl}/tasks/${taskId}/reminders`,
+    return this.cache.get(
+      `task-reminders:${taskId}`,
+      () =>
+        this.http.get<TaskReminder[]>(
+          `${this.apiUrl}/tasks/${taskId}/reminders`,
+        ),
+      120000, // 2 min TTL
     );
   }
 
   removeReminder(taskId: string, reminderId: string): Observable<void> {
-    return this.http.delete<void>(
-      `${this.apiUrl}/tasks/${taskId}/reminders/${reminderId}`,
-    );
+    return this.http
+      .delete<void>(`${this.apiUrl}/tasks/${taskId}/reminders/${reminderId}`)
+      .pipe(
+        tap(() => {
+          this.cache.invalidateKey(`task-reminders:${taskId}`);
+        }),
+      );
   }
 }

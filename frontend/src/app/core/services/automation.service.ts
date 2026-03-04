@@ -88,6 +88,31 @@ export interface UpdateRuleRequest {
   actions?: CreateActionRequest[];
 }
 
+export type TemplateCategory =
+  | 'workflow'
+  | 'notifications'
+  | 'deadlines'
+  | 'labels'
+  | 'collaboration'
+  | 'integrations'
+  | 'custom_fields';
+
+export interface AutomationTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: TemplateCategory;
+  trigger: AutomationTrigger;
+  trigger_config: Record<string, unknown>;
+  action_type: AutomationActionType;
+  action_config: Record<string, unknown>;
+  is_system: boolean;
+  enabled: boolean;
+  tenant_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AutomationService {
   constructor(private http: HttpClient) {}
@@ -134,5 +159,33 @@ export class AutomationService {
     return this.http.get<AutomationLog[]>(`/api/automations/${id}/logs`, {
       params,
     });
+  }
+
+  listTemplates(workspaceId: string): Observable<AutomationTemplate[]> {
+    return this.http.get<AutomationTemplate[]>(
+      `/api/workspaces/${workspaceId}/automation-templates`,
+    );
+  }
+
+  toggleTemplate(
+    workspaceId: string,
+    templateId: string,
+    enabled: boolean,
+  ): Observable<AutomationTemplate> {
+    return this.http.patch<AutomationTemplate>(
+      `/api/workspaces/${workspaceId}/automation-templates/${templateId}`,
+      { enabled },
+    );
+  }
+
+  applyTemplate(
+    workspaceId: string,
+    templateId: string,
+    boardId: string,
+  ): Observable<AutomationRuleWithActions> {
+    return this.http.post<AutomationRuleWithActions>(
+      `/api/workspaces/${workspaceId}/automation-templates/${templateId}/apply`,
+      { board_id: boardId },
+    );
   }
 }

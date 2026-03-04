@@ -70,7 +70,10 @@ describe('StepWorkspaceComponent', () => {
     });
 
     it('should be valid with name and description', () => {
-      component.form.patchValue({ name: 'My Workspace', description: 'A desc' });
+      component.form.patchValue({
+        name: 'My Workspace',
+        description: 'A desc',
+      });
       expect(component.form.valid).toBe(true);
     });
 
@@ -98,7 +101,7 @@ describe('StepWorkspaceComponent', () => {
     it('should set isLoading to true while submitting', () => {
       component.form.patchValue({ name: 'My Workspace' });
       mockOnboardingService.createWorkspace.mockReturnValue(
-        of({ workspace_id: 'ws-123' })
+        of({ workspace_id: 'ws-123' }),
       );
 
       component.onSubmit();
@@ -111,7 +114,7 @@ describe('StepWorkspaceComponent', () => {
       component.error = 'Previous error';
       component.form.patchValue({ name: 'My Workspace' });
       mockOnboardingService.createWorkspace.mockReturnValue(
-        of({ workspace_id: 'ws-123' })
+        of({ workspace_id: 'ws-123' }),
       );
 
       component.onSubmit();
@@ -122,7 +125,7 @@ describe('StepWorkspaceComponent', () => {
     it('should call createWorkspace with name and description', () => {
       component.form.patchValue({ name: 'Test WS', description: 'Test desc' });
       mockOnboardingService.createWorkspace.mockReturnValue(
-        of({ workspace_id: 'ws-1' })
+        of({ workspace_id: 'ws-1' }),
       );
 
       component.onSubmit();
@@ -136,7 +139,7 @@ describe('StepWorkspaceComponent', () => {
     it('should call createWorkspace with undefined description when empty', () => {
       component.form.patchValue({ name: 'Test WS', description: '' });
       mockOnboardingService.createWorkspace.mockReturnValue(
-        of({ workspace_id: 'ws-1' })
+        of({ workspace_id: 'ws-1' }),
       );
 
       component.onSubmit();
@@ -150,7 +153,7 @@ describe('StepWorkspaceComponent', () => {
     it('should emit completed with workspace_id on success', () => {
       component.form.patchValue({ name: 'Test WS' });
       mockOnboardingService.createWorkspace.mockReturnValue(
-        of({ workspace_id: 'ws-abc' })
+        of({ workspace_id: 'ws-abc' }),
       );
 
       let emittedId: string | undefined;
@@ -167,7 +170,7 @@ describe('StepWorkspaceComponent', () => {
     it('should set error message on failure with server message', () => {
       component.form.patchValue({ name: 'Test WS' });
       mockOnboardingService.createWorkspace.mockReturnValue(
-        throwError(() => ({ error: { message: 'Name already taken' } }))
+        throwError(() => ({ error: { message: 'Name already taken' } })),
       );
 
       component.onSubmit();
@@ -179,7 +182,7 @@ describe('StepWorkspaceComponent', () => {
     it('should set default error message when server provides none', () => {
       component.form.patchValue({ name: 'Test WS' });
       mockOnboardingService.createWorkspace.mockReturnValue(
-        throwError(() => ({ error: {} }))
+        throwError(() => ({ error: {} })),
       );
 
       component.onSubmit();

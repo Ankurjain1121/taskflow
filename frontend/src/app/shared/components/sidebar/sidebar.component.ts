@@ -211,7 +211,9 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
           >
             <i class="pi pi-search text-xs"></i>
             <span class="sidebar-text">Search</span>
-            <span class="ml-auto text-xs sidebar-icon-color">{{ searchShortcut }}</span>
+            <span class="ml-auto text-xs sidebar-icon-color">{{
+              searchShortcut
+            }}</span>
           </button>
         } @else {
           <button
@@ -282,7 +284,9 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
               >My Work</span
             >
             @if (unreadCount() > 0) {
-              <span class="ml-auto min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
+              <span
+                class="ml-auto min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1"
+              >
                 {{ unreadCount() > 99 ? '99+' : unreadCount() }}
               </span>
             }
@@ -298,7 +302,9 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
           >
             <i class="pi pi-clipboard sidebar-icon-color text-sm"></i>
             @if (unreadCount() > 0) {
-              <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500"></span>
+              <span
+                class="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500"
+              ></span>
             }
           </a>
         }
@@ -312,9 +318,7 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
             class="nav-item flex items-center gap-3 px-3 py-2 rounded-md text-sm"
           >
             <span class="nav-indicator"></span>
-            <i
-              class="pi pi-inbox text-sm flex-shrink-0 sidebar-icon-color"
-            ></i>
+            <i class="pi pi-inbox text-sm flex-shrink-0 sidebar-icon-color"></i>
             <span
               class="sidebar-text"
               style="color: var(--sidebar-text-secondary)"
@@ -444,28 +448,51 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
         <div class="flex-shrink-0 px-2 pb-2 space-y-0.5 relative">
           <!-- Profile popup backdrop -->
           @if (profileMenuOpen()) {
-            <div class="fixed inset-0 z-10" (click)="profileMenuOpen.set(false)"></div>
+            <div
+              class="fixed inset-0 z-10"
+              (click)="profileMenuOpen.set(false)"
+            ></div>
           }
 
           <!-- Profile popup -->
           @if (profileMenuOpen()) {
-            <div class="absolute bottom-full left-2 right-2 mb-1 z-20 rounded-lg shadow-lg border py-1"
-                 style="background: var(--surface-overlay); border-color: var(--sidebar-border)">
+            <div
+              class="absolute bottom-full left-2 right-2 mb-1 z-20 rounded-lg shadow-lg border py-1"
+              style="background: var(--surface-overlay); border-color: var(--sidebar-border)"
+            >
               @if (currentUser()) {
-                <div class="px-3 py-2 border-b" style="border-color: var(--sidebar-border)">
-                  <div class="font-medium text-sm truncate" style="color: var(--sidebar-text-primary)">{{ currentUser()!.name }}</div>
-                  <div class="text-xs truncate" style="color: var(--sidebar-text-muted)">{{ currentUser()!.email }}</div>
+                <div
+                  class="px-3 py-2 border-b"
+                  style="border-color: var(--sidebar-border)"
+                >
+                  <div
+                    class="font-medium text-sm truncate"
+                    style="color: var(--sidebar-text-primary)"
+                  >
+                    {{ currentUser()!.name }}
+                  </div>
+                  <div
+                    class="text-xs truncate"
+                    style="color: var(--sidebar-text-muted)"
+                  >
+                    {{ currentUser()!.email }}
+                  </div>
                 </div>
               }
-              <a routerLink="/settings/profile" (click)="profileMenuOpen.set(false)"
-                 class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--sidebar-surface-hover)] cursor-pointer"
-                 style="color: var(--sidebar-text-secondary)">
+              <a
+                routerLink="/settings/profile"
+                (click)="profileMenuOpen.set(false)"
+                class="flex items-center gap-2 px-3 py-2 text-sm hover:bg-[var(--sidebar-surface-hover)] cursor-pointer"
+                style="color: var(--sidebar-text-secondary)"
+              >
                 <i class="pi pi-cog text-xs"></i>
                 <span>Settings</span>
               </a>
-              <button (click)="handleSignOut()"
-                      class="flex items-center gap-2 px-3 py-2 text-sm w-full text-left hover:bg-[var(--sidebar-surface-hover)]"
-                      style="color: var(--sidebar-text-secondary)">
+              <button
+                (click)="handleSignOut()"
+                class="flex items-center gap-2 px-3 py-2 text-sm w-full text-left hover:bg-[var(--sidebar-surface-hover)]"
+                style="color: var(--sidebar-text-secondary)"
+              >
                 <i class="pi pi-sign-out text-xs"></i>
                 <span>Sign Out</span>
               </button>
@@ -476,37 +503,66 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
           <div class="divider mx-1 mb-2"></div>
 
           <!-- Settings link -->
-          <a routerLink="/settings/profile" routerLinkActive="active"
-             class="nav-item flex items-center gap-3 px-3 py-2 rounded-md text-sm">
+          <a
+            routerLink="/settings/profile"
+            routerLinkActive="active"
+            class="nav-item flex items-center gap-3 px-3 py-2 rounded-md text-sm"
+          >
             <span class="nav-indicator"></span>
             <i class="pi pi-cog text-sm flex-shrink-0 sidebar-icon-color"></i>
-            <span class="sidebar-text" style="color: var(--sidebar-text-secondary)">Settings</span>
+            <span
+              class="sidebar-text"
+              style="color: var(--sidebar-text-secondary)"
+              >Settings</span
+            >
           </a>
 
           <!-- Help link -->
-          <a routerLink="/help" routerLinkActive="active"
-             class="nav-item flex items-center gap-3 px-3 py-2 rounded-md text-sm">
+          <a
+            routerLink="/help"
+            routerLinkActive="active"
+            class="nav-item flex items-center gap-3 px-3 py-2 rounded-md text-sm"
+          >
             <span class="nav-indicator"></span>
-            <i class="pi pi-question-circle text-sm flex-shrink-0 sidebar-icon-color"></i>
-            <span class="sidebar-text" style="color: var(--sidebar-text-secondary)">Help</span>
+            <i
+              class="pi pi-question-circle text-sm flex-shrink-0 sidebar-icon-color"
+            ></i>
+            <span
+              class="sidebar-text"
+              style="color: var(--sidebar-text-secondary)"
+              >Help</span
+            >
           </a>
 
           <!-- User profile button -->
-          <button (click)="toggleProfileMenu(); $event.stopPropagation()"
-                  class="w-full flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-[var(--sidebar-surface-hover)] transition-colors">
+          <button
+            (click)="toggleProfileMenu(); $event.stopPropagation()"
+            class="w-full flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-[var(--sidebar-surface-hover)] transition-colors"
+          >
             @if (currentUser()?.avatar_url) {
-              <img [src]="currentUser()!.avatar_url" class="w-7 h-7 rounded-full object-cover flex-shrink-0" [alt]="currentUser()!.name" />
+              <img
+                [src]="currentUser()!.avatar_url"
+                class="w-7 h-7 rounded-full object-cover flex-shrink-0"
+                [alt]="currentUser()!.name"
+              />
             } @else {
-              <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                   style="background: var(--primary)">
+              <div
+                class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                style="background: var(--primary)"
+              >
                 {{ getUserInitials(currentUser()?.name || '?') }}
               </div>
             }
-            <span class="flex-1 text-left text-sm truncate sidebar-text" style="color: var(--sidebar-text-secondary)">
+            <span
+              class="flex-1 text-left text-sm truncate sidebar-text"
+              style="color: var(--sidebar-text-secondary)"
+            >
               {{ currentUser()?.name || 'Profile' }}
             </span>
-            <i class="pi pi-chevron-up text-xs sidebar-icon-color sidebar-text transition-transform duration-200"
-               [class.rotate-180]="profileMenuOpen()"></i>
+            <i
+              class="pi pi-chevron-up text-xs sidebar-icon-color sidebar-text transition-transform duration-200"
+              [class.rotate-180]="profileMenuOpen()"
+            ></i>
           </button>
         </div>
       }
@@ -516,23 +572,41 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
         @if (collapsed()) {
           <!-- Collapsed footer icons -->
           <div class="px-2 space-y-0.5 mb-1">
-            <a routerLink="/settings/profile" routerLinkActive="active"
-               class="collapsed-icon-btn" pTooltip="Settings" tooltipPosition="right">
+            <a
+              routerLink="/settings/profile"
+              routerLinkActive="active"
+              class="collapsed-icon-btn"
+              pTooltip="Settings"
+              tooltipPosition="right"
+            >
               <i class="pi pi-cog sidebar-icon-color text-sm"></i>
             </a>
-            <a routerLink="/help" routerLinkActive="active"
-               class="collapsed-icon-btn" pTooltip="Help" tooltipPosition="right">
+            <a
+              routerLink="/help"
+              routerLinkActive="active"
+              class="collapsed-icon-btn"
+              pTooltip="Help"
+              tooltipPosition="right"
+            >
               <i class="pi pi-question-circle sidebar-icon-color text-sm"></i>
             </a>
-            <button (click)="toggleProfileMenu(); $event.stopPropagation()"
-                    class="collapsed-icon-btn"
-                    [pTooltip]="currentUser()?.name || 'Profile'"
-                    tooltipPosition="right">
+            <button
+              (click)="toggleProfileMenu(); $event.stopPropagation()"
+              class="collapsed-icon-btn"
+              [pTooltip]="currentUser()?.name || 'Profile'"
+              tooltipPosition="right"
+            >
               @if (currentUser()?.avatar_url) {
-                <img [src]="currentUser()!.avatar_url" class="w-6 h-6 rounded-full object-cover" [alt]="currentUser()!.name" />
+                <img
+                  [src]="currentUser()!.avatar_url"
+                  class="w-6 h-6 rounded-full object-cover"
+                  [alt]="currentUser()!.name"
+                />
               } @else {
-                <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                     style="background: var(--primary)">
+                <div
+                  class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                  style="background: var(--primary)"
+                >
                   {{ getUserInitials(currentUser()?.name || '?') }}
                 </div>
               }

@@ -14,21 +14,23 @@ describe('authInitializerFactory', () => {
     };
 
     TestBed.configureTestingModule({
-      providers: [
-        { provide: AuthService, useValue: mockAuthService },
-      ],
+      providers: [{ provide: AuthService, useValue: mockAuthService }],
     });
   });
 
   it('should return a function', () => {
-    const factory = TestBed.runInInjectionContext(() => authInitializerFactory());
+    const factory = TestBed.runInInjectionContext(() =>
+      authInitializerFactory(),
+    );
     expect(typeof factory).toBe('function');
   });
 
   it('should resolve to true when session is valid', async () => {
     mockAuthService.validateSession.mockReturnValue(of(true));
 
-    const factory = TestBed.runInInjectionContext(() => authInitializerFactory());
+    const factory = TestBed.runInInjectionContext(() =>
+      authInitializerFactory(),
+    );
     const result = await factory();
 
     expect(result).toBe(true);
@@ -38,7 +40,9 @@ describe('authInitializerFactory', () => {
   it('should resolve to false when session is invalid', async () => {
     mockAuthService.validateSession.mockReturnValue(of(false));
 
-    const factory = TestBed.runInInjectionContext(() => authInitializerFactory());
+    const factory = TestBed.runInInjectionContext(() =>
+      authInitializerFactory(),
+    );
     const result = await factory();
 
     expect(result).toBe(false);
@@ -46,10 +50,12 @@ describe('authInitializerFactory', () => {
 
   it('should reject when validateSession throws', async () => {
     mockAuthService.validateSession.mockReturnValue(
-      throwError(() => new Error('Network error'))
+      throwError(() => new Error('Network error')),
     );
 
-    const factory = TestBed.runInInjectionContext(() => authInitializerFactory());
+    const factory = TestBed.runInInjectionContext(() =>
+      authInitializerFactory(),
+    );
 
     await expect(factory()).rejects.toThrow('Network error');
   });

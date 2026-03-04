@@ -21,12 +21,8 @@ function makeTask(overrides: Partial<Task> = {}): Task {
     created_by: 'user-1',
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-02-01T00:00:00Z',
-    assignees: [
-      { id: 'u-1', display_name: 'Alice', avatar_url: null },
-    ],
-    labels: [
-      { id: 'l-1', name: 'Bug', color: '#ef4444' },
-    ],
+    assignees: [{ id: 'u-1', display_name: 'Alice', avatar_url: null }],
+    labels: [{ id: 'l-1', name: 'Bug', color: '#ef4444' }],
     ...overrides,
   };
 }
@@ -143,7 +139,9 @@ describe('TaskDetailSidebarComponent', () => {
   it('should clear assignee query when search is closed', () => {
     component.showAssigneeSearch.set(true);
     component.assigneeQuery.set('alice');
-    component.assigneeResults.set([{ id: 'u-1', name: 'Alice', email: 'alice@test.com' }]);
+    component.assigneeResults.set([
+      { id: 'u-1', name: 'Alice', email: 'alice@test.com' },
+    ]);
     component.toggleAssigneeSearch(); // closes
     expect(component.assigneeQuery()).toBe('');
     expect(component.assigneeResults()).toEqual([]);
@@ -153,18 +151,25 @@ describe('TaskDetailSidebarComponent', () => {
     const results = [{ id: 'u-2', name: 'Bob', email: 'bob@test.com' }];
     mockWorkspaceService.searchMembers.mockReturnValue(of(results));
     component.onAssigneeSearch('bo');
-    expect(mockWorkspaceService.searchMembers).toHaveBeenCalledWith('ws-1', 'bo');
+    expect(mockWorkspaceService.searchMembers).toHaveBeenCalledWith(
+      'ws-1',
+      'bo',
+    );
     expect(component.assigneeResults()).toEqual(results);
   });
 
   it('should clear results when query is short', () => {
-    component.assigneeResults.set([{ id: 'u-1', name: 'A', email: 'a@test.com' }]);
+    component.assigneeResults.set([
+      { id: 'u-1', name: 'A', email: 'a@test.com' },
+    ]);
     component.onAssigneeSearch('a');
     expect(component.assigneeResults()).toEqual([]);
   });
 
   it('should clear results on search error', () => {
-    mockWorkspaceService.searchMembers.mockReturnValue(throwError(() => new Error('fail')));
+    mockWorkspaceService.searchMembers.mockReturnValue(
+      throwError(() => new Error('fail')),
+    );
     component.onAssigneeSearch('alice');
     expect(component.assigneeResults()).toEqual([]);
   });

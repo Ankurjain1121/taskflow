@@ -5,76 +5,76 @@ export interface ThemeColors {
   background: string;
   foreground: string;
   card: string;
- 'card-foreground': string;
+  'card-foreground': string;
   border: string;
   input: string;
   muted: string;
- 'muted-foreground': string;
-  
+  'muted-foreground': string;
+
   // Primary colors
   primary: string;
- 'primary-foreground': string;
+  'primary-foreground': string;
   secondary: string;
- 'secondary-foreground': string;
+  'secondary-foreground': string;
   ring: string;
   accent: string;
- 'accent-foreground': string;
-  
+  'accent-foreground': string;
+
   // Semantic colors
   success: string;
- 'success-light': string;
+  'success-light': string;
   destructive: string;
- 'destructive-foreground': string;
-  
+  'destructive-foreground': string;
+
   // Sidebar
- 'sidebar-bg': string;
- 'sidebar-surface': string;
- 'sidebar-surface-hover': string;
- 'sidebar-surface-active': string;
- 'sidebar-border': string;
- 'sidebar-text-primary': string;
- 'sidebar-text-secondary': string;
- 'sidebar-text-muted': string;
-  
+  'sidebar-bg': string;
+  'sidebar-surface': string;
+  'sidebar-surface-hover': string;
+  'sidebar-surface-active': string;
+  'sidebar-border': string;
+  'sidebar-text-primary': string;
+  'sidebar-text-secondary': string;
+  'sidebar-text-muted': string;
+
   // Surfaces
- 'surface-0': string;
- 'surface-1': string;
- 'surface-2': string;
- 'surface-3': string;
-  
+  'surface-0': string;
+  'surface-1': string;
+  'surface-2': string;
+  'surface-3': string;
+
   // Shadows
- 'shadow-xs': string;
- 'shadow-sm': string;
- 'shadow-md': string;
- 'shadow-lg': string;
- 'shadow-glow': string;
- 'widget-hover-border': string;
-  
+  'shadow-xs': string;
+  'shadow-sm': string;
+  'shadow-md': string;
+  'shadow-lg': string;
+  'shadow-glow': string;
+  'widget-hover-border': string;
+
   // Charts
- 'chart-1': string;
- 'chart-2': string;
- 'chart-3': string;
- 'chart-4': string;
- 'chart-5': string;
-  
+  'chart-1': string;
+  'chart-2': string;
+  'chart-3': string;
+  'chart-4': string;
+  'chart-5': string;
+
   // Status chips
- 'chip-overdue': string;
- 'chip-due-soon': string;
- 'chip-completed': string;
-  
+  'chip-overdue': string;
+  'chip-due-soon': string;
+  'chip-completed': string;
+
   // Status backgrounds
- 'status-red-bg': string;
- 'status-red-border': string;
- 'status-red-text': string;
- 'status-green-bg': string;
- 'status-green-border': string;
- 'status-green-text': string;
- 'status-blue-bg': string;
- 'status-blue-border': string;
- 'status-blue-text': string;
- 'status-amber-bg': string;
- 'status-amber-border': string;
- 'status-amber-text': string;
+  'status-red-bg': string;
+  'status-red-border': string;
+  'status-red-text': string;
+  'status-green-bg': string;
+  'status-green-border': string;
+  'status-green-text': string;
+  'status-blue-bg': string;
+  'status-blue-border': string;
+  'status-blue-text': string;
+  'status-amber-bg': string;
+  'status-amber-border': string;
+  'status-amber-text': string;
 }
 
 export interface ThemePersonality {
@@ -95,7 +95,13 @@ export interface ThemePreview {
 export interface Theme {
   slug: string;
   name: string;
-  category: 'clean' | 'dark-sidebar' | 'tinted' | 'famous' | 'bold' | 'specialty';
+  category:
+    | 'clean'
+    | 'dark-sidebar'
+    | 'tinted'
+    | 'famous'
+    | 'bold'
+    | 'specialty';
   description: string;
   is_dark: boolean;
   sort_order: number;
@@ -112,7 +118,15 @@ export interface ThemeListResponse {
   themes: Theme[];
 }
 
-export type AccentColor = 'indigo' | 'blue' | 'green' | 'orange' | 'rose' | 'violet' | 'amber' | 'slate';
+export type AccentColor =
+  | 'indigo'
+  | 'blue'
+  | 'green'
+  | 'orange'
+  | 'rose'
+  | 'violet'
+  | 'amber'
+  | 'slate';
 export type ColorMode = 'light' | 'dark' | 'system';
 
 export interface ThemeUserPrefs {

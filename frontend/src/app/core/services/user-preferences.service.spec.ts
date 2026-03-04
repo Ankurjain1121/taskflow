@@ -60,7 +60,10 @@ describe('UserPreferencesService', () => {
 
   describe('updatePreferences()', () => {
     it('should PUT /api/users/me/preferences with partial prefs', () => {
-      const update: Partial<UserPreferences> = { timezone: 'UTC', language: 'fr' };
+      const update: Partial<UserPreferences> = {
+        timezone: 'UTC',
+        language: 'fr',
+      };
 
       service.updatePreferences(update).subscribe((result) => {
         expect(result).toEqual(MOCK_PREFS);

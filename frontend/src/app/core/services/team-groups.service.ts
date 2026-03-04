@@ -59,9 +59,7 @@ export class TeamGroupsService {
   }
 
   getTeam(teamId: string): Observable<TeamGroupDetail> {
-    return this.http.get<TeamGroupDetail>(
-      `${this.apiUrl}/teams/${teamId}`,
-    );
+    return this.http.get<TeamGroupDetail>(`${this.apiUrl}/teams/${teamId}`);
   }
 
   createTeam(
@@ -74,7 +72,10 @@ export class TeamGroupsService {
     );
   }
 
-  updateTeam(teamId: string, req: UpdateTeamRequest): Observable<TeamGroupDetail> {
+  updateTeam(
+    teamId: string,
+    req: UpdateTeamRequest,
+  ): Observable<TeamGroupDetail> {
     return this.http.put<TeamGroupDetail>(
       `${this.apiUrl}/teams/${teamId}`,
       req,

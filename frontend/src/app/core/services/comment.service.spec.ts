@@ -92,7 +92,9 @@ describe('CommentService', () => {
         expect(comments).toEqual([MAPPED_COMMENT]);
         expect(comments[0].author.display_name).toBe('Alice');
         expect(comments[0].author.id).toBe('user-1');
-        expect(comments[0].author.avatar_url).toBe('https://example.com/alice.png');
+        expect(comments[0].author.avatar_url).toBe(
+          'https://example.com/alice.png',
+        );
       });
 
       const req = httpMock.expectOne('/api/tasks/task-1/comments');
@@ -204,7 +206,9 @@ describe('CommentService', () => {
 
     it('should map author_avatar_url to author.avatar_url', () => {
       service.listByTask('task-1').subscribe((comments) => {
-        expect(comments[0].author.avatar_url).toBe('https://example.com/alice.png');
+        expect(comments[0].author.avatar_url).toBe(
+          'https://example.com/alice.png',
+        );
       });
 
       const req = httpMock.expectOne('/api/tasks/task-1/comments');

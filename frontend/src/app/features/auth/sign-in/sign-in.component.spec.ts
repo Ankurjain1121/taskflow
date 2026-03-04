@@ -124,7 +124,9 @@ describe('SignInComponent', () => {
       const newFixture = TestBed.createComponent(SignInComponent);
       const newComponent = newFixture.componentInstance;
 
-      expect(newComponent.sessionExpiredMessage).toContain('session has expired');
+      expect(newComponent.sessionExpiredMessage).toContain(
+        'session has expired',
+      );
     });
 
     it('should not set sessionExpiredMessage when no reason param', () => {
@@ -155,7 +157,10 @@ describe('SignInComponent', () => {
 
       component.onSubmit();
 
-      expect(mockAuthService.signIn).toHaveBeenCalledWith('test@example.com', 'password123');
+      expect(mockAuthService.signIn).toHaveBeenCalledWith(
+        'test@example.com',
+        'password123',
+      );
       expect(component.isLoading).toBe(true);
       expect(navigateSpy).toHaveBeenCalledWith('/dashboard');
     });
@@ -209,9 +214,7 @@ describe('SignInComponent', () => {
     });
 
     it('should show connection error on status 0', () => {
-      mockAuthService.signIn.mockReturnValue(
-        throwError(() => ({ status: 0 })),
-      );
+      mockAuthService.signIn.mockReturnValue(throwError(() => ({ status: 0 })));
 
       component.signInForm.setValue({
         email: 'test@example.com',

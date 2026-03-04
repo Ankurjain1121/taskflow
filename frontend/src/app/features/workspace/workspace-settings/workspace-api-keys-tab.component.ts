@@ -8,6 +8,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import {
   ApiKeyService,
   ApiKeyListItem,
@@ -16,7 +17,7 @@ import {
 @Component({
   selector: 'app-workspace-api-keys-tab',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="py-6 space-y-6">
@@ -25,14 +26,10 @@ import {
         <div class="px-6 py-4 border-b border-[var(--border)]">
           <div class="flex items-center justify-between">
             <div>
-              <h3
-                class="text-sm font-medium text-[var(--foreground)]"
-              >
+              <h3 class="text-sm font-medium text-[var(--foreground)]">
                 API Keys
               </h3>
-              <p
-                class="text-xs text-[var(--muted-foreground)] mt-1"
-              >
+              <p class="text-xs text-[var(--muted-foreground)] mt-1">
                 Manage API keys for programmatic access
               </p>
             </div>
@@ -56,11 +53,8 @@ import {
             class="mx-6 mt-4 p-4 bg-[var(--status-green-bg)] border border-[var(--status-green-border)] rounded-lg"
           >
             <div class="flex items-center justify-between mb-2">
-              <p
-                class="text-sm font-medium text-[var(--status-green-text)]"
-              >
-                API Key Created - Copy it now! It won't be shown
-                again.
+              <p class="text-sm font-medium text-[var(--status-green-text)]">
+                API Key Created - Copy it now! It won't be shown again.
               </p>
               <button
                 (click)="newlyCreatedKey.set(null)"
@@ -100,9 +94,7 @@ import {
         <!-- API Keys Table -->
         @if (apiKeys().length > 0) {
           <div class="overflow-x-auto">
-            <table
-              class="min-w-full divide-y divide-[var(--border)]"
-            >
+            <table class="min-w-full divide-y divide-[var(--border)]">
               <thead class="bg-[var(--secondary)]">
                 <tr>
                   <th
@@ -127,9 +119,7 @@ import {
                   </th>
                 </tr>
               </thead>
-              <tbody
-                class="bg-[var(--card)] divide-y divide-[var(--border)]"
-              >
+              <tbody class="bg-[var(--card)] divide-y divide-[var(--border)]">
                 @for (key of apiKeys(); track key.id) {
                   <tr class="hover:bg-[var(--muted)]">
                     <td
@@ -147,18 +137,14 @@ import {
                     >
                       {{ formatDate(key.created_at) }}
                     </td>
-                    <td
-                      class="px-6 py-4 whitespace-nowrap text-right"
-                    >
+                    <td class="px-6 py-4 whitespace-nowrap text-right">
                       <button
                         (click)="onRevokeApiKey(key)"
                         [disabled]="revokingKey() === key.id"
                         class="text-sm text-red-600 hover:text-red-900 disabled:opacity-50"
                       >
                         {{
-                          revokingKey() === key.id
-                            ? 'Revoking...'
-                            : 'Revoke'
+                          revokingKey() === key.id ? 'Revoking...' : 'Revoke'
                         }}
                       </button>
                     </td>
@@ -168,20 +154,16 @@ import {
             </table>
           </div>
         } @else {
-          <div
-            class="px-6 py-8 text-center text-[var(--muted-foreground)] text-sm"
-          >
-            No API keys yet. Generate one to get started.
-          </div>
+          <app-empty-state
+            variant="api-keys"
+            (ctaClicked)="onGenerateApiKey()"
+          />
         }
       </div>
 
       <!-- Integration Placeholders -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        @for (
-          integration of integrationPlaceholders;
-          track integration.name
-        ) {
+        @for (integration of integrationPlaceholders; track integration.name) {
           <div class="widget-card p-5">
             <div class="flex items-center gap-3 mb-3">
               <div
@@ -202,9 +184,7 @@ import {
                 </svg>
               </div>
               <div>
-                <h4
-                  class="text-sm font-medium text-[var(--foreground)]"
-                >
+                <h4 class="text-sm font-medium text-[var(--foreground)]">
                   {{ integration.name }}
                 </h4>
                 <span

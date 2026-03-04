@@ -35,15 +35,29 @@ import {
           (click)="$event.stopPropagation()"
         >
           <!-- Header -->
-          <div class="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] flex-shrink-0">
-            <h2 class="text-lg font-semibold text-[var(--card-foreground)]">Keyboard Shortcuts</h2>
+          <div
+            class="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] flex-shrink-0"
+          >
+            <h2 class="text-lg font-semibold text-[var(--card-foreground)]">
+              Keyboard Shortcuts
+            </h2>
             <button
               (click)="close()"
               class="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
               aria-label="Close keyboard shortcuts"
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              <svg
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -63,12 +77,21 @@ import {
             <!-- Recently Used -->
             @if (!searchQuery && recentlyUsed().length > 0) {
               <div class="mb-6">
-                <h3 class="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-2">Recently Used</h3>
+                <h3
+                  class="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-2"
+                >
+                  Recently Used
+                </h3>
                 <div class="space-y-1">
                   @for (s of recentlyUsed(); track s.key) {
                     <div class="flex items-center justify-between py-1.5">
-                      <span class="text-sm text-[var(--foreground)]">{{ s.description }}</span>
-                      <kbd class="px-2 py-0.5 text-xs font-mono bg-[var(--secondary)] border border-[var(--border)] rounded text-[var(--muted-foreground)]">{{ formatShortcut(s) }}</kbd>
+                      <span class="text-sm text-[var(--foreground)]">{{
+                        s.description
+                      }}</span>
+                      <kbd
+                        class="px-2 py-0.5 text-xs font-mono bg-[var(--secondary)] border border-[var(--primary)]/30 rounded text-[var(--primary)]"
+                        >{{ formatShortcut(s) }}</kbd
+                      >
                     </div>
                   }
                 </div>
@@ -79,12 +102,21 @@ import {
             <div class="grid grid-cols-2 gap-x-8 gap-y-6">
               @for (cat of filteredCategories(); track cat.name) {
                 <div>
-                  <h3 class="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-2">{{ cat.name }}</h3>
+                  <h3
+                    class="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-2"
+                  >
+                    {{ cat.name }}
+                  </h3>
                   <div class="space-y-1">
                     @for (s of cat.shortcuts; track s.description) {
                       <div class="flex items-center justify-between py-1.5">
-                        <span class="text-sm text-[var(--foreground)]">{{ s.description }}</span>
-                        <kbd class="px-2 py-0.5 text-xs font-mono bg-[var(--secondary)] border border-[var(--border)] rounded text-[var(--muted-foreground)]">{{ formatShortcut(s) }}</kbd>
+                        <span class="text-sm text-[var(--foreground)]">{{
+                          s.description
+                        }}</span>
+                        <kbd
+                          class="px-2 py-0.5 text-xs font-mono bg-[var(--secondary)] border border-[var(--border)] rounded text-[var(--muted-foreground)]"
+                          >{{ formatShortcut(s) }}</kbd
+                        >
                       </div>
                     }
                   </div>
@@ -93,11 +125,19 @@ import {
             </div>
 
             <!-- Help entry -->
-            @if (!searchQuery || 'show keyboard shortcuts'.includes(searchQuery.toLowerCase())) {
+            @if (
+              !searchQuery ||
+              'show keyboard shortcuts'.includes(searchQuery.toLowerCase())
+            ) {
               <div class="mt-6 pt-4 border-t border-[var(--border)]">
                 <div class="flex items-center justify-between py-1.5">
-                  <span class="text-sm text-[var(--foreground)]">Show keyboard shortcuts</span>
-                  <kbd class="px-2 py-0.5 text-xs font-mono bg-[var(--secondary)] border border-[var(--border)] rounded text-[var(--muted-foreground)]">?</kbd>
+                  <span class="text-sm text-[var(--foreground)]"
+                    >Show keyboard shortcuts</span
+                  >
+                  <kbd
+                    class="px-2 py-0.5 text-xs font-mono bg-[var(--secondary)] border border-[var(--border)] rounded text-[var(--muted-foreground)]"
+                    >?</kbd
+                  >
                 </div>
               </div>
             }
@@ -113,13 +153,15 @@ export class ShortcutHelpComponent implements OnInit, OnDestroy {
 
   visible = signal(false);
   searchQuery = '';
-  private allCategories = signal<{ name: string; shortcuts: KeyboardShortcut[] }[]>([]);
+  private allCategories = signal<
+    { name: string; shortcuts: KeyboardShortcut[] }[]
+  >([]);
 
   recentlyUsed = computed(() => {
     const descriptions = this.shortcutsService.recentlyUsedIds();
     const all = this.shortcutsService.getAll();
     return descriptions
-      .map(desc => all.find(s => s.description === desc))
+      .map((desc) => all.find((s) => s.description === desc))
       .filter((s): s is KeyboardShortcut => s !== undefined);
   });
 
@@ -128,14 +170,15 @@ export class ShortcutHelpComponent implements OnInit, OnDestroy {
     const cats = this.allCategories();
     if (!q) return cats;
     return cats
-      .map(cat => ({
+      .map((cat) => ({
         name: cat.name,
-        shortcuts: cat.shortcuts.filter(s =>
-          s.description.toLowerCase().includes(q) ||
-          s.key.toLowerCase().includes(q)
+        shortcuts: cat.shortcuts.filter(
+          (s) =>
+            s.description.toLowerCase().includes(q) ||
+            s.key.toLowerCase().includes(q),
         ),
       }))
-      .filter(cat => cat.shortcuts.length > 0);
+      .filter((cat) => cat.shortcuts.length > 0);
   });
 
   ngOnInit(): void {
@@ -143,6 +186,11 @@ export class ShortcutHelpComponent implements OnInit, OnDestroy {
       this.updateCategories();
       this.shortcutsService.pushDisable();
       this.visible.set(true);
+      try {
+        localStorage.setItem('tf_shortcut_modal_opened', '1');
+      } catch {
+        /* ignore */
+      }
     });
   }
 

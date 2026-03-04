@@ -68,10 +68,9 @@ describe('auth guards', () => {
       );
 
       expect(result).toBe(fakeUrlTree);
-      expect(mockRouter.createUrlTree).toHaveBeenCalledWith(
-        ['/auth/sign-in'],
-        { queryParams: { returnUrl: '/dashboard/boards' } },
-      );
+      expect(mockRouter.createUrlTree).toHaveBeenCalledWith(['/auth/sign-in'], {
+        queryParams: { returnUrl: '/dashboard/boards' },
+      });
     });
 
     it('should pass the current URL as returnUrl query param', () => {
@@ -81,10 +80,9 @@ describe('auth guards', () => {
         authGuard(mockRoute, createMockState('/projects/123/tasks')),
       );
 
-      expect(mockRouter.createUrlTree).toHaveBeenCalledWith(
-        ['/auth/sign-in'],
-        { queryParams: { returnUrl: '/projects/123/tasks' } },
-      );
+      expect(mockRouter.createUrlTree).toHaveBeenCalledWith(['/auth/sign-in'], {
+        queryParams: { returnUrl: '/projects/123/tasks' },
+      });
     });
 
     it('should handle root URL redirect', () => {
@@ -94,10 +92,9 @@ describe('auth guards', () => {
         authGuard(mockRoute, createMockState('/')),
       );
 
-      expect(mockRouter.createUrlTree).toHaveBeenCalledWith(
-        ['/auth/sign-in'],
-        { queryParams: { returnUrl: '/' } },
-      );
+      expect(mockRouter.createUrlTree).toHaveBeenCalledWith(['/auth/sign-in'], {
+        queryParams: { returnUrl: '/' },
+      });
     });
   });
 

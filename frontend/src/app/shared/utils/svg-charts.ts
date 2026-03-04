@@ -29,8 +29,14 @@ export interface BarData {
  */
 export function createPieSegments(
   segments: PieSegment[],
-  radius: number = 40
-): { dashArray: string; dashOffset: string; color: string; label: string; percentage: number }[] {
+  radius: number = 40,
+): {
+  dashArray: string;
+  dashOffset: string;
+  color: string;
+  label: string;
+  percentage: number;
+}[] {
   const circumference = 2 * Math.PI * radius;
   const total = segments.reduce((sum, s) => sum + s.value, 0);
   if (total === 0) return [];
@@ -57,7 +63,7 @@ export function createPieSegments(
  */
 export function scaleLinear(
   domain: [number, number],
-  range: [number, number]
+  range: [number, number],
 ): (value: number) => number {
   const [d0, d1] = domain;
   const [r0, r1] = range;
@@ -75,10 +81,7 @@ export function createPolylinePoints(points: DataPoint[]): string {
 /**
  * Create filled area path (polyline + bottom edge for area chart).
  */
-export function createAreaPath(
-  points: DataPoint[],
-  baselineY: number
-): string {
+export function createAreaPath(points: DataPoint[], baselineY: number): string {
   if (points.length === 0) return '';
   const first = points[0];
   const last = points[points.length - 1];
@@ -89,7 +92,11 @@ export function createAreaPath(
 /**
  * Generate nice axis tick values for a given range.
  */
-export function generateTicks(min: number, max: number, count: number = 5): number[] {
+export function generateTicks(
+  min: number,
+  max: number,
+  count: number = 5,
+): number[] {
   if (max === min) return [min];
   const step = Math.ceil((max - min) / count);
   const ticks: number[] = [];

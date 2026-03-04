@@ -1,4 +1,1 @@
-.sidebar-wrapper {
-  top: var(--nav-height);
-  height: calc(100vh - var(--nav-height));
-}
+/* App root styles - global layout handled by Tailwind */

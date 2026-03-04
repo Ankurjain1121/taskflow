@@ -28,9 +28,7 @@ interface TrashItem {
     <div class="py-6 space-y-4">
       <div class="flex items-center justify-between">
         <div>
-          <h3 class="text-lg font-semibold text-[var(--foreground)]">
-            Trash
-          </h3>
+          <h3 class="text-lg font-semibold text-[var(--foreground)]">Trash</h3>
           <p class="text-sm text-[var(--muted-foreground)] mt-1">
             Items are automatically deleted after 30 days.
           </p>

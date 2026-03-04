@@ -20,12 +20,12 @@ export interface UserPreferences {
   color_mode?: string;
 }
 
-export type ThemePreferenceUpdate = Partial<Pick<UserPreferences, 
-  | 'light_theme_slug' 
-  | 'dark_theme_slug' 
-  | 'accent_color' 
-  | 'color_mode'
->>;
+export type ThemePreferenceUpdate = Partial<
+  Pick<
+    UserPreferences,
+    'light_theme_slug' | 'dark_theme_slug' | 'accent_color' | 'color_mode'
+  >
+>;
 
 @Injectable({
   providedIn: 'root',

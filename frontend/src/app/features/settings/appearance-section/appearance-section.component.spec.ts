@@ -56,7 +56,10 @@ describe('AppearanceSectionComponent', () => {
       imports: [AppearanceSectionComponent, HttpClientTestingModule],
       providers: [
         { provide: ThemeService, useValue: mockThemeService },
-        { provide: UserPreferencesService, useValue: mockUserPreferencesService },
+        {
+          provide: UserPreferencesService,
+          useValue: mockUserPreferencesService,
+        },
       ],
     }).compileComponents();
 
@@ -150,13 +153,15 @@ describe('AppearanceSectionComponent', () => {
 
       component.savePreferences();
 
-      expect(mockUserPreferencesService.updatePreferences).toHaveBeenCalledWith({
-        timezone: 'UTC',
-        date_format: 'yyyy-MM-dd',
-        default_board_view: 'kanban',
-        sidebar_density: 'comfortable',
-        language: 'en',
-      });
+      expect(mockUserPreferencesService.updatePreferences).toHaveBeenCalledWith(
+        {
+          timezone: 'UTC',
+          date_format: 'yyyy-MM-dd',
+          default_board_view: 'kanban',
+          sidebar_density: 'comfortable',
+          language: 'en',
+        },
+      );
     });
 
     it('should set isSaving during save and reset after', () => {

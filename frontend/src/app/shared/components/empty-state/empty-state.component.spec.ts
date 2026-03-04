@@ -49,7 +49,9 @@ describe('EmptyStateComponent', () => {
   it('should display description when provided', () => {
     host.description = 'Try a different filter';
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Try a different filter');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Try a different filter',
+    );
   });
 
   it('should display subtitle when provided', () => {
@@ -75,7 +77,8 @@ describe('EmptyStateComponent', () => {
   });
 
   it('should return correct illustration bg for each variant', () => {
-    const component = fixture.debugElement.children[0].componentInstance as EmptyStateComponent;
+    const component = fixture.debugElement.children[0]
+      .componentInstance as EmptyStateComponent;
 
     host.variant = 'board';
     fixture.detectChanges();

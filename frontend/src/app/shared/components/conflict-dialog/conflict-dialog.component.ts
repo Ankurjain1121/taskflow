@@ -34,30 +34,44 @@ export interface ConflictResolution {
     >
       <div class="space-y-4">
         <div class="text-sm text-[var(--muted-foreground)]">
-          Another user has modified this task while you were editing it. Choose how to resolve the conflict.
+          Another user has modified this task while you were editing it. Choose
+          how to resolve the conflict.
         </div>
 
         @for (field of conflictingFields(); track field.name) {
           <div class="border border-[var(--border)] rounded-lg overflow-hidden">
-            <div class="px-3 py-2 bg-[var(--muted)] text-sm font-medium text-[var(--foreground)] capitalize">
+            <div
+              class="px-3 py-2 bg-[var(--muted)] text-sm font-medium text-[var(--foreground)] capitalize"
+            >
               {{ field.label }}
             </div>
             <div class="grid grid-cols-2 divide-x divide-[var(--border)]">
               <!-- Your changes -->
               <div class="p-3">
-                <div class="text-xs font-medium text-blue-600 mb-1">Your changes</div>
+                <div class="text-xs font-medium text-blue-600 mb-1">
+                  Your changes
+                </div>
                 @if (field.name === 'description' && field.diffHtml) {
-                  <div class="text-sm text-[var(--foreground)] whitespace-pre-wrap" [innerHTML]="field.diffHtml"></div>
+                  <div
+                    class="text-sm text-[var(--foreground)] whitespace-pre-wrap"
+                    [innerHTML]="field.diffHtml"
+                  ></div>
                 } @else {
-                  <div class="text-sm text-[var(--foreground)] bg-blue-50 px-2 py-1 rounded">
+                  <div
+                    class="text-sm text-[var(--foreground)] bg-blue-50 px-2 py-1 rounded"
+                  >
                     {{ field.yourValue || '(empty)' }}
                   </div>
                 }
               </div>
               <!-- Server version -->
               <div class="p-3">
-                <div class="text-xs font-medium text-amber-600 mb-1">Server version</div>
-                <div class="text-sm text-[var(--foreground)] bg-amber-50 px-2 py-1 rounded">
+                <div class="text-xs font-medium text-amber-600 mb-1">
+                  Server version
+                </div>
+                <div
+                  class="text-sm text-[var(--foreground)] bg-amber-50 px-2 py-1 rounded"
+                >
                   {{ field.serverValue || '(empty)' }}
                 </div>
               </div>

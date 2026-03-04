@@ -26,7 +26,12 @@ export interface SharedBoardAccess {
   board_id: string;
   board_name: string;
   permissions: Record<string, boolean>;
-  columns: { id: string; name: string; position: string; color: string | null }[];
+  columns: {
+    id: string;
+    name: string;
+    position: string;
+    color: string | null;
+  }[];
   tasks: {
     id: string;
     title: string;
@@ -46,7 +51,10 @@ export class BoardShareService {
     return this.http.get<BoardShare[]>(`/api/boards/${boardId}/shares`);
   }
 
-  createShare(boardId: string, req: CreateShareRequest): Observable<BoardShare> {
+  createShare(
+    boardId: string,
+    req: CreateShareRequest,
+  ): Observable<BoardShare> {
     return this.http.post<BoardShare>(`/api/boards/${boardId}/shares`, req);
   }
 
@@ -55,10 +63,15 @@ export class BoardShareService {
   }
 
   toggleShare(shareId: string, isActive: boolean): Observable<BoardShare> {
-    return this.http.put<BoardShare>(`/api/shares/${shareId}`, { is_active: isActive });
+    return this.http.put<BoardShare>(`/api/shares/${shareId}`, {
+      is_active: isActive,
+    });
   }
 
-  accessSharedBoard(token: string, password?: string): Observable<SharedBoardAccess> {
+  accessSharedBoard(
+    token: string,
+    password?: string,
+  ): Observable<SharedBoardAccess> {
     const params: Record<string, string> = {};
     if (password) params['password'] = password;
     return this.http.get<SharedBoardAccess>(`/api/shared/${token}`, { params });

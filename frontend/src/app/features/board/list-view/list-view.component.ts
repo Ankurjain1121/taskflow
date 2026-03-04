@@ -6,6 +6,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TableModule } from 'primeng/table';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { TaskListItem } from '../../../core/services/task.service';
 import {
   getPriorityLabel,
@@ -18,7 +19,7 @@ import {
 @Component({
   selector: 'app-list-view',
   standalone: true,
-  imports: [CommonModule, TableModule],
+  imports: [CommonModule, TableModule, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="mx-4 my-4">
@@ -119,10 +120,12 @@ import {
         </ng-template>
         <ng-template #emptymessage>
           <tr>
-            <td colspan="6" class="text-center py-12">
-              <p class="text-sm text-[var(--muted-foreground)]">
-                No tasks match your filters
-              </p>
+            <td colspan="6">
+              <app-empty-state
+                variant="column-filtered"
+                title="No tasks match your filters"
+                description="Try adjusting your filters or clear them to see all tasks."
+              />
             </td>
           </tr>
         </ng-template>

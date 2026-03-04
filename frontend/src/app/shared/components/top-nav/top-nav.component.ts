@@ -21,6 +21,7 @@ import {
   AccentColor,
   ACCENT_PRESETS,
 } from '../../../core/services/theme.service';
+import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
 
 @Component({
   selector: 'app-top-nav',
@@ -124,6 +125,16 @@ import {
           tooltipPosition="bottom"
         >
           <i class="pi pi-plus"></i>
+        </button>
+
+        <button
+          class="nav-icon-btn w-8 h-8 flex items-center justify-center rounded-md"
+          (click)="openShortcutHelp()"
+          pTooltip="Keyboard shortcuts (?)"
+          tooltipPosition="bottom"
+          aria-label="Open keyboard shortcuts"
+        >
+          <span class="text-sm font-semibold select-none leading-none">?</span>
         </button>
 
         <app-notification-bell />
@@ -255,6 +266,7 @@ export class TopNavComponent {
   private readonly authService = inject(AuthService);
   private readonly themeService = inject(ThemeService);
   private readonly router = inject(Router);
+  private readonly shortcutsService = inject(KeyboardShortcutsService);
 
   readonly menuToggle = output<void>();
   readonly searchOpen = output<void>();
@@ -322,6 +334,10 @@ export class TopNavComponent {
 
     return items;
   });
+
+  openShortcutHelp(): void {
+    this.shortcutsService.helpRequested$.next();
+  }
 
   setTheme(theme: Theme): void {
     this.themeService.setTheme(theme);

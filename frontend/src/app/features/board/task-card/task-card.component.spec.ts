@@ -164,7 +164,9 @@ describe('TaskCardComponent', () => {
   it('should not emit taskClicked when dragging', () => {
     host.onTaskClicked.mockClear();
     const mockEvent = {
-      target: { closest: vi.fn().mockReturnValue(document.createElement('div')) },
+      target: {
+        closest: vi.fn().mockReturnValue(document.createElement('div')),
+      },
     } as any;
     component.onCardClick(mockEvent);
     expect(host.onTaskClicked).not.toHaveBeenCalled();

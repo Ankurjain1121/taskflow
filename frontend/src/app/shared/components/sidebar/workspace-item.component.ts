@@ -173,10 +173,18 @@ import {
               <div class="relative group/board">
                 <!-- Board menu backdrop -->
                 @if (activeMenuBoardId() === board.id) {
-                  <div class="fixed inset-0 z-10" (click)="closeBoardMenu()"></div>
+                  <div
+                    class="fixed inset-0 z-10"
+                    (click)="closeBoardMenu()"
+                  ></div>
                 }
                 <a
-                  [routerLink]="['/workspace', workspace().id, 'board', board.id]"
+                  [routerLink]="[
+                    '/workspace',
+                    workspace().id,
+                    'board',
+                    board.id,
+                  ]"
                   routerLinkActive="board-link-active"
                   class="board-link flex items-center gap-2 px-3 py-1.5 text-sm rounded-md pr-16"
                 >
@@ -187,18 +195,28 @@ import {
                   <span class="truncate flex-1">{{ board.name }}</span>
                 </a>
                 <!-- Hover action buttons -->
-                <div class="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover/board:opacity-100 transition-opacity">
+                <div
+                  class="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover/board:opacity-100 transition-opacity"
+                >
                   <!-- Star toggle -->
                   <button
                     (click)="toggleFavorite(board, $event)"
                     class="p-1 rounded hover:bg-[var(--sidebar-surface-hover)] transition-colors"
-                    [title]="isFavorited(board.id) ? 'Remove from favorites' : 'Add to favorites'"
+                    [title]="
+                      isFavorited(board.id)
+                        ? 'Remove from favorites'
+                        : 'Add to favorites'
+                    "
                   >
                     <i
                       class="text-xs"
                       [class.pi-star-fill]="isFavorited(board.id)"
                       [class.pi-star]="!isFavorited(board.id)"
-                      [class]="'pi ' + (isFavorited(board.id) ? 'text-amber-400' : '') + ' sidebar-icon-color'"
+                      [class]="
+                        'pi ' +
+                        (isFavorited(board.id) ? 'text-amber-400' : '') +
+                        ' sidebar-icon-color'
+                      "
                     ></i>
                   </button>
                   <!-- Context menu trigger -->
@@ -217,7 +235,12 @@ import {
                     style="background: var(--surface-overlay); border-color: var(--sidebar-border)"
                   >
                     <a
-                      [routerLink]="['/workspace', workspace().id, 'board', board.id]"
+                      [routerLink]="[
+                        '/workspace',
+                        workspace().id,
+                        'board',
+                        board.id,
+                      ]"
                       (click)="closeBoardMenu()"
                       class="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-[var(--sidebar-surface-hover)] cursor-pointer"
                       style="color: var(--sidebar-text-secondary)"
@@ -233,7 +256,9 @@ import {
                       <i class="pi pi-link text-xs"></i>
                       <span>Copy link</span>
                     </button>
-                    <div style="border-top: 1px solid var(--sidebar-border); margin: 2px 0"></div>
+                    <div
+                      style="border-top: 1px solid var(--sidebar-border); margin: 2px 0"
+                    ></div>
                     <button
                       (click)="archiveBoard(board, $event)"
                       class="flex items-center gap-2 px-3 py-1.5 text-xs w-full text-left hover:bg-[var(--sidebar-surface-hover)]"
@@ -315,7 +340,9 @@ export class WorkspaceItemComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    const saved = localStorage.getItem(`taskflow_ws_expanded_${this.workspace().id}`);
+    const saved = localStorage.getItem(
+      `taskflow_ws_expanded_${this.workspace().id}`,
+    );
     this.expanded.set(saved !== null ? saved === 'true' : true);
     this.loadBoards();
   }
@@ -327,7 +354,10 @@ export class WorkspaceItemComponent implements OnInit {
 
   toggleExpanded(): void {
     this.expanded.update((v) => !v);
-    localStorage.setItem(`taskflow_ws_expanded_${this.workspace().id}`, String(this.expanded()));
+    localStorage.setItem(
+      `taskflow_ws_expanded_${this.workspace().id}`,
+      String(this.expanded()),
+    );
     if (this.expanded() && this.boards().length === 0) {
       this.loadBoards();
     }
@@ -387,12 +417,14 @@ export class WorkspaceItemComponent implements OnInit {
         error: () => {},
       });
     } else {
-      this.favoritesService.add({ entity_type: 'board', entity_id: board.id }).subscribe({
-        next: () => {
-          this.favoriteIds.update((s) => new Set([...s, board.id]));
-        },
-        error: () => {},
-      });
+      this.favoritesService
+        .add({ entity_type: 'board', entity_id: board.id })
+        .subscribe({
+          next: () => {
+            this.favoriteIds.update((s) => new Set([...s, board.id]));
+          },
+          error: () => {},
+        });
     }
   }
 
@@ -400,7 +432,7 @@ export class WorkspaceItemComponent implements OnInit {
     event.stopPropagation();
     event.preventDefault();
     this.activeMenuBoardId.set(
-      this.activeMenuBoardId() === boardId ? null : boardId
+      this.activeMenuBoardId() === boardId ? null : boardId,
     );
   }
 
@@ -435,7 +467,9 @@ export class WorkspaceItemComponent implements OnInit {
       next: ({ boards, favorites }) => {
         this.boards.set(boards);
         const favSet = new Set(
-          favorites.filter((f) => f.entity_type === 'board').map((f) => f.entity_id)
+          favorites
+            .filter((f) => f.entity_type === 'board')
+            .map((f) => f.entity_id),
         );
         this.favoriteIds.set(favSet);
         this.loading.set(false);

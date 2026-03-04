@@ -17,10 +17,7 @@ export class BoardDragDropHandler {
     const snapshot = structuredClone(this.state.boardState());
 
     const filteredTarget = this.state
-      .filterTasks(
-        snapshot[event.targetColumnId] || [],
-        this.state.filters(),
-      )
+      .filterTasks(snapshot[event.targetColumnId] || [], this.state.filters())
       .filter((t) => t.id !== event.task.id);
 
     const beforeTask =
@@ -115,7 +112,9 @@ export class BoardDragDropHandler {
         for (const [colId, tasks] of Object.entries(state)) {
           newState[colId] = tasks.map((t) => {
             if (t.id !== taskId) return t;
-            const kept = (t.assignees ?? []).filter((a) => a.id !== fromGroupKey);
+            const kept = (t.assignees ?? []).filter(
+              (a) => a.id !== fromGroupKey,
+            );
             return { ...t, assignees: kept };
           });
         }
@@ -128,10 +127,14 @@ export class BoardDragDropHandler {
       };
 
       if (fromGroupKey !== NONE_KEY) {
-        this.taskService.unassignUser(taskId, fromGroupKey).subscribe({ error: rollback });
+        this.taskService
+          .unassignUser(taskId, fromGroupKey)
+          .subscribe({ error: rollback });
       }
       if (toGroupKey !== NONE_KEY) {
-        this.taskService.assignUser(taskId, toGroupKey).subscribe({ error: rollback });
+        this.taskService
+          .assignUser(taskId, toGroupKey)
+          .subscribe({ error: rollback });
       }
     } else if (groupBy === 'label') {
       const snapshot = structuredClone(this.state.boardState());
@@ -155,10 +158,14 @@ export class BoardDragDropHandler {
       };
 
       if (fromGroupKey !== NONE_KEY) {
-        this.taskService.removeLabel(taskId, fromGroupKey).subscribe({ error: rollback });
+        this.taskService
+          .removeLabel(taskId, fromGroupKey)
+          .subscribe({ error: rollback });
       }
       if (toGroupKey !== NONE_KEY) {
-        this.taskService.addLabel(taskId, toGroupKey).subscribe({ error: rollback });
+        this.taskService
+          .addLabel(taskId, toGroupKey)
+          .subscribe({ error: rollback });
       }
     }
   }
@@ -218,7 +225,9 @@ export class BoardDragDropHandler {
     if (targetTasks.length > 0) {
       this.state.focusedTaskId.set(targetTasks[0].id);
       setTimeout(() => {
-        const el = document.querySelector(`[data-task-id="${targetTasks[0].id}"]`);
+        const el = document.querySelector(
+          `[data-task-id="${targetTasks[0].id}"]`,
+        );
         el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }, 0);
     }
@@ -289,7 +298,11 @@ export class BoardDragDropHandler {
     if (index < 0 || index >= cols.length) return;
     setTimeout(() => {
       const el = document.querySelector(`[data-column-index="${index}"]`);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+      el?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'start',
+      });
     }, 0);
   }
 

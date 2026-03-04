@@ -52,9 +52,14 @@ describe('AdminUsersComponent', () => {
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
         value: vi.fn().mockImplementation((query: string) => ({
-          matches: false, media: query, onchange: null,
-          addListener: vi.fn(), removeListener: vi.fn(),
-          addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
         })),
       });
     }
@@ -95,7 +100,9 @@ describe('AdminUsersComponent', () => {
     });
 
     it('should handle errors', () => {
-      mockAdminService.getUsers.mockReturnValue(throwError(() => new Error('fail')));
+      mockAdminService.getUsers.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
       component.loadUsers();
       expect(component.error()).toBe('Failed to load users. Please try again.');
       expect(component.loading()).toBe(false);
@@ -138,12 +145,17 @@ describe('AdminUsersComponent', () => {
     it('should update role via service', () => {
       component.users.set([...mockUsers]);
       component.onRoleChange(mockUsers[1], 'admin');
-      expect(mockAdminService.updateUserRole).toHaveBeenCalledWith('u-2', 'admin');
+      expect(mockAdminService.updateUserRole).toHaveBeenCalledWith(
+        'u-2',
+        'admin',
+      );
       expect(component.users().find((u) => u.id === 'u-2')?.role).toBe('admin');
     });
 
     it('should handle role change error', () => {
-      mockAdminService.updateUserRole.mockReturnValue(throwError(() => new Error('fail')));
+      mockAdminService.updateUserRole.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
       component.users.set([...mockUsers]);
       component.onRoleChange(mockUsers[1], 'admin');
       expect(component.updatingUser()).toBeNull();

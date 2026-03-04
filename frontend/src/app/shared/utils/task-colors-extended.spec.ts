@@ -30,14 +30,20 @@ describe('task-colors (extended)', () => {
 
   describe('getPriorityColorHex', () => {
     it('returns correct hex colors for known priorities', () => {
-      expect(getPriorityColorHex('urgent')).toEqual(PRIORITY_COLORS_HEX['urgent']);
+      expect(getPriorityColorHex('urgent')).toEqual(
+        PRIORITY_COLORS_HEX['urgent'],
+      );
       expect(getPriorityColorHex('high')).toEqual(PRIORITY_COLORS_HEX['high']);
-      expect(getPriorityColorHex('medium')).toEqual(PRIORITY_COLORS_HEX['medium']);
+      expect(getPriorityColorHex('medium')).toEqual(
+        PRIORITY_COLORS_HEX['medium'],
+      );
       expect(getPriorityColorHex('low')).toEqual(PRIORITY_COLORS_HEX['low']);
     });
 
     it('handles case-insensitive input', () => {
-      expect(getPriorityColorHex('URGENT')).toEqual(PRIORITY_COLORS_HEX['urgent']);
+      expect(getPriorityColorHex('URGENT')).toEqual(
+        PRIORITY_COLORS_HEX['urgent'],
+      );
       expect(getPriorityColorHex('High')).toEqual(PRIORITY_COLORS_HEX['high']);
     });
 

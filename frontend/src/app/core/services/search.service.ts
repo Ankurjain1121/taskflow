@@ -43,7 +43,9 @@ export class SearchService {
   constructor(private http: HttpClient) {}
 
   search(query: string, limit = 20): Observable<SearchResults> {
-    const params = new HttpParams().set('q', query).set('limit', limit.toString());
+    const params = new HttpParams()
+      .set('q', query)
+      .set('limit', limit.toString());
     return this.http.get<SearchResults>(`${this.apiUrl}/search`, { params });
   }
 }

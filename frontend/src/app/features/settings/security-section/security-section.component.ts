@@ -1,4 +1,9 @@
-import { Component, inject, signal, OnInit, ChangeDetectionStrategy,
+import {
+  Component,
+  inject,
+  signal,
+  OnInit,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -32,10 +37,7 @@ import {
       class="rounded-lg border shadow-sm p-6"
       style="background: var(--card); border-color: var(--border)"
     >
-      <h2
-        class="text-xl font-semibold mb-4"
-        style="color: var(--foreground)"
-      >
+      <h2 class="text-xl font-semibold mb-4" style="color: var(--foreground)">
         Change Password
       </h2>
 
@@ -50,7 +52,8 @@ import {
             for="secCurrentPassword"
             class="text-sm font-medium"
             style="color: var(--foreground)"
-          >Current Password</label>
+            >Current Password</label
+          >
           <div class="p-inputgroup">
             <span class="p-inputgroup-addon"><i class="pi pi-lock"></i></span>
             <input
@@ -67,7 +70,11 @@ import {
               class="p-inputgroup-addon cursor-pointer"
               (click)="hideCurrentPassword.set(!hideCurrentPassword())"
             >
-              <i [class]="hideCurrentPassword() ? 'pi pi-eye-slash' : 'pi pi-eye'"></i>
+              <i
+                [class]="
+                  hideCurrentPassword() ? 'pi pi-eye-slash' : 'pi pi-eye'
+                "
+              ></i>
             </button>
           </div>
         </div>
@@ -78,7 +85,8 @@ import {
             for="secNewPassword"
             class="text-sm font-medium"
             style="color: var(--foreground)"
-          >New Password</label>
+            >New Password</label
+          >
           <div class="p-inputgroup">
             <span class="p-inputgroup-addon"><i class="pi pi-lock"></i></span>
             <input
@@ -97,12 +105,19 @@ import {
               class="p-inputgroup-addon cursor-pointer"
               (click)="hideNewPassword.set(!hideNewPassword())"
             >
-              <i [class]="hideNewPassword() ? 'pi pi-eye-slash' : 'pi pi-eye'"></i>
+              <i
+                [class]="hideNewPassword() ? 'pi pi-eye-slash' : 'pi pi-eye'"
+              ></i>
             </button>
           </div>
-          @if (newPasswordInput.invalid && (newPasswordInput.dirty || newPasswordInput.touched)) {
+          @if (
+            newPasswordInput.invalid &&
+            (newPasswordInput.dirty || newPasswordInput.touched)
+          ) {
             @if (newPasswordInput.errors?.['minlength']) {
-              <small class="text-red-500">Password must be at least 8 characters</small>
+              <small class="text-red-500"
+                >Password must be at least 8 characters</small
+              >
             }
           }
         </div>
@@ -113,7 +128,8 @@ import {
             for="secConfirmPassword"
             class="text-sm font-medium"
             style="color: var(--foreground)"
-          >Confirm New Password</label>
+            >Confirm New Password</label
+          >
           <div class="p-inputgroup">
             <span class="p-inputgroup-addon"><i class="pi pi-lock"></i></span>
             <input
@@ -131,10 +147,16 @@ import {
               class="p-inputgroup-addon cursor-pointer"
               (click)="hideConfirmPassword.set(!hideConfirmPassword())"
             >
-              <i [class]="hideConfirmPassword() ? 'pi pi-eye-slash' : 'pi pi-eye'"></i>
+              <i
+                [class]="
+                  hideConfirmPassword() ? 'pi pi-eye-slash' : 'pi pi-eye'
+                "
+              ></i>
             </button>
           </div>
-          @if (confirmPasswordInput.touched && newPassword !== confirmPassword) {
+          @if (
+            confirmPasswordInput.touched && newPassword !== confirmPassword
+          ) {
             <small class="text-red-500">Passwords do not match</small>
           }
         </div>
@@ -161,10 +183,7 @@ import {
       style="background: var(--card); border-color: var(--border)"
     >
       <div class="flex items-center justify-between mb-4">
-        <h2
-          class="text-xl font-semibold"
-          style="color: var(--foreground)"
-        >
+        <h2 class="text-xl font-semibold" style="color: var(--foreground)">
           Active Sessions
         </h2>
         @if (sessions().length > 1) {
@@ -218,7 +237,9 @@ import {
             <div
               class="rounded-lg border p-4 flex items-center gap-4"
               style="border-color: var(--border)"
-              [style.background]="session.is_current ? 'var(--muted)' : 'transparent'"
+              [style.background]="
+                session.is_current ? 'var(--muted)' : 'transparent'
+              "
             >
               <!-- Device icon -->
               <div
@@ -237,17 +258,30 @@ import {
                   <span
                     class="text-sm font-medium truncate"
                     style="color: var(--foreground)"
-                  >{{ session.device_name || parseUserAgent(session.user_agent) }}</span>
+                    >{{
+                      session.device_name || parseUserAgent(session.user_agent)
+                    }}</span
+                  >
                   @if (session.is_current) {
                     <span
                       class="text-xs px-2 py-0.5 rounded-full font-medium"
                       style="background: #22c55e20; color: #22c55e"
-                    >Current</span>
+                      >Current</span
+                    >
                   }
                 </div>
-                <div class="flex items-center gap-3 text-xs" style="color: var(--muted-foreground)">
-                  <span><i class="pi pi-map-marker mr-1"></i>{{ session.ip_address }}</span>
-                  <span><i class="pi pi-clock mr-1"></i>Last active {{ formatRelativeTime(session.last_active_at) }}</span>
+                <div
+                  class="flex items-center gap-3 text-xs"
+                  style="color: var(--muted-foreground)"
+                >
+                  <span
+                    ><i class="pi pi-map-marker mr-1"></i
+                    >{{ session.ip_address }}</span
+                  >
+                  <span
+                    ><i class="pi pi-clock mr-1"></i>Last active
+                    {{ formatRelativeTime(session.last_active_at) }}</span
+                  >
                 </div>
               </div>
 
@@ -350,7 +384,10 @@ export class SecuritySectionComponent implements OnInit {
         const sorted = [...sessions].sort((a, b) => {
           if (a.is_current) return -1;
           if (b.is_current) return 1;
-          return new Date(b.last_active_at).getTime() - new Date(a.last_active_at).getTime();
+          return (
+            new Date(b.last_active_at).getTime() -
+            new Date(a.last_active_at).getTime()
+          );
         });
         this.sessions.set(sorted);
         this.sessionsLoading.set(false);
@@ -416,7 +453,11 @@ export class SecuritySectionComponent implements OnInit {
 
   getDeviceIcon(userAgent: string): string {
     const ua = userAgent.toLowerCase();
-    if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) {
+    if (
+      ua.includes('mobile') ||
+      ua.includes('android') ||
+      ua.includes('iphone')
+    ) {
       return 'pi pi-mobile';
     }
     if (ua.includes('tablet') || ua.includes('ipad')) {

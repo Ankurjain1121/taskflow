@@ -14,25 +14,42 @@ describe('CalendarViewComponent', () => {
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
         value: vi.fn().mockImplementation((query: string) => ({
-          matches: false, media: query, onchange: null,
-          addListener: vi.fn(), removeListener: vi.fn(),
-          addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
         })),
       });
     }
 
     mockTaskService = {
-      listCalendarTasks: vi.fn().mockReturnValue(of([
-        { id: 't-1', title: 'Task A', priority: 'high', due_date: '2026-02-15', start_date: null, column_id: 'c-1', column_name: 'Todo', is_done: false, milestone_id: null },
-      ])),
+      listCalendarTasks: vi
+        .fn()
+        .mockReturnValue(
+          of([
+            {
+              id: 't-1',
+              title: 'Task A',
+              priority: 'high',
+              due_date: '2026-02-15',
+              start_date: null,
+              column_id: 'c-1',
+              column_name: 'Todo',
+              is_done: false,
+              milestone_id: null,
+            },
+          ]),
+        ),
       updateTask: vi.fn().mockReturnValue(of({})),
     };
 
     await TestBed.configureTestingModule({
       imports: [CalendarViewComponent],
-      providers: [
-        { provide: TaskService, useValue: mockTaskService },
-      ],
+      providers: [{ provide: TaskService, useValue: mockTaskService }],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
 
@@ -48,13 +65,19 @@ describe('CalendarViewComponent', () => {
   describe('ngOnInit', () => {
     it('should load tasks on init', () => {
       component.ngOnInit();
-      expect(mockTaskService.listCalendarTasks).toHaveBeenCalledWith('board-1', expect.any(String), expect.any(String));
+      expect(mockTaskService.listCalendarTasks).toHaveBeenCalledWith(
+        'board-1',
+        expect.any(String),
+        expect.any(String),
+      );
       expect(component.tasks().length).toBe(1);
       expect(component.loading()).toBe(false);
     });
 
     it('should handle load error', () => {
-      mockTaskService.listCalendarTasks.mockReturnValue(throwError(() => new Error('fail')));
+      mockTaskService.listCalendarTasks.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
       component.ngOnInit();
       expect(component.loading()).toBe(false);
     });
@@ -116,11 +139,21 @@ describe('CalendarViewComponent', () => {
     it('should assign tasks to correct cells', () => {
       component.currentDate.set(new Date(2026, 1, 1)); // February 2026
       component.tasks.set([
-        { id: 't-1', title: 'Task', priority: 'high', due_date: '2026-02-15', start_date: null, column_id: 'c-1', column_name: 'Todo', is_done: false, milestone_id: null },
+        {
+          id: 't-1',
+          title: 'Task',
+          priority: 'high',
+          due_date: '2026-02-15',
+          start_date: null,
+          column_id: 'c-1',
+          column_name: 'Todo',
+          is_done: false,
+          milestone_id: null,
+        },
       ]);
       component.calendarView.set('month');
       const cells = component.calendarCells();
-      const cellWithTask = cells.find(c => c.tasks.length > 0);
+      const cellWithTask = cells.find((c) => c.tasks.length > 0);
       expect(cellWithTask).toBeTruthy();
       expect(cellWithTask?.dayNumber).toBe(15);
     });
@@ -164,7 +197,10 @@ describe('CalendarViewComponent', () => {
       } as any;
       component.onDragStart(event, task);
       expect(component.draggedTask).toBe(task);
-      expect(event.dataTransfer.setData).toHaveBeenCalledWith('text/plain', 't-1');
+      expect(event.dataTransfer.setData).toHaveBeenCalledWith(
+        'text/plain',
+        't-1',
+      );
     });
 
     it('should prevent default on drag over', () => {
@@ -181,7 +217,9 @@ describe('CalendarViewComponent', () => {
 
       component.onDrop(event, dropDate);
 
-      expect(mockTaskService.updateTask).toHaveBeenCalledWith('t-1', { due_date: expect.any(String) });
+      expect(mockTaskService.updateTask).toHaveBeenCalledWith('t-1', {
+        due_date: expect.any(String),
+      });
       expect(component.draggedTask).toBeNull();
     });
 

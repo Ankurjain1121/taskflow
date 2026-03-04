@@ -3,7 +3,8 @@ import { Injectable, signal } from '@angular/core';
 @Injectable({ providedIn: 'root' })
 export class PushNotificationService {
   readonly permission = signal<NotificationPermission>('default');
-  readonly isSupported = typeof window !== 'undefined' && 'Notification' in window;
+  readonly isSupported =
+    typeof window !== 'undefined' && 'Notification' in window;
 
   constructor() {
     if (this.isSupported) {
@@ -21,6 +22,9 @@ export class PushNotificationService {
   notify(title: string, body: string, tag: string): void {
     if (this.permission() !== 'granted' || document.hasFocus()) return;
     const n = new Notification(title, { body, tag, icon: '/favicon.ico' });
-    n.onclick = () => { window.focus(); n.close(); };
+    n.onclick = () => {
+      window.focus();
+      n.close();
+    };
   }
 }

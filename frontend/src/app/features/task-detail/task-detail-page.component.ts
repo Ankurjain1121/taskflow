@@ -575,10 +575,17 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
     });
 
     this.taskService.assignUser(t.id, member.id).subscribe({
-      next: () => { /* already applied */ },
+      next: () => {
+        /* already applied */
+      },
       error: () => {
         this.task.set(snapshot);
-        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: 'Could not assign member.', life: 4000 });
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Update failed',
+          detail: 'Could not assign member.',
+          life: 4000,
+        });
       },
     });
   }
@@ -594,10 +601,17 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
     });
 
     this.taskService.unassignUser(t.id, assignee.id).subscribe({
-      next: () => { /* already applied */ },
+      next: () => {
+        /* already applied */
+      },
       error: () => {
         this.task.set(snapshot);
-        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: 'Could not unassign member.', life: 4000 });
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Update failed',
+          detail: 'Could not unassign member.',
+          life: 4000,
+        });
       },
     });
   }
@@ -615,10 +629,17 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
     });
 
     this.taskService.removeLabel(t.id, labelId).subscribe({
-      next: () => { /* already applied */ },
+      next: () => {
+        /* already applied */
+      },
       error: () => {
         this.task.set(snapshot);
-        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: 'Could not remove label.', life: 4000 });
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Update failed',
+          detail: 'Could not remove label.',
+          life: 4000,
+        });
       },
     });
   }

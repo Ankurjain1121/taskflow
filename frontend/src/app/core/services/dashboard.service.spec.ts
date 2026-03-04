@@ -122,7 +122,9 @@ describe('DashboardService', () => {
       service.getStats('ws-1').subscribe();
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/dashboard/stats' && r.params.get('workspace_id') === 'ws-1',
+        (r) =>
+          r.url === '/api/dashboard/stats' &&
+          r.params.get('workspace_id') === 'ws-1',
       );
       expect(req.request.method).toBe('GET');
       req.flush(MOCK_STATS);
@@ -136,7 +138,9 @@ describe('DashboardService', () => {
       });
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/dashboard/recent-activity' && r.params.get('limit') === '10',
+        (r) =>
+          r.url === '/api/dashboard/recent-activity' &&
+          r.params.get('limit') === '10',
       );
       expect(req.request.method).toBe('GET');
       req.flush(MOCK_ACTIVITY);
@@ -146,7 +150,9 @@ describe('DashboardService', () => {
       service.getRecentActivity(5).subscribe();
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/dashboard/recent-activity' && r.params.get('limit') === '5',
+        (r) =>
+          r.url === '/api/dashboard/recent-activity' &&
+          r.params.get('limit') === '5',
       );
       req.flush(MOCK_ACTIVITY);
     });
@@ -179,7 +185,9 @@ describe('DashboardService', () => {
       service.getTasksByStatus('ws-1').subscribe();
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/dashboard/tasks-by-status' && r.params.get('workspace_id') === 'ws-1',
+        (r) =>
+          r.url === '/api/dashboard/tasks-by-status' &&
+          r.params.get('workspace_id') === 'ws-1',
       );
       req.flush(MOCK_TASKS_BY_STATUS);
     });
@@ -200,7 +208,9 @@ describe('DashboardService', () => {
       service.getTasksByPriority('ws-1').subscribe();
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/dashboard/tasks-by-priority' && r.params.get('workspace_id') === 'ws-1',
+        (r) =>
+          r.url === '/api/dashboard/tasks-by-priority' &&
+          r.params.get('workspace_id') === 'ws-1',
       );
       req.flush(MOCK_TASKS_BY_PRIORITY);
     });
@@ -213,7 +223,9 @@ describe('DashboardService', () => {
       });
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/dashboard/overdue-tasks' && r.params.get('limit') === '10',
+        (r) =>
+          r.url === '/api/dashboard/overdue-tasks' &&
+          r.params.get('limit') === '10',
       );
       expect(req.request.method).toBe('GET');
       req.flush(MOCK_OVERDUE);
@@ -223,7 +235,9 @@ describe('DashboardService', () => {
       service.getOverdueTasks(3).subscribe();
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/dashboard/overdue-tasks' && r.params.get('limit') === '3',
+        (r) =>
+          r.url === '/api/dashboard/overdue-tasks' &&
+          r.params.get('limit') === '3',
       );
       req.flush(MOCK_OVERDUE);
     });
@@ -248,7 +262,9 @@ describe('DashboardService', () => {
       });
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/dashboard/completion-trend' && r.params.get('days') === '30',
+        (r) =>
+          r.url === '/api/dashboard/completion-trend' &&
+          r.params.get('days') === '30',
       );
       expect(req.request.method).toBe('GET');
       req.flush(MOCK_TREND);
@@ -258,7 +274,9 @@ describe('DashboardService', () => {
       service.getCompletionTrend(7).subscribe();
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/dashboard/completion-trend' && r.params.get('days') === '7',
+        (r) =>
+          r.url === '/api/dashboard/completion-trend' &&
+          r.params.get('days') === '7',
       );
       req.flush(MOCK_TREND);
     });
@@ -283,7 +301,9 @@ describe('DashboardService', () => {
       });
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/dashboard/upcoming-deadlines' && r.params.get('days') === '14',
+        (r) =>
+          r.url === '/api/dashboard/upcoming-deadlines' &&
+          r.params.get('days') === '14',
       );
       expect(req.request.method).toBe('GET');
       req.flush(MOCK_DEADLINES);
@@ -293,7 +313,9 @@ describe('DashboardService', () => {
       service.getUpcomingDeadlines(7).subscribe();
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/dashboard/upcoming-deadlines' && r.params.get('days') === '7',
+        (r) =>
+          r.url === '/api/dashboard/upcoming-deadlines' &&
+          r.params.get('days') === '7',
       );
       req.flush(MOCK_DEADLINES);
     });
@@ -326,7 +348,9 @@ describe('DashboardService', () => {
       service.getMyTasks('ws-1').subscribe();
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/dashboard/my-tasks' && r.params.get('workspace_id') === 'ws-1',
+        (r) =>
+          r.url === '/api/dashboard/my-tasks' &&
+          r.params.get('workspace_id') === 'ws-1',
       );
       req.flush(MOCK_MY_TASKS);
     });
@@ -340,10 +364,78 @@ describe('DashboardService', () => {
       });
 
       const req = httpMock.expectOne('/api/dashboard/stats');
-      req.flush('Server Error', { status: 500, statusText: 'Internal Server Error' });
+      req.flush('Server Error', {
+        status: 500,
+        statusText: 'Internal Server Error',
+      });
 
       expect(error).toBeTruthy();
       expect(error.status).toBe(500);
+    });
+  });
+
+  describe('invalidateCache()', () => {
+    it('should clear all cached entries', () => {
+      // Populate cache
+      service.getStats().subscribe();
+      const req1 = httpMock.expectOne('/api/dashboard/stats');
+      req1.flush(MOCK_STATS);
+
+      // Verify cached (no new request)
+      service.getStats().subscribe();
+      httpMock.expectNone('/api/dashboard/stats');
+
+      // Invalidate
+      service.invalidateCache();
+
+      // Should make a new request
+      service.getStats().subscribe();
+      const req2 = httpMock.expectOne('/api/dashboard/stats');
+      req2.flush(MOCK_STATS);
+    });
+  });
+
+  describe('workspace-scoped caching', () => {
+    it('should cache stats separately per workspace', () => {
+      // Fetch for ws-1
+      service.getStats('ws-1').subscribe();
+      const req1 = httpMock.expectOne(
+        (r) =>
+          r.url === '/api/dashboard/stats' &&
+          r.params.get('workspace_id') === 'ws-1',
+      );
+      req1.flush(MOCK_STATS);
+
+      // Fetch for ws-2 should make a new request
+      service.getStats('ws-2').subscribe();
+      const req2 = httpMock.expectOne(
+        (r) =>
+          r.url === '/api/dashboard/stats' &&
+          r.params.get('workspace_id') === 'ws-2',
+      );
+      req2.flush({ ...MOCK_STATS, total_tasks: 100 });
+
+      // Fetch for ws-1 again should use cache
+      service.getStats('ws-1').subscribe();
+      httpMock.expectNone('/api/dashboard/stats');
+    });
+
+    it('should cache tasks-by-status separately per workspace', () => {
+      service.getTasksByStatus('ws-a').subscribe();
+      const req1 = httpMock.expectOne(
+        (r) =>
+          r.url === '/api/dashboard/tasks-by-status' &&
+          r.params.get('workspace_id') === 'ws-a',
+      );
+      req1.flush(MOCK_TASKS_BY_STATUS);
+
+      service.getTasksByStatus('ws-b').subscribe();
+      const req2 = httpMock.expectOne(
+        (r) =>
+          r.url === '/api/dashboard/tasks-by-status' &&
+          r.params.get('workspace_id') === 'ws-b',
+      );
+      req2.flush(MOCK_TASKS_BY_STATUS);
     });
   });
 });

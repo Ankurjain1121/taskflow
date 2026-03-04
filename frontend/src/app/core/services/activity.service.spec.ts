@@ -64,7 +64,7 @@ describe('ActivityService', () => {
       const req = httpMock.expectOne(
         (r) =>
           r.url === '/api/tasks/task-1/activity' &&
-          r.params.get('cursor') === 'cursor-abc'
+          r.params.get('cursor') === 'cursor-abc',
       );
       expect(req.request.method).toBe('GET');
       req.flush(MOCK_RESPONSE);
@@ -76,7 +76,7 @@ describe('ActivityService', () => {
       const req = httpMock.expectOne(
         (r) =>
           r.url === '/api/tasks/task-1/activity' &&
-          r.params.get('limit') === '10'
+          r.params.get('limit') === '10',
       );
       expect(req.request.method).toBe('GET');
       req.flush(MOCK_RESPONSE);
@@ -89,7 +89,7 @@ describe('ActivityService', () => {
         (r) =>
           r.url === '/api/tasks/task-1/activity' &&
           r.params.get('cursor') === 'cursor-xyz' &&
-          r.params.get('limit') === '5'
+          r.params.get('limit') === '5',
       );
       expect(req.request.method).toBe('GET');
       req.flush(MOCK_RESPONSE);

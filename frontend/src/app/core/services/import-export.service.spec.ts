@@ -34,7 +34,9 @@ describe('ImportExportService', () => {
 
   describe('exportCsv()', () => {
     it('should GET /api/boards/:boardId/export with format=csv and blob responseType', () => {
-      const csvBlob = new Blob(['title,priority\nTask 1,high'], { type: 'text/csv' });
+      const csvBlob = new Blob(['title,priority\nTask 1,high'], {
+        type: 'text/csv',
+      });
 
       service.exportCsv('board-1').subscribe((result) => {
         expect(result).toBeTruthy();
@@ -53,8 +55,15 @@ describe('ImportExportService', () => {
   describe('exportJson()', () => {
     it('should GET /api/boards/:boardId/export with format=json', () => {
       const jsonExport: ExportBoardJson = {
-        board: { id: 'board-1', name: 'Test', description: null, exported_at: '2026-02-20T00:00:00Z' },
-        columns: [{ id: 'col-1', name: 'To Do', position: '1000', color: '#3b82f6' }],
+        board: {
+          id: 'board-1',
+          name: 'Test',
+          description: null,
+          exported_at: '2026-02-20T00:00:00Z',
+        },
+        columns: [
+          { id: 'col-1', name: 'To Do', position: '1000', color: '#3b82f6' },
+        ],
         tasks: [],
       };
 

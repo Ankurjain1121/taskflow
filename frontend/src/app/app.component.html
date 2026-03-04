@@ -40,17 +40,17 @@
 
   <!-- Page Content -->
   <div class="flex-1 overflow-auto min-w-0">
-    <div class="route-transition-wrapper" [@routeAnimations]="getRouteAnimationData(outlet)">
+    <div
+      class="route-transition-wrapper"
+      [@routeAnimations]="getRouteAnimationData(outlet)"
+    >
       <router-outlet #outlet="outlet" />
     </div>
   </div>
 </div>
 
 <!-- Command Palette -->
-<app-command-palette
-  [isOpen]="searchOpen()"
-  (closed)="closeSearch()"
-/>
+<app-command-palette [isOpen]="searchOpen()" (closed)="closeSearch()" />
 
 <!-- Toast Notifications -->
 <app-toast-container />

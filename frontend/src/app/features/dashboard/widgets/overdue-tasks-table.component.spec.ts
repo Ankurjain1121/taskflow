@@ -16,18 +16,37 @@ describe('OverdueTasksTableComponent', () => {
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
         value: vi.fn().mockImplementation((query: string) => ({
-          matches: false, media: query, onchange: null,
-          addListener: vi.fn(), removeListener: vi.fn(),
-          addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
         })),
       });
     }
 
     mockDashboardService = {
-      getOverdueTasks: vi.fn().mockReturnValue(of([
-        { id: 't-1', title: 'Overdue 1', board_name: 'Board A', priority: 'urgent', days_overdue: 5 },
-        { id: 't-2', title: 'Overdue 2', board_name: 'Board B', priority: 'high', days_overdue: 2 },
-      ])),
+      getOverdueTasks: vi.fn().mockReturnValue(
+        of([
+          {
+            id: 't-1',
+            title: 'Overdue 1',
+            board_name: 'Board A',
+            priority: 'urgent',
+            days_overdue: 5,
+          },
+          {
+            id: 't-2',
+            title: 'Overdue 2',
+            board_name: 'Board B',
+            priority: 'high',
+            days_overdue: 2,
+          },
+        ]),
+      ),
     };
 
     mockRouter = { navigate: vi.fn() };
@@ -52,7 +71,10 @@ describe('OverdueTasksTableComponent', () => {
   describe('loadData', () => {
     it('should load overdue tasks', async () => {
       await component.loadData();
-      expect(mockDashboardService.getOverdueTasks).toHaveBeenCalledWith(10, undefined);
+      expect(mockDashboardService.getOverdueTasks).toHaveBeenCalledWith(
+        10,
+        undefined,
+      );
       expect(component.tasks().length).toBe(2);
       expect(component.loading()).toBe(false);
     });
@@ -64,7 +86,9 @@ describe('OverdueTasksTableComponent', () => {
     });
 
     it('should handle error', async () => {
-      mockDashboardService.getOverdueTasks.mockReturnValue(throwError(() => new Error('fail')));
+      mockDashboardService.getOverdueTasks.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
       await component.loadData();
       expect(component.loading()).toBe(false);
     });

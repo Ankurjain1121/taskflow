@@ -8,18 +8,27 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  CdkDropList,
-  CdkDragDrop,
-} from '@angular/cdk/drag-drop';
+import { CdkDropList, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Task } from '../../../core/services/task.service';
 import { Column } from '../../../core/services/board.service';
 import { PresenceService } from '../../../core/services/presence.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { OnboardingChecklistService } from '../../../core/services/onboarding-checklist.service';
 import { TaskCardComponent } from '../task-card/task-card.component';
-import { SwimlaneGroup, SwimlaneTaskMoveEvent, GroupByMode } from '../board-view/swimlane.types';
-import { CardFields, DEFAULT_CARD_FIELDS } from '../board-view/board-state.service';
-import { makeCellId, parseCellId, NONE_KEY } from '../board-view/swimlane-utils';
+import {
+  SwimlaneGroup,
+  SwimlaneTaskMoveEvent,
+  GroupByMode,
+} from '../board-view/swimlane.types';
+import {
+  CardFields,
+  DEFAULT_CARD_FIELDS,
+} from '../board-view/board-state.service';
+import {
+  makeCellId,
+  parseCellId,
+  NONE_KEY,
+} from '../board-view/swimlane-utils';
 
 @Component({
   selector: 'app-swimlane-row',
@@ -32,7 +41,11 @@ import { makeCellId, parseCellId, NONE_KEY } from '../board-view/swimlane-utils'
       <!-- Sticky Left Label -->
       <div
         class="sticky left-0 z-10 flex-shrink-0 w-40 bg-[var(--card)] border-r border-[var(--border)] flex flex-col"
-        [style.border-left]="swimlaneGroup().color ? '3px solid ' + swimlaneGroup().color : '3px solid var(--border)'"
+        [style.border-left]="
+          swimlaneGroup().color
+            ? '3px solid ' + swimlaneGroup().color
+            : '3px solid var(--border)'
+        "
       >
         <div class="sticky top-0 flex items-center gap-2 px-2 py-3">
           <!-- Collapse toggle -->
@@ -41,9 +54,11 @@ import { makeCellId, parseCellId, NONE_KEY } from '../board-view/swimlane-utils'
             class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
             [title]="collapsed() ? 'Expand' : 'Collapse'"
           >
-            <i class="pi text-xs transition-transform duration-200"
-               [class.pi-chevron-down]="!collapsed()"
-               [class.pi-chevron-right]="collapsed()"></i>
+            <i
+              class="pi text-xs transition-transform duration-200"
+              [class.pi-chevron-down]="!collapsed()"
+              [class.pi-chevron-right]="collapsed()"
+            ></i>
           </button>
 
           <!-- Avatar or color dot -->
@@ -59,16 +74,22 @@ import { makeCellId, parseCellId, NONE_KEY } from '../board-view/swimlane-utils'
               [style.background-color]="swimlaneGroup().color"
             ></span>
           } @else if (!swimlaneGroup().isNone) {
-            <div class="w-6 h-6 rounded-full flex-shrink-0 bg-[var(--primary)] flex items-center justify-center text-[10px] font-bold text-white">
+            <div
+              class="w-6 h-6 rounded-full flex-shrink-0 bg-[var(--primary)] flex items-center justify-center text-[10px] font-bold text-white"
+            >
               {{ getInitials(swimlaneGroup().label) }}
             </div>
           } @else {
-            <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 border-2 border-dashed border-[var(--muted-foreground)]"></span>
+            <span
+              class="w-2.5 h-2.5 rounded-full flex-shrink-0 border-2 border-dashed border-[var(--muted-foreground)]"
+            ></span>
           }
 
           <!-- Label + count -->
           <div class="min-w-0 flex-1">
-            <p class="text-xs font-medium text-[var(--foreground)] truncate leading-tight">
+            <p
+              class="text-xs font-medium text-[var(--foreground)] truncate leading-tight"
+            >
               {{ swimlaneGroup().label }}
             </p>
             <p class="text-[10px] text-[var(--muted-foreground)] leading-tight">
@@ -100,7 +121,14 @@ import { makeCellId, parseCellId, NONE_KEY } from '../board-view/swimlane-utils'
                 [isSelected]="selectedTaskIds().includes(task.id)"
                 [columns]="allColumns()"
                 [boardPrefix]="boardPrefix()"
-                [subtaskProgress]="task.subtask_total ? { completed: task.subtask_completed ?? 0, total: task.subtask_total } : null"
+                [subtaskProgress]="
+                  task.subtask_total
+                    ? {
+                        completed: task.subtask_completed ?? 0,
+                        total: task.subtask_total,
+                      }
+                    : null
+                "
                 [hasRunningTimer]="task.has_running_timer ?? false"
                 [lockedBy]="getTaskLockInfo(task.id)"
                 (taskClicked)="taskClicked.emit($event)"
@@ -115,8 +143,12 @@ import { makeCellId, parseCellId, NONE_KEY } from '../board-view/swimlane-utils'
 
             <!-- Empty cell drop zone -->
             @if (tasksForColumn(column.id).length === 0) {
-              <div class="flex items-center justify-center h-16 rounded-md border-2 border-dashed border-[var(--border)] opacity-40">
-                <span class="text-xs text-[var(--muted-foreground)]">Drop here</span>
+              <div
+                class="flex items-center justify-center h-16 rounded-md border-2 border-dashed border-[var(--border)] opacity-40"
+              >
+                <span class="text-xs text-[var(--muted-foreground)]"
+                  >Drop here</span
+                >
               </div>
             }
           </div>
@@ -124,7 +156,9 @@ import { makeCellId, parseCellId, NONE_KEY } from '../board-view/swimlane-utils'
       } @else {
         <!-- Collapsed: show per-column counts -->
         @for (column of columns(); track column.id) {
-          <div class="w-[272px] flex-shrink-0 flex items-center justify-center border-r border-[var(--border)] bg-[var(--muted)] py-2">
+          <div
+            class="w-[272px] flex-shrink-0 flex items-center justify-center border-r border-[var(--border)] bg-[var(--muted)] py-2"
+          >
             <span class="text-xs text-[var(--muted-foreground)]">
               {{ tasksForColumn(column.id).length }}
             </span>
@@ -137,6 +171,7 @@ import { makeCellId, parseCellId, NONE_KEY } from '../board-view/swimlane-utils'
 export class SwimlaneRowComponent {
   private presenceService = inject(PresenceService);
   private authService = inject(AuthService);
+  private checklistService = inject(OnboardingChecklistService);
 
   swimlaneGroup = input.required<SwimlaneGroup>();
   columns = input.required<Column[]>();
@@ -167,7 +202,10 @@ export class SwimlaneRowComponent {
   readonly collapsed = signal(false);
 
   readonly totalCount = computed(() =>
-    Object.values(this.tasksPerColumn()).reduce((sum, tasks) => sum + tasks.length, 0),
+    Object.values(this.tasksPerColumn()).reduce(
+      (sum, tasks) => sum + tasks.length,
+      0,
+    ),
   );
 
   getCellId(colId: string): string {
@@ -192,7 +230,9 @@ export class SwimlaneRowComponent {
       .slice(0, 2);
   }
 
-  getTaskLockInfo(taskId: string): { user_id: string; user_name: string } | null {
+  getTaskLockInfo(
+    taskId: string,
+  ): { user_id: string; user_name: string } | null {
     const lock = this.presenceService.taskLocks().get(taskId);
     if (!lock) return null;
     const currentUserId = this.authService.currentUser()?.id;
@@ -238,5 +278,12 @@ export class SwimlaneRowComponent {
       toGroupKey: this.swimlaneGroup().key,
       groupBy: this.groupBy(),
     });
+
+    this.checklistService.markComplete('try_drag_drop');
+    try {
+      localStorage.setItem('tf_drag_drop_done', '1');
+    } catch {
+      /* ignore */
+    }
   }
 }

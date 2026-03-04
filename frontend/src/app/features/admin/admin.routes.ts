@@ -10,21 +10,21 @@ export const adminRoutes: Routes = [
         path: 'audit-log',
         loadComponent: () =>
           import('./audit-log/audit-log.component').then(
-            (m) => m.AuditLogComponent
+            (m) => m.AuditLogComponent,
           ),
       },
       {
         path: 'users',
         loadComponent: () =>
           import('./users/admin-users.component').then(
-            (m) => m.AdminUsersComponent
+            (m) => m.AdminUsersComponent,
           ),
       },
       {
         path: 'trash',
         loadComponent: () =>
           import('./trash/admin-trash.component').then(
-            (m) => m.AdminTrashComponent
+            (m) => m.AdminTrashComponent,
           ),
       },
       {

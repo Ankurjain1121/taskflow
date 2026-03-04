@@ -547,6 +547,7 @@ export class MyTasksComponent implements OnInit, OnDestroy, AfterViewChecked {
           name: task.board_name,
           workspace_id: task.workspace_id,
           description: null,
+          is_sample: false,
           position: '',
           created_at: '',
           updated_at: '',

@@ -90,8 +90,7 @@ import {
       <!-- Blocking -->
       @if (blockingDeps().length > 0) {
         <div class="mb-2">
-          <span
-            class="text-xs font-medium text-red-600 uppercase tracking-wide"
+          <span class="text-xs font-medium text-red-600 uppercase tracking-wide"
             >Blocking</span
           >
           <div class="mt-1 space-y-1">
@@ -102,12 +101,8 @@ import {
                 <div class="flex items-center gap-2 min-w-0">
                   <span
                     class="w-2 h-2 rounded-full flex-shrink-0"
-                    [class.bg-red-500]="
-                      dep.related_task_priority === 'urgent'
-                    "
-                    [class.bg-orange-500]="
-                      dep.related_task_priority === 'high'
-                    "
+                    [class.bg-red-500]="dep.related_task_priority === 'urgent'"
+                    [class.bg-orange-500]="dep.related_task_priority === 'high'"
                     [class.bg-yellow-500]="
                       dep.related_task_priority === 'medium'
                     "
@@ -147,12 +142,8 @@ import {
                 <div class="flex items-center gap-2 min-w-0">
                   <span
                     class="w-2 h-2 rounded-full flex-shrink-0"
-                    [class.bg-red-500]="
-                      dep.related_task_priority === 'urgent'
-                    "
-                    [class.bg-orange-500]="
-                      dep.related_task_priority === 'high'
-                    "
+                    [class.bg-red-500]="dep.related_task_priority === 'urgent'"
+                    [class.bg-orange-500]="dep.related_task_priority === 'high'"
                     [class.bg-yellow-500]="
                       dep.related_task_priority === 'medium'
                     "
@@ -192,12 +183,8 @@ import {
                 <div class="flex items-center gap-2 min-w-0">
                   <span
                     class="w-2 h-2 rounded-full flex-shrink-0"
-                    [class.bg-red-500]="
-                      dep.related_task_priority === 'urgent'
-                    "
-                    [class.bg-orange-500]="
-                      dep.related_task_priority === 'high'
-                    "
+                    [class.bg-red-500]="dep.related_task_priority === 'urgent'"
+                    [class.bg-orange-500]="dep.related_task_priority === 'high'"
                     [class.bg-yellow-500]="
                       dep.related_task_priority === 'medium'
                     "

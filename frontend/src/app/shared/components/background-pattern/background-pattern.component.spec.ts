@@ -1,6 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component } from '@angular/core';
-import { BackgroundPatternComponent, BackgroundPattern } from './background-pattern.component';
+import {
+  BackgroundPatternComponent,
+  BackgroundPattern,
+} from './background-pattern.component';
 
 @Component({
   standalone: true,
@@ -26,7 +29,9 @@ describe('BackgroundPatternComponent', () => {
   });
 
   it('should create', () => {
-    expect(fixture.nativeElement.querySelector('app-background-pattern')).toBeTruthy();
+    expect(
+      fixture.nativeElement.querySelector('app-background-pattern'),
+    ).toBeTruthy();
   });
 
   it('should render pattern div for dots', () => {
@@ -53,7 +58,9 @@ describe('BackgroundPatternComponent', () => {
   it('should not render pattern div when pattern is none', () => {
     host.pattern = 'none';
     fixture.detectChanges();
-    const patternDiv = fixture.nativeElement.querySelector('.background-pattern');
+    const patternDiv = fixture.nativeElement.querySelector(
+      '.background-pattern',
+    );
     expect(patternDiv).toBeNull();
   });
 });

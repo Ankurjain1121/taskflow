@@ -38,7 +38,7 @@ export interface UpdateTaskGroupRequest {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class TaskGroupService {
   private readonly API_URL = '/api';
@@ -49,14 +49,18 @@ export class TaskGroupService {
    * List task groups for a board
    */
   listGroups(boardId: string): Observable<TaskGroup[]> {
-    return this.http.get<TaskGroup[]>(`${this.API_URL}/boards/${boardId}/groups`);
+    return this.http.get<TaskGroup[]>(
+      `${this.API_URL}/boards/${boardId}/groups`,
+    );
   }
 
   /**
    * List task groups with statistics
    */
   listGroupsWithStats(boardId: string): Observable<TaskGroupWithStats[]> {
-    return this.http.get<TaskGroupWithStats[]>(`${this.API_URL}/boards/${boardId}/groups/stats`);
+    return this.http.get<TaskGroupWithStats[]>(
+      `${this.API_URL}/boards/${boardId}/groups/stats`,
+    );
   }
 
   /**
@@ -69,28 +73,45 @@ export class TaskGroupService {
   /**
    * Create a new task group
    */
-  createGroup(boardId: string, request: CreateTaskGroupRequest): Observable<TaskGroup> {
-    return this.http.post<TaskGroup>(`${this.API_URL}/boards/${boardId}/groups`, request);
+  createGroup(
+    boardId: string,
+    request: CreateTaskGroupRequest,
+  ): Observable<TaskGroup> {
+    return this.http.post<TaskGroup>(
+      `${this.API_URL}/boards/${boardId}/groups`,
+      request,
+    );
   }
 
   /**
    * Update a task group
    */
-  updateGroup(groupId: string, request: UpdateTaskGroupRequest): Observable<TaskGroup> {
-    return this.http.put<TaskGroup>(`${this.API_URL}/groups/${groupId}`, request);
+  updateGroup(
+    groupId: string,
+    request: UpdateTaskGroupRequest,
+  ): Observable<TaskGroup> {
+    return this.http.put<TaskGroup>(
+      `${this.API_URL}/groups/${groupId}`,
+      request,
+    );
   }
 
   /**
    * Toggle collapse state
    */
   toggleCollapse(groupId: string, collapsed: boolean): Observable<TaskGroup> {
-    return this.http.put<TaskGroup>(`${this.API_URL}/groups/${groupId}/collapse`, { collapsed });
+    return this.http.put<TaskGroup>(
+      `${this.API_URL}/groups/${groupId}/collapse`,
+      { collapsed },
+    );
   }
 
   /**
    * Delete a task group (moves tasks to "Ungrouped")
    */
   deleteGroup(groupId: string): Observable<{ success: boolean }> {
-    return this.http.delete<{ success: boolean }>(`${this.API_URL}/groups/${groupId}`);
+    return this.http.delete<{ success: boolean }>(
+      `${this.API_URL}/groups/${groupId}`,
+    );
   }
 }

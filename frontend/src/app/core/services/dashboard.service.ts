@@ -174,6 +174,54 @@ export class DashboardService {
       params: this.buildParams(workspaceId),
     });
   }
+
+  // --- Phase J Metrics Endpoints ---
+
+  getWorkspaceDashboard(workspaceId: string): Observable<WorkspaceDashboard> {
+    return this.getCached(`ws-dashboard:${workspaceId}`, () =>
+      this.http.get<WorkspaceDashboard>(
+        `${this.apiUrl}/metrics/workspace/${workspaceId}`,
+      ),
+    );
+  }
+
+  getTeamDashboard(teamId: string): Observable<TeamDashboard> {
+    return this.getCached(`team-dashboard:${teamId}`, () =>
+      this.http.get<TeamDashboard>(`${this.apiUrl}/metrics/team/${teamId}`),
+    );
+  }
+
+  getPersonalDashboard(): Observable<PersonalDashboard> {
+    return this.getCached('personal-dashboard', () =>
+      this.http.get<PersonalDashboard>(`${this.apiUrl}/metrics/personal`),
+    );
+  }
+
+  exportDashboardCsv(data: Record<string, unknown>[]): void {
+    if (data.length === 0) return;
+    const headers = Object.keys(data[0]);
+    const csvRows = [
+      headers.join(','),
+      ...data.map((row) =>
+        headers
+          .map((h) => {
+            const val = row[h];
+            const str = val == null ? '' : String(val);
+            return str.includes(',') || str.includes('"')
+              ? `"${str.replace(/"/g, '""')}"`
+              : str;
+          })
+          .join(','),
+      ),
+    ];
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dashboard-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 }
 
 export interface MyTask {
@@ -185,4 +233,51 @@ export interface MyTask {
   board_name: string;
   column_name: string;
   is_done: boolean;
+}
+
+// --- Phase J Metrics Types ---
+
+export interface CycleTimePoint {
+  week_start: string;
+  avg_cycle_days: number;
+}
+
+export interface VelocityPoint {
+  week_start: string;
+  tasks_completed: number;
+}
+
+export interface WorkloadBalanceEntry {
+  user_id: string;
+  user_name: string;
+  active_tasks: number;
+}
+
+export interface OnTimeMetric {
+  on_time_pct: number;
+  total_completed: number;
+  on_time_count: number;
+}
+
+export interface TeamDashboard {
+  team_id: string;
+  team_name: string;
+  cycle_time: CycleTimePoint[];
+  velocity: VelocityPoint[];
+  workload_balance: WorkloadBalanceEntry[];
+  on_time: OnTimeMetric;
+}
+
+export interface WorkspaceDashboard {
+  workspace_id: string;
+  cycle_time: CycleTimePoint[];
+  velocity: VelocityPoint[];
+  workload_balance: WorkloadBalanceEntry[];
+  on_time: OnTimeMetric;
+}
+
+export interface PersonalDashboard {
+  cycle_time: CycleTimePoint[];
+  velocity: VelocityPoint[];
+  on_time: OnTimeMetric;
 }

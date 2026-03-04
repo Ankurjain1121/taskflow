@@ -25,7 +25,11 @@ describe('AdminTrashComponent', () => {
       entity_type: 'board',
       entity_id: 'ent-2',
       name: 'Deleted Board',
-      deleted_by: { id: 'u-2', display_name: 'Bob', avatar_url: 'https://example.com/bob.jpg' },
+      deleted_by: {
+        id: 'u-2',
+        display_name: 'Bob',
+        avatar_url: 'https://example.com/bob.jpg',
+      },
       deleted_at: new Date(Date.now() - 86400000 * 3).toISOString(),
       expires_at: new Date(Date.now() + 86400000 * 2).toISOString(),
       metadata: null,
@@ -37,15 +41,22 @@ describe('AdminTrashComponent', () => {
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
         value: vi.fn().mockImplementation((query: string) => ({
-          matches: false, media: query, onchange: null,
-          addListener: vi.fn(), removeListener: vi.fn(),
-          addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
         })),
       });
     }
 
     mockAdminService = {
-      getTrashItems: vi.fn().mockReturnValue(of({ items: mockItems, next_cursor: null })),
+      getTrashItems: vi
+        .fn()
+        .mockReturnValue(of({ items: mockItems, next_cursor: null })),
       restoreItem: vi.fn().mockReturnValue(of(void 0)),
       permanentlyDelete: vi.fn().mockReturnValue(of(void 0)),
       emptyTrash: vi.fn().mockReturnValue(of(void 0)),
@@ -53,9 +64,7 @@ describe('AdminTrashComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [AdminTrashComponent],
-      providers: [
-        { provide: AdminService, useValue: mockAdminService },
-      ],
+      providers: [{ provide: AdminService, useValue: mockAdminService }],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
 
@@ -76,9 +85,13 @@ describe('AdminTrashComponent', () => {
     });
 
     it('should handle errors', () => {
-      mockAdminService.getTrashItems.mockReturnValue(throwError(() => new Error('fail')));
+      mockAdminService.getTrashItems.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
       component.loadTrashItems();
-      expect(component.error()).toBe('Failed to load trash items. Please try again.');
+      expect(component.error()).toBe(
+        'Failed to load trash items. Please try again.',
+      );
       expect(component.loading()).toBe(false);
     });
   });
@@ -123,13 +136,18 @@ describe('AdminTrashComponent', () => {
     it('should restore item and remove from list', () => {
       component.items.set([...mockItems]);
       component.onRestoreItem(mockItems[0]);
-      expect(mockAdminService.restoreItem).toHaveBeenCalledWith('task', 'ent-1');
+      expect(mockAdminService.restoreItem).toHaveBeenCalledWith(
+        'task',
+        'ent-1',
+      );
       expect(component.items().length).toBe(1);
       expect(component.processingItem()).toBeNull();
     });
 
     it('should handle restore error', () => {
-      mockAdminService.restoreItem.mockReturnValue(throwError(() => new Error('fail')));
+      mockAdminService.restoreItem.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
       component.items.set([...mockItems]);
       component.onRestoreItem(mockItems[0]);
       expect(component.items().length).toBe(2); // not removed
@@ -152,7 +170,10 @@ describe('AdminTrashComponent', () => {
       component.showDeleteDialog = true;
       component.confirmDeleteForever();
       expect(component.showDeleteDialog).toBe(false);
-      expect(mockAdminService.permanentlyDelete).toHaveBeenCalledWith('task', 'ent-1');
+      expect(mockAdminService.permanentlyDelete).toHaveBeenCalledWith(
+        'task',
+        'ent-1',
+      );
       expect(component.items().length).toBe(1);
     });
 

@@ -93,8 +93,14 @@ interface WorkspaceCard {
               </div>
               @if (editingId() !== card.workspace.id) {
                 <p-tag
-                  [value]="card.workspace.visibility === 'open' ? 'Open' : 'Closed'"
-                  [severity]="card.workspace.visibility === 'open' ? 'success' : 'secondary'"
+                  [value]="
+                    card.workspace.visibility === 'open' ? 'Open' : 'Closed'
+                  "
+                  [severity]="
+                    card.workspace.visibility === 'open'
+                      ? 'success'
+                      : 'secondary'
+                  "
                   class="ml-2 flex-shrink-0"
                 />
               }
@@ -112,9 +118,7 @@ interface WorkspaceCard {
               class="flex items-center justify-between text-sm text-[var(--muted-foreground)]"
             >
               <span>{{ card.memberCount }} members</span>
-              <span>{{
-                card.workspace.created_at | date: 'mediumDate'
-              }}</span>
+              <span>{{ card.workspace.created_at | date: 'mediumDate' }}</span>
             </div>
 
             <div
@@ -241,18 +245,16 @@ export class WorkspacesPanelComponent {
       return;
     }
     this.renameSaving.set(true);
-    this.workspaceService
-      .update(ws.id, { name: trimmed })
-      .subscribe({
-        next: (updated) => {
-          this.renameSaving.set(false);
-          this.editingId.set(null);
-          this.workspaceRenamed.emit(updated);
-        },
-        error: () => {
-          this.renameSaving.set(false);
-        },
-      });
+    this.workspaceService.update(ws.id, { name: trimmed }).subscribe({
+      next: (updated) => {
+        this.renameSaving.set(false);
+        this.editingId.set(null);
+        this.workspaceRenamed.emit(updated);
+      },
+      error: () => {
+        this.renameSaving.set(false);
+      },
+    });
   }
 
   confirmDelete(ws: Workspace): void {

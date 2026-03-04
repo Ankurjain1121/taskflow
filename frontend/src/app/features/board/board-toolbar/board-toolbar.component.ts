@@ -38,6 +38,7 @@ import { Menu } from 'primeng/menu';
 import { Dialog } from 'primeng/dialog';
 import { Tooltip } from 'primeng/tooltip';
 import { Popover } from 'primeng/popover';
+import { FeatureHelpIconComponent } from '../../../shared/components/feature-help-icon/feature-help-icon.component';
 
 export type ViewMode =
   | 'kanban'
@@ -84,6 +85,7 @@ const DEFAULT_FILTERS: TaskFilters = {
     Dialog,
     Tooltip,
     Popover,
+    FeatureHelpIconComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -204,35 +206,53 @@ const DEFAULT_FILTERS: TaskFilters = {
 
         <!-- Quick Filters -->
         <div class="flex items-center gap-2">
-          <button (click)="toggleMyTasks()"
-            [class]="isMyTasksActive()
-              ? 'px-3 py-1 rounded-full text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)]'
-              : 'px-3 py-1 rounded-full text-sm font-medium border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]'">
+          <button
+            (click)="toggleMyTasks()"
+            [class]="
+              isMyTasksActive()
+                ? 'px-3 py-1 rounded-full text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)]'
+                : 'px-3 py-1 rounded-full text-sm font-medium border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]'
+            "
+          >
             My Tasks
           </button>
-          <button (click)="toggleDueThisWeek()"
-            [class]="isDueThisWeekActive()
-              ? 'px-3 py-1 rounded-full text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)]'
-              : 'px-3 py-1 rounded-full text-sm font-medium border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]'">
+          <button
+            (click)="toggleDueThisWeek()"
+            [class]="
+              isDueThisWeekActive()
+                ? 'px-3 py-1 rounded-full text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)]'
+                : 'px-3 py-1 rounded-full text-sm font-medium border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]'
+            "
+          >
             Due This Week
           </button>
-          <button (click)="toggleHighPriority()"
-            [class]="isHighPriorityActive()
-              ? 'px-3 py-1 rounded-full text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)]'
-              : 'px-3 py-1 rounded-full text-sm font-medium border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]'">
+          <button
+            (click)="toggleHighPriority()"
+            [class]="
+              isHighPriorityActive()
+                ? 'px-3 py-1 rounded-full text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)]'
+                : 'px-3 py-1 rounded-full text-sm font-medium border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]'
+            "
+          >
             High Priority
           </button>
-          <button (click)="toggleOverdue()"
-            [class]="isOverdueActive()
-              ? 'px-3 py-1 rounded-full text-sm font-medium bg-red-500 text-white'
-              : 'px-3 py-1 rounded-full text-sm font-medium border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]'">
+          <button
+            (click)="toggleOverdue()"
+            [class]="
+              isOverdueActive()
+                ? 'px-3 py-1 rounded-full text-sm font-medium bg-red-500 text-white'
+                : 'px-3 py-1 rounded-full text-sm font-medium border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]'
+            "
+          >
             Overdue
           </button>
           @if (anyQuickFilterActive()) {
-            <button (click)="clearQuickFilters()"
+            <button
+              (click)="clearQuickFilters()"
               class="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] underline"
               pTooltip="Clear filters (C)"
-              tooltipPosition="bottom">
+              tooltipPosition="bottom"
+            >
               Clear all
             </button>
           }
@@ -267,40 +287,55 @@ const DEFAULT_FILTERS: TaskFilters = {
 
         <!-- Density Toggle (kanban only) -->
         @if (viewMode() === 'kanban') {
-          <div class="flex items-center gap-0.5 ml-auto border border-[var(--border)] rounded-md p-0.5">
-            <button
-              (click)="densityChanged.emit('compact')"
-              [class]="density() === 'compact'
-                ? 'px-2 py-1 rounded text-xs font-medium bg-[var(--primary)] text-[var(--primary-foreground)] transition-colors'
-                : 'px-2 py-1 rounded text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors'"
-              title="Compact"
-              pTooltip="Compact density (D)"
-              tooltipPosition="bottom"
+          <div class="flex items-center gap-1 ml-auto">
+            <div
+              class="flex items-center gap-0.5 border border-[var(--border)] rounded-md p-0.5"
             >
-              <i class="pi pi-minus text-xs"></i>
-            </button>
-            <button
-              (click)="densityChanged.emit('normal')"
-              [class]="density() === 'normal'
-                ? 'px-2 py-1 rounded text-xs font-medium bg-[var(--primary)] text-[var(--primary-foreground)] transition-colors'
-                : 'px-2 py-1 rounded text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors'"
-              title="Normal"
-              pTooltip="Normal density (D)"
-              tooltipPosition="bottom"
-            >
-              <i class="pi pi-bars text-xs"></i>
-            </button>
-            <button
-              (click)="densityChanged.emit('expanded')"
-              [class]="density() === 'expanded'
-                ? 'px-2 py-1 rounded text-xs font-medium bg-[var(--primary)] text-[var(--primary-foreground)] transition-colors'
-                : 'px-2 py-1 rounded text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors'"
-              title="Expanded"
-              pTooltip="Expanded density (D)"
-              tooltipPosition="bottom"
-            >
-              <i class="pi pi-th-large text-xs"></i>
-            </button>
+              <button
+                (click)="densityChanged.emit('compact')"
+                [class]="
+                  density() === 'compact'
+                    ? 'px-2 py-1 rounded text-xs font-medium bg-[var(--primary)] text-[var(--primary-foreground)] transition-colors'
+                    : 'px-2 py-1 rounded text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors'
+                "
+                title="Compact"
+                pTooltip="Compact density (D)"
+                tooltipPosition="bottom"
+              >
+                <i class="pi pi-minus text-xs"></i>
+              </button>
+              <button
+                (click)="densityChanged.emit('normal')"
+                [class]="
+                  density() === 'normal'
+                    ? 'px-2 py-1 rounded text-xs font-medium bg-[var(--primary)] text-[var(--primary-foreground)] transition-colors'
+                    : 'px-2 py-1 rounded text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors'
+                "
+                title="Normal"
+                pTooltip="Normal density (D)"
+                tooltipPosition="bottom"
+              >
+                <i class="pi pi-bars text-xs"></i>
+              </button>
+              <button
+                (click)="densityChanged.emit('expanded')"
+                [class]="
+                  density() === 'expanded'
+                    ? 'px-2 py-1 rounded text-xs font-medium bg-[var(--primary)] text-[var(--primary-foreground)] transition-colors'
+                    : 'px-2 py-1 rounded text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors'
+                "
+                title="Expanded"
+                pTooltip="Expanded density (D)"
+                tooltipPosition="bottom"
+              >
+                <i class="pi pi-th-large text-xs"></i>
+              </button>
+            </div>
+            <app-feature-help-icon
+              title="Card Density"
+              description="Switch between Compact, Normal, and Expanded views to control how much detail you see on cards."
+              shortcutKey="D"
+            />
           </div>
         }
 
@@ -317,26 +352,42 @@ const DEFAULT_FILTERS: TaskFilters = {
           </button>
           <p-popover #fieldsPopover>
             <div class="p-3 min-w-[200px]">
-              <div class="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide mb-2">Card Fields</div>
+              <div
+                class="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide mb-2"
+              >
+                Card Fields
+              </div>
               @for (field of cardFieldOptions; track field.key) {
-                <label class="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-[var(--secondary)] rounded px-1">
+                <label
+                  class="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-[var(--secondary)] rounded px-1"
+                >
                   <input
                     type="checkbox"
                     [checked]="cardFields()[field.key]"
-                    (change)="onCardFieldToggle(field.key, $any($event.target).checked)"
+                    (change)="
+                      onCardFieldToggle(field.key, $any($event.target).checked)
+                    "
                     class="w-3.5 h-3.5 rounded border-[var(--border)] accent-[var(--primary)]"
                   />
-                  <span class="text-sm text-[var(--foreground)]">{{ field.label }}</span>
+                  <span class="text-sm text-[var(--foreground)]">{{
+                    field.label
+                  }}</span>
                 </label>
               }
               <div class="border-t border-[var(--border)] mt-2 pt-2">
                 <button
                   (click)="resetFields()"
                   class="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] underline"
-                >Reset to defaults</button>
+                >
+                  Reset to defaults
+                </button>
               </div>
             </div>
           </p-popover>
+          <app-feature-help-icon
+            title="Card Fields"
+            description="Show or hide fields on task cards — assignee, priority, due date, labels, and more."
+          />
         }
 
         <!-- Group By (kanban only) -->
@@ -367,6 +418,12 @@ const DEFAULT_FILTERS: TaskFilters = {
               </button>
             }
             <p-menu #groupByMenu [popup]="true" [model]="groupByMenuItems()" />
+            <app-feature-help-icon
+              class="ml-1"
+              title="Group By"
+              description="Organize your board by Assignee, Priority, or Label to see tasks in swimlane rows."
+              shortcutKey="G"
+            />
           </div>
         }
 
@@ -465,9 +522,15 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
   density = input<'compact' | 'normal' | 'expanded'>('normal');
   groupBy = input<GroupByMode>('none');
   cardFields = input<CardFields>({
-    showPriority: true, showDueDate: true, showAssignees: true,
-    showLabels: true, showSubtaskProgress: true, showComments: true,
-    showAttachments: true, showTaskId: true, showDescription: true,
+    showPriority: true,
+    showDueDate: true,
+    showAssignees: true,
+    showLabels: true,
+    showSubtaskProgress: true,
+    showComments: true,
+    showAttachments: true,
+    showTaskId: true,
+    showDescription: true,
     showDaysInColumn: true,
   });
 
@@ -539,11 +602,12 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
 
   readonly isOverdueActive = computed(() => this.filters().overdue);
 
-  readonly anyQuickFilterActive = computed(() =>
-    this.isMyTasksActive() ||
-    this.isDueThisWeekActive() ||
-    this.isHighPriorityActive() ||
-    this.isOverdueActive(),
+  readonly anyQuickFilterActive = computed(
+    () =>
+      this.isMyTasksActive() ||
+      this.isDueThisWeekActive() ||
+      this.isHighPriorityActive() ||
+      this.isOverdueActive(),
   );
 
   // Group By helpers
@@ -560,15 +624,35 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
   groupByMenuItems(): { label: string; icon?: string; command: () => void }[] {
     const current = this.groupBy();
     return [
-      { label: 'None',     icon: current === 'none'     ? 'pi pi-check' : '', command: () => this.groupByChanged.emit('none') },
-      { label: 'Assignee', icon: current === 'assignee' ? 'pi pi-check' : '', command: () => this.groupByChanged.emit('assignee') },
-      { label: 'Priority', icon: current === 'priority' ? 'pi pi-check' : '', command: () => this.groupByChanged.emit('priority') },
-      { label: 'Label',    icon: current === 'label'    ? 'pi pi-check' : '', command: () => this.groupByChanged.emit('label') },
+      {
+        label: 'None',
+        icon: current === 'none' ? 'pi pi-check' : '',
+        command: () => this.groupByChanged.emit('none'),
+      },
+      {
+        label: 'Assignee',
+        icon: current === 'assignee' ? 'pi pi-check' : '',
+        command: () => this.groupByChanged.emit('assignee'),
+      },
+      {
+        label: 'Priority',
+        icon: current === 'priority' ? 'pi pi-check' : '',
+        command: () => this.groupByChanged.emit('priority'),
+      },
+      {
+        label: 'Label',
+        icon: current === 'label' ? 'pi pi-check' : '',
+        command: () => this.groupByChanged.emit('label'),
+      },
     ];
   }
 
   viewModeOptions = [
-    { value: 'kanban', icon: 'pi pi-objects-column', tooltip: 'Kanban view (1)' },
+    {
+      value: 'kanban',
+      icon: 'pi pi-objects-column',
+      tooltip: 'Kanban view (1)',
+    },
     { value: 'list', icon: 'pi pi-list', tooltip: 'List view (2)' },
     { value: 'calendar', icon: 'pi pi-calendar', tooltip: 'Calendar view (3)' },
     { value: 'gantt', icon: 'pi pi-align-left', tooltip: 'Gantt chart (4)' },

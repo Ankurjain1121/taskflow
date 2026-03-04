@@ -58,7 +58,12 @@ const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
             <div class="space-y-0.5">
               @for (item of recentItems(); track item.id) {
                 <a
-                  [routerLink]="['/workspace', item.workspaceId, 'board', item.id]"
+                  [routerLink]="[
+                    '/workspace',
+                    item.workspaceId,
+                    'board',
+                    item.id,
+                  ]"
                   routerLinkActive="active"
                   class="nav-item flex items-center gap-2 px-3 py-1.5 rounded-md text-sm"
                 >
@@ -115,12 +120,15 @@ export class SidebarRecentComponent implements OnInit, OnDestroy {
   sectionExpanded = signal(
     typeof localStorage !== 'undefined'
       ? localStorage.getItem('taskflow_recent_expanded') !== 'false'
-      : true
+      : true,
   );
 
   toggleSection(): void {
-    this.sectionExpanded.update(v => !v);
-    localStorage.setItem('taskflow_recent_expanded', String(this.sectionExpanded()));
+    this.sectionExpanded.update((v) => !v);
+    localStorage.setItem(
+      'taskflow_recent_expanded',
+      String(this.sectionExpanded()),
+    );
   }
 
   ngOnInit(): void {

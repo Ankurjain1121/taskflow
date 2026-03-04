@@ -24,19 +24,30 @@ export interface Breadcrumb {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (breadcrumbs().length > 0) {
-      <nav class="flex items-center gap-1 text-sm min-w-0" aria-label="Breadcrumb">
-        @for (crumb of breadcrumbs(); track crumb.url ?? crumb.label; let last = $last) {
+      <nav
+        class="flex items-center gap-1 text-sm min-w-0"
+        aria-label="Breadcrumb"
+      >
+        @for (
+          crumb of breadcrumbs();
+          track crumb.url ?? crumb.label;
+          let last = $last
+        ) {
           @if (crumb.url && !last) {
             <a
               class="truncate max-w-[160px] transition-colors cursor-pointer hover:underline"
               style="color: var(--muted-foreground)"
               (click)="navigate(crumb.url)"
-            >{{ crumb.label }}</a>
+              >{{ crumb.label }}</a
+            >
           } @else {
             <span
               class="truncate max-w-[200px] font-medium"
-              [style.color]="last ? 'var(--foreground)' : 'var(--muted-foreground)'"
-            >{{ crumb.label }}</span>
+              [style.color]="
+                last ? 'var(--foreground)' : 'var(--muted-foreground)'
+              "
+              >{{ crumb.label }}</span
+            >
           }
           @if (!last) {
             <span style="color: var(--muted-foreground); opacity: 0.5">/</span>
@@ -84,7 +95,10 @@ export class BreadcrumbsComponent implements OnInit, OnDestroy {
     // Reset board tracking; re-set only inside the board branch.
     this.activeBoardId = null;
 
-    if (segments.length === 0 || (segments.length === 1 && segments[0] === 'dashboard')) {
+    if (
+      segments.length === 0 ||
+      (segments.length === 1 && segments[0] === 'dashboard')
+    ) {
       crumbs.push({ label: 'Dashboard', url: null });
       this.breadcrumbs.set(crumbs);
       return;
@@ -115,7 +129,10 @@ export class BreadcrumbsComponent implements OnInit, OnDestroy {
           appearance: 'Appearance',
           notifications: 'Notifications',
         };
-        crumbs.push({ label: settingsLabels[segments[1]] ?? segments[1], url: null });
+        crumbs.push({
+          label: settingsLabels[segments[1]] ?? segments[1],
+          url: null,
+        });
       }
     } else if (segments[0] === 'workspace' && segments[1]) {
       const workspaceId = segments[1];
@@ -127,7 +144,10 @@ export class BreadcrumbsComponent implements OnInit, OnDestroy {
         this.activeBoardId = boardId;
 
         // Set 'Board' placeholder immediately so the nav is never blank.
-        crumbs.push({ label: 'Board', url: `/workspace/${workspaceId}/board/${boardId}` });
+        crumbs.push({
+          label: 'Board',
+          url: `/workspace/${workspaceId}/board/${boardId}`,
+        });
 
         if (segments[4] === 'settings') {
           crumbs.push({ label: 'Settings', url: null });
@@ -152,7 +172,10 @@ export class BreadcrumbsComponent implements OnInit, OnDestroy {
           'audit-log': 'Audit Log',
           trash: 'Trash',
         };
-        crumbs.push({ label: adminLabels[segments[1]] ?? segments[1], url: null });
+        crumbs.push({
+          label: adminLabels[segments[1]] ?? segments[1],
+          url: null,
+        });
       }
     }
 

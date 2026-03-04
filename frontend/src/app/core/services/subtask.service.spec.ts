@@ -78,9 +78,11 @@ describe('SubtaskService', () => {
 
   describe('update()', () => {
     it('should PUT /api/subtasks/:subtaskId with request body', () => {
-      service.update('sub-1', { title: 'Updated title' }).subscribe((result) => {
-        expect(result).toEqual(MOCK_SUBTASK);
-      });
+      service
+        .update('sub-1', { title: 'Updated title' })
+        .subscribe((result) => {
+          expect(result).toEqual(MOCK_SUBTASK);
+        });
 
       const req = httpMock.expectOne('/api/subtasks/sub-1');
       expect(req.request.method).toBe('PUT');

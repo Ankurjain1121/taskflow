@@ -1,4 +1,9 @@
-import { Component, OnInit, signal, computed, ChangeDetectionStrategy,
+import {
+  Component,
+  OnInit,
+  signal,
+  computed,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 
 import { RouterLink } from '@angular/router';

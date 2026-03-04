@@ -19,6 +19,7 @@ export interface InviteMembersResponse {
 
 export interface GenerateSampleBoardResponse {
   board_id: string;
+  workspace_id: string;
 }
 
 @Injectable({
@@ -35,7 +36,7 @@ export class OnboardingService {
   getInvitationContext(token: string): Observable<InvitationContext> {
     return this.http.get<InvitationContext>(
       `${this.apiUrl}/onboarding/invitation-context`,
-      { params: { token } }
+      { params: { token } },
     );
   }
 
@@ -44,11 +45,11 @@ export class OnboardingService {
    */
   createWorkspace(
     name: string,
-    description?: string
+    description?: string,
   ): Observable<CreateWorkspaceResponse> {
     return this.http.post<CreateWorkspaceResponse>(
       `${this.apiUrl}/onboarding/create-workspace`,
-      { name, description }
+      { name, description },
     );
   }
 
@@ -57,11 +58,11 @@ export class OnboardingService {
    */
   inviteMembers(
     workspaceId: string,
-    emails: string[]
+    emails: string[],
   ): Observable<InviteMembersResponse> {
     return this.http.post<InviteMembersResponse>(
       `${this.apiUrl}/onboarding/invite-members`,
-      { workspace_id: workspaceId, emails }
+      { workspace_id: workspaceId, emails },
     );
   }
 
@@ -69,11 +70,12 @@ export class OnboardingService {
    * Generate a sample board with demo tasks
    */
   generateSampleBoard(
-    workspaceId: string
+    workspaceId: string,
+    useCase?: string,
   ): Observable<GenerateSampleBoardResponse> {
     return this.http.post<GenerateSampleBoardResponse>(
       `${this.apiUrl}/onboarding/generate-sample-board`,
-      { workspace_id: workspaceId }
+      { workspace_id: workspaceId, use_case: useCase },
     );
   }
 

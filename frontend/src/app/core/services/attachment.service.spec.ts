@@ -60,7 +60,7 @@ describe('AttachmentService', () => {
       });
 
       const req = httpMock.expectOne(
-        '/api/tasks/task-1/attachments/upload-url'
+        '/api/tasks/task-1/attachments/upload-url',
       );
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual({
@@ -77,7 +77,7 @@ describe('AttachmentService', () => {
       service.getUploadUrl('task-1', file).subscribe();
 
       const req = httpMock.expectOne(
-        '/api/tasks/task-1/attachments/upload-url'
+        '/api/tasks/task-1/attachments/upload-url',
       );
       expect(req.request.body.mimeType).toBe('application/octet-stream');
       req.flush(MOCK_UPLOAD_URL);

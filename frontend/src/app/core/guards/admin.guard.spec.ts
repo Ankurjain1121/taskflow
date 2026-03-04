@@ -55,9 +55,7 @@ describe('adminGuard', () => {
   });
 
   it('should return true when user has Admin role', () => {
-    mockAuthService.currentUser.mockReturnValue(
-      createUser({ role: 'Admin' }),
-    );
+    mockAuthService.currentUser.mockReturnValue(createUser({ role: 'Admin' }));
 
     const result = TestBed.runInInjectionContext(() =>
       adminGuard(mockRoute, mockState),
@@ -67,9 +65,7 @@ describe('adminGuard', () => {
   });
 
   it('should not call router.createUrlTree for Admin users', () => {
-    mockAuthService.currentUser.mockReturnValue(
-      createUser({ role: 'Admin' }),
-    );
+    mockAuthService.currentUser.mockReturnValue(createUser({ role: 'Admin' }));
 
     TestBed.runInInjectionContext(() => adminGuard(mockRoute, mockState));
 
@@ -77,9 +73,7 @@ describe('adminGuard', () => {
   });
 
   it('should redirect Member to /dashboard', () => {
-    mockAuthService.currentUser.mockReturnValue(
-      createUser({ role: 'Member' }),
-    );
+    mockAuthService.currentUser.mockReturnValue(createUser({ role: 'Member' }));
 
     const result = TestBed.runInInjectionContext(() =>
       adminGuard(mockRoute, mockState),

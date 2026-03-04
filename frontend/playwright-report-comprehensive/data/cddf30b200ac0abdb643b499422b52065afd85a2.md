@@ -1,0 +1,247 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - img [ref=e8]
+        - generic [ref=e10]: TaskFlow
+      - button "Search ⌘K" [ref=e11]:
+        - img [ref=e12]
+        - generic [ref=e14]: Search
+        - generic [ref=e15]: ⌘K
+    - navigation [ref=e17]:
+      - link "Home" [ref=e18] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e19]
+        - generic [ref=e21]: Home
+      - link "My Work" [ref=e22] [cursor=pointer]:
+        - /url: /my-tasks
+        - img [ref=e23]
+        - generic [ref=e25]: My Work
+      - link "Dashboard" [ref=e26] [cursor=pointer]:
+        - /url: /dashboard
+        - img [ref=e27]
+        - generic [ref=e29]: Dashboard
+      - generic [ref=e31]:
+        - generic [ref=e32]: Workspaces
+        - generic [ref=e33]:
+          - link "WS-Kappa" [ref=e34] [cursor=pointer]:
+            - /url: /workspace/a77b1b74-b7f6-41b4-b54f-6181aa9c5a5b
+            - img [ref=e35]
+            - generic [ref=e37]: WS-Kappa
+          - link "WS-Iota" [ref=e38] [cursor=pointer]:
+            - /url: /workspace/6bc4c25c-20e6-4f60-b809-d50ae43d0ee4
+            - img [ref=e39]
+            - generic [ref=e41]: WS-Iota
+          - link "WS-Theta" [ref=e42] [cursor=pointer]:
+            - /url: /workspace/3d082998-92be-465a-bca1-4d3701feadf9
+            - img [ref=e43]
+            - generic [ref=e45]: WS-Theta
+          - link "WS-Eta" [ref=e46] [cursor=pointer]:
+            - /url: /workspace/e515bdc9-ab87-42c8-8640-df1efeac0e25
+            - img [ref=e47]
+            - generic [ref=e49]: WS-Eta
+          - link "WS-Zeta" [ref=e50] [cursor=pointer]:
+            - /url: /workspace/3349dddb-aa44-4c05-a3cc-98415a89095f
+            - img [ref=e51]
+            - generic [ref=e53]: WS-Zeta
+          - link "WS-Epsilon" [ref=e54] [cursor=pointer]:
+            - /url: /workspace/47fc8a3e-87f6-4058-9c93-aec5ee6f2355
+            - img [ref=e55]
+            - generic [ref=e57]: WS-Epsilon
+          - link "WS-Delta" [ref=e58] [cursor=pointer]:
+            - /url: /workspace/340182a0-ec46-4cc2-af28-fabb4d16ab56
+            - img [ref=e59]
+            - generic [ref=e61]: WS-Delta
+          - link "WS-Gamma" [ref=e62] [cursor=pointer]:
+            - /url: /workspace/e8a22d7b-ff3c-4d84-ba38-9a8621ac72ce
+            - img [ref=e63]
+            - generic [ref=e65]: WS-Gamma
+          - link "WS-Beta" [ref=e66] [cursor=pointer]:
+            - /url: /workspace/e4d8b355-2d85-43ca-aa83-142cc9001864
+            - img [ref=e67]
+            - generic [ref=e69]: WS-Beta
+          - link "WS-Alpha" [ref=e70] [cursor=pointer]:
+            - /url: /workspace/7df151ac-89a0-4832-bff9-c96bea4d5ca7
+            - img [ref=e71]
+            - generic [ref=e73]: WS-Alpha
+        - button "New Workspace" [ref=e74]:
+          - img [ref=e75]
+          - generic [ref=e77]: New Workspace
+      - generic [ref=e79]:
+        - link "Favorites" [ref=e80] [cursor=pointer]:
+          - /url: /favorites
+          - img [ref=e81]
+          - generic [ref=e83]: Favorites
+        - link "Archive" [ref=e84] [cursor=pointer]:
+          - /url: /archive
+          - img [ref=e85]
+          - generic [ref=e87]: Archive
+      - generic [ref=e89]:
+        - link "Settings" [ref=e90] [cursor=pointer]:
+          - /url: /settings/profile
+          - img [ref=e91]
+          - generic [ref=e94]: Settings
+        - link "Team" [ref=e95] [cursor=pointer]:
+          - /url: /team
+          - img [ref=e96]
+          - generic [ref=e98]: Team
+        - link "WhatsApp" [ref=e99] [cursor=pointer]:
+          - /url: /whatsapp
+          - img [ref=e100]
+          - generic [ref=e102]: WhatsApp
+        - link "Help" [ref=e103] [cursor=pointer]:
+          - /url: /help
+          - img [ref=e104]
+          - generic [ref=e106]: Help
+    - generic [ref=e108]:
+      - generic [ref=e111]: A
+      - generic [ref=e112]:
+        - paragraph [ref=e113]: Alice Admin
+        - paragraph [ref=e114]: e2e-comp-mlkwumjh-user0@example.com
+      - button "Sign out" [ref=e115]:
+        - img [ref=e116]
+  - generic [ref=e121]:
+    - banner [ref=e122]:
+      - generic [ref=e124]:
+        - generic [ref=e125]:
+          - heading "Good afternoon, Alice" [level=1] [ref=e126]
+          - paragraph [ref=e127]: Here's what's happening across your projects
+        - link "My Tasks" [ref=e128] [cursor=pointer]:
+          - /url: /my-tasks
+          - img [ref=e129]
+          - text: My Tasks
+    - main [ref=e131]:
+      - generic [ref=e132]:
+        - generic [ref=e134]:
+          - generic [ref=e135]:
+            - paragraph [ref=e136]: Total Tasks
+            - paragraph [ref=e137]: "0"
+          - img [ref=e139]
+        - generic [ref=e142]:
+          - generic [ref=e143]:
+            - paragraph [ref=e144]: Overdue
+            - paragraph [ref=e145]: "0"
+          - img [ref=e147]
+        - generic [ref=e150]:
+          - generic [ref=e151]:
+            - paragraph [ref=e152]: Due Today
+            - paragraph [ref=e153]: "0"
+          - img [ref=e155]
+        - generic [ref=e158]:
+          - generic [ref=e159]:
+            - paragraph [ref=e160]: Completed This Week
+            - paragraph [ref=e161]: "0"
+          - img [ref=e163]
+      - generic [ref=e165]:
+        - heading "Analytics & Insights" [level=2] [ref=e167]
+        - generic [ref=e168]:
+          - generic [ref=e170]:
+            - heading "Tasks by Status" [level=3] [ref=e171]
+            - img [ref=e173]
+          - generic [ref=e177]:
+            - heading "Tasks by Priority" [level=3] [ref=e178]
+            - img [ref=e180]
+          - generic [ref=e184]:
+            - generic [ref=e185]:
+              - heading "Completion Trend" [level=3] [ref=e186]
+              - generic [ref=e187]:
+                - button "30d" [ref=e188]
+                - button "60d" [ref=e189]
+                - button "90d" [ref=e190]
+            - img [ref=e192]
+          - generic [ref=e196]:
+            - generic [ref=e197]:
+              - heading "Upcoming Deadlines" [level=3] [ref=e198]
+              - paragraph [ref=e199]: Next 14 days
+            - img [ref=e201]
+          - generic [ref=e206]:
+            - heading "Overdue Tasks" [level=3] [ref=e208]
+            - img [ref=e210]
+      - generic [ref=e213]:
+        - heading "Your Workspaces" [level=2] [ref=e214]
+        - generic [ref=e215]: 10 workspaces
+      - generic [ref=e216]:
+        - generic [ref=e217]:
+          - generic [ref=e219]:
+            - heading "WS-Kappa" [level=3] [ref=e221]
+            - generic [ref=e223]: W
+          - link "Open Workspace" [ref=e225] [cursor=pointer]:
+            - /url: /workspace/a77b1b74-b7f6-41b4-b54f-6181aa9c5a5b
+            - text: Open Workspace
+            - img [ref=e226]
+        - generic [ref=e228]:
+          - generic [ref=e230]:
+            - heading "WS-Iota" [level=3] [ref=e232]
+            - generic [ref=e234]: W
+          - link "Open Workspace" [ref=e236] [cursor=pointer]:
+            - /url: /workspace/6bc4c25c-20e6-4f60-b809-d50ae43d0ee4
+            - text: Open Workspace
+            - img [ref=e237]
+        - generic [ref=e239]:
+          - generic [ref=e241]:
+            - heading "WS-Theta" [level=3] [ref=e243]
+            - generic [ref=e245]: W
+          - link "Open Workspace" [ref=e247] [cursor=pointer]:
+            - /url: /workspace/3d082998-92be-465a-bca1-4d3701feadf9
+            - text: Open Workspace
+            - img [ref=e248]
+        - generic [ref=e250]:
+          - generic [ref=e252]:
+            - heading "WS-Eta" [level=3] [ref=e254]
+            - generic [ref=e256]: W
+          - link "Open Workspace" [ref=e258] [cursor=pointer]:
+            - /url: /workspace/e515bdc9-ab87-42c8-8640-df1efeac0e25
+            - text: Open Workspace
+            - img [ref=e259]
+        - generic [ref=e261]:
+          - generic [ref=e263]:
+            - heading "WS-Zeta" [level=3] [ref=e265]
+            - generic [ref=e267]: W
+          - link "Open Workspace" [ref=e269] [cursor=pointer]:
+            - /url: /workspace/3349dddb-aa44-4c05-a3cc-98415a89095f
+            - text: Open Workspace
+            - img [ref=e270]
+        - generic [ref=e272]:
+          - generic [ref=e274]:
+            - heading "WS-Epsilon" [level=3] [ref=e276]
+            - generic [ref=e278]: W
+          - link "Open Workspace" [ref=e280] [cursor=pointer]:
+            - /url: /workspace/47fc8a3e-87f6-4058-9c93-aec5ee6f2355
+            - text: Open Workspace
+            - img [ref=e281]
+        - generic [ref=e283]:
+          - generic [ref=e285]:
+            - heading "WS-Delta" [level=3] [ref=e287]
+            - generic [ref=e289]: W
+          - link "Open Workspace" [ref=e291] [cursor=pointer]:
+            - /url: /workspace/340182a0-ec46-4cc2-af28-fabb4d16ab56
+            - text: Open Workspace
+            - img [ref=e292]
+        - generic [ref=e294]:
+          - generic [ref=e296]:
+            - heading "WS-Gamma" [level=3] [ref=e298]
+            - generic [ref=e300]: W
+          - link "Open Workspace" [ref=e302] [cursor=pointer]:
+            - /url: /workspace/e8a22d7b-ff3c-4d84-ba38-9a8621ac72ce
+            - text: Open Workspace
+            - img [ref=e303]
+        - generic [ref=e305]:
+          - generic [ref=e307]:
+            - heading "WS-Beta" [level=3] [ref=e309]
+            - generic [ref=e311]: W
+          - link "Open Workspace" [ref=e313] [cursor=pointer]:
+            - /url: /workspace/e4d8b355-2d85-43ca-aa83-142cc9001864
+            - text: Open Workspace
+            - img [ref=e314]
+        - generic [ref=e316]:
+          - generic [ref=e318]:
+            - heading "WS-Alpha" [level=3] [ref=e320]
+            - generic [ref=e322]: W
+          - link "Open Workspace" [ref=e324] [cursor=pointer]:
+            - /url: /workspace/7df151ac-89a0-4832-bff9-c96bea4d5ca7
+            - text: Open Workspace
+            - img [ref=e325]
+```

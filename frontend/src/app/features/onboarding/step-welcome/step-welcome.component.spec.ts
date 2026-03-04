@@ -78,7 +78,7 @@ describe('StepWelcomeComponent', () => {
 
     it('should set error on failure with server message', () => {
       mockOnboardingService.completeOnboarding.mockReturnValue(
-        throwError(() => ({ error: { message: 'Server down' } }))
+        throwError(() => ({ error: { message: 'Server down' } })),
       );
       component.exploreExisting();
       expect(component.error).toBe('Server down');
@@ -87,7 +87,7 @@ describe('StepWelcomeComponent', () => {
 
     it('should set default error on failure without server message', () => {
       mockOnboardingService.completeOnboarding.mockReturnValue(
-        throwError(() => ({ error: {} }))
+        throwError(() => ({ error: {} })),
       );
       component.exploreExisting();
       expect(component.error).toBe(

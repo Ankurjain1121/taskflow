@@ -36,9 +36,7 @@ describe('WorkspaceAdvancedTabComponent', () => {
     mockHttp = {
       get: vi
         .fn()
-        .mockReturnValue(
-          of(new Blob(['{}'], { type: 'application/json' })),
-        ),
+        .mockReturnValue(of(new Blob(['{}'], { type: 'application/json' }))),
     };
 
     await TestBed.configureTestingModule({

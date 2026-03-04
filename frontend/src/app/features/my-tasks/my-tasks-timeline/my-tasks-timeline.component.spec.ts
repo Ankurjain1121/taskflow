@@ -44,13 +44,17 @@ describe('MyTasksTimelineComponent', () => {
   let fixture: ComponentFixture<MyTasksTimelineComponent>;
 
   const mockMyTasksService = {
-    getMyTasks: vi.fn().mockReturnValue(of({ items: [], next_cursor: null } as MyTasksResponse)),
-    getMyTasksSummary: vi.fn().mockReturnValue(of({
-      total_assigned: 10,
-      due_soon: 3,
-      overdue: 1,
-      completed_this_week: 5,
-    } as MyTasksSummary)),
+    getMyTasks: vi
+      .fn()
+      .mockReturnValue(of({ items: [], next_cursor: null } as MyTasksResponse)),
+    getMyTasksSummary: vi.fn().mockReturnValue(
+      of({
+        total_assigned: 10,
+        due_soon: 3,
+        overdue: 1,
+        completed_this_week: 5,
+      } as MyTasksSummary),
+    ),
   };
 
   const mockAuthService = {
@@ -135,8 +139,13 @@ describe('MyTasksTimelineComponent', () => {
     });
 
     it('should populate allTasks with response items', async () => {
-      const tasks = [createMockTask({ id: 'task-1' }), createMockTask({ id: 'task-2' })];
-      mockMyTasksService.getMyTasks.mockReturnValue(of({ items: tasks, next_cursor: null }));
+      const tasks = [
+        createMockTask({ id: 'task-1' }),
+        createMockTask({ id: 'task-2' }),
+      ];
+      mockMyTasksService.getMyTasks.mockReturnValue(
+        of({ items: tasks, next_cursor: null }),
+      );
 
       await component.loadTasks();
 
@@ -145,7 +154,9 @@ describe('MyTasksTimelineComponent', () => {
 
     it('should handle error gracefully and set loading to false', async () => {
       mockMyTasksService.getMyTasks.mockReturnValue(
-        new (await import('rxjs')).Observable((subscriber) => subscriber.error(new Error('fail'))),
+        new (await import('rxjs')).Observable((subscriber) =>
+          subscriber.error(new Error('fail')),
+        ),
       );
 
       await component.loadTasks();
@@ -203,7 +214,9 @@ describe('MyTasksTimelineComponent', () => {
   describe('getGreeting()', () => {
     it('should return a greeting string', () => {
       const greeting = component.getGreeting();
-      expect(['Good morning', 'Good afternoon', 'Good evening']).toContain(greeting);
+      expect(['Good morning', 'Good afternoon', 'Good evening']).toContain(
+        greeting,
+      );
     });
   });
 
@@ -216,7 +229,9 @@ describe('MyTasksTimelineComponent', () => {
   describe('groupedTasks computed (groupTasksByTimeline)', () => {
     it('should group a task with no due date into no_due_date', async () => {
       const task = createMockTask({ id: 't-nodate', due_date: null });
-      mockMyTasksService.getMyTasks.mockReturnValue(of({ items: [task], next_cursor: null }));
+      mockMyTasksService.getMyTasks.mockReturnValue(
+        of({ items: [task], next_cursor: null }),
+      );
 
       await component.loadTasks();
 
@@ -232,7 +247,9 @@ describe('MyTasksTimelineComponent', () => {
         id: 't-overdue',
         due_date: yesterday.toISOString(),
       });
-      mockMyTasksService.getMyTasks.mockReturnValue(of({ items: [task], next_cursor: null }));
+      mockMyTasksService.getMyTasks.mockReturnValue(
+        of({ items: [task], next_cursor: null }),
+      );
 
       await component.loadTasks();
 
@@ -248,7 +265,9 @@ describe('MyTasksTimelineComponent', () => {
         id: 't-today',
         due_date: today.toISOString(),
       });
-      mockMyTasksService.getMyTasks.mockReturnValue(of({ items: [task], next_cursor: null }));
+      mockMyTasksService.getMyTasks.mockReturnValue(
+        of({ items: [task], next_cursor: null }),
+      );
 
       await component.loadTasks();
 
@@ -264,7 +283,9 @@ describe('MyTasksTimelineComponent', () => {
         column_status_mapping: { done: true },
         updated_at: now.toISOString(),
       });
-      mockMyTasksService.getMyTasks.mockReturnValue(of({ items: [task], next_cursor: null }));
+      mockMyTasksService.getMyTasks.mockReturnValue(
+        of({ items: [task], next_cursor: null }),
+      );
 
       await component.loadTasks();
 
@@ -281,7 +302,9 @@ describe('MyTasksTimelineComponent', () => {
         column_status_mapping: { done: true },
         updated_at: lastWeek.toISOString(),
       });
-      mockMyTasksService.getMyTasks.mockReturnValue(of({ items: [task], next_cursor: null }));
+      mockMyTasksService.getMyTasks.mockReturnValue(
+        of({ items: [task], next_cursor: null }),
+      );
 
       await component.loadTasks();
 
@@ -298,7 +321,9 @@ describe('MyTasksTimelineComponent', () => {
         id: 't-later',
         due_date: future.toISOString(),
       });
-      mockMyTasksService.getMyTasks.mockReturnValue(of({ items: [task], next_cursor: null }));
+      mockMyTasksService.getMyTasks.mockReturnValue(
+        of({ items: [task], next_cursor: null }),
+      );
 
       await component.loadTasks();
 

@@ -20,9 +20,14 @@ describe('CompletionTrendComponent', () => {
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
         value: vi.fn().mockImplementation((query: string) => ({
-          matches: false, media: query, onchange: null,
-          addListener: vi.fn(), removeListener: vi.fn(),
-          addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
         })),
       });
     }
@@ -50,7 +55,10 @@ describe('CompletionTrendComponent', () => {
   describe('loadData', () => {
     it('should load completion trend data', async () => {
       await component.loadData();
-      expect(mockDashboardService.getCompletionTrend).toHaveBeenCalledWith(30, undefined);
+      expect(mockDashboardService.getCompletionTrend).toHaveBeenCalledWith(
+        30,
+        undefined,
+      );
       expect(component.data().length).toBe(3);
       expect(component.totalCompleted()).toBe(10);
       expect(component.loading()).toBe(false);
@@ -64,7 +72,9 @@ describe('CompletionTrendComponent', () => {
     });
 
     it('should handle error', async () => {
-      mockDashboardService.getCompletionTrend.mockReturnValue(throwError(() => new Error('fail')));
+      mockDashboardService.getCompletionTrend.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
       await component.loadData();
       expect(component.loading()).toBe(false);
     });
@@ -77,7 +87,10 @@ describe('CompletionTrendComponent', () => {
 
       component.setDays(60);
       expect(component.selectedDays()).toBe(60);
-      expect(mockDashboardService.getCompletionTrend).toHaveBeenCalledWith(60, undefined);
+      expect(mockDashboardService.getCompletionTrend).toHaveBeenCalledWith(
+        60,
+        undefined,
+      );
     });
   });
 

@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import {
   CustomFieldService,
   BoardCustomField,
@@ -21,7 +22,7 @@ import {
 @Component({
   selector: 'app-custom-fields-manager',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-4">
@@ -148,24 +149,10 @@ import {
           </svg>
         </div>
       } @else if (fields().length === 0 && !showCreateForm()) {
-        <div class="bg-[var(--secondary)] rounded-lg p-6 text-center">
-          <svg
-            class="w-10 h-10 text-[var(--muted-foreground)] mx-auto mb-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-            />
-          </svg>
-          <p class="text-sm text-[var(--muted-foreground)]">
-            No custom fields yet. Create one to add extra data to your tasks.
-          </p>
-        </div>
+        <app-empty-state
+          variant="custom-fields"
+          (ctaClicked)="toggleCreateForm()"
+        />
       } @else {
         <!-- Fields List -->
         <div class="space-y-2">

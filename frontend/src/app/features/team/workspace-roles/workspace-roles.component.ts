@@ -268,12 +268,10 @@ export class WorkspaceRolesComponent implements OnInit {
   }
 
   deleteRole(roleId: string): void {
-    this.workspaceService
-      .deleteJobRole(this.workspaceId(), roleId)
-      .subscribe({
-        next: () => {
-          this.roles.update((roles) => roles.filter((r) => r.id !== roleId));
-        },
-      });
+    this.workspaceService.deleteJobRole(this.workspaceId(), roleId).subscribe({
+      next: () => {
+        this.roles.update((roles) => roles.filter((r) => r.id !== roleId));
+      },
+    });
   }
 }

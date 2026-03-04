@@ -137,7 +137,9 @@ describe('ProjectTemplateService', () => {
         expect(result).toEqual({ board_id: 'board-new' });
       });
 
-      const req = httpMock.expectOne('/api/project-templates/tpl-1/create-board');
+      const req = httpMock.expectOne(
+        '/api/project-templates/tpl-1/create-board',
+      );
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(boardReq);
       req.flush({ board_id: 'board-new' });

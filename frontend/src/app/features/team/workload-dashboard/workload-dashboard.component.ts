@@ -57,9 +57,7 @@ import {
             <p class="text-2xl font-bold text-[var(--foreground)]">
               {{ avgTasksPerMember() }}
             </p>
-            <p class="text-xs text-[var(--muted-foreground)]">
-              Avg per Member
-            </p>
+            <p class="text-xs text-[var(--muted-foreground)]">Avg per Member</p>
           </div>
           <div class="widget-card p-5">
             <p
@@ -77,9 +75,7 @@ import {
 
         <!-- Productivity Metrics -->
         <div class="widget-card p-5">
-          <h3
-            class="text-sm font-medium text-[var(--foreground)] mb-3"
-          >
+          <h3 class="text-sm font-medium text-[var(--foreground)] mb-3">
             Productivity
           </h3>
           <div class="flex items-center gap-6">
@@ -92,9 +88,7 @@ import {
               </p>
             </div>
             <div class="flex-1">
-              <div
-                class="w-full bg-[var(--secondary)] rounded-full h-2.5"
-              >
+              <div class="w-full bg-[var(--secondary)] rounded-full h-2.5">
                 <div
                   class="bg-green-500 h-2.5 rounded-full transition-all duration-500"
                   [style.width.%]="completionRate()"
@@ -140,15 +134,15 @@ import {
 
                     <!-- Name & Stats -->
                     <div class="flex-1 min-w-0">
-                      <div
-                        class="flex items-center justify-between"
-                      >
+                      <div class="flex items-center justify-between">
                         <span
                           class="text-sm font-medium text-[var(--foreground)] truncate"
                         >
                           {{ member.user_name }}
                         </span>
-                        <span class="text-xs text-[var(--muted-foreground)] ml-2">
+                        <span
+                          class="text-xs text-[var(--muted-foreground)] ml-2"
+                        >
                           {{ member.active_tasks }} active
                         </span>
                       </div>
@@ -165,8 +159,7 @@ import {
                         [style.width.%]="getBarWidth(member.active_tasks)"
                         [class.bg-green-500]="member.active_tasks < 5"
                         [class.bg-yellow-500]="
-                          member.active_tasks >= 5 &&
-                          member.active_tasks <= 10
+                          member.active_tasks >= 5 && member.active_tasks <= 10
                         "
                         [class.bg-red-500]="member.active_tasks > 10"
                       >
@@ -178,9 +171,7 @@ import {
                       </div>
                     </div>
                     <div class="flex items-center gap-3 mt-1.5">
-                      <span
-                        class="text-xs text-[var(--muted-foreground)]"
-                      >
+                      <span class="text-xs text-[var(--muted-foreground)]">
                         {{ member.done_tasks }} done
                       </span>
                       @if (member.overdue_tasks > 0) {
@@ -239,8 +230,8 @@ export class WorkloadDashboardComponent implements OnInit {
     return Math.round(this.totalActiveTasks() / count);
   });
 
-  overloadedCount = computed(() =>
-    this.members().filter((m) => m.is_overloaded).length,
+  overloadedCount = computed(
+    () => this.members().filter((m) => m.is_overloaded).length,
   );
 
   completionRate = computed(() => {

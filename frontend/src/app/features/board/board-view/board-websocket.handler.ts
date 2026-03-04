@@ -9,8 +9,12 @@ import { BoardStateService } from './board-state.service';
 /**
  * Handles incoming WebSocket board events from the backend.
  *
- * Backend sends events in the format:
- *   { "type": "TaskCreated", "task": {...}, "origin_user_id": "..." }
+ * Backend sends events in two formats:
+ * 1. Single event (backward compatible):
+ *    { "type": "TaskCreated", "task": {...}, "origin_user_id": "..." }
+ * 2. Batched events (optimized):
+ *    { "events": [{...}, {...}], "timestamp": "2024-..." }
+ *
  * The RxJS webSocket operator JSON-parses the frame, so all fields
  * are at the message root (NOT nested in a "payload" wrapper).
  */
@@ -22,6 +26,20 @@ export class BoardWebsocketHandler {
   private state = inject(BoardStateService);
 
   handleMessage(message: Record<string, unknown>): void {
+    // Check if this is a batched message
+    if (Array.isArray(message['events'])) {
+      // Process batched events
+      const events = message['events'] as Record<string, unknown>[];
+      for (const event of events) {
+        this.processEvent(event);
+      }
+    } else {
+      // Process single event (backward compatible)
+      this.processEvent(message);
+    }
+  }
+
+  private processEvent(message: Record<string, unknown>): void {
     const originUserId = message['origin_user_id'] as string | undefined;
     const currentUserId = this.authService.currentUser()?.id;
 
@@ -37,7 +55,9 @@ export class BoardWebsocketHandler {
       case 'TaskUpdated': {
         const task = message['task'] as Partial<Task>;
         const changedFields = message['changed_fields'] as string[] | undefined;
-        const originUserName = message['origin_user_name'] as string | undefined;
+        const originUserName = message['origin_user_name'] as
+          | string
+          | undefined;
         this.handleTaskUpdated(task);
         if (task?.id && changedFields && originUserName) {
           this.conflictNotification.checkConflict(
@@ -73,22 +93,17 @@ export class BoardWebsocketHandler {
         );
         break;
       case 'TaskLocked':
-        this.presenceService.setTaskLock(
-          message['task_id'] as string,
-          {
-            user_id: message['user_id'] as string,
-            user_name: message['user_name'] as string,
-          },
-        );
+        this.presenceService.setTaskLock(message['task_id'] as string, {
+          user_id: message['user_id'] as string,
+          user_name: message['user_name'] as string,
+        });
         this.presenceService.updateViewerName(
           message['user_id'] as string,
           message['user_name'] as string,
         );
         break;
       case 'TaskUnlocked':
-        this.presenceService.removeTaskLock(
-          message['task_id'] as string,
-        );
+        this.presenceService.removeTaskLock(message['task_id'] as string);
         break;
     }
   }

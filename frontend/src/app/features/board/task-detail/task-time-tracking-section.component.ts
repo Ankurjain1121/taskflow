@@ -17,7 +17,13 @@ import { formatDuration, formatDate } from './task-fields-utils';
 @Component({
   selector: 'app-task-time-tracking-section',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePicker, InputTextModule, ButtonModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    DatePicker,
+    InputTextModule,
+    ButtonModule,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="border-t border-[var(--border)] pt-6">
@@ -145,9 +151,7 @@ import { formatDuration, formatDate } from './task-fields-utils';
               class="flex items-center justify-between px-2 py-1.5 hover:bg-[var(--muted)] rounded text-sm group"
             >
               <div class="flex items-center gap-2 min-w-0">
-                <span
-                  class="font-mono text-[var(--foreground)] flex-shrink-0"
-                >
+                <span class="font-mono text-[var(--foreground)] flex-shrink-0">
                   {{ formatDuration(entry.duration_minutes || 0) }}
                 </span>
                 @if (entry.description) {
