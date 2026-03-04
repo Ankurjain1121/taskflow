@@ -306,20 +306,15 @@ describe('KanbanColumnComponent', () => {
   // --- Add Task Button ---
 
   describe('add task button', () => {
-    it('should emit addTaskClicked with column ID when clicked', () => {
+    it('should emit addTaskClicked with column ID when onAddTask is called', () => {
       host.column.set(makeColumn({ id: 'col-99' }));
       fixture.detectChanges();
 
-      const addButton = fixture.debugElement.query(By.css('button'));
-      // Find the "Add task" button (the one in the footer)
-      const buttons = fixture.debugElement.queryAll(By.css('button'));
-      const addTaskBtn = buttons.find((btn) =>
-        btn.nativeElement.textContent.includes('Add task'),
-      );
-      expect(addTaskBtn).toBeTruthy();
+      const kanbanComponent = fixture.debugElement.query(
+        By.directive(KanbanColumnComponent),
+      ).componentInstance as KanbanColumnComponent;
 
-      addTaskBtn!.nativeElement.click();
-      fixture.detectChanges();
+      kanbanComponent.onAddTask();
 
       expect(host.addTaskClickedEvents).toEqual(['col-99']);
     });

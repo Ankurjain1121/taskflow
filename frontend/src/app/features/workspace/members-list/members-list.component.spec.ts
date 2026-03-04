@@ -239,6 +239,7 @@ describe('MembersListComponent', () => {
       'member',
       '',
       [],
+      undefined,
     );
   });
 

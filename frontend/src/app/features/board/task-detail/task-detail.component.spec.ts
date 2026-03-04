@@ -16,7 +16,7 @@ import { MilestoneService } from '../../../core/services/milestone.service';
 import { CustomFieldService } from '../../../core/services/custom-field.service';
 import { RecurringService } from '../../../core/services/recurring.service';
 import { TimeTrackingService } from '../../../core/services/time-tracking.service';
-import { ConfirmationService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 
 describe('TaskDetailComponent', () => {
   let component: TaskDetailComponent;
@@ -208,6 +208,7 @@ describe('TaskDetailComponent', () => {
         { provide: CustomFieldService, useValue: mockCustomFieldService },
         { provide: RecurringService, useValue: mockRecurringService },
         { provide: TimeTrackingService, useValue: mockTimeTrackingService },
+        MessageService,
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
@@ -227,7 +228,7 @@ describe('TaskDetailComponent', () => {
 
   afterEach(() => {
     // Clean up timers
-    component.ngOnDestroy();
+    component?.ngOnDestroy();
   });
 
   it('should create', () => {

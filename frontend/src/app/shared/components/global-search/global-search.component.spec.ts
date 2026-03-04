@@ -139,7 +139,7 @@ describe('GlobalSearchComponent', () => {
     });
 
     it('should start closed', () => {
-      expect(component.isOpen).toBe(false);
+      expect(component.isOpen()).toBe(false);
     });
   });
 

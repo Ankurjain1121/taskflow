@@ -7,12 +7,16 @@ import { of, throwError } from 'rxjs';
 import { WorkspaceItemComponent } from './workspace-item.component';
 import { BoardService } from '../../../core/services/board.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { FavoritesService } from '../../../core/services/favorites.service';
+import { WorkspaceSettingsDialogService } from '../../../core/services/workspace-settings-dialog.service';
 
 describe('WorkspaceItemComponent', () => {
   let component: WorkspaceItemComponent;
   let fixture: ComponentFixture<WorkspaceItemComponent>;
   let mockBoardService: any;
   let mockAuthService: any;
+  let mockFavoritesService: any;
+  let mockSettingsDialog: any;
 
   const testWorkspace = {
     id: 'ws-1',
@@ -86,6 +90,16 @@ describe('WorkspaceItemComponent', () => {
       }),
     };
 
+    mockFavoritesService = {
+      list: vi.fn().mockReturnValue(of([])),
+      add: vi.fn().mockReturnValue(of({})),
+      remove: vi.fn().mockReturnValue(of(undefined)),
+    };
+
+    mockSettingsDialog = {
+      open: vi.fn(),
+    };
+
     await TestBed.configureTestingModule({
       imports: [WorkspaceItemComponent],
       providers: [
@@ -94,6 +108,8 @@ describe('WorkspaceItemComponent', () => {
         provideHttpClientTesting(),
         { provide: BoardService, useValue: mockBoardService },
         { provide: AuthService, useValue: mockAuthService },
+        { provide: FavoritesService, useValue: mockFavoritesService },
+        { provide: WorkspaceSettingsDialogService, useValue: mockSettingsDialog },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
