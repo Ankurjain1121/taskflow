@@ -6,15 +6,15 @@ import {
   BrowserDynamicTestingModule,
   platformBrowserDynamicTesting,
 } from '@angular/platform-browser-dynamic/testing';
-import { afterEach, beforeEach } from 'vitest';
+import { afterEach, beforeEach, vi } from 'vitest';
 
-// Mock localStorage for tests
-const localStorageMock = (() => {
+// Mock localStorage and sessionStorage globally
+const createStorageMock = () => {
   let store: Record<string, string> = {};
   return {
     getItem: (key: string) => store[key] || null,
     setItem: (key: string, value: string) => {
-      store[key] = value.toString();
+      store[key] = String(value);
     },
     removeItem: (key: string) => {
       delete store[key];
@@ -22,11 +22,25 @@ const localStorageMock = (() => {
     clear: () => {
       store = {};
     },
+    key: (index: number) => {
+      const keys = Object.keys(store);
+      return keys[index] || null;
+    },
+    get length() {
+      return Object.keys(store).length;
+    },
   };
-})();
+};
 
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
+// Set up global mocks before test environment initialization
+Object.defineProperty(global, 'localStorage', {
+  value: createStorageMock(),
+  writable: true,
+});
+
+Object.defineProperty(global, 'sessionStorage', {
+  value: createStorageMock(),
+  writable: true,
 });
 
 getTestBed().initTestEnvironment(
@@ -36,9 +50,11 @@ getTestBed().initTestEnvironment(
 
 beforeEach(() => {
   localStorage.clear();
+  sessionStorage.clear();
 });
 
 afterEach(() => {
   getTestBed().resetTestingModule();
   localStorage.clear();
+  sessionStorage.clear();
 });
