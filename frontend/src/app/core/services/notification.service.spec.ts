@@ -492,6 +492,46 @@ describe('NotificationService', () => {
     });
   });
 
+  describe('dismissNotification()', () => {
+    it('should remove notification from local state optimistically', () => {
+      // Load notifications first
+      service.listNotifications().subscribe();
+      const listReq = httpMock.expectOne((r) => r.url === '/api/notifications');
+      listReq.flush(MOCK_LIST_RESPONSE);
+
+      expect(service.notifications().length).toBe(2);
+
+      // Dismiss unread notification
+      service.dismissNotification('notif-1').subscribe();
+
+      // Optimistic removal
+      expect(service.notifications().length).toBe(1);
+      expect(service.notifications()[0].id).toBe('notif-2');
+
+      // Should have decremented unread count since notif-1 was unread
+      expect(service.unreadCount()).toBe(2);
+
+      const deleteReq = httpMock.expectOne('/api/notifications/notif-1');
+      expect(deleteReq.request.method).toBe('DELETE');
+      deleteReq.flush(null);
+    });
+
+    it('should not decrement unreadCount when dismissing read notification', () => {
+      service.listNotifications().subscribe();
+      const listReq = httpMock.expectOne((r) => r.url === '/api/notifications');
+      listReq.flush(MOCK_LIST_RESPONSE);
+
+      // notif-2 is already read
+      service.dismissNotification('notif-2').subscribe();
+
+      // Should NOT decrement (was already read)
+      expect(service.unreadCount()).toBe(3);
+
+      const deleteReq = httpMock.expectOne('/api/notifications/notif-2');
+      deleteReq.flush(null);
+    });
+  });
+
   describe('error handling', () => {
     it('should propagate HTTP errors on listNotifications', () => {
       let error: any;

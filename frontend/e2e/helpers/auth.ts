@@ -125,6 +125,40 @@ export async function signInTestUser(
 }
 
 /**
+ * Complete the onboarding wizard: create workspace, skip invites, generate sample board, go to dashboard.
+ */
+export async function completeOnboarding(
+  page: Page,
+  workspaceName?: string,
+): Promise<void> {
+  // Step 1: Create workspace
+  await expect(page.locator('text=Create Your Workspace')).toBeVisible({
+    timeout: 15000,
+  });
+  await page.locator('input#name').fill(workspaceName ?? 'Test Workspace');
+  await page.locator('button[type="submit"]:has-text("Continue")').click();
+
+  // Step 2: Skip invite step
+  await expect(page.locator('text=Invite Your Team')).toBeVisible({
+    timeout: 10000,
+  });
+  await page.locator('button:has-text("Skip this step")').click();
+
+  // Step 3: Generate sample board
+  await expect(page.locator('text=Sample Board Preview')).toBeVisible({
+    timeout: 10000,
+  });
+  await page.locator('button:has-text("Generate Sample Board")').click();
+  await expect(
+    page.locator('text=Sample board created successfully!'),
+  ).toBeVisible({ timeout: 20000 });
+
+  // Step 4: Go to dashboard
+  await page.locator('button:has-text("Go to Dashboard")').click();
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+}
+
+/**
  * Full flow: sign up + onboarding. Returns the email used.
  */
 export async function signUpAndOnboard(
@@ -134,4 +168,61 @@ export async function signUpAndOnboard(
   const email = await signUpTestUser(page);
   await completeOnboarding(page, workspaceName);
   return email;
+}
+
+/**
+ * Navigate from dashboard to the first board. Reusable shortcut for tests.
+ */
+export async function navigateToFirstBoard(page: Page): Promise<void> {
+  await expect(page.locator('text=Your Workspaces')).toBeVisible({
+    timeout: 15000,
+  });
+  await page.locator('a:has-text("Open Workspace")').first().click();
+  await page.waitForURL(/\/workspace\//, { timeout: 15000 });
+
+  await expect(page.locator('h2:has-text("Boards")')).toBeVisible({
+    timeout: 15000,
+  });
+  const boardCard = page.locator('a[href*="/board/"]').first();
+  await expect(boardCard).toBeVisible({ timeout: 10000 });
+  await boardCard.click();
+
+  await expect(page).toHaveURL(/\/workspace\/.*\/board\//, { timeout: 15000 });
+  await page.waitForLoadState('domcontentloaded');
+  await page.locator('button:has-text("New Task")').waitFor({ timeout: 15000 });
+}
+
+/**
+ * Create a task via the New Task dialog on the board view.
+ */
+export async function createTaskViaUI(
+  page: Page,
+  title: string,
+): Promise<void> {
+  await page.locator('button:has-text("New Task")').click();
+
+  const dialogTitle = page.locator(
+    '.p-dialog-title:has-text("Create New Task")',
+  );
+  await expect(dialogTitle).toBeVisible({ timeout: 10000 });
+
+  const titleInput = page.locator('input[placeholder="Enter task title"]');
+  await expect(titleInput).toBeVisible({ timeout: 5000 });
+  await titleInput.click();
+  await titleInput.fill(title);
+
+  const submitBtn = page
+    .locator(
+      '.p-dialog-footer button:has-text("Create Task"), .p-dialog button:has-text("Create Task")',
+    )
+    .first();
+  await expect(submitBtn).toBeEnabled({ timeout: 3000 });
+  await submitBtn.click();
+
+  await expect(dialogTitle).toBeHidden({ timeout: 15000 });
+
+  await page.waitForTimeout(2000);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.locator('button:has-text("New Task")').waitFor({ timeout: 15000 });
+  await expect(page.locator(`text=${title}`)).toBeVisible({ timeout: 15000 });
 }

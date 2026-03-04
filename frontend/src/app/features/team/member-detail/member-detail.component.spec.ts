@@ -72,11 +72,21 @@ describe('MemberDetailComponent', () => {
     }
 
     mockWorkspaceService = {
+      get: vi.fn().mockReturnValue(of({
+        id: 'ws-1',
+        name: 'Test Workspace',
+        slug: 'test-ws',
+        owner_id: 'u-1',
+        created_at: '2025-01-01',
+        updated_at: '2025-01-01',
+        members: mockMembers,
+      })),
       getMembers: vi.fn().mockReturnValue(of(mockMembers)),
     };
 
     mockTeamService = {
       getTeamWorkload: vi.fn().mockReturnValue(of(mockWorkload)),
+      getMemberTasks: vi.fn().mockReturnValue(of([])),
     };
 
     await TestBed.configureTestingModule({
@@ -112,13 +122,21 @@ describe('MemberDetailComponent', () => {
     });
 
     it('should handle member not found', () => {
-      mockWorkspaceService.getMembers.mockReturnValue(of([]));
+      mockWorkspaceService.get.mockReturnValue(of({
+        id: 'ws-1',
+        name: 'Test Workspace',
+        slug: 'test-ws',
+        owner_id: 'u-1',
+        created_at: '2025-01-01',
+        updated_at: '2025-01-01',
+        members: [],
+      }));
       component.ngOnInit();
       expect(component.member()).toBeNull();
     });
 
     it('should handle errors gracefully', () => {
-      mockWorkspaceService.getMembers.mockReturnValue(
+      mockWorkspaceService.get.mockReturnValue(
         throwError(() => new Error('fail')),
       );
       component.ngOnInit();

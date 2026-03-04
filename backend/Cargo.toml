@@ -61,3 +61,5 @@ once_cell = "1"
 
 # Testing
 mockall = "0.13"
+rstest = "0.25"
+proptest = "1"

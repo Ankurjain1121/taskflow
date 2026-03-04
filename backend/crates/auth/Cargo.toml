@@ -13,3 +13,9 @@ argon2.workspace = true
 password-hash.workspace = true
 
 taskflow-db = { path = "../db" }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full", "test-util"] }
+mockall.workspace = true
+rstest.workspace = true
+proptest.workspace = true

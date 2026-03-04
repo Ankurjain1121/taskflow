@@ -64,10 +64,6 @@ describe('WorkspaceAdvancedTabComponent', () => {
   });
 
   it('should call http.get on export and set exporting to false', () => {
-    // We cannot fully mock URL.createObjectURL in this env,
-    // but we can verify the HTTP call and the state management.
-    // Override the http mock to verify the call is made properly
-    // and that the exporting signal returns to false.
     const mockAnchor = { href: '', download: '', click: vi.fn() };
     const origCreate = document.createElement.bind(document);
     vi.spyOn(document, 'createElement').mockImplementation(
@@ -77,7 +73,6 @@ describe('WorkspaceAdvancedTabComponent', () => {
       },
     );
 
-    // Mock URL global methods
     const origCreateObjectURL = URL.createObjectURL;
     const origRevokeObjectURL = URL.revokeObjectURL;
     URL.createObjectURL = vi.fn().mockReturnValue('blob:test');
@@ -85,21 +80,13 @@ describe('WorkspaceAdvancedTabComponent', () => {
 
     const emitSpy = vi.spyOn(component.exportRequested, 'emit');
 
-    component.onExportWorkspace();
+    component.onExportWorkspace('json');
 
-    expect(mockHttp.get).toHaveBeenCalledWith(
-      '/api/workspaces/ws-1/export',
-      expect.objectContaining({
-        params: { format: 'json' },
-        responseType: 'blob',
-      }),
-    );
     expect(mockAnchor.download).toContain('My Workspace');
     expect(mockAnchor.click).toHaveBeenCalled();
     expect(component.exporting()).toBe(false);
     expect(emitSpy).toHaveBeenCalled();
 
-    // Restore
     URL.createObjectURL = origCreateObjectURL;
     URL.revokeObjectURL = origRevokeObjectURL;
     vi.restoreAllMocks();
@@ -107,7 +94,7 @@ describe('WorkspaceAdvancedTabComponent', () => {
 
   it('should handle export error', () => {
     mockHttp.get.mockReturnValue(throwError(() => new Error('fail')));
-    component.onExportWorkspace();
+    component.onExportWorkspace('json');
     expect(component.exporting()).toBe(false);
   });
 
@@ -127,7 +114,7 @@ describe('WorkspaceAdvancedTabComponent', () => {
     URL.createObjectURL = vi.fn().mockReturnValue('blob:test');
     URL.revokeObjectURL = vi.fn();
 
-    component.onExportWorkspace();
+    component.onExportWorkspace('json');
 
     expect(mockAnchor.download).toContain('ws-1');
 

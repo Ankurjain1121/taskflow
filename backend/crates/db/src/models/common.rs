@@ -290,4 +290,90 @@ mod tests {
         assert_eq!(pattern, cloned);
         assert_ne!(pattern, RecurrencePattern::Daily);
     }
+
+    // ========================================================================
+    // WorkspaceMemberRole tests
+    // ========================================================================
+
+    #[test]
+    fn test_workspace_member_role_serde() {
+        for variant in [
+            WorkspaceMemberRole::Owner,
+            WorkspaceMemberRole::Admin,
+            WorkspaceMemberRole::Member,
+            WorkspaceMemberRole::Viewer,
+        ] {
+            let json = serde_json::to_string(&variant).unwrap();
+            let deserialized: WorkspaceMemberRole = serde_json::from_str(&json).unwrap();
+            assert_eq!(variant, deserialized);
+        }
+    }
+
+    #[test]
+    fn test_workspace_member_role_invalid_value_rejected() {
+        let result: std::result::Result<WorkspaceMemberRole, _> =
+            serde_json::from_str("\"superowner\"");
+        assert!(result.is_err(), "Invalid ws member role should be rejected");
+    }
+
+    // ========================================================================
+    // WorkspaceVisibility tests
+    // ========================================================================
+
+    #[test]
+    fn test_workspace_visibility_serde() {
+        for variant in [WorkspaceVisibility::Open, WorkspaceVisibility::Closed] {
+            let json = serde_json::to_string(&variant).unwrap();
+            let deserialized: WorkspaceVisibility = serde_json::from_str(&json).unwrap();
+            assert_eq!(variant, deserialized);
+        }
+    }
+
+    #[test]
+    fn test_workspace_visibility_invalid_value_rejected() {
+        let result: std::result::Result<WorkspaceVisibility, _> =
+            serde_json::from_str("\"private\"");
+        assert!(result.is_err(), "Invalid visibility should be rejected");
+    }
+
+    #[test]
+    fn test_workspace_visibility_clone_and_eq() {
+        let vis = WorkspaceVisibility::Open;
+        let cloned = vis.clone();
+        assert_eq!(vis, cloned);
+        assert_ne!(vis, WorkspaceVisibility::Closed);
+    }
+
+    // ========================================================================
+    // Board member role lowercase serde
+    // ========================================================================
+
+    #[test]
+    fn test_board_member_role_json_lowercase() {
+        assert_eq!(
+            serde_json::to_string(&BoardMemberRole::Viewer).unwrap(),
+            "\"viewer\""
+        );
+        assert_eq!(
+            serde_json::to_string(&BoardMemberRole::Editor).unwrap(),
+            "\"editor\""
+        );
+        assert_eq!(
+            serde_json::to_string(&BoardMemberRole::Owner).unwrap(),
+            "\"owner\""
+        );
+    }
+
+    #[test]
+    fn test_board_member_role_deserialize_from_lowercase() {
+        let viewer: BoardMemberRole = serde_json::from_str("\"viewer\"").unwrap();
+        assert_eq!(viewer, BoardMemberRole::Viewer);
+    }
+
+    #[test]
+    fn test_board_member_role_invalid_value_rejected() {
+        let result: std::result::Result<BoardMemberRole, _> =
+            serde_json::from_str("\"moderator\"");
+        assert!(result.is_err(), "Invalid board member role should be rejected");
+    }
 }

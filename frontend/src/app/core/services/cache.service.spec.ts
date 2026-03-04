@@ -25,7 +25,7 @@ describe('CacheService', () => {
   });
 
   describe('Basic Caching', () => {
-    it('should cache observable and return same instance for same key', (done) => {
+    it('should cache observable and return same instance for same key', async () => {
       const key = 'test:board:123';
       const mockData = { id: '123', name: 'Test Board' };
       let callCount = 0;
@@ -42,13 +42,15 @@ describe('CacheService', () => {
       expect(obs1).toBe(obs2);
       expect(callCount).toBe(1);
 
-      obs1.subscribe((data) => {
-        expect(data).toEqual(mockData);
-        done();
+      return new Promise((resolve) => {
+        obs1.subscribe((data) => {
+          expect(data).toEqual(mockData);
+          resolve(undefined);
+        });
       });
     });
 
-    it('should return cached data without calling factory on hit', (done) => {
+    it('should return cached data without calling factory on hit', async () => {
       const key = 'test:data';
       const mockData = { value: 42 };
       let callCount = 0;
@@ -59,19 +61,21 @@ describe('CacheService', () => {
       };
 
       // First call - cache miss
-      service.get(key, factory).subscribe(() => {
-        expect(callCount).toBe(1);
+      return new Promise((resolve) => {
+        service.get(key, factory).subscribe(() => {
+          expect(callCount).toBe(1);
 
-        // Second call - cache hit
-        service.get(key, factory).subscribe((data) => {
-          expect(data).toEqual(mockData);
-          expect(callCount).toBe(1); // Should not increment
-          done();
+          // Second call - cache hit
+          service.get(key, factory).subscribe((data) => {
+            expect(data).toEqual(mockData);
+            expect(callCount).toBe(1); // Should not increment
+            resolve(undefined);
+          });
         });
       });
     });
 
-    it('should deduplicate concurrent requests (shareReplay)', (done) => {
+    it('should deduplicate concurrent requests (shareReplay)', async () => {
       const key = 'test:concurrent';
       const mockData = { id: 'concurrent-test' };
       let callCount = 0;
@@ -83,38 +87,40 @@ describe('CacheService', () => {
 
       const obs = service.get(key, factory);
 
-      let subscriber1Data: any;
-      let subscriber2Data: any;
-      let completed = 0;
+      return new Promise((resolve) => {
+        let subscriber1Data: any;
+        let subscriber2Data: any;
+        let completed = 0;
 
-      // Multiple subscribers to same observable
-      obs.subscribe((data) => {
-        subscriber1Data = data;
-        completed++;
-        if (completed === 2) {
-          // Both should have received data from single HTTP call
-          expect(subscriber1Data).toEqual(mockData);
-          expect(subscriber2Data).toEqual(mockData);
-          expect(callCount).toBe(1);
-          done();
-        }
-      });
+        // Multiple subscribers to same observable
+        obs.subscribe((data) => {
+          subscriber1Data = data;
+          completed++;
+          if (completed === 2) {
+            // Both should have received data from single HTTP call
+            expect(subscriber1Data).toEqual(mockData);
+            expect(subscriber2Data).toEqual(mockData);
+            expect(callCount).toBe(1);
+            resolve(undefined);
+          }
+        });
 
-      obs.subscribe((data) => {
-        subscriber2Data = data;
-        completed++;
-        if (completed === 2) {
-          expect(subscriber1Data).toEqual(mockData);
-          expect(subscriber2Data).toEqual(mockData);
-          expect(callCount).toBe(1);
-          done();
-        }
+        obs.subscribe((data) => {
+          subscriber2Data = data;
+          completed++;
+          if (completed === 2) {
+            expect(subscriber1Data).toEqual(mockData);
+            expect(subscriber2Data).toEqual(mockData);
+            expect(callCount).toBe(1);
+            resolve(undefined);
+          }
+        });
       });
     });
   });
 
   describe('TTL Expiration', () => {
-    it('should expire cache after TTL', (done) => {
+    it('should expire cache after TTL', async () => {
       const key = 'test:ttl';
       const mockData1 = { value: 1 };
       const mockData2 = { value: 2 };
@@ -125,23 +131,25 @@ describe('CacheService', () => {
         return of(callCount === 1 ? mockData1 : mockData2);
       };
 
-      // Cache with 100ms TTL
-      service.get(key, factory, 100).subscribe((data) => {
-        expect(data).toEqual(mockData1);
-        expect(callCount).toBe(1);
+      return new Promise((resolve) => {
+        // Cache with 100ms TTL
+        service.get(key, factory, 100).subscribe((data) => {
+          expect(data).toEqual(mockData1);
+          expect(callCount).toBe(1);
 
-        // Wait for TTL to expire
-        setTimeout(() => {
-          service.get(key, factory, 100).subscribe((data2) => {
-            expect(data2).toEqual(mockData2);
-            expect(callCount).toBe(2); // Should have called factory again
-            done();
-          });
-        }, 150);
+          // Wait for TTL to expire
+          setTimeout(() => {
+            service.get(key, factory, 100).subscribe((data2) => {
+              expect(data2).toEqual(mockData2);
+              expect(callCount).toBe(2); // Should have called factory again
+              resolve(undefined);
+            });
+          }, 150);
+        });
       });
     });
 
-    it('should use default TTL when not specified', (done) => {
+    it('should use default TTL when not specified', async () => {
       const key = 'test:default-ttl';
       const mockData = { value: 1 };
 
@@ -149,40 +157,44 @@ describe('CacheService', () => {
 
       const obs = service.get(key, factory); // No TTL specified
 
-      obs.subscribe(() => {
-        const stats = service.getStats();
-        expect(stats.keys).toContain(key);
-        done();
+      return new Promise((resolve) => {
+        obs.subscribe(() => {
+          const stats = service.getStats();
+          expect(stats.keys).toContain(key);
+          resolve(undefined);
+        });
       });
     });
 
-    it('should use custom TTL when specified', (done) => {
+    it('should use custom TTL when specified', async () => {
       const key = 'test:custom-ttl';
       const mockData = { value: 1 };
       const customTtl = 500; // 500ms
 
       const factory = () => of(mockData);
 
-      service.get(key, factory, customTtl).subscribe(() => {
-        // Should still be in cache immediately after
-        const stats = service.getStats();
-        expect(stats.keys).toContain(key);
+      return new Promise((resolve) => {
+        service.get(key, factory, customTtl).subscribe(() => {
+          // Should still be in cache immediately after
+          const stats = service.getStats();
+          expect(stats.keys).toContain(key);
 
-        // Should expire after custom TTL
-        setTimeout(() => {
-          service.get(key, factory, customTtl).subscribe(() => {
-            const statsAfterTtl = service.getStats();
-            // New entry created, but old one should be gone
-            expect(statsAfterTtl.keys).toContain(key);
-            done();
-          });
-        }, 600);
+          // Should expire after custom TTL
+          setTimeout(() => {
+            service.get(key, factory, customTtl).subscribe(() => {
+              const statsAfterTtl = service.getStats();
+              // New entry created, but old one should be gone
+              expect(statsAfterTtl.keys).toContain(key);
+              resolve(undefined);
+            });
+          }, 600);
+        });
       });
     });
   });
 
   describe('Cache Invalidation', () => {
-    it('should invalidate cache by exact key', (done) => {
+    it('should invalidate cache by exact key', async () => {
       const key = 'test:exact';
       const mockData = { value: 1 };
       let callCount = 0;
@@ -192,21 +204,23 @@ describe('CacheService', () => {
         return of(mockData);
       };
 
-      service.get(key, factory, 10000).subscribe(() => {
-        expect(callCount).toBe(1);
-
-        // Invalidate
-        service.invalidateKey(key);
-
-        // Next call should miss cache
+      return new Promise((resolve) => {
         service.get(key, factory, 10000).subscribe(() => {
-          expect(callCount).toBe(2);
-          done();
+          expect(callCount).toBe(1);
+
+          // Invalidate
+          service.invalidateKey(key);
+
+          // Next call should miss cache
+          service.get(key, factory, 10000).subscribe(() => {
+            expect(callCount).toBe(2);
+            resolve(undefined);
+          });
         });
       });
     });
 
-    it('should invalidate cache by regex pattern', (done) => {
+    it('should invalidate cache by regex pattern', async () => {
       const mockData = { value: 1 };
       let callCount = 0;
 
@@ -215,21 +229,25 @@ describe('CacheService', () => {
         return of(mockData);
       };
 
-      // Cache multiple entries with pattern
-      service.get('board:123:full', factory, 10000).subscribe(() => {
-        service.get('board:456:full', factory, 10000).subscribe(() => {
-          service.get('task:789', factory, 10000).subscribe(() => {
-            expect(callCount).toBe(3);
+      return new Promise((resolve) => {
+        // Cache multiple entries with pattern
+        service.get('board:123:full', factory, 10000).subscribe(() => {
+          service.get('board:456:full', factory, 10000).subscribe(() => {
+            service.get('task:789', factory, 10000).subscribe(() => {
+              expect(callCount).toBe(3);
 
-            // Invalidate all board-related caches
-            service.invalidate('board:.*');
+              // Invalidate all board-related caches
+              service.invalidate('board:.*');
 
-            // Board caches should miss
-            service.get('board:123:full', factory, 10000).subscribe(() => {
-              // Task cache should still hit
-              service.get('task:789', factory, 10000).subscribe(() => {
-                expect(callCount).toBe(5); // Only board:123 and board:456 were called again
-                done();
+              // Board caches should miss - refetch both
+              service.get('board:123:full', factory, 10000).subscribe(() => {
+                service.get('board:456:full', factory, 10000).subscribe(() => {
+                  // Task cache should still hit
+                  service.get('task:789', factory, 10000).subscribe(() => {
+                    expect(callCount).toBe(5); // Only board:123 and board:456 were called again
+                    resolve(undefined);
+                  });
+                });
               });
             });
           });
@@ -237,7 +255,7 @@ describe('CacheService', () => {
       });
     });
 
-    it('should handle string pattern correctly', (done) => {
+    it('should handle string pattern correctly', async () => {
       const mockData = { value: 1 };
       let callCount = 0;
 
@@ -246,16 +264,18 @@ describe('CacheService', () => {
         return of(mockData);
       };
 
-      service.get('task:abc', factory, 10000).subscribe(() => {
-        service.get('task:def', factory, 10000).subscribe(() => {
-          expect(callCount).toBe(2);
+      return new Promise((resolve) => {
+        service.get('task:abc', factory, 10000).subscribe(() => {
+          service.get('task:def', factory, 10000).subscribe(() => {
+            expect(callCount).toBe(2);
 
-          // Use string pattern
-          service.invalidate('task:.*');
+            // Use string pattern
+            service.invalidate('task:.*');
 
-          service.get('task:abc', factory, 10000).subscribe(() => {
-            expect(callCount).toBe(3);
-            done();
+            service.get('task:abc', factory, 10000).subscribe(() => {
+              expect(callCount).toBe(3);
+              resolve(undefined);
+            });
           });
         });
       });
@@ -263,7 +283,7 @@ describe('CacheService', () => {
   });
 
   describe('Cache Clear', () => {
-    it('should clear all cache entries', (done) => {
+    it('should clear all cache entries', async () => {
       const mockData = { value: 1 };
       let callCount = 0;
 
@@ -272,19 +292,21 @@ describe('CacheService', () => {
         return of(mockData);
       };
 
-      service.get('key:1', factory, 10000).subscribe(() => {
-        service.get('key:2', factory, 10000).subscribe(() => {
-          let stats = service.getStats();
-          expect(stats.size).toBe(2);
+      return new Promise((resolve) => {
+        service.get('key:1', factory, 10000).subscribe(() => {
+          service.get('key:2', factory, 10000).subscribe(() => {
+            let stats = service.getStats();
+            expect(stats.size).toBe(2);
 
-          service.clear();
+            service.clear();
 
-          stats = service.getStats();
-          expect(stats.size).toBe(0);
+            stats = service.getStats();
+            expect(stats.size).toBe(0);
 
-          service.get('key:1', factory, 10000).subscribe(() => {
-            expect(callCount).toBe(3); // All were called again
-            done();
+            service.get('key:1', factory, 10000).subscribe(() => {
+              expect(callCount).toBe(3); // All were called again
+              resolve(undefined);
+            });
           });
         });
       });
@@ -292,44 +314,48 @@ describe('CacheService', () => {
   });
 
   describe('Cache Statistics', () => {
-    it('should report accurate cache size', (done) => {
+    it('should report accurate cache size', async () => {
       const mockData = { value: 1 };
       const factory = () => of(mockData);
 
       expect(service.getStats().size).toBe(0);
 
-      service.get('key:1', factory).subscribe(() => {
-        expect(service.getStats().size).toBe(1);
-
-        service.get('key:2', factory).subscribe(() => {
-          expect(service.getStats().size).toBe(2);
-
-          service.invalidateKey('key:1');
+      return new Promise((resolve) => {
+        service.get('key:1', factory).subscribe(() => {
           expect(service.getStats().size).toBe(1);
 
-          done();
+          service.get('key:2', factory).subscribe(() => {
+            expect(service.getStats().size).toBe(2);
+
+            service.invalidateKey('key:1');
+            expect(service.getStats().size).toBe(1);
+
+            resolve(undefined);
+          });
         });
       });
     });
 
-    it('should list all cache keys', (done) => {
+    it('should list all cache keys', async () => {
       const mockData = { value: 1 };
       const factory = () => of(mockData);
 
-      service.get('boards:workspace-1', factory).subscribe(() => {
-        service.get('tasks:column-1', factory).subscribe(() => {
-          const stats = service.getStats();
-          expect(stats.keys).toContain('boards:workspace-1');
-          expect(stats.keys).toContain('tasks:column-1');
-          expect(stats.keys.length).toBe(2);
-          done();
+      return new Promise((resolve) => {
+        service.get('boards:workspace-1', factory).subscribe(() => {
+          service.get('tasks:column-1', factory).subscribe(() => {
+            const stats = service.getStats();
+            expect(stats.keys).toContain('boards:workspace-1');
+            expect(stats.keys).toContain('tasks:column-1');
+            expect(stats.keys.length).toBe(2);
+            resolve(undefined);
+          });
         });
       });
     });
   });
 
   describe('Real-World Scenarios', () => {
-    it('should handle board + tasks + columns caching', (done) => {
+    it('should handle board + tasks + columns caching', async () => {
       const mockBoard = { id: '1', name: 'Board 1' };
       const mockTasks = [{ id: 't1', title: 'Task 1' }];
       const mockColumns = [{ id: 'c1', name: 'Todo' }];
@@ -338,54 +364,73 @@ describe('CacheService', () => {
       const factoryTasks = () => of(mockTasks);
       const factoryColumns = () => of(mockColumns);
 
-      let httpCalls = 0;
+      let factoryCallsBoard = 0;
+      let factoryCallsTasks = 0;
+      let factoryCallsColumns = 0;
 
-      service.get('board:1', factoryBoard, 60000).subscribe(() => {
-        httpCalls++;
-        service.get('tasks:column:1', factoryTasks, 60000).subscribe(() => {
-          httpCalls++;
-          service
-            .get('columns:board:1', factoryColumns, 60000)
-            .subscribe(() => {
-              httpCalls++;
+      const wrappedFactoryBoard = () => {
+        factoryCallsBoard++;
+        return factoryBoard();
+      };
+      const wrappedFactoryTasks = () => {
+        factoryCallsTasks++;
+        return factoryTasks();
+      };
+      const wrappedFactoryColumns = () => {
+        factoryCallsColumns++;
+        return factoryColumns();
+      };
 
-              // All cached now, re-fetch should use cache
-              service.get('board:1', factoryBoard, 60000).subscribe(() => {
-                expect(httpCalls).toBe(3); // No new calls
+      return new Promise((resolve) => {
+        service.get('board:1', wrappedFactoryBoard, 60000).subscribe(() => {
+          service.get('tasks:column:1', wrappedFactoryTasks, 60000).subscribe(() => {
+            service
+              .get('columns:board:1', wrappedFactoryColumns, 60000)
+              .subscribe(() => {
+                expect(factoryCallsBoard).toBe(1);
+                expect(factoryCallsTasks).toBe(1);
+                expect(factoryCallsColumns).toBe(1);
 
-                // Invalidate all board data
-                service.invalidate('board:1|columns:.*|tasks:.*');
+                // All cached now, re-fetch should use cache
+                service.get('board:1', wrappedFactoryBoard, 60000).subscribe(() => {
+                  expect(factoryCallsBoard).toBe(1); // No new calls
 
-                // Should need to refetch
-                service
-                  .get('columns:board:1', factoryColumns, 60000)
-                  .subscribe(() => {
-                    expect(httpCalls).toBe(4); // One new call
-                    done();
-                  });
+                  // Invalidate all board data
+                  service.invalidate('board:1|columns:.*|tasks:.*');
+
+                  // Should need to refetch
+                  service
+                    .get('columns:board:1', wrappedFactoryColumns, 60000)
+                    .subscribe(() => {
+                      expect(factoryCallsColumns).toBe(2); // One new call
+                      resolve(undefined);
+                    });
+                });
               });
-            });
+          });
         });
       });
     });
 
-    it('should handle pagination cache keys correctly', (done) => {
+    it('should handle pagination cache keys correctly', async () => {
       const mockPage1 = { data: ['item1'], page: 1 };
       const mockPage2 = { data: ['item2'], page: 2 };
 
       const factory1 = () => of(mockPage1);
       const factory2 = () => of(mockPage2);
 
-      service.get('tasks:page:1:limit:10', factory1, 60000).subscribe(() => {
-        service.get('tasks:page:2:limit:10', factory2, 60000).subscribe(() => {
-          const stats = service.getStats();
+      return new Promise((resolve) => {
+        service.get('tasks:page:1:limit:10', factory1, 60000).subscribe(() => {
+          service.get('tasks:page:2:limit:10', factory2, 60000).subscribe(() => {
+            const stats = service.getStats();
 
-          // Both should be cached separately
-          expect(stats.keys).toContain('tasks:page:1:limit:10');
-          expect(stats.keys).toContain('tasks:page:2:limit:10');
-          expect(stats.size).toBe(2);
+            // Both should be cached separately
+            expect(stats.keys).toContain('tasks:page:1:limit:10');
+            expect(stats.keys).toContain('tasks:page:2:limit:10');
+            expect(stats.size).toBe(2);
 
-          done();
+            resolve(undefined);
+          });
         });
       });
     });

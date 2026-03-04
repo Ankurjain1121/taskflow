@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { HelpComponent } from './help.component';
 import {
   KeyboardShortcutsService,
@@ -20,7 +21,7 @@ describe('HelpComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [HelpComponent],
+      imports: [HelpComponent, HttpClientTestingModule],
       providers: [
         {
           provide: KeyboardShortcutsService,

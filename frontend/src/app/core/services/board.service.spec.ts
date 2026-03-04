@@ -290,6 +290,96 @@ describe('BoardService', () => {
     });
   });
 
+  describe('renameColumn()', () => {
+    it('should PUT /api/columns/:columnId/name with name', () => {
+      service.renameColumn('col-1', 'In Progress').subscribe((column) => {
+        expect(column).toEqual(MOCK_COLUMN);
+      });
+
+      const req = httpMock.expectOne('/api/columns/col-1/name');
+      expect(req.request.method).toBe('PUT');
+      expect(req.request.body).toEqual({ name: 'In Progress' });
+      req.flush(MOCK_COLUMN);
+    });
+  });
+
+  describe('updateColumnWipLimit()', () => {
+    it('should PUT /api/columns/:columnId/wip-limit with wip_limit', () => {
+      service.updateColumnWipLimit('col-1', 5).subscribe((column) => {
+        expect(column).toEqual(MOCK_COLUMN);
+      });
+
+      const req = httpMock.expectOne('/api/columns/col-1/wip-limit');
+      expect(req.request.method).toBe('PUT');
+      expect(req.request.body).toEqual({ wip_limit: 5 });
+      req.flush(MOCK_COLUMN);
+    });
+
+    it('should allow null wip_limit to clear limit', () => {
+      service.updateColumnWipLimit('col-1', null).subscribe();
+
+      const req = httpMock.expectOne('/api/columns/col-1/wip-limit');
+      expect(req.request.body).toEqual({ wip_limit: null });
+      req.flush(MOCK_COLUMN);
+    });
+  });
+
+  describe('updateColumnIcon()', () => {
+    it('should PUT /api/columns/:columnId/icon with icon', () => {
+      service.updateColumnIcon('col-1', 'pi pi-check').subscribe();
+
+      const req = httpMock.expectOne('/api/columns/col-1/icon');
+      expect(req.request.method).toBe('PUT');
+      expect(req.request.body).toEqual({ icon: 'pi pi-check' });
+      req.flush(MOCK_COLUMN);
+    });
+
+    it('should allow null icon to clear icon', () => {
+      service.updateColumnIcon('col-1', null).subscribe();
+
+      const req = httpMock.expectOne('/api/columns/col-1/icon');
+      expect(req.request.body).toEqual({ icon: null });
+      req.flush(MOCK_COLUMN);
+    });
+  });
+
+  describe('duplicateBoard()', () => {
+    it('should POST /api/boards/:boardId/duplicate with body', () => {
+      const dupReq = { name: 'Copy of Board', include_tasks: true };
+
+      service.duplicateBoard('board-1', dupReq).subscribe((board) => {
+        expect(board).toEqual(MOCK_BOARD);
+      });
+
+      const req = httpMock.expectOne('/api/boards/board-1/duplicate');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual(dupReq);
+      req.flush(MOCK_BOARD);
+    });
+  });
+
+  describe('getBoardFull() with params', () => {
+    it('should pass limit and offset query params', () => {
+      service
+        .getBoardFull('board-1', { limit: 50, offset: 100 })
+        .subscribe();
+
+      const req = httpMock.expectOne(
+        (r) =>
+          r.url === '/api/boards/board-1/full' &&
+          r.params.get('limit') === '50' &&
+          r.params.get('offset') === '100',
+      );
+      expect(req.request.method).toBe('GET');
+      req.flush({
+        board: { ...MOCK_BOARD, columns: [] },
+        tasks: [],
+        members: [],
+        meta: { total_task_count: 200, current_limit: 50, current_offset: 100 },
+      });
+    });
+  });
+
   describe('error handling', () => {
     it('should propagate HTTP errors on getBoard', () => {
       let error: any;
@@ -315,6 +405,19 @@ describe('BoardService', () => {
 
       expect(error).toBeTruthy();
       expect(error.status).toBe(400);
+    });
+
+    it('should propagate 403 on deleteBoard', () => {
+      let error: any;
+      service.deleteBoard('board-1').subscribe({
+        error: (e) => (error = e),
+      });
+
+      const req = httpMock.expectOne('/api/boards/board-1');
+      req.flush('Forbidden', { status: 403, statusText: 'Forbidden' });
+
+      expect(error).toBeTruthy();
+      expect(error.status).toBe(403);
     });
   });
 });

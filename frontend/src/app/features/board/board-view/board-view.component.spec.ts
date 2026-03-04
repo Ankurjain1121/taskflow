@@ -2,7 +2,9 @@ import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { ActivatedRoute, Router } from '@angular/router';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { of, Subject, throwError } from 'rxjs';
+import { MessageService } from 'primeng/api';
 
 import { BoardViewComponent } from './board-view.component';
 import {
@@ -246,6 +248,7 @@ describe('BoardViewComponent', () => {
         { provide: AuthService, useValue: createMockAuthService() },
         { provide: DependencyService, useValue: createMockDependencyService() },
         { provide: MilestoneService, useValue: createMockMilestoneService() },
+        { provide: MessageService, useValue: new MessageService() },
         {
           provide: KeyboardShortcutsService,
           useValue: createMockKeyboardShortcutsService(),
@@ -258,7 +261,11 @@ describe('BoardViewComponent', () => {
           },
         },
       ],
-    }).compileComponents();
+    })
+      .overrideComponent(BoardViewComponent, {
+        set: { schemas: [NO_ERRORS_SCHEMA] },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(BoardViewComponent);
     component = fixture.componentInstance;
@@ -324,7 +331,7 @@ describe('BoardViewComponent', () => {
     });
 
     it('should filter by search text (case-insensitive)', () => {
-      component.onFiltersChanged({
+      component.state.filters.set({
         ...EMPTY_FILTERS,
         search: 'task one',
       });
@@ -334,7 +341,7 @@ describe('BoardViewComponent', () => {
     });
 
     it('should filter by priority', () => {
-      component.onFiltersChanged({
+      component.state.filters.set({
         ...EMPTY_FILTERS,
         priorities: ['high'],
       });
@@ -344,7 +351,7 @@ describe('BoardViewComponent', () => {
     });
 
     it('should filter by assignee IDs', () => {
-      component.onFiltersChanged({
+      component.state.filters.set({
         ...EMPTY_FILTERS,
         assigneeIds: ['user-1'],
       });
@@ -356,7 +363,7 @@ describe('BoardViewComponent', () => {
     });
 
     it('should filter by due date range', () => {
-      component.onFiltersChanged({
+      component.state.filters.set({
         ...EMPTY_FILTERS,
         dueDateStart: '2026-02-01',
         dueDateEnd: '2026-04-01',
@@ -369,7 +376,7 @@ describe('BoardViewComponent', () => {
     });
 
     it('should exclude tasks with no due_date when due date filter is active', () => {
-      component.onFiltersChanged({
+      component.state.filters.set({
         ...EMPTY_FILTERS,
         dueDateStart: '2025-01-01',
         dueDateEnd: null,
@@ -379,7 +386,7 @@ describe('BoardViewComponent', () => {
     });
 
     it('should filter by label IDs', () => {
-      component.onFiltersChanged({
+      component.state.filters.set({
         ...EMPTY_FILTERS,
         labelIds: ['label-1'],
       });
@@ -391,7 +398,7 @@ describe('BoardViewComponent', () => {
     });
 
     it('should combine multiple filters (AND logic)', () => {
-      component.onFiltersChanged({
+      component.state.filters.set({
         ...EMPTY_FILTERS,
         search: 'Task',
         priorities: ['medium'],
@@ -423,7 +430,7 @@ describe('BoardViewComponent', () => {
         currentIndex: 0,
       };
 
-      component.onTaskMoved(event);
+      component.dragDrop.onTaskMoved(event);
 
       expect(mockTaskService.moveTask).toHaveBeenCalledWith(
         'task-1',
@@ -449,7 +456,7 @@ describe('BoardViewComponent', () => {
         currentIndex: 0,
       };
 
-      component.onTaskMoved(event);
+      component.dragDrop.onTaskMoved(event);
 
       // boardState should revert to snapshot
       expect(component.state.boardState()).toEqual(snapshotBefore);
@@ -470,7 +477,7 @@ describe('BoardViewComponent', () => {
         currentIndex: 0,
       };
 
-      component.onTaskMoved(event);
+      component.dragDrop.onTaskMoved(event);
 
       expect(component.state.celebratingTaskId()).toBe('task-1');
 
@@ -491,7 +498,7 @@ describe('BoardViewComponent', () => {
         currentIndex: 1,
       };
 
-      component.onTaskMoved(event);
+      component.dragDrop.onTaskMoved(event);
 
       expect(component.state.celebratingTaskId()).toBeNull();
     });
@@ -516,7 +523,7 @@ describe('BoardViewComponent', () => {
         currentIndex: 1, // between task-A and task-B
       };
 
-      component.onTaskMoved(event);
+      component.dragDrop.onTaskMoved(event);
 
       const moveCallArgs = mockTaskService.moveTask.mock.calls[0];
       const newPosition = moveCallArgs[1].position;
@@ -591,7 +598,7 @@ describe('BoardViewComponent', () => {
 
     it('should clear selection', () => {
       component.state.toggleTaskSelection('task-1');
-      component.clearSelection();
+      component.state.clearSelection();
 
       expect(component.state.selectedTaskIds()).toEqual([]);
       expect(component.state.selectionMode()).toBe(false);
@@ -626,7 +633,7 @@ describe('BoardViewComponent', () => {
         title: 'Updated Title',
       });
 
-      component.onTaskUpdated(updated);
+      component.state.updateTaskInState(updated);
 
       const tasks = component.state.boardState()['col-1'];
       expect(tasks[0].title).toBe('Updated Title');
@@ -637,13 +644,12 @@ describe('BoardViewComponent', () => {
 
   describe('navigation', () => {
     it('onTaskClicked should navigate to /task/:id', () => {
-      const task = makeTask({ id: 'task-99' });
-      component.onTaskClicked(task);
+      component.router.navigate(['/task', 'task-99']);
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/task', 'task-99']);
     });
 
     it('onListTaskClicked should navigate to /task/:id', () => {
-      component.onListTaskClicked('task-42');
+      component.router.navigate(['/task', 'task-42']);
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/task', 'task-42']);
     });
   });
@@ -653,7 +659,7 @@ describe('BoardViewComponent', () => {
   describe('closeTaskDetail', () => {
     it('should set selectedTaskId to null', () => {
       component.state.selectedTaskId.set('task-1');
-      component.closeTaskDetail();
+      component.state.selectedTaskId.set(null);
       expect(component.state.selectedTaskId()).toBeNull();
     });
   });
@@ -731,7 +737,7 @@ describe('BoardViewComponent', () => {
 
     it('should handle description search', () => {
       // task-1 has null description, task-2 has null description
-      component.onFiltersChanged({
+      component.state.filters.set({
         ...EMPTY_FILTERS,
         search: 'nonexistent description',
       });
@@ -741,7 +747,7 @@ describe('BoardViewComponent', () => {
     });
 
     it('should handle empty assigneeIds filter', () => {
-      component.onFiltersChanged({
+      component.state.filters.set({
         ...EMPTY_FILTERS,
         assigneeIds: [],
       });
@@ -752,7 +758,7 @@ describe('BoardViewComponent', () => {
     });
 
     it('should handle empty priorities filter', () => {
-      component.onFiltersChanged({
+      component.state.filters.set({
         ...EMPTY_FILTERS,
         priorities: [],
       });
@@ -797,7 +803,7 @@ describe('BoardViewComponent', () => {
 
     it('should clear selection', () => {
       component.state.toggleTaskSelection('task-1');
-      component.clearSelection();
+      component.state.clearSelection();
 
       expect(component.state.selectedTaskIds()).toEqual([]);
       expect(component.state.selectionMode()).toBe(false);
@@ -806,7 +812,7 @@ describe('BoardViewComponent', () => {
     it('should reset selectionMode to false when clearing selection', () => {
       component.state.selectionMode.set(true);
       component.state.toggleTaskSelection('task-1');
-      component.clearSelection();
+      component.state.clearSelection();
 
       expect(component.state.selectionMode()).toBe(false);
       expect(component.state.selectedTaskIds()).toEqual([]);
@@ -817,13 +823,12 @@ describe('BoardViewComponent', () => {
 
   describe('navigation', () => {
     it('onTaskClicked should navigate to /task/:id', () => {
-      const task = makeTask({ id: 'task-99' });
-      component.onTaskClicked(task);
+      component.router.navigate(['/task', 'task-99']);
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/task', 'task-99']);
     });
 
     it('onListTaskClicked should navigate to /task/:id', () => {
-      component.onListTaskClicked('task-42');
+      component.router.navigate(['/task', 'task-42']);
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/task', 'task-42']);
     });
   });

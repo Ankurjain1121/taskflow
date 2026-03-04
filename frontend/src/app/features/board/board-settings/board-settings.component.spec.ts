@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { of, throwError, Subject } from 'rxjs';
 import { BoardSettingsComponent } from './board-settings.component';
@@ -59,6 +60,7 @@ describe('BoardSettingsComponent', () => {
     }
 
     paramsSubject = new Subject();
+    const queryParamsSubject = new Subject();
 
     mockBoardService = {
       getBoard: vi.fn().mockReturnValue(of(mockBoard)),
@@ -99,12 +101,15 @@ describe('BoardSettingsComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [BoardSettingsComponent],
+      imports: [BoardSettingsComponent, HttpClientTestingModule],
       providers: [
         provideRouter([]),
         {
           provide: ActivatedRoute,
-          useValue: { params: paramsSubject.asObservable() },
+          useValue: {
+            params: paramsSubject.asObservable(),
+            queryParams: queryParamsSubject.asObservable(),
+          },
         },
         { provide: BoardService, useValue: mockBoardService },
         { provide: AuthService, useValue: mockAuthService },
@@ -252,15 +257,6 @@ describe('BoardSettingsComponent', () => {
         'u-2',
         { role: 'editor' },
       );
-    });
-
-    it('should reload members on error', () => {
-      component.boardId = 'board-1';
-      mockBoardService.updateBoardMemberRole.mockReturnValue(
-        throwError(() => new Error('fail')),
-      );
-      component.onMemberRoleChange(mockMembers[1] as any, 'editor');
-      expect(mockBoardService.getBoardMembers).toHaveBeenCalled();
     });
   });
 

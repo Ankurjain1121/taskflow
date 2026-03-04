@@ -50,3 +50,6 @@ taskflow-services = { path = "../services" }
 tokio = { workspace = true, features = ["full", "test-util"] }
 serde_json = { workspace = true }
 tower = { version = "0.5", features = ["util"] }
+mockall.workspace = true
+rstest.workspace = true
+proptest.workspace = true

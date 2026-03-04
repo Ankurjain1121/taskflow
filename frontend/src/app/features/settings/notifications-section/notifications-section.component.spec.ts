@@ -188,6 +188,7 @@ describe('NotificationsSectionComponent', () => {
   });
 
   it('should save extra settings', () => {
+    component.quietHoursEnabled.set(true);
     component.quietHoursStart = '21:00';
     component.quietHoursEnd = '06:00';
     component.digestFrequency = 'daily';

@@ -54,8 +54,8 @@ describe('EmptyStateComponent', () => {
     );
   });
 
-  it('should display subtitle when provided', () => {
-    host.subtitle = 'Hint text';
+  it('should display description when subtitle is provided as description', () => {
+    host.description = 'Hint text';
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Hint text');
   });
@@ -76,28 +76,28 @@ describe('EmptyStateComponent', () => {
     expect(host.ctaClicked).toHaveBeenCalled();
   });
 
-  it('should return correct illustration bg for each variant', () => {
+  it('should return correct icon bg for each variant', () => {
     const component = fixture.debugElement.children[0]
       .componentInstance as EmptyStateComponent;
 
     host.variant = 'board';
     fixture.detectChanges();
-    expect(component.getIllustrationBg()).toContain('var(--primary)');
+    expect(component.iconBg()).toContain('var(--primary)');
 
     host.variant = 'column';
     fixture.detectChanges();
-    expect(component.getIllustrationBg()).toContain('var(--primary)');
+    expect(component.iconBg()).toContain('var(--primary)');
 
     host.variant = 'search';
     fixture.detectChanges();
-    expect(component.getIllustrationBg()).toBe('var(--muted)');
+    expect(component.iconBg()).toBe('var(--muted)');
 
     host.variant = 'tasks';
     fixture.detectChanges();
-    expect(component.getIllustrationBg()).toContain('var(--success)');
+    expect(component.iconBg()).toContain('var(--success)');
 
     host.variant = 'generic';
     fixture.detectChanges();
-    expect(component.getIllustrationBg()).toBe('var(--muted)');
+    expect(component.iconBg()).toBe('var(--muted)');
   });
 });

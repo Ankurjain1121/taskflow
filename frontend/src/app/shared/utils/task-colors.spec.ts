@@ -1,8 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
   PRIORITY_COLORS,
+  PRIORITY_COLORS_HEX,
+  PRIORITY_FLAG_COLORS,
+  COLUMN_HEADER_COLORS,
   getPriorityColor,
+  getPriorityColorHex,
   getPriorityLabel,
+  isOverdue,
+  isToday,
+  getDueDateColor,
 } from './task-colors';
 
 describe('task-colors', () => {
@@ -80,6 +87,147 @@ describe('task-colors', () => {
 
     it('returns raw string for unknown multi-word priority', () => {
       expect(getPriorityLabel('superHigh')).toBe('superHigh');
+    });
+
+    it('is case insensitive for known priorities', () => {
+      expect(getPriorityLabel('HIGH')).toBe('High');
+      expect(getPriorityLabel('LOW')).toBe('Low');
+    });
+  });
+
+  describe('getPriorityColorHex', () => {
+    it('returns correct hex for all priorities', () => {
+      expect(getPriorityColorHex('urgent')).toEqual(PRIORITY_COLORS_HEX.urgent);
+      expect(getPriorityColorHex('high')).toEqual(PRIORITY_COLORS_HEX.high);
+      expect(getPriorityColorHex('medium')).toEqual(PRIORITY_COLORS_HEX.medium);
+      expect(getPriorityColorHex('low')).toEqual(PRIORITY_COLORS_HEX.low);
+    });
+
+    it('returns gray fallback for unknown priority', () => {
+      const result = getPriorityColorHex('invalid');
+      expect(result.bg).toBe('#9ca3af');
+      expect(result.border).toBe('#6b7280');
+      expect(result.text).toBe('#ffffff');
+    });
+
+    it('is case insensitive', () => {
+      expect(getPriorityColorHex('LOW')).toEqual(PRIORITY_COLORS_HEX.low);
+      expect(getPriorityColorHex('URGENT')).toEqual(
+        PRIORITY_COLORS_HEX.urgent,
+      );
+    });
+
+    it('all hex values are valid hex format', () => {
+      for (const priority of ['urgent', 'high', 'medium', 'low'] as const) {
+        const hex = PRIORITY_COLORS_HEX[priority];
+        expect(hex.bg).toMatch(/^#[0-9a-fA-F]{6}$/);
+        expect(hex.border).toMatch(/^#[0-9a-fA-F]{6}$/);
+        expect(hex.text).toMatch(/^#[0-9a-fA-F]{6}$/);
+      }
+    });
+  });
+
+  describe('isOverdue', () => {
+    it('returns true for past dates', () => {
+      expect(isOverdue('2020-01-01')).toBe(true);
+      expect(isOverdue('2000-06-15')).toBe(true);
+    });
+
+    it('returns false for future dates', () => {
+      expect(isOverdue('2099-12-31')).toBe(false);
+      expect(isOverdue('2050-01-01')).toBe(false);
+    });
+
+    it('returns false for null', () => {
+      expect(isOverdue(null)).toBe(false);
+    });
+
+    it('returns false for today', () => {
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      // The function sets today to 00:00, so a date equal to today is NOT overdue
+      expect(isOverdue(todayStr)).toBe(false);
+    });
+
+    it('returns true for yesterday', () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const str = yesterday.toISOString().split('T')[0];
+      expect(isOverdue(str)).toBe(true);
+    });
+  });
+
+  describe('isToday', () => {
+    it('returns true for today', () => {
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      expect(isToday(todayStr)).toBe(true);
+    });
+
+    it('returns false for yesterday', () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const str = yesterday.toISOString().split('T')[0];
+      expect(isToday(str)).toBe(false);
+    });
+
+    it('returns false for tomorrow', () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const str = tomorrow.toISOString().split('T')[0];
+      expect(isToday(str)).toBe(false);
+    });
+
+    it('returns false for null', () => {
+      expect(isToday(null)).toBe(false);
+    });
+  });
+
+  describe('getDueDateColor', () => {
+    it('returns muted style for null', () => {
+      const result = getDueDateColor(null);
+      expect(result.class).toContain('muted-foreground');
+      expect(result.chipClass).toBe('');
+    });
+
+    it('returns overdue chip for past dates', () => {
+      const result = getDueDateColor('2020-01-01');
+      expect(result.chipClass).toBe('chip-overdue');
+      expect(result.class).toBe('text-white');
+    });
+
+    it('returns due-soon chip for today', () => {
+      const today = new Date().toISOString().split('T')[0];
+      const result = getDueDateColor(today);
+      expect(result.chipClass).toBe('chip-due-soon');
+      expect(result.class).toBe('text-white');
+    });
+
+    it('returns default style for future dates', () => {
+      const result = getDueDateColor('2099-12-31');
+      expect(result.class).toContain('muted-foreground');
+      expect(result.chipClass).toBe('');
+    });
+  });
+
+  describe('constants integrity', () => {
+    it('PRIORITY_FLAG_COLORS has all 4 priorities', () => {
+      expect(Object.keys(PRIORITY_FLAG_COLORS).sort()).toEqual([
+        'high',
+        'low',
+        'medium',
+        'urgent',
+      ]);
+    });
+
+    it('COLUMN_HEADER_COLORS has multiple colors', () => {
+      expect(COLUMN_HEADER_COLORS.length).toBeGreaterThanOrEqual(10);
+    });
+
+    it('PRIORITY_FLAG_COLORS values are hex', () => {
+      for (const color of Object.values(PRIORITY_FLAG_COLORS)) {
+        expect(color).toMatch(/^#[0-9a-fA-F]{6}$/);
+      }
     });
   });
 });

@@ -443,6 +443,116 @@ describe('TaskService', () => {
     });
   });
 
+  describe('updateTask() conflict handling', () => {
+    it('should return ConflictError with serverTask on 409', () => {
+      let error: any;
+      const serverTask = { ...MOCK_TASK, title: 'Server Version' };
+
+      service.updateTask('task-1', { title: 'My Version' }).subscribe({
+        error: (e) => (error = e),
+      });
+
+      const req = httpMock.expectOne('/api/tasks/task-1');
+      req.flush(
+        { current_task: serverTask },
+        { status: 409, statusText: 'Conflict' },
+      );
+
+      expect(error).toBeTruthy();
+      expect(error.status).toBe(409);
+      expect(error.serverTask).toEqual(serverTask);
+    });
+
+    it('should pass through non-409 errors normally', () => {
+      let error: any;
+
+      service.updateTask('task-1', { title: 'Updated' }).subscribe({
+        error: (e) => (error = e),
+      });
+
+      const req = httpMock.expectOne('/api/tasks/task-1');
+      req.flush('Bad Request', { status: 400, statusText: 'Bad Request' });
+
+      expect(error).toBeTruthy();
+      expect(error.status).toBe(400);
+      expect(error.serverTask).toBeUndefined();
+    });
+  });
+
+  describe('duplicateTask()', () => {
+    it('should POST /api/tasks/:taskId/duplicate', () => {
+      service.duplicateTask('task-1').subscribe((task) => {
+        expect(task).toEqual(MOCK_TASK);
+      });
+
+      const req = httpMock.expectOne('/api/tasks/task-1/duplicate');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({});
+      req.flush(MOCK_TASK);
+    });
+  });
+
+  describe('watchers', () => {
+    it('addWatcher should POST /api/tasks/:taskId/watchers', () => {
+      service.addWatcher('task-1', 'user-42').subscribe();
+
+      const req = httpMock.expectOne('/api/tasks/task-1/watchers');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ user_id: 'user-42' });
+      req.flush(null);
+    });
+
+    it('removeWatcher should DELETE /api/tasks/:taskId/watchers/:userId', () => {
+      service.removeWatcher('task-1', 'user-42').subscribe();
+
+      const req = httpMock.expectOne('/api/tasks/task-1/watchers/user-42');
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null);
+    });
+  });
+
+  describe('reminders', () => {
+    it('setReminder should POST /api/tasks/:taskId/reminders', () => {
+      service.setReminder('task-1', 30).subscribe((result) => {
+        expect(result.success).toBe(true);
+        expect(result.id).toBe('rem-1');
+      });
+
+      const req = httpMock.expectOne('/api/tasks/task-1/reminders');
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ remind_before_minutes: 30 });
+      req.flush({ success: true, id: 'rem-1' });
+    });
+
+    it('listReminders should GET /api/tasks/:taskId/reminders', () => {
+      const mockReminders = [
+        {
+          id: 'rem-1',
+          task_id: 'task-1',
+          remind_before_minutes: 30,
+          is_sent: false,
+          created_at: '2026-01-01T00:00:00Z',
+        },
+      ];
+
+      service.listReminders('task-1').subscribe((reminders) => {
+        expect(reminders).toEqual(mockReminders);
+      });
+
+      const req = httpMock.expectOne('/api/tasks/task-1/reminders');
+      expect(req.request.method).toBe('GET');
+      req.flush(mockReminders);
+    });
+
+    it('removeReminder should DELETE /api/tasks/:taskId/reminders/:reminderId', () => {
+      service.removeReminder('task-1', 'rem-1').subscribe();
+
+      const req = httpMock.expectOne('/api/tasks/task-1/reminders/rem-1');
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null);
+    });
+  });
+
   describe('error handling', () => {
     it('should propagate HTTP errors', () => {
       let error: any;
@@ -455,6 +565,19 @@ describe('TaskService', () => {
 
       expect(error).toBeTruthy();
       expect(error.status).toBe(404);
+    });
+
+    it('should handle 403 Forbidden', () => {
+      let error: any;
+      service.deleteTask('task-1').subscribe({
+        error: (e) => (error = e),
+      });
+
+      const req = httpMock.expectOne('/api/tasks/task-1');
+      req.flush('Forbidden', { status: 403, statusText: 'Forbidden' });
+
+      expect(error).toBeTruthy();
+      expect(error.status).toBe(403);
     });
   });
 });
