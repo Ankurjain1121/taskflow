@@ -41,7 +41,7 @@ export class NotificationSoundService {
   private notificationSound: HTMLAudioElement | null = null;
 
   readonly soundEnabled = signal<boolean>(
-    localStorage.getItem(STORAGE_KEY) !== 'muted'
+    localStorage.getItem(STORAGE_KEY) !== 'muted',
   );
 
   constructor() {

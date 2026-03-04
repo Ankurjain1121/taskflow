@@ -121,9 +121,7 @@ describe('BoardShareService', () => {
     it('should include password param when provided', () => {
       service.accessSharedBoard('token-abc', 'secret').subscribe();
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/shared/token-abc',
-      );
+      const req = httpMock.expectOne((r) => r.url === '/api/shared/token-abc');
       expect(req.request.method).toBe('GET');
       expect(req.request.params.get('password')).toBe('secret');
       req.flush({

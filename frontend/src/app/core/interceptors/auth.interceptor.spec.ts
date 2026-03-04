@@ -43,10 +43,7 @@ describe('authInterceptor', () => {
     });
   });
 
-  function runInterceptor(
-    req: HttpRequest<unknown>,
-    next: HttpHandlerFn,
-  ) {
+  function runInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn) {
     return TestBed.runInInjectionContext(() => authInterceptor(req, next));
   }
 
@@ -170,8 +167,14 @@ describe('authInterceptor', () => {
   describe('401 handling — first request triggers refresh', () => {
     it('should attempt refresh on 401 and retry the original request', () => {
       const req = new HttpRequest('GET', '/api/tasks');
-      const error401 = new HttpErrorResponse({ status: 401, url: '/api/tasks' });
-      const successResponse = new HttpResponse({ status: 200, body: { data: [] } });
+      const error401 = new HttpErrorResponse({
+        status: 401,
+        url: '/api/tasks',
+      });
+      const successResponse = new HttpResponse({
+        status: 200,
+        body: { data: [] },
+      });
 
       let callCount = 0;
       const next: HttpHandlerFn = (r) => {
@@ -200,7 +203,10 @@ describe('authInterceptor', () => {
 
     it('should sign out and redirect when refresh fails', () => {
       const req = new HttpRequest('GET', '/api/tasks');
-      const error401 = new HttpErrorResponse({ status: 401, url: '/api/tasks' });
+      const error401 = new HttpErrorResponse({
+        status: 401,
+        url: '/api/tasks',
+      });
       const refreshError = new Error('Refresh failed');
 
       const next: HttpHandlerFn = () => throwError(() => error401);
@@ -225,8 +231,14 @@ describe('authInterceptor', () => {
   describe('401 handling — refresh already in progress', () => {
     it('should wait for existing refresh and retry on success', () => {
       const req = new HttpRequest('GET', '/api/tasks');
-      const error401 = new HttpErrorResponse({ status: 401, url: '/api/tasks' });
-      const successResponse = new HttpResponse({ status: 200, body: { data: [] } });
+      const error401 = new HttpErrorResponse({
+        status: 401,
+        url: '/api/tasks',
+      });
+      const successResponse = new HttpResponse({
+        status: 200,
+        body: { data: [] },
+      });
 
       mockAuthService.isRefreshInProgress.mockReturnValue(true);
       mockAuthService.waitForRefresh.mockReturnValue(of(true));
@@ -255,7 +267,10 @@ describe('authInterceptor', () => {
 
     it('should propagate error when waiting refresh returns failure', () => {
       const req = new HttpRequest('GET', '/api/tasks');
-      const error401 = new HttpErrorResponse({ status: 401, url: '/api/tasks' });
+      const error401 = new HttpErrorResponse({
+        status: 401,
+        url: '/api/tasks',
+      });
 
       mockAuthService.isRefreshInProgress.mockReturnValue(true);
       mockAuthService.waitForRefresh.mockReturnValue(of(false));

@@ -93,7 +93,9 @@ const EVENT_TYPE_BG: Record<NotificationEventType, string> = {
               {{ getRelativeTime() }}
             </p>
             @if (notification().link_url) {
-              <span class="text-xs text-blue-500 dark:text-blue-400"> View </span>
+              <span class="text-xs text-blue-500 dark:text-blue-400">
+                View
+              </span>
             }
           </div>
         </div>

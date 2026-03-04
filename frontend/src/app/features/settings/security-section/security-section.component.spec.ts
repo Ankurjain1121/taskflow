@@ -17,10 +17,26 @@ describe('SecuritySectionComponent', () => {
     };
 
     mockSessionService = {
-      listSessions: vi.fn().mockReturnValue(of([
-        { id: 's-1', user_agent: 'Chrome on Windows', ip_address: '1.2.3.4', last_active_at: new Date().toISOString(), is_current: true, device_name: null },
-        { id: 's-2', user_agent: 'Firefox on Linux', ip_address: '5.6.7.8', last_active_at: new Date(Date.now() - 3600000).toISOString(), is_current: false, device_name: null },
-      ])),
+      listSessions: vi.fn().mockReturnValue(
+        of([
+          {
+            id: 's-1',
+            user_agent: 'Chrome on Windows',
+            ip_address: '1.2.3.4',
+            last_active_at: new Date().toISOString(),
+            is_current: true,
+            device_name: null,
+          },
+          {
+            id: 's-2',
+            user_agent: 'Firefox on Linux',
+            ip_address: '5.6.7.8',
+            last_active_at: new Date(Date.now() - 3600000).toISOString(),
+            is_current: false,
+            device_name: null,
+          },
+        ]),
+      ),
       revokeSession: vi.fn().mockReturnValue(of(void 0)),
       revokeAllOtherSessions: vi.fn().mockReturnValue(of({ revoked_count: 1 })),
     };
@@ -50,17 +66,35 @@ describe('SecuritySectionComponent', () => {
   });
 
   it('should sort sessions with current first', () => {
-    mockSessionService.listSessions.mockReturnValue(of([
-      { id: 's-2', user_agent: 'Firefox', ip_address: '5.6.7.8', last_active_at: new Date().toISOString(), is_current: false, device_name: null },
-      { id: 's-1', user_agent: 'Chrome', ip_address: '1.2.3.4', last_active_at: new Date(Date.now() - 1000).toISOString(), is_current: true, device_name: null },
-    ]));
+    mockSessionService.listSessions.mockReturnValue(
+      of([
+        {
+          id: 's-2',
+          user_agent: 'Firefox',
+          ip_address: '5.6.7.8',
+          last_active_at: new Date().toISOString(),
+          is_current: false,
+          device_name: null,
+        },
+        {
+          id: 's-1',
+          user_agent: 'Chrome',
+          ip_address: '1.2.3.4',
+          last_active_at: new Date(Date.now() - 1000).toISOString(),
+          is_current: true,
+          device_name: null,
+        },
+      ]),
+    );
     component.ngOnInit();
     expect(component.sessions()[0].is_current).toBe(true);
     expect(component.sessions()[0].id).toBe('s-1');
   });
 
   it('should handle session load error', () => {
-    mockSessionService.listSessions.mockReturnValue(throwError(() => new Error('fail')));
+    mockSessionService.listSessions.mockReturnValue(
+      throwError(() => new Error('fail')),
+    );
     component.ngOnInit();
     expect(component.sessionsLoading()).toBe(false);
   });
@@ -98,7 +132,9 @@ describe('SecuritySectionComponent', () => {
   });
 
   it('should handle password change error', () => {
-    mockAuthService.changePassword.mockReturnValue(throwError(() => ({ error: { message: 'Wrong' } })));
+    mockAuthService.changePassword.mockReturnValue(
+      throwError(() => ({ error: { message: 'Wrong' } })),
+    );
     component.currentPassword = 'old';
     component.newPassword = 'newpass123';
     component.confirmPassword = 'newpass123';
@@ -119,7 +155,9 @@ describe('SecuritySectionComponent', () => {
   });
 
   it('should handle revoke session error', () => {
-    mockSessionService.revokeSession.mockReturnValue(throwError(() => new Error('fail')));
+    mockSessionService.revokeSession.mockReturnValue(
+      throwError(() => new Error('fail')),
+    );
     component.revokeSession('s-2');
     expect(component.revokingSessionId()).toBe(null);
   });
@@ -131,21 +169,41 @@ describe('SecuritySectionComponent', () => {
   });
 
   it('should handle revoke all error', () => {
-    mockSessionService.revokeAllOtherSessions.mockReturnValue(throwError(() => new Error('fail')));
+    mockSessionService.revokeAllOtherSessions.mockReturnValue(
+      throwError(() => new Error('fail')),
+    );
     component.revokeAllOther();
     expect(component.revokeAllLoading()).toBe(false);
   });
 
   it('should parse user agent correctly', () => {
-    expect(component.parseUserAgent('Mozilla/5.0 Chrome Windows')).toContain('Chrome');
-    expect(component.parseUserAgent('Mozilla/5.0 Chrome Windows')).toContain('Windows');
-    expect(component.parseUserAgent('Mozilla/5.0 Firefox Linux')).toContain('Firefox');
-    expect(component.parseUserAgent('Mozilla/5.0 Firefox Linux')).toContain('Linux');
-    expect(component.parseUserAgent('Mozilla/5.0 Safari Mac OS')).toContain('Safari');
-    expect(component.parseUserAgent('Mozilla/5.0 Safari Mac OS')).toContain('macOS');
-    expect(component.parseUserAgent('Mozilla/5.0 Edg Windows')).toContain('Edge');
-    expect(component.parseUserAgent('Mozilla/5.0 iPhone Safari')).toContain('iOS');
-    expect(component.parseUserAgent('Mozilla/5.0 Android Chrome')).toContain('Android');
+    expect(component.parseUserAgent('Mozilla/5.0 Chrome Windows')).toContain(
+      'Chrome',
+    );
+    expect(component.parseUserAgent('Mozilla/5.0 Chrome Windows')).toContain(
+      'Windows',
+    );
+    expect(component.parseUserAgent('Mozilla/5.0 Firefox Linux')).toContain(
+      'Firefox',
+    );
+    expect(component.parseUserAgent('Mozilla/5.0 Firefox Linux')).toContain(
+      'Linux',
+    );
+    expect(component.parseUserAgent('Mozilla/5.0 Safari Mac OS')).toContain(
+      'Safari',
+    );
+    expect(component.parseUserAgent('Mozilla/5.0 Safari Mac OS')).toContain(
+      'macOS',
+    );
+    expect(component.parseUserAgent('Mozilla/5.0 Edg Windows')).toContain(
+      'Edge',
+    );
+    expect(component.parseUserAgent('Mozilla/5.0 iPhone Safari')).toContain(
+      'iOS',
+    );
+    expect(component.parseUserAgent('Mozilla/5.0 Android Chrome')).toContain(
+      'Android',
+    );
     expect(component.parseUserAgent('')).toBe('Unknown Device');
   });
 
@@ -159,10 +217,24 @@ describe('SecuritySectionComponent', () => {
   });
 
   it('should format relative time', () => {
-    expect(component.formatRelativeTime(new Date().toISOString())).toBe('just now');
-    expect(component.formatRelativeTime(new Date(Date.now() - 5 * 60000).toISOString())).toBe('5m ago');
-    expect(component.formatRelativeTime(new Date(Date.now() - 3 * 3600000).toISOString())).toBe('3h ago');
-    expect(component.formatRelativeTime(new Date(Date.now() - 5 * 86400000).toISOString())).toBe('5d ago');
+    expect(component.formatRelativeTime(new Date().toISOString())).toBe(
+      'just now',
+    );
+    expect(
+      component.formatRelativeTime(
+        new Date(Date.now() - 5 * 60000).toISOString(),
+      ),
+    ).toBe('5m ago');
+    expect(
+      component.formatRelativeTime(
+        new Date(Date.now() - 3 * 3600000).toISOString(),
+      ),
+    ).toBe('3h ago');
+    expect(
+      component.formatRelativeTime(
+        new Date(Date.now() - 5 * 86400000).toISOString(),
+      ),
+    ).toBe('5d ago');
     // More than 30 days should return a locale date string
     const oldDate = new Date(Date.now() - 35 * 86400000).toISOString();
     const result = component.formatRelativeTime(oldDate);

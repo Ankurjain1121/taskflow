@@ -10,10 +10,7 @@ describe('SettingsLayoutComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [
-        SettingsLayoutComponent,
-        RouterTestingModule.withRoutes([]),
-      ],
+      imports: [SettingsLayoutComponent, RouterTestingModule.withRoutes([])],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SettingsLayoutComponent);

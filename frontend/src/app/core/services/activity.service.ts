@@ -46,7 +46,7 @@ export class ActivityService {
   listByTask(
     taskId: string,
     cursor?: string,
-    limit?: number
+    limit?: number,
   ): Observable<ActivityListResponse> {
     let params = new HttpParams();
 
@@ -60,7 +60,7 @@ export class ActivityService {
 
     return this.http.get<ActivityListResponse>(
       `${this.apiUrl}/tasks/${taskId}/activity`,
-      { params }
+      { params },
     );
   }
 }

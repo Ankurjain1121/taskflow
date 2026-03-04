@@ -3,11 +3,7 @@ import {
   HttpClientTestingModule,
   HttpTestingController,
 } from '@angular/common/http/testing';
-import {
-  TeamService,
-  MemberWorkload,
-  OverloadedMember,
-} from './team.service';
+import { TeamService, MemberWorkload, OverloadedMember } from './team.service';
 
 const MOCK_WORKLOAD: MemberWorkload = {
   user_id: 'user-1',
@@ -107,7 +103,7 @@ describe('TeamService', () => {
       const req = httpMock.expectOne(
         (r) =>
           r.url === '/api/workspaces/ws-1/overloaded-members' &&
-          r.params.get('threshold') === '10'
+          r.params.get('threshold') === '10',
       );
       expect(req.request.method).toBe('GET');
       req.flush([MOCK_OVERLOADED]);
@@ -119,7 +115,7 @@ describe('TeamService', () => {
       const req = httpMock.expectOne(
         (r) =>
           r.url === '/api/workspaces/ws-1/overloaded-members' &&
-          r.params.get('threshold') === '5'
+          r.params.get('threshold') === '5',
       );
       expect(req.request.method).toBe('GET');
       req.flush([]);

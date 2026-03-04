@@ -1,4 +1,10 @@
-import { Component, inject, signal, model, output, ChangeDetectionStrategy,
+import {
+  Component,
+  inject,
+  signal,
+  model,
+  output,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';

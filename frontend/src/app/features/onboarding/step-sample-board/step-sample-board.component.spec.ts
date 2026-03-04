@@ -85,7 +85,7 @@ describe('StepSampleBoardComponent', () => {
   describe('generate', () => {
     it('should set loading to true then false', () => {
       mockOnboardingService.generateSampleBoard.mockReturnValue(
-        of({ board_id: 'board-1' })
+        of({ board_id: 'board-1' }),
       );
 
       component.generate();
@@ -96,7 +96,7 @@ describe('StepSampleBoardComponent', () => {
     it('should clear previous error', () => {
       component.error.set('old error');
       mockOnboardingService.generateSampleBoard.mockReturnValue(
-        of({ board_id: 'board-1' })
+        of({ board_id: 'board-1' }),
       );
 
       component.generate();
@@ -106,7 +106,7 @@ describe('StepSampleBoardComponent', () => {
 
     it('should call generateSampleBoard with workspaceId', () => {
       mockOnboardingService.generateSampleBoard.mockReturnValue(
-        of({ board_id: 'board-1' })
+        of({ board_id: 'board-1' }),
       );
 
       component.generate();
@@ -118,7 +118,7 @@ describe('StepSampleBoardComponent', () => {
 
     it('should set isGenerated to true on success', () => {
       mockOnboardingService.generateSampleBoard.mockReturnValue(
-        of({ board_id: 'board-1' })
+        of({ board_id: 'board-1' }),
       );
 
       component.generate();
@@ -128,7 +128,7 @@ describe('StepSampleBoardComponent', () => {
 
     it('should set error on failure with server message', () => {
       mockOnboardingService.generateSampleBoard.mockReturnValue(
-        throwError(() => ({ error: { message: 'Quota exceeded' } }))
+        throwError(() => ({ error: { message: 'Quota exceeded' } })),
       );
 
       component.generate();
@@ -139,7 +139,7 @@ describe('StepSampleBoardComponent', () => {
 
     it('should set default error on failure without server message', () => {
       mockOnboardingService.generateSampleBoard.mockReturnValue(
-        throwError(() => ({ error: {} }))
+        throwError(() => ({ error: {} })),
       );
 
       component.generate();
@@ -186,7 +186,7 @@ describe('StepSampleBoardComponent', () => {
 
     it('should set error on failure with server message', () => {
       mockOnboardingService.completeOnboarding.mockReturnValue(
-        throwError(() => ({ error: { message: 'Server error' } }))
+        throwError(() => ({ error: { message: 'Server error' } })),
       );
 
       component.goToDashboard();
@@ -197,7 +197,7 @@ describe('StepSampleBoardComponent', () => {
 
     it('should set default error on failure without server message', () => {
       mockOnboardingService.completeOnboarding.mockReturnValue(
-        throwError(() => ({ error: {} }))
+        throwError(() => ({ error: {} })),
       );
 
       component.goToDashboard();

@@ -1,69 +1,89 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>TaskFlow</title>
-  <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <script>
-    // FOUC prevention script - applies critical theme vars before paint
-    // Only applies ~10 critical vars that prevent visible flash
-    (function() {
-      // Determine color mode
-      var mode = localStorage.getItem('taskflow-theme') || 'system';
-      var isDark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-      
-      // Select correct cache key
-      var cacheKey = isDark ? 'taskflow-dark-cache' : 'taskflow-light-cache';
-      var cache = localStorage.getItem(cacheKey);
-      
-      // Critical vars that cause visible flash if missing
-      var critical = [
-        'background', 'foreground', 'card', 'card-foreground', 
-        'border', 'sidebar-bg', 'primary', 'primary-foreground',
-        'muted', 'muted-foreground'
-      ];
-      
-      if (cache) {
-        try {
-          var theme = JSON.parse(cache);
-          var root = document.documentElement;
-          var c = theme.colors || {};
-          
-          // Apply critical theme colors
-          for (var i = 0; i < critical.length; i++) {
-            var varName = critical[i];
-            if (c[varName]) {
-              root.style.setProperty('--' + varName, c[varName]);
+  <head>
+    <meta charset="utf-8" />
+    <title>TaskFlow</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+    <script>
+      // FOUC prevention script - applies critical theme vars before paint
+      // Only applies ~10 critical vars that prevent visible flash
+      (function () {
+        // Determine color mode
+        var mode = localStorage.getItem("taskflow-theme") || "system";
+        var isDark =
+          mode === "dark" ||
+          (mode === "system" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+        // Select correct cache key
+        var cacheKey = isDark ? "taskflow-dark-cache" : "taskflow-light-cache";
+        var cache = localStorage.getItem(cacheKey);
+
+        // Critical vars that cause visible flash if missing
+        var critical = [
+          "background",
+          "foreground",
+          "card",
+          "card-foreground",
+          "border",
+          "sidebar-bg",
+          "primary",
+          "primary-foreground",
+          "muted",
+          "muted-foreground",
+        ];
+
+        if (cache) {
+          try {
+            var theme = JSON.parse(cache);
+            var root = document.documentElement;
+            var c = theme.colors || {};
+
+            // Apply critical theme colors
+            for (var i = 0; i < critical.length; i++) {
+              var varName = critical[i];
+              if (c[varName]) {
+                root.style.setProperty("--" + varName, c[varName]);
+              }
             }
+
+            // Apply accent overrides for critical vars (primary, ring)
+            var accentCache = localStorage.getItem("taskflow-accent-overrides");
+            if (accentCache) {
+              try {
+                var o = JSON.parse(accentCache);
+                if (o.primary) root.style.setProperty("--primary", o.primary);
+                if (o["primary-foreground"])
+                  root.style.setProperty(
+                    "--primary-foreground",
+                    o["primary-foreground"],
+                  );
+                if (o.ring) root.style.setProperty("--ring", o.ring);
+              } catch (e2) {}
+            }
+          } catch (e) {
+            localStorage.removeItem(cacheKey);
           }
-          
-          // Apply accent overrides for critical vars (primary, ring)
-          var accentCache = localStorage.getItem('taskflow-accent-overrides');
-          if (accentCache) {
-            try {
-              var o = JSON.parse(accentCache);
-              if (o.primary) root.style.setProperty('--primary', o.primary);
-              if (o['primary-foreground']) root.style.setProperty('--primary-foreground', o['primary-foreground']);
-              if (o.ring) root.style.setProperty('--ring', o.ring);
-            } catch(e2) {}
-          }
-        } catch(e) {
-          localStorage.removeItem(cacheKey);
         }
-      }
-      
-      // Apply dark class
-      if (isDark) {
-        document.documentElement.classList.add('dark');
-      }
-    })();
-  </script>
-</head>
-<body>
-  <app-root></app-root>
-</body>
+
+        // Apply dark class
+        if (isDark) {
+          document.documentElement.classList.add("dark");
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <app-root></app-root>
+  </body>
 </html>

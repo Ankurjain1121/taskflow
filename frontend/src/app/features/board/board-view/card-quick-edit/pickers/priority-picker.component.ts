@@ -45,7 +45,12 @@ interface PriorityOption {
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           }
         </button>
@@ -73,6 +78,8 @@ export class PriorityPickerComponent implements OnInit {
 
   select(value: TaskPriority | 'none'): void {
     this.current.set(value);
-    this.prioritySelected.emit(value === 'none' ? null : (value as TaskPriority));
+    this.prioritySelected.emit(
+      value === 'none' ? null : (value as TaskPriority),
+    );
   }
 }

@@ -31,7 +31,11 @@ export class DependencyService {
     return this.http.get<TaskDependency[]>(`/api/tasks/${taskId}/dependencies`);
   }
 
-  createDependency(taskId: string, targetTaskId: string, type: DependencyType): Observable<TaskDependency> {
+  createDependency(
+    taskId: string,
+    targetTaskId: string,
+    type: DependencyType,
+  ): Observable<TaskDependency> {
     return this.http.post<TaskDependency>(`/api/tasks/${taskId}/dependencies`, {
       target_task_id: targetTaskId,
       dependency_type: type,
@@ -47,6 +51,8 @@ export class DependencyService {
   }
 
   getBoardDependencies(boardId: string): Observable<TaskDependency[]> {
-    return this.http.get<TaskDependency[]>(`/api/boards/${boardId}/dependencies`);
+    return this.http.get<TaskDependency[]>(
+      `/api/boards/${boardId}/dependencies`,
+    );
   }
 }

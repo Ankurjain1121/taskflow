@@ -1,4 +1,9 @@
-import { Component, inject, signal, OnInit, ChangeDetectionStrategy,
+import {
+  Component,
+  inject,
+  signal,
+  OnInit,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';

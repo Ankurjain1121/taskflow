@@ -1,5 +1,4 @@
-import { Component, output, ChangeDetectionStrategy,
-} from '@angular/core';
+import { Component, output, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,

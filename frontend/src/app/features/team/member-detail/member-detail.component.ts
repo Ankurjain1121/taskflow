@@ -239,41 +239,70 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
 
             <div class="widget-card p-5">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg flex items-center justify-center"
-                     [class.bg-amber-100]="(workload()?.due_today || 0) > 0"
-                     [class.bg-gray-100]="(workload()?.due_today || 0) === 0">
-                  <svg class="w-5 h-5"
-                       [class.text-amber-600]="(workload()?.due_today || 0) > 0"
-                       [class.text-gray-400]="(workload()?.due_today || 0) === 0"
-                       fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <div
+                  class="w-10 h-10 rounded-lg flex items-center justify-center"
+                  [class.bg-amber-100]="(workload()?.due_today || 0) > 0"
+                  [class.bg-gray-100]="(workload()?.due_today || 0) === 0"
+                >
+                  <svg
+                    class="w-5 h-5"
+                    [class.text-amber-600]="(workload()?.due_today || 0) > 0"
+                    [class.text-gray-400]="(workload()?.due_today || 0) === 0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
                   </svg>
                 </div>
                 <div>
-                  <p class="text-2xl font-bold"
-                     [class.text-amber-600]="(workload()?.due_today || 0) > 0"
-                     [class.text-[var(--foreground)]]="(workload()?.due_today || 0) === 0">
+                  <p
+                    class="text-2xl font-bold"
+                    [class.text-amber-600]="(workload()?.due_today || 0) > 0"
+                    [class.text-[var(--foreground)]]="
+                      (workload()?.due_today || 0) === 0
+                    "
+                  >
                     {{ workload()?.due_today || 0 }}
                   </p>
-                  <p class="text-xs text-[var(--muted-foreground)]">Due Today</p>
+                  <p class="text-xs text-[var(--muted-foreground)]">
+                    Due Today
+                  </p>
                 </div>
               </div>
             </div>
 
             <div class="widget-card p-5">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <div
+                  class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center"
+                >
+                  <svg
+                    class="w-5 h-5 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
                   </svg>
                 </div>
                 <div>
                   <p class="text-2xl font-bold text-blue-600">
                     {{ workload()?.due_this_week || 0 }}
                   </p>
-                  <p class="text-xs text-[var(--muted-foreground)]">Due This Week</p>
+                  <p class="text-xs text-[var(--muted-foreground)]">
+                    Due This Week
+                  </p>
                 </div>
               </div>
             </div>
@@ -301,8 +330,13 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
             } @else {
               @for (group of taskGroups(); track group.status) {
                 <div>
-                  <div class="px-6 py-2 bg-[var(--secondary)] flex items-center justify-between">
-                    <h3 class="text-sm font-semibold" [class]="group.colorClass">
+                  <div
+                    class="px-6 py-2 bg-[var(--secondary)] flex items-center justify-between"
+                  >
+                    <h3
+                      class="text-sm font-semibold"
+                      [class]="group.colorClass"
+                    >
                       {{ group.label }}
                     </h3>
                     <span class="text-xs text-[var(--muted-foreground)]">
@@ -336,7 +370,8 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                           <p
                             class="text-xs text-[var(--muted-foreground)] truncate"
                           >
-                            {{ task.board_name }} &middot; {{ task.column_name }}
+                            {{ task.board_name }} &middot;
+                            {{ task.column_name }}
                           </p>
                         </div>
                         @if (task.due_date) {
@@ -382,12 +417,42 @@ export class MemberDetailComponent implements OnInit {
 
   taskGroups = computed(() => {
     const allTasks = this.tasks();
-    const groups: { label: string; status: string; tasks: MemberTask[]; colorClass: string }[] = [
-      { label: 'Overdue', status: 'overdue', tasks: [], colorClass: 'text-red-600' },
-      { label: 'Due Today', status: 'due_today', tasks: [], colorClass: 'text-amber-600' },
-      { label: 'Due This Week', status: 'due_this_week', tasks: [], colorClass: 'text-blue-600' },
-      { label: 'Upcoming', status: 'upcoming', tasks: [], colorClass: 'text-[var(--foreground)]' },
-      { label: 'No Due Date', status: 'no_due_date', tasks: [], colorClass: 'text-[var(--muted-foreground)]' },
+    const groups: {
+      label: string;
+      status: string;
+      tasks: MemberTask[];
+      colorClass: string;
+    }[] = [
+      {
+        label: 'Overdue',
+        status: 'overdue',
+        tasks: [],
+        colorClass: 'text-red-600',
+      },
+      {
+        label: 'Due Today',
+        status: 'due_today',
+        tasks: [],
+        colorClass: 'text-amber-600',
+      },
+      {
+        label: 'Due This Week',
+        status: 'due_this_week',
+        tasks: [],
+        colorClass: 'text-blue-600',
+      },
+      {
+        label: 'Upcoming',
+        status: 'upcoming',
+        tasks: [],
+        colorClass: 'text-[var(--foreground)]',
+      },
+      {
+        label: 'No Due Date',
+        status: 'no_due_date',
+        tasks: [],
+        colorClass: 'text-[var(--muted-foreground)]',
+      },
     ];
     for (const task of allTasks) {
       const group = groups.find((g) => g.status === task.due_status);

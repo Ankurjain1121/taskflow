@@ -18,9 +18,17 @@ import {
   DashboardService,
   DashboardStats,
   DashboardActivityEntry,
+  CycleTimePoint,
+  VelocityPoint,
+  WorkloadBalanceEntry,
+  OnTimeMetric,
 } from '../../core/services/dashboard.service';
 import { WorkspaceStateService } from '../../core/services/workspace-state.service';
 import { Workspace } from '../../core/services/workspace.service';
+import {
+  TeamGroupsService,
+  TeamGroup,
+} from '../../core/services/team-groups.service';
 import { MyTasksTodayComponent } from './widgets/my-tasks-today.component';
 import { OverdueTasksTableComponent } from './widgets/overdue-tasks-table.component';
 import { TeamWorkloadComponent } from './widgets/team-workload.component';
@@ -28,10 +36,24 @@ import { CompletionTrendComponent } from './widgets/completion-trend.component';
 import { TasksByStatusComponent } from './widgets/tasks-by-status.component';
 import { TasksByPriorityComponent } from './widgets/tasks-by-priority.component';
 import { UpcomingDeadlinesComponent } from './widgets/upcoming-deadlines.component';
+import { CycleTimeChartComponent } from './widgets/cycle-time-chart.component';
+import { VelocityChartComponent } from './widgets/velocity-chart.component';
+import { WorkloadBalanceComponent } from './widgets/workload-balance.component';
+import { OnTimeMetricComponent } from './widgets/on-time-metric.component';
+import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
+import { OnboardingChecklistComponent } from '../../shared/components/onboarding-checklist/onboarding-checklist.component';
+import { OnboardingChecklistService } from '../../core/services/onboarding-checklist.service';
+
+type DashboardView = 'workspace' | 'team' | 'personal';
 
 interface WorkspaceOption {
   label: string;
   value: string | null;
+}
+
+interface TeamOption {
+  label: string;
+  value: string;
 }
 
 @Component({
@@ -50,6 +72,12 @@ interface WorkspaceOption {
     TasksByStatusComponent,
     TasksByPriorityComponent,
     UpcomingDeadlinesComponent,
+    CycleTimeChartComponent,
+    VelocityChartComponent,
+    WorkloadBalanceComponent,
+    OnTimeMetricComponent,
+    EmptyStateComponent,
+    OnboardingChecklistComponent,
   ],
   template: `
     <div class="min-h-screen" style="background: var(--background)">
@@ -329,6 +357,105 @@ interface WorkspaceOption {
             </div>
           }
 
+          <!-- Metrics View Toggle -->
+          <div class="animate-fade-in-up stagger-6 mb-6">
+            <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+              <div class="flex items-center gap-2">
+                <h2 class="widget-title text-sm">Metrics</h2>
+                <div
+                  class="flex gap-0.5 rounded-lg p-0.5 ml-2"
+                  style="background: var(--muted)"
+                >
+                  @for (view of viewOptions; track view.value) {
+                    <button
+                      (click)="setActiveView(view.value)"
+                      class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
+                      [style.background]="
+                        activeView() === view.value
+                          ? 'var(--card)'
+                          : 'transparent'
+                      "
+                      [style.color]="
+                        activeView() === view.value
+                          ? 'var(--primary)'
+                          : 'var(--muted-foreground)'
+                      "
+                      [style.box-shadow]="
+                        activeView() === view.value
+                          ? '0 1px 2px rgba(0,0,0,0.05)'
+                          : 'none'
+                      "
+                    >
+                      <i [class]="view.icon + ' mr-1'"></i>
+                      {{ view.label }}
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                @if (activeView() === 'team' && teamOptions().length > 0) {
+                  <p-select
+                    [options]="teamOptions()"
+                    [ngModel]="selectedTeamId()"
+                    (ngModelChange)="onTeamChange($event)"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Select a team"
+                    [style]="{ 'min-width': '180px' }"
+                  />
+                }
+                <button
+                  (click)="exportMetricsCsv()"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
+                  style="background: var(--muted); color: var(--muted-foreground)"
+                  title="Export metrics as CSV"
+                >
+                  <i class="pi pi-download text-xs"></i>
+                  Export
+                </button>
+              </div>
+            </div>
+
+            @if (metricsLoading()) {
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                @for (i of [1, 2, 3, 4]; track i) {
+                  <div class="widget-card p-5 min-h-[300px] animate-pulse">
+                    <div
+                      class="h-4 w-32 rounded mb-4"
+                      style="background: var(--muted)"
+                    ></div>
+                    <div
+                      class="h-52 w-full rounded-lg"
+                      style="background: var(--muted)"
+                    ></div>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <app-cycle-time-chart
+                  [data]="metricsCycleTime()"
+                  class="min-h-[300px]"
+                />
+                <app-velocity-chart
+                  [data]="metricsVelocity()"
+                  class="min-h-[300px]"
+                />
+                @if (activeView() !== 'personal') {
+                  <app-workload-balance
+                    [data]="metricsWorkload()"
+                    class="min-h-[300px]"
+                  />
+                }
+                <app-on-time-metric
+                  [data]="metricsOnTime()"
+                  class="min-h-[300px]"
+                />
+              </div>
+            }
+          </div>
+
           <!-- Analytics Section -->
           <div class="animate-fade-in-up stagger-6 mb-6">
             <div class="mb-4">
@@ -368,10 +495,16 @@ interface WorkspaceOption {
               </div>
             } @placeholder {
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                @for (i of [1,2,3,4]; track i) {
+                @for (i of [1, 2, 3, 4]; track i) {
                   <div class="widget-card p-5 min-h-[360px] animate-pulse">
-                    <div class="h-4 w-32 rounded mb-4" style="background: var(--muted)"></div>
-                    <div class="h-64 w-full rounded-lg" style="background: var(--muted)"></div>
+                    <div
+                      class="h-4 w-32 rounded mb-4"
+                      style="background: var(--muted)"
+                    ></div>
+                    <div
+                      class="h-64 w-full rounded-lg"
+                      style="background: var(--muted)"
+                    ></div>
                   </div>
                 }
               </div>
@@ -380,39 +513,10 @@ interface WorkspaceOption {
 
           <!-- Workspaces Section -->
           @if (workspaces().length === 0) {
-            <div class="animate-fade-in-up text-center py-16">
-              <div
-                class="mx-auto w-20 h-20 rounded-2xl flex items-center justify-center mb-5"
-                style="background: var(--muted)"
-              >
-                <i
-                  class="pi pi-building text-3xl"
-                  style="color: var(--muted-foreground)"
-                ></i>
-              </div>
-              <h3
-                class="text-xl font-semibold mb-2"
-                style="color: var(--foreground)"
-              >
-                Your workspace awaits
-              </h3>
-              <p
-                class="mb-1 max-w-sm mx-auto"
-                style="color: var(--muted-foreground)"
-              >
-                Create your first workspace and start organizing your projects.
-              </p>
-              <p class="text-sm mb-8" style="color: var(--muted-foreground)">
-                It only takes a few seconds to get going.
-              </p>
-              <a
-                routerLink="/onboarding"
-                class="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-lg hover:opacity-90 transition-colors font-medium text-sm"
-              >
-                <i class="pi pi-plus"></i>
-                Create Workspace
-              </a>
-            </div>
+            <app-empty-state
+              variant="workspace"
+              (ctaClicked)="navigateToOnboarding()"
+            />
           } @else {
             <div
               class="animate-fade-in-up stagger-6 mb-4 flex items-center justify-between"
@@ -472,6 +576,8 @@ interface WorkspaceOption {
           }
         }
       </main>
+
+      <app-onboarding-checklist />
     </div>
   `,
 })
@@ -480,6 +586,8 @@ export class DashboardComponent implements OnInit {
   private authService = inject(AuthService);
   private dashboardService = inject(DashboardService);
   private workspaceState = inject(WorkspaceStateService);
+  private teamGroupsService = inject(TeamGroupsService);
+  private checklistService = inject(OnboardingChecklistService);
   private injector = inject(Injector);
 
   workspaces = signal<Workspace[]>([]);
@@ -490,6 +598,26 @@ export class DashboardComponent implements OnInit {
   showAllActivity = signal(false);
 
   selectedWorkspaceId = signal<string | null>(null);
+
+  // Metrics view state
+  activeView = signal<DashboardView>('workspace');
+  selectedTeamId = signal<string | null>(null);
+  teams = signal<TeamGroup[]>([]);
+  metricsLoading = signal(false);
+  metricsCycleTime = signal<CycleTimePoint[]>([]);
+  metricsVelocity = signal<VelocityPoint[]>([]);
+  metricsWorkload = signal<WorkloadBalanceEntry[]>([]);
+  metricsOnTime = signal<OnTimeMetric | null>(null);
+
+  viewOptions: { value: DashboardView; label: string; icon: string }[] = [
+    { value: 'workspace', label: 'Workspace', icon: 'pi pi-building' },
+    { value: 'team', label: 'Team', icon: 'pi pi-users' },
+    { value: 'personal', label: 'Personal', icon: 'pi pi-user' },
+  ];
+
+  teamOptions = computed<TeamOption[]>(() =>
+    this.teams().map((t) => ({ label: t.name, value: t.id })),
+  );
 
   displayedActivity = computed(() => {
     const all = this.recentActivity();
@@ -519,6 +647,7 @@ export class DashboardComponent implements OnInit {
 
     this.userName.set(user.name?.split(' ')[0] || null);
     this.loadWorkspaces();
+    this.checklistService.initialize();
 
     // Sync workspace list and handle loading state
     effect(
@@ -537,6 +666,8 @@ export class DashboardComponent implements OnInit {
           // Load stats for current selection (fires on init AND workspace changes)
           this.loadStats(this.selectedWorkspaceId() ?? undefined);
           this.loadRecentActivity(this.selectedWorkspaceId() ?? undefined);
+          this.loadTeams(this.selectedWorkspaceId() ?? undefined);
+          this.loadMetrics();
         });
       },
       { injector: this.injector },
@@ -548,6 +679,37 @@ export class DashboardComponent implements OnInit {
     this.workspaceState.selectWorkspace(value);
     this.loadStats(value ?? undefined);
     this.loadRecentActivity(value ?? undefined);
+    this.loadTeams(value ?? undefined);
+    this.loadMetrics();
+  }
+
+  setActiveView(view: DashboardView): void {
+    this.activeView.set(view);
+    this.loadMetrics();
+  }
+
+  onTeamChange(teamId: string | null): void {
+    this.selectedTeamId.set(teamId);
+    this.loadMetrics();
+  }
+
+  exportMetricsCsv(): void {
+    const cycleData = this.metricsCycleTime().map((p) => ({
+      week_start: p.week_start,
+      avg_cycle_days: p.avg_cycle_days,
+    }));
+    const velocityData = this.metricsVelocity().map((p) => ({
+      week_start: p.week_start,
+      tasks_completed: p.tasks_completed,
+    }));
+    const combined: Record<string, unknown>[] = cycleData.map((c, i) => ({
+      week_start: c.week_start,
+      avg_cycle_days: c.avg_cycle_days,
+      tasks_completed: velocityData[i]?.tasks_completed ?? 0,
+    }));
+    if (combined.length > 0) {
+      this.dashboardService.exportDashboardCsv(combined);
+    }
   }
 
   getGreeting(): string {
@@ -607,6 +769,10 @@ export class DashboardComponent implements OnInit {
     }
   }
 
+  navigateToOnboarding(): void {
+    this.router.navigate(['/onboarding']);
+  }
+
   private loadWorkspaces(): void {
     this.workspaceState.loadWorkspaces();
   }
@@ -627,5 +793,70 @@ export class DashboardComponent implements OnInit {
         // Activity loading failed - section won't show
       },
     });
+  }
+
+  private loadTeams(workspaceId?: string): void {
+    if (!workspaceId) {
+      this.teams.set([]);
+      return;
+    }
+    this.teamGroupsService.listTeams(workspaceId).subscribe({
+      next: (teams) => this.teams.set(teams),
+      error: () => this.teams.set([]),
+    });
+  }
+
+  private loadMetrics(): void {
+    const view = this.activeView();
+    this.metricsLoading.set(true);
+    this.metricsCycleTime.set([]);
+    this.metricsVelocity.set([]);
+    this.metricsWorkload.set([]);
+    this.metricsOnTime.set(null);
+
+    if (view === 'personal') {
+      this.dashboardService.getPersonalDashboard().subscribe({
+        next: (d) => {
+          this.metricsCycleTime.set(d.cycle_time);
+          this.metricsVelocity.set(d.velocity);
+          this.metricsOnTime.set(d.on_time);
+          this.metricsLoading.set(false);
+        },
+        error: () => this.metricsLoading.set(false),
+      });
+    } else if (view === 'team') {
+      const teamId = this.selectedTeamId();
+      if (!teamId) {
+        this.metricsLoading.set(false);
+        return;
+      }
+      this.dashboardService.getTeamDashboard(teamId).subscribe({
+        next: (d) => {
+          this.metricsCycleTime.set(d.cycle_time);
+          this.metricsVelocity.set(d.velocity);
+          this.metricsWorkload.set(d.workload_balance);
+          this.metricsOnTime.set(d.on_time);
+          this.metricsLoading.set(false);
+        },
+        error: () => this.metricsLoading.set(false),
+      });
+    } else {
+      // workspace view
+      const wsId = this.selectedWorkspaceId();
+      if (!wsId) {
+        this.metricsLoading.set(false);
+        return;
+      }
+      this.dashboardService.getWorkspaceDashboard(wsId).subscribe({
+        next: (d) => {
+          this.metricsCycleTime.set(d.cycle_time);
+          this.metricsVelocity.set(d.velocity);
+          this.metricsWorkload.set(d.workload_balance);
+          this.metricsOnTime.set(d.on_time);
+          this.metricsLoading.set(false);
+        },
+        error: () => this.metricsLoading.set(false),
+      });
+    }
   }
 }

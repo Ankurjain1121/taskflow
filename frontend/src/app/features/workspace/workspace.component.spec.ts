@@ -23,7 +23,9 @@ describe('WorkspaceComponent', () => {
     createBoard: vi.fn(),
   };
 
-  const paramMapSubject = new Subject<{ get: (key: string) => string | null }>();
+  const paramMapSubject = new Subject<{
+    get: (key: string) => string | null;
+  }>();
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -96,7 +98,9 @@ describe('WorkspaceComponent', () => {
   describe('ngOnInit', () => {
     it('should load data when workspaceId is provided in route params', () => {
       component.ngOnInit();
-      paramMapSubject.next({ get: (key: string) => (key === 'workspaceId' ? 'ws-1' : null) });
+      paramMapSubject.next({
+        get: (key: string) => (key === 'workspaceId' ? 'ws-1' : null),
+      });
 
       expect(component.workspaceId()).toBe('ws-1');
       expect(mockWorkspaceService.get).toHaveBeenCalledWith('ws-1');

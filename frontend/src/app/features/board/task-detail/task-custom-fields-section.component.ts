@@ -29,9 +29,7 @@ import { toDate, getDropdownSelectOptions } from './task-fields-utils';
         <div class="space-y-3">
           @for (cf of customFields(); track cf.field_id) {
             <div class="flex flex-col gap-1">
-              <label
-                class="text-xs font-medium text-[var(--muted-foreground)]"
-              >
+              <label class="text-xs font-medium text-[var(--muted-foreground)]">
                 {{ cf.field_name }}
                 @if (cf.is_required) {
                   <span class="text-red-500">*</span>
@@ -91,9 +89,7 @@ import { toDate, getDropdownSelectOptions } from './task-fields-utils';
                   />
                 }
                 @case ('checkbox') {
-                  <label
-                    class="inline-flex items-center gap-2 cursor-pointer"
-                  >
+                  <label class="inline-flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       [ngModel]="cf.value_bool || false"

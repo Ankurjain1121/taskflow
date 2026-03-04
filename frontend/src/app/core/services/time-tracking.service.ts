@@ -45,31 +45,31 @@ export class TimeTrackingService {
 
   listEntries(taskId: string): Observable<TimeEntry[]> {
     return this.http.get<TimeEntry[]>(
-      `${this.apiUrl}/tasks/${taskId}/time-entries`
+      `${this.apiUrl}/tasks/${taskId}/time-entries`,
     );
   }
 
   startTimer(taskId: string, description?: string): Observable<TimeEntry> {
     return this.http.post<TimeEntry>(
       `${this.apiUrl}/tasks/${taskId}/time-entries/start`,
-      { description: description || null }
+      { description: description || null },
     );
   }
 
   stopTimer(entryId: string): Observable<TimeEntry> {
     return this.http.post<TimeEntry>(
       `${this.apiUrl}/time-entries/${entryId}/stop`,
-      {}
+      {},
     );
   }
 
   createManualEntry(
     taskId: string,
-    entry: CreateManualEntry
+    entry: CreateManualEntry,
   ): Observable<TimeEntry> {
     return this.http.post<TimeEntry>(
       `${this.apiUrl}/tasks/${taskId}/time-entries`,
-      entry
+      entry,
     );
   }
 
@@ -80,12 +80,9 @@ export class TimeTrackingService {
       started_at: string;
       ended_at: string;
       duration_minutes: number;
-    }>
+    }>,
   ): Observable<TimeEntry> {
-    return this.http.put<TimeEntry>(
-      `${this.apiUrl}/time-entries/${id}`,
-      data
-    );
+    return this.http.put<TimeEntry>(`${this.apiUrl}/time-entries/${id}`, data);
   }
 
   deleteEntry(id: string): Observable<void> {
@@ -94,13 +91,13 @@ export class TimeTrackingService {
 
   getBoardTimeReport(boardId: string): Observable<TaskTimeReport[]> {
     return this.http.get<TaskTimeReport[]>(
-      `${this.apiUrl}/boards/${boardId}/time-report`
+      `${this.apiUrl}/boards/${boardId}/time-report`,
     );
   }
 
   getRunningTimer(): Observable<TimeEntryWithTask | null> {
     return this.http.get<TimeEntryWithTask | null>(
-      `${this.apiUrl}/time-entries/running`
+      `${this.apiUrl}/time-entries/running`,
     );
   }
 }

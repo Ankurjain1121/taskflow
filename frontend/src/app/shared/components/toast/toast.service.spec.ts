@@ -1,6 +1,9 @@
 import { ToastService, ToastNotification } from './toast.service';
 
-function makeToast(id: string, overrides: Partial<ToastNotification> = {}): ToastNotification {
+function makeToast(
+  id: string,
+  overrides: Partial<ToastNotification> = {},
+): ToastNotification {
   return {
     id,
     event_type: 'task_assigned',
@@ -204,7 +207,13 @@ describe('ToastService', () => {
       const result = service.toasts()[0];
       // Ensure no internal properties leaked
       expect(Object.keys(result)).toEqual(
-        expect.arrayContaining(['id', 'event_type', 'title', 'body', 'link_url']),
+        expect.arrayContaining([
+          'id',
+          'event_type',
+          'title',
+          'body',
+          'link_url',
+        ]),
       );
     });
 

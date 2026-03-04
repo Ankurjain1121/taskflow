@@ -178,7 +178,7 @@ describe('StepInviteComponent', () => {
       component.emails[2].value = 'user2@example.com';
 
       mockOnboardingService.inviteMembers.mockReturnValue(
-        of({ invited: 2, pending: 0 })
+        of({ invited: 2, pending: 0 }),
       );
 
       component.sendInvites();
@@ -192,7 +192,7 @@ describe('StepInviteComponent', () => {
     it('should set loading state during request', () => {
       component.emails[0].value = 'user@test.com';
       mockOnboardingService.inviteMembers.mockReturnValue(
-        of({ invited: 1, pending: 0 })
+        of({ invited: 1, pending: 0 }),
       );
 
       component.sendInvites();
@@ -204,7 +204,7 @@ describe('StepInviteComponent', () => {
       vi.useFakeTimers();
       component.emails[0].value = 'user@test.com';
       mockOnboardingService.inviteMembers.mockReturnValue(
-        of({ invited: 1, pending: 1 })
+        of({ invited: 1, pending: 1 }),
       );
 
       component.sendInvites();
@@ -218,7 +218,7 @@ describe('StepInviteComponent', () => {
     it('should emit completed immediately when total is 0', () => {
       component.emails[0].value = 'user@test.com';
       mockOnboardingService.inviteMembers.mockReturnValue(
-        of({ invited: 0, pending: 0 })
+        of({ invited: 0, pending: 0 }),
       );
 
       let emitted = false;
@@ -235,7 +235,7 @@ describe('StepInviteComponent', () => {
       vi.useFakeTimers();
       component.emails[0].value = 'user@test.com';
       mockOnboardingService.inviteMembers.mockReturnValue(
-        of({ invited: 1, pending: 0 })
+        of({ invited: 1, pending: 0 }),
       );
 
       let emitted = false;
@@ -256,7 +256,7 @@ describe('StepInviteComponent', () => {
     it('should set error on failure with server message', () => {
       component.emails[0].value = 'user@test.com';
       mockOnboardingService.inviteMembers.mockReturnValue(
-        throwError(() => ({ error: { message: 'Rate limited' } }))
+        throwError(() => ({ error: { message: 'Rate limited' } })),
       );
 
       component.sendInvites();
@@ -268,7 +268,7 @@ describe('StepInviteComponent', () => {
     it('should set default error on failure without server message', () => {
       component.emails[0].value = 'user@test.com';
       mockOnboardingService.inviteMembers.mockReturnValue(
-        throwError(() => ({ error: {} }))
+        throwError(() => ({ error: {} })),
       );
 
       component.sendInvites();
@@ -283,7 +283,7 @@ describe('StepInviteComponent', () => {
       component.successMessage = 'old success';
       component.emails[0].value = 'user@test.com';
       mockOnboardingService.inviteMembers.mockReturnValue(
-        of({ invited: 1, pending: 0 })
+        of({ invited: 1, pending: 0 }),
       );
 
       component.sendInvites();

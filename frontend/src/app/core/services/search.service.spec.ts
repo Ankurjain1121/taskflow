@@ -56,7 +56,7 @@ describe('SearchService', () => {
         (r) =>
           r.url === '/api/search' &&
           r.params.get('q') === 'test' &&
-          r.params.get('limit') === '20'
+          r.params.get('limit') === '20',
       );
       expect(req.request.method).toBe('GET');
       req.flush(MOCK_SEARCH_RESULTS);
@@ -69,7 +69,7 @@ describe('SearchService', () => {
         (r) =>
           r.url === '/api/search' &&
           r.params.get('q') === 'query' &&
-          r.params.get('limit') === '5'
+          r.params.get('limit') === '5',
       );
       expect(req.request.method).toBe('GET');
       req.flush(MOCK_SEARCH_RESULTS);
@@ -89,7 +89,7 @@ describe('SearchService', () => {
       });
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/search' && r.params.get('q') === 'nonexistent'
+        (r) => r.url === '/api/search' && r.params.get('q') === 'nonexistent',
       );
       req.flush(emptyResults);
     });
@@ -103,7 +103,7 @@ describe('SearchService', () => {
       });
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/search' && r.params.get('q') === 'test'
+        (r) => r.url === '/api/search' && r.params.get('q') === 'test',
       );
       req.flush('Server Error', {
         status: 500,

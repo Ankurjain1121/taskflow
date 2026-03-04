@@ -6,7 +6,9 @@ import { ToastContainerComponent } from './toast.component';
 import { ToastService, ToastNotification } from './toast.service';
 import { NotificationEventType } from '../../../core/services/notification.service';
 
-function makeToast(overrides: Partial<ToastNotification> = {}): ToastNotification {
+function makeToast(
+  overrides: Partial<ToastNotification> = {},
+): ToastNotification {
   return {
     id: 't-1',
     event_type: 'task_assigned',
@@ -20,7 +22,10 @@ function makeToast(overrides: Partial<ToastNotification> = {}): ToastNotificatio
 describe('ToastContainerComponent', () => {
   let component: ToastContainerComponent;
   let fixture: ComponentFixture<ToastContainerComponent>;
-  let mockToastService: { toasts: ReturnType<typeof signal>; dismiss: ReturnType<typeof vi.fn> };
+  let mockToastService: {
+    toasts: ReturnType<typeof signal>;
+    dismiss: ReturnType<typeof vi.fn>;
+  };
   let mockRouter: { navigateByUrl: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
@@ -88,7 +93,9 @@ describe('ToastContainerComponent', () => {
     });
 
     it('should return fallback icon for unknown event type', () => {
-      const config = component.getIconConfig('unknown_type' as NotificationEventType);
+      const config = component.getIconConfig(
+        'unknown_type' as NotificationEventType,
+      );
       expect(config.icon).toContain('pi-bell');
       expect(config.color).toContain('gray');
     });
@@ -104,12 +111,18 @@ describe('ToastContainerComponent', () => {
 
     it('should dismiss and open external link in new tab', () => {
       const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
-      const toast = makeToast({ id: 't-ext', link_url: 'https://example.com/task' });
+      const toast = makeToast({
+        id: 't-ext',
+        link_url: 'https://example.com/task',
+      });
 
       component.onToastClick(toast);
 
       expect(mockToastService.dismiss).toHaveBeenCalledWith('t-ext');
-      expect(openSpy).toHaveBeenCalledWith('https://example.com/task', '_blank');
+      expect(openSpy).toHaveBeenCalledWith(
+        'https://example.com/task',
+        '_blank',
+      );
       expect(mockRouter.navigateByUrl).not.toHaveBeenCalled();
 
       openSpy.mockRestore();

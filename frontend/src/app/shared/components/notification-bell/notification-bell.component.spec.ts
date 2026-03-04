@@ -69,9 +69,21 @@ describe('NotificationBellComponent', () => {
 
   it('should filter notifications by tab', () => {
     mockNotificationService.notifications.set([
-      { id: '1', event_type: 'task_assigned', created_at: new Date().toISOString() },
-      { id: '2', event_type: 'task_commented', created_at: new Date().toISOString() },
-      { id: '3', event_type: 'task_due_soon', created_at: new Date().toISOString() },
+      {
+        id: '1',
+        event_type: 'task_assigned',
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: '2',
+        event_type: 'task_commented',
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: '3',
+        event_type: 'task_due_soon',
+        created_at: new Date().toISOString(),
+      },
     ]);
 
     component.activeTab.set('all');
@@ -126,7 +138,9 @@ describe('NotificationBellComponent', () => {
     // Mock the popover
     component.notifPopover = { hide: vi.fn() } as any;
     component.goToSettings();
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/settings/notifications']);
+    expect(mockRouter.navigate).toHaveBeenCalledWith([
+      '/settings/notifications',
+    ]);
   });
 
   it('should handle notification click with internal link', () => {
@@ -138,7 +152,9 @@ describe('NotificationBellComponent', () => {
     } as any;
     component.onNotificationClick(notification);
     expect(mockNotificationService.markRead).toHaveBeenCalledWith('n-1');
-    expect(mockRouter.navigateByUrl).toHaveBeenCalledWith('/workspace/ws-1/board/b-1');
+    expect(mockRouter.navigateByUrl).toHaveBeenCalledWith(
+      '/workspace/ws-1/board/b-1',
+    );
   });
 
   it('should not mark as read if already read', () => {

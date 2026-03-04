@@ -9,35 +9,61 @@ import { CommonModule } from '@angular/common';
 import { CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { Task } from '../../../core/services/task.service';
 import { Column } from '../../../core/services/board.service';
-import { SwimlaneGroup, SwimlaneState, SwimlaneTaskMoveEvent, GroupByMode } from '../board-view/swimlane.types';
+import {
+  SwimlaneGroup,
+  SwimlaneState,
+  SwimlaneTaskMoveEvent,
+  GroupByMode,
+} from '../board-view/swimlane.types';
 import { SwimlaneRowComponent } from '../swimlane-row/swimlane-row.component';
-import { CardFields, DEFAULT_CARD_FIELDS } from '../board-view/board-state.service';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
+import {
+  CardFields,
+  DEFAULT_CARD_FIELDS,
+} from '../board-view/board-state.service';
 import { makeCellId } from '../board-view/swimlane-utils';
 
 @Component({
   selector: 'app-swimlane-container',
   standalone: true,
-  imports: [CommonModule, CdkDropListGroup, SwimlaneRowComponent],
+  imports: [
+    CommonModule,
+    CdkDropListGroup,
+    SwimlaneRowComponent,
+    EmptyStateComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
   template: `
     <div cdkDropListGroup class="flex flex-col min-h-full">
       <!-- Sticky Column Header Row -->
-      <div class="flex min-w-max sticky top-0 z-20 bg-[var(--card)] border-b-2 border-[var(--border)]">
+      <div
+        class="flex min-w-max sticky top-0 z-20 bg-[var(--card)] border-b-2 border-[var(--border)]"
+      >
         <!-- Label column spacer -->
-        <div class="w-40 flex-shrink-0 border-r border-[var(--border)] px-2 py-2">
-          <span class="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide">
+        <div
+          class="w-40 flex-shrink-0 border-r border-[var(--border)] px-2 py-2"
+        >
+          <span
+            class="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide"
+          >
             {{ groupByLabel() }}
           </span>
         </div>
         <!-- Column headers -->
         @for (col of columns(); track col.id) {
-          <div class="w-[272px] flex-shrink-0 border-r border-[var(--border)] px-3 py-2 flex items-center gap-2">
+          <div
+            class="w-[272px] flex-shrink-0 border-r border-[var(--border)] px-3 py-2 flex items-center gap-2"
+          >
             @if (col.icon) {
               <span class="text-sm leading-none">{{ col.icon }}</span>
             }
-            <span class="text-sm font-medium text-[var(--foreground)]">{{ col.name }}</span>
-            <span class="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-[var(--secondary)] text-[var(--foreground)]">
+            <span class="text-sm font-medium text-[var(--foreground)]">{{
+              col.name
+            }}</span>
+            <span
+              class="inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-[var(--secondary)] text-[var(--foreground)]"
+            >
               {{ columnTaskCount(col.id) }}
             </span>
           </div>
@@ -74,12 +100,12 @@ import { makeCellId } from '../board-view/swimlane-utils';
 
       <!-- Empty state -->
       @if (swimlaneGroups().length === 0) {
-        <div class="flex items-center justify-center py-16 text-[var(--muted-foreground)]">
-          <div class="text-center">
-            <i class="pi pi-th-large text-3xl mb-3 opacity-30 block"></i>
-            <p class="text-sm">No tasks to group</p>
-          </div>
-        </div>
+        <app-empty-state
+          variant="column"
+          size="compact"
+          title="No tasks to group"
+          description="Create tasks or adjust your group-by setting."
+        />
       }
     </div>
   `,

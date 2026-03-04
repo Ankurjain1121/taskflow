@@ -200,9 +200,7 @@ export class AuditLogComponent implements OnInit {
   }
 
   formatAction(action: string): string {
-    return action
-      .replace(/_/g, ' ')
-      .replace(/^\w/, (c) => c.toUpperCase());
+    return action.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
   }
 
   describeAction(entry: AuditLogEntry): string {

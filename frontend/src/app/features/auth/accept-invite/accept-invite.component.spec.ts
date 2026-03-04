@@ -167,7 +167,9 @@ describe('AcceptInviteComponent', () => {
       component.acceptForm.updateValueAndValidity();
 
       expect(
-        component.acceptForm.get('confirmPassword')?.hasError('passwordMismatch'),
+        component.acceptForm
+          .get('confirmPassword')
+          ?.hasError('passwordMismatch'),
       ).toBe(true);
     });
   });

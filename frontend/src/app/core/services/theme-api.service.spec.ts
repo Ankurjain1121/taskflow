@@ -71,9 +71,7 @@ describe('ThemeApiService', () => {
     it('should include is_dark param when true', () => {
       service.listThemes(true).subscribe();
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/themes',
-      );
+      const req = httpMock.expectOne((r) => r.url === '/api/themes');
       expect(req.request.params.get('is_dark')).toBe('true');
       req.flush({ themes: [] });
     });
@@ -81,9 +79,7 @@ describe('ThemeApiService', () => {
     it('should include is_dark param when false', () => {
       service.listThemes(false).subscribe();
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/themes',
-      );
+      const req = httpMock.expectOne((r) => r.url === '/api/themes');
       expect(req.request.params.get('is_dark')).toBe('false');
       req.flush({ themes: [] });
     });

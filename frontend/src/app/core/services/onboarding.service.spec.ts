@@ -63,7 +63,10 @@ describe('OnboardingService', () => {
 
       const req = httpMock.expectOne('/api/onboarding/create-workspace');
       expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual({ name: 'New WS', description: 'Description' });
+      expect(req.request.body).toEqual({
+        name: 'New WS',
+        description: 'Description',
+      });
       req.flush(response);
     });
 
@@ -98,7 +101,9 @@ describe('OnboardingService', () => {
 
   describe('generateSampleBoard()', () => {
     it('should POST /api/onboarding/generate-sample-board with workspace_id', () => {
-      const response: GenerateSampleBoardResponse = { board_id: 'board-sample' };
+      const response: GenerateSampleBoardResponse = {
+        board_id: 'board-sample',
+      };
 
       service.generateSampleBoard('ws-1').subscribe((result) => {
         expect(result).toEqual(response);

@@ -47,6 +47,8 @@ export class ReportsService {
 
   getBoardReport(boardId: string, days: number = 30): Observable<BoardReport> {
     const params = new HttpParams().set('days', days.toString());
-    return this.http.get<BoardReport>(`/api/boards/${boardId}/reports`, { params });
+    return this.http.get<BoardReport>(`/api/boards/${boardId}/reports`, {
+      params,
+    });
   }
 }

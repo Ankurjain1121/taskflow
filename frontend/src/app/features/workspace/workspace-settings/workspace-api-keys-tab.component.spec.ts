@@ -25,24 +25,33 @@ describe('WorkspaceApiKeysTabComponent', () => {
     });
 
     mockApiKeyService = {
-      listKeys: vi.fn().mockReturnValue(of([
-        { id: 'key-1', name: 'Test Key', key_prefix: 'tf_abc', created_at: '2026-01-01' },
-      ])),
-      createKey: vi.fn().mockReturnValue(of({
-        id: 'key-2',
-        full_key: 'tf_abc123fullkey',
-        name: 'New Key',
-        key_prefix: 'tf_abc',
-        created_at: '2026-01-15',
-      })),
+      listKeys: vi
+        .fn()
+        .mockReturnValue(
+          of([
+            {
+              id: 'key-1',
+              name: 'Test Key',
+              key_prefix: 'tf_abc',
+              created_at: '2026-01-01',
+            },
+          ]),
+        ),
+      createKey: vi.fn().mockReturnValue(
+        of({
+          id: 'key-2',
+          full_key: 'tf_abc123fullkey',
+          name: 'New Key',
+          key_prefix: 'tf_abc',
+          created_at: '2026-01-15',
+        }),
+      ),
       revokeKey: vi.fn().mockReturnValue(of(void 0)),
     };
 
     await TestBed.configureTestingModule({
       imports: [WorkspaceApiKeysTabComponent],
-      providers: [
-        { provide: ApiKeyService, useValue: mockApiKeyService },
-      ],
+      providers: [{ provide: ApiKeyService, useValue: mockApiKeyService }],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
 
@@ -62,7 +71,9 @@ describe('WorkspaceApiKeysTabComponent', () => {
   });
 
   it('should handle API keys load error', () => {
-    mockApiKeyService.listKeys.mockReturnValue(throwError(() => new Error('fail')));
+    mockApiKeyService.listKeys.mockReturnValue(
+      throwError(() => new Error('fail')),
+    );
     component.ngOnInit();
     expect(component.apiKeys().length).toBe(0);
   });
@@ -73,7 +84,10 @@ describe('WorkspaceApiKeysTabComponent', () => {
 
     component.onGenerateApiKey();
 
-    expect(mockApiKeyService.createKey).toHaveBeenCalledWith('ws-1', 'My API Key');
+    expect(mockApiKeyService.createKey).toHaveBeenCalledWith(
+      'ws-1',
+      'My API Key',
+    );
     expect(component.newlyCreatedKey()).toBe('tf_abc123fullkey');
     expect(component.generatingKey()).toBe(false);
     expect(emitSpy).toHaveBeenCalled();
@@ -96,7 +110,9 @@ describe('WorkspaceApiKeysTabComponent', () => {
 
   it('should handle generate key error', () => {
     vi.spyOn(globalThis, 'prompt').mockReturnValue('Key');
-    mockApiKeyService.createKey.mockReturnValue(throwError(() => new Error('fail')));
+    mockApiKeyService.createKey.mockReturnValue(
+      throwError(() => new Error('fail')),
+    );
     component.onGenerateApiKey();
     expect(component.generatingKey()).toBe(false);
     vi.restoreAllMocks();
@@ -124,10 +140,17 @@ describe('WorkspaceApiKeysTabComponent', () => {
 
   it('should revoke API key when confirmed', () => {
     vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
-    component.apiKeys.set([{ id: 'key-1', name: 'Test', key_prefix: 'tf_a', created_at: '' }]);
+    component.apiKeys.set([
+      { id: 'key-1', name: 'Test', key_prefix: 'tf_a', created_at: '' },
+    ]);
     const emitSpy = vi.spyOn(component.keyRevoked, 'emit');
 
-    component.onRevokeApiKey({ id: 'key-1', name: 'Test', key_prefix: 'tf_a', created_at: '' });
+    component.onRevokeApiKey({
+      id: 'key-1',
+      name: 'Test',
+      key_prefix: 'tf_a',
+      created_at: '',
+    });
 
     expect(mockApiKeyService.revokeKey).toHaveBeenCalledWith('ws-1', 'key-1');
     expect(component.apiKeys().length).toBe(0);
@@ -138,15 +161,27 @@ describe('WorkspaceApiKeysTabComponent', () => {
 
   it('should not revoke API key when not confirmed', () => {
     vi.spyOn(globalThis, 'confirm').mockReturnValue(false);
-    component.onRevokeApiKey({ id: 'key-1', name: 'Test', key_prefix: 'tf_a', created_at: '' });
+    component.onRevokeApiKey({
+      id: 'key-1',
+      name: 'Test',
+      key_prefix: 'tf_a',
+      created_at: '',
+    });
     expect(mockApiKeyService.revokeKey).not.toHaveBeenCalled();
     vi.restoreAllMocks();
   });
 
   it('should handle revoke error', () => {
     vi.spyOn(globalThis, 'confirm').mockReturnValue(true);
-    mockApiKeyService.revokeKey.mockReturnValue(throwError(() => new Error('fail')));
-    component.onRevokeApiKey({ id: 'key-1', name: 'Test', key_prefix: 'tf_a', created_at: '' });
+    mockApiKeyService.revokeKey.mockReturnValue(
+      throwError(() => new Error('fail')),
+    );
+    component.onRevokeApiKey({
+      id: 'key-1',
+      name: 'Test',
+      key_prefix: 'tf_a',
+      created_at: '',
+    });
     expect(component.revokingKey()).toBe(null);
     vi.restoreAllMocks();
   });

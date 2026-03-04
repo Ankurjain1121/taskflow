@@ -1,4 +1,10 @@
-import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy,
+import {
+  Component,
+  OnInit,
+  inject,
+  signal,
+  computed,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';

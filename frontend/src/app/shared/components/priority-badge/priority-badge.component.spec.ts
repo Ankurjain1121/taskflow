@@ -26,7 +26,9 @@ describe('PriorityBadgeComponent', () => {
   });
 
   it('should create', () => {
-    expect(fixture.nativeElement.querySelector('app-priority-badge')).toBeTruthy();
+    expect(
+      fixture.nativeElement.querySelector('app-priority-badge'),
+    ).toBeTruthy();
   });
 
   it('should display priority label for medium', () => {

@@ -16,8 +16,26 @@ describe('MyTasksComponent', () => {
 
   const mockTasks = {
     items: [
-      { id: 't-1', title: 'Task 1', board_id: 'b-1', board_name: 'Board 1', workspace_id: 'ws-1', priority: 'medium', due_date: null, column_name: 'Todo' },
-      { id: 't-2', title: 'Task 2', board_id: 'b-2', board_name: 'Board 2', workspace_id: 'ws-1', priority: 'high', due_date: '2026-03-01', column_name: 'In Progress' },
+      {
+        id: 't-1',
+        title: 'Task 1',
+        board_id: 'b-1',
+        board_name: 'Board 1',
+        workspace_id: 'ws-1',
+        priority: 'medium',
+        due_date: null,
+        column_name: 'Todo',
+      },
+      {
+        id: 't-2',
+        title: 'Task 2',
+        board_id: 'b-2',
+        board_name: 'Board 2',
+        workspace_id: 'ws-1',
+        priority: 'high',
+        due_date: '2026-03-01',
+        column_name: 'In Progress',
+      },
     ],
     next_cursor: null,
   };
@@ -33,9 +51,13 @@ describe('MyTasksComponent', () => {
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
-        matches: false, media: query, onchange: null,
-        addListener: vi.fn(), removeListener: vi.fn(),
-        addEventListener: vi.fn(), removeEventListener: vi.fn(),
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
         dispatchEvent: vi.fn(),
       })),
     });
@@ -51,8 +73,12 @@ describe('MyTasksComponent', () => {
 
     const mockAuthService = {
       currentUser: signal({
-        id: 'u-1', name: 'Alice', email: 'alice@test.com',
-        avatar_url: null, role: 'Member' as const, tenant_id: 't-1',
+        id: 'u-1',
+        name: 'Alice',
+        email: 'alice@test.com',
+        avatar_url: null,
+        role: 'Member' as const,
+        tenant_id: 't-1',
         onboarding_completed: true,
       }),
     };
@@ -92,7 +118,9 @@ describe('MyTasksComponent', () => {
   });
 
   it('should handle loadInitialData error', () => {
-    mockMyTasksService.getMyTasks.mockReturnValue(throwError(() => new Error('fail')));
+    mockMyTasksService.getMyTasks.mockReturnValue(
+      throwError(() => new Error('fail')),
+    );
     component.loadInitialData();
     expect(component.error()).toContain('Failed to load tasks');
     expect(component.loading()).toBe(false);
@@ -102,10 +130,20 @@ describe('MyTasksComponent', () => {
     component.ngOnInit();
     component.nextCursor.set('cursor-1');
     component.loading.set(false);
-    mockMyTasksService.getMyTasks.mockReturnValue(of({
-      items: [{ id: 't-3', title: 'Task 3', board_id: 'b-1', board_name: 'Board 1', workspace_id: 'ws-1' }],
-      next_cursor: null,
-    }));
+    mockMyTasksService.getMyTasks.mockReturnValue(
+      of({
+        items: [
+          {
+            id: 't-3',
+            title: 'Task 3',
+            board_id: 'b-1',
+            board_name: 'Board 1',
+            workspace_id: 'ws-1',
+          },
+        ],
+        next_cursor: null,
+      }),
+    );
     component.loadMore();
     expect(component.tasks().length).toBeGreaterThan(0);
   });

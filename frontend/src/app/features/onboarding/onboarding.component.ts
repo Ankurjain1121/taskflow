@@ -1,4 +1,9 @@
-import { Component, OnInit, signal, computed, ChangeDetectionStrategy,
+import {
+  Component,
+  OnInit,
+  signal,
+  computed,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -11,11 +16,12 @@ import { StepWorkspaceComponent } from './step-workspace/step-workspace.componen
 import { StepInviteComponent } from './step-invite/step-invite.component';
 import { StepWelcomeComponent } from './step-welcome/step-welcome.component';
 import { StepSampleBoardComponent } from './step-sample-board/step-sample-board.component';
+import { StepUseCaseComponent } from './step-use-case/step-use-case.component';
 
 type OnboardingFlow = 'full' | 'abbreviated';
 
 interface FullFlowStep {
-  id: 'workspace' | 'invite' | 'sample-board';
+  id: 'workspace' | 'invite' | 'use-case' | 'sample-board';
   label: string;
 }
 
@@ -34,6 +40,7 @@ interface AbbreviatedFlowStep {
     StepInviteComponent,
     StepWelcomeComponent,
     StepSampleBoardComponent,
+    StepUseCaseComponent,
   ],
   template: `
     <div
@@ -120,8 +127,17 @@ interface AbbreviatedFlowStep {
                   (completed)="onInviteComplete()"
                 />
               }
+              @case ('use-case') {
+                <app-step-use-case
+                  (completed)="onUseCaseSelected($event)"
+                  (skipped)="onUseCaseSkipped()"
+                />
+              }
               @case ('sample-board') {
-                <app-step-sample-board [workspaceId]="workspaceId()!" />
+                <app-step-sample-board
+                  [workspaceId]="workspaceId()!"
+                  [useCase]="useCase()"
+                />
               }
             }
           }
@@ -180,10 +196,12 @@ export class OnboardingComponent implements OnInit {
   currentStepIndex = signal(0);
   workspaceId = signal<string | null>(null);
   invitationContext = signal<InvitationContext | null>(null);
+  useCase = signal<string>('software');
 
   private fullFlowSteps: FullFlowStep[] = [
     { id: 'workspace', label: 'Create Workspace' },
     { id: 'invite', label: 'Invite Team' },
+    { id: 'use-case', label: 'Use Case' },
     { id: 'sample-board', label: 'Sample Board' },
   ];
 
@@ -274,7 +292,16 @@ export class OnboardingComponent implements OnInit {
   }
 
   onInviteComplete(): void {
-    this.currentStepIndex.set(2); // Move to sample board step
+    this.currentStepIndex.set(2); // Move to use-case step
+  }
+
+  onUseCaseSelected(useCase: string): void {
+    this.useCase.set(useCase);
+    this.currentStepIndex.set(3); // Move to sample board step
+  }
+
+  onUseCaseSkipped(): void {
+    this.currentStepIndex.set(3); // Move to sample board step (keeps default 'software')
   }
 
   goToSampleBoardStep(): void {

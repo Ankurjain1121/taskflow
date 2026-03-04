@@ -53,7 +53,9 @@ describe('HelpComponent', () => {
 
   describe('features', () => {
     it('should include Kanban Boards feature', () => {
-      const kanban = component.features.find((f) => f.title === 'Kanban Boards');
+      const kanban = component.features.find(
+        (f) => f.title === 'Kanban Boards',
+      );
       expect(kanban).toBeDefined();
       expect(kanban?.description).toContain('Drag-and-drop');
     });
@@ -73,9 +75,7 @@ describe('HelpComponent', () => {
 
   describe('faqs', () => {
     it('should include task deletion FAQ', () => {
-      const faq = component.faqs.find((f) =>
-        f.q.includes('delete a task'),
-      );
+      const faq = component.faqs.find((f) => f.q.includes('delete a task'));
       expect(faq).toBeDefined();
       expect(faq?.a).toContain('Archive');
     });

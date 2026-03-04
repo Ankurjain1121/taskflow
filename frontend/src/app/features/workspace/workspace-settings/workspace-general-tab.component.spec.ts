@@ -38,7 +38,9 @@ describe('WorkspaceGeneralTabComponent', () => {
     });
 
     mockWorkspaceService = {
-      update: vi.fn().mockReturnValue(of({ ...testWorkspace, name: 'Updated WS' })),
+      update: vi
+        .fn()
+        .mockReturnValue(of({ ...testWorkspace, name: 'Updated WS' })),
     };
 
     mockUploadService = {
@@ -103,7 +105,9 @@ describe('WorkspaceGeneralTabComponent', () => {
   });
 
   it('should handle save error', () => {
-    mockWorkspaceService.update.mockReturnValue(throwError(() => new Error('fail')));
+    mockWorkspaceService.update.mockReturnValue(
+      throwError(() => new Error('fail')),
+    );
     component.patchForm(testWorkspace as any);
     component.form.markAsDirty();
     component.onSave();
@@ -130,9 +134,13 @@ describe('WorkspaceGeneralTabComponent', () => {
   });
 
   it('should upload logo successfully', () => {
-    mockUploadService.getLogoUploadUrl.mockReturnValue(of({ upload_url: 'https://upload.url', storage_key: 'key-1' }));
+    mockUploadService.getLogoUploadUrl.mockReturnValue(
+      of({ upload_url: 'https://upload.url', storage_key: 'key-1' }),
+    );
     mockUploadService.uploadFileToPresignedUrl.mockReturnValue(of({}));
-    mockUploadService.confirmLogoUpload.mockReturnValue(of({ logo_url: 'https://logo.url' }));
+    mockUploadService.confirmLogoUpload.mockReturnValue(
+      of({ logo_url: 'https://logo.url' }),
+    );
     fixture.componentRef.setInput('workspace', testWorkspace);
 
     const emitSpy = vi.spyOn(component.workspaceSaved, 'emit');
@@ -142,14 +150,21 @@ describe('WorkspaceGeneralTabComponent', () => {
     const inputEl = { files: [mockFile], value: 'C:\\logo.png' };
     component.onLogoSelected({ target: inputEl } as any);
 
-    expect(mockUploadService.getLogoUploadUrl).toHaveBeenCalledWith('ws-1', 'logo.png', 1024, 'image/png');
+    expect(mockUploadService.getLogoUploadUrl).toHaveBeenCalledWith(
+      'ws-1',
+      'logo.png',
+      1024,
+      'image/png',
+    );
     expect(emitSpy).toHaveBeenCalled();
     expect(component.uploadingLogo()).toBe(false);
     expect(inputEl.value).toBe('');
   });
 
   it('should handle upload presigned URL error', () => {
-    mockUploadService.getLogoUploadUrl.mockReturnValue(throwError(() => new Error('fail')));
+    mockUploadService.getLogoUploadUrl.mockReturnValue(
+      throwError(() => new Error('fail')),
+    );
     const mockFile = new File(['x'], 'logo.png', { type: 'image/png' });
     Object.defineProperty(mockFile, 'size', { value: 1024 });
 

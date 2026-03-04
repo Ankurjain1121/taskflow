@@ -10,6 +10,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import {
   TimeTrackingService,
   TaskTimeReport,
@@ -18,7 +19,7 @@ import {
 @Component({
   selector: 'app-time-report',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-6 max-w-4xl mx-auto">
@@ -72,33 +73,7 @@ import {
             }
           </div>
         } @else if (reportData().length === 0) {
-          <div class="animate-fade-in-up py-12 text-center">
-            <div
-              class="mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-amber-100 via-orange-50 to-primary/10 flex items-center justify-center mb-4"
-            >
-              <svg
-                class="w-8 h-8 text-amber-500 dark:text-amber-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <p
-              class="text-sm font-medium text-[var(--foreground)] dark:text-gray-300 mb-1"
-            >
-              No time tracked yet
-            </p>
-            <p class="text-xs text-[var(--muted-foreground)]">
-              Start a timer on any task to see your time report here.
-            </p>
-          </div>
+          <app-empty-state variant="time-tracking" />
         } @else {
           <!-- Bar Chart -->
           <div class="px-6 py-4 border-b border-[var(--border)]">

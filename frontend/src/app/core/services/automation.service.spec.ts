@@ -84,7 +84,9 @@ describe('AutomationService', () => {
       const createReq: CreateRuleRequest = {
         name: 'Auto-assign',
         trigger: 'task_created',
-        actions: [{ action_type: 'assign_task', action_config: { user_id: 'user-1' } }],
+        actions: [
+          { action_type: 'assign_task', action_config: { user_id: 'user-1' } },
+        ],
       };
 
       service.createRule('board-1', createReq).subscribe((result) => {
@@ -155,7 +157,7 @@ describe('AutomationService', () => {
       const req = httpMock.expectOne(
         (r) =>
           r.url === '/api/automations/rule-1/logs' &&
-          r.params.get('limit') === '10'
+          r.params.get('limit') === '10',
       );
       expect(req.request.method).toBe('GET');
       req.flush([MOCK_LOG]);
@@ -180,6 +182,111 @@ describe('AutomationService', () => {
 
       expect(error).toBeTruthy();
       expect(error.status).toBe(400);
+    });
+  });
+
+  // --- Phase J: Automation Templates ---
+
+  describe('listTemplates()', () => {
+    it('should GET /api/workspaces/:wsId/automation-templates', () => {
+      service.listTemplates('ws-1').subscribe((result) => {
+        expect(result).toEqual([]);
+      });
+
+      const req = httpMock.expectOne(
+        '/api/workspaces/ws-1/automation-templates',
+      );
+      expect(req.request.method).toBe('GET');
+      req.flush([]);
+    });
+
+    it('should return array of templates', () => {
+      const mockTemplates = [
+        {
+          id: 'tmpl-1',
+          name: 'Auto-assign',
+          description: 'Assign to creator',
+          category: 'workflow',
+          trigger: 'task_created',
+          trigger_config: {},
+          action_type: 'assign_task',
+          action_config: { assign_to: 'creator' },
+          is_system: true,
+          enabled: true,
+          tenant_id: 'tenant-1',
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-01T00:00:00Z',
+        },
+      ];
+
+      service.listTemplates('ws-1').subscribe((result) => {
+        expect(result.length).toBe(1);
+        expect(result[0].name).toBe('Auto-assign');
+        expect(result[0].is_system).toBe(true);
+      });
+
+      const req = httpMock.expectOne(
+        '/api/workspaces/ws-1/automation-templates',
+      );
+      req.flush(mockTemplates);
+    });
+  });
+
+  describe('toggleTemplate()', () => {
+    it('should PATCH to toggle template enabled', () => {
+      service.toggleTemplate('ws-1', 'tmpl-1', true).subscribe((result) => {
+        expect(result.enabled).toBe(true);
+      });
+
+      const req = httpMock.expectOne(
+        '/api/workspaces/ws-1/automation-templates/tmpl-1',
+      );
+      expect(req.request.method).toBe('PATCH');
+      expect(req.request.body).toEqual({ enabled: true });
+      req.flush({ id: 'tmpl-1', enabled: true });
+    });
+
+    it('should PATCH to toggle template disabled', () => {
+      service.toggleTemplate('ws-1', 'tmpl-1', false).subscribe((result) => {
+        expect(result.enabled).toBe(false);
+      });
+
+      const req = httpMock.expectOne(
+        '/api/workspaces/ws-1/automation-templates/tmpl-1',
+      );
+      expect(req.request.method).toBe('PATCH');
+      expect(req.request.body).toEqual({ enabled: false });
+      req.flush({ id: 'tmpl-1', enabled: false });
+    });
+  });
+
+  describe('applyTemplate()', () => {
+    it('should POST to apply template to a board', () => {
+      service.applyTemplate('ws-1', 'tmpl-1', 'board-1').subscribe((result) => {
+        expect(result.rule.id).toBe('r-new');
+      });
+
+      const req = httpMock.expectOne(
+        '/api/workspaces/ws-1/automation-templates/tmpl-1/apply',
+      );
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ board_id: 'board-1' });
+      req.flush({ rule: { id: 'r-new', name: 'Auto-assign' }, actions: [] });
+    });
+
+    it('should propagate errors when template not found', () => {
+      let error: any;
+      service.applyTemplate('ws-1', 'bad-id', 'board-1').subscribe({
+        error: (e) => (error = e),
+      });
+
+      const req = httpMock.expectOne(
+        '/api/workspaces/ws-1/automation-templates/bad-id/apply',
+      );
+      req.flush('Not Found', { status: 404, statusText: 'Not Found' });
+
+      expect(error).toBeTruthy();
+      expect(error.status).toBe(404);
     });
   });
 });

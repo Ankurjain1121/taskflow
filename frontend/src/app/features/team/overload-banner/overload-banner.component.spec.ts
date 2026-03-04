@@ -2,7 +2,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { OverloadBannerComponent } from './overload-banner.component';
-import { TeamService, OverloadedMember } from '../../../core/services/team.service';
+import {
+  TeamService,
+  OverloadedMember,
+} from '../../../core/services/team.service';
 
 describe('OverloadBannerComponent', () => {
   let component: OverloadBannerComponent;
@@ -19,9 +22,14 @@ describe('OverloadBannerComponent', () => {
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
         value: vi.fn().mockImplementation((query: string) => ({
-          matches: false, media: query, onchange: null,
-          addListener: vi.fn(), removeListener: vi.fn(),
-          addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
         })),
       });
     }
@@ -32,9 +40,7 @@ describe('OverloadBannerComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [OverloadBannerComponent],
-      providers: [
-        { provide: TeamService, useValue: mockTeamService },
-      ],
+      providers: [{ provide: TeamService, useValue: mockTeamService }],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
 
@@ -51,7 +57,10 @@ describe('OverloadBannerComponent', () => {
   describe('loadOverloadedMembers', () => {
     it('should load overloaded members on init', () => {
       component.ngOnInit();
-      expect(mockTeamService.getOverloadedMembers).toHaveBeenCalledWith('ws-1', 10);
+      expect(mockTeamService.getOverloadedMembers).toHaveBeenCalledWith(
+        'ws-1',
+        10,
+      );
       expect(component.overloadedMembers()).toEqual(mockOverloaded);
     });
 
@@ -59,11 +68,16 @@ describe('OverloadBannerComponent', () => {
       fixture.componentRef.setInput('threshold', 5);
       fixture.detectChanges();
       component.loadOverloadedMembers();
-      expect(mockTeamService.getOverloadedMembers).toHaveBeenCalledWith('ws-1', 5);
+      expect(mockTeamService.getOverloadedMembers).toHaveBeenCalledWith(
+        'ws-1',
+        5,
+      );
     });
 
     it('should handle errors', () => {
-      mockTeamService.getOverloadedMembers.mockReturnValue(throwError(() => new Error('fail')));
+      mockTeamService.getOverloadedMembers.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
       component.loadOverloadedMembers();
       // Should not throw and overloaded remains empty
       expect(component.overloadedMembers()).toEqual(mockOverloaded); // kept from init
@@ -96,7 +110,9 @@ describe('OverloadBannerComponent', () => {
         block: 'center',
       });
       expect(mockElement.classList.add).toHaveBeenCalledWith(
-        'ring-2', 'ring-amber-400', 'ring-offset-2',
+        'ring-2',
+        'ring-amber-400',
+        'ring-offset-2',
       );
     });
 

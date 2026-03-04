@@ -73,9 +73,7 @@ describe('MyTasksService', () => {
     it('should set sort_by param when provided', () => {
       service.getMyTasks({ sort_by: 'due_date' }).subscribe();
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/my-tasks',
-      );
+      const req = httpMock.expectOne((r) => r.url === '/api/my-tasks');
       expect(req.request.params.get('sort_by')).toBe('due_date');
       expect(req.request.params.keys().length).toBe(1);
       req.flush(MOCK_RESPONSE);
@@ -84,9 +82,7 @@ describe('MyTasksService', () => {
     it('should set sort_order param when provided', () => {
       service.getMyTasks({ sort_order: 'desc' }).subscribe();
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/my-tasks',
-      );
+      const req = httpMock.expectOne((r) => r.url === '/api/my-tasks');
       expect(req.request.params.get('sort_order')).toBe('desc');
       req.flush(MOCK_RESPONSE);
     });
@@ -94,9 +90,7 @@ describe('MyTasksService', () => {
     it('should set board_id param when provided', () => {
       service.getMyTasks({ board_id: 'board-42' }).subscribe();
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/my-tasks',
-      );
+      const req = httpMock.expectOne((r) => r.url === '/api/my-tasks');
       expect(req.request.params.get('board_id')).toBe('board-42');
       req.flush(MOCK_RESPONSE);
     });
@@ -104,9 +98,7 @@ describe('MyTasksService', () => {
     it('should set cursor param when provided', () => {
       service.getMyTasks({ cursor: 'abc123' }).subscribe();
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/my-tasks',
-      );
+      const req = httpMock.expectOne((r) => r.url === '/api/my-tasks');
       expect(req.request.params.get('cursor')).toBe('abc123');
       req.flush(MOCK_RESPONSE);
     });
@@ -114,9 +106,7 @@ describe('MyTasksService', () => {
     it('should set limit param as string when provided', () => {
       service.getMyTasks({ limit: 25 }).subscribe();
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/my-tasks',
-      );
+      const req = httpMock.expectOne((r) => r.url === '/api/my-tasks');
       expect(req.request.params.get('limit')).toBe('25');
       req.flush(MOCK_RESPONSE);
     });
@@ -132,9 +122,7 @@ describe('MyTasksService', () => {
         })
         .subscribe();
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/my-tasks',
-      );
+      const req = httpMock.expectOne((r) => r.url === '/api/my-tasks');
       expect(req.request.params.get('sort_by')).toBe('priority');
       expect(req.request.params.get('sort_order')).toBe('asc');
       expect(req.request.params.get('board_id')).toBe('board-1');
@@ -149,9 +137,7 @@ describe('MyTasksService', () => {
         .getMyTasks({ sort_by: 'created_at', board_id: undefined })
         .subscribe();
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/my-tasks',
-      );
+      const req = httpMock.expectOne((r) => r.url === '/api/my-tasks');
       expect(req.request.params.get('sort_by')).toBe('created_at');
       expect(req.request.params.has('board_id')).toBe(false);
       expect(req.request.params.keys().length).toBe(1);
@@ -169,9 +155,7 @@ describe('MyTasksService', () => {
         expect(result.next_cursor).toBe('next-page-cursor');
       });
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/my-tasks',
-      );
+      const req = httpMock.expectOne((r) => r.url === '/api/my-tasks');
       req.flush(paginatedResponse);
     });
   });
@@ -221,7 +205,10 @@ describe('MyTasksService', () => {
       });
 
       const req = httpMock.expectOne('/api/my-tasks/summary');
-      req.flush('Server Error', { status: 500, statusText: 'Internal Server Error' });
+      req.flush('Server Error', {
+        status: 500,
+        statusText: 'Internal Server Error',
+      });
 
       expect(error).toBeTruthy();
       expect(error.status).toBe(500);

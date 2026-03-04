@@ -36,7 +36,12 @@ export class UploadService {
   ): Observable<{ upload_url: string; storage_key: string }> {
     return this.http.post<{ upload_url: string; storage_key: string }>(
       `${this.apiUrl}/workspace-logo`,
-      { workspace_id: workspaceId, file_name: fileName, file_size: fileSize, mime_type: mimeType },
+      {
+        workspace_id: workspaceId,
+        file_name: fileName,
+        file_size: fileSize,
+        mime_type: mimeType,
+      },
     );
   }
 

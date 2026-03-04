@@ -1,4 +1,8 @@
-import { Component, OnInit, signal, ChangeDetectionStrategy,
+import {
+  Component,
+  OnInit,
+  signal,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';

@@ -41,7 +41,9 @@ import { Label } from '../../../../../core/services/task.service';
               class="w-3 h-3 rounded-sm flex-shrink-0"
               [style.background-color]="label.color"
             ></div>
-            <span class="flex-1 text-left text-[var(--foreground)]">{{ label.name }}</span>
+            <span class="flex-1 text-left text-[var(--foreground)]">{{
+              label.name
+            }}</span>
             @if (isSelected(label.id)) {
               <svg
                 class="w-4 h-4"
@@ -50,13 +52,22 @@ import { Label } from '../../../../../core/services/task.service';
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
             }
           </button>
         }
         @if (filteredLabels().length === 0) {
-          <p class="text-xs text-[var(--muted-foreground)] px-2 py-3 text-center">No labels found</p>
+          <p
+            class="text-xs text-[var(--muted-foreground)] px-2 py-3 text-center"
+          >
+            No labels found
+          </p>
         }
       </div>
     </div>

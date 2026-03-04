@@ -65,49 +65,45 @@ export class ProjectTemplateService {
   constructor(private http: HttpClient) {}
 
   listTemplates(): Observable<ProjectTemplate[]> {
-    return this.http.get<ProjectTemplate[]>(
-      `${this.apiUrl}/project-templates`
-    );
+    return this.http.get<ProjectTemplate[]>(`${this.apiUrl}/project-templates`);
   }
 
   getTemplate(templateId: string): Observable<TemplateWithDetails> {
     return this.http.get<TemplateWithDetails>(
-      `${this.apiUrl}/project-templates/${templateId}`
+      `${this.apiUrl}/project-templates/${templateId}`,
     );
   }
 
-  createTemplate(
-    request: CreateTemplateRequest
-  ): Observable<ProjectTemplate> {
+  createTemplate(request: CreateTemplateRequest): Observable<ProjectTemplate> {
     return this.http.post<ProjectTemplate>(
       `${this.apiUrl}/project-templates`,
-      request
+      request,
     );
   }
 
   deleteTemplate(templateId: string): Observable<void> {
     return this.http.delete<void>(
-      `${this.apiUrl}/project-templates/${templateId}`
+      `${this.apiUrl}/project-templates/${templateId}`,
     );
   }
 
   createBoardFromTemplate(
     templateId: string,
-    request: CreateBoardFromTemplateRequest
+    request: CreateBoardFromTemplateRequest,
   ): Observable<{ board_id: string }> {
     return this.http.post<{ board_id: string }>(
       `${this.apiUrl}/project-templates/${templateId}/create-board`,
-      request
+      request,
     );
   }
 
   saveBoardAsTemplate(
     boardId: string,
-    request: SaveAsTemplateRequest
+    request: SaveAsTemplateRequest,
   ): Observable<ProjectTemplate> {
     return this.http.post<ProjectTemplate>(
       `${this.apiUrl}/boards/${boardId}/save-as-template`,
-      request
+      request,
     );
   }
 }

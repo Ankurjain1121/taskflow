@@ -22,7 +22,10 @@ import {
   TaskReminder,
 } from '../../core/services/task.service';
 import { Column } from '../../core/services/board.service';
-import { MemberSearchResult, WorkspaceService } from '../../core/services/workspace.service';
+import {
+  MemberSearchResult,
+  WorkspaceService,
+} from '../../core/services/workspace.service';
 import { PRIORITY_COLORS } from '../../shared/utils/task-colors';
 import {
   formatDate,
@@ -208,10 +211,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
               />
             </div>
           } @else {
-            <div
-              (click)="startEditing('due_date')"
-              class="field-editable mt-1"
-            >
+            <div (click)="startEditing('due_date')" class="field-editable mt-1">
               @if (task()!.due_date) {
                 <span
                   class="field-value"
@@ -320,9 +320,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
               </div>
             }
           } @else {
-            <span
-              class="text-sm"
-              style="color: var(--text-color-secondary)"
+            <span class="text-sm" style="color: var(--text-color-secondary)"
               >No assignees</span
             >
           }
@@ -377,7 +375,9 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
       <div class="sidebar-card group">
         <div class="flex items-center justify-between mb-3">
           <label class="field-label mb-0">Watchers</label>
-          <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+          <div
+            class="flex gap-1 opacity-0 group-hover:opacity-100 transition-all"
+          >
             <button
               (click)="watchSelf.emit()"
               class="text-xs px-2 py-1 rounded"
@@ -428,9 +428,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
               </div>
             }
           } @else {
-            <span
-              class="text-sm"
-              style="color: var(--text-color-secondary)"
+            <span class="text-sm" style="color: var(--text-color-secondary)"
               >No watchers</span
             >
           }
@@ -502,9 +500,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
               </span>
             }
           } @else {
-            <span
-              class="text-sm"
-              style="color: var(--text-color-secondary)"
+            <span class="text-sm" style="color: var(--text-color-secondary)"
               >No labels</span
             >
           }
@@ -533,10 +529,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
         </div>
 
         <!-- Delete -->
-        <div
-          class="pt-3 border-t"
-          style="border-color: var(--surface-border)"
-        >
+        <div class="pt-3 border-t" style="border-color: var(--surface-border)">
           <button
             pButton
             label="Delete Task"
@@ -619,9 +612,7 @@ export class TaskDetailSidebarComponent {
   }
 
   isReminderActive(minutes: number): boolean {
-    return this.reminders().some(
-      (r) => r.remind_before_minutes === minutes,
-    );
+    return this.reminders().some((r) => r.remind_before_minutes === minutes);
   }
 
   getReminderLabel(minutes: number): string {

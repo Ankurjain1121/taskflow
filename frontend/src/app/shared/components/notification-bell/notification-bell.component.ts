@@ -1,4 +1,12 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, signal, computed, ChangeDetectionStrategy,
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  ViewChild,
+  ElementRef,
+  signal,
+  computed,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -9,13 +17,26 @@ import { ProgressSpinner } from 'primeng/progressspinner';
 import { SelectButton } from 'primeng/selectbutton';
 import { Tooltip } from 'primeng/tooltip';
 import { FormsModule } from '@angular/forms';
-import { NotificationService, Notification, NotificationEventType } from '../../../core/services/notification.service';
+import {
+  NotificationService,
+  Notification,
+  NotificationEventType,
+} from '../../../core/services/notification.service';
 import { NotificationSoundService } from '../../../core/services/notification-sound.service';
 import { NotificationItemComponent } from './notification-item.component';
+import { EmptyStateComponent } from '../empty-state/empty-state.component';
 
-type NotificationTab = 'all' | 'assignments' | 'comments' | 'mentions' | 'deadlines';
+type NotificationTab =
+  | 'all'
+  | 'assignments'
+  | 'comments'
+  | 'mentions'
+  | 'deadlines';
 
-const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEventType[]> = {
+const TAB_EVENT_TYPES: Record<
+  Exclude<NotificationTab, 'all'>,
+  NotificationEventType[]
+> = {
   assignments: ['task_assigned', 'task_completed'],
   comments: ['task_commented'],
   mentions: ['mention_in_comment'],
@@ -36,6 +57,7 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
     Tooltip,
     FormsModule,
     NotificationItemComponent,
+    EmptyStateComponent,
   ],
   template: `
     <!-- Bell button with badge -->
@@ -44,7 +66,11 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
       [text]="true"
       [rounded]="true"
       severity="secondary"
-      [badge]="notificationService.unreadCount() > 0 ? notificationService.displayBadge() : undefined"
+      [badge]="
+        notificationService.unreadCount() > 0
+          ? notificationService.displayBadge()
+          : undefined
+      "
       badgeSeverity="danger"
       aria-label="Notifications"
       (onClick)="onBellClick($event)"
@@ -54,16 +80,28 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
     <p-popover #notifPopover [style]="{ width: '22rem' }">
       <div (click)="$event.stopPropagation()">
         <!-- Header -->
-        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Notifications</h3>
+        <div
+          class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700"
+        >
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Notifications
+          </h3>
           <div class="flex items-center gap-1">
             <p-button
-              [icon]="soundService.soundEnabled() ? 'pi pi-volume-up' : 'pi pi-volume-off'"
+              [icon]="
+                soundService.soundEnabled()
+                  ? 'pi pi-volume-up'
+                  : 'pi pi-volume-off'
+              "
               [text]="true"
               [rounded]="true"
               severity="secondary"
               size="small"
-              [pTooltip]="soundService.soundEnabled() ? 'Mute notifications' : 'Unmute notifications'"
+              [pTooltip]="
+                soundService.soundEnabled()
+                  ? 'Mute notifications'
+                  : 'Unmute notifications'
+              "
               (onClick)="toggleSound()"
             />
             @if (notificationService.unreadCount() > 0) {
@@ -78,7 +116,9 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
         </div>
 
         <!-- Filter tabs -->
-        <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+        <div
+          class="px-3 py-2 border-b border-gray-200 dark:border-gray-700 overflow-x-auto"
+        >
           <p-selectButton
             [options]="tabOptions"
             [(ngModel)]="activeTabValue"
@@ -98,12 +138,15 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
         >
           <!-- Empty state -->
           @if (filteredNotifications().length === 0 && !isInitialLoading()) {
-            <div class="flex flex-col items-center justify-center py-8 px-4">
-              <i class="pi pi-bell-slash text-gray-300 dark:text-gray-600 mb-2" style="font-size: 2.5rem;"></i>
-              <p class="text-gray-500 dark:text-gray-400 text-sm">
-                {{ activeTab() === 'all' ? 'No notifications yet' : 'No ' + activeTab() + ' notifications' }}
-              </p>
-            </div>
+            <app-empty-state
+              variant="notifications"
+              size="compact"
+              [title]="
+                activeTab() === 'all'
+                  ? ''
+                  : 'No ' + activeTab() + ' notifications'
+              "
+            />
           }
 
           <!-- Initial loading -->
@@ -121,10 +164,15 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
             <div>
               <!-- Today section -->
               @if (todayNotifications().length > 0) {
-                <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 dark:bg-gray-800">
+                <div
+                  class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 dark:bg-gray-800"
+                >
                   Today
                 </div>
-                @for (notification of todayNotifications(); track notification.id) {
+                @for (
+                  notification of todayNotifications();
+                  track notification.id
+                ) {
                   <app-notification-item
                     [notification]="notification"
                     (notificationClick)="onNotificationClick($event)"
@@ -135,10 +183,15 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
 
               <!-- Earlier section -->
               @if (earlierNotifications().length > 0) {
-                <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 dark:bg-gray-800">
+                <div
+                  class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 dark:bg-gray-800"
+                >
                   Earlier
                 </div>
-                @for (notification of earlierNotifications(); track notification.id) {
+                @for (
+                  notification of earlierNotifications();
+                  track notification.id
+                ) {
                   <app-notification-item
                     [notification]="notification"
                     (notificationClick)="onNotificationClick($event)"
@@ -158,8 +211,13 @@ const TAB_EVENT_TYPES: Record<Exclude<NotificationTab, 'all'>, NotificationEvent
               }
 
               <!-- End of list -->
-              @if (!notificationService.hasMore() && filteredNotifications().length > 0) {
-                <div class="text-center py-3 text-gray-400 dark:text-gray-500 text-sm">
+              @if (
+                !notificationService.hasMore() &&
+                filteredNotifications().length > 0
+              ) {
+                <div
+                  class="text-center py-3 text-gray-400 dark:text-gray-500 text-sm"
+                >
                   No more notifications
                 </div>
               }
@@ -220,7 +278,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return this.filteredNotifications().filter(
-      (n) => new Date(n.created_at) >= today
+      (n) => new Date(n.created_at) >= today,
     );
   });
 
@@ -228,14 +286,14 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return this.filteredNotifications().filter(
-      (n) => new Date(n.created_at) < today
+      (n) => new Date(n.created_at) < today,
     );
   });
 
   constructor(
     public notificationService: NotificationService,
     public soundService: NotificationSoundService,
-    private router: Router
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -328,7 +386,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
       error: () => {
         // Reload notifications on error to restore state
         this.notificationService.listNotifications().subscribe();
-      }
+      },
     });
   }
 }

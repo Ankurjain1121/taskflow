@@ -6,10 +6,13 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import {
   KeyboardShortcutsService,
   KeyboardShortcut,
 } from '../../core/services/keyboard-shortcuts.service';
+import { OnboardingChecklistService } from '../../core/services/onboarding-checklist.service';
+import { FeatureHintsService } from '../../core/services/feature-hints.service';
 
 interface ShortcutGroup {
   category: string;
@@ -130,6 +133,39 @@ interface ShortcutGroup {
                 </p>
               </div>
             </div>
+
+            @if (!checklistService.shouldShow()) {
+              <div class="pt-4 mt-4 border-t border-[var(--border)]">
+                <button
+                  (click)="restartChecklist()"
+                  class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--primary)] border border-[var(--primary)]/40 rounded-lg hover:bg-[var(--primary)] hover:text-white transition-colors"
+                >
+                  <i class="pi pi-refresh text-xs"></i>
+                  Restart Getting Started Checklist
+                </button>
+              </div>
+            }
+
+            <div class="pt-4 mt-4 border-t border-[var(--border)]">
+              <h3
+                class="font-medium text-[var(--card-foreground)] dark:text-white mb-2"
+              >
+                Product Tour
+              </h3>
+              <p
+                class="text-sm text-[var(--muted-foreground)] dark:text-gray-400 mb-3"
+              >
+                Replay the guided tour that highlights key features when you
+                first open a board.
+              </p>
+              <button
+                (click)="restartFeatureTour()"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--primary)] border border-[var(--primary)]/40 rounded-lg hover:bg-[var(--primary)] hover:text-white transition-colors"
+              >
+                <i class="pi pi-play text-xs"></i>
+                Restart Feature Tour
+              </button>
+            </div>
           </div>
         </section>
 
@@ -167,11 +203,23 @@ interface ShortcutGroup {
 
         <!-- Keyboard Shortcuts -->
         <section>
-          <h2
-            class="text-lg font-semibold text-[var(--card-foreground)] dark:text-white mb-4"
-          >
-            Keyboard Shortcuts
-          </h2>
+          <div class="flex items-center justify-between mb-4">
+            <h2
+              class="text-lg font-semibold text-[var(--card-foreground)] dark:text-white"
+            >
+              Keyboard Shortcuts
+            </h2>
+            <button
+              (click)="openShortcutModal()"
+              class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] hover:bg-[var(--secondary)] text-[var(--foreground)] transition-colors"
+            >
+              <kbd
+                class="text-xs font-mono px-1 py-0.5 bg-[var(--secondary)] border border-[var(--border)] rounded"
+                >?</kbd
+              >
+              Open Reference
+            </button>
+          </div>
           @if (shortcutGroups().length === 0) {
             <div
               class="bg-[var(--card)] dark:bg-gray-800 rounded-xl border border-[var(--border)] dark:border-gray-700 p-6 text-sm text-[var(--muted-foreground)] dark:text-gray-400"
@@ -306,6 +354,9 @@ interface ShortcutGroup {
 })
 export class HelpComponent implements OnInit {
   private shortcutsService = inject(KeyboardShortcutsService);
+  readonly checklistService = inject(OnboardingChecklistService);
+  private featureHintsService = inject(FeatureHintsService);
+  private router = inject(Router);
 
   shortcutGroups = signal<ShortcutGroup[]>([]);
 
@@ -395,7 +446,21 @@ export class HelpComponent implements OnInit {
     this.shortcutGroups.set(groups);
   }
 
+  openShortcutModal(): void {
+    this.shortcutsService.helpRequested$.next();
+  }
+
   formatShortcut(shortcut: KeyboardShortcut): string {
     return this.shortcutsService.formatShortcut(shortcut);
+  }
+
+  restartChecklist(): void {
+    this.checklistService.resetChecklist();
+    this.router.navigate(['/dashboard']);
+  }
+
+  restartFeatureTour(): void {
+    this.featureHintsService.resetAll();
+    this.router.navigate(['/dashboard']);
   }
 }

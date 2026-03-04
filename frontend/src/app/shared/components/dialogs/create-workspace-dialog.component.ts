@@ -1,4 +1,9 @@
-import { Component, inject, model, output, ChangeDetectionStrategy,
+import {
+  Component,
+  inject,
+  model,
+  output,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {

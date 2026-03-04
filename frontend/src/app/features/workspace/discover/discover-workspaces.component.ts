@@ -69,9 +69,7 @@ import {
                 d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 0z"
               />
             </svg>
-            <h3
-              class="mt-4 text-lg font-medium text-[var(--card-foreground)]"
-            >
+            <h3 class="mt-4 text-lg font-medium text-[var(--card-foreground)]">
               No workspaces to discover
             </h3>
             <p class="mt-2 text-sm text-[var(--muted-foreground)]">
@@ -91,9 +89,7 @@ import {
                     {{ ws.name.charAt(0).toUpperCase() }}
                   </div>
                 </div>
-                <h3
-                  class="text-lg font-semibold text-[var(--foreground)] mb-1"
-                >
+                <h3 class="text-lg font-semibold text-[var(--foreground)] mb-1">
                   {{ ws.name }}
                 </h3>
                 @if (ws.description) {
@@ -103,9 +99,7 @@ import {
                     {{ ws.description }}
                   </p>
                 } @else {
-                  <p
-                    class="text-sm text-[var(--muted-foreground)] italic mb-3"
-                  >
+                  <p class="text-sm text-[var(--muted-foreground)] italic mb-3">
                     No description
                   </p>
                 }

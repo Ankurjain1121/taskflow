@@ -18,24 +18,47 @@ describe('WorkspaceSettingsComponent', () => {
     paramsSubject = new Subject();
 
     mockWorkspaceService = {
-      get: vi.fn().mockReturnValue(of({
-        id: 'ws-1',
-        name: 'My Workspace',
-        slug: 'my-ws',
-        owner_id: 'u-1',
-        created_at: '2026-01-01',
-        updated_at: '2026-01-01',
-      })),
-      getMembers: vi.fn().mockReturnValue(of([
-        { id: 'u-1', name: 'Alice', email: 'alice@test.com', role: 'owner', joined_at: '2026-01-01', user_id: 'u-1' },
-      ])),
+      get: vi.fn().mockReturnValue(
+        of({
+          id: 'ws-1',
+          name: 'My Workspace',
+          slug: 'my-ws',
+          owner_id: 'u-1',
+          created_at: '2026-01-01',
+          updated_at: '2026-01-01',
+        }),
+      ),
+      getMembers: vi
+        .fn()
+        .mockReturnValue(
+          of([
+            {
+              id: 'u-1',
+              name: 'Alice',
+              email: 'alice@test.com',
+              role: 'owner',
+              joined_at: '2026-01-01',
+              user_id: 'u-1',
+            },
+          ]),
+        ),
       delete: vi.fn().mockReturnValue(of(void 0)),
     };
 
     mockBoardService = {
-      listBoards: vi.fn().mockReturnValue(of([
-        { id: 'b-1', name: 'Board 1', workspace_id: 'ws-1', created_at: '', updated_at: '' },
-      ])),
+      listBoards: vi
+        .fn()
+        .mockReturnValue(
+          of([
+            {
+              id: 'b-1',
+              name: 'Board 1',
+              workspace_id: 'ws-1',
+              created_at: '',
+              updated_at: '',
+            },
+          ]),
+        ),
     };
 
     const mockAuthService = {
@@ -53,7 +76,10 @@ describe('WorkspaceSettingsComponent', () => {
     await TestBed.configureTestingModule({
       imports: [WorkspaceSettingsComponent],
       providers: [
-        { provide: ActivatedRoute, useValue: { params: paramsSubject.asObservable() } },
+        {
+          provide: ActivatedRoute,
+          useValue: { params: paramsSubject.asObservable() },
+        },
         { provide: Router, useValue: { navigate: vi.fn() } },
         { provide: WorkspaceService, useValue: mockWorkspaceService },
         { provide: BoardService, useValue: mockBoardService },
@@ -99,7 +125,9 @@ describe('WorkspaceSettingsComponent', () => {
   });
 
   it('should handle workspace load error', () => {
-    mockWorkspaceService.get.mockReturnValue(throwError(() => new Error('fail')));
+    mockWorkspaceService.get.mockReturnValue(
+      throwError(() => new Error('fail')),
+    );
     component.ngOnInit();
     paramsSubject.next({ workspaceId: 'ws-bad' });
     expect(component.loading()).toBe(false);

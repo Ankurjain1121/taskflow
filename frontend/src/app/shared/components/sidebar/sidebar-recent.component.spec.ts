@@ -2,7 +2,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { provideRouter, Router, NavigationEnd } from '@angular/router';
 import { of, throwError, Subject } from 'rxjs';
-import { SidebarRecentComponent, RecentBoardEntry } from './sidebar-recent.component';
+import {
+  SidebarRecentComponent,
+  RecentBoardEntry,
+} from './sidebar-recent.component';
 import { BoardService } from '../../../core/services/board.service';
 
 describe('SidebarRecentComponent', () => {
@@ -55,7 +58,12 @@ describe('SidebarRecentComponent', () => {
 
   it('should load from localStorage on init', () => {
     const stored: RecentBoardEntry[] = [
-      { id: 'b-1', name: 'Board 1', workspaceId: 'ws-1', visitedAt: Date.now() },
+      {
+        id: 'b-1',
+        name: 'Board 1',
+        workspaceId: 'ws-1',
+        visitedAt: Date.now(),
+      },
     ];
     localStorage.setItem('taskflow_recent_boards', JSON.stringify(stored));
 
@@ -88,7 +96,10 @@ describe('SidebarRecentComponent', () => {
       workspaceId: 'ws-1',
       visitedAt: Date.now(),
     };
-    localStorage.setItem('taskflow_recent_boards', JSON.stringify([oldEntry, recentEntry]));
+    localStorage.setItem(
+      'taskflow_recent_boards',
+      JSON.stringify([oldEntry, recentEntry]),
+    );
 
     component.ngOnInit();
     expect(component.recentItems().length).toBe(1);
@@ -104,7 +115,9 @@ describe('SidebarRecentComponent', () => {
     });
 
     expect(component.recentItems().length).toBe(1);
-    const stored = JSON.parse(localStorage.getItem('taskflow_recent_boards') || '[]');
+    const stored = JSON.parse(
+      localStorage.getItem('taskflow_recent_boards') || '[]',
+    );
     expect(stored.length).toBe(1);
   });
 

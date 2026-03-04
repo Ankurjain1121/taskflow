@@ -1,4 +1,10 @@
-import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy,
+import {
+  Component,
+  OnInit,
+  inject,
+  signal,
+  computed,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -107,7 +113,8 @@ const DARK_CATEGORY_ORDER = ['dark-sidebar', 'famous', 'bold', 'specialty'];
                   ? 'var(--primary)'
                   : 'var(--foreground)'
               "
-            >{{ option.label }}</span>
+              >{{ option.label }}</span
+            >
           </button>
         }
       </div>
@@ -115,10 +122,7 @@ const DARK_CATEGORY_ORDER = ['dark-sidebar', 'famous', 'bold', 'specialty'];
       <!-- Section B: Theme Gallery -->
       @if (categorizedThemes().length > 0) {
         <div class="mt-5 pt-5" style="border-top: 1px solid var(--border)">
-          <p
-            class="text-sm font-medium mb-3"
-            style="color: var(--foreground)"
-          >
+          <p class="text-sm font-medium mb-3" style="color: var(--foreground)">
             Theme Gallery
           </p>
           @for (category of categorizedThemes(); track category.key) {
@@ -139,8 +143,16 @@ const DARK_CATEGORY_ORDER = ['dark-sidebar', 'famous', 'bold', 'specialty'];
                       class="rounded-lg border overflow-hidden transition-all duration-150"
                       [class.ring-2]="activeThemeSlug() === t.slug"
                       [class.scale-[1.02]]="activeThemeSlug() === t.slug"
-                      [style.ring-color]="activeThemeSlug() === t.slug ? 'var(--primary)' : 'transparent'"
-                      [style.border-color]="activeThemeSlug() === t.slug ? 'var(--primary)' : 'var(--border)'"
+                      [style.ring-color]="
+                        activeThemeSlug() === t.slug
+                          ? 'var(--primary)'
+                          : 'transparent'
+                      "
+                      [style.border-color]="
+                        activeThemeSlug() === t.slug
+                          ? 'var(--primary)'
+                          : 'var(--border)'
+                      "
                       style="width: 140px; height: 90px;"
                     >
                       <div
@@ -171,8 +183,13 @@ const DARK_CATEGORY_ORDER = ['dark-sidebar', 'famous', 'bold', 'specialty'];
                     </div>
                     <span
                       class="text-xs font-medium truncate max-w-[140px]"
-                      [style.color]="activeThemeSlug() === t.slug ? 'var(--primary)' : 'var(--foreground)'"
-                    >{{ t.name }}</span>
+                      [style.color]="
+                        activeThemeSlug() === t.slug
+                          ? 'var(--primary)'
+                          : 'var(--foreground)'
+                      "
+                      >{{ t.name }}</span
+                    >
                   </button>
                 }
               </div>
@@ -183,10 +200,7 @@ const DARK_CATEGORY_ORDER = ['dark-sidebar', 'famous', 'bold', 'specialty'];
 
       <!-- Section C: Accent Color -->
       <div class="mt-4 pt-4" style="border-top: 1px solid var(--border)">
-        <p
-          class="text-sm font-medium mb-3"
-          style="color: var(--foreground)"
-        >
+        <p class="text-sm font-medium mb-3" style="color: var(--foreground)">
           Accent Color
         </p>
         <div class="flex gap-3 flex-wrap">
@@ -287,7 +301,9 @@ const DARK_CATEGORY_ORDER = ['dark-sidebar', 'famous', 'bold', 'specialty'];
                 value="compact"
                 [(ngModel)]="preferences.sidebarDensity"
               />
-              <label class="text-sm" style="color: var(--foreground)">Compact</label>
+              <label class="text-sm" style="color: var(--foreground)"
+                >Compact</label
+              >
             </div>
             <div class="flex items-center gap-2">
               <p-radioButton
@@ -295,7 +311,9 @@ const DARK_CATEGORY_ORDER = ['dark-sidebar', 'famous', 'bold', 'specialty'];
                 value="comfortable"
                 [(ngModel)]="preferences.sidebarDensity"
               />
-              <label class="text-sm" style="color: var(--foreground)">Comfortable</label>
+              <label class="text-sm" style="color: var(--foreground)"
+                >Comfortable</label
+              >
             </div>
           </div>
         </div>
@@ -319,7 +337,10 @@ const DARK_CATEGORY_ORDER = ['dark-sidebar', 'famous', 'bold', 'specialty'];
       </div>
 
       <!-- Save Button -->
-      <div class="flex justify-end mt-6 pt-4" style="border-top: 1px solid var(--border)">
+      <div
+        class="flex justify-end mt-6 pt-4"
+        style="border-top: 1px solid var(--border)"
+      >
         <p-button
           label="Save Preferences"
           icon="pi pi-check"

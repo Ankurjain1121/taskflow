@@ -12,6 +12,7 @@ import {
   WorkspaceService,
   WorkspaceLabel,
 } from '../../../core/services/workspace.service';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 const PRESET_COLORS = [
   '#ef4444',
@@ -31,7 +32,7 @@ const PRESET_COLORS = [
 @Component({
   selector: 'app-workspace-labels',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="py-6 space-y-6">
@@ -109,10 +110,7 @@ const PRESET_COLORS = [
           </svg>
         </div>
       } @else if (labels().length === 0) {
-        <div class="text-center py-8 text-[var(--muted-foreground)]">
-          <i class="pi pi-tags text-3xl mb-2 block opacity-40"></i>
-          <p class="text-sm">No labels yet. Create your first label above.</p>
-        </div>
+        <app-empty-state variant="labels" size="compact" />
       } @else {
         <div class="space-y-2">
           @for (label of labels(); track label.id) {

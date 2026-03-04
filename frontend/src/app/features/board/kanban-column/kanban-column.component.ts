@@ -5,11 +5,6 @@ import {
   computed,
   signal,
   ChangeDetectionStrategy,
-  AfterViewInit,
-  OnDestroy,
-  ElementRef,
-  ViewChild,
-  NgZone,
   inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -21,12 +16,15 @@ import {
   moveItemInArray,
   transferArrayItem,
 } from '@angular/cdk/drag-drop';
+import { ScrollingModule } from '@angular/cdk/scrolling';
 import { Column } from '../../../core/services/board.service';
 import { Task } from '../../../core/services/task.service';
 import { CardFields } from '../board-view/board-state.service';
 import { PresenceService } from '../../../core/services/presence.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { OnboardingChecklistService } from '../../../core/services/onboarding-checklist.service';
 import { TaskCardComponent } from '../task-card/task-card.component';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { Menu } from 'primeng/menu';
 import { MenuItem } from 'primeng/api';
 
@@ -41,7 +39,16 @@ export interface TaskMoveEvent {
 @Component({
   selector: 'app-kanban-column',
   standalone: true,
-  imports: [CommonModule, FormsModule, CdkDropList, CdkDragHandle, TaskCardComponent, Menu],
+  imports: [
+    CommonModule,
+    FormsModule,
+    CdkDropList,
+    CdkDragHandle,
+    ScrollingModule,
+    TaskCardComponent,
+    EmptyStateComponent,
+    Menu,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (isCollapsed()) {
@@ -90,13 +97,17 @@ export interface TaskMoveEvent {
                 title="Drag to reorder"
               >
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 22a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/>
+                  <path
+                    d="M8 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 22a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"
+                  />
                 </svg>
               </div>
 
               <!-- Column Icon -->
               @if (column().icon) {
-                <span class="text-base leading-none flex-shrink-0">{{ column().icon }}</span>
+                <span class="text-base leading-none flex-shrink-0">{{
+                  column().icon
+                }}</span>
               }
 
               <!-- Column Name -->
@@ -191,70 +202,101 @@ export interface TaskMoveEvent {
         </div>
 
         <!-- Tasks List -->
-        <div
-          cdkDropList
-          [id]="'column-' + column().id"
-          [cdkDropListData]="tasks()"
-          [cdkDropListConnectedTo]="connectedLists()"
-          (cdkDropListDropped)="onDrop($event)"
-          class="flex-1 px-2 py-2 space-y-2 overflow-y-auto min-h-[200px]"
-        >
-          @for (task of visibleTasks(); track task.id) {
-            <app-task-card
-              [task]="task"
-              [density]="density()"
-              [isBlocked]="false"
-              [isCelebrating]="celebratingTaskId() === task.id"
-              [isFocused]="focusedTaskId() === task.id"
-              [isSelected]="selectedTaskIds().includes(task.id)"
-              [columns]="allColumns()"
-              [boardPrefix]="boardPrefix()"
-              [subtaskProgress]="
-                task.subtask_total
-                  ? {
-                      completed: task.subtask_completed ?? 0,
-                      total: task.subtask_total,
-                    }
-                  : null
-              "
-              [hasRunningTimer]="task.has_running_timer ?? false"
-              [lockedBy]="getTaskLockInfo(task.id)"
-              [cardFields]="cardFields()"
-              (taskClicked)="onTaskClicked($event)"
-              (selectionToggled)="selectionToggled.emit($event)"
-              (priorityChanged)="priorityChanged.emit($event)"
-              (titleChanged)="titleChanged.emit($event)"
-              (columnMoveRequested)="columnMoveRequested.emit($event)"
-              (duplicateRequested)="duplicateRequested.emit($event)"
-              (deleteRequested)="deleteRequested.emit($event)"
-            ></app-task-card>
-          }
-
-          <!-- Scroll sentinel for lazy rendering -->
-          @if (isLazy() && visibleTasks().length < tasks().length) {
-            <div #scrollSentinel class="h-4 w-full"></div>
-          }
-
-          <!-- Show More Button -->
-          @if (visibleTasks().length < tasks().length) {
-            <button
-              class="w-full py-2 text-sm text-[var(--text-secondary,var(--muted-foreground))] hover:text-[var(--text-primary,var(--foreground))] hover:bg-[var(--hover,var(--secondary))] rounded-md transition-colors"
-              (click)="loadMore()"
-            >
-              Show {{ remainingCount() }} more...
-            </button>
-          }
-
-          <!-- Empty State -->
-          @if (tasks().length === 0) {
+        @if (useVirtualScroll()) {
+          <cdk-virtual-scroll-viewport
+            cdkDropList
+            [id]="'column-' + column().id"
+            [cdkDropListData]="tasks()"
+            [cdkDropListConnectedTo]="connectedLists()"
+            (cdkDropListDropped)="onDrop($event)"
+            [itemSize]="cardHeight()"
+            class="flex-1 px-2 py-2 min-h-[200px]"
+            [style.height.px]="viewportHeight()"
+          >
             <div
-              class="flex flex-col items-center py-8 text-[var(--muted-foreground)]"
+              *cdkVirtualFor="let task of tasks(); trackBy: trackByTaskId"
+              class="pb-2"
             >
-              <i class="pi pi-inbox text-2xl mb-2 opacity-40"></i>
-              <p class="text-sm">No tasks</p>
+              <app-task-card
+                [task]="task"
+                [density]="density()"
+                [isBlocked]="false"
+                [isCelebrating]="celebratingTaskId() === task.id"
+                [isFocused]="focusedTaskId() === task.id"
+                [isSelected]="selectedTaskIds().includes(task.id)"
+                [columns]="allColumns()"
+                [boardPrefix]="boardPrefix()"
+                [subtaskProgress]="
+                  task.subtask_total
+                    ? {
+                        completed: task.subtask_completed ?? 0,
+                        total: task.subtask_total,
+                      }
+                    : null
+                "
+                [hasRunningTimer]="task.has_running_timer ?? false"
+                [lockedBy]="getTaskLockInfo(task.id)"
+                [cardFields]="cardFields()"
+                (taskClicked)="onTaskClicked($event)"
+                (selectionToggled)="selectionToggled.emit($event)"
+                (priorityChanged)="priorityChanged.emit($event)"
+                (titleChanged)="titleChanged.emit($event)"
+                (columnMoveRequested)="columnMoveRequested.emit($event)"
+                (duplicateRequested)="duplicateRequested.emit($event)"
+                (deleteRequested)="deleteRequested.emit($event)"
+              ></app-task-card>
             </div>
-          }
-        </div>
+          </cdk-virtual-scroll-viewport>
+        } @else {
+          <div
+            cdkDropList
+            [id]="'column-' + column().id"
+            [cdkDropListData]="tasks()"
+            [cdkDropListConnectedTo]="connectedLists()"
+            (cdkDropListDropped)="onDrop($event)"
+            class="flex-1 px-2 py-2 space-y-2 overflow-y-auto min-h-[200px]"
+          >
+            @for (task of tasks(); track task.id) {
+              <app-task-card
+                [task]="task"
+                [density]="density()"
+                [isBlocked]="false"
+                [isCelebrating]="celebratingTaskId() === task.id"
+                [isFocused]="focusedTaskId() === task.id"
+                [isSelected]="selectedTaskIds().includes(task.id)"
+                [columns]="allColumns()"
+                [boardPrefix]="boardPrefix()"
+                [subtaskProgress]="
+                  task.subtask_total
+                    ? {
+                        completed: task.subtask_completed ?? 0,
+                        total: task.subtask_total,
+                      }
+                    : null
+                "
+                [hasRunningTimer]="task.has_running_timer ?? false"
+                [lockedBy]="getTaskLockInfo(task.id)"
+                [cardFields]="cardFields()"
+                (taskClicked)="onTaskClicked($event)"
+                (selectionToggled)="selectionToggled.emit($event)"
+                (priorityChanged)="priorityChanged.emit($event)"
+                (titleChanged)="titleChanged.emit($event)"
+                (columnMoveRequested)="columnMoveRequested.emit($event)"
+                (duplicateRequested)="duplicateRequested.emit($event)"
+                (deleteRequested)="deleteRequested.emit($event)"
+              ></app-task-card>
+            }
+
+            <!-- Empty State -->
+            @if (tasks().length === 0) {
+              <app-empty-state
+                variant="column"
+                size="compact"
+                (ctaClicked)="onAddTask()"
+              />
+            }
+          </div>
+        }
 
         <!-- Add Task Footer -->
         <div class="px-2 py-2 border-t border-[var(--border)]">
@@ -331,10 +373,10 @@ export interface TaskMoveEvent {
     class: 'group',
   },
 })
-export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
-  private ngZone = inject(NgZone);
+export class KanbanColumnComponent {
   private presenceService = inject(PresenceService);
   private authService = inject(AuthService);
+  private checklistService = inject(OnboardingChecklistService);
 
   column = input.required<Column>();
   tasks = input.required<Task[]>();
@@ -350,13 +392,22 @@ export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
   dragSimActive = input<boolean>(false);
   dragSimCurrentColId = input<string | null>(null);
   cardFields = input<CardFields>({
-    showPriority: true, showDueDate: true, showAssignees: true,
-    showLabels: true, showSubtaskProgress: true, showComments: true,
-    showAttachments: true, showTaskId: true, showDescription: true,
+    showPriority: true,
+    showDueDate: true,
+    showAssignees: true,
+    showLabels: true,
+    showSubtaskProgress: true,
+    showComments: true,
+    showAttachments: true,
+    showTaskId: true,
+    showDescription: true,
     showDaysInColumn: true,
   });
 
-  isDragTarget = computed(() => this.dragSimActive() && this.dragSimCurrentColId() === this.column().id);
+  isDragTarget = computed(
+    () =>
+      this.dragSimActive() && this.dragSimCurrentColId() === this.column().id,
+  );
 
   taskMoved = output<TaskMoveEvent>();
   taskClicked = output<Task>();
@@ -372,7 +423,10 @@ export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
   renameRequested = output<string>();
   wipLimitRequested = output<string>();
   columnDeleteRequested = output<string>();
-  iconChangeRequested = output<{ columnId: string; currentIcon: string | null }>();
+  iconChangeRequested = output<{
+    columnId: string;
+    currentIcon: string | null;
+  }>();
 
   readonly columnMenuItems = computed((): MenuItem[] => [
     {
@@ -388,7 +442,11 @@ export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
     {
       label: 'Set Icon',
       icon: 'pi pi-tag',
-      command: () => this.iconChangeRequested.emit({ columnId: this.column().id, currentIcon: this.column().icon ?? null }),
+      command: () =>
+        this.iconChangeRequested.emit({
+          columnId: this.column().id,
+          currentIcon: this.column().icon ?? null,
+        }),
     },
     { separator: true },
     {
@@ -402,57 +460,31 @@ export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
   isQuickAdding = signal(false);
   quickTaskTitle = '';
 
-  // --- Lazy rendering for large columns (50+ tasks) ---
-  private renderLimit = signal(30);
-  private scrollObserver: IntersectionObserver | null = null;
+  // --- Virtual scrolling for large columns (50+ tasks) ---
+  private static readonly VIRTUAL_SCROLL_THRESHOLD = 50;
 
-  @ViewChild('scrollSentinel') scrollSentinel?: ElementRef<HTMLDivElement>;
+  /** Enable virtual scroll only for columns with many tasks */
+  readonly useVirtualScroll = computed(
+    () => this.tasks().length >= KanbanColumnComponent.VIRTUAL_SCROLL_THRESHOLD,
+  );
 
-  readonly isLazy = computed(() => this.tasks().length >= 50);
-
-  readonly visibleTasks = computed(() => {
-    if (!this.isLazy()) return this.tasks();
-    return this.tasks().slice(0, this.renderLimit());
+  /** Card height (including gap) based on density setting */
+  readonly cardHeight = computed(() => {
+    const d = this.density();
+    // compact ~56px, normal ~88px, expanded ~128px (card + 8px gap)
+    return d === 'compact' ? 56 : d === 'expanded' ? 128 : 88;
   });
 
-  ngAfterViewInit(): void {
-    this.setupScrollObserver();
+  /** Viewport height for the virtual scroll container */
+  readonly viewportHeight = computed(() => {
+    // Use a reasonable column height (fills available space)
+    // cdk-virtual-scroll-viewport needs an explicit height
+    return 600;
+  });
+
+  trackByTaskId(_index: number, task: Task): string {
+    return task.id;
   }
-
-  ngOnDestroy(): void {
-    this.scrollObserver?.disconnect();
-    this.scrollObserver = null;
-  }
-
-  private setupScrollObserver(): void {
-    if (!this.scrollSentinel?.nativeElement) return;
-
-    this.ngZone.runOutsideAngular(() => {
-      this.scrollObserver = new IntersectionObserver(
-        (entries) => {
-          if (entries[0]?.isIntersecting) {
-            this.ngZone.run(() => {
-              this.renderLimit.update((limit) =>
-                Math.min(limit + 20, this.tasks().length),
-              );
-              // Re-observe if there are still more tasks
-              if (this.renderLimit() >= this.tasks().length) {
-                this.scrollObserver?.disconnect();
-              }
-            });
-          }
-        },
-        { rootMargin: '200px' },
-      );
-      if (this.scrollSentinel?.nativeElement) {
-        this.scrollObserver.observe(this.scrollSentinel.nativeElement);
-      }
-    });
-  }
-
-  readonly remainingCount = computed(() =>
-    Math.min(20, this.tasks().length - this.visibleTasks().length),
-  );
 
   readonly wipStatusClass = computed(() => {
     const limit = this.column().wip_limit;
@@ -462,12 +494,6 @@ export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
     if (count === limit) return 'text-amber-500 font-semibold';
     return 'text-[var(--muted-foreground)]';
   });
-
-  loadMore(): void {
-    this.renderLimit.update((limit) =>
-      Math.min(limit + 20, this.tasks().length),
-    );
-  }
 
   isDoneColumn = computed(() => {
     const mapping = this.column().status_mapping;
@@ -480,7 +506,9 @@ export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
     return this.tasks().length > limit;
   });
 
-  getTaskLockInfo(taskId: string): { user_id: string; user_name: string } | null {
+  getTaskLockInfo(
+    taskId: string,
+  ): { user_id: string; user_name: string } | null {
     const lock = this.presenceService.taskLocks().get(taskId);
     if (!lock) return null;
     const currentUserId = this.authService.currentUser()?.id;
@@ -517,6 +545,13 @@ export class KanbanColumnComponent implements AfterViewInit, OnDestroy {
       currentIndex: event.currentIndex,
       previousColumnId,
     });
+
+    this.checklistService.markComplete('try_drag_drop');
+    try {
+      localStorage.setItem('tf_drag_drop_done', '1');
+    } catch {
+      /* ignore */
+    }
   }
 
   onTaskClicked(task: Task): void {

@@ -5,12 +5,13 @@ export const NONE_KEY = 'none';
 
 export const PRIORITY_ORDER = ['urgent', 'high', 'medium', 'low'];
 
-export const PRIORITY_CONFIG: Record<string, { label: string; color: string }> = {
-  urgent: { label: 'Urgent', color: '#ef4444' },
-  high:   { label: 'High',   color: '#f97316' },
-  medium: { label: 'Medium', color: '#facc15' },
-  low:    { label: 'Low',    color: '#60a5fa' },
-};
+export const PRIORITY_CONFIG: Record<string, { label: string; color: string }> =
+  {
+    urgent: { label: 'Urgent', color: '#ef4444' },
+    high: { label: 'High', color: '#f97316' },
+    medium: { label: 'Medium', color: '#facc15' },
+    low: { label: 'Low', color: '#60a5fa' },
+  };
 
 export function buildSwimlaneGroups(
   state: Record<string, Task[]>,
@@ -114,7 +115,9 @@ function getTaskGroupKey(task: Task, mode: GroupByMode): string {
     return task.assignees?.[0]?.id ?? NONE_KEY;
   }
   if (mode === 'priority') {
-    return task.priority && PRIORITY_CONFIG[task.priority] ? task.priority : NONE_KEY;
+    return task.priority && PRIORITY_CONFIG[task.priority]
+      ? task.priority
+      : NONE_KEY;
   }
   if (mode === 'label') {
     return task.labels?.[0]?.id ?? NONE_KEY;
@@ -131,7 +134,10 @@ export function makeCellId(colId: string, groupKey: string): string {
 }
 
 /** Parse a cell ID back into { colId, groupKey }. */
-export function parseCellId(cellId: string): { colId: string; groupKey: string } {
+export function parseCellId(cellId: string): {
+  colId: string;
+  groupKey: string;
+} {
   // "cell_" = 5 chars, UUID = 36 chars, "_" = 1 char → groupKey starts at 42
   const colId = cellId.substring(5, 41);
   const groupKey = cellId.substring(42);

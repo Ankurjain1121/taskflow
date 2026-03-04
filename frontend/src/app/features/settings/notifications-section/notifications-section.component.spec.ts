@@ -2,7 +2,11 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { NotificationsSectionComponent } from './notifications-section.component';
-import { ProfileService, DEFAULT_PREFERENCES, EVENT_TYPE_LABELS } from '../../../core/services/profile.service';
+import {
+  ProfileService,
+  DEFAULT_PREFERENCES,
+  EVENT_TYPE_LABELS,
+} from '../../../core/services/profile.service';
 import { UserPreferencesService } from '../../../core/services/user-preferences.service';
 
 describe('NotificationsSectionComponent', () => {
@@ -27,25 +31,39 @@ describe('NotificationsSectionComponent', () => {
     });
 
     mockProfileService = {
-      getNotificationPreferences: vi.fn().mockReturnValue(of([
-        { event_type: 'task_assigned', in_app: true, email: true, slack: false, whatsapp: false },
-      ])),
-      updateNotificationPreference: vi.fn().mockReturnValue(of({
-        event_type: 'task_assigned',
-        in_app: true,
-        email: false,
-        slack: false,
-        whatsapp: false,
-      })),
+      getNotificationPreferences: vi
+        .fn()
+        .mockReturnValue(
+          of([
+            {
+              event_type: 'task_assigned',
+              in_app: true,
+              email: true,
+              slack: false,
+              whatsapp: false,
+            },
+          ]),
+        ),
+      updateNotificationPreference: vi.fn().mockReturnValue(
+        of({
+          event_type: 'task_assigned',
+          in_app: true,
+          email: false,
+          slack: false,
+          whatsapp: false,
+        }),
+      ),
       resetNotificationPreferences: vi.fn().mockReturnValue(of(void 0)),
     };
 
     mockUserPreferencesService = {
-      getPreferences: vi.fn().mockReturnValue(of({
-        quiet_hours_start: '23:00',
-        quiet_hours_end: '07:00',
-        digest_frequency: 'hourly',
-      })),
+      getPreferences: vi.fn().mockReturnValue(
+        of({
+          quiet_hours_start: '23:00',
+          quiet_hours_end: '07:00',
+          digest_frequency: 'hourly',
+        }),
+      ),
       updatePreferences: vi.fn().mockReturnValue(of({})),
     };
 
@@ -53,7 +71,10 @@ describe('NotificationsSectionComponent', () => {
       imports: [NotificationsSectionComponent],
       providers: [
         { provide: ProfileService, useValue: mockProfileService },
-        { provide: UserPreferencesService, useValue: mockUserPreferencesService },
+        {
+          provide: UserPreferencesService,
+          useValue: mockUserPreferencesService,
+        },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
@@ -111,7 +132,9 @@ describe('NotificationsSectionComponent', () => {
   it('should toggle email preference via onToggleChange', () => {
     component.ngOnInit();
     component.onToggleChange('task_assigned', 'email', false);
-    expect(mockProfileService.updateNotificationPreference).toHaveBeenCalledWith(
+    expect(
+      mockProfileService.updateNotificationPreference,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
         eventType: 'task_assigned',
         email: false,
@@ -148,7 +171,9 @@ describe('NotificationsSectionComponent', () => {
   it('should not reset when user cancels confirm dialog', () => {
     vi.spyOn(globalThis, 'confirm').mockReturnValue(false);
     component.resetToDefaults();
-    expect(mockProfileService.resetNotificationPreferences).not.toHaveBeenCalled();
+    expect(
+      mockProfileService.resetNotificationPreferences,
+    ).not.toHaveBeenCalled();
     vi.restoreAllMocks();
   });
 

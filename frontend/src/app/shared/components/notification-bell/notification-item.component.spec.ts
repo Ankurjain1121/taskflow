@@ -36,7 +36,9 @@ describe('NotificationItemComponent', () => {
   });
 
   it('should display notification title', () => {
-    expect(fixture.nativeElement.textContent).toContain('You were assigned a task');
+    expect(fixture.nativeElement.textContent).toContain(
+      'You were assigned a task',
+    );
   });
 
   it('should display notification body', () => {
@@ -68,7 +70,9 @@ describe('NotificationItemComponent', () => {
   });
 
   it('should return correct icon config for mention_in_comment', () => {
-    component.notification = makeNotification({ event_type: 'mention_in_comment' });
+    component.notification = makeNotification({
+      event_type: 'mention_in_comment',
+    });
     const config = component.getIconConfig();
     expect(config.icon).toContain('pi-at');
   });
@@ -86,7 +90,9 @@ describe('NotificationItemComponent', () => {
   });
 
   it('should return "Just now" for recent notification', () => {
-    component.notification = makeNotification({ created_at: new Date().toISOString() });
+    component.notification = makeNotification({
+      created_at: new Date().toISOString(),
+    });
     expect(component.getRelativeTime()).toBe('Just now');
   });
 

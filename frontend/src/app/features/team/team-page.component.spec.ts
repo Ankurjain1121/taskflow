@@ -13,21 +13,19 @@ describe('TeamPageComponent', () => {
 
   beforeEach(async () => {
     mockWorkspaceService = {
-      list: vi
-        .fn()
-        .mockReturnValue(
-          of([
-            {
-              id: 'ws-1',
-              name: 'Workspace 1',
-              description: null,
-              logo_url: null,
-              created_by_id: 'u-1',
-              created_at: '',
-              updated_at: '',
-            },
-          ]),
-        ),
+      list: vi.fn().mockReturnValue(
+        of([
+          {
+            id: 'ws-1',
+            name: 'Workspace 1',
+            description: null,
+            logo_url: null,
+            created_by_id: 'u-1',
+            created_at: '',
+            updated_at: '',
+          },
+        ]),
+      ),
     };
 
     mockTeamService = {

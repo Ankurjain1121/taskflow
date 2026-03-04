@@ -82,7 +82,9 @@ export class RecentItemsService {
   }
 
   private addItem(entry: RecentItem): void {
-    const current = this.items().filter((i) => !(i.id === entry.id && i.entityType === entry.entityType));
+    const current = this.items().filter(
+      (i) => !(i.id === entry.id && i.entityType === entry.entityType),
+    );
     const updated = [entry, ...current].slice(0, MAX_ITEMS);
     this.items.set(updated);
     this.saveToStorage(updated);
@@ -138,7 +140,10 @@ export class RecentItemsService {
 
   private postToServer(entityType: string, entityId: string): void {
     this.http
-      .post(`${this.apiUrl}/recent-items`, { entity_type: entityType, entity_id: entityId })
+      .post(`${this.apiUrl}/recent-items`, {
+        entity_type: entityType,
+        entity_id: entityId,
+      })
       .subscribe({
         error: () => {
           // Server-side tracking is best-effort

@@ -1,0 +1,47 @@
+{
+  "cookies": [
+    {
+      "name": "access_token",
+      "value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI2ZGVhYzY3OC02NGVhLTQ3ZDctYmJkNy05ZWYzODg3Mjk5OWQiLCJ0ZW5hbnRfaWQiOiIxNzk1NzQ0MC1hYTkxLTRiNDYtYmQ4Mi1hY2JjNmM1YjlkYzkiLCJyb2xlIjoiQWRtaW4iLCJ0b2tlbl9pZCI6ImIzMWU1MGI3LWFhNjEtNDVkOC04NjA2LWQ3NDBkNjVmNDhhOSIsImV4cCI6MTc3MTc5ODc0MSwiaWF0IjoxNzcxNzk3ODQxLCJpc3MiOiJ0YXNrZmxvdyIsImF1ZCI6InRhc2tmbG93LWFwaSJ9.Oo6zJPZdiJl1soPCIdo5jFWmjhXPUOWV6DK4LL54Qw4",
+      "domain": "taskflow.paraslace.in",
+      "path": "/",
+      "expires": 1771798741.784151,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "refresh_token",
+      "value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI2ZGVhYzY3OC02NGVhLTQ3ZDctYmJkNy05ZWYzODg3Mjk5OWQiLCJ0b2tlbl9pZCI6ImIzMWU1MGI3LWFhNjEtNDVkOC04NjA2LWQ3NDBkNjVmNDhhOSIsImV4cCI6MTc3MjQwMjY0MSwiaWF0IjoxNzcxNzk3ODQxLCJpc3MiOiJ0YXNrZmxvdyIsImF1ZCI6InRhc2tmbG93LWFwaSJ9.IaIja0laEX7wCCLwUZ8FNv_Lh3eNKjkkIB-t80hk1gs",
+      "domain": "taskflow.paraslace.in",
+      "path": "/",
+      "expires": 1772402641.785319,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "https://taskflow.paraslace.in",
+      "localStorage": [
+        {
+          "name": "taskflow_user",
+          "value": "{\"id\":\"6deac678-64ea-47d7-bbd7-9ef38872999d\",\"name\":\"E2E Test User\",\"email\":\"e2e-test-1771797838954-1666@example.com\",\"role\":\"Admin\",\"tenant_id\":\"17957440-aa91-4b46-bd82-acbc6c5b9dc9\",\"avatar_url\":null,\"phone_number\":null,\"onboarding_completed\":false,\"last_login_at\":null}"
+        },
+        {
+          "name": "taskflow-light-cache",
+          "value": "{\"slug\":\"default\",\"name\":\"Default\",\"category\":\"clean\",\"description\":\"Clean, modern light theme\",\"is_dark\":false,\"sort_order\":0,\"is_active\":true,\"colors\":{\"accent\":\"#000dff\",\"accent-foreground\":\"#00017e\",\"background\":\"#F6F7FB\",\"border\":\"#e2e8f0\",\"card\":\"#ffffff\",\"card-foreground\":\"#0f172a\",\"chart-1\":\"#6366f1\",\"chart-2\":\"#10b981\",\"chart-3\":\"#f97316\",\"chart-4\":\"#f59e0b\",\"chart-5\":\"#8b5cf6\",\"chip-completed\":\"#21ba45\",\"chip-due-soon\":\"#f2711c\",\"chip-overdue\":\"#db2828\",\"destructive\":\"#ef4444\",\"destructive-foreground\":\"#ffffff\",\"foreground\":\"#0f172a\",\"input\":\"#e2e8f0\",\"muted\":\"#f8f9fb\",\"muted-foreground\":\"#838793\",\"primary\":\"#6366f1\",\"primary-foreground\":\"#000000\",\"ring\":\"#6366f1\",\"secondary\":\"#f1f5f9\",\"secondary-foreground\":\"#0f172a\",\"shadow-glow\":\"0 0 0 1px color-mix(in srgb, var(--primary) 8%, transparent), 0 4px 16px color-mix(in srgb, var(--primary) 6%, transparent)\",\"shadow-lg\":\"0 12px 32px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06)\",\"shadow-md\":\"0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04)\",\"shadow-sm\":\"0 2px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)\",\"shadow-xs\":\"0 1px 2px rgba(0,0,0,0.05)\",\"sidebar-bg\":\"#F0F1F5\",\"sidebar-border\":\"rgba(0,0,0,0.08)\",\"sidebar-surface\":\"rgba(0,0,0,0.03)\",\"sidebar-surface-active\":\"color-mix(in srgb, var(--primary) 8%, transparent)\",\"sidebar-surface-hover\":\"rgba(0,0,0,0.05)\",\"sidebar-text-muted\":\"rgba(0,0,0,0.5)\",\"sidebar-text-primary\":\"#0f172a\",\"sidebar-text-secondary\":\"rgba(0,0,0,0.7)\",\"status-amber-bg\":\"#fffbeb\",\"status-amber-border\":\"#fde68a\",\"status-amber-text\":\"#92400e\",\"status-blue-bg\":\"#eff6ff\",\"status-blue-border\":\"#bfdbfe\",\"status-blue-text\":\"#1d4ed8\",\"status-green-bg\":\"#f0fdf4\",\"status-green-border\":\"#bbf7d0\",\"status-green-text\":\"#15803d\",\"status-red-bg\":\"#fef2f2\",\"status-red-border\":\"#fecaca\",\"status-red-text\":\"#b91c1c\",\"success\":\"#10b981\",\"success-light\":\"#ecfdf5\",\"surface-0\":\"#F6F7FB\",\"surface-1\":\"#ffffff\",\"surface-2\":\"#ffffff\",\"surface-3\":\"#ffffff\",\"widget-hover-border\":\"color-mix(in srgb, var(--primary) 20%, transparent)\"},\"personality\":{\"background_pattern\":\"none\",\"border_radius\":\"medium\",\"card_style\":\"raised\",\"sidebar_style\":\"light\"},\"preview\":{\"background_color\":\"#F6F7FB\",\"card_color\":\"#ffffff\",\"primary_color\":\"#6366f1\",\"sidebar_color\":\"#F0F1F5\",\"sidebar_is_dark\":\"false\"},\"primeng_ramp\":{\"50\":\"#000dff\",\"150\":\"#000cff\",\"250\":\"#000aff\",\"350\":\"#0009ff\",\"450\":\"#0008ff\",\"550\":\"#0007ff\",\"650\":\"#0006ff\",\"750\":\"#0004ff\",\"850\":\"#0003ff\",\"950\":\"#00013f\"},\"created_at\":\"2026-02-20T16:51:53.346782Z\",\"updated_at\":\"2026-02-20T16:51:53.346782Z\"}"
+        },
+        {
+          "name": "taskflow-theme",
+          "value": "system"
+        },
+        {
+          "name": "taskflow-accent",
+          "value": "indigo"
+        }
+      ]
+    }
+  ]
+}

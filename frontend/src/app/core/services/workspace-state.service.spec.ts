@@ -112,7 +112,7 @@ describe('WorkspaceStateService', () => {
 
     it('should set loading to false on error', () => {
       mockWorkspaceService.list.mockReturnValue(
-        throwError(() => new Error('Network error'))
+        throwError(() => new Error('Network error')),
       );
 
       service.loadWorkspaces();

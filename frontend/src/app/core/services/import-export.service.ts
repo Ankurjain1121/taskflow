@@ -62,31 +62,34 @@ export class ImportExportService {
   exportJson(boardId: string): Observable<ExportBoardJson> {
     return this.http.get<ExportBoardJson>(
       `${this.apiUrl}/boards/${boardId}/export`,
-      { params: { format: 'json' } }
+      { params: { format: 'json' } },
     );
   }
 
   importJson(
     boardId: string,
-    tasks: ImportTaskItem[]
+    tasks: ImportTaskItem[],
   ): Observable<ImportResult> {
     return this.http.post<ImportResult>(
       `${this.apiUrl}/boards/${boardId}/import`,
-      tasks
+      tasks,
     );
   }
 
   importCsv(boardId: string, csvText: string): Observable<ImportResult> {
     return this.http.post<ImportResult>(
       `${this.apiUrl}/boards/${boardId}/import/csv`,
-      { csv_text: csvText }
+      { csv_text: csvText },
     );
   }
 
-  importTrello(boardId: string, trelloData: unknown): Observable<TrelloImportResult> {
+  importTrello(
+    boardId: string,
+    trelloData: unknown,
+  ): Observable<TrelloImportResult> {
     return this.http.post<TrelloImportResult>(
       `${this.apiUrl}/boards/${boardId}/import/trello`,
-      trelloData
+      trelloData,
     );
   }
 }

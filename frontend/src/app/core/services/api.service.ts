@@ -1,28 +1,60 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { finalize, shareReplay } from 'rxjs/operators';
 
+/**
+ * Generic HTTP wrapper with request deduplication.
+ *
+ * Features:
+ * - Deduplicate concurrent GET requests (same path)
+ * - Use shareReplay to share single HTTP call across multiple subscribers
+ * - Automatic cleanup of pending request tracking
+ */
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private http = inject(HttpClient);
   private baseUrl = '/api';
+  private pendingGetRequests = new Map<string, Observable<any>>();
 
-  get<T>(path: string) {
-    return this.http.get<T>(`${this.baseUrl}${path}`);
+  /**
+   * GET request with automatic deduplication.
+   * Concurrent requests for the same path will share the same HTTP call.
+   *
+   * @param path API endpoint path (without /api prefix)
+   * @returns Shared Observable
+   */
+  get<T>(path: string): Observable<T> {
+    const fullPath = `${this.baseUrl}${path}`;
+
+    // Return cached pending request if available
+    if (this.pendingGetRequests.has(fullPath)) {
+      return this.pendingGetRequests.get(fullPath) as Observable<T>;
+    }
+
+    // Create new request with shareReplay for deduplication
+    const request$ = this.http.get<T>(fullPath).pipe(
+      shareReplay({ bufferSize: 1, refCount: true }),
+      finalize(() => this.pendingGetRequests.delete(fullPath)),
+    );
+
+    this.pendingGetRequests.set(fullPath, request$);
+    return request$;
   }
 
-  post<T>(path: string, body: unknown) {
+  post<T>(path: string, body: unknown): Observable<T> {
     return this.http.post<T>(`${this.baseUrl}${path}`, body);
   }
 
-  put<T>(path: string, body: unknown) {
+  put<T>(path: string, body: unknown): Observable<T> {
     return this.http.put<T>(`${this.baseUrl}${path}`, body);
   }
 
-  patch<T>(path: string, body: unknown) {
+  patch<T>(path: string, body: unknown): Observable<T> {
     return this.http.patch<T>(`${this.baseUrl}${path}`, body);
   }
 
-  delete<T>(path: string) {
+  delete<T>(path: string): Observable<T> {
     return this.http.delete<T>(`${this.baseUrl}${path}`);
   }
 }

@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { Theme, ThemeListResponse } from '../../shared/types/theme.types';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ThemeApiService {
   private readonly baseUrl = '/api/themes';

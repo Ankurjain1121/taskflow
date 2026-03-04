@@ -65,7 +65,9 @@ export interface UseTemplateDialogResult {
       <!-- Header -->
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h2 class="text-2xl font-bold text-[var(--foreground)]">Project Templates</h2>
+          <h2 class="text-2xl font-bold text-[var(--foreground)]">
+            Project Templates
+          </h2>
           <p class="mt-1 text-[var(--muted-foreground)]">
             Choose a template to quickly set up a new board with predefined
             columns and tasks.
@@ -118,7 +120,9 @@ export interface UseTemplateDialogResult {
       } @else if (filteredTemplates().length === 0) {
         <!-- Empty State -->
         <div class="text-center py-16">
-          <i class="pi pi-th-large text-6xl text-[var(--muted-foreground)] mb-4"></i>
+          <i
+            class="pi pi-th-large text-6xl text-[var(--muted-foreground)] mb-4"
+          ></i>
           <h3 class="text-lg font-medium text-[var(--foreground)] mb-1">
             No templates found
           </h3>
@@ -159,7 +163,9 @@ export interface UseTemplateDialogResult {
                   }
                 </div>
               </ng-template>
-              <p class="text-sm text-[var(--muted-foreground)] line-clamp-2 min-h-[2.5rem]">
+              <p
+                class="text-sm text-[var(--muted-foreground)] line-clamp-2 min-h-[2.5rem]"
+              >
                 {{ template.description || 'No description' }}
               </p>
               <ng-template #footer>

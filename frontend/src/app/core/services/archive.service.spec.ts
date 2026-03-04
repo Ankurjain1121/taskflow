@@ -54,7 +54,8 @@ describe('ArchiveService', () => {
       service.list({ entity_type: 'task' }).subscribe();
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/archive' && r.params.get('entity_type') === 'task'
+        (r) =>
+          r.url === '/api/archive' && r.params.get('entity_type') === 'task',
       );
       expect(req.request.method).toBe('GET');
       req.flush(MOCK_PAGINATED);
@@ -64,7 +65,7 @@ describe('ArchiveService', () => {
       service.list({ cursor: 'abc123' }).subscribe();
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/archive' && r.params.get('cursor') === 'abc123'
+        (r) => r.url === '/api/archive' && r.params.get('cursor') === 'abc123',
       );
       expect(req.request.method).toBe('GET');
       req.flush(MOCK_PAGINATED);
@@ -74,7 +75,7 @@ describe('ArchiveService', () => {
       service.list({ page_size: 10 }).subscribe();
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/archive' && r.params.get('page_size') === '10'
+        (r) => r.url === '/api/archive' && r.params.get('page_size') === '10',
       );
       expect(req.request.method).toBe('GET');
       req.flush(MOCK_PAGINATED);
@@ -90,7 +91,7 @@ describe('ArchiveService', () => {
           r.url === '/api/archive' &&
           r.params.get('entity_type') === 'board' &&
           r.params.get('cursor') === 'xyz' &&
-          r.params.get('page_size') === '5'
+          r.params.get('page_size') === '5',
       );
       expect(req.request.method).toBe('GET');
       req.flush(MOCK_PAGINATED);

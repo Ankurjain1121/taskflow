@@ -26,7 +26,9 @@
       <i class="pi pi-spin pi-spinner text-4xl text-gray-400"></i>
     </div>
   } @else if (filteredTasks().length === 0) {
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+    <div
+      class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center"
+    >
       <i class="pi pi-check-circle text-6xl text-gray-400 mb-4"></i>
       <p class="text-gray-600 text-lg">No tasks found</p>
       <p class="text-gray-500 text-sm">You're all caught up!</p>
@@ -38,15 +40,19 @@
         <div>
           <h2 class="text-xl font-semibold mb-3 flex items-center gap-2">
             <i class="pi pi-folder"></i>
-            {{ group[1][0]?.board_name || 'Unknown Board' }}
+            {{ group[1][0]?.board_name || "Unknown Board" }}
           </h2>
           <div class="grid gap-3">
             @for (task of group[1]; track task.id) {
-              <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer">
+              <div
+                class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+              >
                 <div class="flex items-start justify-between">
                   <div class="flex-1">
                     <div class="flex items-center gap-2 mb-2">
-                      <span class="text-xs text-gray-500">{{ task.column_name }}</span>
+                      <span class="text-xs text-gray-500">{{
+                        task.column_name
+                      }}</span>
                       <span
                         class="text-xs px-2 py-1 rounded capitalize"
                         [ngClass]="getPriorityBadgeClass(task.priority)"
@@ -54,7 +60,10 @@
                         {{ task.priority }}
                       </span>
                       @if (task.is_done) {
-                        <span class="text-xs px-2 py-1 rounded bg-green-100 text-green-800">Done</span>
+                        <span
+                          class="text-xs px-2 py-1 rounded bg-green-100 text-green-800"
+                          >Done</span
+                        >
                       }
                     </div>
 

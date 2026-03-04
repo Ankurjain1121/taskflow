@@ -27,7 +27,10 @@ export class KeyboardShortcutsService implements OnDestroy {
   readonly recentlyUsedIds = signal<string[]>([]);
 
   markUsed(description: string): void {
-    const arr = [description, ...this.recentlyUsedIds().filter(x => x !== description)].slice(0, 5);
+    const arr = [
+      description,
+      ...this.recentlyUsedIds().filter((x) => x !== description),
+    ].slice(0, 5);
     this.recentlyUsedIds.set(arr);
   }
 

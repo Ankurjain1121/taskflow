@@ -126,7 +126,9 @@ export class AdminService {
   }
 
   // User Management Methods
-  getUsers(params: { search?: string; role?: string } = {}): Observable<AdminUser[]> {
+  getUsers(
+    params: { search?: string; role?: string } = {},
+  ): Observable<AdminUser[]> {
     let httpParams = new HttpParams();
 
     if (params.search) {
@@ -141,8 +143,13 @@ export class AdminService {
     });
   }
 
-  updateUserRole(userId: string, role: 'admin' | 'manager' | 'member'): Observable<void> {
-    return this.http.patch<void>(`${this.apiUrl}/users/${userId}/role`, { role });
+  updateUserRole(
+    userId: string,
+    role: 'admin' | 'manager' | 'member',
+  ): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/users/${userId}/role`, {
+      role,
+    });
   }
 
   deleteUser(userId: string): Observable<void> {
@@ -169,11 +176,16 @@ export class AdminService {
   }
 
   restoreItem(entityType: string, entityId: string): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/trash/${entityType}/${entityId}/restore`, {});
+    return this.http.post<void>(
+      `${this.apiUrl}/trash/${entityType}/${entityId}/restore`,
+      {},
+    );
   }
 
   permanentlyDelete(entityType: string, entityId: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/trash/${entityType}/${entityId}`);
+    return this.http.delete<void>(
+      `${this.apiUrl}/trash/${entityType}/${entityId}`,
+    );
   }
 
   emptyTrash(): Observable<void> {

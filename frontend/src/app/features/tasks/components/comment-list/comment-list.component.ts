@@ -27,6 +27,7 @@ import {
   WebSocketMessage,
 } from '../../../../core/services/websocket.service';
 import { CommentInputComponent } from '../comment-input/comment-input.component';
+import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 
 /**
  * Pipe to transform @[name](id) mentions into styled HTML spans
@@ -79,6 +80,7 @@ interface CommentCreatedPayload {
     ButtonModule,
     RenderMentionsPipe,
     CommentInputComponent,
+    EmptyStateComponent,
   ],
   template: `
     <div class="space-y-4">
@@ -94,12 +96,7 @@ interface CommentCreatedPayload {
           >
         </div>
       } @else if (comments().length === 0) {
-        <div class="text-center py-8 text-[var(--muted-foreground)]">
-          <i
-            class="pi pi-comments text-4xl text-[var(--muted-foreground)]/50 mb-2 block"
-          ></i>
-          <p>No comments yet. Be the first to comment!</p>
-        </div>
+        <app-empty-state variant="comments" size="compact" />
       } @else {
         <div class="space-y-4">
           @for (comment of comments(); track comment.id) {

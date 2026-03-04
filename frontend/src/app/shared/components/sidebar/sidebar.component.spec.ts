@@ -32,11 +32,38 @@ describe('SidebarComponent', () => {
     });
 
     mockWorkspaceService = {
-      list: vi.fn().mockReturnValue(of([
-        { id: 'ws-1', name: 'Alpha', slug: 'alpha', owner_id: 'u-1', created_at: '', updated_at: '' },
-        { id: 'ws-2', name: 'Beta', slug: 'beta', owner_id: 'u-1', created_at: '', updated_at: '' },
-      ])),
-      create: vi.fn().mockReturnValue(of({ id: 'ws-new', name: 'New', slug: 'new', owner_id: 'u-1', created_at: '', updated_at: '' })),
+      list: vi.fn().mockReturnValue(
+        of([
+          {
+            id: 'ws-1',
+            name: 'Alpha',
+            slug: 'alpha',
+            owner_id: 'u-1',
+            created_at: '',
+            updated_at: '',
+          },
+          {
+            id: 'ws-2',
+            name: 'Beta',
+            slug: 'beta',
+            owner_id: 'u-1',
+            created_at: '',
+            updated_at: '',
+          },
+        ]),
+      ),
+      create: vi
+        .fn()
+        .mockReturnValue(
+          of({
+            id: 'ws-new',
+            name: 'New',
+            slug: 'new',
+            owner_id: 'u-1',
+            created_at: '',
+            updated_at: '',
+          }),
+        ),
     };
 
     mockAuthService = {
@@ -88,7 +115,9 @@ describe('SidebarComponent', () => {
   });
 
   it('should handle workspace load error', () => {
-    mockWorkspaceService.list.mockReturnValue(throwError(() => new Error('fail')));
+    mockWorkspaceService.list.mockReturnValue(
+      throwError(() => new Error('fail')),
+    );
     component.ngOnInit();
     expect(component.loading()).toBe(false);
   });
@@ -105,13 +134,25 @@ describe('SidebarComponent', () => {
     expect(component.canCreateWorkspace()).toBe(false);
     // Reset
     mockAuthService.currentUser.set({
-      id: 'u-1', name: 'Alice', email: 'alice@test.com',
-      avatar_url: null, role: 'Member' as const, tenant_id: 't-1', onboarding_completed: true,
+      id: 'u-1',
+      name: 'Alice',
+      email: 'alice@test.com',
+      avatar_url: null,
+      role: 'Member' as const,
+      tenant_id: 't-1',
+      onboarding_completed: true,
     });
   });
 
   it('should compute workspace color from name', () => {
-    const ws = { id: 'ws-1', name: 'Alpha', slug: 'alpha', owner_id: 'u-1', created_at: '', updated_at: '' };
+    const ws = {
+      id: 'ws-1',
+      name: 'Alpha',
+      slug: 'alpha',
+      owner_id: 'u-1',
+      created_at: '',
+      updated_at: '',
+    };
     const color = component.getWorkspaceColor(ws as any);
     expect(color).toMatch(/^#[0-9a-f]{6}$/i);
   });

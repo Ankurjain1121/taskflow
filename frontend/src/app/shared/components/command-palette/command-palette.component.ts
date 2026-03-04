@@ -34,7 +34,10 @@ import {
 } from '../../../core/services/search.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
-import { RecentItemsService, RecentItem } from '../../../core/services/recent-items.service';
+import {
+  RecentItemsService,
+  RecentItem,
+} from '../../../core/services/recent-items.service';
 
 export interface CommandAction {
   id: string;
@@ -68,14 +71,20 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
           (click)="$event.stopPropagation()"
         >
           <!-- Search Input -->
-          <div class="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)]">
+          <div
+            class="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)]"
+          >
             <i class="pi pi-search text-gray-400 shrink-0"></i>
             <input
               #searchInput
               type="text"
               [ngModel]="query()"
               (ngModelChange)="onQueryChange($event)"
-              [placeholder]="isCommandMode() ? 'Type a command...' : 'Search tasks, boards... (> for commands)'"
+              [placeholder]="
+                isCommandMode()
+                  ? 'Type a command...'
+                  : 'Search tasks, boards... (> for commands)'
+              "
               class="flex-1 bg-transparent border-none outline-none text-lg text-[var(--card-foreground)] placeholder-gray-400"
               autocomplete="off"
               (keydown)="onInputKeydown($event)"
@@ -88,101 +97,170 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
                 <i class="pi pi-times text-gray-400 text-sm"></i>
               </button>
             }
-            <kbd class="hidden sm:inline-flex items-center px-2 py-0.5 text-xs font-medium text-gray-400 bg-[var(--secondary)] rounded">
+            <kbd
+              class="hidden sm:inline-flex items-center px-2 py-0.5 text-xs font-medium text-gray-400 bg-[var(--secondary)] rounded"
+            >
               ESC
             </kbd>
           </div>
 
           <!-- Results Area -->
           <div #resultsList class="max-h-[60vh] overflow-y-auto">
-
             @if (isCommandMode()) {
               <!-- Command Mode: Actions -->
               <div class="py-2">
-                <div class="px-3 py-1 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+                <div
+                  class="px-3 py-1 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide"
+                >
                   Actions
                 </div>
-                @for (action of filteredActions(); track action.id; let idx = $index) {
+                @for (
+                  action of filteredActions();
+                  track action.id;
+                  let idx = $index
+                ) {
                   <button
                     [attr.data-item-index]="idx"
                     class="cp-item w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-left"
-                    [style.background]="selectedIndex() === idx ? selectedBg : ''"
+                    [style.background]="
+                      selectedIndex() === idx ? selectedBg : ''
+                    "
                     (click)="executeAction(action)"
                     (mouseenter)="selectedIndex.set(idx)"
                   >
-                    <i [class]="'pi pi-' + action.icon + ' w-5 h-5 text-gray-400 shrink-0'"></i>
-                    <span class="flex-1 text-sm text-[var(--card-foreground)]">{{ action.label }}</span>
+                    <i
+                      [class]="
+                        'pi pi-' +
+                        action.icon +
+                        ' w-5 h-5 text-gray-400 shrink-0'
+                      "
+                    ></i>
+                    <span
+                      class="flex-1 text-sm text-[var(--card-foreground)]"
+                      >{{ action.label }}</span
+                    >
                     @if (action.shortcut) {
-                      <kbd class="text-xs px-1.5 py-0.5 rounded bg-[var(--secondary)] text-[var(--muted-foreground)] font-mono">
+                      <kbd
+                        class="text-xs px-1.5 py-0.5 rounded bg-[var(--secondary)] text-[var(--muted-foreground)] font-mono"
+                      >
                         {{ action.shortcut }}
                       </kbd>
                     }
                   </button>
                 }
                 @if (filteredActions().length === 0) {
-                  <div class="flex flex-col items-center justify-center py-8 text-[var(--muted-foreground)]">
+                  <div
+                    class="flex flex-col items-center justify-center py-8 text-[var(--muted-foreground)]"
+                  >
                     <p class="text-sm">No matching commands</p>
                   </div>
                 }
               </div>
             } @else if (loading()) {
               <div class="flex items-center justify-center py-12">
-                <div class="flex items-center gap-3 text-[var(--muted-foreground)]">
+                <div
+                  class="flex items-center gap-3 text-[var(--muted-foreground)]"
+                >
                   <i class="pi pi-spin pi-spinner text-xl"></i>
                   <span>Searching...</span>
                 </div>
               </div>
             } @else if (hasSearched() && !hasResults()) {
-              <div class="flex flex-col items-center justify-center py-12 text-[var(--muted-foreground)]">
+              <div
+                class="flex flex-col items-center justify-center py-12 text-[var(--muted-foreground)]"
+              >
                 <i class="pi pi-search text-4xl mb-3 opacity-50"></i>
                 <p class="text-sm font-medium">No results found</p>
-                <p class="text-xs mt-1">Try different keywords or check spelling</p>
+                <p class="text-xs mt-1">
+                  Try different keywords or check spelling
+                </p>
               </div>
             } @else if (!query()) {
               <!-- Default view: Recent Items + Quick Actions -->
               <div class="py-2">
                 @if (recentItems().length > 0) {
-                  <div class="px-3 py-1 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+                  <div
+                    class="px-3 py-1 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide"
+                  >
                     Recent
                   </div>
-                  @for (item of recentItems(); track item.id; let idx = $index) {
+                  @for (
+                    item of recentItems();
+                    track item.id;
+                    let idx = $index
+                  ) {
                     <button
                       [attr.data-item-index]="idx"
                       class="cp-item w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-left"
-                      [style.background]="selectedIndex() === idx ? selectedBg : ''"
+                      [style.background]="
+                        selectedIndex() === idx ? selectedBg : ''
+                      "
                       (click)="onRecentItemClick(item)"
                       (mouseenter)="selectedIndex.set(idx)"
                     >
-                      <i [class]="item.entityType === 'board' ? 'pi pi-table text-emerald-500 shrink-0' : 'pi pi-check-square text-primary shrink-0'"></i>
+                      <i
+                        [class]="
+                          item.entityType === 'board'
+                            ? 'pi pi-table text-emerald-500 shrink-0'
+                            : 'pi pi-check-square text-primary shrink-0'
+                        "
+                      ></i>
                       <div class="flex-1 min-w-0">
-                        <span class="text-sm text-[var(--card-foreground)] truncate block">{{ item.name }}</span>
+                        <span
+                          class="text-sm text-[var(--card-foreground)] truncate block"
+                          >{{ item.name }}</span
+                        >
                         @if (item.context) {
-                          <span class="text-xs text-[var(--muted-foreground)] truncate block">{{ item.context }}</span>
+                          <span
+                            class="text-xs text-[var(--muted-foreground)] truncate block"
+                            >{{ item.context }}</span
+                          >
                         }
                       </div>
-                      <span class="text-xs text-[var(--muted-foreground)] shrink-0">
+                      <span
+                        class="text-xs text-[var(--muted-foreground)] shrink-0"
+                      >
                         {{ item.entityType === 'board' ? 'Board' : 'Task' }}
                       </span>
                     </button>
                   }
                 }
 
-                <div class="px-3 py-1 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide"
-                     [class.mt-2]="recentItems().length > 0">
+                <div
+                  class="px-3 py-1 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide"
+                  [class.mt-2]="recentItems().length > 0"
+                >
                   Quick Actions
                 </div>
-                @for (action of quickActions(); track action.id; let idx = $index) {
+                @for (
+                  action of quickActions();
+                  track action.id;
+                  let idx = $index
+                ) {
                   <button
                     [attr.data-item-index]="recentItems().length + idx"
                     class="cp-item w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-left"
-                    [style.background]="selectedIndex() === recentItems().length + idx ? selectedBg : ''"
+                    [style.background]="
+                      selectedIndex() === recentItems().length + idx
+                        ? selectedBg
+                        : ''
+                    "
                     (click)="executeAction(action)"
                     (mouseenter)="selectedIndex.set(recentItems().length + idx)"
                   >
-                    <i [class]="'pi pi-' + action.icon + ' text-gray-400 shrink-0'"></i>
-                    <span class="flex-1 text-sm text-[var(--card-foreground)]">{{ action.label }}</span>
+                    <i
+                      [class]="
+                        'pi pi-' + action.icon + ' text-gray-400 shrink-0'
+                      "
+                    ></i>
+                    <span
+                      class="flex-1 text-sm text-[var(--card-foreground)]"
+                      >{{ action.label }}</span
+                    >
                     @if (action.shortcut) {
-                      <kbd class="text-xs px-1.5 py-0.5 rounded bg-[var(--secondary)] text-[var(--muted-foreground)] font-mono">
+                      <kbd
+                        class="text-xs px-1.5 py-0.5 rounded bg-[var(--secondary)] text-[var(--muted-foreground)] font-mono"
+                      >
                         {{ action.shortcut }}
                       </kbd>
                     }
@@ -190,7 +268,9 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
                 }
 
                 @if (recentItems().length === 0) {
-                  <div class="px-4 py-6 text-center text-[var(--muted-foreground)]">
+                  <div
+                    class="px-4 py-6 text-center text-[var(--muted-foreground)]"
+                  >
                     <i class="pi pi-search text-3xl mb-2 opacity-50 block"></i>
                     <p class="text-sm">Search across your workspace</p>
                     <p class="text-xs mt-1">Find tasks, boards, and comments</p>
@@ -201,22 +281,39 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
               <!-- Search Results -->
               @if (results()!.tasks.length > 0) {
                 <div class="py-1">
-                  <div class="px-3 py-1 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+                  <div
+                    class="px-3 py-1 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide"
+                  >
                     Tasks ({{ results()!.tasks.length }})
                   </div>
-                  @for (task of results()!.tasks; track task.id; let idx = $index) {
+                  @for (
+                    task of results()!.tasks;
+                    track task.id;
+                    let idx = $index
+                  ) {
                     <button
                       [attr.data-item-index]="idx"
                       class="cp-item w-full flex items-start gap-3 px-3 py-2 text-left rounded-md transition-colors"
-                      [style.background]="selectedIndex() === idx ? selectedBg : ''"
+                      [style.background]="
+                        selectedIndex() === idx ? selectedBg : ''
+                      "
                       (click)="navigateToTask(task)"
                       (mouseenter)="selectedIndex.set(idx)"
                     >
-                      <i class="pi pi-check-square text-primary shrink-0 mt-0.5"></i>
+                      <i
+                        class="pi pi-check-square text-primary shrink-0 mt-0.5"
+                      ></i>
                       <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-[var(--card-foreground)] truncate">{{ task.title }}</p>
-                        <p class="text-xs text-[var(--muted-foreground)] truncate">
-                          {{ task.workspace_name }} &rsaquo; {{ task.board_name }}
+                        <p
+                          class="text-sm font-medium text-[var(--card-foreground)] truncate"
+                        >
+                          {{ task.title }}
+                        </p>
+                        <p
+                          class="text-xs text-[var(--muted-foreground)] truncate"
+                        >
+                          {{ task.workspace_name }} &rsaquo;
+                          {{ task.board_name }}
                         </p>
                       </div>
                     </button>
@@ -226,21 +323,41 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
 
               @if (results()!.boards.length > 0) {
                 <div class="py-1">
-                  <div class="px-3 py-1 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+                  <div
+                    class="px-3 py-1 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide"
+                  >
                     Boards ({{ results()!.boards.length }})
                   </div>
-                  @for (board of results()!.boards; track board.id; let idx = $index) {
+                  @for (
+                    board of results()!.boards;
+                    track board.id;
+                    let idx = $index
+                  ) {
                     <button
                       [attr.data-item-index]="boardOffset() + idx"
                       class="cp-item w-full flex items-start gap-3 px-3 py-2 text-left rounded-md transition-colors"
-                      [style.background]="selectedIndex() === boardOffset() + idx ? selectedBg : ''"
+                      [style.background]="
+                        selectedIndex() === boardOffset() + idx
+                          ? selectedBg
+                          : ''
+                      "
                       (click)="navigateToBoard(board)"
                       (mouseenter)="selectedIndex.set(boardOffset() + idx)"
                     >
-                      <i class="pi pi-table text-emerald-500 shrink-0 mt-0.5"></i>
+                      <i
+                        class="pi pi-table text-emerald-500 shrink-0 mt-0.5"
+                      ></i>
                       <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-[var(--card-foreground)] truncate">{{ board.name }}</p>
-                        <p class="text-xs text-[var(--muted-foreground)] truncate">{{ board.workspace_name }}</p>
+                        <p
+                          class="text-sm font-medium text-[var(--card-foreground)] truncate"
+                        >
+                          {{ board.name }}
+                        </p>
+                        <p
+                          class="text-xs text-[var(--muted-foreground)] truncate"
+                        >
+                          {{ board.workspace_name }}
+                        </p>
                       </div>
                     </button>
                   }
@@ -249,22 +366,41 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
 
               @if (results()!.comments.length > 0) {
                 <div class="py-1">
-                  <div class="px-3 py-1 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+                  <div
+                    class="px-3 py-1 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide"
+                  >
                     Comments ({{ results()!.comments.length }})
                   </div>
-                  @for (comment of results()!.comments; track comment.id; let idx = $index) {
+                  @for (
+                    comment of results()!.comments;
+                    track comment.id;
+                    let idx = $index
+                  ) {
                     <button
                       [attr.data-item-index]="commentOffset() + idx"
                       class="cp-item w-full flex items-start gap-3 px-3 py-2 text-left rounded-md transition-colors"
-                      [style.background]="selectedIndex() === commentOffset() + idx ? selectedBg : ''"
+                      [style.background]="
+                        selectedIndex() === commentOffset() + idx
+                          ? selectedBg
+                          : ''
+                      "
                       (click)="navigateToComment(comment)"
                       (mouseenter)="selectedIndex.set(commentOffset() + idx)"
                     >
-                      <i class="pi pi-comment text-amber-500 shrink-0 mt-0.5"></i>
+                      <i
+                        class="pi pi-comment text-amber-500 shrink-0 mt-0.5"
+                      ></i>
                       <div class="flex-1 min-w-0">
-                        <p class="text-sm text-[var(--card-foreground)] truncate">{{ comment.content }}</p>
-                        <p class="text-xs text-[var(--muted-foreground)] truncate">
-                          on {{ comment.task_title }} &rsaquo; {{ comment.board_name }}
+                        <p
+                          class="text-sm text-[var(--card-foreground)] truncate"
+                        >
+                          {{ comment.content }}
+                        </p>
+                        <p
+                          class="text-xs text-[var(--muted-foreground)] truncate"
+                        >
+                          on {{ comment.task_title }} &rsaquo;
+                          {{ comment.board_name }}
                         </p>
                       </div>
                     </button>
@@ -277,23 +413,37 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
           </div>
 
           <!-- Footer -->
-          <div class="flex items-center justify-between px-4 py-2 border-t border-[var(--border)] text-xs text-gray-400">
+          <div
+            class="flex items-center justify-between px-4 py-2 border-t border-[var(--border)] text-xs text-gray-400"
+          >
             <div class="flex items-center gap-3">
               <span class="flex items-center gap-1">
-                <kbd class="px-1.5 py-0.5 bg-[var(--secondary)] rounded text-[10px]">&#8593;&#8595;</kbd>
+                <kbd
+                  class="px-1.5 py-0.5 bg-[var(--secondary)] rounded text-[10px]"
+                  >&#8593;&#8595;</kbd
+                >
                 navigate
               </span>
               <span class="flex items-center gap-1">
-                <kbd class="px-1.5 py-0.5 bg-[var(--secondary)] rounded text-[10px]">&#9166;</kbd>
+                <kbd
+                  class="px-1.5 py-0.5 bg-[var(--secondary)] rounded text-[10px]"
+                  >&#9166;</kbd
+                >
                 select
               </span>
             </div>
             <span class="flex items-center gap-1">
-              <kbd class="px-1.5 py-0.5 bg-[var(--secondary)] rounded text-[10px]">&gt;</kbd>
+              <kbd
+                class="px-1.5 py-0.5 bg-[var(--secondary)] rounded text-[10px]"
+                >&gt;</kbd
+              >
               commands
             </span>
             <span class="flex items-center gap-1">
-              <kbd class="px-1.5 py-0.5 bg-[var(--secondary)] rounded text-[10px]">esc</kbd>
+              <kbd
+                class="px-1.5 py-0.5 bg-[var(--secondary)] rounded text-[10px]"
+                >esc</kbd
+              >
               close
             </span>
           </div>
@@ -301,11 +451,13 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
       </div>
     }
   `,
-  styles: [`
-    .cp-item:hover {
-      background: var(--secondary);
-    }
-  `],
+  styles: [
+    `
+      .cp-item:hover {
+        background: var(--secondary);
+      }
+    `,
+  ],
 })
 export class CommandPaletteComponent implements OnInit, OnDestroy {
   isOpen = input(false);
@@ -349,7 +501,8 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
       icon: 'plus',
       label: 'Create New Task',
       shortcut: 'N',
-      action: () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'n' })),
+      action: () =>
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'n' })),
     },
     {
       id: 'dashboard',
@@ -406,14 +559,18 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
       icon: 'bars',
       label: 'Toggle Sidebar',
       shortcut: 'Ctrl+B',
-      action: () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', ctrlKey: true })),
+      action: () =>
+        document.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'b', ctrlKey: true }),
+        ),
     },
     {
       id: 'clear-filters',
       icon: 'filter-slash',
       label: 'Clear Board Filters',
       shortcut: 'C',
-      action: () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'c' })),
+      action: () =>
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'c' })),
     },
   ];
 

@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CHART_PRIORITY_COLORS } from '../../../shared/utils/svg-charts';
+import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 
 export interface GanttTask {
   id: string;
@@ -46,7 +47,7 @@ type ZoomLevel = 'day' | 'week' | 'month';
 @Component({
   selector: 'app-gantt-view',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col h-full bg-[var(--card)]">
@@ -79,12 +80,11 @@ type ZoomLevel = 'day' | 'week' | 'month';
       </div>
 
       @if (tasks().length === 0) {
-        <div
-          class="flex items-center justify-center flex-1 text-gray-400 text-sm"
-        >
-          No tasks with dates to display. Set start/due dates on tasks to see
-          them here.
-        </div>
+        <app-empty-state
+          variant="generic"
+          title="No tasks with dates"
+          description="Set start or due dates on tasks to see them on the timeline."
+        />
       } @else {
         <!-- Gantt Body -->
         <div class="flex flex-1 overflow-hidden">

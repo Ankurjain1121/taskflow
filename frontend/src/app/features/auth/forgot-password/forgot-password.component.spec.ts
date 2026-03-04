@@ -24,9 +24,7 @@ describe('ForgotPasswordComponent', () => {
         HttpClientTestingModule,
         RouterTestingModule.withRoutes([]),
       ],
-      providers: [
-        { provide: AuthService, useValue: mockAuthService },
-      ],
+      providers: [{ provide: AuthService, useValue: mockAuthService }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ForgotPasswordComponent);
@@ -85,7 +83,9 @@ describe('ForgotPasswordComponent', () => {
       component.forgotForm.setValue({ email: 'test@example.com' });
       component.onSubmit();
 
-      expect(mockAuthService.forgotPassword).toHaveBeenCalledWith('test@example.com');
+      expect(mockAuthService.forgotPassword).toHaveBeenCalledWith(
+        'test@example.com',
+      );
       expect(component.isLoading).toBe(false);
       expect(component.submitted).toBe(true);
     });

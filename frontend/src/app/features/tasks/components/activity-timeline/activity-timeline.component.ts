@@ -20,12 +20,18 @@ import {
   ActivityLogEntry,
   ActivityAction,
 } from '../../../../core/services/activity.service';
+import { EmptyStateComponent } from '../../../../shared/components/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-activity-timeline',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ButtonModule, ProgressSpinnerModule],
+  imports: [
+    CommonModule,
+    ButtonModule,
+    ProgressSpinnerModule,
+    EmptyStateComponent,
+  ],
   template: `
     <div class="relative">
       @if (isLoading() && activities().length === 0) {
@@ -37,10 +43,7 @@ import {
           <span class="ml-3 text-gray-500">Loading activity...</span>
         </div>
       } @else if (activities().length === 0) {
-        <div class="text-center py-8 text-gray-500">
-          <i class="pi pi-history text-4xl text-gray-300 mb-2 block"></i>
-          <p>No activity recorded yet.</p>
-        </div>
+        <app-empty-state variant="activity" size="compact" />
       } @else {
         <!-- Timeline container -->
         <div class="relative">

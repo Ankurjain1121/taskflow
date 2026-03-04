@@ -26,10 +26,26 @@ describe('SidebarFavoritesComponent', () => {
     });
 
     mockFavoritesService = {
-      list: vi.fn().mockReturnValue(of([
-        { id: 'f-1', entity_type: 'board', entity_id: 'b-1', name: 'Board Alpha', board_id: 'b-1', workspace_id: 'ws-1' },
-        { id: 'f-2', entity_type: 'task', entity_id: 't-1', name: 'Task Beta', board_id: null, workspace_id: null },
-      ])),
+      list: vi.fn().mockReturnValue(
+        of([
+          {
+            id: 'f-1',
+            entity_type: 'board',
+            entity_id: 'b-1',
+            name: 'Board Alpha',
+            board_id: 'b-1',
+            workspace_id: 'ws-1',
+          },
+          {
+            id: 'f-2',
+            entity_type: 'task',
+            entity_id: 't-1',
+            name: 'Task Beta',
+            board_id: null,
+            workspace_id: null,
+          },
+        ]),
+      ),
     };
 
     await TestBed.configureTestingModule({
@@ -56,25 +72,48 @@ describe('SidebarFavoritesComponent', () => {
   });
 
   it('should handle favorites load error gracefully', () => {
-    mockFavoritesService.list.mockReturnValue(throwError(() => new Error('Network error')));
+    mockFavoritesService.list.mockReturnValue(
+      throwError(() => new Error('Network error')),
+    );
     component.ngOnInit();
     expect(component.favorites().length).toBe(0);
   });
 
   it('should return board link for board entity type with workspace_id', () => {
-    const fav = { id: 'f-1', entity_type: 'board' as const, entity_id: 'b-1', name: 'Board', board_id: 'b-1', workspace_id: 'ws-1' };
+    const fav = {
+      id: 'f-1',
+      entity_type: 'board' as const,
+      entity_id: 'b-1',
+      name: 'Board',
+      board_id: 'b-1',
+      workspace_id: 'ws-1',
+    };
     const link = component.getFavLink(fav);
     expect(link).toEqual(['/workspace', 'ws-1', 'board', 'b-1']);
   });
 
   it('should return my-tasks link for non-board entity type', () => {
-    const fav = { id: 'f-2', entity_type: 'task' as const, entity_id: 't-1', name: 'Task', board_id: null, workspace_id: null };
+    const fav = {
+      id: 'f-2',
+      entity_type: 'task' as const,
+      entity_id: 't-1',
+      name: 'Task',
+      board_id: null,
+      workspace_id: null,
+    };
     const link = component.getFavLink(fav);
     expect(link).toEqual(['/my-tasks']);
   });
 
   it('should return my-tasks link for board entity without workspace_id', () => {
-    const fav = { id: 'f-3', entity_type: 'board' as const, entity_id: 'b-2', name: 'Board', board_id: 'b-2', workspace_id: null };
+    const fav = {
+      id: 'f-3',
+      entity_type: 'board' as const,
+      entity_id: 'b-2',
+      name: 'Board',
+      board_id: 'b-2',
+      workspace_id: null,
+    };
     const link = component.getFavLink(fav as any);
     expect(link).toEqual(['/my-tasks']);
   });

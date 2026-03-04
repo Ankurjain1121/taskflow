@@ -21,7 +21,10 @@ import { MenuItem } from 'primeng/api';
 import { Tooltip } from 'primeng/tooltip';
 import { Task } from '../../../core/services/task.service';
 import { Column } from '../../../core/services/board.service';
-import { CardFields, DEFAULT_CARD_FIELDS } from '../board-view/board-state.service';
+import {
+  CardFields,
+  DEFAULT_CARD_FIELDS,
+} from '../board-view/board-state.service';
 import { TaskLockInfo } from '../../../core/services/presence.service';
 import {
   CardQuickEditService,
@@ -40,7 +43,15 @@ import {
 @Component({
   selector: 'app-task-card',
   standalone: true,
-  imports: [CommonModule, CdkDrag, CdkDragPreview, CdkDragPlaceholder, Menu, Tooltip, PriorityBadgeComponent],
+  imports: [
+    CommonModule,
+    CdkDrag,
+    CdkDragPreview,
+    CdkDragPlaceholder,
+    Menu,
+    Tooltip,
+    PriorityBadgeComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
@@ -258,7 +269,11 @@ import {
                 </span>
               }
             </div>
-            @if (task().assignees && task().assignees!.length > 0 && cardFields().showAssignees) {
+            @if (
+              task().assignees &&
+              task().assignees!.length > 0 &&
+              cardFields().showAssignees
+            ) {
               <div class="flex -space-x-1">
                 @for (
                   assignee of task().assignees!.slice(0, 2);
@@ -298,7 +313,9 @@ import {
         <!-- Expanded card: all labels, 2-line description, all assignees -->
 
         <!-- All Labels (no cap) -->
-        @if (task().labels && task().labels!.length > 0 && cardFields().showLabels) {
+        @if (
+          task().labels && task().labels!.length > 0 && cardFields().showLabels
+        ) {
           <div class="flex flex-wrap gap-1 px-3 pt-3">
             @for (label of task().labels!; track label.id) {
               <span
@@ -352,7 +369,9 @@ import {
             <div class="flex items-start gap-1.5 group/title mb-2.5">
               <h4
                 class="text-sm font-semibold text-[var(--card-foreground)] line-clamp-2 leading-snug tracking-tight flex-1 min-w-0"
-              >{{ task().title }}</h4>
+              >
+                {{ task().title }}
+              </h4>
               <button
                 (click)="onTitleEditStart($event)"
                 class="flex-shrink-0 mt-0.5 opacity-0 group-hover/title:opacity-100 transition-opacity duration-150 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
@@ -384,8 +403,14 @@ import {
           }
 
           <!-- Description preview (2 lines in expanded mode) -->
-          @if (task().description && task().description!.trim() && cardFields().showDescription) {
-            <p class="text-[11px] text-[var(--muted-foreground)] line-clamp-2 leading-snug mb-2.5 -mt-1">
+          @if (
+            task().description &&
+            task().description!.trim() &&
+            cardFields().showDescription
+          ) {
+            <p
+              class="text-[11px] text-[var(--muted-foreground)] line-clamp-2 leading-snug mb-2.5 -mt-1"
+            >
               {{ task().description }}
             </p>
           }
@@ -453,28 +478,56 @@ import {
               }
 
               <!-- Subtask Progress Bar -->
-              @if (subtaskProgress() && subtaskProgress()!.total > 0 && cardFields().showSubtaskProgress) {
+              @if (
+                subtaskProgress() &&
+                subtaskProgress()!.total > 0 &&
+                cardFields().showSubtaskProgress
+              ) {
                 <div class="flex items-center gap-1.5">
-                  <div class="w-12 h-1 rounded-full bg-[var(--border)] overflow-hidden">
+                  <div
+                    class="w-12 h-1 rounded-full bg-[var(--border)] overflow-hidden"
+                  >
                     <div
                       class="h-full rounded-full transition-all duration-300"
-                      [class.bg-emerald-500]="subtaskProgress()!.completed === subtaskProgress()!.total"
-                      [style.background]="subtaskProgress()!.completed !== subtaskProgress()!.total ? 'var(--primary)' : null"
-                      [style.width.%]="(subtaskProgress()!.completed / subtaskProgress()!.total) * 100"
+                      [class.bg-emerald-500]="
+                        subtaskProgress()!.completed ===
+                        subtaskProgress()!.total
+                      "
+                      [style.background]="
+                        subtaskProgress()!.completed !==
+                        subtaskProgress()!.total
+                          ? 'var(--primary)'
+                          : null
+                      "
+                      [style.width.%]="
+                        (subtaskProgress()!.completed /
+                          subtaskProgress()!.total) *
+                        100
+                      "
                     ></div>
                   </div>
                   <span
                     class="text-[11px] font-medium"
-                    [class.text-emerald-600]="subtaskProgress()!.completed === subtaskProgress()!.total"
-                    [class.text-gray-400]="subtaskProgress()!.completed !== subtaskProgress()!.total"
+                    [class.text-emerald-600]="
+                      subtaskProgress()!.completed === subtaskProgress()!.total
+                    "
+                    [class.text-gray-400]="
+                      subtaskProgress()!.completed !== subtaskProgress()!.total
+                    "
                   >
-                    {{ subtaskProgress()!.completed }}/{{ subtaskProgress()!.total }}
+                    {{ subtaskProgress()!.completed }}/{{
+                      subtaskProgress()!.total
+                    }}
                   </span>
                 </div>
               }
 
               <!-- Comment Count -->
-              @if (task().comment_count && task().comment_count! > 0 && cardFields().showComments) {
+              @if (
+                task().comment_count &&
+                task().comment_count! > 0 &&
+                cardFields().showComments
+              ) {
                 <span
                   class="flex items-center gap-1 text-[11px] font-medium text-[var(--muted-foreground)]"
                 >
@@ -496,7 +549,11 @@ import {
               }
 
               <!-- Attachment Count -->
-              @if (task().attachment_count && task().attachment_count! > 0 && cardFields().showAttachments) {
+              @if (
+                task().attachment_count &&
+                task().attachment_count! > 0 &&
+                cardFields().showAttachments
+              ) {
                 <span
                   class="flex items-center gap-1 text-[11px] font-medium text-[var(--muted-foreground)]"
                 >
@@ -520,7 +577,11 @@ import {
 
             <!-- All Assignees (no cap in expanded mode) -->
             <div class="flex items-center">
-              @if (task().assignees && task().assignees!.length > 0 && cardFields().showAssignees) {
+              @if (
+                task().assignees &&
+                task().assignees!.length > 0 &&
+                cardFields().showAssignees
+              ) {
                 <div class="flex -space-x-2">
                   @for (
                     assignee of task().assignees!;
@@ -557,15 +618,20 @@ import {
           @if (daysInColumn() > 0 && cardFields().showDaysInColumn) {
             <div class="flex items-center gap-0.5 px-4 pb-3">
               @for (d of dotsArray(); track $index) {
-                <span class="w-1.5 h-1.5 rounded-full"
+                <span
+                  class="w-1.5 h-1.5 rounded-full"
                   [class.bg-white]="daysInColumn() < 4"
                   [class.opacity-30]="daysInColumn() < 4"
-                  [class.bg-amber-400]="daysInColumn() >= 4 && daysInColumn() < 8"
+                  [class.bg-amber-400]="
+                    daysInColumn() >= 4 && daysInColumn() < 8
+                  "
                   [class.bg-red-500]="daysInColumn() >= 8"
                 ></span>
               }
               @if (daysInColumn() >= 8) {
-                <span class="text-[10px] text-red-400 ml-0.5">{{ daysInColumn() }}d</span>
+                <span class="text-[10px] text-red-400 ml-0.5"
+                  >{{ daysInColumn() }}d</span
+                >
               }
             </div>
           }
@@ -574,7 +640,9 @@ import {
         <!-- Normal card: full layout -->
 
         <!-- Labels (capped at 2 + overflow pill) -->
-        @if (task().labels && task().labels!.length > 0 && cardFields().showLabels) {
+        @if (
+          task().labels && task().labels!.length > 0 && cardFields().showLabels
+        ) {
           <div class="flex flex-wrap gap-1 px-3 pt-3">
             @for (label of task().labels!.slice(0, 2); track label.id) {
               <span
@@ -637,7 +705,9 @@ import {
             <div class="flex items-start gap-1.5 group/title mb-2.5">
               <h4
                 class="text-sm font-semibold text-[var(--card-foreground)] line-clamp-2 leading-snug tracking-tight flex-1 min-w-0"
-              >{{ task().title }}</h4>
+              >
+                {{ task().title }}
+              </h4>
               <button
                 (click)="onTitleEditStart($event)"
                 class="flex-shrink-0 mt-0.5 opacity-0 group-hover/title:opacity-100 transition-opacity duration-150 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
@@ -669,8 +739,14 @@ import {
           }
 
           <!-- Description preview (1 line, only when non-empty) -->
-          @if (task().description && task().description!.trim() && cardFields().showDescription) {
-            <p class="text-[11px] text-[var(--muted-foreground)] line-clamp-1 leading-snug mb-2.5 -mt-1">
+          @if (
+            task().description &&
+            task().description!.trim() &&
+            cardFields().showDescription
+          ) {
+            <p
+              class="text-[11px] text-[var(--muted-foreground)] line-clamp-1 leading-snug mb-2.5 -mt-1"
+            >
               {{ task().description }}
             </p>
           }
@@ -738,28 +814,56 @@ import {
               }
 
               <!-- Subtask Progress Bar -->
-              @if (subtaskProgress() && subtaskProgress()!.total > 0 && cardFields().showSubtaskProgress) {
+              @if (
+                subtaskProgress() &&
+                subtaskProgress()!.total > 0 &&
+                cardFields().showSubtaskProgress
+              ) {
                 <div class="flex items-center gap-1.5">
-                  <div class="w-12 h-1 rounded-full bg-[var(--border)] overflow-hidden">
+                  <div
+                    class="w-12 h-1 rounded-full bg-[var(--border)] overflow-hidden"
+                  >
                     <div
                       class="h-full rounded-full transition-all duration-300"
-                      [class.bg-emerald-500]="subtaskProgress()!.completed === subtaskProgress()!.total"
-                      [style.background]="subtaskProgress()!.completed !== subtaskProgress()!.total ? 'var(--primary)' : null"
-                      [style.width.%]="(subtaskProgress()!.completed / subtaskProgress()!.total) * 100"
+                      [class.bg-emerald-500]="
+                        subtaskProgress()!.completed ===
+                        subtaskProgress()!.total
+                      "
+                      [style.background]="
+                        subtaskProgress()!.completed !==
+                        subtaskProgress()!.total
+                          ? 'var(--primary)'
+                          : null
+                      "
+                      [style.width.%]="
+                        (subtaskProgress()!.completed /
+                          subtaskProgress()!.total) *
+                        100
+                      "
                     ></div>
                   </div>
                   <span
                     class="text-[11px] font-medium"
-                    [class.text-emerald-600]="subtaskProgress()!.completed === subtaskProgress()!.total"
-                    [class.text-gray-400]="subtaskProgress()!.completed !== subtaskProgress()!.total"
+                    [class.text-emerald-600]="
+                      subtaskProgress()!.completed === subtaskProgress()!.total
+                    "
+                    [class.text-gray-400]="
+                      subtaskProgress()!.completed !== subtaskProgress()!.total
+                    "
                   >
-                    {{ subtaskProgress()!.completed }}/{{ subtaskProgress()!.total }}
+                    {{ subtaskProgress()!.completed }}/{{
+                      subtaskProgress()!.total
+                    }}
                   </span>
                 </div>
               }
 
               <!-- Comment Count -->
-              @if (task().comment_count && task().comment_count! > 0 && cardFields().showComments) {
+              @if (
+                task().comment_count &&
+                task().comment_count! > 0 &&
+                cardFields().showComments
+              ) {
                 <span
                   class="flex items-center gap-1 text-[11px] font-medium text-[var(--muted-foreground)]"
                 >
@@ -781,7 +885,11 @@ import {
               }
 
               <!-- Attachment Count -->
-              @if (task().attachment_count && task().attachment_count! > 0 && cardFields().showAttachments) {
+              @if (
+                task().attachment_count &&
+                task().attachment_count! > 0 &&
+                cardFields().showAttachments
+              ) {
                 <span
                   class="flex items-center gap-1 text-[11px] font-medium text-[var(--muted-foreground)]"
                 >
@@ -805,7 +913,11 @@ import {
 
             <!-- Assignees -->
             <div class="flex items-center">
-              @if (task().assignees && task().assignees!.length > 0 && cardFields().showAssignees) {
+              @if (
+                task().assignees &&
+                task().assignees!.length > 0 &&
+                cardFields().showAssignees
+              ) {
                 <div class="flex -space-x-2">
                   @for (
                     assignee of task().assignees!.slice(0, 3);
@@ -850,15 +962,20 @@ import {
           @if (daysInColumn() > 0 && cardFields().showDaysInColumn) {
             <div class="flex items-center gap-0.5 mt-1.5">
               @for (d of dotsArray(); track $index) {
-                <span class="w-1.5 h-1.5 rounded-full"
+                <span
+                  class="w-1.5 h-1.5 rounded-full"
                   [class.bg-white]="daysInColumn() < 4"
                   [class.opacity-30]="daysInColumn() < 4"
-                  [class.bg-amber-400]="daysInColumn() >= 4 && daysInColumn() < 8"
+                  [class.bg-amber-400]="
+                    daysInColumn() >= 4 && daysInColumn() < 8
+                  "
                   [class.bg-red-500]="daysInColumn() >= 8"
                 ></span>
               }
               @if (daysInColumn() >= 8) {
-                <span class="text-[10px] text-red-400 ml-0.5">{{ daysInColumn() }}d</span>
+                <span class="text-[10px] text-red-400 ml-0.5"
+                  >{{ daysInColumn() }}d</span
+                >
               }
             </div>
           }
@@ -1008,7 +1125,9 @@ export class TaskCardComponent {
     return Math.floor((Date.now() - new Date(entered).getTime()) / 86_400_000);
   });
 
-  readonly dotsArray = computed(() => Array(Math.min(this.daysInColumn(), 7)).fill(0));
+  readonly dotsArray = computed(() =>
+    Array(Math.min(this.daysInColumn(), 7)).fill(0),
+  );
 
   taskClicked = output<Task>();
   selectionToggled = output<string>();
@@ -1093,7 +1212,10 @@ export class TaskCardComponent {
   getOverflowLabelsTooltip(): string {
     const labels = this.task().labels;
     if (!labels || labels.length <= 2) return '';
-    return labels.slice(2).map((l) => l.name).join(', ');
+    return labels
+      .slice(2)
+      .map((l) => l.name)
+      .join(', ');
   }
 
   getAvatarGradient(index: number): string {
@@ -1150,7 +1272,11 @@ export class TaskCardComponent {
   openQuickEdit(event: Event, field: QuickEditField): void {
     if (!this.quickEditService) return;
     event.stopPropagation();
-    this.quickEditService.open(event.currentTarget as HTMLElement, field, this.task());
+    this.quickEditService.open(
+      event.currentTarget as HTMLElement,
+      field,
+      this.task(),
+    );
   }
 
   onPriorityCycle(event: Event): void {
@@ -1170,7 +1296,9 @@ export class TaskCardComponent {
     this.editTitleValue.set(this.task().title);
     this.isEditingTitle.set(true);
     setTimeout(() => {
-      const el = this.titleInput()?.nativeElement as HTMLInputElement | undefined;
+      const el = this.titleInput()?.nativeElement as
+        | HTMLInputElement
+        | undefined;
       el?.select();
     }, 0);
   }

@@ -1,10 +1,11 @@
-import { Component, input, computed, ChangeDetectionStrategy,
+import {
+  Component,
+  input,
+  computed,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  PRIORITY_COLORS,
-  getPriorityLabel,
-} from '../../utils/task-colors';
+import { PRIORITY_COLORS, getPriorityLabel } from '../../utils/task-colors';
 import { TaskPriority } from '../../../core/services/task.service';
 
 @Component({

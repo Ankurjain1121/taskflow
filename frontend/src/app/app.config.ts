@@ -7,6 +7,7 @@ import {
   provideRouter,
   withComponentInputBinding,
   withPreloading,
+  withViewTransitions,
   NoPreloading,
 } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
@@ -26,6 +27,7 @@ export const appConfig: ApplicationConfig = {
       routes,
       withComponentInputBinding(),
       withPreloading(NoPreloading),
+      withViewTransitions(),
     ),
     provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
     MessageService,

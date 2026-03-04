@@ -54,7 +54,9 @@ export class MilestoneService {
   }
 
   assignTask(taskId: string, milestoneId: string): Observable<void> {
-    return this.http.post<void>(`/api/tasks/${taskId}/milestone`, { milestone_id: milestoneId });
+    return this.http.post<void>(`/api/tasks/${taskId}/milestone`, {
+      milestone_id: milestoneId,
+    });
   }
 
   unassignTask(taskId: string): Observable<void> {

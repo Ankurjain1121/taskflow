@@ -3,7 +3,10 @@ import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import { WorkloadDashboardComponent } from './workload-dashboard.component';
-import { TeamService, MemberWorkload } from '../../../core/services/team.service';
+import {
+  TeamService,
+  MemberWorkload,
+} from '../../../core/services/team.service';
 
 describe('WorkloadDashboardComponent', () => {
   let component: WorkloadDashboardComponent;
@@ -11,9 +14,36 @@ describe('WorkloadDashboardComponent', () => {
   let mockTeamService: any;
 
   const mockMembers: MemberWorkload[] = [
-    { user_id: 'u-1', user_name: 'Alice Smith', user_avatar: null, active_tasks: 3, overdue_tasks: 0, done_tasks: 10, total_tasks: 13, is_overloaded: false },
-    { user_id: 'u-2', user_name: 'Bob', user_avatar: 'https://example.com/bob.jpg', active_tasks: 8, overdue_tasks: 2, done_tasks: 5, total_tasks: 13, is_overloaded: false },
-    { user_id: 'u-3', user_name: 'Carol Jones', user_avatar: null, active_tasks: 15, overdue_tasks: 5, done_tasks: 3, total_tasks: 18, is_overloaded: true },
+    {
+      user_id: 'u-1',
+      user_name: 'Alice Smith',
+      user_avatar: null,
+      active_tasks: 3,
+      overdue_tasks: 0,
+      done_tasks: 10,
+      total_tasks: 13,
+      is_overloaded: false,
+    },
+    {
+      user_id: 'u-2',
+      user_name: 'Bob',
+      user_avatar: 'https://example.com/bob.jpg',
+      active_tasks: 8,
+      overdue_tasks: 2,
+      done_tasks: 5,
+      total_tasks: 13,
+      is_overloaded: false,
+    },
+    {
+      user_id: 'u-3',
+      user_name: 'Carol Jones',
+      user_avatar: null,
+      active_tasks: 15,
+      overdue_tasks: 5,
+      done_tasks: 3,
+      total_tasks: 18,
+      is_overloaded: true,
+    },
   ];
 
   beforeEach(async () => {
@@ -21,9 +51,14 @@ describe('WorkloadDashboardComponent', () => {
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
         value: vi.fn().mockImplementation((query: string) => ({
-          matches: false, media: query, onchange: null,
-          addListener: vi.fn(), removeListener: vi.fn(),
-          addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
         })),
       });
     }
@@ -61,9 +96,13 @@ describe('WorkloadDashboardComponent', () => {
     });
 
     it('should handle errors', () => {
-      mockTeamService.getTeamWorkload.mockReturnValue(throwError(() => new Error('fail')));
+      mockTeamService.getTeamWorkload.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
       component.ngOnInit();
-      expect(component.error()).toBe('Failed to load workload data. Please try again.');
+      expect(component.error()).toBe(
+        'Failed to load workload data. Please try again.',
+      );
       expect(component.loading()).toBe(false);
     });
   });

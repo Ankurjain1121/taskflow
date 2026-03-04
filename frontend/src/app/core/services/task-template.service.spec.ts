@@ -76,9 +76,7 @@ describe('TaskTemplateService', () => {
     it('should include scope and board_id params when provided', () => {
       service.list('board', 'board-1').subscribe();
 
-      const req = httpMock.expectOne(
-        (r) => r.url === '/api/task-templates',
-      );
+      const req = httpMock.expectOne((r) => r.url === '/api/task-templates');
       expect(req.request.params.get('scope')).toBe('board');
       expect(req.request.params.get('board_id')).toBe('board-1');
       req.flush([]);
@@ -145,7 +143,10 @@ describe('TaskTemplateService', () => {
 
   describe('saveTaskAsTemplate()', () => {
     it('should POST /api/tasks/:taskId/save-as-template', () => {
-      const saveReq: SaveAsTemplateRequest = { name: 'From Task', scope: 'personal' };
+      const saveReq: SaveAsTemplateRequest = {
+        name: 'From Task',
+        scope: 'personal',
+      };
 
       service.saveTaskAsTemplate('task-1', saveReq).subscribe((result) => {
         expect(result).toEqual(MOCK_TEMPLATE);

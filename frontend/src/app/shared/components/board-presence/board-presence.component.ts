@@ -26,11 +26,17 @@ interface ViewerDisplay {
     @if (visibleViewers().length > 0) {
       <div class="flex items-center">
         <div class="flex -space-x-2">
-          @for (viewer of visibleViewers().slice(0, 5); track viewer.userId; let i = $index) {
+          @for (
+            viewer of visibleViewers().slice(0, 5);
+            track viewer.userId;
+            let i = $index
+          ) {
             <div
               class="w-8 h-8 rounded-full ring-2 ring-[var(--card)] flex items-center justify-center text-xs font-bold text-white shadow-sm cursor-default"
               [style.z-index]="10 - i"
-              [style.background]="viewer.avatarUrl ? 'transparent' : getGradient(i)"
+              [style.background]="
+                viewer.avatarUrl ? 'transparent' : getGradient(i)
+              "
               [pTooltip]="viewer.name"
               tooltipPosition="bottom"
             >

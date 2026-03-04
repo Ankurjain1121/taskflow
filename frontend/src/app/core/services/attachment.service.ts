@@ -1,6 +1,15 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, Subject, from, switchMap, tap, catchError, throwError, finalize } from 'rxjs';
+import {
+  Observable,
+  Subject,
+  from,
+  switchMap,
+  tap,
+  catchError,
+  throwError,
+  finalize,
+} from 'rxjs';
 
 export interface Attachment {
   id: string;
@@ -60,29 +69,29 @@ export class AttachmentService {
         fileName: file.name,
         fileSize: file.size,
         mimeType: file.type || 'application/octet-stream',
-      }
+      },
     );
   }
 
   confirmUpload(
     taskId: string,
-    data: ConfirmUploadRequest
+    data: ConfirmUploadRequest,
   ): Observable<Attachment> {
     return this.http.post<Attachment>(
       `${this.apiUrl}/tasks/${taskId}/attachments/confirm`,
-      data
+      data,
     );
   }
 
   getDownloadUrl(id: string): Observable<DownloadUrlResponse> {
     return this.http.get<DownloadUrlResponse>(
-      `${this.apiUrl}/attachments/${id}/download-url`
+      `${this.apiUrl}/attachments/${id}/download-url`,
     );
   }
 
   listByTask(taskId: string): Observable<Attachment[]> {
     return this.http.get<Attachment[]>(
-      `${this.apiUrl}/tasks/${taskId}/attachments`
+      `${this.apiUrl}/tasks/${taskId}/attachments`,
     );
   }
 
@@ -131,7 +140,7 @@ export class AttachmentService {
           return this.uploadToPresignedUrl(
             urlResponse.uploadUrl,
             file,
-            subject
+            subject,
           ).pipe(
             switchMap(() => {
               // Step 3: Confirm upload
@@ -148,7 +157,7 @@ export class AttachmentService {
                 fileSize: file.size,
                 mimeType: file.type || 'application/octet-stream',
               });
-            })
+            }),
           );
         }),
         catchError((error) => {
@@ -161,7 +170,7 @@ export class AttachmentService {
           });
           return throwError(() => error);
         }),
-        finalize(() => subject.complete())
+        finalize(() => subject.complete()),
       )
       .subscribe({
         next: (attachment) => {
@@ -184,7 +193,7 @@ export class AttachmentService {
   private uploadToPresignedUrl(
     url: string,
     file: File,
-    progressSubject: Subject<UploadProgress>
+    progressSubject: Subject<UploadProgress>,
   ): Observable<void> {
     return new Observable((observer) => {
       const xhr = new XMLHttpRequest();
@@ -219,7 +228,10 @@ export class AttachmentService {
       });
 
       xhr.open('PUT', url);
-      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+      xhr.setRequestHeader(
+        'Content-Type',
+        file.type || 'application/octet-stream',
+      );
       xhr.send(file);
 
       // Return cleanup function

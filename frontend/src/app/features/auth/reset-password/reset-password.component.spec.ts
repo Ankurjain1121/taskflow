@@ -98,7 +98,9 @@ describe('ResetPasswordComponent', () => {
       component.resetForm.updateValueAndValidity();
 
       expect(
-        component.resetForm.get('confirmPassword')?.hasError('passwordMismatch'),
+        component.resetForm
+          .get('confirmPassword')
+          ?.hasError('passwordMismatch'),
       ).toBe(true);
     });
 
@@ -108,7 +110,9 @@ describe('ResetPasswordComponent', () => {
       component.resetForm.updateValueAndValidity();
 
       expect(
-        component.resetForm.get('confirmPassword')?.hasError('passwordMismatch'),
+        component.resetForm
+          .get('confirmPassword')
+          ?.hasError('passwordMismatch'),
       ).toBe(false);
     });
   });
@@ -182,7 +186,10 @@ describe('ResetPasswordComponent', () => {
 
     it('should show server error message for other failures', () => {
       mockAuthService.resetPassword.mockReturnValue(
-        throwError(() => ({ status: 500, error: { message: 'Internal error' } })),
+        throwError(() => ({
+          status: 500,
+          error: { message: 'Internal error' },
+        })),
       );
 
       component.resetForm.setValue({

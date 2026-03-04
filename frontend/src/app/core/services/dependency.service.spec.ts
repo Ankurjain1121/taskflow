@@ -59,9 +59,11 @@ describe('DependencyService', () => {
 
   describe('createDependency()', () => {
     it('should POST /api/tasks/:taskId/dependencies with target and type', () => {
-      service.createDependency('task-1', 'task-2', 'blocks').subscribe((result) => {
-        expect(result).toEqual(MOCK_DEPENDENCY);
-      });
+      service
+        .createDependency('task-1', 'task-2', 'blocks')
+        .subscribe((result) => {
+          expect(result).toEqual(MOCK_DEPENDENCY);
+        });
 
       const req = httpMock.expectOne('/api/tasks/task-1/dependencies');
       expect(req.request.method).toBe('POST');

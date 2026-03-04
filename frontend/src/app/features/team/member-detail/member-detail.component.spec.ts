@@ -13,13 +13,45 @@ describe('MemberDetailComponent', () => {
   let mockTeamService: any;
 
   const mockMembers = [
-    { user_id: 'u-1', name: 'Alice Smith', email: 'alice@example.com', avatar_url: null, role: 'admin' as const, joined_at: '2025-01-15T00:00:00Z' },
-    { user_id: 'u-2', name: 'Bob', email: 'bob@example.com', avatar_url: 'https://example.com/bob.jpg', role: 'member' as const, joined_at: '2025-06-01T00:00:00Z' },
+    {
+      user_id: 'u-1',
+      name: 'Alice Smith',
+      email: 'alice@example.com',
+      avatar_url: null,
+      role: 'admin' as const,
+      joined_at: '2025-01-15T00:00:00Z',
+    },
+    {
+      user_id: 'u-2',
+      name: 'Bob',
+      email: 'bob@example.com',
+      avatar_url: 'https://example.com/bob.jpg',
+      role: 'member' as const,
+      joined_at: '2025-06-01T00:00:00Z',
+    },
   ];
 
   const mockWorkload = [
-    { user_id: 'u-1', user_name: 'Alice', user_avatar: null, active_tasks: 5, overdue_tasks: 1, done_tasks: 10, total_tasks: 15, is_overloaded: false },
-    { user_id: 'u-2', user_name: 'Bob', user_avatar: null, active_tasks: 3, overdue_tasks: 0, done_tasks: 7, total_tasks: 10, is_overloaded: false },
+    {
+      user_id: 'u-1',
+      user_name: 'Alice',
+      user_avatar: null,
+      active_tasks: 5,
+      overdue_tasks: 1,
+      done_tasks: 10,
+      total_tasks: 15,
+      is_overloaded: false,
+    },
+    {
+      user_id: 'u-2',
+      user_name: 'Bob',
+      user_avatar: null,
+      active_tasks: 3,
+      overdue_tasks: 0,
+      done_tasks: 7,
+      total_tasks: 10,
+      is_overloaded: false,
+    },
   ];
 
   beforeEach(async () => {
@@ -27,9 +59,14 @@ describe('MemberDetailComponent', () => {
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
         value: vi.fn().mockImplementation((query: string) => ({
-          matches: false, media: query, onchange: null,
-          addListener: vi.fn(), removeListener: vi.fn(),
-          addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
         })),
       });
     }
@@ -81,7 +118,9 @@ describe('MemberDetailComponent', () => {
     });
 
     it('should handle errors gracefully', () => {
-      mockWorkspaceService.getMembers.mockReturnValue(throwError(() => new Error('fail')));
+      mockWorkspaceService.getMembers.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
       component.ngOnInit();
       expect(component.loading()).toBe(false);
     });

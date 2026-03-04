@@ -65,7 +65,10 @@ import { FormsModule } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 
-import { PresenceService, TaskLockInfo } from '../../../core/services/presence.service';
+import {
+  PresenceService,
+  TaskLockInfo,
+} from '../../../core/services/presence.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConflictNotificationService } from '../../../core/services/conflict-notification.service';
 import {
@@ -145,7 +148,9 @@ import { TaskDetailFieldsComponent } from './task-detail-fields.component';
       } @else if (task()) {
         <div class="flex-1 overflow-y-auto">
           @if (lockedByOther()) {
-            <div class="mx-2 mt-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-sm text-amber-800">
+            <div
+              class="mx-2 mt-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-sm text-amber-800"
+            >
               <i class="pi pi-lock text-amber-500"></i>
               <span class="font-medium">{{ lockedByOther()!.user_name }}</span>
               <span>is editing this task</span>
@@ -482,11 +487,18 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     this.taskUpdated.emit(optimisticTask);
 
     this.taskService.assignUser(task.id, member.id).subscribe({
-      next: () => { /* already applied */ },
+      next: () => {
+        /* already applied */
+      },
       error: () => {
         this.task.set(snapshot);
         this.taskUpdated.emit(snapshot);
-        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: 'Could not assign member.', life: 4000 });
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Update failed',
+          detail: 'Could not assign member.',
+          life: 4000,
+        });
       },
     });
   }
@@ -504,11 +516,18 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     this.taskUpdated.emit(optimisticTask);
 
     this.taskService.unassignUser(task.id, assignee.id).subscribe({
-      next: () => { /* already applied */ },
+      next: () => {
+        /* already applied */
+      },
       error: () => {
         this.task.set(snapshot);
         this.taskUpdated.emit(snapshot);
-        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: 'Could not unassign member.', life: 4000 });
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Update failed',
+          detail: 'Could not unassign member.',
+          life: 4000,
+        });
       },
     });
   }
@@ -557,11 +576,18 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     this.taskUpdated.emit(optimisticTask);
 
     this.taskService.removeLabel(task.id, labelId).subscribe({
-      next: () => { /* already applied */ },
+      next: () => {
+        /* already applied */
+      },
       error: () => {
         this.task.set(snapshot);
         this.taskUpdated.emit(snapshot);
-        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: 'Could not remove label.', life: 4000 });
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Update failed',
+          detail: 'Could not remove label.',
+          life: 4000,
+        });
       },
     });
   }
@@ -580,12 +606,19 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
       this.selectedMilestone.set(ms);
 
       this.milestoneService.assignTask(task.id, milestoneId).subscribe({
-        next: () => { /* already applied */ },
+        next: () => {
+          /* already applied */
+        },
         error: () => {
           this.task.set(snapshot);
           this.taskUpdated.emit(snapshot);
           this.selectedMilestone.set(previousMilestone);
-          this.messageService.add({ severity: 'error', summary: 'Update failed', detail: 'Could not assign milestone.', life: 4000 });
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Update failed',
+            detail: 'Could not assign milestone.',
+            life: 4000,
+          });
         },
       });
     } else {
@@ -1030,12 +1063,19 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     this.selectedMilestone.set(null);
 
     this.milestoneService.unassignTask(task.id).subscribe({
-      next: () => { /* already applied */ },
+      next: () => {
+        /* already applied */
+      },
       error: () => {
         this.task.set(snapshot);
         this.taskUpdated.emit(snapshot);
         this.selectedMilestone.set(previousMilestone);
-        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: 'Could not remove milestone.', life: 4000 });
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Update failed',
+          detail: 'Could not remove milestone.',
+          life: 4000,
+        });
       },
     });
   }

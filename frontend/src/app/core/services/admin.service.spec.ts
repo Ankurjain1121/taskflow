@@ -119,7 +119,7 @@ describe('AdminService', () => {
           r.params.get('entity_type') === 'task' &&
           r.params.get('date_from') === '2026-01-01' &&
           r.params.get('date_to') === '2026-01-31' &&
-          r.params.get('search') === 'test'
+          r.params.get('search') === 'test',
       );
       expect(req.request.method).toBe('GET');
       req.flush(MOCK_AUDIT_RESPONSE);
@@ -158,7 +158,7 @@ describe('AdminService', () => {
         (r) =>
           r.url === '/api/admin/users' &&
           r.params.get('search') === 'admin' &&
-          r.params.get('role') === 'admin'
+          r.params.get('role') === 'admin',
       );
       expect(req.request.method).toBe('GET');
       req.flush([MOCK_ADMIN_USER]);
@@ -207,7 +207,7 @@ describe('AdminService', () => {
           r.url === '/api/admin/trash' &&
           r.params.get('entity_type') === 'task' &&
           r.params.get('cursor') === 'c1' &&
-          r.params.get('page_size') === '5'
+          r.params.get('page_size') === '5',
       );
       expect(req.request.method).toBe('GET');
       req.flush(MOCK_TRASH_RESPONSE);

@@ -28,11 +28,13 @@ describe('MemberPickerComponent', () => {
 
   beforeEach(async () => {
     mockWorkspaceService = {
-      searchMembers: vi.fn().mockReturnValue(of([
-        { id: 'u-1', name: 'Alice', email: 'alice@test.com' },
-        { id: 'u-2', name: 'Bob', email: 'bob@test.com' },
-        { id: 'u-3', name: 'Charlie', email: 'charlie@test.com' },
-      ])),
+      searchMembers: vi.fn().mockReturnValue(
+        of([
+          { id: 'u-1', name: 'Alice', email: 'alice@test.com' },
+          { id: 'u-2', name: 'Bob', email: 'bob@test.com' },
+          { id: 'u-3', name: 'Charlie', email: 'charlie@test.com' },
+        ]),
+      ),
     };
 
     await TestBed.configureTestingModule({

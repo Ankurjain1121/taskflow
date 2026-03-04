@@ -7,7 +7,9 @@ import {
   FavoriteItem,
 } from '../../core/services/favorites.service';
 
-function createMockFavorite(overrides: Partial<FavoriteItem> = {}): FavoriteItem {
+function createMockFavorite(
+  overrides: Partial<FavoriteItem> = {},
+): FavoriteItem {
   return {
     id: 'fav-1',
     entity_type: 'task',
@@ -76,7 +78,12 @@ describe('FavoritesComponent', () => {
     it('should load favorites on init', () => {
       const items = [
         createMockFavorite({ id: 'f1', entity_type: 'task' }),
-        createMockFavorite({ id: 'f2', entity_type: 'board', entity_id: 'b-1', name: 'Board One' }),
+        createMockFavorite({
+          id: 'f2',
+          entity_type: 'board',
+          entity_id: 'b-1',
+          name: 'Board One',
+        }),
       ];
       mockFavoritesService.list.mockReturnValue(of(items));
 
@@ -124,7 +131,11 @@ describe('FavoritesComponent', () => {
   });
 
   describe('unfavorite', () => {
-    const taskItem = createMockFavorite({ id: 'f1', entity_type: 'task', entity_id: 'task-1' });
+    const taskItem = createMockFavorite({
+      id: 'f1',
+      entity_type: 'task',
+      entity_id: 'task-1',
+    });
     const boardItem = createMockFavorite({
       id: 'f2',
       entity_type: 'board',
@@ -143,7 +154,10 @@ describe('FavoritesComponent', () => {
 
       component.unfavorite(taskItem);
 
-      expect(mockFavoritesService.remove).toHaveBeenCalledWith('task', 'task-1');
+      expect(mockFavoritesService.remove).toHaveBeenCalledWith(
+        'task',
+        'task-1',
+      );
     });
 
     it('should remove item from items list on success', () => {

@@ -1,4 +1,10 @@
-import { Component, inject, input, output, model, ChangeDetectionStrategy,
+import {
+  Component,
+  inject,
+  input,
+  output,
+  model,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -44,7 +50,11 @@ export interface InviteMemberDialogResult {
       <form [formGroup]="form" class="flex flex-col gap-4">
         <!-- Email -->
         <div class="flex flex-col gap-1">
-          <label for="email" class="text-sm font-medium text-gray-700 dark:text-gray-300">Email address</label>
+          <label
+            for="email"
+            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Email address</label
+          >
           <input
             pInputText
             id="email"
@@ -53,17 +63,27 @@ export interface InviteMemberDialogResult {
             placeholder="member@example.com"
             class="w-full"
           />
-          @if (form.controls['email'].hasError('required') && form.controls['email'].touched) {
+          @if (
+            form.controls['email'].hasError('required') &&
+            form.controls['email'].touched
+          ) {
             <small class="text-red-500">Email is required</small>
           }
-          @if (form.controls['email'].hasError('email') && form.controls['email'].touched) {
+          @if (
+            form.controls['email'].hasError('email') &&
+            form.controls['email'].touched
+          ) {
             <small class="text-red-500">Please enter a valid email</small>
           }
         </div>
 
         <!-- Role -->
         <div class="flex flex-col gap-1">
-          <label for="role" class="text-sm font-medium text-gray-700 dark:text-gray-300">Role</label>
+          <label
+            for="role"
+            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Role</label
+          >
           <p-select
             formControlName="role"
             [options]="roleOptions"

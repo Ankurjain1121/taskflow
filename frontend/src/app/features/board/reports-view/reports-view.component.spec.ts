@@ -37,9 +37,14 @@ describe('ReportsViewComponent', () => {
       Object.defineProperty(window, 'matchMedia', {
         writable: true,
         value: vi.fn().mockImplementation((query: string) => ({
-          matches: false, media: query, onchange: null,
-          addListener: vi.fn(), removeListener: vi.fn(),
-          addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
         })),
       });
     }
@@ -50,9 +55,7 @@ describe('ReportsViewComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [ReportsViewComponent],
-      providers: [
-        { provide: ReportsService, useValue: mockReportsService },
-      ],
+      providers: [{ provide: ReportsService, useValue: mockReportsService }],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
 
@@ -68,13 +71,18 @@ describe('ReportsViewComponent', () => {
   describe('loadReport', () => {
     it('should load report on init', () => {
       component.ngOnInit();
-      expect(mockReportsService.getBoardReport).toHaveBeenCalledWith('board-1', 30);
+      expect(mockReportsService.getBoardReport).toHaveBeenCalledWith(
+        'board-1',
+        30,
+      );
       expect(component.report()).toBeTruthy();
       expect(component.loading()).toBe(false);
     });
 
     it('should handle load error', () => {
-      mockReportsService.getBoardReport.mockReturnValue(throwError(() => new Error('fail')));
+      mockReportsService.getBoardReport.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
       component.ngOnInit();
       expect(component.loading()).toBe(false);
     });
@@ -92,7 +100,10 @@ describe('ReportsViewComponent', () => {
     });
 
     it('should return 0 when total is 0', () => {
-      component.report.set({ ...mockReport, completion_rate: { total: 0, completed: 0, remaining: 0 } } as any);
+      component.report.set({
+        ...mockReport,
+        completion_rate: { total: 0, completed: 0, remaining: 0 },
+      } as any);
       expect(component.completionPercent()).toBe(0);
     });
   });
@@ -136,7 +147,7 @@ describe('ReportsViewComponent', () => {
       component.report.set(mockReport as any);
       const points = component.burndownPoints();
       expect(points.length).toBe(3);
-      points.forEach(pt => {
+      points.forEach((pt) => {
         expect(typeof pt.x).toBe('number');
         expect(typeof pt.y).toBe('number');
       });
@@ -173,7 +184,10 @@ describe('ReportsViewComponent', () => {
     it('should return false when all overdue counts are 0', () => {
       component.report.set({
         ...mockReport,
-        overdue_analysis: [{ bucket: '1-3 days', count: 0 }, { bucket: '4-7 days', count: 0 }],
+        overdue_analysis: [
+          { bucket: '1-3 days', count: 0 },
+          { bucket: '4-7 days', count: 0 },
+        ],
       } as any);
       expect(component.hasOverdue()).toBe(false);
     });
@@ -204,7 +218,10 @@ describe('ReportsViewComponent', () => {
       const event = { target: { value: '7' } } as any;
       component.onDaysChange(event);
       expect(component.daysBack()).toBe(7);
-      expect(mockReportsService.getBoardReport).toHaveBeenCalledWith('board-1', 7);
+      expect(mockReportsService.getBoardReport).toHaveBeenCalledWith(
+        'board-1',
+        7,
+      );
     });
   });
 

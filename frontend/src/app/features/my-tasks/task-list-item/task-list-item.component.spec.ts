@@ -46,20 +46,29 @@ describe('TaskListItemComponent', () => {
 
   describe('priorityColors', () => {
     it('should return correct colors for medium priority', () => {
-      fixture.componentRef.setInput('task', createMockTask({ priority: 'medium' }));
+      fixture.componentRef.setInput(
+        'task',
+        createMockTask({ priority: 'medium' }),
+      );
       const colors = component.priorityColors;
       expect(colors.bg).toBeDefined();
       expect(colors.text).toBeDefined();
     });
 
     it('should return correct colors for urgent priority', () => {
-      fixture.componentRef.setInput('task', createMockTask({ priority: 'urgent' }));
+      fixture.componentRef.setInput(
+        'task',
+        createMockTask({ priority: 'urgent' }),
+      );
       const colors = component.priorityColors;
       expect(colors.bg).toContain('red');
     });
 
     it('should return correct colors for low priority', () => {
-      fixture.componentRef.setInput('task', createMockTask({ priority: 'low' }));
+      fixture.componentRef.setInput(
+        'task',
+        createMockTask({ priority: 'low' }),
+      );
       const colors = component.priorityColors;
       expect(colors.bg).toContain('blue');
     });
@@ -67,22 +76,34 @@ describe('TaskListItemComponent', () => {
 
   describe('priorityLabel', () => {
     it('should return "Medium" for medium priority', () => {
-      fixture.componentRef.setInput('task', createMockTask({ priority: 'medium' }));
+      fixture.componentRef.setInput(
+        'task',
+        createMockTask({ priority: 'medium' }),
+      );
       expect(component.priorityLabel).toBe('Medium');
     });
 
     it('should return "Urgent" for urgent priority', () => {
-      fixture.componentRef.setInput('task', createMockTask({ priority: 'urgent' }));
+      fixture.componentRef.setInput(
+        'task',
+        createMockTask({ priority: 'urgent' }),
+      );
       expect(component.priorityLabel).toBe('Urgent');
     });
 
     it('should return "High" for high priority', () => {
-      fixture.componentRef.setInput('task', createMockTask({ priority: 'high' }));
+      fixture.componentRef.setInput(
+        'task',
+        createMockTask({ priority: 'high' }),
+      );
       expect(component.priorityLabel).toBe('High');
     });
 
     it('should return "Low" for low priority', () => {
-      fixture.componentRef.setInput('task', createMockTask({ priority: 'low' }));
+      fixture.componentRef.setInput(
+        'task',
+        createMockTask({ priority: 'low' }),
+      );
       expect(component.priorityLabel).toBe('Low');
     });
   });
@@ -107,22 +128,34 @@ describe('TaskListItemComponent', () => {
 
   describe('getBorderColor', () => {
     it('should return red for urgent', () => {
-      fixture.componentRef.setInput('task', createMockTask({ priority: 'urgent' }));
+      fixture.componentRef.setInput(
+        'task',
+        createMockTask({ priority: 'urgent' }),
+      );
       expect(component.getBorderColor()).toBe('#ef4444');
     });
 
     it('should return orange for high', () => {
-      fixture.componentRef.setInput('task', createMockTask({ priority: 'high' }));
+      fixture.componentRef.setInput(
+        'task',
+        createMockTask({ priority: 'high' }),
+      );
       expect(component.getBorderColor()).toBe('#f97316');
     });
 
     it('should return yellow for medium', () => {
-      fixture.componentRef.setInput('task', createMockTask({ priority: 'medium' }));
+      fixture.componentRef.setInput(
+        'task',
+        createMockTask({ priority: 'medium' }),
+      );
       expect(component.getBorderColor()).toBe('#eab308');
     });
 
     it('should return blue for low', () => {
-      fixture.componentRef.setInput('task', createMockTask({ priority: 'low' }));
+      fixture.componentRef.setInput(
+        'task',
+        createMockTask({ priority: 'low' }),
+      );
       expect(component.getBorderColor()).toBe('#3b82f6');
     });
 
