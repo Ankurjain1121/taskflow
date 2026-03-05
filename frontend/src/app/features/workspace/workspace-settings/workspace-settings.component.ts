@@ -1,12 +1,14 @@
 import {
   Component,
   computed,
+  DestroyRef,
   signal,
   inject,
   OnInit,
   ChangeDetectionStrategy,
   ViewChild,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Tabs } from 'primeng/tabs';
@@ -170,6 +172,7 @@ import { TrashComponent } from '../trash/trash.component';
 })
 export class WorkspaceSettingsComponent implements OnInit {
   private route = inject(ActivatedRoute);
+  private destroyRef = inject(DestroyRef);
   private router = inject(Router);
   private workspaceService = inject(WorkspaceService);
   private boardService = inject(BoardService);
@@ -186,7 +189,7 @@ export class WorkspaceSettingsComponent implements OnInit {
   boards = signal<{ id: string; name: string }[]>([]);
 
   ngOnInit(): void {
-    this.route.params.subscribe((params) => {
+    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       this.workspaceId = params['workspaceId'];
       this.loadWorkspace();
     });

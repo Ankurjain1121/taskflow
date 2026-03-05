@@ -1,118 +1,40 @@
-# Phase 3.2: WebSocket Message Batching
+# Memory Optimization - All Containers & Storage
 
 ## Objective
-Batch real-time WebSocket messages sent to clients to reduce payload overhead and improve throughput under high concurrency.
-
-## Implementation Summary
-
-### 1. Backend: BatchHandler Created ✅
-- File: `/backend/crates/api/src/ws/batch_handler.rs` (NEW, 300 LOC)
-- Configurable batch size (default 50 events) and flush interval (default 100ms)
-- Methods:
-  - `add_event()`: Adds event to buffer, returns Some(batch) if full
-  - `flush_if_ready()`: Flushes if buffer full or timeout exceeded
-  - `flush()`: Force flush (returns None if empty)
-  - `buffer_size()`, `time_since_last_flush()`: Utility methods for monitoring
-- 15 unit tests covering:
-  - Buffer management and overflow
-  - Timer-based flushing
-  - Event ordering
-  - Serialization
-
-### 2. Backend: BatchMessage Type Created ✅
-- Struct with `events: Vec<WsBoardEvent>` and `timestamp: String`
-- Serializable/deserializable for JSON transport
-- Allows batching while maintaining backward compatibility
-
-### 3. Backend: WebSocket Handler Modified ✅
-- File: `/backend/crates/api/src/ws/handler.rs`
-- Refactored `send_task` to implement batching:
-  - Uses `tokio::select!` for concurrent message handling and periodic flushing
-  - Attempts to parse incoming strings as `WsBoardEvent`
-  - Batches successfully parsed events
-  - Sends non-event messages (control messages) immediately
-  - Periodic flush every 50ms minimum
-- Added `chrono::Utc` import for timestamps
-- Per-connection batch handler reduces frame count for each client independently
-
-### 4. Frontend: BoardWebsocketHandler Modified ✅
-- File: `/frontend/src/app/features/board/board-view/board-websocket.handler.ts`
-- Refactored `handleMessage()` to:
-  - Detect batch messages (checks for `events` array)
-  - Extract and process individual events from batch
-  - Process single events as before (backward compatible)
-  - Extracted event processing logic into `processEvent()` private method
-- Fully backward compatible with existing single-event format
-
-### 5. Module Exports Updated ✅
-- File: `/backend/crates/api/src/ws/mod.rs`
-- Exported `BatchHandler` and `BatchMessage` for public use
-- Added `pub mod batch_handler;`
-
-## Architecture
-
-```
-Redis PubSub Event Stream
-         ↓
-Forwarder Tasks (spawn per channel)
-         ↓
-tx Channel (mpsc)
-         ↓
-send_task (WebSocket sender)
-  - Batches WsBoardEvent messages
-  - Flushes when full or timeout
-         ↓
-WebSocket Frame (batched or single)
-         ↓
-Frontend WebSocketService
-         ↓
-BoardWebsocketHandler
-  - Detects batch vs single
-  - Processes all events
-```
+Fix all memory spike issues across the entire TaskFlow project: Docker containers, Rust backend, Angular frontend, and storage.
 
 ## Success Criteria Checklist
-- [✅] BatchHandler created with 15 unit tests
-- [✅] WebSocket messages batched (BatchMessage JSON structure)
-- [✅] Frontend parses single + batched events correctly
-- [✅] TypeScript compilation passes
-- [✅] Backward compatible format maintained
-- [✅] Periodic flushing implemented (50ms intervals)
-- [✅] Per-connection batching (no cross-connection interference)
-
-## Performance Improvements
-- **Message reduction**: 50-70% fewer WS frames under high event frequency
-- **Throughput**: Better network utilization with larger frame payloads
-- **Latency**: 50-100ms maximum batch delay (configurable)
-- **Memory**: Per-connection buffers (50 events × ~200 bytes each ≈ 10KB per connection)
-
-## Testing
-- BatchHandler: 15 comprehensive unit tests
-- Backend: Compiles successfully (no errors related to batching)
-- Frontend: TypeScript compilation successful
-- Backward compatible: Single-event format still supported
-
-## Code Quality
-- Clean separation of concerns (batching in send_task, detection on frontend)
-- No changes to business logic or event processing
-- Immutable data structures maintained
-- Comprehensive documentation via comments
-- Error handling preserved (non-events sent immediately)
-
-## Next Steps
-1. Run full test suite: `./scripts/quick-check.sh`
-2. Deploy to VPS: `docker compose build && docker compose up -d`
-3. Monitor WebSocket frame count under load
-4. Measure latency improvements via frontend timing
-
-## Files Changed
-- `/backend/crates/api/src/ws/batch_handler.rs` (NEW)
-- `/backend/crates/api/src/ws/mod.rs` (MODIFIED - added exports)
-- `/backend/crates/api/src/ws/handler.rs` (MODIFIED - refactored send_task)
-- `/frontend/src/app/features/board/board-view/board-websocket.handler.ts` (MODIFIED - batch detection)
+- [x] All Docker services have deploy.resources.limits.memory set (MinIO 512M, backend 512M, frontend 256M, minio-setup 128M)
+- [x] PostgreSQL: switched to host PG 17 (removed Docker container, saved ~1GB)
+- [x] Redis: switched to host Redis (removed Docker container, saved ~384MB)
+- [x] PgPool has idle_timeout (300s) and max_lifetime (1800s)
+- [x] board_channels DashMap has background GC (60s interval, removes channels with 0 receivers)
+- [x] RateLimiter DashMap has background GC (300s interval, removes expired entries)
+- [x] WebSocket connections have configurable max limit (WS_MAX_CONNECTIONS, default 500)
+- [x] Per-WebSocket channel subscription count capped at 50
+- [x] Frontend subscription leaks fixed (4 components: board-settings, workload-dashboard, member-detail, workspace-settings)
+- [x] setInterval/setTimeout cleanup verified (all properly cleared in ngOnDestroy)
+- [x] /api/health/detailed endpoint reports board_channels, ws_connections, db_pool, process_rss
+- [x] monitor-memory.sh + check-disk-usage.sh scripts exist
+- [x] Backend passes cargo check + clippy
+- [x] Frontend passes tsc --noEmit
+- [ ] Deploy and verify
 
 ## Progress Log
-- [COMPLETE] Phase 3.2 WebSocket Message Batching
-- BatchHandler implementation: 300 LOC, 15 tests
-- WebSocket handler integration: tokio::select! for async batching
-- Frontend batch detection: Backward compatible update
+- [COMPLETE] 2026-03-05: All 4 tasks done
+- Task #1: Removed Docker PG/Redis, switched to host services, MinIO limits, PgPool tuning
+- Task #2: board_channels GC, RateLimiter GC, WS connection limit (503), subscription cap (50)
+- Task #3: Fixed 4 subscription leaks with takeUntilDestroyed, audited all timers
+- Task #4: /api/health/detailed endpoint, monitor-memory.sh, check-disk-usage.sh
+
+## Memory Savings Summary
+| Change | Memory Saved |
+|--------|-------------|
+| Remove Docker PostgreSQL | ~1024MB |
+| Remove Docker Redis | ~384MB |
+| Backend limit 1024M -> 512M | ~512MB |
+| Frontend limit 512M -> 256M | ~256MB |
+| board_channels GC | Prevents unbounded growth |
+| RateLimiter GC | Prevents unbounded growth |
+| WS connection limit | Prevents memory exhaustion |
+| **Total container savings** | **~2.2GB** |

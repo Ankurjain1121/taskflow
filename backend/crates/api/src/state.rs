@@ -1,3 +1,4 @@
+use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -19,6 +20,7 @@ pub struct AppState {
     pub board_channels: Arc<DashMap<Uuid, broadcast::Sender<String>>>,
     pub pubsub_relay: PubSubRelay,
     pub s3_client: aws_sdk_s3::Client,
+    pub ws_connection_count: Arc<AtomicUsize>,
 }
 
 impl AppState {
@@ -28,6 +30,8 @@ impl AppState {
             .max_connections(config.db_max_connections)
             .min_connections(config.db_min_connections)
             .acquire_timeout(Duration::from_secs(5))
+            .idle_timeout(Duration::from_secs(300))
+            .max_lifetime(Duration::from_secs(1800))
             .connect(&config.app_database_url)
             .await?;
 
@@ -57,6 +61,9 @@ impl AppState {
 
         let board_channels = Arc::new(DashMap::new());
 
+        // Spawn background GC for board channels (removes channels with no receivers)
+        Self::spawn_channel_gc(board_channels.clone());
+
         // Spawn shared Redis pubsub relay (single connection for all WebSocket clients)
         let pubsub_relay = PubSubRelay::spawn(config.redis_url.as_str());
         tracing::info!("PubSub relay started (shared Redis connection)");
@@ -77,7 +84,24 @@ impl AppState {
             board_channels,
             pubsub_relay,
             s3_client,
+            ws_connection_count: Arc::new(AtomicUsize::new(0)),
         })
+    }
+
+    /// Spawn a background task that periodically removes board channels with no active receivers.
+    fn spawn_channel_gc(channels: Arc<DashMap<Uuid, broadcast::Sender<String>>>) {
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(60));
+            loop {
+                interval.tick().await;
+                let before = channels.len();
+                channels.retain(|_id, sender| sender.receiver_count() > 0);
+                let removed = before - channels.len();
+                if removed > 0 {
+                    tracing::info!(removed, remaining = channels.len(), "GC: cleaned board channels");
+                }
+            }
+        });
     }
 
     /// Get or create a broadcast channel for a board

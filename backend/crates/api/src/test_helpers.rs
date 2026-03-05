@@ -64,6 +64,7 @@ pub mod helpers {
             waha_api_url: "http://localhost:3000".to_string(),
             waha_api_key: String::new(),
             app_url: "http://localhost:4200".to_string(),
+            ws_max_connections: 500,
         }
     }
 
@@ -119,6 +120,7 @@ pub mod helpers {
             board_channels,
             pubsub_relay,
             s3_client,
+            ws_connection_count: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
         }
     }
 
@@ -307,6 +309,7 @@ pub mod helpers {
             .route("/api/health", get(routes::health_handler))
             .route("/api/health/live", get(routes::liveness_handler))
             .route("/api/health/ready", get(routes::readiness_handler))
+            .route("/api/health/detailed", get(routes::detailed_health_handler))
             .nest("/api", protected_routes)
             .nest("/api", public_routes)
             // Feature routers

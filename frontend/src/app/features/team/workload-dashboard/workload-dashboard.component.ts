@@ -1,11 +1,13 @@
 import {
   Component,
+  DestroyRef,
   signal,
   computed,
   inject,
   OnInit,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import {
@@ -211,6 +213,7 @@ import {
 export class WorkloadDashboardComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private teamService = inject(TeamService);
+  private destroyRef = inject(DestroyRef);
 
   loading = signal(true);
   error = signal<string | null>(null);
@@ -247,7 +250,7 @@ export class WorkloadDashboardComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.route.params.subscribe((params) => {
+    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const workspaceId = params['workspaceId'];
       if (workspaceId) {
         this.loadWorkload(workspaceId);

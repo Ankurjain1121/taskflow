@@ -1,10 +1,12 @@
 import {
   Component,
+  DestroyRef,
   signal,
   inject,
   OnInit,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import {
@@ -889,6 +891,7 @@ export class BoardSettingsComponent implements OnInit {
   private confirmationService = inject(ConfirmationService);
   private messageService = inject(MessageService);
   private archiveService = inject(ArchiveService);
+  private destroyRef = inject(DestroyRef);
 
   workspaceId = '';
   boardId = '';
@@ -943,14 +946,14 @@ export class BoardSettingsComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.route.params.subscribe((params) => {
+    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       this.workspaceId = params['workspaceId'];
       this.boardId = params['boardId'];
       this.loadBoard();
     });
 
     // Support ?tab=N query param to open specific tab
-    this.route.queryParams.subscribe((queryParams) => {
+    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((queryParams) => {
       const tabParam = queryParams['tab'];
       if (tabParam !== undefined && tabParam !== null) {
         const tabIndex = parseInt(tabParam, 10);

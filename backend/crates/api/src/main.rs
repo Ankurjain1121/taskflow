@@ -172,6 +172,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/health", get(health_handler))
         .route("/api/health/live", get(liveness_handler))
         .route("/api/health/ready", get(readiness_handler))
+        .route("/api/health/detailed", get(routes::detailed_health_handler))
         .nest("/api", protected_routes)
         .nest("/api", rate_limited_auth)
         .nest("/api", rate_limited_invitations)

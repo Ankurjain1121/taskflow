@@ -64,13 +64,6 @@ services:
       retries: 10
       start_period: 60s
 
-  # ===========================================================================
-  # Development doesn't need to wait for full health checks
-  # ===========================================================================
-  migrate:
-    # In dev, we might want to see output
-    tty: true
-
 volumes:
   backend-cargo-cache:
   backend-target-cache:
