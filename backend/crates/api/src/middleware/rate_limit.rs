@@ -35,6 +35,28 @@ impl RateLimiter {
         }
     }
 
+    /// Spawn a background task that periodically evicts expired entries.
+    fn spawn_gc(&self) {
+        let entries = self.entries.clone();
+        let window_secs = self.window_secs;
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(std::time::Duration::from_secs(300));
+            loop {
+                interval.tick().await;
+                let now = Instant::now();
+                let window = std::time::Duration::from_secs(window_secs);
+                let before = entries.len();
+                entries.retain(|_key, entry| {
+                    entry.timestamps.iter().any(|t| now.duration_since(*t) < window)
+                });
+                let removed = before - entries.len();
+                if removed > 0 {
+                    tracing::info!(removed, "GC: cleaned rate limiter entries");
+                }
+            }
+        });
+    }
+
     /// Check if the IP is allowed. Returns Ok(()) if under the limit,
     /// or Err(retry_after_secs) if rate limited.
     fn check_and_record(&self, ip: &str) -> std::result::Result<(), u64> {
@@ -128,6 +150,7 @@ pub fn rate_limit_layer(
     window_secs: u64,
 ) -> tower::util::MapRequestLayer<impl Fn(Request<Body>) -> Request<Body> + Clone> {
     let limiter = RateLimiter::new(max_requests, window_secs);
+    limiter.spawn_gc();
     tower::util::MapRequestLayer::new(move |mut req: Request<Body>| {
         req.extensions_mut().insert(limiter.clone());
         req
@@ -193,6 +216,7 @@ pub fn user_rate_limit_layer(
     window_secs: u64,
 ) -> tower::util::MapRequestLayer<impl Fn(Request<Body>) -> Request<Body> + Clone> {
     let limiter = UserRateLimiter::new(max_requests, window_secs);
+    limiter.inner.spawn_gc();
     tower::util::MapRequestLayer::new(move |mut req: Request<Body>| {
         req.extensions_mut().insert(limiter.clone());
         req

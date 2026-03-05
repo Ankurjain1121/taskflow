@@ -1,11 +1,13 @@
 import {
   Component,
   computed,
+  DestroyRef,
   signal,
   inject,
   OnInit,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin, of, catchError } from 'rxjs';
@@ -403,6 +405,7 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
 })
 export class MemberDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
+  private destroyRef = inject(DestroyRef);
   private workspaceService = inject(WorkspaceService);
   private teamService = inject(TeamService);
 
@@ -464,7 +467,7 @@ export class MemberDetailComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.route.params.subscribe((params) => {
+    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       this.workspaceId = params['workspaceId'];
       this.userId = params['userId'];
       this.loadData();

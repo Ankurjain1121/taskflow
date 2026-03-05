@@ -252,6 +252,45 @@ pub async fn health_handler(State(state): State<AppState>) -> (StatusCode, Json<
     (status_code, Json(response))
 }
 
+/// Detailed health/metrics handler (admin-only diagnostics)
+///
+/// GET /api/health/detailed
+///
+/// Returns internal metrics for memory debugging: channel counts,
+/// WebSocket connections, DB pool stats, and process RSS.
+pub async fn detailed_health_handler(
+    State(state): State<AppState>,
+) -> Json<serde_json::Value> {
+    use std::sync::atomic::Ordering;
+
+    let db_size = state.db.size();
+    let db_idle = state.db.num_idle();
+    let board_channels = state.board_channels.len();
+    let ws_connections = state.ws_connection_count.load(Ordering::Relaxed);
+
+    // Read process RSS from /proc/self/statm (Linux only)
+    let rss_bytes = std::fs::read_to_string("/proc/self/statm")
+        .ok()
+        .and_then(|s| {
+            let pages: u64 = s.split_whitespace().nth(1)?.parse().ok()?;
+            Some(pages * 4096) // page size = 4KB on most Linux systems
+        })
+        .unwrap_or(0);
+
+    Json(serde_json::json!({
+        "board_channels_count": board_channels,
+        "ws_connections": ws_connections,
+        "db_pool": {
+            "size": db_size,
+            "idle": db_idle,
+            "max": state.config.db_max_connections,
+        },
+        "process_rss_bytes": rss_bytes,
+        "process_rss_mb": rss_bytes / (1024 * 1024),
+        "timestamp": chrono::Utc::now().to_rfc3339(),
+    }))
+}
+
 /// Simple liveness check handler
 ///
 /// GET /api/health/live

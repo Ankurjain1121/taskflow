@@ -31,6 +31,7 @@ pub struct Config {
     pub waha_api_url: String,
     pub waha_api_key: String,
     pub app_url: String,
+    pub ws_max_connections: usize,
 }
 
 impl Config {
@@ -105,6 +106,9 @@ impl Config {
                 .unwrap_or_else(|_| "http://localhost:3000".into()),
             waha_api_key: env::var("WAHA_API_KEY").unwrap_or_default(),
             app_url: env::var("APP_URL").unwrap_or_else(|_| "http://localhost:4200".into()),
+            ws_max_connections: env::var("WS_MAX_CONNECTIONS")
+                .unwrap_or_else(|_| "500".into())
+                .parse()?,
         })
     }
 }
@@ -161,6 +165,7 @@ mod tests {
             waha_api_url: "http://localhost:3000".into(),
             waha_api_key: "actual-waha-key".into(),
             app_url: "http://localhost:4200".into(),
+            ws_max_connections: 500,
         }
     }
 

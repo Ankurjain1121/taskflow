@@ -13,6 +13,8 @@ use std::collections::{HashMap, HashSet};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
+use std::sync::atomic::Ordering;
+
 use crate::errors::{AppError, Result};
 use crate::state::AppState;
 use crate::ws::batch_handler::{BatchHandler, BatchMessage};
@@ -99,6 +101,13 @@ pub async fn ws_handler(
     headers: axum::http::HeaderMap,
     State(state): State<AppState>,
 ) -> Result<Response> {
+    // Enforce WebSocket connection limit
+    let current = state.ws_connection_count.fetch_add(1, Ordering::Relaxed);
+    if current >= state.config.ws_max_connections {
+        state.ws_connection_count.fetch_sub(1, Ordering::Relaxed);
+        return Err(AppError::ServiceUnavailable("Too many WebSocket connections".into()));
+    }
+
     // Try cookie first (browser automatically sends cookies with WS upgrade)
     if let Some(token) = extract_cookie_token(&headers) {
         if let Ok(claims) = verify_access_token(&token, &state.jwt_keys) {
@@ -284,6 +293,16 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                     }
                     ClientMessage::Subscribe { payload } => {
                         let channel = payload.channel;
+                        // Enforce per-connection subscription cap
+                        if subscribed_channels.len() >= 50 {
+                            let error_msg = ServerMessage::Error {
+                                message: "Maximum channel subscription limit reached".into(),
+                            };
+                            let _ = tx
+                                .send(serde_json::to_string(&error_msg).unwrap_or_default())
+                                .await;
+                            continue;
+                        }
                         // Validate channel format and permissions
                         match validate_channel_access(&channel, user_id, tenant_id, &state.db).await
                         {
@@ -551,6 +570,9 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
     if let Err(e) = presence.cleanup_user_locks(user_id).await {
         tracing::error!("Lock cleanup error for user {}: {}", user_id, e);
     }
+
+    // Decrement global WebSocket connection count
+    state.ws_connection_count.fetch_sub(1, Ordering::Relaxed);
 
     tracing::info!(user_id = %user_id, "WebSocket connection closed");
 }

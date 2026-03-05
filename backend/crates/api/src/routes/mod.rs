@@ -80,7 +80,7 @@ pub use dependency::dependency_router;
 pub use eisenhower::eisenhower_router;
 pub use favorites::favorites_router;
 pub use filter_presets::filter_presets_router;
-pub use health::{health_handler, liveness_handler, readiness_handler};
+pub use health::{detailed_health_handler, health_handler, liveness_handler, readiness_handler};
 pub mod task_assignment;
 pub mod task_bulk;
 pub mod task_crud;
