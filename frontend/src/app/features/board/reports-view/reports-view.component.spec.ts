@@ -61,7 +61,7 @@ describe('ReportsViewComponent', () => {
 
     fixture = TestBed.createComponent(ReportsViewComponent);
     component = fixture.componentInstance;
-    fixture.componentRef.setInput('boardId', 'board-1');
+    fixture.componentRef.setInput('projectId', 'board-1');
   });
 
   it('should create', () => {

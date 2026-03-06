@@ -226,7 +226,7 @@ import {
                               <span
                                 class="text-xs text-[var(--muted-foreground)]"
                               >
-                                {{ task.board_name }} / {{ task.column_name }}
+                                {{ task.project_name }} / {{ task.column_name }}
                               </span>
                               @if (task.priority) {
                                 <span

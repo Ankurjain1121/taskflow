@@ -51,7 +51,7 @@ mod tests {
         let log = ActivityLog {
             id: Uuid::new_v4(),
             action: ActivityAction::Deleted,
-            entity_type: "board".to_string(),
+            entity_type: "project".to_string(),
             entity_id: Uuid::new_v4(),
             user_id: Uuid::new_v4(),
             metadata: None,

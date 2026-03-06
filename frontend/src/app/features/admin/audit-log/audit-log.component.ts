@@ -434,7 +434,7 @@ export class AuditLogComponent implements OnInit, OnDestroy {
 
   entityTypeOptions = [
     { label: 'Task', value: 'task' },
-    { label: 'Board', value: 'board' },
+    { label: 'Project', value: 'project' },
     { label: 'Workspace', value: 'workspace' },
     { label: 'User', value: 'user' },
     { label: 'Comment', value: 'comment' },

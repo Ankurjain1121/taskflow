@@ -13,12 +13,12 @@ use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
-use super::task_helpers::verify_board_membership;
+use super::task_helpers::verify_project_membership;
 use taskflow_db::models::Milestone;
-use taskflow_db::queries::get_task_board_id;
+use taskflow_db::queries::get_task_project_id;
 use taskflow_db::queries::milestones::{
     assign_task_to_milestone, create_milestone, delete_milestone, get_milestone,
-    get_milestone_board_id, list_milestones, unassign_task_from_milestone, update_milestone,
+    get_milestone_project_id, list_milestones, unassign_task_from_milestone, update_milestone,
     CreateMilestoneInput, MilestoneQueryError, MilestoneWithProgress, UpdateMilestoneInput,
 };
 
@@ -49,32 +49,32 @@ pub struct AssignMilestoneRequest {
 /// Map MilestoneQueryError to AppError
 fn map_milestone_error(e: MilestoneQueryError) -> AppError {
     match e {
-        MilestoneQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+        MilestoneQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
         MilestoneQueryError::NotFound => AppError::NotFound("Milestone not found".into()),
         MilestoneQueryError::Database(e) => AppError::SqlxError(e),
     }
 }
 
-/// GET /api/boards/{board_id}/milestones
-/// List all milestones for a board
+/// GET /api/projects/{project_id}/milestones
+/// List all milestones for a project
 async fn list_milestones_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path(board_id): Path<Uuid>,
+    Path(project_id): Path<Uuid>,
 ) -> Result<Json<Vec<MilestoneWithProgress>>> {
-    let milestones = list_milestones(&state.db, board_id, tenant.user_id)
+    let milestones = list_milestones(&state.db, project_id, tenant.user_id)
         .await
         .map_err(map_milestone_error)?;
 
     Ok(Json(milestones))
 }
 
-/// POST /api/boards/{board_id}/milestones
+/// POST /api/projects/{project_id}/milestones
 /// Create a new milestone
 async fn create_milestone_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path(board_id): Path<Uuid>,
+    Path(project_id): Path<Uuid>,
     Json(body): Json<CreateMilestoneRequest>,
 ) -> Result<Json<Milestone>> {
     if body.name.trim().is_empty() {
@@ -88,9 +88,15 @@ async fn create_milestone_handler(
         color: body.color,
     };
 
-    let milestone = create_milestone(&state.db, board_id, input, tenant.tenant_id, tenant.user_id)
-        .await
-        .map_err(map_milestone_error)?;
+    let milestone = create_milestone(
+        &state.db,
+        project_id,
+        input,
+        tenant.tenant_id,
+        tenant.user_id,
+    )
+    .await
+    .map_err(map_milestone_error)?;
 
     Ok(Json(milestone))
 }
@@ -117,13 +123,13 @@ async fn update_milestone_handler(
     Path(milestone_id): Path<Uuid>,
     Json(body): Json<UpdateMilestoneRequest>,
 ) -> Result<Json<Milestone>> {
-    // Verify board membership through milestone -> board
-    let board_id = get_milestone_board_id(&state.db, milestone_id)
+    // Verify project membership through milestone -> project
+    let project_id = get_milestone_project_id(&state.db, milestone_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Milestone not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
+    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     let input = UpdateMilestoneInput {
@@ -147,13 +153,13 @@ async fn delete_milestone_handler(
     tenant: TenantContext,
     Path(milestone_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>> {
-    // Verify board membership through milestone -> board
-    let board_id = get_milestone_board_id(&state.db, milestone_id)
+    // Verify project membership through milestone -> project
+    let project_id = get_milestone_project_id(&state.db, milestone_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Milestone not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
+    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     delete_milestone(&state.db, milestone_id)
@@ -171,13 +177,13 @@ async fn assign_milestone_handler(
     Path(task_id): Path<Uuid>,
     Json(body): Json<AssignMilestoneRequest>,
 ) -> Result<Json<serde_json::Value>> {
-    // Verify board membership through task -> board
-    let board_id = get_task_board_id(&state.db, task_id)
+    // Verify project membership through task -> project
+    let project_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
+    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     assign_task_to_milestone(&state.db, task_id, body.milestone_id)
@@ -194,13 +200,13 @@ async fn unassign_milestone_handler(
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>> {
-    // Verify board membership through task -> board
-    let board_id = get_task_board_id(&state.db, task_id)
+    // Verify project membership through task -> project
+    let project_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
+    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     unassign_task_from_milestone(&state.db, task_id)
@@ -213,13 +219,13 @@ async fn unassign_milestone_handler(
 /// Create the milestone router
 pub fn milestone_router(state: AppState) -> Router<AppState> {
     Router::new()
-        // Board-scoped milestone routes
+        // Project-scoped milestone routes
         .route(
-            "/boards/{board_id}/milestones",
+            "/projects/{project_id}/milestones",
             get(list_milestones_handler),
         )
         .route(
-            "/boards/{board_id}/milestones",
+            "/projects/{project_id}/milestones",
             post(create_milestone_handler),
         )
         // Milestone-specific routes

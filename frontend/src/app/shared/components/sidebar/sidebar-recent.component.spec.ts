@@ -6,12 +6,12 @@ import {
   SidebarRecentComponent,
   RecentBoardEntry,
 } from './sidebar-recent.component';
-import { BoardService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/project.service';
 
 describe('SidebarRecentComponent', () => {
   let component: SidebarRecentComponent;
   let fixture: ComponentFixture<SidebarRecentComponent>;
-  let mockBoardService: any;
+  let mockProjectService: any;
 
   beforeEach(async () => {
     Object.defineProperty(window, 'matchMedia', {
@@ -31,7 +31,7 @@ describe('SidebarRecentComponent', () => {
     // Clear localStorage before each test
     localStorage.removeItem('taskflow_recent_boards');
 
-    mockBoardService = {
+    mockProjectService = {
       getBoard: vi.fn().mockReturnValue(of({ id: 'b-1', name: 'My Board' })),
     };
 
@@ -39,7 +39,7 @@ describe('SidebarRecentComponent', () => {
       imports: [SidebarRecentComponent],
       providers: [
         provideRouter([]),
-        { provide: BoardService, useValue: mockBoardService },
+        { provide: ProjectService, useValue: mockProjectService },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
@@ -60,7 +60,7 @@ describe('SidebarRecentComponent', () => {
     const stored: RecentBoardEntry[] = [
       {
         id: 'b-1',
-        name: 'Board 1',
+        name: 'Project 1',
         workspaceId: 'ws-1',
         visitedAt: Date.now(),
       },
@@ -109,7 +109,7 @@ describe('SidebarRecentComponent', () => {
   it('should add a recent entry and save to storage', () => {
     component.addRecentEntry({
       id: 'b-1',
-      name: 'Board 1',
+      name: 'Project 1',
       workspaceId: 'ws-1',
       visitedAt: Date.now(),
     });
@@ -124,13 +124,13 @@ describe('SidebarRecentComponent', () => {
   it('should deduplicate entries by id, keeping the newest', () => {
     component.addRecentEntry({
       id: 'b-1',
-      name: 'Board Old',
+      name: 'Project Old',
       workspaceId: 'ws-1',
       visitedAt: Date.now() - 10000,
     });
     component.addRecentEntry({
       id: 'b-1',
-      name: 'Board New',
+      name: 'Project New',
       workspaceId: 'ws-1',
       visitedAt: Date.now(),
     });
@@ -159,14 +159,14 @@ describe('SidebarRecentComponent', () => {
       visitedAt: Date.now(),
     });
 
-    component.updateEntryName('b-1', 'Real Board Name');
-    expect(component.recentItems()[0].name).toBe('Real Board Name');
+    component.updateEntryName('b-1', 'Real Project Name');
+    expect(component.recentItems()[0].name).toBe('Real Project Name');
   });
 
   it('should not change entries when updating name for non-existent id', () => {
     component.addRecentEntry({
       id: 'b-1',
-      name: 'Board 1',
+      name: 'Project 1',
       workspaceId: 'ws-1',
       visitedAt: Date.now(),
     });

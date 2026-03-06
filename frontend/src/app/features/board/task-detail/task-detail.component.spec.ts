@@ -10,7 +10,7 @@ import { of, throwError } from 'rxjs';
 import { TaskDetailComponent } from './task-detail.component';
 import { TaskService } from '../../../core/services/task.service';
 import { WorkspaceService } from '../../../core/services/workspace.service';
-import { BoardService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/project.service';
 import { DependencyService } from '../../../core/services/dependency.service';
 import { MilestoneService } from '../../../core/services/milestone.service';
 import { CustomFieldService } from '../../../core/services/custom-field.service';
@@ -37,7 +37,7 @@ describe('TaskDetailComponent', () => {
     priority: 'medium' as const,
     due_date: '2026-03-01',
     column_id: 'col-1',
-    board_id: 'board-1',
+    project_id: 'board-1',
     position: 0,
     created_at: '2026-01-01',
     updated_at: '2026-01-02',
@@ -200,7 +200,7 @@ describe('TaskDetailComponent', () => {
         { provide: TaskService, useValue: mockTaskService },
         { provide: WorkspaceService, useValue: mockWorkspaceService },
         {
-          provide: BoardService,
+          provide: ProjectService,
           useValue: { getBoard: vi.fn().mockReturnValue(of(null)) },
         },
         { provide: DependencyService, useValue: mockDependencyService },
@@ -223,7 +223,7 @@ describe('TaskDetailComponent', () => {
     // Set required inputs
     fixture.componentRef.setInput('taskId', 'task-1');
     fixture.componentRef.setInput('workspaceId', 'ws-1');
-    fixture.componentRef.setInput('boardId', 'board-1');
+    fixture.componentRef.setInput('projectId', 'board-1');
   });
 
   afterEach(() => {

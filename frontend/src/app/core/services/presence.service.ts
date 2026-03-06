@@ -19,18 +19,18 @@ export class PresenceService implements OnDestroy {
 
   constructor(private wsService: WebSocketService) {}
 
-  joinBoard(boardId: string): void {
+  joinBoard(projectId: string): void {
     if (this.currentBoardId) {
       this.leaveBoard();
     }
-    this.currentBoardId = boardId;
-    this.wsService.send('join_board', { board_id: boardId });
+    this.currentBoardId = projectId;
+    this.wsService.send('join_board', { project_id: projectId });
     this.startHeartbeat();
   }
 
   leaveBoard(): void {
     if (this.currentBoardId) {
-      this.wsService.send('leave_board', { board_id: this.currentBoardId });
+      this.wsService.send('leave_board', { project_id: this.currentBoardId });
       this.currentBoardId = null;
     }
     this.stopHeartbeat();
@@ -41,7 +41,7 @@ export class PresenceService implements OnDestroy {
   lockTask(taskId: string): void {
     if (this.currentBoardId) {
       this.wsService.send('lock_task', {
-        board_id: this.currentBoardId,
+        project_id: this.currentBoardId,
         task_id: taskId,
       });
     }
@@ -50,7 +50,7 @@ export class PresenceService implements OnDestroy {
   unlockTask(taskId: string): void {
     if (this.currentBoardId) {
       this.wsService.send('unlock_task', {
-        board_id: this.currentBoardId,
+        project_id: this.currentBoardId,
         task_id: taskId,
       });
     }
@@ -92,7 +92,7 @@ export class PresenceService implements OnDestroy {
     this.stopHeartbeat();
     this.heartbeatInterval = setInterval(() => {
       if (this.currentBoardId) {
-        this.wsService.send('heartbeat', { board_id: this.currentBoardId });
+        this.wsService.send('heartbeat', { project_id: this.currentBoardId });
       }
     }, 15000);
   }

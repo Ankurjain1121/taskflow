@@ -278,7 +278,7 @@ const AVAILABLE_EVENTS = [
   `,
 })
 export class WebhookSettingsComponent implements OnInit {
-  boardId = input.required<string>();
+  projectId = input.required<string>();
 
   private webhookService = inject(WebhookService);
   private messageService = inject(MessageService);
@@ -300,7 +300,7 @@ export class WebhookSettingsComponent implements OnInit {
 
   loadWebhooks() {
     this.loading.set(true);
-    this.webhookService.listWebhooks(this.boardId()).subscribe({
+    this.webhookService.listWebhooks(this.projectId()).subscribe({
       next: (webhooks) => {
         this.webhooks.set(webhooks);
         this.loading.set(false);
@@ -317,7 +317,7 @@ export class WebhookSettingsComponent implements OnInit {
     };
     if (this.newSecret) req.secret = this.newSecret;
 
-    this.webhookService.createWebhook(this.boardId(), req).subscribe({
+    this.webhookService.createWebhook(this.projectId(), req).subscribe({
       next: (webhook) => {
         this.webhooks.update((w) => [webhook, ...w]);
         this.creating.set(false);

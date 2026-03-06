@@ -20,7 +20,7 @@ fn determine_cache_type(method: &Method, path: &str) -> CacheType {
             {
                 CacheType::Dynamic
             } else {
-                // Static read-only resources (board details, user info)
+                // Static read-only resources (project details, user info)
                 CacheType::PublicRead
             }
         }
@@ -57,7 +57,7 @@ mod tests {
     fn test_determine_cache_type() {
         // Dynamic resources
         assert_eq!(
-            determine_cache_type(&Method::GET, "/api/boards/123/tasks"),
+            determine_cache_type(&Method::GET, "/api/projects/123/tasks"),
             CacheType::Dynamic
         );
         assert_eq!(
@@ -75,7 +75,7 @@ mod tests {
 
         // Static resources
         assert_eq!(
-            determine_cache_type(&Method::GET, "/api/boards/123"),
+            determine_cache_type(&Method::GET, "/api/projects/123"),
             CacheType::PublicRead
         );
         assert_eq!(

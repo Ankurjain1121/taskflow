@@ -149,7 +149,7 @@ interface AbbreviatedFlowStep {
                 <app-step-welcome
                   [workspaceName]="invitationContext()!.workspace_name"
                   [workspaceId]="invitationContext()!.workspace_id"
-                  [boardIds]="invitationContext()!.board_ids"
+                  [boardIds]="invitationContext()!.project_ids"
                   (goToSampleBoard)="goToSampleBoardStep()"
                 />
               }

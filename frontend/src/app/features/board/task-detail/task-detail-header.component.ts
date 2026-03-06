@@ -12,7 +12,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
 import { Tag } from 'primeng/tag';
 import { Task } from '../../../core/services/task.service';
-import { Column } from '../../../core/services/board.service';
+import { Column } from '../../../core/services/project.service';
 
 @Component({
   selector: 'app-task-detail-header',

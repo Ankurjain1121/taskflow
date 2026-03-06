@@ -42,7 +42,7 @@ mod tests {
             event_type: "task_assigned".to_string(),
             title: "New Task".to_string(),
             body: "You have been assigned a task".to_string(),
-            link_url: Some("/boards/123/tasks/456".to_string()),
+            link_url: Some("/projects/123/tasks/456".to_string()),
             is_read: false,
             archived_at: None,
             created_at: now,

@@ -5,7 +5,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { WorkspaceItemComponent } from './workspace-item.component';
-import { BoardService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/project.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { FavoritesService } from '../../../core/services/favorites.service';
 import { WorkspaceSettingsDialogService } from '../../../core/services/workspace-settings-dialog.service';
@@ -13,7 +13,7 @@ import { WorkspaceSettingsDialogService } from '../../../core/services/workspace
 describe('WorkspaceItemComponent', () => {
   let component: WorkspaceItemComponent;
   let fixture: ComponentFixture<WorkspaceItemComponent>;
-  let mockBoardService: any;
+  let mockProjectService: any;
   let mockAuthService: any;
   let mockFavoritesService: any;
   let mockSettingsDialog: any;
@@ -42,13 +42,13 @@ describe('WorkspaceItemComponent', () => {
       })),
     });
 
-    mockBoardService = {
+    mockProjectService = {
       listBoards: vi.fn().mockReturnValue(
         of([
           {
             id: 'b-1',
             workspace_id: 'ws-1',
-            name: 'Board 1',
+            name: 'Project 1',
             description: '',
             position: '0',
             created_at: '',
@@ -57,7 +57,7 @@ describe('WorkspaceItemComponent', () => {
           {
             id: 'b-2',
             workspace_id: 'ws-1',
-            name: 'Board 2',
+            name: 'Project 2',
             description: '',
             position: '1',
             created_at: '',
@@ -69,7 +69,7 @@ describe('WorkspaceItemComponent', () => {
         of({
           id: 'b-new',
           workspace_id: 'ws-1',
-          name: 'New Board',
+          name: 'New Project',
           description: '',
           position: '2',
           created_at: '',
@@ -106,7 +106,7 @@ describe('WorkspaceItemComponent', () => {
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: BoardService, useValue: mockBoardService },
+        { provide: ProjectService, useValue: mockProjectService },
         { provide: AuthService, useValue: mockAuthService },
         { provide: FavoritesService, useValue: mockFavoritesService },
         { provide: WorkspaceSettingsDialogService, useValue: mockSettingsDialog },
@@ -123,21 +123,21 @@ describe('WorkspaceItemComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should expand and load boards on init', () => {
+  it('should expand and load projects on init', () => {
     component.ngOnInit();
     expect(component.expanded()).toBe(true);
-    expect(mockBoardService.listBoards).toHaveBeenCalledWith('ws-1');
-    expect(component.boards().length).toBe(2);
+    expect(mockProjectService.listProjects).toHaveBeenCalledWith('ws-1');
+    expect(component.projects().length).toBe(2);
     expect(component.loading()).toBe(false);
   });
 
   it('should handle board load error', () => {
-    mockBoardService.listBoards.mockReturnValue(
+    mockProjectService.listProjects.mockReturnValue(
       throwError(() => new Error('fail')),
     );
     component.ngOnInit();
     expect(component.loading()).toBe(false);
-    expect(component.boards().length).toBe(0);
+    expect(component.projects().length).toBe(0);
   });
 
   it('should compute workspace color from name', () => {
@@ -153,24 +153,24 @@ describe('WorkspaceItemComponent', () => {
     expect(component.expanded()).toBe(true);
   });
 
-  it('should load boards when expanding from collapsed with empty boards', () => {
+  it('should load projects when expanding from collapsed with empty projects', () => {
     component.expanded.set(false);
-    component.boards.set([]);
-    mockBoardService.listBoards.mockClear();
+    component.projects.set([]);
+    mockProjectService.listProjects.mockClear();
 
     component.toggleExpanded();
     expect(component.expanded()).toBe(true);
-    expect(mockBoardService.listBoards).toHaveBeenCalledWith('ws-1');
+    expect(mockProjectService.listProjects).toHaveBeenCalledWith('ws-1');
   });
 
-  it('should not reload boards when expanding if boards already loaded', () => {
+  it('should not reload projects when expanding if projects already loaded', () => {
     component.expanded.set(false);
-    component.boards.set([{ id: 'b-1' } as any]);
-    mockBoardService.listBoards.mockClear();
+    component.projects.set([{ id: 'b-1' } as any]);
+    mockProjectService.listProjects.mockClear();
 
     component.toggleExpanded();
     expect(component.expanded()).toBe(true);
-    expect(mockBoardService.listBoards).not.toHaveBeenCalled();
+    expect(mockProjectService.listProjects).not.toHaveBeenCalled();
   });
 
   it('should determine canCreateBoard based on current user', () => {
@@ -187,41 +187,41 @@ describe('WorkspaceItemComponent', () => {
   });
 
   it('should create board and add to list', () => {
-    component.boards.set([]);
+    component.projects.set([]);
     component.expanded.set(false);
 
     component.onBoardCreated({
-      name: 'New Board',
+      name: 'New Project',
       description: 'desc',
       template: 'kanban',
     });
 
-    expect(mockBoardService.createBoard).toHaveBeenCalledWith('ws-1', {
-      name: 'New Board',
+    expect(mockProjectService.createProject).toHaveBeenCalledWith('ws-1', {
+      name: 'New Project',
       description: 'desc',
       template: 'kanban',
     });
-    expect(component.boards().length).toBe(1);
+    expect(component.projects().length).toBe(1);
     expect(component.expanded()).toBe(true);
   });
 
   it('should handle board creation error', () => {
-    mockBoardService.createBoard.mockReturnValue(
+    mockProjectService.createProject.mockReturnValue(
       throwError(() => new Error('fail')),
     );
-    component.boards.set([]);
+    component.projects.set([]);
     component.onBoardCreated({
       name: 'Fail Board',
       description: '',
       template: 'kanban',
     });
-    expect(component.boards().length).toBe(0);
+    expect(component.projects().length).toBe(0);
   });
 
   it('should not change expanded to true if already expanded on board create', () => {
     component.expanded.set(true);
     component.onBoardCreated({
-      name: 'Board',
+      name: 'Project',
       description: '',
       template: 'kanban',
     });

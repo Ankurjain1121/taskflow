@@ -260,9 +260,9 @@ const DEFAULT_FILTERS: TaskFilters = {
         </div>
 
         <!-- Filter Presets -->
-        @if (boardId()) {
+        @if (projectId()) {
           <app-save-preset-dialog
-            [boardId]="boardId()"
+            [projectId]="projectId()"
             [filters]="filters()"
             [activeFilterCount]="activeFilterCount()"
             [presets]="presets()"
@@ -424,7 +424,7 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private searchSubject = new Subject<string>();
 
-  boardId = input<string>('');
+  projectId = input<string>('');
   assignees = input<Assignee[]>([]);
   labels = input<Label[]>([]);
   viewMode = input<ViewMode>('kanban');
@@ -660,7 +660,7 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
   }
 
   loadPresets(): void {
-    const id = this.boardId();
+    const id = this.projectId();
     if (!id) return;
     this.filterPresetsService
       .list(id)

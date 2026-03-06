@@ -31,10 +31,10 @@ describe('PresenceService', () => {
   });
 
   describe('joinBoard()', () => {
-    it('calls wsService.send with join_board and the board_id', () => {
+    it('calls wsService.send with join_board and the project_id', () => {
       service.joinBoard('board-1');
       expect(wsSend).toHaveBeenCalledWith('join_board', {
-        board_id: 'board-1',
+        project_id: 'board-1',
       });
     });
 
@@ -46,11 +46,11 @@ describe('PresenceService', () => {
 
       // First call should be leave_board for the old board
       expect(wsSend).toHaveBeenNthCalledWith(1, 'leave_board', {
-        board_id: 'board-1',
+        project_id: 'board-1',
       });
       // Second call should be join_board for the new board
       expect(wsSend).toHaveBeenNthCalledWith(2, 'join_board', {
-        board_id: 'board-2',
+        project_id: 'board-2',
       });
     });
   });
@@ -64,7 +64,7 @@ describe('PresenceService', () => {
       service.leaveBoard();
 
       expect(wsSend).toHaveBeenCalledWith('leave_board', {
-        board_id: 'board-1',
+        project_id: 'board-1',
       });
       expect(service.boardViewers()).toEqual([]);
     });
@@ -78,7 +78,7 @@ describe('PresenceService', () => {
       service.lockTask('task-42');
 
       expect(wsSend).toHaveBeenCalledWith('lock_task', {
-        board_id: 'board-1',
+        project_id: 'board-1',
         task_id: 'task-42',
       });
     });
@@ -97,7 +97,7 @@ describe('PresenceService', () => {
       service.unlockTask('task-42');
 
       expect(wsSend).toHaveBeenCalledWith('unlock_task', {
-        board_id: 'board-1',
+        project_id: 'board-1',
         task_id: 'task-42',
       });
     });

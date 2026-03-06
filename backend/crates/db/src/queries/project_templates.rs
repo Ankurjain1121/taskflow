@@ -13,8 +13,8 @@ pub enum ProjectTemplateQueryError {
     Database(#[from] sqlx::Error),
     #[error("Template not found")]
     NotFound,
-    #[error("User is not a member of this board")]
-    NotBoardMember,
+    #[error("User is not a member of this project")]
+    NotProjectMember,
     #[error("Forbidden")]
     Forbidden,
 }
@@ -27,19 +27,19 @@ pub struct CreateTemplateInput {
     pub category: Option<String>,
 }
 
-/// Input for saving a board as a template
+/// Input for saving a project as a template
 #[derive(Debug, Deserialize)]
-pub struct CreateTemplateFromBoardInput {
+pub struct CreateTemplateFromProjectInput {
     pub name: String,
     pub description: Option<String>,
     pub category: Option<String>,
 }
 
-/// Input for creating a board from a template
+/// Input for creating a project from a template
 #[derive(Debug, Deserialize)]
-pub struct CreateBoardFromTemplateInput {
+pub struct CreateProjectFromTemplateInput {
     pub workspace_id: Uuid,
-    pub board_name: String,
+    pub project_name: String,
 }
 
 /// Template with its columns and tasks
@@ -51,7 +51,7 @@ pub struct TemplateWithDetails {
     pub tasks: Vec<ProjectTemplateTask>,
 }
 
-use super::verify_board_membership_internal;
+use super::verify_project_membership_internal;
 
 /// List all templates accessible to a tenant (own templates + public ones)
 pub async fn list_templates(
@@ -209,18 +209,18 @@ pub async fn delete_template(
     Ok(())
 }
 
-/// Save an existing board as a project template.
-/// Copies the board's columns and tasks into a new template.
+/// Save an existing project as a project template.
+/// Copies the project's columns and tasks into a new template.
 pub async fn save_board_as_template(
     pool: &PgPool,
-    board_id: Uuid,
-    input: CreateTemplateFromBoardInput,
+    project_id: Uuid,
+    input: CreateTemplateFromProjectInput,
     user_id: Uuid,
     tenant_id: Uuid,
 ) -> Result<ProjectTemplate, ProjectTemplateQueryError> {
-    // Verify user is a member of the board
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
-        return Err(ProjectTemplateQueryError::NotBoardMember);
+    // Verify user is a member of the project
+    if !verify_project_membership_internal(pool, project_id, user_id).await? {
+        return Err(ProjectTemplateQueryError::NotProjectMember);
     }
 
     let mut tx = pool
@@ -251,9 +251,9 @@ pub async fn save_board_as_template(
     .fetch_one(&mut *tx)
     .await?;
 
-    // Fetch board columns ordered by position
+    // Fetch project columns ordered by position
     #[derive(sqlx::FromRow)]
-    struct BoardCol {
+    struct ProjectCol {
         id: Uuid,
         name: String,
         #[allow(dead_code)]
@@ -262,24 +262,24 @@ pub async fn save_board_as_template(
         status_mapping: Option<serde_json::Value>,
     }
 
-    let board_columns = sqlx::query_as::<_, BoardCol>(
+    let project_columns = sqlx::query_as::<_, ProjectCol>(
         r#"
         SELECT id, name, position, color, status_mapping
-        FROM board_columns
-        WHERE board_id = $1
+        FROM project_columns
+        WHERE project_id = $1
         ORDER BY position ASC
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_all(&mut *tx)
     .await?;
 
-    // Create template columns from board columns
-    // Build a mapping from board column_id -> template column_index
+    // Create template columns from project columns
+    // Build a mapping from project column_id -> template column_index
     let mut column_id_to_index: std::collections::HashMap<Uuid, i32> =
         std::collections::HashMap::new();
 
-    for (idx, col) in board_columns.iter().enumerate() {
+    for (idx, col) in project_columns.iter().enumerate() {
         let col_id = Uuid::new_v4();
         let position = idx as i32;
         let color = col.color.clone().unwrap_or_else(|| "#6366f1".to_string());
@@ -306,9 +306,9 @@ pub async fn save_board_as_template(
         column_id_to_index.insert(col.id, position);
     }
 
-    // Fetch board tasks and copy them into template tasks
+    // Fetch project tasks and copy them into template tasks
     #[derive(sqlx::FromRow)]
-    struct BoardTask {
+    struct ProjectTask {
         title: String,
         description: Option<String>,
         priority: TaskPriority,
@@ -317,18 +317,18 @@ pub async fn save_board_as_template(
         position: String,
     }
 
-    let board_tasks = sqlx::query_as::<_, BoardTask>(
+    let board_tasks = sqlx::query_as::<_, ProjectTask>(
         r#"
         SELECT
             title, description,
             priority,
             column_id, position
         FROM tasks
-        WHERE board_id = $1 AND deleted_at IS NULL
+        WHERE project_id = $1 AND deleted_at IS NULL
         ORDER BY column_id, position ASC
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_all(&mut *tx)
     .await?;
 
@@ -364,14 +364,14 @@ pub async fn save_board_as_template(
     Ok(template)
 }
 
-/// Create a new board from a project template.
-/// Creates a board with columns and tasks copied from the template.
-/// Returns the new board ID.
-pub async fn create_board_from_template(
+/// Create a new project from a project template.
+/// Creates a project with columns and tasks copied from the template.
+/// Returns the new project ID.
+pub async fn create_project_from_template(
     pool: &PgPool,
     template_id: Uuid,
     workspace_id: Uuid,
-    board_name: String,
+    project_name: String,
     user_id: Uuid,
     tenant_id: Uuid,
 ) -> Result<Uuid, ProjectTemplateQueryError> {
@@ -431,18 +431,18 @@ pub async fn create_board_from_template(
         .await
         .map_err(ProjectTemplateQueryError::Database)?;
 
-    // Create the board
-    let board_id = Uuid::new_v4();
+    // Create the project
+    let project_id = Uuid::new_v4();
     let now = chrono::Utc::now();
 
     sqlx::query(
         r#"
-        INSERT INTO boards (id, name, workspace_id, tenant_id, created_by_id, created_at, updated_at)
+        INSERT INTO projects (id, name, workspace_id, tenant_id, created_by_id, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $6)
         "#,
     )
-    .bind(board_id)
-    .bind(&board_name)
+    .bind(project_id)
+    .bind(&project_name)
     .bind(workspace_id)
     .bind(tenant_id)
     .bind(user_id)
@@ -450,20 +450,20 @@ pub async fn create_board_from_template(
     .execute(&mut *tx)
     .await?;
 
-    // Add creator as board member with editor role
+    // Add creator as project member with editor role
     sqlx::query(
         r#"
-        INSERT INTO board_members (board_id, user_id, role)
+        INSERT INTO project_members (project_id, user_id, role)
         VALUES ($1, $2, 'editor')
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .bind(user_id)
     .execute(&mut *tx)
     .await?;
 
-    // Create board columns from template columns
-    // Build a mapping from template column position -> new board column_id
+    // Create project columns from template columns
+    // Build a mapping from template column position -> new project column_id
     let mut column_index_to_id: std::collections::HashMap<i32, Uuid> =
         std::collections::HashMap::new();
 
@@ -482,13 +482,13 @@ pub async fn create_board_from_template(
 
         sqlx::query(
             r#"
-            INSERT INTO board_columns (id, name, board_id, position, color, status_mapping, created_at)
+            INSERT INTO project_columns (id, name, project_id, position, color, status_mapping, created_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             "#,
         )
         .bind(col_id)
         .bind(&col.name)
-        .bind(board_id)
+        .bind(project_id)
         .bind(&position)
         .bind(&col.color)
         .bind(&status_mapping_val)
@@ -519,7 +519,7 @@ pub async fn create_board_from_template(
 
         sqlx::query(
             r#"
-            INSERT INTO tasks (id, title, description, priority, column_id, board_id, position, tenant_id, created_by_id, created_at, updated_at)
+            INSERT INTO tasks (id, title, description, priority, column_id, project_id, position, tenant_id, created_by_id, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
             "#,
         )
@@ -528,7 +528,7 @@ pub async fn create_board_from_template(
         .bind(&task.description)
         .bind(&task.priority)
         .bind(column_id)
-        .bind(board_id)
+        .bind(project_id)
         .bind(&position)
         .bind(tenant_id)
         .bind(user_id)
@@ -541,14 +541,14 @@ pub async fn create_board_from_template(
         .await
         .map_err(ProjectTemplateQueryError::Database)?;
 
-    Ok(board_id)
+    Ok(project_id)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::models::UserRole;
-    use crate::queries::{auth, boards, workspaces};
+    use crate::queries::{auth, projects, workspaces};
     use sqlx::PgPool;
 
     const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
@@ -582,11 +582,12 @@ mod tests {
 
     async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
         let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-        let bwc = boards::create_board(pool, "ProjTmpl Board", None, ws_id, tenant_id, user_id)
-            .await
-            .expect("create_board");
+        let bwc =
+            projects::create_project(pool, "ProjTmpl Project", None, ws_id, tenant_id, user_id)
+                .await
+                .expect("create_project");
         let first_col_id = bwc.columns[0].id;
-        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+        (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
     }
 
     #[tokio::test]
@@ -697,22 +698,22 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_board_from_template() {
+    async fn test_create_project_from_template() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, ws_id, project_id, _col_id) = setup_full(&pool).await;
 
-        // First, save the board as a template (this creates template with columns)
-        let save_input = CreateTemplateFromBoardInput {
-            name: format!("BoardTemplate-{}", Uuid::new_v4()),
+        // First, save the project as a template (this creates template with columns)
+        let save_input = CreateTemplateFromProjectInput {
+            name: format!("ProjectTemplate-{}", Uuid::new_v4()),
             description: Some("Template from board".to_string()),
             category: None,
         };
 
-        let template = save_board_as_template(&pool, board_id, save_input, user_id, tenant_id)
+        let template = save_board_as_template(&pool, project_id, save_input, user_id, tenant_id)
             .await
             .expect("save_board_as_template should succeed");
 
-        // Verify template has columns copied from the board
+        // Verify template has columns copied from the project
         let details = get_template(&pool, template.id)
             .await
             .expect("get_template for saved board template");
@@ -721,29 +722,29 @@ mod tests {
             "template should have columns from board"
         );
 
-        // Now create a board from this template
-        let new_board_name = format!("FromTemplate-{}", Uuid::new_v4());
-        let new_board_id = create_board_from_template(
+        // Now create a project from this template
+        let new_project_name = format!("FromTemplate-{}", Uuid::new_v4());
+        let new_project_id = create_project_from_template(
             &pool,
             template.id,
             ws_id,
-            new_board_name.clone(),
+            new_project_name.clone(),
             user_id,
             tenant_id,
         )
         .await
-        .expect("create_board_from_template should succeed");
+        .expect("create_project_from_template should succeed");
 
-        // Verify the new board exists
-        let new_board = boards::get_board_by_id(&pool, new_board_id, user_id)
+        // Verify the new project exists
+        let new_project = projects::get_project_by_id(&pool, new_project_id, user_id)
             .await
-            .expect("get_board_by_id")
-            .expect("new board should exist");
+            .expect("get_project_by_id")
+            .expect("new project should exist");
 
-        assert_eq!(new_board.board.name, new_board_name);
+        assert_eq!(new_project.project.name, new_project_name);
         assert!(
-            !new_board.columns.is_empty(),
-            "new board should have columns from template"
+            !new_project.columns.is_empty(),
+            "new project should have columns from template"
         );
     }
 

@@ -4,16 +4,16 @@ import { Observable } from 'rxjs';
 
 export interface FavoriteItem {
   id: string;
-  entity_type: 'task' | 'board';
+  entity_type: 'task' | 'project';
   entity_id: string;
   name: string;
-  board_id: string | null;
+  project_id: string | null;
   workspace_id: string | null;
   created_at: string;
 }
 
 export interface AddFavoriteRequest {
-  entity_type: 'task' | 'board';
+  entity_type: 'task' | 'project';
   entity_id: string;
 }
 

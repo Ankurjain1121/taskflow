@@ -17,7 +17,7 @@ pub struct AppState {
     pub config: Arc<Config>,
     pub jwt_keys: Arc<JwtKeys>,
     pub redis: redis::aio::ConnectionManager,
-    pub board_channels: Arc<DashMap<Uuid, broadcast::Sender<String>>>,
+    pub project_channels: Arc<DashMap<Uuid, broadcast::Sender<String>>>,
     pub pubsub_relay: PubSubRelay,
     pub s3_client: aws_sdk_s3::Client,
     pub ws_connection_count: Arc<AtomicUsize>,
@@ -59,10 +59,10 @@ impl AppState {
             .build();
         let s3_client = aws_sdk_s3::Client::from_conf(s3_config);
 
-        let board_channels = Arc::new(DashMap::new());
+        let project_channels = Arc::new(DashMap::new());
 
-        // Spawn background GC for board channels (removes channels with no receivers)
-        Self::spawn_channel_gc(board_channels.clone());
+        // Spawn background GC for project channels (removes channels with no receivers)
+        Self::spawn_channel_gc(project_channels.clone());
 
         // Spawn shared Redis pubsub relay (single connection for all WebSocket clients)
         let pubsub_relay = PubSubRelay::spawn(config.redis_url.as_str());
@@ -81,14 +81,14 @@ impl AppState {
             config: Arc::new(config),
             jwt_keys,
             redis,
-            board_channels,
+            project_channels,
             pubsub_relay,
             s3_client,
             ws_connection_count: Arc::new(AtomicUsize::new(0)),
         })
     }
 
-    /// Spawn a background task that periodically removes board channels with no active receivers.
+    /// Spawn a background task that periodically removes project channels with no active receivers.
     fn spawn_channel_gc(channels: Arc<DashMap<Uuid, broadcast::Sender<String>>>) {
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(60));
@@ -101,17 +101,17 @@ impl AppState {
                     tracing::info!(
                         removed,
                         remaining = channels.len(),
-                        "GC: cleaned board channels"
+                        "GC: cleaned project channels"
                     );
                 }
             }
         });
     }
 
-    /// Get or create a broadcast channel for a board
-    pub fn get_board_channel(&self, board_id: Uuid) -> broadcast::Sender<String> {
-        self.board_channels
-            .entry(board_id)
+    /// Get or create a broadcast channel for a project
+    pub fn get_project_channel(&self, project_id: Uuid) -> broadcast::Sender<String> {
+        self.project_channels
+            .entry(project_id)
             .or_insert_with(|| broadcast::channel(256).0)
             .clone()
     }

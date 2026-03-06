@@ -21,7 +21,7 @@ use taskflow_db::queries::task_templates::{
 #[derive(Debug, Deserialize)]
 pub struct ListTemplatesQuery {
     pub scope: Option<String>,
-    pub board_id: Option<Uuid>,
+    pub project_id: Option<Uuid>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -32,7 +32,7 @@ pub struct SaveAsTemplateRequest {
 
 #[derive(Debug, Deserialize)]
 pub struct CreateFromTemplateRequest {
-    pub board_id: Uuid,
+    pub project_id: Uuid,
     pub column_id: Uuid,
 }
 
@@ -46,7 +46,7 @@ async fn list_templates(
         &state.db,
         tenant.tenant_id,
         params.scope.as_deref(),
-        params.board_id,
+        params.project_id,
         tenant.user_id,
     )
     .await
@@ -173,7 +173,7 @@ async fn create_from_template(
     let task_id = create_task_from_template(
         &state.db,
         template_id,
-        body.board_id,
+        body.project_id,
         body.column_id,
         tenant.tenant_id,
         tenant.user_id,

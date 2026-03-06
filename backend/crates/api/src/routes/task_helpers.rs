@@ -44,7 +44,7 @@ pub fn sanitize_html(input: &str) -> String {
         .to_string()
 }
 
-/// Response for listing tasks by board
+/// Response for listing tasks by project
 #[derive(serde::Serialize)]
 pub struct ListTasksResponse {
     pub tasks: std::collections::HashMap<Uuid, Vec<taskflow_db::models::Task>>,
@@ -99,35 +99,35 @@ pub struct AssignUserRequest {
     pub user_id: Uuid,
 }
 
-/// Helper to get workspace_id from board_id
+/// Helper to get workspace_id from project_id
 pub async fn get_workspace_id_for_board(
     pool: &sqlx::PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
 ) -> std::result::Result<Option<Uuid>, sqlx::Error> {
     sqlx::query_scalar!(
         r#"
-        SELECT workspace_id FROM boards WHERE id = $1 AND deleted_at IS NULL
+        SELECT workspace_id FROM projects WHERE id = $1 AND deleted_at IS NULL
         "#,
-        board_id
+        project_id
     )
     .fetch_optional(pool)
     .await
 }
 
-/// Helper to verify a user is a board member
-pub async fn verify_board_membership(
+/// Helper to verify a user is a project member
+pub async fn verify_project_membership(
     pool: &sqlx::PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     user_id: Uuid,
 ) -> Result<bool> {
     let is_member = sqlx::query_scalar!(
         r#"
         SELECT EXISTS(
-            SELECT 1 FROM board_members
-            WHERE board_id = $1 AND user_id = $2
+            SELECT 1 FROM project_members
+            WHERE project_id = $1 AND user_id = $2
         ) as "exists!"
         "#,
-        board_id,
+        project_id,
         user_id
     )
     .fetch_one(pool)
@@ -141,7 +141,7 @@ pub async fn broadcast_workspace_task_update(
     broadcast_service: &BroadcastService,
     workspace_id: Uuid,
     task_id: Uuid,
-    board_id: Uuid,
+    project_id: Uuid,
     assignee_ids: &[Uuid],
 ) {
     // Broadcast to workspace channel
@@ -151,7 +151,7 @@ pub async fn broadcast_workspace_task_update(
             events::WORKLOAD_CHANGED,
             json!({
                 "task_id": task_id,
-                "board_id": board_id
+                "project_id": project_id
             }),
         )
         .await
@@ -167,7 +167,7 @@ pub async fn broadcast_workspace_task_update(
                 events::TASK_UPDATED,
                 json!({
                     "task_id": task_id,
-                    "board_id": board_id,
+                    "project_id": project_id,
                     "workspace_id": workspace_id
                 }),
             )
@@ -479,7 +479,7 @@ mod tests {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            board_id: Uuid::new_v4(),
+            project_id: Uuid::new_v4(),
             column_id: col_id,
             group_id: None,
             position: "a0".to_string(),

@@ -42,20 +42,21 @@ async fn setup_user_and_workspace(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
     (tenant_id, user_id, ws.id)
 }
 
-/// Create user + workspace + board, return (tenant_id, user_id, workspace_id, board_id, first_column_id)
+/// Create user + workspace + project, return (tenant_id, user_id, workspace_id, project_id, first_column_id)
 async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-    let bwc = super::boards::create_board(pool, "Extra Board", None, ws_id, tenant_id, user_id)
-        .await
-        .expect("create_board");
+    let bwc =
+        super::projects::create_project(pool, "Extra Project", None, ws_id, tenant_id, user_id)
+            .await
+            .expect("create_project");
     let first_col_id = bwc.columns[0].id;
-    (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+    (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
 }
 
 /// Helper: create a task
 async fn create_test_task(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     column_id: Uuid,
     tenant_id: Uuid,
     user_id: Uuid,
@@ -76,7 +77,7 @@ async fn create_test_task(
         label_ids: None,
         parent_task_id: None,
     };
-    super::tasks::create_task(pool, board_id, input, tenant_id, user_id)
+    super::tasks::create_task(pool, project_id, input, tenant_id, user_id)
         .await
         .expect("create_task")
 }
@@ -85,7 +86,7 @@ async fn create_test_task(
 #[allow(clippy::too_many_arguments)]
 async fn create_test_task_with_dates(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     column_id: Uuid,
     tenant_id: Uuid,
     user_id: Uuid,
@@ -108,7 +109,7 @@ async fn create_test_task_with_dates(
         label_ids: None,
         parent_task_id: None,
     };
-    super::tasks::create_task(pool, board_id, input, tenant_id, user_id)
+    super::tasks::create_task(pool, project_id, input, tenant_id, user_id)
         .await
         .expect("create_task_with_dates")
 }
@@ -120,16 +121,16 @@ async fn create_test_task_with_dates(
 #[tokio::test]
 async fn test_add_favorite_board() {
     let pool = test_pool().await;
-    let (_, user_id, _, board_id, _) = setup_full(&pool).await;
+    let (_, user_id, _, project_id, _) = setup_full(&pool).await;
 
-    let fav_id = super::favorites::add_favorite(&pool, user_id, "board", board_id)
+    let fav_id = super::favorites::add_favorite(&pool, user_id, "project", project_id)
         .await
         .expect("add_favorite board");
 
     assert_ne!(fav_id, Uuid::nil(), "favorite id should be non-nil");
 
     // Verify it's favorited
-    let is_fav = super::favorites::is_favorited(&pool, user_id, "board", board_id)
+    let is_fav = super::favorites::is_favorited(&pool, user_id, "project", project_id)
         .await
         .expect("is_favorited");
     assert!(is_fav, "board should be favorited");
@@ -138,11 +139,11 @@ async fn test_add_favorite_board() {
 #[tokio::test]
 async fn test_add_favorite_task() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let task = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -165,11 +166,11 @@ async fn test_add_favorite_task() {
 #[tokio::test]
 async fn test_list_favorites() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let task = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -178,7 +179,7 @@ async fn test_list_favorites() {
     )
     .await;
 
-    super::favorites::add_favorite(&pool, user_id, "board", board_id)
+    super::favorites::add_favorite(&pool, user_id, "project", project_id)
         .await
         .expect("add_favorite board");
     super::favorites::add_favorite(&pool, user_id, "task", task.id)
@@ -192,7 +193,7 @@ async fn test_list_favorites() {
     // Should contain both favorites
     let entity_ids: Vec<Uuid> = favorites.iter().map(|f| f.entity_id).collect();
     assert!(
-        entity_ids.contains(&board_id),
+        entity_ids.contains(&project_id),
         "should contain favorited board"
     );
     assert!(
@@ -204,18 +205,18 @@ async fn test_list_favorites() {
 #[tokio::test]
 async fn test_remove_favorite() {
     let pool = test_pool().await;
-    let (_, user_id, _, board_id, _) = setup_full(&pool).await;
+    let (_, user_id, _, project_id, _) = setup_full(&pool).await;
 
-    super::favorites::add_favorite(&pool, user_id, "board", board_id)
+    super::favorites::add_favorite(&pool, user_id, "project", project_id)
         .await
         .expect("add_favorite");
 
-    let removed = super::favorites::remove_favorite(&pool, user_id, "board", board_id)
+    let removed = super::favorites::remove_favorite(&pool, user_id, "project", project_id)
         .await
         .expect("remove_favorite");
     assert!(removed, "remove_favorite should return true");
 
-    let is_fav = super::favorites::is_favorited(&pool, user_id, "board", board_id)
+    let is_fav = super::favorites::is_favorited(&pool, user_id, "project", project_id)
         .await
         .expect("is_favorited");
     assert!(!is_fav, "board should no longer be favorited");
@@ -226,7 +227,7 @@ async fn test_remove_favorite_nonexistent() {
     let pool = test_pool().await;
     let (_, user_id) = setup_user(&pool).await;
 
-    let removed = super::favorites::remove_favorite(&pool, user_id, "board", Uuid::new_v4())
+    let removed = super::favorites::remove_favorite(&pool, user_id, "project", Uuid::new_v4())
         .await
         .expect("remove_favorite");
     assert!(
@@ -267,12 +268,12 @@ async fn test_get_eisenhower_matrix_empty() {
 #[tokio::test]
 async fn test_eisenhower_matrix_with_assigned_task() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     // Create a high-priority task with no due date -> auto: not urgent, important -> Schedule
     let task = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -305,11 +306,11 @@ async fn test_eisenhower_matrix_with_assigned_task() {
 #[tokio::test]
 async fn test_update_eisenhower_overrides() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let task = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -345,11 +346,11 @@ async fn test_update_eisenhower_overrides() {
 #[tokio::test]
 async fn test_reset_eisenhower_overrides() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let task = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -395,12 +396,12 @@ async fn test_reset_eisenhower_overrides() {
 #[tokio::test]
 async fn test_list_tasks_flat() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let unique = Uuid::new_v4().to_string();
     let _t1 = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -409,7 +410,7 @@ async fn test_list_tasks_flat() {
     )
     .await;
 
-    let tasks = super::task_views::list_tasks_flat(&pool, board_id, user_id)
+    let tasks = super::task_views::list_tasks_flat(&pool, project_id, user_id)
         .await
         .expect("list_tasks_flat");
 
@@ -427,13 +428,13 @@ async fn test_list_tasks_flat() {
 #[ignore = "pre-existing bug: query_as uses macro-only column alias syntax (is_done!)"]
 async fn test_list_tasks_for_gantt() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let start = Utc::now();
     let due = start + Duration::days(7);
     let _task = create_test_task_with_dates(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -444,7 +445,7 @@ async fn test_list_tasks_for_gantt() {
     )
     .await;
 
-    let tasks = super::task_views::list_tasks_for_gantt(&pool, board_id, user_id)
+    let tasks = super::task_views::list_tasks_for_gantt(&pool, project_id, user_id)
         .await
         .expect("list_tasks_for_gantt");
 
@@ -463,13 +464,13 @@ async fn test_list_tasks_for_gantt() {
 #[ignore = "pre-existing bug: query_as uses macro-only column alias syntax (due_date!)"]
 async fn test_list_tasks_for_calendar() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let now = Utc::now();
     let due = now + Duration::days(3);
     let _task = create_test_task_with_dates(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -485,7 +486,7 @@ async fn test_list_tasks_for_calendar() {
 
     let tasks = super::task_views::list_tasks_for_calendar(
         &pool,
-        board_id,
+        project_id,
         user_id,
         range_start,
         range_end,
@@ -505,12 +506,12 @@ async fn test_list_tasks_for_calendar() {
 #[ignore = "pre-existing bug: query_as uses macro-only column alias syntax (is_done!)"]
 async fn test_gantt_empty_for_tasks_without_dates() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     // Create a task with NO dates
     let _task = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -519,7 +520,7 @@ async fn test_gantt_empty_for_tasks_without_dates() {
     )
     .await;
 
-    let tasks = super::task_views::list_tasks_for_gantt(&pool, board_id, user_id)
+    let tasks = super::task_views::list_tasks_for_gantt(&pool, project_id, user_id)
         .await
         .expect("list_tasks_for_gantt");
 
@@ -693,12 +694,13 @@ async fn test_get_theme_by_slug_not_found() {
 #[tokio::test]
 async fn test_delete_empty_column() {
     let pool = test_pool().await;
-    let (_, _, _, board_id, _) = setup_full(&pool).await;
+    let (_, _, _, project_id, _) = setup_full(&pool).await;
 
     // Add a new column, then delete it
-    let col = super::columns::add_column(&pool, board_id, "DeleteMe", Some("#ff0000"), None, "z9")
-        .await
-        .expect("add_column");
+    let col =
+        super::columns::add_column(&pool, project_id, "DeleteMe", Some("#ff0000"), None, "z9")
+            .await
+            .expect("add_column");
 
     let result = super::columns::delete_column(&pool, col.id)
         .await
@@ -707,7 +709,7 @@ async fn test_delete_empty_column() {
     assert_eq!(result, super::columns::DeleteColumnResult::Deleted);
 
     // Verify it's gone
-    let cols = super::columns::list_columns_by_board(&pool, board_id)
+    let cols = super::columns::list_columns_by_board(&pool, project_id)
         .await
         .expect("list_columns");
     assert!(
@@ -719,12 +721,12 @@ async fn test_delete_empty_column() {
 #[tokio::test]
 async fn test_delete_column_with_tasks() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     // Create a task in the first column
     let _task = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -755,9 +757,9 @@ async fn test_delete_nonexistent_column() {
 #[tokio::test]
 async fn test_update_column_color() {
     let pool = test_pool().await;
-    let (_, _, _, board_id, _) = setup_full(&pool).await;
+    let (_, _, _, project_id, _) = setup_full(&pool).await;
 
-    let cols = super::columns::list_columns_by_board(&pool, board_id)
+    let cols = super::columns::list_columns_by_board(&pool, project_id)
         .await
         .expect("list_columns");
 
@@ -772,9 +774,9 @@ async fn test_update_column_color() {
 #[tokio::test]
 async fn test_update_status_mapping() {
     let pool = test_pool().await;
-    let (_, _, _, board_id, _) = setup_full(&pool).await;
+    let (_, _, _, project_id, _) = setup_full(&pool).await;
 
-    let cols = super::columns::list_columns_by_board(&pool, board_id)
+    let cols = super::columns::list_columns_by_board(&pool, project_id)
         .await
         .expect("list_columns");
 
@@ -791,7 +793,7 @@ async fn test_update_status_mapping() {
 #[tokio::test]
 async fn test_get_column_by_id() {
     let pool = test_pool().await;
-    let (_, _, _, board_id, col_id) = setup_full(&pool).await;
+    let (_, _, _, project_id, col_id) = setup_full(&pool).await;
 
     let col = super::columns::get_column_by_id(&pool, col_id)
         .await
@@ -799,7 +801,7 @@ async fn test_get_column_by_id() {
         .expect("column should exist");
 
     assert_eq!(col.id, col_id);
-    assert_eq!(col.board_id, board_id);
+    assert_eq!(col.project_id, project_id);
 }
 
 // ===========================================================================
@@ -1067,12 +1069,12 @@ async fn test_list_all_invitations() {
 #[tokio::test]
 async fn test_search_finds_task_by_title() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let needle = format!("Quixotic{}", Uuid::new_v4().as_simple());
     let _task = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -1096,17 +1098,17 @@ async fn test_search_finds_board_by_name() {
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
     let needle = format!("Zephyr{}", Uuid::new_v4().as_simple());
-    let _board = super::boards::create_board(&pool, &needle, None, ws_id, tenant_id, user_id)
+    let _board = super::projects::create_project(&pool, &needle, None, ws_id, tenant_id, user_id)
         .await
-        .expect("create_board");
+        .expect("create_project");
 
     let filters = super::search::SearchFilters::default();
     let results = super::search::search_all(&pool, tenant_id, user_id, &needle, 10, &filters)
         .await
         .expect("search_all");
 
-    assert!(!results.boards.is_empty(), "should find the board");
-    assert!(results.boards.iter().any(|b| b.name.contains(&needle)));
+    assert!(!results.projects.is_empty(), "should find the project");
+    assert!(results.projects.iter().any(|b| b.name.contains(&needle)));
 }
 
 #[tokio::test]
@@ -1121,7 +1123,7 @@ async fn test_search_returns_empty_for_random_string() {
         .expect("search_all");
 
     assert!(results.tasks.is_empty(), "should not find any tasks");
-    assert!(results.boards.is_empty(), "should not find any boards");
+    assert!(results.projects.is_empty(), "should not find any projects");
     assert!(results.comments.is_empty(), "should not find any comments");
 }
 
@@ -1132,11 +1134,11 @@ async fn test_search_returns_empty_for_random_string() {
 #[tokio::test]
 async fn test_archive_task_and_list() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let task = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -1167,27 +1169,28 @@ async fn test_archive_board_and_list() {
     let pool = test_pool().await;
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
-    let bwc = super::boards::create_board(&pool, "ArchiveBoard", None, ws_id, tenant_id, user_id)
-        .await
-        .expect("create_board");
+    let bwc =
+        super::projects::create_project(&pool, "ArchiveProject", None, ws_id, tenant_id, user_id)
+            .await
+            .expect("create_project");
 
-    super::boards::soft_delete_board(&pool, bwc.board.id)
+    super::projects::soft_delete_project(&pool, bwc.project.id)
         .await
-        .expect("soft_delete_board");
+        .expect("soft_delete_project");
 
-    let archive = super::archive::list_archive(&pool, tenant_id, Some("board"), None, 50)
+    let archive = super::archive::list_archive(&pool, tenant_id, Some("project"), None, 50)
         .await
         .expect("list_archive");
 
     let found = archive
         .items
         .iter()
-        .find(|item| item.entity_id == bwc.board.id);
+        .find(|item| item.entity_id == bwc.project.id);
     assert!(
         found.is_some(),
         "archived board should appear in archive list"
     );
-    assert_eq!(found.expect("checked above").entity_type, "board");
+    assert_eq!(found.expect("checked above").entity_type, "project");
 }
 
 #[tokio::test]
@@ -1195,14 +1198,14 @@ async fn test_archive_mixed_listing() {
     let pool = test_pool().await;
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
-    let bwc = super::boards::create_board(&pool, "MixBoard", None, ws_id, tenant_id, user_id)
+    let bwc = super::projects::create_project(&pool, "MixProject", None, ws_id, tenant_id, user_id)
         .await
-        .expect("create_board");
+        .expect("create_project");
     let col_id = bwc.columns[0].id;
 
     let task = create_test_task(
         &pool,
-        bwc.board.id,
+        bwc.project.id,
         col_id,
         tenant_id,
         user_id,
@@ -1215,9 +1218,9 @@ async fn test_archive_mixed_listing() {
     super::tasks::soft_delete_task(&pool, task.id)
         .await
         .expect("soft_delete_task");
-    super::boards::soft_delete_board(&pool, bwc.board.id)
+    super::projects::soft_delete_project(&pool, bwc.project.id)
         .await
-        .expect("soft_delete_board");
+        .expect("soft_delete_project");
 
     // List all (no type filter)
     let archive = super::archive::list_archive(&pool, tenant_id, None, None, 50)
@@ -1225,7 +1228,7 @@ async fn test_archive_mixed_listing() {
         .expect("list_archive");
 
     let has_task = archive.items.iter().any(|i| i.entity_id == task.id);
-    let has_board = archive.items.iter().any(|i| i.entity_id == bwc.board.id);
+    let has_board = archive.items.iter().any(|i| i.entity_id == bwc.project.id);
     assert!(has_task, "should contain archived task");
     assert!(has_board, "should contain archived board");
 }
@@ -1237,7 +1240,7 @@ async fn test_archive_mixed_listing() {
 #[tokio::test]
 async fn test_create_milestone() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, _) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, _) = setup_full(&pool).await;
 
     let input = super::milestones::CreateMilestoneInput {
         name: "Sprint 1".to_string(),
@@ -1246,14 +1249,14 @@ async fn test_create_milestone() {
         color: Some("#ff5722".to_string()),
     };
 
-    let ms = super::milestones::create_milestone(&pool, board_id, input, tenant_id, user_id)
+    let ms = super::milestones::create_milestone(&pool, project_id, input, tenant_id, user_id)
         .await
         .expect("create_milestone");
 
     assert_eq!(ms.name, "Sprint 1");
     assert_eq!(ms.description.as_deref(), Some("First sprint"));
     assert_eq!(ms.color, "#ff5722");
-    assert_eq!(ms.board_id, board_id);
+    assert_eq!(ms.project_id, project_id);
     assert_eq!(ms.tenant_id, tenant_id);
     assert_eq!(ms.created_by_id, user_id);
 }
@@ -1261,7 +1264,7 @@ async fn test_create_milestone() {
 #[tokio::test]
 async fn test_list_milestones() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, _) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, _) = setup_full(&pool).await;
 
     let input1 = super::milestones::CreateMilestoneInput {
         name: "MS-A".to_string(),
@@ -1276,14 +1279,14 @@ async fn test_list_milestones() {
         color: None,
     };
 
-    super::milestones::create_milestone(&pool, board_id, input1, tenant_id, user_id)
+    super::milestones::create_milestone(&pool, project_id, input1, tenant_id, user_id)
         .await
         .expect("create milestone 1");
-    super::milestones::create_milestone(&pool, board_id, input2, tenant_id, user_id)
+    super::milestones::create_milestone(&pool, project_id, input2, tenant_id, user_id)
         .await
         .expect("create milestone 2");
 
-    let milestones = super::milestones::list_milestones(&pool, board_id, user_id)
+    let milestones = super::milestones::list_milestones(&pool, project_id, user_id)
         .await
         .expect("list_milestones");
 
@@ -1296,7 +1299,7 @@ async fn test_list_milestones() {
 #[tokio::test]
 async fn test_get_milestone() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, _) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, _) = setup_full(&pool).await;
 
     let input = super::milestones::CreateMilestoneInput {
         name: "GetMS".to_string(),
@@ -1305,7 +1308,7 @@ async fn test_get_milestone() {
         color: None,
     };
 
-    let ms = super::milestones::create_milestone(&pool, board_id, input, tenant_id, user_id)
+    let ms = super::milestones::create_milestone(&pool, project_id, input, tenant_id, user_id)
         .await
         .expect("create_milestone");
 
@@ -1322,7 +1325,7 @@ async fn test_get_milestone() {
 #[tokio::test]
 async fn test_update_milestone() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, _) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, _) = setup_full(&pool).await;
 
     let input = super::milestones::CreateMilestoneInput {
         name: "UpdMS".to_string(),
@@ -1331,7 +1334,7 @@ async fn test_update_milestone() {
         color: None,
     };
 
-    let ms = super::milestones::create_milestone(&pool, board_id, input, tenant_id, user_id)
+    let ms = super::milestones::create_milestone(&pool, project_id, input, tenant_id, user_id)
         .await
         .expect("create_milestone");
 
@@ -1354,7 +1357,7 @@ async fn test_update_milestone() {
 #[tokio::test]
 async fn test_delete_milestone() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, _) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, _) = setup_full(&pool).await;
 
     let input = super::milestones::CreateMilestoneInput {
         name: "DelMS".to_string(),
@@ -1363,7 +1366,7 @@ async fn test_delete_milestone() {
         color: None,
     };
 
-    let ms = super::milestones::create_milestone(&pool, board_id, input, tenant_id, user_id)
+    let ms = super::milestones::create_milestone(&pool, project_id, input, tenant_id, user_id)
         .await
         .expect("create_milestone");
 
@@ -1379,7 +1382,7 @@ async fn test_delete_milestone() {
 #[tokio::test]
 async fn test_assign_task_to_milestone() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let ms_input = super::milestones::CreateMilestoneInput {
         name: "AssignMS".to_string(),
@@ -1387,13 +1390,13 @@ async fn test_assign_task_to_milestone() {
         due_date: None,
         color: None,
     };
-    let ms = super::milestones::create_milestone(&pool, board_id, ms_input, tenant_id, user_id)
+    let ms = super::milestones::create_milestone(&pool, project_id, ms_input, tenant_id, user_id)
         .await
         .expect("create_milestone");
 
     let task = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -1425,11 +1428,11 @@ async fn test_assign_task_to_milestone() {
 #[ignore = "pre-existing bug: query_as uses macro-only type annotation syntax"]
 async fn test_create_dependency_related() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let task_a = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -1439,7 +1442,7 @@ async fn test_create_dependency_related() {
     .await;
     let task_b = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -1466,11 +1469,11 @@ async fn test_create_dependency_related() {
 #[ignore = "pre-existing bug: query_as uses macro-only type annotation syntax"]
 async fn test_create_dependency_blocks() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let task_a = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -1480,7 +1483,7 @@ async fn test_create_dependency_blocks() {
     .await;
     let task_b = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -1505,11 +1508,11 @@ async fn test_create_dependency_blocks() {
 #[ignore = "pre-existing bug: query_as uses macro-only type annotation syntax"]
 async fn test_list_dependencies() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let task_a = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -1519,7 +1522,7 @@ async fn test_list_dependencies() {
     .await;
     let task_b = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -1548,11 +1551,11 @@ async fn test_list_dependencies() {
 #[ignore = "pre-existing bug: query_as uses macro-only type annotation syntax"]
 async fn test_delete_dependency() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let task_a = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -1562,7 +1565,7 @@ async fn test_delete_dependency() {
     .await;
     let task_b = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -1597,11 +1600,11 @@ async fn test_delete_dependency() {
 #[ignore = "pre-existing bug: query_as uses macro-only type annotation syntax"]
 async fn test_check_blockers() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let blocker = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -1611,7 +1614,7 @@ async fn test_check_blockers() {
     .await;
     let blocked = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -1640,25 +1643,25 @@ async fn test_check_blockers() {
 #[ignore = "pre-existing bug: query_as uses macro-only type annotation syntax"]
 async fn test_get_board_dependencies() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let task_a = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
-        "BoardDepA",
+        "ProjectDepA",
         TaskPriority::High,
     )
     .await;
     let task_b = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
-        "BoardDepB",
+        "ProjectDepB",
         TaskPriority::Medium,
     )
     .await;
@@ -1671,7 +1674,7 @@ async fn test_get_board_dependencies() {
         .await
         .expect("create_dependency");
 
-    let deps = super::dependencies::get_board_dependencies(&pool, board_id, user_id)
+    let deps = super::dependencies::get_board_dependencies(&pool, project_id, user_id)
         .await
         .expect("get_board_dependencies");
 
@@ -1685,17 +1688,17 @@ async fn test_get_board_dependencies() {
 #[tokio::test]
 async fn test_bulk_update_column_move() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     // Get second column
-    let columns = super::columns::list_columns_by_board(&pool, board_id)
+    let columns = super::columns::list_columns_by_board(&pool, project_id)
         .await
         .expect("list_columns");
     let target_col = columns[1].id;
 
     let task = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -1714,7 +1717,7 @@ async fn test_bulk_update_column_move() {
         clear_group: None,
     };
 
-    let count = super::task_bulk::bulk_update_tasks(&pool, board_id, user_id, input)
+    let count = super::task_bulk::bulk_update_tasks(&pool, project_id, user_id, input)
         .await
         .expect("bulk_update_tasks");
 
@@ -1731,7 +1734,7 @@ async fn test_bulk_update_column_move() {
 #[tokio::test]
 async fn test_bulk_update_empty_task_ids() {
     let pool = test_pool().await;
-    let (_, user_id, _, board_id, _) = setup_full(&pool).await;
+    let (_, user_id, _, project_id, _) = setup_full(&pool).await;
 
     let input = super::task_bulk::BulkUpdateInput {
         task_ids: vec![],
@@ -1743,7 +1746,7 @@ async fn test_bulk_update_empty_task_ids() {
         clear_group: None,
     };
 
-    let count = super::task_bulk::bulk_update_tasks(&pool, board_id, user_id, input)
+    let count = super::task_bulk::bulk_update_tasks(&pool, project_id, user_id, input)
         .await
         .expect("bulk_update_tasks");
 
@@ -1753,11 +1756,11 @@ async fn test_bulk_update_empty_task_ids() {
 #[tokio::test]
 async fn test_bulk_update_not_board_member() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let task = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -1777,7 +1780,7 @@ async fn test_bulk_update_not_board_member() {
         clear_group: None,
     };
 
-    let result = super::task_bulk::bulk_update_tasks(&pool, board_id, random_user, input).await;
+    let result = super::task_bulk::bulk_update_tasks(&pool, project_id, random_user, input).await;
     assert!(
         result.is_err(),
         "non-member should not be able to bulk update"
@@ -1791,11 +1794,11 @@ async fn test_bulk_update_not_board_member() {
 #[tokio::test]
 async fn test_assign_user_idempotent() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let task = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -1826,11 +1829,11 @@ async fn test_assign_user_idempotent() {
 #[tokio::test]
 async fn test_unassign_nonexistent() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let task = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -1847,11 +1850,11 @@ async fn test_unassign_nonexistent() {
 #[tokio::test]
 async fn test_get_task_assignee_ids_empty() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let task = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,
@@ -1870,11 +1873,11 @@ async fn test_get_task_assignee_ids_empty() {
 #[tokio::test]
 async fn test_multiple_assignees() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (tenant_id, user_id, _, project_id, col_id) = setup_full(&pool).await;
 
     let task = create_test_task(
         &pool,
-        board_id,
+        project_id,
         col_id,
         tenant_id,
         user_id,

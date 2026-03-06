@@ -19,8 +19,8 @@ use crate::state::AppState;
 use crate::ws::batch_handler::{BatchHandler, BatchMessage};
 use crate::ws::messages::{ClientMessage, ServerMessage, WsQuery};
 use taskflow_auth::jwt::verify_access_token;
-use taskflow_db::models::WsBoardEvent;
-use taskflow_db::queries::boards::is_board_member;
+use taskflow_db::models::WsProjectEvent;
+use taskflow_db::queries::projects::is_project_member;
 use taskflow_services::{BroadcastService, PresenceService};
 
 /// WebSocket upgrade handler
@@ -132,12 +132,12 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
         .flatten()
         .unwrap_or_else(|| "Unknown".to_string());
 
-    // Track subscribed channels and their forwarder tasks, plus boards joined for presence
+    // Track subscribed channels and their forwarder tasks, plus projects joined for presence
     let mut subscribed_channels: HashMap<String, tokio::task::JoinHandle<()>> = HashMap::new();
-    let mut presence_boards: HashSet<Uuid> = HashSet::new();
+    let mut presence_projects: HashSet<Uuid> = HashSet::new();
 
     // Task to send messages from the channel to WebSocket
-    // Batches WsBoardEvent messages to reduce frame count
+    // Batches WsProjectEvent messages to reduce frame count
     let send_task = tokio::spawn(async move {
         let mut batch_handler = BatchHandler::new();
         let mut last_flush = std::time::Instant::now();
@@ -148,8 +148,8 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                 msg = rx.recv() => {
                     match msg {
                         Some(payload) => {
-                            // Try to parse as WsBoardEvent for batching
-                            if let Ok(event) = serde_json::from_str::<WsBoardEvent>(&payload) {
+                            // Try to parse as WsProjectEvent for batching
+                            if let Ok(event) = serde_json::from_str::<WsProjectEvent>(&payload) {
                                 if let Some(batch) = batch_handler.add_event(event) {
                                     // Buffer is full, send the batch
                                     let batch_msg = BatchMessage {
@@ -163,7 +163,7 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                                     }
                                 }
                             } else {
-                                // Not a WsBoardEvent (probably a control message), send immediately
+                                // Not a WsProjectEvent (probably a control message), send immediately
                                 if ws_sender.send(Message::Text(payload.into())).await.is_err() {
                                     break;
                                 }
@@ -333,19 +333,19 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                             .await;
                     }
                     ClientMessage::PresenceJoin { payload } => {
-                        let board_id = payload.board_id;
-                        if let Err(e) = presence.join_board(board_id, user_id).await {
+                        let project_id = payload.project_id;
+                        if let Err(e) = presence.join_project(project_id, user_id).await {
                             tracing::error!("Presence join error: {}", e);
                         } else {
-                            presence_boards.insert(board_id);
+                            presence_projects.insert(project_id);
                             // Broadcast updated viewer list
-                            if let Ok(viewers) = presence.get_board_viewers(board_id).await {
-                                let event = WsBoardEvent::PresenceUpdate {
-                                    board_id,
+                            if let Ok(viewers) = presence.get_project_viewers(project_id).await {
+                                let event = WsProjectEvent::PresenceUpdate {
+                                    project_id,
                                     user_ids: viewers,
                                 };
                                 if let Err(e) =
-                                    broadcast.broadcast_board_event(board_id, &event).await
+                                    broadcast.broadcast_project_event(project_id, &event).await
                                 {
                                     tracing::error!("Presence broadcast error: {}", e);
                                 }
@@ -353,19 +353,19 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                         }
                     }
                     ClientMessage::PresenceLeave { payload } => {
-                        let board_id = payload.board_id;
-                        if let Err(e) = presence.leave_board(board_id, user_id).await {
+                        let project_id = payload.project_id;
+                        if let Err(e) = presence.leave_project(project_id, user_id).await {
                             tracing::error!("Presence leave error: {}", e);
                         } else {
-                            presence_boards.remove(&board_id);
+                            presence_projects.remove(&project_id);
                             // Broadcast updated viewer list
-                            if let Ok(viewers) = presence.get_board_viewers(board_id).await {
-                                let event = WsBoardEvent::PresenceUpdate {
-                                    board_id,
+                            if let Ok(viewers) = presence.get_project_viewers(project_id).await {
+                                let event = WsProjectEvent::PresenceUpdate {
+                                    project_id,
                                     user_ids: viewers,
                                 };
                                 if let Err(e) =
-                                    broadcast.broadcast_board_event(board_id, &event).await
+                                    broadcast.broadcast_project_event(project_id, &event).await
                                 {
                                     tracing::error!("Presence broadcast error: {}", e);
                                 }
@@ -373,15 +373,15 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                         }
                     }
                     ClientMessage::Heartbeat { payload } => {
-                        let board_id = payload.board_id;
-                        match presence.heartbeat(board_id, user_id).await {
+                        let project_id = payload.project_id;
+                        match presence.heartbeat(project_id, user_id).await {
                             Ok(active_users) => {
-                                let event = WsBoardEvent::PresenceUpdate {
-                                    board_id,
+                                let event = WsProjectEvent::PresenceUpdate {
+                                    project_id,
                                     user_ids: active_users,
                                 };
                                 if let Err(e) =
-                                    broadcast.broadcast_board_event(board_id, &event).await
+                                    broadcast.broadcast_project_event(project_id, &event).await
                                 {
                                     tracing::error!("Heartbeat broadcast error: {}", e);
                                 }
@@ -399,19 +399,19 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                                 if let Err(e) = presence.track_user_lock(user_id, task_id).await {
                                     tracing::error!("Track user lock error: {}", e);
                                 }
-                                // Broadcast lock acquired to all board channels
-                                // We need the task's board_id to broadcast
-                                if let Ok(Some(board_id)) =
-                                    taskflow_db::queries::get_task_board_id(&state.db, task_id)
+                                // Broadcast lock acquired to all project channels
+                                // We need the task's project_id to broadcast
+                                if let Ok(Some(project_id)) =
+                                    taskflow_db::queries::get_task_project_id(&state.db, task_id)
                                         .await
                                 {
-                                    let event = WsBoardEvent::TaskLocked {
+                                    let event = WsProjectEvent::TaskLocked {
                                         task_id,
                                         user_id,
                                         user_name: user_name.clone(),
                                     };
                                     if let Err(e) =
-                                        broadcast.broadcast_board_event(board_id, &event).await
+                                        broadcast.broadcast_project_event(project_id, &event).await
                                     {
                                         tracing::error!("Lock broadcast error: {}", e);
                                     }
@@ -439,12 +439,12 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                                 tracing::error!("Untrack user lock error: {}", e);
                             }
                             // Broadcast unlock
-                            if let Ok(Some(board_id)) =
-                                taskflow_db::queries::get_task_board_id(&state.db, task_id).await
+                            if let Ok(Some(project_id)) =
+                                taskflow_db::queries::get_task_project_id(&state.db, task_id).await
                             {
-                                let event = WsBoardEvent::TaskUnlocked { task_id, user_id };
+                                let event = WsProjectEvent::TaskUnlocked { task_id, user_id };
                                 if let Err(e) =
-                                    broadcast.broadcast_board_event(board_id, &event).await
+                                    broadcast.broadcast_project_event(project_id, &event).await
                                 {
                                     tracing::error!("Unlock broadcast error: {}", e);
                                 }
@@ -485,18 +485,18 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
         state.pubsub_relay.unsubscribe(&channel);
     }
 
-    // Cleanup presence: leave all boards this user joined
-    for board_id in &presence_boards {
-        if let Err(e) = presence.leave_board(*board_id, user_id).await {
-            tracing::error!("Presence cleanup error for board {}: {}", board_id, e);
+    // Cleanup presence: leave all projects this user joined
+    for project_id in &presence_projects {
+        if let Err(e) = presence.leave_project(*project_id, user_id).await {
+            tracing::error!("Presence cleanup error for project {}: {}", project_id, e);
         } else {
             // Broadcast updated viewer list after removal
-            if let Ok(viewers) = presence.get_board_viewers(*board_id).await {
-                let event = WsBoardEvent::PresenceUpdate {
-                    board_id: *board_id,
+            if let Ok(viewers) = presence.get_project_viewers(*project_id).await {
+                let event = WsProjectEvent::PresenceUpdate {
+                    project_id: *project_id,
                     user_ids: viewers,
                 };
-                if let Err(e) = broadcast.broadcast_board_event(*board_id, &event).await {
+                if let Err(e) = broadcast.broadcast_project_event(*project_id, &event).await {
                     tracing::error!("Presence cleanup broadcast error: {}", e);
                 }
             }
@@ -606,7 +606,7 @@ async fn wait_for_auth(
 }
 
 /// Validate channel format and authorization
-/// Channels are formatted as "board:{uuid}" or "user:{uuid}"
+/// Channels are formatted as "project:{uuid}" or "user:{uuid}"
 async fn validate_channel_access(
     channel: &str,
     user_id: Uuid,
@@ -625,9 +625,9 @@ async fn validate_channel_access(
     };
 
     match channel_type {
-        "board" => {
-            // Verify user is a member of the board
-            is_board_member(pool, channel_id, user_id).await
+        "project" => {
+            // Verify user is a member of the project
+            is_project_member(pool, channel_id, user_id).await
         }
         "user" => {
             // Users can only subscribe to their own channel
@@ -668,7 +668,7 @@ fn is_valid_channel(channel: &str, user_id: Uuid, _tenant_id: Uuid) -> bool {
     };
 
     match channel_type {
-        "board" => true, // Format valid, actual auth done by validate_channel_access
+        "project" => true, // Format valid, actual auth done by validate_channel_access
         "user" => channel_id == user_id,
         "workspace" => true, // Format valid, actual auth done by validate_channel_access
         _ => false,
@@ -682,11 +682,11 @@ mod tests {
     #[test]
     fn test_client_message_deserialize() {
         // Test subscribe message format (frontend sends: { type: 'subscribe', payload: { channel: '...' } })
-        let json = r#"{"type": "subscribe", "payload": {"channel": "board:00000000-0000-0000-0000-000000000001"}}"#;
+        let json = r#"{"type": "subscribe", "payload": {"channel": "project:00000000-0000-0000-0000-000000000001"}}"#;
         let msg: ClientMessage = serde_json::from_str(json).unwrap();
         match msg {
             ClientMessage::Subscribe { payload } => {
-                assert!(payload.channel.starts_with("board:"));
+                assert!(payload.channel.starts_with("project:"));
             }
             _ => panic!("Expected Subscribe message"),
         }
@@ -704,12 +704,12 @@ mod tests {
 
     #[test]
     fn test_presence_join_message_deserialize() {
-        let json = r#"{"type": "presence_join", "payload": {"board_id": "00000000-0000-0000-0000-000000000001"}}"#;
+        let json = r#"{"type": "presence_join", "payload": {"project_id": "00000000-0000-0000-0000-000000000001"}}"#;
         let msg: ClientMessage = serde_json::from_str(json).unwrap();
         match msg {
             ClientMessage::PresenceJoin { payload } => {
                 assert_eq!(
-                    payload.board_id,
+                    payload.project_id,
                     Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
                 );
             }
@@ -719,12 +719,12 @@ mod tests {
 
     #[test]
     fn test_heartbeat_message_deserialize() {
-        let json = r#"{"type": "heartbeat", "payload": {"board_id": "00000000-0000-0000-0000-000000000001"}}"#;
+        let json = r#"{"type": "heartbeat", "payload": {"project_id": "00000000-0000-0000-0000-000000000001"}}"#;
         let msg: ClientMessage = serde_json::from_str(json).unwrap();
         match msg {
             ClientMessage::Heartbeat { payload } => {
                 assert_eq!(
-                    payload.board_id,
+                    payload.project_id,
                     Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap()
                 );
             }
@@ -767,9 +767,9 @@ mod tests {
         let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
         let tenant_id = Uuid::parse_str("00000000-0000-0000-0000-000000000002").unwrap();
 
-        // Valid board channel
+        // Valid project channel
         assert!(is_valid_channel(
-            "board:00000000-0000-0000-0000-000000000003",
+            "project:00000000-0000-0000-0000-000000000003",
             user_id,
             tenant_id
         ));
@@ -790,6 +790,6 @@ mod tests {
 
         // Invalid format
         assert!(!is_valid_channel("invalid", user_id, tenant_id));
-        assert!(!is_valid_channel("board:", user_id, tenant_id));
+        assert!(!is_valid_channel("project:", user_id, tenant_id));
     }
 }

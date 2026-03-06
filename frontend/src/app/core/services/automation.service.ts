@@ -33,7 +33,7 @@ export type AutomationActionType =
 export interface AutomationRule {
   id: string;
   name: string;
-  board_id: string;
+  project_id: string;
   trigger: AutomationTrigger;
   trigger_config: Record<string, unknown>;
   is_active: boolean;
@@ -117,18 +117,18 @@ export interface AutomationTemplate {
 export class AutomationService {
   constructor(private http: HttpClient) {}
 
-  listRules(boardId: string): Observable<AutomationRuleWithActions[]> {
+  listRules(projectId: string): Observable<AutomationRuleWithActions[]> {
     return this.http.get<AutomationRuleWithActions[]>(
-      `/api/boards/${boardId}/automations`,
+      `/api/projects/${projectId}/automations`,
     );
   }
 
   createRule(
-    boardId: string,
+    projectId: string,
     req: CreateRuleRequest,
   ): Observable<AutomationRuleWithActions> {
     return this.http.post<AutomationRuleWithActions>(
-      `/api/boards/${boardId}/automations`,
+      `/api/projects/${projectId}/automations`,
       req,
     );
   }
@@ -181,11 +181,11 @@ export class AutomationService {
   applyTemplate(
     workspaceId: string,
     templateId: string,
-    boardId: string,
+    projectId: string,
   ): Observable<AutomationRuleWithActions> {
     return this.http.post<AutomationRuleWithActions>(
       `/api/workspaces/${workspaceId}/automation-templates/${templateId}/apply`,
-      { board_id: boardId },
+      { project_id: projectId },
     );
   }
 }

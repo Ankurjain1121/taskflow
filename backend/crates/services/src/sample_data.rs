@@ -1,4 +1,4 @@
-//! Static template data for sample board generation.
+//! Static template data for sample project generation.
 //!
 //! Contains all template definitions (columns, tasks, labels) for each use-case
 //! (software, marketing, personal, design).
@@ -8,8 +8,8 @@
 // ============================================================================
 
 pub(super) struct TemplateConfig {
-    pub board_name: &'static str,
-    pub board_description: &'static str,
+    pub project_name: &'static str,
+    pub project_description: &'static str,
     pub columns: &'static [ColumnDef],
     pub tasks: &'static [TaskDef],
     pub labels: &'static [LabelDef],
@@ -429,7 +429,7 @@ static DESIGN_TASKS: &[TaskDef] = &[
         label_index: 0,
     },
     TaskDef {
-        title: "Wireframe onboarding flow",
+        title: "Wireframe onprojecting flow",
         column_index: 0,
         priority: "high",
         due_day_offset: Some(4),
@@ -487,32 +487,32 @@ static DESIGN_TASKS: &[TaskDef] = &[
 ];
 
 pub(super) static SOFTWARE_TEMPLATE: TemplateConfig = TemplateConfig {
-    board_name: "Sprint Board",
-    board_description: "Your software development sprint board",
+    project_name: "Sprint Project",
+    project_description: "Your software development sprint project",
     columns: SOFTWARE_COLUMNS,
     tasks: SOFTWARE_TASKS,
     labels: SOFTWARE_LABELS,
 };
 
 pub(super) static MARKETING_TEMPLATE: TemplateConfig = TemplateConfig {
-    board_name: "Campaign Tracker",
-    board_description: "Track your marketing campaigns and content",
+    project_name: "Campaign Tracker",
+    project_description: "Track your marketing campaigns and content",
     columns: MARKETING_COLUMNS,
     tasks: MARKETING_TASKS,
     labels: MARKETING_LABELS,
 };
 
 pub(super) static PERSONAL_TEMPLATE: TemplateConfig = TemplateConfig {
-    board_name: "My Projects",
-    board_description: "Organize your personal tasks and goals",
+    project_name: "My Projects",
+    project_description: "Organize your personal tasks and goals",
     columns: PERSONAL_COLUMNS,
     tasks: PERSONAL_TASKS,
     labels: PERSONAL_LABELS,
 };
 
 pub(super) static DESIGN_TEMPLATE: TemplateConfig = TemplateConfig {
-    board_name: "Design Sprint",
-    board_description: "Your design sprint workflow",
+    project_name: "Design Sprint",
+    project_description: "Your design sprint workflow",
     columns: DESIGN_COLUMNS,
     tasks: DESIGN_TASKS,
     labels: DESIGN_LABELS,

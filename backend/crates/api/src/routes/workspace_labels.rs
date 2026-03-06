@@ -39,7 +39,7 @@ pub struct LabelResponse {
     pub name: String,
     pub color: String,
     pub workspace_id: Uuid,
-    pub board_id: Option<Uuid>,
+    pub project_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -49,7 +49,7 @@ pub struct LabelResponse {
 
 /// GET /api/workspaces/:workspace_id/labels
 ///
-/// List all workspace-level labels (where board_id IS NULL).
+/// List all workspace-level labels (where project_id IS NULL).
 async fn list_labels(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
@@ -68,9 +68,9 @@ async fn list_labels(
 
     let labels: Vec<LabelResponse> = sqlx::query_as(
         r#"
-        SELECT id, name, color, workspace_id, board_id, created_at
+        SELECT id, name, color, workspace_id, project_id, created_at
         FROM labels
-        WHERE workspace_id = $1 AND board_id IS NULL
+        WHERE workspace_id = $1 AND project_id IS NULL
         ORDER BY name ASC
         "#,
     )
@@ -123,7 +123,7 @@ async fn create_label(
         r#"
         INSERT INTO labels (name, color, workspace_id, tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, name, color, workspace_id, board_id, created_at
+        RETURNING id, name, color, workspace_id, project_id, created_at
         "#,
     )
     .bind(name)
@@ -182,8 +182,8 @@ async fn update_label_handler(
         r#"
         UPDATE labels
         SET name = $1, color = $2
-        WHERE id = $3 AND workspace_id = $4 AND board_id IS NULL
-        RETURNING id, name, color, workspace_id, board_id, created_at
+        WHERE id = $3 AND workspace_id = $4 AND project_id IS NULL
+        RETURNING id, name, color, workspace_id, project_id, created_at
         "#,
     )
     .bind(name)
@@ -227,13 +227,14 @@ async fn delete_label(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
-    let result =
-        sqlx::query("DELETE FROM labels WHERE id = $1 AND workspace_id = $2 AND board_id IS NULL")
-            .bind(label_id)
-            .bind(workspace_id)
-            .execute(&state.db)
-            .await
-            .map_err(AppError::from)?;
+    let result = sqlx::query(
+        "DELETE FROM labels WHERE id = $1 AND workspace_id = $2 AND project_id IS NULL",
+    )
+    .bind(label_id)
+    .bind(workspace_id)
+    .execute(&state.db)
+    .await
+    .map_err(AppError::from)?;
 
     if result.rows_affected() == 0 {
         return Err(AppError::NotFound("Label not found".into()));

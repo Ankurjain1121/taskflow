@@ -37,11 +37,11 @@ async fn fetch_actions_for_rule(
     Ok(actions)
 }
 
-/// Get all active rules for a specific trigger on a board.
+/// Get all active rules for a specific trigger on a project.
 /// Used by the automation engine to find rules that should fire.
 pub async fn get_active_rules_for_trigger(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     trigger: AutomationTrigger,
 ) -> Result<Vec<AutomationRuleWithActions>, AutomationQueryError> {
     let rules = sqlx::query_as::<_, AutomationRule>(
@@ -49,7 +49,7 @@ pub async fn get_active_rules_for_trigger(
         SELECT
             id,
             name,
-            board_id,
+            project_id,
             trigger,
             trigger_config,
             is_active,
@@ -61,13 +61,13 @@ pub async fn get_active_rules_for_trigger(
             execution_count,
             last_triggered_at
         FROM automation_rules
-        WHERE board_id = $1
+        WHERE project_id = $1
           AND trigger = $2
           AND is_active = true
         ORDER BY created_at ASC
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .bind(&trigger)
     .fetch_all(pool)
     .await?;

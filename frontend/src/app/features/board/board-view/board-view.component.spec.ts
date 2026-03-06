@@ -8,10 +8,10 @@ import { MessageService } from 'primeng/api';
 
 import { BoardViewComponent } from './board-view.component';
 import {
-  BoardService,
-  BoardFullResponse,
+  ProjectService,
+  ProjectFullResponse,
   Column,
-} from '../../../core/services/board.service';
+} from '../../../core/services/project.service';
 import {
   TaskService,
   Task,
@@ -51,7 +51,7 @@ function makeTask(overrides: Partial<Task> = {}): Task {
 function makeColumn(overrides: Partial<Column> = {}): Column {
   return {
     id: 'col-1',
-    board_id: 'board-1',
+    project_id: 'board-1',
     name: 'To Do',
     position: 'a0',
     color: '#6366f1',
@@ -75,7 +75,7 @@ const EMPTY_FILTERS: TaskFilters = {
 
 // --- Mocks ---
 
-function createMockBoardService() {
+function createMockProjectService() {
   return {
     getBoardFull: vi.fn(),
     createColumn: vi.fn(),
@@ -141,7 +141,7 @@ function createMockKeyboardShortcutsService() {
 describe('BoardViewComponent', () => {
   let component: BoardViewComponent;
   let fixture: ComponentFixture<BoardViewComponent>;
-  let mockBoardService: ReturnType<typeof createMockBoardService>;
+  let mockProjectService: ReturnType<typeof createMockProjectService>;
   let mockTaskService: ReturnType<typeof createMockTaskService>;
   let mockTaskGroupService: ReturnType<typeof createMockTaskGroupService>;
   let mockWsService: ReturnType<typeof createMockWebSocketService>;
@@ -161,11 +161,11 @@ describe('BoardViewComponent', () => {
     status_mapping: { done: true },
   });
 
-  const boardFullResponse: BoardFullResponse = {
+  const boardFullResponse: ProjectFullResponse = {
     board: {
       id: 'board-1',
       workspace_id: 'ws-1',
-      name: 'Test Board',
+      name: 'Test Project',
       description: 'A test board',
       position: 'a0',
       created_at: '2026-01-01T00:00:00Z',
@@ -217,7 +217,7 @@ describe('BoardViewComponent', () => {
     members: [
       {
         user_id: 'user-1',
-        board_id: 'board-1',
+        project_id: 'board-1',
         role: 'editor' as const,
         name: 'Alice',
         email: 'alice@test.com',
@@ -226,13 +226,13 @@ describe('BoardViewComponent', () => {
   };
 
   beforeEach(async () => {
-    mockBoardService = createMockBoardService();
+    mockProjectService = createMockProjectService();
     mockTaskService = createMockTaskService();
     mockTaskGroupService = createMockTaskGroupService();
     mockWsService = createMockWebSocketService();
     routeParams$ = new Subject();
 
-    mockBoardService.getBoardFull.mockReturnValue(of(boardFullResponse));
+    mockProjectService.getProjectFull.mockReturnValue(of(boardFullResponse));
 
     await TestBed.configureTestingModule({
       imports: [
@@ -241,7 +241,7 @@ describe('BoardViewComponent', () => {
         RouterTestingModule,
       ],
       providers: [
-        { provide: BoardService, useValue: mockBoardService },
+        { provide: ProjectService, useValue: mockProjectService },
         { provide: TaskService, useValue: mockTaskService },
         { provide: TaskGroupService, useValue: mockTaskGroupService },
         { provide: WebSocketService, useValue: mockWsService },
@@ -284,17 +284,17 @@ describe('BoardViewComponent', () => {
   describe('loadBoard (via ngOnInit route params)', () => {
     it('should load board data when route params emit', () => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
 
-      expect(mockBoardService.getBoardFull).toHaveBeenCalledWith('board-1');
-      expect(component.state.board()?.name).toBe('Test Board');
+      expect(mockProjectService.getProjectFull).toHaveBeenCalledWith('board-1');
+      expect(component.state.project()?.name).toBe('Test Project');
       expect(component.state.columns()).toHaveLength(3);
       expect(component.state.loading()).toBe(false);
     });
 
     it('should set boardState with tasks grouped by column_id', () => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
 
       const state = component.state.boardState();
       expect(state['col-1']).toHaveLength(1);
@@ -305,11 +305,11 @@ describe('BoardViewComponent', () => {
     });
 
     it('should set loading=false and show error on failure', () => {
-      mockBoardService.getBoardFull.mockReturnValue(
+      mockProjectService.getProjectFull.mockReturnValue(
         throwError(() => new Error('Network error')),
       );
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
 
       expect(component.state.loading()).toBe(false);
       expect(component.state.errorMessage()).toBe('Failed to load board');
@@ -321,7 +321,7 @@ describe('BoardViewComponent', () => {
   describe('filterTasks (via filteredBoardState)', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
     });
 
     it('should return all tasks when no filters are active', () => {
@@ -416,7 +416,7 @@ describe('BoardViewComponent', () => {
   describe('onTaskMoved', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
     });
 
     it('should update boardState optimistically and call moveTask API', () => {
@@ -538,7 +538,7 @@ describe('BoardViewComponent', () => {
   describe('computed signals', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
     });
 
     it('connectedColumnIds should return column IDs prefixed with "column-"', () => {
@@ -564,7 +564,7 @@ describe('BoardViewComponent', () => {
   describe('view mode', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
     });
 
     it('should default to kanban view', () => {
@@ -623,7 +623,7 @@ describe('BoardViewComponent', () => {
   describe('onTaskUpdated', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
     });
 
     it('should update the task in boardState', () => {
@@ -669,7 +669,7 @@ describe('BoardViewComponent', () => {
   describe('onCreateTask', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
     });
 
     it('should set up dialog with first column', () => {
@@ -688,7 +688,7 @@ describe('BoardViewComponent', () => {
   describe('onAddTaskToColumn', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
     });
 
     it('should set up dialog with the specified column', () => {
@@ -727,7 +727,7 @@ describe('BoardViewComponent', () => {
   describe('filterTasks advanced edge cases', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
     });
 
     it('should return empty array for non-existent column', () => {
@@ -838,7 +838,7 @@ describe('BoardViewComponent', () => {
   describe('view mode edge cases', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
     });
 
     it('should switch back to kanban from list', () => {
@@ -858,7 +858,7 @@ describe('BoardViewComponent', () => {
   describe('ngOnDestroy', () => {
     it('should unsubscribe from WS on destroy', () => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
 
       component.ngOnDestroy();
 

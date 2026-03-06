@@ -21,7 +21,7 @@ import {
 } from '../../../core/services/project-template.service';
 
 export interface SaveTemplateDialogData {
-  boardId: string;
+  projectId: string;
   boardName: string;
 }
 
@@ -55,7 +55,7 @@ const TEMPLATE_CATEGORIES = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p-dialog
-      header="Save Board as Template"
+      header="Save Project as Template"
       [(visible)]="visible"
       [modal]="true"
       [style]="{ width: '500px' }"
@@ -77,7 +77,7 @@ const TEMPLATE_CATEGORIES = [
             pInputText
             id="templateName"
             formControlName="name"
-            placeholder="e.g. Sprint Board Template"
+            placeholder="e.g. Sprint Project Template"
             class="w-full"
           />
           @if (
@@ -165,7 +165,7 @@ export class SaveTemplateDialogComponent {
   visible = model(false);
 
   /** Input data for the dialog */
-  boardId = input<string>('');
+  projectId = input<string>('');
   boardName = input<string>('');
 
   /** Emits result when dialog closes with a value */
@@ -211,7 +211,7 @@ export class SaveTemplateDialogComponent {
     };
 
     this.templateService
-      .saveBoardAsTemplate(this.boardId(), request)
+      .saveBoardAsTemplate(this.projectId(), request)
       .subscribe({
         next: (template) => {
           this.saving.set(false);

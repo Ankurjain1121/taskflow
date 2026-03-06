@@ -4,13 +4,13 @@ import { Subject, takeUntil, forkJoin } from 'rxjs';
 export const MAX_SELECTION = 500;
 
 import {
-  BoardService,
-  Board,
+  ProjectService,
+  Project,
   Column,
-  BoardMember,
-  BoardFullResponse,
-  BoardMeta,
-} from '../../../core/services/board.service';
+  ProjectMember,
+  ProjectFullResponse,
+  ProjectMeta,
+} from '../../../core/services/project.service';
 import {
   TaskService,
   Task,
@@ -66,7 +66,7 @@ export const DEFAULT_CARD_FIELDS: CardFields = {
 
 @Injectable()
 export class BoardStateService {
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private taskService = inject(TaskService);
   private taskGroupService = inject(TaskGroupService);
   private milestoneService = inject(MilestoneService);
@@ -84,14 +84,14 @@ export class BoardStateService {
       boardGroups: this.boardGroups,
       allLabels: () => this.allLabels(),
       showError: (msg) => this.showError(msg),
-      reloadGroups: (boardId) => this.reloadGroups(boardId),
-      loadBoard: (boardId, destroy$) => this.loadBoard(boardId, destroy$),
+      reloadGroups: (projectId) => this.reloadGroups(projectId),
+      loadBoard: (projectId, destroy$) => this.loadBoard(projectId, destroy$),
     });
   }
 
   // === Signals ===
   readonly loading = signal(true);
-  readonly board = signal<Board | null>(null);
+  readonly project = signal<Project | null>(null);
   readonly columns = signal<Column[]>([]);
   readonly boardState = signal<Record<string, Task[]>>({});
   readonly flatTasks = signal<TaskListItem[]>([]);
@@ -113,11 +113,11 @@ export class BoardStateService {
   readonly selectedTaskIds = signal<string[]>([]);
   readonly selectionMode = signal(false);
   readonly errorMessage = signal<string | null>(null);
-  readonly boardMembers = signal<BoardMember[]>([]);
+  readonly boardMembers = signal<ProjectMember[]>([]);
   readonly boardMilestones = signal<Milestone[]>([]);
   readonly boardGroups = signal<TaskGroupWithStats[]>([]);
   readonly collapsedColumnIds = signal<Set<string>>(new Set());
-  readonly taskMeta = signal<BoardMeta | null>(null);
+  readonly taskMeta = signal<ProjectMeta | null>(null);
   readonly tasksLoaded = signal<number>(0);
   readonly canLoadMore = computed(() => {
     const meta = this.taskMeta();
@@ -240,22 +240,22 @@ export class BoardStateService {
 
   // === Data Loading ===
 
-  loadBoard(boardId: string, destroy$: Subject<void>): void {
+  loadBoard(projectId: string, destroy$: Subject<void>): void {
     this.loading.set(true);
 
-    this.loadCollapsedColumns(boardId);
-    this.groupingService.loadGroupBy(boardId);
-    this.boardService.getBoardFull(boardId).subscribe({
-      next: (response: BoardFullResponse) => {
-        this.board.set(response.board);
+    this.loadCollapsedColumns(projectId);
+    this.groupingService.loadGroupBy(projectId);
+    this.projectService.getProjectFull(projectId).subscribe({
+      next: (response: ProjectFullResponse) => {
+        this.project.set(response.project);
         this.columns.set(
-          [...response.board.columns].sort((a, b) =>
+          [...response.project.columns].sort((a, b) =>
             a.position.localeCompare(b.position),
           ),
         );
 
         const tasksByColumn: Record<string, Task[]> = {};
-        for (const col of response.board.columns) {
+        for (const col of response.project.columns) {
           tasksByColumn[col.id] = [];
         }
         for (const t of response.tasks) {
@@ -302,7 +302,7 @@ export class BoardStateService {
         this.boardMembers.set(response.members);
         this.loading.set(false);
 
-        this.wsService.send('subscribe', { channel: `board:${boardId}` });
+        this.wsService.send('subscribe', { channel: `board:${projectId}` });
       },
       error: () => {
         this.loading.set(false);
@@ -310,18 +310,18 @@ export class BoardStateService {
       },
     });
 
-    this.milestoneService.list(boardId).subscribe({
+    this.milestoneService.list(projectId).subscribe({
       next: (milestones) => this.boardMilestones.set(milestones),
     });
-    this.taskGroupService.listGroupsWithStats(boardId).subscribe({
+    this.taskGroupService.listGroupsWithStats(projectId).subscribe({
       next: (groups) => this.boardGroups.set(groups),
     });
   }
 
-  loadMoreTasks(boardId: string): void {
+  loadMoreTasks(projectId: string): void {
     const offset = this.tasksLoaded();
-    this.boardService.getBoardFull(boardId, { limit: 100, offset }).subscribe({
-      next: (response: BoardFullResponse) => {
+    this.projectService.getProjectFull(projectId, { limit: 100, offset }).subscribe({
+      next: (response: ProjectFullResponse) => {
         if (response.meta) {
           this.taskMeta.set(response.meta);
         }
@@ -371,10 +371,10 @@ export class BoardStateService {
     });
   }
 
-  loadFlatTasks(boardId: string, destroy$: Subject<void>): void {
+  loadFlatTasks(projectId: string, destroy$: Subject<void>): void {
     this.listLoading.set(true);
     this.taskService
-      .listFlat(boardId)
+      .listFlat(projectId)
       .pipe(takeUntil(destroy$))
       .subscribe({
         next: (tasks) => {
@@ -388,10 +388,10 @@ export class BoardStateService {
       });
   }
 
-  loadGanttData(boardId: string): void {
+  loadGanttData(projectId: string): void {
     forkJoin({
-      tasks: this.taskService.listGanttTasks(boardId),
-      deps: this.dependencyService.getBoardDependencies(boardId),
+      tasks: this.taskService.listGanttTasks(projectId),
+      deps: this.dependencyService.getBoardDependencies(projectId),
     }).subscribe({
       next: ({ tasks, deps }) => {
         this.ganttTasks.set(tasks as unknown as GanttTask[]);
@@ -400,8 +400,8 @@ export class BoardStateService {
     });
   }
 
-  reloadGroups(boardId: string): void {
-    this.taskGroupService.listGroupsWithStats(boardId).subscribe({
+  reloadGroups(projectId: string): void {
+    this.taskGroupService.listGroupsWithStats(projectId).subscribe({
       next: (groups) => this.boardGroups.set(groups),
     });
   }
@@ -409,11 +409,11 @@ export class BoardStateService {
   // === Task CRUD (delegated) ===
 
   createTask(
-    boardId: string,
+    projectId: string,
     columnId: string,
     taskData: CreateTaskDialogResult,
   ): void {
-    this.mutations.createTask(boardId, columnId, taskData);
+    this.mutations.createTask(projectId, columnId, taskData);
   }
 
   updateTaskInState(task: Task): void {
@@ -450,38 +450,38 @@ export class BoardStateService {
 
   // === Column Operations (delegated) ===
 
-  createColumn(boardId: string, columnData: CreateColumnDialogResult): void {
-    this.mutations.createColumn(boardId, columnData);
+  createColumn(projectId: string, columnData: CreateColumnDialogResult): void {
+    this.mutations.createColumn(projectId, columnData);
   }
 
   reorderColumn(prevIdx: number, currIdx: number): void {
     this.mutations.reorderColumn(prevIdx, currIdx);
   }
 
-  deleteColumn(boardId: string, columnId: string): void {
-    this.mutations.deleteColumn(boardId, columnId);
+  deleteColumn(projectId: string, columnId: string): void {
+    this.mutations.deleteColumn(projectId, columnId);
   }
 
   // === Task Group Operations (delegated) ===
 
-  createGroup(boardId: string, result: { name: string; color: string }): void {
-    this.mutations.createGroup(boardId, result);
+  createGroup(projectId: string, result: { name: string; color: string }): void {
+    this.mutations.createGroup(projectId, result);
   }
 
-  updateGroupName(boardId: string, groupId: string, name: string): void {
-    this.mutations.updateGroupName(boardId, groupId, name);
+  updateGroupName(projectId: string, groupId: string, name: string): void {
+    this.mutations.updateGroupName(projectId, groupId, name);
   }
 
-  updateGroupColor(boardId: string, groupId: string, color: string): void {
-    this.mutations.updateGroupColor(boardId, groupId, color);
+  updateGroupColor(projectId: string, groupId: string, color: string): void {
+    this.mutations.updateGroupColor(projectId, groupId, color);
   }
 
   toggleGroupCollapse(group: TaskGroupWithStats): void {
     this.mutations.toggleGroupCollapse(group);
   }
 
-  deleteGroup(boardId: string, groupId: string): void {
-    this.mutations.deleteGroup(boardId, groupId);
+  deleteGroup(projectId: string, groupId: string): void {
+    this.mutations.deleteGroup(projectId, groupId);
   }
 
   // === Selection ===
@@ -506,10 +506,10 @@ export class BoardStateService {
 
   // === Column Collapse ===
 
-  loadCollapsedColumns(boardId: string): void {
+  loadCollapsedColumns(projectId: string): void {
     try {
       const stored = localStorage.getItem(
-        `taskflow_collapsed_columns_${boardId}`,
+        `taskflow_collapsed_columns_${projectId}`,
       );
       if (stored) {
         this.collapsedColumnIds.set(new Set(JSON.parse(stored)));
@@ -521,7 +521,7 @@ export class BoardStateService {
     }
   }
 
-  toggleColumnCollapse(boardId: string, columnId: string): void {
+  toggleColumnCollapse(projectId: string, columnId: string): void {
     const current = this.collapsedColumnIds();
     const updated = new Set(current);
     if (updated.has(columnId)) {
@@ -531,7 +531,7 @@ export class BoardStateService {
     }
     this.collapsedColumnIds.set(updated);
     localStorage.setItem(
-      `taskflow_collapsed_columns_${boardId}`,
+      `taskflow_collapsed_columns_${projectId}`,
       JSON.stringify([...updated]),
     );
   }
@@ -567,12 +567,12 @@ export class BoardStateService {
 
   // === Swimlane Group By (delegated) ===
 
-  loadGroupBy(boardId: string): void {
-    this.groupingService.loadGroupBy(boardId);
+  loadGroupBy(projectId: string): void {
+    this.groupingService.loadGroupBy(projectId);
   }
 
-  setGroupBy(mode: GroupByMode, boardId: string): void {
-    this.groupingService.setGroupBy(mode, boardId);
+  setGroupBy(mode: GroupByMode, projectId: string): void {
+    this.groupingService.setGroupBy(mode, projectId);
   }
 
   toggleSwimlaneCollapse(groupKey: string): void {

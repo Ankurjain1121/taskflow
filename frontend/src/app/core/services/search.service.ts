@@ -6,8 +6,8 @@ export interface TaskSearchResult {
   id: string;
   title: string;
   description: string | null;
-  board_id: string;
-  board_name: string;
+  project_id: string;
+  project_name: string;
   workspace_id: string;
   workspace_name: string;
 }
@@ -25,14 +25,14 @@ export interface CommentSearchResult {
   content: string;
   task_id: string;
   task_title: string;
-  board_id: string;
-  board_name: string;
+  project_id: string;
+  project_name: string;
   workspace_id: string;
 }
 
 export interface SearchResults {
   tasks: TaskSearchResult[];
-  boards: BoardSearchResult[];
+  projects: BoardSearchResult[];
   comments: CommentSearchResult[];
 }
 

@@ -39,7 +39,7 @@ import {
               class="px-3 py-2 text-xs italic"
               style="color: var(--sidebar-text-muted)"
             >
-              Star boards to pin them here
+              Star projects to pin them here
             </p>
           } @else {
             <div class="space-y-0.5">
@@ -111,8 +111,8 @@ export class SidebarFavoritesComponent implements OnInit {
   }
 
   getFavLink(fav: FavoriteItem): string[] {
-    if (fav.entity_type === 'board' && fav.workspace_id) {
-      return ['/workspace', fav.workspace_id, 'board', fav.entity_id];
+    if (fav.entity_type === 'project' && fav.workspace_id) {
+      return ['/workspace', fav.workspace_id, 'project', fav.entity_id];
     }
     return ['/my-tasks'];
   }

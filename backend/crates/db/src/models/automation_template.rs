@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 /// A reusable automation template (system-provided or user-created).
 /// Templates define a trigger + action pair that can be enabled/disabled
-/// per workspace and applied to specific boards.
+/// per workspace and applied to specific projects.
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
 pub struct AutomationTemplate {
     pub id: Uuid,
@@ -29,10 +29,10 @@ pub struct ToggleTemplateRequest {
     pub enabled: bool,
 }
 
-/// Request body for applying a template to a board
+/// Request body for applying a template to a project
 #[derive(Debug, Deserialize)]
 pub struct ApplyTemplateRequest {
-    pub board_id: Uuid,
+    pub project_id: Uuid,
 }
 
 #[cfg(test)]
@@ -75,9 +75,9 @@ mod tests {
 
     #[test]
     fn test_apply_template_request_deserialize() {
-        let board_id = Uuid::new_v4();
-        let json = format!(r#"{{"board_id": "{}"}}"#, board_id);
+        let project_id = Uuid::new_v4();
+        let json = format!(r#"{{"project_id": "{}"}}"#, project_id);
         let req: ApplyTemplateRequest = serde_json::from_str(&json).expect("deserialize");
-        assert_eq!(req.board_id, board_id);
+        assert_eq!(req.project_id, project_id);
     }
 }

@@ -17,10 +17,10 @@ import {
   Validators,
 } from '@angular/forms';
 import {
-  BoardService,
-  Board,
-  BoardMember,
-} from '../../../core/services/board.service';
+  ProjectService,
+  Project,
+  ProjectMember,
+} from '../../../core/services/project.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmDialog } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
@@ -81,16 +81,16 @@ import { ArchiveService } from '../../../core/services/archive.service';
         <div class="mb-8">
           <nav class="text-sm text-[var(--muted-foreground)] mb-2">
             <a
-              [routerLink]="['/workspace', workspaceId, 'board', boardId]"
+              [routerLink]="['/workspace', workspaceId, 'project', projectId]"
               class="hover:text-primary"
-              >Back to Board</a
+              >Back to Project</a
             >
           </nav>
           <h1 class="text-3xl font-bold text-[var(--foreground)]">
-            Board Settings
+            Project Settings
           </h1>
           <p class="mt-2 text-[var(--muted-foreground)]">
-            Configure your board's settings, columns, members, and integrations
+            Configure your project's settings, columns, members, and integrations
           </p>
         </div>
 
@@ -116,7 +116,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
               ></path>
             </svg>
           </div>
-        } @else if (board()) {
+        } @else if (project()) {
           <!-- Error banner -->
           @if (errorMessage()) {
             <div
@@ -190,7 +190,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
                             formControlName="description"
                             rows="3"
                             class="mt-1 block w-full rounded-md border-[var(--border)] shadow-sm focus:border-primary focus:ring-ring sm:text-sm"
-                            placeholder="Add a description for this board..."
+                            placeholder="Add a description for this project..."
                           ></textarea>
                         </div>
 
@@ -230,19 +230,19 @@ import { ArchiveService } from '../../../core/services/archive.service';
                     </div>
                   </section>
 
-                  <!-- Board Color -->
+                  <!-- Project Color -->
                   <section class="animate-fade-in-up">
                     <div class="bg-[var(--card)] shadow rounded-lg">
                       <div class="px-6 py-4 border-b border-[var(--border)]">
                         <h2
                           class="text-lg font-medium text-[var(--foreground)]"
                         >
-                          Board Color
+                          Project Color
                         </h2>
                       </div>
                       <div class="px-6 py-4">
                         <p class="text-sm text-[var(--muted-foreground)] mb-3">
-                          Choose a background color for this board.
+                          Choose a background color for this project.
                         </p>
                         <div class="flex flex-wrap items-center gap-2">
                           @for (color of presetColors; track color) {
@@ -258,7 +258,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
                           }
                           <button
                             class="w-8 h-8 rounded-full border-2 border-dashed border-[var(--border)] flex items-center justify-center text-[var(--muted-foreground)] hover:border-[var(--foreground)] transition-colors"
-                            (click)="clearBoardColor()"
+                            (click)="clearProjectColor()"
                             title="Clear color"
                           >
                             <i class="pi pi-times text-xs"></i>
@@ -306,10 +306,10 @@ import { ArchiveService } from '../../../core/services/archive.service';
                             <h3
                               class="text-sm font-medium text-[var(--foreground)]"
                             >
-                              Save Board as Template
+                              Save Project as Template
                             </h3>
                             <p class="text-sm text-[var(--muted-foreground)]">
-                              Save this board's structure as a reusable template
+                              Save this project's structure as a reusable template
                               including all columns and tasks.
                             </p>
                           </div>
@@ -330,7 +330,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
               <!-- Tab 1: Columns -->
               <p-tabpanel [value]="1">
                 <div class="py-6">
-                  <app-column-manager [boardId]="boardId"></app-column-manager>
+                  <app-column-manager [projectId]="projectId"></app-column-manager>
                 </div>
               </p-tabpanel>
 
@@ -344,7 +344,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
                         <h3
                           class="text-lg font-medium text-[var(--foreground)]"
                         >
-                          Board Members
+                          Project Members
                         </h3>
                         <button
                           (click)="onInviteMember()"
@@ -472,7 +472,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
 
                   <!-- Positions -->
                   <app-position-list
-                    [boardId]="boardId"
+                    [projectId]="projectId"
                     [boardMembers]="members()"
                   />
                 </div>
@@ -482,7 +482,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
               <p-tabpanel [value]="3">
                 <div class="py-6">
                   @defer {
-                    <app-automation-rules [boardId]="boardId" />
+                    <app-automation-rules [projectId]="projectId" />
                   } @placeholder {
                     <div class="flex items-center justify-center py-12">
                       <svg
@@ -544,7 +544,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
               <p-tabpanel [value]="5">
                 <div class="py-6">
                   @defer {
-                    <app-custom-fields-manager [boardId]="boardId" />
+                    <app-custom-fields-manager [projectId]="projectId" />
                   } @placeholder {
                     <div class="flex items-center justify-center py-12">
                       <svg
@@ -575,7 +575,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
               <p-tabpanel [value]="6">
                 <div class="py-6">
                   @defer {
-                    <app-milestone-list [boardId]="boardId" />
+                    <app-milestone-list [projectId]="projectId" />
                   } @placeholder {
                     <div class="flex items-center justify-center py-12">
                       <svg
@@ -608,7 +608,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
                   <!-- Share Settings -->
                   @defer {
                     <section>
-                      <app-share-settings [boardId]="boardId" />
+                      <app-share-settings [projectId]="projectId" />
                     </section>
                   } @placeholder {
                     <div class="flex items-center justify-center py-8">
@@ -637,7 +637,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
                   <!-- Webhooks -->
                   @defer {
                     <section>
-                      <app-webhook-settings [boardId]="boardId" />
+                      <app-webhook-settings [projectId]="projectId" />
                     </section>
                   } @placeholder {
                     <div class="flex items-center justify-center py-8">
@@ -696,7 +696,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
                           <h3
                             class="text-sm font-medium text-[var(--foreground)]"
                           >
-                            Export Board
+                            Export Project
                           </h3>
                           <p class="text-sm text-[var(--muted-foreground)]">
                             Export all tasks to CSV or JSON format.
@@ -718,7 +718,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
               <!-- Tab 8: Advanced (Danger Zone) -->
               <p-tabpanel [value]="8">
                 <div class="py-6 space-y-6">
-                  <!-- Archive Board -->
+                  <!-- Archive Project -->
                   <section>
                     <div class="bg-[var(--card)] shadow rounded-lg">
                       <div class="px-6 py-4 border-b border-[var(--border)]">
@@ -734,15 +734,15 @@ import { ArchiveService } from '../../../core/services/archive.service';
                             <h3
                               class="text-sm font-medium text-[var(--foreground)]"
                             >
-                              Archive Board
+                              Archive Project
                             </h3>
                             <p class="text-sm text-[var(--muted-foreground)]">
-                              Hide this board from the sidebar. It can be
+                              Hide this project from the sidebar. It can be
                               restored later from the Archived section.
                             </p>
                           </div>
                           <button
-                            (click)="onArchiveBoard()"
+                            (click)="onArchiveProject()"
                             [disabled]="archiving()"
                             class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-amber-700 border border-amber-300 rounded-md hover:bg-amber-50 transition-colors disabled:opacity-50"
                           >
@@ -769,7 +769,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
                               Archiving...
                             } @else {
                               <i class="pi pi-inbox"></i>
-                              Archive Board
+                              Archive Project
                             }
                           </button>
                         </div>
@@ -777,7 +777,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
                     </div>
                   </section>
 
-                  @if (canDeleteBoard()) {
+                  @if (canDeleteProject()) {
                     <section>
                       <div
                         class="shadow rounded-lg border-2"
@@ -800,15 +800,15 @@ import { ArchiveService } from '../../../core/services/archive.service';
                               <h3
                                 class="text-sm font-medium text-[var(--foreground)]"
                               >
-                                Delete Board
+                                Delete Project
                               </h3>
                               <p class="text-sm text-[var(--muted-foreground)]">
-                                Permanently delete this board and all its tasks.
+                                Permanently delete this project and all its tasks.
                                 This action cannot be undone.
                               </p>
                             </div>
                             <button
-                              (click)="onDeleteBoard()"
+                              (click)="onDeleteProject()"
                               [disabled]="deleting()"
                               class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
                               style="border: 1px solid var(--status-red-border); color: var(--status-red-text); background: var(--card)"
@@ -835,7 +835,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
                                 </svg>
                                 Deleting...
                               } @else {
-                                Delete Board
+                                Delete Project
                               }
                             </button>
                           </div>
@@ -849,7 +849,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
           </p-tabs>
         } @else {
           <div class="text-center py-12">
-            <p class="text-[var(--muted-foreground)]">Board not found</p>
+            <p class="text-[var(--muted-foreground)]">Project not found</p>
           </div>
         }
       </div>
@@ -858,26 +858,26 @@ import { ArchiveService } from '../../../core/services/archive.service';
     <!-- Invite Member Dialog (PrimeNG) -->
     <app-board-invite-member-dialog
       [(visible)]="showInviteDialog"
-      [boardId]="boardId"
-      [boardName]="board()?.name || ''"
+      [projectId]="projectId"
+      [boardName]="project()?.name || ''"
       (invited)="onInviteResult($event)"
     />
     <p-confirmDialog />
     <app-save-template-dialog
       [(visible)]="showSaveTemplateDialog"
-      [boardId]="boardId"
-      [boardName]="board()?.name || ''"
+      [projectId]="projectId"
+      [boardName]="project()?.name || ''"
       (saved)="onTemplateSaved()"
     />
     <app-import-dialog
       [(visible)]="showImportDialog"
-      [boardId]="boardId"
-      [boardName]="board()?.name || ''"
+      [projectId]="projectId"
+      [boardName]="project()?.name || ''"
     />
     <app-export-dialog
       [(visible)]="showExportDialog"
-      [boardId]="boardId"
-      [boardName]="board()?.name || ''"
+      [projectId]="projectId"
+      [boardName]="project()?.name || ''"
     />
     <p-toast />
   `,
@@ -886,7 +886,7 @@ export class BoardSettingsComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private authService = inject(AuthService);
   private confirmationService = inject(ConfirmationService);
   private messageService = inject(MessageService);
@@ -894,14 +894,14 @@ export class BoardSettingsComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
 
   workspaceId = '';
-  boardId = '';
+  projectId = '';
 
   loading = signal(true);
   saving = signal(false);
   deleting = signal(false);
   archiving = signal(false);
-  board = signal<Board | null>(null);
-  members = signal<BoardMember[]>([]);
+  project = signal<Project | null>(null);
+  members = signal<ProjectMember[]>([]);
   selectedColor = signal<string | null>(null);
   showInviteDialog = signal(false);
   showSaveTemplateDialog = signal(false);
@@ -948,8 +948,8 @@ export class BoardSettingsComponent implements OnInit {
   ngOnInit(): void {
     this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       this.workspaceId = params['workspaceId'];
-      this.boardId = params['boardId'];
-      this.loadBoard();
+      this.projectId = params['projectId'];
+      this.loadProject();
     });
 
     // Support ?tab=N query param to open specific tab
@@ -969,7 +969,7 @@ export class BoardSettingsComponent implements OnInit {
     this.activeTab.set(value);
   }
 
-  canDeleteBoard(): boolean {
+  canDeleteProject(): boolean {
     // For now, any user can delete. In production, check role
     return !!this.authService.currentUser();
   }
@@ -990,11 +990,11 @@ export class BoardSettingsComponent implements OnInit {
     this.saving.set(true);
     const { name, description } = this.form.value;
 
-    this.boardService
-      .updateBoard(this.boardId, { name, description })
+    this.projectService
+      .updateProject(this.projectId, { name, description })
       .subscribe({
         next: (updated) => {
-          this.board.set(updated);
+          this.project.set(updated);
           this.form.markAsPristine();
           this.saving.set(false);
         },
@@ -1012,9 +1012,9 @@ export class BoardSettingsComponent implements OnInit {
     const snapshot = this.members();
 
     // Optimistic: insert temp member
-    const tempMember: BoardMember = {
+    const tempMember: ProjectMember = {
       user_id: crypto.randomUUID(),
-      board_id: this.boardId,
+      project_id: this.projectId,
       role: result.role,
       name: result.email,
       email: result.email,
@@ -1022,8 +1022,8 @@ export class BoardSettingsComponent implements OnInit {
     };
     this.members.update((members) => [...members, tempMember]);
 
-    this.boardService
-      .inviteBoardMember(this.boardId, {
+    this.projectService
+      .inviteProjectMember(this.projectId, {
         email: result.email,
         role: result.role,
       })
@@ -1040,7 +1040,7 @@ export class BoardSettingsComponent implements OnInit {
       });
   }
 
-  onMemberRoleChange(member: BoardMember, role: 'viewer' | 'editor'): void {
+  onMemberRoleChange(member: ProjectMember, role: 'viewer' | 'editor'): void {
     const snapshot = this.members();
 
     // Optimistic: update role locally
@@ -1048,8 +1048,8 @@ export class BoardSettingsComponent implements OnInit {
       members.map((m) => (m.user_id === member.user_id ? { ...m, role } : m)),
     );
 
-    this.boardService
-      .updateBoardMemberRole(this.boardId, member.user_id, { role })
+    this.projectService
+      .updateProjectMemberRole(this.projectId, member.user_id, { role })
       .subscribe({
         next: (updatedMember) => {
           this.members.update((members) =>
@@ -1065,9 +1065,9 @@ export class BoardSettingsComponent implements OnInit {
       });
   }
 
-  onRemoveMember(member: BoardMember): void {
+  onRemoveMember(member: ProjectMember): void {
     this.confirmationService.confirm({
-      message: `Remove ${member.name || member.email} from this board?`,
+      message: `Remove ${member.name || member.email} from this project?`,
       header: 'Remove Member',
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger p-button-sm',
@@ -1080,8 +1080,8 @@ export class BoardSettingsComponent implements OnInit {
           members.filter((m) => m.user_id !== member.user_id),
         );
 
-        this.boardService
-          .removeBoardMember(this.boardId, member.user_id)
+        this.projectService
+          .removeProjectMember(this.projectId, member.user_id)
           .subscribe({
             error: () => {
               this.members.set(snapshot);
@@ -1092,20 +1092,20 @@ export class BoardSettingsComponent implements OnInit {
     });
   }
 
-  onDeleteBoard(): void {
-    const board = this.board();
-    if (!board) return;
+  onDeleteProject(): void {
+    const proj = this.project();
+    if (!proj) return;
 
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete "${board.name}"? This action cannot be undone. All tasks, columns, and data will be permanently lost.`,
-      header: 'Delete Board',
+      message: `Are you sure you want to delete "${proj.name}"? This action cannot be undone. All tasks, columns, and data will be permanently lost.`,
+      header: 'Delete Project',
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger p-button-sm',
       rejectButtonStyleClass: 'p-button-text p-button-sm',
       accept: () => {
         this.deleting.set(true);
 
-        this.boardService.deleteBoard(this.boardId).subscribe({
+        this.projectService.deleteProject(this.projectId).subscribe({
           next: () => {
             this.router.navigate(['/workspace', this.workspaceId]);
           },
@@ -1119,65 +1119,65 @@ export class BoardSettingsComponent implements OnInit {
 
   selectBoardColor(color: string): void {
     this.selectedColor.set(color);
-    this.boardService
-      .updateBoard(this.boardId, { background_color: color })
+    this.projectService
+      .updateProject(this.projectId, { background_color: color })
       .subscribe({
         next: (updated) => {
-          this.board.set(updated);
+          this.project.set(updated);
           this.messageService.add({
             severity: 'success',
             summary: 'Color Updated',
-            detail: 'Board color has been updated.',
+            detail: 'Project color has been updated.',
             life: 2000,
           });
         },
-        error: () => this.showError('Failed to update board color'),
+        error: () => this.showError('Failed to update project color'),
       });
   }
 
-  clearBoardColor(): void {
+  clearProjectColor(): void {
     this.selectedColor.set(null);
-    this.boardService
-      .updateBoard(this.boardId, { background_color: null })
+    this.projectService
+      .updateProject(this.projectId, { background_color: null })
       .subscribe({
         next: (updated) => {
-          this.board.set(updated);
+          this.project.set(updated);
           this.messageService.add({
             severity: 'success',
             summary: 'Color Cleared',
-            detail: 'Board color has been removed.',
+            detail: 'Project color has been removed.',
             life: 2000,
           });
         },
-        error: () => this.showError('Failed to clear board color'),
+        error: () => this.showError('Failed to clear project color'),
       });
   }
 
-  onArchiveBoard(): void {
-    const board = this.board();
-    if (!board) return;
+  onArchiveProject(): void {
+    const proj = this.project();
+    if (!proj) return;
 
     this.confirmationService.confirm({
-      message: `Archive "${board.name}"? It will be hidden from the sidebar but can be restored later.`,
-      header: 'Archive Board',
+      message: `Archive "${proj.name}"? It will be hidden from the sidebar but can be restored later.`,
+      header: 'Archive Project',
       icon: 'pi pi-inbox',
       acceptButtonStyleClass: 'p-button-warning p-button-sm',
       rejectButtonStyleClass: 'p-button-text p-button-sm',
       accept: () => {
         this.archiving.set(true);
-        this.boardService.deleteBoard(this.boardId).subscribe({
+        this.projectService.deleteProject(this.projectId).subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',
-              summary: 'Board Archived',
-              detail: `"${board.name}" has been archived.`,
+              summary: 'Project Archived',
+              detail: `"${proj.name}" has been archived.`,
               life: 4000,
             });
             this.router.navigate(['/workspace', this.workspaceId]);
           },
           error: () => {
             this.archiving.set(false);
-            this.showError('Failed to archive board');
+            this.showError('Failed to archive project');
           },
         });
       },
@@ -1188,7 +1188,7 @@ export class BoardSettingsComponent implements OnInit {
     this.messageService.add({
       severity: 'success',
       summary: 'Template Saved',
-      detail: 'Board saved as template successfully.',
+      detail: 'Project saved as template successfully.',
       life: 3000,
     });
   }
@@ -1198,18 +1198,18 @@ export class BoardSettingsComponent implements OnInit {
     setTimeout(() => this.errorMessage.set(null), 5000);
   }
 
-  private loadBoard(): void {
+  private loadProject(): void {
     this.loading.set(true);
 
-    this.boardService.getBoard(this.boardId).subscribe({
-      next: (board) => {
-        this.board.set(board);
-        this.selectedColor.set(board.background_color ?? null);
+    this.projectService.getProject(this.projectId).subscribe({
+      next: (proj) => {
+        this.project.set(proj);
+        this.selectedColor.set(proj.background_color ?? null);
         this.form.patchValue({
-          name: board.name,
-          description: board.description || '',
+          name: proj.name,
+          description: proj.description || '',
         });
-        this.loadBoardMembers();
+        this.loadProjectMembers();
         this.loading.set(false);
       },
       error: () => {
@@ -1218,8 +1218,8 @@ export class BoardSettingsComponent implements OnInit {
     });
   }
 
-  private loadBoardMembers(): void {
-    this.boardService.getBoardMembers(this.boardId).subscribe({
+  private loadProjectMembers(): void {
+    this.projectService.getProjectMembers(this.projectId).subscribe({
       next: (members) => {
         this.members.set(members);
       },

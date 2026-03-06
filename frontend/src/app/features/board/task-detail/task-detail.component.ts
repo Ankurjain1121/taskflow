@@ -27,7 +27,7 @@ import {
   WorkspaceService,
   MemberSearchResult,
 } from '../../../core/services/workspace.service';
-import { BoardService, Column } from '../../../core/services/board.service';
+import { ProjectService, Column } from '../../../core/services/project.service';
 import {
   DependencyService,
   TaskDependency,
@@ -322,7 +322,7 @@ import { TaskDetailFieldsComponent } from './task-detail-fields.component';
 export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   private taskService = inject(TaskService);
   private workspaceService = inject(WorkspaceService);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private dependencyService = inject(DependencyService);
   private milestoneService = inject(MilestoneService);
   private customFieldService = inject(CustomFieldService);
@@ -337,7 +337,7 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   // Inputs
   taskId = input.required<string>();
   workspaceId = input.required<string>();
-  boardId = input<string>('');
+  projectId = input<string>('');
   availableLabels = input<Label[]>([]);
 
   // Outputs
@@ -387,7 +387,7 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   savingTemplate = signal(false);
   scopeOptions = [
     { label: 'Personal', value: 'personal' },
-    { label: 'Board', value: 'board' },
+    { label: 'Project', value: 'project' },
     { label: 'Workspace', value: 'workspace' },
   ];
 
@@ -694,8 +694,8 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
     // Lazy-load board tasks if needed
-    if (this.boardTasks().length === 0 && this.boardId()) {
-      this.taskService.listFlat(this.boardId()).subscribe({
+    if (this.boardTasks().length === 0 && this.projectId()) {
+      this.taskService.listFlat(this.projectId()).subscribe({
         next: (tasks) => {
           this.boardTasks.set(tasks);
           this.filterDepResults(query);
@@ -921,7 +921,7 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private loadMilestones(task: Task): void {
-    const bid = this.boardId();
+    const bid = this.projectId();
     if (!bid) return;
 
     this.milestoneService.list(bid).subscribe({
@@ -940,7 +940,7 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private loadCustomFields(): void {
-    const bid = this.boardId();
+    const bid = this.projectId();
     if (!bid) return;
 
     this.customFieldService.getTaskValues(this.taskId()).subscribe({

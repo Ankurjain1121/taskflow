@@ -20,8 +20,8 @@ export interface EisenhowerTask {
   description: string | null;
   priority: string;
   due_date: string | null;
-  board_id: string;
-  board_name: string;
+  project_id: string;
+  project_name: string;
   column_id: string;
   column_name: string;
   position: string;
@@ -43,7 +43,7 @@ export interface EisenhowerMatrixResponse {
 
 export interface EisenhowerFilters {
   workspace_id?: string;
-  board_id?: string;
+  project_id?: string;
   daily?: boolean;
 }
 
@@ -69,8 +69,8 @@ export class EisenhowerService {
     if (filters?.workspace_id) {
       params = params.set('workspace_id', filters.workspace_id);
     }
-    if (filters?.board_id) {
-      params = params.set('board_id', filters.board_id);
+    if (filters?.project_id) {
+      params = params.set('project_id', filters.project_id);
     }
     if (filters?.daily) {
       params = params.set('daily', 'true');

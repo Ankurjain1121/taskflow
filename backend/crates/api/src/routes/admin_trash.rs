@@ -25,7 +25,7 @@ use taskflow_services::trash_bin::{
 /// Query parameters for trash listing
 #[derive(Debug, Deserialize)]
 pub struct TrashListQuery {
-    /// Filter by entity type (task, board, workspace)
+    /// Filter by entity type (task, project, workspace)
     pub entity_type: Option<String>,
     /// Cursor for pagination (deleted_at timestamp in RFC3339)
     pub cursor: Option<String>,
@@ -181,7 +181,7 @@ async fn empty_trash(
 
     let mut deleted_count = 0;
 
-    // Delete in order: workspaces first (to avoid FK issues), then boards, then tasks
+    // Delete in order: workspaces first (to avoid FK issues), then projects, then tasks
     // Workspaces
     let workspace_ids: Vec<Uuid> = sqlx::query_scalar!(
         r#"
@@ -203,10 +203,10 @@ async fn empty_trash(
         }
     }
 
-    // Boards (that weren't deleted with workspaces)
-    let board_ids: Vec<Uuid> = sqlx::query_scalar!(
+    // Projects (that weren't deleted with workspaces)
+    let project_ids: Vec<Uuid> = sqlx::query_scalar!(
         r#"
-        SELECT id FROM boards
+        SELECT id FROM projects
         WHERE tenant_id = $1 AND deleted_at IS NOT NULL
         "#,
         tenant_id
@@ -214,17 +214,17 @@ async fn empty_trash(
     .fetch_all(&state.db)
     .await?;
 
-    for board_id in board_ids {
+    for project_id in project_ids {
         if let Err(e) =
-            permanently_delete(&state.db, &minio, &TrashEntityType::Board, board_id).await
+            permanently_delete(&state.db, &minio, &TrashEntityType::Project, project_id).await
         {
-            tracing::warn!(board_id = %board_id, error = %e, "Failed to delete board");
+            tracing::warn!(project_id = %project_id, error = %e, "Failed to delete board");
         } else {
             deleted_count += 1;
         }
     }
 
-    // Tasks (that weren't deleted with boards)
+    // Tasks (that weren't deleted with projects)
     let task_ids: Vec<Uuid> = sqlx::query_scalar!(
         r#"
         SELECT id FROM tasks
@@ -268,9 +268,9 @@ async fn verify_entity_tenant(
             .fetch_one(&state.db)
             .await?
         }
-        TrashEntityType::Board => {
+        TrashEntityType::Project => {
             sqlx::query_scalar!(
-                r#"SELECT EXISTS(SELECT 1 FROM boards WHERE id = $1 AND tenant_id = $2) as "exists!""#,
+                r#"SELECT EXISTS(SELECT 1 FROM projects WHERE id = $1 AND tenant_id = $2) as "exists!""#,
                 entity_id,
                 tenant_id
             )

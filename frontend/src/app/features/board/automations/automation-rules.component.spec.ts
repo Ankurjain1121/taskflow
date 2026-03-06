@@ -25,7 +25,7 @@ function makeRule(
     rule: {
       id: 'rule-1',
       name: 'Test Rule',
-      board_id: 'board-1',
+      project_id: 'board-1',
       trigger: 'task_moved',
       trigger_config: {},
       is_active: true,
@@ -114,10 +114,10 @@ describe('AutomationRulesComponent', () => {
 
   it('should load rules on init', fakeAsync(() => {
     const rules = [makeRule(), makeRule({ id: 'rule-2', name: 'Rule 2' })];
-    fixture.componentRef.setInput('boardId', 'board-1');
+    fixture.componentRef.setInput('projectId', 'board-1');
     fixture.detectChanges(); // triggers ngOnInit
 
-    const req = httpTesting.expectOne('/api/boards/board-1/automations');
+    const req = httpTesting.expectOne('/api/projects/board-1/automations');
     expect(req.request.method).toBe('GET');
     req.flush(rules);
     tick();
@@ -127,10 +127,10 @@ describe('AutomationRulesComponent', () => {
   }));
 
   it('should handle load error gracefully', fakeAsync(() => {
-    fixture.componentRef.setInput('boardId', 'board-1');
+    fixture.componentRef.setInput('projectId', 'board-1');
     fixture.detectChanges();
 
-    const req = httpTesting.expectOne('/api/boards/board-1/automations');
+    const req = httpTesting.expectOne('/api/projects/board-1/automations');
     req.flush('Server error', {
       status: 500,
       statusText: 'Internal Server Error',
@@ -149,11 +149,11 @@ describe('AutomationRulesComponent', () => {
 
   it('should toggle active state of a rule', fakeAsync(() => {
     const rule = makeRule();
-    fixture.componentRef.setInput('boardId', 'board-1');
+    fixture.componentRef.setInput('projectId', 'board-1');
     fixture.detectChanges();
 
     // Load rules
-    const listReq = httpTesting.expectOne('/api/boards/board-1/automations');
+    const listReq = httpTesting.expectOne('/api/projects/board-1/automations');
     listReq.flush([rule]);
     tick();
 
@@ -175,10 +175,10 @@ describe('AutomationRulesComponent', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     const rule = makeRule();
-    fixture.componentRef.setInput('boardId', 'board-1');
+    fixture.componentRef.setInput('projectId', 'board-1');
     fixture.detectChanges();
 
-    const listReq = httpTesting.expectOne('/api/boards/board-1/automations');
+    const listReq = httpTesting.expectOne('/api/projects/board-1/automations');
     listReq.flush([rule]);
     tick();
 
@@ -196,10 +196,10 @@ describe('AutomationRulesComponent', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(false);
 
     const rule = makeRule();
-    fixture.componentRef.setInput('boardId', 'board-1');
+    fixture.componentRef.setInput('projectId', 'board-1');
     fixture.detectChanges();
 
-    const listReq = httpTesting.expectOne('/api/boards/board-1/automations');
+    const listReq = httpTesting.expectOne('/api/projects/board-1/automations');
     listReq.flush([rule]);
     tick();
 
@@ -211,10 +211,10 @@ describe('AutomationRulesComponent', () => {
 
   it('should toggle logs panel', fakeAsync(() => {
     const rule = makeRule();
-    fixture.componentRef.setInput('boardId', 'board-1');
+    fixture.componentRef.setInput('projectId', 'board-1');
     fixture.detectChanges();
 
-    const listReq = httpTesting.expectOne('/api/boards/board-1/automations');
+    const listReq = httpTesting.expectOne('/api/projects/board-1/automations');
     listReq.flush([rule]);
     tick();
 
@@ -255,10 +255,10 @@ describe('AutomationRulesComponent', () => {
   });
 
   it('should add new rule to list on save', fakeAsync(() => {
-    fixture.componentRef.setInput('boardId', 'board-1');
+    fixture.componentRef.setInput('projectId', 'board-1');
     fixture.detectChanges();
 
-    const listReq = httpTesting.expectOne('/api/boards/board-1/automations');
+    const listReq = httpTesting.expectOne('/api/projects/board-1/automations');
     listReq.flush([]);
     tick();
 
@@ -272,10 +272,10 @@ describe('AutomationRulesComponent', () => {
 
   it('should update existing rule on save', fakeAsync(() => {
     const existingRule = makeRule();
-    fixture.componentRef.setInput('boardId', 'board-1');
+    fixture.componentRef.setInput('projectId', 'board-1');
     fixture.detectChanges();
 
-    const listReq = httpTesting.expectOne('/api/boards/board-1/automations');
+    const listReq = httpTesting.expectOne('/api/projects/board-1/automations');
     listReq.flush([existingRule]);
     tick();
 
@@ -338,20 +338,20 @@ describe('AutomationRulesComponent', () => {
     );
   });
 
-  it('should reload rules when boardId changes', fakeAsync(() => {
-    fixture.componentRef.setInput('boardId', 'board-1');
+  it('should reload rules when projectId changes', fakeAsync(() => {
+    fixture.componentRef.setInput('projectId', 'board-1');
     fixture.detectChanges();
 
-    const req1 = httpTesting.expectOne('/api/boards/board-1/automations');
+    const req1 = httpTesting.expectOne('/api/projects/board-1/automations');
     req1.flush([]);
     tick();
 
-    // Change boardId
-    fixture.componentRef.setInput('boardId', 'board-2');
+    // Change projectId
+    fixture.componentRef.setInput('projectId', 'board-2');
     fixture.detectChanges();
 
-    const req2 = httpTesting.expectOne('/api/boards/board-2/automations');
-    req2.flush([makeRule({ board_id: 'board-2' })]);
+    const req2 = httpTesting.expectOne('/api/projects/board-2/automations');
+    req2.flush([makeRule({ project_id: 'board-2' })]);
     tick();
 
     expect(component.rules().length).toBe(1);

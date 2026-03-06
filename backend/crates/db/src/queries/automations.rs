@@ -14,8 +14,8 @@ pub enum AutomationQueryError {
     Database(#[from] sqlx::Error),
     #[error("Automation rule not found")]
     NotFound,
-    #[error("User is not a member of this board")]
-    NotBoardMember,
+    #[error("User is not a member of this project")]
+    NotProjectMember,
 }
 
 /// A rule with its associated actions
@@ -51,16 +51,16 @@ pub struct UpdateRuleInput {
     pub actions: Option<Vec<CreateActionInput>>,
 }
 
-use super::verify_board_membership_internal;
+use super::verify_project_membership_internal;
 
-/// Internal helper: get the board_id for a rule
-async fn get_rule_board_id_internal(
+/// Internal helper: get the project_id for a rule
+async fn get_rule_project_id_internal(
     pool: &PgPool,
     rule_id: Uuid,
 ) -> Result<Uuid, AutomationQueryError> {
-    let board_id = sqlx::query_scalar::<_, Uuid>(
+    let project_id = sqlx::query_scalar::<_, Uuid>(
         r#"
-        SELECT board_id FROM automation_rules WHERE id = $1
+        SELECT project_id FROM automation_rules WHERE id = $1
         "#,
     )
     .bind(rule_id)
@@ -68,7 +68,7 @@ async fn get_rule_board_id_internal(
     .await?
     .ok_or(AutomationQueryError::NotFound)?;
 
-    Ok(board_id)
+    Ok(project_id)
 }
 
 /// Internal helper: fetch actions for a rule
@@ -96,15 +96,15 @@ async fn fetch_actions_for_rule(
     Ok(actions)
 }
 
-/// List all automation rules for a board, with their actions.
-/// Verifies board membership before returning.
+/// List all automation rules for a project, with their actions.
+/// Verifies project membership before returning.
 pub async fn list_rules(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     user_id: Uuid,
 ) -> Result<Vec<AutomationRuleWithActions>, AutomationQueryError> {
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
-        return Err(AutomationQueryError::NotBoardMember);
+    if !verify_project_membership_internal(pool, project_id, user_id).await? {
+        return Err(AutomationQueryError::NotProjectMember);
     }
 
     let rules = sqlx::query_as::<_, AutomationRule>(
@@ -112,7 +112,7 @@ pub async fn list_rules(
         SELECT
             id,
             name,
-            board_id,
+            project_id,
             trigger,
             trigger_config,
             is_active,
@@ -124,11 +124,11 @@ pub async fn list_rules(
             execution_count,
             last_triggered_at
         FROM automation_rules
-        WHERE board_id = $1
+        WHERE project_id = $1
         ORDER BY created_at DESC
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_all(pool)
     .await?;
 
@@ -142,7 +142,7 @@ pub async fn list_rules(
 }
 
 /// Get a single automation rule with its actions.
-/// Verifies board membership through the rule's board_id.
+/// Verifies project membership through the rule's project_id.
 pub async fn get_rule(
     pool: &PgPool,
     rule_id: Uuid,
@@ -153,7 +153,7 @@ pub async fn get_rule(
         SELECT
             id,
             name,
-            board_id,
+            project_id,
             trigger,
             trigger_config,
             is_active,
@@ -173,8 +173,8 @@ pub async fn get_rule(
     .await?
     .ok_or(AutomationQueryError::NotFound)?;
 
-    if !verify_board_membership_internal(pool, rule.board_id, user_id).await? {
-        return Err(AutomationQueryError::NotBoardMember);
+    if !verify_project_membership_internal(pool, rule.project_id, user_id).await? {
+        return Err(AutomationQueryError::NotProjectMember);
     }
 
     let actions = fetch_actions_for_rule(pool, rule.id).await?;
@@ -183,16 +183,16 @@ pub async fn get_rule(
 }
 
 /// Create a new automation rule with its actions in a transaction.
-/// Verifies board membership before inserting.
+/// Verifies project membership before inserting.
 pub async fn create_rule(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     input: CreateRuleInput,
     user_id: Uuid,
     tenant_id: Uuid,
 ) -> Result<AutomationRuleWithActions, AutomationQueryError> {
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
-        return Err(AutomationQueryError::NotBoardMember);
+    if !verify_project_membership_internal(pool, project_id, user_id).await? {
+        return Err(AutomationQueryError::NotProjectMember);
     }
 
     let mut tx = pool.begin().await?;
@@ -203,14 +203,14 @@ pub async fn create_rule(
     let rule = sqlx::query_as::<_, AutomationRule>(
         r#"
         INSERT INTO automation_rules (
-            id, name, board_id, trigger, trigger_config,
+            id, name, project_id, trigger, trigger_config,
             is_active, tenant_id, created_by_id, created_at, updated_at
         )
         VALUES ($1, $2, $3, $4, $5, true, $6, $7, $8, $8)
         RETURNING
             id,
             name,
-            board_id,
+            project_id,
             trigger,
             trigger_config,
             is_active,
@@ -225,7 +225,7 @@ pub async fn create_rule(
     )
     .bind(rule_id)
     .bind(&input.name)
-    .bind(board_id)
+    .bind(project_id)
     .bind(&input.trigger)
     .bind(&input.trigger_config)
     .bind(tenant_id)
@@ -268,17 +268,17 @@ pub async fn create_rule(
 
 /// Update an existing automation rule.
 /// If actions are provided, replaces all existing actions.
-/// Verifies board membership through the rule's board_id.
+/// Verifies project membership through the rule's project_id.
 pub async fn update_rule(
     pool: &PgPool,
     rule_id: Uuid,
     input: UpdateRuleInput,
     user_id: Uuid,
 ) -> Result<AutomationRuleWithActions, AutomationQueryError> {
-    let board_id = get_rule_board_id_internal(pool, rule_id).await?;
+    let project_id = get_rule_project_id_internal(pool, rule_id).await?;
 
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
-        return Err(AutomationQueryError::NotBoardMember);
+    if !verify_project_membership_internal(pool, project_id, user_id).await? {
+        return Err(AutomationQueryError::NotProjectMember);
     }
 
     let mut tx = pool.begin().await?;
@@ -296,7 +296,7 @@ pub async fn update_rule(
         RETURNING
             id,
             name,
-            board_id,
+            project_id,
             trigger,
             trigger_config,
             is_active,
@@ -384,16 +384,16 @@ pub async fn update_rule(
 
 /// Delete an automation rule.
 /// Cascade deletes actions and logs via FK constraints.
-/// Verifies board membership through the rule's board_id.
+/// Verifies project membership through the rule's project_id.
 pub async fn delete_rule(
     pool: &PgPool,
     rule_id: Uuid,
     user_id: Uuid,
 ) -> Result<(), AutomationQueryError> {
-    let board_id = get_rule_board_id_internal(pool, rule_id).await?;
+    let project_id = get_rule_project_id_internal(pool, rule_id).await?;
 
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
-        return Err(AutomationQueryError::NotBoardMember);
+    if !verify_project_membership_internal(pool, project_id, user_id).await? {
+        return Err(AutomationQueryError::NotProjectMember);
     }
 
     let rows_affected = sqlx::query(
@@ -414,17 +414,17 @@ pub async fn delete_rule(
 }
 
 /// Get automation logs for a rule, ordered by most recent first.
-/// Verifies board membership through the rule's board_id.
+/// Verifies project membership through the rule's project_id.
 pub async fn get_rule_logs(
     pool: &PgPool,
     rule_id: Uuid,
     user_id: Uuid,
     limit: i64,
 ) -> Result<Vec<AutomationLog>, AutomationQueryError> {
-    let board_id = get_rule_board_id_internal(pool, rule_id).await?;
+    let project_id = get_rule_project_id_internal(pool, rule_id).await?;
 
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
-        return Err(AutomationQueryError::NotBoardMember);
+    if !verify_project_membership_internal(pool, project_id, user_id).await? {
+        return Err(AutomationQueryError::NotProjectMember);
     }
 
     let logs = sqlx::query_as::<_, AutomationLog>(
@@ -454,7 +454,7 @@ pub async fn get_rule_logs(
 mod tests {
     use super::*;
     use crate::queries::automation_evaluation::log_automation;
-    use crate::queries::{auth, boards, workspaces};
+    use crate::queries::{auth, projects, workspaces};
     use sqlx::PgPool;
 
     const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
@@ -489,17 +489,18 @@ mod tests {
 
     async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
         let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-        let bwc = boards::create_board(pool, "Automation Board", None, ws_id, tenant_id, user_id)
-            .await
-            .expect("create_board");
+        let bwc =
+            projects::create_project(pool, "Automation Project", None, ws_id, tenant_id, user_id)
+                .await
+                .expect("create_project");
         let first_col_id = bwc.columns[0].id;
-        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+        (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
     }
 
     #[tokio::test]
     async fn test_create_rule() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         let input = CreateRuleInput {
             name: format!("Rule-{}", Uuid::new_v4()),
@@ -512,12 +513,12 @@ mod tests {
         };
         let rule_name = input.name.clone();
 
-        let result = create_rule(&pool, board_id, input, user_id, tenant_id)
+        let result = create_rule(&pool, project_id, input, user_id, tenant_id)
             .await
             .expect("create_rule should succeed");
 
         assert_eq!(result.rule.name, rule_name);
-        assert_eq!(result.rule.board_id, board_id);
+        assert_eq!(result.rule.project_id, project_id);
         assert_eq!(result.rule.trigger, AutomationTrigger::TaskMoved);
         assert!(result.rule.is_active);
         assert_eq!(result.rule.tenant_id, tenant_id);
@@ -533,7 +534,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_rules() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         let input1 = CreateRuleInput {
             name: format!("ListRule1-{}", Uuid::new_v4()),
@@ -557,14 +558,14 @@ mod tests {
         };
         let name2 = input2.name.clone();
 
-        create_rule(&pool, board_id, input1, user_id, tenant_id)
+        create_rule(&pool, project_id, input1, user_id, tenant_id)
             .await
             .expect("create rule 1");
-        create_rule(&pool, board_id, input2, user_id, tenant_id)
+        create_rule(&pool, project_id, input2, user_id, tenant_id)
             .await
             .expect("create rule 2");
 
-        let rules = list_rules(&pool, board_id, user_id)
+        let rules = list_rules(&pool, project_id, user_id)
             .await
             .expect("list_rules should succeed");
 
@@ -585,7 +586,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_rule_with_multiple_actions() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         let input = CreateRuleInput {
             name: format!("MultiAction-{}", Uuid::new_v4()),
@@ -607,7 +608,7 @@ mod tests {
             ],
         };
 
-        let result = create_rule(&pool, board_id, input, user_id, tenant_id)
+        let result = create_rule(&pool, project_id, input, user_id, tenant_id)
             .await
             .expect("create_rule with multiple actions");
 
@@ -620,7 +621,7 @@ mod tests {
     #[tokio::test]
     async fn test_toggle_active() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         let input = CreateRuleInput {
             name: format!("ToggleRule-{}", Uuid::new_v4()),
@@ -632,7 +633,7 @@ mod tests {
             }],
         };
 
-        let created = create_rule(&pool, board_id, input, user_id, tenant_id)
+        let created = create_rule(&pool, project_id, input, user_id, tenant_id)
             .await
             .expect("create_rule");
         assert!(created.rule.is_active, "should start active");
@@ -669,7 +670,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_rule() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         let input = CreateRuleInput {
             name: format!("DelRule-{}", Uuid::new_v4()),
@@ -681,7 +682,7 @@ mod tests {
             }],
         };
 
-        let created = create_rule(&pool, board_id, input, user_id, tenant_id)
+        let created = create_rule(&pool, project_id, input, user_id, tenant_id)
             .await
             .expect("create_rule");
 
@@ -696,7 +697,7 @@ mod tests {
     #[tokio::test]
     async fn test_log_automation_and_get_logs() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         let input = CreateRuleInput {
             name: format!("LogRule-{}", Uuid::new_v4()),
@@ -708,7 +709,7 @@ mod tests {
             }],
         };
 
-        let created = create_rule(&pool, board_id, input, user_id, tenant_id)
+        let created = create_rule(&pool, project_id, input, user_id, tenant_id)
             .await
             .expect("create_rule");
 

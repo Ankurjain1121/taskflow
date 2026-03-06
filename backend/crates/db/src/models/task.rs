@@ -15,7 +15,7 @@ pub struct Task {
     pub due_date: Option<DateTime<Utc>>,
     pub start_date: Option<DateTime<Utc>>,
     pub estimated_hours: Option<f64>,
-    pub board_id: Uuid,
+    pub project_id: Uuid,
     pub column_id: Uuid,
     pub group_id: Option<Uuid>,
     pub position: String,
@@ -47,7 +47,7 @@ pub struct Label {
     pub id: Uuid,
     pub name: String,
     pub color: String,
-    pub board_id: Uuid,
+    pub project_id: Uuid,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
@@ -90,7 +90,7 @@ mod tests {
             due_date: Some(now),
             start_date: None,
             estimated_hours: Some(2.5),
-            board_id: Uuid::new_v4(),
+            project_id: Uuid::new_v4(),
             column_id: Uuid::new_v4(),
             group_id: None,
             position: "a0".to_string(),
@@ -132,7 +132,7 @@ mod tests {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            board_id: Uuid::new_v4(),
+            project_id: Uuid::new_v4(),
             column_id: Uuid::new_v4(),
             group_id: None,
             position: "z9".to_string(),
@@ -165,7 +165,7 @@ mod tests {
         assert!(parsed.get("id").is_some());
         assert!(parsed.get("title").is_some());
         assert!(parsed.get("priority").is_some());
-        assert!(parsed.get("board_id").is_some());
+        assert!(parsed.get("project_id").is_some());
         assert!(parsed.get("column_id").is_some());
         assert!(parsed.get("position").is_some());
         assert!(parsed.get("tenant_id").is_some());
@@ -205,7 +205,7 @@ mod tests {
             id: Uuid::new_v4(),
             name: "Bug".to_string(),
             color: "#ff0000".to_string(),
-            board_id: Uuid::new_v4(),
+            project_id: Uuid::new_v4(),
         };
         let json = serde_json::to_string(&label).unwrap();
         let deserialized: Label = serde_json::from_str(&json).unwrap();

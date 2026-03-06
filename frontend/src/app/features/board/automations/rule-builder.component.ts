@@ -616,7 +616,7 @@ interface ActionFormItem {
 export class RuleBuilderComponent implements OnInit, OnChanges {
   private automationService = inject(AutomationService);
 
-  boardId = input.required<string>();
+  projectId = input.required<string>();
   editingRule = input<AutomationRuleWithActions | null>(null);
 
   saved = output<AutomationRuleWithActions>();
@@ -882,7 +882,7 @@ export class RuleBuilderComponent implements OnInit, OnChanges {
         actions: actionRequests,
       };
 
-      this.automationService.createRule(this.boardId(), req).subscribe({
+      this.automationService.createRule(this.projectId(), req).subscribe({
         next: (created) => {
           this.saving.set(false);
           this.resetForm();

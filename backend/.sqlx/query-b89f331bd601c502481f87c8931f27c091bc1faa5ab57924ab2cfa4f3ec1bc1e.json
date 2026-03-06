@@ -1,0 +1,97 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE projects\n                SET name = COALESCE($2, name),\n                    description = COALESCE($3, description),\n                    background_color = $4\n                WHERE id = $1\n                  AND deleted_at IS NULL\n                RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,\n                          created_by_id, background_color, is_sample, deleted_at, created_at, updated_at\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "slack_webhook_url",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "prefix",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "workspace_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "tenant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_by_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "background_color",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "is_sample",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "deleted_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Text",
+        "Varchar"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "b89f331bd601c502481f87c8931f27c091bc1faa5ab57924ab2cfa4f3ec1bc1e"
+}

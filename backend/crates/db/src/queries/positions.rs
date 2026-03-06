@@ -7,22 +7,22 @@ use crate::models::{
     HolderSummary, Position, PositionHolder, PositionWithHolders, RecurringTaskConfig,
 };
 
-/// List all positions for a board with holders and recurring task count
+/// List all positions for a project with holders and recurring task count
 pub async fn list_positions(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
 ) -> Result<Vec<PositionWithHolders>, sqlx::Error> {
-    // Fetch all positions for the board
+    // Fetch all positions for the project
     let positions = sqlx::query_as::<_, Position>(
         r#"
-        SELECT id, name, description, board_id, fallback_position_id,
+        SELECT id, name, description, project_id, fallback_position_id,
                tenant_id, created_by_id, created_at, updated_at
         FROM positions
-        WHERE board_id = $1
+        WHERE project_id = $1
         ORDER BY name ASC
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_all(pool)
     .await?;
 
@@ -112,7 +112,7 @@ pub async fn list_positions(
                 id: p.id,
                 name: p.name,
                 description: p.description,
-                board_id: p.board_id,
+                project_id: p.project_id,
                 fallback_position_id: p.fallback_position_id,
                 fallback_position_name,
                 tenant_id: p.tenant_id,
@@ -132,7 +132,7 @@ pub async fn list_positions(
 pub async fn get_position(pool: &PgPool, id: Uuid) -> Result<Option<Position>, sqlx::Error> {
     sqlx::query_as::<_, Position>(
         r#"
-        SELECT id, name, description, board_id, fallback_position_id,
+        SELECT id, name, description, project_id, fallback_position_id,
                tenant_id, created_by_id, created_at, updated_at
         FROM positions
         WHERE id = $1
@@ -149,22 +149,22 @@ pub async fn create_position(
     name: &str,
     description: Option<&str>,
     fallback_position_id: Option<Uuid>,
-    board_id: Uuid,
+    project_id: Uuid,
     tenant_id: Uuid,
     created_by_id: Uuid,
 ) -> Result<Position, sqlx::Error> {
     sqlx::query_as::<_, Position>(
         r#"
-        INSERT INTO positions (name, description, fallback_position_id, board_id, tenant_id, created_by_id)
+        INSERT INTO positions (name, description, fallback_position_id, project_id, tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id, name, description, board_id, fallback_position_id,
+        RETURNING id, name, description, project_id, fallback_position_id,
                   tenant_id, created_by_id, created_at, updated_at
         "#,
     )
     .bind(name)
     .bind(description)
     .bind(fallback_position_id)
-    .bind(board_id)
+    .bind(project_id)
     .bind(tenant_id)
     .bind(created_by_id)
     .fetch_one(pool)
@@ -187,7 +187,7 @@ pub async fn update_position(
             fallback_position_id = CASE WHEN $4 THEN $5 ELSE fallback_position_id END,
             updated_at = NOW()
         WHERE id = $1
-        RETURNING id, name, description, board_id, fallback_position_id,
+        RETURNING id, name, description, project_id, fallback_position_id,
                   tenant_id, created_by_id, created_at, updated_at
         "#,
     )
@@ -282,7 +282,7 @@ pub async fn list_recurring_tasks_for_position(
         r#"
         SELECT id, task_id, pattern, cron_expression, interval_days,
                next_run_at, last_run_at, is_active, max_occurrences,
-               occurrences_created, board_id, tenant_id, created_by_id,
+               occurrences_created, project_id, tenant_id, created_by_id,
                created_at, updated_at, end_date, skip_weekends,
                days_of_week, day_of_month, creation_mode, position_id
         FROM recurring_task_configs
@@ -305,7 +305,7 @@ pub async fn list_recurring_tasks_for_position(
 pub async fn resolve_assignees(
     pool: &PgPool,
     position_id: Uuid,
-    board_id: Uuid,
+    project_id: Uuid,
     tenant_id: Uuid,
 ) -> Result<Vec<Uuid>, sqlx::Error> {
     // Step 1: Direct position holders
@@ -356,12 +356,12 @@ pub async fn resolve_assignees(
         }
     }
 
-    // Step 3: Workspace admin/owner (via board -> workspace)
+    // Step 3: Workspace admin/owner (via project -> workspace)
     let ws_admin_id = sqlx::query_scalar::<_, Uuid>(
         r#"
         SELECT wm.user_id
         FROM workspace_members wm
-        INNER JOIN boards b ON b.workspace_id = wm.workspace_id
+        INNER JOIN projects b ON b.workspace_id = wm.workspace_id
         WHERE b.id = $1
           AND wm.role::text IN ('owner', 'admin')
         ORDER BY
@@ -370,7 +370,7 @@ pub async fn resolve_assignees(
         LIMIT 1
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_optional(pool)
     .await?;
 
@@ -393,15 +393,15 @@ pub async fn resolve_assignees(
     .fetch_one(pool)
     .await?;
 
-    // Auto-add company admin as board member if not already
+    // Auto-add company admin as project member if not already
     sqlx::query(
         r#"
-        INSERT INTO board_members (board_id, user_id, role)
+        INSERT INTO project_members (project_id, user_id, role)
         VALUES ($1, $2, 'editor')
-        ON CONFLICT (board_id, user_id) DO NOTHING
+        ON CONFLICT (project_id, user_id) DO NOTHING
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .bind(company_admin_id)
     .execute(pool)
     .await?;

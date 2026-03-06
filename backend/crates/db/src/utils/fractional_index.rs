@@ -1,6 +1,6 @@
 /// Generates a key between two optional keys for fractional indexing.
 ///
-/// Used for ordering columns and tasks in a Kanban board without
+/// Used for ordering columns and tasks in a Kanban project without
 /// requiring sequential integer positions (which cause cascade updates).
 ///
 /// Keys are strings that sort lexicographically. Inserting between

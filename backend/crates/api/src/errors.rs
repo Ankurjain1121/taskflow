@@ -112,7 +112,7 @@ impl IntoResponse for AppError {
 impl From<TaskQueryError> for AppError {
     fn from(e: TaskQueryError) -> Self {
         match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),

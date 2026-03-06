@@ -13,7 +13,7 @@ export class BoardBulkActionsService {
   private state = inject(BoardStateService);
 
   executeBulkAction(
-    boardId: string,
+    projectId: string,
     action: BulkAction,
     taskIds: string[],
     callbacks: {
@@ -36,7 +36,7 @@ export class BoardBulkActionsService {
         return newState;
       });
 
-      this.taskService.bulkDelete(boardId, { task_ids: taskIds }).subscribe({
+      this.taskService.bulkDelete(projectId, { task_ids: taskIds }).subscribe({
         next: () => callbacks.onSuccess(),
         error: () => {
           this.state.boardState.set(snapshot);
@@ -112,7 +112,7 @@ export class BoardBulkActionsService {
       return newState;
     });
 
-    this.taskService.bulkUpdate(boardId, req).subscribe({
+    this.taskService.bulkUpdate(projectId, req).subscribe({
       next: () => callbacks.onSuccess(),
       error: () => {
         this.state.boardState.set(snapshot);

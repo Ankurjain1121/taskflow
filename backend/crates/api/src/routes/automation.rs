@@ -23,7 +23,9 @@ use taskflow_db::queries::automations::{
 fn map_automation_error(e: AutomationQueryError) -> AppError {
     match e {
         AutomationQueryError::NotFound => AppError::NotFound("Automation rule not found".into()),
-        AutomationQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+        AutomationQueryError::NotProjectMember => {
+            AppError::Forbidden("Not a project member".into())
+        }
         AutomationQueryError::Database(e) => AppError::SqlxError(e),
     }
 }
@@ -75,26 +77,26 @@ fn default_limit() -> i64 {
     50
 }
 
-/// GET /api/boards/{board_id}/automations
-/// List all automation rules for a board
+/// GET /api/projects/{project_id}/automations
+/// List all automation rules for a project
 async fn list_rules_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path(board_id): Path<Uuid>,
+    Path(project_id): Path<Uuid>,
 ) -> Result<Json<Vec<AutomationRuleWithActions>>> {
-    let rules = list_rules(&state.db, board_id, tenant.user_id)
+    let rules = list_rules(&state.db, project_id, tenant.user_id)
         .await
         .map_err(map_automation_error)?;
 
     Ok(Json(rules))
 }
 
-/// POST /api/boards/{board_id}/automations
+/// POST /api/projects/{project_id}/automations
 /// Create a new automation rule
 async fn create_rule_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path(board_id): Path<Uuid>,
+    Path(project_id): Path<Uuid>,
     Json(body): Json<CreateRuleRequest>,
 ) -> Result<Json<AutomationRuleWithActions>> {
     let input = CreateRuleInput {
@@ -111,9 +113,15 @@ async fn create_rule_handler(
             .collect(),
     };
 
-    let rule = create_rule(&state.db, board_id, input, tenant.user_id, tenant.tenant_id)
-        .await
-        .map_err(map_automation_error)?;
+    let rule = create_rule(
+        &state.db,
+        project_id,
+        input,
+        tenant.user_id,
+        tenant.tenant_id,
+    )
+    .await
+    .map_err(map_automation_error)?;
 
     Ok(Json(rule))
 }
@@ -195,9 +203,15 @@ async fn get_rule_logs_handler(
 /// Create the automation router
 pub fn automation_router(state: AppState) -> Router<AppState> {
     Router::new()
-        // Board-scoped automation routes
-        .route("/boards/{board_id}/automations", get(list_rules_handler))
-        .route("/boards/{board_id}/automations", post(create_rule_handler))
+        // Project-scoped automation routes
+        .route(
+            "/projects/{project_id}/automations",
+            get(list_rules_handler),
+        )
+        .route(
+            "/projects/{project_id}/automations",
+            post(create_rule_handler),
+        )
         // Automation-specific routes
         .route("/automations/{id}", get(get_rule_handler))
         .route("/automations/{id}", put(update_rule_handler))

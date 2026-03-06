@@ -1,7 +1,7 @@
 use super::common::*;
 
 // =========================================================================
-// DASHBOARD ROUTES — HAPPY PATH
+// DASHproject ROUTES — HAPPY PATH
 // =========================================================================
 
 #[tokio::test]
@@ -105,7 +105,7 @@ async fn test_dashboard_upcoming_deadlines() {
 }
 
 // =========================================================================
-// DASHBOARD — ERROR SCENARIOS
+// DASHproject — ERROR SCENARIOS
 // =========================================================================
 
 #[tokio::test]
@@ -213,7 +213,7 @@ async fn test_list_favorites_empty() {
 #[tokio::test]
 async fn test_add_board_favorite() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
@@ -225,8 +225,8 @@ async fn test_add_board_favorite() {
                 .header("Content-Type", "application/json")
                 .body(Body::from(
                     serde_json::to_string(&serde_json::json!({
-                        "entity_type": "board",
-                        "entity_id": board_id
+                        "entity_type": "project",
+                        "entity_id": project_id
                     }))
                     .expect("serialize"),
                 ))

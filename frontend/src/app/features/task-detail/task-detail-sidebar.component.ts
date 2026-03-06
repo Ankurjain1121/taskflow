@@ -22,7 +22,7 @@ import {
   TaskReminder,
 } from '../../core/services/task.service';
 import { RouterModule } from '@angular/router';
-import { Column } from '../../core/services/board.service';
+import { Column } from '../../core/services/project.service';
 import {
   MemberSearchResult,
   WorkspaceService,

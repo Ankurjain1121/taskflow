@@ -4,14 +4,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { of, throwError, Subject } from 'rxjs';
 import { WorkspaceSettingsComponent } from './workspace-settings.component';
 import { WorkspaceService } from '../../../core/services/workspace.service';
-import { BoardService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/project.service';
 import { AuthService } from '../../../core/services/auth.service';
 
 describe('WorkspaceSettingsComponent', () => {
   let component: WorkspaceSettingsComponent;
   let fixture: ComponentFixture<WorkspaceSettingsComponent>;
   let mockWorkspaceService: any;
-  let mockBoardService: any;
+  let mockProjectService: any;
   let paramsSubject: Subject<any>;
 
   beforeEach(async () => {
@@ -57,14 +57,14 @@ describe('WorkspaceSettingsComponent', () => {
       delete: vi.fn().mockReturnValue(of(void 0)),
     };
 
-    mockBoardService = {
+    mockProjectService = {
       listBoards: vi
         .fn()
         .mockReturnValue(
           of([
             {
               id: 'b-1',
-              name: 'Board 1',
+              name: 'Project 1',
               workspace_id: 'ws-1',
               created_at: '',
               updated_at: '',
@@ -94,7 +94,7 @@ describe('WorkspaceSettingsComponent', () => {
         },
         { provide: Router, useValue: { navigate: vi.fn() } },
         { provide: WorkspaceService, useValue: mockWorkspaceService },
-        { provide: BoardService, useValue: mockBoardService },
+        { provide: ProjectService, useValue: mockProjectService },
         { provide: AuthService, useValue: mockAuthService },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
@@ -124,11 +124,11 @@ describe('WorkspaceSettingsComponent', () => {
     expect(component.members()[0].user_id).toBe('u-1');
   });
 
-  it('should load boards after workspace', () => {
+  it('should load projects after workspace', () => {
     component.ngOnInit();
     paramsSubject.next({ workspaceId: 'ws-1' });
-    expect(mockBoardService.listBoards).toHaveBeenCalledWith('ws-1');
-    expect(component.boards().length).toBe(1);
+    expect(mockProjectService.listProjects).toHaveBeenCalledWith('ws-1');
+    expect(component.projects().length).toBe(1);
   });
 
   it('should set loading to false after members load', () => {

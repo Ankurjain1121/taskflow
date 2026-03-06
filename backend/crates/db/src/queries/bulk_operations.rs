@@ -60,19 +60,19 @@ pub struct TaskSnapshot {
 /// Preview a bulk operation without executing it.
 pub async fn preview_bulk_operation(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     user_id: Uuid,
     action: &BulkAction,
     task_ids: &[Uuid],
 ) -> Result<PreviewSummary, TaskQueryError> {
-    verify_board_membership(pool, board_id, user_id).await?;
+    verify_project_membership(pool, project_id, user_id).await?;
     enforce_task_cap(task_ids.len())?;
 
     let existing_count = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*) FROM tasks WHERE id = ANY($1) AND board_id = $2 AND deleted_at IS NULL",
+        "SELECT COUNT(*) FROM tasks WHERE id = ANY($1) AND project_id = $2 AND deleted_at IS NULL",
     )
     .bind(task_ids)
-    .bind(board_id)
+    .bind(project_id)
     .fetch_one(pool)
     .await? as usize;
 
@@ -90,7 +90,7 @@ pub async fn preview_bulk_operation(
 pub async fn snapshot_tasks(
     pool: &PgPool,
     task_ids: &[Uuid],
-    board_id: Uuid,
+    project_id: Uuid,
 ) -> Result<Vec<TaskSnapshot>, TaskQueryError> {
     let rows = sqlx::query_as::<
         _,
@@ -106,11 +106,11 @@ pub async fn snapshot_tasks(
         r#"
         SELECT id, column_id, priority, milestone_id, group_id, deleted_at
         FROM tasks
-        WHERE id = ANY($1) AND board_id = $2
+        WHERE id = ANY($1) AND project_id = $2
         "#,
     )
     .bind(task_ids)
-    .bind(board_id)
+    .bind(project_id)
     .fetch_all(pool)
     .await?;
 
@@ -135,20 +135,20 @@ pub async fn snapshot_tasks(
 /// Returns (BulkOperation, action_type) — caller stores snapshot in Redis.
 pub async fn execute_bulk_operation(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     workspace_id: Uuid,
     user_id: Uuid,
     action: &BulkAction,
     task_ids: &[Uuid],
 ) -> Result<BulkOperation, TaskQueryError> {
-    verify_board_membership(pool, board_id, user_id).await?;
+    verify_project_membership(pool, project_id, user_id).await?;
     enforce_task_cap(task_ids.len())?;
 
     if task_ids.is_empty() {
         return Err(TaskQueryError::Other("No task IDs provided".to_string()));
     }
 
-    let rows_affected = apply_action(pool, board_id, action, task_ids).await?;
+    let rows_affected = apply_action(pool, project_id, action, task_ids).await?;
 
     let (action_type, description) = describe_action(action, rows_affected as usize);
     let action_config = serde_json::to_value(action).unwrap_or_default();
@@ -159,13 +159,13 @@ pub async fn execute_bulk_operation(
 
     let op = sqlx::query_as::<_, BulkOperation>(
         r#"
-        INSERT INTO bulk_operations (workspace_id, board_id, user_id, action_type, action_config, affected_task_ids, changes_summary, task_count)
+        INSERT INTO bulk_operations (workspace_id, project_id, user_id, action_type, action_config, affected_task_ids, changes_summary, task_count)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING *
         "#,
     )
     .bind(workspace_id)
-    .bind(board_id)
+    .bind(project_id)
     .bind(user_id)
     .bind(&action_type)
     .bind(&action_config)
@@ -207,7 +207,7 @@ pub async fn undo_bulk_operation(
             UPDATE tasks
             SET column_id = $1, priority = $2, milestone_id = $3,
                 group_id = $4, deleted_at = $5, updated_at = now()
-            WHERE id = $6 AND board_id = $7
+            WHERE id = $6 AND project_id = $7
             "#,
         )
         .bind(snap.column_id)
@@ -216,7 +216,7 @@ pub async fn undo_bulk_operation(
         .bind(snap.group_id)
         .bind(snap.deleted_at)
         .bind(snap.id)
-        .bind(op.board_id)
+        .bind(op.project_id)
         .execute(pool)
         .await?;
         restored += result.rows_affected();
@@ -231,21 +231,21 @@ pub async fn undo_bulk_operation(
     Ok(restored)
 }
 
-/// List recent bulk operations for a user on a board.
+/// List recent bulk operations for a user on a project.
 pub async fn list_bulk_operations(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     user_id: Uuid,
 ) -> Result<Vec<BulkOperation>, TaskQueryError> {
     let ops = sqlx::query_as::<_, BulkOperation>(
         r#"
         SELECT * FROM bulk_operations
-        WHERE board_id = $1 AND user_id = $2 AND expires_at > now()
+        WHERE project_id = $1 AND user_id = $2 AND expires_at > now()
         ORDER BY created_at DESC
         LIMIT 10
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .bind(user_id)
     .fetch_all(pool)
     .await?;
@@ -265,49 +265,49 @@ fn enforce_task_cap(count: usize) -> Result<(), TaskQueryError> {
     Ok(())
 }
 
-async fn verify_board_membership(
+async fn verify_project_membership(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     user_id: Uuid,
 ) -> Result<(), TaskQueryError> {
     let is_member = sqlx::query_scalar::<_, bool>(
-        "SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)",
+        "SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)",
     )
-    .bind(board_id)
+    .bind(project_id)
     .bind(user_id)
     .fetch_one(pool)
     .await?;
 
     if !is_member {
-        return Err(TaskQueryError::NotBoardMember);
+        return Err(TaskQueryError::NotProjectMember);
     }
     Ok(())
 }
 
 async fn apply_action(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     action: &BulkAction,
     task_ids: &[Uuid],
 ) -> Result<u64, TaskQueryError> {
     let result = match action {
         BulkAction::UpdatePriority { priority } => {
             sqlx::query(
-                "UPDATE tasks SET priority = $1, updated_at = now() WHERE id = ANY($2) AND board_id = $3 AND deleted_at IS NULL",
+                "UPDATE tasks SET priority = $1, updated_at = now() WHERE id = ANY($2) AND project_id = $3 AND deleted_at IS NULL",
             )
             .bind(priority)
             .bind(task_ids)
-            .bind(board_id)
+            .bind(project_id)
             .execute(pool)
             .await?
         }
         BulkAction::MoveToColumn { column_id } => {
             sqlx::query(
-                "UPDATE tasks SET column_id = $1, column_entered_at = now(), updated_at = now() WHERE id = ANY($2) AND board_id = $3 AND deleted_at IS NULL",
+                "UPDATE tasks SET column_id = $1, column_entered_at = now(), updated_at = now() WHERE id = ANY($2) AND project_id = $3 AND deleted_at IS NULL",
             )
             .bind(column_id)
             .bind(task_ids)
-            .bind(board_id)
+            .bind(project_id)
             .execute(pool)
             .await?
         }
@@ -317,13 +317,13 @@ async fn apply_action(
                 INSERT INTO task_assignees (task_id, user_id)
                 SELECT t.id, $1
                 FROM tasks t
-                WHERE t.id = ANY($2) AND t.board_id = $3 AND t.deleted_at IS NULL
+                WHERE t.id = ANY($2) AND t.project_id = $3 AND t.deleted_at IS NULL
                 ON CONFLICT (task_id, user_id) DO NOTHING
                 "#,
             )
             .bind(user_id)
             .bind(task_ids)
-            .bind(board_id)
+            .bind(project_id)
             .execute(pool)
             .await?
         }
@@ -332,60 +332,60 @@ async fn apply_action(
                 r#"
                 DELETE FROM task_assignees
                 WHERE user_id = $1 AND task_id = ANY(
-                    SELECT id FROM tasks WHERE id = ANY($2) AND board_id = $3 AND deleted_at IS NULL
+                    SELECT id FROM tasks WHERE id = ANY($2) AND project_id = $3 AND deleted_at IS NULL
                 )
                 "#,
             )
             .bind(user_id)
             .bind(task_ids)
-            .bind(board_id)
+            .bind(project_id)
             .execute(pool)
             .await?
         }
         BulkAction::SetMilestone { milestone_id } => {
             sqlx::query(
-                "UPDATE tasks SET milestone_id = $1, updated_at = now() WHERE id = ANY($2) AND board_id = $3 AND deleted_at IS NULL",
+                "UPDATE tasks SET milestone_id = $1, updated_at = now() WHERE id = ANY($2) AND project_id = $3 AND deleted_at IS NULL",
             )
             .bind(milestone_id)
             .bind(task_ids)
-            .bind(board_id)
+            .bind(project_id)
             .execute(pool)
             .await?
         }
         BulkAction::ClearMilestone => {
             sqlx::query(
-                "UPDATE tasks SET milestone_id = NULL, updated_at = now() WHERE id = ANY($1) AND board_id = $2 AND deleted_at IS NULL",
+                "UPDATE tasks SET milestone_id = NULL, updated_at = now() WHERE id = ANY($1) AND project_id = $2 AND deleted_at IS NULL",
             )
             .bind(task_ids)
-            .bind(board_id)
+            .bind(project_id)
             .execute(pool)
             .await?
         }
         BulkAction::SetGroup { group_id } => {
             sqlx::query(
-                "UPDATE tasks SET group_id = $1, updated_at = now() WHERE id = ANY($2) AND board_id = $3 AND deleted_at IS NULL",
+                "UPDATE tasks SET group_id = $1, updated_at = now() WHERE id = ANY($2) AND project_id = $3 AND deleted_at IS NULL",
             )
             .bind(group_id)
             .bind(task_ids)
-            .bind(board_id)
+            .bind(project_id)
             .execute(pool)
             .await?
         }
         BulkAction::ClearGroup => {
             sqlx::query(
-                "UPDATE tasks SET group_id = NULL, updated_at = now() WHERE id = ANY($1) AND board_id = $2 AND deleted_at IS NULL",
+                "UPDATE tasks SET group_id = NULL, updated_at = now() WHERE id = ANY($1) AND project_id = $2 AND deleted_at IS NULL",
             )
             .bind(task_ids)
-            .bind(board_id)
+            .bind(project_id)
             .execute(pool)
             .await?
         }
         BulkAction::Delete => {
             sqlx::query(
-                "UPDATE tasks SET deleted_at = now(), updated_at = now() WHERE id = ANY($1) AND board_id = $2 AND deleted_at IS NULL",
+                "UPDATE tasks SET deleted_at = now(), updated_at = now() WHERE id = ANY($1) AND project_id = $2 AND deleted_at IS NULL",
             )
             .bind(task_ids)
-            .bind(board_id)
+            .bind(project_id)
             .execute(pool)
             .await?
         }

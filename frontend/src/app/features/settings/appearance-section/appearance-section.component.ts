@@ -274,14 +274,14 @@ const DARK_CATEGORY_ORDER = ['dark-sidebar', 'famous', 'bold', 'specialty'];
           />
         </div>
 
-        <!-- Default Board View -->
+        <!-- Default Project View -->
         <div class="flex flex-col gap-2">
           <label class="text-sm font-medium" style="color: var(--foreground)">
-            Default Board View
+            Default Project View
           </label>
           <p-select
             [options]="boardViewOptions"
-            [(ngModel)]="preferences.defaultBoardView"
+            [(ngModel)]="preferences.defaultProjectView"
             optionLabel="label"
             optionValue="value"
             placeholder="Select default view"
@@ -426,14 +426,14 @@ export class AppearanceSectionComponent implements OnInit {
   ];
 
   boardViewOptions: BoardViewOption[] = [
-    { label: 'Kanban Board', value: 'kanban' },
+    { label: 'Kanban', value: 'kanban' },
     { label: 'List View', value: 'list' },
   ];
 
   preferences = {
     timezone: 'UTC',
     dateFormat: 'MMM dd, yyyy',
-    defaultBoardView: 'kanban',
+    defaultProjectView: 'kanban',
     sidebarDensity: 'comfortable',
     language: 'en',
   };
@@ -460,7 +460,7 @@ export class AppearanceSectionComponent implements OnInit {
       .updatePreferences({
         timezone: this.preferences.timezone,
         date_format: this.preferences.dateFormat,
-        default_board_view: this.preferences.defaultBoardView,
+        default_project_view: this.preferences.defaultProjectView,
         sidebar_density: this.preferences.sidebarDensity,
         language: this.preferences.language,
       })
@@ -491,7 +491,7 @@ export class AppearanceSectionComponent implements OnInit {
           this.preferences = {
             timezone: prefs.timezone || 'UTC',
             dateFormat: prefs.date_format || 'MMM dd, yyyy',
-            defaultBoardView: prefs.default_board_view || 'kanban',
+            defaultProjectView: prefs.default_project_view || 'kanban',
             sidebarDensity: prefs.sidebar_density || 'comfortable',
             language: prefs.language || 'en',
           };

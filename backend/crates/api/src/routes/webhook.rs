@@ -21,34 +21,40 @@ use taskflow_db::queries::webhooks::{
 fn map_webhook_error(e: WebhookQueryError) -> AppError {
     match e {
         WebhookQueryError::NotFound => AppError::NotFound("Webhook not found".into()),
-        WebhookQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+        WebhookQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
         WebhookQueryError::Database(e) => AppError::SqlxError(e),
     }
 }
 
-/// GET /api/boards/{board_id}/webhooks
+/// GET /api/projects/{project_id}/webhooks
 async fn list_webhooks_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path(board_id): Path<Uuid>,
+    Path(project_id): Path<Uuid>,
 ) -> Result<Json<Vec<taskflow_db::models::Webhook>>> {
-    let webhooks = list_webhooks(&state.db, board_id, tenant.user_id)
+    let webhooks = list_webhooks(&state.db, project_id, tenant.user_id)
         .await
         .map_err(map_webhook_error)?;
 
     Ok(Json(webhooks))
 }
 
-/// POST /api/boards/{board_id}/webhooks
+/// POST /api/projects/{project_id}/webhooks
 async fn create_webhook_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path(board_id): Path<Uuid>,
+    Path(project_id): Path<Uuid>,
     Json(body): Json<CreateWebhookInput>,
 ) -> Result<Json<taskflow_db::models::Webhook>> {
-    let webhook = create_webhook(&state.db, board_id, body, tenant.user_id, tenant.tenant_id)
-        .await
-        .map_err(map_webhook_error)?;
+    let webhook = create_webhook(
+        &state.db,
+        project_id,
+        body,
+        tenant.user_id,
+        tenant.tenant_id,
+    )
+    .await
+    .map_err(map_webhook_error)?;
 
     Ok(Json(webhook))
 }
@@ -107,8 +113,14 @@ async fn get_deliveries_handler(
 /// Create the webhook router
 pub fn webhook_router(state: AppState) -> Router<AppState> {
     Router::new()
-        .route("/boards/{board_id}/webhooks", get(list_webhooks_handler))
-        .route("/boards/{board_id}/webhooks", post(create_webhook_handler))
+        .route(
+            "/projects/{project_id}/webhooks",
+            get(list_webhooks_handler),
+        )
+        .route(
+            "/projects/{project_id}/webhooks",
+            post(create_webhook_handler),
+        )
         .route("/webhooks/{id}", put(update_webhook_handler))
         .route("/webhooks/{id}", delete(delete_webhook_handler))
         .route("/webhooks/{id}/deliveries", get(get_deliveries_handler))

@@ -32,7 +32,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
           <p
             class="text-[var(--muted-foreground)] dark:text-gray-400 mt-1 text-sm"
           >
-            Quick access to your starred tasks and boards
+            Quick access to your starred tasks and projects
           </p>
         </div>
       </header>
@@ -93,13 +93,13 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
                       />
                     </svg>
                     <div class="flex-1 min-w-0">
-                      @if (item.workspace_id && item.board_id) {
+                      @if (item.workspace_id && item.project_id) {
                         <a
                           [routerLink]="[
                             '/workspace',
                             item.workspace_id,
-                            'board',
-                            item.board_id,
+                            'project',
+                            item.project_id,
                           ]"
                           class="text-sm font-medium text-[var(--card-foreground)] dark:text-white hover:text-primary truncate block"
                         >
@@ -164,7 +164,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
                           [routerLink]="[
                             '/workspace',
                             item.workspace_id,
-                            'board',
+                            'project',
                             item.entity_id,
                           ]"
                           class="text-sm font-medium text-[var(--card-foreground)] dark:text-white hover:text-primary truncate block"
@@ -225,7 +225,7 @@ export class FavoritesComponent implements OnInit {
       next: (items) => {
         this.items.set(items);
         this.taskItems.set(items.filter((i) => i.entity_type === 'task'));
-        this.boardItems.set(items.filter((i) => i.entity_type === 'board'));
+        this.boardItems.set(items.filter((i) => i.entity_type === 'project'));
         this.loading.set(false);
       },
       error: (err) => {
@@ -241,7 +241,7 @@ export class FavoritesComponent implements OnInit {
         const updated = this.items().filter((i) => i.id !== item.id);
         this.items.set(updated);
         this.taskItems.set(updated.filter((i) => i.entity_type === 'task'));
-        this.boardItems.set(updated.filter((i) => i.entity_type === 'board'));
+        this.boardItems.set(updated.filter((i) => i.entity_type === 'project'));
       },
       error: () => {
         this.error.set('Failed to remove favorite. Please try again.');

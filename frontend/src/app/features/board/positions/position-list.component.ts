@@ -25,7 +25,7 @@ import {
   CreatePositionRequest,
   UpdatePositionRequest,
 } from '../../../core/services/position.service';
-import { BoardMember } from '../../../core/services/board.service';
+import { ProjectMember } from '../../../core/services/project.service';
 
 @Component({
   selector: 'app-position-list',
@@ -430,8 +430,8 @@ import { BoardMember } from '../../../core/services/board.service';
   `,
 })
 export class PositionListComponent implements OnInit, OnChanges {
-  boardId = input.required<string>();
-  boardMembers = input<BoardMember[]>([]);
+  projectId = input.required<string>();
+  boardMembers = input<ProjectMember[]>([]);
 
   private positionService = inject(PositionService);
   private confirmationService = inject(ConfirmationService);
@@ -477,7 +477,7 @@ export class PositionListComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['boardId'] && !changes['boardId'].firstChange) {
+    if (changes['projectId'] && !changes['projectId'].firstChange) {
       this.loadPositions();
     }
   }
@@ -486,7 +486,7 @@ export class PositionListComponent implements OnInit, OnChanges {
     this.loading.set(true);
     this.error.set(null);
 
-    this.positionService.listPositions(this.boardId()).subscribe({
+    this.positionService.listPositions(this.projectId()).subscribe({
       next: (positions) => {
         this.positions.set(positions);
         this.loading.set(false);
@@ -554,7 +554,7 @@ export class PositionListComponent implements OnInit, OnChanges {
         description: this.formDescription.trim() || undefined,
         fallback_position_id: this.formFallbackId ?? undefined,
       };
-      this.positionService.createPosition(this.boardId(), req).subscribe({
+      this.positionService.createPosition(this.projectId(), req).subscribe({
         next: (created) => {
           this.positions.update((list) => [...list, created]);
           this.showFormDialog.set(false);

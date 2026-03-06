@@ -174,17 +174,17 @@ fn infer_route_id(path: &str, method: &Method) -> Option<&'static str> {
     // Match common patterns
     match (method, parts.as_slice()) {
         // Tasks
-        (&Method::POST, ["api", "boards", _, "tasks"]) => Some("tasks.create"),
+        (&Method::POST, ["api", "projects", _, "tasks"]) => Some("tasks.create"),
         (&Method::PUT, ["api", "tasks", _]) => Some("tasks.update"),
         (&Method::DELETE, ["api", "tasks", _]) => Some("tasks.delete"),
         (&Method::POST, ["api", "tasks", _, "move"]) => Some("tasks.move"),
         (&Method::POST, ["api", "tasks", _, "assign"]) => Some("tasks.assign"),
         (&Method::DELETE, ["api", "tasks", _, "assignees", _]) => Some("tasks.unassign"),
 
-        // Boards
-        (&Method::POST, ["api", "workspaces", _, "boards"]) => Some("boards.create"),
-        (&Method::PUT, ["api", "boards", _]) => Some("boards.update"),
-        (&Method::DELETE, ["api", "boards", _]) => Some("boards.delete"),
+        // Projects
+        (&Method::POST, ["api", "workspaces", _, "projects"]) => Some("projects.create"),
+        (&Method::PUT, ["api", "projects", _]) => Some("projects.update"),
+        (&Method::DELETE, ["api", "projects", _]) => Some("projects.delete"),
 
         // Comments
         (&Method::POST, ["api", "tasks", _, "comments"]) => Some("comments.create"),
@@ -221,7 +221,7 @@ fn extract_entity_from_path(path: &str) -> Option<(String, Uuid)> {
         if let Ok(uuid) = Uuid::parse_str(parts[i + 1]) {
             let entity_type = match parts[i] {
                 "tasks" => "task",
-                "boards" => "board",
+                "projects" => "project",
                 "workspaces" => "workspace",
                 "comments" => "comment",
                 "attachments" => "attachment",
@@ -245,7 +245,7 @@ mod tests {
         // Use a valid UUID in place of 123
         let uuid = "12345678-1234-1234-1234-123456789abc";
         assert_eq!(
-            infer_route_id(&format!("/api/boards/{}/tasks", uuid), &Method::POST),
+            infer_route_id(&format!("/api/projects/{}/tasks", uuid), &Method::POST),
             Some("tasks.create")
         );
         assert_eq!(
@@ -297,8 +297,8 @@ mod tests {
     fn test_infer_route_id_board_create() {
         let uuid = "12345678-1234-1234-1234-123456789abc";
         assert_eq!(
-            infer_route_id(&format!("/api/workspaces/{}/boards", uuid), &Method::POST),
-            Some("boards.create")
+            infer_route_id(&format!("/api/workspaces/{}/projects", uuid), &Method::POST),
+            Some("projects.create")
         );
     }
 
@@ -322,11 +322,11 @@ mod tests {
     #[test]
     fn test_extract_entity_from_path_board() {
         let uuid = Uuid::new_v4();
-        let path = format!("/api/boards/{}", uuid);
+        let path = format!("/api/projects/{}", uuid);
         let result = extract_entity_from_path(&path);
         assert!(result.is_some());
         let (entity_type, entity_id) = result.unwrap();
-        assert_eq!(entity_type, "board");
+        assert_eq!(entity_type, "project");
         assert_eq!(entity_id, uuid);
     }
 
@@ -388,8 +388,8 @@ mod tests {
     fn test_infer_route_id_board_update() {
         let uuid = "12345678-1234-1234-1234-123456789abc";
         assert_eq!(
-            infer_route_id(&format!("/api/boards/{}", uuid), &Method::PUT),
-            Some("boards.update")
+            infer_route_id(&format!("/api/projects/{}", uuid), &Method::PUT),
+            Some("projects.update")
         );
     }
 
@@ -397,8 +397,8 @@ mod tests {
     fn test_infer_route_id_board_delete() {
         let uuid = "12345678-1234-1234-1234-123456789abc";
         assert_eq!(
-            infer_route_id(&format!("/api/boards/{}", uuid), &Method::DELETE),
-            Some("boards.delete")
+            infer_route_id(&format!("/api/projects/{}", uuid), &Method::DELETE),
+            Some("projects.delete")
         );
     }
 
@@ -500,10 +500,10 @@ mod tests {
     fn test_extract_entity_nested_path() {
         let board_uuid = Uuid::new_v4();
         let task_uuid = Uuid::new_v4();
-        let path = format!("/api/boards/{}/tasks/{}", board_uuid, task_uuid);
-        // Should find the first UUID (boards -> board)
+        let path = format!("/api/projects/{}/tasks/{}", board_uuid, task_uuid);
+        // Should find the first UUID (projects -> project)
         let result = extract_entity_from_path(&path).expect("should extract first entity");
-        assert_eq!(result.0, "board");
+        assert_eq!(result.0, "project");
         assert_eq!(result.1, board_uuid);
     }
 
@@ -595,9 +595,9 @@ mod tests {
 
     #[test]
     fn test_audit_route_id_clone() {
-        let route_id = AuditRouteId("boards.update");
+        let route_id = AuditRouteId("projects.update");
         let cloned = route_id.clone();
-        assert_eq!(cloned.0, "boards.update");
+        assert_eq!(cloned.0, "projects.update");
     }
 
     #[test]

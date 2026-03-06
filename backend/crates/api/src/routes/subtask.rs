@@ -14,7 +14,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 use taskflow_db::models::{Subtask, SubtaskWithAssignee, Task};
-use taskflow_db::queries::get_task_board_id;
+use taskflow_db::queries::get_task_project_id;
 use taskflow_db::queries::subtasks::{
     create_subtask, delete_subtask, get_subtask_progress, get_subtask_task_id,
     list_subtasks_by_task, promote_subtask_to_task, reorder_subtask, toggle_subtask,
@@ -52,38 +52,38 @@ pub struct SubtaskListResponse {
     pub progress: SubtaskProgress,
 }
 
-/// Helper: verify board membership through task -> board chain
-async fn verify_task_board_membership(
+/// Helper: verify project membership through task -> project chain
+async fn verify_task_project_membership(
     state: &AppState,
     task_id: Uuid,
     user_id: Uuid,
 ) -> Result<Uuid> {
-    let board_id = get_task_board_id(&state.db, task_id)
+    let project_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     let is_member = sqlx::query_scalar!(
         r#"
         SELECT EXISTS(
-            SELECT 1 FROM board_members
-            WHERE board_id = $1 AND user_id = $2
+            SELECT 1 FROM project_members
+            WHERE project_id = $1 AND user_id = $2
         ) as "exists!"
         "#,
-        board_id,
+        project_id,
         user_id
     )
     .fetch_one(&state.db)
     .await?;
 
     if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
-    Ok(board_id)
+    Ok(project_id)
 }
 
-/// Helper: verify board membership for a subtask through subtask -> task -> board chain
-async fn verify_subtask_board_membership(
+/// Helper: verify project membership for a subtask through subtask -> task -> project chain
+async fn verify_subtask_project_membership(
     state: &AppState,
     subtask_id: Uuid,
     user_id: Uuid,
@@ -92,7 +92,7 @@ async fn verify_subtask_board_membership(
         .await?
         .ok_or_else(|| AppError::NotFound("Subtask not found".into()))?;
 
-    verify_task_board_membership(state, task_id, user_id).await
+    verify_task_project_membership(state, task_id, user_id).await
 }
 
 /// GET /api/tasks/{task_id}/subtasks
@@ -102,8 +102,8 @@ async fn list_subtasks_handler(
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<SubtaskListResponse>> {
-    // Verify board membership through task
-    verify_task_board_membership(&state, task_id, tenant.user_id).await?;
+    // Verify project membership through task
+    verify_task_project_membership(&state, task_id, tenant.user_id).await?;
 
     let subtasks = list_subtasks_by_task(&state.db, task_id)
         .await
@@ -130,8 +130,8 @@ async fn create_subtask_handler(
     Path(task_id): Path<Uuid>,
     Json(body): Json<CreateSubtaskRequest>,
 ) -> Result<Json<Subtask>> {
-    // Verify board membership through task
-    verify_task_board_membership(&state, task_id, tenant.user_id).await?;
+    // Verify project membership through task
+    verify_task_project_membership(&state, task_id, tenant.user_id).await?;
 
     if body.title.trim().is_empty() {
         return Err(AppError::BadRequest("Title cannot be empty".into()));
@@ -162,8 +162,8 @@ async fn update_subtask_handler(
     Path(subtask_id): Path<Uuid>,
     Json(body): Json<UpdateSubtaskRequest>,
 ) -> Result<Json<Subtask>> {
-    // Verify board membership through subtask -> task -> board
-    verify_subtask_board_membership(&state, subtask_id, tenant.user_id).await?;
+    // Verify project membership through subtask -> task -> project
+    verify_subtask_project_membership(&state, subtask_id, tenant.user_id).await?;
 
     if let Some(ref title) = body.title {
         if title.trim().is_empty() {
@@ -206,8 +206,8 @@ async fn toggle_subtask_handler(
     tenant: TenantContext,
     Path(subtask_id): Path<Uuid>,
 ) -> Result<Json<Subtask>> {
-    // Verify board membership through subtask -> task -> board
-    verify_subtask_board_membership(&state, subtask_id, tenant.user_id).await?;
+    // Verify project membership through subtask -> task -> project
+    verify_subtask_project_membership(&state, subtask_id, tenant.user_id).await?;
 
     let subtask = toggle_subtask(&state.db, subtask_id)
         .await
@@ -227,8 +227,8 @@ async fn reorder_subtask_handler(
     Path(subtask_id): Path<Uuid>,
     Json(body): Json<ReorderSubtaskRequest>,
 ) -> Result<Json<Subtask>> {
-    // Verify board membership through subtask -> task -> board
-    verify_subtask_board_membership(&state, subtask_id, tenant.user_id).await?;
+    // Verify project membership through subtask -> task -> project
+    verify_subtask_project_membership(&state, subtask_id, tenant.user_id).await?;
 
     let subtask = reorder_subtask(&state.db, subtask_id, &body.position)
         .await
@@ -247,8 +247,8 @@ async fn delete_subtask_handler(
     tenant: TenantContext,
     Path(subtask_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>> {
-    // Verify board membership through subtask -> task -> board
-    verify_subtask_board_membership(&state, subtask_id, tenant.user_id).await?;
+    // Verify project membership through subtask -> task -> project
+    verify_subtask_project_membership(&state, subtask_id, tenant.user_id).await?;
 
     delete_subtask(&state.db, subtask_id)
         .await
@@ -261,14 +261,14 @@ async fn delete_subtask_handler(
 }
 
 /// POST /api/subtasks/{id}/promote
-/// Promote a subtask to a full task in the same board/column
+/// Promote a subtask to a full task in the same project/column
 async fn promote_subtask_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(subtask_id): Path<Uuid>,
 ) -> Result<Json<Task>> {
-    // Verify board membership through subtask -> task -> board
-    verify_subtask_board_membership(&state, subtask_id, tenant.user_id).await?;
+    // Verify project membership through subtask -> task -> project
+    verify_subtask_project_membership(&state, subtask_id, tenant.user_id).await?;
 
     let task = promote_subtask_to_task(&state.db, subtask_id, tenant.tenant_id, tenant.user_id)
         .await
@@ -300,14 +300,14 @@ async fn list_children_handler(
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<ChildTaskListResponse>> {
-    // Verify board membership through task
-    let board_id = verify_task_board_membership(&state, task_id, tenant.user_id).await?;
+    // Verify project membership through task
+    let project_id = verify_task_project_membership(&state, task_id, tenant.user_id).await?;
 
     let children = taskflow_db::queries::list_child_tasks(&state.db, task_id)
         .await
         .map_err(|e| match e {
-            taskflow_db::queries::TaskQueryError::NotBoardMember => {
-                AppError::Forbidden("Not a board member".into())
+            taskflow_db::queries::TaskQueryError::NotProjectMember => {
+                AppError::Forbidden("Not a project member".into())
             }
             taskflow_db::queries::TaskQueryError::NotFound => {
                 AppError::NotFound("Task not found".into())
@@ -324,15 +324,15 @@ async fn list_children_handler(
         r#"
         SELECT COUNT(*)
         FROM tasks t
-        JOIN board_columns bc ON bc.id = t.column_id
+        JOIN project_columns bc ON bc.id = t.column_id
         WHERE t.parent_task_id = $1
           AND t.deleted_at IS NULL
-          AND bc.board_id = $2
+          AND bc.project_id = $2
           AND (bc.status_mapping->>'done')::boolean = true
         "#,
     )
     .bind(task_id)
-    .bind(board_id)
+    .bind(project_id)
     .fetch_one(&state.db)
     .await
     .unwrap_or(0);
@@ -363,18 +363,18 @@ async fn create_child_task_handler(
     Path(task_id): Path<Uuid>,
     Json(body): Json<CreateChildTaskRequest>,
 ) -> Result<Json<Task>> {
-    // Verify board membership
-    verify_task_board_membership(&state, task_id, tenant.user_id).await?;
+    // Verify project membership
+    verify_task_project_membership(&state, task_id, tenant.user_id).await?;
 
     if body.title.trim().is_empty() {
         return Err(AppError::BadRequest("Title cannot be empty".into()));
     }
 
-    // Get parent task to inherit board_id, column_id, and validate depth
+    // Get parent task to inherit project_id, column_id, and validate depth
     let parent = sqlx::query_as::<_, Task>(
         r#"
         SELECT id, title, description, priority, due_date, start_date,
-               estimated_hours, board_id, column_id, group_id, position,
+               estimated_hours, project_id, column_id, group_id, position,
                milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
                tenant_id, created_by_id, deleted_at, column_entered_at,
                created_at, updated_at, version, parent_task_id, depth
@@ -409,21 +409,18 @@ async fn create_child_task_handler(
         None => "a".to_string(),
     };
 
-    let priority = body
-        .priority
-        .as_deref()
-        .unwrap_or("none");
+    let priority = body.priority.as_deref().unwrap_or("none");
 
     let child = sqlx::query_as::<_, Task>(
         r#"
         INSERT INTO tasks (
-            title, description, priority, board_id, column_id, position,
+            title, description, priority, project_id, column_id, position,
             tenant_id, created_by_id, parent_task_id, depth
         )
         VALUES ($1, $2, $3::task_priority, $4, $5, $6, $7, $8, $9, $10)
         RETURNING
             id, title, description, priority, due_date, start_date,
-            estimated_hours, board_id, column_id, group_id, position,
+            estimated_hours, project_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, column_entered_at,
             created_at, updated_at, version, parent_task_id, depth
@@ -432,7 +429,7 @@ async fn create_child_task_handler(
     .bind(&body.title)
     .bind(body.description.as_deref())
     .bind(priority)
-    .bind(parent.board_id)
+    .bind(parent.project_id)
     .bind(column_id)
     .bind(&position)
     .bind(tenant.tenant_id)

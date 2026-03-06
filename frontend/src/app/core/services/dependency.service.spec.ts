@@ -102,14 +102,14 @@ describe('DependencyService', () => {
   });
 
   describe('getBoardDependencies()', () => {
-    it('should GET /api/boards/:boardId/dependencies', () => {
+    it('should GET /api/projects/:projectId/dependencies', () => {
       const deps = [MOCK_DEPENDENCY];
 
       service.getBoardDependencies('board-1').subscribe((result) => {
         expect(result).toEqual(deps);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/dependencies');
+      const req = httpMock.expectOne('/api/projects/board-1/dependencies');
       expect(req.request.method).toBe('GET');
       req.flush(deps);
     });

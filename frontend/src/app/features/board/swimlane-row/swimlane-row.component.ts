@@ -10,7 +10,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { CdkDropList, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Task } from '../../../core/services/task.service';
-import { Column } from '../../../core/services/board.service';
+import { Column } from '../../../core/services/project.service';
 import { PresenceService } from '../../../core/services/presence.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { OnboardingChecklistService } from '../../../core/services/onboarding-checklist.service';

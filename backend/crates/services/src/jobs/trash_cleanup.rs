@@ -24,7 +24,7 @@ pub enum TrashCleanupError {
 #[derive(Debug, Serialize)]
 pub struct TrashCleanupResult {
     pub workspaces_deleted: usize,
-    pub boards_deleted: usize,
+    pub projects_deleted: usize,
     pub tasks_deleted: usize,
     pub total_deleted: usize,
     pub errors: usize,
@@ -33,8 +33,8 @@ pub struct TrashCleanupResult {
 /// Clean up expired trash items (deleted > 30 days ago)
 ///
 /// This function processes items in the following order to respect foreign key constraints:
-/// 1. Workspaces (cascades to boards and tasks)
-/// 2. Boards (cascades to tasks)
+/// 1. Workspaces (cascades to projects and tasks)
+/// 2. Projects (cascades to tasks)
 /// 3. Tasks
 ///
 /// Processes in batches of 100 items per entity type.
@@ -47,7 +47,7 @@ pub async fn cleanup_expired_trash(
 
     let mut result = TrashCleanupResult {
         workspaces_deleted: 0,
-        boards_deleted: 0,
+        projects_deleted: 0,
         tasks_deleted: 0,
         total_deleted: 0,
         errors: 0,
@@ -85,11 +85,11 @@ pub async fn cleanup_expired_trash(
         }
     }
 
-    // Process boards (that weren't part of deleted workspaces)
+    // Process projects (that weren't part of deleted workspaces)
     loop {
-        let board_ids: Vec<Uuid> = sqlx::query_scalar!(
+        let project_ids: Vec<Uuid> = sqlx::query_scalar!(
             r#"
-            SELECT id FROM boards
+            SELECT id FROM projects
             WHERE deleted_at IS NOT NULL AND deleted_at < $1
             LIMIT $2
             "#,
@@ -99,25 +99,25 @@ pub async fn cleanup_expired_trash(
         .fetch_all(pool)
         .await?;
 
-        if board_ids.is_empty() {
+        if project_ids.is_empty() {
             break;
         }
 
-        for board_id in board_ids {
-            match permanently_delete(pool, minio, &TrashEntityType::Board, board_id).await {
+        for project_id in project_ids {
+            match permanently_delete(pool, minio, &TrashEntityType::Project, project_id).await {
                 Ok(()) => {
-                    result.boards_deleted += 1;
+                    result.projects_deleted += 1;
                     result.total_deleted += 1;
                 }
                 Err(e) => {
-                    tracing::error!(board_id = %board_id, error = %e, "Failed to delete expired board");
+                    tracing::error!(project_id = %project_id, error = %e, "Failed to delete expired project");
                     result.errors += 1;
                 }
             }
         }
     }
 
-    // Process tasks (that weren't part of deleted boards)
+    // Process tasks (that weren't part of deleted projects)
     loop {
         let task_ids: Vec<Uuid> = sqlx::query_scalar!(
             r#"
@@ -151,7 +151,7 @@ pub async fn cleanup_expired_trash(
 
     tracing::info!(
         workspaces = result.workspaces_deleted,
-        boards = result.boards_deleted,
+        projects = result.projects_deleted,
         tasks = result.tasks_deleted,
         total = result.total_deleted,
         errors = result.errors,
@@ -169,7 +169,7 @@ mod tests {
     fn test_trash_cleanup_result_serialize() {
         let result = TrashCleanupResult {
             workspaces_deleted: 2,
-            boards_deleted: 5,
+            projects_deleted: 5,
             tasks_deleted: 20,
             total_deleted: 27,
             errors: 1,
@@ -182,7 +182,7 @@ mod tests {
     fn test_trash_cleanup_result_serialize_all_fields() {
         let result = TrashCleanupResult {
             workspaces_deleted: 3,
-            boards_deleted: 10,
+            projects_deleted: 10,
             tasks_deleted: 50,
             total_deleted: 63,
             errors: 0,
@@ -190,7 +190,7 @@ mod tests {
         let json = serde_json::to_string(&result).unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed["workspaces_deleted"], 3);
-        assert_eq!(parsed["boards_deleted"], 10);
+        assert_eq!(parsed["projects_deleted"], 10);
         assert_eq!(parsed["tasks_deleted"], 50);
         assert_eq!(parsed["total_deleted"], 63);
         assert_eq!(parsed["errors"], 0);
@@ -200,7 +200,7 @@ mod tests {
     fn test_trash_cleanup_result_zero_values() {
         let result = TrashCleanupResult {
             workspaces_deleted: 0,
-            boards_deleted: 0,
+            projects_deleted: 0,
             tasks_deleted: 0,
             total_deleted: 0,
             errors: 0,
@@ -214,7 +214,7 @@ mod tests {
     fn test_trash_cleanup_result_debug() {
         let result = TrashCleanupResult {
             workspaces_deleted: 1,
-            boards_deleted: 2,
+            projects_deleted: 2,
             tasks_deleted: 3,
             total_deleted: 6,
             errors: 0,
@@ -242,14 +242,14 @@ mod tests {
     fn test_trash_cleanup_result_total_is_sum_of_parts() {
         let result = TrashCleanupResult {
             workspaces_deleted: 2,
-            boards_deleted: 5,
+            projects_deleted: 5,
             tasks_deleted: 20,
             total_deleted: 27,
             errors: 0,
         };
         assert_eq!(
             result.total_deleted,
-            result.workspaces_deleted + result.boards_deleted + result.tasks_deleted,
+            result.workspaces_deleted + result.projects_deleted + result.tasks_deleted,
             "total_deleted should equal sum of component counts"
         );
     }
@@ -281,7 +281,7 @@ mod tests {
     fn test_trash_cleanup_result_with_errors() {
         let result = TrashCleanupResult {
             workspaces_deleted: 1,
-            boards_deleted: 3,
+            projects_deleted: 3,
             tasks_deleted: 10,
             total_deleted: 14,
             errors: 5,

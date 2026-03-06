@@ -146,9 +146,9 @@ async fn verify_entity_tenant(
                 .fetch_one(&state.db)
                 .await?
         }
-        TrashEntityType::Board => {
+        TrashEntityType::Project => {
             sqlx::query_as(
-                r#"SELECT EXISTS(SELECT 1 FROM boards WHERE id = $1 AND tenant_id = $2)"#,
+                r#"SELECT EXISTS(SELECT 1 FROM projects WHERE id = $1 AND tenant_id = $2)"#,
             )
             .bind(entity_id)
             .bind(tenant_id)
