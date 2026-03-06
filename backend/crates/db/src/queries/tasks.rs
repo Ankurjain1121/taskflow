@@ -36,6 +36,7 @@ pub struct CreateTaskInput {
     pub milestone_id: Option<Uuid>,
     pub assignee_ids: Option<Vec<Uuid>>,
     pub label_ids: Option<Vec<Uuid>>,
+    pub parent_task_id: Option<Uuid>,
 }
 
 /// Input for updating an existing task
@@ -127,9 +128,9 @@ pub async fn list_tasks_by_board(
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
+            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
         FROM tasks
-        WHERE board_id = $1 AND deleted_at IS NULL
+        WHERE board_id = $1 AND deleted_at IS NULL AND parent_task_id IS NULL
         ORDER BY position ASC
         LIMIT 1000
         "#,
@@ -160,7 +161,7 @@ pub async fn get_task_by_id(
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
+            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -272,20 +273,40 @@ pub async fn create_task(
 
     let task_id = Uuid::new_v4();
 
+    // Compute depth from parent if provided
+    let (parent_task_id, depth) = if let Some(pid) = input.parent_task_id {
+        let parent_depth = sqlx::query_scalar::<_, i16>(
+            "SELECT depth FROM tasks WHERE id = $1 AND deleted_at IS NULL",
+        )
+        .bind(pid)
+        .fetch_optional(pool)
+        .await?
+        .ok_or_else(|| TaskQueryError::Other("Parent task not found".to_string()))?;
+        let child_depth = parent_depth + 1;
+        if child_depth > 2 {
+            return Err(TaskQueryError::Other(
+                "Maximum nesting depth of 2 exceeded".to_string(),
+            ));
+        }
+        (Some(pid), child_depth)
+    } else {
+        (None, 0i16)
+    };
+
     // Insert the task with auto-assigned task_number
     let task = sqlx::query_as::<_, Task>(
         r#"
         INSERT INTO tasks (id, title, description, priority, due_date, start_date,
                           estimated_hours, board_id, column_id, group_id, position,
-                          milestone_id, task_number, tenant_id, created_by_id)
+                          milestone_id, task_number, tenant_id, created_by_id, parent_task_id, depth)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
                 COALESCE((SELECT MAX(task_number) FROM tasks WHERE board_id = $8), 0) + 1,
-                $13, $14)
+                $13, $14, $15, $16)
         RETURNING
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
+            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
         "#,
     )
     .bind(task_id)
@@ -302,6 +323,8 @@ pub async fn create_task(
     .bind(input.milestone_id)
     .bind(tenant_id)
     .bind(created_by_id)
+    .bind(parent_task_id)
+    .bind(depth)
     .fetch_one(pool)
     .await?;
 
@@ -370,7 +393,7 @@ pub async fn update_task(
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
+            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
         "#,
     )
     .bind(task_id)
@@ -401,7 +424,7 @@ pub async fn update_task(
                     SELECT id, title, description, priority, due_date, start_date,
                            estimated_hours, board_id, column_id, group_id, position,
                            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-                           tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
+                           tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
                     FROM tasks WHERE id = $1 AND deleted_at IS NULL
                     "#,
                 )
@@ -459,7 +482,7 @@ pub async fn move_task(
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
+            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
         "#,
     )
     .bind(task_id)
@@ -485,7 +508,7 @@ pub async fn duplicate_task(
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
+            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -528,7 +551,7 @@ pub async fn duplicate_task(
             id, title, description, priority, due_date, start_date,
             estimated_hours, board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
+            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
         "#,
     )
     .bind(new_id)
@@ -611,6 +634,27 @@ pub async fn get_task_board_id(pool: &PgPool, task_id: Uuid) -> Result<Option<Uu
     .bind(task_id)
     .fetch_optional(pool)
     .await
+}
+
+/// List child tasks for a parent task
+pub async fn list_child_tasks(
+    pool: &PgPool,
+    parent_task_id: Uuid,
+) -> Result<Vec<Task>, TaskQueryError> {
+    let children = sqlx::query_as::<_, Task>(
+        r#"SELECT id, title, description, priority, due_date, start_date,
+           estimated_hours, board_id, column_id, group_id, position,
+           milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
+           tenant_id, created_by_id, deleted_at, column_entered_at,
+           created_at, updated_at, version, parent_task_id, depth
+        FROM tasks
+        WHERE parent_task_id = $1 AND deleted_at IS NULL
+        ORDER BY position ASC"#,
+    )
+    .bind(parent_task_id)
+    .fetch_all(pool)
+    .await?;
+    Ok(children)
 }
 
 #[cfg(test)]

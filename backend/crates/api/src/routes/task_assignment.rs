@@ -10,9 +10,7 @@ use crate::extractors::TenantContext;
 use crate::state::AppState;
 use taskflow_db::models::automation::AutomationTrigger;
 use taskflow_db::models::{Task, TaskBroadcast, WsBoardEvent};
-use taskflow_db::queries::{
-    assign_user, get_task_assignee_ids, get_task_board_id, unassign_user, TaskQueryError,
-};
+use taskflow_db::queries::{assign_user, get_task_assignee_ids, get_task_board_id, unassign_user};
 use taskflow_services::broadcast::events;
 use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
 
@@ -46,15 +44,7 @@ pub async fn assign_user_handler(
         ));
     }
 
-    assign_user(&state.db, task_id, body.user_id)
-        .await
-        .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
-            TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
-            TaskQueryError::Database(e) => AppError::SqlxError(e),
-            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
-            TaskQueryError::Other(msg) => AppError::BadRequest(msg),
-        })?;
+    assign_user(&state.db, task_id, body.user_id).await?;
 
     // Broadcast the task updated event
     let broadcast_service = BroadcastService::new(state.redis.clone());
@@ -65,7 +55,7 @@ pub async fn assign_user_handler(
             due_date, start_date, estimated_hours,
             board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
+            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -166,15 +156,7 @@ pub async fn unassign_user_handler(
         return Err(AppError::Forbidden("Not a board member".into()));
     }
 
-    unassign_user(&state.db, task_id, user_id)
-        .await
-        .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
-            TaskQueryError::NotFound => AppError::NotFound("Assignment not found".into()),
-            TaskQueryError::Database(e) => AppError::SqlxError(e),
-            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
-            TaskQueryError::Other(msg) => AppError::BadRequest(msg),
-        })?;
+    unassign_user(&state.db, task_id, user_id).await?;
 
     // Broadcast the task updated event
     let broadcast_service = BroadcastService::new(state.redis.clone());
@@ -185,7 +167,7 @@ pub async fn unassign_user_handler(
             due_date, start_date, estimated_hours,
             board_id, column_id, group_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
+            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,

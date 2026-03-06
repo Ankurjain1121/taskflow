@@ -71,26 +71,26 @@ import { Toast } from 'primeng/toast';
         display: block;
         height: 100%;
         overflow-y: auto;
-        background: var(--surface-ground, #f8fafc);
+        background: var(--background);
       }
       .breadcrumb-link {
-        color: var(--text-color-secondary, #64748b);
+        color: var(--muted-foreground);
         transition: color 0.15s;
       }
       .breadcrumb-link:hover {
-        color: var(--primary-color, #6366f1);
+        color: var(--primary);
       }
       .field-label {
         font-size: 0.75rem;
         font-weight: 600;
-        color: var(--text-color-secondary, #64748b);
+        color: var(--muted-foreground);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         margin-bottom: 0.25rem;
       }
       .main-card {
-        background: var(--surface-card, white);
-        border: 1px solid var(--surface-border, #e2e8f0);
+        background: var(--card);
+        border: 1px solid var(--border);
         border-radius: 0.75rem;
       }
       .field-editable {
@@ -111,8 +111,8 @@ import { Toast } from 'primeng/toast';
     <div
       class="sticky top-0 z-10 border-b"
       style="
-        background: var(--surface-card, white);
-        border-color: var(--surface-border, #e2e8f0);
+        background: var(--card);
+        border-color: var(--border);
       "
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
@@ -120,8 +120,8 @@ import { Toast } from 'primeng/toast';
           (click)="goBack()"
           class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors"
           style="
-            color: var(--text-color-secondary, #64748b);
-            background: var(--surface-100, #f1f5f9);
+            color: var(--muted-foreground);
+            background: var(--muted);
           "
           pTooltip="Go back"
         >
@@ -132,7 +132,7 @@ import { Toast } from 'primeng/toast';
         @if (board() && workspace()) {
           <div
             class="flex items-center gap-1.5 text-sm"
-            style="color: var(--text-color-secondary, #64748b)"
+            style="color: var(--muted-foreground)"
           >
             <a
               [routerLink]="['/workspace', workspace()!.id]"
@@ -150,8 +150,23 @@ import { Toast } from 'primeng/toast';
               class="breadcrumb-link"
               >{{ board()!.name }}</a
             >
+            @if (parentTask()) {
+              <i class="pi pi-chevron-right text-xs opacity-50"></i>
+              <a
+                [routerLink]="[
+                  '/workspace',
+                  workspace()!.id,
+                  'board',
+                  board()!.id,
+                  'task',
+                  parentTask()!.id,
+                ]"
+                class="breadcrumb-link"
+                >{{ parentTask()!.title }}</a
+              >
+            }
             <i class="pi pi-chevron-right text-xs opacity-50"></i>
-            <span style="color: var(--text-color, #1e293b)">{{
+            <span style="color: var(--foreground)">{{
               task()?.title || 'Task'
             }}</span>
           </div>
@@ -167,15 +182,15 @@ import { Toast } from 'primeng/toast';
             <div class="main-card p-6 space-y-4">
               <div
                 class="h-8 w-2/3 rounded animate-pulse"
-                style="background: var(--surface-200, #e2e8f0)"
+                style="background: var(--border)"
               ></div>
               <div
                 class="h-4 w-1/2 rounded animate-pulse"
-                style="background: var(--surface-200, #e2e8f0)"
+                style="background: var(--border)"
               ></div>
               <div
                 class="h-32 w-full rounded animate-pulse"
-                style="background: var(--surface-200, #e2e8f0)"
+                style="background: var(--border)"
               ></div>
             </div>
           </div>
@@ -183,14 +198,14 @@ import { Toast } from 'primeng/toast';
             <div
               class="rounded-xl p-5 space-y-3"
               style="
-                background: var(--surface-card, white);
-                border: 1px solid var(--surface-border, #e2e8f0);
+                background: var(--card);
+                border: 1px solid var(--border);
               "
             >
               @for (i of [1, 2, 3, 4, 5]; track i) {
                 <div
                   class="h-6 rounded animate-pulse"
-                  style="background: var(--surface-200, #e2e8f0)"
+                  style="background: var(--border)"
                 ></div>
               }
             </div>
@@ -203,10 +218,10 @@ import { Toast } from 'primeng/toast';
           class="pi pi-exclamation-circle text-4xl mb-4"
           style="color: var(--red-500)"
         ></i>
-        <h2 class="text-lg font-semibold mb-2" style="color: var(--text-color)">
+        <h2 class="text-lg font-semibold mb-2" style="color: var(--foreground)">
           Task not found
         </h2>
-        <p class="text-sm mb-4" style="color: var(--text-color-secondary)">
+        <p class="text-sm mb-4" style="color: var(--muted-foreground)">
           {{ error() }}
         </p>
         <button
@@ -221,6 +236,22 @@ import { Toast } from 'primeng/toast';
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <!-- Main Content (Left 2/3) -->
           <div class="lg:col-span-2 space-y-5">
+            @if (parentTask()) {
+              <div
+                class="flex items-center gap-1.5 text-sm px-1 py-1"
+                style="color: var(--muted-foreground)"
+              >
+                <i class="pi pi-arrow-up-right text-xs"></i>
+                <span>Child of</span>
+                <a
+                  [routerLink]="['/task', parentTask()!.id]"
+                  class="breadcrumb-link font-medium"
+                  style="color: var(--primary)"
+                  >{{ parentTask()!.title }}</a
+                >
+              </div>
+            }
+
             <!-- Title + Description Card -->
             <div class="main-card">
               <div class="p-5 pb-4">
@@ -238,7 +269,7 @@ import { Toast } from 'primeng/toast';
                       class="w-full text-xl font-bold border-0 p-0"
                       style="
                         background: transparent;
-                        color: var(--text-color, #1e293b);
+                        color: var(--foreground);
                       "
                       placeholder="Task title"
                     />
@@ -247,7 +278,7 @@ import { Toast } from 'primeng/toast';
                   <h1
                     (click)="startEditing('title')"
                     class="text-xl font-bold field-editable m-0"
-                    style="color: var(--text-color, #1e293b)"
+                    style="color: var(--foreground)"
                   >
                     {{ editTitle() || 'Untitled' }}
                   </h1>
@@ -275,14 +306,14 @@ import { Toast } from 'primeng/toast';
                   <div
                     (click)="startEditing('description')"
                     class="field-editable mt-1 text-sm whitespace-pre-wrap"
-                    style="color: var(--text-color, #1e293b); min-height: 2rem;"
+                    style="color: var(--foreground); min-height: 2rem;"
                   >
                     @if (editDescription()) {
                       {{ editDescription() }}
                     } @else {
                       <span
                         style="
-                          color: var(--text-color-secondary, #94a3b8);
+                          color: var(--muted-foreground);
                           font-style: italic;
                         "
                         >Click to add a description...</span
@@ -295,7 +326,7 @@ import { Toast } from 'primeng/toast';
 
             <!-- Subtasks -->
             <div class="main-card p-5">
-              <app-subtask-list [taskId]="taskId()" />
+              <app-subtask-list [taskId]="taskId()" [boardColumns]="columns()" />
             </div>
 
             <!-- Comments / Activity Tabs -->
@@ -339,6 +370,8 @@ import { Toast } from 'primeng/toast';
             [columns]="columns()"
             [workspaceId]="workspace()?.id || ''"
             [reminders]="reminders()"
+            [parentTask]="parentTask()"
+            [childrenCount]="childrenCount()"
             (priorityChanged)="onPriorityChange($event)"
             (dueDateChanged)="onDueDateChange($event)"
             (assigneeAdded)="onAssign($event)"
@@ -375,6 +408,8 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
   workspace = signal<Workspace | null>(null);
   columns = signal<Column[]>([]);
   reminders = signal<TaskReminder[]>([]);
+  parentTask = signal<Task | null>(null);
+  childrenCount = signal(0);
   loading = signal(true);
   error = signal<string | null>(null);
 
@@ -422,6 +457,7 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
         }
 
         this.loadReminders(taskId);
+        this.loadParentTask(task);
         this.loading.set(false);
       },
       error: (err) => {
@@ -469,6 +505,17 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
         // Non-critical
       },
     });
+  }
+
+  private loadParentTask(task: Task): void {
+    if (task.parent_task_id) {
+      this.taskService.getTask(task.parent_task_id).subscribe({
+        next: (parent) => this.parentTask.set(parent),
+        error: () => this.parentTask.set(null),
+      });
+    } else {
+      this.parentTask.set(null);
+    }
   }
 
   // --- Inline Editing ---

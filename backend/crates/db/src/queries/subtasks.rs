@@ -349,7 +349,7 @@ pub async fn promote_subtask_to_task(
         RETURNING id, title, description, priority, due_date, start_date, estimated_hours,
                   board_id, column_id, group_id, position, milestone_id, task_number,
                   eisenhower_urgency, eisenhower_importance,
-                  tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version
+                  tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
         "#,
     )
     .bind(task_id)
@@ -459,6 +459,7 @@ mod tests {
             milestone_id: None,
             assignee_ids: None,
             label_ids: None,
+            parent_task_id: None,
         };
         let task = tasks::create_task(pool, board_id, input, tenant_id, user_id)
             .await

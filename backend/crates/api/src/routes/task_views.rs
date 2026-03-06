@@ -7,12 +7,12 @@ use axum::{
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::errors::{AppError, Result};
+use crate::errors::Result;
 use crate::extractors::TenantContext;
 use crate::state::AppState;
 use taskflow_db::queries::{
     list_tasks_flat, list_tasks_for_calendar, list_tasks_for_gantt, CalendarTask, GanttTask,
-    TaskListItem, TaskQueryError,
+    TaskListItem,
 };
 
 /// Query params for calendar endpoint
@@ -29,15 +29,7 @@ pub async fn list_tasks_flat_handler(
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
 ) -> Result<Json<Vec<TaskListItem>>> {
-    let tasks = list_tasks_flat(&state.db, board_id, tenant.user_id)
-        .await
-        .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
-            TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
-            TaskQueryError::Database(e) => AppError::SqlxError(e),
-            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
-            TaskQueryError::Other(msg) => AppError::BadRequest(msg),
-        })?;
+    let tasks = list_tasks_flat(&state.db, board_id, tenant.user_id).await?;
     Ok(Json(tasks))
 }
 
@@ -50,14 +42,7 @@ pub async fn list_calendar_tasks_handler(
 ) -> Result<Json<Vec<CalendarTask>>> {
     let tasks =
         list_tasks_for_calendar(&state.db, board_id, tenant.user_id, query.start, query.end)
-            .await
-            .map_err(|e| match e {
-                TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
-                TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
-                TaskQueryError::Database(e) => AppError::SqlxError(e),
-                TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
-                TaskQueryError::Other(msg) => AppError::BadRequest(msg),
-            })?;
+            .await?;
     Ok(Json(tasks))
 }
 
@@ -67,14 +52,6 @@ pub async fn list_gantt_tasks_handler(
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
 ) -> Result<Json<Vec<GanttTask>>> {
-    let tasks = list_tasks_for_gantt(&state.db, board_id, tenant.user_id)
-        .await
-        .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
-            TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
-            TaskQueryError::Database(e) => AppError::SqlxError(e),
-            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
-            TaskQueryError::Other(msg) => AppError::BadRequest(msg),
-        })?;
+    let tasks = list_tasks_for_gantt(&state.db, board_id, tenant.user_id).await?;
     Ok(Json(tasks))
 }

@@ -420,6 +420,7 @@ pub struct TaskWithBadgesRow {
     pub has_running_timer: bool,
     pub comment_count: i64,
     pub column_entered_at: DateTime<Utc>,
+    pub parent_task_id: Option<Uuid>,
 }
 
 /// Assignee info returned for a board's tasks
@@ -459,7 +460,7 @@ pub async fn list_board_tasks_with_badges(
 
     // Get total count first (cheap indexed query)
     let total_count: i64 = sqlx::query_scalar(
-        r#"SELECT COUNT(*) FROM tasks WHERE board_id = $1 AND deleted_at IS NULL"#,
+        r#"SELECT COUNT(*) FROM tasks WHERE board_id = $1 AND deleted_at IS NULL AND parent_task_id IS NULL"#,
     )
     .bind(board_id)
     .fetch_one(pool)
@@ -481,17 +482,20 @@ pub async fn list_board_tasks_with_badges(
             t.created_at,
             t.updated_at,
             t.column_entered_at,
+            t.parent_task_id,
             COALESCE(sub.total, 0) AS "subtask_total",
             COALESCE(sub.completed, 0) AS "subtask_completed",
             COALESCE(tmr.has_running, false) AS "has_running_timer",
             COALESCE(cmt.cnt, 0) AS "comment_count"
         FROM tasks t
         LEFT JOIN LATERAL (
-            SELECT
-                COUNT(*)::bigint AS total,
-                COUNT(*) FILTER (WHERE s.is_completed)::bigint AS completed
-            FROM subtasks s
-            WHERE s.task_id = t.id
+            SELECT COUNT(*)::bigint AS total,
+                   COUNT(*) FILTER (WHERE child.column_id IN (
+                       SELECT bc.id FROM board_columns bc WHERE bc.board_id = t.board_id
+                       AND bc.status_mapping->>'done' = 'true'
+                   ))::bigint AS completed
+            FROM tasks child
+            WHERE child.parent_task_id = t.id AND child.deleted_at IS NULL
         ) sub ON true
         LEFT JOIN LATERAL (
             SELECT EXISTS(
@@ -504,7 +508,7 @@ pub async fn list_board_tasks_with_badges(
             FROM comments c
             WHERE c.task_id = t.id AND c.deleted_at IS NULL
         ) cmt ON true
-        WHERE t.board_id = $1 AND t.deleted_at IS NULL
+        WHERE t.board_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
         ORDER BY t.position ASC
         LIMIT $2 OFFSET $3
         "#,

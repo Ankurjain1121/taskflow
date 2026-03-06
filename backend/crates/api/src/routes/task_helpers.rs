@@ -64,6 +64,7 @@ pub struct CreateTaskRequest {
     pub group_id: Option<Uuid>,
     pub assignee_ids: Option<Vec<Uuid>>,
     pub label_ids: Option<Vec<Uuid>>,
+    pub parent_task_id: Option<Uuid>,
 }
 
 /// Request body for updating a task
@@ -360,7 +361,10 @@ mod tests {
             !output.contains("onerror"),
             "Event handlers must be stripped"
         );
-        assert!(!output.contains("alert"), "Event handler JS must be removed");
+        assert!(
+            !output.contains("alert"),
+            "Event handler JS must be removed"
+        );
     }
 
     #[test]
@@ -448,7 +452,8 @@ mod tests {
 
     #[test]
     fn test_sanitize_html_removes_form_elements() {
-        let input = r#"<form action="http://evil.com"><input type="text"><button>Submit</button></form>"#;
+        let input =
+            r#"<form action="http://evil.com"><input type="text"><button>Submit</button></form>"#;
         let output = sanitize_html(input);
         assert!(!output.contains("<form"), "Form elements must be removed");
         assert!(!output.contains("<input"), "Input elements must be removed");
@@ -489,6 +494,8 @@ mod tests {
             created_at: now,
             updated_at: now,
             version: 1,
+            parent_task_id: None,
+            depth: 0,
         };
         let mut tasks = std::collections::HashMap::new();
         tasks.insert(col_id, vec![task]);

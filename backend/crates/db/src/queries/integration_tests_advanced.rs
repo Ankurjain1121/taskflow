@@ -76,6 +76,7 @@ async fn create_test_task(
         milestone_id: None,
         assignee_ids: None,
         label_ids: None,
+        parent_task_id: None,
     };
 
     super::tasks::create_task(pool, board_id, input, tenant_id, user_id)

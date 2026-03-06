@@ -1,19 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import {
-  HttpClient,
-  HttpErrorResponse,
-  HttpParams,
-} from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { CacheService } from './cache.service';
-import {
-  TaskWithDetails as TaskDetailResponse,
-  TaskFilters,
-  MoveTaskRequest as ProjectMoveRequest,
-  CreateTaskRequest as ProjectCreateRequest,
-  UpdateTaskRequest as ProjectUpdateRequest,
-} from '../../shared/types/task.types';
 
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
@@ -54,6 +43,8 @@ export interface TaskWithDetails {
   labels: Label[];
   comments_count: number;
   attachments_count: number;
+  parent_task_id?: string | null;
+  depth?: number;
 }
 
 export interface Task {
@@ -81,6 +72,8 @@ export interface Task {
   comment_count?: number;
   attachment_count?: number;
   column_entered_at?: string;
+  parent_task_id?: string | null;
+  depth?: number;
 }
 
 export interface TaskLabel {
@@ -124,6 +117,21 @@ export interface CreateTaskRequest {
   milestone_id?: string;
   assignee_ids?: string[];
   label_ids?: string[];
+  parent_task_id?: string;
+}
+
+export interface CreateChildTaskRequest {
+  title: string;
+  priority?: TaskPriority;
+  description?: string;
+  column_id?: string;
+  assignee_ids?: string[];
+  label_ids?: string[];
+}
+
+export interface ChildTaskListResponse {
+  children: Task[];
+  progress: { completed: number; total: number };
 }
 
 export interface UpdateTaskRequest {
@@ -226,9 +234,7 @@ export class TaskService {
       .patch<Task>(`${this.apiUrl}/tasks/${taskId}`, request)
       .pipe(
         tap(() => {
-          this.cache.invalidateKey(`task:${taskId}`);
-          this.cache.invalidate(`tasks:.*`);
-          this.cache.invalidate(`board-full:.*`);
+          this.invalidateTaskAndBoardCaches(taskId);
         }),
         catchError((error: HttpErrorResponse) => {
           if (error.status === 409 && error.error?.current_task) {
@@ -248,9 +254,7 @@ export class TaskService {
       .patch<Task>(`${this.apiUrl}/tasks/${taskId}/move`, request)
       .pipe(
         tap(() => {
-          this.cache.invalidateKey(`task:${taskId}`);
-          this.cache.invalidate(`tasks:.*`);
-          this.cache.invalidate(`board-full:.*`);
+          this.invalidateTaskAndBoardCaches(taskId);
         }),
       );
   }
@@ -258,9 +262,7 @@ export class TaskService {
   deleteTask(taskId: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/tasks/${taskId}`).pipe(
       tap(() => {
-        this.cache.invalidateKey(`task:${taskId}`);
-        this.cache.invalidate(`tasks:.*`);
-        this.cache.invalidate(`board-full:.*`);
+        this.invalidateTaskAndBoardCaches(taskId);
       }),
     );
   }
@@ -270,9 +272,7 @@ export class TaskService {
       .post<void>(`${this.apiUrl}/tasks/${taskId}/labels/${labelId}`, {})
       .pipe(
         tap(() => {
-          this.cache.invalidateKey(`task:${taskId}`);
-          this.cache.invalidate(`tasks:.*`);
-          this.cache.invalidate(`board-full:.*`);
+          this.invalidateTaskAndBoardCaches(taskId);
         }),
       );
   }
@@ -282,9 +282,7 @@ export class TaskService {
       .delete<void>(`${this.apiUrl}/tasks/${taskId}/labels/${labelId}`)
       .pipe(
         tap(() => {
-          this.cache.invalidateKey(`task:${taskId}`);
-          this.cache.invalidate(`tasks:.*`);
-          this.cache.invalidate(`board-full:.*`);
+          this.invalidateTaskAndBoardCaches(taskId);
         }),
       );
   }
@@ -328,9 +326,7 @@ export class TaskService {
       })
       .pipe(
         tap(() => {
-          this.cache.invalidateKey(`task:${taskId}`);
-          this.cache.invalidate(`tasks:.*`);
-          this.cache.invalidate(`board-full:.*`);
+          this.invalidateTaskAndBoardCaches(taskId);
         }),
       );
   }
@@ -340,9 +336,7 @@ export class TaskService {
       .delete<void>(`${this.apiUrl}/tasks/${taskId}/assignees/${userId}`)
       .pipe(
         tap(() => {
-          this.cache.invalidateKey(`task:${taskId}`);
-          this.cache.invalidate(`tasks:.*`);
-          this.cache.invalidate(`board-full:.*`);
+          this.invalidateTaskAndBoardCaches(taskId);
         }),
       );
   }
@@ -394,97 +388,6 @@ export class TaskService {
     );
   }
 
-  // --- Methods used by project/ components (task.types.ts shapes) ---
-
-  getTaskDetails(taskId: string): Observable<TaskDetailResponse> {
-    return this.cache.get(
-      `task-details:${taskId}`,
-      () =>
-        this.http.get<TaskDetailResponse>(
-          `${this.apiUrl}/tasks/${taskId}/details`,
-        ),
-      60000, // 1 min TTL
-    );
-  }
-
-  listByProject(
-    projectId: string,
-    filters?: TaskFilters,
-  ): Observable<TaskDetailResponse[]> {
-    let params = new HttpParams();
-    if (filters) {
-      for (const [key, value] of Object.entries(filters)) {
-        if (value != null && value !== '') {
-          params = params.set(key, String(value));
-        }
-      }
-    }
-    // Build cache key from filters
-    const filterKey = filters ? JSON.stringify(filters) : 'no-filters';
-    return this.cache.get(
-      `project-tasks:${projectId}:${filterKey}`,
-      () =>
-        this.http.get<TaskDetailResponse[]>(
-          `${this.apiUrl}/projects/${projectId}/tasks`,
-          { params },
-        ),
-      60000, // 1 min TTL
-    );
-  }
-
-  moveTaskPosition(
-    taskId: string,
-    request: ProjectMoveRequest,
-  ): Observable<Task> {
-    return this.http
-      .patch<Task>(`${this.apiUrl}/tasks/${taskId}/move`, request)
-      .pipe(
-        tap(() => {
-          this.cache.invalidateKey(`task:${taskId}`);
-          this.cache.invalidate(`tasks:.*`);
-          this.cache.invalidate(`board-full:.*`);
-        }),
-      );
-  }
-
-  createProjectTask(
-    projectId: string,
-    request: ProjectCreateRequest,
-  ): Observable<Task> {
-    return this.http
-      .post<Task>(`${this.apiUrl}/projects/${projectId}/tasks`, request)
-      .pipe(
-        tap(() => {
-          this.cache.invalidate(`project-tasks:${projectId}:.*`);
-        }),
-      );
-  }
-
-  listSubtasks(parentTaskId: string): Observable<TaskDetailResponse[]> {
-    return this.cache.get(
-      `subtasks:${parentTaskId}`,
-      () =>
-        this.http.get<TaskDetailResponse[]>(
-          `${this.apiUrl}/tasks/${parentTaskId}/subtasks`,
-        ),
-      60000, // 1 min TTL
-    );
-  }
-
-  createSubtask(
-    parentTaskId: string,
-    request: { title: string; priority?: string },
-  ): Observable<Task> {
-    return this.http
-      .post<Task>(`${this.apiUrl}/tasks/${parentTaskId}/subtasks`, request)
-      .pipe(
-        tap(() => {
-          this.cache.invalidateKey(`subtasks:${parentTaskId}`);
-          this.cache.invalidateKey(`task-details:${parentTaskId}`);
-        }),
-      );
-  }
-
   duplicateTask(taskId: string): Observable<Task> {
     return this.http
       .post<Task>(`${this.apiUrl}/tasks/${taskId}/duplicate`, {})
@@ -494,6 +397,32 @@ export class TaskService {
           this.cache.invalidate(`board-full:.*`);
         }),
       );
+  }
+
+  // --- Child Tasks ---
+
+  listChildren(taskId: string): Observable<ChildTaskListResponse> {
+    return this.http.get<ChildTaskListResponse>(`${this.apiUrl}/tasks/${taskId}/subtasks`);
+  }
+
+  createChild(parentTaskId: string, request: CreateChildTaskRequest): Observable<Task> {
+    return this.http.post<Task>(`${this.apiUrl}/tasks/${parentTaskId}/subtasks`, request).pipe(
+      tap(() => {
+        this.invalidateTaskAndBoardCaches(parentTaskId);
+      }),
+    );
+  }
+
+  completeTask(taskId: string): Observable<Task> {
+    return this.http.post<Task>(`${this.apiUrl}/tasks/${taskId}/complete`, {}).pipe(
+      tap(() => { this.invalidateTaskAndBoardCaches(taskId); }),
+    );
+  }
+
+  uncompleteTask(taskId: string): Observable<Task> {
+    return this.http.post<Task>(`${this.apiUrl}/tasks/${taskId}/uncomplete`, {}).pipe(
+      tap(() => { this.invalidateTaskAndBoardCaches(taskId); }),
+    );
   }
 
   // --- Watchers ---
@@ -527,10 +456,10 @@ export class TaskService {
     remindBeforeMinutes: number,
   ): Observable<{ success: boolean; id: string }> {
     return this.http
-      .post<{
-        success: boolean;
-        id: string;
-      }>(`${this.apiUrl}/tasks/${taskId}/reminders`, { remind_before_minutes: remindBeforeMinutes })
+      .post<{ success: boolean; id: string }>(
+        `${this.apiUrl}/tasks/${taskId}/reminders`,
+        { remind_before_minutes: remindBeforeMinutes },
+      )
       .pipe(
         tap(() => {
           this.cache.invalidateKey(`task-reminders:${taskId}`);
@@ -557,5 +486,18 @@ export class TaskService {
           this.cache.invalidateKey(`task-reminders:${taskId}`);
         }),
       );
+  }
+
+  // --- Cache helpers ---
+
+  /**
+   * Invalidates the individual task entry together with all task list and
+   * board-full caches. Used by any mutation that modifies a known task (update,
+   * move, delete, label change, assignee change).
+   */
+  private invalidateTaskAndBoardCaches(taskId: string): void {
+    this.cache.invalidateKey(`task:${taskId}`);
+    this.cache.invalidate(`tasks:.*`);
+    this.cache.invalidate(`board-full:.*`);
   }
 }
