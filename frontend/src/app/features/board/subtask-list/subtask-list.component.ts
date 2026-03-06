@@ -355,9 +355,34 @@ export class SubtaskListComponent implements OnInit, OnChanges {
 
   onReorder(event: CdkDragDrop<Task[]>): void {
     if (event.previousIndex === event.currentIndex) return;
+    const snapshot = [...this.children()];
     const items = [...this.children()];
     moveItemInArray(items, event.previousIndex, event.currentIndex);
     this.children.set(items);
+
+    // Calculate new position between neighbors
+    const moved = items[event.currentIndex];
+    const prev = event.currentIndex > 0 ? items[event.currentIndex - 1] : null;
+    const next = event.currentIndex < items.length - 1 ? items[event.currentIndex + 1] : null;
+
+    let newPosition: string;
+    if (prev && next) {
+      // Between two items — simple midpoint string
+      newPosition = prev.position + '5';
+    } else if (prev) {
+      newPosition = prev.position + '5';
+    } else if (next) {
+      newPosition = 'A';
+    } else {
+      newPosition = 'a';
+    }
+
+    this.taskService.moveTask(moved.id, { column_id: moved.column_id, position: newPosition }).subscribe({
+      error: () => {
+        this.children.set(snapshot);
+        this.showError('Failed to reorder');
+      },
+    });
   }
 
   getInitials(name: string): string {
@@ -416,6 +441,7 @@ export class SubtaskListComponent implements OnInit, OnChanges {
       },
       error: () => {
         this.loading.set(false);
+        this.showError('Failed to load subtasks');
       },
     });
   }

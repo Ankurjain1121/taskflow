@@ -280,15 +280,28 @@ async fn promote_subtask_handler(
     Ok(Json(task))
 }
 
+/// Response for child task list with progress
+#[derive(serde::Serialize)]
+pub struct ChildTaskListResponse {
+    pub children: Vec<Task>,
+    pub progress: ChildTaskProgress,
+}
+
+#[derive(serde::Serialize)]
+pub struct ChildTaskProgress {
+    pub completed: i64,
+    pub total: i64,
+}
+
 /// GET /api/tasks/{task_id}/children
-/// List child tasks (tasks with parent_task_id = task_id)
+/// List child tasks (tasks with parent_task_id = task_id) with progress
 async fn list_children_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-) -> Result<Json<Vec<Task>>> {
+) -> Result<Json<ChildTaskListResponse>> {
     // Verify board membership through task
-    verify_task_board_membership(&state, task_id, tenant.user_id).await?;
+    let board_id = verify_task_board_membership(&state, task_id, tenant.user_id).await?;
 
     let children = taskflow_db::queries::list_child_tasks(&state.db, task_id)
         .await
@@ -306,17 +319,158 @@ async fn list_children_handler(
             taskflow_db::queries::TaskQueryError::Other(msg) => AppError::InternalError(msg),
         })?;
 
-    Ok(Json(children))
+    // Count completed children (those in done columns)
+    let completed = sqlx::query_scalar::<_, i64>(
+        r#"
+        SELECT COUNT(*)
+        FROM tasks t
+        JOIN board_columns bc ON bc.id = t.column_id
+        WHERE t.parent_task_id = $1
+          AND t.deleted_at IS NULL
+          AND bc.board_id = $2
+          AND (bc.status_mapping->>'done')::boolean = true
+        "#,
+    )
+    .bind(task_id)
+    .bind(board_id)
+    .fetch_one(&state.db)
+    .await
+    .unwrap_or(0);
+
+    let total = children.len() as i64;
+
+    Ok(Json(ChildTaskListResponse {
+        children,
+        progress: ChildTaskProgress { completed, total },
+    }))
+}
+
+/// Request body for creating a child task
+#[derive(Deserialize)]
+pub struct CreateChildTaskRequest {
+    pub title: String,
+    pub priority: Option<String>,
+    pub description: Option<String>,
+    pub column_id: Option<Uuid>,
+    pub assignee_ids: Option<Vec<Uuid>>,
+}
+
+/// POST /api/tasks/{task_id}/children
+/// Create a child task (a real task with parent_task_id set)
+async fn create_child_task_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+    Path(task_id): Path<Uuid>,
+    Json(body): Json<CreateChildTaskRequest>,
+) -> Result<Json<Task>> {
+    // Verify board membership
+    verify_task_board_membership(&state, task_id, tenant.user_id).await?;
+
+    if body.title.trim().is_empty() {
+        return Err(AppError::BadRequest("Title cannot be empty".into()));
+    }
+
+    // Get parent task to inherit board_id, column_id, and validate depth
+    let parent = sqlx::query_as::<_, Task>(
+        r#"
+        SELECT id, title, description, priority, due_date, start_date,
+               estimated_hours, board_id, column_id, group_id, position,
+               milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
+               tenant_id, created_by_id, deleted_at, column_entered_at,
+               created_at, updated_at, version, parent_task_id, depth
+        FROM tasks
+        WHERE id = $1 AND deleted_at IS NULL
+        "#,
+    )
+    .bind(task_id)
+    .fetch_optional(&state.db)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Parent task not found".into()))?;
+
+    let child_depth = parent.depth + 1;
+    if child_depth > 2 {
+        return Err(AppError::BadRequest(
+            "Maximum nesting depth (2) exceeded".into(),
+        ));
+    }
+
+    let column_id = body.column_id.unwrap_or(parent.column_id);
+
+    // Get a position at the end
+    let last_pos = sqlx::query_scalar::<_, String>(
+        "SELECT position FROM tasks WHERE column_id = $1 AND deleted_at IS NULL ORDER BY position DESC LIMIT 1",
+    )
+    .bind(column_id)
+    .fetch_optional(&state.db)
+    .await?;
+
+    let position = match last_pos {
+        Some(p) => format!("{}0", p),
+        None => "a".to_string(),
+    };
+
+    let priority = body
+        .priority
+        .as_deref()
+        .unwrap_or("none");
+
+    let child = sqlx::query_as::<_, Task>(
+        r#"
+        INSERT INTO tasks (
+            title, description, priority, board_id, column_id, position,
+            tenant_id, created_by_id, parent_task_id, depth
+        )
+        VALUES ($1, $2, $3::task_priority, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING
+            id, title, description, priority, due_date, start_date,
+            estimated_hours, board_id, column_id, group_id, position,
+            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
+            tenant_id, created_by_id, deleted_at, column_entered_at,
+            created_at, updated_at, version, parent_task_id, depth
+        "#,
+    )
+    .bind(&body.title)
+    .bind(body.description.as_deref())
+    .bind(priority)
+    .bind(parent.board_id)
+    .bind(column_id)
+    .bind(&position)
+    .bind(tenant.tenant_id)
+    .bind(tenant.user_id)
+    .bind(task_id)
+    .bind(child_depth)
+    .fetch_one(&state.db)
+    .await?;
+
+    // Assign users if provided
+    if let Some(ref assignee_ids) = body.assignee_ids {
+        for aid in assignee_ids {
+            sqlx::query(
+                "INSERT INTO task_assignees (task_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+            )
+            .bind(child.id)
+            .bind(aid)
+            .execute(&state.db)
+            .await
+            .ok();
+        }
+    }
+
+    Ok(Json(child))
 }
 
 /// Create the subtask router
 pub fn subtask_router(state: AppState) -> Router<AppState> {
     Router::new()
-        // Task-scoped subtask routes
+        // Task-scoped subtask routes (legacy)
         .route("/tasks/{task_id}/subtasks", get(list_subtasks_handler))
         .route("/tasks/{task_id}/subtasks", post(create_subtask_handler))
-        .route("/tasks/{task_id}/children", get(list_children_handler))
-        // Subtask-specific routes
+        // Child task routes (first-class child tasks)
+        .route(
+            "/tasks/{task_id}/children",
+            get(list_children_handler).post(create_child_task_handler),
+        )
+        // Subtask-specific routes (legacy)
         .route("/subtasks/{id}", put(update_subtask_handler))
         .route(
             "/subtasks/{id}/toggle",
