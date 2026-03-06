@@ -15,7 +15,7 @@ function createMockFavorite(
     entity_type: 'task',
     entity_id: 'task-1',
     name: 'Task One',
-    board_id: 'b-1',
+    project_id: 'b-1',
     workspace_id: 'ws-1',
     created_at: '2026-02-18T10:00:00Z',
     ...overrides,
@@ -80,9 +80,9 @@ describe('FavoritesComponent', () => {
         createMockFavorite({ id: 'f1', entity_type: 'task' }),
         createMockFavorite({
           id: 'f2',
-          entity_type: 'board',
+          entity_type: 'project',
           entity_id: 'b-1',
-          name: 'Board One',
+          name: 'Project One',
         }),
       ];
       mockFavoritesService.list.mockReturnValue(of(items));
@@ -96,7 +96,7 @@ describe('FavoritesComponent', () => {
     it('should separate task and board items', () => {
       const items = [
         createMockFavorite({ id: 'f1', entity_type: 'task' }),
-        createMockFavorite({ id: 'f2', entity_type: 'board' }),
+        createMockFavorite({ id: 'f2', entity_type: 'project' }),
         createMockFavorite({ id: 'f3', entity_type: 'task' }),
       ];
       mockFavoritesService.list.mockReturnValue(of(items));
@@ -138,9 +138,9 @@ describe('FavoritesComponent', () => {
     });
     const boardItem = createMockFavorite({
       id: 'f2',
-      entity_type: 'board',
+      entity_type: 'project',
       entity_id: 'board-1',
-      name: 'Board',
+      name: 'Project',
     });
 
     beforeEach(() => {

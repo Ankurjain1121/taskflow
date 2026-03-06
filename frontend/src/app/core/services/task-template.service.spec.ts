@@ -18,7 +18,7 @@ const MOCK_TEMPLATE: TaskTemplate = {
   name: 'Bug Report',
   description: 'Template for bugs',
   scope: 'workspace',
-  board_id: null,
+  project_id: null,
   tenant_id: 'tenant-1',
   created_by_id: 'user-1',
   task_title: 'Bug: ',
@@ -73,12 +73,12 @@ describe('TaskTemplateService', () => {
       req.flush(templates);
     });
 
-    it('should include scope and board_id params when provided', () => {
-      service.list('board', 'board-1').subscribe();
+    it('should include scope and project_id params when provided', () => {
+      service.list('project', 'board-1').subscribe();
 
       const req = httpMock.expectOne((r) => r.url === '/api/task-templates');
-      expect(req.request.params.get('scope')).toBe('board');
-      expect(req.request.params.get('board_id')).toBe('board-1');
+      expect(req.request.params.get('scope')).toBe('project');
+      expect(req.request.params.get('project_id')).toBe('board-1');
       req.flush([]);
     });
   });
@@ -162,7 +162,7 @@ describe('TaskTemplateService', () => {
   describe('createTaskFromTemplate()', () => {
     it('should POST /api/task-templates/:templateId/create-task', () => {
       const createReq: CreateFromTemplateRequest = {
-        board_id: 'board-1',
+        project_id: 'board-1',
         column_id: 'col-1',
       };
 

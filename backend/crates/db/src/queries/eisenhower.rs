@@ -48,8 +48,8 @@ pub struct EisenhowerTaskItem {
     pub description: Option<String>,
     pub priority: TaskPriority,
     pub due_date: Option<DateTime<Utc>>,
-    pub board_id: Uuid,
-    pub board_name: String,
+    pub project_id: Uuid,
+    pub project_name: String,
     pub column_id: Uuid,
     pub column_name: String,
     pub position: String,
@@ -79,8 +79,8 @@ struct EisenhowerTaskRow {
     description: Option<String>,
     priority: TaskPriority,
     due_date: Option<DateTime<Utc>>,
-    board_id: Uuid,
-    board_name: String,
+    project_id: Uuid,
+    project_name: String,
     column_id: Uuid,
     column_name: String,
     position: String,
@@ -131,7 +131,7 @@ fn is_task_done(status_mapping: &Option<serde_json::Value>) -> bool {
 #[derive(Debug, Default)]
 pub struct EisenhowerFilters {
     pub workspace_id: Option<Uuid>,
-    pub board_id: Option<Uuid>,
+    pub project_id: Option<Uuid>,
     pub daily: bool,
 }
 
@@ -146,9 +146,9 @@ pub async fn get_eisenhower_matrix(
     if filters.workspace_id.is_some() {
         extra_where.push_str(" AND b.workspace_id = $2");
     }
-    if filters.board_id.is_some() {
+    if filters.project_id.is_some() {
         let idx = if filters.workspace_id.is_some() { 3 } else { 2 };
-        extra_where.push_str(&format!(" AND t.board_id = ${idx}"));
+        extra_where.push_str(&format!(" AND t.project_id = ${idx}"));
     }
     if filters.daily {
         extra_where.push_str(" AND t.due_date IS NOT NULL AND t.due_date::date <= CURRENT_DATE");
@@ -162,8 +162,8 @@ pub async fn get_eisenhower_matrix(
             t.description,
             t.priority,
             t.due_date,
-            t.board_id,
-            b.name as board_name,
+            t.project_id,
+            b.name as project_name,
             t.column_id,
             c.name as column_name,
             t.position,
@@ -174,9 +174,9 @@ pub async fn get_eisenhower_matrix(
             t.updated_at
         FROM tasks t
         INNER JOIN task_assignees ta ON t.id = ta.task_id
-        INNER JOIN boards b ON t.board_id = b.id AND b.deleted_at IS NULL
-        INNER JOIN board_columns c ON t.column_id = c.id
-        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
+        INNER JOIN projects b ON t.project_id = b.id AND b.deleted_at IS NULL
+        INNER JOIN project_columns c ON t.column_id = c.id
+        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           AND NOT COALESCE((c.status_mapping->>'done')::boolean, false)
@@ -189,7 +189,7 @@ pub async fn get_eisenhower_matrix(
     if let Some(ws_id) = filters.workspace_id {
         q = q.bind(ws_id);
     }
-    if let Some(b_id) = filters.board_id {
+    if let Some(b_id) = filters.project_id {
         q = q.bind(b_id);
     }
 
@@ -257,8 +257,8 @@ pub async fn get_eisenhower_matrix(
             description: row.description,
             priority: row.priority,
             due_date: row.due_date,
-            board_id: row.board_id,
-            board_name: row.board_name,
+            project_id: row.project_id,
+            project_name: row.project_name,
             column_id: row.column_id,
             column_name: row.column_name,
             position: row.position,
@@ -326,8 +326,8 @@ pub async fn reset_eisenhower_overrides(pool: &PgPool, user_id: Uuid) -> Result<
             SELECT t.id
             FROM tasks t
             INNER JOIN task_assignees ta ON t.id = ta.task_id
-            INNER JOIN boards b ON t.board_id = b.id AND b.deleted_at IS NULL
-            INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
+            INNER JOIN projects b ON t.project_id = b.id AND b.deleted_at IS NULL
+            INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
             WHERE ta.user_id = $1
               AND t.deleted_at IS NULL
         )

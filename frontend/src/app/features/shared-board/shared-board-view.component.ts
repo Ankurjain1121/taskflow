@@ -13,9 +13,9 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { InputTextModule } from 'primeng/inputtext';
 import { ChipModule } from 'primeng/chip';
 import {
-  BoardShareService,
-  SharedBoardAccess,
-} from '../../core/services/board-share.service';
+  ProjectShareService,
+  SharedProjectAccess,
+} from '../../core/services/project-share.service';
 
 @Component({
   selector: 'app-shared-board-view',
@@ -88,11 +88,11 @@ import {
           <p class="text-[var(--muted-foreground)]">{{ error() }}</p>
         </div>
       </div>
-    } @else if (board()) {
+    } @else if (project()) {
       <div class="min-h-screen bg-[var(--secondary)]">
         <!-- Header -->
         <div class="bg-[var(--card)] border-b px-6 py-4">
-          <h1 class="text-2xl font-bold">{{ board()!.board_name }}</h1>
+          <h1 class="text-2xl font-bold">{{ project()!.project_name }}</h1>
           <p class="text-sm text-[var(--muted-foreground)]">
             Shared board view (read-only)
           </p>
@@ -101,7 +101,7 @@ import {
         <!-- Kanban columns -->
         <div class="p-6 overflow-x-auto">
           <div class="flex gap-4 min-w-max">
-            @for (column of board()!.columns; track column.id) {
+            @for (column of project()!.columns; track column.id) {
               <div
                 class="w-72 bg-[var(--secondary)] rounded-lg p-3 flex-shrink-0"
               >
@@ -154,10 +154,10 @@ import {
 })
 export class SharedBoardViewComponent implements OnInit {
   private route = inject(ActivatedRoute);
-  private shareService = inject(BoardShareService);
+  private shareService = inject(ProjectShareService);
 
   loading = signal(true);
-  board = signal<SharedBoardAccess | null>(null);
+  project = signal<SharedProjectAccess | null>(null);
   error = signal<string | null>(null);
   needsPassword = signal(false);
   passwordError = signal<string | null>(null);
@@ -179,7 +179,7 @@ export class SharedBoardViewComponent implements OnInit {
     this.loading.set(true);
     this.shareService.accessSharedBoard(this.token, password).subscribe({
       next: (data) => {
-        this.board.set(data);
+        this.project.set(data);
         this.loading.set(false);
         this.needsPassword.set(false);
       },
@@ -207,7 +207,7 @@ export class SharedBoardViewComponent implements OnInit {
   }
 
   getTasksForColumn(columnId: string) {
-    return this.board()?.tasks.filter((t) => t.column_id === columnId) || [];
+    return this.project()?.tasks.filter((t) => t.column_id === columnId) || [];
   }
 
   getPriorityClass(priority: string): string {

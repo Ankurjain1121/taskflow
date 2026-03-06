@@ -9,7 +9,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { BoardService, Board } from '../../../core/services/board.service';
+import { ProjectService, Project } from '../../../core/services/project.service';
 import { Workspace } from '../../../core/services/workspace.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { FavoritesService } from '../../../core/services/favorites.service';
@@ -44,7 +44,7 @@ import {
         transform: scale(1.05);
       }
 
-      .board-link {
+      .project-link {
         transition:
           background var(--duration-fast) var(--ease-standard),
           color var(--duration-fast) var(--ease-standard);
@@ -55,7 +55,7 @@ import {
         color: var(--sidebar-text-primary);
       }
 
-      .board-link-active {
+      .project-link-active {
         background: var(--sidebar-surface-active) !important;
         color: var(--sidebar-text-primary) !important;
       }
@@ -126,12 +126,12 @@ import {
         <!-- Workspace Name -->
         <span class="flex-1 text-left truncate">{{ workspace().name }}</span>
 
-        <!-- Add Board Button (manager/admin only) -->
+        <!-- Add Project Button (manager/admin only) -->
         @if (canCreateBoard()) {
           <button
             (click)="onAddBoardClick($event)"
             class="add-board-btn p-1 rounded opacity-0 group-hover:opacity-100"
-            title="Add Board"
+            title="Add Project"
           >
             <svg
               class="w-3.5 h-3.5"
@@ -161,38 +161,38 @@ import {
             >
               Loading...
             </div>
-          } @else if (boards().length === 0) {
+          } @else if (projects().length === 0) {
             <div
               class="px-3 py-1.5 text-xs italic"
               style="color: var(--sidebar-text-muted)"
             >
-              No boards
+              No projects
             </div>
           } @else {
-            @for (board of boards(); track board.id) {
-              <div class="relative group/board">
-                <!-- Board menu backdrop -->
-                @if (activeMenuBoardId() === board.id) {
+            @for (project of projects(); track project.id) {
+              <div class="relative group/project">
+                <!-- Project menu backdrop -->
+                @if (activeMenuProjectId() === project.id) {
                   <div
                     class="fixed inset-0 z-10"
-                    (click)="closeBoardMenu()"
+                    (click)="closeProjectMenu()"
                   ></div>
                 }
                 <a
                   [routerLink]="[
                     '/workspace',
                     workspace().id,
-                    'board',
-                    board.id,
+                    'project',
+                    project.id,
                   ]"
-                  routerLinkActive="board-link-active"
-                  class="board-link flex items-center gap-2 px-3 py-1.5 text-sm rounded-md pr-16"
+                  routerLinkActive="project-link-active"
+                  class="project-link flex items-center gap-2 px-3 py-1.5 text-sm rounded-md pr-16"
                 >
                   <i
                     class="pi pi-table text-xs flex-shrink-0"
                     style="color: var(--sidebar-text-muted)"
                   ></i>
-                  <span class="truncate flex-1">{{ board.name }}</span>
+                  <span class="truncate flex-1">{{ project.name }}</span>
                 </a>
                 <!-- Hover action buttons -->
                 <div
@@ -200,28 +200,28 @@ import {
                 >
                   <!-- Star toggle -->
                   <button
-                    (click)="toggleFavorite(board, $event)"
+                    (click)="toggleFavorite(project, $event)"
                     class="p-1 rounded hover:bg-[var(--sidebar-surface-hover)] transition-colors"
                     [title]="
-                      isFavorited(board.id)
+                      isFavorited(project.id)
                         ? 'Remove from favorites'
                         : 'Add to favorites'
                     "
                   >
                     <i
                       class="text-xs"
-                      [class.pi-star-fill]="isFavorited(board.id)"
-                      [class.pi-star]="!isFavorited(board.id)"
+                      [class.pi-star-fill]="isFavorited(project.id)"
+                      [class.pi-star]="!isFavorited(project.id)"
                       [class]="
                         'pi ' +
-                        (isFavorited(board.id) ? 'text-amber-400' : '') +
+                        (isFavorited(project.id) ? 'text-amber-400' : '') +
                         ' sidebar-icon-color'
                       "
                     ></i>
                   </button>
                   <!-- Context menu trigger -->
                   <button
-                    (click)="openBoardMenu(board.id, $event)"
+                    (click)="openProjectMenu(project.id, $event)"
                     class="p-1 rounded hover:bg-[var(--sidebar-surface-hover)] transition-colors"
                     title="More options"
                   >
@@ -229,7 +229,7 @@ import {
                   </button>
                 </div>
                 <!-- Context menu dropdown -->
-                @if (activeMenuBoardId() === board.id) {
+                @if (activeMenuProjectId() === project.id) {
                   <div
                     class="absolute right-0 top-full mt-0.5 w-40 rounded-md shadow-lg border py-1 z-20"
                     style="background: var(--surface-overlay); border-color: var(--sidebar-border)"
@@ -238,10 +238,10 @@ import {
                       [routerLink]="[
                         '/workspace',
                         workspace().id,
-                        'board',
-                        board.id,
+                        'project',
+                        project.id,
                       ]"
-                      (click)="closeBoardMenu()"
+                      (click)="closeProjectMenu()"
                       class="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-[var(--sidebar-surface-hover)] cursor-pointer"
                       style="color: var(--sidebar-text-secondary)"
                     >
@@ -249,7 +249,7 @@ import {
                       <span>Open</span>
                     </a>
                     <button
-                      (click)="copyBoardLink(board, $event)"
+                      (click)="copyProjectLink(project, $event)"
                       class="flex items-center gap-2 px-3 py-1.5 text-xs w-full text-left hover:bg-[var(--sidebar-surface-hover)]"
                       style="color: var(--sidebar-text-secondary)"
                     >
@@ -260,7 +260,7 @@ import {
                       style="border-top: 1px solid var(--sidebar-border); margin: 2px 0"
                     ></div>
                     <button
-                      (click)="archiveBoard(board, $event)"
+                      (click)="archiveBoard(project, $event)"
                       class="flex items-center gap-2 px-3 py-1.5 text-xs w-full text-left hover:bg-[var(--sidebar-surface-hover)]"
                       style="color: var(--sidebar-text-secondary)"
                     >
@@ -280,8 +280,8 @@ import {
           >
             <a
               [routerLink]="['/workspace', workspace().id, 'team']"
-              routerLinkActive="board-link-active"
-              class="board-link flex items-center gap-2 px-3 py-1 text-xs rounded-md"
+              routerLinkActive="project-link-active"
+              class="project-link flex items-center gap-2 px-3 py-1 text-xs rounded-md"
             >
               <i
                 class="pi pi-chart-bar text-[10px]"
@@ -291,7 +291,7 @@ import {
             </a>
             <button
               (click)="openSettings($event)"
-              class="board-link flex items-center gap-2 px-3 py-1 text-xs rounded-md w-full text-left"
+              class="project-link flex items-center gap-2 px-3 py-1 text-xs rounded-md w-full text-left"
             >
               <i
                 class="pi pi-cog text-[10px]"
@@ -304,9 +304,9 @@ import {
       }
     </div>
 
-    <!-- Create Board Dialog (PrimeNG) -->
+    <!-- Create Project Dialog (PrimeNG) -->
     <app-create-board-dialog
-      [(visible)]="showCreateBoardDialog"
+      [(visible)]="showCreateProjectDialog"
       [workspaceId]="workspace().id"
       [workspaceName]="workspace().name"
       (created)="onBoardCreated($event)"
@@ -314,7 +314,7 @@ import {
   `,
 })
 export class WorkspaceItemComponent implements OnInit {
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private authService = inject(AuthService);
   private favoritesService = inject(FavoritesService);
   private settingsDialog = inject(WorkspaceSettingsDialogService);
@@ -323,10 +323,10 @@ export class WorkspaceItemComponent implements OnInit {
 
   expanded = signal(false);
   loading = signal(false);
-  boards = signal<Board[]>([]);
-  showCreateBoardDialog = signal(false);
+  projects = signal<Project[]>([]);
+  showCreateProjectDialog = signal(false);
   favoriteIds = signal<Set<string>>(new Set());
-  activeMenuBoardId = signal<string | null>(null);
+  activeMenuProjectId = signal<string | null>(null);
 
   private readonly colors = [
     '#6366f1',
@@ -344,7 +344,7 @@ export class WorkspaceItemComponent implements OnInit {
       `taskflow_ws_expanded_${this.workspace().id}`,
     );
     this.expanded.set(saved !== null ? saved === 'true' : true);
-    this.loadBoards();
+    this.loadProjects();
   }
 
   getColor(): string {
@@ -358,8 +358,8 @@ export class WorkspaceItemComponent implements OnInit {
       `taskflow_ws_expanded_${this.workspace().id}`,
       String(this.expanded()),
     );
-    if (this.expanded() && this.boards().length === 0) {
-      this.loadBoards();
+    if (this.expanded() && this.projects().length === 0) {
+      this.loadProjects();
     }
   }
 
@@ -375,19 +375,19 @@ export class WorkspaceItemComponent implements OnInit {
 
   onAddBoardClick(event: Event): void {
     event.stopPropagation();
-    this.showCreateBoardDialog.set(true);
+    this.showCreateProjectDialog.set(true);
   }
 
   onBoardCreated(result: CreateBoardDialogResult): void {
-    this.boardService
-      .createBoard(this.workspace().id, {
+    this.projectService
+      .createProject(this.workspace().id, {
         name: result.name,
         description: result.description,
         template: result.template,
       })
       .subscribe({
-        next: (board) => {
-          this.boards.update((boards) => [...boards, board]);
+        next: (proj) => {
+          this.projects.update((projects) => [...projects, proj]);
           if (!this.expanded()) {
             this.expanded.set(true);
           }
@@ -398,15 +398,15 @@ export class WorkspaceItemComponent implements OnInit {
       });
   }
 
-  isFavorited(boardId: string): boolean {
-    return this.favoriteIds().has(boardId);
+  isFavorited(projectId: string): boolean {
+    return this.favoriteIds().has(projectId);
   }
 
-  toggleFavorite(board: Board, event: Event): void {
+  toggleFavorite(board: Project, event: Event): void {
     event.stopPropagation();
     event.preventDefault();
     if (this.isFavorited(board.id)) {
-      this.favoritesService.remove('board', board.id).subscribe({
+      this.favoritesService.remove('project', board.id).subscribe({
         next: () => {
           this.favoriteIds.update((s) => {
             const next = new Set(s);
@@ -418,7 +418,7 @@ export class WorkspaceItemComponent implements OnInit {
       });
     } else {
       this.favoritesService
-        .add({ entity_type: 'board', entity_id: board.id })
+        .add({ entity_type: 'project', entity_id: board.id })
         .subscribe({
           next: () => {
             this.favoriteIds.update((s) => new Set([...s, board.id]));
@@ -428,47 +428,50 @@ export class WorkspaceItemComponent implements OnInit {
     }
   }
 
-  openBoardMenu(boardId: string, event: Event): void {
+  openProjectMenu(projectId: string, event: Event): void {
     event.stopPropagation();
     event.preventDefault();
-    this.activeMenuBoardId.set(
-      this.activeMenuBoardId() === boardId ? null : boardId,
+    this.activeMenuProjectId.set(
+      this.activeMenuProjectId() === projectId ? null : projectId,
     );
   }
 
-  closeBoardMenu(): void {
-    this.activeMenuBoardId.set(null);
+  closeProjectMenu(): void {
+    this.activeMenuProjectId.set(null);
   }
 
-  archiveBoard(board: Board, event: Event): void {
+  archiveBoard(board: Project, event: Event): void {
     event.stopPropagation();
-    this.activeMenuBoardId.set(null);
-    this.boardService.deleteBoard(board.id).subscribe({
+    this.activeMenuProjectId.set(null);
+    if (!confirm(`Are you sure you want to delete "${board.name}"? This cannot be undone.`)) {
+      return;
+    }
+    this.projectService.deleteProject(board.id).subscribe({
       next: () => {
-        this.boards.update((boards) => boards.filter((b) => b.id !== board.id));
+        this.projects.update((projects) => projects.filter((b) => b.id !== board.id));
       },
       error: () => {},
     });
   }
 
-  copyBoardLink(board: Board, event: Event): void {
+  copyProjectLink(board: Project, event: Event): void {
     event.stopPropagation();
-    const url = `${window.location.origin}/workspace/${this.workspace().id}/board/${board.id}`;
+    const url = `${window.location.origin}/workspace/${this.workspace().id}/project/${board.id}`;
     navigator.clipboard.writeText(url).catch(() => {});
-    this.activeMenuBoardId.set(null);
+    this.activeMenuProjectId.set(null);
   }
 
-  private loadBoards(): void {
+  private loadProjects(): void {
     this.loading.set(true);
     forkJoin({
-      boards: this.boardService.listBoards(this.workspace().id),
+      projects: this.projectService.listProjects(this.workspace().id),
       favorites: this.favoritesService.list(),
     }).subscribe({
-      next: ({ boards, favorites }) => {
-        this.boards.set(boards);
+      next: ({ projects, favorites }) => {
+        this.projects.set(projects);
         const favSet = new Set(
           favorites
-            .filter((f) => f.entity_type === 'board')
+            .filter((f) => f.entity_type === 'project')
             .map((f) => f.entity_id),
         );
         this.favoriteIds.set(favSet);

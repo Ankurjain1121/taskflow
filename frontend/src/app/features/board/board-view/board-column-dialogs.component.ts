@@ -10,7 +10,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { takeUntil, Subject } from 'rxjs';
-import { BoardService, Column } from '../../../core/services/board.service';
+import { ProjectService, Column } from '../../../core/services/project.service';
 import { ConfirmationService, MenuItem } from 'primeng/api';
 import { Menu } from 'primeng/menu';
 import { Dialog } from 'primeng/dialog';
@@ -148,12 +148,12 @@ import { BoardStateService } from './board-state.service';
     <!-- Import/Export Dialogs -->
     <app-import-dialog
       [(visible)]="showImportDialog"
-      [boardId]="boardId"
+      [projectId]="projectId"
       [boardName]="boardName"
     />
     <app-export-dialog
       [(visible)]="showExportDialog"
-      [boardId]="boardId"
+      [projectId]="projectId"
       [boardName]="boardName"
     />
 
@@ -167,7 +167,7 @@ import { BoardStateService } from './board-state.service';
       <div class="flex flex-col gap-4">
         <div>
           <label class="block text-sm font-medium text-[var(--foreground)] mb-1"
-            >Board Name</label
+            >Project Name</label
           >
           <input
             pInputText
@@ -206,12 +206,12 @@ import { BoardStateService } from './board-state.service';
   `,
 })
 export class BoardColumnDialogsComponent {
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private confirmationService = inject(ConfirmationService);
   private router = inject(Router);
   readonly state = inject(BoardStateService);
 
-  @Input() boardId = '';
+  @Input() projectId = '';
   @Input() workspaceId = '';
   @Input() boardName = '';
   @Input() destroy$ = new Subject<void>();
@@ -270,8 +270,8 @@ export class BoardColumnDialogsComponent {
           this.router.navigate([
             '/workspace',
             this.workspaceId,
-            'board',
-            this.boardId,
+            'project',
+            this.projectId,
             'settings',
           ]),
       },
@@ -290,7 +290,7 @@ export class BoardColumnDialogsComponent {
         icon: 'pi pi-share-alt',
         command: () =>
           this.router.navigate(
-            ['/workspace', this.workspaceId, 'board', this.boardId, 'settings'],
+            ['/workspace', this.workspaceId, 'project', this.projectId, 'settings'],
             { queryParams: { tab: 6 } },
           ),
       },
@@ -299,7 +299,7 @@ export class BoardColumnDialogsComponent {
         label: 'Duplicate Board',
         icon: 'pi pi-copy',
         command: () => {
-          this.duplicateBoardName = `Copy of ${this.boardName || 'Board'}`;
+          this.duplicateBoardName = `Copy of ${this.boardName || 'Project'}`;
           this.duplicateIncludeTasks = false;
           this.showDuplicateDialog = true;
         },
@@ -321,7 +321,7 @@ export class BoardColumnDialogsComponent {
     const name = this.renameDialogValue.trim();
     if (!name) return;
 
-    this.boardService
+    this.projectService
       .updateColumn(this.renameDialogColumnId, { name })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -348,7 +348,7 @@ export class BoardColumnDialogsComponent {
         ? this.wipLimitDialogValue
         : null;
 
-    this.boardService
+    this.projectService
       .updateColumnWipLimit(this.wipLimitDialogColumnId, wipLimit)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -371,7 +371,7 @@ export class BoardColumnDialogsComponent {
   }
 
   selectColumnIcon(icon: string | null): void {
-    this.boardService
+    this.projectService
       .updateColumnIcon(this.iconPickerColumnId, icon)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -393,7 +393,7 @@ export class BoardColumnDialogsComponent {
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
-        this.state.deleteColumn(this.boardId, columnId);
+        this.state.deleteColumn(this.projectId, columnId);
       },
     });
   }
@@ -403,8 +403,8 @@ export class BoardColumnDialogsComponent {
     if (!name) return;
 
     this.duplicating.set(true);
-    this.boardService
-      .duplicateBoard(this.boardId, {
+    this.projectService
+      .duplicateProject(this.projectId, {
         name,
         include_tasks: this.duplicateIncludeTasks,
       })

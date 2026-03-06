@@ -12,8 +12,8 @@ use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 use taskflow_db::queries::project_templates::{
-    create_board_from_template, create_template, delete_template, get_template, list_templates,
-    save_board_as_template, CreateBoardFromTemplateInput, CreateTemplateFromBoardInput,
+    create_project_from_template, create_template, delete_template, get_template, list_templates,
+    save_board_as_template, CreateProjectFromTemplateInput, CreateTemplateFromProjectInput,
     CreateTemplateInput, ProjectTemplateQueryError,
 };
 
@@ -23,8 +23,8 @@ fn map_error(e: ProjectTemplateQueryError) -> AppError {
         ProjectTemplateQueryError::NotFound => {
             AppError::NotFound("Project template not found".into())
         }
-        ProjectTemplateQueryError::NotBoardMember => {
-            AppError::Forbidden("Not a board member".into())
+        ProjectTemplateQueryError::NotProjectMember => {
+            AppError::Forbidden("Not a project member".into())
         }
         ProjectTemplateQueryError::Forbidden => {
             AppError::Forbidden("You do not have permission for this action".into())
@@ -94,40 +94,45 @@ async fn delete_template_handler(
     Ok(Json(json!({ "success": true })))
 }
 
-/// POST /project-templates/{id}/create-board
-/// Create a new board from a template
-async fn create_board_from_template_handler(
+/// POST /project-templates/{id}/create-project
+/// Create a new project from a template
+async fn create_project_from_template_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(template_id): Path<Uuid>,
-    Json(body): Json<CreateBoardFromTemplateInput>,
+    Json(body): Json<CreateProjectFromTemplateInput>,
 ) -> Result<Json<serde_json::Value>> {
-    let board_id = create_board_from_template(
+    let project_id = create_project_from_template(
         &state.db,
         template_id,
         body.workspace_id,
-        body.board_name,
+        body.project_name,
         tenant.user_id,
         tenant.tenant_id,
     )
     .await
     .map_err(map_error)?;
 
-    Ok(Json(json!({ "board_id": board_id })))
+    Ok(Json(json!({ "project_id": project_id })))
 }
 
-/// POST /boards/{board_id}/save-as-template
-/// Save an existing board as a project template
+/// POST /projects/{project_id}/save-as-template
+/// Save an existing project as a project template
 async fn save_board_as_template_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path(board_id): Path<Uuid>,
-    Json(body): Json<CreateTemplateFromBoardInput>,
+    Path(project_id): Path<Uuid>,
+    Json(body): Json<CreateTemplateFromProjectInput>,
 ) -> Result<Json<taskflow_db::models::ProjectTemplate>> {
-    let template =
-        save_board_as_template(&state.db, board_id, body, tenant.user_id, tenant.tenant_id)
-            .await
-            .map_err(map_error)?;
+    let template = save_board_as_template(
+        &state.db,
+        project_id,
+        body,
+        tenant.user_id,
+        tenant.tenant_id,
+    )
+    .await
+    .map_err(map_error)?;
 
     Ok(Json(template))
 }
@@ -141,10 +146,10 @@ pub fn project_template_router(state: AppState) -> Router<AppState> {
         .route("/project-templates/{id}", delete(delete_template_handler))
         .route(
             "/project-templates/{id}/create-board",
-            post(create_board_from_template_handler),
+            post(create_project_from_template_handler),
         )
         .route(
-            "/boards/{board_id}/save-as-template",
+            "/projects/{project_id}/save-as-template",
             post(save_board_as_template_handler),
         )
         .layer(from_fn_with_state(state.clone(), auth_middleware))

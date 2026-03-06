@@ -12,10 +12,10 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
-use taskflow_db::models::{BoardCustomField, CustomFieldType, TaskCustomFieldValue};
+use taskflow_db::models::{CustomFieldType, ProjectCustomField, TaskCustomFieldValue};
 use taskflow_db::queries::custom_fields::{
     create_custom_field, delete_custom_field, get_task_custom_field_values,
-    list_board_custom_fields, set_task_custom_field_values, update_custom_field,
+    list_project_custom_fields, set_task_custom_field_values, update_custom_field,
     CreateCustomFieldInput, CustomFieldQueryError, SetFieldValue, TaskCustomFieldValueWithField,
     UpdateCustomFieldInput,
 };
@@ -24,7 +24,9 @@ use taskflow_db::queries::custom_fields::{
 fn map_cf_error(e: CustomFieldQueryError) -> AppError {
     match e {
         CustomFieldQueryError::NotFound => AppError::NotFound("Custom field not found".into()),
-        CustomFieldQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+        CustomFieldQueryError::NotProjectMember => {
+            AppError::Forbidden("Not a project member".into())
+        }
         CustomFieldQueryError::Database(e) => AppError::SqlxError(e),
     }
 }
@@ -54,30 +56,30 @@ pub struct SetTaskFieldValuesRequest {
     pub values: Vec<SetFieldValue>,
 }
 
-/// GET /api/boards/{board_id}/custom-fields
-/// List all custom fields for a board
+/// GET /api/projects/{project_id}/custom-fields
+/// List all custom fields for a project
 async fn list_custom_fields_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path(board_id): Path<Uuid>,
-) -> Result<Json<Vec<BoardCustomField>>> {
-    let fields = list_board_custom_fields(&state.db, board_id, tenant.user_id)
+    Path(project_id): Path<Uuid>,
+) -> Result<Json<Vec<ProjectCustomField>>> {
+    let fields = list_project_custom_fields(&state.db, project_id, tenant.user_id)
         .await
         .map_err(map_cf_error)?;
 
     Ok(Json(fields))
 }
 
-/// POST /api/boards/{board_id}/custom-fields
-/// Create a new custom field on a board
+/// POST /api/projects/{project_id}/custom-fields
+/// Create a new custom field on a project
 async fn create_custom_field_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path(board_id): Path<Uuid>,
+    Path(project_id): Path<Uuid>,
     Json(body): Json<CreateCustomFieldRequest>,
-) -> Result<Json<BoardCustomField>> {
+) -> Result<Json<ProjectCustomField>> {
     let input = CreateCustomFieldInput {
-        board_id,
+        project_id,
         name: body.name,
         field_type: body.field_type,
         options: body.options,
@@ -100,7 +102,7 @@ async fn update_custom_field_handler(
     tenant: TenantContext,
     Path(field_id): Path<Uuid>,
     Json(body): Json<UpdateCustomFieldRequest>,
-) -> Result<Json<BoardCustomField>> {
+) -> Result<Json<ProjectCustomField>> {
     let input = UpdateCustomFieldInput {
         name: body.name,
         options: body.options,
@@ -161,13 +163,13 @@ async fn set_task_field_values_handler(
 /// Create the custom field router
 pub fn custom_field_router(state: AppState) -> Router<AppState> {
     Router::new()
-        // Board-scoped custom field routes
+        // Project-scoped custom field routes
         .route(
-            "/boards/{board_id}/custom-fields",
+            "/projects/{project_id}/custom-fields",
             get(list_custom_fields_handler),
         )
         .route(
-            "/boards/{board_id}/custom-fields",
+            "/projects/{project_id}/custom-fields",
             axum::routing::post(create_custom_field_handler),
         )
         // Custom field-specific routes

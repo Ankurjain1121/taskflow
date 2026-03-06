@@ -29,7 +29,7 @@ interface SampleColumn {
           Sample Board Preview
         </h2>
         <p class="text-[var(--muted-foreground)] dark:text-gray-400">
-          Generate a sample board with pre-made tasks to explore TaskFlow's
+          Generate a sample project with pre-made tasks to explore TaskFlow's
           features.
         </p>
       </div>
@@ -164,7 +164,7 @@ interface SampleColumn {
 
           <button
             type="button"
-            (click)="goToDashboard()"
+            (click)="goToDashproject()"
             [disabled]="isNavigating()"
             class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
                    text-white font-medium rounded-lg transition-colors
@@ -291,20 +291,20 @@ export class StepSampleBoardComponent {
         next: (response) => {
           this.isLoading.set(false);
           this.isGenerated.set(true);
-          this.generatedBoardId = response.board_id;
+          this.generatedBoardId = response.project_id;
           this.generatedWorkspaceId = response.workspace_id;
         },
         error: (err) => {
           this.isLoading.set(false);
           this.error.set(
             err.error?.message ||
-              'Failed to generate sample board. Please try again.',
+              'Failed to generate sample project. Please try again.',
           );
         },
       });
   }
 
-  goToDashboard(): void {
+  goToDashproject(): void {
     this.isNavigating.set(true);
     this.error.set(null);
 
@@ -315,7 +315,7 @@ export class StepSampleBoardComponent {
           this.router.navigate([
             '/workspace',
             this.generatedWorkspaceId,
-            'board',
+            'project',
             this.generatedBoardId,
           ]);
         } else {

@@ -1,11 +1,11 @@
-//! Onboarding REST endpoints
+//! Onprojecting REST endpoints
 //!
-//! Provides endpoints for the user onboarding flow including:
+//! Provides endpoints for the user onprojecting flow including:
 //! - Invitation context lookup
 //! - Workspace creation
 //! - Member invitation
-//! - Sample board generation
-//! - Onboarding completion
+//! - Sample project generation
+//! - Onprojecting completion
 
 use axum::{
     extract::{Query, State},
@@ -21,7 +21,7 @@ use uuid::Uuid;
 
 use taskflow_db::models::UserRole;
 use taskflow_db::queries::{auth, invitations, workspaces};
-use taskflow_services::sample_board::generate_sample_board;
+use taskflow_services::sample_project::generate_sample_project;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
@@ -41,7 +41,7 @@ pub struct InvitationContextQuery {
 pub struct InvitationContextResponse {
     pub workspace_id: Uuid,
     pub workspace_name: String,
-    pub board_ids: Vec<Uuid>,
+    pub project_ids: Vec<Uuid>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -70,14 +70,14 @@ pub struct InviteMembersResponse {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct GenerateSampleBoardRequest {
+pub struct GenerateSampleProjectRequest {
     pub workspace_id: Uuid,
     pub use_case: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
-pub struct GenerateSampleBoardResponse {
-    pub board_id: Uuid,
+pub struct GenerateSampleProjectResponse {
+    pub project_id: Uuid,
     pub workspace_id: Uuid,
 }
 
@@ -107,9 +107,9 @@ fn is_valid_email(email: &str) -> bool {
 // Route Handlers
 // ============================================================================
 
-/// GET /api/onboarding/invitation-context?token=uuid
+/// GET /api/onprojecting/invitation-context?token=uuid
 ///
-/// Returns context about an invitation for the onboarding flow.
+/// Returns context about an invitation for the onprojecting flow.
 /// Public endpoint (no auth required) - used before user accepts invitation.
 async fn get_invitation_context(
     State(state): State<AppState>,
@@ -142,10 +142,10 @@ async fn get_invitation_context(
     .await?
     .ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
 
-    // Get board IDs in this workspace (boards the user would have access to)
-    let board_ids: Vec<Uuid> = sqlx::query_scalar!(
+    // Get project IDs in this workspace (projects the user would have access to)
+    let project_ids: Vec<Uuid> = sqlx::query_scalar!(
         r#"
-        SELECT id FROM boards
+        SELECT id FROM projects
         WHERE workspace_id = $1 AND deleted_at IS NULL
         ORDER BY created_at ASC
         "#,
@@ -157,11 +157,11 @@ async fn get_invitation_context(
     Ok(Json(InvitationContextResponse {
         workspace_id: workspace.id,
         workspace_name: workspace.name,
-        board_ids,
+        project_ids,
     }))
 }
 
-/// POST /api/onboarding/create-workspace
+/// POST /api/onprojecting/create-workspace
 ///
 /// Creates a new workspace and adds the authenticated user as a member.
 async fn create_workspace(
@@ -195,7 +195,7 @@ async fn create_workspace(
     }))
 }
 
-/// POST /api/onboarding/invite-members
+/// POST /api/onprojecting/invite-members
 ///
 /// Invites members to a workspace. Max 10 emails per request.
 /// - Existing users are added directly to the workspace
@@ -314,14 +314,14 @@ async fn invite_members(
     }))
 }
 
-/// POST /api/onboarding/generate-sample-board
+/// POST /api/onprojecting/generate-sample-project
 ///
-/// Generates a sample "Getting Started" board in the specified workspace.
-async fn generate_sample_board_handler(
+/// Generates a sample "Getting Started" project in the specified workspace.
+async fn generate_sample_project_handler(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Json(payload): Json<GenerateSampleBoardRequest>,
-) -> Result<Json<GenerateSampleBoardResponse>> {
+    Json(payload): Json<GenerateSampleProjectRequest>,
+) -> Result<Json<GenerateSampleProjectResponse>> {
     // Verify user is a workspace member
     let is_member =
         workspaces::is_workspace_member(&state.db, payload.workspace_id, auth.0.user_id).await?;
@@ -329,9 +329,9 @@ async fn generate_sample_board_handler(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
-    // Generate the sample board
+    // Generate the sample project
     let use_case = payload.use_case.as_deref().unwrap_or("software");
-    let board_id = generate_sample_board(
+    let project_id = generate_sample_project(
         &state.db,
         payload.workspace_id,
         auth.0.user_id,
@@ -339,22 +339,22 @@ async fn generate_sample_board_handler(
         use_case,
     )
     .await
-    .map_err(|e| AppError::InternalError(format!("Failed to generate sample board: {}", e)))?;
+    .map_err(|e| AppError::InternalError(format!("Failed to generate sample project: {}", e)))?;
 
-    Ok(Json(GenerateSampleBoardResponse {
-        board_id,
+    Ok(Json(GenerateSampleProjectResponse {
+        project_id,
         workspace_id: payload.workspace_id,
     }))
 }
 
-/// POST /api/onboarding/complete
+/// POST /api/onprojecting/complete
 ///
-/// Marks the user's onboarding as complete.
+/// Marks the user's onprojecting as complete.
 async fn complete_onboarding(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
 ) -> Result<Json<SuccessResponse>> {
-    // Update user's onboarding_completed flag
+    // Update user's onprojecting_completed flag
     let result = sqlx::query!(
         r#"
         UPDATE users
@@ -377,7 +377,7 @@ async fn complete_onboarding(
 // Router
 // ============================================================================
 
-/// Build the onboarding router
+/// Build the onprojecting router
 ///
 /// Public routes (no auth):
 /// - GET /invitation-context?token=uuid
@@ -385,7 +385,7 @@ async fn complete_onboarding(
 /// Protected routes (require auth):
 /// - POST /create-workspace
 /// - POST /invite-members
-/// - POST /generate-sample-board
+/// - POST /generate-sample-project
 /// - POST /complete
 pub fn onboarding_router(state: AppState) -> Router<AppState> {
     // Protected routes
@@ -394,7 +394,7 @@ pub fn onboarding_router(state: AppState) -> Router<AppState> {
         .route("/invite-members", post(invite_members))
         .route(
             "/generate-sample-board",
-            post(generate_sample_board_handler),
+            post(generate_sample_project_handler),
         )
         .route("/complete", post(complete_onboarding))
         .layer(from_fn_with_state(state.clone(), auth_middleware));
@@ -462,7 +462,7 @@ mod email_validation_tests {
         assert!(is_valid_email("user@example.international")); // Long TLD
         assert!(!is_valid_email("user@@example.com")); // Double @
                                                        // Our simplified regex allows dots at start/end of local part
-                                                       // (stricter than RFC but acceptable for onboarding)
+                                                       // (stricter than RFC but acceptable for onprojecting)
         assert!(is_valid_email(".user@example.com")); // Dot at start (allowed by our regex)
         assert!(is_valid_email("user.@example.com")); // Dot at end (allowed by our regex)
         assert!(!is_valid_email("user@exam ple.com")); // Space in domain

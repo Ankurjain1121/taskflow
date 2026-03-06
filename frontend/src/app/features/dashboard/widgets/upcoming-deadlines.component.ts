@@ -67,7 +67,7 @@ import {
                   </span>
                 </div>
                 <span class="text-xs" style="color: var(--muted-foreground)">{{
-                  item.board_name
+                  item.project_name
                 }}</span>
                 <span
                   class="text-xs font-medium"
@@ -131,7 +131,7 @@ export class UpcomingDeadlinesComponent implements OnInit {
   }
 
   navigateToTask(deadline: UpcomingDeadline): void {
-    this.router.navigate(['/board', deadline.board_id], {
+    this.router.navigate(['/board', deadline.project_id], {
       queryParams: { task: deadline.id },
     });
   }

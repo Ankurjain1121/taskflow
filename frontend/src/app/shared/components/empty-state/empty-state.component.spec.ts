@@ -16,7 +16,7 @@ import { EmptyStateComponent } from './empty-state.component';
 })
 class TestHostComponent {
   title = 'No items';
-  variant: 'board' | 'column' | 'search' | 'tasks' | 'generic' = 'generic';
+  variant: 'project' | 'column' | 'search' | 'tasks' | 'generic' = 'generic';
   description = '';
   subtitle = '';
   ctaLabel = '';
@@ -80,7 +80,7 @@ describe('EmptyStateComponent', () => {
     const component = fixture.debugElement.children[0]
       .componentInstance as EmptyStateComponent;
 
-    host.variant = 'board';
+    host.variant = 'project';
     fixture.detectChanges();
     expect(component.iconBg()).toContain('var(--primary)');
 

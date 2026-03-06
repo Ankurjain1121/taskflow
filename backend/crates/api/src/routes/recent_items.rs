@@ -48,7 +48,7 @@ async fn upsert_recent_item_handler(
     Json(body): Json<UpsertRecentItemRequest>,
 ) -> Result<Json<serde_json::Value>> {
     // Validate entity_type
-    if body.entity_type != "task" && body.entity_type != "board" {
+    if body.entity_type != "task" && body.entity_type != "project" {
         return Err(AppError::BadRequest(
             "entity_type must be 'task' or 'board'".into(),
         ));

@@ -12,7 +12,7 @@ import {
   KanbanColumnComponent,
   TaskMoveEvent,
 } from './kanban-column.component';
-import { Column } from '../../../core/services/board.service';
+import { Column } from '../../../core/services/project.service';
 import { Task } from '../../../core/services/task.service';
 
 // --- Helpers ---
@@ -20,7 +20,7 @@ import { Task } from '../../../core/services/task.service';
 function makeColumn(overrides: Partial<Column> = {}): Column {
   return {
     id: 'col-1',
-    board_id: 'board-1',
+    project_id: 'board-1',
     name: 'To Do',
     position: 'a0',
     color: '#6366f1',

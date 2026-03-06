@@ -1,6 +1,6 @@
 //! Import REST endpoints
 //!
-//! Provides import (JSON, CSV, Trello) for board tasks.
+//! Provides import (JSON, CSV, Trello) for project tasks.
 
 use axum::{
     extract::{Path, State},
@@ -17,7 +17,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
-use super::task_helpers::verify_board_membership;
+use super::task_helpers::verify_project_membership;
 
 // ============================================================================
 // DTOs
@@ -167,19 +167,19 @@ fn parse_csv(input: &str) -> Vec<Vec<String>> {
     rows
 }
 
-/// Resolve a column_name to a column_id for a given board.
+/// Resolve a column_name to a column_id for a given project.
 /// Falls back to the first column (by position) if the name is not found.
 async fn resolve_column_id(
     db: &sqlx::PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     column_name: Option<&str>,
 ) -> Result<Uuid> {
     if let Some(name) = column_name {
         if !name.is_empty() {
             let row: Option<ColumnIdRow> = sqlx::query_as(
-                "SELECT id FROM board_columns WHERE board_id = $1 AND LOWER(name) = LOWER($2) LIMIT 1",
+                "SELECT id FROM project_columns WHERE project_id = $1 AND LOWER(name) = LOWER($2) LIMIT 1",
             )
-            .bind(board_id)
+            .bind(project_id)
             .bind(name)
             .fetch_optional(db)
             .await
@@ -193,13 +193,13 @@ async fn resolve_column_id(
 
     // Fallback: first column by position
     let fallback: ColumnIdRow = sqlx::query_as(
-        "SELECT id FROM board_columns WHERE board_id = $1 ORDER BY position ASC LIMIT 1",
+        "SELECT id FROM project_columns WHERE project_id = $1 ORDER BY position ASC LIMIT 1",
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_optional(db)
     .await
     .map_err(AppError::from)?
-    .ok_or_else(|| AppError::BadRequest("Board has no columns".into()))?;
+    .ok_or_else(|| AppError::BadRequest("Project has no columns".into()))?;
 
     Ok(fallback.id)
 }
@@ -232,17 +232,17 @@ fn resolve_column_id_sync(
 // Route Handlers
 // ============================================================================
 
-/// POST /boards/{board_id}/import
+/// POST /projects/{project_id}/import
 ///
 /// Import tasks from a JSON array.
 async fn import_json_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path(board_id): Path<Uuid>,
+    Path(project_id): Path<Uuid>,
     Json(items): Json<Vec<ImportTaskItem>>,
 ) -> Result<Json<ImportResult>> {
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
+    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     if items.is_empty() {
@@ -256,7 +256,8 @@ async fn import_json_handler(
             continue;
         }
 
-        let column_id = resolve_column_id(&state.db, board_id, item.column_name.as_deref()).await?;
+        let column_id =
+            resolve_column_id(&state.db, project_id, item.column_name.as_deref()).await?;
         let position = next_position_in_column(&state.db, column_id).await?;
         let priority = normalize_priority(item.priority.as_deref().unwrap_or("medium"));
 
@@ -270,7 +271,7 @@ async fn import_json_handler(
 
         let _created: Option<CreatedTaskRow> = sqlx::query_as(
             r#"
-            INSERT INTO tasks (id, title, description, priority, due_date, board_id, column_id, position, tenant_id, created_by_id, created_at, updated_at)
+            INSERT INTO tasks (id, title, description, priority, due_date, project_id, column_id, position, tenant_id, created_by_id, created_at, updated_at)
             VALUES (gen_random_uuid(), $1, $2, $3::task_priority, $4, $5, $6, $7, $8, $9, NOW(), NOW())
             RETURNING id
             "#,
@@ -279,7 +280,7 @@ async fn import_json_handler(
         .bind(&item.description)
         .bind(priority)
         .bind(due_date)
-        .bind(board_id)
+        .bind(project_id)
         .bind(column_id)
         .bind(&position)
         .bind(tenant.tenant_id)
@@ -296,17 +297,17 @@ async fn import_json_handler(
     }))
 }
 
-/// POST /boards/{board_id}/import/csv
+/// POST /projects/{project_id}/import/csv
 ///
 /// Import tasks from CSV text.
 async fn import_csv_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path(board_id): Path<Uuid>,
+    Path(project_id): Path<Uuid>,
     Json(body): Json<ImportCsvBody>,
 ) -> Result<Json<ImportResult>> {
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
+    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     let rows = parse_csv(&body.csv_text);
@@ -337,7 +338,7 @@ async fn import_csv_handler(
         let column_name = row.get(3).map(|s| s.as_str()).filter(|s| !s.is_empty());
         let due_date_str = row.get(4).map(|s| s.as_str()).filter(|s| !s.is_empty());
 
-        let column_id = resolve_column_id(&state.db, board_id, column_name).await?;
+        let column_id = resolve_column_id(&state.db, project_id, column_name).await?;
         let position = next_position_in_column(&state.db, column_id).await?;
         let priority = normalize_priority(priority_str);
 
@@ -351,7 +352,7 @@ async fn import_csv_handler(
 
         let _created: Option<CreatedTaskRow> = sqlx::query_as(
             r#"
-            INSERT INTO tasks (id, title, description, priority, due_date, board_id, column_id, position, tenant_id, created_by_id, created_at, updated_at)
+            INSERT INTO tasks (id, title, description, priority, due_date, project_id, column_id, position, tenant_id, created_by_id, created_at, updated_at)
             VALUES (gen_random_uuid(), $1, $2, $3::task_priority, $4, $5, $6, $7, $8, $9, NOW(), NOW())
             RETURNING id
             "#,
@@ -360,7 +361,7 @@ async fn import_csv_handler(
         .bind(description)
         .bind(priority)
         .bind(due_date)
-        .bind(board_id)
+        .bind(project_id)
         .bind(column_id)
         .bind(&position)
         .bind(tenant.tenant_id)
@@ -377,17 +378,17 @@ async fn import_csv_handler(
     }))
 }
 
-/// POST /boards/{board_id}/import/trello
+/// POST /projects/{project_id}/import/trello
 ///
-/// Import from a Trello board JSON export.
+/// Import from a Trello project JSON export.
 async fn import_trello_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path(board_id): Path<Uuid>,
+    Path(project_id): Path<Uuid>,
     Json(trello): Json<TrelloExport>,
 ) -> Result<Json<TrelloImportResult>> {
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
+    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     // Build a map of Trello list_id -> list_name
@@ -403,11 +404,11 @@ async fn import_trello_handler(
         }
     }
 
-    // Fetch existing columns for this board
+    // Fetch existing columns for this project
     let existing_columns: Vec<ColumnRow> = sqlx::query_as(
-        "SELECT id, name, position, color FROM board_columns WHERE board_id = $1 ORDER BY position",
+        "SELECT id, name, position, color FROM project_columns WHERE project_id = $1 ORDER BY position",
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_all(&state.db)
     .await
     .map_err(AppError::from)?;
@@ -434,13 +435,13 @@ async fn import_trello_handler(
             let new_pos = format!("{}a", last_position);
             let new_col: NewColumnRow = sqlx::query_as(
                 r#"
-                INSERT INTO board_columns (id, name, board_id, position, created_at)
+                INSERT INTO project_columns (id, name, project_id, position, created_at)
                 VALUES (gen_random_uuid(), $1, $2, $3, NOW())
                 RETURNING id
                 "#,
             )
             .bind(list_name)
-            .bind(board_id)
+            .bind(project_id)
             .bind(&new_pos)
             .fetch_one(&state.db)
             .await
@@ -509,7 +510,7 @@ async fn import_trello_handler(
 
         let _created: Option<CreatedTaskRow> = sqlx::query_as(
             r#"
-            INSERT INTO tasks (id, title, description, priority, due_date, board_id, column_id, position, tenant_id, created_by_id, created_at, updated_at)
+            INSERT INTO tasks (id, title, description, priority, due_date, project_id, column_id, position, tenant_id, created_by_id, created_at, updated_at)
             VALUES (gen_random_uuid(), $1, $2, 'medium'::task_priority, $3, $4, $5, $6, $7, $8, NOW(), NOW())
             RETURNING id
             "#,
@@ -517,7 +518,7 @@ async fn import_trello_handler(
         .bind(title)
         .bind(description)
         .bind(due_date)
-        .bind(board_id)
+        .bind(project_id)
         .bind(column_id)
         .bind(&position)
         .bind(tenant.tenant_id)
@@ -542,10 +543,13 @@ async fn import_trello_handler(
 
 pub fn import_router(state: AppState) -> Router<AppState> {
     Router::new()
-        .route("/boards/{board_id}/import", post(import_json_handler))
-        .route("/boards/{board_id}/import/csv", post(import_csv_handler))
+        .route("/projects/{project_id}/import", post(import_json_handler))
         .route(
-            "/boards/{board_id}/import/trello",
+            "/projects/{project_id}/import/csv",
+            post(import_csv_handler),
+        )
+        .route(
+            "/projects/{project_id}/import/trello",
             post(import_trello_handler),
         )
         .layer(from_fn_with_state(state.clone(), auth_middleware))

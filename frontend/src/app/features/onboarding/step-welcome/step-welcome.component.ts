@@ -120,7 +120,7 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
               <h3
                 class="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400"
               >
-                Create a sample board to learn
+                Create a sample project to learn
               </h3>
               <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Get familiar with TaskFlow using pre-made example tasks.

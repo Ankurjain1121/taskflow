@@ -83,7 +83,7 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
               [placeholder]="
                 isCommandMode()
                   ? 'Type a command...'
-                  : 'Search tasks, boards... (> for commands)'
+                  : 'Search tasks, projects... (> for commands)'
               "
               class="flex-1 bg-transparent border-none outline-none text-lg text-[var(--card-foreground)] placeholder-gray-400"
               autocomplete="off"
@@ -200,7 +200,7 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
                     >
                       <i
                         [class]="
-                          item.entityType === 'board'
+                          item.entityType === 'project'
                             ? 'pi pi-table text-emerald-500 shrink-0'
                             : 'pi pi-check-square text-primary shrink-0'
                         "
@@ -220,7 +220,7 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
                       <span
                         class="text-xs text-[var(--muted-foreground)] shrink-0"
                       >
-                        {{ item.entityType === 'board' ? 'Board' : 'Task' }}
+                        {{ item.entityType === 'project' ? 'Project' : 'Task' }}
                       </span>
                     </button>
                   }
@@ -273,7 +273,7 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
                   >
                     <i class="pi pi-search text-3xl mb-2 opacity-50 block"></i>
                     <p class="text-sm">Search across your workspace</p>
-                    <p class="text-xs mt-1">Find tasks, boards, and comments</p>
+                    <p class="text-xs mt-1">Find tasks, projects, and comments</p>
                   </div>
                 }
               </div>
@@ -313,7 +313,7 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
                           class="text-xs text-[var(--muted-foreground)] truncate"
                         >
                           {{ task.workspace_name }} &rsaquo;
-                          {{ task.board_name }}
+                          {{ task.project_name }}
                         </p>
                       </div>
                     </button>
@@ -321,15 +321,15 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
                 </div>
               }
 
-              @if (results()!.boards.length > 0) {
+              @if (results()!.projects.length > 0) {
                 <div class="py-1">
                   <div
                     class="px-3 py-1 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide"
                   >
-                    Boards ({{ results()!.boards.length }})
+                    Boards ({{ results()!.projects.length }})
                   </div>
                   @for (
-                    board of results()!.boards;
+                    board of results()!.projects;
                     track board.id;
                     let idx = $index
                   ) {
@@ -400,7 +400,7 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
                           class="text-xs text-[var(--muted-foreground)] truncate"
                         >
                           on {{ comment.task_title }} &rsaquo;
-                          {{ comment.board_name }}
+                          {{ comment.project_name }}
                         </p>
                       </div>
                     </button>
@@ -492,7 +492,7 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
 
   commentOffset = computed(() => {
     const r = this.results();
-    return r ? r.tasks.length + r.boards.length : 0;
+    return r ? r.tasks.length + r.projects.length : 0;
   });
 
   actions: CommandAction[] = [
@@ -585,7 +585,7 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
   hasResults = computed(() => {
     const r = this.results();
     if (!r) return false;
-    return r.tasks.length > 0 || r.boards.length > 0 || r.comments.length > 0;
+    return r.tasks.length > 0 || r.projects.length > 0 || r.comments.length > 0;
   });
 
   totalItems = computed(() => {
@@ -597,7 +597,7 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
     }
     const r = this.results();
     if (!r) return 0;
-    return r.tasks.length + r.boards.length + r.comments.length;
+    return r.tasks.length + r.projects.length + r.comments.length;
   });
 
   private searchSubject = new Subject<string>();
@@ -722,11 +722,11 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
   }
 
   onRecentItemClick(item: RecentItem): void {
-    if (item.entityType === 'board') {
-      this.router.navigate(['/workspace', item.workspaceId, 'board', item.id]);
-    } else if (item.entityType === 'task' && item.boardId) {
+    if (item.entityType === 'project') {
+      this.router.navigate(['/workspace', item.workspaceId, 'project', item.id]);
+    } else if (item.entityType === 'task' && item.projectId) {
       this.router.navigate(
-        ['/workspace', item.workspaceId, 'board', item.boardId],
+        ['/workspace', item.workspaceId, 'project', item.projectId],
         { queryParams: { task: item.id } },
       );
     }
@@ -737,32 +737,32 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
     this.recentItemsService.recordTaskView({
       id: task.id,
       title: task.title,
-      boardName: task.board_name,
+      boardName: task.project_name,
       workspaceId: task.workspace_id,
       workspaceName: task.workspace_name,
-      boardId: task.board_id,
+      projectId: task.project_id,
     });
     this.router.navigate(
-      ['/workspace', task.workspace_id, 'board', task.board_id],
+      ['/workspace', task.workspace_id, 'project', task.project_id],
       { queryParams: { task: task.id } },
     );
     this.close();
   }
 
   navigateToBoard(board: BoardSearchResult): void {
-    this.recentItemsService.recordBoardView({
+    this.recentItemsService.recordProjectView({
       id: board.id,
       name: board.name,
       workspaceId: board.workspace_id,
       workspaceName: board.workspace_name,
     });
-    this.router.navigate(['/workspace', board.workspace_id, 'board', board.id]);
+    this.router.navigate(['/workspace', board.workspace_id, 'project', board.id]);
     this.close();
   }
 
   navigateToComment(comment: CommentSearchResult): void {
     this.router.navigate(
-      ['/workspace', comment.workspace_id, 'board', comment.board_id],
+      ['/workspace', comment.workspace_id, 'project', comment.project_id],
       { queryParams: { task: comment.task_id } },
     );
     this.close();
@@ -797,12 +797,12 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
     if (!r) return;
 
     const taskLen = r.tasks.length;
-    const boardLen = r.boards.length;
+    const boardLen = r.projects.length;
 
     if (idx < taskLen) {
       this.navigateToTask(r.tasks[idx]);
     } else if (idx < taskLen + boardLen) {
-      this.navigateToBoard(r.boards[idx - taskLen]);
+      this.navigateToBoard(r.projects[idx - taskLen]);
     } else {
       const commentIdx = idx - taskLen - boardLen;
       if (commentIdx < r.comments.length) {

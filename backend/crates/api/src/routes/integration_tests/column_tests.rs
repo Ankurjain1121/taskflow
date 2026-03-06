@@ -7,13 +7,13 @@ use super::common::*;
 #[tokio::test]
 async fn test_list_columns() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/boards/{}/columns", board_id))
+                .uri(format!("/api/projects/{}/columns", project_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),
@@ -33,14 +33,14 @@ async fn test_list_columns() {
 #[tokio::test]
 async fn test_create_column() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/boards/{}/columns", board_id))
+                .uri(format!("/api/projects/{}/columns", project_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .header("Content-Type", "application/json")
                 .body(Body::from(
@@ -67,7 +67,7 @@ async fn test_create_column() {
 #[tokio::test]
 async fn test_rename_column() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, _board_id, col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, _project_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
@@ -95,13 +95,13 @@ async fn test_rename_column() {
 #[tokio::test]
 async fn test_delete_column_empty_succeeds() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     // Add a new column (we can't delete the default ones if they have tasks)
     let col = taskflow_db::queries::columns::add_column(
         &state.db,
-        board_id,
+        project_id,
         "Temp Column",
         None,
         None,
@@ -192,7 +192,7 @@ async fn test_create_column_for_nonexistent_board_returns_error() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/boards/{}/columns", Uuid::new_v4()))
+                .uri(format!("/api/projects/{}/columns", Uuid::new_v4()))
                 .header("Authorization", format!("Bearer {}", token))
                 .header("Content-Type", "application/json")
                 .body(Body::from(

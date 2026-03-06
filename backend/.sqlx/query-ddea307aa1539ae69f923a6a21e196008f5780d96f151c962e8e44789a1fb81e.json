@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                t.id as task_id,\n                t.title as task_title,\n                t.project_id,\n                b.name as project_name,\n                t.due_date as \"due_date!\",\n                ta.user_id as assignee_id\n            FROM tasks t\n            JOIN projects b ON b.id = t.project_id\n            JOIN task_assignees ta ON ta.task_id = t.id\n            WHERE t.due_date < $1\n              AND t.deleted_at IS NULL\n              -- Exclude tasks in done columns\n              AND NOT EXISTS (\n                  SELECT 1 FROM project_columns bc\n                  WHERE bc.id = t.column_id\n                  AND (bc.status_mapping->>'done')::boolean = true\n              )\n              -- Dedup: no overdue notification in last 24h\n              AND NOT EXISTS (\n                  SELECT 1 FROM notifications n\n                  WHERE n.recipient_id = ta.user_id\n                    AND n.event_type = 'task-overdue'\n                    AND n.link_url LIKE '%' || t.id::text || '%'\n                    AND n.created_at > $1 - interval '24 hours'\n              )\n            ORDER BY t.due_date ASC\n            LIMIT $2 OFFSET $3\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "task_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "task_title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "project_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "project_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "due_date!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "assignee_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "ddea307aa1539ae69f923a6a21e196008f5780d96f151c962e8e44789a1fb81e"
+}

@@ -101,8 +101,8 @@ describe('InviteMemberDialogComponent', () => {
     expect(emitSpy).not.toHaveBeenCalled();
   });
 
-  it('should default boardId to empty string', () => {
-    expect(component.boardId()).toBe('');
+  it('should default projectId to empty string', () => {
+    expect(component.projectId()).toBe('');
   });
 
   it('should default boardName to empty string', () => {

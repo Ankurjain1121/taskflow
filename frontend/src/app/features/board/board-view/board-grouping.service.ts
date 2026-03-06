@@ -6,9 +6,9 @@ export class BoardGroupingService {
   readonly groupBy = signal<GroupByMode>('none');
   readonly collapsedSwimlaneIds = signal<Set<string>>(new Set());
 
-  loadGroupBy(boardId: string): void {
+  loadGroupBy(projectId: string): void {
     try {
-      const stored = localStorage.getItem(`tf_swimlane_${boardId}`);
+      const stored = localStorage.getItem(`tf_swimlane_${projectId}`);
       if (
         stored &&
         ['none', 'assignee', 'priority', 'label'].includes(stored)
@@ -22,9 +22,9 @@ export class BoardGroupingService {
     }
   }
 
-  setGroupBy(mode: GroupByMode, boardId: string): void {
+  setGroupBy(mode: GroupByMode, projectId: string): void {
     this.groupBy.set(mode);
-    localStorage.setItem(`tf_swimlane_${boardId}`, mode);
+    localStorage.setItem(`tf_swimlane_${projectId}`, mode);
   }
 
   toggleSwimlaneCollapse(groupKey: string): void {

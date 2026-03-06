@@ -85,14 +85,14 @@ interface TrashItem {
                 <div
                   class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                   [class]="
-                    item.entity_type === 'board'
+                    item.entity_type === 'project'
                       ? 'bg-blue-500/10'
                       : 'bg-green-500/10'
                   "
                 >
                   <i
                     [class]="
-                      item.entity_type === 'board'
+                      item.entity_type === 'project'
                         ? 'pi pi-objects-column text-blue-500'
                         : 'pi pi-check-square text-green-500'
                     "

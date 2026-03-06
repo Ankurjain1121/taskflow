@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { Task, Label } from '../../../../core/services/task.service';
-import { BoardMember } from '../../../../core/services/board.service';
+import { ProjectMember } from '../../../../core/services/project.service';
 
 export type QuickEditField = 'priority' | 'assignee' | 'due-date' | 'label';
 
@@ -9,7 +9,7 @@ export class CardQuickEditService {
   readonly currentTask = signal<Task | null>(null);
   readonly currentField = signal<QuickEditField | null>(null);
   readonly isOpen = signal<boolean>(false);
-  readonly boardMembers = signal<BoardMember[]>([]);
+  readonly boardMembers = signal<ProjectMember[]>([]);
   readonly availableLabels = signal<Label[]>([]);
   readonly anchorRect = signal<DOMRect | null>(null);
 
@@ -27,7 +27,7 @@ export class CardQuickEditService {
     this.anchorRect.set(null);
   }
 
-  setBoardMembers(members: BoardMember[]): void {
+  setBoardMembers(members: ProjectMember[]): void {
     this.boardMembers.set(members);
   }
 

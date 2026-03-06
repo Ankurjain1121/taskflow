@@ -4,16 +4,16 @@ import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { SharedBoardViewComponent } from './shared-board-view.component';
 import {
-  BoardShareService,
-  SharedBoardAccess,
-} from '../../core/services/board-share.service';
+  ProjectShareService,
+  SharedProjectAccess,
+} from '../../core/services/project-share.service';
 
 function createMockBoardAccess(
-  overrides: Partial<SharedBoardAccess> = {},
-): SharedBoardAccess {
+  overrides: Partial<SharedProjectAccess> = {},
+): SharedProjectAccess {
   return {
-    board_id: 'board-1',
-    board_name: 'Shared Board',
+    project_id: 'board-1',
+    project_name: 'Shared Board',
     permissions: { view: true },
     columns: [
       { id: 'col-1', name: 'To Do', position: '0', color: '#6366f1' },
@@ -60,7 +60,7 @@ describe('SharedBoardViewComponent', () => {
     TestBed.configureTestingModule({
       imports: [SharedBoardViewComponent],
       providers: [
-        { provide: BoardShareService, useValue: mockShareService },
+        { provide: ProjectShareService, useValue: mockShareService },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -107,7 +107,7 @@ describe('SharedBoardViewComponent', () => {
         'valid-token',
         undefined,
       );
-      expect(component.board()).toBeTruthy();
+      expect(component.project()).toBeTruthy();
       expect(component.loading()).toBe(false);
     });
   });
@@ -119,7 +119,7 @@ describe('SharedBoardViewComponent', () => {
       setupTestBed('test-token');
       component.ngOnInit();
 
-      expect(component.board()).toEqual(boardData);
+      expect(component.project()).toEqual(boardData);
       expect(component.loading()).toBe(false);
       expect(component.needsPassword()).toBe(false);
     });

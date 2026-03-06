@@ -83,13 +83,13 @@ describe('ArchiveService', () => {
 
     it('should pass all params when provided', () => {
       service
-        .list({ entity_type: 'board', cursor: 'xyz', page_size: 5 })
+        .list({ entity_type: 'project', cursor: 'xyz', page_size: 5 })
         .subscribe();
 
       const req = httpMock.expectOne(
         (r) =>
           r.url === '/api/archive' &&
-          r.params.get('entity_type') === 'board' &&
+          r.params.get('entity_type') === 'project' &&
           r.params.get('cursor') === 'xyz' &&
           r.params.get('page_size') === '5',
       );

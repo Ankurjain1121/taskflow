@@ -214,15 +214,15 @@ describe('InviteMemberDialogComponent', () => {
 
   describe('board selection', () => {
     beforeEach(() => {
-      fixture.componentRef.setInput('boards', [
-        { id: 'b-1', name: 'Board 1' },
-        { id: 'b-2', name: 'Board 2' },
-        { id: 'b-3', name: 'Board 3' },
+      fixture.componentRef.setInput('projects', [
+        { id: 'b-1', name: 'Project 1' },
+        { id: 'b-2', name: 'Project 2' },
+        { id: 'b-3', name: 'Project 3' },
       ]);
       fixture.detectChanges();
     });
 
-    it('isBoardSelected should return false for unselected boards', () => {
+    it('isBoardSelected should return false for unselected projects', () => {
       expect(component.isBoardSelected('b-1')).toBe(false);
     });
 
@@ -240,13 +240,13 @@ describe('InviteMemberDialogComponent', () => {
       expect(component.selectedBoardIds()).toEqual(['b-2']);
     });
 
-    it('toggleAllBoards(true) should select all boards', () => {
+    it('toggleAllBoards(true) should select all projects', () => {
       component.toggleAllBoards(true);
 
       expect(component.selectedBoardIds()).toEqual(['b-1', 'b-2', 'b-3']);
     });
 
-    it('toggleAllBoards(false) should deselect all boards', () => {
+    it('toggleAllBoards(false) should deselect all projects', () => {
       component.toggleAllBoards(true);
       component.toggleAllBoards(false);
 
@@ -263,8 +263,8 @@ describe('InviteMemberDialogComponent', () => {
       expect(component.allBoardsSelected()).toBe(false);
     });
 
-    it('allBoardsSelected should return false when no boards', () => {
-      fixture.componentRef.setInput('boards', []);
+    it('allBoardsSelected should return false when no projects', () => {
+      fixture.componentRef.setInput('projects', []);
       fixture.detectChanges();
       expect(component.allBoardsSelected()).toBe(false);
     });
@@ -322,7 +322,7 @@ describe('InviteMemberDialogComponent', () => {
     it('should include selected board IDs', () => {
       const createdSpy = vi.spyOn(component.created, 'emit');
 
-      fixture.componentRef.setInput('boards', [{ id: 'b-1', name: 'Board 1' }]);
+      fixture.componentRef.setInput('projects', [{ id: 'b-1', name: 'Project 1' }]);
       fixture.detectChanges();
 
       component.form.patchValue({

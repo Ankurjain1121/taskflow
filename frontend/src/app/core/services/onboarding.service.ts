@@ -5,7 +5,7 @@ import { Observable } from 'rxjs';
 export interface InvitationContext {
   workspace_id: string;
   workspace_name: string;
-  board_ids: string[];
+  project_ids: string[];
 }
 
 export interface CreateWorkspaceResponse {
@@ -18,7 +18,7 @@ export interface InviteMembersResponse {
 }
 
 export interface GenerateSampleBoardResponse {
-  board_id: string;
+  project_id: string;
   workspace_id: string;
 }
 

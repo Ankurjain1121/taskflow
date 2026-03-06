@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
-use taskflow_db::models::WsBoardEvent;
+use taskflow_db::models::WsProjectEvent;
 
 /// Batched message sent to clients
 ///
@@ -8,11 +8,11 @@ use taskflow_db::models::WsBoardEvent;
 /// reducing network overhead and improving throughput under high concurrency.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BatchMessage {
-    pub events: Vec<WsBoardEvent>,
+    pub events: Vec<WsProjectEvent>,
     pub timestamp: String,
 }
 
-/// Handles batching of WebSocket board events
+/// Handles batching of WebSocket project events
 ///
 /// Events are accumulated in a buffer and sent when either:
 /// 1. Buffer reaches max_batch_size (default 50)
@@ -21,7 +21,7 @@ pub struct BatchMessage {
 /// This reduces message count by 50-70% under high concurrency while
 /// maintaining sub-100ms latency.
 pub struct BatchHandler {
-    buffer: Vec<WsBoardEvent>,
+    buffer: Vec<WsProjectEvent>,
     max_batch_size: usize,
     flush_interval: Duration,
     last_flush: Instant,
@@ -55,7 +55,7 @@ impl BatchHandler {
     ///
     /// The caller is responsible for checking flush_if_ready() separately
     /// to handle timeout-based flushes.
-    pub fn add_event(&mut self, event: WsBoardEvent) -> Option<Vec<WsBoardEvent>> {
+    pub fn add_event(&mut self, event: WsProjectEvent) -> Option<Vec<WsProjectEvent>> {
         self.buffer.push(event);
 
         if self.buffer.len() >= self.max_batch_size {
@@ -68,7 +68,7 @@ impl BatchHandler {
     /// Check if buffer should be flushed (either full or timeout exceeded)
     ///
     /// Returns Some(batch) if flush is needed, None if still accumulating.
-    pub fn flush_if_ready(&mut self) -> Option<Vec<WsBoardEvent>> {
+    pub fn flush_if_ready(&mut self) -> Option<Vec<WsProjectEvent>> {
         let is_full = self.buffer.len() >= self.max_batch_size;
         let timeout_exceeded = self.last_flush.elapsed() >= self.flush_interval;
 
@@ -82,7 +82,7 @@ impl BatchHandler {
     /// Force a flush regardless of size or timeout
     ///
     /// Returns the current buffer contents (may be empty)
-    pub fn flush(&mut self) -> Option<Vec<WsBoardEvent>> {
+    pub fn flush(&mut self) -> Option<Vec<WsProjectEvent>> {
         if self.buffer.is_empty() {
             None
         } else {
@@ -101,7 +101,7 @@ impl BatchHandler {
     }
 
     // Internal flush that always returns Some (clears buffer and resets timer)
-    fn flush_internal(&mut self) -> Vec<WsBoardEvent> {
+    fn flush_internal(&mut self) -> Vec<WsProjectEvent> {
         let batch = std::mem::take(&mut self.buffer);
         self.last_flush = Instant::now();
         batch
@@ -121,8 +121,8 @@ mod tests {
     use taskflow_db::models::{TaskBroadcast, TaskPriority};
     use uuid::Uuid;
 
-    fn create_test_event() -> WsBoardEvent {
-        WsBoardEvent::TaskCreated {
+    fn create_test_event() -> WsProjectEvent {
+        WsProjectEvent::TaskCreated {
             task: TaskBroadcast {
                 id: Uuid::new_v4(),
                 title: "Test Task".to_string(),
@@ -238,7 +238,7 @@ mod tests {
         assert_eq!(batch.len(), 3);
         // Verify order is maintained
         match &batch[0] {
-            WsBoardEvent::TaskCreated { .. } => (),
+            WsProjectEvent::TaskCreated { .. } => (),
             _ => panic!("Expected TaskCreated"),
         }
     }

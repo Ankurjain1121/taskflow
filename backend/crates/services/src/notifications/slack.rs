@@ -48,7 +48,7 @@ struct SlackMessage {
 /// Send a Slack notification via webhook
 ///
 /// # Arguments
-/// * `webhook_url` - The Slack incoming webhook URL (from board settings)
+/// * `webhook_url` - The Slack incoming webhook URL (from project settings)
 /// * `event_type` - The notification event type name
 /// * `payload` - Event-specific payload with title, body, and optional link
 ///

@@ -25,7 +25,7 @@ use crate::state::AppState;
 
 use super::common::MessageResponse;
 
-/// Fire MemberJoined trigger for all boards in a workspace
+/// Fire MemberJoined trigger for all projects in a workspace
 fn fire_member_joined_trigger(
     pool: sqlx::PgPool,
     redis: redis::aio::ConnectionManager,
@@ -34,15 +34,15 @@ fn fire_member_joined_trigger(
     tenant_id: Uuid,
 ) {
     tokio::spawn(async move {
-        let board_ids = sqlx::query_scalar::<_, Uuid>(
-            "SELECT id FROM boards WHERE workspace_id = $1 AND deleted_at IS NULL",
+        let project_ids = sqlx::query_scalar::<_, Uuid>(
+            "SELECT id FROM projects WHERE workspace_id = $1 AND deleted_at IS NULL",
         )
         .bind(workspace_id)
         .fetch_all(&pool)
         .await
         .unwrap_or_default();
 
-        for board_id in board_ids {
+        for project_id in project_ids {
             // Use a dummy task_id (Nil) since MemberJoined doesn't relate to a specific task
             spawn_automation_evaluation(
                 pool.clone(),
@@ -50,7 +50,7 @@ fn fire_member_joined_trigger(
                 AutomationTrigger::MemberJoined,
                 TriggerContext {
                     task_id: Uuid::nil(),
-                    board_id,
+                    project_id,
                     tenant_id,
                     user_id: member_user_id,
                     previous_column_id: None,

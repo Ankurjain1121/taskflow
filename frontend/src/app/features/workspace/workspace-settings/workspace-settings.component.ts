@@ -21,7 +21,7 @@ import {
   Workspace,
   WorkspaceMember,
 } from '../../../core/services/workspace.service';
-import { BoardService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/project.service';
 import { AuthService } from '../../../core/services/auth.service';
 import {
   MembersListComponent,
@@ -121,7 +121,7 @@ import { TrashComponent } from '../trash/trash.component';
                     [members]="members()"
                     [workspaceId]="workspaceId"
                     [workspaceName]="workspace()?.name ?? 'this workspace'"
-                    [boards]="boards()"
+                    [projects]="projects()"
                     (memberRemoved)="onMemberRemoved($event)"
                   ></app-members-list>
                 </div>
@@ -175,7 +175,7 @@ export class WorkspaceSettingsComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
   private workspaceService = inject(WorkspaceService);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private authService = inject(AuthService);
 
   @ViewChild(WorkspaceGeneralTabComponent)
@@ -186,7 +186,7 @@ export class WorkspaceSettingsComponent implements OnInit {
   loading = signal(true);
   workspace = signal<Workspace | null>(null);
   members = signal<MemberWithDetails[]>([]);
-  boards = signal<{ id: string; name: string }[]>([]);
+  projects = signal<{ id: string; name: string }[]>([]);
 
   ngOnInit(): void {
     this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
@@ -274,9 +274,9 @@ export class WorkspaceSettingsComponent implements OnInit {
   }
 
   private loadBoards(): void {
-    this.boardService.listBoards(this.workspaceId).subscribe({
-      next: (boards) => {
-        this.boards.set(boards.map((b) => ({ id: b.id, name: b.name })));
+    this.projectService.listProjects(this.workspaceId).subscribe({
+      next: (projects) => {
+        this.projects.set(projects.map((b) => ({ id: b.id, name: b.name })));
       },
       error: () => {
         // Non-critical, silently fail

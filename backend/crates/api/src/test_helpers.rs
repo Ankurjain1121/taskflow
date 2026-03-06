@@ -109,7 +109,7 @@ pub mod helpers {
             .build();
         let s3_client = aws_sdk_s3::Client::from_conf(s3_config);
 
-        let board_channels = Arc::new(DashMap::new());
+        let project_channels = Arc::new(DashMap::new());
         let pubsub_relay = crate::ws::PubSubRelay::dummy();
 
         AppState {
@@ -117,7 +117,7 @@ pub mod helpers {
             config: Arc::new(config),
             jwt_keys,
             redis,
-            board_channels,
+            project_channels,
             pubsub_relay,
             s3_client,
             ws_connection_count: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
@@ -184,13 +184,13 @@ pub mod helpers {
         (tenant_id, user_id, ws.id)
     }
 
-    /// Create user + workspace + board.
-    /// Returns (tenant_id, user_id, workspace_id, board_id, first_column_id).
+    /// Create user + workspace + project.
+    /// Returns (tenant_id, user_id, workspace_id, project_id, first_column_id).
     pub async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
         let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-        let bwc = taskflow_db::queries::boards::create_board(
+        let bwc = taskflow_db::queries::projects::create_project(
             pool,
-            "API IntTest Board",
+            "API IntTest Project",
             None,
             ws_id,
             tenant_id,
@@ -199,7 +199,7 @@ pub mod helpers {
         .await
         .expect("Failed to create test board");
         let first_col_id = bwc.columns[0].id;
-        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+        (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
     }
 
     /// Build the full Axum Router matching the production app (minus background jobs).
@@ -323,17 +323,13 @@ pub mod helpers {
             .nest("/api", routes::activity_log_router(state.clone()))
             .nest("/api/workspaces", routes::workspace_router(state.clone()))
             .nest(
-                "/api/workspaces/{workspace_id}/boards",
-                routes::workspace_boards_router(state.clone()),
+                "/api/workspaces/{workspace_id}/projects",
+                routes::workspace_projects_router(state.clone()),
             )
+            .nest("/api/projects", routes::project_router(state.clone()))
             .nest(
-                "/api/board-templates",
-                routes::board_templates_router(state.clone()),
-            )
-            .nest("/api/boards", routes::board_router(state.clone()))
-            .nest(
-                "/api/boards/{board_id}/columns",
-                routes::board_columns_router(state.clone()),
+                "/api/projects/{project_id}/columns",
+                routes::project_columns_router(state.clone()),
             )
             .nest("/api/columns", routes::column_router(state.clone()))
             .nest("/api", routes::notification_router(state.clone()))
@@ -363,8 +359,8 @@ pub mod helpers {
             .nest("/api", routes::task_template_router(state.clone()))
             .nest("/api", routes::export::export_router(state.clone()))
             .nest("/api", routes::import::import_router(state.clone()))
-            .nest("/api", routes::board_share_router(state.clone()))
-            .nest("/api", routes::shared_board_public_router())
+            .nest("/api", routes::project_share_router(state.clone()))
+            .nest("/api", routes::shared_project_public_router())
             .nest("/api", routes::webhook_router(state.clone()))
             .nest("/api", routes::themes_router(state.clone()))
             .nest("/api", routes::user_preferences_router(state.clone()))
@@ -375,8 +371,8 @@ pub mod helpers {
             .nest("/api", routes::archive_router(state.clone()))
             // Position routes
             .nest(
-                "/api/boards/{board_id}/positions",
-                routes::board_positions_router(state.clone()),
+                "/api/projects/{project_id}/positions",
+                routes::project_positions_router(state.clone()),
             )
             .nest("/api/positions", routes::positions_router(state.clone()))
             .layer(cors)

@@ -1,5 +1,5 @@
 export type EmptyStateVariant =
-  | 'board'
+  | 'project'
   | 'column'
   | 'column-filtered'
   | 'search'
@@ -29,13 +29,13 @@ export interface EmptyStateConfig {
 
 export const EMPTY_STATE_CONFIGS: Record<EmptyStateVariant, EmptyStateConfig> =
   {
-    board: {
+    project: {
       icon: 'pi pi-objects-column',
       colorScheme: 'primary',
       defaultTitle: 'Create your first board',
       defaultDescription:
         'Boards help you organize tasks into columns and track progress visually.',
-      defaultCtaLabel: 'Create Board',
+      defaultCtaLabel: 'Create Project',
     },
     column: {
       icon: 'pi pi-inbox',
@@ -88,7 +88,7 @@ export const EMPTY_STATE_CONFIGS: Record<EmptyStateVariant, EmptyStateConfig> =
       colorScheme: 'warning',
       defaultTitle: 'No favorites yet',
       defaultDescription:
-        'Star tasks and boards to pin them here for quick access.',
+        'Star tasks and projects to pin them here for quick access.',
       defaultCtaLabel: '',
     },
     notifications: {

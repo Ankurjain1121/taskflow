@@ -7,8 +7,6 @@ pub mod auth;
 pub mod automation_evaluation;
 pub mod automation_templates;
 pub mod automations;
-pub mod board_shares;
-pub mod boards;
 pub mod bulk_operations;
 pub mod columns;
 pub mod comments;
@@ -24,7 +22,9 @@ pub mod my_tasks;
 pub mod notification_preferences;
 pub mod notifications;
 pub mod positions;
+pub mod project_shares;
 pub mod project_templates;
+pub mod projects;
 pub mod recent_items;
 pub mod recurring;
 pub mod recurring_generation;
@@ -61,8 +61,6 @@ pub use attachments::*;
 pub use automation_evaluation::*;
 pub use automation_templates::*;
 pub use automations::*;
-pub use board_shares::*;
-pub use boards::*;
 pub use columns::*;
 pub use comments::*;
 pub use custom_fields::*;
@@ -73,7 +71,9 @@ pub use my_tasks::*;
 pub use notification_preferences::*;
 pub use notifications::*;
 pub use positions::*;
+pub use project_shares::*;
 pub use project_templates::*;
+pub use projects::*;
 pub use recurring::*;
 pub use recurring_generation::*;
 pub use subtasks::*;
@@ -110,22 +110,22 @@ pub use workspace_api_keys as api_keys;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-/// Verify that a user is a member of a board.
+/// Verify that a user is a member of a project.
 /// Returns `true` if the user is a member, `false` otherwise.
-pub(crate) async fn verify_board_membership_internal(
+pub(crate) async fn verify_project_membership_internal(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     user_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
     let result = sqlx::query_scalar::<_, bool>(
         r#"
         SELECT EXISTS(
-            SELECT 1 FROM board_members
-            WHERE board_id = $1 AND user_id = $2
+            SELECT 1 FROM project_members
+            WHERE project_id = $1 AND user_id = $2
         )
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .bind(user_id)
     .fetch_one(pool)
     .await?;

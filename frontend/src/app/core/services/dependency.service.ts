@@ -50,9 +50,9 @@ export class DependencyService {
     return this.http.get<BlockerInfo[]>(`/api/tasks/${taskId}/blockers`);
   }
 
-  getBoardDependencies(boardId: string): Observable<TaskDependency[]> {
+  getBoardDependencies(projectId: string): Observable<TaskDependency[]> {
     return this.http.get<TaskDependency[]>(
-      `/api/boards/${boardId}/dependencies`,
+      `/api/projects/${projectId}/dependencies`,
     );
   }
 }

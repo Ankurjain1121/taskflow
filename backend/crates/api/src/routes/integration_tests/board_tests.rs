@@ -1,7 +1,7 @@
 use super::common::*;
 
 // =========================================================================
-// BOARD ROUTES — HAPPY PATH
+// project ROUTES — HAPPY PATH
 // =========================================================================
 
 #[tokio::test]
@@ -13,7 +13,7 @@ async fn test_list_boards_for_workspace() {
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/workspaces/{}/boards", ws_id))
+                .uri(format!("/api/workspaces/{}/projects", ws_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),
@@ -34,12 +34,12 @@ async fn test_create_board() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{}/boards", ws_id))
+                .uri(format!("/api/workspaces/{}/projects", ws_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .header("Content-Type", "application/json")
                 .body(Body::from(
                     serde_json::to_string(&serde_json::json!({
-                        "name": "Test Board"
+                        "name": "Test Project"
                     }))
                     .expect("serialize"),
                 ))
@@ -54,20 +54,20 @@ async fn test_create_board() {
         .await
         .expect("read body");
     let json: serde_json::Value = serde_json::from_slice(&body).expect("parse JSON");
-    assert_eq!(json["name"], "Test Board");
-    assert!(json.get("columns").is_some(), "Board should have columns");
+    assert_eq!(json["name"], "Test Project");
+    assert!(json.get("columns").is_some(), "Project should have columns");
 }
 
 #[tokio::test]
 async fn test_get_board_by_id() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/boards/{}", board_id))
+                .uri(format!("/api/projects/{}", project_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),
@@ -81,25 +81,25 @@ async fn test_get_board_by_id() {
         .await
         .expect("read body");
     let json: serde_json::Value = serde_json::from_slice(&body).expect("parse JSON");
-    assert_eq!(json["id"], board_id.to_string());
+    assert_eq!(json["id"], project_id.to_string());
 }
 
 #[tokio::test]
 async fn test_update_board() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
                 .method("PUT")
-                .uri(format!("/api/boards/{}", board_id))
+                .uri(format!("/api/projects/{}", project_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .header("Content-Type", "application/json")
                 .body(Body::from(
                     serde_json::to_string(&serde_json::json!({
-                        "name": "Renamed Board",
+                        "name": "Renamed Project",
                         "description": "New desc"
                     }))
                     .expect("serialize"),
@@ -115,20 +115,20 @@ async fn test_update_board() {
         .await
         .expect("read body");
     let json: serde_json::Value = serde_json::from_slice(&body).expect("parse JSON");
-    assert_eq!(json["name"], "Renamed Board");
+    assert_eq!(json["name"], "Renamed Project");
 }
 
 #[tokio::test]
 async fn test_delete_board() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/boards/{}", board_id))
+                .uri(format!("/api/projects/{}", project_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),
@@ -142,13 +142,13 @@ async fn test_delete_board() {
 #[tokio::test]
 async fn test_get_board_full() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/boards/{}/full", board_id))
+                .uri(format!("/api/projects/{}/full", project_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),
@@ -162,21 +162,21 @@ async fn test_get_board_full() {
         .await
         .expect("read body");
     let json: serde_json::Value = serde_json::from_slice(&body).expect("parse JSON");
-    assert!(json.get("board").is_some(), "Should have 'board'");
+    assert!(json.get("project").is_some(), "Should have 'board'");
     assert!(json.get("tasks").is_some(), "Should have 'tasks'");
     assert!(json.get("members").is_some(), "Should have 'members'");
 }
 
 #[tokio::test]
-async fn test_list_board_members() {
+async fn test_list_project_members() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/boards/{}/members", board_id))
+                .uri(format!("/api/projects/{}/members", project_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),
@@ -224,7 +224,7 @@ async fn test_board_templates_list() {
 }
 
 // =========================================================================
-// BOARD ROUTES — ERROR SCENARIOS
+// project ROUTES — ERROR SCENARIOS
 // =========================================================================
 
 #[tokio::test]
@@ -237,7 +237,7 @@ async fn test_create_board_empty_name_returns_400() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{}/boards", ws_id))
+                .uri(format!("/api/workspaces/{}/projects", ws_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .header("Content-Type", "application/json")
                 .body(Body::from(r#"{"name": ""}"#))
@@ -258,7 +258,7 @@ async fn test_get_board_nonexistent_returns_404() {
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/boards/{}", Uuid::new_v4()))
+                .uri(format!("/api/projects/{}", Uuid::new_v4()))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),
@@ -279,10 +279,10 @@ async fn test_create_board_invalid_workspace_returns_error() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{}/boards", Uuid::new_v4()))
+                .uri(format!("/api/workspaces/{}/projects", Uuid::new_v4()))
                 .header("Authorization", format!("Bearer {}", token))
                 .header("Content-Type", "application/json")
-                .body(Body::from(r#"{"name": "Orphan Board"}"#))
+                .body(Body::from(r#"{"name": "Orphan Project"}"#))
                 .expect("build request"),
         )
         .await
@@ -308,7 +308,7 @@ async fn test_create_board_missing_body_returns_400() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{}/boards", ws_id))
+                .uri(format!("/api/workspaces/{}/projects", ws_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .header("Content-Type", "application/json")
                 .body(Body::empty())
@@ -330,7 +330,7 @@ async fn test_create_board_invalid_json_returns_400() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/workspaces/{}/boards", ws_id))
+                .uri(format!("/api/workspaces/{}/projects", ws_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .header("Content-Type", "application/json")
                 .body(Body::from("{invalid json"))
@@ -352,10 +352,10 @@ async fn test_update_board_nonexistent_returns_404() {
         .oneshot(
             Request::builder()
                 .method("PUT")
-                .uri(format!("/api/boards/{}", Uuid::new_v4()))
+                .uri(format!("/api/projects/{}", Uuid::new_v4()))
                 .header("Authorization", format!("Bearer {}", token))
                 .header("Content-Type", "application/json")
-                .body(Body::from(r#"{"name": "Ghost Board"}"#))
+                .body(Body::from(r#"{"name": "Ghost Project"}"#))
                 .expect("build request"),
         )
         .await
@@ -374,7 +374,7 @@ async fn test_delete_board_nonexistent_returns_404() {
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/boards/{}", Uuid::new_v4()))
+                .uri(format!("/api/projects/{}", Uuid::new_v4()))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),
@@ -394,7 +394,7 @@ async fn test_get_board_full_nonexistent_returns_404() {
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/boards/{}/full", Uuid::new_v4()))
+                .uri(format!("/api/projects/{}/full", Uuid::new_v4()))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),
@@ -406,7 +406,7 @@ async fn test_get_board_full_nonexistent_returns_404() {
 }
 
 #[tokio::test]
-async fn test_list_board_members_nonexistent_board() {
+async fn test_list_project_members_nonexistent_board() {
     let (app, state) = test_app().await;
     let (tenant_id, user_id) = setup_user(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
@@ -414,7 +414,7 @@ async fn test_list_board_members_nonexistent_board() {
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/boards/{}/members", Uuid::new_v4()))
+                .uri(format!("/api/projects/{}/members", Uuid::new_v4()))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),
@@ -422,7 +422,7 @@ async fn test_list_board_members_nonexistent_board() {
         .await
         .expect("request failed");
 
-    // Board members for non-existent board: could be 404 or empty array
+    // Project members for non-existent project: could be 404 or empty array
     assert!(
         response.status() == StatusCode::NOT_FOUND || response.status() == StatusCode::OK,
         "Expected 404 or 200 (empty), got {}",
@@ -431,19 +431,19 @@ async fn test_list_board_members_nonexistent_board() {
 }
 
 // =========================================================================
-// BOARD SHARE ROUTES
+// project SHARE ROUTES
 // =========================================================================
 
 #[tokio::test]
-async fn test_list_board_shares() {
+async fn test_list_project_shares() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/boards/{}/shares", board_id))
+                .uri(format!("/api/projects/{}/shares", project_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),
@@ -465,7 +465,7 @@ async fn test_reports_board_auth_required() {
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/boards/{}/reports", Uuid::new_v4()))
+                .uri(format!("/api/projects/{}/reports", Uuid::new_v4()))
                 .body(Body::empty())
                 .expect("build request"),
         )
@@ -478,13 +478,13 @@ async fn test_reports_board_auth_required() {
 #[tokio::test]
 async fn test_reports_board_returns_data() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/boards/{}/reports", board_id))
+                .uri(format!("/api/projects/{}/reports", project_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),
@@ -498,13 +498,13 @@ async fn test_reports_board_returns_data() {
 #[tokio::test]
 async fn test_list_webhooks() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/boards/{}/webhooks", board_id))
+                .uri(format!("/api/projects/{}/webhooks", project_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),
@@ -518,13 +518,13 @@ async fn test_list_webhooks() {
 #[tokio::test]
 async fn test_list_automations() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/boards/{}/automations", board_id))
+                .uri(format!("/api/projects/{}/automations", project_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),
@@ -542,13 +542,13 @@ async fn test_list_automations() {
 #[tokio::test]
 async fn test_list_milestones() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/boards/{}/milestones", board_id))
+                .uri(format!("/api/projects/{}/milestones", project_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),
@@ -562,14 +562,14 @@ async fn test_list_milestones() {
 #[tokio::test]
 async fn test_create_milestone() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/boards/{}/milestones", board_id))
+                .uri(format!("/api/projects/{}/milestones", project_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .header("Content-Type", "application/json")
                 .body(Body::from(
@@ -593,13 +593,13 @@ async fn test_create_milestone() {
 #[tokio::test]
 async fn test_list_custom_fields() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/boards/{}/custom-fields", board_id))
+                .uri(format!("/api/projects/{}/custom-fields", project_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),
@@ -617,13 +617,13 @@ async fn test_list_custom_fields() {
 #[tokio::test]
 async fn test_list_task_groups() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/boards/{}/groups", board_id))
+                .uri(format!("/api/projects/{}/groups", project_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),

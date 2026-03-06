@@ -45,21 +45,21 @@ describe('BoardShareService', () => {
   });
 
   describe('listShares()', () => {
-    it('should GET /api/boards/:boardId/shares', () => {
+    it('should GET /api/projects/:projectId/shares', () => {
       const shares = [MOCK_SHARE];
 
       service.listShares('board-1').subscribe((result) => {
         expect(result).toEqual(shares);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/shares');
+      const req = httpMock.expectOne('/api/projects/board-1/shares');
       expect(req.request.method).toBe('GET');
       req.flush(shares);
     });
   });
 
   describe('createShare()', () => {
-    it('should POST /api/boards/:boardId/shares with body', () => {
+    it('should POST /api/projects/:projectId/shares with body', () => {
       const createReq: CreateShareRequest = {
         name: 'New Link',
         permissions: { view: true },
@@ -69,7 +69,7 @@ describe('BoardShareService', () => {
         expect(result).toEqual(MOCK_SHARE);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/shares');
+      const req = httpMock.expectOne('/api/projects/board-1/shares');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(createReq);
       req.flush(MOCK_SHARE);
@@ -103,7 +103,7 @@ describe('BoardShareService', () => {
     it('should GET /api/shared/:token without password', () => {
       const access: SharedBoardAccess = {
         board_id: 'board-1',
-        board_name: 'Test Board',
+        project_name: 'Test Board',
         permissions: { view: true },
         columns: [],
         tasks: [],
@@ -126,7 +126,7 @@ describe('BoardShareService', () => {
       expect(req.request.params.get('password')).toBe('secret');
       req.flush({
         board_id: 'board-1',
-        board_name: 'Test Board',
+        project_name: 'Test Board',
         permissions: {},
         columns: [],
         tasks: [],

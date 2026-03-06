@@ -5,21 +5,21 @@ use uuid::Uuid;
 
 use crate::models::{TaskGroup, TaskGroupWithStats};
 
-/// List task groups for a board ordered by position
+/// List task groups for a project ordered by position
 pub async fn list_task_groups_by_board(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
 ) -> Result<Vec<TaskGroup>, sqlx::Error> {
     sqlx::query_as::<_, TaskGroup>(
         r#"
-        SELECT id, board_id, name, color, position, collapsed,
+        SELECT id, project_id, name, color, position, collapsed,
                tenant_id, created_by_id, created_at, updated_at, deleted_at
         FROM task_groups
-        WHERE board_id = $1 AND deleted_at IS NULL
+        WHERE project_id = $1 AND deleted_at IS NULL
         ORDER BY position ASC
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_all(pool)
     .await
 }
@@ -27,12 +27,12 @@ pub async fn list_task_groups_by_board(
 /// List task groups with statistics (task count, completion, estimated hours)
 pub async fn list_task_groups_with_stats(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
 ) -> Result<Vec<TaskGroupWithStats>, sqlx::Error> {
     #[derive(sqlx::FromRow)]
     struct Row {
         id: Uuid,
-        board_id: Uuid,
+        project_id: Uuid,
         name: String,
         color: String,
         position: String,
@@ -50,20 +50,20 @@ pub async fn list_task_groups_with_stats(
     let rows: Vec<Row> = sqlx::query_as::<_, Row>(
         r#"
         SELECT
-            tg.id, tg.board_id, tg.name, tg.color, tg.position, tg.collapsed,
+            tg.id, tg.project_id, tg.name, tg.color, tg.position, tg.collapsed,
             tg.tenant_id, tg.created_by_id, tg.created_at, tg.updated_at, tg.deleted_at,
             COUNT(t.id) as task_count,
             COUNT(CASE WHEN bc.status_mapping->>'done' = 'true' THEN 1 END) as completed_count,
             SUM(t.estimated_hours) as estimated_hours
         FROM task_groups tg
         LEFT JOIN tasks t ON t.group_id = tg.id AND t.deleted_at IS NULL
-        LEFT JOIN board_columns bc ON t.column_id = bc.id
-        WHERE tg.board_id = $1 AND tg.deleted_at IS NULL
+        LEFT JOIN project_columns bc ON t.column_id = bc.id
+        WHERE tg.project_id = $1 AND tg.deleted_at IS NULL
         GROUP BY tg.id
         ORDER BY tg.position ASC
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_all(pool)
     .await?;
 
@@ -72,7 +72,7 @@ pub async fn list_task_groups_with_stats(
         .map(|row| TaskGroupWithStats {
             group: TaskGroup {
                 id: row.id,
-                board_id: row.board_id,
+                project_id: row.project_id,
                 name: row.name,
                 color: row.color,
                 position: row.position,
@@ -97,7 +97,7 @@ pub async fn get_task_group_by_id(
 ) -> Result<Option<TaskGroup>, sqlx::Error> {
     sqlx::query_as::<_, TaskGroup>(
         r#"
-        SELECT id, board_id, name, color, position, collapsed,
+        SELECT id, project_id, name, color, position, collapsed,
                tenant_id, created_by_id, created_at, updated_at, deleted_at
         FROM task_groups
         WHERE id = $1 AND deleted_at IS NULL
@@ -111,7 +111,7 @@ pub async fn get_task_group_by_id(
 /// Create a new task group
 pub async fn create_task_group(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     name: &str,
     color: &str,
     position: &str,
@@ -120,13 +120,13 @@ pub async fn create_task_group(
 ) -> Result<TaskGroup, sqlx::Error> {
     sqlx::query_as::<_, TaskGroup>(
         r#"
-        INSERT INTO task_groups (board_id, name, color, position, tenant_id, created_by_id)
+        INSERT INTO task_groups (project_id, name, color, position, tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id, board_id, name, color, position, collapsed,
+        RETURNING id, project_id, name, color, position, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .bind(name)
     .bind(color)
     .bind(position)
@@ -147,7 +147,7 @@ pub async fn update_task_group_name(
         UPDATE task_groups
         SET name = $2, updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
-        RETURNING id, board_id, name, color, position, collapsed,
+        RETURNING id, project_id, name, color, position, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
         "#,
     )
@@ -168,7 +168,7 @@ pub async fn update_task_group_color(
         UPDATE task_groups
         SET color = $2, updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
-        RETURNING id, board_id, name, color, position, collapsed,
+        RETURNING id, project_id, name, color, position, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
         "#,
     )
@@ -189,7 +189,7 @@ pub async fn update_task_group_position(
         UPDATE task_groups
         SET position = $2, updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
-        RETURNING id, board_id, name, color, position, collapsed,
+        RETURNING id, project_id, name, color, position, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
         "#,
     )
@@ -210,7 +210,7 @@ pub async fn toggle_task_group_collapse(
         UPDATE task_groups
         SET collapsed = $2, updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
-        RETURNING id, board_id, name, color, position, collapsed,
+        RETURNING id, project_id, name, color, position, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
         "#,
     )
@@ -228,9 +228,9 @@ pub async fn soft_delete_task_group(
     let mut tx = pool.begin().await?;
 
     // Move all tasks in this group to the "Ungrouped" group
-    let board_id: Uuid = sqlx::query_scalar::<_, Uuid>(
+    let project_id: Uuid = sqlx::query_scalar::<_, Uuid>(
         r#"
-        SELECT board_id FROM task_groups WHERE id = $1
+        SELECT project_id FROM task_groups WHERE id = $1
         "#,
     )
     .bind(id)
@@ -240,10 +240,10 @@ pub async fn soft_delete_task_group(
     let ungrouped_id: Uuid = sqlx::query_scalar::<_, Uuid>(
         r#"
         SELECT id FROM task_groups
-        WHERE board_id = $1 AND name = 'Ungrouped' AND deleted_at IS NULL
+        WHERE project_id = $1 AND name = 'Ungrouped' AND deleted_at IS NULL
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_one(&mut *tx)
     .await?;
 
@@ -265,7 +265,7 @@ pub async fn soft_delete_task_group(
         UPDATE task_groups
         SET deleted_at = NOW()
         WHERE id = $1
-        RETURNING id, board_id, name, color, position, collapsed,
+        RETURNING id, project_id, name, color, position, collapsed,
                   tenant_id, created_by_id, created_at, updated_at, deleted_at
         "#,
     )
@@ -280,7 +280,7 @@ pub async fn soft_delete_task_group(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::queries::{auth, boards, workspaces};
+    use crate::queries::{auth, projects, workspaces};
 
     const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
 
@@ -313,25 +313,26 @@ mod tests {
 
     async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
         let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-        let bwc = boards::create_board(pool, "TG Test Board", None, ws_id, tenant_id, user_id)
-            .await
-            .expect("create_board");
+        let bwc =
+            projects::create_project(pool, "TG Test Project", None, ws_id, tenant_id, user_id)
+                .await
+                .expect("create_project");
         let first_col_id = bwc.columns[0].id;
-        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+        (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
     }
 
     #[tokio::test]
     async fn test_create_task_group() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         let group = create_task_group(
-            &pool, board_id, "Sprint 1", "#ff5722", "a1", tenant_id, user_id,
+            &pool, project_id, "Sprint 1", "#ff5722", "a1", tenant_id, user_id,
         )
         .await
         .expect("create_task_group");
 
-        assert_eq!(group.board_id, board_id);
+        assert_eq!(group.project_id, project_id);
         assert_eq!(group.name, "Sprint 1");
         assert_eq!(group.color, "#ff5722");
         assert_eq!(group.position, "a1");
@@ -344,25 +345,25 @@ mod tests {
     #[tokio::test]
     async fn test_list_task_groups_by_board() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         create_task_group(
-            &pool, board_id, "Group A", "#111111", "a1", tenant_id, user_id,
+            &pool, project_id, "Group A", "#111111", "a1", tenant_id, user_id,
         )
         .await
         .expect("create group A");
 
         create_task_group(
-            &pool, board_id, "Group B", "#222222", "a2", tenant_id, user_id,
+            &pool, project_id, "Group B", "#222222", "a2", tenant_id, user_id,
         )
         .await
         .expect("create group B");
 
-        let groups = list_task_groups_by_board(&pool, board_id)
+        let groups = list_task_groups_by_board(&pool, project_id)
             .await
             .expect("list_task_groups_by_board");
 
-        // At minimum: Ungrouped (created by create_board) + our 2
+        // At minimum: Ungrouped (created by create_project) + our 2
         assert!(groups.len() >= 2);
         let names: Vec<&str> = groups.iter().map(|g| g.name.as_str()).collect();
         assert!(names.contains(&"Group A"));
@@ -372,10 +373,10 @@ mod tests {
     #[tokio::test]
     async fn test_get_task_group_by_id() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         let group = create_task_group(
-            &pool, board_id, "Find Me", "#333333", "b1", tenant_id, user_id,
+            &pool, project_id, "Find Me", "#333333", "b1", tenant_id, user_id,
         )
         .await
         .expect("create group");
@@ -392,10 +393,10 @@ mod tests {
     #[tokio::test]
     async fn test_update_task_group_name() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         let group = create_task_group(
-            &pool, board_id, "Old Name", "#444444", "c1", tenant_id, user_id,
+            &pool, project_id, "Old Name", "#444444", "c1", tenant_id, user_id,
         )
         .await
         .expect("create group");
@@ -412,11 +413,11 @@ mod tests {
     #[tokio::test]
     async fn test_update_task_group_color() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         let group = create_task_group(
             &pool,
-            board_id,
+            project_id,
             "Color Test",
             "#000000",
             "d1",
@@ -437,11 +438,11 @@ mod tests {
     #[tokio::test]
     async fn test_update_task_group_position() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         let group = create_task_group(
             &pool,
-            board_id,
+            project_id,
             "Position Test",
             "#555555",
             "e1",
@@ -462,11 +463,11 @@ mod tests {
     #[tokio::test]
     async fn test_toggle_task_group_collapse() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         let group = create_task_group(
             &pool,
-            board_id,
+            project_id,
             "Collapse Test",
             "#666666",
             "f1",
@@ -496,11 +497,11 @@ mod tests {
     #[tokio::test]
     async fn test_soft_delete_task_group() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         let group = create_task_group(
             &pool,
-            board_id,
+            project_id,
             "Delete Me",
             "#777777",
             "g1",
@@ -518,7 +519,7 @@ mod tests {
         assert!(deleted.deleted_at.is_some());
 
         // Should not appear in list
-        let groups = list_task_groups_by_board(&pool, board_id)
+        let groups = list_task_groups_by_board(&pool, project_id)
             .await
             .expect("list after delete");
         assert!(
@@ -536,11 +537,11 @@ mod tests {
     #[tokio::test]
     async fn test_list_task_groups_with_stats() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         create_task_group(
             &pool,
-            board_id,
+            project_id,
             "Stats Group",
             "#888888",
             "h1",
@@ -550,7 +551,7 @@ mod tests {
         .await
         .expect("create group for stats");
 
-        let stats = list_task_groups_with_stats(&pool, board_id)
+        let stats = list_task_groups_with_stats(&pool, project_id)
             .await
             .expect("list_task_groups_with_stats");
 

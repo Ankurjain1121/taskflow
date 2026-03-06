@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 export interface TaskGroup {
   id: string;
-  board_id: string;
+  project_id: string;
   name: string;
   color: string;
   position: string;
@@ -24,7 +24,7 @@ export interface TaskGroupWithStats {
 }
 
 export interface CreateTaskGroupRequest {
-  board_id: string;
+  project_id: string;
   name: string;
   color?: string;
   position: string;
@@ -48,18 +48,18 @@ export class TaskGroupService {
   /**
    * List task groups for a board
    */
-  listGroups(boardId: string): Observable<TaskGroup[]> {
+  listGroups(projectId: string): Observable<TaskGroup[]> {
     return this.http.get<TaskGroup[]>(
-      `${this.API_URL}/boards/${boardId}/groups`,
+      `${this.API_URL}/projects/${projectId}/groups`,
     );
   }
 
   /**
    * List task groups with statistics
    */
-  listGroupsWithStats(boardId: string): Observable<TaskGroupWithStats[]> {
+  listGroupsWithStats(projectId: string): Observable<TaskGroupWithStats[]> {
     return this.http.get<TaskGroupWithStats[]>(
-      `${this.API_URL}/boards/${boardId}/groups/stats`,
+      `${this.API_URL}/projects/${projectId}/groups/stats`,
     );
   }
 
@@ -74,11 +74,11 @@ export class TaskGroupService {
    * Create a new task group
    */
   createGroup(
-    boardId: string,
+    projectId: string,
     request: CreateTaskGroupRequest,
   ): Observable<TaskGroup> {
     return this.http.post<TaskGroup>(
-      `${this.API_URL}/boards/${boardId}/groups`,
+      `${this.API_URL}/projects/${projectId}/groups`,
       request,
     );
   }

@@ -8,7 +8,7 @@ export interface Milestone {
   description: string | null;
   due_date: string | null;
   color: string;
-  board_id: string;
+  project_id: string;
   total_tasks: number;
   completed_tasks: number;
   created_at: string;
@@ -33,16 +33,16 @@ export interface UpdateMilestoneRequest {
 export class MilestoneService {
   constructor(private http: HttpClient) {}
 
-  list(boardId: string): Observable<Milestone[]> {
-    return this.http.get<Milestone[]>(`/api/boards/${boardId}/milestones`);
+  list(projectId: string): Observable<Milestone[]> {
+    return this.http.get<Milestone[]>(`/api/projects/${projectId}/milestones`);
   }
 
   get(id: string): Observable<Milestone> {
     return this.http.get<Milestone>(`/api/milestones/${id}`);
   }
 
-  create(boardId: string, req: CreateMilestoneRequest): Observable<Milestone> {
-    return this.http.post<Milestone>(`/api/boards/${boardId}/milestones`, req);
+  create(projectId: string, req: CreateMilestoneRequest): Observable<Milestone> {
+    return this.http.post<Milestone>(`/api/projects/${projectId}/milestones`, req);
   }
 
   update(id: string, req: UpdateMilestoneRequest): Observable<Milestone> {

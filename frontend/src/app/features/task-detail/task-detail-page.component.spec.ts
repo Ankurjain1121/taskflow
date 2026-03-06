@@ -10,7 +10,7 @@ import {
   Task,
   TaskPriority,
 } from '../../core/services/task.service';
-import { BoardService, Board, Column } from '../../core/services/board.service';
+import { ProjectService, Project, Column } from '../../core/services/project.service';
 import {
   WorkspaceService,
   Workspace,
@@ -46,11 +46,11 @@ function makeTask(overrides: Partial<Task> = {}): Task {
   };
 }
 
-function makeBoard(overrides: Partial<Board> = {}): Board {
+function makeBoard(overrides: Partial<Project> = {}): Project {
   return {
     id: 'board-1',
     workspace_id: 'ws-1',
-    name: 'Test Board',
+    name: 'Test Project',
     description: null,
     position: 'a0',
     created_at: '2026-01-01T00:00:00Z',
@@ -62,7 +62,7 @@ function makeBoard(overrides: Partial<Board> = {}): Board {
 function makeColumn(overrides: Partial<Column> = {}): Column {
   return {
     id: 'col-1',
-    board_id: 'board-1',
+    project_id: 'board-1',
     name: 'To Do',
     position: 'a0',
     color: '#6366f1',
@@ -101,7 +101,7 @@ function createMockTaskService() {
   };
 }
 
-function createMockBoardService() {
+function createMockProjectService() {
   return {
     getBoard: vi.fn(),
     listColumns: vi.fn(),
@@ -119,7 +119,7 @@ describe('TaskDetailPageComponent', () => {
   let component: TaskDetailPageComponent;
   let fixture: ComponentFixture<TaskDetailPageComponent>;
   let mockTaskService: ReturnType<typeof createMockTaskService>;
-  let mockBoardService: ReturnType<typeof createMockBoardService>;
+  let mockProjectService: ReturnType<typeof createMockProjectService>;
   let mockWorkspaceService: ReturnType<typeof createMockWorkspaceService>;
   let mockRouter: { navigate: ReturnType<typeof vi.fn> };
   let mockLocation: { back: ReturnType<typeof vi.fn> };
@@ -135,7 +135,7 @@ describe('TaskDetailPageComponent', () => {
 
   beforeEach(async () => {
     mockTaskService = createMockTaskService();
-    mockBoardService = createMockBoardService();
+    mockProjectService = createMockProjectService();
     mockWorkspaceService = createMockWorkspaceService();
     mockRouter = { navigate: vi.fn() };
     mockLocation = { back: vi.fn() };
@@ -143,18 +143,18 @@ describe('TaskDetailPageComponent', () => {
 
     // Default happy-path returns
     mockTaskService.getTask.mockReturnValue(
-      of({ ...task, board_id: 'board-1' }),
+      of({ ...task, project_id: 'board-1' }),
     );
     mockTaskService.listReminders.mockReturnValue(of([]));
-    mockBoardService.getBoard.mockReturnValue(of(board));
-    mockBoardService.listColumns.mockReturnValue(of(columns));
+    mockProjectService.getProject.mockReturnValue(of(board));
+    mockProjectService.listColumns.mockReturnValue(of(columns));
     mockWorkspaceService.get.mockReturnValue(of(workspace));
 
     await TestBed.configureTestingModule({
       imports: [TaskDetailPageComponent, HttpClientTestingModule],
       providers: [
         { provide: TaskService, useValue: mockTaskService },
-        { provide: BoardService, useValue: mockBoardService },
+        { provide: ProjectService, useValue: mockProjectService },
         { provide: WorkspaceService, useValue: mockWorkspaceService },
         { provide: Router, useValue: mockRouter },
         { provide: Location, useValue: mockLocation },
@@ -199,9 +199,9 @@ describe('TaskDetailPageComponent', () => {
       fixture.detectChanges();
       routeParams$.next({ taskId: 'task-1' });
 
-      expect(mockBoardService.getBoard).toHaveBeenCalledWith('board-1');
-      expect(mockBoardService.listColumns).toHaveBeenCalledWith('board-1');
-      expect(component.board()?.name).toBe('Test Board');
+      expect(mockProjectService.getProject).toHaveBeenCalledWith('board-1');
+      expect(mockProjectService.listColumns).toHaveBeenCalledWith('board-1');
+      expect(component.project()?.name).toBe('Test Project');
       expect(component.columns()).toHaveLength(2);
     });
 

@@ -8,8 +8,8 @@ use uuid::Uuid;
 pub enum ReportQueryError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
-    #[error("User is not a member of this board")]
-    NotBoardMember,
+    #[error("User is not a member of this project")]
+    NotProjectMember,
 }
 
 /// Completion rate stats
@@ -51,9 +51,9 @@ pub struct OverdueBucket {
     pub count: i64,
 }
 
-/// Full board report
+/// Full project report
 #[derive(Debug, Serialize)]
-pub struct BoardReport {
+pub struct ProjectReport {
     pub completion_rate: CompletionRate,
     pub burndown: Vec<BurndownPoint>,
     pub priority_distribution: Vec<PriorityCount>,
@@ -61,21 +61,21 @@ pub struct BoardReport {
     pub overdue_analysis: Vec<OverdueBucket>,
 }
 
-/// Verify user is a member of the board
-async fn verify_board_membership(
+/// Verify user is a member of the project
+async fn verify_project_membership(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     user_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
     let result = sqlx::query_scalar::<_, bool>(
         r#"
         SELECT EXISTS(
-            SELECT 1 FROM board_members
-            WHERE board_id = $1 AND user_id = $2
+            SELECT 1 FROM project_members
+            WHERE project_id = $1 AND user_id = $2
         )
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .bind(user_id)
     .fetch_one(pool)
     .await?;
@@ -83,24 +83,24 @@ async fn verify_board_membership(
     Ok(result)
 }
 
-/// Get full board report
+/// Get full project report
 pub async fn get_board_report(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     user_id: Uuid,
     days_back: i32,
-) -> Result<BoardReport, ReportQueryError> {
-    if !verify_board_membership(pool, board_id, user_id).await? {
-        return Err(ReportQueryError::NotBoardMember);
+) -> Result<ProjectReport, ReportQueryError> {
+    if !verify_project_membership(pool, project_id, user_id).await? {
+        return Err(ReportQueryError::NotProjectMember);
     }
 
-    let completion_rate = get_completion_rate(pool, board_id).await?;
-    let burndown = get_burndown(pool, board_id, days_back).await?;
-    let priority_distribution = get_priority_distribution(pool, board_id).await?;
-    let assignee_workload = get_assignee_workload(pool, board_id).await?;
-    let overdue_analysis = get_overdue_analysis(pool, board_id).await?;
+    let completion_rate = get_completion_rate(pool, project_id).await?;
+    let burndown = get_burndown(pool, project_id, days_back).await?;
+    let priority_distribution = get_priority_distribution(pool, project_id).await?;
+    let assignee_workload = get_assignee_workload(pool, project_id).await?;
+    let overdue_analysis = get_overdue_analysis(pool, project_id).await?;
 
-    Ok(BoardReport {
+    Ok(ProjectReport {
         completion_rate,
         burndown,
         priority_distribution,
@@ -110,7 +110,10 @@ pub async fn get_board_report(
 }
 
 /// Count tasks in done vs not-done columns
-async fn get_completion_rate(pool: &PgPool, board_id: Uuid) -> Result<CompletionRate, sqlx::Error> {
+async fn get_completion_rate(
+    pool: &PgPool,
+    project_id: Uuid,
+) -> Result<CompletionRate, sqlx::Error> {
     #[derive(sqlx::FromRow)]
     struct Counts {
         total: i64,
@@ -125,11 +128,11 @@ async fn get_completion_rate(pool: &PgPool, board_id: Uuid) -> Result<Completion
                 WHERE bc.status_mapping->>'done' = 'true'
             ) as completed
         FROM tasks t
-        JOIN board_columns bc ON bc.id = t.column_id
-        WHERE t.board_id = $1 AND t.deleted_at IS NULL
+        JOIN project_columns bc ON bc.id = t.column_id
+        WHERE t.project_id = $1 AND t.deleted_at IS NULL
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_one(pool)
     .await?;
 
@@ -143,7 +146,7 @@ async fn get_completion_rate(pool: &PgPool, board_id: Uuid) -> Result<Completion
 /// Get burndown data over a period
 async fn get_burndown(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     days_back: i32,
 ) -> Result<Vec<BurndownPoint>, sqlx::Error> {
     // For each day in the range, count tasks that were created before that day
@@ -172,8 +175,8 @@ async fn get_burndown(
             (
                 SELECT COUNT(*)
                 FROM tasks t
-                JOIN board_columns bc ON bc.id = t.column_id
-                WHERE t.board_id = $1
+                JOIN project_columns bc ON bc.id = t.column_id
+                WHERE t.project_id = $1
                   AND t.deleted_at IS NULL
                   AND t.created_at::date <= ds.date
                   AND (bc.status_mapping->>'done' IS DISTINCT FROM 'true')
@@ -182,7 +185,7 @@ async fn get_burndown(
         ORDER BY ds.date
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .bind(days_back)
     .fetch_all(pool)
     .await?;
@@ -193,7 +196,7 @@ async fn get_burndown(
 /// Get task count by priority
 async fn get_priority_distribution(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
 ) -> Result<Vec<PriorityCount>, sqlx::Error> {
     let counts = sqlx::query_as::<_, PriorityCount>(
         r#"
@@ -201,7 +204,7 @@ async fn get_priority_distribution(
             priority::text as priority,
             COUNT(*) as count
         FROM tasks
-        WHERE board_id = $1 AND deleted_at IS NULL
+        WHERE project_id = $1 AND deleted_at IS NULL
         GROUP BY priority
         ORDER BY
             CASE priority::text
@@ -212,7 +215,7 @@ async fn get_priority_distribution(
             END
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_all(pool)
     .await?;
 
@@ -222,7 +225,7 @@ async fn get_priority_distribution(
 /// Get workload per assignee
 async fn get_assignee_workload(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
 ) -> Result<Vec<AssigneeWorkload>, sqlx::Error> {
     let workload = sqlx::query_as::<_, AssigneeWorkload>(
         r#"
@@ -237,13 +240,13 @@ async fn get_assignee_workload(
         FROM task_assignees ta
         JOIN users u ON u.id = ta.user_id
         JOIN tasks t ON t.id = ta.task_id
-        JOIN board_columns bc ON bc.id = t.column_id
-        WHERE t.board_id = $1 AND t.deleted_at IS NULL
+        JOIN project_columns bc ON bc.id = t.column_id
+        WHERE t.project_id = $1 AND t.deleted_at IS NULL
         GROUP BY u.id, u.name, u.avatar_url
         ORDER BY total_tasks DESC
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_all(pool)
     .await?;
 
@@ -253,7 +256,7 @@ async fn get_assignee_workload(
 /// Get overdue task analysis bucketed by how overdue
 async fn get_overdue_analysis(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
 ) -> Result<Vec<OverdueBucket>, sqlx::Error> {
     #[derive(sqlx::FromRow)]
     struct OverdueRow {
@@ -265,14 +268,14 @@ async fn get_overdue_analysis(
         SELECT
             EXTRACT(DAY FROM NOW() - t.due_date)::int as days_overdue
         FROM tasks t
-        JOIN board_columns bc ON bc.id = t.column_id
-        WHERE t.board_id = $1
+        JOIN project_columns bc ON bc.id = t.column_id
+        WHERE t.project_id = $1
             AND t.deleted_at IS NULL
             AND t.due_date < NOW()
             AND bc.status_mapping->>'done' IS DISTINCT FROM 'true'
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_all(pool)
     .await?;
 
@@ -307,7 +310,7 @@ async fn get_overdue_analysis(
 mod tests {
     use super::*;
     use crate::models::TaskPriority;
-    use crate::queries::{auth, boards, tasks, workspaces};
+    use crate::queries::{auth, projects, tasks, workspaces};
 
     const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
 
@@ -340,19 +343,20 @@ mod tests {
 
     async fn setup_full(pool: &sqlx::PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
         let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-        let bwc = boards::create_board(pool, "RP Test Board", None, ws_id, tenant_id, user_id)
-            .await
-            .expect("create_board");
+        let bwc =
+            projects::create_project(pool, "RP Test Project", None, ws_id, tenant_id, user_id)
+                .await
+                .expect("create_project");
         let first_col_id = bwc.columns[0].id;
-        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+        (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
     }
 
     #[tokio::test]
     async fn test_get_board_report_empty_board() {
         let pool = test_pool().await;
-        let (_tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (_tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
-        let report = get_board_report(&pool, board_id, user_id, 30)
+        let report = get_board_report(&pool, project_id, user_id, 30)
             .await
             .expect("get_board_report");
 
@@ -376,7 +380,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_board_report_with_tasks() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, col_id) = setup_full(&pool).await;
 
         // Create a couple of tasks
         let input1 = tasks::CreateTaskInput {
@@ -393,7 +397,7 @@ mod tests {
             label_ids: None,
             parent_task_id: None,
         };
-        tasks::create_task(&pool, board_id, input1, tenant_id, user_id)
+        tasks::create_task(&pool, project_id, input1, tenant_id, user_id)
             .await
             .expect("create task 1");
 
@@ -411,11 +415,11 @@ mod tests {
             label_ids: None,
             parent_task_id: None,
         };
-        tasks::create_task(&pool, board_id, input2, tenant_id, user_id)
+        tasks::create_task(&pool, project_id, input2, tenant_id, user_id)
             .await
             .expect("create task 2");
 
-        let report = get_board_report(&pool, board_id, user_id, 7)
+        let report = get_board_report(&pool, project_id, user_id, 7)
             .await
             .expect("get_board_report with tasks");
 
@@ -441,7 +445,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_board_report_not_board_member() {
         let pool = test_pool().await;
-        let (tenant_id, _user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, _user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         let other_user = auth::create_user(
             &pool,
@@ -454,10 +458,10 @@ mod tests {
         .await
         .expect("create other user");
 
-        let result = get_board_report(&pool, board_id, other_user.id, 30).await;
+        let result = get_board_report(&pool, project_id, other_user.id, 30).await;
         assert!(
             result.is_err(),
-            "non-member should not be able to get board report"
+            "non-member should not be able to get project report"
         );
     }
 }

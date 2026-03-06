@@ -22,13 +22,13 @@ import { Textarea } from 'primeng/textarea';
 import { Select } from 'primeng/select';
 import { Checkbox } from 'primeng/checkbox';
 import { FormsModule } from '@angular/forms';
-import { BoardService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/project.service';
 import { Workspace } from '../../../core/services/workspace.service';
 
 export interface InviteMemberDialogData {
   workspaceId: string;
   workspaceName: string;
-  boards: { id: string; name: string }[];
+  projects: { id: string; name: string }[];
 }
 
 export interface InviteMemberDialogResult {
@@ -222,7 +222,7 @@ interface EmailValidation {
               Board Access
             </label>
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-              Select which boards the invited members should have access to
+              Select which projects the invited members should have access to
             </p>
             <div
               class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 max-h-48 overflow-y-auto space-y-1"
@@ -320,7 +320,7 @@ interface EmailValidation {
 })
 export class InviteMemberDialogComponent {
   private fb = inject(FormBuilder);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
 
   /** Two-way bound visibility */
   visible = model(false);
@@ -328,7 +328,7 @@ export class InviteMemberDialogComponent {
   /** Input data for the dialog */
   workspaceId = input<string>('');
   workspaceName = input<string>('');
-  boards = input<{ id: string; name: string }[]>([]);
+  projects = input<{ id: string; name: string }[]>([]);
 
   /** Optional: pass available workspaces for embedded workspace selection */
   workspaces = input<Workspace[]>([]);
@@ -369,15 +369,15 @@ export class InviteMemberDialogComponent {
     return this.workspaces().find((ws) => ws.id === wsId)?.name ?? '';
   });
 
-  /** Effective boards list: external input or dynamically loaded */
+  /** Effective projects list: external input or dynamically loaded */
   effectiveBoards = computed(() => {
-    if (this.boards().length > 0) return this.boards();
+    if (this.projects().length > 0) return this.projects();
     return this.dynamicBoards();
   });
 
   roleOptions = [
-    { label: 'Member - Can view and edit boards', value: 'member' },
-    { label: 'Manager - Can manage boards and assign tasks', value: 'manager' },
+    { label: 'Member - Can view and edit projects', value: 'member' },
+    { label: 'Manager - Can manage projects and assign tasks', value: 'manager' },
     { label: 'Admin - Can manage members and settings', value: 'admin' },
   ];
 
@@ -402,10 +402,10 @@ export class InviteMemberDialogComponent {
     this.dynamicBoards.set([]);
     if (wsId) {
       this.loadingBoards.set(true);
-      this.boardService.listBoards(wsId).subscribe({
-        next: (boards) => {
+      this.projectService.listProjects(wsId).subscribe({
+        next: (projects) => {
           this.dynamicBoards.set(
-            boards.map((b) => ({ id: b.id, name: b.name })),
+            projects.map((b) => ({ id: b.id, name: b.name })),
           );
           this.loadingBoards.set(false);
         },
@@ -434,8 +434,8 @@ export class InviteMemberDialogComponent {
     return hasValidEmails;
   }
 
-  isBoardSelected(boardId: string): boolean {
-    return this.selectedBoardIds().includes(boardId);
+  isBoardSelected(projectId: string): boolean {
+    return this.selectedBoardIds().includes(projectId);
   }
 
   allBoardsSelected(): boolean {
@@ -445,9 +445,9 @@ export class InviteMemberDialogComponent {
     );
   }
 
-  toggleBoard(boardId: string, checked: boolean): void {
+  toggleBoard(projectId: string, checked: boolean): void {
     this.selectedBoardIds.update((ids) =>
-      checked ? [...ids, boardId] : ids.filter((id) => id !== boardId),
+      checked ? [...ids, projectId] : ids.filter((id) => id !== projectId),
     );
   }
 

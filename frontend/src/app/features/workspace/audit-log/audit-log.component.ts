@@ -48,7 +48,7 @@ import {
         >
           <option value="">All types</option>
           <option value="task">Task</option>
-          <option value="board">Board</option>
+          <option value="project">Project</option>
           <option value="workspace">Workspace</option>
         </select>
       </div>

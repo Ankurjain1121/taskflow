@@ -22,10 +22,10 @@ pub static ROUTE_ACTION_MAP: Lazy<HashMap<&'static str, ActivityAction>> = Lazy:
     map.insert("tasks.unassign", ActivityAction::Unassigned);
     map.insert("tasks.delete", ActivityAction::Deleted);
 
-    // Board actions
-    map.insert("boards.create", ActivityAction::Created);
-    map.insert("boards.update", ActivityAction::Updated);
-    map.insert("boards.delete", ActivityAction::Deleted);
+    // Project actions
+    map.insert("projects.create", ActivityAction::Created);
+    map.insert("projects.update", ActivityAction::Updated);
+    map.insert("projects.delete", ActivityAction::Deleted);
 
     // Comment actions
     map.insert("comments.create", ActivityAction::Commented);
@@ -71,7 +71,7 @@ pub enum AuditError {
 /// # Arguments
 /// * `pool` - Database connection pool
 /// * `action` - The action being performed
-/// * `entity_type` - Type of entity (task, board, workspace, etc.)
+/// * `entity_type` - Type of entity (task, project, workspace, etc.)
 /// * `entity_id` - UUID of the entity
 /// * `user_id` - UUID of the user performing the action
 /// * `tenant_id` - UUID of the tenant
@@ -163,7 +163,7 @@ mod tests {
         // Verify the map has entries for all expected resource categories
         let prefixes = [
             "tasks",
-            "boards",
+            "projects",
             "comments",
             "attachments",
             "admin",
@@ -210,17 +210,17 @@ mod tests {
     }
 
     #[test]
-    fn test_route_action_map_board_actions() {
+    fn test_route_action_map_project_actions() {
         assert_eq!(
-            ROUTE_ACTION_MAP.get("boards.create"),
+            ROUTE_ACTION_MAP.get("projects.create"),
             Some(&ActivityAction::Created)
         );
         assert_eq!(
-            ROUTE_ACTION_MAP.get("boards.update"),
+            ROUTE_ACTION_MAP.get("projects.update"),
             Some(&ActivityAction::Updated)
         );
         assert_eq!(
-            ROUTE_ACTION_MAP.get("boards.delete"),
+            ROUTE_ACTION_MAP.get("projects.delete"),
             Some(&ActivityAction::Deleted)
         );
     }

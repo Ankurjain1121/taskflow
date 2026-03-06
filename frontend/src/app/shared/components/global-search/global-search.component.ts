@@ -89,7 +89,7 @@ const MAX_RECENT_SEARCHES = 5;
               [placeholder]="
                 isCommandMode()
                   ? 'Type a command...'
-                  : 'Search tasks, boards, comments... (type > for commands)'
+                  : 'Search tasks, projects, comments... (type > for commands)'
               "
               class="flex-1 bg-transparent border-none outline-none text-lg text-[var(--card-foreground)] dark:text-gray-100 placeholder-gray-400"
               autocomplete="off"
@@ -341,7 +341,7 @@ const MAX_RECENT_SEARCHES = 5;
                       <p
                         class="text-xs text-[var(--muted-foreground)] dark:text-gray-400 truncate"
                       >
-                        {{ task.workspace_name }} &rsaquo; {{ task.board_name }}
+                        {{ task.workspace_name }} &rsaquo; {{ task.project_name }}
                       </p>
                       @if (task.description) {
                         <p
@@ -356,14 +356,14 @@ const MAX_RECENT_SEARCHES = 5;
               }
 
               <!-- Board Results -->
-              @if (results()!.boards.length > 0) {
+              @if (results()!.projects.length > 0) {
                 <div class="px-4 pt-3 pb-1">
                   <span
                     class="text-xs font-semibold text-[var(--muted-foreground)] dark:text-gray-400 uppercase tracking-wider"
                     >Boards</span
                   >
                 </div>
-                @for (board of results()!.boards; track board.id) {
+                @for (board of results()!.projects; track board.id) {
                   <button
                     (click)="navigateToBoard(board)"
                     class="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-[var(--secondary)] dark:hover:bg-gray-700 transition-colors"
@@ -442,7 +442,7 @@ const MAX_RECENT_SEARCHES = 5;
                         class="text-xs text-[var(--muted-foreground)] dark:text-gray-400 truncate"
                       >
                         on {{ comment.task_title }} &rsaquo;
-                        {{ comment.board_name }}
+                        {{ comment.project_name }}
                       </p>
                     </div>
                   </button>
@@ -472,7 +472,7 @@ const MAX_RECENT_SEARCHES = 5;
                   />
                 </svg>
                 <p class="text-sm font-medium">Search across your workspace</p>
-                <p class="text-xs mt-1">Find tasks, boards, and comments</p>
+                <p class="text-xs mt-1">Find tasks, projects, and comments</p>
               </div>
             }
           </div>
@@ -584,7 +584,7 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
   hasResults = computed(() => {
     const r = this.results();
     if (!r) return false;
-    return r.tasks.length > 0 || r.boards.length > 0 || r.comments.length > 0;
+    return r.tasks.length > 0 || r.projects.length > 0 || r.comments.length > 0;
   });
 
   private searchSubject = new Subject<string>();
@@ -693,7 +693,7 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
 
   navigateToTask(task: TaskSearchResult): void {
     this.router.navigate(
-      ['/workspace', task.workspace_id, 'board', task.board_id],
+      ['/workspace', task.workspace_id, 'project', task.project_id],
       {
         queryParams: { task: task.id },
       },
@@ -702,13 +702,13 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
   }
 
   navigateToBoard(board: BoardSearchResult): void {
-    this.router.navigate(['/workspace', board.workspace_id, 'board', board.id]);
+    this.router.navigate(['/workspace', board.workspace_id, 'project', board.id]);
     this.close();
   }
 
   navigateToComment(comment: CommentSearchResult): void {
     this.router.navigate(
-      ['/workspace', comment.workspace_id, 'board', comment.board_id],
+      ['/workspace', comment.workspace_id, 'project', comment.project_id],
       {
         queryParams: { task: comment.task_id },
       },

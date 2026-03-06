@@ -27,7 +27,7 @@ import {
   UpdateTaskRequest,
 } from '../../core/services/task.service';
 import { AuthService } from '../../core/services/auth.service';
-import { BoardService, Board, Column } from '../../core/services/board.service';
+import { ProjectService, Project, Column } from '../../core/services/project.service';
 import {
   WorkspaceService,
   Workspace,
@@ -129,7 +129,7 @@ import { Toast } from 'primeng/toast';
           Back
         </button>
 
-        @if (board() && workspace()) {
+        @if (project() && workspace()) {
           <div
             class="flex items-center gap-1.5 text-sm"
             style="color: var(--muted-foreground)"
@@ -144,11 +144,11 @@ import { Toast } from 'primeng/toast';
               [routerLink]="[
                 '/workspace',
                 workspace()!.id,
-                'board',
-                board()!.id,
+                'project',
+                project()!.id,
               ]"
               class="breadcrumb-link"
-              >{{ board()!.name }}</a
+              >{{ project()!.name }}</a
             >
             @if (parentTask()) {
               <i class="pi pi-chevron-right text-xs opacity-50"></i>
@@ -156,8 +156,8 @@ import { Toast } from 'primeng/toast';
                 [routerLink]="[
                   '/workspace',
                   workspace()!.id,
-                  'board',
-                  board()!.id,
+                  'project',
+                  project()!.id,
                   'task',
                   parentTask()!.id,
                 ]"
@@ -345,10 +345,10 @@ import { Toast } from 'primeng/toast';
                 <p-tabpanels>
                   <p-tabpanel value="0">
                     <div class="p-4">
-                      @if (board() && workspace()) {
+                      @if (project() && workspace()) {
                         <app-comment-list
                           [taskId]="taskId()"
-                          [boardId]="board()!.id"
+                          [projectId]="project()!.id"
                           [workspaceId]="workspace()!.id"
                         />
                       }
@@ -395,7 +395,7 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
   private location = inject(Location);
   private injector = inject(Injector);
   private taskService = inject(TaskService);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private workspaceService = inject(WorkspaceService);
   private authService = inject(AuthService);
   private recentItemsService = inject(RecentItemsService);
@@ -404,7 +404,7 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
 
   taskId = signal('');
   task = signal<Task | null>(null);
-  board = signal<Board | null>(null);
+  project = signal<Project | null>(null);
   workspace = signal<Workspace | null>(null);
   columns = signal<Column[]>([]);
   reminders = signal<TaskReminder[]>([]);
@@ -451,9 +451,9 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
         this.editTitle.set(task.title);
         this.editDescription.set(task.description ?? '');
 
-        const boardId = (task as unknown as { board_id?: string }).board_id;
-        if (boardId) {
-          this.loadBoardContext(boardId);
+        const projectId = (task as unknown as { project_id?: string }).project_id;
+        if (projectId) {
+          this.loadProjectContext(projectId);
         }
 
         this.loadReminders(taskId);
@@ -471,16 +471,16 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  private loadBoardContext(boardId: string): void {
+  private loadProjectContext(projectId: string): void {
     forkJoin({
-      board: this.boardService.getBoard(boardId),
-      columns: this.boardService.listColumns(boardId),
+      project: this.projectService.getProject(projectId),
+      columns: this.projectService.listColumns(projectId),
     }).subscribe({
-      next: ({ board, columns }) => {
-        this.board.set(board);
+      next: ({ project: proj, columns }) => {
+        this.project.set(proj);
         this.columns.set(columns);
 
-        this.workspaceService.get(board.workspace_id).subscribe({
+        this.workspaceService.get(proj.workspace_id).subscribe({
           next: (ws) => {
             this.workspace.set(ws);
             // Record task view for recent items
@@ -489,10 +489,10 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
               this.recentItemsService.recordTaskView({
                 id: t.id,
                 title: t.title,
-                boardName: board.name,
-                workspaceId: board.workspace_id,
+                boardName: proj.name,
+                workspaceId: proj.workspace_id,
                 workspaceName: ws.name,
-                boardId: board.id,
+                projectId: proj.id,
               });
             }
           },

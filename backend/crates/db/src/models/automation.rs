@@ -41,7 +41,7 @@ pub enum AutomationActionType {
 pub struct AutomationRule {
     pub id: Uuid,
     pub name: String,
-    pub board_id: Uuid,
+    pub project_id: Uuid,
     pub trigger: AutomationTrigger,
     pub trigger_config: serde_json::Value,
     pub is_active: bool,
@@ -129,7 +129,7 @@ mod tests {
         let rule = AutomationRule {
             id: Uuid::new_v4(),
             name: "Move on complete".to_string(),
-            board_id: Uuid::new_v4(),
+            project_id: Uuid::new_v4(),
             trigger: AutomationTrigger::TaskCompleted,
             trigger_config: serde_json::json!({"target_column_id": Uuid::new_v4()}),
             is_active: true,

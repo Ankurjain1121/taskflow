@@ -3,15 +3,15 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::{BoardCustomField, CustomFieldType, TaskCustomFieldValue};
+use crate::models::{CustomFieldType, ProjectCustomField, TaskCustomFieldValue};
 
 /// Error type for custom field query operations
 #[derive(Debug, thiserror::Error)]
 pub enum CustomFieldQueryError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
-    #[error("User is not a member of this board")]
-    NotBoardMember,
+    #[error("User is not a member of this project")]
+    NotProjectMember,
     #[error("Custom field not found")]
     NotFound,
 }
@@ -19,7 +19,7 @@ pub enum CustomFieldQueryError {
 /// Input for creating a new custom field
 #[derive(Debug, Deserialize)]
 pub struct CreateCustomFieldInput {
-    pub board_id: Uuid,
+    pub project_id: Uuid,
     pub name: String,
     pub field_type: CustomFieldType,
     pub options: Option<serde_json::Value>,
@@ -63,16 +63,16 @@ pub struct TaskCustomFieldValueWithField {
     pub value_bool: Option<bool>,
 }
 
-use super::verify_board_membership_internal;
+use super::verify_project_membership_internal;
 
-/// Internal helper: get task's board_id
-async fn get_task_board_id_internal(
+/// Internal helper: get task's project_id
+async fn get_task_project_id_internal(
     pool: &PgPool,
     task_id: Uuid,
 ) -> Result<Uuid, CustomFieldQueryError> {
-    let board_id = sqlx::query_scalar::<_, Uuid>(
+    let project_id = sqlx::query_scalar::<_, Uuid>(
         r#"
-        SELECT board_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
+        SELECT project_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
         "#,
     )
     .bind(task_id)
@@ -80,57 +80,57 @@ async fn get_task_board_id_internal(
     .await?
     .ok_or(CustomFieldQueryError::NotFound)?;
 
-    Ok(board_id)
+    Ok(project_id)
 }
 
-/// List all custom fields for a board, ordered by position.
-/// Verifies board membership before returning.
-pub async fn list_board_custom_fields(
+/// List all custom fields for a project, ordered by position.
+/// Verifies project membership before returning.
+pub async fn list_project_custom_fields(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     user_id: Uuid,
-) -> Result<Vec<BoardCustomField>, CustomFieldQueryError> {
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
-        return Err(CustomFieldQueryError::NotBoardMember);
+) -> Result<Vec<ProjectCustomField>, CustomFieldQueryError> {
+    if !verify_project_membership_internal(pool, project_id, user_id).await? {
+        return Err(CustomFieldQueryError::NotProjectMember);
     }
 
-    let fields = sqlx::query_as::<_, BoardCustomField>(
+    let fields = sqlx::query_as::<_, ProjectCustomField>(
         r#"
         SELECT
-            id, board_id, name,
+            id, project_id, name,
             field_type,
             options, is_required, position,
             tenant_id, created_by_id,
             created_at, updated_at
-        FROM board_custom_fields
-        WHERE board_id = $1
+        FROM project_custom_fields
+        WHERE project_id = $1
         ORDER BY position ASC, created_at ASC
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_all(pool)
     .await?;
 
     Ok(fields)
 }
 
-/// Create a new custom field on a board.
-/// Verifies board membership. Assigns position as max+1.
+/// Create a new custom field on a project.
+/// Verifies project membership. Assigns position as max+1.
 pub async fn create_custom_field(
     pool: &PgPool,
     input: CreateCustomFieldInput,
-) -> Result<BoardCustomField, CustomFieldQueryError> {
-    if !verify_board_membership_internal(pool, input.board_id, input.created_by_id).await? {
-        return Err(CustomFieldQueryError::NotBoardMember);
+) -> Result<ProjectCustomField, CustomFieldQueryError> {
+    if !verify_project_membership_internal(pool, input.project_id, input.created_by_id).await? {
+        return Err(CustomFieldQueryError::NotProjectMember);
     }
 
     // Get next position
     let next_pos = sqlx::query_scalar::<_, Option<i32>>(
         r#"
-        SELECT MAX(position) FROM board_custom_fields WHERE board_id = $1
+        SELECT MAX(position) FROM project_custom_fields WHERE project_id = $1
         "#,
     )
-    .bind(input.board_id)
+    .bind(input.project_id)
     .fetch_one(pool)
     .await?
     .unwrap_or(0)
@@ -139,12 +139,12 @@ pub async fn create_custom_field(
     let id = Uuid::new_v4();
     let now = Utc::now();
 
-    let field = sqlx::query_as::<_, BoardCustomField>(
+    let field = sqlx::query_as::<_, ProjectCustomField>(
         r#"
-        INSERT INTO board_custom_fields (id, board_id, name, field_type, options, is_required, position, tenant_id, created_by_id, created_at, updated_at)
+        INSERT INTO project_custom_fields (id, project_id, name, field_type, options, is_required, position, tenant_id, created_by_id, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING
-            id, board_id, name,
+            id, project_id, name,
             field_type,
             options, is_required, position,
             tenant_id, created_by_id,
@@ -152,7 +152,7 @@ pub async fn create_custom_field(
         "#,
     )
     .bind(id)
-    .bind(input.board_id)
+    .bind(input.project_id)
     .bind(&input.name)
     .bind(&input.field_type)
     .bind(&input.options)
@@ -169,17 +169,17 @@ pub async fn create_custom_field(
 }
 
 /// Update an existing custom field.
-/// Verifies board membership via the field's board_id.
+/// Verifies project membership via the field's project_id.
 pub async fn update_custom_field(
     pool: &PgPool,
     field_id: Uuid,
     input: UpdateCustomFieldInput,
     user_id: Uuid,
-) -> Result<BoardCustomField, CustomFieldQueryError> {
-    // Get the field to find its board_id
+) -> Result<ProjectCustomField, CustomFieldQueryError> {
+    // Get the field to find its project_id
     let existing = sqlx::query_scalar::<_, Uuid>(
         r#"
-        SELECT board_id FROM board_custom_fields WHERE id = $1
+        SELECT project_id FROM project_custom_fields WHERE id = $1
         "#,
     )
     .bind(field_id)
@@ -187,13 +187,13 @@ pub async fn update_custom_field(
     .await?
     .ok_or(CustomFieldQueryError::NotFound)?;
 
-    if !verify_board_membership_internal(pool, existing, user_id).await? {
-        return Err(CustomFieldQueryError::NotBoardMember);
+    if !verify_project_membership_internal(pool, existing, user_id).await? {
+        return Err(CustomFieldQueryError::NotProjectMember);
     }
 
-    let field = sqlx::query_as::<_, BoardCustomField>(
+    let field = sqlx::query_as::<_, ProjectCustomField>(
         r#"
-        UPDATE board_custom_fields
+        UPDATE project_custom_fields
         SET
             name = COALESCE($2, name),
             options = COALESCE($3, options),
@@ -202,7 +202,7 @@ pub async fn update_custom_field(
             updated_at = NOW()
         WHERE id = $1
         RETURNING
-            id, board_id, name,
+            id, project_id, name,
             field_type,
             options, is_required, position,
             tenant_id, created_by_id,
@@ -221,17 +221,17 @@ pub async fn update_custom_field(
 }
 
 /// Delete a custom field by ID.
-/// Verifies board membership via the field's board_id.
+/// Verifies project membership via the field's project_id.
 /// Also deletes all associated task field values (cascade).
 pub async fn delete_custom_field(
     pool: &PgPool,
     field_id: Uuid,
     user_id: Uuid,
 ) -> Result<(), CustomFieldQueryError> {
-    // Get the field to find its board_id
-    let board_id = sqlx::query_scalar::<_, Uuid>(
+    // Get the field to find its project_id
+    let project_id = sqlx::query_scalar::<_, Uuid>(
         r#"
-        SELECT board_id FROM board_custom_fields WHERE id = $1
+        SELECT project_id FROM project_custom_fields WHERE id = $1
         "#,
     )
     .bind(field_id)
@@ -239,8 +239,8 @@ pub async fn delete_custom_field(
     .await?
     .ok_or(CustomFieldQueryError::NotFound)?;
 
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
-        return Err(CustomFieldQueryError::NotBoardMember);
+    if !verify_project_membership_internal(pool, project_id, user_id).await? {
+        return Err(CustomFieldQueryError::NotProjectMember);
     }
 
     // Delete associated task values first
@@ -256,7 +256,7 @@ pub async fn delete_custom_field(
     // Delete the field itself
     let rows_affected = sqlx::query(
         r#"
-        DELETE FROM board_custom_fields WHERE id = $1
+        DELETE FROM project_custom_fields WHERE id = $1
         "#,
     )
     .bind(field_id)
@@ -272,16 +272,16 @@ pub async fn delete_custom_field(
 }
 
 /// Get all custom field values for a task, joined with field metadata.
-/// Verifies board membership via the task's board_id.
+/// Verifies project membership via the task's project_id.
 pub async fn get_task_custom_field_values(
     pool: &PgPool,
     task_id: Uuid,
     user_id: Uuid,
 ) -> Result<Vec<TaskCustomFieldValueWithField>, CustomFieldQueryError> {
-    let board_id = get_task_board_id_internal(pool, task_id).await?;
+    let project_id = get_task_project_id_internal(pool, task_id).await?;
 
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
-        return Err(CustomFieldQueryError::NotBoardMember);
+    if !verify_project_membership_internal(pool, project_id, user_id).await? {
+        return Err(CustomFieldQueryError::NotProjectMember);
     }
 
     let values = sqlx::query_as::<_, TaskCustomFieldValueWithField>(
@@ -298,14 +298,14 @@ pub async fn get_task_custom_field_values(
             v.value_number,
             v.value_date,
             v.value_bool
-        FROM board_custom_fields f
+        FROM project_custom_fields f
         LEFT JOIN task_custom_field_values v ON v.field_id = f.id AND v.task_id = $1
-        WHERE f.board_id = $2
+        WHERE f.project_id = $2
         ORDER BY f.position ASC, f.created_at ASC
         "#,
     )
     .bind(task_id)
-    .bind(board_id)
+    .bind(project_id)
     .fetch_all(pool)
     .await?;
 
@@ -314,17 +314,17 @@ pub async fn get_task_custom_field_values(
 
 /// Set (upsert) custom field values for a task.
 /// Uses INSERT ON CONFLICT UPDATE for each value.
-/// Verifies board membership via the task's board_id.
+/// Verifies project membership via the task's project_id.
 pub async fn set_task_custom_field_values(
     pool: &PgPool,
     task_id: Uuid,
     user_id: Uuid,
     values: Vec<SetFieldValue>,
 ) -> Result<Vec<TaskCustomFieldValue>, CustomFieldQueryError> {
-    let board_id = get_task_board_id_internal(pool, task_id).await?;
+    let project_id = get_task_project_id_internal(pool, task_id).await?;
 
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
-        return Err(CustomFieldQueryError::NotBoardMember);
+    if !verify_project_membership_internal(pool, project_id, user_id).await? {
+        return Err(CustomFieldQueryError::NotProjectMember);
     }
 
     let mut results = Vec::with_capacity(values.len());
@@ -362,7 +362,7 @@ pub async fn set_task_custom_field_values(
 mod tests {
     use super::*;
     use crate::models::{CustomFieldType, TaskPriority, UserRole};
-    use crate::queries::{auth, boards, tasks, workspaces};
+    use crate::queries::{auth, projects, tasks, workspaces};
 
     const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
 
@@ -395,15 +395,16 @@ mod tests {
 
     async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
         let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-        let bwc = boards::create_board(pool, "CF Test Board", None, ws_id, tenant_id, user_id)
-            .await
-            .expect("create_board");
+        let bwc =
+            projects::create_project(pool, "CF Test Project", None, ws_id, tenant_id, user_id)
+                .await
+                .expect("create_project");
         let first_col_id = bwc.columns[0].id;
-        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+        (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
     }
 
     async fn setup_full_with_task(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
-        let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, col_id) = setup_full(pool).await;
         let input = tasks::CreateTaskInput {
             title: "CF Test Task".to_string(),
             description: None,
@@ -418,19 +419,19 @@ mod tests {
             label_ids: None,
             parent_task_id: None,
         };
-        let task = tasks::create_task(pool, board_id, input, tenant_id, user_id)
+        let task = tasks::create_task(pool, project_id, input, tenant_id, user_id)
             .await
             .expect("create_task for custom field tests");
-        (tenant_id, user_id, board_id, task.id)
+        (tenant_id, user_id, project_id, task.id)
     }
 
     #[tokio::test]
     async fn test_create_custom_field() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         let input = CreateCustomFieldInput {
-            board_id,
+            project_id,
             name: "Priority Level".to_string(),
             field_type: CustomFieldType::Text,
             options: None,
@@ -444,7 +445,7 @@ mod tests {
             .expect("create_custom_field");
 
         assert_eq!(field.name, "Priority Level");
-        assert_eq!(field.board_id, board_id);
+        assert_eq!(field.project_id, project_id);
         assert_eq!(field.field_type, CustomFieldType::Text);
         assert!(!field.is_required);
         assert_eq!(field.tenant_id, tenant_id);
@@ -453,13 +454,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_list_board_custom_fields() {
+    async fn test_list_project_custom_fields() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         // Create two fields
         let input1 = CreateCustomFieldInput {
-            board_id,
+            project_id,
             name: "Field One".to_string(),
             field_type: CustomFieldType::Text,
             options: None,
@@ -472,7 +473,7 @@ mod tests {
             .expect("create field 1");
 
         let input2 = CreateCustomFieldInput {
-            board_id,
+            project_id,
             name: "Field Two".to_string(),
             field_type: CustomFieldType::Number,
             options: None,
@@ -484,9 +485,9 @@ mod tests {
             .await
             .expect("create field 2");
 
-        let fields = list_board_custom_fields(&pool, board_id, user_id)
+        let fields = list_project_custom_fields(&pool, project_id, user_id)
             .await
-            .expect("list_board_custom_fields");
+            .expect("list_project_custom_fields");
 
         assert!(fields.len() >= 2);
         let names: Vec<&str> = fields.iter().map(|f| f.name.as_str()).collect();
@@ -497,11 +498,11 @@ mod tests {
     #[tokio::test]
     async fn test_set_and_get_task_custom_field_values() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, board_id, task_id) = setup_full_with_task(&pool).await;
+        let (tenant_id, user_id, project_id, task_id) = setup_full_with_task(&pool).await;
 
         // Create a text field
         let field_input = CreateCustomFieldInput {
-            board_id,
+            project_id,
             name: "Notes".to_string(),
             field_type: CustomFieldType::Text,
             options: None,
@@ -548,10 +549,10 @@ mod tests {
     #[tokio::test]
     async fn test_delete_custom_field() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
         let input = CreateCustomFieldInput {
-            board_id,
+            project_id,
             name: "To Delete".to_string(),
             field_type: CustomFieldType::Checkbox,
             options: None,
@@ -568,7 +569,7 @@ mod tests {
             .expect("delete_custom_field");
 
         // Verify it no longer appears in list
-        let fields = list_board_custom_fields(&pool, board_id, user_id)
+        let fields = list_project_custom_fields(&pool, project_id, user_id)
             .await
             .expect("list after delete");
         assert!(
@@ -580,9 +581,9 @@ mod tests {
     #[tokio::test]
     async fn test_create_custom_field_not_board_member() {
         let pool = test_pool().await;
-        let (tenant_id, _user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, _user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
 
-        // Create a second user who is NOT a board member
+        // Create a second user who is NOT a project member
         let other_user = auth::create_user(
             &pool,
             &unique_email(),
@@ -595,7 +596,7 @@ mod tests {
         .expect("create other user");
 
         let input = CreateCustomFieldInput {
-            board_id,
+            project_id,
             name: "Unauthorized Field".to_string(),
             field_type: CustomFieldType::Text,
             options: None,

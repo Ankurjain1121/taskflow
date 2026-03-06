@@ -42,7 +42,7 @@ export class BoardBulkOperationsHandler {
   }
 
   onBulkPreviewConfirmed(
-    boardId: string,
+    projectId: string,
     destroy$: Subject<void>,
     callbacks: {
       getUndoToast: () =>
@@ -57,12 +57,12 @@ export class BoardBulkOperationsHandler {
     const taskIds = this.state.selectedTaskIds();
     this.showBulkPreview.set(false);
 
-    this.bulkActionsService.executeBulkAction(boardId, action, taskIds, {
+    this.bulkActionsService.executeBulkAction(projectId, action, taskIds, {
       onSuccess: () => {
         this.state.clearSelection();
         this.bulkOpsService
           .executeOperation(
-            boardId,
+            projectId,
             action.type,
             taskIds,
             this.buildBulkParams(action),
@@ -81,7 +81,7 @@ export class BoardBulkOperationsHandler {
               // Backend undo endpoint not available yet; that's ok
             },
           });
-        this.state.loadBoard(boardId, destroy$);
+        this.state.loadBoard(projectId, destroy$);
       },
       onError: (message) => {
         this.state.showError(message);

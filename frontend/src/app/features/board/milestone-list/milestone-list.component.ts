@@ -337,7 +337,7 @@ import {
 export class MilestoneListComponent implements OnInit, OnChanges {
   private milestoneService = inject(MilestoneService);
 
-  boardId = input.required<string>();
+  projectId = input.required<string>();
 
   milestones = signal<Milestone[]>([]);
   loading = signal(true);
@@ -374,7 +374,7 @@ export class MilestoneListComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['boardId'] && !changes['boardId'].firstChange) {
+    if (changes['projectId'] && !changes['projectId'].firstChange) {
       this.loadMilestones();
     }
   }
@@ -407,7 +407,7 @@ export class MilestoneListComponent implements OnInit, OnChanges {
       req.due_date = new Date(this.newDueDate).toISOString();
     }
 
-    this.milestoneService.create(this.boardId(), req).subscribe({
+    this.milestoneService.create(this.projectId(), req).subscribe({
       next: (milestone) => {
         // Add with default progress values
         const milestoneWithProgress: Milestone = {
@@ -509,7 +509,7 @@ export class MilestoneListComponent implements OnInit, OnChanges {
 
   private loadMilestones(): void {
     this.loading.set(true);
-    this.milestoneService.list(this.boardId()).subscribe({
+    this.milestoneService.list(this.projectId()).subscribe({
       next: (milestones) => {
         this.milestones.set(milestones);
         this.loading.set(false);

@@ -19,8 +19,8 @@ const MOCK_MY_TASK: MyTask = {
   column_id: 'col-1',
   column_name: 'To Do',
   column_status_mapping: null,
-  board_id: 'board-1',
-  board_name: 'Test Board',
+  project_id: 'board-1',
+  project_name: 'Test Project',
   workspace_id: 'ws-1',
   workspace_name: 'Test Workspace',
   labels: [],
@@ -87,11 +87,11 @@ describe('MyTasksService', () => {
       req.flush(MOCK_RESPONSE);
     });
 
-    it('should set board_id param when provided', () => {
-      service.getMyTasks({ board_id: 'board-42' }).subscribe();
+    it('should set project_id param when provided', () => {
+      service.getMyTasks({ project_id: 'board-42' }).subscribe();
 
       const req = httpMock.expectOne((r) => r.url === '/api/my-tasks');
-      expect(req.request.params.get('board_id')).toBe('board-42');
+      expect(req.request.params.get('project_id')).toBe('board-42');
       req.flush(MOCK_RESPONSE);
     });
 
@@ -116,7 +116,7 @@ describe('MyTasksService', () => {
         .getMyTasks({
           sort_by: 'priority',
           sort_order: 'asc',
-          board_id: 'board-1',
+          project_id: 'board-1',
           cursor: 'cursor-xyz',
           limit: 50,
         })
@@ -125,7 +125,7 @@ describe('MyTasksService', () => {
       const req = httpMock.expectOne((r) => r.url === '/api/my-tasks');
       expect(req.request.params.get('sort_by')).toBe('priority');
       expect(req.request.params.get('sort_order')).toBe('asc');
-      expect(req.request.params.get('board_id')).toBe('board-1');
+      expect(req.request.params.get('project_id')).toBe('board-1');
       expect(req.request.params.get('cursor')).toBe('cursor-xyz');
       expect(req.request.params.get('limit')).toBe('50');
       expect(req.request.params.keys().length).toBe(5);
@@ -134,12 +134,12 @@ describe('MyTasksService', () => {
 
     it('should not set params for undefined values', () => {
       service
-        .getMyTasks({ sort_by: 'created_at', board_id: undefined })
+        .getMyTasks({ sort_by: 'created_at', project_id: undefined })
         .subscribe();
 
       const req = httpMock.expectOne((r) => r.url === '/api/my-tasks');
       expect(req.request.params.get('sort_by')).toBe('created_at');
-      expect(req.request.params.has('board_id')).toBe(false);
+      expect(req.request.params.has('project_id')).toBe(false);
       expect(req.request.params.keys().length).toBe(1);
       req.flush(MOCK_RESPONSE);
     });

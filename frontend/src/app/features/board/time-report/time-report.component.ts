@@ -198,7 +198,7 @@ import {
 export class TimeReportComponent implements OnInit, OnChanges {
   private timeTrackingService = inject(TimeTrackingService);
 
-  boardId = input.required<string>();
+  projectId = input.required<string>();
 
   loading = signal(true);
   reportData = signal<TaskTimeReport[]>([]);
@@ -216,7 +216,7 @@ export class TimeReportComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['boardId'] && !changes['boardId'].firstChange) {
+    if (changes['projectId'] && !changes['projectId'].firstChange) {
       this.loadReport();
     }
   }
@@ -244,7 +244,7 @@ export class TimeReportComponent implements OnInit, OnChanges {
 
   private loadReport(): void {
     this.loading.set(true);
-    this.timeTrackingService.getBoardTimeReport(this.boardId()).subscribe({
+    this.timeTrackingService.getBoardTimeReport(this.projectId()).subscribe({
       next: (data) => {
         this.reportData.set(data);
         this.loading.set(false);

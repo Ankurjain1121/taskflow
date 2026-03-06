@@ -41,7 +41,7 @@ const PRESET_COLORS = [
           <h3 class="text-lg font-semibold text-[var(--foreground)]">Labels</h3>
           <p class="text-sm text-[var(--muted-foreground)] mt-1">
             Manage workspace-wide labels that can be applied to tasks across all
-            boards.
+            projects.
           </p>
         </div>
       </div>
@@ -238,7 +238,7 @@ export class WorkspaceLabelsComponent implements OnInit {
       name,
       color: this.newColor,
       workspace_id: this.workspaceId(),
-      board_id: null,
+      project_id: null,
       created_at: new Date().toISOString(),
     };
     this.labels.update((list) => [...list, tempLabel]);

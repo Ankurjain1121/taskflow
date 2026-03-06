@@ -13,7 +13,7 @@ import {
 const MOCK_PRESET: FilterPreset = {
   id: 'preset-1',
   user_id: 'user-1',
-  board_id: 'board-1',
+  project_id: 'board-1',
   name: 'My Preset',
   filters: { status: 'open' },
   created_at: '2024-01-01T00:00:00Z',
@@ -43,19 +43,19 @@ describe('FilterPresetsService', () => {
   });
 
   describe('list()', () => {
-    it('sends GET /api/boards/{boardId}/filter-presets', () => {
+    it('sends GET /api/projects/{projectId}/filter-presets', () => {
       service.list('board-1').subscribe((result) => {
         expect(result).toEqual([MOCK_PRESET]);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/filter-presets');
+      const req = httpMock.expectOne('/api/projects/board-1/filter-presets');
       expect(req.request.method).toBe('GET');
       req.flush([MOCK_PRESET]);
     });
   });
 
   describe('create()', () => {
-    it('sends POST /api/boards/{boardId}/filter-presets with the request body', () => {
+    it('sends POST /api/projects/{projectId}/filter-presets with the request body', () => {
       const body: CreateFilterPresetRequest = {
         name: 'New Preset',
         filters: { priority: 'high' },
@@ -65,7 +65,7 @@ describe('FilterPresetsService', () => {
         expect(result).toEqual(MOCK_PRESET);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/filter-presets');
+      const req = httpMock.expectOne('/api/projects/board-1/filter-presets');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(body);
       req.flush(MOCK_PRESET);
@@ -73,7 +73,7 @@ describe('FilterPresetsService', () => {
   });
 
   describe('update()', () => {
-    it('sends PUT /api/boards/{boardId}/filter-presets/{presetId} with the request body', () => {
+    it('sends PUT /api/projects/{projectId}/filter-presets/{presetId} with the request body', () => {
       const body: UpdateFilterPresetRequest = { name: 'Updated Preset' };
 
       service.update('board-1', 'preset-1', body).subscribe((result) => {
@@ -81,7 +81,7 @@ describe('FilterPresetsService', () => {
       });
 
       const req = httpMock.expectOne(
-        '/api/boards/board-1/filter-presets/preset-1',
+        '/api/projects/board-1/filter-presets/preset-1',
       );
       expect(req.request.method).toBe('PUT');
       expect(req.request.body).toEqual(body);
@@ -90,13 +90,13 @@ describe('FilterPresetsService', () => {
   });
 
   describe('delete()', () => {
-    it('sends DELETE /api/boards/{boardId}/filter-presets/{presetId}', () => {
+    it('sends DELETE /api/projects/{projectId}/filter-presets/{presetId}', () => {
       service.delete('board-1', 'preset-1').subscribe((result) => {
         expect(result).toEqual({ message: 'deleted' });
       });
 
       const req = httpMock.expectOne(
-        '/api/boards/board-1/filter-presets/preset-1',
+        '/api/projects/board-1/filter-presets/preset-1',
       );
       expect(req.request.method).toBe('DELETE');
       req.flush({ message: 'deleted' });

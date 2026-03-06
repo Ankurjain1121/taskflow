@@ -393,7 +393,7 @@ export interface MemberWithDetails extends WorkspaceMember {
       [(visible)]="showInviteDialog"
       [workspaceId]="workspaceId()"
       [workspaceName]="workspaceName()"
-      [boards]="boards()"
+      [projects]="projects()"
       (created)="onInviteResult($event)"
     />
   `,
@@ -405,7 +405,7 @@ export class MembersListComponent implements OnInit {
   members = input.required<MemberWithDetails[]>();
   workspaceId = input.required<string>();
   workspaceName = input<string>('this workspace');
-  boards = input<{ id: string; name: string }[]>([]);
+  projects = input<{ id: string; name: string }[]>([]);
 
   memberRemoved = output<string>();
   memberRoleChanged = output<{ userId: string; role: string }>();

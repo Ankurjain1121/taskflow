@@ -15,7 +15,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { CdkDrag, CdkDropList, CdkDragDrop } from '@angular/cdk/drag-drop';
 
 import { Task } from '../../../core/services/task.service';
-import { Column } from '../../../core/services/board.service';
+import { Column } from '../../../core/services/project.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
 import { PresenceService } from '../../../core/services/presence.service';
 
@@ -133,24 +133,24 @@ import { MessageService } from 'primeng/api';
     <div
       class="board-root flex flex-col transition-colors duration-300"
       [style.background]="
-        state.board()?.background_color || 'var(--background)'
+        state.project()?.background_color || 'var(--background)'
       "
     >
       <!-- Header -->
       <app-board-view-header
-        [boardName]="state.board()?.name || ''"
-        [boardDescription]="state.board()?.description ?? null"
+        [boardName]="state.project()?.name || ''"
+        [boardDescription]="state.project()?.description ?? null"
         [workspaceId]="workspaceId"
-        [boardId]="boardId"
+        [projectId]="projectId"
         [menuItems]="columnDialogs()?.moreMenuItems ?? []"
         (createTask)="onCreateTask()"
         (createGroup)="onCreateGroup()"
       />
 
       <!-- Sample Board Banner -->
-      @if (state.board()?.is_sample) {
+      @if (state.project()?.is_sample) {
         <app-sample-board-banner
-          [boardId]="boardId"
+          [projectId]="projectId"
           [workspaceId]="workspaceId"
           (deleted)="router.navigate(['/dashboard'])"
         />
@@ -158,7 +158,7 @@ import { MessageService } from 'primeng/api';
 
       <!-- Toolbar -->
       <app-board-toolbar
-        [boardId]="boardId"
+        [projectId]="projectId"
         [assignees]="state.allAssignees()"
         [labels]="state.allLabels()"
         [viewMode]="viewMode()"
@@ -168,7 +168,7 @@ import { MessageService } from 'primeng/api';
         (filtersChanged)="state.filters.set($event)"
         (viewModeChanged)="onViewModeChanged($event)"
         (densityChanged)="state.setCardDensity($event)"
-        (groupByChanged)="state.setGroupBy($event, boardId)"
+        (groupByChanged)="state.setGroupBy($event, projectId)"
         (cardFieldChanged)="state.updateCardField($event.key, $event.value)"
         (cardFieldsReset)="state.resetCardFields()"
       ></app-board-toolbar>
@@ -185,13 +185,13 @@ import { MessageService } from 'primeng/api';
             <app-task-group-header
               [groupData]="group"
               (nameChange)="
-                state.updateGroupName(boardId, group.group.id, $event)
+                state.updateGroupName(projectId, group.group.id, $event)
               "
               (colorChange)="
-                state.updateGroupColor(boardId, group.group.id, $event)
+                state.updateGroupColor(projectId, group.group.id, $event)
               "
               (toggleCollapse)="state.toggleGroupCollapse(group)"
-              (delete)="state.deleteGroup(boardId, group.group.id)"
+              (delete)="state.deleteGroup(projectId, group.group.id)"
             />
           }
         </div>
@@ -205,8 +205,9 @@ import { MessageService } from 'primeng/api';
         <div class="flex-1 overflow-y-auto">
           @defer (when viewMode() === 'list') {
             <app-list-view
-              [tasks]="state.flatTasks()"
-              [loading]="state.listLoading()"
+              [projectId]="projectId"
+              [columns]="state.columns()"
+              [members]="state.boardMembers()"
               (taskClicked)="router.navigate(['/task', $event])"
             ></app-list-view>
           } @placeholder {
@@ -222,7 +223,7 @@ import { MessageService } from 'primeng/api';
         <div class="flex-1 overflow-hidden">
           @defer (when viewMode() === 'calendar') {
             <app-calendar-view
-              [boardId]="boardId"
+              [projectId]="projectId"
               (taskClicked)="router.navigate(['/task', $event])"
             ></app-calendar-view>
           } @placeholder {
@@ -254,7 +255,7 @@ import { MessageService } from 'primeng/api';
         <!-- Reports View -->
         <div class="flex-1 overflow-y-auto">
           @defer (when viewMode() === 'reports') {
-            <app-reports-view [boardId]="boardId"></app-reports-view>
+            <app-reports-view [projectId]="projectId"></app-reports-view>
           } @placeholder {
             <div
               class="flex-1 flex items-center justify-center py-12 text-[var(--muted-foreground)]"
@@ -267,7 +268,7 @@ import { MessageService } from 'primeng/api';
         <!-- Time Report View -->
         <div class="flex-1 overflow-y-auto">
           @defer (when viewMode() === 'time-report') {
-            <app-time-report [boardId]="boardId"></app-time-report>
+            <app-time-report [projectId]="projectId"></app-time-report>
           } @placeholder {
             <div
               class="flex-1 flex items-center justify-center py-12 text-[var(--muted-foreground)]"
@@ -283,7 +284,7 @@ import { MessageService } from 'primeng/api';
             [swimlaneGroups]="state.swimlaneGroups()"
             [swimlaneState]="state.swimlaneState()"
             [columns]="state.columns()"
-            [boardPrefix]="state.board()?.prefix ?? null"
+            [boardPrefix]="state.project()?.prefix ?? null"
             [density]="state.cardDensity()"
             [cardFields]="state.cardFields()"
             [celebratingTaskId]="state.celebratingTaskId()"
@@ -311,7 +312,7 @@ import { MessageService } from 'primeng/api';
           />
         </div>
       } @else {
-        <!-- Kanban Board -->
+        <!-- Kanban -->
         <div class="flex-1 overflow-x-auto p-4">
           @if (state.dragSimulationActive()) {
             <div
@@ -340,7 +341,7 @@ import { MessageService } from 'primeng/api';
                 [focusedTaskId]="state.focusedTaskId()"
                 [selectedTaskIds]="state.selectedTaskIds()"
                 [allColumns]="state.columns()"
-                [boardPrefix]="state.board()?.prefix ?? null"
+                [boardPrefix]="state.project()?.prefix ?? null"
                 [isCollapsed]="state.isColumnCollapsed(column.id)"
                 [density]="state.cardDensity()"
                 [cardFields]="state.cardFields()"
@@ -364,7 +365,7 @@ import { MessageService } from 'primeng/api';
                 (duplicateRequested)="cardOps.onCardDuplicate($event, destroy$)"
                 (deleteRequested)="state.deleteTask($event)"
                 (quickTaskCreated)="onQuickTaskCreated($event)"
-                (collapseToggled)="state.toggleColumnCollapse(boardId, $event)"
+                (collapseToggled)="state.toggleColumnCollapse(projectId, $event)"
                 (renameRequested)="columnDialogs()?.openRenameDialog($event)"
                 (wipLimitRequested)="
                   columnDialogs()?.openWipLimitDialog($event)
@@ -407,7 +408,7 @@ import { MessageService } from 'primeng/api';
         <app-task-detail
           [taskId]="state.selectedTaskId()!"
           [workspaceId]="workspaceId"
-          [boardId]="boardId"
+          [projectId]="projectId"
           (closed)="state.selectedTaskId.set(null)"
           (taskUpdated)="state.updateTaskInState($event)"
         ></app-task-detail>
@@ -460,7 +461,7 @@ import { MessageService } from 'primeng/api';
       <!-- Inline Create Task Dialog -->
       <app-create-task-dialog
         [(visible)]="showCreateTaskDialog"
-        [boardId]="boardId"
+        [projectId]="projectId"
         [columnId]="createTaskDialogColumnId"
         [columnName]="createTaskDialogColumnName"
         [members]="createTaskDialogMembers"
@@ -484,9 +485,9 @@ import { MessageService } from 'primeng/api';
 
       <!-- Column Dialogs (rename, WIP, icon, duplicate, import/export, confirm) -->
       <app-board-column-dialogs
-        [boardId]="boardId"
+        [projectId]="projectId"
         [workspaceId]="workspaceId"
-        [boardName]="state.board()?.name || ''"
+        [boardName]="state.project()?.name || ''"
         [destroy$]="destroy$"
         (columnUpdated)="onColumnUpdated($event)"
         (boardDuplicated)="onBoardDuplicated($event)"
@@ -573,12 +574,12 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   readonly destroy$ = new Subject<void>();
 
   workspaceId = '';
-  boardId = '';
+  projectId = '';
 
   spotlightActive = signal(false);
   readonly spotlightSteps = BOARD_SPOTLIGHT_STEPS;
 
-  viewMode = signal<ViewMode>('kanban');
+  viewMode = signal<ViewMode>('list');
   boardToolbar = viewChild(BoardToolbarComponent);
 
   // Dialog visibility state
@@ -607,9 +608,9 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
       this.workspaceId = params['workspaceId'];
-      this.boardId = params['boardId'];
-      this.state.loadBoard(this.boardId, this.destroy$);
-      this.presenceService.joinBoard(this.boardId);
+      this.projectId = params['projectId'];
+      this.state.loadBoard(this.projectId, this.destroy$);
+      this.presenceService.joinBoard(this.projectId);
       this.columnDialogs()?.buildMoreMenuItems();
     });
 
@@ -664,7 +665,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     this.shortcutsService.unregister();
-    this.wsService.send('unsubscribe', { channel: `board:${this.boardId}` });
+    this.wsService.send('unsubscribe', { channel: `board:${this.projectId}` });
   }
 
   getFilteredTasksForColumn(columnId: string): Task[] {
@@ -673,10 +674,8 @@ export class BoardViewComponent implements OnInit, OnDestroy {
 
   onViewModeChanged(mode: ViewMode): void {
     this.viewMode.set(mode);
-    if (mode === 'list') {
-      this.state.loadFlatTasks(this.boardId, this.destroy$);
-    } else if (mode === 'gantt') {
-      this.state.loadGanttData(this.boardId);
+    if (mode === 'gantt') {
+      this.state.loadGanttData(this.projectId);
     }
   }
 
@@ -717,7 +716,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   onCreateTaskResult(result: CreateTaskDialogResult): void {
-    this.state.createTask(this.boardId, this.createTaskDialogColumnId, result);
+    this.state.createTask(this.projectId, this.createTaskDialogColumnId, result);
   }
 
   // === Create Column Dialog ===
@@ -727,7 +726,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   onCreateColumnResult(result: CreateColumnDialogResult): void {
-    this.state.createColumn(this.boardId, result);
+    this.state.createColumn(this.projectId, result);
   }
 
   onCreateGroup(): void {
@@ -735,11 +734,11 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   onCreateGroupResult(result: CreateTaskGroupDialogResult): void {
-    this.state.createGroup(this.boardId, result);
+    this.state.createGroup(this.projectId, result);
   }
 
   onBulkPreviewConfirmed(): void {
-    this.bulkOps.onBulkPreviewConfirmed(this.boardId, this.destroy$, {
+    this.bulkOps.onBulkPreviewConfirmed(this.projectId, this.destroy$, {
       getUndoToast: () => this.undoToast(),
       resetPreviewDialog: () => this.bulkPreviewDialog()?.resetExecuting(),
     });
@@ -767,7 +766,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     this.router.navigate([
       '/workspace',
       this.workspaceId,
-      'board',
+      'project',
       newBoard.id,
     ]);
   }
@@ -778,7 +777,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   }
 
   onQuickTaskCreated(event: { columnId: string; title: string }): void {
-    this.state.createTask(this.boardId, event.columnId, {
+    this.state.createTask(this.projectId, event.columnId, {
       title: event.title,
       description: '',
       priority: 'medium',

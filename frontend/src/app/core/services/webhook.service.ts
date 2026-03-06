@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 export interface Webhook {
   id: string;
-  board_id: string;
+  project_id: string;
   url: string;
   events: string[];
   is_active: boolean;
@@ -42,15 +42,15 @@ export interface UpdateWebhookRequest {
 export class WebhookService {
   constructor(private http: HttpClient) {}
 
-  listWebhooks(boardId: string): Observable<Webhook[]> {
-    return this.http.get<Webhook[]>(`/api/boards/${boardId}/webhooks`);
+  listWebhooks(projectId: string): Observable<Webhook[]> {
+    return this.http.get<Webhook[]>(`/api/projects/${projectId}/webhooks`);
   }
 
   createWebhook(
-    boardId: string,
+    projectId: string,
     req: CreateWebhookRequest,
   ): Observable<Webhook> {
-    return this.http.post<Webhook>(`/api/boards/${boardId}/webhooks`, req);
+    return this.http.post<Webhook>(`/api/projects/${projectId}/webhooks`, req);
   }
 
   updateWebhook(id: string, req: UpdateWebhookRequest): Observable<Webhook> {

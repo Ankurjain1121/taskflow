@@ -52,9 +52,9 @@ pub async fn cache_del_pattern(redis: &redis::aio::ConnectionManager, pattern: &
     }
 }
 
-/// Build a cache key for workspace board lists.
-pub fn workspace_boards_key(workspace_id: &uuid::Uuid) -> String {
-    format!("cache:ws:{}:boards", workspace_id)
+/// Build a cache key for workspace project lists.
+pub fn workspace_projects_key(workspace_id: &uuid::Uuid) -> String {
+    format!("cache:ws:{}:projects", workspace_id)
 }
 
 /// Build a cache key for user preferences.
@@ -62,7 +62,7 @@ pub fn user_prefs_key(user_id: &uuid::Uuid) -> String {
     format!("cache:user:{}:prefs", user_id)
 }
 
-/// Build a cache key for dashboard stats.
+/// Build a cache key for dashproject stats.
 pub fn dashboard_stats_key(user_id: &uuid::Uuid, workspace_id: Option<&uuid::Uuid>) -> String {
     match workspace_id {
         Some(ws_id) => format!("cache:dash:{}:{}", user_id, ws_id),
@@ -79,8 +79,8 @@ mod tests {
         let uid = uuid::Uuid::nil();
         let wid = uuid::Uuid::nil();
         assert_eq!(
-            workspace_boards_key(&wid),
-            "cache:ws:00000000-0000-0000-0000-000000000000:boards"
+            workspace_projects_key(&wid),
+            "cache:ws:00000000-0000-0000-0000-000000000000:projects"
         );
         assert_eq!(
             user_prefs_key(&uid),

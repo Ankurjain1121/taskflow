@@ -36,8 +36,8 @@ import { BoardPresenceComponent } from '../../../shared/components/board-presenc
             [routerLink]="[
               '/workspace',
               workspaceId(),
-              'board',
-              boardId(),
+              'project',
+              projectId(),
               'settings',
             ]"
             class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--foreground)] bg-[var(--card)] border border-[var(--border)] rounded-md hover:bg-[var(--muted)]"
@@ -123,7 +123,7 @@ export class BoardViewHeaderComponent {
   boardName = input('');
   boardDescription = input<string | null>(null);
   workspaceId = input('');
-  boardId = input('');
+  projectId = input('');
   menuItems = input<MenuItem[]>([]);
 
   createTask = output<void>();

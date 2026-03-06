@@ -15,7 +15,7 @@ import {
   Workspace,
 } from '../../core/services/workspace.service';
 import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
-import { BoardService, Board } from '../../core/services/board.service';
+import { ProjectService, Project } from '../../core/services/project.service';
 import {
   CreateBoardDialogComponent,
   CreateBoardDialogResult,
@@ -95,10 +95,10 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
                 </div>
                 <div>
                   <p class="text-2xl font-bold text-[var(--foreground)]">
-                    {{ boards().length }}
+                    {{ projects().length }}
                   </p>
                   <p class="text-sm text-[var(--muted-foreground)]">
-                    {{ boards().length === 1 ? 'Board' : 'Boards' }}
+                    {{ projects().length === 1 ? 'Project' : 'Projects' }}
                   </p>
                 </div>
               </div>
@@ -122,34 +122,34 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
             </div>
           </div>
 
-          <!-- Board Grid Header -->
+          <!-- Project Grid Header -->
           <div class="flex items-center justify-between mb-5">
             <h2 class="text-xl font-semibold text-[var(--foreground)]">
               Boards
             </h2>
             <p-button
               icon="pi pi-plus"
-              label="Create Board"
+              label="Create Project"
               (onClick)="openCreateBoardDialog()"
             />
           </div>
 
           <!-- Empty State -->
-          @if (boards().length === 0) {
+          @if (projects().length === 0) {
             <app-empty-state
-              variant="board"
+              variant="project"
               (ctaClicked)="openCreateBoardDialog()"
             />
           } @else {
-            <!-- Board Cards Grid -->
+            <!-- Project Cards Grid -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              @for (board of boards(); track board.id; let i = $index) {
+              @for (project of projects(); track project.id; let i = $index) {
                 <a
                   [routerLink]="[
                     '/workspace',
                     workspaceId(),
-                    'board',
-                    board.id,
+                    'project',
+                    project.id,
                   ]"
                   class="animate-fade-in-up bg-[var(--card)] rounded-xl border border-[var(--border)] hover:shadow-md hover:border-[var(--primary)] transition-all duration-200 cursor-pointer group block overflow-hidden"
                   [style.animation-delay]="i * 0.06 + 's'"
@@ -177,13 +177,13 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
                     <h3
                       class="text-lg font-semibold text-[var(--foreground)] mb-1 group-hover:text-[var(--primary)] transition-colors"
                     >
-                      {{ board.name }}
+                      {{ project.name }}
                     </h3>
-                    @if (board.description) {
+                    @if (project.description) {
                       <p
                         class="text-sm text-[var(--muted-foreground)] line-clamp-2 mb-3"
                       >
-                        {{ board.description }}
+                        {{ project.description }}
                       </p>
                     } @else {
                       <p
@@ -199,7 +199,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
                         class="pi pi-calendar mr-1"
                         style="font-size: 0.75rem;"
                       ></i>
-                      Created {{ formatDate(board.created_at) }}
+                      Created {{ formatDate(project.created_at) }}
                     </div>
                   </div>
                 </a>
@@ -210,7 +210,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
       </div>
     </div>
 
-    <!-- Create Board Dialog (PrimeNG) -->
+    <!-- Create Project Dialog (PrimeNG) -->
     <app-create-board-dialog
       [(visible)]="showCreateBoardDialog"
       [workspaceId]="workspaceId()"
@@ -232,12 +232,12 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
 export class WorkspaceComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private workspaceService = inject(WorkspaceService);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private settingsDialog = inject(WorkspaceSettingsDialogService);
 
   workspaceId = signal<string>('');
   workspace = signal<Workspace | null>(null);
-  boards = signal<Board[]>([]);
+  projects = signal<Project[]>([]);
   members = signal<WorkspaceMemberInfo[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
@@ -279,9 +279,9 @@ export class WorkspaceComponent implements OnInit {
       },
     });
 
-    // Load boards
-    this.boardService.listBoards(id).subscribe({
-      next: (boards) => this.boards.set(boards),
+    // Load projects
+    this.projectService.listProjects(id).subscribe({
+      next: (projects) => this.projects.set(projects),
       error: () => {},
     });
 
@@ -306,8 +306,8 @@ export class WorkspaceComponent implements OnInit {
   }
 
   onBoardCreated(result: CreateBoardDialogResult): void {
-    this.boardService
-      .createBoard(this.workspaceId(), {
+    this.projectService
+      .createProject(this.workspaceId(), {
         name: result.name,
         description: result.description,
         template: result.template,

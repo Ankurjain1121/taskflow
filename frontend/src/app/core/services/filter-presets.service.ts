@@ -5,7 +5,7 @@ import { Observable } from 'rxjs';
 export interface FilterPreset {
   id: string;
   user_id: string;
-  board_id: string;
+  project_id: string;
   name: string;
   filters: Record<string, unknown>;
   created_at: string;
@@ -27,36 +27,36 @@ export class FilterPresetsService {
   private http = inject(HttpClient);
   private baseUrl = '/api';
 
-  list(boardId: string): Observable<FilterPreset[]> {
+  list(projectId: string): Observable<FilterPreset[]> {
     return this.http.get<FilterPreset[]>(
-      `${this.baseUrl}/boards/${boardId}/filter-presets`,
+      `${this.baseUrl}/projects/${projectId}/filter-presets`,
     );
   }
 
   create(
-    boardId: string,
+    projectId: string,
     body: CreateFilterPresetRequest,
   ): Observable<FilterPreset> {
     return this.http.post<FilterPreset>(
-      `${this.baseUrl}/boards/${boardId}/filter-presets`,
+      `${this.baseUrl}/projects/${projectId}/filter-presets`,
       body,
     );
   }
 
   update(
-    boardId: string,
+    projectId: string,
     presetId: string,
     body: UpdateFilterPresetRequest,
   ): Observable<FilterPreset> {
     return this.http.put<FilterPreset>(
-      `${this.baseUrl}/boards/${boardId}/filter-presets/${presetId}`,
+      `${this.baseUrl}/projects/${projectId}/filter-presets/${presetId}`,
       body,
     );
   }
 
-  delete(boardId: string, presetId: string): Observable<{ message: string }> {
+  delete(projectId: string, presetId: string): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(
-      `${this.baseUrl}/boards/${boardId}/filter-presets/${presetId}`,
+      `${this.baseUrl}/projects/${projectId}/filter-presets/${presetId}`,
     );
   }
 }

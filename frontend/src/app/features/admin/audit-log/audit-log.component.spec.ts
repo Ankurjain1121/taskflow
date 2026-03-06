@@ -30,7 +30,7 @@ describe('AuditLogComponent', () => {
       id: 'e-2',
       user_id: 'u-2',
       action: 'deleted',
-      entity_type: 'board',
+      entity_type: 'project',
       entity_id: 'abcdef12-3456-7890',
       ip_address: null,
       user_agent: null,
@@ -214,7 +214,7 @@ describe('AuditLogComponent', () => {
 
     it('formatEntityType should capitalize first letter', () => {
       expect(component.formatEntityType('task')).toBe('Task');
-      expect(component.formatEntityType('board')).toBe('Board');
+      expect(component.formatEntityType('project')).toBe('Project');
     });
 
     it('formatDetails should return formatted JSON', () => {
@@ -238,7 +238,7 @@ describe('AuditLogComponent', () => {
 
     it('getEntityTypeBadgeClass should return correct classes', () => {
       expect(component.getEntityTypeBadgeClass('task')).toContain('blue');
-      expect(component.getEntityTypeBadgeClass('board')).toContain('purple');
+      expect(component.getEntityTypeBadgeClass('project')).toContain('purple');
       expect(component.getEntityTypeBadgeClass('workspace')).toContain('green');
     });
   });

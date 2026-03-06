@@ -9,7 +9,7 @@ use uuid::Uuid;
 pub struct BulkOperation {
     pub id: Uuid,
     pub workspace_id: Uuid,
-    pub board_id: Uuid,
+    pub project_id: Uuid,
     pub user_id: Uuid,
     pub action_type: String,
     pub action_config: serde_json::Value,
@@ -30,7 +30,7 @@ mod tests {
         let op = BulkOperation {
             id: Uuid::new_v4(),
             workspace_id: Uuid::new_v4(),
-            board_id: Uuid::new_v4(),
+            project_id: Uuid::new_v4(),
             user_id: Uuid::new_v4(),
             action_type: "bulk_update".to_string(),
             action_config: serde_json::json!({"priority": "high"}),
@@ -54,7 +54,7 @@ mod tests {
         let op = BulkOperation {
             id: Uuid::new_v4(),
             workspace_id: Uuid::new_v4(),
-            board_id: Uuid::new_v4(),
+            project_id: Uuid::new_v4(),
             user_id: Uuid::new_v4(),
             action_type: "bulk_delete".to_string(),
             action_config: serde_json::json!({}),

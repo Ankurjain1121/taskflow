@@ -39,25 +39,25 @@ export class BulkOperationsService {
   constructor(private http: HttpClient) {}
 
   previewOperation(
-    boardId: string,
+    projectId: string,
     action: string,
     taskIds: string[],
     params?: Record<string, unknown>,
   ): Observable<PreviewResult> {
     return this.http.post<PreviewResult>(
-      `${this.apiUrl}/boards/${boardId}/bulk-operations/preview`,
+      `${this.apiUrl}/projects/${projectId}/bulk-operations/preview`,
       { action, task_ids: taskIds, params },
     );
   }
 
   executeOperation(
-    boardId: string,
+    projectId: string,
     action: string,
     taskIds: string[],
     params?: Record<string, unknown>,
   ): Observable<BulkOperationResult> {
     return this.http.post<BulkOperationResult>(
-      `${this.apiUrl}/boards/${boardId}/bulk-operations/execute`,
+      `${this.apiUrl}/projects/${projectId}/bulk-operations/execute`,
       { action, task_ids: taskIds, params },
     );
   }
@@ -69,9 +69,9 @@ export class BulkOperationsService {
     );
   }
 
-  listOperations(boardId: string): Observable<BulkOperation[]> {
+  listOperations(projectId: string): Observable<BulkOperation[]> {
     return this.http.get<BulkOperation[]>(
-      `${this.apiUrl}/boards/${boardId}/bulk-operations`,
+      `${this.apiUrl}/projects/${projectId}/bulk-operations`,
     );
   }
 

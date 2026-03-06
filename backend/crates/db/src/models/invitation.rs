@@ -17,7 +17,7 @@ pub struct Invitation {
     pub accepted_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub message: Option<String>,
-    pub board_ids: Option<serde_json::Value>,
+    pub project_ids: Option<serde_json::Value>,
     pub job_title: Option<String>,
 }
 
@@ -39,7 +39,7 @@ mod tests {
             accepted_at: None,
             created_at: now,
             message: Some("Welcome to the team!".to_string()),
-            board_ids: Some(serde_json::json!([Uuid::new_v4()])),
+            project_ids: Some(serde_json::json!([Uuid::new_v4()])),
             job_title: None,
         };
         let json = serde_json::to_string(&invitation).unwrap();
@@ -48,7 +48,7 @@ mod tests {
         assert_eq!(deserialized.role, UserRole::Member);
         assert!(deserialized.accepted_at.is_none());
         assert!(deserialized.message.is_some());
-        assert!(deserialized.board_ids.is_some());
+        assert!(deserialized.project_ids.is_some());
     }
 
     #[test]
@@ -65,13 +65,13 @@ mod tests {
             accepted_at: Some(now),
             created_at: now,
             message: None,
-            board_ids: None,
+            project_ids: None,
             job_title: None,
         };
         let json = serde_json::to_string(&invitation).unwrap();
         let deserialized: Invitation = serde_json::from_str(&json).unwrap();
         assert!(deserialized.accepted_at.is_some());
         assert!(deserialized.message.is_none());
-        assert!(deserialized.board_ids.is_none());
+        assert!(deserialized.project_ids.is_none());
     }
 }

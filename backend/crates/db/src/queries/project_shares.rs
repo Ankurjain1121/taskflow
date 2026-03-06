@@ -1,0 +1,599 @@
+use chrono::{DateTime, Utc};
+use serde::Deserialize;
+use sqlx::PgPool;
+use uuid::Uuid;
+
+use crate::models::ProjectShare;
+
+/// Error type for project share query operations
+#[derive(Debug, thiserror::Error)]
+pub enum ProjectShareQueryError {
+    #[error("Database error: {0}")]
+    Database(#[from] sqlx::Error),
+    #[error("User is not a member of this project")]
+    NotProjectMember,
+    #[error("Project share not found")]
+    NotFound,
+    #[error("Invalid share token")]
+    InvalidToken,
+    #[error("Share link has expired")]
+    Expired,
+    #[error("Share link is inactive")]
+    Inactive,
+    #[error("Invalid password")]
+    InvalidPassword,
+}
+
+/// Input for creating a project share link
+#[derive(Debug, Deserialize)]
+pub struct CreateProjectShareInput {
+    pub name: Option<String>,
+    pub password: Option<String>,
+    pub expires_at: Option<DateTime<Utc>>,
+    pub permissions: Option<serde_json::Value>,
+}
+
+use super::verify_project_membership_internal;
+
+/// Generate a unique share token using UUIDs
+fn generate_share_token() -> String {
+    // Concatenate two UUID v4s for a 64-char hex token
+    let a = Uuid::new_v4().simple().to_string();
+    let b = Uuid::new_v4().simple().to_string();
+    format!("{}{}", a, b)
+}
+
+/// List all share links for a project.
+/// Verifies project membership.
+pub async fn list_project_shares(
+    pool: &PgPool,
+    project_id: Uuid,
+    user_id: Uuid,
+) -> Result<Vec<ProjectShare>, ProjectShareQueryError> {
+    if !verify_project_membership_internal(pool, project_id, user_id).await? {
+        return Err(ProjectShareQueryError::NotProjectMember);
+    }
+
+    let shares = sqlx::query_as::<_, ProjectShare>(
+        r#"
+        SELECT id, project_id, share_token, name, password_hash,
+               expires_at, is_active, permissions, tenant_id,
+               created_by_id, created_at
+        FROM project_shares
+        WHERE project_id = $1
+        ORDER BY created_at DESC
+        "#,
+    )
+    .bind(project_id)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(shares)
+}
+
+/// Create a new share link for a project.
+/// Verifies project membership.
+pub async fn create_project_share(
+    pool: &PgPool,
+    project_id: Uuid,
+    input: CreateProjectShareInput,
+    user_id: Uuid,
+    tenant_id: Uuid,
+) -> Result<ProjectShare, ProjectShareQueryError> {
+    if !verify_project_membership_internal(pool, project_id, user_id).await? {
+        return Err(ProjectShareQueryError::NotProjectMember);
+    }
+
+    let id = Uuid::new_v4();
+    let token = generate_share_token();
+    let now = Utc::now();
+
+    // Salted SHA-256 hash for share link password
+    let password_hash = input.password.as_ref().map(|p| {
+        use sha2::{Digest, Sha256};
+        let salt = Uuid::new_v4().to_string();
+        let mut hasher = Sha256::new();
+        hasher.update(format!("{}:{}", salt, p));
+        format!("{}:{:x}", salt, hasher.finalize())
+    });
+
+    let permissions = input
+        .permissions
+        .unwrap_or_else(|| serde_json::json!({"view_tasks": true, "view_comments": false}));
+
+    let share = sqlx::query_as::<_, ProjectShare>(
+        r#"
+        INSERT INTO project_shares (
+            id, project_id, share_token, name, password_hash,
+            expires_at, is_active, permissions, tenant_id,
+            created_by_id, created_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, true, $7, $8, $9, $10)
+        RETURNING id, project_id, share_token, name, password_hash,
+                  expires_at, is_active, permissions, tenant_id,
+                  created_by_id, created_at
+        "#,
+    )
+    .bind(id)
+    .bind(project_id)
+    .bind(&token)
+    .bind(&input.name)
+    .bind(&password_hash)
+    .bind(input.expires_at)
+    .bind(&permissions)
+    .bind(tenant_id)
+    .bind(user_id)
+    .bind(now)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(share)
+}
+
+/// Delete a project share link.
+/// Verifies project membership.
+pub async fn delete_project_share(
+    pool: &PgPool,
+    share_id: Uuid,
+    user_id: Uuid,
+) -> Result<(), ProjectShareQueryError> {
+    // Get share to find project_id
+    let project_id =
+        sqlx::query_scalar::<_, Uuid>(r#"SELECT project_id FROM project_shares WHERE id = $1"#)
+            .bind(share_id)
+            .fetch_optional(pool)
+            .await?
+            .ok_or(ProjectShareQueryError::NotFound)?;
+
+    if !verify_project_membership_internal(pool, project_id, user_id).await? {
+        return Err(ProjectShareQueryError::NotProjectMember);
+    }
+
+    sqlx::query(r#"DELETE FROM project_shares WHERE id = $1"#)
+        .bind(share_id)
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}
+
+/// Toggle active status of a share link.
+pub async fn toggle_project_share(
+    pool: &PgPool,
+    share_id: Uuid,
+    is_active: bool,
+    user_id: Uuid,
+) -> Result<ProjectShare, ProjectShareQueryError> {
+    let project_id =
+        sqlx::query_scalar::<_, Uuid>(r#"SELECT project_id FROM project_shares WHERE id = $1"#)
+            .bind(share_id)
+            .fetch_optional(pool)
+            .await?
+            .ok_or(ProjectShareQueryError::NotFound)?;
+
+    if !verify_project_membership_internal(pool, project_id, user_id).await? {
+        return Err(ProjectShareQueryError::NotProjectMember);
+    }
+
+    let share = sqlx::query_as::<_, ProjectShare>(
+        r#"
+        UPDATE project_shares SET is_active = $2
+        WHERE id = $1
+        RETURNING id, project_id, share_token, name, password_hash,
+                  expires_at, is_active, permissions, tenant_id,
+                  created_by_id, created_at
+        "#,
+    )
+    .bind(share_id)
+    .bind(is_active)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(share)
+}
+
+/// Public: Access a shared project by token.
+/// Validates token, expiry, active status, and optional password.
+pub async fn access_shared_board(
+    pool: &PgPool,
+    token: &str,
+    password: Option<&str>,
+) -> Result<SharedProjectAccess, ProjectShareQueryError> {
+    let share = sqlx::query_as::<_, ProjectShare>(
+        r#"
+        SELECT id, project_id, share_token, name, password_hash,
+               expires_at, is_active, permissions, tenant_id,
+               created_by_id, created_at
+        FROM project_shares
+        WHERE share_token = $1
+        "#,
+    )
+    .bind(token)
+    .fetch_optional(pool)
+    .await?
+    .ok_or(ProjectShareQueryError::InvalidToken)?;
+
+    // Check active
+    if !share.is_active {
+        return Err(ProjectShareQueryError::Inactive);
+    }
+
+    // Check expiry
+    if let Some(expires_at) = share.expires_at {
+        if Utc::now() > expires_at {
+            return Err(ProjectShareQueryError::Expired);
+        }
+    }
+
+    // Check password
+    if let Some(ref hash) = share.password_hash {
+        let provided = password.ok_or(ProjectShareQueryError::InvalidPassword)?;
+        use sha2::{Digest, Sha256};
+        let parts: Vec<&str> = hash.splitn(2, ':').collect();
+        if parts.len() != 2 {
+            return Err(ProjectShareQueryError::InvalidPassword);
+        }
+        let salt = parts[0];
+        let stored_hash = parts[1];
+        let mut hasher = Sha256::new();
+        hasher.update(format!("{}:{}", salt, provided));
+        let computed = format!("{:x}", hasher.finalize());
+        if computed != stored_hash {
+            return Err(ProjectShareQueryError::InvalidPassword);
+        }
+    }
+
+    // Fetch project info
+    let project_name = sqlx::query_scalar::<_, String>(
+        r#"SELECT name FROM projects WHERE id = $1 AND deleted_at IS NULL"#,
+    )
+    .bind(share.project_id)
+    .fetch_optional(pool)
+    .await?
+    .ok_or(ProjectShareQueryError::NotFound)?;
+
+    // Fetch columns
+    let columns = sqlx::query_as::<_, SharedColumn>(
+        r#"
+        SELECT id, name, position, color
+        FROM project_columns
+        WHERE project_id = $1
+        ORDER BY position ASC
+        "#,
+    )
+    .bind(share.project_id)
+    .fetch_all(pool)
+    .await?;
+
+    // Fetch tasks (only if view_tasks is allowed)
+    let view_tasks = share
+        .permissions
+        .get("view_tasks")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+
+    let tasks = if view_tasks {
+        sqlx::query_as::<_, SharedTask>(
+            r#"
+            SELECT t.id, t.title, t.description,
+                   t.priority,
+                   t.due_date, t.column_id, c.name as column_name
+            FROM tasks t
+            JOIN project_columns c ON c.id = t.column_id
+            WHERE t.project_id = $1 AND t.deleted_at IS NULL
+            ORDER BY t.position ASC
+            "#,
+        )
+        .bind(share.project_id)
+        .fetch_all(pool)
+        .await?
+    } else {
+        vec![]
+    };
+
+    Ok(SharedProjectAccess {
+        project_id: share.project_id,
+        project_name,
+        permissions: share.permissions,
+        columns,
+        tasks,
+    })
+}
+
+/// Shared column info (public view)
+#[derive(Debug, serde::Serialize, sqlx::FromRow)]
+pub struct SharedColumn {
+    pub id: Uuid,
+    pub name: String,
+    pub position: String,
+    pub color: Option<String>,
+}
+
+/// Shared task info (public view)
+#[derive(Debug, serde::Serialize, sqlx::FromRow)]
+pub struct SharedTask {
+    pub id: Uuid,
+    pub title: String,
+    pub description: Option<String>,
+    pub priority: crate::models::TaskPriority,
+    pub due_date: Option<DateTime<Utc>>,
+    pub column_id: Uuid,
+    pub column_name: String,
+}
+
+/// Full shared project access response
+#[derive(Debug, serde::Serialize)]
+pub struct SharedProjectAccess {
+    pub project_id: Uuid,
+    pub project_name: String,
+    pub permissions: serde_json::Value,
+    pub columns: Vec<SharedColumn>,
+    pub tasks: Vec<SharedTask>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::queries::{auth, projects, workspaces};
+    use sqlx::PgPool;
+
+    const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
+
+    fn unique_email() -> String {
+        format!("inttest-bshare-{}@example.com", Uuid::new_v4())
+    }
+
+    async fn test_pool() -> PgPool {
+        let url = std::env::var("TEST_DATABASE_URL")
+            .or_else(|_| std::env::var("DATABASE_URL"))
+            .expect("TEST_DATABASE_URL or DATABASE_URL must be set");
+        PgPool::connect(&url)
+            .await
+            .expect("Failed to connect to test database")
+    }
+
+    async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
+        let user =
+            auth::create_user_with_tenant(pool, &unique_email(), "ProjectShare User", FAKE_HASH)
+                .await
+                .expect("create_user_with_tenant");
+        (user.tenant_id, user.id)
+    }
+
+    async fn setup_user_and_workspace(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id) = setup_user(pool).await;
+        let ws = workspaces::create_workspace(pool, "ProjectShare WS", None, tenant_id, user_id)
+            .await
+            .expect("create_workspace");
+        (tenant_id, user_id, ws.id)
+    }
+
+    async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
+        let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
+        let bwc = projects::create_project(
+            pool,
+            "ProjectShare Project",
+            None,
+            ws_id,
+            tenant_id,
+            user_id,
+        )
+        .await
+        .expect("create_project");
+        let first_col_id = bwc.columns[0].id;
+        (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
+    }
+
+    #[tokio::test]
+    async fn test_create_share_link() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateProjectShareInput {
+            name: Some("My Share Link".to_string()),
+            password: None,
+            expires_at: None,
+            permissions: None,
+        };
+
+        let share = create_project_share(&pool, project_id, input, user_id, tenant_id)
+            .await
+            .expect("create_project_share should succeed");
+
+        assert_eq!(share.project_id, project_id);
+        assert_eq!(share.name.as_deref(), Some("My Share Link"));
+        assert!(share.is_active);
+        assert!(share.password_hash.is_none());
+        assert!(share.expires_at.is_none());
+        assert!(!share.share_token.is_empty());
+        assert_eq!(share.tenant_id, tenant_id);
+        assert_eq!(share.created_by_id, user_id);
+    }
+
+    #[tokio::test]
+    async fn test_access_shared_board() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateProjectShareInput {
+            name: Some("Access Test".to_string()),
+            password: None,
+            expires_at: None,
+            permissions: Some(serde_json::json!({"view_tasks": true, "view_comments": true})),
+        };
+
+        let share = create_project_share(&pool, project_id, input, user_id, tenant_id)
+            .await
+            .expect("create_project_share");
+
+        let access = access_shared_board(&pool, &share.share_token, None)
+            .await
+            .expect("access_shared_board should succeed");
+
+        assert_eq!(access.project_id, project_id);
+        assert_eq!(access.project_name, "ProjectShare Project");
+        assert!(!access.columns.is_empty(), "should have columns");
+    }
+
+    #[tokio::test]
+    async fn test_access_shared_board_with_password() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateProjectShareInput {
+            name: Some("Password Protected".to_string()),
+            password: Some("secret123".to_string()),
+            expires_at: None,
+            permissions: None,
+        };
+
+        let share = create_project_share(&pool, project_id, input, user_id, tenant_id)
+            .await
+            .expect("create_project_share with password");
+
+        // Access with correct password should succeed
+        let access = access_shared_board(&pool, &share.share_token, Some("secret123"))
+            .await
+            .expect("access with correct password should succeed");
+        assert_eq!(access.project_id, project_id);
+
+        // Access with wrong password should fail
+        let result = access_shared_board(&pool, &share.share_token, Some("wrongpass")).await;
+        assert!(result.is_err(), "wrong password should fail");
+
+        // Access without password should fail
+        let result = access_shared_board(&pool, &share.share_token, None).await;
+        assert!(result.is_err(), "no password should fail");
+    }
+
+    #[tokio::test]
+    async fn test_toggle_share() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateProjectShareInput {
+            name: None,
+            password: None,
+            expires_at: None,
+            permissions: None,
+        };
+
+        let share = create_project_share(&pool, project_id, input, user_id, tenant_id)
+            .await
+            .expect("create_project_share");
+        assert!(share.is_active, "should start active");
+
+        // Deactivate
+        let toggled = toggle_project_share(&pool, share.id, false, user_id)
+            .await
+            .expect("toggle_project_share to deactivate");
+        assert!(!toggled.is_active, "should be inactive after toggle off");
+
+        // Accessing an inactive share should fail
+        let result = access_shared_board(&pool, &share.share_token, None).await;
+        assert!(result.is_err(), "accessing inactive share should fail");
+
+        // Reactivate
+        let reactivated = toggle_project_share(&pool, share.id, true, user_id)
+            .await
+            .expect("toggle_project_share to reactivate");
+        assert!(reactivated.is_active, "should be active after reactivation");
+
+        // Access should work again
+        let access = access_shared_board(&pool, &share.share_token, None)
+            .await
+            .expect("accessing reactivated share should succeed");
+        assert_eq!(access.project_id, project_id);
+    }
+
+    #[tokio::test]
+    async fn test_delete_share() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
+
+        let input = CreateProjectShareInput {
+            name: Some("Delete Me".to_string()),
+            password: None,
+            expires_at: None,
+            permissions: None,
+        };
+
+        let share = create_project_share(&pool, project_id, input, user_id, tenant_id)
+            .await
+            .expect("create_project_share");
+
+        delete_project_share(&pool, share.id, user_id)
+            .await
+            .expect("delete_project_share should succeed");
+
+        // Accessing a deleted share should fail with InvalidToken
+        let result = access_shared_board(&pool, &share.share_token, None).await;
+        assert!(result.is_err(), "accessing deleted share should fail");
+    }
+
+    #[tokio::test]
+    async fn test_list_project_shares() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
+
+        create_project_share(
+            &pool,
+            project_id,
+            CreateProjectShareInput {
+                name: Some("Share A".to_string()),
+                password: None,
+                expires_at: None,
+                permissions: None,
+            },
+            user_id,
+            tenant_id,
+        )
+        .await
+        .expect("create share A");
+
+        create_project_share(
+            &pool,
+            project_id,
+            CreateProjectShareInput {
+                name: Some("Share B".to_string()),
+                password: None,
+                expires_at: None,
+                permissions: None,
+            },
+            user_id,
+            tenant_id,
+        )
+        .await
+        .expect("create share B");
+
+        let shares = list_project_shares(&pool, project_id, user_id)
+            .await
+            .expect("list_project_shares should succeed");
+
+        assert!(shares.len() >= 2, "should have at least 2 shares");
+        let names: Vec<Option<&str>> = shares.iter().map(|s| s.name.as_deref()).collect();
+        assert!(names.contains(&Some("Share A")), "should contain share A");
+        assert!(names.contains(&Some("Share B")), "should contain share B");
+    }
+
+    #[tokio::test]
+    async fn test_expired_share_access() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&pool).await;
+
+        // Create a share that has already expired
+        let input = CreateProjectShareInput {
+            name: Some("Expired Share".to_string()),
+            password: None,
+            expires_at: Some(Utc::now() - chrono::Duration::hours(1)),
+            permissions: None,
+        };
+
+        let share = create_project_share(&pool, project_id, input, user_id, tenant_id)
+            .await
+            .expect("create expired share");
+
+        let result = access_shared_board(&pool, &share.share_token, None).await;
+        assert!(result.is_err(), "accessing expired share should fail");
+    }
+}

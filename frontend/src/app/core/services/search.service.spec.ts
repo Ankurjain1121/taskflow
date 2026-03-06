@@ -11,16 +11,16 @@ const MOCK_SEARCH_RESULTS: SearchResults = {
       id: 'task-1',
       title: 'Test Task',
       description: 'A test task',
-      board_id: 'board-1',
-      board_name: 'Test Board',
+      project_id: 'board-1',
+      project_name: 'Test Project',
       workspace_id: 'ws-1',
       workspace_name: 'Test Workspace',
     },
   ],
-  boards: [
+  projects: [
     {
       id: 'board-1',
-      name: 'Test Board',
+      name: 'Test Project',
       description: 'A test board',
       workspace_id: 'ws-1',
       workspace_name: 'Test Workspace',
@@ -78,13 +78,13 @@ describe('SearchService', () => {
     it('should return empty results when no matches', () => {
       const emptyResults: SearchResults = {
         tasks: [],
-        boards: [],
+        projects: [],
         comments: [],
       };
 
       service.search('nonexistent').subscribe((result) => {
         expect(result.tasks).toEqual([]);
-        expect(result.boards).toEqual([]);
+        expect(result.projects).toEqual([]);
         expect(result.comments).toEqual([]);
       });
 

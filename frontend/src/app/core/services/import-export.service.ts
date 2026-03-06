@@ -52,43 +52,43 @@ export class ImportExportService {
 
   constructor(private http: HttpClient) {}
 
-  exportCsv(boardId: string): Observable<Blob> {
-    return this.http.get(`${this.apiUrl}/boards/${boardId}/export`, {
+  exportCsv(projectId: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/projects/${projectId}/export`, {
       params: { format: 'csv' },
       responseType: 'blob',
     });
   }
 
-  exportJson(boardId: string): Observable<ExportBoardJson> {
+  exportJson(projectId: string): Observable<ExportBoardJson> {
     return this.http.get<ExportBoardJson>(
-      `${this.apiUrl}/boards/${boardId}/export`,
+      `${this.apiUrl}/projects/${projectId}/export`,
       { params: { format: 'json' } },
     );
   }
 
   importJson(
-    boardId: string,
+    projectId: string,
     tasks: ImportTaskItem[],
   ): Observable<ImportResult> {
     return this.http.post<ImportResult>(
-      `${this.apiUrl}/boards/${boardId}/import`,
+      `${this.apiUrl}/projects/${projectId}/import`,
       tasks,
     );
   }
 
-  importCsv(boardId: string, csvText: string): Observable<ImportResult> {
+  importCsv(projectId: string, csvText: string): Observable<ImportResult> {
     return this.http.post<ImportResult>(
-      `${this.apiUrl}/boards/${boardId}/import/csv`,
+      `${this.apiUrl}/projects/${projectId}/import/csv`,
       { csv_text: csvText },
     );
   }
 
   importTrello(
-    boardId: string,
+    projectId: string,
     trelloData: unknown,
   ): Observable<TrelloImportResult> {
     return this.http.post<TrelloImportResult>(
-      `${this.apiUrl}/boards/${boardId}/import/trello`,
+      `${this.apiUrl}/projects/${projectId}/import/trello`,
       trelloData,
     );
   }

@@ -52,13 +52,13 @@ describe('ReportsService', () => {
   });
 
   describe('getBoardReport()', () => {
-    it('should GET /api/boards/:boardId/reports with default days=30', () => {
+    it('should GET /api/projects/:projectId/reports with default days=30', () => {
       service.getBoardReport('board-1').subscribe((result) => {
         expect(result).toEqual(MOCK_REPORT);
       });
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/boards/board-1/reports',
+        (r) => r.url === '/api/projects/board-1/reports',
       );
       expect(req.request.method).toBe('GET');
       expect(req.request.params.get('days')).toBe('30');
@@ -71,7 +71,7 @@ describe('ReportsService', () => {
       });
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/boards/board-1/reports',
+        (r) => r.url === '/api/projects/board-1/reports',
       );
       expect(req.request.params.get('days')).toBe('7');
       req.flush(MOCK_REPORT);

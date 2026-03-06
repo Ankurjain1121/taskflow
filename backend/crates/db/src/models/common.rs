@@ -29,10 +29,10 @@ pub enum WorkspaceVisibility {
 }
 
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Debug, PartialEq, TS)]
-#[sqlx(type_name = "board_member_role", rename_all = "snake_case")]
+#[sqlx(type_name = "project_member_role", rename_all = "snake_case")]
 #[serde(rename_all = "lowercase")]
 #[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
-pub enum BoardMemberRole {
+pub enum ProjectMemberRole {
     Viewer,
     Editor,
     Owner,
@@ -113,14 +113,14 @@ mod tests {
     }
 
     #[test]
-    fn test_board_member_role_serde() {
+    fn test_project_member_role_serde() {
         for variant in [
-            BoardMemberRole::Viewer,
-            BoardMemberRole::Editor,
-            BoardMemberRole::Owner,
+            ProjectMemberRole::Viewer,
+            ProjectMemberRole::Editor,
+            ProjectMemberRole::Owner,
         ] {
             let json = serde_json::to_string(&variant).unwrap();
-            let deserialized: BoardMemberRole = serde_json::from_str(&json).unwrap();
+            let deserialized: ProjectMemberRole = serde_json::from_str(&json).unwrap();
             assert_eq!(variant, deserialized);
         }
     }
@@ -252,8 +252,8 @@ mod tests {
     }
 
     #[test]
-    fn test_board_member_role_clone_and_debug() {
-        let role = BoardMemberRole::Editor;
+    fn test_project_member_role_clone_and_debug() {
+        let role = ProjectMemberRole::Editor;
         let cloned = role.clone();
         assert_eq!(role, cloned);
         let debug = format!("{:?}", role);
@@ -345,37 +345,38 @@ mod tests {
     }
 
     // ========================================================================
-    // Board member role lowercase serde
+    // Project member role lowercase serde
     // ========================================================================
 
     #[test]
-    fn test_board_member_role_json_lowercase() {
+    fn test_project_member_role_json_lowercase() {
         assert_eq!(
-            serde_json::to_string(&BoardMemberRole::Viewer).unwrap(),
+            serde_json::to_string(&ProjectMemberRole::Viewer).unwrap(),
             "\"viewer\""
         );
         assert_eq!(
-            serde_json::to_string(&BoardMemberRole::Editor).unwrap(),
+            serde_json::to_string(&ProjectMemberRole::Editor).unwrap(),
             "\"editor\""
         );
         assert_eq!(
-            serde_json::to_string(&BoardMemberRole::Owner).unwrap(),
+            serde_json::to_string(&ProjectMemberRole::Owner).unwrap(),
             "\"owner\""
         );
     }
 
     #[test]
-    fn test_board_member_role_deserialize_from_lowercase() {
-        let viewer: BoardMemberRole = serde_json::from_str("\"viewer\"").unwrap();
-        assert_eq!(viewer, BoardMemberRole::Viewer);
+    fn test_project_member_role_deserialize_from_lowercase() {
+        let viewer: ProjectMemberRole = serde_json::from_str("\"viewer\"").unwrap();
+        assert_eq!(viewer, ProjectMemberRole::Viewer);
     }
 
     #[test]
-    fn test_board_member_role_invalid_value_rejected() {
-        let result: std::result::Result<BoardMemberRole, _> = serde_json::from_str("\"moderator\"");
+    fn test_project_member_role_invalid_value_rejected() {
+        let result: std::result::Result<ProjectMemberRole, _> =
+            serde_json::from_str("\"moderator\"");
         assert!(
             result.is_err(),
-            "Invalid board member role should be rejected"
+            "Invalid project member role should be rejected"
         );
     }
 }

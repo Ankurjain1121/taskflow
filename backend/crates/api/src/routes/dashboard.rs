@@ -1,6 +1,6 @@
-//! Dashboard API routes
+//! Dashproject API routes
 //!
-//! Provides endpoints for dashboard statistics and recent activity feed.
+//! Provides endpoints for dashproject statistics and recent activity feed.
 //! All endpoints support optional `workspace_id` query param for filtering.
 
 use axum::{
@@ -24,7 +24,7 @@ use taskflow_db::queries::dashboard::{
     UpcomingDeadline,
 };
 
-/// Common workspace filter applied to all dashboard endpoints
+/// Common workspace filter applied to all dashproject endpoints
 #[derive(Debug, Deserialize)]
 pub struct DashboardFilter {
     pub workspace_id: Option<Uuid>,
@@ -66,7 +66,7 @@ fn default_deadline_days() -> i64 {
     14
 }
 
-/// GET /api/dashboard/stats
+/// GET /api/dashproject/stats
 async fn get_stats_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
@@ -86,7 +86,7 @@ async fn get_stats_handler(
     Ok(Json(stats))
 }
 
-/// GET /api/dashboard/recent-activity
+/// GET /api/dashproject/recent-activity
 async fn get_recent_activity_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
@@ -103,7 +103,7 @@ async fn get_recent_activity_handler(
     Ok(Json(activity))
 }
 
-/// GET /api/dashboard/tasks-by-status
+/// GET /api/dashproject/tasks-by-status
 async fn get_tasks_by_status_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
@@ -113,7 +113,7 @@ async fn get_tasks_by_status_handler(
     Ok(Json(data))
 }
 
-/// GET /api/dashboard/tasks-by-priority
+/// GET /api/dashproject/tasks-by-priority
 async fn get_tasks_by_priority_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
@@ -123,7 +123,7 @@ async fn get_tasks_by_priority_handler(
     Ok(Json(data))
 }
 
-/// GET /api/dashboard/overdue-tasks
+/// GET /api/dashproject/overdue-tasks
 async fn get_overdue_tasks_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
@@ -134,7 +134,7 @@ async fn get_overdue_tasks_handler(
     Ok(Json(data))
 }
 
-/// GET /api/dashboard/completion-trend
+/// GET /api/dashproject/completion-trend
 async fn get_completion_trend_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
@@ -145,7 +145,7 @@ async fn get_completion_trend_handler(
     Ok(Json(data))
 }
 
-/// GET /api/dashboard/upcoming-deadlines
+/// GET /api/dashproject/upcoming-deadlines
 async fn get_upcoming_deadlines_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
@@ -156,7 +156,7 @@ async fn get_upcoming_deadlines_handler(
     Ok(Json(data))
 }
 
-/// Create the dashboard router
+/// Create the dashproject router
 pub fn dashboard_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/stats", get(get_stats_handler))

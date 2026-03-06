@@ -47,11 +47,11 @@ export interface DelegateMember {
           </div>
           <div class="flex items-center gap-2 mt-1">
             <a
-              [routerLink]="['/board', task().board_id]"
+              [routerLink]="['/board', task().project_id]"
               class="text-xs text-[var(--muted-foreground)] hover:text-primary hover:underline"
               (click)="$event.stopPropagation()"
             >
-              {{ task().board_name }}
+              {{ task().project_name }}
             </a>
             @if (task().due_date) {
               <span class="text-xs text-[var(--muted-foreground)]">&bull;</span>
@@ -109,7 +109,7 @@ export interface DelegateMember {
         class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5"
       >
         <a
-          [routerLink]="['/board', task().board_id]"
+          [routerLink]="['/board', task().project_id]"
           class="p-1 text-[var(--muted-foreground)] hover:text-primary rounded"
           title="Go to board"
           (click)="$event.stopPropagation()"

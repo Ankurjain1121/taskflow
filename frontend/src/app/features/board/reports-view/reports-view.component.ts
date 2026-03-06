@@ -50,7 +50,7 @@ import {
         <!-- Header -->
         <div class="flex items-center justify-between">
           <h2 class="text-xl font-semibold text-[var(--card-foreground)]">
-            Board Analytics
+            Project Analytics
           </h2>
           <select
             class="text-sm border border-[var(--border)] rounded-lg px-3 py-1.5 bg-[var(--card)]"
@@ -312,7 +312,7 @@ import {
   `,
 })
 export class ReportsViewComponent implements OnInit {
-  boardId = input.required<string>();
+  projectId = input.required<string>();
 
   private reportsService = inject(ReportsService);
 
@@ -412,7 +412,7 @@ export class ReportsViewComponent implements OnInit {
   loadReport(): void {
     this.loading.set(true);
     this.reportsService
-      .getBoardReport(this.boardId(), this.daysBack())
+      .getBoardReport(this.projectId(), this.daysBack())
       .subscribe({
         next: (report) => {
           this.report.set(report);

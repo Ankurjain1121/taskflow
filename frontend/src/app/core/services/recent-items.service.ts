@@ -4,11 +4,11 @@ import { inject } from '@angular/core';
 
 export interface RecentItem {
   id: string;
-  entityType: 'board' | 'task';
+  entityType: 'project' | 'task';
   name: string;
-  context: string; // e.g. "Workspace > Board" for tasks, "Workspace" for boards
+  context: string; // e.g. "Workspace > Board" for tasks, "Workspace" for projects
   workspaceId: string;
-  boardId?: string; // for tasks
+  projectId?: string; // for tasks
   visitedAt: number;
 }
 
@@ -25,7 +25,7 @@ export class RecentItemsService {
   readonly items = signal<RecentItem[]>([]);
 
   readonly recentBoards = computed(() =>
-    this.items().filter((i) => i.entityType === 'board'),
+    this.items().filter((i) => i.entityType === 'project'),
   );
 
   readonly recentTasks = computed(() =>
@@ -36,22 +36,22 @@ export class RecentItemsService {
     this.loadFromStorage();
   }
 
-  recordBoardView(board: {
+  recordProjectView(project: {
     id: string;
     name: string;
     workspaceId: string;
     workspaceName?: string;
   }): void {
     const entry: RecentItem = {
-      id: board.id,
-      entityType: 'board',
-      name: board.name,
-      context: board.workspaceName ?? '',
-      workspaceId: board.workspaceId,
+      id: project.id,
+      entityType: 'project',
+      name: project.name,
+      context: project.workspaceName ?? '',
+      workspaceId: project.workspaceId,
       visitedAt: Date.now(),
     };
     this.addItem(entry);
-    this.postToServer('board', board.id);
+    this.postToServer('project', project.id);
   }
 
   recordTaskView(task: {
@@ -60,7 +60,7 @@ export class RecentItemsService {
     boardName: string;
     workspaceId: string;
     workspaceName?: string;
-    boardId: string;
+    projectId: string;
   }): void {
     const entry: RecentItem = {
       id: task.id,
@@ -70,7 +70,7 @@ export class RecentItemsService {
         ? `${task.workspaceName} > ${task.boardName}`
         : task.boardName,
       workspaceId: task.workspaceId,
-      boardId: task.boardId,
+      projectId: task.projectId,
       visitedAt: Date.now(),
     };
     this.addItem(entry);
@@ -102,21 +102,21 @@ export class RecentItemsService {
         return;
       }
 
-      // Fallback: seed from sidebar-recent boards if no recent items yet
+      // Fallback: seed from sidebar-recent projects if no recent items yet
       const boardsRaw = localStorage.getItem(BOARDS_STORAGE_KEY);
       if (boardsRaw) {
-        const boards = JSON.parse(boardsRaw) as Array<{
+        const projects = JSON.parse(boardsRaw) as Array<{
           id: string;
           name: string;
           workspaceId: string;
           visitedAt: number;
         }>;
         const now = Date.now();
-        const seeded: RecentItem[] = boards
+        const seeded: RecentItem[] = projects
           .filter((b) => now - b.visitedAt < TTL_MS)
           .map((b) => ({
             id: b.id,
-            entityType: 'board' as const,
+            entityType: 'project' as const,
             name: b.name,
             context: '',
             workspaceId: b.workspaceId,
