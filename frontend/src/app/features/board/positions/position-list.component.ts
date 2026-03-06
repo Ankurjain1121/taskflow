@@ -104,7 +104,7 @@ import { BoardMember } from '../../../core/services/board.service';
       @if (error()) {
         <div class="px-6 py-4">
           <div
-            class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-800"
+            class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-3 text-sm text-red-800 dark:text-red-200"
           >
             {{ error() }}
             <button

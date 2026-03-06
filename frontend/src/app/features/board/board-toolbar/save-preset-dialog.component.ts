@@ -126,10 +126,15 @@ export class SavePresetDialogComponent implements OnDestroy {
         filters: this.filters() as unknown as Record<string, unknown>,
       })
       .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.showDialog = false;
-        this.newPresetName = '';
-        this.presetsReloaded.emit();
+      .subscribe({
+        next: () => {
+          this.showDialog = false;
+          this.newPresetName = '';
+          this.presetsReloaded.emit();
+        },
+        error: () => {
+          // Subscription completes on error; dialog stays open for retry
+        },
       });
   }
 }
