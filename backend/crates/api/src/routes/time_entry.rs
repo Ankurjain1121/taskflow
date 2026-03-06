@@ -13,7 +13,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
-use taskflow_db::queries::get_task_project_id;
+use taskflow_db::queries::get_task_board_id;
 use taskflow_db::queries::time_entries::{
     create_manual_entry, delete_entry, get_board_time_report, get_running_timer,
     list_task_time_entries, start_timer, stop_timer, update_entry, ManualEntryInput,
@@ -48,7 +48,7 @@ pub struct UpdateEntryRequest {
 fn map_time_entry_error(e: TimeEntryQueryError) -> AppError {
     match e {
         TimeEntryQueryError::NotFound => AppError::NotFound("Time entry not found".into()),
-        TimeEntryQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
+        TimeEntryQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
         TimeEntryQueryError::AlreadyRunning => {
             AppError::Conflict("A timer is already running".into())
         }
@@ -79,7 +79,7 @@ async fn start_timer_handler(
     Path(task_id): Path<Uuid>,
     Json(body): Json<StartTimerRequest>,
 ) -> Result<Json<taskflow_db::models::TimeEntry>> {
-    let project_id = get_task_project_id(&state.db, task_id)
+    let board_id = get_task_board_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
@@ -87,7 +87,7 @@ async fn start_timer_handler(
         task_id,
         user_id: tenant.user_id,
         description: body.description,
-        project_id,
+        board_id,
         tenant_id: tenant.tenant_id,
     };
 
@@ -118,7 +118,7 @@ async fn create_manual_entry_handler(
     Path(task_id): Path<Uuid>,
     Json(body): Json<CreateManualEntryRequest>,
 ) -> Result<Json<taskflow_db::models::TimeEntry>> {
-    let project_id = get_task_project_id(&state.db, task_id)
+    let board_id = get_task_board_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
@@ -129,7 +129,7 @@ async fn create_manual_entry_handler(
         started_at: body.started_at,
         ended_at: body.ended_at,
         duration_minutes: body.duration_minutes,
-        project_id,
+        board_id,
         tenant_id: tenant.tenant_id,
     };
 
@@ -174,13 +174,13 @@ async fn delete_entry_handler(
     Ok(Json(json!({ "success": true })))
 }
 
-/// GET /api/projects/{project_id}/time-report
+/// GET /api/boards/{board_id}/time-report
 async fn board_time_report_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path(project_id): Path<Uuid>,
+    Path(board_id): Path<Uuid>,
 ) -> Result<Json<Vec<taskflow_db::queries::time_entries::TaskTimeReport>>> {
-    let report = get_board_time_report(&state.db, project_id, tenant.user_id)
+    let report = get_board_time_report(&state.db, board_id, tenant.user_id)
         .await
         .map_err(map_time_entry_error)?;
 
@@ -216,9 +216,9 @@ pub fn time_entry_router(state: AppState) -> Router<AppState> {
         .route("/time-entries/{id}/stop", post(stop_timer_handler))
         .route("/time-entries/{id}", put(update_entry_handler))
         .route("/time-entries/{id}", delete(delete_entry_handler))
-        // Project-scoped time report
+        // Board-scoped time report
         .route(
-            "/projects/{project_id}/time-report",
+            "/boards/{board_id}/time-report",
             get(board_time_report_handler),
         )
         // User-scoped running timer

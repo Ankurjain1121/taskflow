@@ -10,7 +10,7 @@ pub struct FavoriteItem {
     pub entity_type: String,
     pub entity_id: Uuid,
     pub name: String,
-    pub project_id: Option<Uuid>,
+    pub board_id: Option<Uuid>,
     pub workspace_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
 }
@@ -22,14 +22,14 @@ struct FavoriteTaskRow {
     entity_type: String,
     entity_id: Uuid,
     name: String,
-    project_id: Option<Uuid>,
+    board_id: Option<Uuid>,
     workspace_id: Option<Uuid>,
     created_at: DateTime<Utc>,
 }
 
-/// Internal row for favorite project query
+/// Internal row for favorite board query
 #[derive(Debug, FromRow)]
-struct FavoriteProjectRow {
+struct FavoriteBoardRow {
     id: Uuid,
     entity_type: String,
     entity_id: Uuid,
@@ -51,12 +51,12 @@ pub async fn list_favorites(
             f.entity_type,
             f.entity_id,
             t.title as name,
-            t.project_id,
+            t.board_id,
             b.workspace_id,
             f.created_at
         FROM favorites f
         INNER JOIN tasks t ON t.id = f.entity_id AND t.deleted_at IS NULL
-        LEFT JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
+        LEFT JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
         WHERE f.user_id = $1 AND f.entity_type = 'task'
         ORDER BY f.created_at DESC
         "#,
@@ -65,8 +65,8 @@ pub async fn list_favorites(
     .fetch_all(pool)
     .await?;
 
-    // Fetch favorite projects
-    let board_rows = sqlx::query_as::<_, FavoriteProjectRow>(
+    // Fetch favorite boards
+    let board_rows = sqlx::query_as::<_, FavoriteBoardRow>(
         r#"
         SELECT
             f.id,
@@ -76,7 +76,7 @@ pub async fn list_favorites(
             b.workspace_id,
             f.created_at
         FROM favorites f
-        INNER JOIN projects b ON b.id = f.entity_id AND b.deleted_at IS NULL
+        INNER JOIN boards b ON b.id = f.entity_id AND b.deleted_at IS NULL
         WHERE f.user_id = $1 AND f.entity_type = 'board'
         ORDER BY f.created_at DESC
         "#,
@@ -94,7 +94,7 @@ pub async fn list_favorites(
             entity_type: row.entity_type,
             entity_id: row.entity_id,
             name: row.name,
-            project_id: row.project_id,
+            board_id: row.board_id,
             workspace_id: row.workspace_id,
             created_at: row.created_at,
         });
@@ -106,7 +106,7 @@ pub async fn list_favorites(
             entity_type: row.entity_type,
             entity_id: row.entity_id,
             name: row.name,
-            project_id: None,
+            board_id: None,
             workspace_id: row.workspace_id,
             created_at: row.created_at,
         });

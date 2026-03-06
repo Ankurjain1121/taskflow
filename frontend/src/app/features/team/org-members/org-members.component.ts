@@ -279,7 +279,7 @@ import { UserProfileDialogComponent } from '../../../shared/components/dialogs/u
       [(visible)]="showInviteDialog"
       [workspaceId]="autoSelectedWorkspaceId()"
       [workspaceName]="autoSelectedWorkspaceName()"
-      [projects]="autoSelectedWorkspaceBoards()"
+      [boards]="autoSelectedWorkspaceBoards()"
       [workspaces]="inviteWorkspaceOptions()"
       (created)="onInviteResult($event)"
     />

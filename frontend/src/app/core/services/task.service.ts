@@ -104,45 +104,6 @@ export interface TaskListItem {
   updated_at: string;
 }
 
-export interface TaskListParams {
-  sort_by?: string;
-  sort_order?: 'asc' | 'desc';
-  page?: number;
-  page_size?: number;
-  search?: string;
-  priority?: string;
-  assignee_ids?: string;
-  column_ids?: string;
-  label_ids?: string;
-  overdue?: boolean;
-}
-
-export interface TaskListResponseItem {
-  id: string;
-  title: string;
-  priority: string;
-  status: string;
-  column_id: string;
-  column_name: string;
-  due_date: string | null;
-  task_number: number | null;
-  subtask_completed: number;
-  subtask_total: number;
-  assignees: { user_id: string; display_name: string; avatar_url: string | null }[];
-  labels: string[];
-  comment_count: number;
-  milestone_name: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface TaskListResponse {
-  tasks: TaskListResponseItem[];
-  total: number;
-  page: number;
-  page_size: number;
-}
-
 export interface CreateTaskRequest {
   title: string;
   description?: string;
@@ -257,13 +218,13 @@ export class TaskService {
     );
   }
 
-  createTask(projectId: string, request: CreateTaskRequest): Observable<Task> {
+  createTask(boardId: string, request: CreateTaskRequest): Observable<Task> {
     return this.http
-      .post<Task>(`${this.apiUrl}/projects/${projectId}/tasks`, request)
+      .post<Task>(`${this.apiUrl}/boards/${boardId}/tasks`, request)
       .pipe(
         tap(() => {
           this.cache.invalidate(`tasks:.*`);
-          this.cache.invalidate(`project-full:${projectId}:.*`);
+          this.cache.invalidate(`board-full:${boardId}:.*`);
         }),
       );
   }
@@ -334,46 +295,27 @@ export class TaskService {
     );
   }
 
-  listByBoard(projectId: string): Observable<Record<string, Task[]>> {
+  listByBoard(boardId: string): Observable<Record<string, Task[]>> {
     return this.cache.get(
-      `board-tasks:${projectId}`,
+      `board-tasks:${boardId}`,
       () =>
         this.http
           .get<{
             tasks: Record<string, Task[]>;
-          }>(`${this.apiUrl}/projects/${projectId}/tasks`)
+          }>(`${this.apiUrl}/boards/${boardId}/tasks`)
           .pipe(map((response) => response.tasks)),
       60000, // 1 min TTL
     );
   }
 
-  listFlat(projectId: string): Observable<TaskListItem[]> {
+  listFlat(boardId: string): Observable<TaskListItem[]> {
     return this.cache.get(
-      `flat-tasks:${projectId}`,
+      `flat-tasks:${boardId}`,
       () =>
         this.http.get<TaskListItem[]>(
-          `${this.apiUrl}/projects/${projectId}/tasks/list`,
+          `${this.apiUrl}/boards/${boardId}/tasks/list`,
         ),
       60000, // 1 min TTL
-    );
-  }
-
-  getTaskList(projectId: string, params: TaskListParams): Observable<TaskListResponse> {
-    const httpParams: Record<string, string> = {};
-    if (params.sort_by) httpParams['sort_by'] = params.sort_by;
-    if (params.sort_order) httpParams['sort_order'] = params.sort_order;
-    if (params.page != null) httpParams['page'] = String(params.page);
-    if (params.page_size != null) httpParams['page_size'] = String(params.page_size);
-    if (params.search) httpParams['search'] = params.search;
-    if (params.priority) httpParams['priority'] = params.priority;
-    if (params.assignee_ids) httpParams['assignee_ids'] = params.assignee_ids;
-    if (params.column_ids) httpParams['column_ids'] = params.column_ids;
-    if (params.label_ids) httpParams['label_ids'] = params.label_ids;
-    if (params.overdue) httpParams['overdue'] = 'true';
-
-    return this.http.get<TaskListResponse>(
-      `${this.apiUrl}/projects/${projectId}/tasks/list-enhanced`,
-      { params: httpParams },
     );
   }
 
@@ -400,48 +342,48 @@ export class TaskService {
   }
 
   listCalendarTasks(
-    projectId: string,
+    boardId: string,
     start: string,
     end: string,
   ): Observable<CalendarTask[]> {
     return this.cache.get(
-      `calendar-tasks:${projectId}:${start}:${end}`,
+      `calendar-tasks:${boardId}:${start}:${end}`,
       () =>
         this.http.get<CalendarTask[]>(
-          `${this.apiUrl}/projects/${projectId}/tasks/calendar`,
+          `${this.apiUrl}/boards/${boardId}/tasks/calendar`,
           { params: { start, end } },
         ),
       180000, // 3 min TTL
     );
   }
 
-  listGanttTasks(projectId: string): Observable<GanttTask[]> {
+  listGanttTasks(boardId: string): Observable<GanttTask[]> {
     return this.cache.get(
-      `gantt-tasks:${projectId}`,
+      `gantt-tasks:${boardId}`,
       () =>
         this.http.get<GanttTask[]>(
-          `${this.apiUrl}/projects/${projectId}/tasks/gantt`,
+          `${this.apiUrl}/boards/${boardId}/tasks/gantt`,
         ),
       120000, // 2 min TTL
     );
   }
 
   bulkUpdate(
-    projectId: string,
+    boardId: string,
     request: BulkUpdateRequest,
   ): Observable<{ updated: number }> {
     return this.http.post<{ updated: number }>(
-      `${this.apiUrl}/projects/${projectId}/tasks/bulk-update`,
+      `${this.apiUrl}/boards/${boardId}/tasks/bulk-update`,
       request,
     );
   }
 
   bulkDelete(
-    projectId: string,
+    boardId: string,
     request: BulkDeleteRequest,
   ): Observable<{ deleted: number }> {
     return this.http.post<{ deleted: number }>(
-      `${this.apiUrl}/projects/${projectId}/tasks/bulk-delete`,
+      `${this.apiUrl}/boards/${boardId}/tasks/bulk-delete`,
       request,
     );
   }

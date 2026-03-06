@@ -11,7 +11,7 @@ export interface TimeEntry {
   ended_at: string | null;
   duration_minutes: number | null;
   is_running: boolean;
-  project_id: string;
+  board_id: string;
   tenant_id: string;
   created_at: string;
   updated_at: string;
@@ -89,9 +89,9 @@ export class TimeTrackingService {
     return this.http.delete<void>(`${this.apiUrl}/time-entries/${id}`);
   }
 
-  getBoardTimeReport(projectId: string): Observable<TaskTimeReport[]> {
+  getBoardTimeReport(boardId: string): Observable<TaskTimeReport[]> {
     return this.http.get<TaskTimeReport[]>(
-      `${this.apiUrl}/projects/${projectId}/time-report`,
+      `${this.apiUrl}/boards/${boardId}/time-report`,
     );
   }
 

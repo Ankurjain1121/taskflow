@@ -8,7 +8,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { Task } from '../../../core/services/task.service';
-import { Column } from '../../../core/services/project.service';
+import { Column } from '../../../core/services/board.service';
 import {
   SwimlaneGroup,
   SwimlaneState,

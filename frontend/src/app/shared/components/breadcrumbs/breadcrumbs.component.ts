@@ -11,7 +11,7 @@ import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WorkspaceStateService } from '../../../core/services/workspace-state.service';
-import { ProjectService } from '../../../core/services/project.service';
+import { BoardService } from '../../../core/services/board.service';
 
 export interface Breadcrumb {
   label: string;
@@ -61,12 +61,12 @@ export class BreadcrumbsComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private activatedRoute = inject(ActivatedRoute);
   private workspaceState = inject(WorkspaceStateService);
-  private projectService = inject(ProjectService);
+  private boardService = inject(BoardService);
   private destroyRef = inject(DestroyRef);
 
   breadcrumbs = signal<Breadcrumb[]>([]);
   private sub: Subscription | null = null;
-  private projectNameCache = new Map<string, string>();
+  private boardNameCache = new Map<string, string>();
   // Tracks the board ID currently shown in breadcrumbs; guards stale async responses.
   private activeBoardId: string | null = null;
 
@@ -139,14 +139,14 @@ export class BreadcrumbsComponent implements OnInit, OnDestroy {
       const workspaceName = this.resolveWorkspaceName(workspaceId);
       crumbs.push({ label: workspaceName, url: `/workspace/${workspaceId}` });
 
-      if (segments[2] === 'project' && segments[3]) {
-        const projectId = segments[3];
-        this.activeBoardId = projectId;
+      if (segments[2] === 'board' && segments[3]) {
+        const boardId = segments[3];
+        this.activeBoardId = boardId;
 
-        // Set 'Project' placeholder immediately so the nav is never blank.
+        // Set 'Board' placeholder immediately so the nav is never blank.
         crumbs.push({
-          label: 'Project',
-          url: `/workspace/${workspaceId}/board/${projectId}`,
+          label: 'Board',
+          url: `/workspace/${workspaceId}/board/${boardId}`,
         });
 
         if (segments[4] === 'settings') {
@@ -154,7 +154,7 @@ export class BreadcrumbsComponent implements OnInit, OnDestroy {
         }
 
         this.breadcrumbs.set(crumbs);
-        this.resolveBoardName(projectId);
+        this.resolveBoardName(boardId);
         return; // label updated asynchronously via resolveBoardName
       } else if (segments[2] === 'team') {
         crumbs.push({ label: 'Team', url: null });
@@ -188,35 +188,35 @@ export class BreadcrumbsComponent implements OnInit, OnDestroy {
     return ws?.name ?? 'Workspace';
   }
 
-  private resolveBoardName(projectId: string): void {
+  private resolveBoardName(boardId: string): void {
     // Fast path: name already cached from a previous visit.
-    const cached = this.projectNameCache.get(projectId);
+    const cached = this.boardNameCache.get(boardId);
     if (cached) {
-      this.setProjectName(projectId, cached);
+      this.setBoardName(boardId, cached);
       return;
     }
 
     // Async path: fetch name and cache it.
-    this.projectService
-      .getProject(projectId)
+    this.boardService
+      .getBoard(boardId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (proj) => {
-          this.projectNameCache.set(projectId, proj.name);
-          this.setProjectName(projectId, proj.name);
+        next: (board) => {
+          this.boardNameCache.set(boardId, board.name);
+          this.setBoardName(boardId, board.name);
         },
         error: () => {
-          // 'Project' placeholder already set; silently keep it.
+          // 'Board' placeholder already set; silently keep it.
         },
       });
   }
 
   // Guards against stale responses: only applies the name if we're still
   // viewing the same board (user may have navigated away mid-flight).
-  private setProjectName(projectId: string, name: string): void {
-    if (this.activeBoardId !== projectId) return;
+  private setBoardName(boardId: string, name: string): void {
+    if (this.activeBoardId !== boardId) return;
     this.breadcrumbs.update((crumbs) =>
-      crumbs.map((c) => (c.label === 'Project' ? { ...c, label: name } : c)),
+      crumbs.map((c) => (c.label === 'Board' ? { ...c, label: name } : c)),
     );
   }
 }

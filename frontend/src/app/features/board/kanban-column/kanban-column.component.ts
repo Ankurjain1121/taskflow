@@ -17,7 +17,7 @@ import {
   transferArrayItem,
 } from '@angular/cdk/drag-drop';
 import { ScrollingModule } from '@angular/cdk/scrolling';
-import { Column } from '../../../core/services/project.service';
+import { Column } from '../../../core/services/board.service';
 import { Task } from '../../../core/services/task.service';
 import { CardFields } from '../board-view/board-state.service';
 import { PresenceService } from '../../../core/services/presence.service';

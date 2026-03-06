@@ -1,6 +1,6 @@
 //! Position REST endpoints
 //!
-//! Provides CRUD operations for project-level positions and holder management.
+//! Provides CRUD operations for board-level positions and holder management.
 
 use axum::{
     extract::{Path, State},
@@ -12,7 +12,7 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use taskflow_db::models::{PositionWithHolders, RecurringTaskConfig};
-use taskflow_db::queries::{positions, projects};
+use taskflow_db::queries::{boards, positions};
 
 use crate::errors::{AppError, Result};
 use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
@@ -56,7 +56,7 @@ async fn build_position_with_holders(
         id: position.id,
         name: position.name,
         description: position.description,
-        project_id: position.project_id,
+        board_id: position.board_id,
         fallback_position_id: position.fallback_position_id,
         fallback_position_name,
         tenant_id: position.tenant_id,
@@ -72,31 +72,31 @@ async fn build_position_with_holders(
 // Route Handlers
 // ============================================================================
 
-/// GET /api/projects/:project_id/positions
+/// GET /api/boards/:board_id/positions
 async fn list_positions(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Path(project_id): Path<Uuid>,
+    Path(board_id): Path<Uuid>,
 ) -> Result<Json<Vec<PositionWithHolders>>> {
-    let is_member = projects::is_project_member(&state.db, project_id, auth.0.user_id).await?;
+    let is_member = boards::is_board_member(&state.db, board_id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::Forbidden("Not a project member".into()));
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
-    let list = positions::list_positions(&state.db, project_id).await?;
+    let list = positions::list_positions(&state.db, board_id).await?;
     Ok(Json(list))
 }
 
-/// POST /api/projects/:project_id/positions
+/// POST /api/boards/:board_id/positions
 async fn create_position(
     State(state): State<AppState>,
     auth: ManagerOrAdmin,
-    Path(project_id): Path<Uuid>,
+    Path(board_id): Path<Uuid>,
     Json(payload): Json<taskflow_db::models::CreatePositionRequest>,
 ) -> Result<Json<PositionWithHolders>> {
-    let is_member = projects::is_project_member(&state.db, project_id, auth.0.user_id).await?;
+    let is_member = boards::is_board_member(&state.db, board_id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::Forbidden("Not a project member".into()));
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     let name = payload.name.trim();
@@ -109,16 +109,16 @@ async fn create_position(
         name,
         payload.description.as_deref(),
         payload.fallback_position_id,
-        project_id,
+        board_id,
         auth.0.tenant_id,
         auth.0.user_id,
     )
     .await
     .map_err(|e| {
         if let sqlx::Error::Database(ref db_err) = e {
-            if db_err.constraint() == Some("positions_project_id_name_key") {
+            if db_err.constraint() == Some("positions_board_id_name_key") {
                 return AppError::Conflict(
-                    "A position with this name already exists on this project".into(),
+                    "A position with this name already exists on this board".into(),
                 );
             }
         }
@@ -139,10 +139,9 @@ async fn get_position(
         .await?
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
-    let is_member =
-        projects::is_project_member(&state.db, position.project_id, auth.0.user_id).await?;
+    let is_member = boards::is_board_member(&state.db, position.board_id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::Forbidden("Not a project member".into()));
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     let response = build_position_with_holders(&state, position).await?;
@@ -160,10 +159,9 @@ async fn update_position(
         .await?
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
-    let is_member =
-        projects::is_project_member(&state.db, existing.project_id, auth.0.user_id).await?;
+    let is_member = boards::is_board_member(&state.db, existing.board_id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::Forbidden("Not a project member".into()));
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     if let Some(ref name) = payload.name {
@@ -183,9 +181,9 @@ async fn update_position(
     .await
     .map_err(|e| {
         if let sqlx::Error::Database(ref db_err) = e {
-            if db_err.constraint() == Some("positions_project_id_name_key") {
+            if db_err.constraint() == Some("positions_board_id_name_key") {
                 return AppError::Conflict(
-                    "A position with this name already exists on this project".into(),
+                    "A position with this name already exists on this board".into(),
                 );
             }
         }
@@ -207,10 +205,9 @@ async fn delete_position(
         .await?
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
-    let is_member =
-        projects::is_project_member(&state.db, existing.project_id, auth.0.user_id).await?;
+    let is_member = boards::is_board_member(&state.db, existing.board_id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::Forbidden("Not a project member".into()));
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     let deleted = positions::delete_position(&state.db, id).await?;
@@ -235,18 +232,17 @@ async fn add_holder(
         .await?
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
-    let is_member =
-        projects::is_project_member(&state.db, position.project_id, auth.0.user_id).await?;
+    let is_member = boards::is_board_member(&state.db, position.board_id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::Forbidden("Not a project member".into()));
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
-    // Verify the target user is also a project member
+    // Verify the target user is also a board member
     let is_target_member =
-        projects::is_project_member(&state.db, position.project_id, payload.user_id).await?;
+        boards::is_board_member(&state.db, position.board_id, payload.user_id).await?;
     if !is_target_member {
         return Err(AppError::BadRequest(
-            "User must be a project member first".into(),
+            "User must be a board member first".into(),
         ));
     }
 
@@ -267,10 +263,9 @@ async fn remove_holder(
         .await?
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
-    let is_member =
-        projects::is_project_member(&state.db, position.project_id, auth.0.user_id).await?;
+    let is_member = boards::is_board_member(&state.db, position.board_id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::Forbidden("Not a project member".into()));
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     let removed = positions::remove_holder(&state.db, id, user_id).await?;
@@ -294,10 +289,9 @@ async fn list_position_recurring_tasks(
         .await?
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
-    let is_member =
-        projects::is_project_member(&state.db, position.project_id, auth.0.user_id).await?;
+    let is_member = boards::is_board_member(&state.db, position.board_id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::Forbidden("Not a project member".into()));
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     let configs = positions::list_recurring_tasks_for_position(&state.db, id).await?;
@@ -308,8 +302,8 @@ async fn list_position_recurring_tasks(
 // Routers
 // ============================================================================
 
-/// Project-scoped routes: /api/projects/:project_id/positions
-pub fn project_positions_router(state: AppState) -> Router<AppState> {
+/// Board-scoped routes: /api/boards/:board_id/positions
+pub fn board_positions_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(list_positions).post(create_position))
         .layer(from_fn_with_state(state.clone(), auth_middleware))

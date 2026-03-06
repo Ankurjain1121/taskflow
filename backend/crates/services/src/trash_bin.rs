@@ -29,7 +29,7 @@ pub enum TrashBinError {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TrashEntityType {
     Task,
-    Project,
+    Board,
     Workspace,
 }
 
@@ -38,7 +38,7 @@ impl TrashEntityType {
     pub fn from_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "task" | "tasks" => Some(Self::Task),
-            "project" | "projects" => Some(Self::Project),
+            "board" | "boards" => Some(Self::Board),
             "workspace" | "workspaces" => Some(Self::Workspace),
             _ => None,
         }
@@ -47,7 +47,7 @@ impl TrashEntityType {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Task => "task",
-            Self::Project => "project",
+            Self::Board => "board",
             Self::Workspace => "workspace",
         }
     }
@@ -91,9 +91,9 @@ pub async fn move_to_trash(
         .execute(pool)
         .await?
         .rows_affected(),
-        TrashEntityType::Project => sqlx::query!(
+        TrashEntityType::Board => sqlx::query!(
             r#"
-                UPDATE projects
+                UPDATE boards
                 SET deleted_at = NOW(), updated_at = NOW()
                 WHERE id = $1 AND deleted_at IS NULL
                 "#,
@@ -152,9 +152,9 @@ pub async fn restore_from_trash(
         .execute(pool)
         .await?
         .rows_affected(),
-        TrashEntityType::Project => sqlx::query!(
+        TrashEntityType::Board => sqlx::query!(
             r#"
-                UPDATE projects
+                UPDATE boards
                 SET deleted_at = NULL, updated_at = NOW()
                 WHERE id = $1 AND deleted_at IS NOT NULL
                 "#,
@@ -205,8 +205,8 @@ pub async fn permanently_delete(
         TrashEntityType::Task => {
             permanently_delete_task(pool, minio, entity_id).await?;
         }
-        TrashEntityType::Project => {
-            permanently_delete_project(pool, minio, entity_id).await?;
+        TrashEntityType::Board => {
+            permanently_delete_board(pool, minio, entity_id).await?;
         }
         TrashEntityType::Workspace => {
             permanently_delete_workspace(pool, minio, entity_id).await?;
@@ -262,15 +262,15 @@ async fn permanently_delete_task(
     Ok(())
 }
 
-/// Permanently delete a project and its tasks
-async fn permanently_delete_project(
+/// Permanently delete a board and its tasks
+async fn permanently_delete_board(
     pool: &PgPool,
     minio: &MinioService,
-    project_id: Uuid,
+    board_id: Uuid,
 ) -> Result<(), TrashBinError> {
-    // Get all task IDs for this project
+    // Get all task IDs for this board
     let task_ids: Vec<Uuid> =
-        sqlx::query_scalar!(r#"SELECT id FROM tasks WHERE project_id = $1"#, project_id)
+        sqlx::query_scalar!(r#"SELECT id FROM tasks WHERE board_id = $1"#, board_id)
             .fetch_all(pool)
             .await?;
 
@@ -288,10 +288,10 @@ async fn permanently_delete_project(
         }
     }
 
-    // Delete project (cascades to project_columns, project_members, tasks, labels)
+    // Delete board (cascades to board_columns, board_members, tasks, labels)
     let rows = sqlx::query!(
-        r#"DELETE FROM projects WHERE id = $1 AND deleted_at IS NOT NULL"#,
-        project_id
+        r#"DELETE FROM boards WHERE id = $1 AND deleted_at IS NOT NULL"#,
+        board_id
     )
     .execute(pool)
     .await?
@@ -299,32 +299,32 @@ async fn permanently_delete_project(
 
     if rows == 0 {
         return Err(TrashBinError::NotFound(format!(
-            "Project {} not found in trash",
-            project_id
+            "Board {} not found in trash",
+            board_id
         )));
     }
 
     Ok(())
 }
 
-/// Permanently delete a workspace and its projects
+/// Permanently delete a workspace and its boards
 async fn permanently_delete_workspace(
     pool: &PgPool,
     minio: &MinioService,
     workspace_id: Uuid,
 ) -> Result<(), TrashBinError> {
-    // Get all project IDs for this workspace
-    let project_ids: Vec<Uuid> = sqlx::query_scalar!(
-        r#"SELECT id FROM projects WHERE workspace_id = $1"#,
+    // Get all board IDs for this workspace
+    let board_ids: Vec<Uuid> = sqlx::query_scalar!(
+        r#"SELECT id FROM boards WHERE workspace_id = $1"#,
         workspace_id
     )
     .fetch_all(pool)
     .await?;
 
-    // Get all task IDs for these projects
+    // Get all task IDs for these boards
     let task_ids: Vec<Uuid> = sqlx::query_scalar!(
-        r#"SELECT id FROM tasks WHERE project_id = ANY($1)"#,
-        &project_ids
+        r#"SELECT id FROM tasks WHERE board_id = ANY($1)"#,
+        &board_ids
     )
     .fetch_all(pool)
     .await?;
@@ -343,7 +343,7 @@ async fn permanently_delete_workspace(
         }
     }
 
-    // Delete workspace (cascades to workspace_members, projects -> project_columns, project_members, tasks, etc.)
+    // Delete workspace (cascades to workspace_members, boards -> board_columns, board_members, tasks, etc.)
     let rows = sqlx::query!(
         r#"DELETE FROM workspaces WHERE id = $1 AND deleted_at IS NOT NULL"#,
         workspace_id
@@ -408,20 +408,20 @@ pub async fn get_trash_items(
         items.extend(tasks);
     }
 
-    // Query projects
-    if entity_type_filter.is_none() || entity_type_filter == Some(&TrashEntityType::Project) {
-        let projects: Vec<TrashItem> = sqlx::query_as!(
+    // Query boards
+    if entity_type_filter.is_none() || entity_type_filter == Some(&TrashEntityType::Board) {
+        let boards: Vec<TrashItem> = sqlx::query_as!(
             TrashItem,
             r#"
             SELECT
-                'project' as "entity_type!",
+                'board' as "entity_type!",
                 b.id as entity_id,
                 b.name as name,
                 b.deleted_at as "deleted_at!",
                 NULL::uuid as deleted_by_id,
                 NULL::text as deleted_by_name,
                 EXTRACT(DAY FROM ($1::timestamptz + interval '30 days' - b.deleted_at))::bigint as "days_until_permanent_delete!"
-            FROM projects b
+            FROM boards b
             WHERE b.tenant_id = $2
               AND b.deleted_at IS NOT NULL
               AND b.deleted_at > $3
@@ -437,7 +437,7 @@ pub async fn get_trash_items(
         )
         .fetch_all(pool)
         .await?;
-        items.extend(projects);
+        items.extend(boards);
     }
 
     // Query workspaces
@@ -503,7 +503,7 @@ mod tests {
         );
         assert_eq!(
             TrashEntityType::from_str("BOARD"),
-            Some(TrashEntityType::Project)
+            Some(TrashEntityType::Board)
         );
         assert_eq!(TrashEntityType::from_str("invalid"), None);
     }
@@ -511,7 +511,7 @@ mod tests {
     #[test]
     fn test_trash_entity_type_as_str() {
         assert_eq!(TrashEntityType::Task.as_str(), "task");
-        assert_eq!(TrashEntityType::Project.as_str(), "project");
+        assert_eq!(TrashEntityType::Board.as_str(), "board");
         assert_eq!(TrashEntityType::Workspace.as_str(), "workspace");
     }
 
@@ -530,12 +530,12 @@ mod tests {
             Some(TrashEntityType::Task)
         );
         assert_eq!(
-            TrashEntityType::from_str("Project"),
-            Some(TrashEntityType::Project)
+            TrashEntityType::from_str("Board"),
+            Some(TrashEntityType::Board)
         );
         assert_eq!(
             TrashEntityType::from_str("BOARD"),
-            Some(TrashEntityType::Project)
+            Some(TrashEntityType::Board)
         );
         assert_eq!(
             TrashEntityType::from_str("Workspace"),
@@ -550,8 +550,8 @@ mod tests {
     #[test]
     fn test_trash_entity_type_from_str_plural() {
         assert_eq!(
-            TrashEntityType::from_str("projects"),
-            Some(TrashEntityType::Project)
+            TrashEntityType::from_str("boards"),
+            Some(TrashEntityType::Board)
         );
         assert_eq!(
             TrashEntityType::from_str("workspaces"),
@@ -572,7 +572,7 @@ mod tests {
     fn test_trash_entity_type_roundtrip() {
         let types = [
             TrashEntityType::Task,
-            TrashEntityType::Project,
+            TrashEntityType::Board,
             TrashEntityType::Workspace,
         ];
         for entity_type in &types {

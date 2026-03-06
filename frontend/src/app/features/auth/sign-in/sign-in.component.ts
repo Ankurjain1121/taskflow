@@ -91,7 +91,7 @@ import { AuthService } from '../../../core/services/auth.service';
             <div class="brand-features">
               <div class="feature-item">
                 <i class="pi pi-th-large feature-icon"></i>
-                <span>Kanban projects & timelines</span>
+                <span>Kanban boards & timelines</span>
               </div>
               <div class="feature-item">
                 <i class="pi pi-users feature-icon"></i>

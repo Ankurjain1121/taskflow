@@ -24,7 +24,7 @@ export interface CreateShareRequest {
 
 export interface SharedBoardAccess {
   board_id: string;
-  project_name: string;
+  board_name: string;
   permissions: Record<string, boolean>;
   columns: {
     id: string;
@@ -47,15 +47,15 @@ export interface SharedBoardAccess {
 export class BoardShareService {
   constructor(private http: HttpClient) {}
 
-  listShares(projectId: string): Observable<BoardShare[]> {
-    return this.http.get<BoardShare[]>(`/api/projects/${projectId}/shares`);
+  listShares(boardId: string): Observable<BoardShare[]> {
+    return this.http.get<BoardShare[]>(`/api/boards/${boardId}/shares`);
   }
 
   createShare(
-    projectId: string,
+    boardId: string,
     req: CreateShareRequest,
   ): Observable<BoardShare> {
-    return this.http.post<BoardShare>(`/api/projects/${projectId}/shares`, req);
+    return this.http.post<BoardShare>(`/api/boards/${boardId}/shares`, req);
   }
 
   deleteShare(shareId: string): Observable<void> {

@@ -30,10 +30,10 @@ describe('SidebarFavoritesComponent', () => {
         of([
           {
             id: 'f-1',
-            entity_type: 'project',
+            entity_type: 'board',
             entity_id: 'b-1',
-            name: 'Project Alpha',
-            project_id: 'b-1',
+            name: 'Board Alpha',
+            board_id: 'b-1',
             workspace_id: 'ws-1',
           },
           {
@@ -41,7 +41,7 @@ describe('SidebarFavoritesComponent', () => {
             entity_type: 'task',
             entity_id: 't-1',
             name: 'Task Beta',
-            project_id: null,
+            board_id: null,
             workspace_id: null,
           },
         ]),
@@ -82,14 +82,14 @@ describe('SidebarFavoritesComponent', () => {
   it('should return board link for board entity type with workspace_id', () => {
     const fav = {
       id: 'f-1',
-      entity_type: 'project' as const,
+      entity_type: 'board' as const,
       entity_id: 'b-1',
-      name: 'Project',
-      project_id: 'b-1',
+      name: 'Board',
+      board_id: 'b-1',
       workspace_id: 'ws-1',
     };
     const link = component.getFavLink(fav);
-    expect(link).toEqual(['/workspace', 'ws-1', 'project', 'b-1']);
+    expect(link).toEqual(['/workspace', 'ws-1', 'board', 'b-1']);
   });
 
   it('should return my-tasks link for non-board entity type', () => {
@@ -98,7 +98,7 @@ describe('SidebarFavoritesComponent', () => {
       entity_type: 'task' as const,
       entity_id: 't-1',
       name: 'Task',
-      project_id: null,
+      board_id: null,
       workspace_id: null,
     };
     const link = component.getFavLink(fav);
@@ -108,10 +108,10 @@ describe('SidebarFavoritesComponent', () => {
   it('should return my-tasks link for board entity without workspace_id', () => {
     const fav = {
       id: 'f-3',
-      entity_type: 'project' as const,
+      entity_type: 'board' as const,
       entity_id: 'b-2',
-      name: 'Project',
-      project_id: 'b-2',
+      name: 'Board',
+      board_id: 'b-2',
       workspace_id: null,
     };
     const link = component.getFavLink(fav as any);
@@ -121,10 +121,10 @@ describe('SidebarFavoritesComponent', () => {
   it('should limit displayed favorites to 5 in template', () => {
     const manyFavs = Array.from({ length: 8 }, (_, i) => ({
       id: `f-${i}`,
-      entity_type: 'project' as const,
+      entity_type: 'board' as const,
       entity_id: `b-${i}`,
       name: `Board ${i}`,
-      project_id: `b-${i}`,
+      board_id: `b-${i}`,
       workspace_id: 'ws-1',
     }));
     mockFavoritesService.list.mockReturnValue(of(manyFavs));

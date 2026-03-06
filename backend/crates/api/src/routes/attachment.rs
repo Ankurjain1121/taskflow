@@ -21,7 +21,7 @@ use crate::state::AppState;
 use taskflow_db::models::ActivityAction;
 use taskflow_db::queries::attachments::{
     can_delete_attachment, create_attachment, delete_attachment, get_attachment_by_id,
-    get_attachment_with_uploader, list_by_task, verify_task_project_membership,
+    get_attachment_with_uploader, list_by_task, verify_task_board_membership,
     AttachmentWithUploader,
 };
 use taskflow_services::{MinioConfig, MinioService};
@@ -83,16 +83,16 @@ async fn get_upload_url(
         return Err(AppError::BadRequest("File size must be positive".into()));
     }
 
-    // Verify project membership
-    let (is_member, project_id) =
-        verify_task_project_membership(&state.db, task_id, tenant.user_id).await?;
+    // Verify board membership
+    let (is_member, board_id) =
+        verify_task_board_membership(&state.db, task_id, tenant.user_id).await?;
 
-    if project_id.is_none() {
+    if board_id.is_none() {
         return Err(AppError::NotFound("Task not found".into()));
     }
 
     if !is_member {
-        return Err(AppError::Forbidden("Not a project member".into()));
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     // Generate unique storage key
@@ -120,16 +120,16 @@ async fn confirm_upload(
     Path(task_id): Path<Uuid>,
     Json(body): Json<ConfirmUploadRequest>,
 ) -> Result<Json<AttachmentWithUploader>> {
-    // Verify project membership
-    let (is_member, project_id) =
-        verify_task_project_membership(&state.db, task_id, tenant.user_id).await?;
+    // Verify board membership
+    let (is_member, board_id) =
+        verify_task_board_membership(&state.db, task_id, tenant.user_id).await?;
 
-    if project_id.is_none() {
+    if board_id.is_none() {
         return Err(AppError::NotFound("Task not found".into()));
     }
 
     if !is_member {
-        return Err(AppError::Forbidden("Not a project member".into()));
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     // Verify the object exists in MinIO
@@ -181,16 +181,16 @@ async fn list_attachments(
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<Vec<AttachmentWithUploader>>> {
-    // Verify project membership
-    let (is_member, project_id) =
-        verify_task_project_membership(&state.db, task_id, tenant.user_id).await?;
+    // Verify board membership
+    let (is_member, board_id) =
+        verify_task_board_membership(&state.db, task_id, tenant.user_id).await?;
 
-    if project_id.is_none() {
+    if board_id.is_none() {
         return Err(AppError::NotFound("Task not found".into()));
     }
 
     if !is_member {
-        return Err(AppError::Forbidden("Not a project member".into()));
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     let attachments = list_by_task(&state.db, task_id)
@@ -213,16 +213,16 @@ async fn get_download_url(
         .map_err(|e| AppError::InternalError(format!("Failed to fetch attachment: {}", e)))?
         .ok_or_else(|| AppError::NotFound("Attachment not found".into()))?;
 
-    // Verify project membership via task
-    let (is_member, project_id) =
-        verify_task_project_membership(&state.db, attachment.task_id, tenant.user_id).await?;
+    // Verify board membership via task
+    let (is_member, board_id) =
+        verify_task_board_membership(&state.db, attachment.task_id, tenant.user_id).await?;
 
-    if project_id.is_none() {
+    if board_id.is_none() {
         return Err(AppError::NotFound("Task not found".into()));
     }
 
     if !is_member {
-        return Err(AppError::Forbidden("Not a project member".into()));
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     // Generate presigned download URL (1 hour expiry)
@@ -248,16 +248,16 @@ async fn delete_attachment_handler(
         .map_err(|e| AppError::InternalError(format!("Failed to fetch attachment: {}", e)))?
         .ok_or_else(|| AppError::NotFound("Attachment not found".into()))?;
 
-    // Verify project membership via task
-    let (is_member, project_id) =
-        verify_task_project_membership(&state.db, attachment.task_id, tenant.user_id).await?;
+    // Verify board membership via task
+    let (is_member, board_id) =
+        verify_task_board_membership(&state.db, attachment.task_id, tenant.user_id).await?;
 
-    if project_id.is_none() {
+    if board_id.is_none() {
         return Err(AppError::NotFound("Task not found".into()));
     }
 
     if !is_member {
-        return Err(AppError::Forbidden("Not a project member".into()));
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     // Check if user can delete (uploader, admin, or manager)

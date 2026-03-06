@@ -199,7 +199,7 @@ export class CommentListComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   taskId = input.required<string>();
-  projectId = input.required<string>();
+  boardId = input.required<string>();
   workspaceId = input.required<string>();
 
   comments = signal<Comment[]>([]);

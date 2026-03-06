@@ -129,14 +129,14 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'project/:projectId',
+        path: 'board/:boardId',
         loadComponent: () =>
           import('./features/board/board-view/board-view.component').then(
             (m) => m.BoardViewComponent,
           ),
       },
       {
-        path: 'project/:projectId/settings',
+        path: 'board/:boardId/settings',
         loadComponent: () =>
           import('./features/board/board-settings/board-settings.component').then(
             (m) => m.BoardSettingsComponent,

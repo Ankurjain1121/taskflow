@@ -8,12 +8,12 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::state::AppState;
 use taskflow_db::models::automation::AutomationTrigger;
-use taskflow_db::models::{Task, WsProjectEvent};
-use taskflow_db::queries::{get_task_assignee_ids, get_task_project_id, move_task};
+use taskflow_db::models::{Task, WsBoardEvent};
+use taskflow_db::queries::{get_task_assignee_ids, get_task_board_id, move_task};
 use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
 
 use super::task_helpers::{
-    broadcast_workspace_task_update, get_workspace_id_for_board, verify_project_membership,
+    broadcast_workspace_task_update, get_workspace_id_for_board, verify_board_membership,
     MoveTaskRequest,
 };
 
@@ -25,14 +25,14 @@ pub async fn move_task_handler(
     Path(task_id): Path<Uuid>,
     Json(body): Json<MoveTaskRequest>,
 ) -> Result<Json<Task>> {
-    // Get task's project_id for authorization
-    let project_id = get_task_project_id(&state.db, task_id)
+    // Get task's board_id for authorization
+    let board_id = get_task_board_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    // Verify project membership
-    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a project member".into()));
+    // Verify board membership
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     // Capture previous column_id for automation trigger
@@ -48,7 +48,7 @@ pub async fn move_task_handler(
     // Broadcast the task moved event
     let broadcast_service = BroadcastService::new(state.redis.clone());
 
-    let event = WsProjectEvent::TaskMoved {
+    let event = WsBoardEvent::TaskMoved {
         task_id,
         column_id: body.column_id,
         position: body.position,
@@ -56,14 +56,14 @@ pub async fn move_task_handler(
     };
 
     if let Err(e) = broadcast_service
-        .broadcast_project_event(project_id, &event)
+        .broadcast_board_event(board_id, &event)
         .await
     {
         tracing::error!("Failed to broadcast task moved event: {}", e);
     }
 
     // Broadcast workspace update for team overview (task move can change status)
-    if let Ok(Some(workspace_id)) = get_workspace_id_for_board(&state.db, project_id).await {
+    if let Ok(Some(workspace_id)) = get_workspace_id_for_board(&state.db, board_id).await {
         let assignee_ids = get_task_assignee_ids(&state.db, task_id)
             .await
             .unwrap_or_default();
@@ -71,7 +71,7 @@ pub async fn move_task_handler(
             &broadcast_service,
             workspace_id,
             task.id,
-            project_id,
+            board_id,
             &assignee_ids,
         )
         .await;
@@ -84,7 +84,7 @@ pub async fn move_task_handler(
         AutomationTrigger::TaskMoved,
         TriggerContext {
             task_id,
-            project_id,
+            board_id,
             tenant_id: tenant.tenant_id,
             user_id: tenant.user_id,
             previous_column_id,
@@ -98,7 +98,7 @@ pub async fn move_task_handler(
     let is_done_column = sqlx::query_scalar::<_, bool>(
         r#"
         SELECT COALESCE((status_mapping->>'done')::boolean, false)
-        FROM project_columns WHERE id = $1
+        FROM board_columns WHERE id = $1
         "#,
     )
     .bind(body.column_id)
@@ -115,7 +115,7 @@ pub async fn move_task_handler(
             AutomationTrigger::TaskCompleted,
             TriggerContext {
                 task_id,
-                project_id,
+                board_id,
                 tenant_id: tenant.tenant_id,
                 user_id: tenant.user_id,
                 previous_column_id,

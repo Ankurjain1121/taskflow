@@ -307,7 +307,7 @@ export class CustomFieldsManagerComponent implements OnInit, OnChanges {
   private customFieldService = inject(CustomFieldService);
   private messageService = inject(MessageService);
 
-  projectId = input.required<string>();
+  boardId = input.required<string>();
 
   fields = signal<BoardCustomField[]>([]);
   loading = signal(true);
@@ -338,7 +338,7 @@ export class CustomFieldsManagerComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['projectId'] && !changes['projectId'].firstChange) {
+    if (changes['boardId'] && !changes['boardId'].firstChange) {
       this.loadFields();
     }
   }
@@ -372,7 +372,7 @@ export class CustomFieldsManagerComponent implements OnInit, OnChanges {
       req.options = options;
     }
 
-    this.customFieldService.createField(this.projectId(), req).subscribe({
+    this.customFieldService.createField(this.boardId(), req).subscribe({
       next: (field) => {
         this.fields.update((f) => [...f, field]);
         this.showCreateForm.set(false);
@@ -468,7 +468,7 @@ export class CustomFieldsManagerComponent implements OnInit, OnChanges {
 
   private loadFields(): void {
     this.loading.set(true);
-    this.customFieldService.listBoardFields(this.projectId()).subscribe({
+    this.customFieldService.listBoardFields(this.boardId()).subscribe({
       next: (fields) => {
         this.fields.set(fields);
         this.loading.set(false);

@@ -1,6 +1,6 @@
 //! Export REST endpoints
 //!
-//! Provides export (CSV, JSON) for project tasks.
+//! Provides export (CSV, JSON) for board tasks.
 
 use axum::{
     extract::{Path, Query, State},
@@ -19,7 +19,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
-use super::task_helpers::verify_project_membership;
+use super::task_helpers::verify_board_membership;
 
 // ============================================================================
 // DTOs
@@ -31,14 +31,14 @@ struct ExportQuery {
 }
 
 #[derive(Serialize)]
-struct ExportProjectJson {
-    project: ExportProjectMeta,
+struct ExportBoardJson {
+    board: ExportBoardMeta,
     columns: Vec<ExportColumnJson>,
     tasks: Vec<ExportTaskJson>,
 }
 
 #[derive(Serialize)]
-struct ExportProjectMeta {
+struct ExportBoardMeta {
     id: Uuid,
     name: String,
     description: Option<String>,
@@ -66,7 +66,7 @@ struct ExportTaskJson {
 
 // Internal row types for sqlx
 #[derive(sqlx::FromRow)]
-struct ProjectRow {
+struct BoardRow {
     id: Uuid,
     name: String,
     description: Option<String>,
@@ -113,29 +113,29 @@ fn csv_escape(field: &str) -> String {
 // Route Handlers
 // ============================================================================
 
-/// GET /projects/{project_id}/export?format=csv|json
+/// GET /boards/{board_id}/export?format=csv|json
 ///
-/// Export project tasks in the requested format.
+/// Export board tasks in the requested format.
 async fn export_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path(project_id): Path<Uuid>,
+    Path(board_id): Path<Uuid>,
     Query(query): Query<ExportQuery>,
 ) -> Result<Response> {
-    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a project member".into()));
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     match query.format.as_str() {
-        "csv" => export_csv(&state.db, project_id).await,
-        "json" => export_json(&state.db, project_id).await,
+        "csv" => export_csv(&state.db, board_id).await,
+        "json" => export_json(&state.db, board_id).await,
         _ => Err(AppError::BadRequest(
             "Invalid format. Use 'csv' or 'json'.".into(),
         )),
     }
 }
 
-async fn export_csv(db: &sqlx::PgPool, project_id: Uuid) -> Result<Response> {
+async fn export_csv(db: &sqlx::PgPool, board_id: Uuid) -> Result<Response> {
     // Fetch tasks with column names
     let tasks: Vec<ExportTaskRow> = sqlx::query_as(
         r#"
@@ -147,17 +147,17 @@ async fn export_csv(db: &sqlx::PgPool, project_id: Uuid) -> Result<Response> {
             t.due_date,
             t.created_at
         FROM tasks t
-        JOIN project_columns bc ON bc.id = t.column_id
-        WHERE t.project_id = $1 AND t.deleted_at IS NULL
+        JOIN board_columns bc ON bc.id = t.column_id
+        WHERE t.board_id = $1 AND t.deleted_at IS NULL
         ORDER BY bc.position, t.position
         "#,
     )
-    .bind(project_id)
+    .bind(board_id)
     .fetch_all(db)
     .await
     .map_err(AppError::from)?;
 
-    // Fetch assignees for all tasks on this project
+    // Fetch assignees for all tasks on this board
     let assignees: Vec<TaskAssigneeRow> = sqlx::query_as(
         r#"
         SELECT
@@ -166,11 +166,11 @@ async fn export_csv(db: &sqlx::PgPool, project_id: Uuid) -> Result<Response> {
         FROM task_assignees ta
         JOIN tasks t ON t.id = ta.task_id
         JOIN users u ON u.id = ta.user_id
-        WHERE t.project_id = $1 AND t.deleted_at IS NULL
+        WHERE t.board_id = $1 AND t.deleted_at IS NULL
         ORDER BY t.title, u.name
         "#,
     )
-    .bind(project_id)
+    .bind(board_id)
     .fetch_all(db)
     .await
     .map_err(AppError::from)?;
@@ -212,18 +212,17 @@ async fn export_csv(db: &sqlx::PgPool, project_id: Uuid) -> Result<Response> {
         ));
     }
 
-    // Get project name for the filename
-    let project_name: Option<String> =
-        sqlx::query_scalar("SELECT name FROM projects WHERE id = $1")
-            .bind(project_id)
-            .fetch_optional(db)
-            .await
-            .map_err(AppError::from)?;
+    // Get board name for the filename
+    let board_name: Option<String> = sqlx::query_scalar("SELECT name FROM boards WHERE id = $1")
+        .bind(board_id)
+        .fetch_optional(db)
+        .await
+        .map_err(AppError::from)?;
 
     let filename = format!(
         "{}_export.csv",
-        project_name
-            .unwrap_or_else(|| "project".into())
+        board_name
+            .unwrap_or_else(|| "board".into())
             .replace(' ', "_")
             .to_lowercase()
     );
@@ -241,22 +240,22 @@ async fn export_csv(db: &sqlx::PgPool, project_id: Uuid) -> Result<Response> {
         .into_response())
 }
 
-async fn export_json(db: &sqlx::PgPool, project_id: Uuid) -> Result<Response> {
-    // Fetch project
-    let proj: ProjectRow = sqlx::query_as(
-        "SELECT id, name, description FROM projects WHERE id = $1 AND deleted_at IS NULL",
+async fn export_json(db: &sqlx::PgPool, board_id: Uuid) -> Result<Response> {
+    // Fetch board
+    let board: BoardRow = sqlx::query_as(
+        "SELECT id, name, description FROM boards WHERE id = $1 AND deleted_at IS NULL",
     )
-    .bind(project_id)
+    .bind(board_id)
     .fetch_optional(db)
     .await
     .map_err(AppError::from)?
-    .ok_or_else(|| AppError::NotFound("Project not found".into()))?;
+    .ok_or_else(|| AppError::NotFound("Board not found".into()))?;
 
     // Fetch columns
     let columns: Vec<ColumnRow> = sqlx::query_as(
-        "SELECT id, name, position, color FROM project_columns WHERE project_id = $1 ORDER BY position",
+        "SELECT id, name, position, color FROM board_columns WHERE board_id = $1 ORDER BY position",
     )
-    .bind(project_id)
+    .bind(board_id)
     .fetch_all(db)
     .await
     .map_err(AppError::from)?;
@@ -272,12 +271,12 @@ async fn export_json(db: &sqlx::PgPool, project_id: Uuid) -> Result<Response> {
             t.due_date,
             t.created_at
         FROM tasks t
-        JOIN project_columns bc ON bc.id = t.column_id
-        WHERE t.project_id = $1 AND t.deleted_at IS NULL
+        JOIN board_columns bc ON bc.id = t.column_id
+        WHERE t.board_id = $1 AND t.deleted_at IS NULL
         ORDER BY bc.position, t.position
         "#,
     )
-    .bind(project_id)
+    .bind(board_id)
     .fetch_all(db)
     .await
     .map_err(AppError::from)?;
@@ -291,11 +290,11 @@ async fn export_json(db: &sqlx::PgPool, project_id: Uuid) -> Result<Response> {
         FROM task_assignees ta
         JOIN tasks t ON t.id = ta.task_id
         JOIN users u ON u.id = ta.user_id
-        WHERE t.project_id = $1 AND t.deleted_at IS NULL
+        WHERE t.board_id = $1 AND t.deleted_at IS NULL
         ORDER BY t.title, u.name
         "#,
     )
-    .bind(project_id)
+    .bind(board_id)
     .fetch_all(db)
     .await
     .map_err(AppError::from)?;
@@ -309,11 +308,11 @@ async fn export_json(db: &sqlx::PgPool, project_id: Uuid) -> Result<Response> {
             .push(row.assignee_name.clone());
     }
 
-    let export = ExportProjectJson {
-        project: ExportProjectMeta {
-            id: proj.id,
-            name: proj.name,
-            description: proj.description,
+    let export = ExportBoardJson {
+        board: ExportBoardMeta {
+            id: board.id,
+            name: board.name,
+            description: board.description,
             exported_at: Utc::now(),
         },
         columns: columns
@@ -351,6 +350,6 @@ async fn export_json(db: &sqlx::PgPool, project_id: Uuid) -> Result<Response> {
 
 pub fn export_router(state: AppState) -> Router<AppState> {
     Router::new()
-        .route("/projects/{project_id}/export", get(export_handler))
+        .route("/boards/{board_id}/export", get(export_handler))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

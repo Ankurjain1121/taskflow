@@ -130,11 +130,11 @@ describe('ProjectTemplateService', () => {
     it('should POST /api/project-templates/:templateId/create-board', () => {
       const boardReq: CreateBoardFromTemplateRequest = {
         workspace_id: 'ws-1',
-        project_name: 'New Project',
+        board_name: 'New Board',
       };
 
-      service.createProjectFromTemplate('tpl-1', boardReq).subscribe((result) => {
-        expect(result).toEqual({ project_id: 'board-new' });
+      service.createBoardFromTemplate('tpl-1', boardReq).subscribe((result) => {
+        expect(result).toEqual({ board_id: 'board-new' });
       });
 
       const req = httpMock.expectOne(
@@ -142,12 +142,12 @@ describe('ProjectTemplateService', () => {
       );
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(boardReq);
-      req.flush({ project_id: 'board-new' });
+      req.flush({ board_id: 'board-new' });
     });
   });
 
   describe('saveBoardAsTemplate()', () => {
-    it('should POST /api/projects/:projectId/save-as-template', () => {
+    it('should POST /api/boards/:boardId/save-as-template', () => {
       const saveReq: SaveAsTemplateRequest = {
         name: 'Saved Template',
         category: 'custom',
@@ -157,7 +157,7 @@ describe('ProjectTemplateService', () => {
         expect(result).toEqual(MOCK_TEMPLATE);
       });
 
-      const req = httpMock.expectOne('/api/projects/board-1/save-as-template');
+      const req = httpMock.expectOne('/api/boards/board-1/save-as-template');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(saveReq);
       req.flush(MOCK_TEMPLATE);

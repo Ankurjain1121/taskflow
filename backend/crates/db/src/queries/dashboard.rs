@@ -1,6 +1,6 @@
-//! Dashproject database queries
+//! Dashboard database queries
 //!
-//! Provides queries for dashproject statistics and recent activity
+//! Provides queries for dashboard statistics and recent activity
 //! across all workspaces for a given user, with optional workspace filtering.
 
 use chrono::{DateTime, Utc};
@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::models::{ActivityAction, TaskPriority};
 
-/// Dashproject statistics for the authenticated user
+/// Dashboard statistics for the authenticated user
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DashboardStats {
     pub total_tasks: i64,
@@ -33,7 +33,7 @@ struct CountRow {
     pub count: i64,
 }
 
-/// A recent activity entry with actor information for the dashproject feed
+/// A recent activity entry with actor information for the dashboard feed
 #[derive(Debug, Serialize, Clone, sqlx::FromRow)]
 pub struct DashboardActivityEntry {
     pub id: Uuid,
@@ -46,7 +46,7 @@ pub struct DashboardActivityEntry {
     pub actor_avatar_url: Option<String>,
 }
 
-/// Get dashproject statistics for a user, optionally filtered by workspace
+/// Get dashboard statistics for a user, optionally filtered by workspace
 pub async fn get_dashboard_stats(
     pool: &PgPool,
     user_id: Uuid,
@@ -70,9 +70,9 @@ pub async fn get_dashboard_stats(
             )::bigint as due_today
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
-        INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
-        INNER JOIN project_columns bc ON bc.id = t.column_id
-        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
+        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
+        INNER JOIN board_columns bc ON bc.id = t.column_id
+        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           AND ($3::uuid IS NULL OR b.workspace_id = $3)
@@ -90,8 +90,8 @@ pub async fn get_dashboard_stats(
         FROM activity_log al
         INNER JOIN tasks t ON t.id = al.entity_id AND t.deleted_at IS NULL
         INNER JOIN task_assignees ta ON ta.task_id = t.id AND ta.user_id = $1
-        INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
-        INNER JOIN project_columns bc ON bc.id = t.column_id
+        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
+        INNER JOIN board_columns bc ON bc.id = t.column_id
         WHERE al.action = 'moved'
           AND al.entity_type = 'task'
           AND al.created_at >= $2
@@ -138,7 +138,7 @@ pub async fn get_recent_activity(
         FROM activity_log al
         JOIN users u ON u.id = al.user_id
         LEFT JOIN tasks t ON t.id = al.entity_id AND al.entity_type = 'task'
-        LEFT JOIN projects b ON b.id = t.project_id
+        LEFT JOIN boards b ON b.id = t.board_id
         WHERE al.tenant_id = $1
           AND ($3::uuid IS NULL OR b.workspace_id = $3)
         ORDER BY al.created_at DESC
@@ -162,7 +162,7 @@ pub struct TasksByStatus {
     pub color: Option<String>,
 }
 
-/// Get tasks grouped by status for dashproject chart
+/// Get tasks grouped by status for dashboard chart
 pub async fn get_tasks_by_status(
     pool: &PgPool,
     user_id: Uuid,
@@ -176,9 +176,9 @@ pub async fn get_tasks_by_status(
             bc.color
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
-        INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
-        INNER JOIN project_columns bc ON bc.id = t.column_id
-        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
+        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
+        INNER JOIN board_columns bc ON bc.id = t.column_id
+        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           AND ($2::uuid IS NULL OR b.workspace_id = $2)
@@ -201,7 +201,7 @@ pub struct TasksByPriority {
     pub count: i64,
 }
 
-/// Get tasks grouped by priority for dashproject chart
+/// Get tasks grouped by priority for dashboard chart
 pub async fn get_tasks_by_priority(
     pool: &PgPool,
     user_id: Uuid,
@@ -214,8 +214,8 @@ pub async fn get_tasks_by_priority(
             COUNT(DISTINCT t.id)::bigint as count
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
-        INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
-        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
+        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
+        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           AND ($2::uuid IS NULL OR b.workspace_id = $2)
@@ -237,15 +237,15 @@ pub async fn get_tasks_by_priority(
     Ok(rows)
 }
 
-/// Overdue task details for dashproject table
+/// Overdue task details for dashboard table
 #[derive(Debug, Serialize, Clone, sqlx::FromRow)]
 pub struct OverdueTask {
     pub id: Uuid,
     pub title: String,
     pub due_date: DateTime<Utc>,
     pub priority: TaskPriority,
-    pub project_id: Uuid,
-    pub project_name: String,
+    pub board_id: Uuid,
+    pub board_name: String,
     pub days_overdue: i32,
 }
 
@@ -266,14 +266,14 @@ pub async fn get_overdue_tasks(
             t.title,
             t.due_date,
             t.priority,
-            t.project_id,
-            b.name as project_name,
+            t.board_id,
+            b.name as board_name,
             EXTRACT(DAY FROM (NOW() - t.due_date))::integer as days_overdue
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
-        INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
-        INNER JOIN project_columns bc ON bc.id = t.column_id
-        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
+        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
+        INNER JOIN board_columns bc ON bc.id = t.column_id
+        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           AND t.due_date IS NOT NULL
@@ -319,8 +319,8 @@ pub async fn get_completion_trend(
         FROM activity_log al
         INNER JOIN tasks t ON t.id = al.entity_id AND t.deleted_at IS NULL
         INNER JOIN task_assignees ta ON ta.task_id = t.id AND ta.user_id = $1
-        INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
-        INNER JOIN project_columns bc ON bc.id = t.column_id
+        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
+        INNER JOIN board_columns bc ON bc.id = t.column_id
         WHERE al.action = 'moved'
           AND al.entity_type = 'task'
           AND al.created_at >= $2
@@ -347,7 +347,7 @@ pub struct UpcomingDeadline {
     pub title: String,
     pub due_date: DateTime<Utc>,
     pub priority: TaskPriority,
-    pub project_name: String,
+    pub board_name: String,
     pub days_until_due: i32,
 }
 
@@ -368,13 +368,13 @@ pub async fn get_upcoming_deadlines(
             t.title,
             t.due_date,
             t.priority,
-            b.name as project_name,
+            b.name as board_name,
             EXTRACT(DAY FROM (t.due_date - NOW()))::integer as days_until_due
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
-        INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
-        INNER JOIN project_columns bc ON bc.id = t.column_id
-        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
+        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
+        INNER JOIN board_columns bc ON bc.id = t.column_id
+        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           AND t.due_date IS NOT NULL

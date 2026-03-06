@@ -1,6 +1,6 @@
 //! Metrics database queries
 //!
-//! Queries the materialized views for workspace, team, and personal dashprojects.
+//! Queries the materialized views for workspace, team, and personal dashboards.
 //! Views are refreshed via `refresh_metrics_views()` SQL function.
 
 use chrono::NaiveDate;
@@ -33,7 +33,7 @@ pub struct WorkloadRow {
     pub completed_this_week: i32,
 }
 
-/// Workspace-level metrics dashproject
+/// Workspace-level metrics dashboard
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WorkspaceDashboard {
     pub cycle_time: Vec<CycleTimePoint>,
@@ -42,7 +42,7 @@ pub struct WorkspaceDashboard {
     pub workload: Vec<WorkloadRow>,
 }
 
-/// Team-level metrics dashproject
+/// Team-level metrics dashboard
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TeamDashboard {
     pub cycle_time: Vec<CycleTimePoint>,
@@ -51,7 +51,7 @@ pub struct TeamDashboard {
     pub workload: Vec<WorkloadRow>,
 }
 
-/// Personal metrics dashproject
+/// Personal metrics dashboard
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PersonalDashboard {
     pub cycle_time: Vec<CycleTimePoint>,
@@ -76,9 +76,9 @@ struct PersonalStatsRow {
     pub completed_this_week: i32,
 }
 
-/// Fetch workspace-level metrics dashproject.
+/// Fetch workspace-level metrics dashboard.
 ///
-/// Aggregates cycle time, velocity, on-time %, and workload across all projects
+/// Aggregates cycle time, velocity, on-time %, and workload across all boards
 /// in the workspace. Uses materialized views for performance.
 pub async fn get_workspace_dashboard(
     pool: &PgPool,
@@ -129,8 +129,8 @@ pub async fn get_workspace_dashboard(
             100.0
         ) AS on_time_pct
         FROM tasks t
-        JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
-        JOIN project_columns bc ON bc.id = t.column_id
+        JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
+        JOIN board_columns bc ON bc.id = t.column_id
         WHERE b.workspace_id = $1
           AND t.deleted_at IS NULL
           AND bc.status_mapping::TEXT ILIKE '%done%'
@@ -165,14 +165,14 @@ pub async fn get_workspace_dashboard(
     })
 }
 
-/// Fetch team-level metrics dashproject.
+/// Fetch team-level metrics dashboard.
 ///
-/// Scopes metrics to projects where team members are assigned.
+/// Scopes metrics to boards where team members are assigned.
 pub async fn get_team_dashboard(
     pool: &PgPool,
     team_id: Uuid,
 ) -> Result<TeamDashboard, sqlx::Error> {
-    // Get cycle time for projects that team members work on
+    // Get cycle time for boards that team members work on
     let cycle_time = sqlx::query_as::<_, CycleTimePoint>(
         r#"
         SELECT
@@ -180,7 +180,7 @@ pub async fn get_team_dashboard(
             ROUND(AVG(ct.avg_cycle_days)::NUMERIC, 2)::FLOAT8 AS avg_cycle_days,
             SUM(ct.tasks_completed)::INTEGER AS tasks_completed
         FROM metrics_cycle_time_by_week ct
-        JOIN project_members bm ON bm.project_id = ct.project_id
+        JOIN board_members bm ON bm.board_id = ct.board_id
         JOIN team_members tm ON tm.user_id = bm.user_id AND tm.team_id = $1
         GROUP BY ct.week_start
         ORDER BY ct.week_start DESC
@@ -197,7 +197,7 @@ pub async fn get_team_dashboard(
             tv.week_start,
             SUM(tv.tasks_completed)::INTEGER AS tasks_completed
         FROM metrics_task_velocity tv
-        JOIN project_members bm ON bm.project_id = tv.project_id
+        JOIN board_members bm ON bm.board_id = tv.board_id
         JOIN team_members tm ON tm.user_id = bm.user_id AND tm.team_id = $1
         GROUP BY tv.week_start
         ORDER BY tv.week_start DESC
@@ -223,7 +223,7 @@ pub async fn get_team_dashboard(
         FROM tasks t
         JOIN task_assignees ta ON ta.task_id = t.id
         JOIN team_members tm ON tm.user_id = ta.user_id AND tm.team_id = $1
-        JOIN project_columns bc ON bc.id = t.column_id
+        JOIN board_columns bc ON bc.id = t.column_id
         WHERE t.deleted_at IS NULL
           AND bc.status_mapping::TEXT ILIKE '%done%'
         "#,
@@ -261,12 +261,12 @@ pub async fn get_team_dashboard(
     })
 }
 
-/// Fetch personal metrics dashproject for a single user.
+/// Fetch personal metrics dashboard for a single user.
 pub async fn get_personal_dashboard(
     pool: &PgPool,
     user_id: Uuid,
 ) -> Result<PersonalDashboard, sqlx::Error> {
-    // Cycle time for projects the user is a member of
+    // Cycle time for boards the user is a member of
     let cycle_time = sqlx::query_as::<_, CycleTimePoint>(
         r#"
         SELECT
@@ -274,7 +274,7 @@ pub async fn get_personal_dashboard(
             ROUND(AVG(ct.avg_cycle_days)::NUMERIC, 2)::FLOAT8 AS avg_cycle_days,
             SUM(ct.tasks_completed)::INTEGER AS tasks_completed
         FROM metrics_cycle_time_by_week ct
-        JOIN project_members bm ON bm.project_id = ct.project_id AND bm.user_id = $1
+        JOIN board_members bm ON bm.board_id = ct.board_id AND bm.user_id = $1
         GROUP BY ct.week_start
         ORDER BY ct.week_start DESC
         LIMIT 12
@@ -290,7 +290,7 @@ pub async fn get_personal_dashboard(
             tv.week_start,
             SUM(tv.tasks_completed)::INTEGER AS tasks_completed
         FROM metrics_task_velocity tv
-        JOIN project_members bm ON bm.project_id = tv.project_id AND bm.user_id = $1
+        JOIN board_members bm ON bm.board_id = tv.board_id AND bm.user_id = $1
         GROUP BY tv.week_start
         ORDER BY tv.week_start DESC
         LIMIT 12
@@ -314,7 +314,7 @@ pub async fn get_personal_dashboard(
         ) AS on_time_pct
         FROM tasks t
         JOIN task_assignees ta ON ta.task_id = t.id AND ta.user_id = $1
-        JOIN project_columns bc ON bc.id = t.column_id
+        JOIN board_columns bc ON bc.id = t.column_id
         WHERE t.deleted_at IS NULL
           AND bc.status_mapping::TEXT ILIKE '%done%'
         "#,

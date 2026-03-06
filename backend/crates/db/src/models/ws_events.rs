@@ -8,7 +8,7 @@ use super::common::TaskPriority;
 #[derive(Clone, Debug, Serialize, Deserialize, TS)]
 #[serde(tag = "type")]
 #[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
-pub enum WsProjectEvent {
+pub enum WsBoardEvent {
     TaskCreated {
         task: TaskBroadcast,
         origin_user_id: Uuid,
@@ -40,7 +40,7 @@ pub enum WsProjectEvent {
         origin_user_id: Uuid,
     },
     PresenceUpdate {
-        project_id: Uuid,
+        board_id: Uuid,
         user_ids: Vec<Uuid>,
     },
     TaskLocked {
@@ -88,7 +88,7 @@ mod tests {
     #[test]
     #[ignore] // Run with: cargo test -p taskflow-db -- export_types --ignored
     fn export_types() {
-        WsProjectEvent::export_all().expect("Failed to export WsProjectEvent");
+        WsBoardEvent::export_all().expect("Failed to export WsBoardEvent");
         TaskBroadcast::export_all().expect("Failed to export TaskBroadcast");
         ColumnBroadcast::export_all().expect("Failed to export ColumnBroadcast");
     }
@@ -96,7 +96,7 @@ mod tests {
     #[test]
     fn test_task_created_event_serde() {
         let now = Utc::now();
-        let event = WsProjectEvent::TaskCreated {
+        let event = WsBoardEvent::TaskCreated {
             task: TaskBroadcast {
                 id: Uuid::new_v4(),
                 title: "New Task".to_string(),
@@ -121,7 +121,7 @@ mod tests {
     #[test]
     fn test_task_updated_event_serde() {
         let now = Utc::now();
-        let event = WsProjectEvent::TaskUpdated {
+        let event = WsBoardEvent::TaskUpdated {
             task: TaskBroadcast {
                 id: Uuid::new_v4(),
                 title: "Updated Task".to_string(),
@@ -137,9 +137,9 @@ mod tests {
             origin_user_id: Uuid::new_v4(),
         };
         let json = serde_json::to_string(&event).unwrap();
-        let deserialized: WsProjectEvent = serde_json::from_str(&json).unwrap();
+        let deserialized: WsBoardEvent = serde_json::from_str(&json).unwrap();
         match deserialized {
-            WsProjectEvent::TaskUpdated { task, .. } => {
+            WsBoardEvent::TaskUpdated { task, .. } => {
                 assert_eq!(task.title, "Updated Task");
             }
             _ => panic!("Expected TaskUpdated variant"),
@@ -151,7 +151,7 @@ mod tests {
         let task_id = Uuid::new_v4();
         let column_id = Uuid::new_v4();
         let user_id = Uuid::new_v4();
-        let event = WsProjectEvent::TaskMoved {
+        let event = WsBoardEvent::TaskMoved {
             task_id,
             column_id,
             position: "b2".to_string(),
@@ -167,14 +167,14 @@ mod tests {
     fn test_task_deleted_event_serde() {
         let task_id = Uuid::new_v4();
         let user_id = Uuid::new_v4();
-        let event = WsProjectEvent::TaskDeleted {
+        let event = WsBoardEvent::TaskDeleted {
             task_id,
             origin_user_id: user_id,
         };
         let json = serde_json::to_string(&event).unwrap();
-        let deserialized: WsProjectEvent = serde_json::from_str(&json).unwrap();
+        let deserialized: WsBoardEvent = serde_json::from_str(&json).unwrap();
         match deserialized {
-            WsProjectEvent::TaskDeleted {
+            WsBoardEvent::TaskDeleted {
                 task_id: tid,
                 origin_user_id: uid,
             } => {
@@ -187,7 +187,7 @@ mod tests {
 
     #[test]
     fn test_column_created_event_serde() {
-        let event = WsProjectEvent::ColumnCreated {
+        let event = WsBoardEvent::ColumnCreated {
             column: ColumnBroadcast {
                 id: Uuid::new_v4(),
                 name: "New Column".to_string(),
@@ -206,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_column_updated_event_serde() {
-        let event = WsProjectEvent::ColumnUpdated {
+        let event = WsBoardEvent::ColumnUpdated {
             column: ColumnBroadcast {
                 id: Uuid::new_v4(),
                 name: "Updated Column".to_string(),
@@ -217,9 +217,9 @@ mod tests {
             origin_user_id: Uuid::new_v4(),
         };
         let json = serde_json::to_string(&event).unwrap();
-        let deserialized: WsProjectEvent = serde_json::from_str(&json).unwrap();
+        let deserialized: WsBoardEvent = serde_json::from_str(&json).unwrap();
         match deserialized {
-            WsProjectEvent::ColumnUpdated { column, .. } => {
+            WsBoardEvent::ColumnUpdated { column, .. } => {
                 assert_eq!(column.name, "Updated Column");
                 assert!(column.status_mapping.is_some());
             }
@@ -231,7 +231,7 @@ mod tests {
     fn test_column_deleted_event_serde() {
         let col_id = Uuid::new_v4();
         let user_id = Uuid::new_v4();
-        let event = WsProjectEvent::ColumnDeleted {
+        let event = WsBoardEvent::ColumnDeleted {
             column_id: col_id,
             origin_user_id: user_id,
         };
@@ -280,7 +280,7 @@ mod tests {
     }
 
     #[test]
-    fn test_ws_project_event_tagged_union_type_field() {
+    fn test_ws_board_event_tagged_union_type_field() {
         // Verify the serde tag="type" discriminator is present in all variants
         let now = Utc::now();
         let task = TaskBroadcast {
@@ -304,24 +304,24 @@ mod tests {
         };
         let uid = Uuid::new_v4();
 
-        let variants: Vec<(&str, WsProjectEvent)> = vec![
+        let variants: Vec<(&str, WsBoardEvent)> = vec![
             (
                 "TaskCreated",
-                WsProjectEvent::TaskCreated {
+                WsBoardEvent::TaskCreated {
                     task: task.clone(),
                     origin_user_id: uid,
                 },
             ),
             (
                 "TaskUpdated",
-                WsProjectEvent::TaskUpdated {
+                WsBoardEvent::TaskUpdated {
                     task: task.clone(),
                     origin_user_id: uid,
                 },
             ),
             (
                 "TaskMoved",
-                WsProjectEvent::TaskMoved {
+                WsBoardEvent::TaskMoved {
                     task_id: uid,
                     column_id: uid,
                     position: "a0".into(),
@@ -330,42 +330,42 @@ mod tests {
             ),
             (
                 "TaskDeleted",
-                WsProjectEvent::TaskDeleted {
+                WsBoardEvent::TaskDeleted {
                     task_id: uid,
                     origin_user_id: uid,
                 },
             ),
             (
                 "ColumnCreated",
-                WsProjectEvent::ColumnCreated {
+                WsBoardEvent::ColumnCreated {
                     column: col.clone(),
                     origin_user_id: uid,
                 },
             ),
             (
                 "ColumnUpdated",
-                WsProjectEvent::ColumnUpdated {
+                WsBoardEvent::ColumnUpdated {
                     column: col.clone(),
                     origin_user_id: uid,
                 },
             ),
             (
                 "ColumnDeleted",
-                WsProjectEvent::ColumnDeleted {
+                WsBoardEvent::ColumnDeleted {
                     column_id: uid,
                     origin_user_id: uid,
                 },
             ),
             (
                 "PresenceUpdate",
-                WsProjectEvent::PresenceUpdate {
-                    project_id: uid,
+                WsBoardEvent::PresenceUpdate {
+                    board_id: uid,
                     user_ids: vec![uid],
                 },
             ),
             (
                 "TaskLocked",
-                WsProjectEvent::TaskLocked {
+                WsBoardEvent::TaskLocked {
                     task_id: uid,
                     user_id: uid,
                     user_name: "Test".to_string(),
@@ -373,7 +373,7 @@ mod tests {
             ),
             (
                 "TaskUnlocked",
-                WsProjectEvent::TaskUnlocked {
+                WsBoardEvent::TaskUnlocked {
                     task_id: uid,
                     user_id: uid,
                 },

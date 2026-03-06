@@ -13,7 +13,7 @@ import {
 
 const MOCK_GROUP: TaskGroup = {
   id: 'grp-1',
-  project_id: 'board-1',
+  board_id: 'board-1',
   name: 'Frontend',
   color: '#3b82f6',
   position: '1000',
@@ -54,28 +54,28 @@ describe('TaskGroupService', () => {
   });
 
   describe('listGroups()', () => {
-    it('should GET /api/projects/:projectId/groups', () => {
+    it('should GET /api/boards/:boardId/groups', () => {
       const groups = [MOCK_GROUP];
 
       service.listGroups('board-1').subscribe((result) => {
         expect(result).toEqual(groups);
       });
 
-      const req = httpMock.expectOne('/api/projects/board-1/groups');
+      const req = httpMock.expectOne('/api/boards/board-1/groups');
       expect(req.request.method).toBe('GET');
       req.flush(groups);
     });
   });
 
   describe('listGroupsWithStats()', () => {
-    it('should GET /api/projects/:projectId/groups/stats', () => {
+    it('should GET /api/boards/:boardId/groups/stats', () => {
       const stats = [MOCK_GROUP_WITH_STATS];
 
       service.listGroupsWithStats('board-1').subscribe((result) => {
         expect(result).toEqual(stats);
       });
 
-      const req = httpMock.expectOne('/api/projects/board-1/groups/stats');
+      const req = httpMock.expectOne('/api/boards/board-1/groups/stats');
       expect(req.request.method).toBe('GET');
       req.flush(stats);
     });
@@ -94,9 +94,9 @@ describe('TaskGroupService', () => {
   });
 
   describe('createGroup()', () => {
-    it('should POST /api/projects/:projectId/groups with body', () => {
+    it('should POST /api/boards/:boardId/groups with body', () => {
       const createReq: CreateTaskGroupRequest = {
-        project_id: 'board-1',
+        board_id: 'board-1',
         name: 'Backend',
         color: '#22c55e',
         position: '2000',
@@ -106,7 +106,7 @@ describe('TaskGroupService', () => {
         expect(result).toEqual(MOCK_GROUP);
       });
 
-      const req = httpMock.expectOne('/api/projects/board-1/groups');
+      const req = httpMock.expectOne('/api/boards/board-1/groups');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(createReq);
       req.flush(MOCK_GROUP);

@@ -95,8 +95,8 @@ impl std::fmt::Display for NotificationEvent {
 pub struct TaskAssignedPayload {
     pub task_id: Uuid,
     pub task_title: String,
-    pub project_id: Uuid,
-    pub project_name: String,
+    pub board_id: Uuid,
+    pub board_name: String,
     pub assigned_by_id: Uuid,
     pub assigned_by_name: String,
 }
@@ -106,8 +106,8 @@ pub struct TaskAssignedPayload {
 pub struct TaskDueSoonPayload {
     pub task_id: Uuid,
     pub task_title: String,
-    pub project_id: Uuid,
-    pub project_name: String,
+    pub board_id: Uuid,
+    pub board_name: String,
     pub due_date: String,
     pub hours_until_due: i64,
 }
@@ -117,8 +117,8 @@ pub struct TaskDueSoonPayload {
 pub struct TaskOverduePayload {
     pub task_id: Uuid,
     pub task_title: String,
-    pub project_id: Uuid,
-    pub project_name: String,
+    pub board_id: Uuid,
+    pub board_name: String,
     pub due_date: String,
     pub days_overdue: i64,
 }
@@ -128,7 +128,7 @@ pub struct TaskOverduePayload {
 pub struct TaskCommentedPayload {
     pub task_id: Uuid,
     pub task_title: String,
-    pub project_id: Uuid,
+    pub board_id: Uuid,
     pub comment_id: Uuid,
     pub commenter_id: Uuid,
     pub commenter_name: String,
@@ -140,8 +140,8 @@ pub struct TaskCommentedPayload {
 pub struct TaskCompletedPayload {
     pub task_id: Uuid,
     pub task_title: String,
-    pub project_id: Uuid,
-    pub project_name: String,
+    pub board_id: Uuid,
+    pub board_name: String,
     pub completed_by_id: Uuid,
     pub completed_by_name: String,
 }
@@ -151,7 +151,7 @@ pub struct TaskCompletedPayload {
 pub struct MentionInCommentPayload {
     pub task_id: Uuid,
     pub task_title: String,
-    pub project_id: Uuid,
+    pub board_id: Uuid,
     pub comment_id: Uuid,
     pub mentioned_by_id: Uuid,
     pub mentioned_by_name: String,

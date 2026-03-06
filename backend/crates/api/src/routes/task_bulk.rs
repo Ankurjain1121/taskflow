@@ -32,11 +32,11 @@ pub struct BulkDeleteRequest {
     pub task_ids: Vec<Uuid>,
 }
 
-/// POST /projects/{project_id}/tasks/bulk-update
+/// POST /boards/{board_id}/tasks/bulk-update
 pub async fn bulk_update_handler(
     State(state): State<AppState>,
     ctx: TenantContext,
-    Path(project_id): Path<Uuid>,
+    Path(board_id): Path<Uuid>,
     Json(req): Json<BulkUpdateRequest>,
 ) -> Result<Json<serde_json::Value>> {
     let input = BulkUpdateInput {
@@ -49,10 +49,10 @@ pub async fn bulk_update_handler(
         clear_group: req.clear_group,
     };
 
-    let updated = bulk_update_tasks(&state.db, project_id, ctx.user_id, input)
+    let updated = bulk_update_tasks(&state.db, board_id, ctx.user_id, input)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
+            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             _ => AppError::InternalError(format!("{}", e)),
         })?;
@@ -60,17 +60,17 @@ pub async fn bulk_update_handler(
     Ok(Json(json!({ "updated": updated })))
 }
 
-/// POST /projects/{project_id}/tasks/bulk-delete
+/// POST /boards/{board_id}/tasks/bulk-delete
 pub async fn bulk_delete_handler(
     State(state): State<AppState>,
     ctx: TenantContext,
-    Path(project_id): Path<Uuid>,
+    Path(board_id): Path<Uuid>,
     Json(req): Json<BulkDeleteRequest>,
 ) -> Result<Json<serde_json::Value>> {
-    let deleted = bulk_delete_tasks(&state.db, project_id, ctx.user_id, &req.task_ids)
+    let deleted = bulk_delete_tasks(&state.db, board_id, ctx.user_id, &req.task_ids)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
+            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             _ => AppError::InternalError(format!("{}", e)),
         })?;

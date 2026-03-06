@@ -14,8 +14,8 @@ function createMockTask(overrides: Partial<MyTask> = {}): MyTask {
   return {
     id: 'task-1',
     title: 'Test Task',
-    project_id: 'b-1',
-    project_name: 'Project 1',
+    board_id: 'b-1',
+    board_name: 'Board 1',
     column_name: 'Todo',
     priority: 'medium',
     due_date: null,
@@ -181,18 +181,18 @@ describe('MyTasksComponent (parent - with filters)', () => {
   });
 
   describe('groupedTasks computed', () => {
-    it('should group tasks by project_id', () => {
+    it('should group tasks by board_id', () => {
       component.allTasks.set([
-        createMockTask({ id: 't1', project_id: 'b-1' }),
-        createMockTask({ id: 't2', project_id: 'b-2' }),
-        createMockTask({ id: 't3', project_id: 'b-1' }),
+        createMockTask({ id: 't1', board_id: 'b-1' }),
+        createMockTask({ id: 't2', board_id: 'b-2' }),
+        createMockTask({ id: 't3', board_id: 'b-1' }),
       ]);
       component.selectedFilter.set('all');
 
       const grouped = component.groupedTasks();
 
       expect(grouped).toHaveLength(2);
-      const b1Group = grouped.find(([projectId]) => projectId === 'b-1');
+      const b1Group = grouped.find(([boardId]) => boardId === 'b-1');
       expect(b1Group?.[1]).toHaveLength(2);
     });
   });

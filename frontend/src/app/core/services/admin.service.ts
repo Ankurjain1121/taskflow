@@ -54,7 +54,7 @@ export interface AdminUser {
 // Trash Types
 export interface TrashItem {
   id: string;
-  entity_type: 'task' | 'project' | 'workspace';
+  entity_type: 'task' | 'board' | 'workspace';
   entity_id: string;
   name: string;
   deleted_by: {

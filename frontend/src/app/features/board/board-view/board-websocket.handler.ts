@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Task } from '../../../core/services/task.service';
-import { Column } from '../../../core/services/project.service';
+import { Column } from '../../../core/services/board.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { PresenceService } from '../../../core/services/presence.service';
 import { ConflictNotificationService } from '../../../core/services/conflict-notification.service';

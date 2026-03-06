@@ -11,7 +11,7 @@ export type CustomFieldType =
 
 export interface BoardCustomField {
   id: string;
-  project_id: string;
+  board_id: string;
   name: string;
   field_type: CustomFieldType;
   options: string[] | null;
@@ -75,18 +75,18 @@ export interface SetFieldValue {
 export class CustomFieldService {
   constructor(private http: HttpClient) {}
 
-  listBoardFields(projectId: string): Observable<BoardCustomField[]> {
+  listBoardFields(boardId: string): Observable<BoardCustomField[]> {
     return this.http.get<BoardCustomField[]>(
-      `/api/projects/${projectId}/custom-fields`,
+      `/api/boards/${boardId}/custom-fields`,
     );
   }
 
   createField(
-    projectId: string,
+    boardId: string,
     req: CreateCustomFieldRequest,
   ): Observable<BoardCustomField> {
     return this.http.post<BoardCustomField>(
-      `/api/projects/${projectId}/custom-fields`,
+      `/api/boards/${boardId}/custom-fields`,
       req,
     );
   }

@@ -10,8 +10,8 @@ use crate::models::Milestone;
 pub enum MilestoneQueryError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
-    #[error("User is not a member of this project")]
-    NotProjectMember,
+    #[error("User is not a member of this board")]
+    NotBoardMember,
     #[error("Milestone not found")]
     NotFound,
 }
@@ -42,7 +42,7 @@ pub struct MilestoneWithProgress {
     pub description: Option<String>,
     pub due_date: Option<DateTime<Utc>>,
     pub color: String,
-    pub project_id: Uuid,
+    pub board_id: Uuid,
     pub tenant_id: Uuid,
     pub created_by_id: Uuid,
     pub created_at: DateTime<Utc>,
@@ -51,21 +51,21 @@ pub struct MilestoneWithProgress {
     pub completed_tasks: i64,
 }
 
-/// Verify user is a member of the project
-async fn verify_project_membership(
+/// Verify user is a member of the board
+async fn verify_board_membership(
     pool: &PgPool,
-    project_id: Uuid,
+    board_id: Uuid,
     user_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
     let result = sqlx::query_scalar::<_, bool>(
         r#"
         SELECT EXISTS(
-            SELECT 1 FROM project_members
-            WHERE project_id = $1 AND user_id = $2
+            SELECT 1 FROM board_members
+            WHERE board_id = $1 AND user_id = $2
         )
         "#,
     )
-    .bind(project_id)
+    .bind(board_id)
     .bind(user_id)
     .fetch_one(pool)
     .await?;
@@ -73,14 +73,14 @@ async fn verify_project_membership(
     Ok(result)
 }
 
-/// List all milestones for a project with progress info
+/// List all milestones for a board with progress info
 pub async fn list_milestones(
     pool: &PgPool,
-    project_id: Uuid,
+    board_id: Uuid,
     user_id: Uuid,
 ) -> Result<Vec<MilestoneWithProgress>, MilestoneQueryError> {
-    if !verify_project_membership(pool, project_id, user_id).await? {
-        return Err(MilestoneQueryError::NotProjectMember);
+    if !verify_board_membership(pool, board_id, user_id).await? {
+        return Err(MilestoneQueryError::NotBoardMember);
     }
 
     let milestones = sqlx::query_as::<_, MilestoneWithProgress>(
@@ -91,7 +91,7 @@ pub async fn list_milestones(
             m.description,
             m.due_date,
             m.color,
-            m.project_id,
+            m.board_id,
             m.tenant_id,
             m.created_by_id,
             m.created_at,
@@ -102,14 +102,14 @@ pub async fn list_milestones(
             ), 0) as completed_tasks
         FROM milestones m
         LEFT JOIN tasks t ON t.milestone_id = m.id AND t.deleted_at IS NULL
-        LEFT JOIN project_columns bc ON bc.id = t.column_id
-        WHERE m.project_id = $1
+        LEFT JOIN board_columns bc ON bc.id = t.column_id
+        WHERE m.board_id = $1
         GROUP BY m.id, m.name, m.description, m.due_date, m.color,
-                 m.project_id, m.tenant_id, m.created_by_id, m.created_at, m.updated_at
+                 m.board_id, m.tenant_id, m.created_by_id, m.created_at, m.updated_at
         ORDER BY m.due_date ASC NULLS LAST, m.created_at ASC
         "#,
     )
-    .bind(project_id)
+    .bind(board_id)
     .fetch_all(pool)
     .await?;
 
@@ -130,7 +130,7 @@ pub async fn get_milestone(
             m.description,
             m.due_date,
             m.color,
-            m.project_id,
+            m.board_id,
             m.tenant_id,
             m.created_by_id,
             m.created_at,
@@ -141,10 +141,10 @@ pub async fn get_milestone(
             ), 0) as completed_tasks
         FROM milestones m
         LEFT JOIN tasks t ON t.milestone_id = m.id AND t.deleted_at IS NULL
-        LEFT JOIN project_columns bc ON bc.id = t.column_id
+        LEFT JOIN board_columns bc ON bc.id = t.column_id
         WHERE m.id = $1
         GROUP BY m.id, m.name, m.description, m.due_date, m.color,
-                 m.project_id, m.tenant_id, m.created_by_id, m.created_at, m.updated_at
+                 m.board_id, m.tenant_id, m.created_by_id, m.created_at, m.updated_at
         "#,
     )
     .bind(milestone_id)
@@ -152,9 +152,9 @@ pub async fn get_milestone(
     .await?
     .ok_or(MilestoneQueryError::NotFound)?;
 
-    // Verify project membership
-    if !verify_project_membership(pool, milestone.project_id, user_id).await? {
-        return Err(MilestoneQueryError::NotProjectMember);
+    // Verify board membership
+    if !verify_board_membership(pool, milestone.board_id, user_id).await? {
+        return Err(MilestoneQueryError::NotBoardMember);
     }
 
     Ok(milestone)
@@ -163,13 +163,13 @@ pub async fn get_milestone(
 /// Create a new milestone
 pub async fn create_milestone(
     pool: &PgPool,
-    project_id: Uuid,
+    board_id: Uuid,
     input: CreateMilestoneInput,
     tenant_id: Uuid,
     user_id: Uuid,
 ) -> Result<Milestone, MilestoneQueryError> {
-    if !verify_project_membership(pool, project_id, user_id).await? {
-        return Err(MilestoneQueryError::NotProjectMember);
+    if !verify_board_membership(pool, board_id, user_id).await? {
+        return Err(MilestoneQueryError::NotBoardMember);
     }
 
     let milestone_id = Uuid::new_v4();
@@ -177,11 +177,11 @@ pub async fn create_milestone(
 
     let milestone = sqlx::query_as::<_, Milestone>(
         r#"
-        INSERT INTO milestones (id, name, description, due_date, color, project_id, tenant_id, created_by_id)
+        INSERT INTO milestones (id, name, description, due_date, color, board_id, tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING
             id, name, description, due_date, color,
-            project_id, tenant_id, created_by_id,
+            board_id, tenant_id, created_by_id,
             created_at, updated_at
         "#,
     )
@@ -190,7 +190,7 @@ pub async fn create_milestone(
     .bind(&input.description)
     .bind(input.due_date)
     .bind(&color)
-    .bind(project_id)
+    .bind(board_id)
     .bind(tenant_id)
     .bind(user_id)
     .fetch_one(pool)
@@ -217,7 +217,7 @@ pub async fn update_milestone(
         WHERE id = $1
         RETURNING
             id, name, description, due_date, color,
-            project_id, tenant_id, created_by_id,
+            board_id, tenant_id, created_by_id,
             created_at, updated_at
         "#,
     )
@@ -306,14 +306,14 @@ pub async fn unassign_task_from_milestone(
     Ok(())
 }
 
-/// Get the project_id for a milestone (for authorization checks)
-pub async fn get_milestone_project_id(
+/// Get the board_id for a milestone (for authorization checks)
+pub async fn get_milestone_board_id(
     pool: &PgPool,
     milestone_id: Uuid,
 ) -> Result<Option<Uuid>, sqlx::Error> {
     sqlx::query_scalar::<_, Uuid>(
         r#"
-        SELECT project_id FROM milestones WHERE id = $1
+        SELECT board_id FROM milestones WHERE id = $1
         "#,
     )
     .bind(milestone_id)

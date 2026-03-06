@@ -105,8 +105,8 @@ pub async fn get_workload(
         INNER JOIN users u ON u.id = wm.user_id
         LEFT JOIN task_assignees ta ON ta.user_id = u.id
         LEFT JOIN tasks t ON t.id = ta.task_id AND t.deleted_at IS NULL
-        LEFT JOIN project_columns bc ON bc.id = t.column_id
-        LEFT JOIN projects b ON b.id = t.project_id AND b.workspace_id = $1
+        LEFT JOIN board_columns bc ON bc.id = t.column_id
+        LEFT JOIN boards b ON b.id = t.board_id AND b.workspace_id = $1
         WHERE wm.workspace_id = $1
           AND u.tenant_id = $2
           AND u.deleted_at IS NULL
@@ -168,8 +168,8 @@ pub async fn get_overloaded_members(
         INNER JOIN users u ON u.id = wm.user_id
         LEFT JOIN task_assignees ta ON ta.user_id = u.id
         LEFT JOIN tasks t ON t.id = ta.task_id AND t.deleted_at IS NULL
-        LEFT JOIN project_columns bc ON bc.id = t.column_id
-        LEFT JOIN projects b ON b.id = t.project_id AND b.workspace_id = $1
+        LEFT JOIN board_columns bc ON bc.id = t.column_id
+        LEFT JOIN boards b ON b.id = t.board_id AND b.workspace_id = $1
         WHERE wm.workspace_id = $1
           AND u.tenant_id = $2
           AND u.deleted_at IS NULL
@@ -203,7 +203,7 @@ pub async fn get_overloaded_members(
 pub struct MemberTask {
     pub task_id: Uuid,
     pub title: String,
-    pub project_name: String,
+    pub board_name: String,
     pub column_name: String,
     pub priority: TaskPriority,
     pub due_date: Option<DateTime<Utc>>,
@@ -215,7 +215,7 @@ pub struct MemberTask {
 struct MemberTaskRow {
     task_id: Uuid,
     title: String,
-    project_name: String,
+    board_name: String,
     column_name: String,
     priority: TaskPriority,
     due_date: Option<DateTime<Utc>>,
@@ -252,14 +252,14 @@ pub async fn get_member_active_tasks(
         SELECT
             t.id as task_id,
             t.title,
-            b.name as project_name,
+            b.name as board_name,
             bc.name as column_name,
             t.priority,
             t.due_date
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
-        INNER JOIN projects b ON b.id = t.project_id
-        INNER JOIN project_columns bc ON bc.id = t.column_id
+        INNER JOIN boards b ON b.id = t.board_id
+        INNER JOIN board_columns bc ON bc.id = t.column_id
         WHERE ta.user_id = $1
           AND b.workspace_id = $2
           AND t.deleted_at IS NULL
@@ -286,7 +286,7 @@ pub async fn get_member_active_tasks(
             due_status: compute_due_status(r.due_date),
             task_id: r.task_id,
             title: r.title,
-            project_name: r.project_name,
+            board_name: r.board_name,
             column_name: r.column_name,
             priority: r.priority,
             due_date: r.due_date,
@@ -295,7 +295,7 @@ pub async fn get_member_active_tasks(
 }
 
 /// Reassign tasks from one user to another, scoped to a workspace.
-/// Only tasks belonging to projects in the given workspace will be reassigned.
+/// Only tasks belonging to boards in the given workspace will be reassigned.
 pub async fn reassign_tasks(
     pool: &PgPool,
     workspace_id: Uuid,
@@ -316,7 +316,7 @@ pub async fn reassign_tasks(
             r#"
             DELETE FROM task_assignees ta
             USING tasks t
-            INNER JOIN projects b ON b.id = t.project_id
+            INNER JOIN boards b ON b.id = t.board_id
             WHERE ta.task_id = $1
               AND ta.user_id = $2
               AND t.id = ta.task_id

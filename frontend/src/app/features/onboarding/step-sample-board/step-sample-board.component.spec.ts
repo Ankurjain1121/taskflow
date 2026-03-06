@@ -85,7 +85,7 @@ describe('StepSampleBoardComponent', () => {
   describe('generate', () => {
     it('should set loading to true then false', () => {
       mockOnboardingService.generateSampleBoard.mockReturnValue(
-        of({ project_id: 'board-1' }),
+        of({ board_id: 'board-1' }),
       );
 
       component.generate();
@@ -96,7 +96,7 @@ describe('StepSampleBoardComponent', () => {
     it('should clear previous error', () => {
       component.error.set('old error');
       mockOnboardingService.generateSampleBoard.mockReturnValue(
-        of({ project_id: 'board-1' }),
+        of({ board_id: 'board-1' }),
       );
 
       component.generate();
@@ -106,7 +106,7 @@ describe('StepSampleBoardComponent', () => {
 
     it('should call generateSampleBoard with workspaceId and useCase', () => {
       mockOnboardingService.generateSampleBoard.mockReturnValue(
-        of({ project_id: 'board-1' }),
+        of({ board_id: 'board-1' }),
       );
 
       component.generate();
@@ -119,7 +119,7 @@ describe('StepSampleBoardComponent', () => {
 
     it('should set isGenerated to true on success', () => {
       mockOnboardingService.generateSampleBoard.mockReturnValue(
-        of({ project_id: 'board-1' }),
+        of({ board_id: 'board-1' }),
       );
 
       component.generate();
@@ -146,7 +146,7 @@ describe('StepSampleBoardComponent', () => {
       component.generate();
 
       expect(component.error()).toBe(
-        'Failed to generate sample project. Please try again.',
+        'Failed to generate sample board. Please try again.',
       );
     });
   });
@@ -155,7 +155,7 @@ describe('StepSampleBoardComponent', () => {
     it('should set isNavigating to true then false', () => {
       mockOnboardingService.completeOnboarding.mockReturnValue(of(undefined));
 
-      component.goToDashproject();
+      component.goToDashboard();
 
       expect(component.isNavigating()).toBe(false);
     });
@@ -164,7 +164,7 @@ describe('StepSampleBoardComponent', () => {
       component.error.set('old error');
       mockOnboardingService.completeOnboarding.mockReturnValue(of(undefined));
 
-      component.goToDashproject();
+      component.goToDashboard();
 
       expect(component.error()).toBeNull();
     });
@@ -172,7 +172,7 @@ describe('StepSampleBoardComponent', () => {
     it('should call completeOnboarding', () => {
       mockOnboardingService.completeOnboarding.mockReturnValue(of(undefined));
 
-      component.goToDashproject();
+      component.goToDashboard();
 
       expect(mockOnboardingService.completeOnboarding).toHaveBeenCalledOnce();
     });
@@ -180,7 +180,7 @@ describe('StepSampleBoardComponent', () => {
     it('should navigate to dashboard on success', () => {
       mockOnboardingService.completeOnboarding.mockReturnValue(of(undefined));
 
-      component.goToDashproject();
+      component.goToDashboard();
 
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/dashboard']);
     });
@@ -190,7 +190,7 @@ describe('StepSampleBoardComponent', () => {
         throwError(() => ({ error: { message: 'Server error' } })),
       );
 
-      component.goToDashproject();
+      component.goToDashboard();
 
       expect(component.error()).toBe('Server error');
       expect(component.isNavigating()).toBe(false);
@@ -201,7 +201,7 @@ describe('StepSampleBoardComponent', () => {
         throwError(() => ({ error: {} })),
       );
 
-      component.goToDashproject();
+      component.goToDashboard();
 
       expect(component.error()).toBe(
         'Failed to complete onboarding. Please try again.',

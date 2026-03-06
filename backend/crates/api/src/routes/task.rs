@@ -21,33 +21,29 @@ use super::task_watcher::{add_watcher_handler, remove_watcher_handler};
 /// Create the task router
 pub fn task_router(state: AppState) -> Router<AppState> {
     Router::new()
-        // Project-scoped task routes
-        .route("/projects/{project_id}/tasks", get(list_tasks))
+        // Board-scoped task routes
+        .route("/boards/{board_id}/tasks", get(list_tasks))
         .route(
-            "/projects/{project_id}/tasks/list",
+            "/boards/{board_id}/tasks/list",
             get(task_views::list_tasks_flat_handler),
         )
         .route(
-            "/projects/{project_id}/tasks/list-enhanced",
-            get(task_views::list_tasks_enhanced_handler),
-        )
-        .route(
-            "/projects/{project_id}/tasks/calendar",
+            "/boards/{board_id}/tasks/calendar",
             get(task_views::list_calendar_tasks_handler),
         )
         .route(
-            "/projects/{project_id}/tasks/gantt",
+            "/boards/{board_id}/tasks/gantt",
             get(task_views::list_gantt_tasks_handler),
         )
         .route(
-            "/projects/{project_id}/tasks/bulk-update",
+            "/boards/{board_id}/tasks/bulk-update",
             post(task_bulk::bulk_update_handler),
         )
         .route(
-            "/projects/{project_id}/tasks/bulk-delete",
+            "/boards/{board_id}/tasks/bulk-delete",
             post(task_bulk::bulk_delete_handler),
         )
-        .route("/projects/{project_id}/tasks", post(create_task_handler))
+        .route("/boards/{board_id}/tasks", post(create_task_handler))
         // Task-specific routes
         .route("/tasks/{id}", get(get_task))
         .route("/tasks/{id}", patch(update_task_handler))

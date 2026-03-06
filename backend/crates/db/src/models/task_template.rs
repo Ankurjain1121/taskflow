@@ -9,7 +9,7 @@ pub struct TaskTemplate {
     pub name: String,
     pub description: Option<String>,
     pub scope: String,
-    pub project_id: Option<Uuid>,
+    pub board_id: Option<Uuid>,
     pub tenant_id: Uuid,
     pub created_by_id: Uuid,
     pub task_title: String,

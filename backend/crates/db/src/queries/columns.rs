@@ -1,46 +1,46 @@
-//! Project column query functions
+//! Board column query functions
 
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::ProjectColumn;
+use crate::models::BoardColumn;
 
-/// List columns for a project ordered by position
+/// List columns for a board ordered by position
 pub async fn list_columns_by_board(
     pool: &PgPool,
-    project_id: Uuid,
-) -> Result<Vec<ProjectColumn>, sqlx::Error> {
+    board_id: Uuid,
+) -> Result<Vec<BoardColumn>, sqlx::Error> {
     sqlx::query_as!(
-        ProjectColumn,
+        BoardColumn,
         r#"
-        SELECT id, name, project_id, position, color, status_mapping, wip_limit, icon, created_at
-        FROM project_columns
-        WHERE project_id = $1
+        SELECT id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
+        FROM board_columns
+        WHERE board_id = $1
         ORDER BY position ASC
         "#,
-        project_id
+        board_id
     )
     .fetch_all(pool)
     .await
 }
 
-/// Add a new column to a project
+/// Add a new column to a board
 pub async fn add_column(
     pool: &PgPool,
-    project_id: Uuid,
+    board_id: Uuid,
     name: &str,
     color: Option<&str>,
     status_mapping: Option<serde_json::Value>,
     position: &str,
-) -> Result<ProjectColumn, sqlx::Error> {
+) -> Result<BoardColumn, sqlx::Error> {
     sqlx::query_as!(
-        ProjectColumn,
+        BoardColumn,
         r#"
-        INSERT INTO project_columns (project_id, name, color, status_mapping, position)
+        INSERT INTO board_columns (board_id, name, color, status_mapping, position)
         VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, name, project_id, position, color, status_mapping, wip_limit, icon, created_at
+        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
         "#,
-        project_id,
+        board_id,
         name,
         color,
         status_mapping,
@@ -55,14 +55,14 @@ pub async fn rename_column(
     pool: &PgPool,
     id: Uuid,
     name: &str,
-) -> Result<Option<ProjectColumn>, sqlx::Error> {
+) -> Result<Option<BoardColumn>, sqlx::Error> {
     sqlx::query_as!(
-        ProjectColumn,
+        BoardColumn,
         r#"
-        UPDATE project_columns
+        UPDATE board_columns
         SET name = $2
         WHERE id = $1
-        RETURNING id, name, project_id, position, color, status_mapping, wip_limit, icon, created_at
+        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
         "#,
         id,
         name
@@ -76,14 +76,14 @@ pub async fn reorder_column(
     pool: &PgPool,
     id: Uuid,
     new_position: &str,
-) -> Result<Option<ProjectColumn>, sqlx::Error> {
+) -> Result<Option<BoardColumn>, sqlx::Error> {
     sqlx::query_as!(
-        ProjectColumn,
+        BoardColumn,
         r#"
-        UPDATE project_columns
+        UPDATE board_columns
         SET position = $2
         WHERE id = $1
-        RETURNING id, name, project_id, position, color, status_mapping, wip_limit, icon, created_at
+        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
         "#,
         id,
         new_position
@@ -97,14 +97,14 @@ pub async fn update_status_mapping(
     pool: &PgPool,
     id: Uuid,
     status_mapping: Option<serde_json::Value>,
-) -> Result<Option<ProjectColumn>, sqlx::Error> {
+) -> Result<Option<BoardColumn>, sqlx::Error> {
     sqlx::query_as!(
-        ProjectColumn,
+        BoardColumn,
         r#"
-        UPDATE project_columns
+        UPDATE board_columns
         SET status_mapping = $2
         WHERE id = $1
-        RETURNING id, name, project_id, position, color, status_mapping, wip_limit, icon, created_at
+        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
         "#,
         id,
         status_mapping
@@ -118,14 +118,14 @@ pub async fn update_column_color(
     pool: &PgPool,
     id: Uuid,
     color: Option<&str>,
-) -> Result<Option<ProjectColumn>, sqlx::Error> {
+) -> Result<Option<BoardColumn>, sqlx::Error> {
     sqlx::query_as!(
-        ProjectColumn,
+        BoardColumn,
         r#"
-        UPDATE project_columns
+        UPDATE board_columns
         SET color = $2
         WHERE id = $1
-        RETURNING id, name, project_id, position, color, status_mapping, wip_limit, icon, created_at
+        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
         "#,
         id,
         color
@@ -139,14 +139,14 @@ pub async fn update_wip_limit(
     pool: &PgPool,
     id: Uuid,
     wip_limit: Option<i32>,
-) -> Result<Option<ProjectColumn>, sqlx::Error> {
+) -> Result<Option<BoardColumn>, sqlx::Error> {
     sqlx::query_as!(
-        ProjectColumn,
+        BoardColumn,
         r#"
-        UPDATE project_columns
+        UPDATE board_columns
         SET wip_limit = $2
         WHERE id = $1
-        RETURNING id, name, project_id, position, color, status_mapping, wip_limit, icon, created_at
+        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
         "#,
         id,
         wip_limit
@@ -160,14 +160,14 @@ pub async fn update_icon(
     pool: &PgPool,
     column_id: Uuid,
     icon: Option<&str>,
-) -> Result<ProjectColumn, sqlx::Error> {
+) -> Result<BoardColumn, sqlx::Error> {
     sqlx::query_as!(
-        ProjectColumn,
+        BoardColumn,
         r#"
-        UPDATE project_columns
+        UPDATE board_columns
         SET icon = $2
         WHERE id = $1
-        RETURNING id, name, project_id, position, color, status_mapping, wip_limit, icon, created_at
+        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
         "#,
         column_id,
         icon,
@@ -204,7 +204,7 @@ pub async fn delete_column(pool: &PgPool, id: Uuid) -> Result<DeleteColumnResult
 
     let result = sqlx::query!(
         r#"
-        DELETE FROM project_columns
+        DELETE FROM board_columns
         WHERE id = $1
         "#,
         id
@@ -228,15 +228,12 @@ pub enum DeleteColumnResult {
 }
 
 /// Get column by ID
-pub async fn get_column_by_id(
-    pool: &PgPool,
-    id: Uuid,
-) -> Result<Option<ProjectColumn>, sqlx::Error> {
+pub async fn get_column_by_id(pool: &PgPool, id: Uuid) -> Result<Option<BoardColumn>, sqlx::Error> {
     sqlx::query_as!(
-        ProjectColumn,
+        BoardColumn,
         r#"
-        SELECT id, name, project_id, position, color, status_mapping, wip_limit, icon, created_at
-        FROM project_columns
+        SELECT id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
+        FROM board_columns
         WHERE id = $1
         "#,
         id
@@ -246,11 +243,11 @@ pub async fn get_column_by_id(
 }
 
 /// Force delete a column without checking for tasks.
-/// Used internally when replacing default columns with template columns on a freshly created project.
+/// Used internally when replacing default columns with template columns on a freshly created board.
 pub async fn force_delete_column(pool: &PgPool, id: Uuid) -> Result<bool, sqlx::Error> {
     let result = sqlx::query!(
         r#"
-        DELETE FROM project_columns
+        DELETE FROM board_columns
         WHERE id = $1
         "#,
         id
@@ -264,10 +261,10 @@ pub async fn force_delete_column(pool: &PgPool, id: Uuid) -> Result<bool, sqlx::
 /// Get adjacent columns for position calculation
 pub async fn get_adjacent_columns(
     pool: &PgPool,
-    project_id: Uuid,
+    board_id: Uuid,
     target_index: i32,
 ) -> Result<(Option<String>, Option<String>), sqlx::Error> {
-    let columns = list_columns_by_board(pool, project_id).await?;
+    let columns = list_columns_by_board(pool, board_id).await?;
 
     let prev_pos = if target_index > 0 {
         columns

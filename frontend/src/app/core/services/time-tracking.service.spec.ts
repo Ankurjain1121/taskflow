@@ -20,7 +20,7 @@ const MOCK_ENTRY: TimeEntry = {
   ended_at: '2026-02-20T10:30:00Z',
   duration_minutes: 90,
   is_running: false,
-  project_id: 'board-1',
+  board_id: 'board-1',
   tenant_id: 'tenant-1',
   created_at: '2026-02-20T09:00:00Z',
   updated_at: '2026-02-20T10:30:00Z',
@@ -141,7 +141,7 @@ describe('TimeTrackingService', () => {
   });
 
   describe('getBoardTimeReport()', () => {
-    it('should GET /api/projects/:projectId/time-report', () => {
+    it('should GET /api/boards/:boardId/time-report', () => {
       const report: TaskTimeReport[] = [
         {
           task_id: 'task-1',
@@ -155,7 +155,7 @@ describe('TimeTrackingService', () => {
         expect(result).toEqual(report);
       });
 
-      const req = httpMock.expectOne('/api/projects/board-1/time-report');
+      const req = httpMock.expectOne('/api/boards/board-1/time-report');
       expect(req.request.method).toBe('GET');
       req.flush(report);
     });

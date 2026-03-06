@@ -124,7 +124,7 @@ describe('OnboardingComponent', () => {
         of({
           workspace_id: 'ws-1',
           workspace_name: 'Test WS',
-          project_ids: ['b-1'],
+          board_ids: ['b-1'],
         }),
       );
 
@@ -138,7 +138,7 @@ describe('OnboardingComponent', () => {
       expect(component.invitationContext()).toEqual({
         workspace_id: 'ws-1',
         workspace_name: 'Test WS',
-        project_ids: ['b-1'],
+        board_ids: ['b-1'],
       });
       expect(component.isLoading()).toBe(false);
     });

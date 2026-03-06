@@ -24,16 +24,16 @@ pub struct BulkOperationRequest {
     pub action: BulkAction,
 }
 
-/// POST /projects/{project_id}/bulk-operations/preview
+/// POST /boards/{board_id}/bulk-operations/preview
 async fn preview_handler(
     State(state): State<AppState>,
     ctx: TenantContext,
-    Path(project_id): Path<Uuid>,
+    Path(board_id): Path<Uuid>,
     Json(req): Json<BulkOperationRequest>,
 ) -> Result<Json<serde_json::Value>> {
     let summary = bulk_operations::preview_bulk_operation(
         &state.db,
-        project_id,
+        board_id,
         ctx.user_id,
         &req.action,
         &req.task_ids,
@@ -44,21 +44,21 @@ async fn preview_handler(
     Ok(Json(json!(summary)))
 }
 
-/// POST /projects/{project_id}/bulk-operations/execute
+/// POST /boards/{board_id}/bulk-operations/execute
 async fn execute_handler(
     State(state): State<AppState>,
     ctx: TenantContext,
-    Path(project_id): Path<Uuid>,
+    Path(board_id): Path<Uuid>,
     Json(req): Json<BulkOperationRequest>,
 ) -> Result<Json<serde_json::Value>> {
     // Snapshot tasks before applying changes
-    let snapshot = bulk_operations::snapshot_tasks(&state.db, &req.task_ids, project_id)
+    let snapshot = bulk_operations::snapshot_tasks(&state.db, &req.task_ids, board_id)
         .await
         .map_err(map_bulk_error)?;
 
     let op = bulk_operations::execute_bulk_operation(
         &state.db,
-        project_id,
+        board_id,
         ctx.tenant_id,
         ctx.user_id,
         &req.action,
@@ -78,11 +78,11 @@ async fn execute_handler(
     })))
 }
 
-/// POST /projects/{project_id}/bulk-operations/{op_id}/undo
+/// POST /boards/{board_id}/bulk-operations/{op_id}/undo
 async fn undo_handler(
     State(state): State<AppState>,
     ctx: TenantContext,
-    Path((_project_id, op_id)): Path<(Uuid, Uuid)>,
+    Path((_board_id, op_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>> {
     // Retrieve snapshot from Redis
     let snapshot: Vec<TaskSnapshot> = retrieve_undo_snapshot(&state.redis, &op_id)
@@ -99,13 +99,13 @@ async fn undo_handler(
     Ok(Json(json!({ "restored": restored })))
 }
 
-/// GET /projects/{project_id}/bulk-operations
+/// GET /boards/{board_id}/bulk-operations
 async fn list_handler(
     State(state): State<AppState>,
     ctx: TenantContext,
-    Path(project_id): Path<Uuid>,
+    Path(board_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>> {
-    let ops = bulk_operations::list_bulk_operations(&state.db, project_id, ctx.user_id)
+    let ops = bulk_operations::list_bulk_operations(&state.db, board_id, ctx.user_id)
         .await
         .map_err(map_bulk_error)?;
 
@@ -116,18 +116,18 @@ async fn list_handler(
 pub fn bulk_ops_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route(
-            "/projects/{project_id}/bulk-operations/preview",
+            "/boards/{board_id}/bulk-operations/preview",
             post(preview_handler),
         )
         .route(
-            "/projects/{project_id}/bulk-operations/execute",
+            "/boards/{board_id}/bulk-operations/execute",
             post(execute_handler),
         )
         .route(
-            "/projects/{project_id}/bulk-operations/{op_id}/undo",
+            "/boards/{board_id}/bulk-operations/{op_id}/undo",
             post(undo_handler),
         )
-        .route("/projects/{project_id}/bulk-operations", get(list_handler))
+        .route("/boards/{board_id}/bulk-operations", get(list_handler))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
@@ -165,8 +165,8 @@ async fn delete_undo_snapshot(redis: &redis::aio::ConnectionManager, operation_i
 
 fn map_bulk_error(e: taskflow_db::queries::TaskQueryError) -> AppError {
     match e {
-        taskflow_db::queries::TaskQueryError::NotProjectMember => {
-            AppError::Forbidden("Not a project member".into())
+        taskflow_db::queries::TaskQueryError::NotBoardMember => {
+            AppError::Forbidden("Not a board member".into())
         }
         taskflow_db::queries::TaskQueryError::Database(e) => AppError::SqlxError(e),
         taskflow_db::queries::TaskQueryError::Other(msg) if msg.contains("limited to") => {

@@ -1,6 +1,6 @@
 //! Metrics API routes
 //!
-//! Provides endpoints for workspace, team, and personal metrics dashprojects.
+//! Provides endpoints for workspace, team, and personal metrics dashboards.
 //! Results are cached in Redis with a 120-second TTL.
 
 use axum::{
@@ -41,7 +41,7 @@ const METRICS_CACHE_TTL: u64 = 120;
 
 /// GET /api/workspaces/{workspace_id}/metrics/workspace
 ///
-/// Fetch workspace-level metrics dashproject with cycle time, velocity,
+/// Fetch workspace-level metrics dashboard with cycle time, velocity,
 /// on-time %, and workload distribution. Cached for 120 seconds.
 async fn get_workspace_metrics_handler(
     State(state): State<AppState>,
@@ -64,7 +64,7 @@ async fn get_workspace_metrics_handler(
 
 /// GET /api/teams/{team_id}/metrics
 ///
-/// Fetch team-level metrics dashproject. Cached for 120 seconds.
+/// Fetch team-level metrics dashboard. Cached for 120 seconds.
 async fn get_team_metrics_handler(
     State(state): State<AppState>,
     _tenant: TenantContext,
@@ -86,7 +86,7 @@ async fn get_team_metrics_handler(
 
 /// GET /api/me/metrics
 ///
-/// Fetch personal metrics dashproject for the authenticated user.
+/// Fetch personal metrics dashboard for the authenticated user.
 /// Cached for 120 seconds.
 async fn get_personal_metrics_handler(
     State(state): State<AppState>,

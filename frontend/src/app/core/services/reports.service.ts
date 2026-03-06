@@ -45,9 +45,9 @@ export interface BoardReport {
 export class ReportsService {
   constructor(private http: HttpClient) {}
 
-  getBoardReport(projectId: string, days: number = 30): Observable<BoardReport> {
+  getBoardReport(boardId: string, days: number = 30): Observable<BoardReport> {
     const params = new HttpParams().set('days', days.toString());
-    return this.http.get<BoardReport>(`/api/projects/${projectId}/reports`, {
+    return this.http.get<BoardReport>(`/api/boards/${boardId}/reports`, {
       params,
     });
   }

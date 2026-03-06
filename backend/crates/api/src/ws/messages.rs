@@ -8,7 +8,7 @@ pub struct WsQuery {
 }
 
 /// Client message format
-/// Frontend sends: { type: 'subscribe', payload: { channel: 'project:123' } }
+/// Frontend sends: { type: 'subscribe', payload: { channel: 'board:123' } }
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ClientMessage {
@@ -35,10 +35,10 @@ pub struct ChannelPayload {
     pub channel: String,
 }
 
-/// Payload for presence messages (join/leave/heartbeat a project)
+/// Payload for presence messages (join/leave/heartbeat a board)
 #[derive(Debug, Deserialize)]
 pub struct PresencePayload {
-    pub project_id: Uuid,
+    pub board_id: Uuid,
 }
 
 /// Payload for task lock/unlock messages

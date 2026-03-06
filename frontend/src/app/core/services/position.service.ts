@@ -14,7 +14,7 @@ export interface Position {
   id: string;
   name: string;
   description: string | null;
-  project_id: string;
+  board_id: string;
   fallback_position_id: string | null;
   fallback_position_name: string | null;
   tenant_id: string;
@@ -43,18 +43,18 @@ export class PositionService {
 
   constructor(private http: HttpClient) {}
 
-  listPositions(projectId: string): Observable<Position[]> {
+  listPositions(boardId: string): Observable<Position[]> {
     return this.http.get<Position[]>(
-      `${this.apiUrl}/projects/${projectId}/positions`,
+      `${this.apiUrl}/boards/${boardId}/positions`,
     );
   }
 
   createPosition(
-    projectId: string,
+    boardId: string,
     req: CreatePositionRequest,
   ): Observable<Position> {
     return this.http.post<Position>(
-      `${this.apiUrl}/projects/${projectId}/positions`,
+      `${this.apiUrl}/boards/${boardId}/positions`,
       req,
     );
   }

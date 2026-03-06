@@ -1,6 +1,6 @@
 //! My Tasks database queries
 //!
-//! Provides queries for fetching tasks assigned to the current user across all projects.
+//! Provides queries for fetching tasks assigned to the current user across all boards.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::models::TaskPriority;
 
-/// Task item for my tasks list with project context
+/// Task item for my tasks list with board context
 #[derive(Debug, Serialize, Clone)]
 pub struct MyTaskItem {
     pub id: Uuid,
@@ -17,8 +17,8 @@ pub struct MyTaskItem {
     pub description: Option<String>,
     pub priority: TaskPriority,
     pub due_date: Option<DateTime<Utc>>,
-    pub project_id: Uuid,
-    pub project_name: String,
+    pub board_id: Uuid,
+    pub board_name: String,
     pub workspace_id: Uuid,
     pub column_id: Uuid,
     pub column_name: String,
@@ -72,8 +72,8 @@ struct MyTaskRow {
     description: Option<String>,
     priority: TaskPriority,
     due_date: Option<DateTime<Utc>>,
-    project_id: Uuid,
-    project_name: String,
+    board_id: Uuid,
+    board_name: String,
     workspace_id: Uuid,
     column_id: Uuid,
     column_name: String,
@@ -83,14 +83,14 @@ struct MyTaskRow {
     updated_at: DateTime<Utc>,
 }
 
-/// List tasks assigned to a user across all projects they're a member of
+/// List tasks assigned to a user across all boards they're a member of
 ///
 /// # Arguments
 /// * `pool` - Database connection pool
 /// * `user_id` - The user's UUID
 /// * `sort_by` - Field to sort by
 /// * `sort_order` - Sort direction (asc/desc)
-/// * `project_filter` - Optional project ID to filter by
+/// * `board_filter` - Optional board ID to filter by
 /// * `cursor` - Optional cursor for pagination (task ID)
 /// * `limit` - Number of items to return
 pub async fn list_my_tasks(
@@ -98,7 +98,7 @@ pub async fn list_my_tasks(
     user_id: Uuid,
     sort_by: MyTasksSortBy,
     sort_order: SortOrder,
-    project_filter: Option<Uuid>,
+    board_filter: Option<Uuid>,
     cursor: Option<Uuid>,
     limit: i64,
 ) -> Result<PaginatedMyTasks, sqlx::Error> {
@@ -122,8 +122,8 @@ pub async fn list_my_tasks(
     let mut conditions = String::new();
     let mut param_idx = 2u32; // $1 is user_id
 
-    if project_filter.is_some() {
-        conditions.push_str(&format!(" AND t.project_id = ${}", param_idx));
+    if board_filter.is_some() {
+        conditions.push_str(&format!(" AND t.board_id = ${}", param_idx));
         param_idx += 1;
     }
     if cursor.is_some() {
@@ -139,8 +139,8 @@ pub async fn list_my_tasks(
             t.description,
             t.priority,
             t.due_date,
-            t.project_id,
-            b.name as project_name,
+            t.board_id,
+            b.name as board_name,
             b.workspace_id,
             t.column_id,
             bc.name as column_name,
@@ -150,9 +150,9 @@ pub async fn list_my_tasks(
             t.updated_at
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
-        INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
-        INNER JOIN project_columns bc ON bc.id = t.column_id
-        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
+        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
+        INNER JOIN board_columns bc ON bc.id = t.column_id
+        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           {}
@@ -164,8 +164,8 @@ pub async fn list_my_tasks(
 
     // Execute the dynamic query with the appropriate bindings
     let mut query = sqlx::query_as::<_, MyTaskRow>(&query_str).bind(user_id);
-    if let Some(project_id) = project_filter {
-        query = query.bind(project_id);
+    if let Some(board_id) = board_filter {
+        query = query.bind(board_id);
     }
     if let Some(cursor_id) = cursor {
         query = query.bind(cursor_id);
@@ -195,8 +195,8 @@ pub async fn list_my_tasks(
                 description: row.description,
                 priority: row.priority,
                 due_date: row.due_date,
-                project_id: row.project_id,
-                project_name: row.project_name,
+                board_id: row.board_id,
+                board_name: row.board_name,
                 workspace_id: row.workspace_id,
                 column_id: row.column_id,
                 column_name: row.column_name,
@@ -246,9 +246,9 @@ pub async fn my_tasks_summary(pool: &PgPool, user_id: Uuid) -> Result<MyTasksSum
             ) as "overdue!"
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
-        INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
-        INNER JOIN project_columns bc ON bc.id = t.column_id
-        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
+        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
+        INNER JOIN board_columns bc ON bc.id = t.column_id
+        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
         "#,
@@ -267,7 +267,7 @@ pub async fn my_tasks_summary(pool: &PgPool, user_id: Uuid) -> Result<MyTasksSum
         FROM activity_log al
         INNER JOIN tasks t ON t.id = al.entity_id AND t.deleted_at IS NULL
         INNER JOIN task_assignees ta ON ta.task_id = t.id AND ta.user_id = $1
-        INNER JOIN project_columns bc ON bc.id = t.column_id
+        INNER JOIN board_columns bc ON bc.id = t.column_id
         WHERE al.action = 'moved'
           AND al.entity_type = 'task'
           AND al.created_at >= $2

@@ -13,7 +13,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { Subscription, filter, take } from 'rxjs';
-import { ProjectService } from '../../../core/services/project.service';
+import { BoardService } from '../../../core/services/board.service';
 
 export interface RecentBoardEntry {
   id: string;
@@ -52,7 +52,7 @@ const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
               class="px-3 py-2 text-xs italic"
               style="color: var(--sidebar-text-muted)"
             >
-              No recent projects
+              No recent boards
             </p>
           } @else {
             <div class="space-y-0.5">
@@ -61,7 +61,7 @@ const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
                   [routerLink]="[
                     '/workspace',
                     item.workspaceId,
-                    'project',
+                    'board',
                     item.id,
                   ]"
                   routerLinkActive="active"
@@ -110,7 +110,7 @@ const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 })
 export class SidebarRecentComponent implements OnInit, OnDestroy {
   private router = inject(Router);
-  private projectService = inject(ProjectService);
+  private boardService = inject(BoardService);
   private injector = inject(Injector);
   private routerSub: Subscription | null = null;
 
@@ -161,14 +161,14 @@ export class SidebarRecentComponent implements OnInit, OnDestroy {
     if (!match) return;
 
     const workspaceId = match[1];
-    const projectId = match[2];
+    const boardId = match[2];
 
     // Check if we already have this board with a real name
-    const existing = this.recentItems().find((i) => i.id === projectId);
-    const placeholderName = projectId.substring(0, 8) + '...';
+    const existing = this.recentItems().find((i) => i.id === boardId);
+    const placeholderName = boardId.substring(0, 8) + '...';
 
     this.addRecentEntry({
-      id: projectId,
+      id: boardId,
       name:
         existing?.name && existing.name !== placeholderName
           ? existing.name
@@ -178,13 +178,13 @@ export class SidebarRecentComponent implements OnInit, OnDestroy {
     });
 
     // Fetch the real board name
-    this.projectService
-      .getProject(projectId)
+    this.boardService
+      .getBoard(boardId)
       .pipe(take(1))
       .subscribe({
-        next: (proj) => {
-          if (proj.name) {
-            this.updateEntryName(projectId, proj.name);
+        next: (board) => {
+          if (board.name) {
+            this.updateEntryName(boardId, board.name);
           }
         },
         error: () => {
@@ -200,9 +200,9 @@ export class SidebarRecentComponent implements OnInit, OnDestroy {
     this.saveToStorage(updated);
   }
 
-  updateEntryName(projectId: string, name: string): void {
+  updateEntryName(boardId: string, name: string): void {
     const items = this.recentItems().map((i) =>
-      i.id === projectId ? { ...i, name } : i,
+      i.id === boardId ? { ...i, name } : i,
     );
     this.recentItems.set(items);
     this.saveToStorage(items);

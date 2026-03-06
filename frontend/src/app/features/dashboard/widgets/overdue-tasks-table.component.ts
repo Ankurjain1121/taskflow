@@ -51,8 +51,8 @@ import {
                 <th pSortableColumn="title">
                   Task <p-sortIcon field="title" />
                 </th>
-                <th pSortableColumn="project_name">
-                  Project <p-sortIcon field="project_name" />
+                <th pSortableColumn="board_name">
+                  Board <p-sortIcon field="board_name" />
                 </th>
                 <th pSortableColumn="priority">
                   Priority <p-sortIcon field="priority" />
@@ -76,7 +76,7 @@ import {
                   <span
                     class="text-sm"
                     style="color: var(--muted-foreground)"
-                    >{{ task.project_name }}</span
+                    >{{ task.board_name }}</span
                   >
                 </td>
                 <td>

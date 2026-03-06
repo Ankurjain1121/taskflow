@@ -429,7 +429,7 @@ export class CreateTaskDialogComponent {
   labels = input<{ id: string; name: string; color: string }[]>([]);
   milestones = input<{ id: string; name: string; color: string }[]>([]);
   groups = input<{ id: string; name: string; color: string }[]>([]);
-  projectId = input<string>('');
+  boardId = input<string>('');
 
   /** Emits result when dialog closes with a value */
   created = output<CreateTaskDialogResult>();
@@ -537,7 +537,7 @@ export class CreateTaskDialogComponent {
 
   onTemplateToggle(): void {
     if (this.useTemplate && this.templates().length === 0) {
-      this.taskTemplateService.list(undefined, this.projectId()).subscribe({
+      this.taskTemplateService.list(undefined, this.boardId()).subscribe({
         next: (templates) => this.templates.set(templates),
         error: () => this.templates.set([]),
       });

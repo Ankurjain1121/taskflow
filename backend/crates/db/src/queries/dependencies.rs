@@ -9,14 +9,14 @@ use crate::models::DependencyType;
 pub enum DependencyQueryError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
-    #[error("User is not a member of this project")]
-    NotProjectMember,
+    #[error("User is not a member of this board")]
+    NotBoardMember,
     #[error("Dependency not found")]
     NotFound,
     #[error("Circular dependency detected")]
     CircularDependency,
     #[error("Dependencies must be between tasks on the same board")]
-    CrossProjectDependency,
+    CrossBoardDependency,
 }
 
 /// Input for creating a new dependency
@@ -56,10 +56,10 @@ pub async fn list_dependencies(
     task_id: Uuid,
     user_id: Uuid,
 ) -> Result<Vec<DependencyWithTask>, DependencyQueryError> {
-    // Verify user has access to the task's project
-    let project_id = get_task_project_id_internal(pool, task_id).await?;
-    if !verify_project_membership_internal(pool, project_id, user_id).await? {
-        return Err(DependencyQueryError::NotProjectMember);
+    // Verify user has access to the task's board
+    let board_id = get_task_board_id_internal(pool, task_id).await?;
+    if !verify_board_membership_internal(pool, board_id, user_id).await? {
+        return Err(DependencyQueryError::NotBoardMember);
     }
 
     let deps = sqlx::query_as::<_, DependencyWithTask>(
@@ -86,7 +86,7 @@ pub async fn list_dependencies(
             WHEN td.source_task_id = $1 THEN td.target_task_id
             ELSE td.source_task_id
         END
-        JOIN project_columns bc ON bc.id = t.column_id
+        JOIN board_columns bc ON bc.id = t.column_id
         WHERE (td.source_task_id = $1 OR td.target_task_id = $1)
           AND t.deleted_at IS NULL
         ORDER BY td.created_at DESC
@@ -100,7 +100,7 @@ pub async fn list_dependencies(
 }
 
 /// Create a new dependency between two tasks.
-/// Validates same project, checks for circular dependencies.
+/// Validates same board, checks for circular dependencies.
 /// For `BlockedBy` type: swaps source/target and stores as `Blocks`.
 pub async fn create_dependency(
     pool: &PgPool,
@@ -108,18 +108,18 @@ pub async fn create_dependency(
     input: CreateDependencyInput,
     user_id: Uuid,
 ) -> Result<DependencyWithTask, DependencyQueryError> {
-    // Get project IDs for both tasks
-    let source_project_id = get_task_project_id_internal(pool, source_task_id).await?;
-    let target_project_id = get_task_project_id_internal(pool, input.target_task_id).await?;
+    // Get board IDs for both tasks
+    let source_board_id = get_task_board_id_internal(pool, source_task_id).await?;
+    let target_board_id = get_task_board_id_internal(pool, input.target_task_id).await?;
 
-    // Verify same project
-    if source_project_id != target_project_id {
-        return Err(DependencyQueryError::CrossProjectDependency);
+    // Verify same board
+    if source_board_id != target_board_id {
+        return Err(DependencyQueryError::CrossBoardDependency);
     }
 
-    // Verify user is a project member
-    if !verify_project_membership_internal(pool, source_project_id, user_id).await? {
-        return Err(DependencyQueryError::NotProjectMember);
+    // Verify user is a board member
+    if !verify_board_membership_internal(pool, source_board_id, user_id).await? {
+        return Err(DependencyQueryError::NotBoardMember);
     }
 
     // Determine actual source and target based on dependency type
@@ -199,7 +199,7 @@ pub async fn create_dependency(
             WHEN td.source_task_id = $2 THEN td.target_task_id
             ELSE td.source_task_id
         END
-        JOIN project_columns bc ON bc.id = t.column_id
+        JOIN board_columns bc ON bc.id = t.column_id
         WHERE td.id = $1
         "#,
     )
@@ -245,7 +245,7 @@ pub async fn check_blockers(
             COALESCE(bc.status_mapping->>'done' = 'true', false) as is_resolved
         FROM task_dependencies td
         JOIN tasks t ON t.id = td.source_task_id
-        JOIN project_columns bc ON bc.id = t.column_id
+        JOIN board_columns bc ON bc.id = t.column_id
         WHERE td.target_task_id = $1
           AND td.dependency_type = 'blocks'
           AND t.deleted_at IS NULL
@@ -259,15 +259,15 @@ pub async fn check_blockers(
     Ok(blockers)
 }
 
-/// Get all dependencies for a project (for Gantt chart or project-level views).
+/// Get all dependencies for a board (for Gantt chart or board-level views).
 pub async fn get_board_dependencies(
     pool: &PgPool,
-    project_id: Uuid,
+    board_id: Uuid,
     user_id: Uuid,
 ) -> Result<Vec<DependencyWithTask>, DependencyQueryError> {
-    // Verify user is a project member
-    if !verify_project_membership_internal(pool, project_id, user_id).await? {
-        return Err(DependencyQueryError::NotProjectMember);
+    // Verify user is a board member
+    if !verify_board_membership_internal(pool, board_id, user_id).await? {
+        return Err(DependencyQueryError::NotBoardMember);
     }
 
     let deps = sqlx::query_as::<_, DependencyWithTask>(
@@ -286,28 +286,28 @@ pub async fn get_board_dependencies(
         FROM task_dependencies td
         JOIN tasks source_t ON source_t.id = td.source_task_id
         JOIN tasks target_t ON target_t.id = td.target_task_id
-        JOIN project_columns bc ON bc.id = target_t.column_id
-        WHERE source_t.project_id = $1
+        JOIN board_columns bc ON bc.id = target_t.column_id
+        WHERE source_t.board_id = $1
           AND source_t.deleted_at IS NULL
           AND target_t.deleted_at IS NULL
         ORDER BY td.created_at DESC
         "#,
     )
-    .bind(project_id)
+    .bind(board_id)
     .fetch_all(pool)
     .await?;
 
     Ok(deps)
 }
 
-/// Internal helper: get task's project_id
-async fn get_task_project_id_internal(
+/// Internal helper: get task's board_id
+async fn get_task_board_id_internal(
     pool: &PgPool,
     task_id: Uuid,
 ) -> Result<Uuid, DependencyQueryError> {
-    let project_id = sqlx::query_scalar::<_, Uuid>(
+    let board_id = sqlx::query_scalar::<_, Uuid>(
         r#"
-        SELECT project_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
+        SELECT board_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
         "#,
     )
     .bind(task_id)
@@ -315,7 +315,7 @@ async fn get_task_project_id_internal(
     .await?
     .ok_or(DependencyQueryError::NotFound)?;
 
-    Ok(project_id)
+    Ok(board_id)
 }
 
-use super::verify_project_membership_internal;
+use super::verify_board_membership_internal;

@@ -80,13 +80,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     println!("  Added 3 workspace members");
 
-    // 5. Create project
-    let project_id = Uuid::new_v4();
+    // 5. Create board
+    let board_id = Uuid::new_v4();
     sqlx::query(
-        "INSERT INTO projects (id, name, description, workspace_id, tenant_id, created_by_id) \
+        "INSERT INTO boards (id, name, description, workspace_id, tenant_id, created_by_id) \
          VALUES ($1, $2, $3, $4, $5, $6)",
     )
-    .bind(project_id)
+    .bind(board_id)
     .bind("Sprint 1")
     .bind("Current sprint board")
     .bind(workspace_id)
@@ -96,11 +96,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .await?;
     println!("  Created board: Sprint 1");
 
-    // 6. Add Alice as project member
+    // 6. Add Alice as board member
     sqlx::query(
-        "INSERT INTO project_members (project_id, user_id, role) VALUES ($1, $2, 'editor'::board_member_role)"
+        "INSERT INTO board_members (board_id, user_id, role) VALUES ($1, $2, 'editor'::board_member_role)"
     )
-    .bind(project_id)
+    .bind(board_id)
     .bind(alice_id)
     .execute(&pool)
     .await?;
@@ -122,12 +122,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ),
     ] {
         sqlx::query(
-            "INSERT INTO project_columns (id, name, project_id, position, color, status_mapping) \
+            "INSERT INTO board_columns (id, name, board_id, position, color, status_mapping) \
              VALUES ($1, $2, $3, $4, $5, $6)",
         )
         .bind(id)
         .bind(name)
-        .bind(project_id)
+        .bind(board_id)
         .bind(position)
         .bind(color)
         .bind(status_mapping)
@@ -155,13 +155,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for (title, priority, column_id, position, assignee_id) in tasks {
         let task_id = Uuid::new_v4();
         sqlx::query(
-            "INSERT INTO tasks (id, title, priority, project_id, column_id, position, tenant_id, created_by_id) \
+            "INSERT INTO tasks (id, title, priority, board_id, column_id, position, tenant_id, created_by_id) \
              VALUES ($1, $2, $3::task_priority, $4, $5, $6, $7, $8)"
         )
         .bind(task_id)
         .bind(title)
         .bind(priority)
-        .bind(project_id)
+        .bind(board_id)
         .bind(column_id)
         .bind(position)
         .bind(tenant_id)

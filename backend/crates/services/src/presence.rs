@@ -17,7 +17,7 @@ pub struct TaskLockInfo {
     pub user_name: String,
 }
 
-/// Service for managing user presence on projects and task-level locks via Redis.
+/// Service for managing user presence on boards and task-level locks via Redis.
 #[derive(Clone)]
 pub struct PresenceService {
     redis: redis::aio::ConnectionManager,
@@ -28,8 +28,8 @@ impl PresenceService {
         Self { redis }
     }
 
-    fn project_key(project_id: Uuid) -> String {
-        format!("presence:project:{}", project_id)
+    fn board_key(board_id: Uuid) -> String {
+        format!("presence:board:{}", board_id)
     }
 
     fn lock_key(task_id: Uuid) -> String {
@@ -43,10 +43,10 @@ impl PresenceService {
             .as_secs()
     }
 
-    /// Register a user as viewing a project.
-    pub async fn join_project(&self, project_id: Uuid, user_id: Uuid) -> Result<(), PresenceError> {
+    /// Register a user as viewing a board.
+    pub async fn join_board(&self, board_id: Uuid, user_id: Uuid) -> Result<(), PresenceError> {
         let mut conn = self.redis.clone();
-        let key = Self::project_key(project_id);
+        let key = Self::board_key(board_id);
         let ts = Self::now_secs().to_string();
         conn.hset::<_, _, _, ()>(&key, user_id.to_string(), &ts)
             .await?;
@@ -55,14 +55,10 @@ impl PresenceService {
         Ok(())
     }
 
-    /// Remove a user from a project's viewer list.
-    pub async fn leave_project(
-        &self,
-        project_id: Uuid,
-        user_id: Uuid,
-    ) -> Result<(), PresenceError> {
+    /// Remove a user from a board's viewer list.
+    pub async fn leave_board(&self, board_id: Uuid, user_id: Uuid) -> Result<(), PresenceError> {
         let mut conn = self.redis.clone();
-        let key = Self::project_key(project_id);
+        let key = Self::board_key(board_id);
         conn.hdel::<_, _, ()>(&key, user_id.to_string()).await?;
         Ok(())
     }
@@ -70,11 +66,11 @@ impl PresenceService {
     /// Refresh a user's heartbeat. Also cleans stale entries (>30s).
     pub async fn heartbeat(
         &self,
-        project_id: Uuid,
+        board_id: Uuid,
         user_id: Uuid,
     ) -> Result<Vec<Uuid>, PresenceError> {
         let mut conn = self.redis.clone();
-        let key = Self::project_key(project_id);
+        let key = Self::board_key(board_id);
         let ts = Self::now_secs();
         let ts_str = ts.to_string();
         conn.hset::<_, _, _, ()>(&key, user_id.to_string(), &ts_str)
@@ -106,10 +102,10 @@ impl PresenceService {
         Ok(active)
     }
 
-    /// Get current viewers of a project (cleaning stale entries).
-    pub async fn get_project_viewers(&self, project_id: Uuid) -> Result<Vec<Uuid>, PresenceError> {
+    /// Get current viewers of a board (cleaning stale entries).
+    pub async fn get_board_viewers(&self, board_id: Uuid) -> Result<Vec<Uuid>, PresenceError> {
         let mut conn = self.redis.clone();
-        let key = Self::project_key(project_id);
+        let key = Self::board_key(board_id);
         let entries: Vec<(String, String)> = conn.hgetall(&key).await?;
         let cutoff = Self::now_secs().saturating_sub(30);
         let mut active: Vec<Uuid> = Vec::new();

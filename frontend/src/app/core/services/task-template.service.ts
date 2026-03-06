@@ -7,7 +7,7 @@ export interface TaskTemplate {
   name: string;
   description: string | null;
   scope: string;
-  project_id: string | null;
+  board_id: string | null;
   tenant_id: string;
   created_by_id: string;
   task_title: string;
@@ -41,8 +41,8 @@ export interface TaskTemplateWithDetails extends TaskTemplate {
 export interface CreateTaskTemplateRequest {
   name: string;
   description?: string;
-  scope?: 'personal' | 'project' | 'workspace';
-  project_id?: string;
+  scope?: 'personal' | 'board' | 'workspace';
+  board_id?: string;
   task_title: string;
   task_description?: string;
   task_priority?: string;
@@ -67,7 +67,7 @@ export interface SaveAsTemplateRequest {
 }
 
 export interface CreateFromTemplateRequest {
-  project_id: string;
+  board_id: string;
   column_id: string;
 }
 
@@ -75,13 +75,13 @@ export interface CreateFromTemplateRequest {
 export class TaskTemplateService {
   constructor(private http: HttpClient) {}
 
-  list(scope?: string, projectId?: string): Observable<TaskTemplate[]> {
+  list(scope?: string, boardId?: string): Observable<TaskTemplate[]> {
     let params = new HttpParams();
     if (scope) {
       params = params.set('scope', scope);
     }
-    if (projectId) {
-      params = params.set('project_id', projectId);
+    if (boardId) {
+      params = params.set('board_id', boardId);
     }
     return this.http.get<TaskTemplate[]>('/api/task-templates', { params });
   }

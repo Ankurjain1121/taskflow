@@ -363,7 +363,7 @@ export class HelpComponent implements OnInit {
   readonly features = [
     {
       icon: '\u{1F4CB}',
-      title: 'Kanbans',
+      title: 'Kanban Boards',
       description:
         'Drag-and-drop task management with customizable columns and status mappings.',
     },
@@ -406,7 +406,7 @@ export class HelpComponent implements OnInit {
       icon: '\u{1F310}',
       title: 'Client Portal',
       description:
-        'Share projects with external clients via secure read-only links.',
+        'Share boards with external clients via secure read-only links.',
     },
   ];
 
@@ -425,7 +425,7 @@ export class HelpComponent implements OnInit {
     },
     {
       q: 'What are board templates?',
-      a: 'Board templates let you create new projects with pre-defined columns and settings. Go to Board Templates from the sidebar to browse or create templates.',
+      a: 'Board templates let you create new boards with pre-defined columns and settings. Go to Board Templates from the sidebar to browse or create templates.',
     },
     {
       q: 'How do webhooks work?',

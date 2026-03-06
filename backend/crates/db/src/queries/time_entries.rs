@@ -12,8 +12,8 @@ pub enum TimeEntryQueryError {
     Database(#[from] sqlx::Error),
     #[error("Time entry not found")]
     NotFound,
-    #[error("Not a project member")]
-    NotProjectMember,
+    #[error("Not a board member")]
+    NotBoardMember,
     #[error("A timer is already running")]
     AlreadyRunning,
     #[error("Not the owner of this time entry")]
@@ -26,7 +26,7 @@ pub struct StartTimerInput {
     pub task_id: Uuid,
     pub user_id: Uuid,
     pub description: Option<String>,
-    pub project_id: Uuid,
+    pub board_id: Uuid,
     pub tenant_id: Uuid,
 }
 
@@ -39,7 +39,7 @@ pub struct ManualEntryInput {
     pub started_at: DateTime<Utc>,
     pub ended_at: DateTime<Utc>,
     pub duration_minutes: i32,
-    pub project_id: Uuid,
+    pub board_id: Uuid,
     pub tenant_id: Uuid,
 }
 
@@ -72,22 +72,22 @@ pub struct TimeEntryWithTask {
     pub ended_at: Option<DateTime<Utc>>,
     pub duration_minutes: Option<i32>,
     pub is_running: bool,
-    pub project_id: Uuid,
+    pub board_id: Uuid,
     pub tenant_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub task_title: String,
 }
 
-/// List all time entries for a task (verifies project membership)
+/// List all time entries for a task (verifies board membership)
 pub async fn list_task_time_entries(
     pool: &PgPool,
     task_id: Uuid,
     user_id: Uuid,
 ) -> Result<Vec<TimeEntry>, TimeEntryQueryError> {
-    // Verify project membership via task's project_id
-    let project_id = sqlx::query_scalar::<_, Uuid>(
-        r#"SELECT project_id FROM tasks WHERE id = $1 AND deleted_at IS NULL"#,
+    // Verify board membership via task's board_id
+    let board_id = sqlx::query_scalar::<_, Uuid>(
+        r#"SELECT board_id FROM tasks WHERE id = $1 AND deleted_at IS NULL"#,
     )
     .bind(task_id)
     .fetch_optional(pool)
@@ -95,22 +95,22 @@ pub async fn list_task_time_entries(
     .ok_or(TimeEntryQueryError::NotFound)?;
 
     let is_member = sqlx::query_scalar::<_, bool>(
-        r#"SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)"#,
+        r#"SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)"#,
     )
-    .bind(project_id)
+    .bind(board_id)
     .bind(user_id)
     .fetch_one(pool)
     .await?;
 
     if !is_member {
-        return Err(TimeEntryQueryError::NotProjectMember);
+        return Err(TimeEntryQueryError::NotBoardMember);
     }
 
     let entries = sqlx::query_as::<_, TimeEntry>(
         r#"
         SELECT
             id, task_id, user_id, description, started_at, ended_at,
-            duration_minutes, is_running, project_id, tenant_id,
+            duration_minutes, is_running, board_id, tenant_id,
             created_at, updated_at
         FROM time_entries
         WHERE task_id = $1
@@ -129,17 +129,17 @@ pub async fn start_timer(
     pool: &PgPool,
     input: StartTimerInput,
 ) -> Result<TimeEntry, TimeEntryQueryError> {
-    // Verify project membership
+    // Verify board membership
     let is_member = sqlx::query_scalar::<_, bool>(
-        r#"SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)"#,
+        r#"SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)"#,
     )
-    .bind(input.project_id)
+    .bind(input.board_id)
     .bind(input.user_id)
     .fetch_one(pool)
     .await?;
 
     if !is_member {
-        return Err(TimeEntryQueryError::NotProjectMember);
+        return Err(TimeEntryQueryError::NotBoardMember);
     }
 
     // Stop any currently running timer for this user
@@ -162,11 +162,11 @@ pub async fn start_timer(
     let id = Uuid::new_v4();
     let entry = sqlx::query_as::<_, TimeEntry>(
         r#"
-        INSERT INTO time_entries (id, task_id, user_id, description, started_at, is_running, project_id, tenant_id)
+        INSERT INTO time_entries (id, task_id, user_id, description, started_at, is_running, board_id, tenant_id)
         VALUES ($1, $2, $3, $4, NOW(), true, $5, $6)
         RETURNING
             id, task_id, user_id, description, started_at, ended_at,
-            duration_minutes, is_running, project_id, tenant_id,
+            duration_minutes, is_running, board_id, tenant_id,
             created_at, updated_at
         "#,
     )
@@ -174,7 +174,7 @@ pub async fn start_timer(
     .bind(input.task_id)
     .bind(input.user_id)
     .bind(&input.description)
-    .bind(input.project_id)
+    .bind(input.board_id)
     .bind(input.tenant_id)
     .fetch_one(pool)
     .await?;
@@ -211,7 +211,7 @@ pub async fn stop_timer(
         WHERE id = $1 AND is_running = true
         RETURNING
             id, task_id, user_id, description, started_at, ended_at,
-            duration_minutes, is_running, project_id, tenant_id,
+            duration_minutes, is_running, board_id, tenant_id,
             created_at, updated_at
         "#,
     )
@@ -228,27 +228,27 @@ pub async fn create_manual_entry(
     pool: &PgPool,
     input: ManualEntryInput,
 ) -> Result<TimeEntry, TimeEntryQueryError> {
-    // Verify project membership
+    // Verify board membership
     let is_member = sqlx::query_scalar::<_, bool>(
-        r#"SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)"#,
+        r#"SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)"#,
     )
-    .bind(input.project_id)
+    .bind(input.board_id)
     .bind(input.user_id)
     .fetch_one(pool)
     .await?;
 
     if !is_member {
-        return Err(TimeEntryQueryError::NotProjectMember);
+        return Err(TimeEntryQueryError::NotBoardMember);
     }
 
     let id = Uuid::new_v4();
     let entry = sqlx::query_as::<_, TimeEntry>(
         r#"
-        INSERT INTO time_entries (id, task_id, user_id, description, started_at, ended_at, duration_minutes, is_running, project_id, tenant_id)
+        INSERT INTO time_entries (id, task_id, user_id, description, started_at, ended_at, duration_minutes, is_running, board_id, tenant_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8, $9)
         RETURNING
             id, task_id, user_id, description, started_at, ended_at,
-            duration_minutes, is_running, project_id, tenant_id,
+            duration_minutes, is_running, board_id, tenant_id,
             created_at, updated_at
         "#,
     )
@@ -259,7 +259,7 @@ pub async fn create_manual_entry(
     .bind(input.started_at)
     .bind(input.ended_at)
     .bind(input.duration_minutes)
-    .bind(input.project_id)
+    .bind(input.board_id)
     .bind(input.tenant_id)
     .fetch_one(pool)
     .await?;
@@ -298,7 +298,7 @@ pub async fn update_entry(
         WHERE id = $1
         RETURNING
             id, task_id, user_id, description, started_at, ended_at,
-            duration_minutes, is_running, project_id, tenant_id,
+            duration_minutes, is_running, board_id, tenant_id,
             created_at, updated_at
         "#,
     )
@@ -345,23 +345,23 @@ pub async fn delete_entry(
     Ok(())
 }
 
-/// Get aggregated time report for a project
+/// Get aggregated time report for a board
 pub async fn get_board_time_report(
     pool: &PgPool,
-    project_id: Uuid,
+    board_id: Uuid,
     user_id: Uuid,
 ) -> Result<Vec<TaskTimeReport>, TimeEntryQueryError> {
-    // Verify project membership
+    // Verify board membership
     let is_member = sqlx::query_scalar::<_, bool>(
-        r#"SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)"#,
+        r#"SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)"#,
     )
-    .bind(project_id)
+    .bind(board_id)
     .bind(user_id)
     .fetch_one(pool)
     .await?;
 
     if !is_member {
-        return Err(TimeEntryQueryError::NotProjectMember);
+        return Err(TimeEntryQueryError::NotBoardMember);
     }
 
     let report = sqlx::query_as::<_, TaskTimeReport>(
@@ -373,13 +373,13 @@ pub async fn get_board_time_report(
             COUNT(te.id)::bigint as entries_count
         FROM tasks t
         LEFT JOIN time_entries te ON te.task_id = t.id
-        WHERE t.project_id = $1 AND t.deleted_at IS NULL
+        WHERE t.board_id = $1 AND t.deleted_at IS NULL
             AND (te.id IS NOT NULL)
         GROUP BY t.id, t.title
         ORDER BY total_minutes DESC
         "#,
     )
-    .bind(project_id)
+    .bind(board_id)
     .fetch_all(pool)
     .await?;
 
@@ -395,7 +395,7 @@ pub async fn get_running_timer(
         r#"
         SELECT
             te.id, te.task_id, te.user_id, te.description, te.started_at, te.ended_at,
-            te.duration_minutes, te.is_running, te.project_id, te.tenant_id,
+            te.duration_minutes, te.is_running, te.board_id, te.tenant_id,
             te.created_at, te.updated_at,
             t.title as task_title
         FROM time_entries te
@@ -415,7 +415,7 @@ pub async fn get_running_timer(
 mod tests {
     use super::*;
     use crate::models::TaskPriority;
-    use crate::queries::{auth, projects, tasks, workspaces};
+    use crate::queries::{auth, boards, tasks, workspaces};
     use chrono::Duration;
     use sqlx::PgPool;
 
@@ -451,17 +451,16 @@ mod tests {
 
     async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
         let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-        let bwc =
-            projects::create_project(pool, "TimeEntry Project", None, ws_id, tenant_id, user_id)
-                .await
-                .expect("create_project");
+        let bwc = boards::create_board(pool, "TimeEntry Board", None, ws_id, tenant_id, user_id)
+            .await
+            .expect("create_board");
         let first_col_id = bwc.columns[0].id;
-        (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
+        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
     }
 
-    /// Setup full scenario with a task, returns (tenant_id, user_id, project_id, task_id)
+    /// Setup full scenario with a task, returns (tenant_id, user_id, board_id, task_id)
     async fn setup_with_task(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
-        let (tenant_id, user_id, _ws_id, project_id, col_id) = setup_full(pool).await;
+        let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(pool).await;
         let input = tasks::CreateTaskInput {
             title: format!("TimeTask-{}", Uuid::new_v4()),
             description: None,
@@ -476,22 +475,22 @@ mod tests {
             label_ids: None,
             parent_task_id: None,
         };
-        let task = tasks::create_task(pool, project_id, input, tenant_id, user_id)
+        let task = tasks::create_task(pool, board_id, input, tenant_id, user_id)
             .await
             .expect("create task for time entries");
-        (tenant_id, user_id, project_id, task.id)
+        (tenant_id, user_id, board_id, task.id)
     }
 
     #[tokio::test]
     async fn test_start_timer() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, project_id, task_id) = setup_with_task(&pool).await;
+        let (tenant_id, user_id, board_id, task_id) = setup_with_task(&pool).await;
 
         let input = StartTimerInput {
             task_id,
             user_id,
             description: Some("Working on it".to_string()),
-            project_id,
+            board_id,
             tenant_id,
         };
 
@@ -504,20 +503,20 @@ mod tests {
         assert!(entry.is_running);
         assert!(entry.ended_at.is_none());
         assert_eq!(entry.description.as_deref(), Some("Working on it"));
-        assert_eq!(entry.project_id, project_id);
+        assert_eq!(entry.board_id, board_id);
         assert_eq!(entry.tenant_id, tenant_id);
     }
 
     #[tokio::test]
     async fn test_stop_timer() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, project_id, task_id) = setup_with_task(&pool).await;
+        let (tenant_id, user_id, board_id, task_id) = setup_with_task(&pool).await;
 
         let input = StartTimerInput {
             task_id,
             user_id,
             description: None,
-            project_id,
+            board_id,
             tenant_id,
         };
 
@@ -535,7 +534,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_manual_entry() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, project_id, task_id) = setup_with_task(&pool).await;
+        let (tenant_id, user_id, board_id, task_id) = setup_with_task(&pool).await;
 
         let started_at = Utc::now() - Duration::hours(2);
         let ended_at = Utc::now() - Duration::hours(1);
@@ -547,7 +546,7 @@ mod tests {
             started_at,
             ended_at,
             duration_minutes: 60,
-            project_id,
+            board_id,
             tenant_id,
         };
 
@@ -566,7 +565,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_task_time_entries() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, project_id, task_id) = setup_with_task(&pool).await;
+        let (tenant_id, user_id, board_id, task_id) = setup_with_task(&pool).await;
 
         // Create two manual entries
         let started1 = Utc::now() - Duration::hours(4);
@@ -580,7 +579,7 @@ mod tests {
                 started_at: started1,
                 ended_at: ended1,
                 duration_minutes: 60,
-                project_id,
+                board_id,
                 tenant_id,
             },
         )
@@ -598,7 +597,7 @@ mod tests {
                 started_at: started2,
                 ended_at: ended2,
                 duration_minutes: 60,
-                project_id,
+                board_id,
                 tenant_id,
             },
         )
@@ -625,7 +624,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_board_time_report() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, project_id, task_id) = setup_with_task(&pool).await;
+        let (tenant_id, user_id, board_id, task_id) = setup_with_task(&pool).await;
 
         // Create a manual entry with known duration
         let started = Utc::now() - Duration::hours(2);
@@ -639,14 +638,14 @@ mod tests {
                 started_at: started,
                 ended_at: ended,
                 duration_minutes: 90,
-                project_id,
+                board_id,
                 tenant_id,
             },
         )
         .await
         .expect("create entry for report");
 
-        let report = get_board_time_report(&pool, project_id, user_id)
+        let report = get_board_time_report(&pool, board_id, user_id)
             .await
             .expect("get_board_time_report should succeed");
 
@@ -662,14 +661,14 @@ mod tests {
     #[tokio::test]
     async fn test_running_timer_auto_stops_previous() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, project_id, task_id) = setup_with_task(&pool).await;
+        let (tenant_id, user_id, board_id, task_id) = setup_with_task(&pool).await;
 
         // Start first timer
         let input1 = StartTimerInput {
             task_id,
             user_id,
             description: Some("Timer 1".to_string()),
-            project_id,
+            board_id,
             tenant_id,
         };
         let timer1 = start_timer(&pool, input1).await.expect("start first timer");
@@ -680,7 +679,7 @@ mod tests {
             task_id,
             user_id,
             description: Some("Timer 2".to_string()),
-            project_id,
+            board_id,
             tenant_id,
         };
         let timer2 = start_timer(&pool, input2)

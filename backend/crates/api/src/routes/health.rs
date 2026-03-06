@@ -263,7 +263,7 @@ pub async fn detailed_health_handler(State(state): State<AppState>) -> Json<serd
 
     let db_size = state.db.size();
     let db_idle = state.db.num_idle();
-    let project_channels = state.project_channels.len();
+    let board_channels = state.board_channels.len();
     let ws_connections = state.ws_connection_count.load(Ordering::Relaxed);
 
     // Read process RSS from /proc/self/statm (Linux only)
@@ -276,7 +276,7 @@ pub async fn detailed_health_handler(State(state): State<AppState>) -> Json<serd
         .unwrap_or(0);
 
     Json(serde_json::json!({
-        "project_channels_count": project_channels,
+        "board_channels_count": board_channels,
         "ws_connections": ws_connections,
         "db_pool": {
             "size": db_size,

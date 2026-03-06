@@ -55,7 +55,7 @@ import { RuleBuilderComponent } from './rule-builder.component';
       <!-- Rule Builder (inline) -->
       @if (showBuilder()) {
         <app-rule-builder
-          [projectId]="projectId()"
+          [boardId]="boardId()"
           [editingRule]="editingRule()"
           (saved)="onRuleSaved($event)"
           (cancelled)="onBuilderCancelled()"
@@ -344,7 +344,7 @@ import { RuleBuilderComponent } from './rule-builder.component';
 export class AutomationRulesComponent implements OnInit, OnChanges {
   private automationService = inject(AutomationService);
 
-  projectId = input.required<string>();
+  boardId = input.required<string>();
 
   rules = signal<AutomationRuleWithActions[]>([]);
   loading = signal(true);
@@ -389,7 +389,7 @@ export class AutomationRulesComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['projectId'] && !changes['projectId'].firstChange) {
+    if (changes['boardId'] && !changes['boardId'].firstChange) {
       this.loadRules();
     }
   }
@@ -517,7 +517,7 @@ export class AutomationRulesComponent implements OnInit, OnChanges {
 
   private loadRules(): void {
     this.loading.set(true);
-    this.automationService.listRules(this.projectId()).subscribe({
+    this.automationService.listRules(this.boardId()).subscribe({
       next: (rules) => {
         this.rules.set(rules);
         this.loading.set(false);

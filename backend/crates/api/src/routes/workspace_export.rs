@@ -32,7 +32,7 @@ pub struct ExportQuery {
 struct WorkspaceExportJson {
     workspace: WorkspaceExportMeta,
     members: Vec<ExportMember>,
-    projects: Vec<ExportProjectWithTasks>,
+    boards: Vec<ExportBoardWithTasks>,
 }
 
 #[derive(Serialize)]
@@ -51,7 +51,7 @@ struct ExportMember {
 }
 
 #[derive(Serialize)]
-struct ExportProjectWithTasks {
+struct ExportBoardWithTasks {
     id: Uuid,
     name: String,
     description: Option<String>,
@@ -84,7 +84,7 @@ struct MemberRow {
 }
 
 #[derive(sqlx::FromRow)]
-struct ProjectRow {
+struct BoardRow {
     id: Uuid,
     name: String,
     description: Option<String>,
@@ -92,7 +92,7 @@ struct ProjectRow {
 
 #[derive(sqlx::FromRow)]
 struct TaskRow {
-    project_id: Uuid,
+    board_id: Uuid,
     title: String,
     description: Option<String>,
     priority: String,
@@ -167,23 +167,23 @@ async fn export_json(db: &sqlx::PgPool, workspace_id: Uuid) -> Result<Response> 
     .await
     .map_err(AppError::from)?;
 
-    let projects: Vec<ProjectRow> = sqlx::query_as(
-        "SELECT id, name, description FROM projects WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY name",
+    let boards: Vec<BoardRow> = sqlx::query_as(
+        "SELECT id, name, description FROM boards WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY name",
     )
     .bind(workspace_id)
     .fetch_all(db)
     .await
     .map_err(AppError::from)?;
 
-    let project_ids: Vec<Uuid> = projects.iter().map(|b| b.id).collect();
+    let board_ids: Vec<Uuid> = boards.iter().map(|b| b.id).collect();
 
-    let tasks: Vec<TaskRow> = if project_ids.is_empty() {
+    let tasks: Vec<TaskRow> = if board_ids.is_empty() {
         vec![]
     } else {
         sqlx::query_as(
             r#"
             SELECT
-                t.project_id,
+                t.board_id,
                 t.title,
                 t.description,
                 t.priority::text as priority,
@@ -191,22 +191,22 @@ async fn export_json(db: &sqlx::PgPool, workspace_id: Uuid) -> Result<Response> 
                 t.due_date,
                 t.created_at
             FROM tasks t
-            JOIN project_columns bc ON bc.id = t.column_id
-            WHERE t.project_id = ANY($1) AND t.deleted_at IS NULL
-            ORDER BY t.project_id, bc.position, t.position
+            JOIN board_columns bc ON bc.id = t.column_id
+            WHERE t.board_id = ANY($1) AND t.deleted_at IS NULL
+            ORDER BY t.board_id, bc.position, t.position
             "#,
         )
-        .bind(&project_ids)
+        .bind(&board_ids)
         .fetch_all(db)
         .await
         .map_err(AppError::from)?
     };
 
-    // Group tasks by project_id
+    // Group tasks by board_id
     let mut task_map: std::collections::HashMap<Uuid, Vec<ExportTask>> =
         std::collections::HashMap::new();
     for t in tasks {
-        task_map.entry(t.project_id).or_default().push(ExportTask {
+        task_map.entry(t.board_id).or_default().push(ExportTask {
             title: t.title,
             description: t.description,
             priority: t.priority,
@@ -231,11 +231,11 @@ async fn export_json(db: &sqlx::PgPool, workspace_id: Uuid) -> Result<Response> 
                 role: m.role,
             })
             .collect(),
-        projects: projects
+        boards: boards
             .into_iter()
             .map(|b| {
                 let tasks = task_map.remove(&b.id).unwrap_or_default();
-                ExportProjectWithTasks {
+                ExportBoardWithTasks {
                     id: b.id,
                     name: b.name,
                     description: b.description,
@@ -258,23 +258,22 @@ async fn export_csv(db: &sqlx::PgPool, workspace_id: Uuid) -> Result<Response> {
 
     let ws_name = ws_name.ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
 
-    let project_ids: Vec<Uuid> = sqlx::query_scalar(
-        "SELECT id FROM projects WHERE workspace_id = $1 AND deleted_at IS NULL",
-    )
-    .bind(workspace_id)
-    .fetch_all(db)
-    .await
-    .map_err(AppError::from)?;
+    let board_ids: Vec<Uuid> =
+        sqlx::query_scalar("SELECT id FROM boards WHERE workspace_id = $1 AND deleted_at IS NULL")
+            .bind(workspace_id)
+            .fetch_all(db)
+            .await
+            .map_err(AppError::from)?;
 
-    // Build CSV with all tasks across projects
+    // Build CSV with all tasks across boards
     let mut csv =
-        String::from("project_name,title,description,priority,status,due_date,created_at\n");
+        String::from("board_name,title,description,priority,status,due_date,created_at\n");
 
-    if !project_ids.is_empty() {
-        let tasks: Vec<TaskWithProject> = sqlx::query_as(
+    if !board_ids.is_empty() {
+        let tasks: Vec<TaskWithBoard> = sqlx::query_as(
             r#"
             SELECT
-                b.name as project_name,
+                b.name as board_name,
                 t.title,
                 t.description,
                 t.priority::text as priority,
@@ -282,13 +281,13 @@ async fn export_csv(db: &sqlx::PgPool, workspace_id: Uuid) -> Result<Response> {
                 t.due_date,
                 t.created_at
             FROM tasks t
-            JOIN projects b ON b.id = t.project_id
-            JOIN project_columns bc ON bc.id = t.column_id
-            WHERE t.project_id = ANY($1) AND t.deleted_at IS NULL
+            JOIN boards b ON b.id = t.board_id
+            JOIN board_columns bc ON bc.id = t.column_id
+            WHERE t.board_id = ANY($1) AND t.deleted_at IS NULL
             ORDER BY b.name, bc.position, t.position
             "#,
         )
-        .bind(&project_ids)
+        .bind(&board_ids)
         .fetch_all(db)
         .await
         .map_err(AppError::from)?;
@@ -302,7 +301,7 @@ async fn export_csv(db: &sqlx::PgPool, workspace_id: Uuid) -> Result<Response> {
 
             csv.push_str(&format!(
                 "{},{},{},{},{},{},{}\n",
-                csv_escape(&task.project_name),
+                csv_escape(&task.board_name),
                 csv_escape(&task.title),
                 csv_escape(task.description.as_deref().unwrap_or("")),
                 csv_escape(&task.priority),
@@ -329,8 +328,8 @@ async fn export_csv(db: &sqlx::PgPool, workspace_id: Uuid) -> Result<Response> {
 }
 
 #[derive(sqlx::FromRow)]
-struct TaskWithProject {
-    project_name: String,
+struct TaskWithBoard {
+    board_name: String,
     title: String,
     description: Option<String>,
     priority: String,

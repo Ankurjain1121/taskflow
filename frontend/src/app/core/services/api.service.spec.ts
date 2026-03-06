@@ -31,8 +31,8 @@ describe('ApiService', () => {
 
   describe('GET requests', () => {
     it('should make GET request to correct endpoint', () => {
-      const endpoint = '/projects';
-      const mockData = { id: '123', name: 'Test Project' };
+      const endpoint = '/boards';
+      const mockData = { id: '123', name: 'Test Board' };
 
       service.get(endpoint).subscribe((data) => {
         expect(data).toEqual(mockData);
@@ -73,7 +73,7 @@ describe('ApiService', () => {
 
     it('should handle 500 server error', () => {
       return new Promise<void>((resolve) => {
-        service.get('/projects').subscribe({
+        service.get('/boards').subscribe({
           next: () => fail('should have failed'),
           error: (error) => {
             expect(error.status).toBe(500);
@@ -81,7 +81,7 @@ describe('ApiService', () => {
           },
         });
 
-        const req = httpMock.expectOne(`${baseUrl}/projects`);
+        const req = httpMock.expectOne(`${baseUrl}/boards`);
         req.flush('Server error', {
           status: 500,
           statusText: 'Internal Server Error',
@@ -108,7 +108,7 @@ describe('ApiService', () => {
   describe('POST requests', () => {
     it('should make POST request with body', () => {
       const endpoint = '/tasks';
-      const body = { title: 'New Task', projectId: '123' };
+      const body = { title: 'New Task', boardId: '123' };
       const response = { id: 'task-1', ...body };
 
       service.post(endpoint, body).subscribe((data) => {
@@ -162,7 +162,7 @@ describe('ApiService', () => {
 
   describe('PUT requests', () => {
     it('should make PUT request with body', () => {
-      const endpoint = '/projects/123';
+      const endpoint = '/boards/123';
       const body = { name: 'Updated Name' };
       const response = { id: '123', ...body };
 
@@ -235,7 +235,7 @@ describe('ApiService', () => {
   describe('Error handling edge cases', () => {
     it('should handle network timeout', () => {
       return new Promise<void>((resolve) => {
-        service.get('/projects').subscribe({
+        service.get('/boards').subscribe({
           next: () => fail('should have timed out'),
           error: (error) => {
             // Timeout errors don't have a status code
@@ -244,7 +244,7 @@ describe('ApiService', () => {
           },
         });
 
-        const req = httpMock.expectOne(`${baseUrl}/projects`);
+        const req = httpMock.expectOne(`${baseUrl}/boards`);
         req.error(new ProgressEvent('timeout'));
       });
     });
@@ -316,8 +316,8 @@ describe('ApiService', () => {
   describe('Request Deduplication (GET)', () => {
     it('should deduplicate concurrent GET requests to same endpoint', () => {
       return new Promise<void>((resolve) => {
-        const endpoint = '/projects';
-        const mockData = { id: '123', name: 'Test Project' };
+        const endpoint = '/boards';
+        const mockData = { id: '123', name: 'Test Board' };
 
         // Make two concurrent GET requests to same endpoint
         let subscriber1Received = false;
@@ -347,7 +347,7 @@ describe('ApiService', () => {
     });
 
     it('should NOT deduplicate requests to different endpoints', () => {
-      const endpoint1 = '/projects';
+      const endpoint1 = '/boards';
       const endpoint2 = '/tasks';
 
       service.get(endpoint1).subscribe();
@@ -395,7 +395,7 @@ describe('ApiService', () => {
     });
 
     it('should clean up pending request map after completion', () => {
-      const endpoint = '/projects';
+      const endpoint = '/boards';
 
       // First request
       service.get(endpoint).subscribe();
@@ -411,7 +411,7 @@ describe('ApiService', () => {
 
     it('should handle error in deduplicated request', () => {
       return new Promise<void>((resolve) => {
-        const endpoint = '/projects';
+        const endpoint = '/boards';
         let errorSubscriber1Received = false;
         let errorSubscriber2Received = false;
 

@@ -6,7 +6,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { SampleBoardBannerComponent } from './sample-board-banner.component';
-import { ProjectService } from '../../../core/services/project.service';
+import { BoardService } from '../../../core/services/board.service';
 
 // Minimal stub component for catch-all route, suppressing NG04002 console noise.
 @Component({ standalone: true, template: '' })
@@ -19,14 +19,14 @@ class StubRouteComponent {}
   imports: [SampleBoardBannerComponent],
   template: `
     <app-sample-board-banner
-      [projectId]="projectId()"
+      [boardId]="boardId()"
       [workspaceId]="workspaceId()"
       (deleted)="onDeleted()"
     />
   `,
 })
 class TestHostComponent {
-  projectId = signal('board-42');
+  boardId = signal('board-42');
   workspaceId = signal('ws-1');
   deletedCount = 0;
   onDeleted() {
@@ -50,7 +50,7 @@ describe('SampleBoardBannerComponent', () => {
   let host: TestHostComponent;
   let router: Router;
 
-  const mockProjectService = {
+  const mockBoardService = {
     deleteBoard: vi.fn(),
   };
 
@@ -68,7 +68,7 @@ describe('SampleBoardBannerComponent', () => {
           { path: '**', component: StubRouteComponent },
         ]),
       ],
-      providers: [{ provide: ProjectService, useValue: mockProjectService }],
+      providers: [{ provide: BoardService, useValue: mockBoardService }],
     }).compileComponents();
 
     router = TestBed.inject(Router);
@@ -140,43 +140,43 @@ describe('SampleBoardBannerComponent', () => {
   // --- deleteBoard() success path ---
 
   describe('deleteBoard() — success', () => {
-    it('should call projectService.deleteProject with the projectId', () => {
-      mockProjectService.deleteProject.mockReturnValue(of(null));
+    it('should call boardService.deleteBoard with the boardId', () => {
+      mockBoardService.deleteBoard.mockReturnValue(of(null));
       fixture.detectChanges();
       const banner = getBanner(fixture);
 
-      banner.deleteProject();
+      banner.deleteBoard();
 
-      expect(mockProjectService.deleteProject).toHaveBeenCalledWith(BOARD_ID);
+      expect(mockBoardService.deleteBoard).toHaveBeenCalledWith(BOARD_ID);
     });
 
     it('should emit the deleted output event on success', () => {
-      mockProjectService.deleteProject.mockReturnValue(of(null));
+      mockBoardService.deleteBoard.mockReturnValue(of(null));
       fixture.detectChanges();
       const banner = getBanner(fixture);
 
-      banner.deleteProject();
+      banner.deleteBoard();
 
       expect(host.deletedCount).toBe(1);
     });
 
     it('should navigate to /dashboard on success', () => {
-      mockProjectService.deleteProject.mockReturnValue(of(null));
+      mockBoardService.deleteBoard.mockReturnValue(of(null));
       const navigateSpy = vi.spyOn(router, 'navigate');
       fixture.detectChanges();
       const banner = getBanner(fixture);
 
-      banner.deleteProject();
+      banner.deleteBoard();
 
       expect(navigateSpy).toHaveBeenCalledWith(['/dashboard']);
     });
 
     it('should reset isDeleting to false after success', () => {
-      mockProjectService.deleteProject.mockReturnValue(of(null));
+      mockBoardService.deleteBoard.mockReturnValue(of(null));
       fixture.detectChanges();
       const banner = getBanner(fixture);
 
-      banner.deleteProject();
+      banner.deleteBoard();
 
       expect(banner.isDeleting()).toBe(false);
     });
@@ -189,7 +189,7 @@ describe('SampleBoardBannerComponent', () => {
       // Verify that isDeleting is true when the Observable constructor runs
       // (which happens synchronously inside deleteBoard before any async work).
       let isDeletingAtSubscribeTime = false;
-      mockProjectService.deleteProject.mockReturnValue(
+      mockBoardService.deleteBoard.mockReturnValue(
         new Observable<null>((observer) => {
           // The Observable constructor is called synchronously by subscribe(),
           // which is called after this.isDeleting.set(true) in deleteBoard().
@@ -203,17 +203,17 @@ describe('SampleBoardBannerComponent', () => {
 
       expect(banner.isDeleting()).toBe(false); // precondition
 
-      banner.deleteProject();
+      banner.deleteBoard();
 
       expect(isDeletingAtSubscribeTime).toBe(true);
     });
 
     it('should reset isDeleting to false once the observable completes successfully', () => {
-      mockProjectService.deleteProject.mockReturnValue(of(null));
+      mockBoardService.deleteBoard.mockReturnValue(of(null));
       fixture.detectChanges();
       const banner = getBanner(fixture);
 
-      banner.deleteProject();
+      banner.deleteBoard();
 
       expect(banner.isDeleting()).toBe(false);
     });
@@ -223,38 +223,38 @@ describe('SampleBoardBannerComponent', () => {
 
   describe('deleteBoard() — error', () => {
     it('should reset isDeleting to false on error', () => {
-      mockProjectService.deleteProject.mockReturnValue(
+      mockBoardService.deleteBoard.mockReturnValue(
         throwError(() => new Error('Server error')),
       );
       fixture.detectChanges();
       const banner = getBanner(fixture);
 
-      banner.deleteProject();
+      banner.deleteBoard();
 
       expect(banner.isDeleting()).toBe(false);
     });
 
     it('should NOT emit deleted event on error', () => {
-      mockProjectService.deleteProject.mockReturnValue(
+      mockBoardService.deleteBoard.mockReturnValue(
         throwError(() => new Error('Server error')),
       );
       fixture.detectChanges();
       const banner = getBanner(fixture);
 
-      banner.deleteProject();
+      banner.deleteBoard();
 
       expect(host.deletedCount).toBe(0);
     });
 
     it('should NOT navigate on error', () => {
-      mockProjectService.deleteProject.mockReturnValue(
+      mockBoardService.deleteBoard.mockReturnValue(
         throwError(() => new Error('Server error')),
       );
       const navigateSpy = vi.spyOn(router, 'navigate');
       fixture.detectChanges();
       const banner = getBanner(fixture);
 
-      banner.deleteProject();
+      banner.deleteBoard();
 
       expect(navigateSpy).not.toHaveBeenCalled();
     });

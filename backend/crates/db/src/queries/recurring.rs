@@ -10,8 +10,8 @@ use crate::models::{RecurrencePattern, RecurringTaskConfig};
 pub enum RecurringQueryError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
-    #[error("User is not a member of this project")]
-    NotProjectMember,
+    #[error("User is not a member of this board")]
+    NotBoardMember,
     #[error("Recurring config not found")]
     NotFound,
     #[error("Task not found")]
@@ -67,7 +67,7 @@ fn build_calc_config(
         is_active: true,
         max_occurrences: None,
         occurrences_created: 0,
-        project_id: Uuid::nil(),
+        board_id: Uuid::nil(),
         tenant_id: Uuid::nil(),
         created_by_id: Uuid::nil(),
         created_at: Utc::now(),
@@ -81,14 +81,14 @@ fn build_calc_config(
     }
 }
 
-/// Internal helper: get task's project_id
-async fn get_task_project_id_internal(
+/// Internal helper: get task's board_id
+async fn get_task_board_id_internal(
     pool: &PgPool,
     task_id: Uuid,
 ) -> Result<Uuid, RecurringQueryError> {
-    let project_id = sqlx::query_scalar::<_, Uuid>(
+    let board_id = sqlx::query_scalar::<_, Uuid>(
         r#"
-        SELECT project_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
+        SELECT board_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
         "#,
     )
     .bind(task_id)
@@ -96,10 +96,10 @@ async fn get_task_project_id_internal(
     .await?
     .ok_or(RecurringQueryError::TaskNotFound)?;
 
-    Ok(project_id)
+    Ok(board_id)
 }
 
-use super::verify_project_membership_internal;
+use super::verify_board_membership_internal;
 
 /// Add one calendar month to a DateTime, clamping to month-end if needed.
 fn add_months(from: DateTime<Utc>, months: u32) -> DateTime<Utc> {
@@ -210,16 +210,16 @@ fn skip_to_weekday(dt: DateTime<Utc>) -> DateTime<Utc> {
 }
 
 /// Get the recurring config for a task.
-/// Verifies project membership through the task's project.
+/// Verifies board membership through the task's board.
 pub async fn get_config_for_task(
     pool: &PgPool,
     task_id: Uuid,
     user_id: Uuid,
 ) -> Result<RecurringTaskConfig, RecurringQueryError> {
-    // Verify project membership
-    let project_id = get_task_project_id_internal(pool, task_id).await?;
-    if !verify_project_membership_internal(pool, project_id, user_id).await? {
-        return Err(RecurringQueryError::NotProjectMember);
+    // Verify board membership
+    let board_id = get_task_board_id_internal(pool, task_id).await?;
+    if !verify_board_membership_internal(pool, board_id, user_id).await? {
+        return Err(RecurringQueryError::NotBoardMember);
     }
 
     let config = sqlx::query_as::<_, RecurringTaskConfig>(
@@ -235,7 +235,7 @@ pub async fn get_config_for_task(
             is_active,
             max_occurrences,
             occurrences_created,
-            project_id,
+            board_id,
             tenant_id,
             created_by_id,
             created_at,
@@ -259,7 +259,7 @@ pub async fn get_config_for_task(
 }
 
 /// Create a new recurring task config.
-/// Validates task exists and project membership.
+/// Validates task exists and board membership.
 pub async fn create_config(
     pool: &PgPool,
     task_id: Uuid,
@@ -267,12 +267,12 @@ pub async fn create_config(
     user_id: Uuid,
     tenant_id: Uuid,
 ) -> Result<RecurringTaskConfig, RecurringQueryError> {
-    // Verify task exists and get project_id
-    let project_id = get_task_project_id_internal(pool, task_id).await?;
+    // Verify task exists and get board_id
+    let board_id = get_task_board_id_internal(pool, task_id).await?;
 
-    // Verify project membership
-    if !verify_project_membership_internal(pool, project_id, user_id).await? {
-        return Err(RecurringQueryError::NotProjectMember);
+    // Verify board membership
+    if !verify_board_membership_internal(pool, board_id, user_id).await? {
+        return Err(RecurringQueryError::NotBoardMember);
     }
 
     let id = Uuid::new_v4();
@@ -292,7 +292,7 @@ pub async fn create_config(
         INSERT INTO recurring_task_configs (
             id, task_id, pattern, cron_expression, interval_days,
             next_run_at, is_active, max_occurrences, occurrences_created,
-            project_id, tenant_id, created_by_id,
+            board_id, tenant_id, created_by_id,
             end_date, skip_weekends, days_of_week, day_of_month, creation_mode,
             created_at, updated_at, position_id
         )
@@ -308,7 +308,7 @@ pub async fn create_config(
             is_active,
             max_occurrences,
             occurrences_created,
-            project_id,
+            board_id,
             tenant_id,
             created_by_id,
             created_at,
@@ -328,7 +328,7 @@ pub async fn create_config(
     .bind(input.interval_days)
     .bind(next_run)
     .bind(input.max_occurrences)
-    .bind(project_id)
+    .bind(board_id)
     .bind(tenant_id)
     .bind(user_id)
     .bind(input.end_date)
@@ -365,7 +365,7 @@ pub async fn update_config(
             is_active,
             max_occurrences,
             occurrences_created,
-            project_id,
+            board_id,
             tenant_id,
             created_by_id,
             created_at,
@@ -385,9 +385,9 @@ pub async fn update_config(
     .await?
     .ok_or(RecurringQueryError::NotFound)?;
 
-    // Verify project membership
-    if !verify_project_membership_internal(pool, existing.project_id, user_id).await? {
-        return Err(RecurringQueryError::NotProjectMember);
+    // Verify board membership
+    if !verify_board_membership_internal(pool, existing.board_id, user_id).await? {
+        return Err(RecurringQueryError::NotBoardMember);
     }
 
     let new_pattern = input.pattern.unwrap_or(existing.pattern.clone());
@@ -438,7 +438,7 @@ pub async fn update_config(
             is_active,
             max_occurrences,
             occurrences_created,
-            project_id,
+            board_id,
             tenant_id,
             created_by_id,
             created_at,
@@ -475,7 +475,7 @@ pub async fn delete_config(
     config_id: Uuid,
     user_id: Uuid,
 ) -> Result<(), RecurringQueryError> {
-    // Fetch config to verify project membership
+    // Fetch config to verify board membership
     let existing = sqlx::query_as::<_, RecurringTaskConfig>(
         r#"
         SELECT
@@ -489,7 +489,7 @@ pub async fn delete_config(
             is_active,
             max_occurrences,
             occurrences_created,
-            project_id,
+            board_id,
             tenant_id,
             created_by_id,
             created_at,
@@ -509,9 +509,9 @@ pub async fn delete_config(
     .await?
     .ok_or(RecurringQueryError::NotFound)?;
 
-    // Verify project membership
-    if !verify_project_membership_internal(pool, existing.project_id, user_id).await? {
-        return Err(RecurringQueryError::NotProjectMember);
+    // Verify board membership
+    if !verify_board_membership_internal(pool, existing.board_id, user_id).await? {
+        return Err(RecurringQueryError::NotBoardMember);
     }
 
     sqlx::query(
@@ -531,7 +531,7 @@ mod tests {
     use super::*;
     use crate::models::TaskPriority;
     use crate::queries::recurring_generation::{create_recurring_instance, get_due_configs};
-    use crate::queries::{auth, projects, tasks, workspaces};
+    use crate::queries::{auth, boards, tasks, workspaces};
     use sqlx::PgPool;
 
     const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
@@ -566,16 +566,15 @@ mod tests {
 
     async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
         let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-        let bwc =
-            projects::create_project(pool, "Recurring Project", None, ws_id, tenant_id, user_id)
-                .await
-                .expect("create_project");
+        let bwc = boards::create_board(pool, "Recurring Board", None, ws_id, tenant_id, user_id)
+            .await
+            .expect("create_board");
         let first_col_id = bwc.columns[0].id;
-        (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
+        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
     }
 
     async fn setup_task(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
-        let (tenant_id, user_id, _ws_id, project_id, col_id) = setup_full(pool).await;
+        let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(pool).await;
         let input = tasks::CreateTaskInput {
             title: format!("Recurring Source Task {}", Uuid::new_v4()),
             description: Some("Source task for recurring".to_string()),
@@ -590,16 +589,16 @@ mod tests {
             label_ids: None,
             parent_task_id: None,
         };
-        let task = tasks::create_task(pool, project_id, input, tenant_id, user_id)
+        let task = tasks::create_task(pool, board_id, input, tenant_id, user_id)
             .await
             .expect("create task for recurring");
-        (tenant_id, user_id, project_id, task.id)
+        (tenant_id, user_id, board_id, task.id)
     }
 
     #[tokio::test]
     async fn test_create_recurring_config() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _project_id, task_id) = setup_task(&pool).await;
+        let (tenant_id, user_id, _board_id, task_id) = setup_task(&pool).await;
 
         let input = CreateRecurringInput {
             pattern: RecurrencePattern::Daily,
@@ -631,7 +630,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_config_for_task() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _project_id, task_id) = setup_task(&pool).await;
+        let (tenant_id, user_id, _board_id, task_id) = setup_task(&pool).await;
 
         let input = CreateRecurringInput {
             pattern: RecurrencePattern::Weekly,
@@ -663,7 +662,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_recurring_config() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _project_id, task_id) = setup_task(&pool).await;
+        let (tenant_id, user_id, _board_id, task_id) = setup_task(&pool).await;
 
         let input = CreateRecurringInput {
             pattern: RecurrencePattern::Daily,
@@ -710,7 +709,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_recurring_config() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _project_id, task_id) = setup_task(&pool).await;
+        let (tenant_id, user_id, _board_id, task_id) = setup_task(&pool).await;
 
         let input = CreateRecurringInput {
             pattern: RecurrencePattern::Daily,
@@ -741,7 +740,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_recurring_instance() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _project_id, task_id) = setup_task(&pool).await;
+        let (tenant_id, user_id, _board_id, task_id) = setup_task(&pool).await;
 
         let input = CreateRecurringInput {
             pattern: RecurrencePattern::Daily,
@@ -768,7 +767,7 @@ mod tests {
         let new_task = sqlx::query_as::<_, crate::models::Task>(
             r#"
             SELECT id, title, description, priority,
-                   due_date, start_date, estimated_hours, project_id, column_id,
+                   due_date, start_date, estimated_hours, board_id, column_id,
                    group_id, position, milestone_id, task_number, eisenhower_urgency,
                    eisenhower_importance, tenant_id, created_by_id, deleted_at,
                    column_entered_at, created_at, updated_at, version, parent_task_id, depth

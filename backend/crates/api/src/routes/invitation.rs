@@ -32,7 +32,7 @@ pub struct CreateInvitationRequest {
     pub workspace_id: Uuid,
     pub role: UserRole,
     pub message: Option<String>,
-    pub project_ids: Option<Vec<Uuid>>,
+    pub board_ids: Option<Vec<Uuid>>,
     pub job_title: Option<String>,
 }
 
@@ -42,7 +42,7 @@ pub struct BulkCreateInvitationRequest {
     pub workspace_id: Uuid,
     pub role: UserRole,
     pub message: Option<String>,
-    pub project_ids: Option<Vec<Uuid>>,
+    pub board_ids: Option<Vec<Uuid>>,
     pub job_title: Option<String>,
 }
 
@@ -84,7 +84,7 @@ pub struct InvitationResponse {
     pub expires_at: chrono::DateTime<chrono::Utc>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub message: Option<String>,
-    pub project_ids: Option<serde_json::Value>,
+    pub board_ids: Option<serde_json::Value>,
     pub job_title: Option<String>,
 }
 
@@ -98,7 +98,7 @@ pub struct InvitationWithStatusResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub status: String,
     pub message: Option<String>,
-    pub project_ids: Option<serde_json::Value>,
+    pub board_ids: Option<serde_json::Value>,
     pub job_title: Option<String>,
 }
 
@@ -145,7 +145,7 @@ impl From<Invitation> for InvitationResponse {
             expires_at: inv.expires_at,
             created_at: inv.created_at,
             message: inv.message,
-            project_ids: inv.project_ids,
+            board_ids: inv.board_ids,
             job_title: inv.job_title,
         }
     }
@@ -179,9 +179,9 @@ pub async fn create_handler(
     // Set expiry to 7 days from now
     let expires_at = Utc::now() + Duration::days(7);
 
-    // Convert project_ids to JSON value if present
-    let project_ids_json = payload
-        .project_ids
+    // Convert board_ids to JSON value if present
+    let board_ids_json = payload
+        .board_ids
         .as_ref()
         .map(|ids| serde_json::to_value(ids).unwrap_or(serde_json::Value::Null));
 
@@ -194,7 +194,7 @@ pub async fn create_handler(
         auth.0.user_id,
         expires_at,
         payload.message.as_deref(),
-        project_ids_json.as_ref(),
+        board_ids_json.as_ref(),
         payload.job_title.as_deref(),
     )
     .await?;
@@ -349,7 +349,7 @@ pub async fn accept_handler(
 
     tx.commit().await?;
 
-    // Fire MemberJoined automation trigger for all projects in the workspace
+    // Fire MemberJoined automation trigger for all boards in the workspace
     {
         let pool = state.db.clone();
         let redis = state.redis.clone();
@@ -357,22 +357,22 @@ pub async fn accept_handler(
         let new_user_id = user.id;
         let tid = tenant_id;
         tokio::spawn(async move {
-            let project_ids = sqlx::query_scalar::<_, Uuid>(
-                "SELECT id FROM projects WHERE workspace_id = $1 AND deleted_at IS NULL",
+            let board_ids = sqlx::query_scalar::<_, Uuid>(
+                "SELECT id FROM boards WHERE workspace_id = $1 AND deleted_at IS NULL",
             )
             .bind(ws_id)
             .fetch_all(&pool)
             .await
             .unwrap_or_default();
 
-            for project_id in project_ids {
+            for board_id in board_ids {
                 spawn_automation_evaluation(
                     pool.clone(),
                     redis.clone(),
                     AutomationTrigger::MemberJoined,
                     TriggerContext {
                         task_id: Uuid::nil(),
-                        project_id,
+                        board_id,
                         tenant_id: tid,
                         user_id: new_user_id,
                         previous_column_id: None,
@@ -496,9 +496,9 @@ pub async fn bulk_create_handler(
     let mut created = Vec::new();
     let mut errors = Vec::new();
 
-    // Convert project_ids to a JSON value if present
-    let project_ids_json = payload
-        .project_ids
+    // Convert board_ids to a JSON value if present
+    let board_ids_json = payload
+        .board_ids
         .as_ref()
         .map(|ids| serde_json::to_value(ids).unwrap_or(serde_json::Value::Null));
 
@@ -554,7 +554,7 @@ pub async fn bulk_create_handler(
             }
         }
 
-        // Create the invitation with message, project_ids, and job_title
+        // Create the invitation with message, board_ids, and job_title
         match invitations::create_invitation_with_details(
             &state.db,
             &email,
@@ -563,7 +563,7 @@ pub async fn bulk_create_handler(
             auth.0.user_id,
             expires_at,
             payload.message.as_deref(),
-            project_ids_json.as_ref(),
+            board_ids_json.as_ref(),
             payload.job_title.as_deref(),
         )
         .await
@@ -622,7 +622,7 @@ pub async fn list_all_handler(
                 created_at: inv.created_at,
                 status,
                 message: inv.message,
-                project_ids: inv.project_ids,
+                board_ids: inv.board_ids,
                 job_title: inv.job_title,
             }
         })

@@ -34,9 +34,9 @@ describe('RecentItemsService', () => {
     expect(service).toBeTruthy();
   });
 
-  describe('recordProjectView()', () => {
+  describe('recordBoardView()', () => {
     it('adds a board item to the items signal', () => {
-      service.recordProjectView({
+      service.recordBoardView({
         id: 'board-1',
         name: 'My Board',
         workspaceId: 'ws-1',
@@ -46,22 +46,22 @@ describe('RecentItemsService', () => {
       const items = service.items();
       expect(items.length).toBe(1);
       expect(items[0].id).toBe('board-1');
-      expect(items[0].entityType).toBe('project');
+      expect(items[0].entityType).toBe('board');
       expect(items[0].name).toBe('My Board');
     });
 
     it('deduplicates: removes the old entry for the same board id before adding the new one', () => {
-      service.recordProjectView({
+      service.recordBoardView({
         id: 'board-1',
         name: 'My Board',
         workspaceId: 'ws-1',
       });
-      service.recordProjectView({
+      service.recordBoardView({
         id: 'board-2',
         name: 'Other Board',
         workspaceId: 'ws-1',
       });
-      service.recordProjectView({
+      service.recordBoardView({
         id: 'board-1',
         name: 'My Board (updated)',
         workspaceId: 'ws-1',
@@ -84,7 +84,7 @@ describe('RecentItemsService', () => {
         boardName: 'My Board',
         workspaceId: 'ws-1',
         workspaceName: 'My Workspace',
-        projectId: 'board-1',
+        boardId: 'board-1',
       });
 
       const items = service.items();
@@ -97,37 +97,37 @@ describe('RecentItemsService', () => {
 
   describe('recentBoards computed', () => {
     it('only returns board items', () => {
-      service.recordProjectView({
+      service.recordBoardView({
         id: 'board-1',
-        name: 'Project',
+        name: 'Board',
         workspaceId: 'ws-1',
       });
       service.recordTaskView({
         id: 'task-1',
         title: 'Task',
-        boardName: 'Project',
+        boardName: 'Board',
         workspaceId: 'ws-1',
-        projectId: 'board-1',
+        boardId: 'board-1',
       });
 
       expect(service.recentBoards().length).toBe(1);
-      expect(service.recentBoards()[0].entityType).toBe('project');
+      expect(service.recentBoards()[0].entityType).toBe('board');
     });
   });
 
   describe('recentTasks computed', () => {
     it('only returns task items', () => {
-      service.recordProjectView({
+      service.recordBoardView({
         id: 'board-1',
-        name: 'Project',
+        name: 'Board',
         workspaceId: 'ws-1',
       });
       service.recordTaskView({
         id: 'task-1',
         title: 'Task',
-        boardName: 'Project',
+        boardName: 'Board',
         workspaceId: 'ws-1',
-        projectId: 'board-1',
+        boardId: 'board-1',
       });
 
       expect(service.recentTasks().length).toBe(1);
@@ -138,7 +138,7 @@ describe('RecentItemsService', () => {
   describe('items cap', () => {
     it('keeps only the 10 most recent items when more than MAX_ITEMS are added', () => {
       for (let i = 1; i <= 11; i++) {
-        service.recordProjectView({
+        service.recordBoardView({
           id: `board-${i}`,
           name: `Board ${i}`,
           workspaceId: 'ws-1',

@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { WorkspaceComponent } from './workspace.component';
 import { WorkspaceService } from '../../core/services/workspace.service';
-import { ProjectService } from '../../core/services/project.service';
+import { BoardService } from '../../core/services/board.service';
 
 describe('WorkspaceComponent', () => {
   let component: WorkspaceComponent;
@@ -18,7 +18,7 @@ describe('WorkspaceComponent', () => {
     getMembers: vi.fn(),
   };
 
-  const mockProjectService = {
+  const mockBoardService = {
     listBoards: vi.fn(),
     createBoard: vi.fn(),
   };
@@ -56,12 +56,12 @@ describe('WorkspaceComponent', () => {
       ]),
     );
 
-    mockProjectService.listProjects.mockReturnValue(
+    mockBoardService.listBoards.mockReturnValue(
       of([
         {
           id: 'b-1',
           workspace_id: 'ws-1',
-          name: 'Project 1',
+          name: 'Board 1',
           description: 'First board',
           position: '0',
           created_at: '2026-01-15T10:00:00Z',
@@ -82,7 +82,7 @@ describe('WorkspaceComponent', () => {
       ],
       providers: [
         { provide: WorkspaceService, useValue: mockWorkspaceService },
-        { provide: ProjectService, useValue: mockProjectService },
+        { provide: BoardService, useValue: mockBoardService },
         { provide: ActivatedRoute, useValue: mockRoute },
       ],
     }).compileComponents();
@@ -104,7 +104,7 @@ describe('WorkspaceComponent', () => {
 
       expect(component.workspaceId()).toBe('ws-1');
       expect(mockWorkspaceService.get).toHaveBeenCalledWith('ws-1');
-      expect(mockProjectService.listProjects).toHaveBeenCalledWith('ws-1');
+      expect(mockBoardService.listBoards).toHaveBeenCalledWith('ws-1');
       expect(mockWorkspaceService.getMembers).toHaveBeenCalledWith('ws-1');
     });
 
@@ -117,12 +117,12 @@ describe('WorkspaceComponent', () => {
   });
 
   describe('loadData', () => {
-    it('should populate workspace, projects, and members signals', () => {
+    it('should populate workspace, boards, and members signals', () => {
       component.workspaceId.set('ws-1');
       component.loadData();
 
       expect(component.workspace()?.name).toBe('Test Workspace');
-      expect(component.projects()).toHaveLength(1);
+      expect(component.boards()).toHaveLength(1);
       expect(component.members()).toHaveLength(1);
       expect(component.loading()).toBe(false);
     });
@@ -174,19 +174,19 @@ describe('WorkspaceComponent', () => {
   });
 
   describe('onBoardCreated', () => {
-    it('should call projectService.createProject and reload data', () => {
-      mockProjectService.createProject.mockReturnValue(of({ id: 'b-new' }));
+    it('should call boardService.createBoard and reload data', () => {
+      mockBoardService.createBoard.mockReturnValue(of({ id: 'b-new' }));
 
       component.workspaceId.set('ws-1');
       component.onBoardCreated({
-        name: 'New Project',
-        description: 'Project desc',
+        name: 'New Board',
+        description: 'Board desc',
         template: 'kanban',
       });
 
-      expect(mockProjectService.createProject).toHaveBeenCalledWith('ws-1', {
-        name: 'New Project',
-        description: 'Project desc',
+      expect(mockBoardService.createBoard).toHaveBeenCalledWith('ws-1', {
+        name: 'New Board',
+        description: 'Board desc',
         template: 'kanban',
       });
     });

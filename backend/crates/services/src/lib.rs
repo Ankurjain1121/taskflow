@@ -1,16 +1,17 @@
 pub mod audit;
+pub mod board_templates;
 pub mod broadcast;
 pub mod jobs;
 pub mod minio;
 pub mod notifications;
 pub mod novu;
 pub mod presence;
-pub mod project_templates;
+pub mod sample_board;
 pub mod sample_data;
-pub mod sample_project;
 pub mod trash_bin;
 
 pub use audit::{get_action_for_route, record_audit_event, AuditError, ROUTE_ACTION_MAP};
+pub use board_templates::{get_template, BoardTemplate, TEMPLATES as BOARD_TEMPLATES};
 pub use broadcast::{BroadcastError, BroadcastService};
 pub use jobs::{
     cleanup_expired_trash, evaluate_trigger, resolve_column_by_name, resolve_label_by_name,
@@ -26,8 +27,7 @@ pub use notifications::{
 };
 pub use novu::{NovuClient, NovuError};
 pub use presence::{PresenceError, PresenceService, TaskLockInfo};
-pub use project_templates::{get_template, ProjectTemplate, TEMPLATES as BOARD_TEMPLATES};
-pub use sample_project::{generate_sample_project, SampleProjectError};
+pub use sample_board::{generate_sample_board, SampleBoardError};
 pub use trash_bin::{
     get_trash_items, move_to_trash, permanently_delete, restore_from_trash, PaginatedTrashItems,
     TrashBinError, TrashEntityType, TrashItem, TRASH_RETENTION_DAYS,

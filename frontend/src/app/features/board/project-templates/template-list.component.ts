@@ -42,7 +42,7 @@ export interface UseTemplateDialogResult {
 
 /**
  * Template list component showing all available project templates.
- * Supports category filtering, creating projects from templates, and deleting owned templates.
+ * Supports category filtering, creating boards from templates, and deleting owned templates.
  */
 @Component({
   selector: 'app-template-list',
@@ -207,7 +207,7 @@ export interface UseTemplateDialogResult {
 
     <!-- Use Template Dialog (inline) -->
     <p-dialog
-      header="Create Project from Template"
+      header="Create Board from Template"
       [(visible)]="showUseTemplateDialog"
       [modal]="true"
       [style]="{ width: '450px' }"
@@ -219,13 +219,13 @@ export interface UseTemplateDialogResult {
         </p>
         <div class="flex flex-col gap-2">
           <label for="dialogBoardName" class="text-sm font-medium"
-            >Project Name</label
+            >Board Name</label
           >
           <input
             pInputText
             id="dialogBoardName"
             [(ngModel)]="dialogBoardName"
-            placeholder="My New Project"
+            placeholder="My New Board"
           />
         </div>
         <div class="flex flex-col gap-2">
@@ -253,7 +253,7 @@ export interface UseTemplateDialogResult {
           ></button>
           <button
             pButton
-            label="Create Project"
+            label="Create Board"
             [disabled]="!dialogBoardName.trim() || !dialogSelectedWorkspaceId"
             (click)="onDialogConfirm()"
           ></button>
@@ -329,7 +329,7 @@ export class TemplateListComponent implements OnInit {
     this.templateService
       .createBoardFromTemplate(this.dialogTemplateId, {
         workspace_id: this.dialogSelectedWorkspaceId,
-        project_name: this.dialogBoardName.trim(),
+        board_name: this.dialogBoardName.trim(),
       })
       .subscribe({
         next: (res) => {
@@ -337,8 +337,8 @@ export class TemplateListComponent implements OnInit {
           this.router.navigate([
             '/workspace',
             this.dialogSelectedWorkspaceId,
-            'project',
-            res.project_id,
+            'board',
+            res.board_id,
           ]);
         },
         error: () => {

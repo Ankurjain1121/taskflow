@@ -19,13 +19,13 @@ use taskflow_db::queries::eisenhower::{
     get_eisenhower_matrix, reset_eisenhower_overrides, update_eisenhower_overrides,
     EisenhowerFilters, EisenhowerMatrixResponse,
 };
-use taskflow_db::queries::get_task_project_id;
+use taskflow_db::queries::get_task_board_id;
 
 /// Query parameters for filtering the Eisenhower Matrix
 #[derive(Debug, Deserialize)]
 pub struct EisenhowerQueryParams {
     pub workspace_id: Option<Uuid>,
-    pub project_id: Option<Uuid>,
+    pub board_id: Option<Uuid>,
     pub daily: Option<bool>,
 }
 
@@ -45,7 +45,7 @@ pub struct ResetEisenhowerResponse {
 /// GET /api/eisenhower
 ///
 /// Get all tasks assigned to the current user, grouped by Eisenhower Matrix quadrants.
-/// Optional query params: workspace_id, project_id, daily (bool)
+/// Optional query params: workspace_id, board_id, daily (bool)
 async fn get_eisenhower_matrix_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
@@ -53,7 +53,7 @@ async fn get_eisenhower_matrix_handler(
 ) -> Result<Json<EisenhowerMatrixResponse>> {
     let filters = EisenhowerFilters {
         workspace_id: params.workspace_id,
-        project_id: params.project_id,
+        board_id: params.board_id,
         daily: params.daily.unwrap_or(false),
     };
 
@@ -72,21 +72,21 @@ async fn update_task_eisenhower(
     Path(task_id): Path<Uuid>,
     Json(req): Json<UpdateEisenhowerRequest>,
 ) -> Result<Json<()>> {
-    // Verify user has access to the task via project membership
-    let project_id = get_task_project_id(&state.db, task_id)
+    // Verify user has access to the task via board membership
+    let board_id = get_task_board_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     let is_member: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)",
+        "SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)",
     )
-    .bind(project_id)
+    .bind(board_id)
     .bind(tenant.user_id)
     .fetch_one(&state.db)
     .await?;
 
     if !is_member {
-        return Err(AppError::Forbidden("Not a project member".into()));
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     update_eisenhower_overrides(&state.db, task_id, req.urgency, req.importance).await?;
@@ -110,7 +110,7 @@ async fn reset_eisenhower(
 /// Create the eisenhower router
 ///
 /// Routes:
-/// - GET / - Get Eisenhower Matrix with all quadrants (supports ?workspace_id, ?project_id, ?daily)
+/// - GET / - Get Eisenhower Matrix with all quadrants (supports ?workspace_id, ?board_id, ?daily)
 /// - PUT /tasks/:id - Update task's manual overrides
 /// - PUT /reset - Reset all overrides to auto-compute
 pub fn eisenhower_router(state: AppState) -> Router<AppState> {

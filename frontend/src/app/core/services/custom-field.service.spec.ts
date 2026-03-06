@@ -15,7 +15,7 @@ import {
 
 const MOCK_FIELD: BoardCustomField = {
   id: 'field-1',
-  project_id: 'board-1',
+  board_id: 'board-1',
   name: 'Priority Score',
   field_type: 'number',
   options: null,
@@ -71,19 +71,19 @@ describe('CustomFieldService', () => {
   });
 
   describe('listBoardFields()', () => {
-    it('should GET /api/projects/:projectId/custom-fields', () => {
+    it('should GET /api/boards/:boardId/custom-fields', () => {
       service.listBoardFields('board-1').subscribe((result) => {
         expect(result).toEqual([MOCK_FIELD]);
       });
 
-      const req = httpMock.expectOne('/api/projects/board-1/custom-fields');
+      const req = httpMock.expectOne('/api/boards/board-1/custom-fields');
       expect(req.request.method).toBe('GET');
       req.flush([MOCK_FIELD]);
     });
   });
 
   describe('createField()', () => {
-    it('should POST /api/projects/:projectId/custom-fields with request', () => {
+    it('should POST /api/boards/:boardId/custom-fields with request', () => {
       const createReq: CreateCustomFieldRequest = {
         name: 'Priority Score',
         field_type: 'number',
@@ -94,7 +94,7 @@ describe('CustomFieldService', () => {
         expect(result).toEqual(MOCK_FIELD);
       });
 
-      const req = httpMock.expectOne('/api/projects/board-1/custom-fields');
+      const req = httpMock.expectOne('/api/boards/board-1/custom-fields');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(createReq);
       req.flush(MOCK_FIELD);
@@ -166,7 +166,7 @@ describe('CustomFieldService', () => {
           error: (e) => (error = e),
         });
 
-      const req = httpMock.expectOne('/api/projects/board-1/custom-fields');
+      const req = httpMock.expectOne('/api/boards/board-1/custom-fields');
       req.flush('Bad Request', { status: 400, statusText: 'Bad Request' });
 
       expect(error).toBeTruthy();

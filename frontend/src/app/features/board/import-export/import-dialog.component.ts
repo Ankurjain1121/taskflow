@@ -20,7 +20,7 @@ import {
 } from '../../../core/services/import-export.service';
 
 export interface ImportDialogData {
-  projectId: string;
+  boardId: string;
   boardName: string;
 }
 
@@ -280,7 +280,7 @@ export class ImportDialogComponent {
   visible = model(false);
 
   /** Input data for the dialog */
-  projectId = input<string>('');
+  boardId = input<string>('');
   boardName = input<string>('');
 
   /** Emits result when dialog closes with a value */
@@ -508,7 +508,7 @@ export class ImportDialogComponent {
       return;
     }
 
-    this.importExportService.importJson(this.projectId(), tasks).subscribe({
+    this.importExportService.importJson(this.boardId(), tasks).subscribe({
       next: (result) => {
         this.successMessage.set(
           `Successfully imported ${result.imported_count} task${result.imported_count === 1 ? '' : 's'}.`,
@@ -525,7 +525,7 @@ export class ImportDialogComponent {
   }
 
   private doCsvImport(): void {
-    this.importExportService.importCsv(this.projectId(), this.csvText).subscribe({
+    this.importExportService.importCsv(this.boardId(), this.csvText).subscribe({
       next: (result) => {
         this.successMessage.set(
           `Successfully imported ${result.imported_count} task${result.imported_count === 1 ? '' : 's'}.`,
@@ -549,7 +549,7 @@ export class ImportDialogComponent {
     }
 
     this.importExportService
-      .importTrello(this.projectId(), this.trelloData)
+      .importTrello(this.boardId(), this.trelloData)
       .subscribe({
         next: (result) => {
           let msg = `Successfully imported ${result.imported_count} task${result.imported_count === 1 ? '' : 's'}`;

@@ -226,31 +226,31 @@ mod tests {
         let relay = PubSubRelay::dummy();
 
         // Subscribe creates a channel entry with ref_count=1
-        let _rx = relay.subscribe("project:test-id");
-        assert!(relay.channels.contains_key("project:test-id"));
+        let _rx = relay.subscribe("board:test-id");
+        assert!(relay.channels.contains_key("board:test-id"));
         assert_eq!(
-            relay.channels.get("project:test-id").map(|e| e.ref_count),
+            relay.channels.get("board:test-id").map(|e| e.ref_count),
             Some(1)
         );
 
         // Second subscribe increments ref_count
-        let _rx2 = relay.subscribe("project:test-id");
+        let _rx2 = relay.subscribe("board:test-id");
         assert_eq!(
-            relay.channels.get("project:test-id").map(|e| e.ref_count),
+            relay.channels.get("board:test-id").map(|e| e.ref_count),
             Some(2)
         );
 
         // First unsubscribe decrements but doesn't remove
-        relay.unsubscribe("project:test-id");
-        assert!(relay.channels.contains_key("project:test-id"));
+        relay.unsubscribe("board:test-id");
+        assert!(relay.channels.contains_key("board:test-id"));
         assert_eq!(
-            relay.channels.get("project:test-id").map(|e| e.ref_count),
+            relay.channels.get("board:test-id").map(|e| e.ref_count),
             Some(1)
         );
 
         // Second unsubscribe removes the channel
-        relay.unsubscribe("project:test-id");
-        assert!(!relay.channels.contains_key("project:test-id"));
+        relay.unsubscribe("board:test-id");
+        assert!(!relay.channels.contains_key("board:test-id"));
     }
 
     #[test]
@@ -264,7 +264,7 @@ mod tests {
     fn test_pubsub_relay_multiple_channels() {
         let relay = PubSubRelay::dummy();
 
-        let _rx1 = relay.subscribe("project:aaa");
+        let _rx1 = relay.subscribe("board:aaa");
         let _rx2 = relay.subscribe("user:bbb");
         let _rx3 = relay.subscribe("workspace:ccc");
 

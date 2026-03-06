@@ -31,7 +31,7 @@ import {
   WorkspaceService,
   Workspace,
 } from '../../../core/services/workspace.service';
-import { ProjectService } from '../../../core/services/project.service';
+import { BoardService } from '../../../core/services/board.service';
 import {
   EisenhowerTaskCardComponent,
   DelegateMember,
@@ -145,9 +145,9 @@ const QUADRANT_MAP: Record<
                 (ngModelChange)="onBoardChange($event)"
                 class="text-sm rounded-md border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] px-2 py-1 focus:ring-1 focus:ring-primary focus:border-primary"
               >
-                <option value="">All projects</option>
-                @for (project of projects(); track project.id) {
-                  <option [value]="project.id">{{ project.name }}</option>
+                <option value="">All boards</option>
+                @for (board of boards(); track board.id) {
+                  <option [value]="board.id">{{ board.name }}</option>
                 }
               </select>
             </div>
@@ -390,7 +390,7 @@ export class EisenhowerMatrixComponent implements OnInit {
   private eisenhowerService = inject(EisenhowerService);
   private taskService = inject(TaskService);
   private workspaceService = inject(WorkspaceService);
-  private projectService = inject(ProjectService);
+  private boardService = inject(BoardService);
   private confirmationService = inject(ConfirmationService);
 
   loading = signal(false);
@@ -402,7 +402,7 @@ export class EisenhowerMatrixComponent implements OnInit {
 
   // Filter state
   workspaces = signal<Workspace[]>([]);
-  projects = signal<{ id: string; name: string }[]>([]);
+  boards = signal<{ id: string; name: string }[]>([]);
   selectedWorkspaceId = signal('');
   selectedBoardId = signal('');
   dailyFocus = signal(false);
@@ -509,7 +509,7 @@ export class EisenhowerMatrixComponent implements OnInit {
         filters.workspace_id = this.selectedWorkspaceId();
       }
       if (this.selectedBoardId()) {
-        filters.project_id = this.selectedBoardId();
+        filters.board_id = this.selectedBoardId();
       }
       if (this.dailyFocus()) {
         filters.daily = true;
@@ -528,7 +528,7 @@ export class EisenhowerMatrixComponent implements OnInit {
   onWorkspaceChange(workspaceId: string) {
     this.selectedWorkspaceId.set(workspaceId);
     this.selectedBoardId.set('');
-    this.projects.set([]);
+    this.boards.set([]);
     if (workspaceId) {
       this.loadBoards(workspaceId);
       this.loadWorkspaceMembers(workspaceId);
@@ -538,8 +538,8 @@ export class EisenhowerMatrixComponent implements OnInit {
     this.loadMatrix();
   }
 
-  onBoardChange(projectId: string) {
-    this.selectedBoardId.set(projectId);
+  onBoardChange(boardId: string) {
+    this.selectedBoardId.set(boardId);
     this.loadMatrix();
   }
 
@@ -552,7 +552,7 @@ export class EisenhowerMatrixComponent implements OnInit {
     this.selectedWorkspaceId.set('');
     this.selectedBoardId.set('');
     this.dailyFocus.set(false);
-    this.projects.set([]);
+    this.boards.set([]);
     this.loadMatrix();
   }
 
@@ -611,9 +611,9 @@ export class EisenhowerMatrixComponent implements OnInit {
   }
 
   private loadBoards(workspaceId: string) {
-    this.projectService.listProjects(workspaceId).subscribe({
+    this.boardService.listBoards(workspaceId).subscribe({
       next: (list) =>
-        this.projects.set(list.map((b) => ({ id: b.id, name: b.name }))),
+        this.boards.set(list.map((b) => ({ id: b.id, name: b.name }))),
     });
   }
 

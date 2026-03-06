@@ -45,7 +45,7 @@ async fn add_favorite_handler(
     Json(body): Json<AddFavoriteRequest>,
 ) -> Result<Json<serde_json::Value>> {
     // Validate entity_type
-    if body.entity_type != "task" && body.entity_type != "project" {
+    if body.entity_type != "task" && body.entity_type != "board" {
         return Err(AppError::BadRequest(format!(
             "Invalid entity_type: {}. Must be 'task' or 'board'",
             body.entity_type
@@ -113,9 +113,9 @@ async fn verify_entity_access(
             .fetch_one(&state.db)
             .await?
         }
-        "project" => {
+        "board" => {
             sqlx::query_as(
-                r#"SELECT EXISTS(SELECT 1 FROM projects WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL)"#,
+                r#"SELECT EXISTS(SELECT 1 FROM boards WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL)"#,
             )
             .bind(entity_id)
             .bind(tenant_id)

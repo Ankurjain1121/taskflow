@@ -58,7 +58,7 @@ import {
 
             <!-- Board and Column Info -->
             <p class="text-xs mt-1" style="color: var(--muted-foreground)">
-              {{ task().project_name }} / {{ task().column_name }}
+              {{ task().board_name }} / {{ task().column_name }}
             </p>
 
             <!-- Labels -->

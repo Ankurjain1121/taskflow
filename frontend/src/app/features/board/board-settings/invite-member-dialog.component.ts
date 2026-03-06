@@ -14,7 +14,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 
 export interface InviteMemberDialogData {
-  projectId: string;
+  boardId: string;
   boardName: string;
 }
 
@@ -120,7 +120,7 @@ export class InviteMemberDialogComponent {
   visible = model(false);
 
   /** Input data */
-  projectId = input<string>('');
+  boardId = input<string>('');
   boardName = input<string>('');
 
   /** Output event */

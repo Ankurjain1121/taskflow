@@ -23,7 +23,7 @@ import {
   TenantMember,
   MemberRoleBatch,
 } from '../../core/services/workspace.service';
-import { ProjectService } from '../../core/services/project.service';
+import { BoardService } from '../../core/services/board.service';
 import { TeamService, MemberWorkload } from '../../core/services/team.service';
 import {
   MembersListComponent,
@@ -38,7 +38,7 @@ import { WorkspaceRolesComponent } from './workspace-roles/workspace-roles.compo
 interface WorkspaceWithMembers {
   workspace: Workspace;
   members: MemberWithDetails[];
-  projects: { id: string; name: string }[];
+  boards: { id: string; name: string }[];
 }
 
 interface WorkspaceTeam {
@@ -642,7 +642,7 @@ interface WorkspaceTeam {
 })
 export class TeamPageComponent implements OnInit {
   private workspaceService = inject(WorkspaceService);
-  private projectService = inject(ProjectService);
+  private boardService = inject(BoardService);
   private teamService = inject(TeamService);
 
   loading = signal(true);
@@ -855,8 +855,8 @@ export class TeamPageComponent implements OnInit {
             details: this.workspaceService
               .get(ws.id)
               .pipe(catchError(() => of(null))),
-            projects: this.projectService
-              .listProjects(ws.id)
+            boards: this.boardService
+              .listBoards(ws.id)
               .pipe(catchError(() => of([] as { id: string; name: string }[]))),
           }),
         );
@@ -878,7 +878,7 @@ export class TeamPageComponent implements OnInit {
               return {
                 workspace: r.workspace,
                 members: embeddedMembers,
-                projects: r.projects.map((b) => ({
+                boards: r.boards.map((b) => ({
                   id: b.id,
                   name: b.name,
                 })),

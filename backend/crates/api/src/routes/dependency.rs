@@ -16,49 +16,47 @@ use taskflow_db::queries::dependencies::{
     list_dependencies, BlockerInfo, CreateDependencyInput, DependencyQueryError,
     DependencyWithTask,
 };
-use taskflow_db::queries::get_task_project_id;
+use taskflow_db::queries::get_task_board_id;
 
-/// Helper: verify project membership through task -> project chain
-async fn verify_task_project_membership(
+/// Helper: verify board membership through task -> board chain
+async fn verify_task_board_membership(
     state: &AppState,
     task_id: Uuid,
     user_id: Uuid,
 ) -> Result<Uuid> {
-    let project_id = get_task_project_id(&state.db, task_id)
+    let board_id = get_task_board_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     let is_member = sqlx::query_scalar::<_, bool>(
         r#"
         SELECT EXISTS(
-            SELECT 1 FROM project_members
-            WHERE project_id = $1 AND user_id = $2
+            SELECT 1 FROM board_members
+            WHERE board_id = $1 AND user_id = $2
         )
         "#,
     )
-    .bind(project_id)
+    .bind(board_id)
     .bind(user_id)
     .fetch_one(&state.db)
     .await?;
 
     if !is_member {
-        return Err(AppError::Forbidden("Not a project member".into()));
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
-    Ok(project_id)
+    Ok(board_id)
 }
 
 /// Map DependencyQueryError to AppError
 fn map_dep_error(e: DependencyQueryError) -> AppError {
     match e {
         DependencyQueryError::NotFound => AppError::NotFound("Dependency not found".into()),
-        DependencyQueryError::NotProjectMember => {
-            AppError::Forbidden("Not a project member".into())
-        }
+        DependencyQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
         DependencyQueryError::CircularDependency => {
             AppError::BadRequest("Circular dependency detected".into())
         }
-        DependencyQueryError::CrossProjectDependency => {
+        DependencyQueryError::CrossBoardDependency => {
             AppError::BadRequest("Dependencies must be between tasks on the same board".into())
         }
         DependencyQueryError::Database(e) => AppError::SqlxError(e),
@@ -101,7 +99,7 @@ async fn delete_dependency_handler(
     tenant: TenantContext,
     Path(dep_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>> {
-    // Look up the dependency's source task to verify project membership
+    // Look up the dependency's source task to verify board membership
     let source_task_id: Option<Uuid> =
         sqlx::query_scalar("SELECT source_task_id FROM task_dependencies WHERE id = $1")
             .bind(dep_id)
@@ -111,7 +109,7 @@ async fn delete_dependency_handler(
     let source_task_id =
         source_task_id.ok_or_else(|| AppError::NotFound("Dependency not found".into()))?;
 
-    verify_task_project_membership(&state, source_task_id, tenant.user_id).await?;
+    verify_task_board_membership(&state, source_task_id, tenant.user_id).await?;
 
     delete_dependency(&state.db, dep_id)
         .await
@@ -127,8 +125,8 @@ async fn check_blockers_handler(
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<Vec<BlockerInfo>>> {
-    // Verify project membership
-    verify_task_project_membership(&state, task_id, tenant.user_id).await?;
+    // Verify board membership
+    verify_task_board_membership(&state, task_id, tenant.user_id).await?;
 
     let blockers = check_blockers(&state.db, task_id)
         .await
@@ -137,14 +135,14 @@ async fn check_blockers_handler(
     Ok(Json(blockers))
 }
 
-/// GET /api/projects/{project_id}/dependencies
-/// Get all dependencies for a project
+/// GET /api/boards/{board_id}/dependencies
+/// Get all dependencies for a board
 async fn board_dependencies_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path(project_id): Path<Uuid>,
+    Path(board_id): Path<Uuid>,
 ) -> Result<Json<Vec<DependencyWithTask>>> {
-    let deps = get_board_dependencies(&state.db, project_id, tenant.user_id)
+    let deps = get_board_dependencies(&state.db, board_id, tenant.user_id)
         .await
         .map_err(map_dep_error)?;
 
@@ -166,9 +164,9 @@ pub fn dependency_router(state: AppState) -> Router<AppState> {
         .route("/tasks/{task_id}/blockers", get(check_blockers_handler))
         // Dependency-specific routes
         .route("/dependencies/{id}", delete(delete_dependency_handler))
-        // Project-level dependency routes
+        // Board-level dependency routes
         .route(
-            "/projects/{project_id}/dependencies",
+            "/boards/{board_id}/dependencies",
             get(board_dependencies_handler),
         )
         .layer(from_fn_with_state(state.clone(), auth_middleware))
