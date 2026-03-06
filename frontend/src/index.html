@@ -15,71 +15,17 @@
       rel="stylesheet"
     />
     <script>
-      // FOUC prevention script - applies critical theme vars before paint
-      // Only applies ~10 critical vars that prevent visible flash
+      // Apply theme and accent before first paint to prevent flash
       (function () {
-        // Determine color mode
-        var mode = localStorage.getItem("taskflow-theme") || "system";
+        var mode = localStorage.getItem('taskflow-theme') || 'system';
         var isDark =
-          mode === "dark" ||
-          (mode === "system" &&
-            window.matchMedia("(prefers-color-scheme: dark)").matches);
-
-        // Select correct cache key
-        var cacheKey = isDark ? "taskflow-dark-cache" : "taskflow-light-cache";
-        var cache = localStorage.getItem(cacheKey);
-
-        // Critical vars that cause visible flash if missing
-        var critical = [
-          "background",
-          "foreground",
-          "card",
-          "card-foreground",
-          "border",
-          "sidebar-bg",
-          "primary",
-          "primary-foreground",
-          "muted",
-          "muted-foreground",
-        ];
-
-        if (cache) {
-          try {
-            var theme = JSON.parse(cache);
-            var root = document.documentElement;
-            var c = theme.colors || {};
-
-            // Apply critical theme colors
-            for (var i = 0; i < critical.length; i++) {
-              var varName = critical[i];
-              if (c[varName]) {
-                root.style.setProperty("--" + varName, c[varName]);
-              }
-            }
-
-            // Apply accent overrides for critical vars (primary, ring)
-            var accentCache = localStorage.getItem("taskflow-accent-overrides");
-            if (accentCache) {
-              try {
-                var o = JSON.parse(accentCache);
-                if (o.primary) root.style.setProperty("--primary", o.primary);
-                if (o["primary-foreground"])
-                  root.style.setProperty(
-                    "--primary-foreground",
-                    o["primary-foreground"],
-                  );
-                if (o.ring) root.style.setProperty("--ring", o.ring);
-              } catch (e2) {}
-            }
-          } catch (e) {
-            localStorage.removeItem(cacheKey);
-          }
-        }
-
-        // Apply dark class
-        if (isDark) {
-          document.documentElement.classList.add("dark");
-        }
+          mode === 'dark' ||
+          (mode === 'system' &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (isDark) document.documentElement.classList.add('dark');
+        var accent = localStorage.getItem('taskflow-accent') || 'indigo';
+        if (accent !== 'indigo')
+          document.documentElement.setAttribute('data-accent', accent);
       })();
     </script>
   </head>

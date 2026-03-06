@@ -3,7 +3,6 @@ import {
   OnInit,
   inject,
   signal,
-  computed,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -19,7 +18,6 @@ import {
   AccentColor,
   ACCENT_PRESETS,
 } from '../../../core/services/theme.service';
-import { Theme as DbTheme } from '../../../shared/types/theme.types';
 import { UserPreferencesService } from '../../../core/services/user-preferences.service';
 
 interface TimezoneOption {
@@ -37,23 +35,6 @@ interface BoardViewOption {
   value: string;
 }
 
-interface ThemeCategory {
-  key: string;
-  label: string;
-  themes: DbTheme[];
-}
-
-const CATEGORY_LABELS: Record<string, string> = {
-  clean: 'Clean',
-  'dark-sidebar': 'Dark',
-  tinted: 'Tinted',
-  famous: 'Popular',
-  bold: 'Bold',
-  specialty: 'Seasonal & Fun',
-};
-
-const LIGHT_CATEGORY_ORDER = ['clean', 'tinted', 'famous', 'bold', 'specialty'];
-const DARK_CATEGORY_ORDER = ['dark-sidebar', 'famous', 'bold', 'specialty'];
 
 @Component({
   selector: 'app-appearance-section',
@@ -120,85 +101,7 @@ const DARK_CATEGORY_ORDER = ['dark-sidebar', 'famous', 'bold', 'specialty'];
       </div>
 
       <!-- Section B: Theme Gallery -->
-      @if (categorizedThemes().length > 0) {
-        <div class="mt-5 pt-5" style="border-top: 1px solid var(--border)">
-          <p class="text-sm font-medium mb-3" style="color: var(--foreground)">
-            Theme Gallery
-          </p>
-          @for (category of categorizedThemes(); track category.key) {
-            <div class="mb-4">
-              <p
-                class="text-xs font-semibold uppercase tracking-wider mb-2"
-                style="color: var(--muted-foreground)"
-              >
-                {{ category.label }}
-              </p>
-              <div class="flex gap-3 flex-wrap">
-                @for (t of category.themes; track t.slug) {
-                  <button
-                    class="flex flex-col items-center gap-1.5 group cursor-pointer"
-                    (click)="selectTheme(t.slug)"
-                  >
-                    <div
-                      class="rounded-lg border overflow-hidden transition-all duration-150"
-                      [class.ring-2]="activeThemeSlug() === t.slug"
-                      [class.scale-[1.02]]="activeThemeSlug() === t.slug"
-                      [style.ring-color]="
-                        activeThemeSlug() === t.slug
-                          ? 'var(--primary)'
-                          : 'transparent'
-                      "
-                      [style.border-color]="
-                        activeThemeSlug() === t.slug
-                          ? 'var(--primary)'
-                          : 'var(--border)'
-                      "
-                      style="width: 140px; height: 90px;"
-                    >
-                      <div
-                        class="w-full h-full flex"
-                        [style.background]="t.preview.background_color"
-                      >
-                        <!-- Sidebar strip -->
-                        <div
-                          class="h-full flex-shrink-0"
-                          style="width: 20%;"
-                          [style.background]="t.preview.sidebar_color"
-                        ></div>
-                        <!-- Main area -->
-                        <div class="flex-1 flex flex-col p-1.5 gap-1">
-                          <!-- Top bar hint -->
-                          <div
-                            class="rounded-sm"
-                            style="height: 6px;"
-                            [style.background]="t.preview.primary_color"
-                          ></div>
-                          <!-- Card hint -->
-                          <div
-                            class="flex-1 rounded-sm"
-                            [style.background]="t.preview.card_color"
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                    <span
-                      class="text-xs font-medium truncate max-w-[140px]"
-                      [style.color]="
-                        activeThemeSlug() === t.slug
-                          ? 'var(--primary)'
-                          : 'var(--foreground)'
-                      "
-                      >{{ t.name }}</span
-                    >
-                  </button>
-                }
-              </div>
-            </div>
-          }
-        </div>
-      }
-
-      <!-- Section C: Accent Color -->
+      <!-- Section B: Accent Color -->
       <div class="mt-4 pt-4" style="border-top: 1px solid var(--border)">
         <p class="text-sm font-medium mb-3" style="color: var(--foreground)">
           Accent Color
@@ -377,32 +280,6 @@ export class AppearanceSectionComponent implements OnInit {
     { value: 'system', label: 'System', icon: 'pi pi-desktop' },
   ];
 
-  activeThemeSlug = computed(() => this.themeService.activeTheme()?.slug ?? '');
-
-  categorizedThemes = computed<ThemeCategory[]>(() => {
-    const all = this.themeService.allThemes();
-    const dark = this.isDark();
-    const filtered = all.filter((t) => (dark ? t.is_dark : !t.is_dark));
-    const order = dark ? DARK_CATEGORY_ORDER : LIGHT_CATEGORY_ORDER;
-
-    const grouped = new Map<string, DbTheme[]>();
-    for (const theme of filtered) {
-      const list = grouped.get(theme.category) ?? [];
-      list.push(theme);
-      grouped.set(theme.category, list);
-    }
-
-    return order
-      .filter((key) => grouped.has(key))
-      .map((key) => ({
-        key,
-        label: CATEGORY_LABELS[key] ?? key,
-        themes: (grouped.get(key) ?? []).sort(
-          (a, b) => a.sort_order - b.sort_order,
-        ),
-      }));
-  });
-
   timezoneOptions: TimezoneOption[] = [
     { label: 'UTC', value: 'UTC' },
     { label: 'Eastern (New York)', value: 'America/New_York' },
@@ -444,10 +321,6 @@ export class AppearanceSectionComponent implements OnInit {
 
   setTheme(theme: Theme): void {
     this.themeService.setTheme(theme);
-  }
-
-  selectTheme(slug: string): void {
-    this.themeService.setThemeSlug(slug);
   }
 
   setAccent(accent: AccentColor): void {

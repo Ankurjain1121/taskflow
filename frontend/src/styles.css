@@ -207,6 +207,117 @@ html.dark {
   --surface-3: #42446a;
 }
 
+/* ============================================
+   Accent Color Overrides
+   Applied via [data-accent] on <html>.
+   Default (indigo) uses :root values — no block needed.
+   ============================================ */
+
+[data-accent="blue"] {
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --ring: #2563eb;
+  --chart-1: #2563eb;
+  --chart-5: #3b82f6;
+}
+html.dark[data-accent="blue"] {
+  --primary: #60a5fa;
+  --primary-foreground: #1e3a5f;
+  --ring: #60a5fa;
+  --chart-1: #60a5fa;
+  --chart-5: #93c5fd;
+}
+
+[data-accent="green"] {
+  --primary: #16a34a;
+  --primary-foreground: #ffffff;
+  --ring: #16a34a;
+  --chart-1: #16a34a;
+  --chart-5: #22c55e;
+}
+html.dark[data-accent="green"] {
+  --primary: #4ade80;
+  --primary-foreground: #14532d;
+  --ring: #4ade80;
+  --chart-1: #4ade80;
+  --chart-5: #86efac;
+}
+
+[data-accent="orange"] {
+  --primary: #ea580c;
+  --primary-foreground: #ffffff;
+  --ring: #ea580c;
+  --chart-1: #ea580c;
+  --chart-5: #f97316;
+}
+html.dark[data-accent="orange"] {
+  --primary: #fb923c;
+  --primary-foreground: #431407;
+  --ring: #fb923c;
+  --chart-1: #fb923c;
+  --chart-5: #fdba74;
+}
+
+[data-accent="rose"] {
+  --primary: #e11d48;
+  --primary-foreground: #ffffff;
+  --ring: #e11d48;
+  --chart-1: #e11d48;
+  --chart-5: #f43f5e;
+}
+html.dark[data-accent="rose"] {
+  --primary: #fb7185;
+  --primary-foreground: #4c0519;
+  --ring: #fb7185;
+  --chart-1: #fb7185;
+  --chart-5: #fda4af;
+}
+
+[data-accent="violet"] {
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
+  --ring: #7c3aed;
+  --chart-1: #7c3aed;
+  --chart-5: #8b5cf6;
+}
+html.dark[data-accent="violet"] {
+  --primary: #a78bfa;
+  --primary-foreground: #2e1065;
+  --ring: #a78bfa;
+  --chart-1: #a78bfa;
+  --chart-5: #c4b5fd;
+}
+
+[data-accent="amber"] {
+  --primary: #d97706;
+  --primary-foreground: #ffffff;
+  --ring: #d97706;
+  --chart-1: #d97706;
+  --chart-5: #f59e0b;
+}
+html.dark[data-accent="amber"] {
+  --primary: #fbbf24;
+  --primary-foreground: #451a03;
+  --ring: #fbbf24;
+  --chart-1: #fbbf24;
+  --chart-5: #fcd34d;
+}
+
+[data-accent="slate"] {
+  --primary: #475569;
+  --primary-foreground: #ffffff;
+  --ring: #475569;
+  --chart-1: #475569;
+  --chart-5: #64748b;
+}
+html.dark[data-accent="slate"] {
+  --primary: #94a3b8;
+  --primary-foreground: #0f172a;
+  --ring: #94a3b8;
+  --chart-1: #94a3b8;
+  --chart-5: #cbd5e1;
+}
+
 /* Dark scrollbar */
 html.dark *::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
@@ -973,4 +1084,69 @@ app-kanban-column
   .cdk-virtual-scroll-content-wrapper {
   display: flex;
   flex-direction: column;
+}
+
+/* ============================================
+   PrimeNG Theme Bridge
+   Maps PrimeNG internal --p-* tokens to the
+   app theme variables so all components pick
+   up the active theme automatically.
+   This is a safety net — definePreset() in
+   theme.service.ts is the primary mechanism.
+   ============================================ */
+:root,
+html.dark {
+  /* Surface ramp — used by all PrimeNG component chrome */
+  --p-surface-0: var(--background);
+  --p-surface-50: var(--background);
+  --p-surface-100: var(--card);
+  --p-surface-200: var(--card);
+  --p-surface-300: var(--surface-2, var(--card));
+  --p-surface-400: var(--surface-3, var(--card));
+  --p-surface-500: var(--surface-3, var(--card));
+  --p-surface-600: var(--surface-3, var(--card));
+  --p-surface-700: var(--surface-3, var(--card));
+  --p-surface-800: var(--surface-3, var(--card));
+  --p-surface-900: var(--surface-3, var(--card));
+  --p-surface-950: var(--surface-3, var(--card));
+
+  /* Content / general background */
+  --p-content-background: var(--card);
+  --p-content-border-color: var(--border);
+  --p-content-color: var(--foreground);
+  --p-content-hover-color: var(--foreground);
+
+  /* Form fields (inputs, textareas, selects) */
+  --p-form-field-background: var(--card);
+  --p-form-field-border-color: var(--border);
+  --p-form-field-color: var(--foreground);
+  --p-form-field-placeholder-color: var(--muted-foreground);
+  --p-form-field-icon-color: var(--muted-foreground);
+  --p-form-field-hover-border-color: var(--border);
+  --p-form-field-focus-border-color: var(--primary);
+  --p-form-field-disabled-background: var(--muted);
+  --p-form-field-disabled-color: var(--muted-foreground);
+
+  /* Overlay components (dialogs, modals, popovers, menus) */
+  --p-overlay-modal-background: var(--card);
+  --p-overlay-modal-border-color: var(--border);
+  --p-overlay-modal-color: var(--foreground);
+  --p-overlay-popover-background: var(--card);
+  --p-overlay-popover-border-color: var(--border);
+  --p-overlay-popover-color: var(--foreground);
+  --p-overlay-navigation-background: var(--card);
+  --p-overlay-navigation-border-color: var(--border);
+  --p-overlay-navigation-color: var(--foreground);
+
+  /* Card component */
+  --p-card-background: var(--card);
+  --p-card-color: var(--card-foreground);
+  --p-card-border-color: var(--border);
+}
+
+/* Card shadow follows theme */
+.p-card {
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
 }
