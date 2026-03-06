@@ -33,27 +33,7 @@ pub struct CreateBoardShareInput {
     pub permissions: Option<serde_json::Value>,
 }
 
-/// Internal helper: verify board membership
-async fn verify_board_membership_internal(
-    pool: &PgPool,
-    board_id: Uuid,
-    user_id: Uuid,
-) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query_scalar::<_, bool>(
-        r#"
-        SELECT EXISTS(
-            SELECT 1 FROM board_members
-            WHERE board_id = $1 AND user_id = $2
-        )
-        "#,
-    )
-    .bind(board_id)
-    .bind(user_id)
-    .fetch_one(pool)
-    .await?;
-
-    Ok(result)
-}
+use super::verify_board_membership_internal;
 
 /// Generate a unique share token using UUIDs
 fn generate_share_token() -> String {

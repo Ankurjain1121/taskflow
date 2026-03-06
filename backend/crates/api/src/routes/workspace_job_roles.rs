@@ -23,6 +23,8 @@ use crate::extractors::AuthUserExtractor;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
+use super::common::MessageResponse;
+
 // ============================================================================
 // Request/Response DTOs
 // ============================================================================
@@ -71,11 +73,6 @@ pub struct MemberRoleBatchResponse {
     pub role_id: Uuid,
     pub role_name: String,
     pub role_color: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct MessageResponse {
-    pub message: String,
 }
 
 impl From<WorkspaceJobRole> for JobRoleResponse {

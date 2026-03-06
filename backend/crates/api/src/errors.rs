@@ -1,6 +1,7 @@
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde_json::json;
+use taskflow_db::queries::{CommentQueryError, TaskQueryError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
@@ -108,6 +109,30 @@ impl IntoResponse for AppError {
     }
 }
 
+impl From<TaskQueryError> for AppError {
+    fn from(e: TaskQueryError) -> Self {
+        match e {
+            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
+            TaskQueryError::Database(e) => AppError::SqlxError(e),
+            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
+            TaskQueryError::Other(msg) => AppError::BadRequest(msg),
+        }
+    }
+}
+
+impl From<CommentQueryError> for AppError {
+    fn from(e: CommentQueryError) -> Self {
+        match e {
+            CommentQueryError::NotFound => AppError::NotFound("Comment not found".into()),
+            CommentQueryError::NotAuthorized => {
+                AppError::Forbidden("Not authorized to modify this comment".into())
+            }
+            CommentQueryError::Database(e) => AppError::SqlxError(e),
+        }
+    }
+}
+
 pub type Result<T> = std::result::Result<T, AppError>;
 
 #[cfg(test)]
@@ -151,34 +176,29 @@ mod tests {
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     }
 
-    #[test]
-    fn test_internal_error_hides_details() {
+    #[tokio::test]
+    async fn test_internal_error_hides_details() {
         let response = AppError::InternalError("secret database crash info".into()).into_response();
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
 
-        // Extract body and verify the message is generic
-        let body = tokio::runtime::Runtime::new().unwrap().block_on(async {
-            let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
-                .await
-                .unwrap();
-            serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
-        });
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
 
         let message = body["error"]["message"].as_str().unwrap();
         assert_eq!(message, "An internal error occurred");
         assert!(!message.contains("secret"));
     }
 
-    #[test]
-    fn test_error_response_json_shape() {
+    #[tokio::test]
+    async fn test_error_response_json_shape() {
         let response = AppError::NotFound("resource missing".into()).into_response();
 
-        let body = tokio::runtime::Runtime::new().unwrap().block_on(async {
-            let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
-                .await
-                .unwrap();
-            serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
-        });
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
 
         // Verify JSON shape: { "error": { "code": ..., "message": ... } }
         assert!(
@@ -204,8 +224,8 @@ mod tests {
         assert_eq!(response.status(), StatusCode::PRECONDITION_FAILED);
     }
 
-    #[test]
-    fn test_all_error_variants_have_correct_codes() {
+    #[tokio::test]
+    async fn test_all_error_variants_have_correct_codes() {
         let test_cases: Vec<(AppError, StatusCode, &str)> = vec![
             (
                 AppError::NotFound("x".into()),
@@ -249,17 +269,14 @@ mod tests {
             ),
         ];
 
-        let rt = tokio::runtime::Runtime::new().unwrap();
         for (error, expected_status, expected_code) in test_cases {
             let response = error.into_response();
             assert_eq!(response.status(), expected_status);
 
-            let body = rt.block_on(async {
-                let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
-                    .await
-                    .unwrap();
-                serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
-            });
+            let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
+            let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
             assert_eq!(body["error"]["code"].as_str().unwrap(), expected_code);
         }
     }
@@ -280,39 +297,37 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_version_conflict_status_and_shape() {
+    #[tokio::test]
+    async fn test_version_conflict_status_and_shape() {
         let task_data = json!({"id": "123", "version": 5, "title": "Latest"});
         let response = AppError::VersionConflict(task_data.clone()).into_response();
         assert_eq!(response.status(), StatusCode::CONFLICT);
 
-        let body = tokio::runtime::Runtime::new().unwrap().block_on(async {
-            let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
-                .await
-                .unwrap();
-            serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
-        });
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
 
         assert_eq!(body["error"]["code"].as_str().unwrap(), "VERSION_CONFLICT");
-        assert!(body["current_task"].is_object(), "Should include current_task");
+        assert!(
+            body["current_task"].is_object(),
+            "Should include current_task"
+        );
         assert_eq!(body["current_task"]["version"], 5);
     }
 
-    #[test]
-    fn test_jwt_error_returns_unauthorized() {
+    #[tokio::test]
+    async fn test_jwt_error_returns_unauthorized() {
         // Create a real JWT error
-        let jwt_err = jsonwebtoken::errors::Error::from(
-            jsonwebtoken::errors::ErrorKind::InvalidToken,
-        );
+        let jwt_err =
+            jsonwebtoken::errors::Error::from(jsonwebtoken::errors::ErrorKind::InvalidToken);
         let response = AppError::JwtError(jwt_err).into_response();
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
-        let body = tokio::runtime::Runtime::new().unwrap().block_on(async {
-            let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
-                .await
-                .unwrap();
-            serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
-        });
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
 
         assert_eq!(body["error"]["code"].as_str().unwrap(), "UNAUTHORIZED");
         // Should not leak JWT error details
@@ -323,20 +338,18 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_internal_error_does_not_leak_sqlx_details() {
+    #[tokio::test]
+    async fn test_internal_error_does_not_leak_sqlx_details() {
         // Simulate a database error message
         let response =
             AppError::InternalError("connection to database refused at 10.0.0.1:5432".into())
                 .into_response();
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
 
-        let body = tokio::runtime::Runtime::new().unwrap().block_on(async {
-            let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
-                .await
-                .unwrap();
-            serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
-        });
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
 
         let message = body["error"]["message"].as_str().unwrap();
         assert!(!message.contains("10.0.0.1"), "IP address should not leak");

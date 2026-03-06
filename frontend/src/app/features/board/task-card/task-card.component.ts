@@ -39,6 +39,7 @@ import {
   isToday,
   PRIORITY_FLAG_COLORS,
 } from '../../../shared/utils/task-colors';
+import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
 
 @Component({
   selector: 'app-task-card',
@@ -1335,10 +1336,10 @@ export class TaskCardComponent {
 
   private buildContextMenu(): void {
     const priorities = [
-      { label: 'Urgent', value: 'urgent', color: '#ef4444' },
-      { label: 'High', value: 'high', color: '#f97316' },
-      { label: 'Medium', value: 'medium', color: '#facc15' },
-      { label: 'Low', value: 'low', color: '#60a5fa' },
+      { label: 'Urgent', value: 'urgent', color: PRIORITY_COLORS['urgent'] },
+      { label: 'High', value: 'high', color: PRIORITY_COLORS['high'] },
+      { label: 'Medium', value: 'medium', color: PRIORITY_COLORS['medium'] },
+      { label: 'Low', value: 'low', color: PRIORITY_COLORS['low'] },
     ];
 
     this.contextMenuItems = [

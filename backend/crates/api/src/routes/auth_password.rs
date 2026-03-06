@@ -16,7 +16,8 @@ use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
 use crate::state::AppState;
 
-use super::auth::{hash_token, MessageResponse};
+use super::auth::hash_token;
+use super::common::MessageResponse;
 
 // ============================================================================
 // Request DTOs

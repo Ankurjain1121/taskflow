@@ -98,7 +98,11 @@ impl AppState {
                 channels.retain(|_id, sender| sender.receiver_count() > 0);
                 let removed = before - channels.len();
                 if removed > 0 {
-                    tracing::info!(removed, remaining = channels.len(), "GC: cleaned board channels");
+                    tracing::info!(
+                        removed,
+                        remaining = channels.len(),
+                        "GC: cleaned board channels"
+                    );
                 }
             }
         });

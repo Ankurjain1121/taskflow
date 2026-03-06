@@ -1,6 +1,10 @@
 networks:
   taskflow-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.2.0/24
+          gateway: 10.0.2.1
 
 volumes:
   minio-data:

@@ -50,7 +50,7 @@ const EVENT_TYPE_ICONS: Record<NotificationEventType, EventTypeConfig> = {
       @for (toast of toastService.toasts(); track toast.id) {
         <div
           @toastAnim
-          class="pointer-events-auto w-80 max-w-[calc(100vw-2rem)] bg-[var(--card)] dark:bg-gray-800 rounded-lg shadow-lg border border-[var(--border)] dark:border-gray-700 overflow-hidden cursor-pointer"
+          class="pointer-events-auto w-80 max-w-[calc(100vw-2rem)] bg-[var(--card)] rounded-lg shadow-lg border border-[var(--border)] overflow-hidden cursor-pointer"
           role="alert"
           (click)="onToastClick(toast)"
         >
@@ -70,12 +70,12 @@ const EVENT_TYPE_ICONS: Record<NotificationEventType, EventTypeConfig> = {
             <!-- Content -->
             <div class="flex-1 min-w-0">
               <p
-                class="text-sm font-medium text-[var(--card-foreground)] dark:text-gray-100 truncate"
+                class="text-sm font-medium text-[var(--card-foreground)] truncate"
               >
                 {{ toast.title }}
               </p>
               <p
-                class="text-sm text-[var(--muted-foreground)] dark:text-gray-400 line-clamp-2"
+                class="text-sm text-[var(--muted-foreground)] line-clamp-2"
               >
                 {{ toast.body }}
               </p>
@@ -116,7 +116,7 @@ export class ToastContainerComponent {
     return (
       EVENT_TYPE_ICONS[eventType] || {
         icon: 'pi pi-bell',
-        color: 'text-gray-500',
+        color: 'text-[var(--muted-foreground)]',
       }
     );
   }

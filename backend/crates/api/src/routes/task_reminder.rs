@@ -11,7 +11,6 @@ use crate::extractors::TenantContext;
 use crate::state::AppState;
 use taskflow_db::queries::{
     get_task_board_id, list_reminders_for_task, remove_reminder, set_reminder, ReminderInfo,
-    TaskQueryError,
 };
 
 use super::task_helpers::verify_board_membership;
@@ -42,14 +41,7 @@ pub async fn set_reminder_handler(
         tenant.user_id,
         body.remind_before_minutes,
     )
-    .await
-    .map_err(|e| match e {
-        TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
-        TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
-        TaskQueryError::Database(e) => AppError::SqlxError(e),
-        TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
-        TaskQueryError::Other(msg) => AppError::BadRequest(msg),
-    })?;
+    .await?;
 
     Ok(Json(json!({ "success": true, "id": reminder.id })))
 }
@@ -87,15 +79,7 @@ pub async fn remove_reminder_handler(
         return Err(AppError::Forbidden("Not a board member".into()));
     }
 
-    remove_reminder(&state.db, reminder_id, tenant.user_id)
-        .await
-        .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
-            TaskQueryError::NotFound => AppError::NotFound("Reminder not found".into()),
-            TaskQueryError::Database(e) => AppError::SqlxError(e),
-            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
-            TaskQueryError::Other(msg) => AppError::BadRequest(msg),
-        })?;
+    remove_reminder(&state.db, reminder_id, tenant.user_id).await?;
 
     Ok(Json(json!({ "success": true })))
 }

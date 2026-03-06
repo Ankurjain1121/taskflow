@@ -26,6 +26,7 @@ use crate::state::AppState;
 
 use super::auth_password;
 use super::auth_profile;
+use super::common::MessageResponse;
 
 // ============================================================================
 // Request/Response DTOs (shared across auth modules)
@@ -71,11 +72,6 @@ pub struct UserResponse {
     pub bio: Option<String>,
     pub onboarding_completed: bool,
     pub last_login_at: Option<chrono::DateTime<chrono::Utc>>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct MessageResponse {
-    pub message: String,
 }
 
 // ============================================================================

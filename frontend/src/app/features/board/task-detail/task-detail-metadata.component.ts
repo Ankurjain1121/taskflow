@@ -21,6 +21,7 @@ import {
 } from '../../../core/services/task.service';
 import { MemberSearchResult } from '../../../core/services/workspace.service';
 import { Milestone } from '../../../core/services/milestone.service';
+import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
 
 @Component({
   selector: 'app-task-detail-metadata',
@@ -290,10 +291,10 @@ export class TaskDetailMetadataComponent {
   searchResults = input<MemberSearchResult[]>([]);
 
   prioritySelectOptions = [
-    { value: 'urgent', label: 'Urgent', color: '#ef4444' },
-    { value: 'high', label: 'High', color: '#f97316' },
-    { value: 'medium', label: 'Medium', color: '#facc15' },
-    { value: 'low', label: 'Low', color: '#60a5fa' },
+    { value: 'urgent', label: 'Urgent', color: PRIORITY_COLORS['urgent'] },
+    { value: 'high', label: 'High', color: PRIORITY_COLORS['high'] },
+    { value: 'medium', label: 'Medium', color: PRIORITY_COLORS['medium'] },
+    { value: 'low', label: 'Low', color: PRIORITY_COLORS['low'] },
   ];
 
   dueDateValue = computed(() => {

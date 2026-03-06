@@ -14,7 +14,7 @@ use std::env;
 
 use crate::errors::{AppError, Result};
 use crate::state::AppState;
-use taskflow_db::queries::recurring::{create_recurring_instance, get_due_configs};
+use taskflow_db::queries::recurring_generation::{create_recurring_instance, get_due_configs};
 use taskflow_services::broadcast::BroadcastService;
 use taskflow_services::jobs::{
     cleanup_expired_trash, scan_deadlines, send_weekly_digests, DeadlineScanResult,
@@ -236,9 +236,11 @@ struct CronHealthResponse {
 
 /// GET /api/cron/health
 ///
-/// Health check for cron system. Does not require secret.
-async fn cron_health() -> Json<CronHealthResponse> {
-    Json(CronHealthResponse {
+/// Health check for cron system. Requires X-Cron-Secret header.
+async fn cron_health(headers: HeaderMap) -> Result<Json<CronHealthResponse>> {
+    validate_cron_secret(&headers)?;
+
+    Ok(Json(CronHealthResponse {
         status: "ok",
         endpoints: vec![
             "/api/cron/deadline-scan",
@@ -246,7 +248,7 @@ async fn cron_health() -> Json<CronHealthResponse> {
             "/api/cron/trash-cleanup",
             "/api/cron/recurring-tasks",
         ],
-    })
+    }))
 }
 
 /// Create the cron router

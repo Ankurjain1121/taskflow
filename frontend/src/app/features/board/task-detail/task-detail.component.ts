@@ -161,6 +161,7 @@ import { TaskDetailFieldsComponent } from './task-detail-fields.component';
             <app-task-detail-header
               [task]="task()"
               [column]="column()"
+              [parentTitle]="parentTaskTitle()"
               (titleChanged)="onTitleSave($event)"
             />
 
@@ -395,6 +396,9 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   conflictYourChanges = signal<Partial<Task>>({});
   conflictServerVersion = signal<Task | null>(null);
   conflictOriginalTask = signal<Task | null>(null);
+
+  // Parent task
+  parentTaskTitle = signal<string | null>(null);
 
   // Lock info: who else is editing this task?
   lockedByOther = signal<TaskLockInfo | null>(null);
@@ -886,12 +890,24 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
         this.loadCustomFields();
         this.loadRecurringConfig();
         this.loadTimeEntries();
+        this.loadParentTitle(task);
         this.loading.set(false);
       },
       error: () => {
         this.loading.set(false);
       },
     });
+  }
+
+  private loadParentTitle(task: Task): void {
+    if (task.parent_task_id) {
+      this.taskService.getTask(task.parent_task_id).subscribe({
+        next: (parent) => this.parentTaskTitle.set(parent.title),
+        error: () => this.parentTaskTitle.set(null),
+      });
+    } else {
+      this.parentTaskTitle.set(null);
+    }
   }
 
   private loadDependencies(): void {

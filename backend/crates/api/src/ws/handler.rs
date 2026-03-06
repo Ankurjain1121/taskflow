@@ -8,7 +8,6 @@ use axum::{
 };
 use chrono::Utc;
 use futures_util::{SinkExt, StreamExt};
-use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -18,75 +17,11 @@ use std::sync::atomic::Ordering;
 use crate::errors::{AppError, Result};
 use crate::state::AppState;
 use crate::ws::batch_handler::{BatchHandler, BatchMessage};
+use crate::ws::messages::{ClientMessage, ServerMessage, WsQuery};
 use taskflow_auth::jwt::verify_access_token;
 use taskflow_db::models::WsBoardEvent;
 use taskflow_db::queries::boards::is_board_member;
 use taskflow_services::{BroadcastService, PresenceService};
-
-/// Query parameters for WebSocket connection (token is now optional - can be sent via first message)
-#[derive(Debug, Deserialize, Default)]
-pub struct WsQuery {
-    pub token: Option<String>,
-}
-
-/// Client message format
-/// Frontend sends: { type: 'subscribe', payload: { channel: 'board:123' } }
-#[derive(Debug, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum ClientMessage {
-    Auth { payload: AuthPayload },
-    Subscribe { payload: ChannelPayload },
-    Unsubscribe { payload: ChannelPayload },
-    Ping,
-    PresenceJoin { payload: PresencePayload },
-    PresenceLeave { payload: PresencePayload },
-    Heartbeat { payload: PresencePayload },
-    LockTask { payload: TaskIdPayload },
-    UnlockTask { payload: TaskIdPayload },
-}
-
-/// Payload for auth message
-#[derive(Debug, Deserialize)]
-pub struct AuthPayload {
-    pub token: String,
-}
-
-/// Payload for subscribe/unsubscribe messages
-#[derive(Debug, Deserialize)]
-pub struct ChannelPayload {
-    pub channel: String,
-}
-
-/// Payload for presence messages (join/leave/heartbeat a board)
-#[derive(Debug, Deserialize)]
-pub struct PresencePayload {
-    pub board_id: Uuid,
-}
-
-/// Payload for task lock/unlock messages
-#[derive(Debug, Deserialize)]
-pub struct TaskIdPayload {
-    pub task_id: Uuid,
-}
-
-/// Server message format
-#[derive(Debug, Serialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum ServerMessage {
-    Authenticated,
-    Subscribed {
-        channel: String,
-    },
-    Unsubscribed {
-        channel: String,
-    },
-    Error {
-        message: String,
-    },
-    Pong,
-    #[serde(untagged)]
-    Data(serde_json::Value),
-}
 
 /// WebSocket upgrade handler
 /// GET /api/ws or GET /api/ws?token=<jwt>
@@ -105,7 +40,9 @@ pub async fn ws_handler(
     let current = state.ws_connection_count.fetch_add(1, Ordering::Relaxed);
     if current >= state.config.ws_max_connections {
         state.ws_connection_count.fetch_sub(1, Ordering::Relaxed);
-        return Err(AppError::ServiceUnavailable("Too many WebSocket connections".into()));
+        return Err(AppError::ServiceUnavailable(
+            "Too many WebSocket connections".into(),
+        ));
     }
 
     // Try cookie first (browser automatically sends cookies with WS upgrade)

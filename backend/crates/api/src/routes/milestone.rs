@@ -12,6 +12,8 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
+
+use super::task_helpers::verify_board_membership;
 use taskflow_db::models::Milestone;
 use taskflow_db::queries::get_task_board_id;
 use taskflow_db::queries::milestones::{
@@ -42,28 +44,6 @@ pub struct UpdateMilestoneRequest {
 #[derive(Deserialize)]
 pub struct AssignMilestoneRequest {
     pub milestone_id: Uuid,
-}
-
-/// Helper: verify board membership
-async fn verify_board_membership(state: &AppState, board_id: Uuid, user_id: Uuid) -> Result<()> {
-    let is_member = sqlx::query_scalar::<_, bool>(
-        r#"
-        SELECT EXISTS(
-            SELECT 1 FROM board_members
-            WHERE board_id = $1 AND user_id = $2
-        )
-        "#,
-    )
-    .bind(board_id)
-    .bind(user_id)
-    .fetch_one(&state.db)
-    .await?;
-
-    if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
-
-    Ok(())
 }
 
 /// Map MilestoneQueryError to AppError
@@ -142,7 +122,9 @@ async fn update_milestone_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Milestone not found".into()))?;
 
-    verify_board_membership(&state, board_id, tenant.user_id).await?;
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
+    }
 
     let input = UpdateMilestoneInput {
         name: body.name,
@@ -170,7 +152,9 @@ async fn delete_milestone_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Milestone not found".into()))?;
 
-    verify_board_membership(&state, board_id, tenant.user_id).await?;
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
+    }
 
     delete_milestone(&state.db, milestone_id)
         .await
@@ -192,7 +176,9 @@ async fn assign_milestone_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_board_membership(&state, board_id, tenant.user_id).await?;
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
+    }
 
     assign_task_to_milestone(&state.db, task_id, body.milestone_id)
         .await
@@ -213,7 +199,9 @@ async fn unassign_milestone_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_board_membership(&state, board_id, tenant.user_id).await?;
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
+    }
 
     unassign_task_from_milestone(&state.db, task_id)
         .await

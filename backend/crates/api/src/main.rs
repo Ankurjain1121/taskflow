@@ -26,6 +26,7 @@ use crate::middleware::rate_limit::{
     rate_limit_layer, rate_limit_middleware, user_rate_limit_layer, user_rate_limit_middleware,
 };
 use crate::middleware::request_id::request_id_middleware;
+use crate::middleware::security_headers_middleware;
 use crate::routes::{
     activity_log_router, admin_audit_router, admin_trash_router, admin_users_router,
     archive_router, attachment_router, automation_router, automation_templates_router,
@@ -119,6 +120,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "/invitations/{id}/resend",
             axum::routing::post(routes::invitation::resend_handler),
         )
+        .route("/health/detailed", get(routes::detailed_health_handler))
         .layer(from_fn_with_state(state.clone(), auth_middleware));
 
     // Rate-limited public routes (auth endpoints vulnerable to brute force)
@@ -172,7 +174,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/api/health", get(health_handler))
         .route("/api/health/live", get(liveness_handler))
         .route("/api/health/ready", get(readiness_handler))
-        .route("/api/health/detailed", get(routes::detailed_health_handler))
         .nest("/api", protected_routes)
         .nest("/api", rate_limited_auth)
         .nest("/api", rate_limited_invitations)
@@ -287,11 +288,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Phase 4: Project templates
         .nest("/api", project_template_router(state.clone()))
         // Phase 4: Workflow automation
-        .nest("/api", automation_router(state.clone()))
+        .nest(
+            "/api",
+            automation_router(state.clone())
+                .layer(from_fn(user_rate_limit_middleware))
+                .layer(user_rate_limit_layer(20, 60)),
+        )
         // Automation templates (Phase J)
         .nest("/api", automation_templates_router(state.clone()))
         // Bulk operations with undo (Phase J)
-        .nest("/api", bulk_ops_router(state.clone()))
+        .nest(
+            "/api",
+            bulk_ops_router(state.clone())
+                .layer(from_fn(user_rate_limit_middleware))
+                .layer(user_rate_limit_layer(10, 60)),
+        )
         // Task templates
         .nest("/api", task_template_router(state.clone()))
         // Phase 4: Import/export (stricter rate limit: 10 req/min)
@@ -330,6 +341,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(rate_limit_layer(60, 60))
         // HTTP caching headers (Cache-Control)
         .layer(from_fn(cache_headers_middleware))
+        .layer(from_fn(security_headers_middleware))
         .layer(TraceLayer::new_for_http())
         .layer(from_fn(request_id_middleware))
         .layer(CompressionLayer::new())
@@ -345,7 +357,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         tracing::info!("Recurring task scheduler started (interval: 10 min)");
         loop {
             interval.tick().await;
-            match taskflow_db::queries::recurring::get_due_configs(&recurring_pool).await {
+            match taskflow_db::queries::recurring_generation::get_due_configs(&recurring_pool).await
+            {
                 Ok(configs) => {
                     if configs.is_empty() {
                         tracing::debug!("Recurring scheduler: no configs due");
@@ -355,7 +368,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let mut created = 0usize;
                     let mut errors = 0usize;
                     for config in &configs {
-                        match taskflow_db::queries::recurring::create_recurring_instance(
+                        match taskflow_db::queries::recurring_generation::create_recurring_instance(
                             &recurring_pool,
                             config,
                         )

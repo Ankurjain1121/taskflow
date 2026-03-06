@@ -62,6 +62,7 @@ export class ThemeService implements OnDestroy {
   private readonly themeApi = inject(ThemeApiService);
   private readonly userPrefsService = inject(UserPreferencesService);
   private readonly authService = inject(AuthService);
+  private _themesLoaded = false;
 
   // State signals
   readonly theme = signal<Theme>(
@@ -113,16 +114,13 @@ export class ThemeService implements OnDestroy {
     // 1. Apply cached theme immediately (sync, non-blocking)
     this.applyCachedTheme();
 
-    // 2. Fetch themes from API (async)
-    this.loadThemesFromApi();
-
-    // 3. Listen for system preference changes
+    // 2. Listen for system preference changes
     this.setupSystemPreferenceListener();
 
-    // 4. Listen for cross-tab storage changes
+    // 3. Listen for cross-tab storage changes
     this.setupCrossTabSync();
 
-    // 5. React to resolved theme or active theme changes
+    // 4. React to resolved theme or active theme changes
     effect(() => {
       const resolved = this.resolvedTheme();
       this._activeTheme(); // track active theme changes (slug or allThemes)
@@ -130,7 +128,7 @@ export class ThemeService implements OnDestroy {
       this.applyFullTheme();
     });
 
-    // 6. Debounced server save (only when authenticated)
+    // 5. Debounced server save (only when authenticated)
     this._saveSubject
       .pipe(
         filter(() => this.authService.isAuthenticated()),
@@ -143,9 +141,11 @@ export class ThemeService implements OnDestroy {
       )
       .subscribe();
 
-    // 7. Load user preferences when authenticated (not eagerly)
+    // 6. Fetch themes + user preferences only once when authenticated
     effect(() => {
-      if (this.authService.isAuthenticated()) {
+      if (this.authService.isAuthenticated() && !this._themesLoaded) {
+        this._themesLoaded = true;
+        this.loadThemesFromApi();
         this.loadUserPreferences();
       }
     });
@@ -324,7 +324,15 @@ export class ThemeService implements OnDestroy {
     const accentRamp = accent !== 'indigo' ? COLOR_PALETTES[accent] : null;
     const ramp = accentRamp ?? theme?.primeng_ramp;
     if (ramp) {
-      this.updatePrimeNG(ramp);
+      const surfaces = theme?.colors
+        ? {
+            s0: theme.colors['surface-0'],
+            s1: theme.colors['surface-1'],
+            s2: theme.colors['surface-2'],
+            s3: theme.colors['surface-3'],
+          }
+        : undefined;
+      this.updatePrimeNG(ramp, isDark, surfaces);
     }
   }
 
@@ -418,9 +426,48 @@ export class ThemeService implements OnDestroy {
     }
   }
 
-  private updatePrimeNG(ramp: Record<string, string>): void {
+  private updatePrimeNG(
+    ramp: Record<string, string>,
+    isDark: boolean,
+    surfaces?: { s0?: string; s1?: string; s2?: string; s3?: string },
+  ): void {
+    const scheme = isDark ? 'dark' : 'light';
+    const colorScheme: Record<string, Record<string, unknown>> = {};
+
+    if (surfaces?.s0) {
+      const base = surfaces.s0;
+      const s1 = surfaces.s1 ?? base;
+      const s2 = surfaces.s2 ?? s1;
+      const s3 = surfaces.s3 ?? s2;
+
+      colorScheme[scheme] = {
+        surface: {
+          0: base,
+          50: base,
+          100: s1,
+          200: s1,
+          300: s2,
+          400: s2,
+          500: s3,
+          600: s3,
+          700: s3,
+          800: s3,
+          900: s3,
+          950: s3,
+        },
+        highlight: {
+          background: `color-mix(in srgb, ${ramp['450'] ?? ramp['550']} 16%, transparent)`,
+          focusBackground: `color-mix(in srgb, ${ramp['450'] ?? ramp['550']} 24%, transparent)`,
+          color: ramp['450'] ?? ramp['550'],
+          focusColor: ramp['350'] ?? ramp['450'] ?? ramp['550'],
+        },
+      };
+    }
+
     this.primeng.theme.set({
-      preset: definePreset(Aura, { semantic: { primary: ramp } }),
+      preset: definePreset(Aura, {
+        semantic: { primary: ramp, colorScheme },
+      }),
       options: {
         darkModeSelector: '.dark',
         cssLayer: { name: 'primeng', order: 'theme, base, primeng' },

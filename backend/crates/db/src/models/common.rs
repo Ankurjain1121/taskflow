@@ -339,7 +339,7 @@ mod tests {
     #[test]
     fn test_workspace_visibility_clone_and_eq() {
         let vis = WorkspaceVisibility::Open;
-        let cloned = vis.clone();
+        let cloned = vis;
         assert_eq!(vis, cloned);
         assert_ne!(vis, WorkspaceVisibility::Closed);
     }
@@ -372,8 +372,10 @@ mod tests {
 
     #[test]
     fn test_board_member_role_invalid_value_rejected() {
-        let result: std::result::Result<BoardMemberRole, _> =
-            serde_json::from_str("\"moderator\"");
-        assert!(result.is_err(), "Invalid board member role should be rejected");
+        let result: std::result::Result<BoardMemberRole, _> = serde_json::from_str("\"moderator\"");
+        assert!(
+            result.is_err(),
+            "Invalid board member role should be rejected"
+        );
     }
 }

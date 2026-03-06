@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
 import { Tag } from 'primeng/tag';
@@ -16,11 +17,25 @@ import { Column } from '../../../core/services/board.service';
 @Component({
   selector: 'app-task-detail-header',
   standalone: true,
-  imports: [CommonModule, FormsModule, InputTextModule, ButtonModule, Tag],
+  imports: [CommonModule, FormsModule, RouterModule, InputTextModule, ButtonModule, Tag],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (task(); as t) {
       <div class="space-y-2">
+        <!-- Parent task link -->
+        @if (t.parent_task_id && parentTitle()) {
+          <div class="flex items-center gap-1.5 text-xs" style="color: var(--muted-foreground)">
+            <i class="pi pi-arrow-up-right" style="font-size: 0.625rem"></i>
+            <span>Child of</span>
+            <a
+              [routerLink]="['/task', t.parent_task_id]"
+              class="hover:underline"
+              style="color: var(--primary)"
+              >{{ parentTitle() }}</a
+            >
+          </div>
+        }
+
         <!-- Done badge -->
         @if (column()?.status_mapping?.done) {
           <p-tag value="Done" severity="success" />
@@ -64,6 +79,7 @@ import { Column } from '../../../core/services/board.service';
 export class TaskDetailHeaderComponent {
   task = input.required<Task | null>();
   column = input<Column | null>(null);
+  parentTitle = input<string | null>(null);
 
   titleChanged = output<string>();
   closeRequested = output<void>();

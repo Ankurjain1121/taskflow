@@ -168,7 +168,7 @@ describe('task-detail-helpers', () => {
 
     it('should return default color for future dates', () => {
       const result = getDueDateDisplayColor('2026-03-15');
-      expect(result).toBe('var(--text-color, #1e293b)');
+      expect(result).toBe('var(--foreground)');
     });
   });
 });

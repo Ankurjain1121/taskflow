@@ -18,6 +18,8 @@ use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
+use super::common::MessageResponse;
+
 // ============================================================================
 // Request/Response DTOs
 // ============================================================================
@@ -74,11 +76,6 @@ pub struct TeamMemberResponse {
     pub email: String,
     pub avatar_url: Option<String>,
     pub added_at: chrono::DateTime<chrono::Utc>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct MessageResponse {
-    pub message: String,
 }
 
 // ============================================================================

@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TaskPriority } from '../../../../../core/services/task.service';
+import { PRIORITY_COLORS } from '../../../../../shared/constants/priority-colors';
 
 interface PriorityOption {
   value: TaskPriority | 'none';
@@ -65,11 +66,11 @@ export class PriorityPickerComponent implements OnInit {
   current = signal<TaskPriority | 'none'>('none');
 
   readonly options: PriorityOption[] = [
-    { value: 'none', label: 'No priority', color: '#9ca3af' },
-    { value: 'low', label: 'Low', color: '#3b82f6' },
-    { value: 'medium', label: 'Medium', color: '#eab308' },
-    { value: 'high', label: 'High', color: '#f97316' },
-    { value: 'urgent', label: 'Urgent', color: '#ef4444' },
+    { value: 'none', label: 'No priority', color: PRIORITY_COLORS['none'] },
+    { value: 'low', label: 'Low', color: PRIORITY_COLORS['low'] },
+    { value: 'medium', label: 'Medium', color: PRIORITY_COLORS['medium'] },
+    { value: 'high', label: 'High', color: PRIORITY_COLORS['high'] },
+    { value: 'urgent', label: 'Urgent', color: PRIORITY_COLORS['urgent'] },
   ];
 
   ngOnInit(): void {

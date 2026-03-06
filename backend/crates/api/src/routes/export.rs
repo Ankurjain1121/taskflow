@@ -19,6 +19,8 @@ use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
+use super::task_helpers::verify_board_membership;
+
 // ============================================================================
 // DTOs
 // ============================================================================
@@ -98,23 +100,6 @@ struct TaskAssigneeRow {
 // Helpers
 // ============================================================================
 
-/// Verify the current user is a board member. Returns Err(AppError) if not.
-async fn verify_board_membership(db: &sqlx::PgPool, board_id: Uuid, user_id: Uuid) -> Result<()> {
-    let is_member: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)",
-    )
-    .bind(board_id)
-    .bind(user_id)
-    .fetch_one(db)
-    .await
-    .map_err(AppError::from)?;
-
-    if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
-    Ok(())
-}
-
 /// Escape a field for CSV output (wrap in quotes if it contains comma, quote, or newline).
 fn csv_escape(field: &str) -> String {
     if field.contains(',') || field.contains('"') || field.contains('\n') {
@@ -137,7 +122,9 @@ async fn export_handler(
     Path(board_id): Path<Uuid>,
     Query(query): Query<ExportQuery>,
 ) -> Result<Response> {
-    verify_board_membership(&state.db, board_id, tenant.user_id).await?;
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
+    }
 
     match query.format.as_str() {
         "csv" => export_csv(&state.db, board_id).await,

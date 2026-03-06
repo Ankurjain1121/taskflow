@@ -18,7 +18,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use taskflow_db::models::automation::{AutomationActionType, AutomationTrigger};
-use taskflow_db::queries::automations::{get_active_rules_for_trigger, log_automation};
+use taskflow_db::queries::automation_evaluation::{get_active_rules_for_trigger, log_automation};
 
 /// Maximum recursion depth for automation chains
 const MAX_DEPTH: u8 = 3;

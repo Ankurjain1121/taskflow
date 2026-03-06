@@ -1,7 +1,7 @@
 # Contributing to TaskFlow
 
 > Auto-generated from source-of-truth: package.json, Cargo.toml, .env.example, scripts/, codemaps/
-> Last updated: 2026-02-23
+> Last updated: 2026-03-05
 
 ## Prerequisites
 
@@ -38,9 +38,9 @@ open http://localhost:4200
 taskflow/
 ├── backend/                Rust API server (Axum 0.8)
 │   └── crates/
-│       ├── api/            HTTP routes (58 files, 150+ endpoints), middleware (5), WebSocket
+│       ├── api/            HTTP routes (68 files, 150+ endpoints), middleware (6), WebSocket
 │       ├── auth/           JWT (RS256/HS256), Argon2 passwords, RBAC
-│       ├── db/             SQLx models (38+ query modules), 21 migrations, 45+ tables
+│       ├── db/             SQLx models (33 modules), 41 migrations, 45+ tables
 │       └── services/       Broadcast, notifications, S3, audit, trash, jobs (4)
 ├── frontend/               Angular 19 SPA
 │   ├── src/app/
@@ -48,7 +48,7 @@ taskflow/
 │   │   ├── features/       15 feature modules (auth, board, dashboard, my-tasks, team, workspace, settings, admin, etc.)
 │   │   └── shared/         Layout, sidebar, search, dialogs, pipes, utils
 │   └── e2e/                Playwright E2E tests (16 standard + 9 comprehensive specs)
-├── codemaps/               Architecture documentation (architecture, backend, frontend, data)
+├── docs/CODEMAPS/          Architecture documentation (architecture, backend, frontend, data, dependencies)
 ├── scripts/                Automation scripts
 ├── .githooks/              Pre-commit hooks
 └── .github/workflows/      CI/CD pipeline
@@ -81,6 +81,7 @@ taskflow/
 | `npm test` | `ng test` | Run unit tests (Vitest) |
 | `npm run test:e2e` | `npx playwright test --project=chromium` | Run E2E tests headless |
 | `npm run test:e2e:headed` | `npx playwright test --project=chromium --headed` | Run E2E tests with browser |
+| `npm run test:coverage` | `ng test -- --coverage` | Unit tests with coverage report |
 | `npm run test:e2e:report` | `npx playwright show-report playwright-report` | View E2E test report |
 
 ## Backend Commands
@@ -207,14 +208,16 @@ Dependencies: `api -> {auth, db, services}`, `services -> {auth, db}`, `auth -> 
 | Middleware | Purpose |
 |-----------|---------|
 | auth | JWT from cookie/Bearer -> AuthUser{user_id, tenant_id, role} |
-| rate_limit | IP sliding-window via DashMap |
+| rate_limit | IP sliding-window via DashMap (60/min global, per-user overrides) |
+| security_headers | X-Frame-Options, X-Content-Type-Options, Referrer-Policy, X-XSS-Protection |
+| cache_headers | Cache-Control based on route |
 | audit | POST/PUT/PATCH/DELETE audit logging (fire-and-forget) |
 | tenant | SET app.tenant_id per-tx for RLS |
 | request_id | Unique request ID for tracing |
 
 ### Key Features
 
-- **150+ API endpoints** across 58 route files
+- **150+ API endpoints** across 68 route files
 - **Multi-tenancy** via PostgreSQL Row-Level Security (RLS)
 - **Real-time** via WebSocket + Redis pub/sub (board/user/workspace channels)
 - **Role hierarchy**: Global (Admin > Manager > Member) > Workspace (Owner > Admin > Member > Viewer) > Board (Editor > Viewer)
@@ -315,8 +318,9 @@ GitHub Actions runs on push/PR to `master`:
 
 ## Database Schema at a Glance
 
-- **45+ tables** across 21 migrations
+- **45+ tables** across 41 migrations
 - **12 enums** (user_role, task_priority, automation_trigger, etc.)
+- **3 materialized views** (cycle_time, velocity, workload) for dashboard metrics
 - **Key indexes**: GIN on search_vector, partial indexes on eisenhower, due_date, running time entries, recurring next_run
 - **4 triggers**: updated_at auto-set (17+ tables), search_vector maintenance, default task group creation, teams updated_at
-- See `codemaps/data.md` for full schema details
+- See `docs/CODEMAPS/data.md` for full schema details

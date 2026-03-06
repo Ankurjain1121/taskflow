@@ -5,14 +5,14 @@ import {
   inject,
   effect,
   Injector,
+  DestroyRef,
   OnInit,
-  OnDestroy,
   untracked,
   ChangeDetectionStrategy,
   ViewChild,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { Subject, takeUntil } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 
 import {
@@ -24,6 +24,7 @@ import { AttachmentListComponent } from '../attachment-list/attachment-list.comp
 import { FileUploadZoneComponent } from '../file-upload-zone/file-upload-zone.component';
 import { Attachment } from '../../../core/services/attachment.service';
 import { RichTextEditorComponent } from '../../../shared/components/rich-text-editor/rich-text-editor.component';
+import { RenderMentionsPipe } from '../../tasks/components/comment-list/comment-list.component';
 
 interface CommentThread {
   comment: Comment;
@@ -39,6 +40,7 @@ interface CommentThread {
     AttachmentListComponent,
     FileUploadZoneComponent,
     RichTextEditorComponent,
+    RenderMentionsPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -170,7 +172,7 @@ interface CommentThread {
                     } @else {
                       <div
                         class="text-sm text-[var(--foreground)] break-words comment-content"
-                        [innerHTML]="thread.comment.content"
+                        [innerHTML]="thread.comment.content | renderMentions"
                       ></div>
 
                       <!-- Actions -->
@@ -273,7 +275,7 @@ interface CommentThread {
                           } @else {
                             <div
                               class="text-sm text-[var(--foreground)] break-words comment-content"
-                              [innerHTML]="reply.content"
+                              [innerHTML]="reply.content | renderMentions"
                             ></div>
                             <div
                               class="flex items-center gap-3 mt-0.5 opacity-0 group-hover/reply:opacity-100 transition-opacity"
@@ -394,11 +396,11 @@ interface CommentThread {
     `,
   ],
 })
-export class TaskDetailActivityComponent implements OnInit, OnDestroy {
+export class TaskDetailActivityComponent implements OnInit {
   private commentService = inject(CommentService);
   private authService = inject(AuthService);
   private injector = inject(Injector);
-  private destroy$ = new Subject<void>();
+  private destroyRef = inject(DestroyRef);
 
   @ViewChild('attachmentList') attachmentList!: AttachmentListComponent;
 
@@ -430,16 +432,13 @@ export class TaskDetailActivityComponent implements OnInit, OnDestroy {
     );
   }
 
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
+
 
   loadComments(): void {
     this.loading.set(true);
     this.commentService
       .listByTask(this.taskId())
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (comments) => {
           this.comments.set(comments);
@@ -485,7 +484,7 @@ export class TaskDetailActivityComponent implements OnInit, OnDestroy {
 
     this.commentService
       .create(this.taskId(), content)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (comment) => {
           this.comments.update((c) =>
@@ -536,7 +535,7 @@ export class TaskDetailActivityComponent implements OnInit, OnDestroy {
 
     this.commentService
       .create(this.taskId(), content, parentId)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (comment) => {
           this.comments.update((c) =>
@@ -584,7 +583,7 @@ export class TaskDetailActivityComponent implements OnInit, OnDestroy {
 
     this.commentService
       .update(commentId, content)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
           this.comments.update((comments) =>
@@ -611,7 +610,7 @@ export class TaskDetailActivityComponent implements OnInit, OnDestroy {
 
     this.commentService
       .delete(commentId)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         error: () => {
           this.comments.set(snapshot);

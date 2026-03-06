@@ -4,6 +4,7 @@ pub mod activity_log;
 pub mod archive;
 pub mod attachments;
 pub mod auth;
+pub mod automation_evaluation;
 pub mod automation_templates;
 pub mod automations;
 pub mod board_shares;
@@ -26,6 +27,7 @@ pub mod positions;
 pub mod project_templates;
 pub mod recent_items;
 pub mod recurring;
+pub mod recurring_generation;
 pub mod reports;
 pub mod search;
 pub mod subtasks;
@@ -56,6 +58,7 @@ mod integration_tests_extra;
 
 pub use activity_log::*;
 pub use attachments::*;
+pub use automation_evaluation::*;
 pub use automation_templates::*;
 pub use automations::*;
 pub use board_shares::*;
@@ -72,6 +75,7 @@ pub use notifications::*;
 pub use positions::*;
 pub use project_templates::*;
 pub use recurring::*;
+pub use recurring_generation::*;
 pub use subtasks::*;
 pub use task_assignments::*;
 pub use task_bulk::*;
@@ -102,3 +106,28 @@ pub use themes::*;
 // Re-export with module paths for clarity (avoid name collisions)
 pub use user_preferences as user_prefs;
 pub use workspace_api_keys as api_keys;
+
+use sqlx::PgPool;
+use uuid::Uuid;
+
+/// Verify that a user is a member of a board.
+/// Returns `true` if the user is a member, `false` otherwise.
+pub(crate) async fn verify_board_membership_internal(
+    pool: &PgPool,
+    board_id: Uuid,
+    user_id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS(
+            SELECT 1 FROM board_members
+            WHERE board_id = $1 AND user_id = $2
+        )
+        "#,
+    )
+    .bind(board_id)
+    .bind(user_id)
+    .fetch_one(pool)
+    .await?;
+    Ok(result)
+}
