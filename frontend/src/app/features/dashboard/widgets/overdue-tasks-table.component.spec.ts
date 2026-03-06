@@ -34,14 +34,14 @@ describe('OverdueTasksTableComponent', () => {
           {
             id: 't-1',
             title: 'Overdue 1',
-            project_name: 'Project A',
+            board_name: 'Board A',
             priority: 'urgent',
             days_overdue: 5,
           },
           {
             id: 't-2',
             title: 'Overdue 2',
-            project_name: 'Project B',
+            board_name: 'Board B',
             priority: 'high',
             days_overdue: 2,
           },

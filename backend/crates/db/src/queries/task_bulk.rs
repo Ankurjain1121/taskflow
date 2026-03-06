@@ -21,21 +21,21 @@ pub struct BulkUpdateInput {
 /// Bulk update multiple tasks at once
 pub async fn bulk_update_tasks(
     pool: &PgPool,
-    project_id: Uuid,
+    board_id: Uuid,
     user_id: Uuid,
     input: BulkUpdateInput,
 ) -> std::result::Result<u64, TaskQueryError> {
-    // Verify project membership
+    // Verify board membership
     let is_member = sqlx::query_scalar::<_, bool>(
-        "SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)",
+        "SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)",
     )
-    .bind(project_id)
+    .bind(board_id)
     .bind(user_id)
     .fetch_one(pool)
     .await?;
 
     if !is_member {
-        return Err(TaskQueryError::NotProjectMember);
+        return Err(TaskQueryError::NotBoardMember);
     }
 
     if input.task_ids.is_empty() {
@@ -49,12 +49,12 @@ pub async fn bulk_update_tasks(
         let result = sqlx::query(
             r#"
             UPDATE tasks SET column_id = $1, updated_at = now()
-            WHERE id = ANY($2) AND project_id = $3 AND deleted_at IS NULL
+            WHERE id = ANY($2) AND board_id = $3 AND deleted_at IS NULL
             "#,
         )
         .bind(column_id)
         .bind(&input.task_ids)
-        .bind(project_id)
+        .bind(board_id)
         .execute(pool)
         .await?;
         updated = result.rows_affected();
@@ -65,12 +65,12 @@ pub async fn bulk_update_tasks(
         let result = sqlx::query(
             r#"
             UPDATE tasks SET priority = $1, updated_at = now()
-            WHERE id = ANY($2) AND project_id = $3 AND deleted_at IS NULL
+            WHERE id = ANY($2) AND board_id = $3 AND deleted_at IS NULL
             "#,
         )
         .bind(priority)
         .bind(&input.task_ids)
-        .bind(project_id)
+        .bind(board_id)
         .execute(pool)
         .await?;
         updated = result.rows_affected();
@@ -81,11 +81,11 @@ pub async fn bulk_update_tasks(
         let result = sqlx::query(
             r#"
             UPDATE tasks SET milestone_id = NULL, updated_at = now()
-            WHERE id = ANY($1) AND project_id = $2 AND deleted_at IS NULL
+            WHERE id = ANY($1) AND board_id = $2 AND deleted_at IS NULL
             "#,
         )
         .bind(&input.task_ids)
-        .bind(project_id)
+        .bind(board_id)
         .execute(pool)
         .await?;
         updated = result.rows_affected();
@@ -93,12 +93,12 @@ pub async fn bulk_update_tasks(
         let result = sqlx::query(
             r#"
             UPDATE tasks SET milestone_id = $1, updated_at = now()
-            WHERE id = ANY($2) AND project_id = $3 AND deleted_at IS NULL
+            WHERE id = ANY($2) AND board_id = $3 AND deleted_at IS NULL
             "#,
         )
         .bind(milestone_id)
         .bind(&input.task_ids)
-        .bind(project_id)
+        .bind(board_id)
         .execute(pool)
         .await?;
         updated = result.rows_affected();
@@ -109,11 +109,11 @@ pub async fn bulk_update_tasks(
         let result = sqlx::query(
             r#"
             UPDATE tasks SET group_id = NULL, updated_at = now()
-            WHERE id = ANY($1) AND project_id = $2 AND deleted_at IS NULL
+            WHERE id = ANY($1) AND board_id = $2 AND deleted_at IS NULL
             "#,
         )
         .bind(&input.task_ids)
-        .bind(project_id)
+        .bind(board_id)
         .execute(pool)
         .await?;
         updated = result.rows_affected();
@@ -121,12 +121,12 @@ pub async fn bulk_update_tasks(
         let result = sqlx::query(
             r#"
             UPDATE tasks SET group_id = $1, updated_at = now()
-            WHERE id = ANY($2) AND project_id = $3 AND deleted_at IS NULL
+            WHERE id = ANY($2) AND board_id = $3 AND deleted_at IS NULL
             "#,
         )
         .bind(group_id)
         .bind(&input.task_ids)
-        .bind(project_id)
+        .bind(board_id)
         .execute(pool)
         .await?;
         updated = result.rows_affected();
@@ -138,30 +138,30 @@ pub async fn bulk_update_tasks(
 /// Bulk delete (soft) multiple tasks
 pub async fn bulk_delete_tasks(
     pool: &PgPool,
-    project_id: Uuid,
+    board_id: Uuid,
     user_id: Uuid,
     task_ids: &[Uuid],
 ) -> std::result::Result<u64, TaskQueryError> {
     let is_member = sqlx::query_scalar::<_, bool>(
-        "SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)",
+        "SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)",
     )
-    .bind(project_id)
+    .bind(board_id)
     .bind(user_id)
     .fetch_one(pool)
     .await?;
 
     if !is_member {
-        return Err(TaskQueryError::NotProjectMember);
+        return Err(TaskQueryError::NotBoardMember);
     }
 
     let result = sqlx::query(
         r#"
         UPDATE tasks SET deleted_at = now(), updated_at = now()
-        WHERE id = ANY($1) AND project_id = $2 AND deleted_at IS NULL
+        WHERE id = ANY($1) AND board_id = $2 AND deleted_at IS NULL
         "#,
     )
     .bind(task_ids)
-    .bind(project_id)
+    .bind(board_id)
     .execute(pool)
     .await?;
 

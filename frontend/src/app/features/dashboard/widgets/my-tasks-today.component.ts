@@ -84,7 +84,7 @@ import {
                   class="flex items-center gap-2 mt-0.5 text-xs"
                   style="color: var(--muted-foreground)"
                 >
-                  <span>{{ task.project_name }}</span>
+                  <span>{{ task.board_name }}</span>
                   @if (isOverdue(task)) {
                     <span class="text-red-500 font-medium">Overdue</span>
                   } @else if (isDueToday(task)) {

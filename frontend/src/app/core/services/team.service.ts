@@ -26,7 +26,7 @@ export interface OverloadedMember {
 export interface MemberTask {
   task_id: string;
   title: string;
-  project_name: string;
+  board_name: string;
   column_name: string;
   priority: string;
   due_date: string | null;

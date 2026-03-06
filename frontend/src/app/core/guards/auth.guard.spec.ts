@@ -44,7 +44,7 @@ describe('auth guards', () => {
       mockAuthService.isAuthenticated.mockReturnValue(true);
 
       const result = TestBed.runInInjectionContext(() =>
-        authGuard(mockRoute, createMockState('/dashboard/projects')),
+        authGuard(mockRoute, createMockState('/dashboard/boards')),
       );
 
       expect(result).toBe(true);
@@ -64,12 +64,12 @@ describe('auth guards', () => {
       mockAuthService.isAuthenticated.mockReturnValue(false);
 
       const result = TestBed.runInInjectionContext(() =>
-        authGuard(mockRoute, createMockState('/dashboard/projects')),
+        authGuard(mockRoute, createMockState('/dashboard/boards')),
       );
 
       expect(result).toBe(fakeUrlTree);
       expect(mockRouter.createUrlTree).toHaveBeenCalledWith(['/auth/sign-in'], {
-        queryParams: { returnUrl: '/dashboard/projects' },
+        queryParams: { returnUrl: '/dashboard/boards' },
       });
     });
 

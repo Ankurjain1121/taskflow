@@ -21,7 +21,7 @@ const MOCK_CONFIG: RecurringTaskConfig = {
   is_active: true,
   max_occurrences: null,
   occurrences_created: 0,
-  project_id: 'board-1',
+  board_id: 'board-1',
   tenant_id: 'tenant-1',
   created_by_id: 'user-1',
   created_at: '2026-02-20T00:00:00Z',

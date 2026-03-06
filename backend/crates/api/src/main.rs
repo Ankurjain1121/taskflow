@@ -30,18 +30,18 @@ use crate::middleware::security_headers_middleware;
 use crate::routes::{
     activity_log_router, admin_audit_router, admin_trash_router, admin_users_router,
     archive_router, attachment_router, automation_router, automation_templates_router,
-    bulk_ops_router, column_router, comment_router, cron_router, custom_field_router,
-    dashboard_router, dependency_router, eisenhower_router, favorites_router,
+    board_columns_router, board_positions_router, board_router, board_share_router,
+    board_templates_router, bulk_ops_router, column_router, comment_router, cron_router,
+    custom_field_router, dashboard_router, dependency_router, eisenhower_router, favorites_router,
     filter_presets_router, health_handler, liveness_handler, milestone_router, my_tasks_router,
     notification_preferences_router, notification_router, onboarding_router, positions_router,
-    project_columns_router, project_positions_router, project_router, project_share_router,
-    project_template_router, readiness_handler, recent_items_router,
-    recurring_router, reports_router, search_router, sessions_router, shared_project_public_router,
-    subtask_router, task_group_routes, task_router, task_template_router, team_overview_router,
-    teams_router, tenant_router, themes_router, time_entry_router, upload_router,
-    user_preferences_router, webhook_router, workspace_api_keys_router, workspace_audit_router,
-    workspace_export_router, workspace_job_roles_router, workspace_labels_router,
-    workspace_projects_router, workspace_router, workspace_teams_router, workspace_trash_router,
+    project_template_router, readiness_handler, recent_items_router, recurring_router,
+    reports_router, search_router, sessions_router, shared_board_public_router, subtask_router,
+    task_group_routes, task_router, task_template_router, team_overview_router, teams_router,
+    tenant_router, themes_router, time_entry_router, upload_router, user_preferences_router,
+    webhook_router, workspace_api_keys_router, workspace_audit_router, workspace_boards_router,
+    workspace_export_router, workspace_job_roles_router, workspace_labels_router, workspace_router,
+    workspace_teams_router, workspace_trash_router,
 };
 use crate::routes::{metrics_cron_router, metrics_router};
 use crate::state::AppState;
@@ -194,8 +194,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api/workspaces", workspace_router(state.clone()))
         .nest("/api/workspaces", workspace_job_roles_router(state.clone()))
         .nest(
-            "/api/workspaces/{workspace_id}/projects",
-            workspace_projects_router(state.clone()),
+            "/api/workspaces/{workspace_id}/boards",
+            workspace_boards_router(state.clone()),
         )
         // Workspace labels routes
         .nest(
@@ -224,23 +224,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         // Team routes (direct)
         .nest("/api/teams", teams_router(state.clone()))
-        // Filter presets (per-user per-project)
+        // Filter presets (per-user per-board)
         .nest(
-            "/api/projects/{project_id}/filter-presets",
+            "/api/boards/{board_id}/filter-presets",
             filter_presets_router(state.clone()),
         )
-        // Position routes (project-scoped)
+        // Position routes (board-scoped)
         .nest(
-            "/api/projects/{project_id}/positions",
-            project_positions_router(state.clone()),
+            "/api/boards/{board_id}/positions",
+            board_positions_router(state.clone()),
         )
         // Position routes (direct)
         .nest("/api/positions", positions_router(state.clone()))
-        // Project routes
-        .nest("/api/projects", project_router(state.clone()))
+        // Board routes
         .nest(
-            "/api/projects/{project_id}/columns",
-            project_columns_router(state.clone()),
+            "/api/board-templates",
+            board_templates_router(state.clone()),
+        )
+        .nest("/api/boards", board_router(state.clone()))
+        .nest(
+            "/api/boards/{board_id}/columns",
+            board_columns_router(state.clone()),
         )
         // Column routes
         .nest("/api/columns", column_router(state.clone()))
@@ -252,7 +256,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", metrics_cron_router())
         // Metrics routes (auth required)
         .nest("/api", metrics_router(state.clone()))
-        // Onprojecting routes
+        // Onboarding routes
         .nest("/api/onboarding", onboarding_router(state.clone()))
         // Team overview routes (nested under workspace)
         .nest(
@@ -263,7 +267,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api/my-tasks", my_tasks_router(state.clone()))
         // Eisenhower Matrix routes
         .nest("/api/eisenhower", eisenhower_router(state.clone()))
-        // Dashproject routes
+        // Dashboard routes
         .nest("/api/dashboard", dashboard_router(state.clone()))
         // Admin routes (require Admin role)
         .nest("/api", admin_audit_router(state.clone()))
@@ -314,9 +318,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .layer(from_fn(rate_limit_middleware))
                 .layer(rate_limit_layer(10, 60)),
         )
-        // Phase 4: Client portal (project shares)
-        .nest("/api", project_share_router(state.clone()))
-        .nest("/api", shared_project_public_router())
+        // Phase 4: Client portal (board shares)
+        .nest("/api", board_share_router(state.clone()))
+        .nest("/api", shared_board_public_router())
         // Phase 4: Webhooks
         .nest("/api", webhook_router(state.clone()))
         // Themes (public)

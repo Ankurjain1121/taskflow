@@ -27,7 +27,7 @@ describe('CacheService', () => {
   describe('Basic Caching', () => {
     it('should cache observable and return same instance for same key', async () => {
       const key = 'test:board:123';
-      const mockData = { id: '123', name: 'Test Project' };
+      const mockData = { id: '123', name: 'Test Board' };
       let callCount = 0;
 
       const factory = () => {
@@ -341,10 +341,10 @@ describe('CacheService', () => {
       const factory = () => of(mockData);
 
       return new Promise((resolve) => {
-        service.get('projects:workspace-1', factory).subscribe(() => {
+        service.get('boards:workspace-1', factory).subscribe(() => {
           service.get('tasks:column-1', factory).subscribe(() => {
             const stats = service.getStats();
-            expect(stats.keys).toContain('projects:workspace-1');
+            expect(stats.keys).toContain('boards:workspace-1');
             expect(stats.keys).toContain('tasks:column-1');
             expect(stats.keys.length).toBe(2);
             resolve(undefined);
@@ -356,7 +356,7 @@ describe('CacheService', () => {
 
   describe('Real-World Scenarios', () => {
     it('should handle board + tasks + columns caching', async () => {
-      const mockBoard = { id: '1', name: 'Project 1' };
+      const mockBoard = { id: '1', name: 'Board 1' };
       const mockTasks = [{ id: 't1', title: 'Task 1' }];
       const mockColumns = [{ id: 'c1', name: 'Todo' }];
 

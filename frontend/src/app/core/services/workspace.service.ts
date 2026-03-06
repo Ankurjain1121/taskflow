@@ -121,7 +121,7 @@ export class WorkspaceService {
       workspace_id: workspaceId,
       role,
       message: message || undefined,
-      project_ids: boardIds && boardIds.length > 0 ? boardIds : undefined,
+      board_ids: boardIds && boardIds.length > 0 ? boardIds : undefined,
       job_title: jobTitle || undefined,
     });
   }
@@ -420,7 +420,7 @@ export interface InvitationWithStatus {
   created_at: string;
   status: 'pending' | 'accepted' | 'expired';
   message?: string;
-  project_ids?: string[];
+  board_ids?: string[];
 }
 
 export interface BulkInviteResponse {
@@ -433,7 +433,7 @@ export interface WorkspaceLabel {
   name: string;
   color: string;
   workspace_id: string;
-  project_id: string | null;
+  board_id: string | null;
   created_at: string;
 }
 

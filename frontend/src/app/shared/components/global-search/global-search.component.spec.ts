@@ -19,7 +19,7 @@ import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortc
 
 const EMPTY_RESULTS: SearchResults = {
   tasks: [],
-  projects: [],
+  boards: [],
   comments: [],
 };
 
@@ -29,13 +29,13 @@ const SAMPLE_RESULTS: SearchResults = {
       id: 'task-1',
       title: 'Fix Bug',
       description: 'Fix the login bug',
-      project_id: 'board-1',
-      project_name: 'Sprint Board',
+      board_id: 'board-1',
+      board_name: 'Sprint Board',
       workspace_id: 'ws-1',
       workspace_name: 'My Workspace',
     },
   ],
-  projects: [
+  boards: [
     {
       id: 'board-1',
       name: 'Sprint Board',
@@ -50,8 +50,8 @@ const SAMPLE_RESULTS: SearchResults = {
       content: 'Looks good',
       task_id: 'task-1',
       task_title: 'Fix Bug',
-      project_id: 'board-1',
-      project_name: 'Sprint Board',
+      board_id: 'board-1',
+      board_name: 'Sprint Board',
       workspace_id: 'ws-1',
     },
   ],
@@ -212,10 +212,10 @@ describe('GlobalSearchComponent', () => {
       expect(component.hasResults()).toBe(true);
     });
 
-    it('should return true when projects exist', () => {
+    it('should return true when boards exist', () => {
       component.results.set({
         ...EMPTY_RESULTS,
-        projects: SAMPLE_RESULTS.projects,
+        boards: SAMPLE_RESULTS.boards,
       });
       expect(component.hasResults()).toBe(true);
     });
@@ -320,8 +320,8 @@ describe('GlobalSearchComponent', () => {
         id: 'task-1',
         title: 'Test',
         description: null,
-        project_id: 'board-1',
-        project_name: 'Project',
+        board_id: 'board-1',
+        board_name: 'Board',
         workspace_id: 'ws-1',
         workspace_name: 'WS',
       };
@@ -329,7 +329,7 @@ describe('GlobalSearchComponent', () => {
       component.navigateToTask(task);
 
       expect(mockRouter.navigate).toHaveBeenCalledWith(
-        ['/workspace', 'ws-1', 'project', 'board-1'],
+        ['/workspace', 'ws-1', 'board', 'board-1'],
         { queryParams: { task: 'task-1' } },
       );
       expect(closedSpy).toHaveBeenCalled();
@@ -339,7 +339,7 @@ describe('GlobalSearchComponent', () => {
       const closedSpy = vi.spyOn(component.closed, 'emit');
       const board: BoardSearchResult = {
         id: 'board-1',
-        name: 'Project',
+        name: 'Board',
         description: null,
         workspace_id: 'ws-1',
         workspace_name: 'WS',
@@ -350,7 +350,7 @@ describe('GlobalSearchComponent', () => {
       expect(mockRouter.navigate).toHaveBeenCalledWith([
         '/workspace',
         'ws-1',
-        'project',
+        'board',
         'board-1',
       ]);
       expect(closedSpy).toHaveBeenCalled();
@@ -363,15 +363,15 @@ describe('GlobalSearchComponent', () => {
         content: 'Comment',
         task_id: 'task-1',
         task_title: 'Task',
-        project_id: 'board-1',
-        project_name: 'Project',
+        board_id: 'board-1',
+        board_name: 'Board',
         workspace_id: 'ws-1',
       };
 
       component.navigateToComment(comment);
 
       expect(mockRouter.navigate).toHaveBeenCalledWith(
-        ['/workspace', 'ws-1', 'project', 'board-1'],
+        ['/workspace', 'ws-1', 'board', 'board-1'],
         { queryParams: { task: 'task-1' } },
       );
       expect(closedSpy).toHaveBeenCalled();

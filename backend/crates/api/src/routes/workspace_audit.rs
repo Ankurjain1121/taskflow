@@ -1,7 +1,7 @@
 //! Workspace Audit Log REST endpoints
 //!
 //! Provides workspace-scoped audit log querying. Reuses the activity_log table
-//! but filters by workspace through project membership.
+//! but filters by workspace through board membership.
 
 use axum::{
     extract::{Path, Query, State},
@@ -99,7 +99,7 @@ async fn list_workspace_audit_log(
     // Parse action filter to string for LIKE matching
     let action_filter = query.action.as_deref();
 
-    // Query activity_log for entries related to this workspace's projects and tasks
+    // Query activity_log for entries related to this workspace's boards and tasks
     let items: Vec<WorkspaceAuditEntry> = sqlx::query_as(
         r#"
         SELECT
@@ -115,11 +115,11 @@ async fn list_workspace_audit_log(
         JOIN users u ON u.id = al.user_id
         WHERE al.tenant_id = $1
           AND (
-            -- Project-related: entity is a project in this workspace
-            (al.entity_type = 'board' AND al.entity_id IN (SELECT id FROM projects WHERE workspace_id = $2))
-            -- Task-related: entity is a task in a project in this workspace
+            -- Board-related: entity is a board in this workspace
+            (al.entity_type = 'board' AND al.entity_id IN (SELECT id FROM boards WHERE workspace_id = $2))
+            -- Task-related: entity is a task in a board in this workspace
             OR (al.entity_type = 'task' AND al.entity_id IN (
-              SELECT t.id FROM tasks t JOIN projects b ON b.id = t.project_id WHERE b.workspace_id = $2
+              SELECT t.id FROM tasks t JOIN boards b ON b.id = t.board_id WHERE b.workspace_id = $2
             ))
             -- Workspace-related
             OR (al.entity_type = 'workspace' AND al.entity_id = $2)
@@ -182,9 +182,9 @@ async fn list_workspace_audit_actions(
         FROM activity_log al
         WHERE al.tenant_id = $1
           AND (
-            (al.entity_type = 'board' AND al.entity_id IN (SELECT id FROM projects WHERE workspace_id = $2))
+            (al.entity_type = 'board' AND al.entity_id IN (SELECT id FROM boards WHERE workspace_id = $2))
             OR (al.entity_type = 'task' AND al.entity_id IN (
-              SELECT t.id FROM tasks t JOIN projects b ON b.id = t.project_id WHERE b.workspace_id = $2
+              SELECT t.id FROM tasks t JOIN boards b ON b.id = t.board_id WHERE b.workspace_id = $2
             ))
             OR (al.entity_type = 'workspace' AND al.entity_id = $2)
           )

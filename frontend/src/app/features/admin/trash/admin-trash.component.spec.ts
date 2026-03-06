@@ -22,7 +22,7 @@ describe('AdminTrashComponent', () => {
     },
     {
       id: 'tr-2',
-      entity_type: 'project',
+      entity_type: 'board',
       entity_id: 'ent-2',
       name: 'Deleted Board',
       deleted_by: {
@@ -211,19 +211,19 @@ describe('AdminTrashComponent', () => {
 
     it('formatEntityType should capitalize', () => {
       expect(component.formatEntityType('task')).toBe('Task');
-      expect(component.formatEntityType('project')).toBe('Project');
+      expect(component.formatEntityType('board')).toBe('Board');
     });
 
     it('getEntityPrimeIcon should return correct icons', () => {
       expect(component.getEntityPrimeIcon('task')).toBe('pi-check-circle');
-      expect(component.getEntityPrimeIcon('project')).toBe('pi-th-large');
+      expect(component.getEntityPrimeIcon('board')).toBe('pi-th-large');
       expect(component.getEntityPrimeIcon('workspace')).toBe('pi-building');
       expect(component.getEntityPrimeIcon('unknown')).toBe('pi-file');
     });
 
     it('getEntityIconClass should return correct classes', () => {
       expect(component.getEntityIconClass('task')).toContain('blue');
-      expect(component.getEntityIconClass('project')).toContain('purple');
+      expect(component.getEntityIconClass('board')).toContain('purple');
       expect(component.getEntityIconClass('workspace')).toContain('green');
     });
 

@@ -91,7 +91,7 @@ export class SavePresetDialogComponent implements OnDestroy {
   private filterPresetsService = inject(FilterPresetsService);
   private destroy$ = new Subject<void>();
 
-  projectId = input.required<string>();
+  boardId = input.required<string>();
   filters = input.required<TaskFilters>();
   activeFilterCount = input.required<number>();
   presets = input.required<FilterPreset[]>();
@@ -117,7 +117,7 @@ export class SavePresetDialogComponent implements OnDestroy {
 
   savePreset(): void {
     const name = this.newPresetName.trim();
-    const id = this.projectId();
+    const id = this.boardId();
     if (!name || !id) return;
 
     this.filterPresetsService

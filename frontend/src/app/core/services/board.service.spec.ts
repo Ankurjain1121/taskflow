@@ -81,7 +81,7 @@ describe('BoardService', () => {
   });
 
   describe('getBoard()', () => {
-    it('should GET /api/boards/:projectId', () => {
+    it('should GET /api/boards/:boardId', () => {
       service.getBoard('board-1').subscribe((board) => {
         expect(board).toEqual(MOCK_BOARD);
       });
@@ -95,7 +95,7 @@ describe('BoardService', () => {
   describe('createBoard()', () => {
     it('should POST /api/workspaces/:workspaceId/boards with body', () => {
       const createReq: CreateBoardRequest = {
-        name: 'New Project',
+        name: 'New Board',
         description: 'Board description',
         template: 'kanban',
       };
@@ -112,7 +112,7 @@ describe('BoardService', () => {
   });
 
   describe('updateBoard()', () => {
-    it('should PATCH /api/boards/:projectId with body', () => {
+    it('should PATCH /api/boards/:boardId with body', () => {
       const updateReq: UpdateBoardRequest = { name: 'Renamed Board' };
 
       service.updateBoard('board-1', updateReq).subscribe((board) => {
@@ -127,7 +127,7 @@ describe('BoardService', () => {
   });
 
   describe('deleteBoard()', () => {
-    it('should DELETE /api/boards/:projectId', () => {
+    it('should DELETE /api/boards/:boardId', () => {
       service.deleteBoard('board-1').subscribe();
 
       const req = httpMock.expectOne('/api/boards/board-1');
@@ -137,7 +137,7 @@ describe('BoardService', () => {
   });
 
   describe('listColumns()', () => {
-    it('should GET /api/boards/:projectId/columns', () => {
+    it('should GET /api/boards/:boardId/columns', () => {
       const columns = [MOCK_COLUMN];
 
       service.listColumns('board-1').subscribe((result) => {
@@ -151,7 +151,7 @@ describe('BoardService', () => {
   });
 
   describe('createColumn()', () => {
-    it('should POST /api/boards/:projectId/columns with body', () => {
+    it('should POST /api/boards/:boardId/columns with body', () => {
       const createReq: CreateColumnRequest = {
         name: 'In Progress',
         color: '#f59e0b',
@@ -214,7 +214,7 @@ describe('BoardService', () => {
   });
 
   describe('getBoardMembers()', () => {
-    it('should GET /api/boards/:projectId/members', () => {
+    it('should GET /api/boards/:boardId/members', () => {
       const members = [MOCK_MEMBER];
 
       service.getBoardMembers('board-1').subscribe((result) => {
@@ -228,7 +228,7 @@ describe('BoardService', () => {
   });
 
   describe('inviteBoardMember()', () => {
-    it('should POST /api/boards/:projectId/members with email and role', () => {
+    it('should POST /api/boards/:boardId/members with email and role', () => {
       const inviteReq: InviteMemberRequest = {
         email: 'new@example.com',
         role: 'viewer',
@@ -246,7 +246,7 @@ describe('BoardService', () => {
   });
 
   describe('updateBoardMemberRole()', () => {
-    it('should PATCH /api/boards/:projectId/members/:userId with role', () => {
+    it('should PATCH /api/boards/:boardId/members/:userId with role', () => {
       const roleReq: UpdateMemberRoleRequest = { role: 'editor' };
 
       service
@@ -263,7 +263,7 @@ describe('BoardService', () => {
   });
 
   describe('removeBoardMember()', () => {
-    it('should DELETE /api/boards/:projectId/members/:userId', () => {
+    it('should DELETE /api/boards/:boardId/members/:userId', () => {
       service.removeBoardMember('board-1', 'user-1').subscribe();
 
       const req = httpMock.expectOne('/api/boards/board-1/members/user-1');
@@ -273,7 +273,7 @@ describe('BoardService', () => {
   });
 
   describe('getBoardFull()', () => {
-    it('should GET /api/boards/:projectId/full', () => {
+    it('should GET /api/boards/:boardId/full', () => {
       const fullResponse: BoardFullResponse = {
         board: { ...MOCK_BOARD, columns: [MOCK_COLUMN] },
         tasks: [],
@@ -344,7 +344,7 @@ describe('BoardService', () => {
   });
 
   describe('duplicateBoard()', () => {
-    it('should POST /api/boards/:projectId/duplicate with body', () => {
+    it('should POST /api/boards/:boardId/duplicate with body', () => {
       const dupReq = { name: 'Copy of Board', include_tasks: true };
 
       service.duplicateBoard('board-1', dupReq).subscribe((board) => {

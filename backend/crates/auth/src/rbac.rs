@@ -15,10 +15,10 @@ pub enum Permission {
     WorkspaceDelete,
     WorkspaceManageMembers,
 
-    // Project permissions
-    ProjectCreate,
-    ProjectDelete,
-    ProjectUpdate,
+    // Board permissions
+    BoardCreate,
+    BoardDelete,
+    BoardUpdate,
 
     // Task permissions
     TaskCreate,
@@ -61,9 +61,9 @@ pub fn permissions_for_role(role: &UserRole) -> HashSet<Permission> {
             perms.insert(Permission::WorkspaceCreate);
             perms.insert(Permission::WorkspaceDelete);
             perms.insert(Permission::WorkspaceManageMembers);
-            perms.insert(Permission::ProjectCreate);
-            perms.insert(Permission::ProjectDelete);
-            perms.insert(Permission::ProjectUpdate);
+            perms.insert(Permission::BoardCreate);
+            perms.insert(Permission::BoardDelete);
+            perms.insert(Permission::BoardUpdate);
             perms.insert(Permission::TaskCreate);
             perms.insert(Permission::TaskUpdate);
             perms.insert(Permission::TaskDelete);
@@ -81,9 +81,9 @@ pub fn permissions_for_role(role: &UserRole) -> HashSet<Permission> {
             perms.insert(Permission::WorkspaceCreate);
             perms.insert(Permission::WorkspaceDelete);
             perms.insert(Permission::WorkspaceManageMembers);
-            perms.insert(Permission::ProjectCreate);
-            perms.insert(Permission::ProjectDelete);
-            perms.insert(Permission::ProjectUpdate);
+            perms.insert(Permission::BoardCreate);
+            perms.insert(Permission::BoardDelete);
+            perms.insert(Permission::BoardUpdate);
             perms.insert(Permission::TaskCreate);
             perms.insert(Permission::TaskUpdate);
             perms.insert(Permission::TaskDelete);
@@ -100,7 +100,7 @@ pub fn permissions_for_role(role: &UserRole) -> HashSet<Permission> {
             perms.insert(Permission::TaskCreate);
             perms.insert(Permission::CommentCreate);
             perms.insert(Permission::CommentDeleteOwn);
-            perms.insert(Permission::ProjectCreate);
+            perms.insert(Permission::BoardCreate);
         }
     }
 
@@ -191,7 +191,7 @@ mod tests {
         assert!(member_perms.contains(&Permission::TaskCreate));
         assert!(member_perms.contains(&Permission::CommentCreate));
         assert!(member_perms.contains(&Permission::CommentDeleteOwn));
-        assert!(member_perms.contains(&Permission::ProjectCreate));
+        assert!(member_perms.contains(&Permission::BoardCreate));
 
         assert!(!member_perms.contains(&Permission::WorkspaceDelete));
         assert!(!member_perms.contains(&Permission::AdminAccess));
@@ -237,8 +237,8 @@ mod tests {
     #[test]
     fn test_member_cannot_delete_boards() {
         assert!(
-            !has_permission(&UserRole::Member, &Permission::ProjectDelete),
-            "Member should not have ProjectDelete permission"
+            !has_permission(&UserRole::Member, &Permission::BoardDelete),
+            "Member should not have BoardDelete permission"
         );
     }
 

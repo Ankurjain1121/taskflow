@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT COUNT(DISTINCT al.entity_id) as \"count!\"\n        FROM activity_log al\n        JOIN tasks t ON t.id = al.entity_id\n        JOIN board_columns bc ON bc.id = t.column_id\n        WHERE al.user_id = $1\n          AND al.entity_type = 'task'\n          AND al.action = 'moved'\n          AND al.created_at >= $2\n          AND al.created_at <= $3\n          AND (bc.status_mapping->>'done')::boolean = true\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "de543dc032255d1416beb9b7f313d5e87471a01447f9a27dba209348ac188bdc"
+}

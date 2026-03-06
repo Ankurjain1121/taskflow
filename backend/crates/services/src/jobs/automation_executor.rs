@@ -8,7 +8,7 @@
 //! - Redis rate limiting: 1000 executions per workspace per day
 //! - Tokio timeout: 30s max per automation execution
 //! - Name resolution: resolve column/label names to IDs
-//! - Circuit breaker: deactivate project automations after 50 errors in 5 minutes
+//! - Circuit breaker: deactivate board automations after 50 errors in 5 minutes
 
 use std::time::Duration;
 
@@ -29,7 +29,7 @@ const DAILY_RATE_LIMIT: i64 = 1000;
 /// Timeout for a single automation rule execution
 const EXECUTION_TIMEOUT_SECS: u64 = 30;
 
-/// Error count threshold for circuit breaker (per project in 5 minutes)
+/// Error count threshold for circuit breaker (per board in 5 minutes)
 const CIRCUIT_BREAKER_THRESHOLD: i64 = 50;
 
 /// Circuit breaker window in seconds (5 minutes)
@@ -50,7 +50,7 @@ pub enum AutomationExecutorError {
     RateLimitExceeded(Uuid),
     #[error("Execution timed out after {0}s")]
     Timeout(u64),
-    #[error("Circuit breaker open for project {0}")]
+    #[error("Circuit breaker open for board {0}")]
     CircuitBreakerOpen(Uuid),
     #[error("Redis error: {0}")]
     Redis(#[from] redis::RedisError),
@@ -62,7 +62,7 @@ pub enum AutomationExecutorError {
 #[derive(Debug, Clone)]
 pub struct TriggerContext {
     pub task_id: Uuid,
-    pub project_id: Uuid,
+    pub board_id: Uuid,
     pub tenant_id: Uuid,
     pub user_id: Uuid,
     /// Previous column ID (for TaskMoved trigger)
@@ -148,94 +148,94 @@ async fn increment_rate_limit(redis: &mut redis::aio::ConnectionManager, workspa
 // Safety: Circuit Breaker
 // ---------------------------------------------------------------------------
 
-/// Check if the circuit breaker is open for a project.
+/// Check if the circuit breaker is open for a board.
 async fn check_circuit_breaker(
     redis: &mut redis::aio::ConnectionManager,
-    project_id: Uuid,
+    board_id: Uuid,
 ) -> Result<(), AutomationExecutorError> {
-    let key = format!("automation_errors:{}:5min", project_id);
+    let key = format!("automation_errors:{}:5min", board_id);
 
     let error_count: i64 = redis.get(&key).await.unwrap_or(0);
 
     if error_count > CIRCUIT_BREAKER_THRESHOLD {
         tracing::error!(
-            project_id = %project_id,
+            board_id = %board_id,
             error_count = error_count,
             threshold = CIRCUIT_BREAKER_THRESHOLD,
-            "Circuit breaker OPEN for project — automations deactivated"
+            "Circuit breaker OPEN for board — automations deactivated"
         );
-        return Err(AutomationExecutorError::CircuitBreakerOpen(project_id));
+        return Err(AutomationExecutorError::CircuitBreakerOpen(board_id));
     }
 
     Ok(())
 }
 
 /// Record an error for the circuit breaker counter.
-/// If threshold is crossed, deactivate all automations for the project.
+/// If threshold is crossed, deactivate all automations for the board.
 async fn record_circuit_breaker_error(
     redis: &mut redis::aio::ConnectionManager,
     pool: &PgPool,
-    project_id: Uuid,
+    board_id: Uuid,
 ) {
-    let key = format!("automation_errors:{}:5min", project_id);
+    let key = format!("automation_errors:{}:5min", board_id);
 
     let new_count: i64 = redis.incr(&key, 1i64).await.unwrap_or(1);
     let _: Result<bool, _> = redis.expire(&key, CIRCUIT_BREAKER_WINDOW_SECS).await;
 
     if new_count > CIRCUIT_BREAKER_THRESHOLD {
         tracing::error!(
-            project_id = %project_id,
+            board_id = %board_id,
             error_count = new_count,
-            "Circuit breaker TRIPPED — deactivating all automations for project"
+            "Circuit breaker TRIPPED — deactivating all automations for board"
         );
 
-        // Deactivate all automations for this project
+        // Deactivate all automations for this board
         let deactivate_result = sqlx::query(
-            "UPDATE automation_rules SET is_active = false WHERE project_id = $1 AND is_active = true",
+            "UPDATE automation_rules SET is_active = false WHERE board_id = $1 AND is_active = true",
         )
-        .bind(project_id)
+        .bind(board_id)
         .execute(pool)
         .await;
 
         match deactivate_result {
             Ok(result) => {
                 tracing::warn!(
-                    project_id = %project_id,
+                    board_id = %board_id,
                     deactivated = result.rows_affected(),
                     "Deactivated automation rules due to circuit breaker"
                 );
             }
             Err(e) => {
                 tracing::error!(
-                    project_id = %project_id,
+                    board_id = %board_id,
                     "Failed to deactivate automations during circuit breaker: {e}"
                 );
             }
         }
 
-        // Create a notification for the project about circuit breaker activation
-        if let Err(e) = create_circuit_breaker_notification(pool, project_id).await {
+        // Create a notification for the board about circuit breaker activation
+        if let Err(e) = create_circuit_breaker_notification(pool, board_id).await {
             tracing::error!(
-                project_id = %project_id,
+                board_id = %board_id,
                 "Failed to create circuit breaker notification: {e}"
             );
         }
     }
 }
 
-/// Create a notification for project admins when circuit breaker trips.
+/// Create a notification for board admins when circuit breaker trips.
 async fn create_circuit_breaker_notification(
     pool: &PgPool,
-    project_id: Uuid,
+    board_id: Uuid,
 ) -> Result<(), sqlx::Error> {
-    // Get project owner(s) - members with 'owner' role
+    // Get board owner(s) - members with 'owner' role
     let owner_ids: Vec<Uuid> = sqlx::query_scalar(
         r#"
-        SELECT user_id FROM project_members
-        WHERE project_id = $1 AND role = 'owner'
+        SELECT user_id FROM board_members
+        WHERE board_id = $1 AND role = 'owner'
         "#,
     )
-    .bind(project_id)
+    .bind(board_id)
     .fetch_all(pool)
     .await?;
 
@@ -248,8 +248,8 @@ async fn create_circuit_breaker_notification(
         )
         .bind(Uuid::new_v4())
         .bind(owner_id)
-        .bind("Too many automation errors in a short time. All automations for this project have been paused. Please review and re-enable them.")
-        .bind(format!("/projects/{}/settings", project_id))
+        .bind("Too many automation errors in a short time. All automations for this board have been paused. Please review and re-enable them.")
+        .bind(format!("/boards/{}/settings", board_id))
         .execute(pool)
         .await?;
     }
@@ -261,55 +261,55 @@ async fn create_circuit_breaker_notification(
 // Safety: Name Resolution Helpers
 // ---------------------------------------------------------------------------
 
-/// Resolve a column by name within a project, returning its UUID.
+/// Resolve a column by name within a board, returning its UUID.
 pub async fn resolve_column_by_name(
     pool: &PgPool,
-    project_id: Uuid,
+    board_id: Uuid,
     column_name: &str,
 ) -> Result<Uuid, AutomationExecutorError> {
     let column_id: Option<Uuid> = sqlx::query_scalar(
         r#"
-        SELECT id FROM project_columns
-        WHERE project_id = $1 AND LOWER(name) = LOWER($2)
+        SELECT id FROM board_columns
+        WHERE board_id = $1 AND LOWER(name) = LOWER($2)
         LIMIT 1
         "#,
     )
-    .bind(project_id)
+    .bind(board_id)
     .bind(column_name)
     .fetch_optional(pool)
     .await?;
 
     column_id.ok_or_else(|| {
         AutomationExecutorError::NameResolutionFailed(format!(
-            "Column '{}' not found on project {}",
-            column_name, project_id
+            "Column '{}' not found on board {}",
+            column_name, board_id
         ))
     })
 }
 
-/// Resolve a label by name within a project's workspace, returning its UUID.
+/// Resolve a label by name within a board's workspace, returning its UUID.
 pub async fn resolve_label_by_name(
     pool: &PgPool,
-    project_id: Uuid,
+    board_id: Uuid,
     label_name: &str,
 ) -> Result<Uuid, AutomationExecutorError> {
     let label_id: Option<Uuid> = sqlx::query_scalar(
         r#"
         SELECT l.id FROM labels l
-        JOIN projects b ON b.workspace_id = l.workspace_id
+        JOIN boards b ON b.workspace_id = l.workspace_id
         WHERE b.id = $1 AND LOWER(l.name) = LOWER($2)
         LIMIT 1
         "#,
     )
-    .bind(project_id)
+    .bind(board_id)
     .bind(label_name)
     .fetch_optional(pool)
     .await?;
 
     label_id.ok_or_else(|| {
         AutomationExecutorError::NameResolutionFailed(format!(
-            "Label '{}' not found for project {}",
-            label_name, project_id
+            "Label '{}' not found for board {}",
+            label_name, board_id
         ))
     })
 }
@@ -356,18 +356,17 @@ pub async fn evaluate_trigger(
     }
 
     // Safety: Circuit breaker check
-    if let Err(_e) = check_circuit_breaker(redis, context.project_id).await {
+    if let Err(_e) = check_circuit_breaker(redis, context.board_id).await {
         result.circuit_breaker_tripped = true;
         return result;
     }
 
-    // Fetch active rules matching this trigger for the project
-    let rules = match get_active_rules_for_trigger(pool, context.project_id, trigger.clone()).await
-    {
+    // Fetch active rules matching this trigger for the board
+    let rules = match get_active_rules_for_trigger(pool, context.board_id, trigger.clone()).await {
         Ok(rules) => rules,
         Err(e) => {
             tracing::error!(
-                project_id = %context.project_id,
+                board_id = %context.board_id,
                 trigger = ?trigger,
                 "Failed to fetch automation rules: {e}"
             );
@@ -429,7 +428,7 @@ pub async fn evaluate_trigger(
 
                 // Record errors for circuit breaker
                 for _ in 0..err {
-                    record_circuit_breaker_error(redis, pool, context.project_id).await;
+                    record_circuit_breaker_error(redis, pool, context.board_id).await;
                 }
             }
             Err(_elapsed) => {
@@ -455,7 +454,7 @@ pub async fn evaluate_trigger(
                 )
                 .await;
 
-                record_circuit_breaker_error(redis, pool, context.project_id).await;
+                record_circuit_breaker_error(redis, pool, context.board_id).await;
                 continue;
             }
         }
@@ -590,7 +589,7 @@ async fn execute_move_task(
     {
         id
     } else if let Some(name) = config.get("column_name").and_then(|v| v.as_str()) {
-        resolve_column_by_name(pool, context.project_id, name).await?
+        resolve_column_by_name(pool, context.board_id, name).await?
     } else {
         return Err(AutomationExecutorError::ActionFailed(
             "MoveTask: missing column_id or column_name".into(),
@@ -716,7 +715,7 @@ async fn execute_send_notification(
         .bind(Uuid::new_v4())
         .bind(recipient_id)
         .bind(message)
-        .bind(format!("/projects/{}/tasks/{}", context.project_id, context.task_id))
+        .bind(format!("/boards/{}/tasks/{}", context.board_id, context.task_id))
         .execute(pool)
         .await?;
     }
@@ -739,7 +738,7 @@ async fn execute_add_label(
     {
         id
     } else if let Some(name) = config.get("label_name").and_then(|v| v.as_str()) {
-        resolve_label_by_name(pool, context.project_id, name).await?
+        resolve_label_by_name(pool, context.board_id, name).await?
     } else {
         return Err(AutomationExecutorError::ActionFailed(
             "AddLabel: missing label_id or label_name".into(),
@@ -954,7 +953,7 @@ async fn execute_send_webhook(
 
     let payload = json!({
         "task_id": context.task_id,
-        "project_id": context.project_id,
+        "board_id": context.board_id,
         "tenant_id": context.tenant_id,
         "user_id": context.user_id,
         "timestamp": chrono::Utc::now().to_rfc3339(),
@@ -1049,7 +1048,7 @@ mod tests {
     fn make_context() -> TriggerContext {
         TriggerContext {
             task_id: Uuid::new_v4(),
-            project_id: Uuid::new_v4(),
+            board_id: Uuid::new_v4(),
             tenant_id: Uuid::new_v4(),
             user_id: Uuid::new_v4(),
             previous_column_id: None,
@@ -1237,7 +1236,7 @@ mod tests {
         let ctx = make_context();
         let cloned = ctx.clone();
         assert_eq!(cloned.task_id, ctx.task_id);
-        assert_eq!(cloned.project_id, ctx.project_id);
+        assert_eq!(cloned.board_id, ctx.board_id);
     }
 
     // --- AutomationRunResult tests ---
@@ -1299,8 +1298,8 @@ mod tests {
 
     #[test]
     fn test_circuit_breaker_error_display() {
-        let project_id = Uuid::new_v4();
-        let err = AutomationExecutorError::CircuitBreakerOpen(project_id);
+        let board_id = Uuid::new_v4();
+        let err = AutomationExecutorError::CircuitBreakerOpen(board_id);
         let msg = format!("{}", err);
         assert!(msg.contains("Circuit breaker open"));
     }

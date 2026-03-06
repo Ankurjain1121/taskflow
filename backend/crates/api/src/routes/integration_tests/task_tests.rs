@@ -5,15 +5,15 @@ use super::common::*;
 // =========================================================================
 
 #[tokio::test]
-async fn test_list_tasks_by_project() {
+async fn test_list_tasks_by_board() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
-                .uri(format!("/api/projects/{}/tasks", project_id))
+                .uri(format!("/api/boards/{}/tasks", board_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),
@@ -27,14 +27,14 @@ async fn test_list_tasks_by_project() {
 #[tokio::test]
 async fn test_create_task() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, project_id, col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/projects/{}/tasks", project_id))
+                .uri(format!("/api/boards/{}/tasks", board_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .header("Content-Type", "application/json")
                 .body(Body::from(
@@ -63,12 +63,12 @@ async fn test_create_task() {
 #[tokio::test]
 async fn test_get_task_by_id() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, project_id, col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let task = taskflow_db::queries::create_task(
         &state.db,
-        project_id,
+        board_id,
         taskflow_db::queries::CreateTaskInput {
             title: "Get Me".to_string(),
             description: None,
@@ -112,12 +112,12 @@ async fn test_get_task_by_id() {
 #[tokio::test]
 async fn test_update_task() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, project_id, col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let task = taskflow_db::queries::create_task(
         &state.db,
-        project_id,
+        board_id,
         taskflow_db::queries::CreateTaskInput {
             title: "Original Title".to_string(),
             description: None,
@@ -169,12 +169,12 @@ async fn test_update_task() {
 #[tokio::test]
 async fn test_delete_task() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, project_id, col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let task = taskflow_db::queries::create_task(
         &state.db,
-        project_id,
+        board_id,
         taskflow_db::queries::CreateTaskInput {
             title: "Delete Me".to_string(),
             description: None,
@@ -217,12 +217,12 @@ async fn test_delete_task() {
 #[tokio::test]
 async fn test_move_task() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, project_id, col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let task = taskflow_db::queries::create_task(
         &state.db,
-        project_id,
+        board_id,
         taskflow_db::queries::CreateTaskInput {
             title: "Move Me".to_string(),
             description: None,
@@ -243,7 +243,7 @@ async fn test_move_task() {
     .await
     .expect("create task");
 
-    let columns = taskflow_db::queries::columns::list_columns_by_board(&state.db, project_id)
+    let columns = taskflow_db::queries::columns::list_columns_by_board(&state.db, board_id)
         .await
         .expect("list columns");
     let target_col = columns
@@ -286,12 +286,12 @@ async fn test_move_task() {
 #[tokio::test]
 async fn test_assign_user_to_task() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, project_id, col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let task = taskflow_db::queries::create_task(
         &state.db,
-        project_id,
+        board_id,
         taskflow_db::queries::CreateTaskInput {
             title: "Assign Me".to_string(),
             description: None,
@@ -341,12 +341,12 @@ async fn test_assign_user_to_task() {
 #[tokio::test]
 async fn test_unassign_user_from_task() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, project_id, col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let task = taskflow_db::queries::create_task(
         &state.db,
-        project_id,
+        board_id,
         taskflow_db::queries::CreateTaskInput {
             title: "Unassign Me".to_string(),
             description: None,
@@ -394,12 +394,12 @@ async fn test_unassign_user_from_task() {
 #[tokio::test]
 async fn test_create_and_list_subtasks() {
     let (_app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, project_id, col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let task = taskflow_db::queries::create_task(
         &state.db,
-        project_id,
+        board_id,
         taskflow_db::queries::CreateTaskInput {
             title: "Parent Task".to_string(),
             description: None,
@@ -465,12 +465,12 @@ async fn test_create_and_list_subtasks() {
 #[tokio::test]
 async fn test_create_and_list_comments() {
     let (_app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, project_id, col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let task = taskflow_db::queries::create_task(
         &state.db,
-        project_id,
+        board_id,
         taskflow_db::queries::CreateTaskInput {
             title: "Comment Task".to_string(),
             description: None,
@@ -529,12 +529,12 @@ async fn test_create_and_list_comments() {
 #[tokio::test]
 async fn test_list_task_dependencies() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, project_id, col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let task = taskflow_db::queries::create_task(
         &state.db,
-        project_id,
+        board_id,
         taskflow_db::queries::CreateTaskInput {
             title: "Dep Task".to_string(),
             description: None,
@@ -576,12 +576,12 @@ async fn test_list_task_dependencies() {
 #[tokio::test]
 async fn test_list_time_entries() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, project_id, col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let task = taskflow_db::queries::create_task(
         &state.db,
-        project_id,
+        board_id,
         taskflow_db::queries::CreateTaskInput {
             title: "Time Entry Task".to_string(),
             description: None,
@@ -686,14 +686,14 @@ async fn test_delete_task_nonexistent_returns_404() {
 #[tokio::test]
 async fn test_create_task_missing_title_returns_400() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, project_id, col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/projects/{}/tasks", project_id))
+                .uri(format!("/api/boards/{}/tasks", board_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .header("Content-Type", "application/json")
                 .body(Body::from(
@@ -719,14 +719,14 @@ async fn test_create_task_missing_title_returns_400() {
 #[tokio::test]
 async fn test_create_task_invalid_json_returns_400() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, project_id, _col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let response = app
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/projects/{}/tasks", project_id))
+                .uri(format!("/api/boards/{}/tasks", board_id))
                 .header("Authorization", format!("Bearer {}", token))
                 .header("Content-Type", "application/json")
                 .body(Body::from("{not json}"))
@@ -748,7 +748,7 @@ async fn test_create_task_for_nonexistent_board_returns_error() {
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri(format!("/api/projects/{}/tasks", Uuid::new_v4()))
+                .uri(format!("/api/boards/{}/tasks", Uuid::new_v4()))
                 .header("Authorization", format!("Bearer {}", token))
                 .header("Content-Type", "application/json")
                 .body(Body::from(
@@ -809,12 +809,12 @@ async fn test_move_task_nonexistent_returns_404() {
 #[tokio::test]
 async fn test_move_task_to_invalid_column_returns_error() {
     let (app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, project_id, col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let task = taskflow_db::queries::create_task(
         &state.db,
-        project_id,
+        board_id,
         taskflow_db::queries::CreateTaskInput {
             title: "Move To Bad Col".to_string(),
             description: None,
@@ -867,12 +867,12 @@ async fn test_move_task_to_invalid_column_returns_error() {
 #[tokio::test]
 async fn test_get_task_after_delete_returns_404() {
     let (_app, state) = test_app().await;
-    let (tenant_id, user_id, _ws_id, project_id, col_id) = setup_full(&state.db).await;
+    let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     let task = taskflow_db::queries::create_task(
         &state.db,
-        project_id,
+        board_id,
         taskflow_db::queries::CreateTaskInput {
             title: "Will Be Deleted".to_string(),
             description: None,

@@ -2,7 +2,7 @@ import { Injectable, WritableSignal, inject } from '@angular/core';
 import { Subject } from 'rxjs';
 import { generateKeyBetween } from 'fractional-indexing';
 
-import { ProjectService, Column } from '../../../core/services/project.service';
+import { BoardService, Column } from '../../../core/services/board.service';
 import {
   TaskService,
   Task,
@@ -22,18 +22,18 @@ export interface MutationContext {
   boardState: WritableSignal<Record<string, Task[]>>;
   columns: WritableSignal<Column[]>;
   boardMembers: WritableSignal<
-    import('../../../core/services/project.service').ProjectMember[]
+    import('../../../core/services/board.service').BoardMember[]
   >;
   boardGroups: WritableSignal<TaskGroupWithStats[]>;
   allLabels: () => Label[];
   showError: (message: string) => void;
-  reloadGroups: (projectId: string) => void;
-  loadBoard: (projectId: string, destroy$: Subject<void>) => void;
+  reloadGroups: (boardId: string) => void;
+  loadBoard: (boardId: string, destroy$: Subject<void>) => void;
 }
 
 @Injectable()
 export class BoardMutationsService {
-  private projectService = inject(ProjectService);
+  private boardService = inject(BoardService);
   private taskService = inject(TaskService);
   private taskGroupService = inject(TaskGroupService);
   private saveStatus = inject(SaveStatusService);
@@ -47,7 +47,7 @@ export class BoardMutationsService {
   // === Task CRUD ===
 
   createTask(
-    projectId: string,
+    boardId: string,
     columnId: string,
     taskData: CreateTaskDialogResult,
   ): void {
@@ -82,7 +82,7 @@ export class BoardMutationsService {
 
     this.saveStatus.markSaving();
     this.taskService
-      .createTask(projectId, {
+      .createTask(boardId, {
         title: taskData.title,
         description: taskData.description,
         priority: taskData.priority,
@@ -302,7 +302,7 @@ export class BoardMutationsService {
 
   // === Column Operations ===
 
-  createColumn(projectId: string, columnData: CreateColumnDialogResult): void {
+  createColumn(boardId: string, columnData: CreateColumnDialogResult): void {
     const colSnapshot = structuredClone(this.ctx.columns());
     const stateSnapshot = structuredClone(this.ctx.boardState());
 
@@ -310,7 +310,7 @@ export class BoardMutationsService {
     const now = new Date().toISOString();
     const tempColumn: Column = {
       id: tempId,
-      project_id: projectId,
+      board_id: boardId,
       name: columnData.name,
       position: 'zzzzzz',
       color: columnData.color ?? '',
@@ -324,8 +324,8 @@ export class BoardMutationsService {
     this.ctx.boardState.update((state) => ({ ...state, [tempId]: [] }));
 
     this.saveStatus.markSaving();
-    this.projectService
-      .createColumn(projectId, {
+    this.boardService
+      .createColumn(boardId, {
         name: columnData.name,
         color: columnData.color,
         status_mapping: columnData.isDone ? { done: true } : undefined,
@@ -364,7 +364,7 @@ export class BoardMutationsService {
     this.ctx.columns.set(cols);
 
     const movedColumn = cols[currIdx];
-    this.projectService
+    this.boardService
       .reorderColumn(movedColumn.id, { new_index: currIdx })
       .subscribe({
         error: () => {
@@ -374,7 +374,7 @@ export class BoardMutationsService {
       });
   }
 
-  deleteColumn(projectId: string, columnId: string): void {
+  deleteColumn(boardId: string, columnId: string): void {
     const colSnapshot = structuredClone(this.ctx.columns());
     const stateSnapshot = structuredClone(this.ctx.boardState());
 
@@ -385,7 +385,7 @@ export class BoardMutationsService {
       return newState;
     });
 
-    this.projectService.deleteColumn(columnId).subscribe({
+    this.boardService.deleteColumn(columnId).subscribe({
       error: () => {
         this.ctx.columns.set(colSnapshot);
         this.ctx.boardState.set(stateSnapshot);
@@ -396,7 +396,7 @@ export class BoardMutationsService {
 
   // === Task Group Operations ===
 
-  createGroup(projectId: string, result: { name: string; color: string }): void {
+  createGroup(boardId: string, result: { name: string; color: string }): void {
     const groups = this.ctx.boardGroups();
     const lastGroup = groups[groups.length - 1];
     const position = generateKeyBetween(
@@ -405,28 +405,28 @@ export class BoardMutationsService {
     );
 
     this.taskGroupService
-      .createGroup(projectId, {
-        project_id: projectId,
+      .createGroup(boardId, {
+        board_id: boardId,
         name: result.name,
         color: result.color,
         position,
       })
       .subscribe({
-        next: () => this.ctx.reloadGroups(projectId),
+        next: () => this.ctx.reloadGroups(boardId),
         error: () => this.ctx.showError('Failed to create group'),
       });
   }
 
-  updateGroupName(projectId: string, groupId: string, name: string): void {
+  updateGroupName(boardId: string, groupId: string, name: string): void {
     this.taskGroupService.updateGroup(groupId, { name }).subscribe({
-      next: () => this.ctx.reloadGroups(projectId),
+      next: () => this.ctx.reloadGroups(boardId),
       error: () => this.ctx.showError('Failed to rename group'),
     });
   }
 
-  updateGroupColor(projectId: string, groupId: string, color: string): void {
+  updateGroupColor(boardId: string, groupId: string, color: string): void {
     this.taskGroupService.updateGroup(groupId, { color }).subscribe({
-      next: () => this.ctx.reloadGroups(projectId),
+      next: () => this.ctx.reloadGroups(boardId),
       error: () => this.ctx.showError('Failed to update group color'),
     });
   }
@@ -458,11 +458,11 @@ export class BoardMutationsService {
       });
   }
 
-  deleteGroup(projectId: string, groupId: string): void {
+  deleteGroup(boardId: string, groupId: string): void {
     this.taskGroupService.deleteGroup(groupId).subscribe({
       next: () => {
-        this.ctx.reloadGroups(projectId);
-        this.ctx.loadBoard(projectId, new Subject<void>());
+        this.ctx.reloadGroups(boardId);
+        this.ctx.loadBoard(boardId, new Subject<void>());
       },
       error: () => this.ctx.showError('Failed to delete group'),
     });

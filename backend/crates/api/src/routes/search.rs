@@ -21,7 +21,7 @@ pub struct SearchQuery {
     pub assignee: Option<String>,
     pub label: Option<String>,
     pub status: Option<String>,
-    pub project_id: Option<String>,
+    pub board_id: Option<String>,
 }
 
 fn default_limit() -> i64 {
@@ -37,12 +37,12 @@ async fn search_handler(
         return Err(AppError::BadRequest("Search query is required".into()));
     }
 
-    let project_id = params
-        .project_id
+    let board_id = params
+        .board_id
         .as_deref()
         .filter(|s| !s.is_empty())
         .map(|s| {
-            Uuid::parse_str(s).map_err(|_| AppError::BadRequest("Invalid project_id UUID".into()))
+            Uuid::parse_str(s).map_err(|_| AppError::BadRequest("Invalid board_id UUID".into()))
         })
         .transpose()?;
 
@@ -50,7 +50,7 @@ async fn search_handler(
         assignee: params.assignee.filter(|s| !s.is_empty()),
         label: params.label.filter(|s| !s.is_empty()),
         status: params.status.filter(|s| !s.is_empty()),
-        project_id,
+        board_id,
     };
 
     let limit = params.limit.clamp(1, 50);

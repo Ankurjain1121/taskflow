@@ -25,7 +25,7 @@ export interface RecurringTaskConfig {
   is_active: boolean;
   max_occurrences: number | null;
   occurrences_created: number;
-  project_id: string;
+  board_id: string;
   tenant_id: string;
   created_by_id: string;
   created_at: string;

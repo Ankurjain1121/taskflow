@@ -22,8 +22,8 @@ describe('UpcomingDeadlinesComponent', () => {
       title: 'Task A',
       due_date: '2026-03-01',
       priority: 'urgent',
-      project_id: 'b-1',
-      project_name: 'Project 1',
+      board_id: 'b-1',
+      board_name: 'Board 1',
       days_until_due: 0,
     },
     {
@@ -31,8 +31,8 @@ describe('UpcomingDeadlinesComponent', () => {
       title: 'Task B',
       due_date: '2026-03-02',
       priority: 'high',
-      project_id: 'b-2',
-      project_name: 'Project 2',
+      board_id: 'b-2',
+      board_name: 'Board 2',
       days_until_due: 1,
     },
     {
@@ -40,8 +40,8 @@ describe('UpcomingDeadlinesComponent', () => {
       title: 'Task C',
       due_date: '2026-03-05',
       priority: 'medium',
-      project_id: 'b-3',
-      project_name: 'Project 3',
+      board_id: 'b-3',
+      board_name: 'Board 3',
       days_until_due: 5,
     },
     {
@@ -49,8 +49,8 @@ describe('UpcomingDeadlinesComponent', () => {
       title: 'Task D',
       due_date: '2026-03-15',
       priority: 'low',
-      project_id: 'b-4',
-      project_name: 'Project 4',
+      board_id: 'b-4',
+      board_name: 'Board 4',
       days_until_due: 14,
     },
   ];

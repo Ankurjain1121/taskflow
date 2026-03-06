@@ -302,7 +302,7 @@ export class TaskTemplatesComponent implements OnInit {
 
   scopeOptions = [
     { label: 'Personal', value: 'personal' },
-    { label: 'Project', value: 'project' },
+    { label: 'Board', value: 'board' },
     { label: 'Workspace', value: 'workspace' },
   ];
 
@@ -330,7 +330,7 @@ export class TaskTemplatesComponent implements OnInit {
     switch (scope) {
       case 'personal':
         return 'info';
-      case 'project':
+      case 'board':
         return 'warn';
       case 'workspace':
         return 'success';
@@ -358,7 +358,7 @@ export class TaskTemplatesComponent implements OnInit {
     this.saving.set(true);
     const req: CreateTaskTemplateRequest = {
       name: this.newName.trim(),
-      scope: this.newScope as 'personal' | 'project' | 'workspace',
+      scope: this.newScope as 'personal' | 'board' | 'workspace',
       task_title: this.newTaskTitle.trim(),
       task_description: this.newTaskDescription.trim() || undefined,
       task_priority: this.newTaskPriority || undefined,

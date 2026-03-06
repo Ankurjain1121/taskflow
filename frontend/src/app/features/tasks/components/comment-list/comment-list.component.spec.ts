@@ -93,7 +93,7 @@ describe('CommentListComponent', () => {
 
     // Set required inputs
     fixture.componentRef.setInput('taskId', 'task-1');
-    fixture.componentRef.setInput('projectId', 'board-1');
+    fixture.componentRef.setInput('boardId', 'board-1');
     fixture.componentRef.setInput('workspaceId', 'ws-1');
   });
 

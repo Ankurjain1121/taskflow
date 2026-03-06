@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { TaskPriority, Label, Assignee } from './task.service';
-import { ColumnStatusMapping } from './project.service';
+import { ColumnStatusMapping } from './board.service';
 
 export interface MyTask {
   id: string;
@@ -13,8 +13,8 @@ export interface MyTask {
   column_id: string;
   column_name: string;
   column_status_mapping: ColumnStatusMapping | null;
-  project_id: string;
-  project_name: string;
+  board_id: string;
+  board_name: string;
   workspace_id: string;
   workspace_name: string;
   labels: Label[];
@@ -24,9 +24,9 @@ export interface MyTask {
 }
 
 export interface MyTasksParams {
-  sort_by?: 'due_date' | 'priority' | 'project' | 'created_at';
+  sort_by?: 'due_date' | 'priority' | 'board' | 'created_at';
   sort_order?: 'asc' | 'desc';
-  project_id?: string;
+  board_id?: string;
   cursor?: string;
   limit?: number;
 }
@@ -60,8 +60,8 @@ export class MyTasksService {
     if (params.sort_order) {
       httpParams = httpParams.set('sort_order', params.sort_order);
     }
-    if (params.project_id) {
-      httpParams = httpParams.set('project_id', params.project_id);
+    if (params.board_id) {
+      httpParams = httpParams.set('board_id', params.board_id);
     }
     if (params.cursor) {
       httpParams = httpParams.set('cursor', params.cursor);

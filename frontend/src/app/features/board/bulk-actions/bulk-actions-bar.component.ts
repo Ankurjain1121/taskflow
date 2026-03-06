@@ -10,7 +10,7 @@ import { FormsModule } from '@angular/forms';
 import { TaskService, TaskPriority } from '../../../core/services/task.service';
 import { Milestone } from '../../../core/services/milestone.service';
 import { TaskGroupWithStats } from '../../../core/services/task-group.service';
-import { Column } from '../../../core/services/project.service';
+import { Column } from '../../../core/services/board.service';
 
 export interface BulkAction {
   type: 'move' | 'priority' | 'milestone' | 'group' | 'delete';

@@ -6,7 +6,7 @@ use uuid::Uuid;
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
 pub struct TaskGroup {
     pub id: Uuid,
-    pub project_id: Uuid,
+    pub board_id: Uuid,
     pub name: String,
     pub color: String,
     pub position: String,
@@ -20,7 +20,7 @@ pub struct TaskGroup {
 
 #[derive(Deserialize, Debug)]
 pub struct CreateTaskGroupRequest {
-    pub project_id: Uuid,
+    pub board_id: Uuid,
     pub name: String,
     #[serde(default = "default_color")]
     pub color: String,

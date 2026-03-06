@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface ArchiveItem {
-  entity_type: 'task' | 'project';
+  entity_type: 'task' | 'board';
   entity_id: string;
   name: string;
   deleted_at: string;

@@ -26,7 +26,7 @@ pub struct ListMyTasksQuery {
     pub sort_by: MyTasksSortBy,
     #[serde(default)]
     pub sort_order: SortOrder,
-    pub project_id: Option<Uuid>,
+    pub board_id: Option<Uuid>,
     pub cursor: Option<Uuid>,
     #[serde(default = "default_limit")]
     pub limit: i64,
@@ -38,8 +38,8 @@ fn default_limit() -> i64 {
 
 /// GET /api/my-tasks
 ///
-/// List all tasks assigned to the current user across all projects.
-/// Supports filtering by project, sorting, and cursor-based pagination.
+/// List all tasks assigned to the current user across all boards.
+/// Supports filtering by board, sorting, and cursor-based pagination.
 async fn list_my_tasks_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
@@ -50,7 +50,7 @@ async fn list_my_tasks_handler(
         tenant.user_id,
         query.sort_by,
         query.sort_order,
-        query.project_id,
+        query.board_id,
         query.cursor,
         query.limit,
     )

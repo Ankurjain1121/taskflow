@@ -372,7 +372,7 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
                           <p
                             class="text-xs text-[var(--muted-foreground)] truncate"
                           >
-                            {{ task.project_name }} &middot;
+                            {{ task.board_name }} &middot;
                             {{ task.column_name }}
                           </p>
                         </div>

@@ -83,14 +83,14 @@ pub async fn toggle_template(
     .await
 }
 
-/// Apply a template to a project by creating an automation_rule + automation_action
+/// Apply a template to a board by creating an automation_rule + automation_action
 /// from the template's trigger/action config.
 /// Returns the created automation rule ID.
 pub async fn apply_template(
     pool: &PgPool,
     workspace_id: Uuid,
     template_id: Uuid,
-    project_id: Uuid,
+    board_id: Uuid,
     user_id: Uuid,
     tenant_id: Uuid,
 ) -> Result<Uuid, sqlx::Error> {
@@ -129,7 +129,7 @@ pub async fn apply_template(
     sqlx::query(
         r#"
         INSERT INTO automation_rules (
-            id, name, project_id, trigger, trigger_config,
+            id, name, board_id, trigger, trigger_config,
             is_active, tenant_id, created_by_id, created_at, updated_at
         )
         VALUES ($1, $2, $3, $4::automation_trigger, $5, true, $6, $7, $8, $8)
@@ -137,7 +137,7 @@ pub async fn apply_template(
     )
     .bind(rule_id)
     .bind(&template.name)
-    .bind(project_id)
+    .bind(board_id)
     .bind(trigger_enum)
     .bind(&template.trigger_config)
     .bind(tenant_id)
@@ -302,7 +302,7 @@ pub async fn seed_system_templates(pool: &PgPool, workspace_id: Uuid) -> Result<
         ),
         (
             "Welcome new members",
-            "Send a welcome notification when someone joins the project",
+            "Send a welcome notification when someone joins the board",
             "notifications",
             "member_joined",
             serde_json::json!({}),

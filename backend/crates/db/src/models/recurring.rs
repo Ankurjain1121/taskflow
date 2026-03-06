@@ -17,7 +17,7 @@ pub struct RecurringTaskConfig {
     pub is_active: bool,
     pub max_occurrences: Option<i32>,
     pub occurrences_created: i32,
-    pub project_id: Uuid,
+    pub board_id: Uuid,
     pub tenant_id: Uuid,
     pub created_by_id: Uuid,
     pub created_at: DateTime<Utc>,

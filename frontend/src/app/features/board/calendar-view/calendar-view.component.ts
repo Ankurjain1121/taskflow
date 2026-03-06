@@ -193,7 +193,7 @@ interface CalendarCell {
   `,
 })
 export class CalendarViewComponent implements OnInit {
-  projectId = input.required<string>();
+  boardId = input.required<string>();
   taskClicked = output<string>();
 
   private taskService = inject(TaskService);
@@ -237,7 +237,7 @@ export class CalendarViewComponent implements OnInit {
 
     this.loading.set(true);
     this.taskService
-      .listCalendarTasks(this.projectId(), start.toISOString(), end.toISOString())
+      .listCalendarTasks(this.boardId(), start.toISOString(), end.toISOString())
       .subscribe({
         next: (tasks) => {
           this.tasks.set(tasks);

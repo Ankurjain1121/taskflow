@@ -5,7 +5,7 @@ import { of, throwError } from 'rxjs';
 import { TaskDetailSidebarComponent } from './task-detail-sidebar.component';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { Task } from '../../core/services/task.service';
-import { Column } from '../../core/services/project.service';
+import { Column } from '../../core/services/board.service';
 
 function makeTask(overrides: Partial<Task> = {}): Task {
   return {
@@ -30,7 +30,7 @@ function makeTask(overrides: Partial<Task> = {}): Task {
 function makeColumn(overrides: Partial<Column> = {}): Column {
   return {
     id: 'col-1',
-    project_id: 'board-1',
+    board_id: 'board-1',
     name: 'In Progress',
     position: 'a0',
     color: '#6366f1',

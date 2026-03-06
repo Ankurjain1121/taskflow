@@ -23,7 +23,7 @@ import {
   Task,
   ChildTaskListResponse,
 } from '../../../core/services/task.service';
-import { Column } from '../../../core/services/project.service';
+import { Column } from '../../../core/services/board.service';
 
 @Component({
   selector: 'app-subtask-list',

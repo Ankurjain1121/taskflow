@@ -1,6 +1,6 @@
 //! Filter Presets REST endpoints
 //!
-//! CRUD operations for per-user per-project saved filter presets.
+//! CRUD operations for per-user per-board saved filter presets.
 
 use axum::{
     extract::{Path, State},
@@ -37,7 +37,7 @@ pub struct UpdateFilterPresetRequest {
 pub struct FilterPresetResponse {
     pub id: Uuid,
     pub user_id: Uuid,
-    pub project_id: Uuid,
+    pub board_id: Uuid,
     pub name: String,
     pub filters: serde_json::Value,
     pub created_at: DateTime<Utc>,
@@ -48,24 +48,24 @@ pub struct FilterPresetResponse {
 // Route Handlers
 // ============================================================================
 
-/// GET /api/projects/:project_id/filter-presets
+/// GET /api/boards/:board_id/filter-presets
 ///
-/// List all filter presets for the current user on this project.
+/// List all filter presets for the current user on this board.
 async fn list_presets(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Path(project_id): Path<Uuid>,
+    Path(board_id): Path<Uuid>,
 ) -> Result<Json<Vec<FilterPresetResponse>>> {
     let presets: Vec<FilterPresetResponse> = sqlx::query_as(
         r#"
-        SELECT id, user_id, project_id, name, filters, created_at, updated_at
+        SELECT id, user_id, board_id, name, filters, created_at, updated_at
         FROM filter_presets
-        WHERE user_id = $1 AND project_id = $2
+        WHERE user_id = $1 AND board_id = $2
         ORDER BY name ASC
         "#,
     )
     .bind(auth.0.user_id)
-    .bind(project_id)
+    .bind(board_id)
     .fetch_all(&state.db)
     .await
     .map_err(AppError::from)?;
@@ -73,13 +73,13 @@ async fn list_presets(
     Ok(Json(presets))
 }
 
-/// POST /api/projects/:project_id/filter-presets
+/// POST /api/boards/:board_id/filter-presets
 ///
 /// Create a new filter preset for the current user.
 async fn create_preset(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Path(project_id): Path<Uuid>,
+    Path(board_id): Path<Uuid>,
     Json(payload): Json<CreateFilterPresetRequest>,
 ) -> Result<Json<FilterPresetResponse>> {
     let name = payload.name.trim();
@@ -94,13 +94,13 @@ async fn create_preset(
 
     let preset: FilterPresetResponse = sqlx::query_as(
         r#"
-        INSERT INTO filter_presets (user_id, project_id, name, filters, tenant_id)
+        INSERT INTO filter_presets (user_id, board_id, name, filters, tenant_id)
         VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, user_id, project_id, name, filters, created_at, updated_at
+        RETURNING id, user_id, board_id, name, filters, created_at, updated_at
         "#,
     )
     .bind(auth.0.user_id)
-    .bind(project_id)
+    .bind(board_id)
     .bind(name)
     .bind(&payload.filters)
     .bind(auth.0.tenant_id)
@@ -110,7 +110,7 @@ async fn create_preset(
         if let sqlx::Error::Database(ref db_err) = e {
             if db_err.constraint().is_some() {
                 return AppError::Conflict(format!(
-                    "Preset '{}' already exists for this project",
+                    "Preset '{}' already exists for this board",
                     name
                 ));
             }
@@ -121,22 +121,22 @@ async fn create_preset(
     Ok(Json(preset))
 }
 
-/// PUT /api/projects/:project_id/filter-presets/:preset_id
+/// PUT /api/boards/:board_id/filter-presets/:preset_id
 ///
 /// Update a filter preset.
 async fn update_preset(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Path((project_id, preset_id)): Path<(Uuid, Uuid)>,
+    Path((board_id, preset_id)): Path<(Uuid, Uuid)>,
     Json(payload): Json<UpdateFilterPresetRequest>,
 ) -> Result<Json<FilterPresetResponse>> {
     // Verify ownership
     let existing: Option<FilterPresetResponse> = sqlx::query_as(
-        "SELECT id, user_id, project_id, name, filters, created_at, updated_at FROM filter_presets WHERE id = $1 AND user_id = $2 AND project_id = $3",
+        "SELECT id, user_id, board_id, name, filters, created_at, updated_at FROM filter_presets WHERE id = $1 AND user_id = $2 AND board_id = $3",
     )
     .bind(preset_id)
     .bind(auth.0.user_id)
-    .bind(project_id)
+    .bind(board_id)
     .fetch_optional(&state.db)
     .await
     .map_err(AppError::from)?;
@@ -155,7 +155,7 @@ async fn update_preset(
         UPDATE filter_presets
         SET name = $1, filters = $2, updated_at = now()
         WHERE id = $3 AND user_id = $4
-        RETURNING id, user_id, project_id, name, filters, created_at, updated_at
+        RETURNING id, user_id, board_id, name, filters, created_at, updated_at
         "#,
     )
     .bind(name)
@@ -169,23 +169,22 @@ async fn update_preset(
     Ok(Json(updated))
 }
 
-/// DELETE /api/projects/:project_id/filter-presets/:preset_id
+/// DELETE /api/boards/:board_id/filter-presets/:preset_id
 ///
 /// Delete a filter preset.
 async fn delete_preset(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Path((project_id, preset_id)): Path<(Uuid, Uuid)>,
+    Path((board_id, preset_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>> {
-    let result = sqlx::query(
-        "DELETE FROM filter_presets WHERE id = $1 AND user_id = $2 AND project_id = $3",
-    )
-    .bind(preset_id)
-    .bind(auth.0.user_id)
-    .bind(project_id)
-    .execute(&state.db)
-    .await
-    .map_err(AppError::from)?;
+    let result =
+        sqlx::query("DELETE FROM filter_presets WHERE id = $1 AND user_id = $2 AND board_id = $3")
+            .bind(preset_id)
+            .bind(auth.0.user_id)
+            .bind(board_id)
+            .execute(&state.db)
+            .await
+            .map_err(AppError::from)?;
 
     if result.rows_affected() == 0 {
         return Err(AppError::NotFound("Preset not found".into()));

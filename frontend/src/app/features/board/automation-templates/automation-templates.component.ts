@@ -18,7 +18,7 @@ import {
   AutomationTemplate,
   TemplateCategory,
 } from '../../../core/services/automation.service';
-import { ProjectService, Project } from '../../../core/services/project.service';
+import { BoardService, Board } from '../../../core/services/board.service';
 
 interface TemplateGroup {
   category: TemplateCategory;
@@ -156,7 +156,7 @@ interface TemplateGroup {
 
     <!-- Apply Dialog -->
     <p-dialog
-      header="Apply Template to Project"
+      header="Apply Template to Board"
       [modal]="true"
       [(visible)]="applyDialogVisible"
       [style]="{ width: '420px' }"
@@ -222,7 +222,7 @@ interface TemplateGroup {
 })
 export class AutomationTemplatesComponent implements OnInit {
   private automationService = inject(AutomationService);
-  private projectService = inject(ProjectService);
+  private boardService = inject(BoardService);
   private messageService = inject(MessageService);
 
   workspaceId = input.required<string>();
@@ -230,7 +230,7 @@ export class AutomationTemplatesComponent implements OnInit {
   loading = signal(true);
   templates = signal<AutomationTemplate[]>([]);
   groups = signal<TemplateGroup[]>([]);
-  projects = signal<Project[]>([]);
+  boards = signal<Board[]>([]);
   boardOptions = signal<{ id: string; name: string }[]>([]);
 
   applyDialogVisible = signal(false);
@@ -317,18 +317,18 @@ export class AutomationTemplatesComponent implements OnInit {
 
   onApply(): void {
     const template = this.selectedTemplate();
-    const projectId = this.selectedBoardId();
-    if (!template || !projectId) return;
+    const boardId = this.selectedBoardId();
+    if (!template || !boardId) return;
 
     this.applying.set(true);
     this.automationService
-      .applyTemplate(this.workspaceId(), template.id, projectId)
+      .applyTemplate(this.workspaceId(), template.id, boardId)
       .subscribe({
         next: () => {
           this.applying.set(false);
           this.applyDialogVisible.set(false);
           const boardName =
-            this.projects().find((b) => b.id === projectId)?.name ?? 'project';
+            this.boards().find((b) => b.id === boardId)?.name ?? 'board';
           this.messageService.add({
             severity: 'success',
             summary: 'Template Applied',
@@ -369,10 +369,10 @@ export class AutomationTemplatesComponent implements OnInit {
   }
 
   private loadBoards(): void {
-    this.projectService.listProjects(this.workspaceId()).subscribe({
-      next: (projects) => {
-        this.projects.set(projects);
-        this.boardOptions.set(projects.map((b) => ({ id: b.id, name: b.name })));
+    this.boardService.listBoards(this.workspaceId()).subscribe({
+      next: (boards) => {
+        this.boards.set(boards);
+        this.boardOptions.set(boards.map((b) => ({ id: b.id, name: b.name })));
       },
     });
   }

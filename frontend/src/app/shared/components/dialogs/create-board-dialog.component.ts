@@ -63,7 +63,7 @@ export interface BoardTemplate {
   ],
   template: `
     <p-dialog
-      header="Create New Project"
+      header="Create New Board"
       [(visible)]="visible"
       [modal]="true"
       [style]="{ width: '520px' }"
@@ -74,12 +74,12 @@ export interface BoardTemplate {
         Create a new board in {{ workspaceName() }}
       </p>
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
-        <!-- Project Name -->
+        <!-- Board Name -->
         <div class="flex flex-col gap-1 mb-4">
           <label
             for="boardName"
             class="text-sm font-medium text-[var(--foreground)]"
-            >Project Name</label
+            >Board Name</label
           >
           <input
             pInputText
@@ -248,7 +248,7 @@ export interface BoardTemplate {
             [disabled]="isSubmitting"
           />
           <p-button
-            label="Create Project"
+            label="Create Board"
             (onClick)="onSubmit()"
             [disabled]="form.invalid || isSubmitting"
             [loading]="isSubmitting"

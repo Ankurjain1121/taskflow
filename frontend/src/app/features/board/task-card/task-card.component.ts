@@ -20,7 +20,7 @@ import { TieredMenu } from 'primeng/tieredmenu';
 import { MenuItem } from 'primeng/api';
 import { Tooltip } from 'primeng/tooltip';
 import { Task } from '../../../core/services/task.service';
-import { Column } from '../../../core/services/project.service';
+import { Column } from '../../../core/services/board.service';
 import {
   CardFields,
   DEFAULT_CARD_FIELDS,

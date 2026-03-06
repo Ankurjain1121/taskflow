@@ -31,7 +31,7 @@ describe('AppearanceSectionComponent', () => {
       of({
         timezone: 'America/New_York',
         date_format: 'dd/MM/yyyy',
-        default_project_view: 'list',
+        default_board_view: 'list',
         sidebar_density: 'compact',
         language: 'en',
       }),
@@ -45,7 +45,7 @@ describe('AppearanceSectionComponent', () => {
       of({
         timezone: 'America/New_York',
         date_format: 'dd/MM/yyyy',
-        default_project_view: 'list',
+        default_board_view: 'list',
         sidebar_density: 'compact',
         language: 'en',
       }),
@@ -104,7 +104,7 @@ describe('AppearanceSectionComponent', () => {
       expect(mockUserPreferencesService.getPreferences).toHaveBeenCalled();
       expect(component.preferences.timezone).toBe('America/New_York');
       expect(component.preferences.dateFormat).toBe('dd/MM/yyyy');
-      expect(component.preferences.defaultProjectView).toBe('list');
+      expect(component.preferences.defaultBoardView).toBe('list');
       expect(component.preferences.sidebarDensity).toBe('compact');
     });
 
@@ -146,7 +146,7 @@ describe('AppearanceSectionComponent', () => {
       component.preferences = {
         timezone: 'UTC',
         dateFormat: 'yyyy-MM-dd',
-        defaultProjectView: 'kanban',
+        defaultBoardView: 'kanban',
         sidebarDensity: 'comfortable',
         language: 'en',
       };
@@ -157,7 +157,7 @@ describe('AppearanceSectionComponent', () => {
         {
           timezone: 'UTC',
           date_format: 'yyyy-MM-dd',
-          default_project_view: 'kanban',
+          default_board_view: 'kanban',
           sidebar_density: 'comfortable',
           language: 'en',
         },

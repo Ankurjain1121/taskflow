@@ -24,11 +24,11 @@ use taskflow_db::queries::comments::{
     create_comment, delete_comment, get_comment_author_id, get_comment_task_id,
     list_comments_by_task, update_comment, CommentWithAuthor,
 };
-use taskflow_db::queries::get_task_project_id;
+use taskflow_db::queries::get_task_board_id;
 use taskflow_services::broadcast::events;
 use taskflow_services::BroadcastService;
 
-use super::task_helpers::{sanitize_html, verify_project_membership};
+use super::task_helpers::{sanitize_html, verify_board_membership};
 
 /// Regex for extracting @mentions in format @[username](userId)
 static MENTION_REGEX: Lazy<Regex> =
@@ -71,13 +71,13 @@ async fn list_comments_handler(
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<ListCommentsResponse>> {
-    // Verify user has access to the task's project
-    let project_id = get_task_project_id(&state.db, task_id)
+    // Verify user has access to the task's board
+    let board_id = get_task_board_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a project member".into()));
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     let comments = list_comments_by_task(&state.db, task_id).await?;
@@ -94,13 +94,13 @@ async fn create_comment_handler(
     Path(task_id): Path<Uuid>,
     Json(body): Json<CreateCommentRequest>,
 ) -> Result<(StatusCode, Json<CommentWithAuthor>)> {
-    // Verify user has access to the task's project
-    let project_id = get_task_project_id(&state.db, task_id)
+    // Verify user has access to the task's board
+    let board_id = get_task_board_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a project member".into()));
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     // Sanitize and extract mentioned user IDs from content
@@ -140,8 +140,8 @@ async fn create_comment_handler(
     let comment_clone = comment.clone();
     tokio::spawn(async move {
         if let Err(e) = broadcast_service
-            .broadcast_project_update(
-                project_id,
+            .broadcast_board_update(
+                board_id,
                 events::COMMENT_CREATED,
                 json!({
                     "task_id": task_id,
@@ -253,17 +253,17 @@ async fn update_comment_handler(
         ));
     }
 
-    // Verify user has access to the task's project
+    // Verify user has access to the task's board
     let task_id = get_comment_task_id(&state.db, comment_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Comment not found".into()))?;
 
-    let project_id = get_task_project_id(&state.db, task_id)
+    let board_id = get_task_board_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a project member".into()));
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     // Sanitize and extract mentioned user IDs from updated content
@@ -301,17 +301,17 @@ async fn delete_comment_handler(
         ));
     }
 
-    // Verify user has access to the task's project
+    // Verify user has access to the task's board
     let task_id = get_comment_task_id(&state.db, comment_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Comment not found".into()))?;
 
-    let project_id = get_task_project_id(&state.db, task_id)
+    let board_id = get_task_board_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a project member".into()));
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     // Delete the comment

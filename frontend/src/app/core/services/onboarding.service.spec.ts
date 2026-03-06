@@ -37,7 +37,7 @@ describe('OnboardingService', () => {
       const context: InvitationContext = {
         workspace_id: 'ws-1',
         workspace_name: 'My Workspace',
-        project_ids: ['board-1'],
+        board_ids: ['board-1'],
       };
 
       service.getInvitationContext('token-xyz').subscribe((result) => {
@@ -102,7 +102,7 @@ describe('OnboardingService', () => {
   describe('generateSampleBoard()', () => {
     it('should POST /api/onboarding/generate-sample-board with workspace_id', () => {
       const response: GenerateSampleBoardResponse = {
-        project_id: 'board-sample',
+        board_id: 'board-sample',
       };
 
       service.generateSampleBoard('ws-1').subscribe((result) => {

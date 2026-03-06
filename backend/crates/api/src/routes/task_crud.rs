@@ -9,10 +9,10 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::state::AppState;
 use taskflow_db::models::automation::AutomationTrigger;
-use taskflow_db::models::{Task, TaskBroadcast, WsProjectEvent};
+use taskflow_db::models::{Task, TaskBroadcast, WsBoardEvent};
 use taskflow_db::queries::{
-    create_task, duplicate_task, get_task_assignee_ids, get_task_by_id, get_task_project_id,
-    list_tasks_by_project, soft_delete_task, update_task, CreateTaskInput, TaskQueryError,
+    create_task, duplicate_task, get_task_assignee_ids, get_task_board_id, get_task_by_id,
+    list_tasks_by_board, soft_delete_task, update_task, CreateTaskInput, TaskQueryError,
     TaskWithDetails, UpdateTaskInput,
 };
 use taskflow_services::broadcast::events;
@@ -20,21 +20,21 @@ use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerCo
 
 use super::task_helpers::{
     broadcast_workspace_task_update, get_workspace_id_for_board, sanitize_html,
-    verify_project_membership, CreateTaskRequest, ListTasksResponse, UpdateTaskRequest,
+    verify_board_membership, CreateTaskRequest, ListTasksResponse, UpdateTaskRequest,
 };
 
-/// GET /api/projects/:project_id/tasks
-/// List all tasks for a project, grouped by column
+/// GET /api/boards/:board_id/tasks
+/// List all tasks for a board, grouped by column
 pub async fn list_tasks(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path(project_id): Path<Uuid>,
+    Path(board_id): Path<Uuid>,
 ) -> Result<Json<ListTasksResponse>> {
-    let tasks = list_tasks_by_project(&state.db, project_id, tenant.user_id)
+    let tasks = list_tasks_by_board(&state.db, board_id, tenant.user_id)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
-            TaskQueryError::NotFound => AppError::NotFound("Project not found".into()),
+            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
             TaskQueryError::Other(msg) => AppError::InternalError(msg),
@@ -53,7 +53,7 @@ pub async fn get_task(
     let task = get_task_by_id(&state.db, task_id, tenant.user_id)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
+            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
@@ -64,17 +64,17 @@ pub async fn get_task(
     Ok(Json(task))
 }
 
-/// POST /api/projects/:project_id/tasks
+/// POST /api/boards/:board_id/tasks
 /// Create a new task
 pub async fn create_task_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-    Path(project_id): Path<Uuid>,
+    Path(board_id): Path<Uuid>,
     Json(body): Json<CreateTaskRequest>,
 ) -> Result<Json<Task>> {
-    // Verify project membership first
-    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a project member".into()));
+    // Verify board membership first
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     let input = CreateTaskInput {
@@ -92,27 +92,21 @@ pub async fn create_task_handler(
         parent_task_id: body.parent_task_id,
     };
 
-    let task = create_task(
-        &state.db,
-        project_id,
-        input,
-        tenant.tenant_id,
-        tenant.user_id,
-    )
-    .await
-    .map_err(|e| match e {
-        TaskQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
-        TaskQueryError::NotFound => AppError::NotFound("Column not found".into()),
-        TaskQueryError::Database(e) => AppError::SqlxError(e),
-        TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
-        TaskQueryError::Other(msg) => AppError::InternalError(msg),
-    })?;
+    let task = create_task(&state.db, board_id, input, tenant.tenant_id, tenant.user_id)
+        .await
+        .map_err(|e| match e {
+            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotFound => AppError::NotFound("Column not found".into()),
+            TaskQueryError::Database(e) => AppError::SqlxError(e),
+            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
+            TaskQueryError::Other(msg) => AppError::InternalError(msg),
+        })?;
 
     // Broadcast the task created event
     let broadcast_service = BroadcastService::new(state.redis.clone());
     let assignee_ids = body.assignee_ids.unwrap_or_default();
 
-    let event = WsProjectEvent::TaskCreated {
+    let event = WsBoardEvent::TaskCreated {
         task: TaskBroadcast {
             id: task.id,
             title: task.title.clone(),
@@ -131,19 +125,19 @@ pub async fn create_task_handler(
     };
 
     if let Err(e) = broadcast_service
-        .broadcast_project_event(project_id, &event)
+        .broadcast_board_event(board_id, &event)
         .await
     {
         tracing::error!("Failed to broadcast task created event: {}", e);
     }
 
     // Broadcast workspace update for team overview
-    if let Ok(Some(workspace_id)) = get_workspace_id_for_board(&state.db, project_id).await {
+    if let Ok(Some(workspace_id)) = get_workspace_id_for_board(&state.db, board_id).await {
         broadcast_workspace_task_update(
             &broadcast_service,
             workspace_id,
             task.id,
-            project_id,
+            board_id,
             &assignee_ids,
         )
         .await;
@@ -156,7 +150,7 @@ pub async fn create_task_handler(
         AutomationTrigger::TaskCreated,
         TriggerContext {
             task_id: task.id,
-            project_id,
+            board_id,
             tenant_id: tenant.tenant_id,
             user_id: tenant.user_id,
             previous_column_id: None,
@@ -177,14 +171,14 @@ pub async fn update_task_handler(
     Path(task_id): Path<Uuid>,
     Json(body): Json<UpdateTaskRequest>,
 ) -> Result<Json<Task>> {
-    // Get task's project_id for authorization
-    let project_id = get_task_project_id(&state.db, task_id)
+    // Get task's board_id for authorization
+    let board_id = get_task_board_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    // Verify project membership
-    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a project member".into()));
+    // Verify board membership
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     let priority_changed = body.priority.is_some();
@@ -217,7 +211,7 @@ pub async fn update_task_handler(
     let task = update_task(&state.db, task_id, input)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
+            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(current_task) => {
@@ -269,7 +263,7 @@ pub async fn update_task_handler(
     let broadcast_service = BroadcastService::new(state.redis.clone());
     let assignee_ids = get_task_assignee_ids(&state.db, task_id).await?;
 
-    let event = WsProjectEvent::TaskUpdated {
+    let event = WsBoardEvent::TaskUpdated {
         task: TaskBroadcast {
             id: task.id,
             title: task.title.clone(),
@@ -288,19 +282,19 @@ pub async fn update_task_handler(
     };
 
     if let Err(e) = broadcast_service
-        .broadcast_project_event(project_id, &event)
+        .broadcast_board_event(board_id, &event)
         .await
     {
         tracing::error!("Failed to broadcast task updated event: {}", e);
     }
 
     // Broadcast workspace update for team overview
-    if let Ok(Some(workspace_id)) = get_workspace_id_for_board(&state.db, project_id).await {
+    if let Ok(Some(workspace_id)) = get_workspace_id_for_board(&state.db, board_id).await {
         broadcast_workspace_task_update(
             &broadcast_service,
             workspace_id,
             task.id,
-            project_id,
+            board_id,
             &assignee_ids,
         )
         .await;
@@ -321,7 +315,7 @@ pub async fn update_task_handler(
             AutomationTrigger::TaskPriorityChanged,
             TriggerContext {
                 task_id: task.id,
-                project_id,
+                board_id,
                 tenant_id: tenant.tenant_id,
                 user_id: tenant.user_id,
                 previous_column_id: None,
@@ -342,20 +336,20 @@ pub async fn delete_task_handler(
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>> {
-    // Get task's project_id for authorization
-    let project_id = get_task_project_id(&state.db, task_id)
+    // Get task's board_id for authorization
+    let board_id = get_task_board_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    // Verify project membership
-    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a project member".into()));
+    // Verify board membership
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     soft_delete_task(&state.db, task_id)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
+            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
@@ -365,27 +359,27 @@ pub async fn delete_task_handler(
     // Broadcast the task deleted event
     let broadcast_service = BroadcastService::new(state.redis.clone());
 
-    let event = WsProjectEvent::TaskDeleted {
+    let event = WsBoardEvent::TaskDeleted {
         task_id,
         origin_user_id: tenant.user_id,
     };
 
     if let Err(e) = broadcast_service
-        .broadcast_project_event(project_id, &event)
+        .broadcast_board_event(board_id, &event)
         .await
     {
         tracing::error!("Failed to broadcast task deleted event: {}", e);
     }
 
     // Broadcast workspace update for team overview
-    if let Ok(Some(workspace_id)) = get_workspace_id_for_board(&state.db, project_id).await {
+    if let Ok(Some(workspace_id)) = get_workspace_id_for_board(&state.db, board_id).await {
         if let Err(e) = broadcast_service
             .broadcast_workspace_update(
                 workspace_id,
                 events::WORKLOAD_CHANGED,
                 json!({
                     "task_id": task_id,
-                    "project_id": project_id,
+                    "board_id": board_id,
                     "deleted": true
                 }),
             )
@@ -399,81 +393,80 @@ pub async fn delete_task_handler(
 }
 
 /// POST /api/tasks/:id/complete
-/// Move a task to the first "done" column on its project
+/// Move a task to the first "done" column on its board
 pub async fn complete_task_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<Task>> {
-    let project_id = get_task_project_id(&state.db, task_id)
+    let board_id = get_task_board_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a project member".into()));
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
-    // Find the first "done" column for this project
+    // Find the first "done" column for this board
     let done_column_id: Option<uuid::Uuid> = sqlx::query_scalar(
         r#"
-        SELECT id FROM project_columns
-        WHERE project_id = $1 AND status_mapping->>'done' = 'true'
+        SELECT id FROM board_columns
+        WHERE board_id = $1 AND status_mapping->>'done' = 'true'
         ORDER BY position ASC
         LIMIT 1
         "#,
     )
-    .bind(project_id)
+    .bind(board_id)
     .fetch_optional(&state.db)
     .await
     .map_err(AppError::SqlxError)?;
 
-    let done_column_id = done_column_id
-        .ok_or_else(|| AppError::BadRequest("No done column found on project".into()))?;
+    let done_column_id =
+        done_column_id.ok_or_else(|| AppError::BadRequest("No done column found on board".into()))?;
 
-    let task =
-        taskflow_db::queries::move_task(&state.db, task_id, done_column_id, "a0".to_string())
-            .await
-            .map_err(|e| match e {
-                TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
-                TaskQueryError::Database(e) => AppError::SqlxError(e),
-                _ => AppError::InternalError("Failed to complete task".into()),
-            })?;
+    let task = taskflow_db::queries::move_task(&state.db, task_id, done_column_id, "a0".to_string())
+        .await
+        .map_err(|e| match e {
+            TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
+            TaskQueryError::Database(e) => AppError::SqlxError(e),
+            _ => AppError::InternalError("Failed to complete task".into()),
+        })?;
 
     Ok(Json(task))
 }
 
 /// POST /api/tasks/:id/uncomplete
-/// Move a task back to the first non-done column on its project
+/// Move a task back to the first non-done column on its board
 pub async fn uncomplete_task_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<Task>> {
-    let project_id = get_task_project_id(&state.db, task_id)
+    let board_id = get_task_board_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a project member".into()));
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
-    // Find the first non-done column for this project
+    // Find the first non-done column for this board
     let column_id: Option<uuid::Uuid> = sqlx::query_scalar(
         r#"
-        SELECT id FROM project_columns
-        WHERE project_id = $1
+        SELECT id FROM board_columns
+        WHERE board_id = $1
           AND (status_mapping IS NULL OR status_mapping->>'done' != 'true')
         ORDER BY position ASC
         LIMIT 1
         "#,
     )
-    .bind(project_id)
+    .bind(board_id)
     .fetch_optional(&state.db)
     .await
     .map_err(AppError::SqlxError)?;
 
-    let column_id = column_id
-        .ok_or_else(|| AppError::BadRequest("No non-done column found on project".into()))?;
+    let column_id =
+        column_id.ok_or_else(|| AppError::BadRequest("No non-done column found on board".into()))?;
 
     let task = taskflow_db::queries::move_task(&state.db, task_id, column_id, "a0".to_string())
         .await
@@ -493,20 +486,20 @@ pub async fn duplicate_task_handler(
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<Task>> {
-    // Get task's project_id for authorization
-    let project_id = get_task_project_id(&state.db, task_id)
+    // Get task's board_id for authorization
+    let board_id = get_task_board_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    // Verify project membership
-    if !verify_project_membership(&state.db, project_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a project member".into()));
+    // Verify board membership
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     let task = duplicate_task(&state.db, task_id, tenant.user_id)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
+            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
@@ -517,7 +510,7 @@ pub async fn duplicate_task_handler(
     let broadcast_service = BroadcastService::new(state.redis.clone());
     let assignee_ids = get_task_assignee_ids(&state.db, task.id).await?;
 
-    let event = WsProjectEvent::TaskCreated {
+    let event = WsBoardEvent::TaskCreated {
         task: TaskBroadcast {
             id: task.id,
             title: task.title.clone(),
@@ -536,19 +529,19 @@ pub async fn duplicate_task_handler(
     };
 
     if let Err(e) = broadcast_service
-        .broadcast_project_event(project_id, &event)
+        .broadcast_board_event(board_id, &event)
         .await
     {
         tracing::error!("Failed to broadcast task duplicated event: {}", e);
     }
 
     // Broadcast workspace update for team overview
-    if let Ok(Some(workspace_id)) = get_workspace_id_for_board(&state.db, project_id).await {
+    if let Ok(Some(workspace_id)) = get_workspace_id_for_board(&state.db, board_id).await {
         broadcast_workspace_task_update(
             &broadcast_service,
             workspace_id,
             task.id,
-            project_id,
+            board_id,
             &assignee_ids,
         )
         .await;

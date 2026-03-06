@@ -16,8 +16,8 @@ pub enum AttachmentQueryError {
     Database(#[from] sqlx::Error),
     #[error("Attachment not found")]
     NotFound,
-    #[error("User is not a member of this project")]
-    NotProjectMember,
+    #[error("User is not a member of this board")]
+    NotBoardMember,
     #[error("Permission denied")]
     PermissionDenied,
 }
@@ -180,10 +180,10 @@ pub async fn delete_attachment(
     Ok(deleted)
 }
 
-// Note: get_task_project_id is defined in tasks.rs and re-exported from the queries module
+// Note: get_task_board_id is defined in tasks.rs and re-exported from the queries module
 
-/// Verify user is a member of the project that contains the task
-pub async fn verify_task_project_membership(
+/// Verify user is a member of the board that contains the task
+pub async fn verify_task_board_membership(
     pool: &PgPool,
     task_id: Uuid,
     user_id: Uuid,
@@ -191,10 +191,10 @@ pub async fn verify_task_project_membership(
     let result: Option<(Uuid, bool)> = sqlx::query_as(
         r#"
         SELECT
-            t.project_id,
+            t.board_id,
             EXISTS(
-                SELECT 1 FROM project_members bm
-                WHERE bm.project_id = t.project_id AND bm.user_id = $2
+                SELECT 1 FROM board_members bm
+                WHERE bm.board_id = t.board_id AND bm.user_id = $2
             )
         FROM tasks t
         WHERE t.id = $1 AND t.deleted_at IS NULL
@@ -206,7 +206,7 @@ pub async fn verify_task_project_membership(
     .await?;
 
     match result {
-        Some((project_id, is_member)) => Ok((is_member, Some(project_id))),
+        Some((board_id, is_member)) => Ok((is_member, Some(board_id))),
         None => Ok((false, None)),
     }
 }
@@ -260,7 +260,7 @@ mod tests {
         let err = AttachmentQueryError::NotFound;
         assert_eq!(err.to_string(), "Attachment not found");
 
-        let err = AttachmentQueryError::NotProjectMember;
-        assert_eq!(err.to_string(), "User is not a member of this project");
+        let err = AttachmentQueryError::NotBoardMember;
+        assert_eq!(err.to_string(), "User is not a member of this board");
     }
 }

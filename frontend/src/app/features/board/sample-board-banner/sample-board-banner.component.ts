@@ -7,7 +7,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { ProjectService } from '../../../core/services/project.service';
+import { BoardService } from '../../../core/services/board.service';
 
 @Component({
   selector: 'app-sample-board-banner',
@@ -75,7 +75,7 @@ import { ProjectService } from '../../../core/services/project.service';
   `,
 })
 export class SampleBoardBannerComponent implements OnInit {
-  projectId = input.required<string>();
+  boardId = input.required<string>();
   workspaceId = input.required<string>();
 
   deleted = output<void>();
@@ -85,11 +85,11 @@ export class SampleBoardBannerComponent implements OnInit {
 
   constructor(
     private router: Router,
-    private projectService: ProjectService,
+    private boardService: BoardService,
   ) {}
 
   ngOnInit(): void {
-    const key = `tf_sample_banner_dismissed_${this.projectId()}`;
+    const key = `tf_sample_banner_dismissed_${this.boardId()}`;
     if (localStorage.getItem(key) === 'true') {
       this.dismissed.set(true);
     }
@@ -97,13 +97,13 @@ export class SampleBoardBannerComponent implements OnInit {
 
   dismiss(): void {
     this.dismissed.set(true);
-    const key = `tf_sample_banner_dismissed_${this.projectId()}`;
+    const key = `tf_sample_banner_dismissed_${this.boardId()}`;
     localStorage.setItem(key, 'true');
   }
 
   deleteBoard(): void {
     this.isDeleting.set(true);
-    this.projectService.deleteProject(this.projectId()).subscribe({
+    this.boardService.deleteBoard(this.boardId()).subscribe({
       next: () => {
         this.isDeleting.set(false);
         this.deleted.emit();

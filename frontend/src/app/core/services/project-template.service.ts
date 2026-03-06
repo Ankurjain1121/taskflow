@@ -49,7 +49,7 @@ export interface CreateTemplateRequest {
 
 export interface CreateBoardFromTemplateRequest {
   workspace_id: string;
-  project_name: string;
+  board_name: string;
 }
 
 export interface SaveAsTemplateRequest {
@@ -90,19 +90,19 @@ export class ProjectTemplateService {
   createBoardFromTemplate(
     templateId: string,
     request: CreateBoardFromTemplateRequest,
-  ): Observable<{ project_id: string }> {
-    return this.http.post<{ project_id: string }>(
+  ): Observable<{ board_id: string }> {
+    return this.http.post<{ board_id: string }>(
       `${this.apiUrl}/project-templates/${templateId}/create-board`,
       request,
     );
   }
 
   saveBoardAsTemplate(
-    projectId: string,
+    boardId: string,
     request: SaveAsTemplateRequest,
   ): Observable<ProjectTemplate> {
     return this.http.post<ProjectTemplate>(
-      `${this.apiUrl}/projects/${projectId}/save-as-template`,
+      `${this.apiUrl}/boards/${boardId}/save-as-template`,
       request,
     );
   }

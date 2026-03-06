@@ -1,4 +1,4 @@
-//! Advanced integration tests -- tasks, search, dashproject, notifications, subtasks, activity log.
+//! Advanced integration tests -- tasks, search, dashboard, notifications, subtasks, activity log.
 //! Runs against real PostgreSQL. Each test uses unique random data.
 
 use sqlx::PgPool;
@@ -14,8 +14,8 @@ async fn test_pool() -> PgPool {
     .expect("Failed to connect to test database")
 }
 
-/// Create a full test scenario: tenant + user + workspace + project (with columns) + project membership
-/// Returns (tenant_id, user_id, workspace_id, project_id, column_id)
+/// Create a full test scenario: tenant + user + workspace + board (with columns) + board membership
+/// Returns (tenant_id, user_id, workspace_id, board_id, column_id)
 async fn create_full_test_setup(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
     let email = format!("test-adv-{}@example.com", Uuid::new_v4());
     let user = super::auth::create_user_with_tenant(
@@ -32,28 +32,24 @@ async fn create_full_test_setup(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid)
             .await
             .expect("create workspace");
 
-    let proj = super::projects::create_project(
+    let board = super::boards::create_board(
         pool,
-        "Test Project",
+        "Test Board",
         None,
         workspace.id,
         user.tenant_id,
         user.id,
     )
     .await
-    .expect("create project");
+    .expect("create board");
 
-    let first_column_id = proj
-        .columns
-        .first()
-        .expect("project should have columns")
-        .id;
+    let first_column_id = board.columns.first().expect("board should have columns").id;
 
     (
         user.tenant_id,
         user.id,
         workspace.id,
-        proj.project.id,
+        board.board.id,
         first_column_id,
     )
 }
@@ -61,7 +57,7 @@ async fn create_full_test_setup(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid)
 /// Helper: create a task with default values
 async fn create_test_task(
     pool: &PgPool,
-    project_id: Uuid,
+    board_id: Uuid,
     column_id: Uuid,
     tenant_id: Uuid,
     user_id: Uuid,
@@ -83,7 +79,7 @@ async fn create_test_task(
         parent_task_id: None,
     };
 
-    super::tasks::create_task(pool, project_id, input, tenant_id, user_id)
+    super::tasks::create_task(pool, board_id, input, tenant_id, user_id)
         .await
         .expect("create task")
 }
@@ -95,12 +91,12 @@ async fn create_test_task(
 #[tokio::test]
 async fn test_create_task() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _ws_id, project_id, column_id) = create_full_test_setup(&pool).await;
+    let (tenant_id, user_id, _ws_id, board_id, column_id) = create_full_test_setup(&pool).await;
 
     let title = format!("Task-{}", Uuid::new_v4());
     let task = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -111,7 +107,7 @@ async fn test_create_task() {
 
     assert_eq!(task.title, title);
     assert_eq!(task.priority, TaskPriority::High);
-    assert_eq!(task.project_id, project_id);
+    assert_eq!(task.board_id, board_id);
     assert_eq!(task.column_id, column_id);
     assert_eq!(task.tenant_id, tenant_id);
     assert_eq!(task.created_by_id, user_id);
@@ -122,12 +118,12 @@ async fn test_create_task() {
 #[tokio::test]
 async fn test_get_task_by_id() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _ws_id, project_id, column_id) = create_full_test_setup(&pool).await;
+    let (tenant_id, user_id, _ws_id, board_id, column_id) = create_full_test_setup(&pool).await;
 
     let title = format!("GetById-{}", Uuid::new_v4());
     let created = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -165,11 +161,11 @@ async fn test_get_task_by_id_not_found() {
 #[tokio::test]
 async fn test_update_task_title() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _ws_id, project_id, column_id) = create_full_test_setup(&pool).await;
+    let (tenant_id, user_id, _ws_id, board_id, column_id) = create_full_test_setup(&pool).await;
 
     let task = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -206,11 +202,11 @@ async fn test_update_task_title() {
 #[tokio::test]
 async fn test_update_task_priority() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _ws_id, project_id, column_id) = create_full_test_setup(&pool).await;
+    let (tenant_id, user_id, _ws_id, board_id, column_id) = create_full_test_setup(&pool).await;
 
     let task = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -245,11 +241,11 @@ async fn test_update_task_priority() {
 #[tokio::test]
 async fn test_soft_delete_task() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _ws_id, project_id, column_id) = create_full_test_setup(&pool).await;
+    let (tenant_id, user_id, _ws_id, board_id, column_id) = create_full_test_setup(&pool).await;
 
     let task = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -276,10 +272,10 @@ async fn test_soft_delete_task() {
 #[tokio::test]
 async fn test_move_task() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _ws_id, project_id, column_id) = create_full_test_setup(&pool).await;
+    let (tenant_id, user_id, _ws_id, board_id, column_id) = create_full_test_setup(&pool).await;
 
-    // Get a second column (project has 3 default columns: To Do, In Progress, Done)
-    let columns = super::columns::list_columns_by_board(&pool, project_id)
+    // Get a second column (board has 3 default columns: To Do, In Progress, Done)
+    let columns = super::columns::list_columns_by_board(&pool, board_id)
         .await
         .expect("list columns");
     assert!(columns.len() >= 2, "board should have at least 2 columns");
@@ -288,7 +284,7 @@ async fn test_move_task() {
 
     let task = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -308,11 +304,11 @@ async fn test_move_task() {
 #[tokio::test]
 async fn test_assign_user_to_task() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _ws_id, project_id, column_id) = create_full_test_setup(&pool).await;
+    let (tenant_id, user_id, _ws_id, board_id, column_id) = create_full_test_setup(&pool).await;
 
     let task = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -339,11 +335,11 @@ async fn test_assign_user_to_task() {
 #[tokio::test]
 async fn test_unassign_user_from_task() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _ws_id, project_id, column_id) = create_full_test_setup(&pool).await;
+    let (tenant_id, user_id, _ws_id, board_id, column_id) = create_full_test_setup(&pool).await;
 
     let task = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -374,14 +370,14 @@ async fn test_unassign_user_from_task() {
 }
 
 #[tokio::test]
-async fn test_list_tasks_by_project() {
+async fn test_list_tasks_by_board() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _ws_id, project_id, column_id) = create_full_test_setup(&pool).await;
+    let (tenant_id, user_id, _ws_id, board_id, column_id) = create_full_test_setup(&pool).await;
 
     let unique = Uuid::new_v4().to_string();
     let t1 = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -391,7 +387,7 @@ async fn test_list_tasks_by_project() {
     .await;
     let t2 = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -400,9 +396,9 @@ async fn test_list_tasks_by_project() {
     )
     .await;
 
-    let grouped = super::tasks::list_tasks_by_project(&pool, project_id, user_id)
+    let grouped = super::tasks::list_tasks_by_board(&pool, board_id, user_id)
         .await
-        .expect("list_tasks_by_project");
+        .expect("list_tasks_by_board");
 
     // All tasks should be in the first column
     let column_tasks = grouped.get(&column_id).expect("column should have tasks");
@@ -414,11 +410,11 @@ async fn test_list_tasks_by_project() {
 #[tokio::test]
 async fn test_bulk_update_tasks() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _ws_id, project_id, column_id) = create_full_test_setup(&pool).await;
+    let (tenant_id, user_id, _ws_id, board_id, column_id) = create_full_test_setup(&pool).await;
 
     let t1 = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -428,7 +424,7 @@ async fn test_bulk_update_tasks() {
     .await;
     let t2 = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -438,7 +434,7 @@ async fn test_bulk_update_tasks() {
     .await;
     let t3 = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -457,7 +453,7 @@ async fn test_bulk_update_tasks() {
         clear_group: None,
     };
 
-    let updated_count = super::task_bulk::bulk_update_tasks(&pool, project_id, user_id, input)
+    let updated_count = super::task_bulk::bulk_update_tasks(&pool, board_id, user_id, input)
         .await
         .expect("bulk_update_tasks");
 
@@ -474,11 +470,11 @@ async fn test_bulk_update_tasks() {
 #[tokio::test]
 async fn test_bulk_delete_tasks() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _ws_id, project_id, column_id) = create_full_test_setup(&pool).await;
+    let (tenant_id, user_id, _ws_id, board_id, column_id) = create_full_test_setup(&pool).await;
 
     let t1 = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -488,7 +484,7 @@ async fn test_bulk_delete_tasks() {
     .await;
     let t2 = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -498,7 +494,7 @@ async fn test_bulk_delete_tasks() {
     .await;
     let t3 = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -508,7 +504,7 @@ async fn test_bulk_delete_tasks() {
     .await;
 
     let deleted_count =
-        super::task_bulk::bulk_delete_tasks(&pool, project_id, user_id, &[t1.id, t2.id, t3.id])
+        super::task_bulk::bulk_delete_tasks(&pool, board_id, user_id, &[t1.id, t2.id, t3.id])
             .await
             .expect("bulk_delete_tasks");
 
@@ -641,12 +637,12 @@ async fn test_mark_notification_read() {
 #[tokio::test]
 async fn test_search_tasks_by_title() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _ws_id, project_id, column_id) = create_full_test_setup(&pool).await;
+    let (tenant_id, user_id, _ws_id, board_id, column_id) = create_full_test_setup(&pool).await;
 
     let unique_needle = format!("Xylophone{}", Uuid::new_v4().as_simple());
     let _t1 = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -656,7 +652,7 @@ async fn test_search_tasks_by_title() {
     .await;
     let _t2 = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -688,12 +684,12 @@ async fn test_search_tasks_by_title() {
 #[tokio::test]
 async fn test_my_tasks_returns_assigned_tasks() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _ws_id, project_id, column_id) = create_full_test_setup(&pool).await;
+    let (tenant_id, user_id, _ws_id, board_id, column_id) = create_full_test_setup(&pool).await;
 
     let title = format!("MyTask-{}", Uuid::new_v4());
     let task = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -723,22 +719,22 @@ async fn test_my_tasks_returns_assigned_tasks() {
     assert!(found.is_some(), "assigned task should appear in my_tasks");
     let item = found.expect("just checked");
     assert_eq!(item.title, title);
-    assert_eq!(item.project_id, project_id);
+    assert_eq!(item.board_id, board_id);
 }
 
 // ============================================================================
-// Dashproject query tests
+// Dashboard query tests
 // ============================================================================
 
 #[tokio::test]
 async fn test_dashboard_stats() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _ws_id, project_id, column_id) = create_full_test_setup(&pool).await;
+    let (tenant_id, user_id, _ws_id, board_id, column_id) = create_full_test_setup(&pool).await;
 
     // Create two tasks and assign them to the user
     let t1 = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -748,7 +744,7 @@ async fn test_dashboard_stats() {
     .await;
     let t2 = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -783,11 +779,11 @@ async fn test_dashboard_stats() {
 #[tokio::test]
 async fn test_create_subtask() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _ws_id, project_id, column_id) = create_full_test_setup(&pool).await;
+    let (tenant_id, user_id, _ws_id, board_id, column_id) = create_full_test_setup(&pool).await;
 
     let task = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -812,11 +808,11 @@ async fn test_create_subtask() {
 #[tokio::test]
 async fn test_toggle_subtask() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _ws_id, project_id, column_id) = create_full_test_setup(&pool).await;
+    let (tenant_id, user_id, _ws_id, board_id, column_id) = create_full_test_setup(&pool).await;
 
     let task = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,
@@ -861,11 +857,11 @@ async fn test_toggle_subtask() {
 #[tokio::test]
 async fn test_record_activity() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _ws_id, project_id, column_id) = create_full_test_setup(&pool).await;
+    let (tenant_id, user_id, _ws_id, board_id, column_id) = create_full_test_setup(&pool).await;
 
     let task = create_test_task(
         &pool,
-        project_id,
+        board_id,
         column_id,
         tenant_id,
         user_id,

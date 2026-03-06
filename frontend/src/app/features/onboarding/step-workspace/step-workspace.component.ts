@@ -22,7 +22,7 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
           Create Your Workspace
         </h2>
         <p class="text-[var(--muted-foreground)] dark:text-gray-400">
-          This is where your team's projects and tasks will live.
+          This is where your team's boards and tasks will live.
         </p>
       </div>
 

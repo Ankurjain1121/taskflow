@@ -17,10 +17,10 @@ import { ProgressSpinner } from 'primeng/progressspinner';
 import { Toast } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import {
-  ProjectShareService,
-  ProjectShare,
+  BoardShareService,
+  BoardShare,
   CreateShareRequest,
-} from '../../../core/services/project-share.service';
+} from '../../../core/services/board-share.service';
 import { Clipboard } from '@angular/cdk/clipboard';
 
 @Component({
@@ -175,13 +175,13 @@ import { Clipboard } from '@angular/cdk/clipboard';
   `,
 })
 export class ShareSettingsComponent implements OnInit {
-  projectId = input.required<string>();
+  boardId = input.required<string>();
 
-  private shareService = inject(ProjectShareService);
+  private shareService = inject(BoardShareService);
   private clipboard = inject(Clipboard);
   private messageService = inject(MessageService);
 
-  shares = signal<ProjectShare[]>([]);
+  shares = signal<BoardShare[]>([]);
   loading = signal(true);
   creating = signal(false);
 
@@ -195,7 +195,7 @@ export class ShareSettingsComponent implements OnInit {
 
   loadShares() {
     this.loading.set(true);
-    this.shareService.listShares(this.projectId()).subscribe({
+    this.shareService.listShares(this.boardId()).subscribe({
       next: (shares) => {
         this.shares.set(shares);
         this.loading.set(false);
@@ -215,7 +215,7 @@ export class ShareSettingsComponent implements OnInit {
     if (this.newShareName) req.name = this.newShareName;
     if (this.newSharePassword) req.password = this.newSharePassword;
 
-    this.shareService.createShare(this.projectId(), req).subscribe({
+    this.shareService.createShare(this.boardId(), req).subscribe({
       next: (share) => {
         this.shares.update((s) => [share, ...s]);
         this.creating.set(false);
@@ -240,11 +240,11 @@ export class ShareSettingsComponent implements OnInit {
     });
   }
 
-  getShareUrl(share: ProjectShare): string {
+  getShareUrl(share: BoardShare): string {
     return `${window.location.origin}/shared/${share.share_token}`;
   }
 
-  copyLink(share: ProjectShare) {
+  copyLink(share: BoardShare) {
     this.clipboard.copy(this.getShareUrl(share));
     this.messageService.add({
       severity: 'info',
@@ -253,7 +253,7 @@ export class ShareSettingsComponent implements OnInit {
     });
   }
 
-  toggleShare(share: ProjectShare, isActive: boolean) {
+  toggleShare(share: BoardShare, isActive: boolean) {
     this.shareService.toggleShare(share.id, isActive).subscribe({
       next: (updated) => {
         this.shares.update((s) =>
@@ -263,7 +263,7 @@ export class ShareSettingsComponent implements OnInit {
     });
   }
 
-  deleteShare(share: ProjectShare) {
+  deleteShare(share: BoardShare) {
     this.shareService.deleteShare(share.id).subscribe({
       next: () => {
         this.shares.update((s) => s.filter((sh) => sh.id !== share.id));

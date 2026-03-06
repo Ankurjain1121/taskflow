@@ -319,10 +319,10 @@ async fn delete_user(
     .execute(&mut *tx)
     .await?;
 
-    // Remove project memberships
+    // Remove board memberships
     sqlx::query!(
         r#"
-        DELETE FROM project_members
+        DELETE FROM board_members
         WHERE user_id = $1
         "#,
         user_id

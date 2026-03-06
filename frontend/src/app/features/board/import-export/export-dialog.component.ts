@@ -16,7 +16,7 @@ import { ProgressSpinner } from 'primeng/progressspinner';
 import { ImportExportService } from '../../../core/services/import-export.service';
 
 export interface ExportDialogData {
-  projectId: string;
+  boardId: string;
   boardName: string;
 }
 
@@ -34,7 +34,7 @@ export interface ExportDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p-dialog
-      header="Export Project"
+      header="Export Board"
       [(visible)]="visible"
       [modal]="true"
       [style]="{ width: '480px' }"
@@ -121,7 +121,7 @@ export class ExportDialogComponent {
   visible = model(false);
 
   /** Input data for the dialog */
-  projectId = input<string>('');
+  boardId = input<string>('');
   boardName = input<string>('');
 
   /** Emits result when dialog closes with a value */
@@ -140,7 +140,7 @@ export class ExportDialogComponent {
     this.error.set(null);
 
     if (this.selectedFormat === 'csv') {
-      this.importExportService.exportCsv(this.projectId()).subscribe({
+      this.importExportService.exportCsv(this.boardId()).subscribe({
         next: (blob) => {
           this.downloadBlob(
             blob,
@@ -156,7 +156,7 @@ export class ExportDialogComponent {
         },
       });
     } else {
-      this.importExportService.exportJson(this.projectId()).subscribe({
+      this.importExportService.exportJson(this.boardId()).subscribe({
         next: (data) => {
           const json = JSON.stringify(data, null, 2);
           const blob = new Blob([json], { type: 'application/json' });

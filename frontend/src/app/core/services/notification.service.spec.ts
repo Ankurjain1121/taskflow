@@ -22,7 +22,7 @@ const MOCK_NOTIFICATION: Notification = {
   event_type: 'task_assigned',
   title: 'Task assigned',
   body: 'You were assigned to "Build feature"',
-  link_url: '/projects/board-1/tasks/task-1',
+  link_url: '/boards/board-1/tasks/task-1',
   is_read: false,
   created_at: '2026-02-18T10:00:00Z',
 };

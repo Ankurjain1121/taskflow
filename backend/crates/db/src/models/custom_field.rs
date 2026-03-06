@@ -6,9 +6,9 @@ use uuid::Uuid;
 use crate::models::common::CustomFieldType;
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
-pub struct ProjectCustomField {
+pub struct BoardCustomField {
     pub id: Uuid,
-    pub project_id: Uuid,
+    pub board_id: Uuid,
     pub name: String,
     pub field_type: CustomFieldType,
     pub options: Option<serde_json::Value>,
@@ -38,11 +38,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_project_custom_field_serde_roundtrip() {
+    fn test_board_custom_field_serde_roundtrip() {
         let now = Utc::now();
-        let field = ProjectCustomField {
+        let field = BoardCustomField {
             id: Uuid::new_v4(),
-            project_id: Uuid::new_v4(),
+            board_id: Uuid::new_v4(),
             name: "Story Points".to_string(),
             field_type: CustomFieldType::Number,
             options: None,
@@ -54,18 +54,18 @@ mod tests {
             updated_at: now,
         };
         let json = serde_json::to_string(&field).unwrap();
-        let deserialized: ProjectCustomField = serde_json::from_str(&json).unwrap();
+        let deserialized: BoardCustomField = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.name, "Story Points");
         assert_eq!(deserialized.field_type, CustomFieldType::Number);
         assert!(!deserialized.is_required);
     }
 
     #[test]
-    fn test_project_custom_field_with_dropdown_options() {
+    fn test_board_custom_field_with_dropdown_options() {
         let now = Utc::now();
-        let field = ProjectCustomField {
+        let field = BoardCustomField {
             id: Uuid::new_v4(),
-            project_id: Uuid::new_v4(),
+            board_id: Uuid::new_v4(),
             name: "Status".to_string(),
             field_type: CustomFieldType::Dropdown,
             options: Some(serde_json::json!(["Open", "Closed", "Pending"])),
@@ -77,7 +77,7 @@ mod tests {
             updated_at: now,
         };
         let json = serde_json::to_string(&field).unwrap();
-        let deserialized: ProjectCustomField = serde_json::from_str(&json).unwrap();
+        let deserialized: BoardCustomField = serde_json::from_str(&json).unwrap();
         assert!(deserialized.is_required);
         assert!(deserialized.options.is_some());
         let opts = deserialized.options.unwrap();

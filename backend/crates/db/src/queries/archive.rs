@@ -20,7 +20,7 @@ pub struct PaginatedArchive {
     pub next_cursor: Option<String>,
 }
 
-/// List soft-deleted items for a tenant (tasks and projects)
+/// List soft-deleted items for a tenant (tasks and boards)
 pub async fn list_archive(
     pool: &PgPool,
     tenant_id: Uuid,
@@ -60,9 +60,9 @@ pub async fn list_archive(
         items.extend(tasks);
     }
 
-    // Fetch archived projects
-    if entity_type_filter.is_none() || entity_type_filter == Some("project") {
-        let projects = sqlx::query_as::<_, ArchiveItem>(
+    // Fetch archived boards
+    if entity_type_filter.is_none() || entity_type_filter == Some("board") {
+        let boards = sqlx::query_as::<_, ArchiveItem>(
             r#"
             SELECT
                 'board'::text as entity_type,
@@ -70,7 +70,7 @@ pub async fn list_archive(
                 b.name as name,
                 b.deleted_at as deleted_at,
                 GREATEST(0, $1 - EXTRACT(DAY FROM (now() - b.deleted_at))::bigint) as days_remaining
-            FROM projects b
+            FROM boards b
             WHERE b.tenant_id = $2
               AND b.deleted_at IS NOT NULL
               AND ($3::timestamptz IS NULL OR b.deleted_at < $3)
@@ -84,7 +84,7 @@ pub async fn list_archive(
         .bind(fetch_limit)
         .fetch_all(pool)
         .await?;
-        items.extend(projects);
+        items.extend(boards);
     }
 
     // Sort merged results by deleted_at DESC

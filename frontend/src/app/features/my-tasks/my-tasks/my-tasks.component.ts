@@ -20,12 +20,12 @@ import {
   MyTasksSummary,
   MyTasksParams,
 } from '../../../core/services/my-tasks.service';
-import { ProjectService, Project } from '../../../core/services/project.service';
+import { BoardService, Board } from '../../../core/services/board.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
 import { TaskListItemComponent } from '../task-list-item/task-list-item.component';
 
-type SortBy = 'due_date' | 'priority' | 'project' | 'created_at';
+type SortBy = 'due_date' | 'priority' | 'board' | 'created_at';
 type SortOrder = 'asc' | 'desc';
 
 @Component({
@@ -182,13 +182,13 @@ type SortOrder = 'asc' | 'desc';
           class="bg-[var(--card)] rounded-lg shadow-sm border border-[var(--border)] p-4 mb-4"
         >
           <div class="flex flex-wrap items-center gap-4">
-            <!-- Project Filter -->
+            <!-- Board Filter -->
             <div class="flex items-center gap-2">
               <label
                 for="board-filter"
                 class="text-sm text-[var(--muted-foreground)]"
               >
-                Project:
+                Board:
               </label>
               <select
                 id="board-filter"
@@ -197,8 +197,8 @@ type SortOrder = 'asc' | 'desc';
                 class="text-sm border-[var(--border)] rounded-md shadow-sm focus:border-primary focus:ring-primary bg-[var(--card)] text-[var(--foreground)]"
               >
                 <option value="">All Boards</option>
-                @for (project of projects(); track project.id) {
-                  <option [value]="project.id">{{ project.name }}</option>
+                @for (board of boards(); track board.id) {
+                  <option [value]="board.id">{{ board.name }}</option>
                 }
               </select>
             </div>
@@ -218,7 +218,7 @@ type SortOrder = 'asc' | 'desc';
               >
                 <option value="due_date">Due Date</option>
                 <option value="priority">Priority</option>
-                <option value="project">Project</option>
+                <option value="board">Board</option>
                 <option value="created_at">Created</option>
               </select>
             </div>
@@ -401,7 +401,7 @@ export class MyTasksComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('scrollTrigger') scrollTrigger: ElementRef | undefined;
 
   private myTasksService = inject(MyTasksService);
-  private projectService = inject(ProjectService);
+  private boardService = inject(BoardService);
   private authService = inject(AuthService);
   private wsService = inject(WebSocketService);
   private destroy$ = new Subject<void>();
@@ -412,7 +412,7 @@ export class MyTasksComponent implements OnInit, OnDestroy, AfterViewChecked {
   error = signal<string | null>(null);
   tasks = signal<MyTask[]>([]);
   summary = signal<MyTasksSummary | null>(null);
-  projects = signal<Project[]>([]);
+  boards = signal<Board[]>([]);
   nextCursor = signal<string | null>(null);
 
   hasMore = computed(() => this.nextCursor() !== null);
@@ -527,7 +527,7 @@ export class MyTasksComponent implements OnInit, OnDestroy, AfterViewChecked {
     };
 
     if (this.selectedBoardId) {
-      params.project_id = this.selectedBoardId;
+      params.board_id = this.selectedBoardId;
     }
 
     if (this.nextCursor()) {
@@ -538,13 +538,13 @@ export class MyTasksComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   private loadBoards(): void {
-    // Extract unique projects from tasks
-    const boardMap = new Map<string, Project>();
+    // Extract unique boards from tasks
+    const boardMap = new Map<string, Board>();
     for (const task of this.tasks()) {
-      if (!boardMap.has(task.project_id)) {
-        boardMap.set(task.project_id, {
-          id: task.project_id,
-          name: task.project_name,
+      if (!boardMap.has(task.board_id)) {
+        boardMap.set(task.board_id, {
+          id: task.board_id,
+          name: task.board_name,
           workspace_id: task.workspace_id,
           description: null,
           is_sample: false,
@@ -554,7 +554,7 @@ export class MyTasksComponent implements OnInit, OnDestroy, AfterViewChecked {
         });
       }
     }
-    this.projects.set(Array.from(boardMap.values()));
+    this.boards.set(Array.from(boardMap.values()));
   }
 
   private loadSummary(): void {

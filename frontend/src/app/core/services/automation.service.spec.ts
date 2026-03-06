@@ -16,7 +16,7 @@ import {
 const MOCK_RULE: AutomationRule = {
   id: 'rule-1',
   name: 'Auto-assign on creation',
-  project_id: 'board-1',
+  board_id: 'board-1',
   trigger: 'task_created',
   trigger_config: {},
   is_active: true,
@@ -66,21 +66,21 @@ describe('AutomationService', () => {
   });
 
   describe('listRules()', () => {
-    it('should GET /api/projects/:projectId/automations', () => {
+    it('should GET /api/boards/:boardId/automations', () => {
       const rules = [MOCK_RULE_WITH_ACTIONS];
 
       service.listRules('board-1').subscribe((result) => {
         expect(result).toEqual(rules);
       });
 
-      const req = httpMock.expectOne('/api/projects/board-1/automations');
+      const req = httpMock.expectOne('/api/boards/board-1/automations');
       expect(req.request.method).toBe('GET');
       req.flush(rules);
     });
   });
 
   describe('createRule()', () => {
-    it('should POST /api/projects/:projectId/automations with rule request', () => {
+    it('should POST /api/boards/:boardId/automations with rule request', () => {
       const createReq: CreateRuleRequest = {
         name: 'Auto-assign',
         trigger: 'task_created',
@@ -93,7 +93,7 @@ describe('AutomationService', () => {
         expect(result).toEqual(MOCK_RULE_WITH_ACTIONS);
       });
 
-      const req = httpMock.expectOne('/api/projects/board-1/automations');
+      const req = httpMock.expectOne('/api/boards/board-1/automations');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(createReq);
       req.flush(MOCK_RULE_WITH_ACTIONS);
@@ -177,7 +177,7 @@ describe('AutomationService', () => {
           error: (e) => (error = e),
         });
 
-      const req = httpMock.expectOne('/api/projects/board-1/automations');
+      const req = httpMock.expectOne('/api/boards/board-1/automations');
       req.flush('Bad Request', { status: 400, statusText: 'Bad Request' });
 
       expect(error).toBeTruthy();
@@ -270,7 +270,7 @@ describe('AutomationService', () => {
         '/api/workspaces/ws-1/automation-templates/tmpl-1/apply',
       );
       expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual({ project_id: 'board-1' });
+      expect(req.request.body).toEqual({ board_id: 'board-1' });
       req.flush({ rule: { id: 'r-new', name: 'Auto-assign' }, actions: [] });
     });
 

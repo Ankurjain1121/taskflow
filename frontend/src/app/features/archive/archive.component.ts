@@ -54,8 +54,8 @@ import { AuthService } from '../../core/services/auth.service';
             Tasks
           </button>
           <button
-            (click)="setFilter('project')"
-            [class]="filterBtnClass('project')"
+            (click)="setFilter('board')"
+            [class]="filterBtnClass('board')"
             class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
           >
             Boards
@@ -110,7 +110,7 @@ import { AuthService } from '../../core/services/auth.service';
             <p
               class="mt-2 text-sm text-[var(--muted-foreground)] dark:text-gray-400"
             >
-              Deleted tasks and projects will appear here.
+              Deleted tasks and boards will appear here.
             </p>
           </div>
         } @else {

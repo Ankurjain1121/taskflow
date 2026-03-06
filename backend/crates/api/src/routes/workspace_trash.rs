@@ -78,7 +78,7 @@ struct TrashRow {
 
 /// GET /api/workspaces/:workspace_id/trash
 ///
-/// List soft-deleted items in this workspace (projects, tasks) from last 30 days.
+/// List soft-deleted items in this workspace (boards, tasks) from last 30 days.
 async fn list_workspace_trash(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
@@ -107,12 +107,12 @@ async fn list_workspace_trash(
 
     let entity_filter = query.entity_type.as_deref();
 
-    // Union query: projects and tasks in this workspace that are soft-deleted
+    // Union query: boards and tasks in this workspace that are soft-deleted
     let rows: Vec<TrashRow> = sqlx::query_as(
         r#"
         (
             SELECT 'board' as entity_type, b.id as entity_id, b.name, b.deleted_at
-            FROM projects b
+            FROM boards b
             WHERE b.workspace_id = $1
               AND b.deleted_at IS NOT NULL
               AND b.deleted_at > $2
@@ -123,7 +123,7 @@ async fn list_workspace_trash(
         (
             SELECT 'task' as entity_type, t.id as entity_id, t.title as name, t.deleted_at
             FROM tasks t
-            JOIN projects bo ON bo.id = t.project_id
+            JOIN boards bo ON bo.id = t.board_id
             WHERE bo.workspace_id = $1
               AND t.deleted_at IS NOT NULL
               AND t.deleted_at > $2
@@ -191,9 +191,9 @@ async fn restore_workspace_trash(
     }
 
     match body.entity_type.as_str() {
-        "project" => {
+        "board" => {
             let result = sqlx::query(
-                "UPDATE projects SET deleted_at = NULL WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NOT NULL",
+                "UPDATE boards SET deleted_at = NULL WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NOT NULL",
             )
             .bind(body.entity_id)
             .bind(workspace_id)
@@ -202,7 +202,7 @@ async fn restore_workspace_trash(
             .map_err(AppError::from)?;
 
             if result.rows_affected() == 0 {
-                return Err(AppError::NotFound("Project not found in trash".into()));
+                return Err(AppError::NotFound("Board not found in trash".into()));
             }
         }
         "task" => {
@@ -211,7 +211,7 @@ async fn restore_workspace_trash(
                 r#"
                 SELECT EXISTS(
                     SELECT 1 FROM tasks t
-                    JOIN projects b ON b.id = t.project_id
+                    JOIN boards b ON b.id = t.board_id
                     WHERE t.id = $1 AND b.workspace_id = $2 AND t.deleted_at IS NOT NULL
                 )
                 "#,
@@ -264,9 +264,9 @@ async fn delete_workspace_trash(
     }
 
     match entity_type.as_str() {
-        "project" => {
+        "board" => {
             let result = sqlx::query(
-                "DELETE FROM projects WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NOT NULL",
+                "DELETE FROM boards WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NOT NULL",
             )
             .bind(entity_id)
             .bind(workspace_id)
@@ -275,7 +275,7 @@ async fn delete_workspace_trash(
             .map_err(AppError::from)?;
 
             if result.rows_affected() == 0 {
-                return Err(AppError::NotFound("Project not found in trash".into()));
+                return Err(AppError::NotFound("Board not found in trash".into()));
             }
         }
         "task" => {
@@ -283,7 +283,7 @@ async fn delete_workspace_trash(
                 r#"
                 SELECT EXISTS(
                     SELECT 1 FROM tasks t
-                    JOIN projects b ON b.id = t.project_id
+                    JOIN boards b ON b.id = t.board_id
                     WHERE t.id = $1 AND b.workspace_id = $2 AND t.deleted_at IS NOT NULL
                 )
                 "#,

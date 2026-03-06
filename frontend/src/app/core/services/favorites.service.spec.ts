@@ -14,7 +14,7 @@ const MOCK_FAVORITE: FavoriteItem = {
   entity_type: 'task',
   entity_id: 'task-1',
   name: 'Test Task',
-  project_id: 'board-1',
+  board_id: 'board-1',
   workspace_id: 'ws-1',
   created_at: '2026-01-01T00:00:00Z',
 };
@@ -99,7 +99,7 @@ describe('FavoritesService', () => {
     it('should return favorited false', () => {
       const response = { favorited: false };
 
-      service.check('project', 'board-1').subscribe((result) => {
+      service.check('board', 'board-1').subscribe((result) => {
         expect(result.favorited).toBe(false);
       });
 

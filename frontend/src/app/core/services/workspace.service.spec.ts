@@ -241,27 +241,27 @@ describe('WorkspaceService', () => {
         workspace_id: 'ws-1',
         role: 'member',
         message: 'Welcome!',
-        project_ids: ['board-1'],
+        board_ids: ['board-1'],
       });
       req.flush(mockResponse);
     });
 
-    it('should omit message and project_ids when not provided', () => {
+    it('should omit message and board_ids when not provided', () => {
       service.bulkInviteMembers('ws-1', ['a@example.com'], 'admin').subscribe();
 
       const req = httpMock.expectOne('/api/invitations/bulk');
       expect(req.request.body.message).toBeUndefined();
-      expect(req.request.body.project_ids).toBeUndefined();
+      expect(req.request.body.board_ids).toBeUndefined();
       req.flush({ created: [], errors: [] });
     });
 
-    it('should omit project_ids when empty array', () => {
+    it('should omit board_ids when empty array', () => {
       service
         .bulkInviteMembers('ws-1', ['a@example.com'], 'admin', undefined, [])
         .subscribe();
 
       const req = httpMock.expectOne('/api/invitations/bulk');
-      expect(req.request.body.project_ids).toBeUndefined();
+      expect(req.request.body.board_ids).toBeUndefined();
       req.flush({ created: [], errors: [] });
     });
   });

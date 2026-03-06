@@ -27,14 +27,14 @@ export class BoardShortcutsService {
     this.shortcutsService.register('board-new-task', {
       key: 'n',
       description: 'Create new task',
-      category: 'Project',
+      category: 'Board',
       action: () => callbacks.createTask(),
     });
 
     this.shortcutsService.register('board-search', {
       key: '/',
       description: 'Focus search',
-      category: 'Project',
+      category: 'Board',
       action: () => {
         const searchInput = document.querySelector<HTMLInputElement>(
           'input[placeholder*="Search"]',
@@ -46,14 +46,14 @@ export class BoardShortcutsService {
     this.shortcutsService.register('board-focus-filter', {
       key: 'f',
       description: 'Focus filter bar',
-      category: 'Project',
+      category: 'Board',
       action: () => callbacks.focusFilter(),
     });
 
     this.shortcutsService.register('board-escape', {
       key: 'Escape',
       description: 'Close panel / Clear selection / Clear focus',
-      category: 'Project',
+      category: 'Board',
       action: () => {
         if (this.boardState.focusedTaskId()) {
           this.boardState.focusedTaskId.set(null);
@@ -68,14 +68,14 @@ export class BoardShortcutsService {
     this.shortcutsService.register('board-view-kanban', {
       key: '1',
       description: 'Kanban view',
-      category: 'Project',
+      category: 'Board',
       action: () => callbacks.setViewMode('kanban'),
     });
 
     this.shortcutsService.register('board-view-list', {
       key: '2',
       description: 'List view',
-      category: 'Project',
+      category: 'Board',
       action: () => {
         callbacks.setViewMode('list');
         callbacks.onViewModeChanged('list');
@@ -85,7 +85,7 @@ export class BoardShortcutsService {
     this.shortcutsService.register('board-view-calendar', {
       key: '3',
       description: 'Calendar view',
-      category: 'Project',
+      category: 'Board',
       action: () => {
         callbacks.setViewMode('calendar');
         callbacks.onViewModeChanged('calendar');
@@ -95,7 +95,7 @@ export class BoardShortcutsService {
     this.shortcutsService.register('board-view-gantt', {
       key: '4',
       description: 'Gantt view',
-      category: 'Project',
+      category: 'Board',
       action: () => {
         callbacks.setViewMode('gantt');
         callbacks.onViewModeChanged('gantt');
@@ -105,7 +105,7 @@ export class BoardShortcutsService {
     this.shortcutsService.register('board-view-reports', {
       key: '5',
       description: 'Reports view',
-      category: 'Project',
+      category: 'Board',
       action: () => {
         callbacks.setViewMode('reports');
         callbacks.onViewModeChanged('reports');
@@ -115,7 +115,7 @@ export class BoardShortcutsService {
     this.shortcutsService.register('board-view-time-report', {
       key: '6',
       description: 'Time report view',
-      category: 'Project',
+      category: 'Board',
       action: () => {
         callbacks.setViewMode('time-report');
         callbacks.onViewModeChanged('time-report');
@@ -125,14 +125,14 @@ export class BoardShortcutsService {
     this.shortcutsService.register('board-clear-filters', {
       key: 'c',
       description: 'Clear all filters',
-      category: 'Project',
+      category: 'Board',
       action: () => callbacks.clearFilters(),
     });
 
     this.shortcutsService.register('board-cycle-density', {
       key: 'd',
       description: 'Cycle card density',
-      category: 'Project',
+      category: 'Board',
       action: () => callbacks.cycleDensity(),
     });
 
@@ -201,7 +201,7 @@ export class BoardShortcutsService {
   }
 
   unregister(): void {
-    this.shortcutsService.unregisterByCategory('Project');
+    this.shortcutsService.unregisterByCategory('Board');
     this.shortcutsService.unregisterByCategory('Navigation');
     this.shortcutsService.unregisterByCategory('Card Actions');
   }

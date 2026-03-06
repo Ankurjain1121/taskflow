@@ -94,11 +94,11 @@ export class MyTasksComponent implements OnInit {
     const groups = new Map<string, MyTask[]>();
 
     for (const task of tasks) {
-      const projectId = task.project_id;
-      if (!groups.has(projectId)) {
-        groups.set(projectId, []);
+      const boardId = task.board_id;
+      if (!groups.has(boardId)) {
+        groups.set(boardId, []);
       }
-      groups.get(projectId)!.push(task);
+      groups.get(boardId)!.push(task);
     }
 
     return Array.from(groups.entries());

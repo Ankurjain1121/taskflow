@@ -76,7 +76,7 @@ async fn toggle_template_handler(
 }
 
 /// POST /api/workspaces/{workspace_id}/automation-templates/{template_id}/apply
-/// Apply a template to a specific project, creating an automation rule.
+/// Apply a template to a specific board, creating an automation rule.
 async fn apply_template_handler(
     State(state): State<AppState>,
     manager: ManagerOrAdmin,
@@ -88,18 +88,18 @@ async fn apply_template_handler(
         return Err(AppError::Forbidden("Not a workspace member".into()));
     }
 
-    // Verify project belongs to this workspace
+    // Verify board belongs to this workspace
     let board_workspace_id = sqlx::query_scalar::<_, Uuid>(
-        "SELECT workspace_id FROM projects WHERE id = $1 AND deleted_at IS NULL",
+        "SELECT workspace_id FROM boards WHERE id = $1 AND deleted_at IS NULL",
     )
-    .bind(body.project_id)
+    .bind(body.board_id)
     .fetch_optional(&state.db)
     .await?
-    .ok_or_else(|| AppError::NotFound("Project not found".into()))?;
+    .ok_or_else(|| AppError::NotFound("Board not found".into()))?;
 
     if board_workspace_id != workspace_id {
         return Err(AppError::Forbidden(
-            "Project does not belong to this workspace".into(),
+            "Board does not belong to this workspace".into(),
         ));
     }
 
@@ -107,7 +107,7 @@ async fn apply_template_handler(
         &state.db,
         workspace_id,
         template_id,
-        body.project_id,
+        body.board_id,
         manager.0.user_id,
         manager.0.tenant_id,
     )

@@ -53,9 +53,9 @@ describe('HelpComponent', () => {
   });
 
   describe('features', () => {
-    it('should include Kanbans feature', () => {
+    it('should include Kanban Boards feature', () => {
       const kanban = component.features.find(
-        (f) => f.title === 'Kanbans',
+        (f) => f.title === 'Kanban Boards',
       );
       expect(kanban).toBeDefined();
       expect(kanban?.description).toContain('Drag-and-drop');
@@ -63,7 +63,7 @@ describe('HelpComponent', () => {
 
     it('should include all expected feature titles', () => {
       const titles = component.features.map((f) => f.title);
-      expect(titles).toContain('Kanbans');
+      expect(titles).toContain('Kanban Boards');
       expect(titles).toContain('Reports & Analytics');
       expect(titles).toContain('Calendar View');
       expect(titles).toContain('Recurring Tasks');
@@ -93,12 +93,12 @@ describe('HelpComponent', () => {
   describe('refreshShortcuts', () => {
     it('should populate shortcutGroups from service', () => {
       const shortcutMap = new Map<string, KeyboardShortcut[]>();
-      shortcutMap.set('Project', [
+      shortcutMap.set('Board', [
         {
           key: 'n',
           ctrl: true,
           description: 'New task',
-          category: 'Project',
+          category: 'Board',
           action: () => {},
         },
       ]);
@@ -116,7 +116,7 @@ describe('HelpComponent', () => {
 
       expect(component.shortcutGroups()).toHaveLength(2);
       const categories = component.shortcutGroups().map((g) => g.category);
-      expect(categories).toContain('Project');
+      expect(categories).toContain('Board');
       expect(categories).toContain('General');
     });
 

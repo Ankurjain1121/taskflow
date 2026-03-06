@@ -1,6 +1,6 @@
-//! Project Column REST endpoints
+//! Board Column REST endpoints
 //!
-//! Provides CRUD operations for project columns.
+//! Provides CRUD operations for board columns.
 
 use axum::{
     extract::{Path, State},
@@ -11,8 +11,8 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use taskflow_db::models::ProjectMemberRole;
-use taskflow_db::queries::{columns, projects, DeleteColumnResult};
+use taskflow_db::models::BoardMemberRole;
+use taskflow_db::queries::{boards, columns, DeleteColumnResult};
 use taskflow_db::utils::generate_key_between;
 
 use crate::errors::{AppError, Result};
@@ -70,7 +70,7 @@ pub struct UpdateColumnIconRequest {
 pub struct ColumnResponse {
     pub id: Uuid,
     pub name: String,
-    pub project_id: Uuid,
+    pub board_id: Uuid,
     pub position: String,
     pub color: Option<String>,
     pub status_mapping: Option<serde_json::Value>,
@@ -83,24 +83,24 @@ pub struct ColumnResponse {
 // Helper Functions
 // ============================================================================
 
-/// Check if user has editor access to the project
-async fn require_editor_access(state: &AppState, project_id: Uuid, user_id: Uuid) -> Result<()> {
-    let role = projects::get_project_member_role(&state.db, project_id, user_id).await?;
+/// Check if user has editor access to the board
+async fn require_editor_access(state: &AppState, board_id: Uuid, user_id: Uuid) -> Result<()> {
+    let role = boards::get_board_member_role(&state.db, board_id, user_id).await?;
     match role {
-        Some(ProjectMemberRole::Owner | ProjectMemberRole::Editor) => Ok(()),
-        Some(ProjectMemberRole::Viewer) => Err(AppError::Forbidden("Editor role required".into())),
+        Some(BoardMemberRole::Owner | BoardMemberRole::Editor) => Ok(()),
+        Some(BoardMemberRole::Viewer) => Err(AppError::Forbidden("Editor role required".into())),
         None => Err(AppError::NotFound(
-            "Project not found or access denied".into(),
+            "Board not found or access denied".into(),
         )),
     }
 }
 
-/// Check if user has at least viewer access to the project
-async fn require_viewer_access(state: &AppState, project_id: Uuid, user_id: Uuid) -> Result<()> {
-    let is_member = projects::is_project_member(&state.db, project_id, user_id).await?;
+/// Check if user has at least viewer access to the board
+async fn require_viewer_access(state: &AppState, board_id: Uuid, user_id: Uuid) -> Result<()> {
+    let is_member = boards::is_board_member(&state.db, board_id, user_id).await?;
     if !is_member {
         return Err(AppError::NotFound(
-            "Project not found or access denied".into(),
+            "Board not found or access denied".into(),
         ));
     }
     Ok(())
@@ -110,24 +110,24 @@ async fn require_viewer_access(state: &AppState, project_id: Uuid, user_id: Uuid
 // Route Handlers
 // ============================================================================
 
-/// GET /api/projects/:project_id/columns
+/// GET /api/boards/:board_id/columns
 ///
-/// List all columns for a project ordered by position.
+/// List all columns for a board ordered by position.
 async fn list_columns(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Path(project_id): Path<Uuid>,
+    Path(board_id): Path<Uuid>,
 ) -> Result<Json<Vec<ColumnResponse>>> {
-    require_viewer_access(&state, project_id, auth.0.user_id).await?;
+    require_viewer_access(&state, board_id, auth.0.user_id).await?;
 
-    let cols = columns::list_columns_by_board(&state.db, project_id).await?;
+    let cols = columns::list_columns_by_board(&state.db, board_id).await?;
 
     let response: Vec<ColumnResponse> = cols
         .into_iter()
         .map(|c| ColumnResponse {
             id: c.id,
             name: c.name,
-            project_id: c.project_id,
+            board_id: c.board_id,
             position: c.position,
             color: c.color,
             status_mapping: c.status_mapping,
@@ -140,23 +140,23 @@ async fn list_columns(
     Ok(Json(response))
 }
 
-/// POST /api/projects/:project_id/columns
+/// POST /api/boards/:board_id/columns
 ///
-/// Add a new column to a project.
+/// Add a new column to a board.
 async fn create_column(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Path(project_id): Path<Uuid>,
+    Path(board_id): Path<Uuid>,
     Json(payload): Json<CreateColumnRequest>,
 ) -> Result<Json<ColumnResponse>> {
-    require_editor_access(&state, project_id, auth.0.user_id).await?;
+    require_editor_access(&state, board_id, auth.0.user_id).await?;
 
     if payload.name.is_empty() {
         return Err(AppError::BadRequest("Column name is required".into()));
     }
 
     // Calculate position
-    let existing_columns = columns::list_columns_by_board(&state.db, project_id).await?;
+    let existing_columns = columns::list_columns_by_board(&state.db, board_id).await?;
 
     let position = if let Some(insert_at) = payload.insert_at {
         // Insert at specific position
@@ -186,7 +186,7 @@ async fn create_column(
 
     let column = columns::add_column(
         &state.db,
-        project_id,
+        board_id,
         &payload.name,
         payload.color.as_deref(),
         payload.status_mapping,
@@ -197,7 +197,7 @@ async fn create_column(
     Ok(Json(ColumnResponse {
         id: column.id,
         name: column.name,
-        project_id: column.project_id,
+        board_id: column.board_id,
         position: column.position,
         color: column.color,
         status_mapping: column.status_mapping,
@@ -216,12 +216,12 @@ async fn rename_column(
     Path(id): Path<Uuid>,
     Json(payload): Json<RenameColumnRequest>,
 ) -> Result<Json<ColumnResponse>> {
-    // Get column to find project_id
+    // Get column to find board_id
     let existing = columns::get_column_by_id(&state.db, id)
         .await?
         .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
 
-    require_editor_access(&state, existing.project_id, auth.0.user_id).await?;
+    require_editor_access(&state, existing.board_id, auth.0.user_id).await?;
 
     if payload.name.is_empty() {
         return Err(AppError::BadRequest("Column name is required".into()));
@@ -234,7 +234,7 @@ async fn rename_column(
     Ok(Json(ColumnResponse {
         id: column.id,
         name: column.name,
-        project_id: column.project_id,
+        board_id: column.board_id,
         position: column.position,
         color: column.color,
         status_mapping: column.status_mapping,
@@ -253,15 +253,15 @@ async fn reorder_column(
     Path(id): Path<Uuid>,
     Json(payload): Json<ReorderColumnRequest>,
 ) -> Result<Json<ColumnResponse>> {
-    // Get column to find project_id
+    // Get column to find board_id
     let existing = columns::get_column_by_id(&state.db, id)
         .await?
         .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
 
-    require_editor_access(&state, existing.project_id, auth.0.user_id).await?;
+    require_editor_access(&state, existing.board_id, auth.0.user_id).await?;
 
     // Get all columns to calculate new position
-    let all_columns = columns::list_columns_by_board(&state.db, existing.project_id).await?;
+    let all_columns = columns::list_columns_by_board(&state.db, existing.board_id).await?;
 
     // Find current index
     let current_index = all_columns
@@ -276,7 +276,7 @@ async fn reorder_column(
         return Ok(Json(ColumnResponse {
             id: existing.id,
             name: existing.name,
-            project_id: existing.project_id,
+            board_id: existing.board_id,
             position: existing.position,
             color: existing.color,
             status_mapping: existing.status_mapping,
@@ -316,7 +316,7 @@ async fn reorder_column(
     Ok(Json(ColumnResponse {
         id: column.id,
         name: column.name,
-        project_id: column.project_id,
+        board_id: column.board_id,
         position: column.position,
         color: column.color,
         status_mapping: column.status_mapping,
@@ -335,12 +335,12 @@ async fn update_status_mapping(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateStatusMappingRequest>,
 ) -> Result<Json<ColumnResponse>> {
-    // Get column to find project_id
+    // Get column to find board_id
     let existing = columns::get_column_by_id(&state.db, id)
         .await?
         .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
 
-    require_editor_access(&state, existing.project_id, auth.0.user_id).await?;
+    require_editor_access(&state, existing.board_id, auth.0.user_id).await?;
 
     let column = columns::update_status_mapping(&state.db, id, payload.status_mapping)
         .await?
@@ -349,7 +349,7 @@ async fn update_status_mapping(
     Ok(Json(ColumnResponse {
         id: column.id,
         name: column.name,
-        project_id: column.project_id,
+        board_id: column.board_id,
         position: column.position,
         color: column.color,
         status_mapping: column.status_mapping,
@@ -368,12 +368,12 @@ async fn update_color(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateColumnColorRequest>,
 ) -> Result<Json<ColumnResponse>> {
-    // Get column to find project_id
+    // Get column to find board_id
     let existing = columns::get_column_by_id(&state.db, id)
         .await?
         .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
 
-    require_editor_access(&state, existing.project_id, auth.0.user_id).await?;
+    require_editor_access(&state, existing.board_id, auth.0.user_id).await?;
 
     let column = columns::update_column_color(&state.db, id, payload.color.as_deref())
         .await?
@@ -382,7 +382,7 @@ async fn update_color(
     Ok(Json(ColumnResponse {
         id: column.id,
         name: column.name,
-        project_id: column.project_id,
+        board_id: column.board_id,
         position: column.position,
         color: column.color,
         status_mapping: column.status_mapping,
@@ -401,12 +401,12 @@ async fn update_wip_limit(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateWipLimitRequest>,
 ) -> Result<Json<ColumnResponse>> {
-    // Get column to find project_id
+    // Get column to find board_id
     let existing = columns::get_column_by_id(&state.db, id)
         .await?
         .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
 
-    require_editor_access(&state, existing.project_id, auth.0.user_id).await?;
+    require_editor_access(&state, existing.board_id, auth.0.user_id).await?;
 
     // Validate wip_limit if provided
     if let Some(limit) = payload.wip_limit {
@@ -422,7 +422,7 @@ async fn update_wip_limit(
     Ok(Json(ColumnResponse {
         id: column.id,
         name: column.name,
-        project_id: column.project_id,
+        board_id: column.board_id,
         position: column.position,
         color: column.color,
         status_mapping: column.status_mapping,
@@ -445,7 +445,7 @@ async fn update_icon(
         .await?
         .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
 
-    require_editor_access(&state, existing.project_id, auth.0.user_id).await?;
+    require_editor_access(&state, existing.board_id, auth.0.user_id).await?;
 
     if let Some(ref icon) = payload.icon {
         if icon.chars().count() > 10 {
@@ -460,7 +460,7 @@ async fn update_icon(
     Ok(Json(ColumnResponse {
         id: column.id,
         name: column.name,
-        project_id: column.project_id,
+        board_id: column.board_id,
         position: column.position,
         color: column.color,
         status_mapping: column.status_mapping,
@@ -478,12 +478,12 @@ async fn delete_column(
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
 ) -> Result<Json<MessageResponse>> {
-    // Get column to find project_id
+    // Get column to find board_id
     let existing = columns::get_column_by_id(&state.db, id)
         .await?
         .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
 
-    require_editor_access(&state, existing.project_id, auth.0.user_id).await?;
+    require_editor_access(&state, existing.board_id, auth.0.user_id).await?;
 
     match columns::delete_column(&state.db, id).await? {
         DeleteColumnResult::Deleted => Ok(Json(MessageResponse {
@@ -500,9 +500,9 @@ async fn delete_column(
 // Routers
 // ============================================================================
 
-/// Build the columns router for project-scoped routes
-/// Routes: /api/projects/:project_id/columns
-pub fn project_columns_router(state: AppState) -> Router<AppState> {
+/// Build the columns router for board-scoped routes
+/// Routes: /api/boards/:board_id/columns
+pub fn board_columns_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(list_columns).post(create_column))
         .layer(from_fn_with_state(state.clone(), auth_middleware))

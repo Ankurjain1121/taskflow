@@ -12,7 +12,7 @@ import {
 const MOCK_PREFS: UserPreferences = {
   timezone: 'America/New_York',
   date_format: 'MM/DD/YYYY',
-  default_project_view: 'kanban',
+  default_board_view: 'kanban',
   sidebar_density: 'comfortable',
   locale: 'en-US',
   language: 'en',

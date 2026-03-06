@@ -27,7 +27,7 @@ import {
               Export Workspace Data
             </h3>
             <p class="text-xs text-[var(--muted-foreground)] mt-1">
-              Download all projects, tasks, and members
+              Download all boards, tasks, and members
             </p>
           </div>
           <div class="flex items-center gap-2">
@@ -94,18 +94,18 @@ export class WorkspaceAdvancedTabComponent {
 
   advancedPlaceholders = [
     {
-      title: 'Default Project Settings',
+      title: 'Default Board Settings',
       description:
-        'Configure default columns, labels, and automation rules for new projects',
+        'Configure default columns, labels, and automation rules for new boards',
     },
     {
       title: 'Custom Field Definitions',
       description:
-        'Define custom fields that can be used across all projects in this workspace',
+        'Define custom fields that can be used across all boards in this workspace',
     },
     {
       title: 'Automation Defaults',
-      description: 'Set up default automation rules that apply to all projects',
+      description: 'Set up default automation rules that apply to all boards',
     },
   ];
 

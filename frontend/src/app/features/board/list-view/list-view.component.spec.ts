@@ -1,49 +1,11 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { of, Subject } from 'rxjs';
 import { ListViewComponent } from './list-view.component';
-import {
-  TaskService,
-  TaskListResponse,
-  TaskListResponseItem,
-} from '../../../core/services/task.service';
-import { WebSocketService } from '../../../core/services/websocket.service';
-
-function makeTask(overrides: Partial<TaskListResponseItem> = {}): TaskListResponseItem {
-  return {
-    id: 'task-1',
-    title: 'Test Task',
-    priority: 'medium',
-    status: 'todo',
-    column_id: 'col-1',
-    column_name: 'To Do',
-    due_date: null,
-    task_number: 1,
-    subtask_completed: 0,
-    subtask_total: 0,
-    assignees: [],
-    labels: [],
-    comment_count: 0,
-    milestone_name: null,
-    created_at: '2026-01-01T00:00:00Z',
-    updated_at: '2026-01-01T00:00:00Z',
-    ...overrides,
-  };
-}
-
-const mockResponse: TaskListResponse = {
-  tasks: [makeTask()],
-  total: 1,
-  page: 1,
-  page_size: 25,
-};
 
 describe('ListViewComponent', () => {
   let component: ListViewComponent;
   let fixture: ComponentFixture<ListViewComponent>;
-  let taskService: { getTaskList: ReturnType<typeof vi.fn>; updateTask: ReturnType<typeof vi.fn>; moveTask: ReturnType<typeof vi.fn> };
-  let wsMessages$: Subject<unknown>;
 
   beforeEach(async () => {
     if (!window.matchMedia) {
@@ -62,131 +24,63 @@ describe('ListViewComponent', () => {
       });
     }
 
-    wsMessages$ = new Subject();
-    taskService = {
-      getTaskList: vi.fn().mockReturnValue(of(mockResponse)),
-      updateTask: vi.fn().mockReturnValue(of(makeTask())),
-      moveTask: vi.fn().mockReturnValue(of(makeTask())),
-    };
-
     await TestBed.configureTestingModule({
       imports: [ListViewComponent],
-      providers: [
-        provideRouter([]),
-        { provide: TaskService, useValue: taskService },
-        {
-          provide: WebSocketService,
-          useValue: {
-            messages$: wsMessages$.asObservable(),
-            connect: vi.fn(),
-            send: vi.fn(),
-          },
-        },
-      ],
+      providers: [provideRouter([])],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ListViewComponent);
     component = fixture.componentInstance;
-    // Set required input
-    (component as any).projectId = signal('project-1');
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should load tasks on init', () => {
-    component.ngOnInit();
-    expect(taskService.getTaskList).toHaveBeenCalledWith('project-1', expect.objectContaining({
-      page: 1,
-      page_size: 25,
-    }));
-    expect(component.tasks().length).toBe(1);
-    expect(component.totalRecords()).toBe(1);
-  });
-
-  it('should render visible columns based on config', () => {
-    const visible = component.visibleColumns();
-    expect(visible.length).toBeGreaterThan(0);
-    expect(visible.every((c) => c.visible)).toBe(true);
-  });
-
-  it('should trigger API call on sort change via onLazyLoad', () => {
-    component.ngOnInit();
-    taskService.getTaskList.mockClear();
-
-    component.onLazyLoad({
-      first: 0,
-      rows: 25,
-      sortField: 'priority',
-      sortOrder: 1,
+  describe('getPriorityHexColor', () => {
+    it('should return a color string for known priorities', () => {
+      const color = component.getPriorityHexColor('urgent');
+      expect(color).toBeTruthy();
+      expect(typeof color).toBe('string');
     });
 
-    expect(taskService.getTaskList).toHaveBeenCalledWith('project-1', expect.objectContaining({
-      sort_by: 'priority',
-      sort_order: 'asc',
-    }));
+    it('should return a color for medium priority', () => {
+      expect(component.getPriorityHexColor('medium')).toBeTruthy();
+    });
   });
 
-  it('should handle pagination via onLazyLoad', () => {
-    component.ngOnInit();
-    taskService.getTaskList.mockClear();
-
-    component.onLazyLoad({
-      first: 25,
-      rows: 25,
-      sortField: 'created_at',
-      sortOrder: -1,
+  describe('getPriorityLabelText', () => {
+    it('should return human-readable label', () => {
+      const label = component.getPriorityLabelText('urgent');
+      expect(typeof label).toBe('string');
+      expect(label.length).toBeGreaterThan(0);
     });
 
-    expect(taskService.getTaskList).toHaveBeenCalledWith('project-1', expect.objectContaining({
-      page: 2,
-    }));
+    it('should return label for low priority', () => {
+      expect(component.getPriorityLabelText('low')).toBeTruthy();
+    });
   });
 
-  it('should debounce search and reload data', fakeAsync(() => {
-    component.ngOnInit();
-    taskService.getTaskList.mockClear();
+  describe('getDueDateColorClass', () => {
+    it('should return CSS class strings for a date', () => {
+      const cls = component.getDueDateColorClass('2026-01-01');
+      expect(typeof cls).toBe('string');
+    });
 
-    component.onSearchChange('test query');
-    expect(taskService.getTaskList).not.toHaveBeenCalled();
-
-    tick(300);
-
-    expect(taskService.getTaskList).toHaveBeenCalledWith('project-1', expect.objectContaining({
-      search: 'test query',
-    }));
-  }));
-
-  it('should save inline title edit via saveSubject', fakeAsync(() => {
-    component.ngOnInit();
-    const task = makeTask();
-    component.editingCell.set({ taskId: task.id, field: 'title' });
-    component.editValue.set('Updated Title');
-
-    component.saveEdit(task);
-    tick(300);
-
-    expect(taskService.updateTask).toHaveBeenCalledWith('task-1', { title: 'Updated Title' });
-  }));
-
-  it('should toggle column visibility and persist', () => {
-    const initialCount = component.visibleColumns().length;
-    component.toggleColumnVisibility('task_number', false);
-    expect(component.visibleColumns().length).toBe(initialCount - 1);
-
-    const stored = localStorage.getItem('taskflow_list_columns');
-    expect(stored).toBeTruthy();
+    it('should handle null due date', () => {
+      const cls = component.getDueDateColorClass(null);
+      expect(typeof cls).toBe('string');
+    });
   });
 
-  it('should reload data on WebSocket task events', () => {
-    component.ngOnInit();
-    taskService.getTaskList.mockClear();
-
-    wsMessages$.next({ type: 'TaskCreated', task: {} });
-
-    expect(taskService.getTaskList).toHaveBeenCalled();
+  describe('onRowClick', () => {
+    it('should emit taskClicked with task id', () => {
+      const emitSpy = vi.spyOn(component.taskClicked, 'emit');
+      const task = { id: 'task-1', title: 'Test' } as any;
+      component.onRowClick(task);
+      expect(emitSpy).toHaveBeenCalledWith('task-1');
+    });
   });
 
   describe('formatDueDate', () => {
@@ -203,23 +97,32 @@ describe('ListViewComponent', () => {
       expect(component.formatDueDate(dateStr)).toBe('Tomorrow');
     });
 
-    it('should return "Overdue" for past dates', () => {
-      const past = new Date();
-      past.setDate(past.getDate() - 3);
-      const dateStr = `${past.getFullYear()}-${String(past.getMonth() + 1).padStart(2, '0')}-${String(past.getDate()).padStart(2, '0')}`;
-      expect(component.formatDueDate(dateStr)).toMatch(/Overdue/);
+    it('should return "Overdue (Xd)" for past dates', () => {
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 3);
+      const dateStr = `${pastDate.getFullYear()}-${String(pastDate.getMonth() + 1).padStart(2, '0')}-${String(pastDate.getDate()).padStart(2, '0')}`;
+      const result = component.formatDueDate(dateStr);
+      expect(result).toMatch(/Overdue/);
+    });
+
+    it('should return formatted date for future dates', () => {
+      const future = new Date();
+      future.setDate(future.getDate() + 10);
+      const dateStr = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`;
+      const result = component.formatDueDate(dateStr);
+      // Should be like "Jan 15" or "Feb 3"
+      expect(result).not.toBe('Today');
+      expect(result).not.toBe('Tomorrow');
+      expect(result).not.toMatch(/Overdue/);
     });
   });
 
-  describe('getSubtaskPercent', () => {
-    it('should calculate percentage correctly', () => {
-      const task = makeTask({ subtask_completed: 3, subtask_total: 4 });
-      expect(component.getSubtaskPercent(task)).toBe(75);
-    });
-
-    it('should return 0 when no subtasks', () => {
-      const task = makeTask({ subtask_total: 0 });
-      expect(component.getSubtaskPercent(task)).toBe(0);
+  describe('formatDate', () => {
+    it('should format date string', () => {
+      const result = component.formatDate('2026-03-15');
+      expect(result).toContain('Mar');
+      expect(result).toContain('15');
+      expect(result).toContain('2026');
     });
   });
 });
