@@ -441,13 +441,13 @@ pub async fn update_task(
     }
 }
 
-/// Soft delete a task
+/// Soft delete a task and its children (cascade)
 pub async fn soft_delete_task(pool: &PgPool, task_id: Uuid) -> Result<(), TaskQueryError> {
     let rows_affected = sqlx::query(
         r#"
         UPDATE tasks
         SET deleted_at = NOW(), updated_at = NOW()
-        WHERE id = $1 AND deleted_at IS NULL
+        WHERE (id = $1 OR parent_task_id = $1) AND deleted_at IS NULL
         "#,
     )
     .bind(task_id)
@@ -603,13 +603,13 @@ pub async fn duplicate_task(
     .execute(pool)
     .await?;
 
-    // Copy subtasks
+    // Copy child tasks (preserving parent_task_id pointing to new parent, and depth)
     sqlx::query(
         r#"
         INSERT INTO tasks (id, title, description, priority, board_id, column_id,
-                          position, tenant_id, created_by_id)
+                          position, tenant_id, created_by_id, parent_task_id, depth)
         SELECT gen_random_uuid(), title, description, priority, board_id, column_id,
-               position, tenant_id, $3
+               position, tenant_id, $3, $2, depth
         FROM tasks
         WHERE parent_task_id = $1 AND deleted_at IS NULL
         "#,
@@ -619,7 +619,7 @@ pub async fn duplicate_task(
     .bind(created_by_id)
     .execute(pool)
     .await
-    .ok(); // Subtask copy is best-effort — table may not have parent_task_id
+    .ok(); // Child task copy is best-effort
 
     Ok(task)
 }

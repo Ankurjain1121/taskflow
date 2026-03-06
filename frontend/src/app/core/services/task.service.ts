@@ -402,11 +402,11 @@ export class TaskService {
   // --- Child Tasks ---
 
   listChildren(taskId: string): Observable<ChildTaskListResponse> {
-    return this.http.get<ChildTaskListResponse>(`${this.apiUrl}/tasks/${taskId}/subtasks`);
+    return this.http.get<ChildTaskListResponse>(`${this.apiUrl}/tasks/${taskId}/children`);
   }
 
   createChild(parentTaskId: string, request: CreateChildTaskRequest): Observable<Task> {
-    return this.http.post<Task>(`${this.apiUrl}/tasks/${parentTaskId}/subtasks`, request).pipe(
+    return this.http.post<Task>(`${this.apiUrl}/tasks/${parentTaskId}/children`, request).pipe(
       tap(() => {
         this.invalidateTaskAndBoardCaches(parentTaskId);
       }),
