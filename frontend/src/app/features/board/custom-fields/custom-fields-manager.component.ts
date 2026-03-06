@@ -376,7 +376,7 @@ export class CustomFieldsManagerComponent implements OnInit, OnChanges {
         this.showCreateForm.set(false);
         this.resetCreateForm();
       },
-      error: (err) => console.error('Failed to create custom field:', err),
+      error: () => {},
     });
   }
 
@@ -420,7 +420,7 @@ export class CustomFieldsManagerComponent implements OnInit, OnChanges {
         );
         this.editingId.set(null);
       },
-      error: (err) => console.error('Failed to update custom field:', err),
+      error: () => {},
     });
   }
 
@@ -437,7 +437,7 @@ export class CustomFieldsManagerComponent implements OnInit, OnChanges {
       next: () => {
         this.fields.update((f) => f.filter((cf) => cf.id !== field.id));
       },
-      error: (err) => console.error('Failed to delete custom field:', err),
+      error: () => {},
     });
   }
 
@@ -465,8 +465,7 @@ export class CustomFieldsManagerComponent implements OnInit, OnChanges {
         this.fields.set(fields);
         this.loading.set(false);
       },
-      error: (err) => {
-        console.error('Failed to load custom fields:', err);
+      error: () => {
         this.loading.set(false);
       },
     });

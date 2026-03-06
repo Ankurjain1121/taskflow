@@ -35,10 +35,11 @@ import { DatePicker } from 'primeng/datepicker';
 import { SelectButton } from 'primeng/selectbutton';
 import { ButtonModule } from 'primeng/button';
 import { Menu } from 'primeng/menu';
-import { Dialog } from 'primeng/dialog';
 import { Tooltip } from 'primeng/tooltip';
-import { Popover } from 'primeng/popover';
 import { FeatureHelpIconComponent } from '../../../shared/components/feature-help-icon/feature-help-icon.component';
+import { CardFieldsPopoverComponent } from './card-fields-popover.component';
+import { SavePresetDialogComponent } from './save-preset-dialog.component';
+import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
 
 export type ViewMode =
   | 'kanban'
@@ -82,10 +83,10 @@ const DEFAULT_FILTERS: TaskFilters = {
     SelectButton,
     ButtonModule,
     Menu,
-    Dialog,
     Tooltip,
-    Popover,
     FeatureHelpIconComponent,
+    CardFieldsPopoverComponent,
+    SavePresetDialogComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -260,29 +261,14 @@ const DEFAULT_FILTERS: TaskFilters = {
 
         <!-- Filter Presets -->
         @if (boardId()) {
-          <div class="flex items-center gap-1">
-            @if (presets().length > 0) {
-              <p-button
-                icon="pi pi-bookmark"
-                severity="secondary"
-                [text]="true"
-                size="small"
-                (onClick)="presetsMenu.toggle($event)"
-                pTooltip="Load saved filter"
-              />
-              <p-menu #presetsMenu [popup]="true" [model]="presetMenuItems()" />
-            }
-            @if (activeFilterCount() > 0) {
-              <p-button
-                icon="pi pi-save"
-                severity="secondary"
-                [text]="true"
-                size="small"
-                (onClick)="showSavePresetDialog = true"
-                pTooltip="Save current filters"
-              />
-            }
-          </div>
+          <app-save-preset-dialog
+            [boardId]="boardId()"
+            [filters]="filters()"
+            [activeFilterCount]="activeFilterCount()"
+            [presets]="presets()"
+            (presetLoaded)="loadPreset($event)"
+            (presetsReloaded)="loadPresets()"
+          />
         }
 
         <!-- Density Toggle (kanban only) -->
@@ -341,52 +327,10 @@ const DEFAULT_FILTERS: TaskFilters = {
 
         <!-- Fields Toggle (kanban only) -->
         @if (viewMode() === 'kanban') {
-          <button
-            (click)="fieldsPopover.toggle($event)"
-            class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)] transition-colors"
-            pTooltip="Configure card fields"
-            tooltipPosition="bottom"
-          >
-            <i class="pi pi-sliders-v text-xs"></i>
-            Fields
-          </button>
-          <p-popover #fieldsPopover>
-            <div class="p-3 min-w-[200px]">
-              <div
-                class="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wide mb-2"
-              >
-                Card Fields
-              </div>
-              @for (field of cardFieldOptions; track field.key) {
-                <label
-                  class="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-[var(--secondary)] rounded px-1"
-                >
-                  <input
-                    type="checkbox"
-                    [checked]="cardFields()[field.key]"
-                    (change)="
-                      onCardFieldToggle(field.key, $any($event.target).checked)
-                    "
-                    class="w-3.5 h-3.5 rounded border-[var(--border)] accent-[var(--primary)]"
-                  />
-                  <span class="text-sm text-[var(--foreground)]">{{
-                    field.label
-                  }}</span>
-                </label>
-              }
-              <div class="border-t border-[var(--border)] mt-2 pt-2">
-                <button
-                  (click)="resetFields()"
-                  class="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] underline"
-                >
-                  Reset to defaults
-                </button>
-              </div>
-            </div>
-          </p-popover>
-          <app-feature-help-icon
-            title="Card Fields"
-            description="Show or hide fields on task cards — assignee, priority, due date, labels, and more."
+          <app-card-fields-popover
+            [cardFields]="cardFields()"
+            (cardFieldChanged)="cardFieldChanged.emit($event)"
+            (cardFieldsReset)="cardFieldsReset.emit()"
           />
         }
 
@@ -454,41 +398,6 @@ const DEFAULT_FILTERS: TaskFilters = {
         }
       </div>
     </div>
-
-    <!-- Save Preset Dialog -->
-    <p-dialog
-      header="Save Filter Preset"
-      [(visible)]="showSavePresetDialog"
-      [modal]="true"
-      [style]="{ width: '400px' }"
-    >
-      <div class="flex flex-col gap-3">
-        <label class="text-sm font-medium text-[var(--foreground)]">
-          Preset name
-        </label>
-        <input
-          pInputText
-          [(ngModel)]="newPresetName"
-          placeholder="e.g. My urgent tasks"
-          class="w-full"
-          (keydown.enter)="savePreset()"
-        />
-      </div>
-      <ng-template #footer>
-        <p-button
-          label="Cancel"
-          severity="secondary"
-          [text]="true"
-          (onClick)="showSavePresetDialog = false"
-        />
-        <p-button
-          label="Save"
-          icon="pi pi-check"
-          (onClick)="savePreset()"
-          [disabled]="!newPresetName.trim()"
-        />
-      </ng-template>
-    </p-dialog>
   `,
   styles: [
     `
@@ -546,35 +455,18 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
   presets = signal<FilterPreset[]>([]);
   searchInputRef = viewChild<ElementRef<HTMLInputElement>>('searchInput');
 
-  readonly cardFieldOptions: { key: keyof CardFields; label: string }[] = [
-    { key: 'showPriority', label: 'Priority' },
-    { key: 'showDueDate', label: 'Due Date' },
-    { key: 'showAssignees', label: 'Assignees' },
-    { key: 'showLabels', label: 'Labels' },
-    { key: 'showSubtaskProgress', label: 'Subtask Progress' },
-    { key: 'showComments', label: 'Comments' },
-    { key: 'showAttachments', label: 'Attachments' },
-    { key: 'showTaskId', label: 'Task ID' },
-    { key: 'showDescription', label: 'Description' },
-    { key: 'showDaysInColumn', label: 'Days in Column' },
-  ];
-
-  showSavePresetDialog = false;
-  newPresetName = '';
-
-  priorityOptions: TaskPriority[] = ['urgent', 'high', 'medium', 'low'];
-
-  prioritySelectOptions = [
-    { value: 'urgent', label: 'Urgent', color: '#ef4444' },
-    { value: 'high', label: 'High', color: '#f97316' },
-    { value: 'medium', label: 'Medium', color: '#facc15' },
-    { value: 'low', label: 'Low', color: '#60a5fa' },
-  ];
   selectedPriorities: string[] = [];
   selectedAssignees: string[] = [];
   selectedLabels: string[] = [];
   dueDateStartValue: Date | null = null;
   dueDateEndValue: Date | null = null;
+
+  prioritySelectOptions = [
+    { value: 'urgent', label: 'Urgent', color: PRIORITY_COLORS['urgent'] },
+    { value: 'high', label: 'High', color: PRIORITY_COLORS['high'] },
+    { value: 'medium', label: 'Medium', color: PRIORITY_COLORS['medium'] },
+    { value: 'low', label: 'Low', color: PRIORITY_COLORS['low'] },
+  ];
 
   // Quick filter computed signals
   readonly isMyTasksActive = computed(() => {
@@ -610,7 +502,6 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
       this.isOverdueActive(),
   );
 
-  // Group By helpers
   groupByLabel(): string {
     const map: Record<GroupByMode, string> = {
       none: 'None',
@@ -661,7 +552,6 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
   ];
 
   ngOnInit(): void {
-    // Load filters from URL query params
     this.route.queryParams
       .pipe(takeUntil(this.destroy$))
       .subscribe((params) => {
@@ -691,14 +581,12 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
           : null;
       });
 
-    // Debounce search input
     this.searchSubject
       .pipe(debounceTime(300), takeUntil(this.destroy$))
       .subscribe((term) => {
         this.updateFilter('search', term);
       });
 
-    // Load filter presets
     this.loadPresets();
   }
 
@@ -771,14 +659,6 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
     this.filtersChanged.emit(DEFAULT_FILTERS);
   }
 
-  presetMenuItems(): { label: string; icon: string; command: () => void }[] {
-    return this.presets().map((p) => ({
-      label: p.name,
-      icon: 'pi pi-bookmark',
-      command: () => this.loadPreset(p),
-    }));
-  }
-
   loadPresets(): void {
     const id = this.boardId();
     if (!id) return;
@@ -786,24 +666,6 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
       .list(id)
       .pipe(takeUntil(this.destroy$))
       .subscribe((presets) => this.presets.set(presets));
-  }
-
-  savePreset(): void {
-    const name = this.newPresetName.trim();
-    const id = this.boardId();
-    if (!name || !id) return;
-
-    this.filterPresetsService
-      .create(id, {
-        name,
-        filters: this.filters() as unknown as Record<string, unknown>,
-      })
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.showSavePresetDialog = false;
-        this.newPresetName = '';
-        this.loadPresets();
-      });
   }
 
   loadPreset(preset: FilterPreset): void {
@@ -883,18 +745,9 @@ export class BoardToolbarComponent implements OnInit, OnDestroy {
     this.searchInputRef()?.nativeElement.focus();
   }
 
-  onCardFieldToggle(key: keyof CardFields, value: boolean): void {
-    this.cardFieldChanged.emit({ key, value });
-  }
-
-  resetFields(): void {
-    this.cardFieldsReset.emit();
-  }
-
   private getCurrentWeekRange(): { start: string; end: string } {
     const now = new Date();
     const day = now.getDay();
-    // Monday = start of week (day 0 = Sunday, so Monday = 1)
     const diffToMonday = day === 0 ? -6 : 1 - day;
     const monday = new Date(now);
     monday.setDate(now.getDate() + diffToMonday);

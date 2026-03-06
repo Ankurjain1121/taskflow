@@ -8,7 +8,7 @@ use axum::{
     routing::{delete, get, post},
     Json, Router,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use uuid::Uuid;
 
 use taskflow_db::models::{PositionWithHolders, RecurringTaskConfig};
@@ -19,6 +19,8 @@ use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
+use super::common::MessageResponse;
+
 // ============================================================================
 // Request/Response DTOs
 // ============================================================================
@@ -26,11 +28,6 @@ use crate::state::AppState;
 #[derive(Debug, Deserialize)]
 pub struct AddHolderRequest {
     pub user_id: Uuid,
-}
-
-#[derive(Debug, Serialize)]
-pub struct MessageResponse {
-    pub message: String,
 }
 
 // ============================================================================

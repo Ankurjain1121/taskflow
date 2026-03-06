@@ -20,6 +20,8 @@ use crate::extractors::AuthUserExtractor;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
+use super::common::MessageResponse;
+
 // ============================================================================
 // Request/Response DTOs
 // ============================================================================
@@ -75,11 +77,6 @@ pub struct ColumnResponse {
     pub wip_limit: Option<i32>,
     pub icon: Option<String>,
     pub created_at: chrono::DateTime<chrono::Utc>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct MessageResponse {
-    pub message: String,
 }
 
 // ============================================================================

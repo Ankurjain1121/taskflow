@@ -1,10 +1,8 @@
 import {
   Component,
-  Input,
-  Output,
-  EventEmitter,
+  input,
+  output,
   ChangeDetectionStrategy,
-  viewChild,
 } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Menu } from 'primeng/menu';
@@ -21,11 +19,11 @@ import { BoardPresenceComponent } from '../../../shared/components/board-presenc
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-bold text-[var(--foreground)]">
-            {{ boardName || 'Loading...' }}
+            {{ boardName() || 'Loading...' }}
           </h1>
-          @if (boardDescription) {
+          @if (boardDescription()) {
             <p class="text-sm text-[var(--muted-foreground)] mt-1">
-              {{ boardDescription }}
+              {{ boardDescription() }}
             </p>
           }
         </div>
@@ -37,9 +35,9 @@ import { BoardPresenceComponent } from '../../../shared/components/board-presenc
           <a
             [routerLink]="[
               '/workspace',
-              workspaceId,
+              workspaceId(),
               'board',
-              boardId,
+              boardId(),
               'settings',
             ]"
             class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--foreground)] bg-[var(--card)] border border-[var(--border)] rounded-md hover:bg-[var(--muted)]"
@@ -73,7 +71,7 @@ import { BoardPresenceComponent } from '../../../shared/components/board-presenc
           >
             <i class="pi pi-ellipsis-v text-sm"></i>
           </button>
-          <p-menu #moreMenu [popup]="true" [model]="menuItems" />
+          <p-menu #moreMenu [popup]="true" [model]="menuItems()" />
 
           <!-- Add Group Button -->
           <button
@@ -122,12 +120,12 @@ import { BoardPresenceComponent } from '../../../shared/components/board-presenc
   `,
 })
 export class BoardViewHeaderComponent {
-  @Input() boardName = '';
-  @Input() boardDescription: string | null = null;
-  @Input() workspaceId = '';
-  @Input() boardId = '';
-  @Input() menuItems: MenuItem[] = [];
+  boardName = input('');
+  boardDescription = input<string | null>(null);
+  workspaceId = input('');
+  boardId = input('');
+  menuItems = input<MenuItem[]>([]);
 
-  @Output() createTask = new EventEmitter<void>();
-  @Output() createGroup = new EventEmitter<void>();
+  createTask = output<void>();
+  createGroup = output<void>();
 }

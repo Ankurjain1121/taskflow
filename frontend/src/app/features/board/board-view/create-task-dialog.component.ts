@@ -29,6 +29,7 @@ import {
   TaskTemplate,
 } from '../../../core/services/task-template.service';
 import { ToggleSwitch } from 'primeng/toggleswitch';
+import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
 
 export interface CreateTaskDialogData {
   columnId: string;
@@ -81,7 +82,7 @@ export interface CreateTaskDialogResult {
     >
       <form [formGroup]="form" class="flex flex-col gap-4">
         <!-- Column info -->
-        <p class="text-sm text-gray-500 dark:text-gray-400">
+        <p class="text-sm text-[var(--muted-foreground)]">
           Adding to column: <span class="font-medium">{{ columnName() }}</span>
         </p>
 
@@ -98,7 +99,7 @@ export interface CreateTaskDialogResult {
 
         @if (useTemplate && templates().length > 0) {
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            <label class="text-sm font-medium text-[var(--foreground)]"
               >Template</label
             >
             <select
@@ -123,7 +124,7 @@ export interface CreateTaskDialogResult {
         <div class="flex flex-col gap-1">
           <label
             for="taskTitle"
-            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            class="text-sm font-medium text-[var(--foreground)]"
             >Title</label
           >
           <input
@@ -150,7 +151,7 @@ export interface CreateTaskDialogResult {
         <div class="flex flex-col gap-1">
           <label
             for="taskDesc"
-            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            class="text-sm font-medium text-[var(--foreground)]"
             >Description</label
           >
           <textarea
@@ -167,7 +168,7 @@ export interface CreateTaskDialogResult {
         <div class="flex flex-col gap-1">
           <label
             for="taskPriority"
-            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            class="text-sm font-medium text-[var(--foreground)]"
             >Priority</label
           >
           <p-select
@@ -206,7 +207,7 @@ export interface CreateTaskDialogResult {
           <div class="flex flex-col gap-1">
             <label
               for="startDate"
-              class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              class="text-sm font-medium text-[var(--foreground)]"
               >Start Date</label
             >
             <p-datePicker
@@ -223,7 +224,7 @@ export interface CreateTaskDialogResult {
           <div class="flex flex-col gap-1">
             <label
               for="dueDate"
-              class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              class="text-sm font-medium text-[var(--foreground)]"
               >Due Date</label
             >
             <p-datePicker
@@ -241,7 +242,7 @@ export interface CreateTaskDialogResult {
         <div class="flex flex-col gap-1">
           <label
             for="estHours"
-            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+            class="text-sm font-medium text-[var(--foreground)]"
             >Estimated Hours</label
           >
           <p-inputNumber
@@ -269,7 +270,7 @@ export interface CreateTaskDialogResult {
           <div class="flex flex-col gap-1">
             <label
               for="assignees"
-              class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              class="text-sm font-medium text-[var(--foreground)]"
               >Assignees</label
             >
             <p-multiSelect
@@ -301,7 +302,7 @@ export interface CreateTaskDialogResult {
           <div class="flex flex-col gap-1">
             <label
               for="taskLabels"
-              class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              class="text-sm font-medium text-[var(--foreground)]"
               >Labels</label
             >
             <p-multiSelect
@@ -332,7 +333,7 @@ export interface CreateTaskDialogResult {
           <div class="flex flex-col gap-1">
             <label
               for="milestone"
-              class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              class="text-sm font-medium text-[var(--foreground)]"
               >Milestone</label
             >
             <p-select
@@ -366,7 +367,7 @@ export interface CreateTaskDialogResult {
           <div class="flex flex-col gap-1">
             <label
               for="taskGroup"
-              class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              class="text-sm font-medium text-[var(--foreground)]"
               >Group</label
             >
             <p-select
@@ -441,10 +442,10 @@ export class CreateTaskDialogComponent {
   selectedTemplateId = '';
 
   priorities = [
-    { value: 'low', label: 'Low', color: '#60a5fa' },
-    { value: 'medium', label: 'Medium', color: '#facc15' },
-    { value: 'high', label: 'High', color: '#f97316' },
-    { value: 'urgent', label: 'Urgent', color: '#ef4444' },
+    { value: 'low', label: 'Low', color: PRIORITY_COLORS['low'] },
+    { value: 'medium', label: 'Medium', color: PRIORITY_COLORS['medium'] },
+    { value: 'high', label: 'High', color: PRIORITY_COLORS['high'] },
+    { value: 'urgent', label: 'Urgent', color: PRIORITY_COLORS['urgent'] },
   ];
 
   form = this.fb.nonNullable.group({

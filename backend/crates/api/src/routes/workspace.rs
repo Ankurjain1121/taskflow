@@ -23,6 +23,8 @@ use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
+use super::common::MessageResponse;
+
 /// Fire MemberJoined trigger for all boards in a workspace
 fn fire_member_joined_trigger(
     pool: sqlx::PgPool,
@@ -142,11 +144,6 @@ pub struct UserSearchResult {
     pub name: String,
     pub email: String,
     pub avatar_url: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct MessageResponse {
-    pub message: String,
 }
 
 #[derive(Debug, Deserialize)]

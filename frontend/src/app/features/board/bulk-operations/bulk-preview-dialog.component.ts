@@ -35,10 +35,10 @@ export interface BulkPreviewData {
         <div class="space-y-4">
           <div class="flex items-start gap-3">
             <div
-              class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center"
+              class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center"
             >
               <i
-                class="pi pi-info-circle text-blue-600 dark:text-blue-400 text-lg"
+                class="pi pi-info-circle text-blue-600 text-lg"
               ></i>
             </div>
             <div>
@@ -56,11 +56,11 @@ export interface BulkPreviewData {
 
           @if (data()!.warnings.length > 0) {
             <div
-              class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-3"
+              class="bg-yellow-50 border border-yellow-200 rounded-md p-3"
             >
               @for (warning of data()!.warnings; track warning) {
                 <p
-                  class="text-sm text-yellow-800 dark:text-yellow-200 flex items-center gap-2"
+                  class="text-sm text-yellow-800 flex items-center gap-2"
                 >
                   <i class="pi pi-exclamation-triangle text-yellow-600"></i>
                   {{ warning }}

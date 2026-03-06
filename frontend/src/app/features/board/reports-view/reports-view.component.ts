@@ -37,7 +37,7 @@ import {
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           @for (i of [1, 2, 3, 4]; track i) {
             <div
-              class="bg-[var(--card)] dark:bg-gray-800 rounded-xl border border-[var(--border)] dark:border-gray-700 p-6"
+              class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-6"
             >
               <div class="skeleton skeleton-text w-28 mb-4"></div>
               <div class="skeleton w-full h-40 rounded-lg"></div>
@@ -166,7 +166,7 @@ import {
               </svg>
             } @else {
               <div
-                class="flex items-center justify-center h-48 text-gray-400 text-sm"
+                class="flex items-center justify-center h-48 text-[var(--muted-foreground)] text-sm"
               >
                 No data
               </div>
@@ -258,7 +258,7 @@ import {
               </div>
             } @else {
               <div
-                class="flex items-center justify-center h-32 text-gray-400 text-sm"
+                class="flex items-center justify-center h-32 text-[var(--muted-foreground)] text-sm"
               >
                 No assigned tasks
               </div>

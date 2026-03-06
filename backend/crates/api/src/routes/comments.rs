@@ -28,7 +28,7 @@ use taskflow_db::queries::get_task_board_id;
 use taskflow_services::broadcast::events;
 use taskflow_services::BroadcastService;
 
-use super::task_helpers::sanitize_html;
+use super::task_helpers::{sanitize_html, verify_board_membership};
 
 /// Regex for extracting @mentions in format @[username](userId)
 static MENTION_REGEX: Lazy<Regex> =
@@ -76,21 +76,11 @@ async fn list_comments_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_board_membership(&state, board_id, tenant.user_id).await?;
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
+    }
 
-    let comments = list_comments_by_task(&state.db, task_id)
-        .await
-        .map_err(|e| match e {
-            taskflow_db::queries::comments::CommentQueryError::Database(e) => {
-                AppError::SqlxError(e)
-            }
-            taskflow_db::queries::comments::CommentQueryError::NotFound => {
-                AppError::NotFound("Comments not found".into())
-            }
-            taskflow_db::queries::comments::CommentQueryError::NotAuthorized => {
-                AppError::Forbidden("Not authorized".into())
-            }
-        })?;
+    let comments = list_comments_by_task(&state.db, task_id).await?;
 
     Ok(Json(ListCommentsResponse { comments }))
 }
@@ -109,7 +99,9 @@ async fn create_comment_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_board_membership(&state, board_id, tenant.user_id).await?;
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
+    }
 
     // Sanitize and extract mentioned user IDs from content
     let sanitized_content = sanitize_html(&body.content);
@@ -124,16 +116,7 @@ async fn create_comment_handler(
         body.parent_id,
         &mentioned_user_ids,
     )
-    .await
-    .map_err(|e| match e {
-        taskflow_db::queries::comments::CommentQueryError::Database(e) => AppError::SqlxError(e),
-        taskflow_db::queries::comments::CommentQueryError::NotFound => {
-            AppError::NotFound("Task not found".into())
-        }
-        taskflow_db::queries::comments::CommentQueryError::NotAuthorized => {
-            AppError::Forbidden("Not authorized".into())
-        }
-    })?;
+    .await?;
 
     // Record activity log entry (fire and forget)
     let db = state.db.clone();
@@ -279,7 +262,9 @@ async fn update_comment_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_board_membership(&state, board_id, tenant.user_id).await?;
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
+    }
 
     // Sanitize and extract mentioned user IDs from updated content
     let sanitized_content = sanitize_html(&body.content);
@@ -292,16 +277,7 @@ async fn update_comment_handler(
         &sanitized_content,
         &mentioned_user_ids,
     )
-    .await
-    .map_err(|e| match e {
-        taskflow_db::queries::comments::CommentQueryError::Database(e) => AppError::SqlxError(e),
-        taskflow_db::queries::comments::CommentQueryError::NotFound => {
-            AppError::NotFound("Comment not found".into())
-        }
-        taskflow_db::queries::comments::CommentQueryError::NotAuthorized => {
-            AppError::Forbidden("Not authorized".into())
-        }
-    })?;
+    .await?;
 
     Ok(Json(comment))
 }
@@ -334,46 +310,14 @@ async fn delete_comment_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_board_membership(&state, board_id, tenant.user_id).await?;
-
-    // Delete the comment
-    delete_comment(&state.db, comment_id)
-        .await
-        .map_err(|e| match e {
-            taskflow_db::queries::comments::CommentQueryError::Database(e) => {
-                AppError::SqlxError(e)
-            }
-            taskflow_db::queries::comments::CommentQueryError::NotFound => {
-                AppError::NotFound("Comment not found".into())
-            }
-            taskflow_db::queries::comments::CommentQueryError::NotAuthorized => {
-                AppError::Forbidden("Not authorized".into())
-            }
-        })?;
-
-    Ok(StatusCode::NO_CONTENT)
-}
-
-/// Helper to verify board membership
-async fn verify_board_membership(state: &AppState, board_id: Uuid, user_id: Uuid) -> Result<()> {
-    let is_member = sqlx::query_scalar!(
-        r#"
-        SELECT EXISTS(
-            SELECT 1 FROM board_members
-            WHERE board_id = $1 AND user_id = $2
-        ) as "exists!"
-        "#,
-        board_id,
-        user_id
-    )
-    .fetch_one(&state.db)
-    .await?;
-
-    if !is_member {
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
         return Err(AppError::Forbidden("Not a board member".into()));
     }
 
-    Ok(())
+    // Delete the comment
+    delete_comment(&state.db, comment_id).await?;
+
+    Ok(StatusCode::NO_CONTENT)
 }
 
 /// Create the comment router

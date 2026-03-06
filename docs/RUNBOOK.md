@@ -1,7 +1,7 @@
 # TaskFlow Operations Runbook
 
 > Auto-generated from source-of-truth: scripts/, docker-compose.yml, .env.example, codemaps/
-> Last updated: 2026-02-23
+> Last updated: 2026-03-05
 
 ## Deployment
 
@@ -68,21 +68,25 @@ docker compose --profile email up -d
 docker compose --profile whatsapp up -d
 ```
 
-## Docker Services (15)
+## Docker Services (3 containers + host services)
 
-| Service | Always On | Profile |
-|---------|-----------|---------|
-| postgres | Yes | - |
-| redis | Yes | - |
-| mongodb | Yes | - |
-| minio, minio-setup | Yes | - |
-| migrate (one-shot) | Yes | - |
-| backend | Yes | - |
-| frontend | Yes | - |
-| lago-api, lago-front | No | billing |
-| novu | No | notifications |
-| postal-init, postal | No | email |
-| waha | No | whatsapp |
+| Service | Type | Details |
+|---------|------|---------|
+| backend | Docker | taskflow-backend:8080 (Rust/Axum) |
+| frontend | Docker | taskflow-frontend:4200→80 (Angular/Nginx) |
+| minio | Docker | taskflow-minio:9000/9001 (S3 storage) |
+| PostgreSQL 16 | Host | 10.0.2.1:5432, user: taskflow_app |
+| Redis 7 | Host | 10.0.2.1:6379 |
+
+Network: Docker bridge 10.0.2.0/24 (gateway 10.0.2.1) for host service access.
+
+### Resource Limits
+
+| Container | CPU | Memory |
+|-----------|-----|--------|
+| backend | 1.0 | 512M |
+| frontend | 0.25 | 256M |
+| minio | 0.5 | 512M |
 
 ## Service Management
 
@@ -118,11 +122,18 @@ docker compose logs --tail 100 backend
 
 | Endpoint | URL | Expected |
 |----------|-----|----------|
-| Backend health | `GET /api/health` | 200 OK |
-| Backend liveness | `GET /api/health/live` | 200 OK |
-| Backend readiness | `GET /api/health/ready` | 200 OK |
+| Backend health | `GET /api/health` | 200 OK (public) |
+| Backend liveness | `GET /api/health/live` | 200 OK (public) |
+| Backend readiness | `GET /api/health/ready` | 200 OK (public) |
+| Backend detailed | `GET /api/health/detailed` | 200 JSON (requires auth) |
 | Frontend health | `GET /health` (nginx) | 200 "healthy" |
 | MinIO health | `GET /minio/health/live` | 200 OK |
+
+The `/api/health/detailed` endpoint (requires JWT auth) returns:
+- `board_channels`: active WebSocket channel count
+- `ws_connections`: current WebSocket connection count
+- `db_pool`: pool size, idle, active connections
+- `process_rss`: backend memory usage in bytes
 
 ```bash
 # Quick health check
@@ -138,7 +149,7 @@ curl https://taskflow.paraslace.in/api/health
 ### Overview
 
 - **PostgreSQL 16** with multi-tenant RLS
-- **45+ tables**, **12 enums**, **21 migrations**
+- **45+ tables**, **12 enums**, **41 migrations**, **3 materialized views**
 - Migrations auto-run on backend startup via `sqlx::migrate!()`
 
 ### Run Migrations Manually
@@ -154,19 +165,29 @@ cd backend && sqlx migrate run --source crates/db/src/migrations
 ### Connect to PostgreSQL
 
 ```bash
-docker compose exec postgres psql -U postgres -d taskflow
+# Host PostgreSQL (not Docker)
+psql -h 10.0.2.1 -U taskflow_app -d taskflow
+
+# Or via localhost
+sudo -u postgres psql -d taskflow
 ```
 
 ### Backup Database
 
 ```bash
-docker compose exec postgres pg_dump -U postgres taskflow > backup_$(date +%Y%m%d).sql
+pg_dump -h 10.0.2.1 -U taskflow_app taskflow > backup_$(date +%Y%m%d).sql
 ```
 
 ### Restore Database
 
 ```bash
-cat backup.sql | docker compose exec -T postgres psql -U postgres -d taskflow
+psql -h 10.0.2.1 -U taskflow_app -d taskflow < backup.sql
+```
+
+### Refresh Materialized Views
+
+```bash
+psql -h 10.0.2.1 -U taskflow_app -d taskflow -c "SELECT refresh_metrics_views();"
 ```
 
 ### Key Tables Reference
@@ -235,14 +256,12 @@ cd frontend && npx tsc --noEmit
 ### Redis connection issues
 
 ```bash
-# Check Redis is running
-docker compose exec redis redis-cli ping
+# Check Redis is running (host service)
+redis-cli -h 10.0.2.1 ping
 # Expected: PONG
 
-# Check database isolation
-docker compose exec redis redis-cli -n 0 DBSIZE  # App (pub/sub, rate limiting)
-docker compose exec redis redis-cli -n 1 DBSIZE  # Lago
-docker compose exec redis redis-cli -n 2 DBSIZE  # Novu
+# Check database size
+redis-cli -h 10.0.2.1 -n 0 DBSIZE  # App (pub/sub, rate limiting, bulk undo)
 ```
 
 ## Rollback Procedures
@@ -376,15 +395,14 @@ location /ws {
                 taskflow.paraslace.in
                  /           \
                 /             \
-      [frontend:80]      [backend:8080]
-      nginx + Angular    Rust / Axum
+      [frontend:4200]    [backend:8080]
+      nginx + Angular    Rust / Axum         ← Docker containers
       SPA + API proxy         |
                           /---+---\
                          /    |    \
-                 [postgres] [redis] [minio]
-                   :5432    :6379   :9000
-                              |
-                        [mongodb:27017]
+                 [postgres] [redis] [minio]  ← Host PG/Redis, Docker MinIO
+                  :5432     :6379   :9000
+                 (host)    (host)  (docker)
 ```
 
 Backend crates: `api -> {auth, db, services}`, `services -> {auth, db}`, `auth -> db`

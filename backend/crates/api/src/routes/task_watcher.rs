@@ -9,7 +9,7 @@ use uuid::Uuid;
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::state::AppState;
-use taskflow_db::queries::{add_watcher, get_task_board_id, remove_watcher, TaskQueryError};
+use taskflow_db::queries::{add_watcher, get_task_board_id, remove_watcher};
 
 use super::task_helpers::verify_board_membership;
 
@@ -33,15 +33,7 @@ pub async fn add_watcher_handler(
         return Err(AppError::Forbidden("Not a board member".into()));
     }
 
-    add_watcher(&state.db, task_id, body.user_id)
-        .await
-        .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
-            TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
-            TaskQueryError::Database(e) => AppError::SqlxError(e),
-            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
-            TaskQueryError::Other(msg) => AppError::BadRequest(msg),
-        })?;
+    add_watcher(&state.db, task_id, body.user_id).await?;
 
     Ok(Json(json!({ "success": true })))
 }
@@ -60,15 +52,7 @@ pub async fn remove_watcher_handler(
         return Err(AppError::Forbidden("Not a board member".into()));
     }
 
-    remove_watcher(&state.db, task_id, user_id)
-        .await
-        .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
-            TaskQueryError::NotFound => AppError::NotFound("Watcher not found".into()),
-            TaskQueryError::Database(e) => AppError::SqlxError(e),
-            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
-            TaskQueryError::Other(msg) => AppError::BadRequest(msg),
-        })?;
+    remove_watcher(&state.db, task_id, user_id).await?;
 
     Ok(Json(json!({ "success": true })))
 }

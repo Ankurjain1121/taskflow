@@ -17,6 +17,8 @@ use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
+use super::task_helpers::verify_board_membership;
+
 // ============================================================================
 // DTOs
 // ============================================================================
@@ -101,23 +103,6 @@ struct CreatedTaskRow {
 // ============================================================================
 // Helpers
 // ============================================================================
-
-/// Verify the current user is a board member. Returns Err(AppError) if not.
-async fn verify_board_membership(db: &sqlx::PgPool, board_id: Uuid, user_id: Uuid) -> Result<()> {
-    let is_member: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)",
-    )
-    .bind(board_id)
-    .bind(user_id)
-    .fetch_one(db)
-    .await
-    .map_err(AppError::from)?;
-
-    if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
-    Ok(())
-}
 
 /// Parse a priority string into one of the valid DB enum values.
 /// Returns "medium" as default if unrecognized.
@@ -256,7 +241,9 @@ async fn import_json_handler(
     Path(board_id): Path<Uuid>,
     Json(items): Json<Vec<ImportTaskItem>>,
 ) -> Result<Json<ImportResult>> {
-    verify_board_membership(&state.db, board_id, tenant.user_id).await?;
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
+    }
 
     if items.is_empty() {
         return Ok(Json(ImportResult { imported_count: 0 }));
@@ -318,7 +305,9 @@ async fn import_csv_handler(
     Path(board_id): Path<Uuid>,
     Json(body): Json<ImportCsvBody>,
 ) -> Result<Json<ImportResult>> {
-    verify_board_membership(&state.db, board_id, tenant.user_id).await?;
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
+    }
 
     let rows = parse_csv(&body.csv_text);
     if rows.is_empty() {
@@ -397,7 +386,9 @@ async fn import_trello_handler(
     Path(board_id): Path<Uuid>,
     Json(trello): Json<TrelloExport>,
 ) -> Result<Json<TrelloImportResult>> {
-    verify_board_membership(&state.db, board_id, tenant.user_id).await?;
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
+    }
 
     // Build a map of Trello list_id -> list_name
     let trello_lists = trello.lists.unwrap_or_default();

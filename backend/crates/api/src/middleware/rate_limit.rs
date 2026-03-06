@@ -47,7 +47,10 @@ impl RateLimiter {
                 let window = std::time::Duration::from_secs(window_secs);
                 let before = entries.len();
                 entries.retain(|_key, entry| {
-                    entry.timestamps.iter().any(|t| now.duration_since(*t) < window)
+                    entry
+                        .timestamps
+                        .iter()
+                        .any(|t| now.duration_since(*t) < window)
                 });
                 let removed = before - entries.len();
                 if removed > 0 {
