@@ -18,6 +18,7 @@ import {
   CreateCustomFieldRequest,
   UpdateCustomFieldRequest,
 } from '../../../core/services/custom-field.service';
+import { MessageService } from 'primeng/api';
 
 @Component({
   selector: 'app-custom-fields-manager',
@@ -304,6 +305,7 @@ import {
 })
 export class CustomFieldsManagerComponent implements OnInit, OnChanges {
   private customFieldService = inject(CustomFieldService);
+  private messageService = inject(MessageService);
 
   boardId = input.required<string>();
 
@@ -376,7 +378,9 @@ export class CustomFieldsManagerComponent implements OnInit, OnChanges {
         this.showCreateForm.set(false);
         this.resetCreateForm();
       },
-      error: () => {},
+      error: () => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to create custom field' });
+      },
     });
   }
 
@@ -420,7 +424,9 @@ export class CustomFieldsManagerComponent implements OnInit, OnChanges {
         );
         this.editingId.set(null);
       },
-      error: () => {},
+      error: () => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to update custom field' });
+      },
     });
   }
 
@@ -437,7 +443,9 @@ export class CustomFieldsManagerComponent implements OnInit, OnChanges {
       next: () => {
         this.fields.update((f) => f.filter((cf) => cf.id !== field.id));
       },
-      error: () => {},
+      error: () => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete custom field' });
+      },
     });
   }
 
