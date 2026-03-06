@@ -391,6 +391,7 @@ mod tests {
             milestone_id: None,
             assignee_ids: None,
             label_ids: None,
+            parent_task_id: None,
         };
         tasks::create_task(&pool, board_id, input1, tenant_id, user_id)
             .await
@@ -408,6 +409,7 @@ mod tests {
             milestone_id: None,
             assignee_ids: None,
             label_ids: None,
+            parent_task_id: None,
         };
         tasks::create_task(&pool, board_id, input2, tenant_id, user_id)
             .await

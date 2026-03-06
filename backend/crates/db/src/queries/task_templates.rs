@@ -771,7 +771,7 @@ mod tests {
                    due_date, start_date, estimated_hours, board_id, column_id,
                    group_id, position, milestone_id, task_number, eisenhower_urgency,
                    eisenhower_importance, tenant_id, created_by_id, deleted_at,
-                   column_entered_at, created_at, updated_at, version
+                   column_entered_at, created_at, updated_at, version, parent_task_id, depth
             FROM tasks WHERE id = $1
             "#,
         )

@@ -30,6 +30,8 @@ pub struct Task {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub version: i32,
+    pub parent_task_id: Option<Uuid>,
+    pub depth: i16,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
@@ -103,6 +105,8 @@ mod tests {
             created_at: now,
             updated_at: now,
             version: 1,
+            parent_task_id: None,
+            depth: 0,
         }
     }
 
@@ -143,6 +147,8 @@ mod tests {
             created_at: now,
             updated_at: now,
             version: 1,
+            parent_task_id: None,
+            depth: 0,
         };
         let json = serde_json::to_string(&task).unwrap();
         let deserialized: Task = serde_json::from_str(&json).unwrap();

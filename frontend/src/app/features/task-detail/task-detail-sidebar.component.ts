@@ -21,6 +21,7 @@ import {
   Watcher,
   TaskReminder,
 } from '../../core/services/task.service';
+import { RouterModule } from '@angular/router';
 import { Column } from '../../core/services/board.service';
 import {
   MemberSearchResult,
@@ -43,6 +44,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
   imports: [
     CommonModule,
     FormsModule,
+    RouterModule,
     Select,
     DatePicker,
     InputTextModule,
@@ -55,18 +57,18 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
       .field-label {
         font-size: 0.75rem;
         font-weight: 600;
-        color: var(--text-color-secondary, #64748b);
+        color: var(--muted-foreground);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         margin-bottom: 0.25rem;
       }
       .field-value {
         font-size: 0.875rem;
-        color: var(--text-color, #1e293b);
+        color: var(--foreground);
       }
       .sidebar-card {
-        background: var(--surface-card, white);
-        border: 1px solid var(--surface-border, #e2e8f0);
+        background: var(--card);
+        border: 1px solid var(--border);
         border-radius: 0.75rem;
         padding: 1.25rem;
       }
@@ -75,7 +77,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
         align-items: center;
         gap: 0.375rem;
         padding: 0.25rem 0.625rem;
-        background: var(--surface-100, #f1f5f9);
+        background: var(--muted);
         border-radius: 9999px;
         font-size: 0.8125rem;
       }
@@ -106,16 +108,16 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
         font-size: 0.75rem;
         cursor: pointer;
         transition: all 0.15s;
-        border: 1px solid var(--surface-border, #e2e8f0);
+        border: 1px solid var(--border);
       }
       .reminder-chip:hover {
-        border-color: var(--primary-color, #6366f1);
-        color: var(--primary-color, #6366f1);
+        border-color: var(--primary);
+        color: var(--primary);
       }
       .reminder-chip.active {
-        background: var(--primary-color, #6366f1);
+        background: var(--primary);
         color: white;
-        border-color: var(--primary-color, #6366f1);
+        border-color: var(--primary);
       }
     `,
   ],
@@ -221,7 +223,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
               } @else {
                 <span
                   style="
-                    color: var(--text-color-secondary, #94a3b8);
+                    color: var(--muted-foreground);
                     font-style: italic;
                   "
                   >No due date</span
@@ -252,9 +254,9 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
                 @for (reminder of reminders(); track reminder.id) {
                   <div
                     class="flex items-center justify-between text-xs px-2 py-1 rounded"
-                    style="background: var(--surface-100, #f1f5f9)"
+                    style="background: var(--muted)"
                   >
-                    <span style="color: var(--text-color-secondary)">
+                    <span style="color: var(--muted-foreground)">
                       <i class="pi pi-bell mr-1 text-[10px]"></i>
                       {{ getReminderLabel(reminder.remind_before_minutes) }}
                       @if (reminder.is_sent) {
@@ -282,7 +284,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
           <button
             (click)="toggleAssigneeSearch()"
             class="text-xs px-2 py-1 rounded transition-all opacity-0 group-hover:opacity-100"
-            style="color: var(--primary-color, #6366f1)"
+            style="color: var(--primary)"
           >
             <i class="pi pi-plus text-xs mr-1"></i>Add
           </button>
@@ -320,7 +322,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
               </div>
             }
           } @else {
-            <span class="text-sm" style="color: var(--text-color-secondary)"
+            <span class="text-sm" style="color: var(--muted-foreground)"
               >No assignees</span
             >
           }
@@ -329,7 +331,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
         @if (showAssigneeSearch()) {
           <div
             class="mt-3 border rounded-lg overflow-hidden"
-            style="border-color: var(--surface-border)"
+            style="border-color: var(--border)"
           >
             <input
               pInputText
@@ -338,14 +340,14 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
               (ngModelChange)="onAssigneeSearch($event)"
               placeholder="Search members..."
               class="w-full border-0"
-              style="border-bottom: 1px solid var(--surface-border)"
+              style="border-bottom: 1px solid var(--border)"
             />
             <div class="max-h-40 overflow-y-auto p-1">
               @for (member of assigneeResults(); track member.id) {
                 <button
                   (click)="assigneeAdded.emit(member)"
                   class="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded transition-colors"
-                  style="color: var(--text-color)"
+                  style="color: var(--foreground)"
                 >
                   <div
                     class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
@@ -361,7 +363,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
               @if (assigneeResults().length === 0 && assigneeQuery()) {
                 <div
                   class="px-2 py-3 text-sm text-center"
-                  style="color: var(--text-color-secondary)"
+                  style="color: var(--muted-foreground)"
                 >
                   No members found
                 </div>
@@ -381,7 +383,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
             <button
               (click)="watchSelf.emit()"
               class="text-xs px-2 py-1 rounded"
-              style="color: var(--primary-color, #6366f1)"
+              style="color: var(--primary)"
               title="Watch this task"
             >
               <i class="pi pi-eye text-xs mr-1"></i>Watch
@@ -389,7 +391,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
             <button
               (click)="toggleWatcherSearch()"
               class="text-xs px-2 py-1 rounded"
-              style="color: var(--primary-color, #6366f1)"
+              style="color: var(--primary)"
             >
               <i class="pi pi-plus text-xs mr-1"></i>Add
             </button>
@@ -428,7 +430,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
               </div>
             }
           } @else {
-            <span class="text-sm" style="color: var(--text-color-secondary)"
+            <span class="text-sm" style="color: var(--muted-foreground)"
               >No watchers</span
             >
           }
@@ -437,7 +439,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
         @if (showWatcherSearch()) {
           <div
             class="mt-3 border rounded-lg overflow-hidden"
-            style="border-color: var(--surface-border)"
+            style="border-color: var(--border)"
           >
             <input
               pInputText
@@ -446,14 +448,14 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
               (ngModelChange)="onWatcherSearch($event)"
               placeholder="Search members..."
               class="w-full border-0"
-              style="border-bottom: 1px solid var(--surface-border)"
+              style="border-bottom: 1px solid var(--border)"
             />
             <div class="max-h-40 overflow-y-auto p-1">
               @for (member of watcherResults(); track member.id) {
                 <button
                   (click)="watcherAdded.emit(member)"
                   class="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded transition-colors"
-                  style="color: var(--text-color)"
+                  style="color: var(--foreground)"
                 >
                   <div
                     class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
@@ -469,7 +471,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
               @if (watcherResults().length === 0 && watcherQuery()) {
                 <div
                   class="px-2 py-3 text-sm text-center"
-                  style="color: var(--text-color-secondary)"
+                  style="color: var(--muted-foreground)"
                 >
                   No members found
                 </div>
@@ -500,12 +502,41 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
               </span>
             }
           } @else {
-            <span class="text-sm" style="color: var(--text-color-secondary)"
+            <span class="text-sm" style="color: var(--muted-foreground)"
               >No labels</span
             >
           }
         </div>
       </div>
+
+      <!-- Parent task -->
+      @if (parentTask()) {
+        <div class="sidebar-card">
+          <label class="field-label">Parent Task</label>
+          <a
+            [routerLink]="['/task', parentTask()!.id]"
+            class="flex items-center gap-2 mt-1.5 text-sm hover:underline"
+            style="color: var(--primary)"
+          >
+            <i class="pi pi-arrow-up-right text-xs"></i>
+            {{ parentTask()!.title }}
+          </a>
+        </div>
+      }
+
+      <!-- Child tasks -->
+      @if (childrenCount() > 0) {
+        <div class="sidebar-card">
+          <label class="field-label">Child Tasks</label>
+          <div
+            class="flex items-center gap-2 mt-1.5 text-sm"
+            style="color: var(--muted-foreground)"
+          >
+            <i class="pi pi-sitemap text-xs"></i>
+            <span>{{ childrenCount() }} child task{{ childrenCount() > 1 ? 's' : '' }}</span>
+          </div>
+        </div>
+      }
 
       <!-- Metadata -->
       <div class="sidebar-card space-y-3">
@@ -513,7 +544,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
           <label class="field-label">Created</label>
           <p
             class="field-value mt-0.5"
-            style="color: var(--text-color-secondary)"
+            style="color: var(--muted-foreground)"
           >
             {{ formatDate(task()!.created_at) }}
           </p>
@@ -522,14 +553,14 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
           <label class="field-label">Updated</label>
           <p
             class="field-value mt-0.5"
-            style="color: var(--text-color-secondary)"
+            style="color: var(--muted-foreground)"
           >
             {{ formatDate(task()!.updated_at) }}
           </p>
         </div>
 
         <!-- Delete -->
-        <div class="pt-3 border-t" style="border-color: var(--surface-border)">
+        <div class="pt-3 border-t" style="border-color: var(--border)">
           <button
             pButton
             label="Delete Task"
@@ -552,6 +583,8 @@ export class TaskDetailSidebarComponent {
   columns = input<Column[]>([]);
   workspaceId = input<string>('');
   reminders = input<TaskReminder[]>([]);
+  parentTask = input<Task | null>(null);
+  childrenCount = input<number>(0);
 
   priorityChanged = output<TaskPriority>();
   dueDateChanged = output<Date | null>();

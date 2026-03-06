@@ -9,7 +9,7 @@ use crate::extractors::TenantContext;
 use crate::state::AppState;
 use taskflow_db::models::automation::AutomationTrigger;
 use taskflow_db::models::{Task, WsBoardEvent};
-use taskflow_db::queries::{get_task_assignee_ids, get_task_board_id, move_task, TaskQueryError};
+use taskflow_db::queries::{get_task_assignee_ids, get_task_board_id, move_task};
 use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
 
 use super::task_helpers::{
@@ -43,15 +43,7 @@ pub async fn move_task_handler(
     .fetch_optional(&state.db)
     .await?;
 
-    let task = move_task(&state.db, task_id, body.column_id, body.position.clone())
-        .await
-        .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
-            TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
-            TaskQueryError::Database(e) => AppError::SqlxError(e),
-            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
-            TaskQueryError::Other(msg) => AppError::BadRequest(msg),
-        })?;
+    let task = move_task(&state.db, task_id, body.column_id, body.position.clone()).await?;
 
     // Broadcast the task moved event
     let broadcast_service = BroadcastService::new(state.redis.clone());

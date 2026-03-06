@@ -89,6 +89,7 @@ pub async fn create_task_handler(
         group_id: body.group_id,
         assignee_ids: body.assignee_ids.clone(),
         label_ids: body.label_ids,
+        parent_task_id: body.parent_task_id,
     };
 
     let task = create_task(&state.db, board_id, input, tenant.tenant_id, tenant.user_id)
@@ -389,6 +390,93 @@ pub async fn delete_task_handler(
     }
 
     Ok(Json(json!({ "success": true })))
+}
+
+/// POST /api/tasks/:id/complete
+/// Move a task to the first "done" column on its board
+pub async fn complete_task_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+    Path(task_id): Path<Uuid>,
+) -> Result<Json<Task>> {
+    let board_id = get_task_board_id(&state.db, task_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
+
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
+    }
+
+    // Find the first "done" column for this board
+    let done_column_id: Option<uuid::Uuid> = sqlx::query_scalar(
+        r#"
+        SELECT id FROM board_columns
+        WHERE board_id = $1 AND status_mapping->>'done' = 'true'
+        ORDER BY position ASC
+        LIMIT 1
+        "#,
+    )
+    .bind(board_id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(AppError::SqlxError)?;
+
+    let done_column_id =
+        done_column_id.ok_or_else(|| AppError::BadRequest("No done column found on board".into()))?;
+
+    let task = taskflow_db::queries::move_task(&state.db, task_id, done_column_id, "a0".to_string())
+        .await
+        .map_err(|e| match e {
+            TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
+            TaskQueryError::Database(e) => AppError::SqlxError(e),
+            _ => AppError::InternalError("Failed to complete task".into()),
+        })?;
+
+    Ok(Json(task))
+}
+
+/// POST /api/tasks/:id/uncomplete
+/// Move a task back to the first non-done column on its board
+pub async fn uncomplete_task_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+    Path(task_id): Path<Uuid>,
+) -> Result<Json<Task>> {
+    let board_id = get_task_board_id(&state.db, task_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
+
+    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
+        return Err(AppError::Forbidden("Not a board member".into()));
+    }
+
+    // Find the first non-done column for this board
+    let column_id: Option<uuid::Uuid> = sqlx::query_scalar(
+        r#"
+        SELECT id FROM board_columns
+        WHERE board_id = $1
+          AND (status_mapping IS NULL OR status_mapping->>'done' != 'true')
+        ORDER BY position ASC
+        LIMIT 1
+        "#,
+    )
+    .bind(board_id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(AppError::SqlxError)?;
+
+    let column_id =
+        column_id.ok_or_else(|| AppError::BadRequest("No non-done column found on board".into()))?;
+
+    let task = taskflow_db::queries::move_task(&state.db, task_id, column_id, "a0".to_string())
+        .await
+        .map_err(|e| match e {
+            TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
+            TaskQueryError::Database(e) => AppError::SqlxError(e),
+            _ => AppError::InternalError("Failed to uncomplete task".into()),
+        })?;
+
+    Ok(Json(task))
 }
 
 /// POST /api/tasks/:id/duplicate

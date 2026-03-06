@@ -63,27 +63,7 @@ pub struct TaskCustomFieldValueWithField {
     pub value_bool: Option<bool>,
 }
 
-/// Internal helper: verify board membership
-async fn verify_board_membership_internal(
-    pool: &PgPool,
-    board_id: Uuid,
-    user_id: Uuid,
-) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query_scalar::<_, bool>(
-        r#"
-        SELECT EXISTS(
-            SELECT 1 FROM board_members
-            WHERE board_id = $1 AND user_id = $2
-        )
-        "#,
-    )
-    .bind(board_id)
-    .bind(user_id)
-    .fetch_one(pool)
-    .await?;
-
-    Ok(result)
-}
+use super::verify_board_membership_internal;
 
 /// Internal helper: get task's board_id
 async fn get_task_board_id_internal(
@@ -436,6 +416,7 @@ mod tests {
             milestone_id: None,
             assignee_ids: None,
             label_ids: None,
+            parent_task_id: None,
         };
         let task = tasks::create_task(pool, board_id, input, tenant_id, user_id)
             .await

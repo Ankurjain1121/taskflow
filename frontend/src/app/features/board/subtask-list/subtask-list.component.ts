@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import {
   CdkDropList,
   CdkDrag,
@@ -17,14 +18,12 @@ import {
   CdkDragHandle,
   moveItemInArray,
 } from '@angular/cdk/drag-drop';
-import { generateKeyBetween } from 'fractional-indexing';
-import { ConfirmationService } from 'primeng/api';
-import { ConfirmDialog } from 'primeng/confirmdialog';
 import {
-  SubtaskService,
-  SubtaskWithAssignee,
-  SubtaskProgress,
-} from '../../../core/services/subtask.service';
+  TaskService,
+  Task,
+  ChildTaskListResponse,
+} from '../../../core/services/task.service';
+import { Column } from '../../../core/services/board.service';
 
 @Component({
   selector: 'app-subtask-list',
@@ -35,9 +34,7 @@ import {
     CdkDropList,
     CdkDrag,
     CdkDragHandle,
-    ConfirmDialog,
   ],
-  providers: [ConfirmationService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-3">
@@ -112,17 +109,16 @@ import {
           </svg>
         </div>
       } @else {
-        <!-- Subtask items with drag-drop -->
+        <!-- Child task items with drag-drop -->
         <div
           cdkDropList
           (cdkDropListDropped)="onReorder($event)"
           class="space-y-1"
         >
-          @for (subtask of subtasks(); track subtask.id) {
+          @for (child of children(); track child.id) {
             <div
               cdkDrag
-              [cdkDragDisabled]="editingId() === subtask.id"
-              class="group flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[var(--muted)] transition-colors"
+              class="group flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[var(--muted)] transition-colors cursor-pointer"
             >
               <!-- Drag placeholder -->
               <div
@@ -149,100 +145,55 @@ import {
                 </svg>
               </div>
 
-              <!-- Checkbox -->
+              <!-- Priority dot -->
+              <span class="w-2 h-2 rounded-full shrink-0" [style.background]="getPriorityDotColor(child.priority)"></span>
+
+              <!-- Checkbox for complete/uncomplete -->
               <input
                 type="checkbox"
-                [checked]="subtask.is_completed"
-                (change)="onToggle(subtask)"
+                [checked]="isChildDone(child)"
+                (change)="onToggleComplete(child)"
                 class="h-4 w-4 rounded border-[var(--border)] text-primary focus:ring-ring cursor-pointer"
               />
 
-              <!-- Title (editable on click) -->
-              @if (editingId() === subtask.id) {
-                <input
-                  type="text"
-                  [ngModel]="editingTitle()"
-                  (ngModelChange)="editingTitle.set($event)"
-                  (blur)="saveEdit(subtask)"
-                  (keydown.enter)="saveEdit(subtask)"
-                  (keydown.escape)="cancelEdit()"
-                  class="flex-1 text-sm border-0 border-b border-[var(--border)] focus:ring-0 focus:border-primary px-0 py-0 bg-transparent text-[var(--foreground)]"
-                  #editInput
-                />
-              } @else {
-                <span
-                  (dblclick)="startEdit(subtask)"
-                  class="flex-1 text-sm cursor-default select-none"
-                  [class.line-through]="subtask.is_completed"
-                  [style.color]="
-                    subtask.is_completed
-                      ? 'var(--muted-foreground)'
-                      : 'var(--foreground)'
-                  "
-                >
-                  {{ subtask.title }}
-                </span>
-              }
+              <!-- Title (click to navigate) -->
+              <span
+                (click)="navigateToChild(child)"
+                class="flex-1 text-sm hover:text-primary truncate"
+                [class.line-through]="isChildDone(child)"
+                [style.color]="isChildDone(child) ? 'var(--muted-foreground)' : 'var(--foreground)'"
+              >
+                {{ child.title }}
+              </span>
 
-              <!-- Assignee avatar -->
-              @if (subtask.assignee_name) {
+              <!-- Assignee avatars -->
+              @for (a of child.assignees || []; track a.id) {
                 <span
                   class="shrink-0 w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] font-medium flex items-center justify-center"
-                  [title]="subtask.assignee_name"
+                  [title]="a.display_name"
                 >
-                  {{ getInitials(subtask.assignee_name) }}
+                  {{ getInitials(a.display_name) }}
                 </span>
               }
 
               <!-- Due date -->
-              @if (subtask.due_date && !subtask.is_completed) {
+              @if (child.due_date && !isChildDone(child)) {
                 <span
                   class="shrink-0 text-xs whitespace-nowrap"
-                  [class]="getDueDateClass(subtask.due_date)"
+                  [class]="getDueDateClass(child.due_date)"
                 >
-                  {{ formatDueDate(subtask.due_date) }}
+                  {{ formatDueDate(child.due_date) }}
                 </span>
               }
 
-              <!-- Promote to task button (visible on hover) -->
+              <!-- Delete button -->
               <button
-                (click)="onPromote(subtask)"
-                class="opacity-0 group-hover:opacity-100 p-1 text-[var(--muted-foreground)] hover:text-primary transition-all"
-                title="Promote to task"
-              >
-                <svg
-                  class="w-3.5 h-3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M5 10l7-7m0 0l7 7m-7-7v18"
-                  />
-                </svg>
-              </button>
-
-              <!-- Delete button (visible on hover) -->
-              <button
-                (click)="onDelete(subtask)"
+                (click)="onDelete(child); $event.stopPropagation()"
                 class="opacity-0 group-hover:opacity-100 p-1 text-[var(--muted-foreground)] hover:text-red-500 transition-all"
                 title="Delete subtask"
               >
-                <svg
-                  class="w-3.5 h-3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
@@ -275,7 +226,6 @@ import {
         </div>
       }
     </div>
-    <p-confirmDialog />
   `,
   styles: [
     `
@@ -293,26 +243,25 @@ import {
   ],
 })
 export class SubtaskListComponent implements OnInit, OnChanges {
-  private subtaskService = inject(SubtaskService);
-  private confirmationService = inject(ConfirmationService);
+  private taskService = inject(TaskService);
+  private router = inject(Router);
 
   taskId = input.required<string>();
+  boardColumns = input<Column[]>([]);
 
   loading = signal(true);
-  subtasks = signal<SubtaskWithAssignee[]>([]);
-  progress = signal<SubtaskProgress>({ completed: 0, total: 0 });
+  children = signal<Task[]>([]);
+  progress = signal<{ completed: number; total: number }>({ completed: 0, total: 0 });
   newSubtaskTitle = signal('');
-  editingId = signal<string | null>(null);
-  editingTitle = signal('');
   errorMessage = signal<string | null>(null);
 
   ngOnInit(): void {
-    this.loadSubtasks();
+    this.loadChildren();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['taskId'] && !changes['taskId'].firstChange) {
-      this.loadSubtasks();
+      this.loadChildren();
     }
   }
 
@@ -322,218 +271,111 @@ export class SubtaskListComponent implements OnInit, OnChanges {
     return Math.round((p.completed / p.total) * 100);
   }
 
-  onToggle(subtask: SubtaskWithAssignee): void {
-    const snapshot = this.subtasks();
+  isChildDone(child: Task): boolean {
+    const cols = this.boardColumns();
+    if (!cols?.length) return false;
+    const col = cols.find(c => c.id === child.column_id);
+    return col?.status_mapping?.done === true;
+  }
+
+  navigateToChild(child: Task): void {
+    this.router.navigate(['/tasks', child.id]);
+  }
+
+  getPriorityDotColor(priority: string): string {
+    switch (priority) {
+      case 'urgent': return '#ef4444';
+      case 'high': return '#f97316';
+      case 'medium': return '#eab308';
+      case 'low': return '#6b7280';
+      default: return '#6b7280';
+    }
+  }
+
+  onToggleComplete(child: Task): void {
+    const done = this.isChildDone(child);
+    const snapshot = this.children();
     const snapshotProgress = this.progress();
-    const newCompleted = !subtask.is_completed;
 
-    // Optimistic: toggle locally
-    this.subtasks.update((list) =>
-      list.map((s) =>
-        s.id === subtask.id ? { ...s, is_completed: newCompleted } : s,
-      ),
-    );
-    this.updateProgress(newCompleted ? 1 : -1);
-
-    this.subtaskService.toggle(subtask.id).subscribe({
-      next: (updated) => {
-        this.subtasks.update((list) =>
-          list.map((s) => (s.id === updated.id ? { ...s, ...updated } : s)),
-        );
-      },
-      error: () => {
-        this.subtasks.set(snapshot);
-        this.progress.set(snapshotProgress);
-        this.showError('Failed to update subtask');
-      },
-    });
+    if (done) {
+      this.taskService.uncompleteTask(child.id).subscribe({
+        next: () => this.loadChildren(),
+        error: () => {
+          this.children.set(snapshot);
+          this.progress.set(snapshotProgress);
+          this.showError('Failed to update task');
+        },
+      });
+    } else {
+      this.taskService.completeTask(child.id).subscribe({
+        next: () => this.loadChildren(),
+        error: () => {
+          this.children.set(snapshot);
+          this.progress.set(snapshotProgress);
+          this.showError('Failed to update task');
+        },
+      });
+    }
   }
 
   onAdd(): void {
     const title = this.newSubtaskTitle().trim();
     if (!title) return;
 
-    const snapshot = this.subtasks();
-    const snapshotProgress = this.progress();
     const savedTitle = title;
-
-    // Optimistic: insert temp subtask
-    const tempId = crypto.randomUUID();
-    const tempSubtask: SubtaskWithAssignee = {
-      id: tempId,
-      task_id: this.taskId(),
-      title,
-      is_completed: false,
-      position: 'zzz',
-      assigned_to_id: null,
-      completed_at: null,
-      due_date: null,
-      assignee_name: null,
-      assignee_avatar_url: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    this.subtasks.update((list) => [...list, tempSubtask]);
-    this.progress.update((p) => ({ ...p, total: p.total + 1 }));
     this.newSubtaskTitle.set('');
 
-    this.subtaskService.create(this.taskId(), title).subscribe({
-      next: (created) => {
-        const withAssignee: SubtaskWithAssignee = {
-          ...created,
-          assignee_name: null,
-          assignee_avatar_url: null,
-        };
-        // Replace temp with real
-        this.subtasks.update((list) =>
-          list.map((s) => (s.id === tempId ? withAssignee : s)),
-        );
-      },
+    this.taskService.createChild(this.taskId(), { title }).subscribe({
+      next: () => this.loadChildren(),
       error: () => {
-        this.subtasks.set(snapshot);
-        this.progress.set(snapshotProgress);
         this.newSubtaskTitle.set(savedTitle);
         this.showError('Failed to add subtask');
       },
     });
   }
 
-  onDelete(subtask: SubtaskWithAssignee): void {
-    const snapshot = this.subtasks();
+  onDelete(child: Task): void {
+    const snapshot = this.children();
     const snapshotProgress = this.progress();
 
-    // Optimistic: remove immediately
-    this.subtasks.update((list) => list.filter((s) => s.id !== subtask.id));
-    this.progress.update((p) => ({
-      completed: subtask.is_completed ? p.completed - 1 : p.completed,
+    this.children.update(list => list.filter(c => c.id !== child.id));
+    this.progress.update(p => ({
+      completed: this.isChildDone(child) ? p.completed - 1 : p.completed,
       total: p.total - 1,
     }));
 
-    this.subtaskService.delete(subtask.id).subscribe({
+    this.taskService.deleteTask(child.id).subscribe({
       error: () => {
-        this.subtasks.set(snapshot);
+        this.children.set(snapshot);
         this.progress.set(snapshotProgress);
         this.showError('Failed to delete subtask');
       },
     });
   }
 
-  onPromote(subtask: SubtaskWithAssignee): void {
-    this.confirmationService.confirm({
-      message: `Promote "${subtask.title}" to a full task? It will be created in the same board column.`,
-      header: 'Promote to Task',
-      icon: 'pi pi-arrow-up',
-      acceptLabel: 'Promote',
-      rejectLabel: 'Cancel',
-      accept: () => {
-        const snapshot = this.subtasks();
-        const snapshotProgress = this.progress();
-
-        // Optimistic: remove from list
-        this.subtasks.update((list) => list.filter((s) => s.id !== subtask.id));
-        this.progress.update((p) => ({
-          completed: subtask.is_completed ? p.completed - 1 : p.completed,
-          total: p.total - 1,
-        }));
-
-        this.subtaskService.promote(subtask.id).subscribe({
-          error: () => {
-            this.subtasks.set(snapshot);
-            this.progress.set(snapshotProgress);
-            this.showError('Failed to promote subtask');
-          },
-        });
-      },
-    });
-  }
-
-  onReorder(event: CdkDragDrop<SubtaskWithAssignee[]>): void {
+  onReorder(event: CdkDragDrop<Task[]>): void {
     if (event.previousIndex === event.currentIndex) return;
-
-    const items = [...this.subtasks()];
-    const movedItem = items[event.previousIndex];
-
-    // Optimistic reorder
+    const items = [...this.children()];
     moveItemInArray(items, event.previousIndex, event.currentIndex);
-    this.subtasks.set(items);
-
-    // Calculate new fractional position
-    const prevPos =
-      event.currentIndex > 0 ? items[event.currentIndex - 1].position : null;
-    const nextPos =
-      event.currentIndex < items.length - 1
-        ? items[event.currentIndex + 1].position
-        : null;
-
-    const newPosition = generateKeyBetween(prevPos, nextPos);
-
-    this.subtaskService.reorder(movedItem.id, newPosition).subscribe({
-      next: (updated) => {
-        this.subtasks.update((list) =>
-          list.map((s) =>
-            s.id === updated.id ? { ...s, position: updated.position } : s,
-          ),
-        );
-      },
-      error: () => {
-        // Revert on error
-        this.loadSubtasks();
-      },
-    });
-  }
-
-  startEdit(subtask: SubtaskWithAssignee): void {
-    this.editingId.set(subtask.id);
-    this.editingTitle.set(subtask.title);
-  }
-
-  saveEdit(subtask: SubtaskWithAssignee): void {
-    const newTitle = this.editingTitle().trim();
-    if (!newTitle || newTitle === subtask.title) {
-      this.cancelEdit();
-      return;
-    }
-
-    const snapshot = this.subtasks();
-
-    // Optimistic: update title locally
-    this.subtasks.update((list) =>
-      list.map((s) => (s.id === subtask.id ? { ...s, title: newTitle } : s)),
-    );
-    this.cancelEdit();
-
-    this.subtaskService.update(subtask.id, { title: newTitle }).subscribe({
-      next: (updated) => {
-        this.subtasks.update((list) =>
-          list.map((s) => (s.id === updated.id ? { ...s, ...updated } : s)),
-        );
-      },
-      error: () => {
-        this.subtasks.set(snapshot);
-        this.showError('Failed to update subtask');
-      },
-    });
-  }
-
-  cancelEdit(): void {
-    this.editingId.set(null);
-    this.editingTitle.set('');
+    this.children.set(items);
   }
 
   getInitials(name: string): string {
     return name
       .split(' ')
-      .map((n) => n.charAt(0))
+      .map(n => n.charAt(0))
       .join('')
       .toUpperCase()
       .slice(0, 2);
   }
 
   formatDueDate(dateStr: string): string {
-    const date = new Date(dateStr + 'T00:00:00');
+    const date = new Date(dateStr);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const diffTime = date.getTime() - today.getTime();
+    const dateOnly = new Date(date);
+    dateOnly.setHours(0, 0, 0, 0);
+    const diffTime = dateOnly.getTime() - today.getTime();
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) return 'Overdue';
@@ -546,10 +388,12 @@ export class SubtaskListComponent implements OnInit, OnChanges {
   }
 
   getDueDateClass(dateStr: string): string {
-    const date = new Date(dateStr + 'T00:00:00');
+    const date = new Date(dateStr);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const diffTime = date.getTime() - today.getTime();
+    const dateOnly = new Date(date);
+    dateOnly.setHours(0, 0, 0, 0);
+    const diffTime = dateOnly.getTime() - today.getTime();
     const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) return 'text-red-600 dark:text-red-400 font-medium';
@@ -562,11 +406,11 @@ export class SubtaskListComponent implements OnInit, OnChanges {
     setTimeout(() => this.errorMessage.set(null), 5000);
   }
 
-  private loadSubtasks(): void {
+  private loadChildren(): void {
     this.loading.set(true);
-    this.subtaskService.list(this.taskId()).subscribe({
+    this.taskService.listChildren(this.taskId()).subscribe({
       next: (response) => {
-        this.subtasks.set(response.subtasks);
+        this.children.set(response.children);
         this.progress.set(response.progress);
         this.loading.set(false);
       },
@@ -574,12 +418,5 @@ export class SubtaskListComponent implements OnInit, OnChanges {
         this.loading.set(false);
       },
     });
-  }
-
-  private updateProgress(delta: number): void {
-    this.progress.update((p) => ({
-      ...p,
-      completed: p.completed + delta,
-    }));
   }
 }

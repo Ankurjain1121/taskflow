@@ -1,40 +1,57 @@
-# Memory Optimization - All Containers & Storage
+# Upgrade Subtasks to First-Class Child Tasks — COMPLETE
 
 ## Objective
-Fix all memory spike issues across the entire TaskFlow project: Docker containers, Rust backend, Angular frontend, and storage.
+Add `parent_task_id` and `depth` to the `tasks` table, making subtasks first-class tasks. Migrate existing subtask data. Max depth: 2 levels (0=root, 1=subtask, 2=sub-subtask).
 
-## Success Criteria Checklist
-- [x] All Docker services have deploy.resources.limits.memory set (MinIO 512M, backend 512M, frontend 256M, minio-setup 128M)
-- [x] PostgreSQL: switched to host PG 17 (removed Docker container, saved ~1GB)
-- [x] Redis: switched to host Redis (removed Docker container, saved ~384MB)
-- [x] PgPool has idle_timeout (300s) and max_lifetime (1800s)
-- [x] board_channels DashMap has background GC (60s interval, removes channels with 0 receivers)
-- [x] RateLimiter DashMap has background GC (300s interval, removes expired entries)
-- [x] WebSocket connections have configurable max limit (WS_MAX_CONNECTIONS, default 500)
-- [x] Per-WebSocket channel subscription count capped at 50
-- [x] Frontend subscription leaks fixed (4 components: board-settings, workload-dashboard, member-detail, workspace-settings)
-- [x] setInterval/setTimeout cleanup verified (all properly cleared in ngOnDestroy)
-- [x] /api/health/detailed endpoint reports board_channels, ws_connections, db_pool, process_rss
-- [x] monitor-memory.sh + check-disk-usage.sh scripts exist
-- [x] Backend passes cargo check + clippy
-- [x] Frontend passes tsc --noEmit
-- [ ] Deploy and verify
+## Implementation Phases
+
+### Phase 1: Database Migration
+- [x] Create migration: `20260313000001_subtasks_to_child_tasks.sql`
+- [x] Add `parent_task_id UUID REFERENCES tasks(id) ON DELETE CASCADE`
+- [x] Add `depth SMALLINT NOT NULL DEFAULT 0`
+- [x] Create index + check constraint (depth 0-2)
+- [x] Migrate existing subtask data → tasks table (3 subtasks migrated)
+- [x] Migrate subtask assignees → task_assignees
+
+### Phase 2: Backend Updates
+- [x] Task struct: add `parent_task_id`, `depth` fields
+- [x] Board queries: update LATERAL join, add parent filter, include `parent_task_id`
+- [x] Board types: add `parent_task_id` to `TaskWithBadges`
+- [x] Task queries: update all SELECT statements (12+ occurrences)
+- [x] Task helpers: accept `parent_task_id` in CreateTaskRequest
+- [x] Complete/uncomplete convenience endpoints
+- [x] `list_child_tasks()` function added
+- [x] Depth validation in `create_task()` (parent.depth + 1, max 2)
+
+### Phase 3: Frontend Updates
+- [x] Task interface: add `parent_task_id`, `depth`
+- [x] TaskService: add `listChildren`, `createChild`, `completeTask`, `uncompleteTask`
+- [x] SubtaskListComponent: overhaul to rich child task cards (priority dot, clickable title, avatars, due date)
+- [x] Board view: backend filters root tasks only (parent_task_id IS NULL)
+- [x] Task detail: parent breadcrumb ("Part of: <parent title>")
+- [x] Task detail sidebar: "Part of" section with parent link
+
+### Phase 4: Verification
+- [x] `cargo check` + `cargo clippy` pass clean
+- [x] `tsc --noEmit` passes clean
+- [x] Production build succeeds
+
+## Success Criteria
+- [x] Migration runs: parent_task_id and depth exist on tasks table
+- [x] Existing subtask data migrated correctly (3 of 6 — others had deleted parents)
+- [x] cargo check + clippy pass
+- [x] tsc --noEmit passes
+- [x] Child tasks have full task properties (they ARE tasks)
+- [x] Board shows only root tasks (WHERE parent_task_id IS NULL)
+- [x] Task card subtask progress counts child tasks in done columns
+- [x] SubtaskListComponent shows rich mini-cards
+- [x] Clicking child task navigates to full task detail
+- [x] Child task detail shows parent breadcrumb
+- [x] Depth constraint enforced (DB CHECK + create_task validation)
+- [x] Delete parent cascades to children (ON DELETE CASCADE)
 
 ## Progress Log
-- [COMPLETE] 2026-03-05: All 4 tasks done
-- Task #1: Removed Docker PG/Redis, switched to host services, MinIO limits, PgPool tuning
-- Task #2: board_channels GC, RateLimiter GC, WS connection limit (503), subscription cap (50)
-- Task #3: Fixed 4 subscription leaks with takeUntilDestroyed, audited all timers
-- Task #4: /api/health/detailed endpoint, monitor-memory.sh, check-disk-usage.sh
-
-## Memory Savings Summary
-| Change | Memory Saved |
-|--------|-------------|
-| Remove Docker PostgreSQL | ~1024MB |
-| Remove Docker Redis | ~384MB |
-| Backend limit 1024M -> 512M | ~512MB |
-| Frontend limit 512M -> 256M | ~256MB |
-| board_channels GC | Prevents unbounded growth |
-| RateLimiter GC | Prevents unbounded growth |
-| WS connection limit | Prevents memory exhaustion |
-| **Total container savings** | **~2.2GB** |
+- [2026-03-06] Migration created and run — columns verified
+- [2026-03-06] Backend complete — all models, queries, routes updated (backend-agent)
+- [2026-03-06] Frontend complete — interfaces, services, components updated (frontend-agent)
+- [2026-03-06] All checks pass: cargo check, clippy, tsc, prod build

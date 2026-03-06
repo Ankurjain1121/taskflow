@@ -280,12 +280,42 @@ async fn promote_subtask_handler(
     Ok(Json(task))
 }
 
+/// GET /api/tasks/{task_id}/children
+/// List child tasks (tasks with parent_task_id = task_id)
+async fn list_children_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+    Path(task_id): Path<Uuid>,
+) -> Result<Json<Vec<Task>>> {
+    // Verify board membership through task
+    verify_task_board_membership(&state, task_id, tenant.user_id).await?;
+
+    let children = taskflow_db::queries::list_child_tasks(&state.db, task_id)
+        .await
+        .map_err(|e| match e {
+            taskflow_db::queries::TaskQueryError::NotBoardMember => {
+                AppError::Forbidden("Not a board member".into())
+            }
+            taskflow_db::queries::TaskQueryError::NotFound => {
+                AppError::NotFound("Task not found".into())
+            }
+            taskflow_db::queries::TaskQueryError::Database(e) => AppError::SqlxError(e),
+            taskflow_db::queries::TaskQueryError::VersionConflict(_) => {
+                AppError::Conflict("Version conflict".into())
+            }
+            taskflow_db::queries::TaskQueryError::Other(msg) => AppError::InternalError(msg),
+        })?;
+
+    Ok(Json(children))
+}
+
 /// Create the subtask router
 pub fn subtask_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Task-scoped subtask routes
         .route("/tasks/{task_id}/subtasks", get(list_subtasks_handler))
         .route("/tasks/{task_id}/subtasks", post(create_subtask_handler))
+        .route("/tasks/{task_id}/children", get(list_children_handler))
         // Subtask-specific routes
         .route("/subtasks/{id}", put(update_subtask_handler))
         .route(
