@@ -33,10 +33,6 @@ pub struct UpdatePreferencesRequest {
     #[serde(default)]
     pub digest_frequency: Option<String>,
     #[serde(default)]
-    pub light_theme_slug: Option<String>,
-    #[serde(default)]
-    pub dark_theme_slug: Option<String>,
-    #[serde(default)]
     pub accent_color: Option<String>,
     #[serde(default)]
     pub color_mode: Option<String>,
@@ -81,8 +77,6 @@ async fn update_preferences(
     let locale = body.locale.unwrap_or(existing.locale);
     let digest_frequency = body.digest_frequency.unwrap_or(existing.digest_frequency);
 
-    let light_theme_slug = body.light_theme_slug.or(existing.light_theme_slug);
-    let dark_theme_slug = body.dark_theme_slug.or(existing.dark_theme_slug);
     let accent_color = body.accent_color.or(existing.accent_color);
     let color_mode = body.color_mode.or(existing.color_mode);
 
@@ -100,8 +94,6 @@ async fn update_preferences(
     user_prefs::validate_theme_preferences(
         color_mode.as_deref(),
         accent_color.as_deref(),
-        light_theme_slug.as_deref(),
-        dark_theme_slug.as_deref(),
     )
     .map_err(AppError::BadRequest)?;
 
@@ -137,8 +129,6 @@ async fn update_preferences(
         quiet_start,
         quiet_end,
         &digest_frequency,
-        light_theme_slug.as_deref(),
-        dark_theme_slug.as_deref(),
         accent_color.as_deref(),
         color_mode.as_deref(),
     )

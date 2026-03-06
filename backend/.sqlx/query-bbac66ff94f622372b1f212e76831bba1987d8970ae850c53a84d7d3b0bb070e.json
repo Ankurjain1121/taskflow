@@ -55,15 +55,15 @@
       ]
     },
     "nullable": [
-      false,
-      false,
-      false,
-      false,
       true,
       true,
       true,
       true,
-      false
+      true,
+      true,
+      true,
+      true,
+      true
     ]
   },
   "hash": "bbac66ff94f622372b1f212e76831bba1987d8970ae850c53a84d7d3b0bb070e"

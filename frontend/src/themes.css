@@ -58,24 +58,6 @@
   --radius: 1rem;
 }
 
-[data-border-radius="small"] .p-button,
-[data-border-radius="small"] .p-inputtext,
-[data-border-radius="small"] .p-dropdown {
-  --radius: 0.375rem;
-}
-
-[data-border-radius="medium"] .p-button,
-[data-border-radius="medium"] .p-inputtext,
-[data-border-radius="medium"] .p-dropdown {
-  --radius: 0.75rem;
-}
-
-[data-border-radius="large"] .p-button,
-[data-border-radius="large"] .p-inputtext,
-[data-border-radius="large"] .p-dropdown {
-  --radius: 1rem;
-}
-
 /* ============================================
    Sidebar Style Variants (for light mode with dark sidebar)
    ============================================ */

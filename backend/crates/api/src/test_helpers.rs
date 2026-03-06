@@ -366,7 +366,6 @@ pub mod helpers {
             .nest("/api", routes::board_share_router(state.clone()))
             .nest("/api", routes::shared_board_public_router())
             .nest("/api", routes::webhook_router(state.clone()))
-            .nest("/api", routes::themes_router(state.clone()))
             .nest("/api", routes::user_preferences_router(state.clone()))
             .nest("/api", routes::sessions_router(state.clone()))
             .nest("/api", routes::upload_router(state.clone()))

@@ -17,9 +17,6 @@ pub struct UserPreferences {
     pub digest_frequency: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    // New theme fields
-    pub light_theme_slug: Option<String>,
-    pub dark_theme_slug: Option<String>,
     pub accent_color: Option<String>,
     pub color_mode: Option<String>,
 }

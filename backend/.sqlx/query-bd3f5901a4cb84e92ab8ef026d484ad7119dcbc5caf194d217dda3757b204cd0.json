@@ -77,19 +77,19 @@
       ]
     },
     "nullable": [
-      false,
-      false,
       true,
       true,
       true,
-      false,
-      false,
-      false,
       true,
-      false,
       true,
-      false,
-      false
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
     ]
   },
   "hash": "bd3f5901a4cb84e92ab8ef026d484ad7119dcbc5caf194d217dda3757b204cd0"

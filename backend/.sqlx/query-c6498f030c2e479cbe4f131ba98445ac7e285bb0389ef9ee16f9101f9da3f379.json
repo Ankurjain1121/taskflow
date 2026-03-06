@@ -8,7 +8,7 @@
         "name": "role: BoardMemberRole",
         "type_info": {
           "Custom": {
-            "name": "board_member_role",
+            "name": "project_member_role",
             "kind": {
               "Enum": [
                 "viewer",
@@ -27,7 +27,7 @@
       ]
     },
     "nullable": [
-      false
+      true
     ]
   },
   "hash": "c6498f030c2e479cbe4f131ba98445ac7e285bb0389ef9ee16f9101f9da3f379"
