@@ -56,7 +56,7 @@ async fn build_position_with_holders(
         id: position.id,
         name: position.name,
         description: position.description,
-        board_id: position.board_id,
+        project_id: position.project_id,
         fallback_position_id: position.fallback_position_id,
         fallback_position_name,
         tenant_id: position.tenant_id,
@@ -139,7 +139,7 @@ async fn get_position(
         .await?
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
-    let is_member = boards::is_board_member(&state.db, position.board_id, auth.0.user_id).await?;
+    let is_member = boards::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a board member".into()));
     }
@@ -159,7 +159,7 @@ async fn update_position(
         .await?
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
-    let is_member = boards::is_board_member(&state.db, existing.board_id, auth.0.user_id).await?;
+    let is_member = boards::is_board_member(&state.db, existing.project_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a board member".into()));
     }
@@ -205,7 +205,7 @@ async fn delete_position(
         .await?
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
-    let is_member = boards::is_board_member(&state.db, existing.board_id, auth.0.user_id).await?;
+    let is_member = boards::is_board_member(&state.db, existing.project_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a board member".into()));
     }
@@ -232,14 +232,14 @@ async fn add_holder(
         .await?
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
-    let is_member = boards::is_board_member(&state.db, position.board_id, auth.0.user_id).await?;
+    let is_member = boards::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a board member".into()));
     }
 
     // Verify the target user is also a board member
     let is_target_member =
-        boards::is_board_member(&state.db, position.board_id, payload.user_id).await?;
+        boards::is_board_member(&state.db, position.project_id, payload.user_id).await?;
     if !is_target_member {
         return Err(AppError::BadRequest(
             "User must be a board member first".into(),
@@ -263,7 +263,7 @@ async fn remove_holder(
         .await?
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
-    let is_member = boards::is_board_member(&state.db, position.board_id, auth.0.user_id).await?;
+    let is_member = boards::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a board member".into()));
     }
@@ -289,7 +289,7 @@ async fn list_position_recurring_tasks(
         .await?
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
-    let is_member = boards::is_board_member(&state.db, position.board_id, auth.0.user_id).await?;
+    let is_member = boards::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a board member".into()));
     }

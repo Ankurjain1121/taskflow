@@ -113,7 +113,8 @@ export class BoardWebsocketHandler {
 
     this.state.boardState.update((state) => {
       const newState = { ...state };
-      const columnTasks = newState[broadcast.column_id!] || [];
+      const bucketKey = broadcast.status_id ?? broadcast.column_id ?? '';
+      const columnTasks = newState[bucketKey] || [];
 
       // Avoid duplicates (e.g. if we already inserted optimistically)
       if (columnTasks.some((t) => t.id === broadcast.id)) return state;
@@ -121,13 +122,16 @@ export class BoardWebsocketHandler {
       // Build a minimal Task from the broadcast fields
       const task: Task = {
         id: broadcast.id!,
-        column_id: broadcast.column_id!,
+        project_id:
+          broadcast.project_id ??
+          (broadcast as Record<string, unknown>)['board_id'] as string ??
+          '',
+        status_id: broadcast.status_id ?? broadcast.column_id ?? null,
         title: broadcast.title ?? '',
         description: null,
         priority: broadcast.priority ?? 'medium',
         position: broadcast.position ?? 'zzzzzz',
         milestone_id: null,
-        assignee_id: null,
         due_date: null,
         created_by: '',
         created_at: new Date().toISOString(),
@@ -136,7 +140,7 @@ export class BoardWebsocketHandler {
         labels: [],
       };
 
-      newState[broadcast.column_id!] = [...columnTasks, task].sort((a, b) =>
+      newState[bucketKey] = [...columnTasks, task].sort((a, b) =>
         a.position.localeCompare(b.position),
       );
       return newState;

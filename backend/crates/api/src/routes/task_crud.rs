@@ -33,7 +33,7 @@ pub async fn list_tasks(
     let tasks = list_tasks_by_board(&state.db, board_id, tenant.user_id)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
@@ -53,7 +53,7 @@ pub async fn get_task(
     let task = get_task_by_id(&state.db, task_id, tenant.user_id)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
@@ -84,9 +84,9 @@ pub async fn create_task_handler(
         due_date: body.due_date,
         start_date: body.start_date,
         estimated_hours: body.estimated_hours,
-        column_id: body.column_id,
+        status_id: body.status_id,
         milestone_id: body.milestone_id,
-        group_id: body.group_id,
+        task_list_id: body.task_list_id,
         assignee_ids: body.assignee_ids.clone(),
         label_ids: body.label_ids,
         parent_task_id: body.parent_task_id,
@@ -95,7 +95,7 @@ pub async fn create_task_handler(
     let task = create_task(&state.db, board_id, input, tenant.tenant_id, tenant.user_id)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Column not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
@@ -111,7 +111,7 @@ pub async fn create_task_handler(
             id: task.id,
             title: task.title.clone(),
             priority: task.priority.clone(),
-            column_id: task.column_id,
+            status_id: task.status_id,
             position: task.position.clone(),
             assignee_ids: assignee_ids.clone(),
             watcher_ids: taskflow_db::queries::get_task_watcher_ids(&state.db, task.id)
@@ -153,8 +153,8 @@ pub async fn create_task_handler(
             board_id,
             tenant_id: tenant.tenant_id,
             user_id: tenant.user_id,
-            previous_column_id: None,
-            new_column_id: Some(task.column_id),
+            previous_status_id: None,
+            new_status_id: task.status_id,
             priority: Some(format!("{:?}", task.priority).to_lowercase()),
             member_user_id: None,
         },
@@ -211,7 +211,7 @@ pub async fn update_task_handler(
     let task = update_task(&state.db, task_id, input)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(current_task) => {
@@ -244,8 +244,8 @@ pub async fn update_task_handler(
         if old.milestone_id != task.milestone_id {
             fields.push("milestone_id".to_string());
         }
-        if old.column_id != task.column_id {
-            fields.push("column_id".to_string());
+        if old.status_id != task.status_id {
+            fields.push("status_id".to_string());
         }
         fields
     });
@@ -268,7 +268,7 @@ pub async fn update_task_handler(
             id: task.id,
             title: task.title.clone(),
             priority: task.priority.clone(),
-            column_id: task.column_id,
+            status_id: task.status_id,
             position: task.position.clone(),
             assignee_ids: assignee_ids.clone(),
             watcher_ids: taskflow_db::queries::get_task_watcher_ids(&state.db, task.id)
@@ -318,8 +318,8 @@ pub async fn update_task_handler(
                 board_id,
                 tenant_id: tenant.tenant_id,
                 user_id: tenant.user_id,
-                previous_column_id: None,
-                new_column_id: None,
+                previous_status_id: None,
+                new_status_id: None,
                 priority: Some(format!("{:?}", task.priority).to_lowercase()),
                 member_user_id: None,
             },
@@ -349,7 +349,7 @@ pub async fn delete_task_handler(
     soft_delete_task(&state.db, task_id)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
@@ -407,11 +407,11 @@ pub async fn complete_task_handler(
         return Err(AppError::Forbidden("Not a board member".into()));
     }
 
-    // Find the first "done" column for this board
-    let done_column_id: Option<uuid::Uuid> = sqlx::query_scalar(
+    // Find the first "done" status for this project
+    let done_status_id: Option<uuid::Uuid> = sqlx::query_scalar(
         r#"
-        SELECT id FROM board_columns
-        WHERE board_id = $1 AND status_mapping->>'done' = 'true'
+        SELECT id FROM project_statuses
+        WHERE project_id = $1 AND type = 'done'
         ORDER BY position ASC
         LIMIT 1
         "#,
@@ -421,16 +421,17 @@ pub async fn complete_task_handler(
     .await
     .map_err(AppError::SqlxError)?;
 
-    let done_column_id =
-        done_column_id.ok_or_else(|| AppError::BadRequest("No done column found on board".into()))?;
+    let done_status_id = done_status_id
+        .ok_or_else(|| AppError::BadRequest("No done status found on project".into()))?;
 
-    let task = taskflow_db::queries::move_task(&state.db, task_id, done_column_id, "a0".to_string())
-        .await
-        .map_err(|e| match e {
-            TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
-            TaskQueryError::Database(e) => AppError::SqlxError(e),
-            _ => AppError::InternalError("Failed to complete task".into()),
-        })?;
+    let task =
+        taskflow_db::queries::move_task(&state.db, task_id, done_status_id, "a0".to_string())
+            .await
+            .map_err(|e| match e {
+                TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
+                TaskQueryError::Database(e) => AppError::SqlxError(e),
+                _ => AppError::InternalError("Failed to complete task".into()),
+            })?;
 
     Ok(Json(task))
 }
@@ -450,12 +451,11 @@ pub async fn uncomplete_task_handler(
         return Err(AppError::Forbidden("Not a board member".into()));
     }
 
-    // Find the first non-done column for this board
-    let column_id: Option<uuid::Uuid> = sqlx::query_scalar(
+    // Find the first non-done status for this project
+    let status_id: Option<uuid::Uuid> = sqlx::query_scalar(
         r#"
-        SELECT id FROM board_columns
-        WHERE board_id = $1
-          AND (status_mapping IS NULL OR status_mapping->>'done' != 'true')
+        SELECT id FROM project_statuses
+        WHERE project_id = $1 AND type != 'done'
         ORDER BY position ASC
         LIMIT 1
         "#,
@@ -465,10 +465,10 @@ pub async fn uncomplete_task_handler(
     .await
     .map_err(AppError::SqlxError)?;
 
-    let column_id =
-        column_id.ok_or_else(|| AppError::BadRequest("No non-done column found on board".into()))?;
+    let status_id = status_id
+        .ok_or_else(|| AppError::BadRequest("No non-done status found on project".into()))?;
 
-    let task = taskflow_db::queries::move_task(&state.db, task_id, column_id, "a0".to_string())
+    let task = taskflow_db::queries::move_task(&state.db, task_id, status_id, "a0".to_string())
         .await
         .map_err(|e| match e {
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
@@ -499,7 +499,7 @@ pub async fn duplicate_task_handler(
     let task = duplicate_task(&state.db, task_id, tenant.user_id)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
@@ -515,7 +515,7 @@ pub async fn duplicate_task_handler(
             id: task.id,
             title: task.title.clone(),
             priority: task.priority.clone(),
-            column_id: task.column_id,
+            status_id: task.status_id,
             position: task.position.clone(),
             assignee_ids: assignee_ids.clone(),
             watcher_ids: taskflow_db::queries::get_task_watcher_ids(&state.db, task.id)

@@ -59,9 +59,9 @@ pub struct CreateTaskRequest {
     pub due_date: Option<chrono::DateTime<chrono::Utc>>,
     pub start_date: Option<chrono::DateTime<chrono::Utc>>,
     pub estimated_hours: Option<f64>,
-    pub column_id: Uuid,
+    pub status_id: Option<Uuid>,
     pub milestone_id: Option<Uuid>,
-    pub group_id: Option<Uuid>,
+    pub task_list_id: Option<Uuid>,
     pub assignee_ids: Option<Vec<Uuid>>,
     pub label_ids: Option<Vec<Uuid>>,
     pub parent_task_id: Option<Uuid>,
@@ -89,7 +89,7 @@ pub struct UpdateTaskRequest {
 /// Request body for moving a task
 #[derive(Deserialize)]
 pub struct MoveTaskRequest {
-    pub column_id: Uuid,
+    pub status_id: Uuid,
     pub position: String,
 }
 
@@ -104,12 +104,10 @@ pub async fn get_workspace_id_for_board(
     pool: &sqlx::PgPool,
     board_id: Uuid,
 ) -> std::result::Result<Option<Uuid>, sqlx::Error> {
-    sqlx::query_scalar!(
-        r#"
-        SELECT workspace_id FROM boards WHERE id = $1 AND deleted_at IS NULL
-        "#,
-        board_id
+    sqlx::query_scalar::<_, Uuid>(
+        "SELECT workspace_id FROM projects WHERE id = $1 AND deleted_at IS NULL",
     )
+    .bind(board_id)
     .fetch_optional(pool)
     .await
 }
@@ -123,8 +121,8 @@ pub async fn verify_board_membership(
     let is_member = sqlx::query_scalar!(
         r#"
         SELECT EXISTS(
-            SELECT 1 FROM board_members
-            WHERE board_id = $1 AND user_id = $2
+            SELECT 1 FROM project_members
+            WHERE project_id = $1 AND user_id = $2
         ) as "exists!"
         "#,
         board_id,
@@ -187,8 +185,7 @@ mod tests {
     fn test_create_task_request_deserialize_minimal() {
         let json = json!({
             "title": "My Task",
-            "priority": "high",
-            "column_id": "550e8400-e29b-41d4-a716-446655440000"
+            "priority": "high"
         });
         let req: CreateTaskRequest = serde_json::from_value(json).unwrap();
         assert_eq!(req.title, "My Task");
@@ -198,16 +195,16 @@ mod tests {
         assert!(req.start_date.is_none());
         assert!(req.estimated_hours.is_none());
         assert!(req.milestone_id.is_none());
-        assert!(req.group_id.is_none());
+        assert!(req.task_list_id.is_none());
         assert!(req.assignee_ids.is_none());
         assert!(req.label_ids.is_none());
     }
 
     #[test]
     fn test_create_task_request_deserialize_full() {
-        let col_id = Uuid::new_v4();
+        let status_id = Uuid::new_v4();
         let milestone_id = Uuid::new_v4();
-        let group_id = Uuid::new_v4();
+        let task_list_id = Uuid::new_v4();
         let assignee = Uuid::new_v4();
         let label = Uuid::new_v4();
         let json = json!({
@@ -217,9 +214,9 @@ mod tests {
             "due_date": "2026-03-15T10:00:00Z",
             "start_date": "2026-03-01T08:00:00Z",
             "estimated_hours": 4.5,
-            "column_id": col_id,
+            "status_id": status_id,
             "milestone_id": milestone_id,
-            "group_id": group_id,
+            "task_list_id": task_list_id,
             "assignee_ids": [assignee],
             "label_ids": [label]
         });
@@ -230,9 +227,9 @@ mod tests {
         assert!(req.due_date.is_some());
         assert!(req.start_date.is_some());
         assert_eq!(req.estimated_hours, Some(4.5));
-        assert_eq!(req.column_id, col_id);
+        assert_eq!(req.status_id, Some(status_id));
         assert_eq!(req.milestone_id, Some(milestone_id));
-        assert_eq!(req.group_id, Some(group_id));
+        assert_eq!(req.task_list_id, Some(task_list_id));
         assert_eq!(req.assignee_ids.unwrap().len(), 1);
         assert_eq!(req.label_ids.unwrap().len(), 1);
     }
@@ -242,8 +239,7 @@ mod tests {
         for priority in ["urgent", "high", "medium", "low"] {
             let json = json!({
                 "title": "Test",
-                "priority": priority,
-                "column_id": Uuid::new_v4()
+                "priority": priority
             });
             let req: CreateTaskRequest = serde_json::from_value(json).unwrap();
             let expected = match priority {
@@ -261,8 +257,7 @@ mod tests {
     fn test_create_task_request_missing_required_field() {
         // Missing title
         let json = json!({
-            "priority": "high",
-            "column_id": Uuid::new_v4()
+            "priority": "high"
         });
         let result: std::result::Result<CreateTaskRequest, _> = serde_json::from_value(json);
         assert!(result.is_err());
@@ -272,8 +267,7 @@ mod tests {
     fn test_create_task_request_invalid_priority() {
         let json = json!({
             "title": "Test",
-            "priority": "critical",
-            "column_id": Uuid::new_v4()
+            "priority": "critical"
         });
         let result: std::result::Result<CreateTaskRequest, _> = serde_json::from_value(json);
         assert!(result.is_err());
@@ -313,13 +307,13 @@ mod tests {
 
     #[test]
     fn test_move_task_request_deserialize() {
-        let col_id = Uuid::new_v4();
+        let status_id = Uuid::new_v4();
         let json = json!({
-            "column_id": col_id,
+            "status_id": status_id,
             "position": "a0b1c2"
         });
         let req: MoveTaskRequest = serde_json::from_value(json).unwrap();
-        assert_eq!(req.column_id, col_id);
+        assert_eq!(req.status_id, status_id);
         assert_eq!(req.position, "a0b1c2");
     }
 
@@ -469,7 +463,7 @@ mod tests {
 
     #[test]
     fn test_list_tasks_response_serialize_with_data() {
-        let col_id = Uuid::new_v4();
+        let status_id = Uuid::new_v4();
         let now = chrono::Utc::now();
         let task = taskflow_db::models::Task {
             id: Uuid::new_v4(),
@@ -479,9 +473,9 @@ mod tests {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            board_id: Uuid::new_v4(),
-            column_id: col_id,
-            group_id: None,
+            project_id: Uuid::new_v4(),
+            status_id: Some(status_id),
+            task_list_id: None,
             position: "a0".to_string(),
             milestone_id: None,
             task_number: Some(1),
@@ -490,7 +484,6 @@ mod tests {
             tenant_id: Uuid::new_v4(),
             created_by_id: Uuid::new_v4(),
             deleted_at: None,
-            column_entered_at: now,
             created_at: now,
             updated_at: now,
             version: 1,
@@ -498,7 +491,7 @@ mod tests {
             depth: 0,
         };
         let mut tasks = std::collections::HashMap::new();
-        tasks.insert(col_id, vec![task]);
+        tasks.insert(status_id, vec![task]);
         let resp = ListTasksResponse { tasks };
         let json = serde_json::to_string(&resp).unwrap();
         assert!(json.contains("Test Task"));

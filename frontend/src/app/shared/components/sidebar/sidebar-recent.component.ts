@@ -52,7 +52,7 @@ const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
               class="px-3 py-2 text-xs italic"
               style="color: var(--sidebar-text-muted)"
             >
-              No recent boards
+              No recent projects
             </p>
           } @else {
             <div class="space-y-0.5">

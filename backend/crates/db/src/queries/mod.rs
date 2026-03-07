@@ -10,7 +10,6 @@ pub mod automations;
 pub mod board_shares;
 pub mod boards;
 pub mod bulk_operations;
-pub mod columns;
 pub mod comments;
 pub mod custom_fields;
 pub mod dashboard;
@@ -24,6 +23,7 @@ pub mod my_tasks;
 pub mod notification_preferences;
 pub mod notifications;
 pub mod positions;
+pub mod project_statuses;
 pub mod project_templates;
 pub mod recent_items;
 pub mod recurring;
@@ -63,7 +63,6 @@ pub use automation_templates::*;
 pub use automations::*;
 pub use board_shares::*;
 pub use boards::*;
-pub use columns::*;
 pub use comments::*;
 pub use custom_fields::*;
 pub use dashboard::*;
@@ -73,6 +72,7 @@ pub use my_tasks::*;
 pub use notification_preferences::*;
 pub use notifications::*;
 pub use positions::*;
+pub use project_statuses::*;
 pub use project_templates::*;
 pub use recurring::*;
 pub use recurring_generation::*;
@@ -110,7 +110,7 @@ pub use workspace_api_keys as api_keys;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-/// Verify that a user is a member of a board.
+/// Verify that a user is a member of a project.
 /// Returns `true` if the user is a member, `false` otherwise.
 pub(crate) async fn verify_board_membership_internal(
     pool: &PgPool,
@@ -120,8 +120,8 @@ pub(crate) async fn verify_board_membership_internal(
     let result = sqlx::query_scalar::<_, bool>(
         r#"
         SELECT EXISTS(
-            SELECT 1 FROM board_members
-            WHERE board_id = $1 AND user_id = $2
+            SELECT 1 FROM project_members
+            WHERE project_id = $1 AND user_id = $2
         )
         "#,
     )

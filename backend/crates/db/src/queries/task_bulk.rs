@@ -10,12 +10,12 @@ use super::tasks::TaskQueryError;
 #[derive(Debug, Deserialize)]
 pub struct BulkUpdateInput {
     pub task_ids: Vec<Uuid>,
-    pub column_id: Option<Uuid>,
+    pub status_id: Option<Uuid>,
     pub priority: Option<TaskPriority>,
     pub milestone_id: Option<Uuid>,
     pub clear_milestone: Option<bool>,
-    pub group_id: Option<Uuid>,
-    pub clear_group: Option<bool>,
+    pub task_list_id: Option<Uuid>,
+    pub clear_task_list: Option<bool>,
 }
 
 /// Bulk update multiple tasks at once
@@ -27,7 +27,7 @@ pub async fn bulk_update_tasks(
 ) -> std::result::Result<u64, TaskQueryError> {
     // Verify board membership
     let is_member = sqlx::query_scalar::<_, bool>(
-        "SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)",
+        "SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)",
     )
     .bind(board_id)
     .bind(user_id)
@@ -35,7 +35,7 @@ pub async fn bulk_update_tasks(
     .await?;
 
     if !is_member {
-        return Err(TaskQueryError::NotBoardMember);
+        return Err(TaskQueryError::NotProjectMember);
     }
 
     if input.task_ids.is_empty() {
@@ -44,15 +44,15 @@ pub async fn bulk_update_tasks(
 
     let mut updated: u64 = 0;
 
-    // Update column if specified
-    if let Some(column_id) = input.column_id {
+    // Update status if specified
+    if let Some(status_id) = input.status_id {
         let result = sqlx::query(
             r#"
-            UPDATE tasks SET column_id = $1, updated_at = now()
-            WHERE id = ANY($2) AND board_id = $3 AND deleted_at IS NULL
+            UPDATE tasks SET status_id = $1, updated_at = now()
+            WHERE id = ANY($2) AND project_id = $3 AND deleted_at IS NULL
             "#,
         )
-        .bind(column_id)
+        .bind(status_id)
         .bind(&input.task_ids)
         .bind(board_id)
         .execute(pool)
@@ -65,7 +65,7 @@ pub async fn bulk_update_tasks(
         let result = sqlx::query(
             r#"
             UPDATE tasks SET priority = $1, updated_at = now()
-            WHERE id = ANY($2) AND board_id = $3 AND deleted_at IS NULL
+            WHERE id = ANY($2) AND project_id = $3 AND deleted_at IS NULL
             "#,
         )
         .bind(priority)
@@ -81,7 +81,7 @@ pub async fn bulk_update_tasks(
         let result = sqlx::query(
             r#"
             UPDATE tasks SET milestone_id = NULL, updated_at = now()
-            WHERE id = ANY($1) AND board_id = $2 AND deleted_at IS NULL
+            WHERE id = ANY($1) AND project_id = $2 AND deleted_at IS NULL
             "#,
         )
         .bind(&input.task_ids)
@@ -93,7 +93,7 @@ pub async fn bulk_update_tasks(
         let result = sqlx::query(
             r#"
             UPDATE tasks SET milestone_id = $1, updated_at = now()
-            WHERE id = ANY($2) AND board_id = $3 AND deleted_at IS NULL
+            WHERE id = ANY($2) AND project_id = $3 AND deleted_at IS NULL
             "#,
         )
         .bind(milestone_id)
@@ -104,12 +104,12 @@ pub async fn bulk_update_tasks(
         updated = result.rows_affected();
     }
 
-    // Update group if specified
-    if input.clear_group == Some(true) {
+    // Update task_list if specified
+    if input.clear_task_list == Some(true) {
         let result = sqlx::query(
             r#"
-            UPDATE tasks SET group_id = NULL, updated_at = now()
-            WHERE id = ANY($1) AND board_id = $2 AND deleted_at IS NULL
+            UPDATE tasks SET task_list_id = NULL, updated_at = now()
+            WHERE id = ANY($1) AND project_id = $2 AND deleted_at IS NULL
             "#,
         )
         .bind(&input.task_ids)
@@ -117,14 +117,14 @@ pub async fn bulk_update_tasks(
         .execute(pool)
         .await?;
         updated = result.rows_affected();
-    } else if let Some(group_id) = input.group_id {
+    } else if let Some(task_list_id) = input.task_list_id {
         let result = sqlx::query(
             r#"
-            UPDATE tasks SET group_id = $1, updated_at = now()
-            WHERE id = ANY($2) AND board_id = $3 AND deleted_at IS NULL
+            UPDATE tasks SET task_list_id = $1, updated_at = now()
+            WHERE id = ANY($2) AND project_id = $3 AND deleted_at IS NULL
             "#,
         )
-        .bind(group_id)
+        .bind(task_list_id)
         .bind(&input.task_ids)
         .bind(board_id)
         .execute(pool)
@@ -143,7 +143,7 @@ pub async fn bulk_delete_tasks(
     task_ids: &[Uuid],
 ) -> std::result::Result<u64, TaskQueryError> {
     let is_member = sqlx::query_scalar::<_, bool>(
-        "SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)",
+        "SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)",
     )
     .bind(board_id)
     .bind(user_id)
@@ -151,13 +151,13 @@ pub async fn bulk_delete_tasks(
     .await?;
 
     if !is_member {
-        return Err(TaskQueryError::NotBoardMember);
+        return Err(TaskQueryError::NotProjectMember);
     }
 
     let result = sqlx::query(
         r#"
         UPDATE tasks SET deleted_at = now(), updated_at = now()
-        WHERE id = ANY($1) AND board_id = $2 AND deleted_at IS NULL
+        WHERE id = ANY($1) AND project_id = $2 AND deleted_at IS NULL
         "#,
     )
     .bind(task_ids)

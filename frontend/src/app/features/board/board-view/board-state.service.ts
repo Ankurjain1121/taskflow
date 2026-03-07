@@ -172,7 +172,10 @@ export class BoardStateService {
     for (const [columnId, tasks] of Object.entries(state)) {
       result[columnId] = this.filterService
         .filterTasks(tasks, f)
-        .filter((t) => !t.group_id || !collapsed.has(t.group_id));
+        .filter((t) => {
+          const listId = t.task_list_id ?? t.group_id;
+          return !listId || !collapsed.has(listId);
+        });
     }
 
     return result;
@@ -248,27 +251,30 @@ export class BoardStateService {
     this.boardService.getBoardFull(boardId).subscribe({
       next: (response: BoardFullResponse) => {
         this.board.set(response.board);
-        this.columns.set(
-          [...response.board.columns].sort((a, b) =>
-            a.position.localeCompare(b.position),
-          ),
-        );
+        const cols = (
+          (response.board.columns ?? response.statuses ?? []) as Column[]
+        ).sort((a, b) => a.position.localeCompare(b.position));
+        this.columns.set(cols);
 
         const tasksByColumn: Record<string, Task[]> = {};
-        for (const col of response.board.columns) {
+        for (const col of cols) {
           tasksByColumn[col.id] = [];
         }
         for (const t of response.tasks) {
+          const bucketKey = t.status_id ?? t.column_id ?? '';
           const task: Task = {
             id: t.id,
-            column_id: t.column_id,
-            group_id: t.group_id,
+            project_id: (t as unknown as { project_id?: string }).project_id ?? '',
+            status_id: t.status_id ?? null,
+            status_name: t.status_name ?? null,
+            status_color: t.status_color ?? null,
+            status_type: t.status_type ?? null,
+            task_list_id: t.task_list_id ?? null,
             title: t.title,
             description: t.description,
             priority: t.priority as Task['priority'],
             position: t.position,
             milestone_id: t.milestone_id,
-            assignee_id: null,
             due_date: t.due_date,
             created_by: t.created_by_id,
             created_at: t.created_at,
@@ -279,12 +285,11 @@ export class BoardStateService {
             subtask_total: t.subtask_total,
             has_running_timer: t.has_running_timer,
             comment_count: t.comment_count,
-            column_entered_at: t.column_entered_at,
           };
-          if (!tasksByColumn[t.column_id]) {
-            tasksByColumn[t.column_id] = [];
+          if (!tasksByColumn[bucketKey]) {
+            tasksByColumn[bucketKey] = [];
           }
-          tasksByColumn[t.column_id].push(task);
+          tasksByColumn[bucketKey].push(task);
         }
         for (const colId of Object.keys(tasksByColumn)) {
           tasksByColumn[colId].sort((a, b) =>
@@ -332,14 +337,17 @@ export class BoardStateService {
           for (const t of response.tasks) {
             const task: Task = {
               id: t.id,
-              column_id: t.column_id,
-              group_id: t.group_id,
+              project_id: (t as unknown as { project_id?: string }).project_id ?? '',
+              status_id: t.status_id ?? null,
+              status_name: t.status_name ?? null,
+              status_color: t.status_color ?? null,
+              status_type: t.status_type ?? null,
+              task_list_id: t.task_list_id ?? null,
               title: t.title,
               description: t.description,
               priority: t.priority as Task['priority'],
               position: t.position,
               milestone_id: t.milestone_id,
-              assignee_id: null,
               due_date: t.due_date,
               created_by: t.created_by_id,
               created_at: t.created_at,
@@ -350,12 +358,12 @@ export class BoardStateService {
               subtask_total: t.subtask_total,
               has_running_timer: t.has_running_timer,
               comment_count: t.comment_count,
-              column_entered_at: t.column_entered_at,
             };
-            if (!newState[t.column_id]) {
-              newState[t.column_id] = [];
+            const bucketKey = t.status_id ?? t.column_id ?? '';
+            if (!newState[bucketKey]) {
+              newState[bucketKey] = [];
             }
-            newState[t.column_id] = [...newState[t.column_id], task];
+            newState[bucketKey] = [...newState[bucketKey], task];
           }
           for (const colId of Object.keys(newState)) {
             newState[colId] = [...newState[colId]].sort((a, b) =>

@@ -72,7 +72,7 @@ async fn get_task_board_id_internal(
 ) -> Result<Uuid, CustomFieldQueryError> {
     let board_id = sqlx::query_scalar::<_, Uuid>(
         r#"
-        SELECT board_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
+        SELECT project_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
         "#,
     )
     .bind(task_id)
@@ -97,13 +97,13 @@ pub async fn list_board_custom_fields(
     let fields = sqlx::query_as::<_, BoardCustomField>(
         r#"
         SELECT
-            id, board_id, name,
+            id, project_id, name,
             field_type,
             options, is_required, position,
             tenant_id, created_by_id,
             created_at, updated_at
-        FROM board_custom_fields
-        WHERE board_id = $1
+        FROM project_custom_fields
+        WHERE project_id = $1
         ORDER BY position ASC, created_at ASC
         "#,
     )
@@ -127,7 +127,7 @@ pub async fn create_custom_field(
     // Get next position
     let next_pos = sqlx::query_scalar::<_, Option<i32>>(
         r#"
-        SELECT MAX(position) FROM board_custom_fields WHERE board_id = $1
+        SELECT MAX(position) FROM project_custom_fields WHERE project_id = $1
         "#,
     )
     .bind(input.board_id)
@@ -141,10 +141,10 @@ pub async fn create_custom_field(
 
     let field = sqlx::query_as::<_, BoardCustomField>(
         r#"
-        INSERT INTO board_custom_fields (id, board_id, name, field_type, options, is_required, position, tenant_id, created_by_id, created_at, updated_at)
+        INSERT INTO project_custom_fields (id, project_id, name, field_type, options, is_required, position, tenant_id, created_by_id, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING
-            id, board_id, name,
+            id, project_id, name,
             field_type,
             options, is_required, position,
             tenant_id, created_by_id,
@@ -179,7 +179,7 @@ pub async fn update_custom_field(
     // Get the field to find its board_id
     let existing = sqlx::query_scalar::<_, Uuid>(
         r#"
-        SELECT board_id FROM board_custom_fields WHERE id = $1
+        SELECT project_id FROM project_custom_fields WHERE id = $1
         "#,
     )
     .bind(field_id)
@@ -193,7 +193,7 @@ pub async fn update_custom_field(
 
     let field = sqlx::query_as::<_, BoardCustomField>(
         r#"
-        UPDATE board_custom_fields
+        UPDATE project_custom_fields
         SET
             name = COALESCE($2, name),
             options = COALESCE($3, options),
@@ -202,7 +202,7 @@ pub async fn update_custom_field(
             updated_at = NOW()
         WHERE id = $1
         RETURNING
-            id, board_id, name,
+            id, project_id, name,
             field_type,
             options, is_required, position,
             tenant_id, created_by_id,
@@ -231,7 +231,7 @@ pub async fn delete_custom_field(
     // Get the field to find its board_id
     let board_id = sqlx::query_scalar::<_, Uuid>(
         r#"
-        SELECT board_id FROM board_custom_fields WHERE id = $1
+        SELECT project_id FROM project_custom_fields WHERE id = $1
         "#,
     )
     .bind(field_id)
@@ -256,7 +256,7 @@ pub async fn delete_custom_field(
     // Delete the field itself
     let rows_affected = sqlx::query(
         r#"
-        DELETE FROM board_custom_fields WHERE id = $1
+        DELETE FROM project_custom_fields WHERE id = $1
         "#,
     )
     .bind(field_id)
@@ -298,9 +298,9 @@ pub async fn get_task_custom_field_values(
             v.value_number,
             v.value_date,
             v.value_bool
-        FROM board_custom_fields f
+        FROM project_custom_fields f
         LEFT JOIN task_custom_field_values v ON v.field_id = f.id AND v.task_id = $1
-        WHERE f.board_id = $2
+        WHERE f.project_id = $2
         ORDER BY f.position ASC, f.created_at ASC
         "#,
     )
@@ -367,9 +367,9 @@ mod tests {
     const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
 
     async fn test_pool() -> PgPool {
-        PgPool::connect(
-            "postgresql://taskflow:REDACTED_PG_PASSWORD@localhost:5433/taskflow",
-        )
+        PgPool::connect(&std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgresql://taskflow_app:dev_password@10.0.2.1:5432/taskflow".to_string()
+        }))
         .await
         .expect("Failed to connect to test database")
     }
@@ -398,8 +398,8 @@ mod tests {
         let bwc = boards::create_board(pool, "CF Test Board", None, ws_id, tenant_id, user_id)
             .await
             .expect("create_board");
-        let first_col_id = bwc.columns[0].id;
-        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+        let first_list_id = bwc.task_lists[0].id;
+        (tenant_id, user_id, ws_id, bwc.project.id, first_list_id)
     }
 
     async fn setup_full_with_task(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
@@ -411,8 +411,8 @@ mod tests {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            column_id: col_id,
-            group_id: None,
+            status_id: None,
+            task_list_id: Some(col_id),
             milestone_id: None,
             assignee_ids: None,
             label_ids: None,
@@ -444,7 +444,7 @@ mod tests {
             .expect("create_custom_field");
 
         assert_eq!(field.name, "Priority Level");
-        assert_eq!(field.board_id, board_id);
+        assert_eq!(field.project_id, board_id);
         assert_eq!(field.field_type, CustomFieldType::Text);
         assert!(!field.is_required);
         assert_eq!(field.tenant_id, tenant_id);

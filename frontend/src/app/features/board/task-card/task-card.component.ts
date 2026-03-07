@@ -1128,9 +1128,8 @@ export class TaskCardComponent {
   cardFields = input<CardFields>(DEFAULT_CARD_FIELDS);
 
   readonly daysInColumn = computed(() => {
-    const entered = this.task().column_entered_at;
-    if (!entered) return 0;
-    return Math.floor((Date.now() - new Date(entered).getTime()) / 86_400_000);
+    // column_entered_at was removed in schema refactor; always return 0
+    return 0;
   });
 
   readonly dotsArray = computed(() =>

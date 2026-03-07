@@ -127,7 +127,7 @@ mod tests {
                 id: Uuid::new_v4(),
                 title: "Test Task".to_string(),
                 priority: TaskPriority::Medium,
-                column_id: Uuid::new_v4(),
+                status_id: Some(Uuid::new_v4()),
                 position: "a0".to_string(),
                 assignee_ids: vec![],
                 watcher_ids: vec![],

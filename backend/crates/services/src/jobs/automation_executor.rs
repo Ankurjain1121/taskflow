@@ -65,10 +65,10 @@ pub struct TriggerContext {
     pub board_id: Uuid,
     pub tenant_id: Uuid,
     pub user_id: Uuid,
-    /// Previous column ID (for TaskMoved trigger)
-    pub previous_column_id: Option<Uuid>,
-    /// New column ID (for TaskMoved trigger)
-    pub new_column_id: Option<Uuid>,
+    /// Previous status ID (for TaskMoved trigger)
+    pub previous_status_id: Option<Uuid>,
+    /// New status ID (for TaskMoved trigger)
+    pub new_status_id: Option<Uuid>,
     /// Priority value (for TaskPriorityChanged)
     pub priority: Option<String>,
     /// User ID of the member who joined (for MemberJoined trigger)
@@ -191,7 +191,7 @@ async fn record_circuit_breaker_error(
 
         // Deactivate all automations for this board
         let deactivate_result = sqlx::query(
-            "UPDATE automation_rules SET is_active = false WHERE board_id = $1 AND is_active = true",
+            "UPDATE automation_rules SET is_active = false WHERE project_id = $1 AND is_active = true",
         )
         .bind(board_id)
         .execute(pool)
@@ -228,11 +228,11 @@ async fn create_circuit_breaker_notification(
     pool: &PgPool,
     board_id: Uuid,
 ) -> Result<(), sqlx::Error> {
-    // Get board owner(s) - members with 'owner' role
+    // Get project owner(s) - members with 'owner' role
     let owner_ids: Vec<Uuid> = sqlx::query_scalar(
         r#"
-        SELECT user_id FROM board_members
-        WHERE board_id = $1 AND role = 'owner'
+        SELECT user_id FROM project_members
+        WHERE project_id = $1 AND role = 'owner'
         "#,
     )
     .bind(board_id)
@@ -269,8 +269,8 @@ pub async fn resolve_column_by_name(
 ) -> Result<Uuid, AutomationExecutorError> {
     let column_id: Option<Uuid> = sqlx::query_scalar(
         r#"
-        SELECT id FROM board_columns
-        WHERE board_id = $1 AND LOWER(name) = LOWER($2)
+        SELECT id FROM project_statuses
+        WHERE project_id = $1 AND LOWER(name) = LOWER($2)
         LIMIT 1
         "#,
     )
@@ -281,7 +281,7 @@ pub async fn resolve_column_by_name(
 
     column_id.ok_or_else(|| {
         AutomationExecutorError::NameResolutionFailed(format!(
-            "Column '{}' not found on board {}",
+            "Status '{}' not found on project {}",
             column_name, board_id
         ))
     })
@@ -296,7 +296,7 @@ pub async fn resolve_label_by_name(
     let label_id: Option<Uuid> = sqlx::query_scalar(
         r#"
         SELECT l.id FROM labels l
-        JOIN boards b ON b.workspace_id = l.workspace_id
+        JOIN projects b ON b.workspace_id = l.workspace_id
         WHERE b.id = $1 AND LOWER(l.name) = LOWER($2)
         LIMIT 1
         "#,
@@ -514,7 +514,7 @@ fn matches_trigger_config(config: &serde_json::Value, context: &TriggerContext) 
     // Check source_column_id (TaskMoved)
     if let Some(source_col) = obj.get("source_column_id").and_then(|v| v.as_str()) {
         if let Ok(expected) = source_col.parse::<Uuid>() {
-            if let Some(prev) = context.previous_column_id {
+            if let Some(prev) = context.previous_status_id {
                 if prev != expected {
                     return false;
                 }
@@ -525,7 +525,7 @@ fn matches_trigger_config(config: &serde_json::Value, context: &TriggerContext) 
     // Check target_column_id (TaskMoved)
     if let Some(target_col) = obj.get("target_column_id").and_then(|v| v.as_str()) {
         if let Ok(expected) = target_col.parse::<Uuid>() {
-            if let Some(new) = context.new_column_id {
+            if let Some(new) = context.new_status_id {
                 if new != expected {
                     return false;
                 }
@@ -600,9 +600,7 @@ async fn execute_move_task(
 
     sqlx::query(
         r#"
-        UPDATE tasks SET column_id = $2, position = $3,
-            column_entered_at = CASE WHEN column_id != $2 THEN NOW() ELSE column_entered_at END,
-            updated_at = NOW()
+        UPDATE tasks SET status_id = $2, position = $3, updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
         "#,
     )
@@ -1051,8 +1049,8 @@ mod tests {
             board_id: Uuid::new_v4(),
             tenant_id: Uuid::new_v4(),
             user_id: Uuid::new_v4(),
-            previous_column_id: None,
-            new_column_id: None,
+            previous_status_id: None,
+            new_status_id: None,
             priority: None,
             member_user_id: None,
         }
@@ -1152,7 +1150,7 @@ mod tests {
         let col_id = Uuid::new_v4();
         let config = json!({"source_column_id": col_id.to_string()});
         let mut ctx = make_context();
-        ctx.previous_column_id = Some(col_id);
+        ctx.previous_status_id = Some(col_id);
         assert!(matches_trigger_config(&config, &ctx));
     }
 
@@ -1162,7 +1160,7 @@ mod tests {
         let other_col = Uuid::new_v4();
         let config = json!({"source_column_id": col_id.to_string()});
         let mut ctx = make_context();
-        ctx.previous_column_id = Some(other_col);
+        ctx.previous_status_id = Some(other_col);
         assert!(!matches_trigger_config(&config, &ctx));
     }
 
@@ -1171,7 +1169,7 @@ mod tests {
         let col_id = Uuid::new_v4();
         let config = json!({"target_column_id": col_id.to_string()});
         let mut ctx = make_context();
-        ctx.new_column_id = Some(col_id);
+        ctx.new_status_id = Some(col_id);
         assert!(matches_trigger_config(&config, &ctx));
     }
 
@@ -1181,7 +1179,7 @@ mod tests {
         let other_col = Uuid::new_v4();
         let config = json!({"target_column_id": col_id.to_string()});
         let mut ctx = make_context();
-        ctx.new_column_id = Some(other_col);
+        ctx.new_status_id = Some(other_col);
         assert!(!matches_trigger_config(&config, &ctx));
     }
 
@@ -1210,8 +1208,8 @@ mod tests {
             "target_column_id": target.to_string()
         });
         let mut ctx = make_context();
-        ctx.previous_column_id = Some(source);
-        ctx.new_column_id = Some(target);
+        ctx.previous_status_id = Some(source);
+        ctx.new_status_id = Some(target);
         assert!(matches_trigger_config(&config, &ctx));
     }
 
@@ -1224,8 +1222,8 @@ mod tests {
             "target_column_id": target.to_string()
         });
         let mut ctx = make_context();
-        ctx.previous_column_id = Some(source);
-        ctx.new_column_id = Some(Uuid::new_v4()); // wrong target
+        ctx.previous_status_id = Some(source);
+        ctx.new_status_id = Some(Uuid::new_v4()); // wrong target
         assert!(!matches_trigger_config(&config, &ctx));
     }
 

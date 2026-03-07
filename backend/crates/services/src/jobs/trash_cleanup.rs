@@ -89,7 +89,7 @@ pub async fn cleanup_expired_trash(
     loop {
         let board_ids: Vec<Uuid> = sqlx::query_scalar!(
             r#"
-            SELECT id FROM boards
+            SELECT id FROM projects
             WHERE deleted_at IS NOT NULL AND deleted_at < $1
             LIMIT $2
             "#,

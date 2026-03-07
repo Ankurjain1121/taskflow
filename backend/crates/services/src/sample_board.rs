@@ -3,11 +3,10 @@
 //! Creates a use-case-specific sample board with columns, tasks, subtasks,
 //! labels, and due dates to help new users see TaskFlow in action.
 
-use chrono::{Duration, Utc};
+#![allow(unused_imports, dead_code)]
+
 use sqlx::PgPool;
 use uuid::Uuid;
-
-use super::sample_data::get_template;
 
 /// Error type for sample board generation
 #[derive(Debug, thiserror::Error)]
@@ -20,24 +19,22 @@ pub enum SampleBoardError {
 // Board generation
 // ============================================================================
 
-/// Generate a sample board based on the selected use case.
+/// Generate a sample project based on the selected use case.
 ///
-/// Creates in a single transaction:
-/// - Board with `is_sample = true`
-/// - Use-case-specific columns
-/// - 8 tasks with varying priorities, labels, subtasks, and due dates
-/// - 3 labels specific to the use case
-/// - Creator as board member with "editor" role
+/// NOTE: This function needs to be updated for the new projects architecture
+/// (project_statuses, task_lists, status_id). Currently returns an error.
+/// Use the onboarding flow without sample data until this is migrated.
 ///
 /// # Arguments
 /// * `pool` - Database connection pool
-/// * `workspace_id` - The workspace to create the board in
-/// * `created_by_id` - The user creating the board
+/// * `workspace_id` - The workspace to create the project in
+/// * `created_by_id` - The user creating the project
 /// * `tenant_id` - The tenant ID
 /// * `use_case` - One of "software", "marketing", "personal", "design"
 ///
 /// # Returns
-/// The UUID of the created board
+/// The UUID of the created project
+#[allow(unused_variables)]
 pub async fn generate_sample_board(
     pool: &PgPool,
     workspace_id: Uuid,
@@ -45,151 +42,9 @@ pub async fn generate_sample_board(
     tenant_id: Uuid,
     use_case: &str,
 ) -> Result<Uuid, SampleBoardError> {
-    let template = get_template(use_case);
-    let mut tx = pool.begin().await?;
-
-    // 1. Create the board with is_sample = true
-    let board_id = Uuid::new_v4();
-    sqlx::query(
-        r#"
-        INSERT INTO boards (id, name, description, workspace_id, tenant_id, created_by_id, is_sample)
-        VALUES ($1, $2, $3, $4, $5, $6, true)
-        "#,
-    )
-    .bind(board_id)
-    .bind(template.board_name)
-    .bind(template.board_description)
-    .bind(workspace_id)
-    .bind(tenant_id)
-    .bind(created_by_id)
-    .execute(&mut *tx)
-    .await?;
-
-    // 2. Create columns
-    let mut column_ids = Vec::with_capacity(template.columns.len());
-    for (i, col) in template.columns.iter().enumerate() {
-        let col_id = Uuid::new_v4();
-        let position = format!("a{}", i);
-        let status_mapping: Option<serde_json::Value> = if col.is_done {
-            Some(serde_json::json!({"done": true}))
-        } else {
-            None
-        };
-        sqlx::query(
-            r#"
-            INSERT INTO board_columns (id, name, board_id, position, color, status_mapping)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            "#,
-        )
-        .bind(col_id)
-        .bind(col.name)
-        .bind(board_id)
-        .bind(&position)
-        .bind(col.color)
-        .bind(&status_mapping)
-        .execute(&mut *tx)
-        .await?;
-        column_ids.push(col_id);
-    }
-
-    // 3. Add creator as board member with editor role
-    sqlx::query(
-        r#"
-        INSERT INTO board_members (id, board_id, user_id, role)
-        VALUES ($1, $2, $3, 'editor')
-        "#,
-    )
-    .bind(Uuid::new_v4())
-    .bind(board_id)
-    .bind(created_by_id)
-    .execute(&mut *tx)
-    .await?;
-
-    // 4. Create labels
-    let mut label_ids = Vec::with_capacity(template.labels.len());
-    for lbl in template.labels {
-        let label_id = Uuid::new_v4();
-        sqlx::query(
-            r#"
-            INSERT INTO labels (id, name, color, board_id, workspace_id)
-            VALUES ($1, $2, $3, $4, $5)
-            "#,
-        )
-        .bind(label_id)
-        .bind(lbl.name)
-        .bind(lbl.color)
-        .bind(board_id)
-        .bind(workspace_id)
-        .execute(&mut *tx)
-        .await?;
-        label_ids.push(label_id);
-    }
-
-    // 5. Create tasks with subtasks, due dates, and labels
-    let now = Utc::now();
-    for (task_idx, task_def) in template.tasks.iter().enumerate() {
-        let task_id = Uuid::new_v4();
-        let position = format!("a{}", task_idx);
-        let due_date = task_def
-            .due_day_offset
-            .map(|days| now + Duration::days(days));
-
-        sqlx::query(
-            r#"
-            INSERT INTO tasks (id, title, board_id, column_id, priority, position, due_date, tenant_id, created_by_id)
-            VALUES ($1, $2, $3, $4, $5::task_priority, $6, $7, $8, $9)
-            "#,
-        )
-        .bind(task_id)
-        .bind(task_def.title)
-        .bind(board_id)
-        .bind(column_ids[task_def.column_index])
-        .bind(task_def.priority)
-        .bind(&position)
-        .bind(due_date)
-        .bind(tenant_id)
-        .bind(created_by_id)
-        .execute(&mut *tx)
-        .await?;
-
-        // Attach first label to all tasks
-        if !label_ids.is_empty() {
-            let label_id = label_ids[task_def.label_index.min(label_ids.len() - 1)];
-            sqlx::query(
-                r#"
-                INSERT INTO task_labels (id, task_id, label_id)
-                VALUES ($1, $2, $3)
-                "#,
-            )
-            .bind(Uuid::new_v4())
-            .bind(task_id)
-            .bind(label_id)
-            .execute(&mut *tx)
-            .await?;
-        }
-
-        // Create subtasks
-        for (sub_idx, sub_title) in task_def.subtasks.iter().enumerate() {
-            let sub_position = format!("a{}", sub_idx);
-            sqlx::query(
-                r#"
-                INSERT INTO subtasks (id, task_id, title, is_completed, position, created_by_id)
-                VALUES ($1, $2, $3, false, $4, $5)
-                "#,
-            )
-            .bind(Uuid::new_v4())
-            .bind(task_id)
-            .bind(*sub_title)
-            .bind(&sub_position)
-            .bind(created_by_id)
-            .execute(&mut *tx)
-            .await?;
-        }
-    }
-
-    tx.commit().await?;
-
-    Ok(board_id)
+    // TODO: Rewrite for new schema (project_statuses, task_lists, status_id).
+    // board_columns and column_id were dropped in migration 20260316000001.
+    Err(SampleBoardError::Database(sqlx::Error::RowNotFound))
 }
 
 #[cfg(test)]

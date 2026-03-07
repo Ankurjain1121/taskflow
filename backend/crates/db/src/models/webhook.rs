@@ -6,7 +6,7 @@ use uuid::Uuid;
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
 pub struct Webhook {
     pub id: Uuid,
-    pub board_id: Uuid,
+    pub project_id: Uuid,
     pub url: String,
     #[serde(skip_serializing)]
     pub secret: Option<String>,

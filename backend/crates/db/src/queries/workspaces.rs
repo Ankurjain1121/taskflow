@@ -265,13 +265,13 @@ pub async fn remove_workspace_member(
 ) -> Result<bool, sqlx::Error> {
     let mut tx = pool.begin().await?;
 
-    // Remove from board_members for all boards in this workspace
+    // Remove from project_members for all projects in this workspace
     sqlx::query(
         r#"
-        DELETE FROM board_members
+        DELETE FROM project_members
         WHERE user_id = $1
-          AND board_id IN (
-              SELECT id FROM boards
+          AND project_id IN (
+              SELECT id FROM projects
               WHERE workspace_id = $2 AND deleted_at IS NULL
           )
         "#,

@@ -69,7 +69,7 @@ export class BoardDragDropHandler {
 
     this.taskService
       .moveTask(event.task.id, {
-        column_id: event.targetColumnId,
+        status_id: event.targetColumnId,
         position: newPosition,
       })
       .subscribe({
@@ -283,7 +283,7 @@ export class BoardDragDropHandler {
       targetColumnId: targetColId,
       previousIndex: 0,
       currentIndex: 0,
-      previousColumnId: sourceColId ?? task.column_id,
+      previousColumnId: sourceColId ?? task.status_id ?? '',
     });
   }
 

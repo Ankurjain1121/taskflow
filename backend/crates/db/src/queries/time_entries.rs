@@ -72,7 +72,7 @@ pub struct TimeEntryWithTask {
     pub ended_at: Option<DateTime<Utc>>,
     pub duration_minutes: Option<i32>,
     pub is_running: bool,
-    pub board_id: Uuid,
+    pub project_id: Uuid,
     pub tenant_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -85,9 +85,9 @@ pub async fn list_task_time_entries(
     task_id: Uuid,
     user_id: Uuid,
 ) -> Result<Vec<TimeEntry>, TimeEntryQueryError> {
-    // Verify board membership via task's board_id
+    // Verify board membership via task's project_id
     let board_id = sqlx::query_scalar::<_, Uuid>(
-        r#"SELECT board_id FROM tasks WHERE id = $1 AND deleted_at IS NULL"#,
+        r#"SELECT project_id FROM tasks WHERE id = $1 AND deleted_at IS NULL"#,
     )
     .bind(task_id)
     .fetch_optional(pool)
@@ -95,7 +95,7 @@ pub async fn list_task_time_entries(
     .ok_or(TimeEntryQueryError::NotFound)?;
 
     let is_member = sqlx::query_scalar::<_, bool>(
-        r#"SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)"#,
+        r#"SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)"#,
     )
     .bind(board_id)
     .bind(user_id)
@@ -110,7 +110,7 @@ pub async fn list_task_time_entries(
         r#"
         SELECT
             id, task_id, user_id, description, started_at, ended_at,
-            duration_minutes, is_running, board_id, tenant_id,
+            duration_minutes, is_running, project_id, tenant_id,
             created_at, updated_at
         FROM time_entries
         WHERE task_id = $1
@@ -131,7 +131,7 @@ pub async fn start_timer(
 ) -> Result<TimeEntry, TimeEntryQueryError> {
     // Verify board membership
     let is_member = sqlx::query_scalar::<_, bool>(
-        r#"SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)"#,
+        r#"SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)"#,
     )
     .bind(input.board_id)
     .bind(input.user_id)
@@ -162,11 +162,11 @@ pub async fn start_timer(
     let id = Uuid::new_v4();
     let entry = sqlx::query_as::<_, TimeEntry>(
         r#"
-        INSERT INTO time_entries (id, task_id, user_id, description, started_at, is_running, board_id, tenant_id)
+        INSERT INTO time_entries (id, task_id, user_id, description, started_at, is_running, project_id, tenant_id)
         VALUES ($1, $2, $3, $4, NOW(), true, $5, $6)
         RETURNING
             id, task_id, user_id, description, started_at, ended_at,
-            duration_minutes, is_running, board_id, tenant_id,
+            duration_minutes, is_running, project_id, tenant_id,
             created_at, updated_at
         "#,
     )
@@ -211,7 +211,7 @@ pub async fn stop_timer(
         WHERE id = $1 AND is_running = true
         RETURNING
             id, task_id, user_id, description, started_at, ended_at,
-            duration_minutes, is_running, board_id, tenant_id,
+            duration_minutes, is_running, project_id, tenant_id,
             created_at, updated_at
         "#,
     )
@@ -230,7 +230,7 @@ pub async fn create_manual_entry(
 ) -> Result<TimeEntry, TimeEntryQueryError> {
     // Verify board membership
     let is_member = sqlx::query_scalar::<_, bool>(
-        r#"SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)"#,
+        r#"SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)"#,
     )
     .bind(input.board_id)
     .bind(input.user_id)
@@ -244,11 +244,11 @@ pub async fn create_manual_entry(
     let id = Uuid::new_v4();
     let entry = sqlx::query_as::<_, TimeEntry>(
         r#"
-        INSERT INTO time_entries (id, task_id, user_id, description, started_at, ended_at, duration_minutes, is_running, board_id, tenant_id)
+        INSERT INTO time_entries (id, task_id, user_id, description, started_at, ended_at, duration_minutes, is_running, project_id, tenant_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8, $9)
         RETURNING
             id, task_id, user_id, description, started_at, ended_at,
-            duration_minutes, is_running, board_id, tenant_id,
+            duration_minutes, is_running, project_id, tenant_id,
             created_at, updated_at
         "#,
     )
@@ -298,7 +298,7 @@ pub async fn update_entry(
         WHERE id = $1
         RETURNING
             id, task_id, user_id, description, started_at, ended_at,
-            duration_minutes, is_running, board_id, tenant_id,
+            duration_minutes, is_running, project_id, tenant_id,
             created_at, updated_at
         "#,
     )
@@ -353,7 +353,7 @@ pub async fn get_board_time_report(
 ) -> Result<Vec<TaskTimeReport>, TimeEntryQueryError> {
     // Verify board membership
     let is_member = sqlx::query_scalar::<_, bool>(
-        r#"SELECT EXISTS(SELECT 1 FROM board_members WHERE board_id = $1 AND user_id = $2)"#,
+        r#"SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)"#,
     )
     .bind(board_id)
     .bind(user_id)
@@ -373,7 +373,7 @@ pub async fn get_board_time_report(
             COUNT(te.id)::bigint as entries_count
         FROM tasks t
         LEFT JOIN time_entries te ON te.task_id = t.id
-        WHERE t.board_id = $1 AND t.deleted_at IS NULL
+        WHERE t.project_id = $1 AND t.deleted_at IS NULL
             AND (te.id IS NOT NULL)
         GROUP BY t.id, t.title
         ORDER BY total_minutes DESC
@@ -395,7 +395,7 @@ pub async fn get_running_timer(
         r#"
         SELECT
             te.id, te.task_id, te.user_id, te.description, te.started_at, te.ended_at,
-            te.duration_minutes, te.is_running, te.board_id, te.tenant_id,
+            te.duration_minutes, te.is_running, te.project_id, te.tenant_id,
             te.created_at, te.updated_at,
             t.title as task_title
         FROM time_entries te
@@ -426,11 +426,11 @@ mod tests {
     }
 
     async fn test_pool() -> PgPool {
-        PgPool::connect(
-            "postgresql://taskflow:REDACTED_PG_PASSWORD@localhost:5433/taskflow",
-        )
-        .await
-        .expect("Failed to connect to test database")
+        let url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgresql://taskflow@localhost:5433/taskflow".to_string());
+        PgPool::connect(&url)
+            .await
+            .expect("Failed to connect to test database")
     }
 
     async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
@@ -454,8 +454,8 @@ mod tests {
         let bwc = boards::create_board(pool, "TimeEntry Board", None, ws_id, tenant_id, user_id)
             .await
             .expect("create_board");
-        let first_col_id = bwc.columns[0].id;
-        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+        let first_list_id = bwc.task_lists[0].id;
+        (tenant_id, user_id, ws_id, bwc.project.id, first_list_id)
     }
 
     /// Setup full scenario with a task, returns (tenant_id, user_id, board_id, task_id)
@@ -468,8 +468,8 @@ mod tests {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            column_id: col_id,
-            group_id: None,
+            status_id: None,
+            task_list_id: Some(col_id),
             milestone_id: None,
             assignee_ids: None,
             label_ids: None,
@@ -503,7 +503,7 @@ mod tests {
         assert!(entry.is_running);
         assert!(entry.ended_at.is_none());
         assert_eq!(entry.description.as_deref(), Some("Working on it"));
-        assert_eq!(entry.board_id, board_id);
+        assert_eq!(entry.project_id, board_id);
         assert_eq!(entry.tenant_id, tenant_id);
     }
 

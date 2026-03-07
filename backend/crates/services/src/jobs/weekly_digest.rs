@@ -191,13 +191,13 @@ async fn get_user_stats(
         SELECT COUNT(DISTINCT al.entity_id) as "count!"
         FROM activity_log al
         JOIN tasks t ON t.id = al.entity_id
-        JOIN board_columns bc ON bc.id = t.column_id
+        LEFT JOIN project_statuses ps ON ps.id = t.status_id
         WHERE al.user_id = $1
           AND al.entity_type = 'task'
           AND al.action = 'moved'
           AND al.created_at >= $2
           AND al.created_at <= $3
-          AND (bc.status_mapping->>'done')::boolean = true
+          AND ps.type = 'done'
         "#,
         user_id,
         week_ago,
@@ -233,9 +233,9 @@ async fn get_user_stats(
           AND t.due_date < $2
           AND t.deleted_at IS NULL
           AND NOT EXISTS (
-              SELECT 1 FROM board_columns bc
-              WHERE bc.id = t.column_id
-              AND (bc.status_mapping->>'done')::boolean = true
+              SELECT 1 FROM project_statuses ps
+              WHERE ps.id = t.status_id
+              AND ps.type = 'done'
           )
         "#,
         user_id,
@@ -255,9 +255,9 @@ async fn get_user_stats(
           AND t.due_date <= $3
           AND t.deleted_at IS NULL
           AND NOT EXISTS (
-              SELECT 1 FROM board_columns bc
-              WHERE bc.id = t.column_id
-              AND (bc.status_mapping->>'done')::boolean = true
+              SELECT 1 FROM project_statuses ps
+              WHERE ps.id = t.status_id
+              AND ps.type = 'done'
           )
         "#,
         user_id,

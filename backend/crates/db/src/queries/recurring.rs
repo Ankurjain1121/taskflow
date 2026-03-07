@@ -67,7 +67,7 @@ fn build_calc_config(
         is_active: true,
         max_occurrences: None,
         occurrences_created: 0,
-        board_id: Uuid::nil(),
+        project_id: Uuid::nil(),
         tenant_id: Uuid::nil(),
         created_by_id: Uuid::nil(),
         created_at: Utc::now(),
@@ -88,7 +88,7 @@ async fn get_task_board_id_internal(
 ) -> Result<Uuid, RecurringQueryError> {
     let board_id = sqlx::query_scalar::<_, Uuid>(
         r#"
-        SELECT board_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
+        SELECT project_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
         "#,
     )
     .bind(task_id)
@@ -235,7 +235,7 @@ pub async fn get_config_for_task(
             is_active,
             max_occurrences,
             occurrences_created,
-            board_id,
+            project_id,
             tenant_id,
             created_by_id,
             created_at,
@@ -292,7 +292,7 @@ pub async fn create_config(
         INSERT INTO recurring_task_configs (
             id, task_id, pattern, cron_expression, interval_days,
             next_run_at, is_active, max_occurrences, occurrences_created,
-            board_id, tenant_id, created_by_id,
+            project_id, tenant_id, created_by_id,
             end_date, skip_weekends, days_of_week, day_of_month, creation_mode,
             created_at, updated_at, position_id
         )
@@ -308,7 +308,7 @@ pub async fn create_config(
             is_active,
             max_occurrences,
             occurrences_created,
-            board_id,
+            project_id,
             tenant_id,
             created_by_id,
             created_at,
@@ -365,7 +365,7 @@ pub async fn update_config(
             is_active,
             max_occurrences,
             occurrences_created,
-            board_id,
+            project_id,
             tenant_id,
             created_by_id,
             created_at,
@@ -386,7 +386,7 @@ pub async fn update_config(
     .ok_or(RecurringQueryError::NotFound)?;
 
     // Verify board membership
-    if !verify_board_membership_internal(pool, existing.board_id, user_id).await? {
+    if !verify_board_membership_internal(pool, existing.project_id, user_id).await? {
         return Err(RecurringQueryError::NotBoardMember);
     }
 
@@ -438,7 +438,7 @@ pub async fn update_config(
             is_active,
             max_occurrences,
             occurrences_created,
-            board_id,
+            project_id,
             tenant_id,
             created_by_id,
             created_at,
@@ -489,7 +489,7 @@ pub async fn delete_config(
             is_active,
             max_occurrences,
             occurrences_created,
-            board_id,
+            project_id,
             tenant_id,
             created_by_id,
             created_at,
@@ -510,7 +510,7 @@ pub async fn delete_config(
     .ok_or(RecurringQueryError::NotFound)?;
 
     // Verify board membership
-    if !verify_board_membership_internal(pool, existing.board_id, user_id).await? {
+    if !verify_board_membership_internal(pool, existing.project_id, user_id).await? {
         return Err(RecurringQueryError::NotBoardMember);
     }
 
@@ -569,8 +569,8 @@ mod tests {
         let bwc = boards::create_board(pool, "Recurring Board", None, ws_id, tenant_id, user_id)
             .await
             .expect("create_board");
-        let first_col_id = bwc.columns[0].id;
-        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+        let first_col_id = bwc.task_lists[0].id;
+        (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
     }
 
     async fn setup_task(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
@@ -582,8 +582,8 @@ mod tests {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            column_id: col_id,
-            group_id: None,
+            status_id: None,
+            task_list_id: Some(col_id),
             milestone_id: None,
             assignee_ids: None,
             label_ids: None,
@@ -767,10 +767,10 @@ mod tests {
         let new_task = sqlx::query_as::<_, crate::models::Task>(
             r#"
             SELECT id, title, description, priority,
-                   due_date, start_date, estimated_hours, board_id, column_id,
-                   group_id, position, milestone_id, task_number, eisenhower_urgency,
+                   due_date, start_date, estimated_hours, project_id, status_id,
+                   task_list_id, position, milestone_id, task_number, eisenhower_urgency,
                    eisenhower_importance, tenant_id, created_by_id, deleted_at,
-                   column_entered_at, created_at, updated_at, version, parent_task_id, depth
+                   created_at, updated_at, version, parent_task_id, depth
             FROM tasks WHERE id = $1
             "#,
         )

@@ -15,7 +15,7 @@ pub struct TaskListItem {
     pub description: Option<String>,
     pub priority: TaskPriority,
     pub due_date: Option<DateTime<Utc>>,
-    pub column_id: Uuid,
+    pub status_id: Uuid,
     pub column_name: String,
     pub position: String,
     pub created_by_id: Uuid,
@@ -30,20 +30,20 @@ pub async fn list_tasks_flat(
     user_id: Uuid,
 ) -> Result<Vec<TaskListItem>, TaskQueryError> {
     if !verify_board_membership(pool, board_id, user_id).await? {
-        return Err(TaskQueryError::NotBoardMember);
+        return Err(TaskQueryError::NotProjectMember);
     }
 
     let tasks = sqlx::query_as::<_, TaskListItem>(
         r#"
         SELECT t.id, t.title, t.description,
                t.priority,
-               t.due_date, t.column_id,
-               bc.name as column_name,
+               t.due_date, t.status_id,
+               ps.name as column_name,
                t.position, t.created_by_id,
                t.created_at, t.updated_at
         FROM tasks t
-        JOIN board_columns bc ON bc.id = t.column_id
-        WHERE t.board_id = $1 AND t.deleted_at IS NULL
+        JOIN project_statuses ps ON ps.id = t.status_id
+        WHERE t.project_id = $1 AND t.deleted_at IS NULL
         ORDER BY t.created_at DESC
         "#,
     )
@@ -62,7 +62,7 @@ pub struct CalendarTask {
     pub priority: TaskPriority,
     pub due_date: DateTime<Utc>,
     pub start_date: Option<DateTime<Utc>>,
-    pub column_id: Uuid,
+    pub status_id: Uuid,
     pub column_name: String,
     pub is_done: bool,
     pub milestone_id: Option<Uuid>,
@@ -77,7 +77,7 @@ pub async fn list_tasks_for_calendar(
     end: DateTime<Utc>,
 ) -> Result<Vec<CalendarTask>, TaskQueryError> {
     if !verify_board_membership(pool, board_id, user_id).await? {
-        return Err(TaskQueryError::NotBoardMember);
+        return Err(TaskQueryError::NotProjectMember);
     }
 
     let tasks = sqlx::query_as::<_, CalendarTask>(
@@ -86,13 +86,13 @@ pub async fn list_tasks_for_calendar(
             t.id, t.title, t.priority,
             t.due_date as "due_date!",
             t.start_date,
-            t.column_id,
-            bc.name as column_name,
-            COALESCE(bc.status_mapping->>'done' = 'true', false) as "is_done!",
+            t.status_id,
+            ps.name as column_name,
+            COALESCE(ps.status_mapping->>'done' = 'true', false) as "is_done!",
             t.milestone_id
         FROM tasks t
-        JOIN board_columns bc ON bc.id = t.column_id
-        WHERE t.board_id = $1
+        JOIN project_statuses ps ON ps.id = t.status_id
+        WHERE t.project_id = $1
             AND t.deleted_at IS NULL
             AND t.due_date IS NOT NULL
             AND t.due_date >= $2
@@ -117,7 +117,7 @@ pub struct GanttTask {
     pub priority: TaskPriority,
     pub start_date: Option<DateTime<Utc>>,
     pub due_date: Option<DateTime<Utc>>,
-    pub column_id: Uuid,
+    pub status_id: Uuid,
     pub column_name: String,
     pub is_done: bool,
     pub milestone_id: Option<Uuid>,
@@ -130,7 +130,7 @@ pub async fn list_tasks_for_gantt(
     user_id: Uuid,
 ) -> Result<Vec<GanttTask>, TaskQueryError> {
     if !verify_board_membership(pool, board_id, user_id).await? {
-        return Err(TaskQueryError::NotBoardMember);
+        return Err(TaskQueryError::NotProjectMember);
     }
 
     let tasks = sqlx::query_as::<_, GanttTask>(
@@ -139,13 +139,13 @@ pub async fn list_tasks_for_gantt(
             t.id, t.title, t.priority,
             t.start_date,
             t.due_date,
-            t.column_id,
-            bc.name as column_name,
-            COALESCE(bc.status_mapping->>'done' = 'true', false) as "is_done!",
+            t.status_id,
+            ps.name as column_name,
+            COALESCE(ps.status_mapping->>'done' = 'true', false) as "is_done!",
             t.milestone_id
         FROM tasks t
-        JOIN board_columns bc ON bc.id = t.column_id
-        WHERE t.board_id = $1
+        JOIN project_statuses ps ON ps.id = t.status_id
+        WHERE t.project_id = $1
             AND t.deleted_at IS NULL
             AND (t.start_date IS NOT NULL OR t.due_date IS NOT NULL)
         ORDER BY COALESCE(t.start_date, t.due_date) ASC

@@ -1,4 +1,4 @@
-//! DTOs for board REST endpoints.
+//! DTOs for board/project REST endpoints.
 //!
 //! Request and response structs used by the board route handlers.
 
@@ -52,6 +52,19 @@ pub struct BoardResponse {
 }
 
 #[derive(Debug, Serialize)]
+pub struct StatusResponse {
+    pub id: Uuid,
+    pub name: String,
+    pub project_id: Uuid,
+    pub position: String,
+    pub color: String,
+    #[serde(rename = "type")]
+    pub status_type: String,
+    pub is_default: bool,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Serialize)]
 pub struct BoardDetailResponse {
     pub id: Uuid,
     pub name: String,
@@ -64,25 +77,13 @@ pub struct BoardDetailResponse {
     pub background_color: Option<String>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
-    pub columns: Vec<ColumnResponse>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ColumnResponse {
-    pub id: Uuid,
-    pub name: String,
-    pub board_id: Uuid,
-    pub position: String,
-    pub color: Option<String>,
-    pub status_mapping: Option<serde_json::Value>,
-    pub wip_limit: Option<i32>,
-    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub statuses: Vec<StatusResponse>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct BoardMemberResponse {
     pub id: Uuid,
-    pub board_id: Uuid,
+    pub project_id: Uuid,
     pub user_id: Uuid,
     pub role: BoardMemberRole,
     pub joined_at: chrono::DateTime<chrono::Utc>,
@@ -123,14 +124,13 @@ pub struct TaskWithBadges {
     pub description: Option<String>,
     pub priority: TaskPriority,
     pub due_date: Option<chrono::DateTime<chrono::Utc>>,
-    pub column_id: Uuid,
+    pub status_id: Option<Uuid>,
     pub position: String,
-    pub group_id: Option<Uuid>,
+    pub task_list_id: Option<Uuid>,
     pub milestone_id: Option<Uuid>,
     pub created_by_id: Uuid,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
-    pub column_entered_at: chrono::DateTime<chrono::Utc>,
     pub parent_task_id: Option<Uuid>,
     pub subtask_completed: i64,
     pub subtask_total: i64,

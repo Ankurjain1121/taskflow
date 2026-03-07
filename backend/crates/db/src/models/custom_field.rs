@@ -8,7 +8,7 @@ use crate::models::common::CustomFieldType;
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
 pub struct BoardCustomField {
     pub id: Uuid,
-    pub board_id: Uuid,
+    pub project_id: Uuid,
     pub name: String,
     pub field_type: CustomFieldType,
     pub options: Option<serde_json::Value>,
@@ -42,7 +42,7 @@ mod tests {
         let now = Utc::now();
         let field = BoardCustomField {
             id: Uuid::new_v4(),
-            board_id: Uuid::new_v4(),
+            project_id: Uuid::new_v4(),
             name: "Story Points".to_string(),
             field_type: CustomFieldType::Number,
             options: None,
@@ -65,7 +65,7 @@ mod tests {
         let now = Utc::now();
         let field = BoardCustomField {
             id: Uuid::new_v4(),
-            board_id: Uuid::new_v4(),
+            project_id: Uuid::new_v4(),
             name: "Status".to_string(),
             field_type: CustomFieldType::Dropdown,
             options: Some(serde_json::json!(["Open", "Closed", "Pending"])),

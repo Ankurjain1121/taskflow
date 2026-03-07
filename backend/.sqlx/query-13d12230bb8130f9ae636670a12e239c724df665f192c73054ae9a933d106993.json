@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO project_statuses (project_id, name, color, type, position, is_default, tenant_id)\n        VALUES\n          ($1, 'Open',        '#6B7280', 'not_started', 'a0', true,  $2),\n          ($1, 'In Progress', '#3B82F6', 'active',       'b0', false, $2),\n          ($1, 'On Hold',     '#F59E0B', 'active',       'c0', false, $2),\n          ($1, 'Completed',   '#10B981', 'done',         'd0', false, $2),\n          ($1, 'Cancelled',   '#EF4444', 'cancelled',    'e0', false, $2)\n        ON CONFLICT (project_id, name) DO NOTHING\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "13d12230bb8130f9ae636670a12e239c724df665f192c73054ae9a933d106993"
+}

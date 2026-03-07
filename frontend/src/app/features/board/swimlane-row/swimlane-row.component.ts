@@ -264,7 +264,7 @@ export class SwimlaneRowComponent {
       prevColId = sourceListId.replace('column-', '');
       fromGroupKey = this.swimlaneGroup().key;
     } else {
-      prevColId = task.column_id;
+      prevColId = task.status_id ?? '';
       fromGroupKey = this.swimlaneGroup().key;
     }
 

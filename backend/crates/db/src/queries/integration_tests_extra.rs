@@ -42,14 +42,14 @@ async fn setup_user_and_workspace(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
     (tenant_id, user_id, ws.id)
 }
 
-/// Create user + workspace + board, return (tenant_id, user_id, workspace_id, board_id, first_column_id)
+/// Create user + workspace + project, return (tenant_id, user_id, workspace_id, project_id, default_task_list_id)
 async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
     let bwc = super::boards::create_board(pool, "Extra Board", None, ws_id, tenant_id, user_id)
         .await
         .expect("create_board");
-    let first_col_id = bwc.columns[0].id;
-    (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+    let first_list_id = bwc.task_lists[0].id;
+    (tenant_id, user_id, ws_id, bwc.project.id, first_list_id)
 }
 
 /// Helper: create a task
@@ -69,8 +69,8 @@ async fn create_test_task(
         due_date: None,
         start_date: None,
         estimated_hours: None,
-        column_id,
-        group_id: None,
+        status_id: None,
+        task_list_id: Some(column_id),
         milestone_id: None,
         assignee_ids: None,
         label_ids: None,
@@ -101,8 +101,8 @@ async fn create_test_task_with_dates(
         due_date,
         start_date,
         estimated_hours: None,
-        column_id,
-        group_id: None,
+        status_id: None,
+        task_list_id: Some(column_id),
         milestone_id: None,
         assignee_ids: None,
         label_ids: None,
@@ -687,119 +687,89 @@ async fn test_get_theme_by_slug_not_found() {
 }
 
 // ===========================================================================
-// COLUMNS TESTS (delete)
+// PROJECT STATUSES TESTS
 // ===========================================================================
 
 #[tokio::test]
-async fn test_delete_empty_column() {
+async fn test_list_project_statuses() {
     let pool = test_pool().await;
     let (_, _, _, board_id, _) = setup_full(&pool).await;
 
-    // Add a new column, then delete it
-    let col = super::columns::add_column(&pool, board_id, "DeleteMe", Some("#ff0000"), None, "z9")
+    let statuses = super::project_statuses::list_project_statuses(&pool, board_id)
         .await
-        .expect("add_column");
+        .expect("list_project_statuses");
 
-    let result = super::columns::delete_column(&pool, col.id)
-        .await
-        .expect("delete_column");
-
-    assert_eq!(result, super::columns::DeleteColumnResult::Deleted);
-
-    // Verify it's gone
-    let cols = super::columns::list_columns_by_board(&pool, board_id)
-        .await
-        .expect("list_columns");
-    assert!(
-        !cols.iter().any(|c| c.id == col.id),
-        "deleted column should not appear"
-    );
+    // Default statuses: Open, In Progress, On Hold, Completed, Cancelled
+    assert_eq!(statuses.len(), 5);
 }
 
 #[tokio::test]
-async fn test_delete_column_with_tasks() {
+async fn test_get_default_status() {
     let pool = test_pool().await;
-    let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
+    let (_, _, _, board_id, _) = setup_full(&pool).await;
 
-    // Create a task in the first column
-    let _task = create_test_task(
+    let default = super::project_statuses::get_default_status(&pool, board_id)
+        .await
+        .expect("get_default_status");
+
+    assert!(default.is_some(), "should have a default status");
+    let status = default.unwrap();
+    assert!(status.is_default, "should be marked as default");
+    assert_eq!(status.name, "Open");
+}
+
+#[tokio::test]
+async fn test_update_project_status() {
+    let pool = test_pool().await;
+    let (_, _, _, board_id, _) = setup_full(&pool).await;
+
+    let statuses = super::project_statuses::list_project_statuses(&pool, board_id)
+        .await
+        .expect("list_project_statuses");
+
+    let updated = super::project_statuses::update_project_status(
         &pool,
-        board_id,
-        col_id,
-        tenant_id,
-        user_id,
-        "BlockDelete",
-        TaskPriority::Low,
+        statuses[0].id,
+        Some("Renamed"),
+        Some("#abcdef"),
+        None,
     )
-    .await;
+    .await
+    .expect("update_project_status");
 
-    // Attempting to delete a column with tasks should return HasTasks
-    let result = super::columns::delete_column(&pool, col_id)
-        .await
-        .expect("delete_column");
-
-    assert_eq!(result, super::columns::DeleteColumnResult::HasTasks);
+    assert_eq!(updated.name, "Renamed");
+    assert_eq!(updated.color, "#abcdef");
 }
 
 #[tokio::test]
-async fn test_delete_nonexistent_column() {
+async fn test_delete_project_status() {
     let pool = test_pool().await;
+    let (tenant_id, _, _, board_id, _) = setup_full(&pool).await;
 
-    let result = super::columns::delete_column(&pool, Uuid::new_v4())
+    // Create a new status to delete
+    let new_status = super::project_statuses::create_project_status(
+        &pool, board_id, "ToDelete", "#ff0000", "active", "z9", tenant_id,
+    )
+    .await
+    .expect("create_project_status");
+
+    let statuses = super::project_statuses::list_project_statuses(&pool, board_id)
         .await
-        .expect("delete_column");
+        .expect("list before delete");
 
-    assert_eq!(result, super::columns::DeleteColumnResult::NotFound);
-}
-
-#[tokio::test]
-async fn test_update_column_color() {
-    let pool = test_pool().await;
-    let (_, _, _, board_id, _) = setup_full(&pool).await;
-
-    let cols = super::columns::list_columns_by_board(&pool, board_id)
+    // Delete the new status, replacing tasks with the default
+    let default_id = statuses.iter().find(|s| s.is_default).unwrap().id;
+    super::project_statuses::delete_project_status(&pool, new_status.id, default_id)
         .await
-        .expect("list_columns");
+        .expect("delete_project_status");
 
-    let updated = super::columns::update_column_color(&pool, cols[0].id, Some("#abcdef"))
+    let after = super::project_statuses::list_project_statuses(&pool, board_id)
         .await
-        .expect("update_column_color")
-        .expect("should return column");
-
-    assert_eq!(updated.color.as_deref(), Some("#abcdef"));
-}
-
-#[tokio::test]
-async fn test_update_status_mapping() {
-    let pool = test_pool().await;
-    let (_, _, _, board_id, _) = setup_full(&pool).await;
-
-    let cols = super::columns::list_columns_by_board(&pool, board_id)
-        .await
-        .expect("list_columns");
-
-    let mapping = serde_json::json!({"done": true, "wip": false});
-    let updated = super::columns::update_status_mapping(&pool, cols[0].id, Some(mapping.clone()))
-        .await
-        .expect("update_status_mapping")
-        .expect("should return column");
-
-    let sm = updated.status_mapping.expect("should have status_mapping");
-    assert_eq!(sm.get("done").and_then(|v| v.as_bool()), Some(true));
-}
-
-#[tokio::test]
-async fn test_get_column_by_id() {
-    let pool = test_pool().await;
-    let (_, _, _, board_id, col_id) = setup_full(&pool).await;
-
-    let col = super::columns::get_column_by_id(&pool, col_id)
-        .await
-        .expect("get_column_by_id")
-        .expect("column should exist");
-
-    assert_eq!(col.id, col_id);
-    assert_eq!(col.board_id, board_id);
+        .expect("list after delete");
+    assert!(
+        !after.iter().any(|s| s.id == new_status.id),
+        "deleted status should not appear"
+    );
 }
 
 // ===========================================================================
@@ -1171,7 +1141,7 @@ async fn test_archive_board_and_list() {
         .await
         .expect("create_board");
 
-    super::boards::soft_delete_board(&pool, bwc.board.id)
+    super::boards::soft_delete_board(&pool, bwc.project.id)
         .await
         .expect("soft_delete_board");
 
@@ -1182,7 +1152,7 @@ async fn test_archive_board_and_list() {
     let found = archive
         .items
         .iter()
-        .find(|item| item.entity_id == bwc.board.id);
+        .find(|item| item.entity_id == bwc.project.id);
     assert!(
         found.is_some(),
         "archived board should appear in archive list"
@@ -1198,11 +1168,11 @@ async fn test_archive_mixed_listing() {
     let bwc = super::boards::create_board(&pool, "MixBoard", None, ws_id, tenant_id, user_id)
         .await
         .expect("create_board");
-    let col_id = bwc.columns[0].id;
+    let col_id = bwc.statuses[0].id;
 
     let task = create_test_task(
         &pool,
-        bwc.board.id,
+        bwc.project.id,
         col_id,
         tenant_id,
         user_id,
@@ -1215,7 +1185,7 @@ async fn test_archive_mixed_listing() {
     super::tasks::soft_delete_task(&pool, task.id)
         .await
         .expect("soft_delete_task");
-    super::boards::soft_delete_board(&pool, bwc.board.id)
+    super::boards::soft_delete_board(&pool, bwc.project.id)
         .await
         .expect("soft_delete_board");
 
@@ -1225,7 +1195,7 @@ async fn test_archive_mixed_listing() {
         .expect("list_archive");
 
     let has_task = archive.items.iter().any(|i| i.entity_id == task.id);
-    let has_board = archive.items.iter().any(|i| i.entity_id == bwc.board.id);
+    let has_board = archive.items.iter().any(|i| i.entity_id == bwc.project.id);
     assert!(has_task, "should contain archived task");
     assert!(has_board, "should contain archived board");
 }
@@ -1253,7 +1223,7 @@ async fn test_create_milestone() {
     assert_eq!(ms.name, "Sprint 1");
     assert_eq!(ms.description.as_deref(), Some("First sprint"));
     assert_eq!(ms.color, "#ff5722");
-    assert_eq!(ms.board_id, board_id);
+    assert_eq!(ms.project_id, board_id);
     assert_eq!(ms.tenant_id, tenant_id);
     assert_eq!(ms.created_by_id, user_id);
 }
@@ -1683,15 +1653,15 @@ async fn test_get_board_dependencies() {
 // ===========================================================================
 
 #[tokio::test]
-async fn test_bulk_update_column_move() {
+async fn test_bulk_update_status_move() {
     let pool = test_pool().await;
     let (tenant_id, user_id, _, board_id, col_id) = setup_full(&pool).await;
 
-    // Get second column
-    let columns = super::columns::list_columns_by_board(&pool, board_id)
+    // Get second status
+    let statuses = super::project_statuses::list_project_statuses(&pool, board_id)
         .await
-        .expect("list_columns");
-    let target_col = columns[1].id;
+        .expect("list_project_statuses");
+    let target_status = statuses[1].id;
 
     let task = create_test_task(
         &pool,
@@ -1706,12 +1676,12 @@ async fn test_bulk_update_column_move() {
 
     let input = super::task_bulk::BulkUpdateInput {
         task_ids: vec![task.id],
-        column_id: Some(target_col),
+        status_id: Some(target_status),
         priority: None,
         milestone_id: None,
         clear_milestone: None,
-        group_id: None,
-        clear_group: None,
+        task_list_id: None,
+        clear_task_list: None,
     };
 
     let count = super::task_bulk::bulk_update_tasks(&pool, board_id, user_id, input)
@@ -1720,12 +1690,12 @@ async fn test_bulk_update_column_move() {
 
     assert_eq!(count, 1, "should update 1 task");
 
-    // Verify task is in new column
+    // Verify task has new status
     let fetched = super::tasks::get_task_by_id(&pool, task.id, user_id)
         .await
         .expect("get_task")
         .expect("task should exist");
-    assert_eq!(fetched.task.column_id, target_col);
+    assert_eq!(fetched.task.status_id, Some(target_status));
 }
 
 #[tokio::test]
@@ -1735,12 +1705,12 @@ async fn test_bulk_update_empty_task_ids() {
 
     let input = super::task_bulk::BulkUpdateInput {
         task_ids: vec![],
-        column_id: None,
+        status_id: None,
         priority: Some(TaskPriority::Urgent),
         milestone_id: None,
         clear_milestone: None,
-        group_id: None,
-        clear_group: None,
+        task_list_id: None,
+        clear_task_list: None,
     };
 
     let count = super::task_bulk::bulk_update_tasks(&pool, board_id, user_id, input)
@@ -1769,12 +1739,12 @@ async fn test_bulk_update_not_board_member() {
     let random_user = Uuid::new_v4();
     let input = super::task_bulk::BulkUpdateInput {
         task_ids: vec![task.id],
-        column_id: None,
+        status_id: None,
         priority: Some(TaskPriority::Urgent),
         milestone_id: None,
         clear_milestone: None,
-        group_id: None,
-        clear_group: None,
+        task_list_id: None,
+        clear_task_list: None,
     };
 
     let result = super::task_bulk::bulk_update_tasks(&pool, board_id, random_user, input).await;

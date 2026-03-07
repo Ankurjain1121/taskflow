@@ -91,11 +91,8 @@ async fn update_preferences(
     .map_err(AppError::BadRequest)?;
 
     // Validate theme preferences
-    user_prefs::validate_theme_preferences(
-        color_mode.as_deref(),
-        accent_color.as_deref(),
-    )
-    .map_err(AppError::BadRequest)?;
+    user_prefs::validate_theme_preferences(color_mode.as_deref(), accent_color.as_deref())
+        .map_err(AppError::BadRequest)?;
 
     // Parse quiet hours — prefer body value, fall back to existing
     let quiet_start = match body.quiet_hours_start {

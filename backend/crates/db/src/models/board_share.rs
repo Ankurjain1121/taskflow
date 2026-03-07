@@ -6,7 +6,7 @@ use uuid::Uuid;
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
 pub struct BoardShare {
     pub id: Uuid,
-    pub board_id: Uuid,
+    pub project_id: Uuid,
     pub share_token: String,
     pub name: Option<String>,
     #[serde(skip_serializing)]

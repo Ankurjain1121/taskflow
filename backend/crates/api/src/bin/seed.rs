@@ -80,89 +80,87 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     println!("  Added 3 workspace members");
 
-    // 5. Create board
-    let board_id = Uuid::new_v4();
+    // 5. Create project (triggers auto-create default statuses + "General" task list)
+    let project_id = Uuid::new_v4();
     sqlx::query(
-        "INSERT INTO boards (id, name, description, workspace_id, tenant_id, created_by_id) \
+        "INSERT INTO projects (id, name, description, workspace_id, tenant_id, created_by_id) \
          VALUES ($1, $2, $3, $4, $5, $6)",
     )
-    .bind(board_id)
+    .bind(project_id)
     .bind("Sprint 1")
-    .bind("Current sprint board")
+    .bind("Current sprint project")
     .bind(workspace_id)
     .bind(tenant_id)
     .bind(alice_id)
     .execute(&pool)
     .await?;
-    println!("  Created board: Sprint 1");
+    println!("  Created project: Sprint 1 (with auto-created statuses and task list)");
 
-    // 6. Add Alice as board member
+    // 6. Add Alice as project member
     sqlx::query(
-        "INSERT INTO board_members (board_id, user_id, role) VALUES ($1, $2, 'editor'::board_member_role)"
+        "INSERT INTO project_members (project_id, user_id, role) \
+         VALUES ($1, $2, 'editor'::project_member_role)",
     )
-    .bind(board_id)
+    .bind(project_id)
     .bind(alice_id)
     .execute(&pool)
     .await?;
+    println!("  Added Alice as project member");
 
-    // 7. Create default columns
-    let todo_col = Uuid::new_v4();
-    let progress_col = Uuid::new_v4();
-    let done_col = Uuid::new_v4();
+    // 7. Fetch the auto-created "Open" (default) status and "General" task list
+    let open_status_id: Uuid = sqlx::query_scalar(
+        "SELECT id FROM project_statuses WHERE project_id = $1 AND is_default = true LIMIT 1",
+    )
+    .bind(project_id)
+    .fetch_one(&pool)
+    .await?;
 
-    for (id, name, position, color, status_mapping) in [
-        (todo_col, "To Do", "a0", "#6366f1", None),
-        (progress_col, "In Progress", "a1", "#3b82f6", None),
-        (
-            done_col,
-            "Done",
-            "a2",
-            "#22c55e",
-            Some(serde_json::json!({"done": true})),
-        ),
-    ] {
-        sqlx::query(
-            "INSERT INTO board_columns (id, name, board_id, position, color, status_mapping) \
-             VALUES ($1, $2, $3, $4, $5, $6)",
-        )
-        .bind(id)
-        .bind(name)
-        .bind(board_id)
-        .bind(position)
-        .bind(color)
-        .bind(status_mapping)
-        .execute(&pool)
-        .await?;
-        println!("  Created column: {}", name);
-    }
+    let in_progress_status_id: Uuid = sqlx::query_scalar(
+        "SELECT id FROM project_statuses WHERE project_id = $1 AND name = 'In Progress' LIMIT 1",
+    )
+    .bind(project_id)
+    .fetch_one(&pool)
+    .await?;
+
+    let done_status_id: Uuid = sqlx::query_scalar(
+        "SELECT id FROM project_statuses WHERE project_id = $1 AND name = 'Completed' LIMIT 1",
+    )
+    .bind(project_id)
+    .fetch_one(&pool)
+    .await?;
+
+    let task_list_id: Uuid = sqlx::query_scalar(
+        "SELECT id FROM task_lists WHERE project_id = $1 AND is_default = true LIMIT 1",
+    )
+    .bind(project_id)
+    .fetch_one(&pool)
+    .await?;
+
+    println!("  Fetched auto-created statuses and task list");
 
     // 8. Create sample tasks
     let tasks = [
-        ("Set up CI/CD pipeline", "urgent", todo_col, "a0", alice_id),
-        ("Design database schema", "high", todo_col, "a1", bob_id),
-        ("Implement user auth", "high", progress_col, "a0", alice_id),
-        (
-            "Create API endpoints",
-            "medium",
-            progress_col,
-            "a1",
-            carol_id,
-        ),
-        ("Write unit tests", "low", done_col, "a0", bob_id),
+        ("Set up CI/CD pipeline", "urgent", open_status_id, "a0", alice_id),
+        ("Design database schema", "high", open_status_id, "a1", bob_id),
+        ("Implement user auth", "high", in_progress_status_id, "a2", alice_id),
+        ("Create API endpoints", "medium", in_progress_status_id, "a3", carol_id),
+        ("Write unit tests", "low", done_status_id, "a4", bob_id),
     ];
 
     let mut task_ids = Vec::new();
-    for (title, priority, column_id, position, assignee_id) in tasks {
+    for (title, priority, status_id, position, assignee_id) in tasks {
         let task_id = Uuid::new_v4();
         sqlx::query(
-            "INSERT INTO tasks (id, title, priority, board_id, column_id, position, tenant_id, created_by_id) \
-             VALUES ($1, $2, $3::task_priority, $4, $5, $6, $7, $8)"
+            "INSERT INTO tasks \
+             (id, title, priority, project_id, status_id, task_list_id, position, tenant_id, created_by_id) \
+             VALUES ($1, $2, $3::task_priority, $4, $5, $6, $7, $8, $9)",
         )
         .bind(task_id)
         .bind(title)
         .bind(priority)
-        .bind(board_id)
-        .bind(column_id)
+        .bind(project_id)
+        .bind(status_id)
+        .bind(task_list_id)
         .bind(position)
         .bind(tenant_id)
         .bind(alice_id)

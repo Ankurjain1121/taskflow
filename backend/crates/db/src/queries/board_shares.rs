@@ -56,11 +56,11 @@ pub async fn list_board_shares(
 
     let shares = sqlx::query_as::<_, BoardShare>(
         r#"
-        SELECT id, board_id, share_token, name, password_hash,
+        SELECT id, project_id, share_token, name, password_hash,
                expires_at, is_active, permissions, tenant_id,
                created_by_id, created_at
-        FROM board_shares
-        WHERE board_id = $1
+        FROM project_shares
+        WHERE project_id = $1
         ORDER BY created_at DESC
         "#,
     )
@@ -103,13 +103,13 @@ pub async fn create_board_share(
 
     let share = sqlx::query_as::<_, BoardShare>(
         r#"
-        INSERT INTO board_shares (
-            id, board_id, share_token, name, password_hash,
+        INSERT INTO project_shares (
+            id, project_id, share_token, name, password_hash,
             expires_at, is_active, permissions, tenant_id,
             created_by_id, created_at
         )
         VALUES ($1, $2, $3, $4, $5, $6, true, $7, $8, $9, $10)
-        RETURNING id, board_id, share_token, name, password_hash,
+        RETURNING id, project_id, share_token, name, password_hash,
                   expires_at, is_active, permissions, tenant_id,
                   created_by_id, created_at
         "#,
@@ -137,9 +137,9 @@ pub async fn delete_board_share(
     share_id: Uuid,
     user_id: Uuid,
 ) -> Result<(), BoardShareQueryError> {
-    // Get share to find board_id
+    // Get share to find project_id
     let board_id =
-        sqlx::query_scalar::<_, Uuid>(r#"SELECT board_id FROM board_shares WHERE id = $1"#)
+        sqlx::query_scalar::<_, Uuid>(r#"SELECT project_id FROM project_shares WHERE id = $1"#)
             .bind(share_id)
             .fetch_optional(pool)
             .await?
@@ -149,7 +149,7 @@ pub async fn delete_board_share(
         return Err(BoardShareQueryError::NotBoardMember);
     }
 
-    sqlx::query(r#"DELETE FROM board_shares WHERE id = $1"#)
+    sqlx::query(r#"DELETE FROM project_shares WHERE id = $1"#)
         .bind(share_id)
         .execute(pool)
         .await?;
@@ -165,7 +165,7 @@ pub async fn toggle_board_share(
     user_id: Uuid,
 ) -> Result<BoardShare, BoardShareQueryError> {
     let board_id =
-        sqlx::query_scalar::<_, Uuid>(r#"SELECT board_id FROM board_shares WHERE id = $1"#)
+        sqlx::query_scalar::<_, Uuid>(r#"SELECT project_id FROM project_shares WHERE id = $1"#)
             .bind(share_id)
             .fetch_optional(pool)
             .await?
@@ -177,9 +177,9 @@ pub async fn toggle_board_share(
 
     let share = sqlx::query_as::<_, BoardShare>(
         r#"
-        UPDATE board_shares SET is_active = $2
+        UPDATE project_shares SET is_active = $2
         WHERE id = $1
-        RETURNING id, board_id, share_token, name, password_hash,
+        RETURNING id, project_id, share_token, name, password_hash,
                   expires_at, is_active, permissions, tenant_id,
                   created_by_id, created_at
         "#,
@@ -201,10 +201,10 @@ pub async fn access_shared_board(
 ) -> Result<SharedBoardAccess, BoardShareQueryError> {
     let share = sqlx::query_as::<_, BoardShare>(
         r#"
-        SELECT id, board_id, share_token, name, password_hash,
+        SELECT id, project_id, share_token, name, password_hash,
                expires_at, is_active, permissions, tenant_id,
                created_by_id, created_at
-        FROM board_shares
+        FROM project_shares
         WHERE share_token = $1
         "#,
     )
@@ -243,25 +243,25 @@ pub async fn access_shared_board(
         }
     }
 
-    // Fetch board info
+    // Fetch project info
     let board_name = sqlx::query_scalar::<_, String>(
-        r#"SELECT name FROM boards WHERE id = $1 AND deleted_at IS NULL"#,
+        r#"SELECT name FROM projects WHERE id = $1 AND deleted_at IS NULL"#,
     )
-    .bind(share.board_id)
+    .bind(share.project_id)
     .fetch_optional(pool)
     .await?
     .ok_or(BoardShareQueryError::NotFound)?;
 
-    // Fetch columns
+    // Fetch statuses
     let columns = sqlx::query_as::<_, SharedColumn>(
         r#"
         SELECT id, name, position, color
-        FROM board_columns
-        WHERE board_id = $1
+        FROM project_statuses
+        WHERE project_id = $1
         ORDER BY position ASC
         "#,
     )
-    .bind(share.board_id)
+    .bind(share.project_id)
     .fetch_all(pool)
     .await?;
 
@@ -277,14 +277,14 @@ pub async fn access_shared_board(
             r#"
             SELECT t.id, t.title, t.description,
                    t.priority,
-                   t.due_date, t.column_id, c.name as column_name
+                   t.due_date, t.status_id, ps.name as status_name
             FROM tasks t
-            JOIN board_columns c ON c.id = t.column_id
-            WHERE t.board_id = $1 AND t.deleted_at IS NULL
+            LEFT JOIN project_statuses ps ON ps.id = t.status_id
+            WHERE t.project_id = $1 AND t.deleted_at IS NULL
             ORDER BY t.position ASC
             "#,
         )
-        .bind(share.board_id)
+        .bind(share.project_id)
         .fetch_all(pool)
         .await?
     } else {
@@ -292,7 +292,7 @@ pub async fn access_shared_board(
     };
 
     Ok(SharedBoardAccess {
-        board_id: share.board_id,
+        board_id: share.project_id,
         board_name,
         permissions: share.permissions,
         columns,
@@ -317,8 +317,8 @@ pub struct SharedTask {
     pub description: Option<String>,
     pub priority: crate::models::TaskPriority,
     pub due_date: Option<DateTime<Utc>>,
-    pub column_id: Uuid,
-    pub column_name: String,
+    pub status_id: Option<Uuid>,
+    pub status_name: Option<String>,
 }
 
 /// Full shared board access response
@@ -344,9 +344,9 @@ mod tests {
     }
 
     async fn test_pool() -> PgPool {
-        PgPool::connect(
-            "postgresql://taskflow:REDACTED_PG_PASSWORD@localhost:5433/taskflow",
-        )
+        PgPool::connect(&std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgresql://taskflow_app:dev_password@10.0.2.1:5432/taskflow".to_string()
+        }))
         .await
         .expect("Failed to connect to test database")
     }
@@ -367,19 +367,18 @@ mod tests {
         (tenant_id, user_id, ws.id)
     }
 
-    async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
+    async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
         let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-        let bwc = boards::create_board(pool, "BoardShare Board", None, ws_id, tenant_id, user_id)
+        let pwt = boards::create_board(pool, "BoardShare Board", None, ws_id, tenant_id, user_id)
             .await
             .expect("create_board");
-        let first_col_id = bwc.columns[0].id;
-        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+        (tenant_id, user_id, ws_id, pwt.project.id)
     }
 
     #[tokio::test]
     async fn test_create_share_link() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, board_id) = setup_full(&pool).await;
 
         let input = CreateBoardShareInput {
             name: Some("My Share Link".to_string()),
@@ -392,7 +391,7 @@ mod tests {
             .await
             .expect("create_board_share should succeed");
 
-        assert_eq!(share.board_id, board_id);
+        assert_eq!(share.project_id, board_id);
         assert_eq!(share.name.as_deref(), Some("My Share Link"));
         assert!(share.is_active);
         assert!(share.password_hash.is_none());
@@ -405,7 +404,7 @@ mod tests {
     #[tokio::test]
     async fn test_access_shared_board() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, board_id) = setup_full(&pool).await;
 
         let input = CreateBoardShareInput {
             name: Some("Access Test".to_string()),
@@ -430,7 +429,7 @@ mod tests {
     #[tokio::test]
     async fn test_access_shared_board_with_password() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, board_id) = setup_full(&pool).await;
 
         let input = CreateBoardShareInput {
             name: Some("Password Protected".to_string()),
@@ -461,7 +460,7 @@ mod tests {
     #[tokio::test]
     async fn test_toggle_share() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, board_id) = setup_full(&pool).await;
 
         let input = CreateBoardShareInput {
             name: None,
@@ -501,7 +500,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_share() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, board_id) = setup_full(&pool).await;
 
         let input = CreateBoardShareInput {
             name: Some("Delete Me".to_string()),
@@ -526,7 +525,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_board_shares() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, board_id) = setup_full(&pool).await;
 
         create_board_share(
             &pool,
@@ -571,7 +570,7 @@ mod tests {
     #[tokio::test]
     async fn test_expired_share_access() {
         let pool = test_pool().await;
-        let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&pool).await;
+        let (tenant_id, user_id, _ws_id, board_id) = setup_full(&pool).await;
 
         // Create a share that has already expired
         let input = CreateBoardShareInput {

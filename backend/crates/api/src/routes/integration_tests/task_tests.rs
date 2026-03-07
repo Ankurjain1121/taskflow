@@ -41,7 +41,7 @@ async fn test_create_task() {
                     serde_json::to_string(&serde_json::json!({
                         "title": "Integration Test Task",
                         "priority": "medium",
-                        "column_id": col_id
+                        "task_list_id": col_id
                     }))
                     .expect("serialize"),
                 ))
@@ -57,7 +57,7 @@ async fn test_create_task() {
         .expect("read body");
     let json: serde_json::Value = serde_json::from_slice(&body).expect("parse JSON");
     assert_eq!(json["title"], "Integration Test Task");
-    assert_eq!(json["column_id"], col_id.to_string());
+    assert_eq!(json["task_list_id"], col_id.to_string());
 }
 
 #[tokio::test]
@@ -76,9 +76,9 @@ async fn test_get_task_by_id() {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            column_id: col_id,
+            status_id: None,
             milestone_id: None,
-            group_id: None,
+            task_list_id: Some(col_id),
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
@@ -125,9 +125,9 @@ async fn test_update_task() {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            column_id: col_id,
+            status_id: None,
             milestone_id: None,
-            group_id: None,
+            task_list_id: Some(col_id),
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
@@ -182,9 +182,9 @@ async fn test_delete_task() {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            column_id: col_id,
+            status_id: None,
             milestone_id: None,
-            group_id: None,
+            task_list_id: Some(col_id),
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
@@ -230,9 +230,9 @@ async fn test_move_task() {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            column_id: col_id,
+            status_id: None,
             milestone_id: None,
-            group_id: None,
+            task_list_id: Some(col_id),
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
@@ -243,13 +243,14 @@ async fn test_move_task() {
     .await
     .expect("create task");
 
-    let columns = taskflow_db::queries::columns::list_columns_by_board(&state.db, board_id)
-        .await
-        .expect("list columns");
-    let target_col = columns
+    let statuses =
+        taskflow_db::queries::project_statuses::list_project_statuses(&state.db, board_id)
+            .await
+            .expect("list statuses");
+    let target_status = statuses
         .iter()
-        .find(|c| c.id != col_id)
-        .expect("should have at least 2 columns");
+        .find(|s| s.name != "Open")
+        .expect("should have at least 2 statuses");
 
     let response = app
         .oneshot(
@@ -260,7 +261,7 @@ async fn test_move_task() {
                 .header("Content-Type", "application/json")
                 .body(Body::from(
                     serde_json::to_string(&serde_json::json!({
-                        "column_id": target_col.id,
+                        "status_id": target_status.id,
                         "position": "a0"
                     }))
                     .expect("serialize"),
@@ -276,7 +277,7 @@ async fn test_move_task() {
         .await
         .expect("read body");
     let json: serde_json::Value = serde_json::from_slice(&body).expect("parse JSON");
-    assert_eq!(json["column_id"], target_col.id.to_string());
+    assert_eq!(json["status_id"], target_status.id.to_string());
 }
 
 // =========================================================================
@@ -299,9 +300,9 @@ async fn test_assign_user_to_task() {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            column_id: col_id,
+            status_id: None,
             milestone_id: None,
-            group_id: None,
+            task_list_id: Some(col_id),
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
@@ -354,9 +355,9 @@ async fn test_unassign_user_from_task() {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            column_id: col_id,
+            status_id: None,
             milestone_id: None,
-            group_id: None,
+            task_list_id: Some(col_id),
             assignee_ids: Some(vec![user_id]),
             label_ids: None,
             parent_task_id: None,
@@ -407,9 +408,9 @@ async fn test_create_and_list_subtasks() {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            column_id: col_id,
+            status_id: None,
             milestone_id: None,
-            group_id: None,
+            task_list_id: Some(col_id),
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
@@ -478,9 +479,9 @@ async fn test_create_and_list_comments() {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            column_id: col_id,
+            status_id: None,
             milestone_id: None,
-            group_id: None,
+            task_list_id: Some(col_id),
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
@@ -542,9 +543,9 @@ async fn test_list_task_dependencies() {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            column_id: col_id,
+            status_id: None,
             milestone_id: None,
-            group_id: None,
+            task_list_id: Some(col_id),
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
@@ -589,9 +590,9 @@ async fn test_list_time_entries() {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            column_id: col_id,
+            status_id: None,
             milestone_id: None,
-            group_id: None,
+            task_list_id: Some(col_id),
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
@@ -699,7 +700,7 @@ async fn test_create_task_missing_title_returns_400() {
                 .body(Body::from(
                     serde_json::to_string(&serde_json::json!({
                         "priority": "medium",
-                        "column_id": col_id
+                        "task_list_id": col_id
                     }))
                     .expect("serialize"),
                 ))
@@ -755,7 +756,7 @@ async fn test_create_task_for_nonexistent_board_returns_error() {
                     serde_json::to_string(&serde_json::json!({
                         "title": "Orphan Task",
                         "priority": "low",
-                        "column_id": Uuid::new_v4()
+                        "status_id": Uuid::new_v4()
                     }))
                     .expect("serialize"),
                 ))
@@ -788,7 +789,7 @@ async fn test_move_task_nonexistent_returns_404() {
                 .header("Content-Type", "application/json")
                 .body(Body::from(
                     serde_json::to_string(&serde_json::json!({
-                        "column_id": Uuid::new_v4(),
+                        "status_id": Uuid::new_v4(),
                         "position": "a0"
                     }))
                     .expect("serialize"),
@@ -822,9 +823,9 @@ async fn test_move_task_to_invalid_column_returns_error() {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            column_id: col_id,
+            status_id: None,
             milestone_id: None,
-            group_id: None,
+            task_list_id: Some(col_id),
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
@@ -844,7 +845,7 @@ async fn test_move_task_to_invalid_column_returns_error() {
                 .header("Content-Type", "application/json")
                 .body(Body::from(
                     serde_json::to_string(&serde_json::json!({
-                        "column_id": Uuid::new_v4(),
+                        "status_id": Uuid::new_v4(),
                         "position": "a0"
                     }))
                     .expect("serialize"),
@@ -880,9 +881,9 @@ async fn test_get_task_after_delete_returns_404() {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            column_id: col_id,
+            status_id: None,
             milestone_id: None,
-            group_id: None,
+            task_list_id: Some(col_id),
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,

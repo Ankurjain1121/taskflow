@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 
 export interface TaskGroup {
   id: string;
-  board_id: string;
+  board_id?: string;
+  project_id?: string;
   name: string;
   color: string;
   position: string;
@@ -24,7 +25,8 @@ export interface TaskGroupWithStats {
 }
 
 export interface CreateTaskGroupRequest {
-  board_id: string;
+  board_id?: string;
+  project_id?: string;
   name: string;
   color?: string;
   position: string;
@@ -45,47 +47,44 @@ export class TaskGroupService {
 
   constructor(private http: HttpClient) {}
 
-  /**
-   * List task groups for a board
-   */
-  listGroups(boardId: string): Observable<TaskGroup[]> {
+  listGroups(projectId: string): Observable<TaskGroup[]> {
     return this.http.get<TaskGroup[]>(
-      `${this.API_URL}/boards/${boardId}/groups`,
+      `${this.API_URL}/boards/${projectId}/groups`,
     );
   }
 
-  /**
-   * List task groups with statistics
-   */
-  listGroupsWithStats(boardId: string): Observable<TaskGroupWithStats[]> {
-    return this.http.get<TaskGroupWithStats[]>(
-      `${this.API_URL}/boards/${boardId}/groups/stats`,
-    );
+  listGroupsWithStats(projectId: string): Observable<TaskGroupWithStats[]> {
+    return this.http
+      .get<
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        any[]
+      >(`${this.API_URL}/boards/${projectId}/groups/stats`)
+      .pipe(
+        map((items) =>
+          items.map((item) => ({
+            group: item.list ?? item.group,
+            task_count: item.task_count,
+            completed_count: item.completed_count,
+            estimated_hours: item.estimated_hours,
+          })),
+        ),
+      );
   }
 
-  /**
-   * Get a specific task group
-   */
   getGroup(groupId: string): Observable<TaskGroup> {
     return this.http.get<TaskGroup>(`${this.API_URL}/groups/${groupId}`);
   }
 
-  /**
-   * Create a new task group
-   */
   createGroup(
-    boardId: string,
+    projectId: string,
     request: CreateTaskGroupRequest,
   ): Observable<TaskGroup> {
     return this.http.post<TaskGroup>(
-      `${this.API_URL}/boards/${boardId}/groups`,
+      `${this.API_URL}/boards/${projectId}/groups`,
       request,
     );
   }
 
-  /**
-   * Update a task group
-   */
   updateGroup(
     groupId: string,
     request: UpdateTaskGroupRequest,
@@ -96,9 +95,6 @@ export class TaskGroupService {
     );
   }
 
-  /**
-   * Toggle collapse state
-   */
   toggleCollapse(groupId: string, collapsed: boolean): Observable<TaskGroup> {
     return this.http.put<TaskGroup>(
       `${this.API_URL}/groups/${groupId}/collapse`,
@@ -106,9 +102,6 @@ export class TaskGroupService {
     );
   }
 
-  /**
-   * Delete a task group (moves tasks to "Ungrouped")
-   */
   deleteGroup(groupId: string): Observable<{ success: boolean }> {
     return this.http.delete<{ success: boolean }>(
       `${this.API_URL}/groups/${groupId}`,

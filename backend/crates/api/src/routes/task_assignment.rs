@@ -53,9 +53,9 @@ pub async fn assign_user_handler(
         SELECT
             id, title, description, priority,
             due_date, start_date, estimated_hours,
-            board_id, column_id, group_id, position,
+            project_id, status_id, task_list_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
+            tenant_id, created_by_id, deleted_at, created_at, updated_at, version, parent_task_id, depth
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -71,7 +71,7 @@ pub async fn assign_user_handler(
             id: task.id,
             title: task.title,
             priority: task.priority,
-            column_id: task.column_id,
+            status_id: task.status_id,
             position: task.position,
             assignee_ids: assignee_ids.clone(),
             watcher_ids: taskflow_db::queries::get_task_watcher_ids(&state.db, task_id)
@@ -129,8 +129,8 @@ pub async fn assign_user_handler(
             board_id,
             tenant_id: tenant.tenant_id,
             user_id: tenant.user_id,
-            previous_column_id: None,
-            new_column_id: None,
+            previous_status_id: None,
+            new_status_id: None,
             priority: None,
             member_user_id: None,
         },
@@ -165,9 +165,9 @@ pub async fn unassign_user_handler(
         SELECT
             id, title, description, priority,
             due_date, start_date, estimated_hours,
-            board_id, column_id, group_id, position,
+            project_id, status_id, task_list_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
+            tenant_id, created_by_id, deleted_at, created_at, updated_at, version, parent_task_id, depth
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -183,7 +183,7 @@ pub async fn unassign_user_handler(
             id: task.id,
             title: task.title,
             priority: task.priority,
-            column_id: task.column_id,
+            status_id: task.status_id,
             position: task.position,
             assignee_ids: assignee_ids.clone(),
             watcher_ids: taskflow_db::queries::get_task_watcher_ids(&state.db, task_id)

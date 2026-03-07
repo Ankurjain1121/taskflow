@@ -57,14 +57,14 @@ export class BoardMutationsService {
     const now = new Date().toISOString();
     const tempTask: Task = {
       id: tempId,
-      column_id: columnId,
-      group_id: taskData.group_id ?? null,
+      project_id: boardId,
+      status_id: columnId,
+      task_list_id: taskData.group_id ?? null,
       title: taskData.title,
       description: taskData.description ?? null,
       priority: (taskData.priority as Task['priority']) ?? 'medium',
       position: 'zzzzzz',
       milestone_id: taskData.milestone_id ?? null,
-      assignee_id: null,
       due_date: taskData.due_date ?? null,
       created_by: '',
       created_at: now,
@@ -86,11 +86,11 @@ export class BoardMutationsService {
         title: taskData.title,
         description: taskData.description,
         priority: taskData.priority,
-        column_id: columnId,
+        status_id: columnId,
         due_date: taskData.due_date,
         start_date: taskData.start_date,
         estimated_hours: taskData.estimated_hours,
-        group_id: taskData.group_id,
+        task_list_id: taskData.group_id,
         milestone_id: taskData.milestone_id,
         assignee_ids: taskData.assignee_ids,
         label_ids: taskData.label_ids,
@@ -118,9 +118,9 @@ export class BoardMutationsService {
   updateTaskInState(task: Task): void {
     this.ctx.boardState.update((state) => {
       const newState = { ...state };
-      const columnTasks = newState[task.column_id];
+      const columnTasks = newState[task.status_id ?? ''];
       if (columnTasks) {
-        newState[task.column_id] = columnTasks.map((t) =>
+        newState[task.status_id ?? ''] = columnTasks.map((t) =>
           t.id === task.id ? task : t,
         );
       }

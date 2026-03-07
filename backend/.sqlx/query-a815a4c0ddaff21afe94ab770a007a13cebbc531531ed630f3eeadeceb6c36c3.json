@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT COUNT(*) as \"count!\"\n        FROM tasks t\n        JOIN task_assignees ta ON ta.task_id = t.id\n        WHERE ta.user_id = $1\n          AND t.due_date < $2\n          AND t.deleted_at IS NULL\n          AND NOT EXISTS (\n              SELECT 1 FROM project_statuses ps\n              WHERE ps.id = t.status_id\n              AND ps.type = 'done'\n          )\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "a815a4c0ddaff21afe94ab770a007a13cebbc531531ed630f3eeadeceb6c36c3"
+}

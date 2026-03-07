@@ -165,7 +165,7 @@ async fn delete_undo_snapshot(redis: &redis::aio::ConnectionManager, operation_i
 
 fn map_bulk_error(e: taskflow_db::queries::TaskQueryError) -> AppError {
     match e {
-        taskflow_db::queries::TaskQueryError::NotBoardMember => {
+        taskflow_db::queries::TaskQueryError::NotProjectMember => {
             AppError::Forbidden("Not a board member".into())
         }
         taskflow_db::queries::TaskQueryError::Database(e) => AppError::SqlxError(e),

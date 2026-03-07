@@ -98,23 +98,24 @@ async fn test_delete_column_empty_succeeds() {
     let (tenant_id, user_id, _ws_id, board_id, _col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
-    // Add a new column (we can't delete the default ones if they have tasks)
-    let col = taskflow_db::queries::columns::add_column(
+    // Add a new project status (replaces column)
+    let status = taskflow_db::queries::project_statuses::create_project_status(
         &state.db,
         board_id,
-        "Temp Column",
-        None,
-        None,
+        "Temp Status",
+        "#AABBCC",
+        "not_started",
         "zzz",
+        tenant_id,
     )
     .await
-    .expect("add temp column");
+    .expect("create temp status");
 
     let response = app
         .oneshot(
             Request::builder()
                 .method("DELETE")
-                .uri(format!("/api/columns/{}", col.id))
+                .uri(format!("/api/columns/{}", status.id))
                 .header("Authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .expect("build request"),

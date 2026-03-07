@@ -1,93 +1,198 @@
-//! Board query functions
+//! Project query functions (formerly boards)
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::{Board, BoardColumn, BoardMember, BoardMemberRole, TaskPriority};
+use crate::models::{Board, BoardMemberRole, ProjectMember, ProjectStatus, TaskList, TaskPriority};
 
-/// List boards in a workspace that the user has access to
-pub async fn list_boards_by_workspace(
+/// List projects in a workspace that the user has access to
+pub async fn list_projects_by_workspace(
     pool: &PgPool,
     workspace_id: Uuid,
     user_id: Uuid,
 ) -> Result<Vec<Board>, sqlx::Error> {
-    sqlx::query_as!(
-        Board,
+    sqlx::query_as::<_, Board>(
         r#"
         SELECT b.id, b.name, b.description, b.slack_webhook_url, b.prefix,
                b.workspace_id, b.tenant_id, b.created_by_id,
                b.background_color, b.is_sample, b.deleted_at, b.created_at, b.updated_at
-        FROM boards b
-        INNER JOIN board_members bm ON b.id = bm.board_id
+        FROM projects b
+        INNER JOIN project_members bm ON b.id = bm.project_id
         WHERE b.workspace_id = $1
           AND bm.user_id = $2
           AND b.deleted_at IS NULL
         ORDER BY b.created_at DESC
         "#,
-        workspace_id,
-        user_id
     )
+    .bind(workspace_id)
+    .bind(user_id)
     .fetch_all(pool)
     .await
 }
 
-/// Board with columns for detailed view
-#[derive(serde::Serialize, Clone, Debug)]
-pub struct BoardWithColumns {
-    #[serde(flatten)]
-    pub board: Board,
-    pub columns: Vec<BoardColumn>,
+// Alias for backward compat
+pub async fn list_boards_by_workspace(
+    pool: &PgPool,
+    workspace_id: Uuid,
+    user_id: Uuid,
+) -> Result<Vec<Board>, sqlx::Error> {
+    list_projects_by_workspace(pool, workspace_id, user_id).await
 }
 
-/// Get a board by ID with its columns (verify membership)
-pub async fn get_board_by_id(
+/// Project with task lists and statuses for detailed view
+#[derive(serde::Serialize, Clone, Debug)]
+pub struct ProjectWithTaskLists {
+    #[serde(flatten)]
+    pub project: Board,
+    pub task_lists: Vec<TaskList>,
+    pub statuses: Vec<ProjectStatus>,
+}
+
+// Keep old name for backward compat within crate
+pub type BoardWithColumns = ProjectWithTaskLists;
+
+/// Get a project by ID with its task lists and statuses (verify membership)
+pub async fn get_project_by_id(
     pool: &PgPool,
     id: Uuid,
     user_id: Uuid,
-) -> Result<Option<BoardWithColumns>, sqlx::Error> {
-    // First verify membership and get board
-    let board = sqlx::query_as!(
-        Board,
+) -> Result<Option<ProjectWithTaskLists>, sqlx::Error> {
+    let project = sqlx::query_as::<_, Board>(
         r#"
         SELECT b.id, b.name, b.description, b.slack_webhook_url, b.prefix,
                b.workspace_id, b.tenant_id, b.created_by_id,
                b.background_color, b.is_sample, b.deleted_at, b.created_at, b.updated_at
-        FROM boards b
-        INNER JOIN board_members bm ON b.id = bm.board_id
+        FROM projects b
+        INNER JOIN project_members bm ON b.id = bm.project_id
         WHERE b.id = $1
           AND bm.user_id = $2
           AND b.deleted_at IS NULL
         "#,
-        id,
-        user_id
     )
+    .bind(id)
+    .bind(user_id)
     .fetch_optional(pool)
     .await?;
 
-    match board {
-        Some(b) => {
-            let columns = sqlx::query_as!(
-                BoardColumn,
+    match project {
+        Some(p) => {
+            let task_lists = sqlx::query_as::<_, TaskList>(
                 r#"
-                SELECT id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
-                FROM board_columns
-                WHERE board_id = $1
+                SELECT id, project_id, name, color, position, is_default, collapsed,
+                       tenant_id, created_by_id, created_at, updated_at, deleted_at
+                FROM task_lists
+                WHERE project_id = $1 AND deleted_at IS NULL
                 ORDER BY position ASC
                 "#,
-                id
             )
+            .bind(id)
             .fetch_all(pool)
             .await?;
 
-            Ok(Some(BoardWithColumns { board: b, columns }))
+            let statuses = sqlx::query_as::<_, ProjectStatus>(
+                r#"
+                SELECT id, project_id, name, color, type as "status_type", position, is_default, tenant_id, created_at
+                FROM project_statuses
+                WHERE project_id = $1
+                ORDER BY position ASC
+                "#,
+            )
+            .bind(id)
+            .fetch_all(pool)
+            .await?;
+
+            Ok(Some(ProjectWithTaskLists {
+                project: p,
+                task_lists,
+                statuses,
+            }))
         }
         None => Ok(None),
     }
 }
 
-/// Create a new board with default columns
+// Alias for backward compat
+pub async fn get_board_by_id(
+    pool: &PgPool,
+    id: Uuid,
+    user_id: Uuid,
+) -> Result<Option<ProjectWithTaskLists>, sqlx::Error> {
+    get_project_by_id(pool, id, user_id).await
+}
+
+// Status functions are in project_statuses.rs module
+
+/// Create a new project with default statuses and a default task list
+pub async fn create_project(
+    pool: &PgPool,
+    name: &str,
+    description: Option<&str>,
+    workspace_id: Uuid,
+    tenant_id: Uuid,
+    created_by_id: Uuid,
+) -> Result<ProjectWithTaskLists, sqlx::Error> {
+    let mut tx = pool.begin().await?;
+
+    // Create project
+    let project = sqlx::query_as::<_, Board>(
+        r#"
+        INSERT INTO projects (name, description, workspace_id, tenant_id, created_by_id)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
+                  created_by_id, background_color, is_sample, deleted_at, created_at, updated_at
+        "#,
+    )
+    .bind(name)
+    .bind(description)
+    .bind(workspace_id)
+    .bind(tenant_id)
+    .bind(created_by_id)
+    .fetch_one(&mut *tx)
+    .await?;
+
+    // Add creator as project member with owner role
+    sqlx::query(
+        r#"
+        INSERT INTO project_members (project_id, user_id, role)
+        VALUES ($1, $2, 'owner')
+        "#,
+    )
+    .bind(project.id)
+    .bind(created_by_id)
+    .execute(&mut *tx)
+    .await?;
+
+    // Create default task list
+    let task_list = sqlx::query_as::<_, TaskList>(
+        r#"
+        INSERT INTO task_lists (project_id, name, color, position, is_default, tenant_id, created_by_id)
+        VALUES ($1, 'General', '#6366f1', 'a0', true, $2, $3)
+        RETURNING id, project_id, name, color, position, is_default, collapsed,
+                  tenant_id, created_by_id, created_at, updated_at, deleted_at
+        "#,
+    )
+    .bind(project.id)
+    .bind(tenant_id)
+    .bind(created_by_id)
+    .fetch_one(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
+
+    // Seed default statuses then list them (outside transaction since we committed)
+    super::project_statuses::seed_default_statuses(pool, project.id, tenant_id).await?;
+    let statuses = super::project_statuses::list_project_statuses(pool, project.id).await?;
+
+    Ok(ProjectWithTaskLists {
+        project,
+        task_lists: vec![task_list],
+        statuses,
+    })
+}
+
+// Alias for backward compat
 pub async fn create_board(
     pool: &PgPool,
     name: &str,
@@ -95,81 +200,20 @@ pub async fn create_board(
     workspace_id: Uuid,
     tenant_id: Uuid,
     created_by_id: Uuid,
-) -> Result<BoardWithColumns, sqlx::Error> {
-    let mut tx = pool.begin().await?;
-
-    // Create board
-    let board = sqlx::query_as!(
-        Board,
-        r#"
-        INSERT INTO boards (name, description, workspace_id, tenant_id, created_by_id)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
-                  created_by_id, background_color, is_sample, deleted_at, created_at, updated_at
-        "#,
+) -> Result<ProjectWithTaskLists, sqlx::Error> {
+    create_project(
+        pool,
         name,
         description,
         workspace_id,
         tenant_id,
-        created_by_id
+        created_by_id,
     )
-    .fetch_one(&mut *tx)
-    .await?;
-
-    // Create default columns
-    let columns = vec![
-        ("To Do", "a0", "#6366f1", None),
-        ("In Progress", "a1", "#3b82f6", None),
-        (
-            "Done",
-            "a2",
-            "#22c55e",
-            Some(serde_json::json!({"done": true})),
-        ),
-    ];
-
-    let mut created_columns = Vec::new();
-    for (col_name, pos, color, status_mapping) in columns {
-        let col = sqlx::query_as!(
-            BoardColumn,
-            r#"
-            INSERT INTO board_columns (name, board_id, position, color, status_mapping)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
-            "#,
-            col_name,
-            board.id,
-            pos,
-            color,
-            status_mapping
-        )
-        .fetch_one(&mut *tx)
-        .await?;
-        created_columns.push(col);
-    }
-
-    // Add creator as board member with editor role
-    sqlx::query!(
-        r#"
-        INSERT INTO board_members (board_id, user_id, role)
-        VALUES ($1, $2, 'owner')
-        "#,
-        board.id,
-        created_by_id
-    )
-    .execute(&mut *tx)
-    .await?;
-
-    tx.commit().await?;
-
-    Ok(BoardWithColumns {
-        board,
-        columns: created_columns,
-    })
+    .await
 }
 
-/// Update board name, description, and background color
-pub async fn update_board(
+/// Update project name, description, and background color
+pub async fn update_project(
     pool: &PgPool,
     id: Uuid,
     name: Option<&str>,
@@ -178,10 +222,9 @@ pub async fn update_board(
 ) -> Result<Option<Board>, sqlx::Error> {
     match background_color {
         Some(color) => {
-            sqlx::query_as!(
-                Board,
+            sqlx::query_as::<_, Board>(
                 r#"
-                UPDATE boards
+                UPDATE projects
                 SET name = COALESCE($2, name),
                     description = COALESCE($3, description),
                     background_color = $4
@@ -190,19 +233,18 @@ pub async fn update_board(
                 RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
                           created_by_id, background_color, is_sample, deleted_at, created_at, updated_at
                 "#,
-                id,
-                name,
-                description,
-                color
             )
+            .bind(id)
+            .bind(name)
+            .bind(description)
+            .bind(color)
             .fetch_optional(pool)
             .await
         }
         None => {
-            sqlx::query_as!(
-                Board,
+            sqlx::query_as::<_, Board>(
                 r#"
-                UPDATE boards
+                UPDATE projects
                 SET name = COALESCE($2, name),
                     description = COALESCE($3, description)
                 WHERE id = $1
@@ -210,71 +252,93 @@ pub async fn update_board(
                 RETURNING id, name, description, slack_webhook_url, prefix, workspace_id, tenant_id,
                           created_by_id, background_color, is_sample, deleted_at, created_at, updated_at
                 "#,
-                id,
-                name,
-                description
             )
+            .bind(id)
+            .bind(name)
+            .bind(description)
             .fetch_optional(pool)
             .await
         }
     }
 }
 
-/// Soft-delete a board
-pub async fn soft_delete_board(pool: &PgPool, id: Uuid) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query!(
+pub async fn update_board(
+    pool: &PgPool,
+    id: Uuid,
+    name: Option<&str>,
+    description: Option<&str>,
+    background_color: Option<Option<&str>>,
+) -> Result<Option<Board>, sqlx::Error> {
+    update_project(pool, id, name, description, background_color).await
+}
+
+/// Soft-delete a project
+pub async fn soft_delete_project(pool: &PgPool, id: Uuid) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query(
         r#"
-        UPDATE boards
+        UPDATE projects
         SET deleted_at = NOW()
         WHERE id = $1
           AND deleted_at IS NULL
         "#,
-        id
     )
+    .bind(id)
     .execute(pool)
     .await?;
 
     Ok(result.rows_affected() > 0)
 }
 
-/// Add a user to a board
+pub async fn soft_delete_board(pool: &PgPool, id: Uuid) -> Result<bool, sqlx::Error> {
+    soft_delete_project(pool, id).await
+}
+
+/// Add a user to a project
+pub async fn add_project_member(
+    pool: &PgPool,
+    project_id: Uuid,
+    user_id: Uuid,
+    role: BoardMemberRole,
+) -> Result<ProjectMember, sqlx::Error> {
+    sqlx::query_as::<_, ProjectMember>(
+        r#"
+        INSERT INTO project_members (project_id, user_id, role)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (project_id, user_id) DO UPDATE SET role = $3
+        RETURNING id, project_id, user_id, role as "role: _", joined_at
+        "#,
+    )
+    .bind(project_id)
+    .bind(user_id)
+    .bind(role)
+    .fetch_one(pool)
+    .await
+}
+
 pub async fn add_board_member(
     pool: &PgPool,
     board_id: Uuid,
     user_id: Uuid,
     role: BoardMemberRole,
-) -> Result<BoardMember, sqlx::Error> {
-    sqlx::query_as!(
-        BoardMember,
-        r#"
-        INSERT INTO board_members (board_id, user_id, role)
-        VALUES ($1, $2, $3)
-        ON CONFLICT (board_id, user_id) DO UPDATE SET role = $3
-        RETURNING id, board_id, user_id, role AS "role: _", joined_at
-        "#,
-        board_id,
-        user_id,
-        role as BoardMemberRole
-    )
-    .fetch_one(pool)
-    .await
+) -> Result<ProjectMember, sqlx::Error> {
+    add_project_member(pool, board_id, user_id, role).await
 }
 
-/// Update a board member's role
-pub async fn update_board_member_role(
+/// Update a project member's role
+pub async fn update_project_member_role(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     user_id: Uuid,
     role: BoardMemberRole,
 ) -> Result<bool, sqlx::Error> {
     let result = sqlx::query(
         r#"
-        UPDATE board_members
+        UPDATE project_members
         SET role = $3
-        WHERE board_id = $1 AND user_id = $2
+        WHERE project_id = $1 AND user_id = $2
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .bind(user_id)
     .bind(role)
     .execute(pool)
@@ -283,31 +347,48 @@ pub async fn update_board_member_role(
     Ok(result.rows_affected() > 0)
 }
 
-/// Remove a user from a board
-pub async fn remove_board_member(
+pub async fn update_board_member_role(
     pool: &PgPool,
     board_id: Uuid,
     user_id: Uuid,
+    role: BoardMemberRole,
 ) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query!(
+    update_project_member_role(pool, board_id, user_id, role).await
+}
+
+/// Remove a user from a project
+pub async fn remove_project_member(
+    pool: &PgPool,
+    project_id: Uuid,
+    user_id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    let result = sqlx::query(
         r#"
-        DELETE FROM board_members
-        WHERE board_id = $1 AND user_id = $2
+        DELETE FROM project_members
+        WHERE project_id = $1 AND user_id = $2
         "#,
-        board_id,
-        user_id
     )
+    .bind(project_id)
+    .bind(user_id)
     .execute(pool)
     .await?;
 
     Ok(result.rows_affected() > 0)
 }
 
-/// Board member with user info
+pub async fn remove_board_member(
+    pool: &PgPool,
+    board_id: Uuid,
+    user_id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    remove_project_member(pool, board_id, user_id).await
+}
+
+/// Project member with user info
 #[derive(sqlx::FromRow, serde::Serialize, Clone, Debug)]
-pub struct BoardMemberWithUser {
+pub struct ProjectMemberWithUser {
     pub id: Uuid,
-    pub board_id: Uuid,
+    pub project_id: Uuid,
     pub user_id: Uuid,
     pub role: BoardMemberRole,
     pub joined_at: chrono::DateTime<chrono::Utc>,
@@ -316,91 +397,119 @@ pub struct BoardMemberWithUser {
     pub avatar_url: Option<String>,
 }
 
-/// List all members of a board with user info
-pub async fn list_board_members(
+pub type BoardMemberWithUser = ProjectMemberWithUser;
+
+/// List all members of a project with user info
+pub async fn list_project_members(
     pool: &PgPool,
-    board_id: Uuid,
-) -> Result<Vec<BoardMemberWithUser>, sqlx::Error> {
-    sqlx::query_as::<_, BoardMemberWithUser>(
+    project_id: Uuid,
+) -> Result<Vec<ProjectMemberWithUser>, sqlx::Error> {
+    sqlx::query_as::<_, ProjectMemberWithUser>(
         r#"
-        SELECT bm.id, bm.board_id, bm.user_id, bm.role,
+        SELECT bm.id, bm.project_id, bm.user_id, bm.role,
                bm.joined_at, u.name, u.email, u.avatar_url
-        FROM board_members bm
+        FROM project_members bm
         INNER JOIN users u ON bm.user_id = u.id
-        WHERE bm.board_id = $1
+        WHERE bm.project_id = $1
           AND u.deleted_at IS NULL
         ORDER BY bm.joined_at ASC
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_all(pool)
     .await
 }
 
-/// Check if a user is a member of a board
-pub async fn is_board_member(
+pub async fn list_board_members(
     pool: &PgPool,
     board_id: Uuid,
+) -> Result<Vec<ProjectMemberWithUser>, sqlx::Error> {
+    list_project_members(pool, board_id).await
+}
+
+/// Check if a user is a member of a project
+pub async fn is_project_member(
+    pool: &PgPool,
+    project_id: Uuid,
     user_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query_scalar!(
+    let result = sqlx::query_scalar::<_, bool>(
         r#"
         SELECT EXISTS(
-            SELECT 1 FROM board_members
-            WHERE board_id = $1 AND user_id = $2
-        ) AS "exists!"
+            SELECT 1 FROM project_members
+            WHERE project_id = $1 AND user_id = $2
+        )
         "#,
-        board_id,
-        user_id
     )
+    .bind(project_id)
+    .bind(user_id)
     .fetch_one(pool)
     .await?;
 
     Ok(result)
 }
 
-/// Get board member role
+pub async fn is_board_member(
+    pool: &PgPool,
+    board_id: Uuid,
+    user_id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    is_project_member(pool, board_id, user_id).await
+}
+
+/// Get project member role
+pub async fn get_project_member_role(
+    pool: &PgPool,
+    project_id: Uuid,
+    user_id: Uuid,
+) -> Result<Option<BoardMemberRole>, sqlx::Error> {
+    sqlx::query_scalar::<_, BoardMemberRole>(
+        r#"
+        SELECT role as "role: BoardMemberRole"
+        FROM project_members
+        WHERE project_id = $1 AND user_id = $2
+        "#,
+    )
+    .bind(project_id)
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await
+}
+
 pub async fn get_board_member_role(
     pool: &PgPool,
     board_id: Uuid,
     user_id: Uuid,
 ) -> Result<Option<BoardMemberRole>, sqlx::Error> {
-    sqlx::query_scalar!(
-        r#"
-        SELECT role AS "role: BoardMemberRole"
-        FROM board_members
-        WHERE board_id = $1 AND user_id = $2
-        "#,
-        board_id,
-        user_id
-    )
-    .fetch_optional(pool)
-    .await
+    get_project_member_role(pool, board_id, user_id).await
 }
 
-/// Get board without membership check (for internal use)
-pub async fn get_board_internal(pool: &PgPool, id: Uuid) -> Result<Option<Board>, sqlx::Error> {
-    sqlx::query_as!(
-        Board,
+/// Get project without membership check (for internal use)
+pub async fn get_project_internal(pool: &PgPool, id: Uuid) -> Result<Option<Board>, sqlx::Error> {
+    sqlx::query_as::<_, Board>(
         r#"
         SELECT id, name, description, slack_webhook_url, prefix,
                workspace_id, tenant_id, created_by_id,
                background_color, is_sample, deleted_at, created_at, updated_at
-        FROM boards
+        FROM projects
         WHERE id = $1
           AND deleted_at IS NULL
         "#,
-        id
     )
+    .bind(id)
     .fetch_optional(pool)
     .await
 }
 
+pub async fn get_board_internal(pool: &PgPool, id: Uuid) -> Result<Option<Board>, sqlx::Error> {
+    get_project_internal(pool, id).await
+}
+
 // ============================================================================
-// Board Full (batch) query types and functions
+// Project Full (batch) query types and functions
 // ============================================================================
 
-/// A task row enriched with badge counts for the board full response
+/// A task row enriched with badge counts for the project full response
 #[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct TaskWithBadgesRow {
     pub id: Uuid,
@@ -408,9 +517,9 @@ pub struct TaskWithBadgesRow {
     pub description: Option<String>,
     pub priority: TaskPriority,
     pub due_date: Option<DateTime<Utc>>,
-    pub column_id: Uuid,
+    pub status_id: Option<Uuid>,
     pub position: String,
-    pub group_id: Option<Uuid>,
+    pub task_list_id: Option<Uuid>,
     pub milestone_id: Option<Uuid>,
     pub created_by_id: Uuid,
     pub created_at: DateTime<Utc>,
@@ -419,11 +528,10 @@ pub struct TaskWithBadgesRow {
     pub subtask_completed: i64,
     pub has_running_timer: bool,
     pub comment_count: i64,
-    pub column_entered_at: DateTime<Utc>,
     pub parent_task_id: Option<Uuid>,
 }
 
-/// Assignee info returned for a board's tasks
+/// Assignee info returned for a project's tasks
 #[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct BoardTaskAssignee {
     pub task_id: Uuid,
@@ -432,7 +540,7 @@ pub struct BoardTaskAssignee {
     pub avatar_url: Option<String>,
 }
 
-/// Label info returned for a board's tasks
+/// Label info returned for a project's tasks
 #[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct BoardTaskLabel {
     pub task_id: Uuid,
@@ -447,11 +555,11 @@ pub struct PaginatedTasks {
     pub total_count: i64,
 }
 
-/// Fetch tasks for a board with badge counts (subtasks, timers, comments).
+/// Fetch tasks for a project with badge counts (subtasks, timers, comments).
 /// Supports optional pagination via limit/offset. Returns total count for pagination metadata.
-pub async fn list_board_tasks_with_badges(
+pub async fn list_project_tasks_with_badges(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     limit: Option<i64>,
     offset: Option<i64>,
 ) -> Result<PaginatedTasks, sqlx::Error> {
@@ -460,9 +568,9 @@ pub async fn list_board_tasks_with_badges(
 
     // Get total count first (cheap indexed query)
     let total_count: i64 = sqlx::query_scalar(
-        r#"SELECT COUNT(*) FROM tasks WHERE board_id = $1 AND deleted_at IS NULL AND parent_task_id IS NULL"#,
+        r#"SELECT COUNT(*) FROM tasks WHERE project_id = $1 AND deleted_at IS NULL AND parent_task_id IS NULL"#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_one(pool)
     .await?;
 
@@ -474,14 +582,13 @@ pub async fn list_board_tasks_with_badges(
             t.description,
             t.priority,
             t.due_date,
-            t.column_id,
+            t.status_id,
             t.position,
-            t.group_id,
+            t.task_list_id,
             t.milestone_id,
             t.created_by_id,
             t.created_at,
             t.updated_at,
-            t.column_entered_at,
             t.parent_task_id,
             COALESCE(sub.total, 0) AS "subtask_total",
             COALESCE(sub.completed, 0) AS "subtask_completed",
@@ -490,9 +597,9 @@ pub async fn list_board_tasks_with_badges(
         FROM tasks t
         LEFT JOIN LATERAL (
             SELECT COUNT(*)::bigint AS total,
-                   COUNT(*) FILTER (WHERE child.column_id IN (
-                       SELECT bc.id FROM board_columns bc WHERE bc.board_id = t.board_id
-                       AND bc.status_mapping->>'done' = 'true'
+                   COUNT(*) FILTER (WHERE child.status_id IN (
+                       SELECT ps.id FROM project_statuses ps WHERE ps.project_id = t.project_id
+                       AND ps.type = 'done'
                    ))::bigint AS completed
             FROM tasks child
             WHERE child.parent_task_id = t.id AND child.deleted_at IS NULL
@@ -508,12 +615,12 @@ pub async fn list_board_tasks_with_badges(
             FROM comments c
             WHERE c.task_id = t.id AND c.deleted_at IS NULL
         ) cmt ON true
-        WHERE t.board_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
+        WHERE t.project_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
         ORDER BY t.position ASC
         LIMIT $2 OFFSET $3
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .bind(limit_val)
     .bind(offset_val)
     .fetch_all(pool)
@@ -522,10 +629,19 @@ pub async fn list_board_tasks_with_badges(
     Ok(PaginatedTasks { tasks, total_count })
 }
 
-/// Fetch assignees for tasks in a board (capped at 5000 rows)
-pub async fn list_board_task_assignees(
+pub async fn list_board_tasks_with_badges(
     pool: &PgPool,
     board_id: Uuid,
+    limit: Option<i64>,
+    offset: Option<i64>,
+) -> Result<PaginatedTasks, sqlx::Error> {
+    list_project_tasks_with_badges(pool, board_id, limit, offset).await
+}
+
+/// Fetch assignees for tasks in a project (capped at 5000 rows)
+pub async fn list_project_task_assignees(
+    pool: &PgPool,
+    project_id: Uuid,
 ) -> Result<Vec<BoardTaskAssignee>, sqlx::Error> {
     sqlx::query_as::<_, BoardTaskAssignee>(
         r#"
@@ -537,21 +653,28 @@ pub async fn list_board_task_assignees(
         FROM task_assignees ta
         JOIN tasks t ON t.id = ta.task_id
         JOIN users u ON u.id = ta.user_id
-        WHERE t.board_id = $1
+        WHERE t.project_id = $1
           AND t.deleted_at IS NULL
           AND u.deleted_at IS NULL
         LIMIT 5000
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_all(pool)
     .await
 }
 
-/// Fetch labels for tasks in a board (capped at 5000 rows)
-pub async fn list_board_task_labels(
+pub async fn list_board_task_assignees(
     pool: &PgPool,
     board_id: Uuid,
+) -> Result<Vec<BoardTaskAssignee>, sqlx::Error> {
+    list_project_task_assignees(pool, board_id).await
+}
+
+/// Fetch labels for tasks in a project (capped at 5000 rows)
+pub async fn list_project_task_labels(
+    pool: &PgPool,
+    project_id: Uuid,
 ) -> Result<Vec<BoardTaskLabel>, sqlx::Error> {
     sqlx::query_as::<_, BoardTaskLabel>(
         r#"
@@ -563,33 +686,40 @@ pub async fn list_board_task_labels(
         FROM task_labels tl
         JOIN labels l ON l.id = tl.label_id
         JOIN tasks t ON t.id = tl.task_id
-        WHERE t.board_id = $1
+        WHERE t.project_id = $1
           AND t.deleted_at IS NULL
         LIMIT 5000
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_all(pool)
     .await
 }
 
-/// Duplicate a board with its columns and optionally its tasks.
-/// Returns the new board with columns.
-pub async fn duplicate_board(
+pub async fn list_board_task_labels(
+    pool: &PgPool,
+    board_id: Uuid,
+) -> Result<Vec<BoardTaskLabel>, sqlx::Error> {
+    list_project_task_labels(pool, board_id).await
+}
+
+/// Duplicate a project with its statuses, task lists and optionally its tasks.
+/// Returns the new project with task lists.
+pub async fn duplicate_project(
     pool: &PgPool,
     source_id: Uuid,
     new_name: &str,
     include_tasks: bool,
     user_id: Uuid,
-) -> Result<BoardWithColumns, sqlx::Error> {
+) -> Result<ProjectWithTaskLists, sqlx::Error> {
     let mut tx = pool.begin().await?;
 
-    // 1. Copy the board
-    let new_board = sqlx::query_as::<_, Board>(
+    // 1. Copy the project
+    let new_project = sqlx::query_as::<_, Board>(
         r#"
-        INSERT INTO boards (name, description, workspace_id, tenant_id, created_by_id, background_color)
+        INSERT INTO projects (name, description, workspace_id, tenant_id, created_by_id, background_color)
         SELECT $2, description, workspace_id, tenant_id, $3, background_color
-        FROM boards WHERE id = $1 AND deleted_at IS NULL
+        FROM projects WHERE id = $1 AND deleted_at IS NULL
         RETURNING id, name, description, slack_webhook_url, prefix,
                   workspace_id, tenant_id, created_by_id,
                   background_color, is_sample, deleted_at, created_at, updated_at
@@ -601,58 +731,86 @@ pub async fn duplicate_board(
     .fetch_one(&mut *tx)
     .await?;
 
-    // 2. Copy columns
-    let new_columns = sqlx::query_as::<_, BoardColumn>(
+    // 2. Copy statuses
+    sqlx::query(
         r#"
-        INSERT INTO board_columns (name, board_id, position, color, status_mapping, wip_limit, icon)
-        SELECT name, $2, position, color, status_mapping, wip_limit, icon
-        FROM board_columns WHERE board_id = $1
-        ORDER BY position ASC
-        RETURNING id, name, board_id, position, color, status_mapping, wip_limit, icon, created_at
+        INSERT INTO project_statuses (id, project_id, name, color, type, position, is_default, tenant_id)
+        SELECT gen_random_uuid(), $2, name, color, type, position, is_default, tenant_id
+        FROM project_statuses WHERE project_id = $1
         "#,
     )
     .bind(source_id)
-    .bind(new_board.id)
+    .bind(new_project.id)
+    .execute(&mut *tx)
+    .await?;
+
+    // 3. Copy task lists
+    let new_task_lists = sqlx::query_as::<_, TaskList>(
+        r#"
+        INSERT INTO task_lists (project_id, name, color, position, is_default, tenant_id, created_by_id)
+        SELECT $2, name, color, position, is_default, tenant_id, $3
+        FROM task_lists WHERE project_id = $1 AND deleted_at IS NULL
+        ORDER BY position ASC
+        RETURNING id, project_id, name, color, position, is_default, collapsed,
+                  tenant_id, created_by_id, created_at, updated_at, deleted_at
+        "#,
+    )
+    .bind(source_id)
+    .bind(new_project.id)
+    .bind(user_id)
     .fetch_all(&mut *tx)
     .await?;
 
-    // 3. Copy tasks (optional) — map old column positions to new column IDs
+    // 4. Copy tasks (optional) — map old status to new status by name
     if include_tasks {
         sqlx::query(
             r#"
-            INSERT INTO tasks (title, description, priority, due_date, position, board_id, column_id,
-                               created_by_id, tenant_id)
-            SELECT t.title, t.description, t.priority, t.due_date, t.position, $2, nc.id,
-                   $3, t.tenant_id
+            INSERT INTO tasks (title, description, priority, due_date, position, project_id,
+                               status_id, created_by_id, tenant_id)
+            SELECT t.title, t.description, t.priority, t.due_date, t.position, $2,
+                   ns.id, $3, t.tenant_id
             FROM tasks t
-            JOIN board_columns oc ON t.column_id = oc.id AND oc.board_id = $1
-            JOIN board_columns nc ON nc.board_id = $2 AND nc.position = oc.position
-            WHERE t.board_id = $1 AND t.deleted_at IS NULL
+            LEFT JOIN project_statuses os ON os.id = t.status_id
+            LEFT JOIN project_statuses ns ON ns.project_id = $2 AND ns.name = os.name
+            WHERE t.project_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
             "#,
         )
         .bind(source_id)
-        .bind(new_board.id)
+        .bind(new_project.id)
         .bind(user_id)
         .execute(&mut *tx)
         .await?;
     }
 
-    // 4. Add user as Owner
+    // 5. Add user as Owner
     sqlx::query(
         r#"
-        INSERT INTO board_members (board_id, user_id, role)
+        INSERT INTO project_members (project_id, user_id, role)
         VALUES ($1, $2, 'owner')
         "#,
     )
-    .bind(new_board.id)
+    .bind(new_project.id)
     .bind(user_id)
     .execute(&mut *tx)
     .await?;
 
     tx.commit().await?;
 
-    Ok(BoardWithColumns {
-        board: new_board,
-        columns: new_columns,
+    let statuses = super::project_statuses::list_project_statuses(pool, new_project.id).await?;
+
+    Ok(ProjectWithTaskLists {
+        project: new_project,
+        task_lists: new_task_lists,
+        statuses,
     })
+}
+
+pub async fn duplicate_board(
+    pool: &PgPool,
+    source_id: Uuid,
+    new_name: &str,
+    include_tasks: bool,
+    user_id: Uuid,
+) -> Result<ProjectWithTaskLists, sqlx::Error> {
+    duplicate_project(pool, source_id, new_name, include_tasks, user_id).await
 }

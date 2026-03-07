@@ -49,8 +49,8 @@ import {
             <th pSortableColumn="priority" style="width: 120px">
               Priority <p-sortIcon field="priority" />
             </th>
-            <th pSortableColumn="column_name" style="width: 140px">
-              Status <p-sortIcon field="column_name" />
+            <th pSortableColumn="status_name" style="width: 140px">
+              Status <p-sortIcon field="status_name" />
             </th>
             <th pSortableColumn="due_date" style="width: 140px">
               Due Date <p-sortIcon field="due_date" />
@@ -92,12 +92,10 @@ import {
             <td>
               <div
                 class="flex items-center justify-center h-8 rounded text-xs font-medium cursor-pointer transition-opacity hover:opacity-85"
-                style="
-                  background: var(--secondary);
-                  color: var(--secondary-foreground);
-                "
+                [style.background]="task.status_color || 'var(--secondary)'"
+                [style.color]="task.status_color ? '#fff' : 'var(--secondary-foreground)'"
               >
-                {{ task.column_name }}
+                {{ task.status_name || task.column_name }}
               </div>
             </td>
             <td>

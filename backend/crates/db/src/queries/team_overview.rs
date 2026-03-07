@@ -105,8 +105,8 @@ pub async fn get_workload(
         INNER JOIN users u ON u.id = wm.user_id
         LEFT JOIN task_assignees ta ON ta.user_id = u.id
         LEFT JOIN tasks t ON t.id = ta.task_id AND t.deleted_at IS NULL
-        LEFT JOIN board_columns bc ON bc.id = t.column_id
-        LEFT JOIN boards b ON b.id = t.board_id AND b.workspace_id = $1
+        LEFT JOIN project_statuses bc ON bc.id = t.status_id
+        LEFT JOIN projects b ON b.id = t.project_id AND b.workspace_id = $1
         WHERE wm.workspace_id = $1
           AND u.tenant_id = $2
           AND u.deleted_at IS NULL
@@ -168,8 +168,8 @@ pub async fn get_overloaded_members(
         INNER JOIN users u ON u.id = wm.user_id
         LEFT JOIN task_assignees ta ON ta.user_id = u.id
         LEFT JOIN tasks t ON t.id = ta.task_id AND t.deleted_at IS NULL
-        LEFT JOIN board_columns bc ON bc.id = t.column_id
-        LEFT JOIN boards b ON b.id = t.board_id AND b.workspace_id = $1
+        LEFT JOIN project_statuses bc ON bc.id = t.status_id
+        LEFT JOIN projects b ON b.id = t.project_id AND b.workspace_id = $1
         WHERE wm.workspace_id = $1
           AND u.tenant_id = $2
           AND u.deleted_at IS NULL
@@ -258,8 +258,8 @@ pub async fn get_member_active_tasks(
             t.due_date
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
-        INNER JOIN boards b ON b.id = t.board_id
-        INNER JOIN board_columns bc ON bc.id = t.column_id
+        INNER JOIN projects b ON b.id = t.project_id
+        INNER JOIN project_statuses bc ON bc.id = t.status_id
         WHERE ta.user_id = $1
           AND b.workspace_id = $2
           AND t.deleted_at IS NULL
@@ -316,7 +316,7 @@ pub async fn reassign_tasks(
             r#"
             DELETE FROM task_assignees ta
             USING tasks t
-            INNER JOIN boards b ON b.id = t.board_id
+            INNER JOIN projects b ON b.id = t.project_id
             WHERE ta.task_id = $1
               AND ta.user_id = $2
               AND t.id = ta.task_id
