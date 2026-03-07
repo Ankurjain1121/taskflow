@@ -86,7 +86,7 @@ pub async fn list_dependencies(
             WHEN td.source_task_id = $1 THEN td.target_task_id
             ELSE td.source_task_id
         END
-        JOIN board_columns bc ON bc.id = t.column_id
+        JOIN board_columns bc ON bc.id = t.status_id
         WHERE (td.source_task_id = $1 OR td.target_task_id = $1)
           AND t.deleted_at IS NULL
         ORDER BY td.created_at DESC
@@ -199,7 +199,7 @@ pub async fn create_dependency(
             WHEN td.source_task_id = $2 THEN td.target_task_id
             ELSE td.source_task_id
         END
-        JOIN board_columns bc ON bc.id = t.column_id
+        JOIN board_columns bc ON bc.id = t.status_id
         WHERE td.id = $1
         "#,
     )
@@ -245,7 +245,7 @@ pub async fn check_blockers(
             COALESCE(bc.status_mapping->>'done' = 'true', false) as is_resolved
         FROM task_dependencies td
         JOIN tasks t ON t.id = td.source_task_id
-        JOIN board_columns bc ON bc.id = t.column_id
+        JOIN board_columns bc ON bc.id = t.status_id
         WHERE td.target_task_id = $1
           AND td.dependency_type = 'blocks'
           AND t.deleted_at IS NULL
@@ -286,8 +286,8 @@ pub async fn get_board_dependencies(
         FROM task_dependencies td
         JOIN tasks source_t ON source_t.id = td.source_task_id
         JOIN tasks target_t ON target_t.id = td.target_task_id
-        JOIN board_columns bc ON bc.id = target_t.column_id
-        WHERE source_t.board_id = $1
+        JOIN board_columns bc ON bc.id = target_t.status_id
+        WHERE source_t.project_id = $1
           AND source_t.deleted_at IS NULL
           AND target_t.deleted_at IS NULL
         ORDER BY td.created_at DESC
@@ -307,7 +307,7 @@ async fn get_task_board_id_internal(
 ) -> Result<Uuid, DependencyQueryError> {
     let board_id = sqlx::query_scalar::<_, Uuid>(
         r#"
-        SELECT board_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
+        SELECT project_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
         "#,
     )
     .bind(task_id)

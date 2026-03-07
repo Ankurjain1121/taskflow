@@ -48,7 +48,7 @@ export class BoardBulkActionsService {
 
     const req: BulkUpdateRequest = { task_ids: taskIds };
     if (action.type === 'move' && action.column_id)
-      req.column_id = action.column_id;
+      req.status_id = action.column_id;
     if (action.type === 'priority' && action.priority)
       req.priority = action.priority;
     if (action.type === 'milestone') {
@@ -60,9 +60,9 @@ export class BoardBulkActionsService {
     }
     if (action.type === 'group') {
       if (action.clear_group) {
-        req.clear_group = true;
+        req.clear_task_list = true;
       } else if (action.group_id) {
-        req.group_id = action.group_id;
+        req.task_list_id = action.group_id;
       }
     }
 
@@ -79,7 +79,7 @@ export class BoardBulkActionsService {
           const staying = tasks.filter((t) => !idSet.has(t.id));
           const moving = tasks.filter((t) => idSet.has(t.id));
           movedTasks.push(
-            ...moving.map((t) => ({ ...t, column_id: targetColId })),
+            ...moving.map((t) => ({ ...t, status_id: targetColId })),
           );
           newState[colId] = staying;
         }
@@ -99,7 +99,7 @@ export class BoardBulkActionsService {
             : (action.milestone_id ?? null);
         }
         if (action.type === 'group') {
-          fieldUpdates.group_id = action.clear_group
+          fieldUpdates.task_list_id = action.clear_group
             ? null
             : (action.group_id ?? null);
         }

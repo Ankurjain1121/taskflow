@@ -37,7 +37,7 @@ export class BoardCardOperationsService {
     });
 
     this.taskService
-      .moveTask(event.taskId, { column_id: event.columnId, position: 'a0' })
+      .moveTask(event.taskId, { status_id: event.columnId, position: 'a0' })
       .pipe(takeUntil(destroy$))
       .subscribe({
         error: () => {
@@ -69,7 +69,7 @@ export class BoardCardOperationsService {
       updated_at: new Date().toISOString(),
     };
     const snapshot = structuredClone(currentState);
-    const origColumnId = originalTask.column_id;
+    const origColumnId = originalTask.status_id ?? '';
     this.state.boardState.update((state) => {
       const newState = { ...state };
       newState[origColumnId] = [...(newState[origColumnId] || []), tempTask];
@@ -83,8 +83,8 @@ export class BoardCardOperationsService {
         next: (realTask) => {
           this.state.boardState.update((state) => {
             const newState = { ...state };
-            const col = newState[realTask.column_id] || [];
-            newState[realTask.column_id] = col
+            const col = newState[realTask.status_id ?? ''] || [];
+            newState[realTask.status_id ?? ''] = col
               .map((t) => (t.id === tempId ? realTask : t))
               .sort((a, b) => a.position.localeCompare(b.position));
             return newState;

@@ -3,6 +3,8 @@
 //! Contains all template definitions (columns, tasks, labels) for each use-case
 //! (software, marketing, personal, design).
 
+#![allow(dead_code)]
+
 // ============================================================================
 // Template data structures
 // ============================================================================

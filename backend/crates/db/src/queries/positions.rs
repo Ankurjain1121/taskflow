@@ -15,10 +15,10 @@ pub async fn list_positions(
     // Fetch all positions for the board
     let positions = sqlx::query_as::<_, Position>(
         r#"
-        SELECT id, name, description, board_id, fallback_position_id,
+        SELECT id, name, description, project_id, fallback_position_id,
                tenant_id, created_by_id, created_at, updated_at
         FROM positions
-        WHERE board_id = $1
+        WHERE project_id = $1
         ORDER BY name ASC
         "#,
     )
@@ -112,7 +112,7 @@ pub async fn list_positions(
                 id: p.id,
                 name: p.name,
                 description: p.description,
-                board_id: p.board_id,
+                project_id: p.project_id,
                 fallback_position_id: p.fallback_position_id,
                 fallback_position_name,
                 tenant_id: p.tenant_id,
@@ -132,7 +132,7 @@ pub async fn list_positions(
 pub async fn get_position(pool: &PgPool, id: Uuid) -> Result<Option<Position>, sqlx::Error> {
     sqlx::query_as::<_, Position>(
         r#"
-        SELECT id, name, description, board_id, fallback_position_id,
+        SELECT id, name, description, project_id, fallback_position_id,
                tenant_id, created_by_id, created_at, updated_at
         FROM positions
         WHERE id = $1
@@ -155,9 +155,9 @@ pub async fn create_position(
 ) -> Result<Position, sqlx::Error> {
     sqlx::query_as::<_, Position>(
         r#"
-        INSERT INTO positions (name, description, fallback_position_id, board_id, tenant_id, created_by_id)
+        INSERT INTO positions (name, description, fallback_position_id, project_id, tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id, name, description, board_id, fallback_position_id,
+        RETURNING id, name, description, project_id, fallback_position_id,
                   tenant_id, created_by_id, created_at, updated_at
         "#,
     )
@@ -187,7 +187,7 @@ pub async fn update_position(
             fallback_position_id = CASE WHEN $4 THEN $5 ELSE fallback_position_id END,
             updated_at = NOW()
         WHERE id = $1
-        RETURNING id, name, description, board_id, fallback_position_id,
+        RETURNING id, name, description, project_id, fallback_position_id,
                   tenant_id, created_by_id, created_at, updated_at
         "#,
     )
@@ -282,7 +282,7 @@ pub async fn list_recurring_tasks_for_position(
         r#"
         SELECT id, task_id, pattern, cron_expression, interval_days,
                next_run_at, last_run_at, is_active, max_occurrences,
-               occurrences_created, board_id, tenant_id, created_by_id,
+               occurrences_created, project_id, tenant_id, created_by_id,
                created_at, updated_at, end_date, skip_weekends,
                days_of_week, day_of_month, creation_mode, position_id
         FROM recurring_task_configs
@@ -361,7 +361,7 @@ pub async fn resolve_assignees(
         r#"
         SELECT wm.user_id
         FROM workspace_members wm
-        INNER JOIN boards b ON b.workspace_id = wm.workspace_id
+        INNER JOIN projects b ON b.workspace_id = wm.workspace_id
         WHERE b.id = $1
           AND wm.role::text IN ('owner', 'admin')
         ORDER BY
@@ -396,9 +396,9 @@ pub async fn resolve_assignees(
     // Auto-add company admin as board member if not already
     sqlx::query(
         r#"
-        INSERT INTO board_members (board_id, user_id, role)
+        INSERT INTO project_members (project_id, user_id, role)
         VALUES ($1, $2, 'editor')
-        ON CONFLICT (board_id, user_id) DO NOTHING
+        ON CONFLICT (project_id, user_id) DO NOTHING
         "#,
     )
     .bind(board_id)

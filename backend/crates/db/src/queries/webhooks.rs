@@ -40,7 +40,7 @@ async fn get_webhook_board_id_internal(
     pool: &PgPool,
     webhook_id: Uuid,
 ) -> Result<Uuid, WebhookQueryError> {
-    let board_id = sqlx::query_scalar::<_, Uuid>(r#"SELECT board_id FROM webhooks WHERE id = $1"#)
+    let board_id = sqlx::query_scalar::<_, Uuid>(r#"SELECT project_id FROM webhooks WHERE id = $1"#)
         .bind(webhook_id)
         .fetch_optional(pool)
         .await?
@@ -62,10 +62,10 @@ pub async fn list_webhooks(
 
     let webhooks = sqlx::query_as::<_, Webhook>(
         r#"
-        SELECT id, board_id, url, secret, events, is_active,
+        SELECT id, project_id, url, secret, events, is_active,
                tenant_id, created_by_id, created_at, updated_at
         FROM webhooks
-        WHERE board_id = $1
+        WHERE project_id = $1
         ORDER BY created_at DESC
         "#,
     )
@@ -95,11 +95,11 @@ pub async fn create_webhook(
     let webhook = sqlx::query_as::<_, Webhook>(
         r#"
         INSERT INTO webhooks (
-            id, board_id, url, secret, events, is_active,
+            id, project_id, url, secret, events, is_active,
             tenant_id, created_by_id, created_at, updated_at
         )
         VALUES ($1, $2, $3, $4, $5, true, $6, $7, $8, $8)
-        RETURNING id, board_id, url, secret, events, is_active,
+        RETURNING id, project_id, url, secret, events, is_active,
                   tenant_id, created_by_id, created_at, updated_at
         "#,
     )
@@ -140,7 +140,7 @@ pub async fn update_webhook(
             is_active = COALESCE($5, is_active),
             updated_at = NOW()
         WHERE id = $1
-        RETURNING id, board_id, url, secret, events, is_active,
+        RETURNING id, project_id, url, secret, events, is_active,
                   tenant_id, created_by_id, created_at, updated_at
         "#,
     )
@@ -217,10 +217,10 @@ pub async fn get_active_webhooks_for_event(
 ) -> Result<Vec<Webhook>, WebhookQueryError> {
     let webhooks = sqlx::query_as::<_, Webhook>(
         r#"
-        SELECT id, board_id, url, secret, events, is_active,
+        SELECT id, project_id, url, secret, events, is_active,
                tenant_id, created_by_id, created_at, updated_at
         FROM webhooks
-        WHERE board_id = $1
+        WHERE project_id = $1
           AND is_active = true
           AND $2 = ANY(events)
         "#,
@@ -280,9 +280,9 @@ mod tests {
     const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
 
     async fn test_pool() -> PgPool {
-        PgPool::connect(
-            "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow",
-        )
+        PgPool::connect(&std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgresql://taskflow_app:dev_password@10.0.2.1:5432/taskflow".to_string()
+        }))
         .await
         .expect("Failed to connect to test database")
     }
@@ -311,8 +311,8 @@ mod tests {
         let bwc = boards::create_board(pool, "WH Test Board", None, ws_id, tenant_id, user_id)
             .await
             .expect("create_board");
-        let first_col_id = bwc.columns[0].id;
-        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+        let first_col_id = bwc.task_lists[0].id;
+        (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
     }
 
     #[tokio::test]
@@ -330,7 +330,7 @@ mod tests {
             .await
             .expect("create_webhook");
 
-        assert_eq!(webhook.board_id, board_id);
+        assert_eq!(webhook.project_id, board_id);
         assert_eq!(webhook.url, "https://example.com/webhook");
         assert_eq!(webhook.secret.as_deref(), Some("test-secret"));
         assert_eq!(webhook.events.len(), 2);

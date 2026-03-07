@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, project_id, name, color,\n               type as \"status_type\",\n               position, is_default, tenant_id, created_at\n        FROM project_statuses\n        WHERE project_id = $1\n        ORDER BY position ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "project_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "color",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "status_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "position",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_default",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "tenant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "6218841a19ff5362f0b4e7b1d1f2b4595d941ea8dbcedeb0a4dfc0999c49c525"
+}

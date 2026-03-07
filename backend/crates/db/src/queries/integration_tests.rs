@@ -8,7 +8,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::models::{BoardMemberRole, TaskPriority, UserRole};
-use crate::queries::{auth, boards, columns, comments, tasks, workspaces};
+use crate::queries::{auth, boards, comments, tasks, workspaces};
 
 /// Connect to the real test database.
 async fn test_pool() -> PgPool {
@@ -45,14 +45,14 @@ async fn setup_user_and_workspace(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
     (tenant_id, user_id, ws.id)
 }
 
-/// Helper: create user + workspace + board, return (tenant_id, user_id, workspace_id, board_id, first_column_id)
+/// Helper: create user + workspace + project, return (tenant_id, user_id, workspace_id, project_id, default_task_list_id)
 async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
     let bwc = boards::create_board(pool, "IntTest Board", None, ws_id, tenant_id, user_id)
         .await
         .expect("create_board");
-    let first_col_id = bwc.columns[0].id;
-    (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+    let first_list_id = bwc.task_lists[0].id;
+    (tenant_id, user_id, ws_id, bwc.project.id, first_list_id)
 }
 
 // ===========================================================================
@@ -448,16 +448,16 @@ async fn test_create_board() {
     .await
     .expect("create_board");
 
-    assert_eq!(bwc.board.name, "Board Create");
-    assert_eq!(bwc.board.description.as_deref(), Some("desc"));
-    assert_eq!(bwc.board.workspace_id, ws_id);
-    assert_eq!(bwc.board.tenant_id, tenant_id);
-    assert_eq!(bwc.board.created_by_id, user_id);
+    assert_eq!(bwc.project.name, "Board Create");
+    assert_eq!(bwc.project.description.as_deref(), Some("desc"));
+    assert_eq!(bwc.project.workspace_id, ws_id);
+    assert_eq!(bwc.project.tenant_id, tenant_id);
+    assert_eq!(bwc.project.created_by_id, user_id);
     // Default columns: To Do, In Progress, Done
-    assert_eq!(bwc.columns.len(), 3);
+    assert_eq!(bwc.statuses.len(), 5);
 
     // Creator should be a board member
-    let is_member = boards::is_board_member(&pool, bwc.board.id, user_id)
+    let is_member = boards::is_board_member(&pool, bwc.project.id, user_id)
         .await
         .unwrap();
     assert!(is_member);
@@ -493,13 +493,13 @@ async fn test_get_board_by_id() {
         .await
         .unwrap();
 
-    let fetched = boards::get_board_by_id(&pool, bwc.board.id, user_id)
+    let fetched = boards::get_board_by_id(&pool, bwc.project.id, user_id)
         .await
         .unwrap()
         .expect("should find board");
 
-    assert_eq!(fetched.board.id, bwc.board.id);
-    assert_eq!(fetched.columns.len(), 3);
+    assert_eq!(fetched.project.id, bwc.project.id);
+    assert_eq!(fetched.statuses.len(), 5);
 }
 
 #[tokio::test]
@@ -513,7 +513,7 @@ async fn test_get_board_by_id_non_member() {
 
     // A random user who is NOT a member should get None
     let random_user = Uuid::new_v4();
-    let result = boards::get_board_by_id(&pool, bwc.board.id, random_user)
+    let result = boards::get_board_by_id(&pool, bwc.project.id, random_user)
         .await
         .unwrap();
     assert!(result.is_none());
@@ -528,7 +528,7 @@ async fn test_soft_delete_board() {
         .await
         .unwrap();
 
-    let deleted = boards::soft_delete_board(&pool, bwc.board.id)
+    let deleted = boards::soft_delete_board(&pool, bwc.project.id)
         .await
         .unwrap();
     assert!(deleted);
@@ -537,7 +537,7 @@ async fn test_soft_delete_board() {
     let list = boards::list_boards_by_workspace(&pool, ws_id, user_id)
         .await
         .unwrap();
-    assert!(!list.iter().any(|b| b.id == bwc.board.id));
+    assert!(!list.iter().any(|b| b.id == bwc.project.id));
 }
 
 #[tokio::test]
@@ -561,15 +561,15 @@ async fn test_add_board_member() {
     .await
     .unwrap();
 
-    let member = boards::add_board_member(&pool, bwc.board.id, user2.id, BoardMemberRole::Viewer)
+    let member = boards::add_board_member(&pool, bwc.project.id, user2.id, BoardMemberRole::Viewer)
         .await
         .unwrap();
 
-    assert_eq!(member.board_id, bwc.board.id);
+    assert_eq!(member.project_id, bwc.project.id);
     assert_eq!(member.user_id, user2.id);
     assert_eq!(member.role, BoardMemberRole::Viewer);
 
-    let is_member = boards::is_board_member(&pool, bwc.board.id, user2.id)
+    let is_member = boards::is_board_member(&pool, bwc.project.id, user2.id)
         .await
         .unwrap();
     assert!(is_member);
@@ -596,101 +596,19 @@ async fn test_remove_board_member() {
     .await
     .unwrap();
 
-    boards::add_board_member(&pool, bwc.board.id, user2.id, BoardMemberRole::Editor)
+    boards::add_board_member(&pool, bwc.project.id, user2.id, BoardMemberRole::Editor)
         .await
         .unwrap();
 
-    let removed = boards::remove_board_member(&pool, bwc.board.id, user2.id)
+    let removed = boards::remove_board_member(&pool, bwc.project.id, user2.id)
         .await
         .unwrap();
     assert!(removed);
 
-    let still_member = boards::is_board_member(&pool, bwc.board.id, user2.id)
+    let still_member = boards::is_board_member(&pool, bwc.project.id, user2.id)
         .await
         .unwrap();
     assert!(!still_member);
-}
-
-// ===========================================================================
-// COLUMN TESTS
-// ===========================================================================
-
-#[tokio::test]
-async fn test_list_columns_by_board() {
-    let pool = test_pool().await;
-    let (_, _, _, board_id, _) = setup_full(&pool).await;
-
-    let cols = columns::list_columns_by_board(&pool, board_id)
-        .await
-        .unwrap();
-    // Default columns created by create_board
-    assert_eq!(cols.len(), 3);
-    assert_eq!(cols[0].name, "To Do");
-    assert_eq!(cols[1].name, "In Progress");
-    assert_eq!(cols[2].name, "Done");
-}
-
-#[tokio::test]
-async fn test_add_column() {
-    let pool = test_pool().await;
-    let (_, _, _, board_id, _) = setup_full(&pool).await;
-
-    let col = columns::add_column(&pool, board_id, "Review", Some("#ff9800"), None, "a3")
-        .await
-        .expect("add_column");
-
-    assert_eq!(col.name, "Review");
-    assert_eq!(col.board_id, board_id);
-    assert_eq!(col.color.as_deref(), Some("#ff9800"));
-    assert_eq!(col.position, "a3");
-
-    let all = columns::list_columns_by_board(&pool, board_id)
-        .await
-        .unwrap();
-    assert!(all.iter().any(|c| c.name == "Review"));
-}
-
-#[tokio::test]
-async fn test_rename_column() {
-    let pool = test_pool().await;
-    let (_, _, _, board_id, _) = setup_full(&pool).await;
-
-    let cols = columns::list_columns_by_board(&pool, board_id)
-        .await
-        .unwrap();
-    let first_col = &cols[0];
-
-    let renamed = columns::rename_column(&pool, first_col.id, "Backlog")
-        .await
-        .unwrap()
-        .expect("should return renamed column");
-
-    assert_eq!(renamed.name, "Backlog");
-    assert_eq!(renamed.id, first_col.id);
-}
-
-#[tokio::test]
-async fn test_reorder_column() {
-    let pool = test_pool().await;
-    let (_, _, _, board_id, _) = setup_full(&pool).await;
-
-    let cols = columns::list_columns_by_board(&pool, board_id)
-        .await
-        .unwrap();
-    let first_col = &cols[0];
-
-    let reordered = columns::reorder_column(&pool, first_col.id, "z0")
-        .await
-        .unwrap()
-        .expect("should return reordered column");
-
-    assert_eq!(reordered.position, "z0");
-
-    // Verify the new order: the moved column should now be last
-    let all = columns::list_columns_by_board(&pool, board_id)
-        .await
-        .unwrap();
-    assert_eq!(all.last().unwrap().id, first_col.id);
 }
 
 // ===========================================================================
@@ -708,8 +626,8 @@ async fn create_test_task(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
         due_date: None,
         start_date: None,
         estimated_hours: None,
-        column_id: col_id,
-        group_id: None,
+        status_id: None,
+        task_list_id: Some(col_id),
         milestone_id: None,
         assignee_ids: None,
         label_ids: None,

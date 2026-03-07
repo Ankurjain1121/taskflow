@@ -1,6 +1,6 @@
-//! Board Column REST endpoints
+//! Project Status REST endpoints (replaces board columns)
 //!
-//! Provides CRUD operations for board columns.
+//! Provides CRUD operations for project statuses.
 
 use axum::{
     extract::{Path, State},
@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use taskflow_db::models::BoardMemberRole;
-use taskflow_db::queries::{boards, columns, DeleteColumnResult};
+use taskflow_db::queries::{boards, project_statuses};
 use taskflow_db::utils::generate_key_between;
 
 use crate::errors::{AppError, Result};
@@ -27,55 +27,50 @@ use super::common::MessageResponse;
 // ============================================================================
 
 #[derive(Debug, Deserialize)]
-pub struct CreateColumnRequest {
+pub struct CreateStatusRequest {
     pub name: String,
     pub color: Option<String>,
-    pub status_mapping: Option<serde_json::Value>,
-    /// Optional: index position to insert at (0-based). If not provided, adds at the end.
+    #[serde(rename = "type")]
+    pub status_type: Option<String>,
     pub insert_at: Option<i32>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct RenameColumnRequest {
+pub struct RenameStatusRequest {
     pub name: String,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ReorderColumnRequest {
-    /// The new index position (0-based)
+pub struct ReorderStatusRequest {
     pub new_index: i32,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct UpdateStatusMappingRequest {
-    pub status_mapping: Option<serde_json::Value>,
+pub struct UpdateStatusTypeRequest {
+    #[serde(rename = "type")]
+    pub status_type: String,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct UpdateColumnColorRequest {
-    pub color: Option<String>,
+pub struct UpdateStatusColorRequest {
+    pub color: String,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct UpdateWipLimitRequest {
-    pub wip_limit: Option<i32>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct UpdateColumnIconRequest {
-    pub icon: Option<String>,
+pub struct DeleteStatusRequest {
+    pub replace_with_status_id: Uuid,
 }
 
 #[derive(Debug, Serialize)]
-pub struct ColumnResponse {
+pub struct StatusResponse {
     pub id: Uuid,
     pub name: String,
-    pub board_id: Uuid,
+    pub project_id: Uuid,
     pub position: String,
-    pub color: Option<String>,
-    pub status_mapping: Option<serde_json::Value>,
-    pub wip_limit: Option<i32>,
-    pub icon: Option<String>,
+    pub color: String,
+    #[serde(rename = "type")]
+    pub status_type: String,
+    pub is_default: bool,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
@@ -83,417 +78,278 @@ pub struct ColumnResponse {
 // Helper Functions
 // ============================================================================
 
-/// Check if user has editor access to the board
-async fn require_editor_access(state: &AppState, board_id: Uuid, user_id: Uuid) -> Result<()> {
-    let role = boards::get_board_member_role(&state.db, board_id, user_id).await?;
+async fn require_editor_access(state: &AppState, project_id: Uuid, user_id: Uuid) -> Result<()> {
+    let role = boards::get_board_member_role(&state.db, project_id, user_id).await?;
     match role {
         Some(BoardMemberRole::Owner | BoardMemberRole::Editor) => Ok(()),
         Some(BoardMemberRole::Viewer) => Err(AppError::Forbidden("Editor role required".into())),
         None => Err(AppError::NotFound(
-            "Board not found or access denied".into(),
+            "Project not found or access denied".into(),
         )),
     }
 }
 
-/// Check if user has at least viewer access to the board
-async fn require_viewer_access(state: &AppState, board_id: Uuid, user_id: Uuid) -> Result<()> {
-    let is_member = boards::is_board_member(&state.db, board_id, user_id).await?;
+async fn require_viewer_access(state: &AppState, project_id: Uuid, user_id: Uuid) -> Result<()> {
+    let is_member = boards::is_board_member(&state.db, project_id, user_id).await?;
     if !is_member {
         return Err(AppError::NotFound(
-            "Board not found or access denied".into(),
+            "Project not found or access denied".into(),
         ));
     }
     Ok(())
+}
+
+fn to_response(s: taskflow_db::models::ProjectStatus) -> StatusResponse {
+    StatusResponse {
+        id: s.id,
+        name: s.name,
+        project_id: s.project_id,
+        position: s.position,
+        color: s.color,
+        status_type: s.status_type,
+        is_default: s.is_default,
+        created_at: s.created_at,
+    }
 }
 
 // ============================================================================
 // Route Handlers
 // ============================================================================
 
-/// GET /api/boards/:board_id/columns
-///
-/// List all columns for a board ordered by position.
-async fn list_columns(
+/// GET /api/boards/:board_id/columns (now returns statuses)
+async fn list_statuses(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Path(board_id): Path<Uuid>,
-) -> Result<Json<Vec<ColumnResponse>>> {
-    require_viewer_access(&state, board_id, auth.0.user_id).await?;
+    Path(project_id): Path<Uuid>,
+) -> Result<Json<Vec<StatusResponse>>> {
+    require_viewer_access(&state, project_id, auth.0.user_id).await?;
 
-    let cols = columns::list_columns_by_board(&state.db, board_id).await?;
+    let statuses = project_statuses::list_project_statuses(&state.db, project_id).await?;
 
-    let response: Vec<ColumnResponse> = cols
-        .into_iter()
-        .map(|c| ColumnResponse {
-            id: c.id,
-            name: c.name,
-            board_id: c.board_id,
-            position: c.position,
-            color: c.color,
-            status_mapping: c.status_mapping,
-            wip_limit: c.wip_limit,
-            icon: c.icon,
-            created_at: c.created_at,
-        })
-        .collect();
+    let response: Vec<StatusResponse> = statuses.into_iter().map(to_response).collect();
 
     Ok(Json(response))
 }
 
-/// POST /api/boards/:board_id/columns
-///
-/// Add a new column to a board.
-async fn create_column(
+/// POST /api/boards/:board_id/columns (now creates a status)
+async fn create_status(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-    Path(board_id): Path<Uuid>,
-    Json(payload): Json<CreateColumnRequest>,
-) -> Result<Json<ColumnResponse>> {
-    require_editor_access(&state, board_id, auth.0.user_id).await?;
+    Path(project_id): Path<Uuid>,
+    Json(payload): Json<CreateStatusRequest>,
+) -> Result<Json<StatusResponse>> {
+    require_editor_access(&state, project_id, auth.0.user_id).await?;
 
     if payload.name.is_empty() {
-        return Err(AppError::BadRequest("Column name is required".into()));
+        return Err(AppError::BadRequest("Status name is required".into()));
     }
 
-    // Calculate position
-    let existing_columns = columns::list_columns_by_board(&state.db, board_id).await?;
+    let existing = project_statuses::list_project_statuses(&state.db, project_id).await?;
 
     let position = if let Some(insert_at) = payload.insert_at {
-        // Insert at specific position
         let insert_at = insert_at.max(0) as usize;
-
         if insert_at == 0 {
-            // Insert at beginning
-            let first_pos = existing_columns.first().map(|c| c.position.as_str());
+            let first_pos = existing.first().map(|s| s.position.as_str());
             generate_key_between(None, first_pos)
-        } else if insert_at >= existing_columns.len() {
-            // Insert at end
-            let last_pos = existing_columns.last().map(|c| c.position.as_str());
+        } else if insert_at >= existing.len() {
+            let last_pos = existing.last().map(|s| s.position.as_str());
             generate_key_between(last_pos, None)
         } else {
-            // Insert between two columns
-            let prev_pos = existing_columns
-                .get(insert_at - 1)
-                .map(|c| c.position.as_str());
-            let next_pos = existing_columns.get(insert_at).map(|c| c.position.as_str());
+            let prev_pos = existing.get(insert_at - 1).map(|s| s.position.as_str());
+            let next_pos = existing.get(insert_at).map(|s| s.position.as_str());
             generate_key_between(prev_pos, next_pos)
         }
     } else {
-        // Add at end
-        let last_pos = existing_columns.last().map(|c| c.position.as_str());
+        let last_pos = existing.last().map(|s| s.position.as_str());
         generate_key_between(last_pos, None)
     };
 
-    let column = columns::add_column(
+    let color = payload.color.as_deref().unwrap_or("#6B7280");
+    let status_type = payload.status_type.as_deref().unwrap_or("active");
+
+    // Get tenant_id from project
+    let project = boards::get_board_internal(&state.db, project_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Project not found".into()))?;
+
+    let status = project_statuses::create_project_status(
         &state.db,
-        board_id,
+        project_id,
         &payload.name,
-        payload.color.as_deref(),
-        payload.status_mapping,
+        color,
+        status_type,
         &position,
+        project.tenant_id,
     )
     .await?;
 
-    Ok(Json(ColumnResponse {
-        id: column.id,
-        name: column.name,
-        board_id: column.board_id,
-        position: column.position,
-        color: column.color,
-        status_mapping: column.status_mapping,
-        wip_limit: column.wip_limit,
-        icon: column.icon,
-        created_at: column.created_at,
-    }))
+    Ok(Json(to_response(status)))
 }
 
-/// PUT /api/columns/:id/name
-///
-/// Rename a column.
-async fn rename_column(
+/// PUT /api/columns/:id/name (now renames a status)
+async fn rename_status(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
-    Json(payload): Json<RenameColumnRequest>,
-) -> Result<Json<ColumnResponse>> {
-    // Get column to find board_id
-    let existing = columns::get_column_by_id(&state.db, id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
-
-    require_editor_access(&state, existing.board_id, auth.0.user_id).await?;
-
+    Json(payload): Json<RenameStatusRequest>,
+) -> Result<Json<StatusResponse>> {
     if payload.name.is_empty() {
-        return Err(AppError::BadRequest("Column name is required".into()));
+        return Err(AppError::BadRequest("Status name is required".into()));
     }
 
-    let column = columns::rename_column(&state.db, id, &payload.name)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
+    let status =
+        project_statuses::update_project_status(&state.db, id, Some(&payload.name), None, None)
+            .await
+            .map_err(|_| AppError::NotFound("Status not found".into()))?;
 
-    Ok(Json(ColumnResponse {
-        id: column.id,
-        name: column.name,
-        board_id: column.board_id,
-        position: column.position,
-        color: column.color,
-        status_mapping: column.status_mapping,
-        wip_limit: column.wip_limit,
-        icon: column.icon,
-        created_at: column.created_at,
-    }))
+    require_editor_access(&state, status.project_id, auth.0.user_id).await?;
+
+    Ok(Json(to_response(status)))
 }
 
-/// PUT /api/columns/:id/position
-///
-/// Reorder a column to a new position.
-async fn reorder_column(
+/// PUT /api/columns/:id/position (now reorders a status)
+async fn reorder_status(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
-    Json(payload): Json<ReorderColumnRequest>,
-) -> Result<Json<ColumnResponse>> {
-    // Get column to find board_id
-    let existing = columns::get_column_by_id(&state.db, id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
+    Json(payload): Json<ReorderStatusRequest>,
+) -> Result<Json<StatusResponse>> {
+    // We need to look up the status to find its project_id
+    // Do the update first then verify access (since update_project_status returns the status)
+    let all_statuses_result = sqlx::query_as::<_, taskflow_db::models::ProjectStatus>(
+        r#"
+        SELECT id, project_id, name, color,
+               type as "status_type",
+               position, is_default, tenant_id, created_at
+        FROM project_statuses
+        WHERE project_id = (SELECT project_id FROM project_statuses WHERE id = $1)
+        ORDER BY position ASC
+        "#,
+    )
+    .bind(id)
+    .fetch_all(&state.db)
+    .await
+    .map_err(|_| AppError::NotFound("Status not found".into()))?;
 
-    require_editor_access(&state, existing.board_id, auth.0.user_id).await?;
-
-    // Get all columns to calculate new position
-    let all_columns = columns::list_columns_by_board(&state.db, existing.board_id).await?;
-
-    // Find current index
-    let current_index = all_columns
+    let existing = all_statuses_result
         .iter()
-        .position(|c| c.id == id)
-        .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
+        .find(|s| s.id == id)
+        .ok_or_else(|| AppError::NotFound("Status not found".into()))?;
+
+    require_editor_access(&state, existing.project_id, auth.0.user_id).await?;
 
     let new_index = payload.new_index.max(0) as usize;
+    let current_index = all_statuses_result
+        .iter()
+        .position(|s| s.id == id)
+        .ok_or_else(|| AppError::NotFound("Status not found".into()))?;
 
-    // If same position, no change needed
     if current_index == new_index {
-        return Ok(Json(ColumnResponse {
-            id: existing.id,
-            name: existing.name,
-            board_id: existing.board_id,
-            position: existing.position,
-            color: existing.color,
-            status_mapping: existing.status_mapping,
-            wip_limit: existing.wip_limit,
-            icon: existing.icon,
-            created_at: existing.created_at,
-        }));
+        return Ok(Json(to_response(existing.clone())));
     }
 
-    // Calculate new position key
     let new_position = if new_index == 0 {
-        // Move to beginning
-        let first = all_columns.first().filter(|c| c.id != id);
-        generate_key_between(None, first.map(|c| c.position.as_str()))
-    } else if new_index >= all_columns.len() - 1 {
-        // Move to end
-        let last = all_columns.last().filter(|c| c.id != id);
-        generate_key_between(last.map(|c| c.position.as_str()), None)
+        let first = all_statuses_result.first().filter(|s| s.id != id);
+        generate_key_between(None, first.map(|s| s.position.as_str()))
+    } else if new_index >= all_statuses_result.len() - 1 {
+        let last = all_statuses_result.last().filter(|s| s.id != id);
+        generate_key_between(last.map(|s| s.position.as_str()), None)
     } else {
-        // Move between two columns (excluding self)
-        let filtered: Vec<_> = all_columns.iter().filter(|c| c.id != id).collect();
+        let filtered: Vec<_> = all_statuses_result.iter().filter(|s| s.id != id).collect();
         let target_index = new_index.min(filtered.len() - 1);
-
         if target_index == 0 {
-            generate_key_between(None, filtered.first().map(|c| c.position.as_str()))
+            generate_key_between(None, filtered.first().map(|s| s.position.as_str()))
         } else {
-            let prev = filtered.get(target_index - 1).map(|c| c.position.as_str());
-            let next = filtered.get(target_index).map(|c| c.position.as_str());
+            let prev = filtered.get(target_index - 1).map(|s| s.position.as_str());
+            let next = filtered.get(target_index).map(|s| s.position.as_str());
             generate_key_between(prev, next)
         }
     };
 
-    let column = columns::reorder_column(&state.db, id, &new_position)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
+    project_statuses::reorder_project_status(&state.db, id, &new_position).await?;
 
-    Ok(Json(ColumnResponse {
-        id: column.id,
-        name: column.name,
-        board_id: column.board_id,
-        position: column.position,
-        color: column.color,
-        status_mapping: column.status_mapping,
-        wip_limit: column.wip_limit,
-        icon: column.icon,
-        created_at: column.created_at,
-    }))
+    // Fetch updated status
+    let updated = project_statuses::update_project_status(&state.db, id, None, None, None)
+        .await
+        .map_err(|_| AppError::NotFound("Status not found".into()))?;
+
+    Ok(Json(to_response(updated)))
 }
 
-/// PUT /api/columns/:id/status-mapping
-///
-/// Update a column's status mapping.
-async fn update_status_mapping(
+/// PUT /api/columns/:id/status-mapping (now updates status type)
+async fn update_status_type(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
-    Json(payload): Json<UpdateStatusMappingRequest>,
-) -> Result<Json<ColumnResponse>> {
-    // Get column to find board_id
-    let existing = columns::get_column_by_id(&state.db, id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
+    Json(payload): Json<UpdateStatusTypeRequest>,
+) -> Result<Json<StatusResponse>> {
+    let status = project_statuses::update_project_status(
+        &state.db,
+        id,
+        None,
+        None,
+        Some(&payload.status_type),
+    )
+    .await
+    .map_err(|_| AppError::NotFound("Status not found".into()))?;
 
-    require_editor_access(&state, existing.board_id, auth.0.user_id).await?;
+    require_editor_access(&state, status.project_id, auth.0.user_id).await?;
 
-    let column = columns::update_status_mapping(&state.db, id, payload.status_mapping)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
-
-    Ok(Json(ColumnResponse {
-        id: column.id,
-        name: column.name,
-        board_id: column.board_id,
-        position: column.position,
-        color: column.color,
-        status_mapping: column.status_mapping,
-        wip_limit: column.wip_limit,
-        icon: column.icon,
-        created_at: column.created_at,
-    }))
+    Ok(Json(to_response(status)))
 }
 
 /// PUT /api/columns/:id/color
-///
-/// Update a column's color.
 async fn update_color(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
-    Json(payload): Json<UpdateColumnColorRequest>,
-) -> Result<Json<ColumnResponse>> {
-    // Get column to find board_id
-    let existing = columns::get_column_by_id(&state.db, id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
+    Json(payload): Json<UpdateStatusColorRequest>,
+) -> Result<Json<StatusResponse>> {
+    let status =
+        project_statuses::update_project_status(&state.db, id, None, Some(&payload.color), None)
+            .await
+            .map_err(|_| AppError::NotFound("Status not found".into()))?;
 
-    require_editor_access(&state, existing.board_id, auth.0.user_id).await?;
+    require_editor_access(&state, status.project_id, auth.0.user_id).await?;
 
-    let column = columns::update_column_color(&state.db, id, payload.color.as_deref())
-        .await?
-        .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
-
-    Ok(Json(ColumnResponse {
-        id: column.id,
-        name: column.name,
-        board_id: column.board_id,
-        position: column.position,
-        color: column.color,
-        status_mapping: column.status_mapping,
-        wip_limit: column.wip_limit,
-        icon: column.icon,
-        created_at: column.created_at,
-    }))
-}
-
-/// PUT /api/columns/:id/wip-limit
-///
-/// Update a column's WIP (Work In Progress) limit.
-async fn update_wip_limit(
-    State(state): State<AppState>,
-    auth: AuthUserExtractor,
-    Path(id): Path<Uuid>,
-    Json(payload): Json<UpdateWipLimitRequest>,
-) -> Result<Json<ColumnResponse>> {
-    // Get column to find board_id
-    let existing = columns::get_column_by_id(&state.db, id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
-
-    require_editor_access(&state, existing.board_id, auth.0.user_id).await?;
-
-    // Validate wip_limit if provided
-    if let Some(limit) = payload.wip_limit {
-        if limit < 1 {
-            return Err(AppError::BadRequest("WIP limit must be at least 1".into()));
-        }
-    }
-
-    let column = columns::update_wip_limit(&state.db, id, payload.wip_limit)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
-
-    Ok(Json(ColumnResponse {
-        id: column.id,
-        name: column.name,
-        board_id: column.board_id,
-        position: column.position,
-        color: column.color,
-        status_mapping: column.status_mapping,
-        wip_limit: column.wip_limit,
-        icon: column.icon,
-        created_at: column.created_at,
-    }))
-}
-
-/// PUT /api/columns/:id/icon
-///
-/// Update a column's icon (emoji).
-async fn update_icon(
-    State(state): State<AppState>,
-    auth: AuthUserExtractor,
-    Path(id): Path<Uuid>,
-    Json(payload): Json<UpdateColumnIconRequest>,
-) -> Result<Json<ColumnResponse>> {
-    let existing = columns::get_column_by_id(&state.db, id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
-
-    require_editor_access(&state, existing.board_id, auth.0.user_id).await?;
-
-    if let Some(ref icon) = payload.icon {
-        if icon.chars().count() > 10 {
-            return Err(AppError::BadRequest("Icon too long".into()));
-        }
-    }
-
-    let column = columns::update_icon(&state.db, id, payload.icon.as_deref())
-        .await
-        .map_err(|_| AppError::InternalError("Failed to update icon".into()))?;
-
-    Ok(Json(ColumnResponse {
-        id: column.id,
-        name: column.name,
-        board_id: column.board_id,
-        position: column.position,
-        color: column.color,
-        status_mapping: column.status_mapping,
-        wip_limit: column.wip_limit,
-        icon: column.icon,
-        created_at: column.created_at,
-    }))
+    Ok(Json(to_response(status)))
 }
 
 /// DELETE /api/columns/:id
-///
-/// Delete a column. Fails if the column has tasks.
-async fn delete_column(
+async fn delete_status(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
+    Json(payload): Json<DeleteStatusRequest>,
 ) -> Result<Json<MessageResponse>> {
-    // Get column to find board_id
-    let existing = columns::get_column_by_id(&state.db, id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Column not found".into()))?;
+    // Look up status to find project_id
+    let statuses = sqlx::query_as::<_, taskflow_db::models::ProjectStatus>(
+        r#"
+        SELECT id, project_id, name, color,
+               type as "status_type",
+               position, is_default, tenant_id, created_at
+        FROM project_statuses
+        WHERE id = $1
+        "#,
+    )
+    .bind(id)
+    .fetch_optional(&state.db)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Status not found".into()))?;
 
-    require_editor_access(&state, existing.board_id, auth.0.user_id).await?;
+    require_editor_access(&state, statuses.project_id, auth.0.user_id).await?;
 
-    match columns::delete_column(&state.db, id).await? {
-        DeleteColumnResult::Deleted => Ok(Json(MessageResponse {
-            message: "Column deleted successfully".into(),
-        })),
-        DeleteColumnResult::NotFound => Err(AppError::NotFound("Column not found".into())),
-        DeleteColumnResult::HasTasks => Err(AppError::PreconditionFailed(
-            "Cannot delete column with tasks. Move or delete tasks first.".into(),
-        )),
+    if statuses.is_default {
+        return Err(AppError::BadRequest(
+            "Cannot delete the default status".into(),
+        ));
     }
+
+    project_statuses::delete_project_status(&state.db, id, payload.replace_with_status_id).await?;
+
+    Ok(Json(MessageResponse {
+        message: "Status deleted successfully".into(),
+    }))
 }
 
 // ============================================================================
@@ -501,23 +357,21 @@ async fn delete_column(
 // ============================================================================
 
 /// Build the columns router for board-scoped routes
-/// Routes: /api/boards/:board_id/columns
+/// Routes: /api/boards/:board_id/columns (serves statuses)
 pub fn board_columns_router(state: AppState) -> Router<AppState> {
     Router::new()
-        .route("/", get(list_columns).post(create_column))
+        .route("/", get(list_statuses).post(create_status))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
-/// Build the columns router for direct column routes
-/// Routes: /api/columns/:id
+/// Build the columns router for direct column/status routes
+/// Routes: /api/columns/:id (serves statuses)
 pub fn column_router(state: AppState) -> Router<AppState> {
     Router::new()
-        .route("/{id}", delete(delete_column))
-        .route("/{id}/name", put(rename_column))
-        .route("/{id}/position", put(reorder_column))
-        .route("/{id}/status-mapping", put(update_status_mapping))
+        .route("/{id}", delete(delete_status))
+        .route("/{id}/name", put(rename_status))
+        .route("/{id}/position", put(reorder_status))
+        .route("/{id}/status-mapping", put(update_status_type))
         .route("/{id}/color", put(update_color))
-        .route("/{id}/wip-limit", put(update_wip_limit))
-        .route("/{id}/icon", put(update_icon))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

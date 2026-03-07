@@ -109,7 +109,7 @@ pub mod helpers {
             .build();
         let s3_client = aws_sdk_s3::Client::from_conf(s3_config);
 
-        let board_channels = Arc::new(DashMap::new());
+        let project_channels = Arc::new(DashMap::new());
         let pubsub_relay = crate::ws::PubSubRelay::dummy();
 
         AppState {
@@ -117,7 +117,7 @@ pub mod helpers {
             config: Arc::new(config),
             jwt_keys,
             redis,
-            board_channels,
+            project_channels,
             pubsub_relay,
             s3_client,
             ws_connection_count: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
@@ -198,8 +198,8 @@ pub mod helpers {
         )
         .await
         .expect("Failed to create test board");
-        let first_col_id = bwc.columns[0].id;
-        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+        let first_col_id = bwc.task_lists.first().map(|tl| tl.id).unwrap_or_default();
+        (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
     }
 
     /// Build the full Axum Router matching the production app (minus background jobs).

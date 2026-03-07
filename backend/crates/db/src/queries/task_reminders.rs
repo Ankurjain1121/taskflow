@@ -23,8 +23,8 @@ pub struct PendingReminder {
     pub id: Uuid,
     pub task_id: Uuid,
     pub task_title: String,
-    pub board_id: Uuid,
-    pub board_name: String,
+    pub project_id: Uuid,
+    pub project_name: String,
     pub user_id: Uuid,
     pub due_date: DateTime<Utc>,
     pub remind_before_minutes: i32,
@@ -113,23 +113,23 @@ pub async fn get_pending_reminders(
             tr.id,
             tr.task_id,
             t.title as task_title,
-            t.board_id,
-            b.name as board_name,
+            t.project_id,
+            p.name as project_name,
             tr.user_id,
-            t.due_date as "due_date!",
+            t.due_date,
             tr.remind_before_minutes
         FROM task_reminders tr
         JOIN tasks t ON t.id = tr.task_id
-        JOIN boards b ON b.id = t.board_id
+        JOIN projects p ON p.id = t.project_id
         WHERE tr.is_sent = FALSE
           AND t.due_date IS NOT NULL
           AND t.deleted_at IS NULL
           AND t.due_date - (tr.remind_before_minutes || ' minutes')::interval <= $1
           AND t.due_date > $1
           AND NOT EXISTS (
-              SELECT 1 FROM board_columns bc
-              WHERE bc.id = t.column_id
-              AND (bc.status_mapping->>'done')::boolean = true
+              SELECT 1 FROM project_statuses ps
+              WHERE ps.id = t.status_id
+              AND ps.type = 'done'
           )
         ORDER BY t.due_date ASC
         LIMIT 500

@@ -93,7 +93,7 @@ pub async fn move_to_trash(
         .rows_affected(),
         TrashEntityType::Board => sqlx::query!(
             r#"
-                UPDATE boards
+                UPDATE projects
                 SET deleted_at = NOW(), updated_at = NOW()
                 WHERE id = $1 AND deleted_at IS NULL
                 "#,
@@ -154,7 +154,7 @@ pub async fn restore_from_trash(
         .rows_affected(),
         TrashEntityType::Board => sqlx::query!(
             r#"
-                UPDATE boards
+                UPDATE projects
                 SET deleted_at = NULL, updated_at = NOW()
                 WHERE id = $1 AND deleted_at IS NOT NULL
                 "#,
@@ -268,9 +268,9 @@ async fn permanently_delete_board(
     minio: &MinioService,
     board_id: Uuid,
 ) -> Result<(), TrashBinError> {
-    // Get all task IDs for this board
+    // Get all task IDs for this project
     let task_ids: Vec<Uuid> =
-        sqlx::query_scalar!(r#"SELECT id FROM tasks WHERE board_id = $1"#, board_id)
+        sqlx::query_scalar!(r#"SELECT id FROM tasks WHERE project_id = $1"#, board_id)
             .fetch_all(pool)
             .await?;
 
@@ -288,9 +288,9 @@ async fn permanently_delete_board(
         }
     }
 
-    // Delete board (cascades to board_columns, board_members, tasks, labels)
+    // Delete project (cascades to project_statuses, project_members, tasks, labels)
     let rows = sqlx::query!(
-        r#"DELETE FROM boards WHERE id = $1 AND deleted_at IS NOT NULL"#,
+        r#"DELETE FROM projects WHERE id = $1 AND deleted_at IS NOT NULL"#,
         board_id
     )
     .execute(pool)
@@ -313,18 +313,18 @@ async fn permanently_delete_workspace(
     minio: &MinioService,
     workspace_id: Uuid,
 ) -> Result<(), TrashBinError> {
-    // Get all board IDs for this workspace
-    let board_ids: Vec<Uuid> = sqlx::query_scalar!(
-        r#"SELECT id FROM boards WHERE workspace_id = $1"#,
+    // Get all project IDs for this workspace
+    let project_ids: Vec<Uuid> = sqlx::query_scalar!(
+        r#"SELECT id FROM projects WHERE workspace_id = $1"#,
         workspace_id
     )
     .fetch_all(pool)
     .await?;
 
-    // Get all task IDs for these boards
+    // Get all task IDs for these projects
     let task_ids: Vec<Uuid> = sqlx::query_scalar!(
-        r#"SELECT id FROM tasks WHERE board_id = ANY($1)"#,
-        &board_ids
+        r#"SELECT id FROM tasks WHERE project_id = ANY($1)"#,
+        &project_ids
     )
     .fetch_all(pool)
     .await?;
@@ -414,19 +414,19 @@ pub async fn get_trash_items(
             TrashItem,
             r#"
             SELECT
-                'board' as "entity_type!",
-                b.id as entity_id,
-                b.name as name,
-                b.deleted_at as "deleted_at!",
+                'project' as "entity_type!",
+                p.id as entity_id,
+                p.name as name,
+                p.deleted_at as "deleted_at!",
                 NULL::uuid as deleted_by_id,
                 NULL::text as deleted_by_name,
-                EXTRACT(DAY FROM ($1::timestamptz + interval '30 days' - b.deleted_at))::bigint as "days_until_permanent_delete!"
-            FROM boards b
-            WHERE b.tenant_id = $2
-              AND b.deleted_at IS NOT NULL
-              AND b.deleted_at > $3
-              AND ($4::timestamptz IS NULL OR b.deleted_at < $4)
-            ORDER BY b.deleted_at DESC
+                EXTRACT(DAY FROM ($1::timestamptz + interval '30 days' - p.deleted_at))::bigint as "days_until_permanent_delete!"
+            FROM projects p
+            WHERE p.tenant_id = $2
+              AND p.deleted_at IS NOT NULL
+              AND p.deleted_at > $3
+              AND ($4::timestamptz IS NULL OR p.deleted_at < $4)
+            ORDER BY p.deleted_at DESC
             LIMIT $5
             "#,
             now,

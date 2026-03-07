@@ -70,8 +70,8 @@ async fn verify_board_membership(
     let result = sqlx::query_scalar::<_, bool>(
         r#"
         SELECT EXISTS(
-            SELECT 1 FROM board_members
-            WHERE board_id = $1 AND user_id = $2
+            SELECT 1 FROM project_members
+            WHERE project_id = $1 AND user_id = $2
         )
         "#,
     )
@@ -122,11 +122,11 @@ async fn get_completion_rate(pool: &PgPool, board_id: Uuid) -> Result<Completion
         SELECT
             COUNT(*) as total,
             COUNT(*) FILTER (
-                WHERE bc.status_mapping->>'done' = 'true'
+                WHERE ps.type = 'done'
             ) as completed
         FROM tasks t
-        JOIN board_columns bc ON bc.id = t.column_id
-        WHERE t.board_id = $1 AND t.deleted_at IS NULL
+        LEFT JOIN project_statuses ps ON ps.id = t.status_id
+        WHERE t.project_id = $1 AND t.deleted_at IS NULL
         "#,
     )
     .bind(board_id)
@@ -172,11 +172,11 @@ async fn get_burndown(
             (
                 SELECT COUNT(*)
                 FROM tasks t
-                JOIN board_columns bc ON bc.id = t.column_id
-                WHERE t.board_id = $1
+                LEFT JOIN project_statuses ps ON ps.id = t.status_id
+                WHERE t.project_id = $1
                   AND t.deleted_at IS NULL
                   AND t.created_at::date <= ds.date
-                  AND (bc.status_mapping->>'done' IS DISTINCT FROM 'true')
+                  AND (ps.type IS DISTINCT FROM 'done')
             ) AS remaining
         FROM date_series ds
         ORDER BY ds.date
@@ -201,7 +201,7 @@ async fn get_priority_distribution(
             priority::text as priority,
             COUNT(*) as count
         FROM tasks
-        WHERE board_id = $1 AND deleted_at IS NULL
+        WHERE project_id = $1 AND deleted_at IS NULL
         GROUP BY priority
         ORDER BY
             CASE priority::text
@@ -232,13 +232,13 @@ async fn get_assignee_workload(
             u.avatar_url,
             COUNT(t.id) as total_tasks,
             COUNT(t.id) FILTER (
-                WHERE bc.status_mapping->>'done' = 'true'
+                WHERE ps.type = 'done'
             ) as completed_tasks
         FROM task_assignees ta
         JOIN users u ON u.id = ta.user_id
         JOIN tasks t ON t.id = ta.task_id
-        JOIN board_columns bc ON bc.id = t.column_id
-        WHERE t.board_id = $1 AND t.deleted_at IS NULL
+        LEFT JOIN project_statuses ps ON ps.id = t.status_id
+        WHERE t.project_id = $1 AND t.deleted_at IS NULL
         GROUP BY u.id, u.name, u.avatar_url
         ORDER BY total_tasks DESC
         "#,
@@ -265,11 +265,11 @@ async fn get_overdue_analysis(
         SELECT
             EXTRACT(DAY FROM NOW() - t.due_date)::int as days_overdue
         FROM tasks t
-        JOIN board_columns bc ON bc.id = t.column_id
-        WHERE t.board_id = $1
+        LEFT JOIN project_statuses ps ON ps.id = t.status_id
+        WHERE t.project_id = $1
             AND t.deleted_at IS NULL
             AND t.due_date < NOW()
-            AND bc.status_mapping->>'done' IS DISTINCT FROM 'true'
+            AND (ps.type IS DISTINCT FROM 'done')
         "#,
     )
     .bind(board_id)
@@ -343,8 +343,8 @@ mod tests {
         let bwc = boards::create_board(pool, "RP Test Board", None, ws_id, tenant_id, user_id)
             .await
             .expect("create_board");
-        let first_col_id = bwc.columns[0].id;
-        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+        let first_col_id = bwc.task_lists[0].id;
+        (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
     }
 
     #[tokio::test]
@@ -386,8 +386,8 @@ mod tests {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            column_id: col_id,
-            group_id: None,
+            status_id: None,
+            task_list_id: Some(col_id),
             milestone_id: None,
             assignee_ids: None,
             label_ids: None,
@@ -404,8 +404,8 @@ mod tests {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            column_id: col_id,
-            group_id: None,
+            status_id: None,
+            task_list_id: Some(col_id),
             milestone_id: None,
             assignee_ids: None,
             label_ids: None,

@@ -1,6 +1,6 @@
 //! My Tasks database queries
 //!
-//! Provides queries for fetching tasks assigned to the current user across all boards.
+//! Provides queries for fetching tasks assigned to the current user across all projects.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::models::TaskPriority;
 
-/// Task item for my tasks list with board context
+/// Task item for my tasks list with project context
 #[derive(Debug, Serialize, Clone)]
 pub struct MyTaskItem {
     pub id: Uuid,
@@ -20,8 +20,8 @@ pub struct MyTaskItem {
     pub board_id: Uuid,
     pub board_name: String,
     pub workspace_id: Uuid,
-    pub column_id: Uuid,
-    pub column_name: String,
+    pub status_id: Option<Uuid>,
+    pub status_name: Option<String>,
     pub position: String,
     pub is_done: bool,
     pub created_at: DateTime<Utc>,
@@ -72,27 +72,18 @@ struct MyTaskRow {
     description: Option<String>,
     priority: TaskPriority,
     due_date: Option<DateTime<Utc>>,
-    board_id: Uuid,
-    board_name: String,
+    project_id: Uuid,
+    project_name: String,
     workspace_id: Uuid,
-    column_id: Uuid,
-    column_name: String,
+    status_id: Option<Uuid>,
+    status_name: Option<String>,
+    status_type: Option<String>,
     position: String,
-    status_mapping: Option<serde_json::Value>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
 
-/// List tasks assigned to a user across all boards they're a member of
-///
-/// # Arguments
-/// * `pool` - Database connection pool
-/// * `user_id` - The user's UUID
-/// * `sort_by` - Field to sort by
-/// * `sort_order` - Sort direction (asc/desc)
-/// * `board_filter` - Optional board ID to filter by
-/// * `cursor` - Optional cursor for pagination (task ID)
-/// * `limit` - Number of items to return
+/// List tasks assigned to a user across all projects they're a member of
 pub async fn list_my_tasks(
     pool: &PgPool,
     user_id: Uuid,
@@ -102,11 +93,9 @@ pub async fn list_my_tasks(
     cursor: Option<Uuid>,
     limit: i64,
 ) -> Result<PaginatedMyTasks, sqlx::Error> {
-    // Clamp limit
     let limit = limit.clamp(1, 50);
     let fetch_limit = limit + 1;
 
-    // Build ORDER BY clause based on sort options
     let order_clause = match (sort_by, sort_order) {
         (MyTasksSortBy::DueDate, SortOrder::Asc) => "t.due_date ASC NULLS LAST, t.id ASC",
         (MyTasksSortBy::DueDate, SortOrder::Desc) => "t.due_date DESC NULLS LAST, t.id DESC",
@@ -118,12 +107,11 @@ pub async fn list_my_tasks(
         (MyTasksSortBy::UpdatedAt, SortOrder::Desc) => "t.updated_at DESC, t.id DESC",
     };
 
-    // Build the dynamic query with correct ORDER BY and optional filters
     let mut conditions = String::new();
     let mut param_idx = 2u32; // $1 is user_id
 
     if board_filter.is_some() {
-        conditions.push_str(&format!(" AND t.board_id = ${}", param_idx));
+        conditions.push_str(&format!(" AND t.project_id = ${}", param_idx));
         param_idx += 1;
     }
     if cursor.is_some() {
@@ -139,22 +127,23 @@ pub async fn list_my_tasks(
             t.description,
             t.priority,
             t.due_date,
-            t.board_id,
-            b.name as board_name,
-            b.workspace_id,
-            t.column_id,
-            bc.name as column_name,
+            t.project_id,
+            p.name as project_name,
+            p.workspace_id,
+            t.status_id,
+            ps.name as status_name,
+            ps.type as status_type,
             t.position,
-            bc.status_mapping,
             t.created_at,
             t.updated_at
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
-        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
-        INNER JOIN board_columns bc ON bc.id = t.column_id
-        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
+        INNER JOIN projects p ON p.id = t.project_id AND p.deleted_at IS NULL
+        INNER JOIN project_members pm ON pm.project_id = t.project_id AND pm.user_id = $1
+        LEFT JOIN project_statuses ps ON ps.id = t.status_id
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
+          AND t.parent_task_id IS NULL
           {}
         ORDER BY {}
         LIMIT ${}
@@ -162,10 +151,9 @@ pub async fn list_my_tasks(
         conditions, order_clause, param_idx
     );
 
-    // Execute the dynamic query with the appropriate bindings
     let mut query = sqlx::query_as::<_, MyTaskRow>(&query_str).bind(user_id);
-    if let Some(board_id) = board_filter {
-        query = query.bind(board_id);
+    if let Some(project_id) = board_filter {
+        query = query.bind(project_id);
     }
     if let Some(cursor_id) = cursor {
         query = query.bind(cursor_id);
@@ -174,19 +162,16 @@ pub async fn list_my_tasks(
 
     let rows = query.fetch_all(pool).await?;
 
-    // Save raw count before take() for correct has_more check
     let raw_count = rows.len();
 
-    // Convert rows to items and determine done status
     let items: Vec<MyTaskItem> = rows
         .into_iter()
         .take(limit as usize)
         .map(|row| {
             let is_done = row
-                .status_mapping
-                .as_ref()
-                .and_then(|sm: &serde_json::Value| sm.get("done"))
-                .and_then(|v: &serde_json::Value| v.as_bool())
+                .status_type
+                .as_deref()
+                .map(|t| t == "done")
                 .unwrap_or(false);
 
             MyTaskItem {
@@ -195,11 +180,11 @@ pub async fn list_my_tasks(
                 description: row.description,
                 priority: row.priority,
                 due_date: row.due_date,
-                board_id: row.board_id,
-                board_name: row.board_name,
+                board_id: row.project_id,
+                board_name: row.project_name,
                 workspace_id: row.workspace_id,
-                column_id: row.column_id,
-                column_name: row.column_name,
+                status_id: row.status_id,
+                status_name: row.status_name,
                 position: row.position,
                 is_done,
                 created_at: row.created_at,
@@ -219,64 +204,66 @@ pub async fn list_my_tasks(
 }
 
 /// Get summary statistics for tasks assigned to a user
-///
-/// # Arguments
-/// * `pool` - Database connection pool
-/// * `user_id` - The user's UUID
 pub async fn my_tasks_summary(pool: &PgPool, user_id: Uuid) -> Result<MyTasksSummary, sqlx::Error> {
     let now = chrono::Utc::now();
     let three_days_from_now = now + chrono::Duration::days(3);
     let seven_days_ago = now - chrono::Duration::days(7);
 
-    // Get total assigned, due soon, and overdue counts
-    let stats = sqlx::query!(
+    // Use runtime query_as instead of compile-time query! macro
+    #[derive(sqlx::FromRow)]
+    struct StatsRow {
+        total_assigned: i64,
+        due_soon: i64,
+        overdue: i64,
+    }
+
+    let stats = sqlx::query_as::<_, StatsRow>(
         r#"
         SELECT
-            COUNT(DISTINCT t.id) as "total_assigned!",
+            COUNT(DISTINCT t.id)::bigint as total_assigned,
             COUNT(DISTINCT t.id) FILTER (
                 WHERE t.due_date IS NOT NULL
                 AND t.due_date <= $2
                 AND t.due_date > $3
-                AND (bc.status_mapping IS NULL OR NOT (bc.status_mapping->>'done')::boolean)
-            ) as "due_soon!",
+                AND (ps.type IS NULL OR ps.type != 'done')
+            )::bigint as due_soon,
             COUNT(DISTINCT t.id) FILTER (
                 WHERE t.due_date IS NOT NULL
                 AND t.due_date < $3
-                AND (bc.status_mapping IS NULL OR NOT (bc.status_mapping->>'done')::boolean)
-            ) as "overdue!"
+                AND (ps.type IS NULL OR ps.type != 'done')
+            )::bigint as overdue
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
-        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
-        INNER JOIN board_columns bc ON bc.id = t.column_id
-        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
+        INNER JOIN projects p ON p.id = t.project_id AND p.deleted_at IS NULL
+        INNER JOIN project_members pm ON pm.project_id = t.project_id AND pm.user_id = $1
+        LEFT JOIN project_statuses ps ON ps.id = t.status_id
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
+          AND t.parent_task_id IS NULL
         "#,
-        user_id,
-        three_days_from_now,
-        now
     )
+    .bind(user_id)
+    .bind(three_days_from_now)
+    .bind(now)
     .fetch_one(pool)
     .await?;
 
-    // Get completed this week from activity_log
-    // Looking for 'moved' actions where the destination column has done=true
-    let completed_this_week = sqlx::query_scalar!(
+    // Get completed this week - tasks that were moved to a 'done' status recently
+    let completed_this_week = sqlx::query_scalar::<_, i64>(
         r#"
-        SELECT COUNT(DISTINCT al.entity_id) as "count!"
+        SELECT COUNT(DISTINCT al.entity_id)::bigint
         FROM activity_log al
         INNER JOIN tasks t ON t.id = al.entity_id AND t.deleted_at IS NULL
         INNER JOIN task_assignees ta ON ta.task_id = t.id AND ta.user_id = $1
-        INNER JOIN board_columns bc ON bc.id = t.column_id
+        LEFT JOIN project_statuses ps ON ps.id = t.status_id
         WHERE al.action = 'moved'
           AND al.entity_type = 'task'
           AND al.created_at >= $2
-          AND bc.status_mapping IS NOT NULL
-          AND (bc.status_mapping->>'done')::boolean = true
+          AND ps.type = 'done'
         "#,
-        user_id,
-        seven_days_ago
     )
+    .bind(user_id)
+    .bind(seven_days_ago)
     .fetch_one(pool)
     .await?;
 

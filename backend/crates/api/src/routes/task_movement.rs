@@ -35,22 +35,22 @@ pub async fn move_task_handler(
         return Err(AppError::Forbidden("Not a board member".into()));
     }
 
-    // Capture previous column_id for automation trigger
-    let previous_column_id = sqlx::query_scalar::<_, Uuid>(
-        "SELECT column_id FROM tasks WHERE id = $1 AND deleted_at IS NULL",
+    // Capture previous status_id for automation trigger
+    let previous_status_id = sqlx::query_scalar::<_, Uuid>(
+        "SELECT status_id FROM tasks WHERE id = $1 AND deleted_at IS NULL",
     )
     .bind(task_id)
     .fetch_optional(&state.db)
     .await?;
 
-    let task = move_task(&state.db, task_id, body.column_id, body.position.clone()).await?;
+    let task = move_task(&state.db, task_id, body.status_id, body.position.clone()).await?;
 
     // Broadcast the task moved event
     let broadcast_service = BroadcastService::new(state.redis.clone());
 
     let event = WsBoardEvent::TaskMoved {
         task_id,
-        column_id: body.column_id,
+        status_id: Some(body.status_id),
         position: body.position,
         origin_user_id: tenant.user_id,
     };
@@ -87,28 +87,28 @@ pub async fn move_task_handler(
             board_id,
             tenant_id: tenant.tenant_id,
             user_id: tenant.user_id,
-            previous_column_id,
-            new_column_id: Some(body.column_id),
+            previous_status_id,
+            new_status_id: Some(body.status_id),
             priority: None,
             member_user_id: None,
         },
     );
 
-    // Check if the task was moved to a "done" column - trigger TaskCompleted
-    let is_done_column = sqlx::query_scalar::<_, bool>(
+    // Check if the task was moved to a "done" status - trigger TaskCompleted
+    let is_done_status = sqlx::query_scalar::<_, bool>(
         r#"
-        SELECT COALESCE((status_mapping->>'done')::boolean, false)
-        FROM board_columns WHERE id = $1
+        SELECT type = 'done'
+        FROM project_statuses WHERE id = $1
         "#,
     )
-    .bind(body.column_id)
+    .bind(body.status_id)
     .fetch_optional(&state.db)
     .await
     .ok()
     .flatten()
     .unwrap_or(false);
 
-    if is_done_column {
+    if is_done_status {
         spawn_automation_evaluation(
             state.db.clone(),
             state.redis.clone(),
@@ -118,8 +118,8 @@ pub async fn move_task_handler(
                 board_id,
                 tenant_id: tenant.tenant_id,
                 user_id: tenant.user_id,
-                previous_column_id,
-                new_column_id: Some(body.column_id),
+                previous_status_id,
+                new_status_id: Some(body.status_id),
                 priority: None,
                 member_user_id: None,
             },

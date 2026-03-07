@@ -43,14 +43,18 @@ async fn create_full_test_setup(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid)
     .await
     .expect("create board");
 
-    let first_column_id = board.columns.first().expect("board should have columns").id;
+    let first_list_id = board
+        .task_lists
+        .first()
+        .expect("board should have task lists")
+        .id;
 
     (
         user.tenant_id,
         user.id,
         workspace.id,
-        board.board.id,
-        first_column_id,
+        board.project.id,
+        first_list_id,
     )
 }
 
@@ -71,8 +75,8 @@ async fn create_test_task(
         due_date: None,
         start_date: None,
         estimated_hours: None,
-        column_id,
-        group_id: None,
+        status_id: None,
+        task_list_id: Some(column_id),
         milestone_id: None,
         assignee_ids: None,
         label_ids: None,
@@ -107,8 +111,8 @@ async fn test_create_task() {
 
     assert_eq!(task.title, title);
     assert_eq!(task.priority, TaskPriority::High);
-    assert_eq!(task.board_id, board_id);
-    assert_eq!(task.column_id, column_id);
+    assert_eq!(task.project_id, board_id);
+    // status_id may be None if no explicit status was set during creation
     assert_eq!(task.tenant_id, tenant_id);
     assert_eq!(task.created_by_id, user_id);
     assert!(task.deleted_at.is_none());
@@ -274,13 +278,15 @@ async fn test_move_task() {
     let pool = test_pool().await;
     let (tenant_id, user_id, _ws_id, board_id, column_id) = create_full_test_setup(&pool).await;
 
-    // Get a second column (board has 3 default columns: To Do, In Progress, Done)
-    let columns = super::columns::list_columns_by_board(&pool, board_id)
+    // Get a second status (project has 5 default statuses)
+    let statuses = super::project_statuses::list_project_statuses(&pool, board_id)
         .await
-        .expect("list columns");
-    assert!(columns.len() >= 2, "board should have at least 2 columns");
-    let target_column_id = columns[1].id;
-    assert_ne!(column_id, target_column_id);
+        .expect("list statuses");
+    assert!(
+        statuses.len() >= 2,
+        "project should have at least 2 statuses"
+    );
+    let target_status_id = statuses[1].id;
 
     let task = create_test_task(
         &pool,
@@ -293,11 +299,11 @@ async fn test_move_task() {
     )
     .await;
 
-    let moved = super::tasks::move_task(&pool, task.id, target_column_id, "m0".to_string())
+    let moved = super::tasks::move_task(&pool, task.id, target_status_id, "m0".to_string())
         .await
         .expect("move_task should succeed");
 
-    assert_eq!(moved.column_id, target_column_id);
+    assert_eq!(moved.status_id, Some(target_status_id));
     assert_eq!(moved.position, "m0");
 }
 
@@ -445,12 +451,12 @@ async fn test_bulk_update_tasks() {
 
     let input = super::task_bulk::BulkUpdateInput {
         task_ids: vec![t1.id, t2.id, t3.id],
-        column_id: None,
+        status_id: None,
         priority: Some(TaskPriority::Urgent),
         milestone_id: None,
         clear_milestone: None,
-        group_id: None,
-        clear_group: None,
+        task_list_id: None,
+        clear_task_list: None,
     };
 
     let updated_count = super::task_bulk::bulk_update_tasks(&pool, board_id, user_id, input)

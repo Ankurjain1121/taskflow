@@ -13,7 +13,7 @@ pub struct TimeEntry {
     pub ended_at: Option<DateTime<Utc>>,
     pub duration_minutes: Option<i32>,
     pub is_running: bool,
-    pub board_id: Uuid,
+    pub project_id: Uuid,
     pub tenant_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

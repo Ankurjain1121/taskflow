@@ -21,8 +21,12 @@ export interface CalendarTask {
   priority: string;
   due_date: string;
   start_date: string | null;
-  column_id: string;
-  column_name: string;
+  /** @deprecated use status_id */
+  column_id?: string;
+  /** @deprecated use status_name */
+  column_name?: string;
+  status_id?: string | null;
+  status_name?: string | null;
   is_done: boolean;
   milestone_id: string | null;
 }

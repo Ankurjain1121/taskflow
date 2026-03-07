@@ -302,7 +302,7 @@ pub async fn get_subtask_task_id(
     .await
 }
 
-/// Promote a subtask to a full task in the same board/column
+/// Promote a subtask to a full task in the same project
 /// Returns the newly created Task and deletes the subtask in a transaction
 pub async fn promote_subtask_to_task(
     pool: &PgPool,
@@ -314,7 +314,7 @@ pub async fn promote_subtask_to_task(
     let row = sqlx::query_as::<_, SubtaskPromoteRow>(
         r#"
         SELECT s.id, s.title, s.assigned_to_id, s.due_date,
-               t.board_id, t.column_id, t.id as parent_task_id
+               t.project_id, t.status_id, t.task_list_id, t.id as parent_task_id
         FROM subtasks s
         INNER JOIN tasks t ON t.id = s.task_id
         WHERE s.id = $1
@@ -325,16 +325,16 @@ pub async fn promote_subtask_to_task(
     .await?
     .ok_or(SubtaskQueryError::NotFound)?;
 
-    // Get the last position in the column
+    // Get the last position in the project
     let last_position = sqlx::query_scalar::<_, String>(
         r#"
         SELECT position FROM tasks
-        WHERE column_id = $1 AND deleted_at IS NULL
+        WHERE project_id = $1 AND deleted_at IS NULL
         ORDER BY position DESC
         LIMIT 1
         "#,
     )
-    .bind(row.column_id)
+    .bind(row.project_id)
     .fetch_optional(pool)
     .await?;
 
@@ -344,19 +344,20 @@ pub async fn promote_subtask_to_task(
     // Create the new task
     let task = sqlx::query_as::<_, Task>(
         r#"
-        INSERT INTO tasks (id, title, priority, column_id, board_id, position, tenant_id, created_by_id, due_date)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        INSERT INTO tasks (id, title, priority, status_id, task_list_id, project_id, position, tenant_id, created_by_id, due_date)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING id, title, description, priority, due_date, start_date, estimated_hours,
-                  board_id, column_id, group_id, position, milestone_id, task_number,
+                  project_id, task_list_id, status_id, position, milestone_id, task_number,
                   eisenhower_urgency, eisenhower_importance,
-                  tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
+                  tenant_id, created_by_id, deleted_at, created_at, updated_at, version, parent_task_id, depth
         "#,
     )
     .bind(task_id)
     .bind(&row.title)
     .bind(TaskPriority::Medium)
-    .bind(row.column_id)
-    .bind(row.board_id)
+    .bind(row.status_id)
+    .bind(row.task_list_id)
+    .bind(row.project_id)
     .bind(&position)
     .bind(tenant_id)
     .bind(user_id)
@@ -396,8 +397,9 @@ struct SubtaskPromoteRow {
     title: String,
     assigned_to_id: Option<Uuid>,
     due_date: Option<NaiveDate>,
-    board_id: Uuid,
-    column_id: Uuid,
+    project_id: Uuid,
+    status_id: Option<Uuid>,
+    task_list_id: Option<Uuid>,
     #[allow(dead_code)]
     parent_task_id: Uuid,
 }
@@ -410,9 +412,9 @@ mod tests {
     const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
 
     async fn test_pool() -> sqlx::PgPool {
-        sqlx::PgPool::connect(
-            "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow",
-        )
+        sqlx::PgPool::connect(&std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgresql://taskflow_app:dev_password@10.0.2.1:5432/taskflow".to_string()
+        }))
         .await
         .expect("Failed to connect to test database")
     }
@@ -436,17 +438,16 @@ mod tests {
         (tenant_id, user_id, ws.id)
     }
 
-    async fn setup_full(pool: &sqlx::PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
+    async fn setup_full(pool: &sqlx::PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
         let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-        let bwc = boards::create_board(pool, "ST Test Board", None, ws_id, tenant_id, user_id)
+        let pwt = boards::create_board(pool, "ST Test Board", None, ws_id, tenant_id, user_id)
             .await
             .expect("create_board");
-        let first_col_id = bwc.columns[0].id;
-        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+        (tenant_id, user_id, ws_id, pwt.project.id)
     }
 
     async fn setup_with_task(pool: &sqlx::PgPool) -> (Uuid, Uuid, Uuid) {
-        let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(pool).await;
+        let (tenant_id, user_id, _ws_id, project_id) = setup_full(pool).await;
         let input = tasks::CreateTaskInput {
             title: "Subtask Parent".to_string(),
             description: None,
@@ -454,14 +455,14 @@ mod tests {
             due_date: None,
             start_date: None,
             estimated_hours: None,
-            column_id: col_id,
-            group_id: None,
+            status_id: None,
+            task_list_id: None,
             milestone_id: None,
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
         };
-        let task = tasks::create_task(pool, board_id, input, tenant_id, user_id)
+        let task = tasks::create_task(pool, project_id, input, tenant_id, user_id)
             .await
             .expect("create parent task for subtask tests");
         (task.id, user_id, tenant_id)

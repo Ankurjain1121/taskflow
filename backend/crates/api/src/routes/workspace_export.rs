@@ -92,7 +92,7 @@ struct BoardRow {
 
 #[derive(sqlx::FromRow)]
 struct TaskRow {
-    board_id: Uuid,
+    project_id: Uuid,
     title: String,
     description: Option<String>,
     priority: String,
@@ -168,7 +168,7 @@ async fn export_json(db: &sqlx::PgPool, workspace_id: Uuid) -> Result<Response> 
     .map_err(AppError::from)?;
 
     let boards: Vec<BoardRow> = sqlx::query_as(
-        "SELECT id, name, description FROM boards WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY name",
+        "SELECT id, name, description FROM projects WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY name",
     )
     .bind(workspace_id)
     .fetch_all(db)
@@ -183,17 +183,18 @@ async fn export_json(db: &sqlx::PgPool, workspace_id: Uuid) -> Result<Response> 
         sqlx::query_as(
             r#"
             SELECT
-                t.board_id,
+                t.project_id,
                 t.title,
                 t.description,
                 t.priority::text as priority,
-                bc.name as column_name,
+                COALESCE(ps.name, 'No Status') as column_name,
                 t.due_date,
                 t.created_at
             FROM tasks t
-            JOIN board_columns bc ON bc.id = t.column_id
-            WHERE t.board_id = ANY($1) AND t.deleted_at IS NULL
-            ORDER BY t.board_id, bc.position, t.position
+            LEFT JOIN project_statuses ps ON ps.id = t.status_id
+            WHERE t.project_id = ANY($1) AND t.deleted_at IS NULL
+              AND t.parent_task_id IS NULL
+            ORDER BY t.project_id, t.position
             "#,
         )
         .bind(&board_ids)
@@ -206,7 +207,7 @@ async fn export_json(db: &sqlx::PgPool, workspace_id: Uuid) -> Result<Response> 
     let mut task_map: std::collections::HashMap<Uuid, Vec<ExportTask>> =
         std::collections::HashMap::new();
     for t in tasks {
-        task_map.entry(t.board_id).or_default().push(ExportTask {
+        task_map.entry(t.project_id).or_default().push(ExportTask {
             title: t.title,
             description: t.description,
             priority: t.priority,
@@ -259,7 +260,7 @@ async fn export_csv(db: &sqlx::PgPool, workspace_id: Uuid) -> Result<Response> {
     let ws_name = ws_name.ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
 
     let board_ids: Vec<Uuid> =
-        sqlx::query_scalar("SELECT id FROM boards WHERE workspace_id = $1 AND deleted_at IS NULL")
+        sqlx::query_scalar("SELECT id FROM projects WHERE workspace_id = $1 AND deleted_at IS NULL")
             .bind(workspace_id)
             .fetch_all(db)
             .await
@@ -277,14 +278,15 @@ async fn export_csv(db: &sqlx::PgPool, workspace_id: Uuid) -> Result<Response> {
                 t.title,
                 t.description,
                 t.priority::text as priority,
-                bc.name as column_name,
+                COALESCE(ps.name, 'No Status') as column_name,
                 t.due_date,
                 t.created_at
             FROM tasks t
-            JOIN boards b ON b.id = t.board_id
-            JOIN board_columns bc ON bc.id = t.column_id
-            WHERE t.board_id = ANY($1) AND t.deleted_at IS NULL
-            ORDER BY b.name, bc.position, t.position
+            JOIN projects b ON b.id = t.project_id
+            LEFT JOIN project_statuses ps ON ps.id = t.status_id
+            WHERE t.project_id = ANY($1) AND t.deleted_at IS NULL
+              AND t.parent_task_id IS NULL
+            ORDER BY b.name, t.position
             "#,
         )
         .bind(&board_ids)

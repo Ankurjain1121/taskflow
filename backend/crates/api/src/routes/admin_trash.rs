@@ -204,13 +204,13 @@ async fn empty_trash(
     }
 
     // Boards (that weren't deleted with workspaces)
-    let board_ids: Vec<Uuid> = sqlx::query_scalar!(
+    let board_ids: Vec<Uuid> = sqlx::query_scalar(
         r#"
-        SELECT id FROM boards
+        SELECT id FROM projects
         WHERE tenant_id = $1 AND deleted_at IS NOT NULL
         "#,
-        tenant_id
     )
+    .bind(tenant_id)
     .fetch_all(&state.db)
     .await?;
 

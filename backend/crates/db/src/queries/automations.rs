@@ -60,7 +60,7 @@ async fn get_rule_board_id_internal(
 ) -> Result<Uuid, AutomationQueryError> {
     let board_id = sqlx::query_scalar::<_, Uuid>(
         r#"
-        SELECT board_id FROM automation_rules WHERE id = $1
+        SELECT project_id FROM automation_rules WHERE id = $1
         "#,
     )
     .bind(rule_id)
@@ -112,7 +112,7 @@ pub async fn list_rules(
         SELECT
             id,
             name,
-            board_id,
+            project_id,
             trigger,
             trigger_config,
             is_active,
@@ -124,7 +124,7 @@ pub async fn list_rules(
             execution_count,
             last_triggered_at
         FROM automation_rules
-        WHERE board_id = $1
+        WHERE project_id = $1
         ORDER BY created_at DESC
         "#,
     )
@@ -153,7 +153,7 @@ pub async fn get_rule(
         SELECT
             id,
             name,
-            board_id,
+            project_id,
             trigger,
             trigger_config,
             is_active,
@@ -173,7 +173,7 @@ pub async fn get_rule(
     .await?
     .ok_or(AutomationQueryError::NotFound)?;
 
-    if !verify_board_membership_internal(pool, rule.board_id, user_id).await? {
+    if !verify_board_membership_internal(pool, rule.project_id, user_id).await? {
         return Err(AutomationQueryError::NotBoardMember);
     }
 
@@ -203,14 +203,14 @@ pub async fn create_rule(
     let rule = sqlx::query_as::<_, AutomationRule>(
         r#"
         INSERT INTO automation_rules (
-            id, name, board_id, trigger, trigger_config,
+            id, name, project_id, trigger, trigger_config,
             is_active, tenant_id, created_by_id, created_at, updated_at
         )
         VALUES ($1, $2, $3, $4, $5, true, $6, $7, $8, $8)
         RETURNING
             id,
             name,
-            board_id,
+            project_id,
             trigger,
             trigger_config,
             is_active,
@@ -296,7 +296,7 @@ pub async fn update_rule(
         RETURNING
             id,
             name,
-            board_id,
+            project_id,
             trigger,
             trigger_config,
             is_active,
@@ -464,9 +464,9 @@ mod tests {
     }
 
     async fn test_pool() -> PgPool {
-        PgPool::connect(
-            "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow",
-        )
+        PgPool::connect(&std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgresql://taskflow_app:dev_password@10.0.2.1:5432/taskflow".to_string()
+        }))
         .await
         .expect("Failed to connect to test database")
     }
@@ -492,8 +492,8 @@ mod tests {
         let bwc = boards::create_board(pool, "Automation Board", None, ws_id, tenant_id, user_id)
             .await
             .expect("create_board");
-        let first_col_id = bwc.columns[0].id;
-        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+        let first_col_id = bwc.task_lists[0].id;
+        (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
     }
 
     #[tokio::test]
@@ -517,7 +517,7 @@ mod tests {
             .expect("create_rule should succeed");
 
         assert_eq!(result.rule.name, rule_name);
-        assert_eq!(result.rule.board_id, board_id);
+        assert_eq!(result.rule.project_id, board_id);
         assert_eq!(result.rule.trigger, AutomationTrigger::TaskMoved);
         assert!(result.rule.is_active);
         assert_eq!(result.rule.tenant_id, tenant_id);

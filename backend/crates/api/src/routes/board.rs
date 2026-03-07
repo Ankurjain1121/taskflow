@@ -1,6 +1,6 @@
-//! Board REST endpoints
+//! Board/Project REST endpoints
 //!
-//! Provides CRUD operations for boards and board membership management.
+//! Provides CRUD operations for projects and project membership management.
 
 use std::collections::HashMap;
 
@@ -14,8 +14,7 @@ use axum::{
 use uuid::Uuid;
 
 use taskflow_db::models::BoardMemberRole;
-use taskflow_db::queries::{boards, columns, workspaces};
-use taskflow_db::utils::generate_key_between;
+use taskflow_db::queries::{boards, workspaces};
 
 use taskflow_services::board_templates;
 
@@ -82,7 +81,7 @@ async fn list_boards(
 
 /// GET /api/boards/:id
 ///
-/// Get a board by ID with its columns.
+/// Get a board by ID with its statuses.
 /// Returns 304 Not Modified if the ETag matches (If-None-Match header).
 async fn get_board(
     State(state): State<AppState>,
@@ -95,29 +94,29 @@ async fn get_board(
         .ok_or_else(|| AppError::NotFound("Board not found or access denied".into()))?;
 
     let response = BoardDetailResponse {
-        id: board.board.id,
-        name: board.board.name,
-        description: board.board.description,
-        slack_webhook_url: board.board.slack_webhook_url,
-        prefix: board.board.prefix,
-        workspace_id: board.board.workspace_id,
-        tenant_id: board.board.tenant_id,
-        created_by_id: board.board.created_by_id,
-        background_color: board.board.background_color.clone(),
-        created_at: board.board.created_at,
-        updated_at: board.board.updated_at,
-        columns: board
-            .columns
+        id: board.project.id,
+        name: board.project.name,
+        description: board.project.description,
+        slack_webhook_url: board.project.slack_webhook_url,
+        prefix: board.project.prefix,
+        workspace_id: board.project.workspace_id,
+        tenant_id: board.project.tenant_id,
+        created_by_id: board.project.created_by_id,
+        background_color: board.project.background_color.clone(),
+        created_at: board.project.created_at,
+        updated_at: board.project.updated_at,
+        statuses: board
+            .statuses
             .into_iter()
-            .map(|c| ColumnResponse {
-                id: c.id,
-                name: c.name,
-                board_id: c.board_id,
-                position: c.position,
-                color: c.color,
-                status_mapping: c.status_mapping,
-                wip_limit: c.wip_limit,
-                created_at: c.created_at,
+            .map(|s| StatusResponse {
+                id: s.id,
+                name: s.name,
+                project_id: s.project_id,
+                position: s.position,
+                color: s.color,
+                status_type: s.status_type,
+                is_default: s.is_default,
+                created_at: s.created_at,
             })
             .collect(),
     };
@@ -147,7 +146,7 @@ async fn get_board(
 
 /// POST /api/workspaces/:workspace_id/boards
 ///
-/// Create a new board with default columns.
+/// Create a new board with default statuses.
 async fn create_board(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
@@ -176,75 +175,33 @@ async fn create_board(
     )
     .await?;
 
-    // If a template was specified (and it's not the default kanban that create_board already creates),
-    // replace the default columns with template columns
-    let mut final_columns = board.columns;
-
-    if let Some(ref template_id) = payload.template {
-        if let Some(template) = board_templates::get_template(template_id) {
-            // Delete the default columns that were auto-created
-            for col in &final_columns {
-                let _ = columns::force_delete_column(&state.db, col.id).await;
-            }
-            final_columns.clear();
-
-            if template_id == "blank" {
-                // Blank template: no columns
-            } else {
-                // Create columns from the template
-                let mut prev_pos: Option<String> = None;
-                for template_col in template.columns {
-                    let position = generate_key_between(prev_pos.as_deref(), None);
-
-                    let status_mapping = if template_col.is_done {
-                        Some(serde_json::json!({"done": true}))
-                    } else {
-                        None
-                    };
-
-                    let col = columns::add_column(
-                        &state.db,
-                        board.board.id,
-                        template_col.name,
-                        Some(template_col.color),
-                        status_mapping,
-                        &position,
-                    )
-                    .await?;
-
-                    prev_pos = Some(position);
-                    final_columns.push(col);
-                }
-            }
-        }
-    }
-
     // Invalidate workspace boards cache
     cache::cache_del(&state.redis, &cache::workspace_boards_key(&workspace_id)).await;
 
     Ok(Json(BoardDetailResponse {
-        id: board.board.id,
-        name: board.board.name,
-        description: board.board.description,
-        slack_webhook_url: board.board.slack_webhook_url,
-        prefix: board.board.prefix,
-        workspace_id: board.board.workspace_id,
-        tenant_id: board.board.tenant_id,
-        created_by_id: board.board.created_by_id,
-        background_color: board.board.background_color.clone(),
-        created_at: board.board.created_at,
-        updated_at: board.board.updated_at,
-        columns: final_columns
+        id: board.project.id,
+        name: board.project.name,
+        description: board.project.description,
+        slack_webhook_url: board.project.slack_webhook_url,
+        prefix: board.project.prefix,
+        workspace_id: board.project.workspace_id,
+        tenant_id: board.project.tenant_id,
+        created_by_id: board.project.created_by_id,
+        background_color: board.project.background_color.clone(),
+        created_at: board.project.created_at,
+        updated_at: board.project.updated_at,
+        statuses: board
+            .statuses
             .into_iter()
-            .map(|c| ColumnResponse {
-                id: c.id,
-                name: c.name,
-                board_id: c.board_id,
-                position: c.position,
-                color: c.color,
-                status_mapping: c.status_mapping,
-                wip_limit: c.wip_limit,
-                created_at: c.created_at,
+            .map(|s| StatusResponse {
+                id: s.id,
+                name: s.name,
+                project_id: s.project_id,
+                position: s.position,
+                color: s.color,
+                status_type: s.status_type,
+                is_default: s.is_default,
+                created_at: s.created_at,
             })
             .collect(),
     }))
@@ -340,7 +297,7 @@ async fn delete_board(
         if let Some(info) = board_info {
             cache::cache_del(
                 &state.redis,
-                &cache::workspace_boards_key(&info.board.workspace_id),
+                &cache::workspace_boards_key(&info.project.workspace_id),
             )
             .await;
         }
@@ -374,7 +331,7 @@ async fn list_board_members(
         .into_iter()
         .map(|m| BoardMemberResponse {
             id: m.id,
-            board_id: m.board_id,
+            project_id: m.project_id,
             user_id: m.user_id,
             role: m.role,
             joined_at: m.joined_at,
@@ -498,7 +455,7 @@ async fn update_board_member_role(
 
     Ok(Json(BoardMemberResponse {
         id: member.id,
-        board_id: member.board_id,
+        project_id: member.project_id,
         user_id: member.user_id,
         role: member.role,
         joined_at: member.joined_at,
@@ -510,7 +467,7 @@ async fn update_board_member_role(
 
 /// POST /api/boards/:id/duplicate
 ///
-/// Duplicate a board with columns and optionally tasks.
+/// Duplicate a board with statuses and optionally tasks.
 async fn duplicate_board(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
@@ -538,34 +495,34 @@ async fn duplicate_board(
     // Invalidate workspace boards cache
     cache::cache_del(
         &state.redis,
-        &cache::workspace_boards_key(&result.board.workspace_id),
+        &cache::workspace_boards_key(&result.project.workspace_id),
     )
     .await;
 
     Ok(Json(BoardDetailResponse {
-        id: result.board.id,
-        name: result.board.name,
-        description: result.board.description,
-        slack_webhook_url: result.board.slack_webhook_url,
-        prefix: result.board.prefix,
-        workspace_id: result.board.workspace_id,
-        tenant_id: result.board.tenant_id,
-        created_by_id: result.board.created_by_id,
-        background_color: result.board.background_color,
-        created_at: result.board.created_at,
-        updated_at: result.board.updated_at,
-        columns: result
-            .columns
+        id: result.project.id,
+        name: result.project.name,
+        description: result.project.description,
+        slack_webhook_url: result.project.slack_webhook_url,
+        prefix: result.project.prefix,
+        workspace_id: result.project.workspace_id,
+        tenant_id: result.project.tenant_id,
+        created_by_id: result.project.created_by_id,
+        background_color: result.project.background_color,
+        created_at: result.project.created_at,
+        updated_at: result.project.updated_at,
+        statuses: result
+            .statuses
             .into_iter()
-            .map(|c| ColumnResponse {
-                id: c.id,
-                name: c.name,
-                board_id: c.board_id,
-                position: c.position,
-                color: c.color,
-                status_mapping: c.status_mapping,
-                wip_limit: c.wip_limit,
-                created_at: c.created_at,
+            .map(|s| StatusResponse {
+                id: s.id,
+                name: s.name,
+                project_id: s.project_id,
+                position: s.position,
+                color: s.color,
+                status_type: s.status_type,
+                is_default: s.is_default,
+                created_at: s.created_at,
             })
             .collect(),
     }))
@@ -580,8 +537,8 @@ async fn list_board_templates() -> Json<Vec<board_templates::BoardTemplate>> {
 
 /// GET /api/boards/:id/full
 ///
-/// Get a board with columns, tasks (with badge data), and members in a single request.
-/// This batch endpoint replaces 6+ separate API calls needed to render a board view.
+/// Get a board with statuses, tasks (with badge data), and members in a single request.
+/// This batch endpoint replaces multiple separate API calls needed to render a board view.
 /// Supports optional `?limit=` and `?offset=` query params for task pagination.
 async fn get_board_full(
     State(state): State<AppState>,
@@ -592,7 +549,7 @@ async fn get_board_full(
     let limit = query.limit.unwrap_or(1000).clamp(1, 1000);
     let offset = query.offset.unwrap_or(0).max(0);
 
-    // Fetch board+columns, tasks with badges, members, assignees, and labels in parallel
+    // Fetch board+statuses, tasks with badges, members, assignees, and labels in parallel
     let (board_result, tasks_result, members_result, assignees_result, labels_result) = tokio::join!(
         boards::get_board_by_id(&state.db, id, auth.0.user_id),
         boards::list_board_tasks_with_badges(&state.db, id, Some(limit), Some(offset)),
@@ -645,14 +602,13 @@ async fn get_board_full(
                 description: t.description,
                 priority: t.priority,
                 due_date: t.due_date,
-                column_id: t.column_id,
+                status_id: t.status_id,
                 position: t.position,
-                group_id: t.group_id,
+                task_list_id: t.task_list_id,
                 milestone_id: t.milestone_id,
                 created_by_id: t.created_by_id,
                 created_at: t.created_at,
                 updated_at: t.updated_at,
-                column_entered_at: t.column_entered_at,
                 parent_task_id: t.parent_task_id,
                 subtask_completed: t.subtask_completed,
                 subtask_total: t.subtask_total,
@@ -665,29 +621,29 @@ async fn get_board_full(
         .collect();
 
     let board_detail = BoardDetailResponse {
-        id: board.board.id,
-        name: board.board.name,
-        description: board.board.description,
-        slack_webhook_url: board.board.slack_webhook_url,
-        prefix: board.board.prefix,
-        workspace_id: board.board.workspace_id,
-        tenant_id: board.board.tenant_id,
-        created_by_id: board.board.created_by_id,
-        background_color: board.board.background_color.clone(),
-        created_at: board.board.created_at,
-        updated_at: board.board.updated_at,
-        columns: board
-            .columns
+        id: board.project.id,
+        name: board.project.name,
+        description: board.project.description,
+        slack_webhook_url: board.project.slack_webhook_url,
+        prefix: board.project.prefix,
+        workspace_id: board.project.workspace_id,
+        tenant_id: board.project.tenant_id,
+        created_by_id: board.project.created_by_id,
+        background_color: board.project.background_color.clone(),
+        created_at: board.project.created_at,
+        updated_at: board.project.updated_at,
+        statuses: board
+            .statuses
             .into_iter()
-            .map(|c| ColumnResponse {
-                id: c.id,
-                name: c.name,
-                board_id: c.board_id,
-                position: c.position,
-                color: c.color,
-                status_mapping: c.status_mapping,
-                wip_limit: c.wip_limit,
-                created_at: c.created_at,
+            .map(|s| StatusResponse {
+                id: s.id,
+                name: s.name,
+                project_id: s.project_id,
+                position: s.position,
+                color: s.color,
+                status_type: s.status_type,
+                is_default: s.is_default,
+                created_at: s.created_at,
             })
             .collect(),
     };
@@ -696,7 +652,7 @@ async fn get_board_full(
         .into_iter()
         .map(|m| BoardMemberResponse {
             id: m.id,
-            board_id: m.board_id,
+            project_id: m.project_id,
             user_id: m.user_id,
             role: m.role,
             joined_at: m.joined_at,

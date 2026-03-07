@@ -51,12 +51,12 @@ pub async fn list_favorites(
             f.entity_type,
             f.entity_id,
             t.title as name,
-            t.board_id,
+            t.project_id as board_id,
             b.workspace_id,
             f.created_at
         FROM favorites f
         INNER JOIN tasks t ON t.id = f.entity_id AND t.deleted_at IS NULL
-        LEFT JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
+        LEFT JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
         WHERE f.user_id = $1 AND f.entity_type = 'task'
         ORDER BY f.created_at DESC
         "#,
@@ -76,7 +76,7 @@ pub async fn list_favorites(
             b.workspace_id,
             f.created_at
         FROM favorites f
-        INNER JOIN boards b ON b.id = f.entity_id AND b.deleted_at IS NULL
+        INNER JOIN projects b ON b.id = f.entity_id AND b.deleted_at IS NULL
         WHERE f.user_id = $1 AND f.entity_type = 'board'
         ORDER BY f.created_at DESC
         "#,

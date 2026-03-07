@@ -16,6 +16,20 @@ export interface Board {
   updated_at: string;
 }
 
+/** @deprecated Use Board directly — "Project" is the new backend name for Board */
+export type Project = Board;
+
+export interface ProjectStatus {
+  id: string;
+  project_id: string;
+  name: string;
+  color: string;
+  type: 'not_started' | 'active' | 'done' | 'cancelled';
+  position: string;
+  is_default: boolean;
+  created_at: string;
+}
+
 export interface ColumnStatusMapping {
   done?: boolean;
   [key: string]: unknown;
@@ -23,7 +37,9 @@ export interface ColumnStatusMapping {
 
 export interface Column {
   id: string;
-  board_id: string;
+  /** @deprecated Use project_id */
+  board_id?: string;
+  project_id?: string;
   name: string;
   position: string;
   color: string;
@@ -31,7 +47,7 @@ export interface Column {
   wip_limit: number | null;
   icon?: string | null;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export interface CreateBoardRequest {
@@ -66,7 +82,9 @@ export interface ReorderColumnRequest {
 
 export interface BoardMember {
   user_id: string;
-  board_id: string;
+  /** @deprecated Use project_id */
+  board_id?: string;
+  project_id?: string;
   role: 'viewer' | 'editor' | 'owner';
   name?: string;
   email?: string;
@@ -87,15 +105,35 @@ export interface DuplicateBoardRequest {
   include_tasks?: boolean;
 }
 
+export interface CreateStatusRequest {
+  name: string;
+  color?: string;
+  type?: 'not_started' | 'active' | 'done' | 'cancelled';
+}
+
+export interface UpdateStatusRequest {
+  name?: string;
+  color?: string;
+  type?: 'not_started' | 'active' | 'done' | 'cancelled';
+  position?: string;
+}
+
 export interface TaskWithBadges {
   id: string;
   title: string;
   description: string | null;
   priority: string;
   due_date: string | null;
-  column_id: string;
+  /** @deprecated removed — use status_id */
+  column_id?: string;
+  status_id: string | null;
+  status_name: string | null;
+  status_color: string | null;
+  status_type: string | null;
   position: string;
-  group_id: string | null;
+  /** @deprecated use task_list_id */
+  group_id?: string | null;
+  task_list_id: string | null;
   milestone_id: string | null;
   created_by_id: string;
   created_at: string;
@@ -104,7 +142,8 @@ export interface TaskWithBadges {
   subtask_total: number;
   has_running_timer: boolean;
   comment_count: number;
-  column_entered_at: string;
+  /** @deprecated removed */
+  column_entered_at?: string;
   assignees: { id: string; display_name: string; avatar_url: string | null }[];
   labels: { id: string; name: string; color: string }[];
 }
@@ -116,10 +155,11 @@ export interface BoardMeta {
 }
 
 export interface BoardFullResponse {
-  board: Board & { columns: Column[] };
+  board: Board & { columns?: Column[]; statuses?: ProjectStatus[] };
   tasks: TaskWithBadges[];
   members: BoardMember[];
   meta: BoardMeta;
+  statuses?: ProjectStatus[];
 }
 
 @Injectable({
@@ -133,7 +173,7 @@ export class BoardService {
 
   listBoards(workspaceId: string): Observable<Board[]> {
     return this.cache.get(
-      `boards:${workspaceId}`,
+      `projects:${workspaceId}`,
       () =>
         this.http.get<Board[]>(
           `${this.apiUrl}/workspaces/${workspaceId}/boards`,
@@ -144,7 +184,7 @@ export class BoardService {
 
   getBoard(boardId: string): Observable<Board> {
     return this.cache.get(
-      `board:${boardId}`,
+      `project:${boardId}`,
       () => this.http.get<Board>(`${this.apiUrl}/boards/${boardId}`),
       120000, // 2 min TTL
     );
@@ -158,7 +198,7 @@ export class BoardService {
       .post<Board>(`${this.apiUrl}/workspaces/${workspaceId}/boards`, request)
       .pipe(
         tap(() => {
-          this.cache.invalidateKey(`boards:${workspaceId}`);
+          this.cache.invalidate(`projects:${workspaceId}`);
         }),
       );
   }
@@ -168,9 +208,9 @@ export class BoardService {
       .patch<Board>(`${this.apiUrl}/boards/${boardId}`, request)
       .pipe(
         tap(() => {
-          this.cache.invalidateKey(`board:${boardId}`);
-          this.cache.invalidate(`board-full:${boardId}:.*`);
-          this.cache.invalidate(`boards:.*`);
+          this.cache.invalidateKey(`project:${boardId}`);
+          this.cache.invalidate(`project-full:${boardId}:.*`);
+          this.cache.invalidate(`projects:.*`);
         }),
       );
   }
@@ -178,9 +218,9 @@ export class BoardService {
   deleteBoard(boardId: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/boards/${boardId}`).pipe(
       tap(() => {
-        this.cache.invalidateKey(`board:${boardId}`);
-        this.cache.invalidate(`board-full:${boardId}:.*`);
-        this.cache.invalidate(`boards:.*`);
+        this.cache.invalidateKey(`project:${boardId}`);
+        this.cache.invalidate(`project-full:${boardId}:.*`);
+        this.cache.invalidate(`projects:.*`);
       }),
     );
   }
@@ -202,7 +242,7 @@ export class BoardService {
       .pipe(
         tap(() => {
           this.cache.invalidateKey(`columns:${boardId}`);
-          this.cache.invalidate(`board-full:${boardId}:.*`);
+          this.cache.invalidate(`project-full:${boardId}:.*`);
         }),
       );
   }
@@ -215,8 +255,8 @@ export class BoardService {
       .patch<Column>(`${this.apiUrl}/columns/${columnId}`, request)
       .pipe(
         tap((column) => {
-          this.cache.invalidateKey(`columns:${column.board_id}`);
-          this.cache.invalidate(`board-full:${column.board_id}:.*`);
+          this.cache.invalidate(`columns:.*`);
+          this.cache.invalidate(`project-full:.*`);
         }),
       );
   }
@@ -229,8 +269,8 @@ export class BoardService {
       .put<Column>(`${this.apiUrl}/columns/${columnId}/position`, request)
       .pipe(
         tap((column) => {
-          this.cache.invalidateKey(`columns:${column.board_id}`);
-          this.cache.invalidate(`board-full:${column.board_id}:.*`);
+          this.cache.invalidate(`columns:.*`);
+          this.cache.invalidate(`project-full:.*`);
         }),
       );
   }
@@ -240,8 +280,8 @@ export class BoardService {
       .put<Column>(`${this.apiUrl}/columns/${columnId}/name`, { name })
       .pipe(
         tap((column) => {
-          this.cache.invalidateKey(`columns:${column.board_id}`);
-          this.cache.invalidate(`board-full:${column.board_id}:.*`);
+          this.cache.invalidate(`columns:.*`);
+          this.cache.invalidate(`project-full:.*`);
         }),
       );
   }
@@ -256,8 +296,8 @@ export class BoardService {
       })
       .pipe(
         tap((column) => {
-          this.cache.invalidateKey(`columns:${column.board_id}`);
-          this.cache.invalidate(`board-full:${column.board_id}:.*`);
+          this.cache.invalidate(`columns:.*`);
+          this.cache.invalidate(`project-full:.*`);
         }),
       );
   }
@@ -267,26 +307,77 @@ export class BoardService {
       .put<Column>(`${this.apiUrl}/columns/${columnId}/icon`, { icon })
       .pipe(
         tap((column) => {
-          this.cache.invalidateKey(`columns:${column.board_id}`);
-          this.cache.invalidate(`board-full:${column.board_id}:.*`);
+          this.cache.invalidate(`columns:.*`);
+          this.cache.invalidate(`project-full:.*`);
         }),
       );
   }
 
   deleteColumn(columnId: string): Observable<void> {
-    // Note: We need to get board_id before deleting, so fetch it from cache if available
     return this.http.delete<void>(`${this.apiUrl}/columns/${columnId}`).pipe(
       tap(() => {
         this.cache.invalidate(`columns:.*`);
-        this.cache.invalidate(`board-full:.*`);
+        this.cache.invalidate(`project-full:.*`);
       }),
     );
+  }
+
+  // Project Status methods (backed by /api/boards/{id}/columns + /api/columns/{id})
+  listStatuses(projectId: string): Observable<ProjectStatus[]> {
+    return this.cache.get(
+      `statuses:${projectId}`,
+      () =>
+        this.http.get<ProjectStatus[]>(
+          `${this.apiUrl}/boards/${projectId}/columns`,
+        ),
+      120000,
+    );
+  }
+
+  createStatus(
+    projectId: string,
+    req: CreateStatusRequest,
+  ): Observable<ProjectStatus> {
+    return this.http
+      .post<ProjectStatus>(
+        `${this.apiUrl}/boards/${projectId}/columns`,
+        req,
+      )
+      .pipe(
+        tap(() => {
+          this.cache.invalidateKey(`statuses:${projectId}`);
+          this.cache.invalidate(`project-full:${projectId}:.*`);
+        }),
+      );
+  }
+
+  updateStatus(id: string, req: UpdateStatusRequest): Observable<ProjectStatus> {
+    // Backend splits update into sub-routes; use name for now
+    return this.http
+      .put<ProjectStatus>(`${this.apiUrl}/columns/${id}/name`, { name: req.name ?? '' })
+      .pipe(
+        tap(() => {
+          this.cache.invalidate(`statuses:.*`);
+          this.cache.invalidate(`project-full:.*`);
+        }),
+      );
+  }
+
+  deleteStatus(id: string, _replaceWithId?: string): Observable<void> {
+    return this.http
+      .delete<void>(`${this.apiUrl}/columns/${id}`)
+      .pipe(
+        tap(() => {
+          this.cache.invalidate(`statuses:.*`);
+          this.cache.invalidate(`project-full:.*`);
+        }),
+      );
   }
 
   // Board Member methods
   getBoardMembers(boardId: string): Observable<BoardMember[]> {
     return this.cache.get(
-      `board-members:${boardId}`,
+      `project-members:${boardId}`,
       () =>
         this.http.get<BoardMember[]>(
           `${this.apiUrl}/boards/${boardId}/members`,
@@ -303,7 +394,7 @@ export class BoardService {
       .post<BoardMember>(`${this.apiUrl}/boards/${boardId}/members`, request)
       .pipe(
         tap(() => {
-          this.cache.invalidateKey(`board-members:${boardId}`);
+          this.cache.invalidateKey(`project-members:${boardId}`);
         }),
       );
   }
@@ -320,7 +411,7 @@ export class BoardService {
       )
       .pipe(
         tap(() => {
-          this.cache.invalidateKey(`board-members:${boardId}`);
+          this.cache.invalidateKey(`project-members:${boardId}`);
         }),
       );
   }
@@ -330,7 +421,7 @@ export class BoardService {
       .delete<void>(`${this.apiUrl}/boards/${boardId}/members/${userId}`)
       .pipe(
         tap(() => {
-          this.cache.invalidateKey(`board-members:${boardId}`);
+          this.cache.invalidateKey(`project-members:${boardId}`);
         }),
       );
   }
@@ -343,7 +434,7 @@ export class BoardService {
     if (params?.limit != null) queryParams['limit'] = String(params.limit);
     if (params?.offset != null) queryParams['offset'] = String(params.offset);
 
-    const cacheKey = `board-full:${boardId}:${queryParams['limit'] ?? '1000'}:${queryParams['offset'] ?? '0'}`;
+    const cacheKey = `project-full:${boardId}:${queryParams['limit'] ?? '1000'}:${queryParams['offset'] ?? '0'}`;
     return this.cache.get(
       cacheKey,
       () =>
@@ -363,7 +454,7 @@ export class BoardService {
       .post<Board>(`${this.apiUrl}/boards/${boardId}/duplicate`, request)
       .pipe(
         tap(() => {
-          this.cache.invalidate(`boards:.*`);
+          this.cache.invalidate(`projects:.*`);
         }),
       );
   }

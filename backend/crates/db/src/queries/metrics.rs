@@ -129,8 +129,8 @@ pub async fn get_workspace_dashboard(
             100.0
         ) AS on_time_pct
         FROM tasks t
-        JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
-        JOIN board_columns bc ON bc.id = t.column_id
+        JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
+        JOIN project_statuses bc ON bc.id = t.status_id
         WHERE b.workspace_id = $1
           AND t.deleted_at IS NULL
           AND bc.status_mapping::TEXT ILIKE '%done%'
@@ -180,7 +180,7 @@ pub async fn get_team_dashboard(
             ROUND(AVG(ct.avg_cycle_days)::NUMERIC, 2)::FLOAT8 AS avg_cycle_days,
             SUM(ct.tasks_completed)::INTEGER AS tasks_completed
         FROM metrics_cycle_time_by_week ct
-        JOIN board_members bm ON bm.board_id = ct.board_id
+        JOIN project_members bm ON bm.project_id = ct.board_id
         JOIN team_members tm ON tm.user_id = bm.user_id AND tm.team_id = $1
         GROUP BY ct.week_start
         ORDER BY ct.week_start DESC
@@ -197,7 +197,7 @@ pub async fn get_team_dashboard(
             tv.week_start,
             SUM(tv.tasks_completed)::INTEGER AS tasks_completed
         FROM metrics_task_velocity tv
-        JOIN board_members bm ON bm.board_id = tv.board_id
+        JOIN project_members bm ON bm.project_id = tv.board_id
         JOIN team_members tm ON tm.user_id = bm.user_id AND tm.team_id = $1
         GROUP BY tv.week_start
         ORDER BY tv.week_start DESC
@@ -223,7 +223,7 @@ pub async fn get_team_dashboard(
         FROM tasks t
         JOIN task_assignees ta ON ta.task_id = t.id
         JOIN team_members tm ON tm.user_id = ta.user_id AND tm.team_id = $1
-        JOIN board_columns bc ON bc.id = t.column_id
+        JOIN project_statuses bc ON bc.id = t.status_id
         WHERE t.deleted_at IS NULL
           AND bc.status_mapping::TEXT ILIKE '%done%'
         "#,
@@ -274,7 +274,7 @@ pub async fn get_personal_dashboard(
             ROUND(AVG(ct.avg_cycle_days)::NUMERIC, 2)::FLOAT8 AS avg_cycle_days,
             SUM(ct.tasks_completed)::INTEGER AS tasks_completed
         FROM metrics_cycle_time_by_week ct
-        JOIN board_members bm ON bm.board_id = ct.board_id AND bm.user_id = $1
+        JOIN project_members bm ON bm.project_id = ct.board_id AND bm.user_id = $1
         GROUP BY ct.week_start
         ORDER BY ct.week_start DESC
         LIMIT 12
@@ -290,7 +290,7 @@ pub async fn get_personal_dashboard(
             tv.week_start,
             SUM(tv.tasks_completed)::INTEGER AS tasks_completed
         FROM metrics_task_velocity tv
-        JOIN board_members bm ON bm.board_id = tv.board_id AND bm.user_id = $1
+        JOIN project_members bm ON bm.project_id = tv.board_id AND bm.user_id = $1
         GROUP BY tv.week_start
         ORDER BY tv.week_start DESC
         LIMIT 12
@@ -314,7 +314,7 @@ pub async fn get_personal_dashboard(
         ) AS on_time_pct
         FROM tasks t
         JOIN task_assignees ta ON ta.task_id = t.id AND ta.user_id = $1
-        JOIN board_columns bc ON bc.id = t.column_id
+        JOIN project_statuses bc ON bc.id = t.status_id
         WHERE t.deleted_at IS NULL
           AND bc.status_mapping::TEXT ILIKE '%done%'
         "#,

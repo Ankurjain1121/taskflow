@@ -129,7 +129,7 @@ pub async fn apply_template(
     sqlx::query(
         r#"
         INSERT INTO automation_rules (
-            id, name, board_id, trigger, trigger_config,
+            id, name, project_id, trigger, trigger_config,
             is_active, tenant_id, created_by_id, created_at, updated_at
         )
         VALUES ($1, $2, $3, $4::automation_trigger, $5, true, $6, $7, $8, $8)

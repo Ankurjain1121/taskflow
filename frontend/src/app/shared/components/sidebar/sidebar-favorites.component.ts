@@ -39,7 +39,7 @@ import {
               class="px-3 py-2 text-xs italic"
               style="color: var(--sidebar-text-muted)"
             >
-              Star boards to pin them here
+              Star projects to pin them here
             </p>
           } @else {
             <div class="space-y-0.5">

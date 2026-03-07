@@ -131,7 +131,7 @@ import {
           <button
             (click)="onAddBoardClick($event)"
             class="add-board-btn p-1 rounded opacity-0 group-hover:opacity-100"
-            title="Add Board"
+            title="Add Project"
           >
             <svg
               class="w-3.5 h-3.5"
@@ -166,7 +166,7 @@ import {
               class="px-3 py-1.5 text-xs italic"
               style="color: var(--sidebar-text-muted)"
             >
-              No boards
+              No projects
             </div>
           } @else {
             @for (board of boards(); track board.id) {

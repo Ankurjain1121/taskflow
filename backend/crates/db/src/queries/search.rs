@@ -70,16 +70,16 @@ pub async fn search_all(
     // Optional filters use the ($N::text IS NULL OR ...) pattern for conditional filtering
     let tasks = sqlx::query_as::<_, TaskSearchResult>(
         r#"
-        SELECT t.id, t.title, t.description, t.board_id,
+        SELECT t.id, t.title, t.description, t.project_id as board_id,
                b.name as board_name, b.workspace_id,
                w.name as workspace_name
         FROM tasks t
-        JOIN boards b ON b.id = t.board_id
+        JOIN projects b ON b.id = t.project_id
         JOIN workspaces w ON w.id = b.workspace_id
-        JOIN board_members bm ON bm.board_id = b.id AND bm.user_id = $5
+        JOIN project_members bm ON bm.project_id = b.id AND bm.user_id = $5
         WHERE t.tenant_id = $1 AND t.deleted_at IS NULL AND b.deleted_at IS NULL
           AND (t.search_vector @@ plainto_tsquery('english', $2) OR t.title ILIKE $3)
-          AND ($6::uuid IS NULL OR t.board_id = $6)
+          AND ($6::uuid IS NULL OR t.project_id = $6)
           AND ($7::text IS NULL OR EXISTS (
               SELECT 1 FROM task_assignees ta
               JOIN users u ON u.id = ta.user_id
@@ -92,7 +92,7 @@ pub async fn search_all(
           ))
           AND ($9::text IS NULL OR EXISTS (
               SELECT 1 FROM board_columns col
-              WHERE col.id = t.column_id AND col.name ILIKE '%' || $9 || '%'
+              WHERE col.id = t.status_id AND col.name ILIKE '%' || $9 || '%'
           ))
         ORDER BY ts_rank(t.search_vector, plainto_tsquery('english', $2)) DESC,
                  t.updated_at DESC
@@ -117,9 +117,9 @@ pub async fn search_all(
         r#"
         SELECT b.id, b.name, b.description, b.workspace_id,
                w.name as workspace_name
-        FROM boards b
+        FROM projects b
         JOIN workspaces w ON w.id = b.workspace_id
-        JOIN board_members bm ON bm.board_id = b.id AND bm.user_id = $4
+        JOIN project_members bm ON bm.project_id = b.id AND bm.user_id = $4
         WHERE b.tenant_id = $1 AND b.deleted_at IS NULL
           AND (b.name ILIKE $2 OR b.description ILIKE $2)
           AND ($5::uuid IS NULL OR b.id = $5)
@@ -139,15 +139,15 @@ pub async fn search_all(
     let comments = sqlx::query_as::<_, CommentSearchResult>(
         r#"
         SELECT c.id, c.content, c.task_id,
-               t.title as task_title, t.board_id,
+               t.title as task_title, t.project_id as board_id,
                b.name as board_name, b.workspace_id
         FROM comments c
         JOIN tasks t ON t.id = c.task_id
-        JOIN boards b ON b.id = t.board_id
-        JOIN board_members bm ON bm.board_id = b.id AND bm.user_id = $4
+        JOIN projects b ON b.id = t.project_id
+        JOIN project_members bm ON bm.project_id = b.id AND bm.user_id = $4
         WHERE b.tenant_id = $1 AND c.deleted_at IS NULL AND t.deleted_at IS NULL
           AND c.content ILIKE $2
-          AND ($5::uuid IS NULL OR t.board_id = $5)
+          AND ($5::uuid IS NULL OR t.project_id = $5)
         LIMIT $3
         "#,
     )

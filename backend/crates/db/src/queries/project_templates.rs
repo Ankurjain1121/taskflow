@@ -259,14 +259,13 @@ pub async fn save_board_as_template(
         #[allow(dead_code)]
         position: String,
         color: Option<String>,
-        status_mapping: Option<serde_json::Value>,
     }
 
     let board_columns = sqlx::query_as::<_, BoardCol>(
         r#"
-        SELECT id, name, position, color, status_mapping
-        FROM board_columns
-        WHERE board_id = $1
+        SELECT id, name, position, color
+        FROM project_statuses
+        WHERE project_id = $1
         ORDER BY position ASC
         "#,
     )
@@ -283,15 +282,11 @@ pub async fn save_board_as_template(
         let col_id = Uuid::new_v4();
         let position = idx as i32;
         let color = col.color.clone().unwrap_or_else(|| "#6366f1".to_string());
-        let status_mapping = col
-            .status_mapping
-            .clone()
-            .unwrap_or_else(|| serde_json::json!({}));
 
         sqlx::query(
             r#"
             INSERT INTO project_template_columns (id, template_id, name, position, color, wip_limit, status_mapping)
-            VALUES ($1, $2, $3, $4, $5, NULL, $6)
+            VALUES ($1, $2, $3, $4, $5, NULL, '{}')
             "#,
         )
         .bind(col_id)
@@ -299,7 +294,6 @@ pub async fn save_board_as_template(
         .bind(&col.name)
         .bind(position)
         .bind(&color)
-        .bind(&status_mapping)
         .execute(&mut *tx)
         .await?;
 
@@ -312,7 +306,7 @@ pub async fn save_board_as_template(
         title: String,
         description: Option<String>,
         priority: TaskPriority,
-        column_id: Uuid,
+        status_id: Option<Uuid>,
         #[allow(dead_code)]
         position: String,
     }
@@ -322,10 +316,10 @@ pub async fn save_board_as_template(
         SELECT
             title, description,
             priority,
-            column_id, position
+            status_id, position
         FROM tasks
-        WHERE board_id = $1 AND deleted_at IS NULL
-        ORDER BY column_id, position ASC
+        WHERE project_id = $1 AND deleted_at IS NULL
+        ORDER BY status_id, position ASC
         "#,
     )
     .bind(board_id)
@@ -333,8 +327,9 @@ pub async fn save_board_as_template(
     .await?;
 
     for (task_idx, task) in board_tasks.iter().enumerate() {
-        let column_index = column_id_to_index
-            .get(&task.column_id)
+        let column_index = task
+            .status_id
+            .and_then(|sid| column_id_to_index.get(&sid))
             .copied()
             .unwrap_or(0);
 
@@ -437,7 +432,7 @@ pub async fn create_board_from_template(
 
     sqlx::query(
         r#"
-        INSERT INTO boards (id, name, workspace_id, tenant_id, created_by_id, created_at, updated_at)
+        INSERT INTO projects (id, name, workspace_id, tenant_id, created_by_id, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $6)
         "#,
     )
@@ -450,10 +445,10 @@ pub async fn create_board_from_template(
     .execute(&mut *tx)
     .await?;
 
-    // Add creator as board member with editor role
+    // Add creator as project member with editor role
     sqlx::query(
         r#"
-        INSERT INTO board_members (board_id, user_id, role)
+        INSERT INTO project_members (project_id, user_id, role)
         VALUES ($1, $2, 'editor')
         "#,
     )
@@ -471,19 +466,11 @@ pub async fn create_board_from_template(
         let col_id = Uuid::new_v4();
         // Use "a0", "a1", "a2" style position keys
         let position = format!("a{}", col.position);
-        let status_mapping_val: Option<serde_json::Value> = {
-            let v = &col.status_mapping;
-            if v.is_object() && v.as_object().is_none_or(|m| m.is_empty()) {
-                None
-            } else {
-                Some(v.clone())
-            }
-        };
 
         sqlx::query(
             r#"
-            INSERT INTO board_columns (id, name, board_id, position, color, status_mapping, created_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO project_statuses (id, name, project_id, position, color, type, is_default, tenant_id, created_at)
+            VALUES ($1, $2, $3, $4, $5, 'not_started', false, $6, $7)
             "#,
         )
         .bind(col_id)
@@ -491,7 +478,7 @@ pub async fn create_board_from_template(
         .bind(board_id)
         .bind(&position)
         .bind(&col.color)
-        .bind(&status_mapping_val)
+        .bind(tenant_id)
         .bind(now)
         .execute(&mut *tx)
         .await?;
@@ -519,7 +506,7 @@ pub async fn create_board_from_template(
 
         sqlx::query(
             r#"
-            INSERT INTO tasks (id, title, description, priority, column_id, board_id, position, tenant_id, created_by_id, created_at, updated_at)
+            INSERT INTO tasks (id, title, description, priority, status_id, project_id, position, tenant_id, created_by_id, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
             "#,
         )
@@ -585,8 +572,8 @@ mod tests {
         let bwc = boards::create_board(pool, "ProjTmpl Board", None, ws_id, tenant_id, user_id)
             .await
             .expect("create_board");
-        let first_col_id = bwc.columns[0].id;
-        (tenant_id, user_id, ws_id, bwc.board.id, first_col_id)
+        let first_col_id = bwc.task_lists[0].id;
+        (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
     }
 
     #[tokio::test]
@@ -740,10 +727,10 @@ mod tests {
             .expect("get_board_by_id")
             .expect("new board should exist");
 
-        assert_eq!(new_board.board.name, new_board_name);
+        assert_eq!(new_board.project.name, new_board_name);
         assert!(
-            !new_board.columns.is_empty(),
-            "new board should have columns from template"
+            !new_board.task_lists.is_empty(),
+            "new board should have task lists from template"
         );
     }
 

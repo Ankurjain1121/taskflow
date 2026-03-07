@@ -65,8 +65,8 @@ async fn verify_task_board_membership(
     let is_member = sqlx::query_scalar!(
         r#"
         SELECT EXISTS(
-            SELECT 1 FROM board_members
-            WHERE board_id = $1 AND user_id = $2
+            SELECT 1 FROM project_members
+            WHERE project_id = $1 AND user_id = $2
         ) as "exists!"
         "#,
         board_id,
@@ -301,12 +301,12 @@ async fn list_children_handler(
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<ChildTaskListResponse>> {
     // Verify board membership through task
-    let board_id = verify_task_board_membership(&state, task_id, tenant.user_id).await?;
+    verify_task_board_membership(&state, task_id, tenant.user_id).await?;
 
     let children = taskflow_db::queries::list_child_tasks(&state.db, task_id)
         .await
         .map_err(|e| match e {
-            taskflow_db::queries::TaskQueryError::NotBoardMember => {
+            taskflow_db::queries::TaskQueryError::NotProjectMember => {
                 AppError::Forbidden("Not a board member".into())
             }
             taskflow_db::queries::TaskQueryError::NotFound => {
@@ -319,20 +319,18 @@ async fn list_children_handler(
             taskflow_db::queries::TaskQueryError::Other(msg) => AppError::InternalError(msg),
         })?;
 
-    // Count completed children (those in done columns)
+    // Count completed children (those with done statuses)
     let completed = sqlx::query_scalar::<_, i64>(
         r#"
         SELECT COUNT(*)
         FROM tasks t
-        JOIN board_columns bc ON bc.id = t.column_id
+        LEFT JOIN project_statuses ps ON ps.id = t.status_id
         WHERE t.parent_task_id = $1
           AND t.deleted_at IS NULL
-          AND bc.board_id = $2
-          AND (bc.status_mapping->>'done')::boolean = true
+          AND ps.type = 'done'
         "#,
     )
     .bind(task_id)
-    .bind(board_id)
     .fetch_one(&state.db)
     .await
     .unwrap_or(0);
@@ -351,7 +349,7 @@ pub struct CreateChildTaskRequest {
     pub title: String,
     pub priority: Option<String>,
     pub description: Option<String>,
-    pub column_id: Option<Uuid>,
+    pub status_id: Option<Uuid>,
     pub assignee_ids: Option<Vec<Uuid>>,
 }
 
@@ -370,13 +368,13 @@ async fn create_child_task_handler(
         return Err(AppError::BadRequest("Title cannot be empty".into()));
     }
 
-    // Get parent task to inherit board_id, column_id, and validate depth
+    // Get parent task to inherit project_id, status_id, task_list_id, and validate depth
     let parent = sqlx::query_as::<_, Task>(
         r#"
         SELECT id, title, description, priority, due_date, start_date,
-               estimated_hours, board_id, column_id, group_id, position,
+               estimated_hours, project_id, status_id, task_list_id, position,
                milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-               tenant_id, created_by_id, deleted_at, column_entered_at,
+               tenant_id, created_by_id, deleted_at,
                created_at, updated_at, version, parent_task_id, depth
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
@@ -394,13 +392,14 @@ async fn create_child_task_handler(
         ));
     }
 
-    let column_id = body.column_id.unwrap_or(parent.column_id);
+    // Use provided status_id or inherit from parent
+    let status_id = body.status_id.or(parent.status_id);
 
-    // Get a position at the end
+    // Get a position at the end for this status
     let last_pos = sqlx::query_scalar::<_, String>(
-        "SELECT position FROM tasks WHERE column_id = $1 AND deleted_at IS NULL ORDER BY position DESC LIMIT 1",
+        "SELECT position FROM tasks WHERE task_list_id = $1 AND deleted_at IS NULL ORDER BY position DESC LIMIT 1",
     )
-    .bind(column_id)
+    .bind(parent.task_list_id)
     .fetch_optional(&state.db)
     .await?;
 
@@ -409,31 +408,29 @@ async fn create_child_task_handler(
         None => "a".to_string(),
     };
 
-    let priority = body
-        .priority
-        .as_deref()
-        .unwrap_or("none");
+    let priority = body.priority.as_deref().unwrap_or("none");
 
     let child = sqlx::query_as::<_, Task>(
         r#"
         INSERT INTO tasks (
-            title, description, priority, board_id, column_id, position,
+            title, description, priority, project_id, status_id, task_list_id, position,
             tenant_id, created_by_id, parent_task_id, depth
         )
-        VALUES ($1, $2, $3::task_priority, $4, $5, $6, $7, $8, $9, $10)
+        VALUES ($1, $2, $3::task_priority, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING
             id, title, description, priority, due_date, start_date,
-            estimated_hours, board_id, column_id, group_id, position,
+            estimated_hours, project_id, status_id, task_list_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at,
+            tenant_id, created_by_id, deleted_at,
             created_at, updated_at, version, parent_task_id, depth
         "#,
     )
     .bind(&body.title)
     .bind(body.description.as_deref())
     .bind(priority)
-    .bind(parent.board_id)
-    .bind(column_id)
+    .bind(parent.project_id)
+    .bind(status_id)
+    .bind(parent.task_list_id)
     .bind(&position)
     .bind(tenant.tenant_id)
     .bind(tenant.user_id)

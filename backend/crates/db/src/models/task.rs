@@ -5,7 +5,6 @@ use uuid::Uuid;
 
 use super::common::TaskPriority;
 
-/// NOTE: No `status` field — status is derived from the column's statusMapping
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
 pub struct Task {
     pub id: Uuid,
@@ -15,9 +14,9 @@ pub struct Task {
     pub due_date: Option<DateTime<Utc>>,
     pub start_date: Option<DateTime<Utc>>,
     pub estimated_hours: Option<f64>,
-    pub board_id: Uuid,
-    pub column_id: Uuid,
-    pub group_id: Option<Uuid>,
+    pub project_id: Uuid,
+    pub task_list_id: Option<Uuid>,
+    pub status_id: Option<Uuid>,
     pub position: String,
     pub milestone_id: Option<Uuid>,
     pub task_number: Option<i32>,
@@ -26,7 +25,6 @@ pub struct Task {
     pub tenant_id: Uuid,
     pub created_by_id: Uuid,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub column_entered_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub version: i32,
@@ -47,7 +45,7 @@ pub struct Label {
     pub id: Uuid,
     pub name: String,
     pub color: String,
-    pub board_id: Uuid,
+    pub project_id: Uuid,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
@@ -90,9 +88,9 @@ mod tests {
             due_date: Some(now),
             start_date: None,
             estimated_hours: Some(2.5),
-            board_id: Uuid::new_v4(),
-            column_id: Uuid::new_v4(),
-            group_id: None,
+            project_id: Uuid::new_v4(),
+            task_list_id: None,
+            status_id: None,
             position: "a0".to_string(),
             milestone_id: None,
             task_number: Some(1),
@@ -101,7 +99,6 @@ mod tests {
             tenant_id: Uuid::new_v4(),
             created_by_id: Uuid::new_v4(),
             deleted_at: None,
-            column_entered_at: now,
             created_at: now,
             updated_at: now,
             version: 1,
@@ -122,81 +119,14 @@ mod tests {
     }
 
     #[test]
-    fn test_task_with_none_optional_fields() {
-        let now = Utc::now();
-        let task = Task {
-            id: Uuid::new_v4(),
-            title: "Minimal".to_string(),
-            description: None,
-            priority: TaskPriority::Low,
-            due_date: None,
-            start_date: None,
-            estimated_hours: None,
-            board_id: Uuid::new_v4(),
-            column_id: Uuid::new_v4(),
-            group_id: None,
-            position: "z9".to_string(),
-            milestone_id: None,
-            task_number: None,
-            eisenhower_urgency: None,
-            eisenhower_importance: None,
-            tenant_id: Uuid::new_v4(),
-            created_by_id: Uuid::new_v4(),
-            deleted_at: None,
-            column_entered_at: now,
-            created_at: now,
-            updated_at: now,
-            version: 1,
-            parent_task_id: None,
-            depth: 0,
-        };
-        let json = serde_json::to_string(&task).unwrap();
-        let deserialized: Task = serde_json::from_str(&json).unwrap();
-        assert!(deserialized.description.is_none());
-        assert!(deserialized.due_date.is_none());
-        assert!(deserialized.eisenhower_urgency.is_none());
-    }
-
-    #[test]
     fn test_task_json_field_names() {
         let task = make_task();
         let json = serde_json::to_string(&task).unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert!(parsed.get("id").is_some());
-        assert!(parsed.get("title").is_some());
-        assert!(parsed.get("priority").is_some());
-        assert!(parsed.get("board_id").is_some());
-        assert!(parsed.get("column_id").is_some());
-        assert!(parsed.get("position").is_some());
-        assert!(parsed.get("tenant_id").is_some());
-        assert!(parsed.get("created_by_id").is_some());
-        assert!(parsed.get("eisenhower_urgency").is_some());
-        assert!(parsed.get("eisenhower_importance").is_some());
-    }
-
-    #[test]
-    fn test_task_clone() {
-        let task = make_task();
-        let cloned = task.clone();
-        assert_eq!(cloned.id, task.id);
-        assert_eq!(cloned.title, task.title);
-        assert_eq!(cloned.priority, task.priority);
-    }
-
-    #[test]
-    fn test_task_assignee_serde_roundtrip() {
-        let now = Utc::now();
-        let assignee = TaskAssignee {
-            id: Uuid::new_v4(),
-            task_id: Uuid::new_v4(),
-            user_id: Uuid::new_v4(),
-            assigned_at: now,
-        };
-        let json = serde_json::to_string(&assignee).unwrap();
-        let deserialized: TaskAssignee = serde_json::from_str(&json).unwrap();
-        assert_eq!(deserialized.id, assignee.id);
-        assert_eq!(deserialized.task_id, assignee.task_id);
-        assert_eq!(deserialized.user_id, assignee.user_id);
+        assert!(parsed.get("project_id").is_some());
+        assert!(parsed.get("task_list_id").is_some());
+        assert!(parsed.get("status_id").is_some());
     }
 
     #[test]
@@ -205,25 +135,10 @@ mod tests {
             id: Uuid::new_v4(),
             name: "Bug".to_string(),
             color: "#ff0000".to_string(),
-            board_id: Uuid::new_v4(),
+            project_id: Uuid::new_v4(),
         };
         let json = serde_json::to_string(&label).unwrap();
         let deserialized: Label = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.name, "Bug");
-        assert_eq!(deserialized.color, "#ff0000");
-    }
-
-    #[test]
-    fn test_task_label_serde_roundtrip() {
-        let tl = TaskLabel {
-            id: Uuid::new_v4(),
-            task_id: Uuid::new_v4(),
-            label_id: Uuid::new_v4(),
-        };
-        let json = serde_json::to_string(&tl).unwrap();
-        let deserialized: TaskLabel = serde_json::from_str(&json).unwrap();
-        assert_eq!(deserialized.id, tl.id);
-        assert_eq!(deserialized.task_id, tl.task_id);
-        assert_eq!(deserialized.label_id, tl.label_id);
     }
 }

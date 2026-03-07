@@ -143,14 +143,14 @@ async fn get_invitation_context(
     .ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
 
     // Get board IDs in this workspace (boards the user would have access to)
-    let board_ids: Vec<Uuid> = sqlx::query_scalar!(
+    let board_ids: Vec<Uuid> = sqlx::query_scalar(
         r#"
-        SELECT id FROM boards
+        SELECT id FROM projects
         WHERE workspace_id = $1 AND deleted_at IS NULL
         ORDER BY created_at ASC
         "#,
-        invitation.workspace_id
     )
+    .bind(invitation.workspace_id)
     .fetch_all(&state.db)
     .await?;
 

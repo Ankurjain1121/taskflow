@@ -12,8 +12,8 @@ use crate::utils::generate_key_between;
 pub enum TaskQueryError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
-    #[error("User is not a member of this board")]
-    NotBoardMember,
+    #[error("User is not a member of this project")]
+    NotProjectMember,
     #[error("Task not found")]
     NotFound,
     #[error("Version conflict: task was modified by another user")]
@@ -21,6 +21,9 @@ pub enum TaskQueryError {
     #[error("{0}")]
     Other(String),
 }
+
+// Backward-compat alias
+pub use TaskQueryError::NotProjectMember as NotBoardMember;
 
 /// Input for creating a new task
 #[derive(Debug, Deserialize)]
@@ -31,8 +34,8 @@ pub struct CreateTaskInput {
     pub due_date: Option<DateTime<Utc>>,
     pub start_date: Option<DateTime<Utc>>,
     pub estimated_hours: Option<f64>,
-    pub column_id: Uuid,
-    pub group_id: Option<Uuid>,
+    pub status_id: Option<Uuid>,
+    pub task_list_id: Option<Uuid>,
     pub milestone_id: Option<Uuid>,
     pub assignee_ids: Option<Vec<Uuid>>,
     pub label_ids: Option<Vec<Uuid>>,
@@ -87,21 +90,21 @@ pub struct AssigneeInfo {
     pub assigned_at: DateTime<Utc>,
 }
 
-/// Verify user is a member of the board
+/// Verify user is a member of the project
 pub(crate) async fn verify_board_membership(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     user_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
     let result = sqlx::query_scalar::<_, bool>(
         r#"
         SELECT EXISTS(
-            SELECT 1 FROM board_members
-            WHERE board_id = $1 AND user_id = $2
+            SELECT 1 FROM project_members
+            WHERE project_id = $1 AND user_id = $2
         )
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .bind(user_id)
     .fetch_one(pool)
     .await?;
@@ -109,40 +112,43 @@ pub(crate) async fn verify_board_membership(
     Ok(result)
 }
 
-/// List tasks for a board, grouped by column_id (capped at 1000 rows).
-/// Returns HashMap<column_id, Vec<Task>>
+/// List tasks for a project, grouped by status_id (capped at 1000 rows).
+/// Returns HashMap<status_id, Vec<Task>>
 pub async fn list_tasks_by_board(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     user_id: Uuid,
 ) -> Result<HashMap<Uuid, Vec<Task>>, TaskQueryError> {
-    // First verify user is a board member
-    if !verify_board_membership(pool, board_id, user_id).await? {
-        return Err(TaskQueryError::NotBoardMember);
+    // First verify user is a project member
+    if !verify_board_membership(pool, project_id, user_id).await? {
+        return Err(TaskQueryError::NotProjectMember);
     }
 
-    // Fetch tasks for the board with safety limit
+    // Fetch tasks for the project with safety limit
     let tasks = sqlx::query_as::<_, Task>(
         r#"
         SELECT
             id, title, description, priority, due_date, start_date,
-            estimated_hours, board_id, column_id, group_id, position,
+            estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
+            tenant_id, created_by_id, deleted_at, created_at, updated_at,
+            version, parent_task_id, depth
         FROM tasks
-        WHERE board_id = $1 AND deleted_at IS NULL AND parent_task_id IS NULL
+        WHERE project_id = $1 AND deleted_at IS NULL AND parent_task_id IS NULL
         ORDER BY position ASC
         LIMIT 1000
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_all(pool)
     .await?;
 
-    // Group tasks by column_id
+    // Group tasks by status_id
     let mut grouped: HashMap<Uuid, Vec<Task>> = HashMap::new();
     for task in tasks {
-        grouped.entry(task.column_id).or_default().push(task);
+        if let Some(sid) = task.status_id {
+            grouped.entry(sid).or_default().push(task);
+        }
     }
 
     Ok(grouped)
@@ -159,9 +165,10 @@ pub async fn get_task_by_id(
         r#"
         SELECT
             id, title, description, priority, due_date, start_date,
-            estimated_hours, board_id, column_id, group_id, position,
+            estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
+            tenant_id, created_by_id, deleted_at, created_at, updated_at,
+            version, parent_task_id, depth
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -175,9 +182,9 @@ pub async fn get_task_by_id(
         None => return Ok(None),
     };
 
-    // Verify user is a board member
-    if !verify_board_membership(pool, task.board_id, user_id).await? {
-        return Err(TaskQueryError::NotBoardMember);
+    // Verify user is a project member
+    if !verify_board_membership(pool, task.project_id, user_id).await? {
+        return Err(TaskQueryError::NotProjectMember);
     }
 
     // Fetch assignees with user info
@@ -200,7 +207,7 @@ pub async fn get_task_by_id(
     // Fetch labels
     let labels = sqlx::query_as::<_, Label>(
         r#"
-        SELECT l.id, l.name, l.color, l.board_id
+        SELECT l.id, l.name, l.color, l.project_id
         FROM labels l
         JOIN task_labels tl ON tl.label_id = l.id
         WHERE tl.task_id = $1
@@ -250,22 +257,56 @@ pub async fn get_task_by_id(
 /// Create a new task
 pub async fn create_task(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     input: CreateTaskInput,
     tenant_id: Uuid,
     created_by_id: Uuid,
 ) -> Result<Task, TaskQueryError> {
-    // Get the last position in the column to calculate new position
+    // Resolve status_id: use provided or look up default
+    let status_id = match input.status_id {
+        Some(sid) => Some(sid),
+        None => {
+            sqlx::query_scalar::<_, Uuid>(
+                r#"
+                SELECT id FROM project_statuses
+                WHERE project_id = $1 AND is_default = true
+                LIMIT 1
+                "#,
+            )
+            .bind(project_id)
+            .fetch_optional(pool)
+            .await?
+        }
+    };
+
+    // Resolve task_list_id: use provided or look up default
+    let task_list_id = match input.task_list_id {
+        Some(tlid) => Some(tlid),
+        None => {
+            sqlx::query_scalar::<_, Uuid>(
+                r#"
+                SELECT id FROM task_lists
+                WHERE project_id = $1 AND is_default = true AND deleted_at IS NULL
+                LIMIT 1
+                "#,
+            )
+            .bind(project_id)
+            .fetch_optional(pool)
+            .await?
+        }
+    };
+
+    // Get the last position in the project to calculate new position
     let last_position = sqlx::query_scalar::<_, String>(
         r#"
         SELECT position
         FROM tasks
-        WHERE column_id = $1 AND deleted_at IS NULL
+        WHERE project_id = $1 AND deleted_at IS NULL
         ORDER BY position DESC
         LIMIT 1
         "#,
     )
-    .bind(input.column_id)
+    .bind(project_id)
     .fetch_optional(pool)
     .await?;
 
@@ -297,16 +338,17 @@ pub async fn create_task(
     let task = sqlx::query_as::<_, Task>(
         r#"
         INSERT INTO tasks (id, title, description, priority, due_date, start_date,
-                          estimated_hours, board_id, column_id, group_id, position,
+                          estimated_hours, project_id, status_id, task_list_id, position,
                           milestone_id, task_number, tenant_id, created_by_id, parent_task_id, depth)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-                COALESCE((SELECT MAX(task_number) FROM tasks WHERE board_id = $8), 0) + 1,
+                COALESCE((SELECT MAX(task_number) FROM tasks WHERE project_id = $8), 0) + 1,
                 $13, $14, $15, $16)
         RETURNING
             id, title, description, priority, due_date, start_date,
-            estimated_hours, board_id, column_id, group_id, position,
+            estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
+            tenant_id, created_by_id, deleted_at, created_at, updated_at,
+            version, parent_task_id, depth
         "#,
     )
     .bind(task_id)
@@ -316,9 +358,9 @@ pub async fn create_task(
     .bind(input.due_date)
     .bind(input.start_date)
     .bind(input.estimated_hours)
-    .bind(board_id)
-    .bind(input.column_id)
-    .bind(input.group_id)
+    .bind(project_id)
+    .bind(status_id)
+    .bind(task_list_id)
     .bind(&position)
     .bind(input.milestone_id)
     .bind(tenant_id)
@@ -391,9 +433,10 @@ pub async fn update_task(
             AND ($14::int IS NULL OR version = $14)
         RETURNING
             id, title, description, priority, due_date, start_date,
-            estimated_hours, board_id, column_id, group_id, position,
+            estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
+            tenant_id, created_by_id, deleted_at, created_at, updated_at,
+            version, parent_task_id, depth
         "#,
     )
     .bind(task_id)
@@ -422,9 +465,10 @@ pub async fn update_task(
                 let current = sqlx::query_as::<_, Task>(
                     r#"
                     SELECT id, title, description, priority, due_date, start_date,
-                           estimated_hours, board_id, column_id, group_id, position,
+                           estimated_hours, project_id, task_list_id, status_id, position,
                            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-                           tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
+                           tenant_id, created_by_id, deleted_at, created_at, updated_at,
+                           version, parent_task_id, depth
                     FROM tasks WHERE id = $1 AND deleted_at IS NULL
                     "#,
                 )
@@ -439,6 +483,62 @@ pub async fn update_task(
             Err(TaskQueryError::NotFound)
         }
     }
+}
+
+/// Update a task's status
+pub async fn update_task_status(
+    pool: &PgPool,
+    task_id: Uuid,
+    status_id: Uuid,
+) -> Result<Task, TaskQueryError> {
+    let task = sqlx::query_as::<_, Task>(
+        r#"
+        UPDATE tasks
+        SET status_id = $2, updated_at = NOW()
+        WHERE id = $1 AND deleted_at IS NULL
+        RETURNING
+            id, title, description, priority, due_date, start_date,
+            estimated_hours, project_id, task_list_id, status_id, position,
+            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
+            tenant_id, created_by_id, deleted_at, created_at, updated_at,
+            version, parent_task_id, depth
+        "#,
+    )
+    .bind(task_id)
+    .bind(status_id)
+    .fetch_optional(pool)
+    .await?
+    .ok_or(TaskQueryError::NotFound)?;
+
+    Ok(task)
+}
+
+/// Update a task's task list
+pub async fn update_task_list(
+    pool: &PgPool,
+    task_id: Uuid,
+    task_list_id: Uuid,
+) -> Result<Task, TaskQueryError> {
+    let task = sqlx::query_as::<_, Task>(
+        r#"
+        UPDATE tasks
+        SET task_list_id = $2, updated_at = NOW()
+        WHERE id = $1 AND deleted_at IS NULL
+        RETURNING
+            id, title, description, priority, due_date, start_date,
+            estimated_hours, project_id, task_list_id, status_id, position,
+            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
+            tenant_id, created_by_id, deleted_at, created_at, updated_at,
+            version, parent_task_id, depth
+        "#,
+    )
+    .bind(task_id)
+    .bind(task_list_id)
+    .fetch_optional(pool)
+    .await?
+    .ok_or(TaskQueryError::NotFound)?;
+
+    Ok(task)
 }
 
 /// Soft delete a task and its children (cascade)
@@ -462,31 +562,31 @@ pub async fn soft_delete_task(pool: &PgPool, task_id: Uuid) -> Result<(), TaskQu
     Ok(())
 }
 
-/// Move a task to a different column and/or position
+/// Move a task to a different status and/or position
 pub async fn move_task(
     pool: &PgPool,
     task_id: Uuid,
-    target_column_id: Uuid,
+    target_status_id: Uuid,
     new_position: String,
 ) -> Result<Task, TaskQueryError> {
     let task = sqlx::query_as::<_, Task>(
         r#"
         UPDATE tasks
         SET
-            column_id = $2,
+            status_id = $2,
             position = $3,
-            column_entered_at = CASE WHEN column_id != $2 THEN NOW() ELSE column_entered_at END,
             updated_at = NOW()
         WHERE id = $1 AND deleted_at IS NULL
         RETURNING
             id, title, description, priority, due_date, start_date,
-            estimated_hours, board_id, column_id, group_id, position,
+            estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
+            tenant_id, created_by_id, deleted_at, created_at, updated_at,
+            version, parent_task_id, depth
         "#,
     )
     .bind(task_id)
-    .bind(target_column_id)
+    .bind(target_status_id)
     .bind(&new_position)
     .fetch_optional(pool)
     .await?
@@ -506,9 +606,10 @@ pub async fn duplicate_task(
         r#"
         SELECT
             id, title, description, priority, due_date, start_date,
-            estimated_hours, board_id, column_id, group_id, position,
+            estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
+            tenant_id, created_by_id, deleted_at, created_at, updated_at,
+            version, parent_task_id, depth
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -523,12 +624,12 @@ pub async fn duplicate_task(
         r#"
         SELECT position
         FROM tasks
-        WHERE column_id = $1 AND deleted_at IS NULL
+        WHERE project_id = $1 AND deleted_at IS NULL
         ORDER BY position DESC
         LIMIT 1
         "#,
     )
-    .bind(source.column_id)
+    .bind(source.project_id)
     .fetch_optional(pool)
     .await?;
 
@@ -541,17 +642,18 @@ pub async fn duplicate_task(
     let task = sqlx::query_as::<_, Task>(
         r#"
         INSERT INTO tasks (id, title, description, priority, due_date, start_date,
-                          estimated_hours, board_id, column_id, group_id, position,
+                          estimated_hours, project_id, status_id, task_list_id, position,
                           milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
                           tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-                COALESCE((SELECT MAX(task_number) FROM tasks WHERE board_id = $8), 0) + 1,
+                COALESCE((SELECT MAX(task_number) FROM tasks WHERE project_id = $8), 0) + 1,
                 $13, $14, $15, $16)
         RETURNING
             id, title, description, priority, due_date, start_date,
-            estimated_hours, board_id, column_id, group_id, position,
+            estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, column_entered_at, created_at, updated_at, version, parent_task_id, depth
+            tenant_id, created_by_id, deleted_at, created_at, updated_at,
+            version, parent_task_id, depth
         "#,
     )
     .bind(new_id)
@@ -561,9 +663,9 @@ pub async fn duplicate_task(
     .bind(source.due_date)
     .bind(source.start_date)
     .bind(source.estimated_hours)
-    .bind(source.board_id)
-    .bind(source.column_id)
-    .bind(source.group_id)
+    .bind(source.project_id)
+    .bind(source.status_id)
+    .bind(source.task_list_id)
     .bind(&position)
     .bind(source.milestone_id)
     .bind(source.eisenhower_urgency)
@@ -606,10 +708,10 @@ pub async fn duplicate_task(
     // Copy child tasks (preserving parent_task_id pointing to new parent, and depth)
     sqlx::query(
         r#"
-        INSERT INTO tasks (id, title, description, priority, board_id, column_id,
-                          position, tenant_id, created_by_id, parent_task_id, depth)
-        SELECT gen_random_uuid(), title, description, priority, board_id, column_id,
-               position, tenant_id, $3, $2, depth
+        INSERT INTO tasks (id, title, description, priority, project_id, status_id,
+                          task_list_id, position, tenant_id, created_by_id, parent_task_id, depth)
+        SELECT gen_random_uuid(), title, description, priority, project_id, status_id,
+               task_list_id, position, tenant_id, $3, $2, depth
         FROM tasks
         WHERE parent_task_id = $1 AND deleted_at IS NULL
         "#,
@@ -624,16 +726,24 @@ pub async fn duplicate_task(
     Ok(task)
 }
 
-/// Get task's board_id (for authorization checks)
+/// Get task's project_id (for authorization checks)
 pub async fn get_task_board_id(pool: &PgPool, task_id: Uuid) -> Result<Option<Uuid>, sqlx::Error> {
     sqlx::query_scalar::<_, Uuid>(
         r#"
-        SELECT board_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
+        SELECT project_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
         "#,
     )
     .bind(task_id)
     .fetch_optional(pool)
     .await
+}
+
+/// Alias
+pub async fn get_task_project_id(
+    pool: &PgPool,
+    task_id: Uuid,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    get_task_board_id(pool, task_id).await
 }
 
 /// List child tasks for a parent task
@@ -643,9 +753,9 @@ pub async fn list_child_tasks(
 ) -> Result<Vec<Task>, TaskQueryError> {
     let children = sqlx::query_as::<_, Task>(
         r#"SELECT id, title, description, priority, due_date, start_date,
-           estimated_hours, board_id, column_id, group_id, position,
+           estimated_hours, project_id, task_list_id, status_id, position,
            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-           tenant_id, created_by_id, deleted_at, column_entered_at,
+           tenant_id, created_by_id, deleted_at,
            created_at, updated_at, version, parent_task_id, depth
         FROM tasks
         WHERE parent_task_id = $1 AND deleted_at IS NULL
@@ -666,12 +776,13 @@ mod tests {
         let json = r#"{
             "title": "Test Task",
             "description": "A test description",
-            "priority": "high",
-            "column_id": "00000000-0000-0000-0000-000000000001"
+            "priority": "high"
         }"#;
 
         let input: CreateTaskInput = serde_json::from_str(json).unwrap();
         assert_eq!(input.title, "Test Task");
         assert_eq!(input.priority, TaskPriority::High);
+        assert!(input.status_id.is_none());
+        assert!(input.task_list_id.is_none());
     }
 }

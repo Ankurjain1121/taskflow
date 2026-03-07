@@ -32,12 +32,12 @@ pub struct DeadlineScanResult {
 }
 
 /// Task due info for processing
-#[derive(Debug)]
+#[derive(Debug, sqlx::FromRow)]
 struct TaskDueInfo {
     task_id: Uuid,
     task_title: String,
-    board_id: Uuid,
-    board_name: String,
+    project_id: Uuid,
+    project_name: String,
     due_date: chrono::DateTime<Utc>,
     assignee_id: Uuid,
 }
@@ -46,7 +46,7 @@ struct TaskDueInfo {
 ///
 /// This function:
 /// 1. Finds tasks due within 24 hours (TASK_DUE_SOON)
-/// 2. Finds overdue tasks not in "done" columns (TASK_OVERDUE)
+/// 2. Finds overdue tasks not in "done" statuses (TASK_OVERDUE)
 /// 3. Creates in-app notifications for assignees
 /// 4. Triggers Novu events for multi-channel delivery
 ///
@@ -75,27 +75,26 @@ pub async fn scan_deadlines(
 
     // --- Task Due Soon (within 24 hours) ---
     loop {
-        let tasks_due_soon: Vec<TaskDueInfo> = sqlx::query_as!(
-            TaskDueInfo,
+        let tasks_due_soon: Vec<TaskDueInfo> = sqlx::query_as::<_, TaskDueInfo>(
             r#"
             SELECT
                 t.id as task_id,
                 t.title as task_title,
-                t.board_id,
-                b.name as board_name,
-                t.due_date as "due_date!",
+                t.project_id,
+                p.name as project_name,
+                t.due_date,
                 ta.user_id as assignee_id
             FROM tasks t
-            JOIN boards b ON b.id = t.board_id
+            JOIN projects p ON p.id = t.project_id
             JOIN task_assignees ta ON ta.task_id = t.id
             WHERE t.due_date > $1
               AND t.due_date <= $2
               AND t.deleted_at IS NULL
-              -- Exclude tasks in done columns
+              -- Exclude tasks in done statuses
               AND NOT EXISTS (
-                  SELECT 1 FROM board_columns bc
-                  WHERE bc.id = t.column_id
-                  AND (bc.status_mapping->>'done')::boolean = true
+                  SELECT 1 FROM project_statuses ps
+                  WHERE ps.id = t.status_id
+                  AND ps.type = 'done'
               )
               -- Dedup: no due-soon notification in last 24h
               AND NOT EXISTS (
@@ -108,11 +107,11 @@ pub async fn scan_deadlines(
             ORDER BY t.due_date ASC
             LIMIT $3 OFFSET $4
             "#,
-            now,
-            in_24_hours,
-            batch_size,
-            offset
         )
+        .bind(now)
+        .bind(in_24_hours)
+        .bind(batch_size)
+        .bind(offset)
         .fetch_all(pool)
         .await?;
 
@@ -125,12 +124,12 @@ pub async fn scan_deadlines(
         for task in tasks_due_soon {
             let hours_until_due = (task.due_date - now).num_hours();
             let link_url = format!(
-                "{}/boards/{}/tasks/{}",
-                app_url, task.board_id, task.task_id
+                "{}/projects/{}/tasks/{}",
+                app_url, task.project_id, task.task_id
             );
             let body = format!(
-                "Task \"{}\" on board \"{}\" is due in {} hours",
-                task.task_title, task.board_name, hours_until_due
+                "Task \"{}\" on project \"{}\" is due in {} hours",
+                task.task_title, task.project_name, hours_until_due
             );
 
             match notification_service
@@ -151,8 +150,8 @@ pub async fn scan_deadlines(
                         let payload = serde_json::json!({
                             "task_id": task.task_id,
                             "task_title": task.task_title,
-                            "board_id": task.board_id,
-                            "board_name": task.board_name,
+                            "project_id": task.project_id,
+                            "project_name": task.project_name,
                             "due_date": task.due_date.to_rfc3339(),
                             "hours_until_due": hours_until_due,
                             "link_url": link_url
@@ -183,26 +182,25 @@ pub async fn scan_deadlines(
     // --- Task Overdue ---
     offset = 0;
     loop {
-        let tasks_overdue: Vec<TaskDueInfo> = sqlx::query_as!(
-            TaskDueInfo,
+        let tasks_overdue: Vec<TaskDueInfo> = sqlx::query_as::<_, TaskDueInfo>(
             r#"
             SELECT
                 t.id as task_id,
                 t.title as task_title,
-                t.board_id,
-                b.name as board_name,
-                t.due_date as "due_date!",
+                t.project_id,
+                p.name as project_name,
+                t.due_date,
                 ta.user_id as assignee_id
             FROM tasks t
-            JOIN boards b ON b.id = t.board_id
+            JOIN projects p ON p.id = t.project_id
             JOIN task_assignees ta ON ta.task_id = t.id
             WHERE t.due_date < $1
               AND t.deleted_at IS NULL
-              -- Exclude tasks in done columns
+              -- Exclude tasks in done statuses
               AND NOT EXISTS (
-                  SELECT 1 FROM board_columns bc
-                  WHERE bc.id = t.column_id
-                  AND (bc.status_mapping->>'done')::boolean = true
+                  SELECT 1 FROM project_statuses ps
+                  WHERE ps.id = t.status_id
+                  AND ps.type = 'done'
               )
               -- Dedup: no overdue notification in last 24h
               AND NOT EXISTS (
@@ -215,10 +213,10 @@ pub async fn scan_deadlines(
             ORDER BY t.due_date ASC
             LIMIT $2 OFFSET $3
             "#,
-            now,
-            batch_size,
-            offset
         )
+        .bind(now)
+        .bind(batch_size)
+        .bind(offset)
         .fetch_all(pool)
         .await?;
 
@@ -231,13 +229,13 @@ pub async fn scan_deadlines(
         for task in tasks_overdue {
             let days_overdue = (now - task.due_date).num_days();
             let link_url = format!(
-                "{}/boards/{}/tasks/{}",
-                app_url, task.board_id, task.task_id
+                "{}/projects/{}/tasks/{}",
+                app_url, task.project_id, task.task_id
             );
             let body = format!(
-                "Task \"{}\" on board \"{}\" is {} day(s) overdue",
+                "Task \"{}\" on project \"{}\" is {} day(s) overdue",
                 task.task_title,
-                task.board_name,
+                task.project_name,
                 days_overdue.max(1)
             );
 
@@ -259,8 +257,8 @@ pub async fn scan_deadlines(
                         let payload = serde_json::json!({
                             "task_id": task.task_id,
                             "task_title": task.task_title,
-                            "board_id": task.board_id,
-                            "board_name": task.board_name,
+                            "project_id": task.project_id,
+                            "project_name": task.project_name,
                             "due_date": task.due_date.to_rfc3339(),
                             "days_overdue": days_overdue,
                             "link_url": link_url
@@ -294,12 +292,12 @@ pub async fn scan_deadlines(
             result.reminder_count = pending.len();
             for reminder in pending {
                 let link_url = format!(
-                    "{}/boards/{}/tasks/{}",
-                    app_url, reminder.board_id, reminder.task_id
+                    "{}/projects/{}/tasks/{}",
+                    app_url, reminder.project_id, reminder.task_id
                 );
                 let body = format!(
-                    "Reminder: Task \"{}\" on board \"{}\" is due in {} minutes",
-                    reminder.task_title, reminder.board_name, reminder.remind_before_minutes
+                    "Reminder: Task \"{}\" on project \"{}\" is due in {} minutes",
+                    reminder.task_title, reminder.project_name, reminder.remind_before_minutes
                 );
 
                 match notification_service
@@ -451,45 +449,45 @@ mod tests {
     #[test]
     fn test_deadline_scan_link_url_format() {
         let app_url = "https://taskflow.example.com";
-        let board_id = Uuid::new_v4();
+        let project_id = Uuid::new_v4();
         let task_id = Uuid::new_v4();
-        let link_url = format!("{}/boards/{}/tasks/{}", app_url, board_id, task_id);
+        let link_url = format!("{}/projects/{}/tasks/{}", app_url, project_id, task_id);
 
-        assert!(link_url.starts_with("https://taskflow.example.com/boards/"));
+        assert!(link_url.starts_with("https://taskflow.example.com/projects/"));
         assert!(link_url.contains("/tasks/"));
-        assert!(link_url.contains(&board_id.to_string()));
+        assert!(link_url.contains(&project_id.to_string()));
         assert!(link_url.contains(&task_id.to_string()));
     }
 
     #[test]
     fn test_due_soon_notification_body_format() {
         let task_title = "Fix login bug";
-        let board_name = "Sprint 42";
+        let project_name = "Sprint 42";
         let hours_until_due = 12_i64;
         let body = format!(
-            "Task \"{}\" on board \"{}\" is due in {} hours",
-            task_title, board_name, hours_until_due
+            "Task \"{}\" on project \"{}\" is due in {} hours",
+            task_title, project_name, hours_until_due
         );
         assert_eq!(
             body,
-            "Task \"Fix login bug\" on board \"Sprint 42\" is due in 12 hours"
+            "Task \"Fix login bug\" on project \"Sprint 42\" is due in 12 hours"
         );
     }
 
     #[test]
     fn test_overdue_notification_body_format() {
         let task_title = "Review PR";
-        let board_name = "Development";
+        let project_name = "Development";
         let days_overdue = 3_i64;
         let body = format!(
-            "Task \"{}\" on board \"{}\" is {} day(s) overdue",
+            "Task \"{}\" on project \"{}\" is {} day(s) overdue",
             task_title,
-            board_name,
+            project_name,
             days_overdue.max(1)
         );
         assert_eq!(
             body,
-            "Task \"Review PR\" on board \"Development\" is 3 day(s) overdue"
+            "Task \"Review PR\" on project \"Development\" is 3 day(s) overdue"
         );
     }
 

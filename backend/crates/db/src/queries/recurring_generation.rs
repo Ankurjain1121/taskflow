@@ -13,8 +13,8 @@ struct SourceTask {
     pub title: String,
     pub description: Option<String>,
     pub priority: crate::models::TaskPriority,
-    pub column_id: Uuid,
-    pub board_id: Uuid,
+    pub status_id: Option<Uuid>,
+    pub project_id: Uuid,
     pub tenant_id: Uuid,
     pub created_by_id: Uuid,
     pub estimated_hours: Option<f64>,
@@ -39,7 +39,7 @@ pub async fn get_due_configs(
             is_active,
             max_occurrences,
             occurrences_created,
-            board_id,
+            project_id,
             tenant_id,
             created_by_id,
             created_at,
@@ -78,7 +78,7 @@ pub async fn create_recurring_instance(
     // 1. Fetch source task
     let source_task = sqlx::query_as::<_, SourceTask>(
         r#"
-        SELECT id, title, description, priority, column_id, board_id,
+        SELECT id, title, description, priority, status_id, project_id,
                tenant_id, created_by_id, estimated_hours, start_date
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
@@ -101,7 +101,7 @@ pub async fn create_recurring_instance(
         r#"
         INSERT INTO tasks (
             id, title, description, priority, due_date,
-            column_id, board_id, position, tenant_id, created_by_id,
+            status_id, project_id, position, tenant_id, created_by_id,
             estimated_hours, start_date, created_at, updated_at
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)
@@ -112,8 +112,8 @@ pub async fn create_recurring_instance(
     .bind(&source_task.description)
     .bind(&source_task.priority)
     .bind(config.next_run_at)
-    .bind(source_task.column_id)
-    .bind(source_task.board_id)
+    .bind(source_task.status_id)
+    .bind(source_task.project_id)
     .bind(&position)
     .bind(source_task.tenant_id)
     .bind(source_task.created_by_id)
@@ -128,7 +128,7 @@ pub async fn create_recurring_instance(
         let assignee_ids = crate::queries::positions::resolve_assignees(
             pool,
             pos_id,
-            config.board_id,
+            config.project_id,
             config.tenant_id,
         )
         .await?;

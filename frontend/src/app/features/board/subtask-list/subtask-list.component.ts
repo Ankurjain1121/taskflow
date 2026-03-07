@@ -377,7 +377,7 @@ export class SubtaskListComponent implements OnInit, OnChanges {
       newPosition = 'a';
     }
 
-    this.taskService.moveTask(moved.id, { column_id: moved.column_id, position: newPosition }).subscribe({
+    this.taskService.moveTask(moved.id, { status_id: moved.status_id ?? undefined, position: newPosition }).subscribe({
       error: () => {
         this.children.set(snapshot);
         this.showError('Failed to reorder');

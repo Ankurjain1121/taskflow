@@ -19,7 +19,7 @@ pub enum WsBoardEvent {
     },
     TaskMoved {
         task_id: Uuid,
-        column_id: Uuid,
+        status_id: Option<Uuid>,
         position: String,
         origin_user_id: Uuid,
     },
@@ -27,16 +27,16 @@ pub enum WsBoardEvent {
         task_id: Uuid,
         origin_user_id: Uuid,
     },
-    ColumnCreated {
-        column: ColumnBroadcast,
+    StatusCreated {
+        status: StatusBroadcast,
         origin_user_id: Uuid,
     },
-    ColumnUpdated {
-        column: ColumnBroadcast,
+    StatusUpdated {
+        status: StatusBroadcast,
         origin_user_id: Uuid,
     },
-    ColumnDeleted {
-        column_id: Uuid,
+    StatusDeleted {
+        status_id: Uuid,
         origin_user_id: Uuid,
     },
     PresenceUpdate {
@@ -60,7 +60,7 @@ pub struct TaskBroadcast {
     pub id: Uuid,
     pub title: String,
     pub priority: TaskPriority,
-    pub column_id: Uuid,
+    pub status_id: Option<Uuid>,
     pub position: String,
     pub assignee_ids: Vec<Uuid>,
     pub watcher_ids: Vec<Uuid>,
@@ -73,12 +73,12 @@ pub struct TaskBroadcast {
 
 #[derive(Clone, Debug, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
-pub struct ColumnBroadcast {
+pub struct StatusBroadcast {
     pub id: Uuid,
     pub name: String,
     pub position: String,
-    pub color: Option<String>,
-    pub status_mapping: Option<serde_json::Value>,
+    pub color: String,
+    pub status_type: String,
 }
 
 #[cfg(test)]
@@ -90,7 +90,7 @@ mod tests {
     fn export_types() {
         WsBoardEvent::export_all().expect("Failed to export WsBoardEvent");
         TaskBroadcast::export_all().expect("Failed to export TaskBroadcast");
-        ColumnBroadcast::export_all().expect("Failed to export ColumnBroadcast");
+        StatusBroadcast::export_all().expect("Failed to export StatusBroadcast");
     }
 
     #[test]
@@ -101,7 +101,7 @@ mod tests {
                 id: Uuid::new_v4(),
                 title: "New Task".to_string(),
                 priority: TaskPriority::High,
-                column_id: Uuid::new_v4(),
+                status_id: Some(Uuid::new_v4()),
                 position: "a0".to_string(),
                 assignee_ids: vec![Uuid::new_v4()],
                 watcher_ids: vec![],
@@ -126,7 +126,7 @@ mod tests {
                 id: Uuid::new_v4(),
                 title: "Updated Task".to_string(),
                 priority: TaskPriority::Medium,
-                column_id: Uuid::new_v4(),
+                status_id: Some(Uuid::new_v4()),
                 position: "a1".to_string(),
                 assignee_ids: vec![],
                 watcher_ids: vec![],
@@ -149,11 +149,11 @@ mod tests {
     #[test]
     fn test_task_moved_event_serde() {
         let task_id = Uuid::new_v4();
-        let column_id = Uuid::new_v4();
+        let status_id = Uuid::new_v4();
         let user_id = Uuid::new_v4();
         let event = WsBoardEvent::TaskMoved {
             task_id,
-            column_id,
+            status_id: Some(status_id),
             position: "b2".to_string(),
             origin_user_id: user_id,
         };
@@ -186,58 +186,21 @@ mod tests {
     }
 
     #[test]
-    fn test_column_created_event_serde() {
-        let event = WsBoardEvent::ColumnCreated {
-            column: ColumnBroadcast {
+    fn test_status_created_event_serde() {
+        let event = WsBoardEvent::StatusCreated {
+            status: StatusBroadcast {
                 id: Uuid::new_v4(),
-                name: "New Column".to_string(),
+                name: "New Status".to_string(),
                 position: "a0".to_string(),
-                color: Some("#ff0000".to_string()),
-                status_mapping: None,
+                color: "#ff0000".to_string(),
+                status_type: "active".to_string(),
             },
             origin_user_id: Uuid::new_v4(),
         };
         let json = serde_json::to_string(&event).unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
-        assert_eq!(parsed["type"], "ColumnCreated");
-        assert_eq!(parsed["column"]["name"], "New Column");
-        assert_eq!(parsed["column"]["color"], "#ff0000");
-    }
-
-    #[test]
-    fn test_column_updated_event_serde() {
-        let event = WsBoardEvent::ColumnUpdated {
-            column: ColumnBroadcast {
-                id: Uuid::new_v4(),
-                name: "Updated Column".to_string(),
-                position: "a1".to_string(),
-                color: None,
-                status_mapping: Some(serde_json::json!({"done": true})),
-            },
-            origin_user_id: Uuid::new_v4(),
-        };
-        let json = serde_json::to_string(&event).unwrap();
-        let deserialized: WsBoardEvent = serde_json::from_str(&json).unwrap();
-        match deserialized {
-            WsBoardEvent::ColumnUpdated { column, .. } => {
-                assert_eq!(column.name, "Updated Column");
-                assert!(column.status_mapping.is_some());
-            }
-            _ => panic!("Expected ColumnUpdated variant"),
-        }
-    }
-
-    #[test]
-    fn test_column_deleted_event_serde() {
-        let col_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let event = WsBoardEvent::ColumnDeleted {
-            column_id: col_id,
-            origin_user_id: user_id,
-        };
-        let json = serde_json::to_string(&event).unwrap();
-        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
-        assert_eq!(parsed["type"], "ColumnDeleted");
+        assert_eq!(parsed["type"], "StatusCreated");
+        assert_eq!(parsed["status"]["name"], "New Status");
     }
 
     #[test]
@@ -247,7 +210,7 @@ mod tests {
             id: Uuid::new_v4(),
             title: "Roundtrip Test".to_string(),
             priority: TaskPriority::Low,
-            column_id: Uuid::new_v4(),
+            status_id: Some(Uuid::new_v4()),
             position: "z9".to_string(),
             assignee_ids: vec![Uuid::new_v4(), Uuid::new_v4()],
             watcher_ids: vec![],
@@ -263,31 +226,28 @@ mod tests {
     }
 
     #[test]
-    fn test_column_broadcast_serde_roundtrip() {
-        let col = ColumnBroadcast {
+    fn test_status_broadcast_serde_roundtrip() {
+        let status = StatusBroadcast {
             id: Uuid::new_v4(),
-            name: "Backlog".to_string(),
+            name: "Open".to_string(),
             position: "a0".to_string(),
-            color: Some("#94a3b8".to_string()),
-            status_mapping: None,
+            color: "#94a3b8".to_string(),
+            status_type: "not_started".to_string(),
         };
-        let json = serde_json::to_string(&col).unwrap();
-        let deserialized: ColumnBroadcast = serde_json::from_str(&json).unwrap();
-        assert_eq!(deserialized.id, col.id);
-        assert_eq!(deserialized.name, col.name);
-        assert_eq!(deserialized.color, Some("#94a3b8".to_string()));
-        assert!(deserialized.status_mapping.is_none());
+        let json = serde_json::to_string(&status).unwrap();
+        let deserialized: StatusBroadcast = serde_json::from_str(&json).unwrap();
+        assert_eq!(deserialized.id, status.id);
+        assert_eq!(deserialized.name, status.name);
     }
 
     #[test]
     fn test_ws_board_event_tagged_union_type_field() {
-        // Verify the serde tag="type" discriminator is present in all variants
         let now = Utc::now();
         let task = TaskBroadcast {
             id: Uuid::new_v4(),
             title: "T".to_string(),
             priority: TaskPriority::Low,
-            column_id: Uuid::new_v4(),
+            status_id: Some(Uuid::new_v4()),
             position: "a0".to_string(),
             assignee_ids: vec![],
             watcher_ids: vec![],
@@ -295,12 +255,12 @@ mod tests {
             changed_fields: None,
             origin_user_name: None,
         };
-        let col = ColumnBroadcast {
+        let status = StatusBroadcast {
             id: Uuid::new_v4(),
-            name: "C".to_string(),
+            name: "S".to_string(),
             position: "a0".to_string(),
-            color: None,
-            status_mapping: None,
+            color: "#000".to_string(),
+            status_type: "active".to_string(),
         };
         let uid = Uuid::new_v4();
 
@@ -323,7 +283,7 @@ mod tests {
                 "TaskMoved",
                 WsBoardEvent::TaskMoved {
                     task_id: uid,
-                    column_id: uid,
+                    status_id: Some(uid),
                     position: "a0".into(),
                     origin_user_id: uid,
                 },
@@ -336,23 +296,23 @@ mod tests {
                 },
             ),
             (
-                "ColumnCreated",
-                WsBoardEvent::ColumnCreated {
-                    column: col.clone(),
+                "StatusCreated",
+                WsBoardEvent::StatusCreated {
+                    status: status.clone(),
                     origin_user_id: uid,
                 },
             ),
             (
-                "ColumnUpdated",
-                WsBoardEvent::ColumnUpdated {
-                    column: col.clone(),
+                "StatusUpdated",
+                WsBoardEvent::StatusUpdated {
+                    status: status.clone(),
                     origin_user_id: uid,
                 },
             ),
             (
-                "ColumnDeleted",
-                WsBoardEvent::ColumnDeleted {
-                    column_id: uid,
+                "StatusDeleted",
+                WsBoardEvent::StatusDeleted {
+                    status_id: uid,
                     origin_user_id: uid,
                 },
             ),

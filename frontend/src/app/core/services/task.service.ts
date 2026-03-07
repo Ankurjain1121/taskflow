@@ -29,7 +29,11 @@ export interface TaskReminder {
 
 export interface TaskWithDetails {
   id: string;
-  column_id: string;
+  /** @deprecated removed — use status_id */
+  column_id?: string;
+  status_id: string | null;
+  project_id: string;
+  task_list_id?: string | null;
   title: string;
   description: string | null;
   priority: TaskPriority;
@@ -49,17 +53,27 @@ export interface TaskWithDetails {
 
 export interface Task {
   id: string;
-  column_id: string;
+  project_id: string;
+  /** @deprecated removed — use status_id */
+  column_id?: string;
+  status_id?: string | null;
+  status_name?: string | null;
+  status_color?: string | null;
+  status_type?: string | null;
+  /** @deprecated use task_list_id */
   group_id?: string | null;
+  task_list_id?: string | null;
+  task_list_name?: string | null;
   title: string;
   description: string | null;
   priority: TaskPriority;
   position: string;
   milestone_id: string | null;
   task_number?: number | null;
-  assignee_id: string | null;
+  assignee_id?: string | null;
   due_date: string | null;
-  created_by: string;
+  created_by?: string;
+  created_by_id?: string;
   created_at: string;
   updated_at: string;
   version?: number;
@@ -71,7 +85,6 @@ export interface Task {
   has_running_timer?: boolean;
   comment_count?: number;
   attachment_count?: number;
-  column_entered_at?: string;
   parent_task_id?: string | null;
   depth?: number;
 }
@@ -96,8 +109,16 @@ export interface TaskListItem {
   description: string | null;
   priority: TaskPriority;
   due_date: string | null;
-  column_id: string;
-  column_name: string;
+  /** @deprecated use status_id */
+  column_id?: string;
+  /** @deprecated use status_name */
+  column_name?: string;
+  status_id: string | null;
+  status_name: string | null;
+  status_color: string | null;
+  status_type: string | null;
+  task_list_id: string | null;
+  task_list_name: string | null;
   position: string;
   created_by_id: string;
   created_at: string;
@@ -108,12 +129,12 @@ export interface CreateTaskRequest {
   title: string;
   description?: string;
   priority?: TaskPriority;
-  column_id?: string;
+  status_id?: string;
   assignee_id?: string;
   due_date?: string;
   start_date?: string;
   estimated_hours?: number;
-  group_id?: string;
+  task_list_id?: string;
   milestone_id?: string;
   assignee_ids?: string[];
   label_ids?: string[];
@@ -124,7 +145,7 @@ export interface CreateChildTaskRequest {
   title: string;
   priority?: TaskPriority;
   description?: string;
-  column_id?: string;
+  status_id?: string;
   assignee_ids?: string[];
   label_ids?: string[];
 }
@@ -142,6 +163,7 @@ export interface UpdateTaskRequest {
   due_date?: string | null;
   clear_due_date?: boolean;
   milestone_id?: string | null;
+  status_id?: string | null;
   version?: number;
 }
 
@@ -156,8 +178,12 @@ export interface CalendarTask {
   priority: string;
   due_date: string;
   start_date: string | null;
-  column_id: string;
-  column_name: string;
+  /** @deprecated use status_id */
+  column_id?: string;
+  /** @deprecated use status_name */
+  column_name?: string;
+  status_id: string | null;
+  status_name: string | null;
   is_done: boolean;
   milestone_id: string | null;
 }
@@ -168,25 +194,29 @@ export interface GanttTask {
   priority: string;
   start_date: string | null;
   due_date: string | null;
-  column_id: string;
-  column_name: string;
+  /** @deprecated use status_id */
+  column_id?: string;
+  /** @deprecated use status_name */
+  column_name?: string;
+  status_id: string | null;
+  status_name: string | null;
   is_done: boolean;
   milestone_id: string | null;
 }
 
 export interface MoveTaskRequest {
-  column_id: string;
+  status_id?: string;
   position: string;
 }
 
 export interface BulkUpdateRequest {
   task_ids: string[];
-  column_id?: string;
+  status_id?: string;
   priority?: TaskPriority;
   milestone_id?: string;
   clear_milestone?: boolean;
-  group_id?: string;
-  clear_group?: boolean;
+  task_list_id?: string;
+  clear_task_list?: boolean;
 }
 
 export interface BulkDeleteRequest {
@@ -218,13 +248,13 @@ export class TaskService {
     );
   }
 
-  createTask(boardId: string, request: CreateTaskRequest): Observable<Task> {
+  createTask(projectId: string, request: CreateTaskRequest): Observable<Task> {
     return this.http
-      .post<Task>(`${this.apiUrl}/boards/${boardId}/tasks`, request)
+      .post<Task>(`${this.apiUrl}/boards/${projectId}/tasks`, request)
       .pipe(
         tap(() => {
           this.cache.invalidate(`tasks:.*`);
-          this.cache.invalidate(`board-full:${boardId}:.*`);
+          this.cache.invalidate(`project-full:${projectId}:.*`);
         }),
       );
   }
@@ -234,7 +264,7 @@ export class TaskService {
       .patch<Task>(`${this.apiUrl}/tasks/${taskId}`, request)
       .pipe(
         tap(() => {
-          this.invalidateTaskAndBoardCaches(taskId);
+          this.invalidateTaskAndProjectCaches(taskId);
         }),
         catchError((error: HttpErrorResponse) => {
           if (error.status === 409 && error.error?.current_task) {
@@ -254,7 +284,7 @@ export class TaskService {
       .patch<Task>(`${this.apiUrl}/tasks/${taskId}/move`, request)
       .pipe(
         tap(() => {
-          this.invalidateTaskAndBoardCaches(taskId);
+          this.invalidateTaskAndProjectCaches(taskId);
         }),
       );
   }
@@ -262,7 +292,7 @@ export class TaskService {
   deleteTask(taskId: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/tasks/${taskId}`).pipe(
       tap(() => {
-        this.invalidateTaskAndBoardCaches(taskId);
+        this.invalidateTaskAndProjectCaches(taskId);
       }),
     );
   }
@@ -272,7 +302,7 @@ export class TaskService {
       .post<void>(`${this.apiUrl}/tasks/${taskId}/labels/${labelId}`, {})
       .pipe(
         tap(() => {
-          this.invalidateTaskAndBoardCaches(taskId);
+          this.invalidateTaskAndProjectCaches(taskId);
         }),
       );
   }
@@ -282,7 +312,7 @@ export class TaskService {
       .delete<void>(`${this.apiUrl}/tasks/${taskId}/labels/${labelId}`)
       .pipe(
         tap(() => {
-          this.invalidateTaskAndBoardCaches(taskId);
+          this.invalidateTaskAndProjectCaches(taskId);
         }),
       );
   }
@@ -295,25 +325,25 @@ export class TaskService {
     );
   }
 
-  listByBoard(boardId: string): Observable<Record<string, Task[]>> {
+  listByBoard(projectId: string): Observable<Record<string, Task[]>> {
     return this.cache.get(
-      `board-tasks:${boardId}`,
+      `project-tasks:${projectId}`,
       () =>
         this.http
           .get<{
             tasks: Record<string, Task[]>;
-          }>(`${this.apiUrl}/boards/${boardId}/tasks`)
+          }>(`${this.apiUrl}/boards/${projectId}/tasks`)
           .pipe(map((response) => response.tasks)),
       60000, // 1 min TTL
     );
   }
 
-  listFlat(boardId: string): Observable<TaskListItem[]> {
+  listFlat(projectId: string): Observable<TaskListItem[]> {
     return this.cache.get(
-      `flat-tasks:${boardId}`,
+      `flat-tasks:${projectId}`,
       () =>
         this.http.get<TaskListItem[]>(
-          `${this.apiUrl}/boards/${boardId}/tasks/list`,
+          `${this.apiUrl}/boards/${projectId}/tasks/list`,
         ),
       60000, // 1 min TTL
     );
@@ -326,7 +356,7 @@ export class TaskService {
       })
       .pipe(
         tap(() => {
-          this.invalidateTaskAndBoardCaches(taskId);
+          this.invalidateTaskAndProjectCaches(taskId);
         }),
       );
   }
@@ -336,54 +366,54 @@ export class TaskService {
       .delete<void>(`${this.apiUrl}/tasks/${taskId}/assignees/${userId}`)
       .pipe(
         tap(() => {
-          this.invalidateTaskAndBoardCaches(taskId);
+          this.invalidateTaskAndProjectCaches(taskId);
         }),
       );
   }
 
   listCalendarTasks(
-    boardId: string,
+    projectId: string,
     start: string,
     end: string,
   ): Observable<CalendarTask[]> {
     return this.cache.get(
-      `calendar-tasks:${boardId}:${start}:${end}`,
+      `calendar-tasks:${projectId}:${start}:${end}`,
       () =>
         this.http.get<CalendarTask[]>(
-          `${this.apiUrl}/boards/${boardId}/tasks/calendar`,
+          `${this.apiUrl}/boards/${projectId}/tasks/calendar`,
           { params: { start, end } },
         ),
       180000, // 3 min TTL
     );
   }
 
-  listGanttTasks(boardId: string): Observable<GanttTask[]> {
+  listGanttTasks(projectId: string): Observable<GanttTask[]> {
     return this.cache.get(
-      `gantt-tasks:${boardId}`,
+      `gantt-tasks:${projectId}`,
       () =>
         this.http.get<GanttTask[]>(
-          `${this.apiUrl}/boards/${boardId}/tasks/gantt`,
+          `${this.apiUrl}/boards/${projectId}/tasks/gantt`,
         ),
       120000, // 2 min TTL
     );
   }
 
   bulkUpdate(
-    boardId: string,
+    projectId: string,
     request: BulkUpdateRequest,
   ): Observable<{ updated: number }> {
     return this.http.post<{ updated: number }>(
-      `${this.apiUrl}/boards/${boardId}/tasks/bulk-update`,
+      `${this.apiUrl}/boards/${projectId}/tasks/bulk-update`,
       request,
     );
   }
 
   bulkDelete(
-    boardId: string,
+    projectId: string,
     request: BulkDeleteRequest,
   ): Observable<{ deleted: number }> {
     return this.http.post<{ deleted: number }>(
-      `${this.apiUrl}/boards/${boardId}/tasks/bulk-delete`,
+      `${this.apiUrl}/boards/${projectId}/tasks/bulk-delete`,
       request,
     );
   }
@@ -394,7 +424,7 @@ export class TaskService {
       .pipe(
         tap(() => {
           this.cache.invalidate(`tasks:.*`);
-          this.cache.invalidate(`board-full:.*`);
+          this.cache.invalidate(`project-full:.*`);
         }),
       );
   }
@@ -408,20 +438,20 @@ export class TaskService {
   createChild(parentTaskId: string, request: CreateChildTaskRequest): Observable<Task> {
     return this.http.post<Task>(`${this.apiUrl}/tasks/${parentTaskId}/children`, request).pipe(
       tap(() => {
-        this.invalidateTaskAndBoardCaches(parentTaskId);
+        this.invalidateTaskAndProjectCaches(parentTaskId);
       }),
     );
   }
 
   completeTask(taskId: string): Observable<Task> {
     return this.http.post<Task>(`${this.apiUrl}/tasks/${taskId}/complete`, {}).pipe(
-      tap(() => { this.invalidateTaskAndBoardCaches(taskId); }),
+      tap(() => { this.invalidateTaskAndProjectCaches(taskId); }),
     );
   }
 
   uncompleteTask(taskId: string): Observable<Task> {
     return this.http.post<Task>(`${this.apiUrl}/tasks/${taskId}/uncomplete`, {}).pipe(
-      tap(() => { this.invalidateTaskAndBoardCaches(taskId); }),
+      tap(() => { this.invalidateTaskAndProjectCaches(taskId); }),
     );
   }
 
@@ -490,14 +520,9 @@ export class TaskService {
 
   // --- Cache helpers ---
 
-  /**
-   * Invalidates the individual task entry together with all task list and
-   * board-full caches. Used by any mutation that modifies a known task (update,
-   * move, delete, label change, assignee change).
-   */
-  private invalidateTaskAndBoardCaches(taskId: string): void {
+  private invalidateTaskAndProjectCaches(taskId: string): void {
     this.cache.invalidateKey(`task:${taskId}`);
     this.cache.invalidate(`tasks:.*`);
-    this.cache.invalidate(`board-full:.*`);
+    this.cache.invalidate(`project-full:.*`);
   }
 }

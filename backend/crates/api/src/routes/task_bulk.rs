@@ -18,12 +18,12 @@ use taskflow_db::queries::{bulk_delete_tasks, bulk_update_tasks, BulkUpdateInput
 #[derive(Deserialize)]
 pub struct BulkUpdateRequest {
     pub task_ids: Vec<Uuid>,
-    pub column_id: Option<Uuid>,
+    pub status_id: Option<Uuid>,
     pub priority: Option<TaskPriority>,
     pub milestone_id: Option<Uuid>,
     pub clear_milestone: Option<bool>,
-    pub group_id: Option<Uuid>,
-    pub clear_group: Option<bool>,
+    pub task_list_id: Option<Uuid>,
+    pub clear_task_list: Option<bool>,
 }
 
 /// Request body for bulk delete
@@ -41,18 +41,18 @@ pub async fn bulk_update_handler(
 ) -> Result<Json<serde_json::Value>> {
     let input = BulkUpdateInput {
         task_ids: req.task_ids,
-        column_id: req.column_id,
+        status_id: req.status_id,
         priority: req.priority,
         milestone_id: req.milestone_id,
         clear_milestone: req.clear_milestone,
-        group_id: req.group_id,
-        clear_group: req.clear_group,
+        task_list_id: req.task_list_id,
+        clear_task_list: req.clear_task_list,
     };
 
     let updated = bulk_update_tasks(&state.db, board_id, ctx.user_id, input)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             _ => AppError::InternalError(format!("{}", e)),
         })?;
@@ -70,7 +70,7 @@ pub async fn bulk_delete_handler(
     let deleted = bulk_delete_tasks(&state.db, board_id, ctx.user_id, &req.task_ids)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a board member".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             _ => AppError::InternalError(format!("{}", e)),
         })?;

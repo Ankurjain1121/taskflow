@@ -70,9 +70,9 @@ pub async fn get_dashboard_stats(
             )::bigint as due_today
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
-        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
-        INNER JOIN board_columns bc ON bc.id = t.column_id
-        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
+        INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
+        INNER JOIN project_statuses bc ON bc.id = t.status_id
+        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           AND ($3::uuid IS NULL OR b.workspace_id = $3)
@@ -90,8 +90,8 @@ pub async fn get_dashboard_stats(
         FROM activity_log al
         INNER JOIN tasks t ON t.id = al.entity_id AND t.deleted_at IS NULL
         INNER JOIN task_assignees ta ON ta.task_id = t.id AND ta.user_id = $1
-        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
-        INNER JOIN board_columns bc ON bc.id = t.column_id
+        INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
+        INNER JOIN project_statuses bc ON bc.id = t.status_id
         WHERE al.action = 'moved'
           AND al.entity_type = 'task'
           AND al.created_at >= $2
@@ -138,7 +138,7 @@ pub async fn get_recent_activity(
         FROM activity_log al
         JOIN users u ON u.id = al.user_id
         LEFT JOIN tasks t ON t.id = al.entity_id AND al.entity_type = 'task'
-        LEFT JOIN boards b ON b.id = t.board_id
+        LEFT JOIN projects b ON b.id = t.project_id
         WHERE al.tenant_id = $1
           AND ($3::uuid IS NULL OR b.workspace_id = $3)
         ORDER BY al.created_at DESC
@@ -176,9 +176,9 @@ pub async fn get_tasks_by_status(
             bc.color
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
-        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
-        INNER JOIN board_columns bc ON bc.id = t.column_id
-        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
+        INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
+        INNER JOIN project_statuses bc ON bc.id = t.status_id
+        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           AND ($2::uuid IS NULL OR b.workspace_id = $2)
@@ -214,8 +214,8 @@ pub async fn get_tasks_by_priority(
             COUNT(DISTINCT t.id)::bigint as count
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
-        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
-        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
+        INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
+        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           AND ($2::uuid IS NULL OR b.workspace_id = $2)
@@ -244,7 +244,7 @@ pub struct OverdueTask {
     pub title: String,
     pub due_date: DateTime<Utc>,
     pub priority: TaskPriority,
-    pub board_id: Uuid,
+    pub project_id: Uuid,
     pub board_name: String,
     pub days_overdue: i32,
 }
@@ -266,14 +266,14 @@ pub async fn get_overdue_tasks(
             t.title,
             t.due_date,
             t.priority,
-            t.board_id,
+            t.project_id,
             b.name as board_name,
             EXTRACT(DAY FROM (NOW() - t.due_date))::integer as days_overdue
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
-        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
-        INNER JOIN board_columns bc ON bc.id = t.column_id
-        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
+        INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
+        INNER JOIN project_statuses bc ON bc.id = t.status_id
+        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           AND t.due_date IS NOT NULL
@@ -319,8 +319,8 @@ pub async fn get_completion_trend(
         FROM activity_log al
         INNER JOIN tasks t ON t.id = al.entity_id AND t.deleted_at IS NULL
         INNER JOIN task_assignees ta ON ta.task_id = t.id AND ta.user_id = $1
-        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
-        INNER JOIN board_columns bc ON bc.id = t.column_id
+        INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
+        INNER JOIN project_statuses bc ON bc.id = t.status_id
         WHERE al.action = 'moved'
           AND al.entity_type = 'task'
           AND al.created_at >= $2
@@ -372,9 +372,9 @@ pub async fn get_upcoming_deadlines(
             EXTRACT(DAY FROM (t.due_date - NOW()))::integer as days_until_due
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
-        INNER JOIN boards b ON b.id = t.board_id AND b.deleted_at IS NULL
-        INNER JOIN board_columns bc ON bc.id = t.column_id
-        INNER JOIN board_members bm ON bm.board_id = t.board_id AND bm.user_id = $1
+        INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
+        INNER JOIN project_statuses bc ON bc.id = t.status_id
+        INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           AND t.due_date IS NOT NULL
