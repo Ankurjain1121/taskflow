@@ -21,7 +21,8 @@ pub struct UpdatePreferencesRequest {
     #[serde(default)]
     pub date_format: Option<String>,
     #[serde(default)]
-    pub default_board_view: Option<String>,
+    #[serde(alias = "default_board_view")]
+    pub default_project_view: Option<String>,
     #[serde(default)]
     pub sidebar_density: Option<String>,
     #[serde(default)]
@@ -70,9 +71,9 @@ async fn update_preferences(
 
     let timezone = body.timezone.unwrap_or(existing.timezone);
     let date_format = body.date_format.unwrap_or(existing.date_format);
-    let default_board_view = body
-        .default_board_view
-        .unwrap_or(existing.default_board_view);
+    let default_project_view = body
+        .default_project_view
+        .unwrap_or(existing.default_project_view);
     let sidebar_density = body.sidebar_density.unwrap_or(existing.sidebar_density);
     let locale = body.locale.unwrap_or(existing.locale);
     let digest_frequency = body.digest_frequency.unwrap_or(existing.digest_frequency);
@@ -84,7 +85,7 @@ async fn update_preferences(
     user_prefs::validate_preferences(
         &timezone,
         &date_format,
-        &default_board_view,
+        &default_project_view,
         &sidebar_density,
         &digest_frequency,
     )
@@ -120,7 +121,7 @@ async fn update_preferences(
         auth.0.user_id,
         &timezone,
         &date_format,
-        &default_board_view,
+        &default_project_view,
         &sidebar_density,
         &locale,
         quiet_start,

@@ -202,7 +202,7 @@ import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
             }
             @if (filteredLabels().length > 0) {
               <p-select
-                [ngModel]="null"
+                [ngModel]="''"
                 [options]="filteredLabels()"
                 optionLabel="name"
                 optionValue="id"

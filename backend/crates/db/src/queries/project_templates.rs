@@ -97,9 +97,8 @@ pub async fn get_template(
     let columns = sqlx::query_as::<_, ProjectTemplateColumn>(
         r#"
         SELECT
-            id, template_id, name, position, color,
-            wip_limit, status_mapping
-        FROM project_template_columns
+            id, template_id, name, position, color
+        FROM project_template_groups
         WHERE template_id = $1
         ORDER BY position ASC
         "#,
@@ -285,8 +284,8 @@ pub async fn save_board_as_template(
 
         sqlx::query(
             r#"
-            INSERT INTO project_template_columns (id, template_id, name, position, color, wip_limit, status_mapping)
-            VALUES ($1, $2, $3, $4, $5, NULL, '{}')
+            INSERT INTO project_template_groups (id, template_id, name, position, color)
+            VALUES ($1, $2, $3, $4, $5)
             "#,
         )
         .bind(col_id)
@@ -394,9 +393,8 @@ pub async fn create_board_from_template(
     let template_columns = sqlx::query_as::<_, ProjectTemplateColumn>(
         r#"
         SELECT
-            id, template_id, name, position, color,
-            wip_limit, status_mapping
-        FROM project_template_columns
+            id, template_id, name, position, color
+        FROM project_template_groups
         WHERE template_id = $1
         ORDER BY position ASC
         "#,

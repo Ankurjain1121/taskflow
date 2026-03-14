@@ -98,11 +98,11 @@ pub async fn list_milestones(
             m.updated_at,
             COALESCE(COUNT(t.id), 0) as total_tasks,
             COALESCE(SUM(
-                CASE WHEN bc.status_mapping->>'done' = 'true' THEN 1 ELSE 0 END
+                CASE WHEN bc.type = 'done' THEN 1 ELSE 0 END
             ), 0) as completed_tasks
         FROM milestones m
         LEFT JOIN tasks t ON t.milestone_id = m.id AND t.deleted_at IS NULL
-        LEFT JOIN board_columns bc ON bc.id = t.status_id
+        LEFT JOIN project_statuses bc ON bc.id = t.status_id
         WHERE m.project_id = $1
         GROUP BY m.id, m.name, m.description, m.due_date, m.color,
                  m.project_id, m.tenant_id, m.created_by_id, m.created_at, m.updated_at
@@ -137,11 +137,11 @@ pub async fn get_milestone(
             m.updated_at,
             COALESCE(COUNT(t.id), 0) as total_tasks,
             COALESCE(SUM(
-                CASE WHEN bc.status_mapping->>'done' = 'true' THEN 1 ELSE 0 END
+                CASE WHEN bc.type = 'done' THEN 1 ELSE 0 END
             ), 0) as completed_tasks
         FROM milestones m
         LEFT JOIN tasks t ON t.milestone_id = m.id AND t.deleted_at IS NULL
-        LEFT JOIN board_columns bc ON bc.id = t.status_id
+        LEFT JOIN project_statuses bc ON bc.id = t.status_id
         WHERE m.id = $1
         GROUP BY m.id, m.name, m.description, m.due_date, m.color,
                  m.project_id, m.tenant_id, m.created_by_id, m.created_at, m.updated_at

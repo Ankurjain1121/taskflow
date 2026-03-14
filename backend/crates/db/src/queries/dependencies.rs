@@ -86,7 +86,7 @@ pub async fn list_dependencies(
             WHEN td.source_task_id = $1 THEN td.target_task_id
             ELSE td.source_task_id
         END
-        JOIN board_columns bc ON bc.id = t.status_id
+        JOIN project_statuses bc ON bc.id = t.status_id
         WHERE (td.source_task_id = $1 OR td.target_task_id = $1)
           AND t.deleted_at IS NULL
         ORDER BY td.created_at DESC
@@ -199,7 +199,7 @@ pub async fn create_dependency(
             WHEN td.source_task_id = $2 THEN td.target_task_id
             ELSE td.source_task_id
         END
-        JOIN board_columns bc ON bc.id = t.status_id
+        JOIN project_statuses bc ON bc.id = t.status_id
         WHERE td.id = $1
         "#,
     )
@@ -232,7 +232,7 @@ pub async fn delete_dependency(pool: &PgPool, dep_id: Uuid) -> Result<(), Depend
 }
 
 /// Check tasks that block the given task and whether they are resolved (done).
-/// A blocker is resolved if it sits in a column with status_mapping->>'done' = 'true'.
+/// A blocker is resolved if it sits in a column with type = 'done'.
 pub async fn check_blockers(
     pool: &PgPool,
     task_id: Uuid,
@@ -242,10 +242,10 @@ pub async fn check_blockers(
         SELECT
             t.id as task_id,
             t.title,
-            COALESCE(bc.status_mapping->>'done' = 'true', false) as is_resolved
+            (bc.type = 'done') as is_resolved
         FROM task_dependencies td
         JOIN tasks t ON t.id = td.source_task_id
-        JOIN board_columns bc ON bc.id = t.status_id
+        JOIN project_statuses bc ON bc.id = t.status_id
         WHERE td.target_task_id = $1
           AND td.dependency_type = 'blocks'
           AND t.deleted_at IS NULL

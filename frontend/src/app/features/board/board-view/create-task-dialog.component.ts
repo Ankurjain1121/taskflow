@@ -92,6 +92,7 @@ export interface CreateTaskDialogResult {
         >
           <p-toggleSwitch
             [(ngModel)]="useTemplate"
+            [ngModelOptions]="{standalone: true}"
             (onChange)="onTemplateToggle()"
           />
           <span class="text-sm text-[var(--foreground)]">Use Template</span>
@@ -104,6 +105,7 @@ export interface CreateTaskDialogResult {
             >
             <select
               [(ngModel)]="selectedTemplateId"
+              [ngModelOptions]="{standalone: true}"
               (ngModelChange)="onTemplateSelected($event)"
               class="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-md"
             >

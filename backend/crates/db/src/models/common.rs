@@ -29,7 +29,7 @@ pub enum WorkspaceVisibility {
 }
 
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Debug, PartialEq, TS)]
-#[sqlx(type_name = "board_member_role", rename_all = "snake_case")]
+#[sqlx(type_name = "project_member_role", rename_all = "snake_case")]
 #[serde(rename_all = "lowercase")]
 #[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
 pub enum BoardMemberRole {

@@ -333,7 +333,7 @@ export class AppearanceSectionComponent implements OnInit {
       .updatePreferences({
         timezone: this.preferences.timezone,
         date_format: this.preferences.dateFormat,
-        default_board_view: this.preferences.defaultBoardView,
+        default_project_view: this.preferences.defaultBoardView,
         sidebar_density: this.preferences.sidebarDensity,
         language: this.preferences.language,
       })
@@ -364,7 +364,7 @@ export class AppearanceSectionComponent implements OnInit {
           this.preferences = {
             timezone: prefs.timezone || 'UTC',
             dateFormat: prefs.date_format || 'MMM dd, yyyy',
-            defaultBoardView: prefs.default_board_view || 'kanban',
+            defaultBoardView: prefs.default_project_view || 'kanban',
             sidebarDensity: prefs.sidebar_density || 'comfortable',
             language: prefs.language || 'en',
           };

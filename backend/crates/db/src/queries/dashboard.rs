@@ -62,7 +62,7 @@ pub async fn get_dashboard_stats(
             COUNT(DISTINCT t.id) FILTER (
                 WHERE t.due_date IS NOT NULL
                 AND t.due_date < $2
-                AND (bc.status_mapping IS NULL OR NOT (bc.status_mapping->>'done')::boolean)
+                AND bc.type != 'done'
             )::bigint as overdue,
             COUNT(DISTINCT t.id) FILTER (
                 WHERE t.due_date IS NOT NULL
@@ -95,8 +95,7 @@ pub async fn get_dashboard_stats(
         WHERE al.action = 'moved'
           AND al.entity_type = 'task'
           AND al.created_at >= $2
-          AND bc.status_mapping IS NOT NULL
-          AND (bc.status_mapping->>'done')::boolean = true
+          AND bc.type = 'done'
           AND ($3::uuid IS NULL OR b.workspace_id = $3)
         "#,
     )
@@ -278,7 +277,7 @@ pub async fn get_overdue_tasks(
           AND t.deleted_at IS NULL
           AND t.due_date IS NOT NULL
           AND t.due_date < $2
-          AND (bc.status_mapping IS NULL OR NOT (bc.status_mapping->>'done')::boolean)
+          AND bc.type != 'done'
           AND ($4::uuid IS NULL OR b.workspace_id = $4)
         ORDER BY t.due_date ASC
         LIMIT $3
@@ -324,8 +323,7 @@ pub async fn get_completion_trend(
         WHERE al.action = 'moved'
           AND al.entity_type = 'task'
           AND al.created_at >= $2
-          AND bc.status_mapping IS NOT NULL
-          AND (bc.status_mapping->>'done')::boolean = true
+          AND bc.type = 'done'
           AND ($3::uuid IS NULL OR b.workspace_id = $3)
         GROUP BY DATE(al.created_at)
         ORDER BY date ASC
@@ -380,7 +378,7 @@ pub async fn get_upcoming_deadlines(
           AND t.due_date IS NOT NULL
           AND t.due_date >= $2
           AND t.due_date <= $3
-          AND (bc.status_mapping IS NULL OR NOT (bc.status_mapping->>'done')::boolean)
+          AND bc.type != 'done'
           AND ($4::uuid IS NULL OR b.workspace_id = $4)
         ORDER BY t.due_date ASC
         LIMIT 50

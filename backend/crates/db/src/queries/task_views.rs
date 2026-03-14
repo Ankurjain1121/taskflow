@@ -88,7 +88,7 @@ pub async fn list_tasks_for_calendar(
             t.start_date,
             t.status_id,
             ps.name as column_name,
-            COALESCE(ps.status_mapping->>'done' = 'true', false) as "is_done!",
+            (ps.type = 'done') as "is_done!",
             t.milestone_id
         FROM tasks t
         JOIN project_statuses ps ON ps.id = t.status_id
@@ -141,7 +141,7 @@ pub async fn list_tasks_for_gantt(
             t.due_date,
             t.status_id,
             ps.name as column_name,
-            COALESCE(ps.status_mapping->>'done' = 'true', false) as "is_done!",
+            (ps.type = 'done') as "is_done!",
             t.milestone_id
         FROM tasks t
         JOIN project_statuses ps ON ps.id = t.status_id
