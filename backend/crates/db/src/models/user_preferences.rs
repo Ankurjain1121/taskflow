@@ -9,7 +9,7 @@ pub struct UserPreferences {
     pub user_id: Uuid,
     pub timezone: String,
     pub date_format: String,
-    pub default_board_view: String,
+    pub default_project_view: String,
     pub sidebar_density: String,
     pub locale: String,
     pub quiet_hours_start: Option<NaiveTime>,

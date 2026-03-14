@@ -84,7 +84,7 @@ struct EisenhowerTaskRow {
     status_id: Uuid,
     column_name: String,
     position: String,
-    status_mapping: Option<serde_json::Value>,
+    status_type: Option<String>,
     eisenhower_urgency: Option<bool>,
     eisenhower_importance: Option<bool>,
     created_at: DateTime<Utc>,
@@ -118,13 +118,9 @@ fn determine_quadrant(urgent: bool, important: bool) -> EisenhowerQuadrant {
     }
 }
 
-/// Check if task is "done" based on column status mapping
-fn is_task_done(status_mapping: &Option<serde_json::Value>) -> bool {
-    status_mapping
-        .as_ref()
-        .and_then(|m| m.get("done"))
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false)
+/// Check if task is "done" based on column status type
+fn is_task_done(status_type: &Option<String>) -> bool {
+    status_type.as_deref() == Some("done")
 }
 
 /// Filter parameters for the Eisenhower Matrix query
@@ -166,7 +162,7 @@ pub async fn get_eisenhower_matrix(
             b.name as board_name,
             t.status_id,
             c.name as column_name,
-            c.status_mapping,
+            c.type as status_type,
             t.position,
             t.eisenhower_urgency,
             t.eisenhower_importance,
@@ -179,7 +175,7 @@ pub async fn get_eisenhower_matrix(
         INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
-          AND NOT COALESCE((c.status_mapping->>'done')::boolean, false)
+          AND c.type != 'done'
           {extra_where}
         ORDER BY t.due_date ASC NULLS LAST, t.created_at DESC
         "#,
@@ -235,7 +231,7 @@ pub async fn get_eisenhower_matrix(
     let mut eliminate = Vec::new();
 
     for row in rows {
-        let is_done = is_task_done(&row.status_mapping);
+        let is_done = is_task_done(&row.status_type);
 
         // Get urgency: use manual override if set, otherwise auto-compute
         let urgent = row

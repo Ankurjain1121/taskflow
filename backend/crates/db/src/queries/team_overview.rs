@@ -79,27 +79,27 @@ pub async fn get_workload(
             COUNT(DISTINCT t.id) FILTER (WHERE t.id IS NOT NULL) as total_tasks,
             COUNT(DISTINCT t.id) FILTER (
                 WHERE t.id IS NOT NULL
-                AND (bc.status_mapping IS NULL OR (bc.status_mapping->>'done') IS DISTINCT FROM 'true')
+                AND bc.type != 'done'
             ) as active_tasks,
             COUNT(DISTINCT t.id) FILTER (
                 WHERE t.id IS NOT NULL
                 AND t.due_date < NOW()
-                AND (bc.status_mapping IS NULL OR (bc.status_mapping->>'done') IS DISTINCT FROM 'true')
+                AND bc.type != 'done'
             ) as overdue_tasks,
             COUNT(DISTINCT t.id) FILTER (
                 WHERE t.id IS NOT NULL
-                AND bc.status_mapping->>'done' = 'true'
+                AND bc.type = 'done'
             ) as done_tasks,
             COUNT(DISTINCT t.id) FILTER (
                 WHERE t.id IS NOT NULL AND t.due_date IS NOT NULL
                 AND t.due_date::date = CURRENT_DATE
-                AND (bc.status_mapping IS NULL OR (bc.status_mapping->>'done') IS DISTINCT FROM 'true')
+                AND bc.type != 'done'
             ) as due_today,
             COUNT(DISTINCT t.id) FILTER (
                 WHERE t.id IS NOT NULL AND t.due_date IS NOT NULL
                 AND t.due_date::date > CURRENT_DATE
                 AND t.due_date::date <= (CURRENT_DATE + INTERVAL '7 days')::date
-                AND (bc.status_mapping IS NULL OR (bc.status_mapping->>'done') IS DISTINCT FROM 'true')
+                AND bc.type != 'done'
             ) as due_this_week
         FROM workspace_members wm
         INNER JOIN users u ON u.id = wm.user_id
@@ -162,7 +162,7 @@ pub async fn get_overloaded_members(
             u.avatar_url as user_avatar,
             COUNT(DISTINCT t.id) FILTER (
                 WHERE t.deleted_at IS NULL
-                AND (bc.status_mapping IS NULL OR NOT (bc.status_mapping->>'done')::boolean)
+                AND bc.type != 'done'
             ) as active_tasks
         FROM workspace_members wm
         INNER JOIN users u ON u.id = wm.user_id
@@ -176,7 +176,7 @@ pub async fn get_overloaded_members(
         GROUP BY u.id, u.name, u.avatar_url
         HAVING COUNT(DISTINCT t.id) FILTER (
             WHERE t.deleted_at IS NULL
-            AND (bc.status_mapping IS NULL OR NOT (bc.status_mapping->>'done')::boolean)
+            AND bc.type != 'done'
         ) >= $3
         ORDER BY active_tasks DESC
         "#,
@@ -264,7 +264,7 @@ pub async fn get_member_active_tasks(
           AND b.workspace_id = $2
           AND t.deleted_at IS NULL
           AND b.deleted_at IS NULL
-          AND (bc.status_mapping IS NULL OR (bc.status_mapping->>'done') IS DISTINCT FROM 'true')
+          AND bc.type != 'done'
         ORDER BY
             CASE t.priority
                 WHEN 'urgent' THEN 1

@@ -6,7 +6,7 @@ export interface UserPreferences {
   // Existing fields
   timezone: string;
   date_format: string;
-  default_board_view: string;
+  default_project_view: string;
   sidebar_density: string;
   locale: string;
   language: string;

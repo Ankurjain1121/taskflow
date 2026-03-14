@@ -31,7 +31,7 @@ describe('AppearanceSectionComponent', () => {
       of({
         timezone: 'America/New_York',
         date_format: 'dd/MM/yyyy',
-        default_board_view: 'list',
+        default_project_view: 'list',
         sidebar_density: 'compact',
         language: 'en',
       }),
@@ -45,7 +45,7 @@ describe('AppearanceSectionComponent', () => {
       of({
         timezone: 'America/New_York',
         date_format: 'dd/MM/yyyy',
-        default_board_view: 'list',
+        default_project_view: 'list',
         sidebar_density: 'compact',
         language: 'en',
       }),
@@ -157,7 +157,7 @@ describe('AppearanceSectionComponent', () => {
         {
           timezone: 'UTC',
           date_format: 'yyyy-MM-dd',
-          default_board_view: 'kanban',
+          default_project_view: 'kanban',
           sidebar_density: 'comfortable',
           language: 'en',
         },

@@ -24,9 +24,7 @@ pub struct ProjectTemplateColumn {
     pub template_id: Uuid,
     pub name: String,
     pub position: i32,
-    pub color: String,
-    pub wip_limit: Option<i32>,
-    pub status_mapping: serde_json::Value,
+    pub color: Option<String>,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]

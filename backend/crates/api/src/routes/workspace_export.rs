@@ -259,12 +259,13 @@ async fn export_csv(db: &sqlx::PgPool, workspace_id: Uuid) -> Result<Response> {
 
     let ws_name = ws_name.ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
 
-    let board_ids: Vec<Uuid> =
-        sqlx::query_scalar("SELECT id FROM projects WHERE workspace_id = $1 AND deleted_at IS NULL")
-            .bind(workspace_id)
-            .fetch_all(db)
-            .await
-            .map_err(AppError::from)?;
+    let board_ids: Vec<Uuid> = sqlx::query_scalar(
+        "SELECT id FROM projects WHERE workspace_id = $1 AND deleted_at IS NULL",
+    )
+    .bind(workspace_id)
+    .fetch_all(db)
+    .await
+    .map_err(AppError::from)?;
 
     // Build CSV with all tasks across boards
     let mut csv =

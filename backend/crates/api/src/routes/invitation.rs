@@ -388,7 +388,7 @@ pub async fn accept_handler(
     // Save timezone to user_preferences if provided
     if let Some(ref tz) = payload.timezone {
         let _ = sqlx::query(
-            r#"INSERT INTO user_preferences (id, user_id, timezone, date_format, default_board_view,
+            r#"INSERT INTO user_preferences (id, user_id, timezone, date_format, default_project_view,
                 sidebar_density, locale, digest_frequency, created_at, updated_at)
             VALUES ($1, $2, $3, 'MMM D, YYYY', 'kanban', 'comfortable', 'en', 'daily', NOW(), NOW())
             ON CONFLICT (user_id) DO UPDATE SET timezone = $3, updated_at = NOW()"#,

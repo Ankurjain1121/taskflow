@@ -93,7 +93,7 @@ pub async fn get_project_by_id(
 
             let statuses = sqlx::query_as::<_, ProjectStatus>(
                 r#"
-                SELECT id, project_id, name, color, type as "status_type", position, is_default, tenant_id, created_at
+                SELECT id, project_id, name, color, type, position, is_default, tenant_id, created_at
                 FROM project_statuses
                 WHERE project_id = $1
                 ORDER BY position ASC

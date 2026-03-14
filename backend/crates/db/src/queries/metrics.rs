@@ -133,7 +133,7 @@ pub async fn get_workspace_dashboard(
         JOIN project_statuses bc ON bc.id = t.status_id
         WHERE b.workspace_id = $1
           AND t.deleted_at IS NULL
-          AND bc.status_mapping::TEXT ILIKE '%done%'
+          AND bc.type = 'done'
         "#,
     )
     .bind(workspace_id)
@@ -225,7 +225,7 @@ pub async fn get_team_dashboard(
         JOIN team_members tm ON tm.user_id = ta.user_id AND tm.team_id = $1
         JOIN project_statuses bc ON bc.id = t.status_id
         WHERE t.deleted_at IS NULL
-          AND bc.status_mapping::TEXT ILIKE '%done%'
+          AND bc.type = 'done'
         "#,
     )
     .bind(team_id)
@@ -316,7 +316,7 @@ pub async fn get_personal_dashboard(
         JOIN task_assignees ta ON ta.task_id = t.id AND ta.user_id = $1
         JOIN project_statuses bc ON bc.id = t.status_id
         WHERE t.deleted_at IS NULL
-          AND bc.status_mapping::TEXT ILIKE '%done%'
+          AND bc.type = 'done'
         "#,
     )
     .bind(user_id)
