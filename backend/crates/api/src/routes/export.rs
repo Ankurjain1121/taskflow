@@ -348,6 +348,6 @@ async fn export_json(db: &sqlx::PgPool, board_id: Uuid) -> Result<Response> {
 
 pub fn export_router(state: AppState) -> Router<AppState> {
     Router::new()
-        .route("/boards/{board_id}/export", get(export_handler))
+        .route("/projects/{board_id}/export", get(export_handler))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

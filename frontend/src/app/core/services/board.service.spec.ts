@@ -67,14 +67,14 @@ describe('ProjectService', () => {
   });
 
   describe('listBoards()', () => {
-    it('should GET /api/workspaces/:workspaceId/boards', () => {
+    it('should GET /api/workspaces/:workspaceId/projects', () => {
       const boards = [MOCK_BOARD];
 
       service.listBoards('ws-1').subscribe((result) => {
         expect(result).toEqual(boards);
       });
 
-      const req = httpMock.expectOne('/api/workspaces/ws-1/boards');
+      const req = httpMock.expectOne('/api/workspaces/ws-1/projects');
       expect(req.request.method).toBe('GET');
       req.flush(boards);
     });
@@ -93,7 +93,7 @@ describe('ProjectService', () => {
   });
 
   describe('createBoard()', () => {
-    it('should POST /api/workspaces/:workspaceId/boards with body', () => {
+    it('should POST /api/workspaces/:workspaceId/projects with body', () => {
       const createReq: CreateBoardRequest = {
         name: 'New Board',
         description: 'Board description',
@@ -104,7 +104,7 @@ describe('ProjectService', () => {
         expect(board).toEqual(MOCK_BOARD);
       });
 
-      const req = httpMock.expectOne('/api/workspaces/ws-1/boards');
+      const req = httpMock.expectOne('/api/workspaces/ws-1/projects');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(createReq);
       req.flush(MOCK_BOARD);
@@ -400,7 +400,7 @@ describe('ProjectService', () => {
         error: (e) => (error = e),
       });
 
-      const req = httpMock.expectOne('/api/workspaces/ws-1/boards');
+      const req = httpMock.expectOne('/api/workspaces/ws-1/projects');
       req.flush('Bad Request', { status: 400, statusText: 'Bad Request' });
 
       expect(error).toBeTruthy();

@@ -107,8 +107,8 @@ async fn get_deliveries_handler(
 /// Create the webhook router
 pub fn webhook_router(state: AppState) -> Router<AppState> {
     Router::new()
-        .route("/boards/{board_id}/webhooks", get(list_webhooks_handler))
-        .route("/boards/{board_id}/webhooks", post(create_webhook_handler))
+        .route("/projects/{board_id}/webhooks", get(list_webhooks_handler))
+        .route("/projects/{board_id}/webhooks", post(create_webhook_handler))
         .route("/webhooks/{id}", put(update_webhook_handler))
         .route("/webhooks/{id}", delete(delete_webhook_handler))
         .route("/webhooks/{id}/deliveries", get(get_deliveries_handler))

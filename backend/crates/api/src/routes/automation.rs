@@ -196,8 +196,8 @@ async fn get_rule_logs_handler(
 pub fn automation_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Board-scoped automation routes
-        .route("/boards/{board_id}/automations", get(list_rules_handler))
-        .route("/boards/{board_id}/automations", post(create_rule_handler))
+        .route("/projects/{board_id}/automations", get(list_rules_handler))
+        .route("/projects/{board_id}/automations", post(create_rule_handler))
         // Automation-specific routes
         .route("/automations/{id}", get(get_rule_handler))
         .route("/automations/{id}", put(update_rule_handler))

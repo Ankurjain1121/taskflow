@@ -144,7 +144,7 @@ pub fn project_template_router(state: AppState) -> Router<AppState> {
             post(create_board_from_template_handler),
         )
         .route(
-            "/boards/{board_id}/save-as-template",
+            "/projects/{board_id}/save-as-template",
             post(save_board_as_template_handler),
         )
         .layer(from_fn_with_state(state.clone(), auth_middleware))

@@ -255,7 +255,7 @@ pub fn time_entry_router(state: AppState) -> Router<AppState> {
         .route("/time-entries/{id}", delete(delete_entry_handler))
         // Board-scoped time report
         .route(
-            "/boards/{board_id}/time-report",
+            "/projects/{board_id}/time-report",
             get(board_time_report_handler),
         )
         // Project-scoped timesheet report

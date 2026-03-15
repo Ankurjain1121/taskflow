@@ -39,6 +39,6 @@ async fn get_board_report_handler(
 
 pub fn reports_router(state: AppState) -> Router<AppState> {
     Router::new()
-        .route("/boards/{board_id}/reports", get(get_board_report_handler))
+        .route("/projects/{board_id}/reports", get(get_board_report_handler))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
