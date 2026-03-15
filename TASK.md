@@ -356,3 +356,5 @@ onDrop(event, date)                      onBarMouseUp(event) → update task
 - [2026-03-15] Phase 0 complete: blueprints, inline editing, timesheet billing
 - [2026-03-15] CEO review: SCOPE EXPANSION mode. 4-phase roadmap.
 - [2026-03-15] Eng review: 9 decisions made. Phase 1 sequenced as delete→consolidate→rename→polish. Rename split into 4 atomic sub-commits. Task route consolidation deferred to Phase 2.
+- [2026-03-15] Phase 1 cleanup committed (d6621ec): 137 files, -1,113 net LOC. Delete orphans + consolidate audit/trash/membership + full board→project rename.
+- [2026-03-15] Gantt drag-to-reschedule implemented: mousedown/move/up on SVG bars, snap-to-day, optimistic update with rollback, ghost bar during drag.
