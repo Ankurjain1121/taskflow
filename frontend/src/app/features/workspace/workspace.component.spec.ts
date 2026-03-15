@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { WorkspaceComponent } from './workspace.component';
 import { WorkspaceService } from '../../core/services/workspace.service';
-import { BoardService } from '../../core/services/board.service';
+import { ProjectService } from '../../core/services/board.service';
 
 describe('WorkspaceComponent', () => {
   let component: WorkspaceComponent;
@@ -18,7 +18,7 @@ describe('WorkspaceComponent', () => {
     getMembers: vi.fn(),
   };
 
-  const mockBoardService = {
+  const mockProjectService = {
     listBoards: vi.fn(),
     createBoard: vi.fn(),
   };
@@ -56,7 +56,7 @@ describe('WorkspaceComponent', () => {
       ]),
     );
 
-    mockBoardService.listBoards.mockReturnValue(
+    mockProjectService.listBoards.mockReturnValue(
       of([
         {
           id: 'b-1',
@@ -82,7 +82,7 @@ describe('WorkspaceComponent', () => {
       ],
       providers: [
         { provide: WorkspaceService, useValue: mockWorkspaceService },
-        { provide: BoardService, useValue: mockBoardService },
+        { provide: ProjectService, useValue: mockProjectService },
         { provide: ActivatedRoute, useValue: mockRoute },
       ],
     }).compileComponents();
@@ -104,7 +104,7 @@ describe('WorkspaceComponent', () => {
 
       expect(component.workspaceId()).toBe('ws-1');
       expect(mockWorkspaceService.get).toHaveBeenCalledWith('ws-1');
-      expect(mockBoardService.listBoards).toHaveBeenCalledWith('ws-1');
+      expect(mockProjectService.listBoards).toHaveBeenCalledWith('ws-1');
       expect(mockWorkspaceService.getMembers).toHaveBeenCalledWith('ws-1');
     });
 
@@ -174,8 +174,8 @@ describe('WorkspaceComponent', () => {
   });
 
   describe('onBoardCreated', () => {
-    it('should call boardService.createBoard and reload data', () => {
-      mockBoardService.createBoard.mockReturnValue(of({ id: 'b-new' }));
+    it('should call projectService.createBoard and reload data', () => {
+      mockProjectService.createBoard.mockReturnValue(of({ id: 'b-new' }));
 
       component.workspaceId.set('ws-1');
       component.onBoardCreated({
@@ -184,7 +184,7 @@ describe('WorkspaceComponent', () => {
         template: 'kanban',
       });
 
-      expect(mockBoardService.createBoard).toHaveBeenCalledWith('ws-1', {
+      expect(mockProjectService.createBoard).toHaveBeenCalledWith('ws-1', {
         name: 'New Board',
         description: 'Board desc',
         template: 'kanban',

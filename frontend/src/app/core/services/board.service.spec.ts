@@ -4,7 +4,7 @@ import {
   HttpTestingController,
 } from '@angular/common/http/testing';
 import {
-  BoardService,
+  ProjectService,
   Board,
   Column,
   CreateBoardRequest,
@@ -12,10 +12,10 @@ import {
   CreateColumnRequest,
   UpdateColumnRequest,
   ReorderColumnRequest,
-  BoardMember,
+  ProjectMember,
   InviteMemberRequest,
   UpdateMemberRoleRequest,
-  BoardFullResponse,
+  ProjectFullResponse,
 } from './board.service';
 
 const MOCK_BOARD: Board = {
@@ -40,7 +40,7 @@ const MOCK_COLUMN: Column = {
   updated_at: '2026-01-01T00:00:00Z',
 };
 
-const MOCK_MEMBER: BoardMember = {
+const MOCK_MEMBER: ProjectMember = {
   user_id: 'user-1',
   board_id: 'board-1',
   role: 'editor',
@@ -49,16 +49,16 @@ const MOCK_MEMBER: BoardMember = {
   avatar_url: null,
 };
 
-describe('BoardService', () => {
-  let service: BoardService;
+describe('ProjectService', () => {
+  let service: ProjectService;
   let httpMock: HttpTestingController;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
-      providers: [BoardService],
+      providers: [ProjectService],
     });
-    service = TestBed.inject(BoardService);
+    service = TestBed.inject(ProjectService);
     httpMock = TestBed.inject(HttpTestingController);
   });
 
@@ -213,11 +213,11 @@ describe('BoardService', () => {
     });
   });
 
-  describe('getBoardMembers()', () => {
+  describe('getProjectMembers()', () => {
     it('should GET /api/projects/:boardId/members', () => {
       const members = [MOCK_MEMBER];
 
-      service.getBoardMembers('board-1').subscribe((result) => {
+      service.getProjectMembers('board-1').subscribe((result) => {
         expect(result).toEqual(members);
       });
 
@@ -227,14 +227,14 @@ describe('BoardService', () => {
     });
   });
 
-  describe('inviteBoardMember()', () => {
+  describe('inviteProjectMember()', () => {
     it('should POST /api/projects/:boardId/members with email and role', () => {
       const inviteReq: InviteMemberRequest = {
         email: 'new@example.com',
         role: 'viewer',
       };
 
-      service.inviteBoardMember('board-1', inviteReq).subscribe((member) => {
+      service.inviteProjectMember('board-1', inviteReq).subscribe((member) => {
         expect(member).toEqual(MOCK_MEMBER);
       });
 
@@ -245,12 +245,12 @@ describe('BoardService', () => {
     });
   });
 
-  describe('updateBoardMemberRole()', () => {
+  describe('updateProjectMemberRole()', () => {
     it('should PATCH /api/projects/:boardId/members/:userId with role', () => {
       const roleReq: UpdateMemberRoleRequest = { role: 'editor' };
 
       service
-        .updateBoardMemberRole('board-1', 'user-1', roleReq)
+        .updateProjectMemberRole('board-1', 'user-1', roleReq)
         .subscribe((member) => {
           expect(member).toEqual(MOCK_MEMBER);
         });
@@ -262,9 +262,9 @@ describe('BoardService', () => {
     });
   });
 
-  describe('removeBoardMember()', () => {
+  describe('removeProjectMember()', () => {
     it('should DELETE /api/projects/:boardId/members/:userId', () => {
-      service.removeBoardMember('board-1', 'user-1').subscribe();
+      service.removeProjectMember('board-1', 'user-1').subscribe();
 
       const req = httpMock.expectOne('/api/projects/board-1/members/user-1');
       expect(req.request.method).toBe('DELETE');
@@ -274,7 +274,7 @@ describe('BoardService', () => {
 
   describe('getBoardFull()', () => {
     it('should GET /api/projects/:boardId/full', () => {
-      const fullResponse: BoardFullResponse = {
+      const fullResponse: ProjectFullResponse = {
         board: { ...MOCK_BOARD, columns: [MOCK_COLUMN] },
         tasks: [],
         members: [MOCK_MEMBER],

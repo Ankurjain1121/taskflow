@@ -4,14 +4,14 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { of, throwError, Subject } from 'rxjs';
 import { ProjectSettingsComponent } from './board-settings.component';
-import { BoardService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/board.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmationService } from 'primeng/api';
 
 describe('ProjectSettingsComponent', () => {
   let component: ProjectSettingsComponent;
   let fixture: ComponentFixture<ProjectSettingsComponent>;
-  let mockBoardService: any;
+  let mockProjectService: any;
   let mockConfirmationService: any;
   let paramsSubject: Subject<any>;
   let mockRouter: any;
@@ -62,14 +62,14 @@ describe('ProjectSettingsComponent', () => {
     paramsSubject = new Subject();
     const queryParamsSubject = new Subject();
 
-    mockBoardService = {
+    mockProjectService = {
       getBoard: vi.fn().mockReturnValue(of(mockBoard)),
       updateBoard: vi
         .fn()
         .mockReturnValue(of({ ...mockBoard, name: 'Updated Board' })),
       deleteBoard: vi.fn().mockReturnValue(of(void 0)),
-      getBoardMembers: vi.fn().mockReturnValue(of(mockMembers)),
-      inviteBoardMember: vi.fn().mockReturnValue(
+      getProjectMembers: vi.fn().mockReturnValue(of(mockMembers)),
+      inviteProjectMember: vi.fn().mockReturnValue(
         of({
           user_id: 'u-3',
           name: 'Charlie',
@@ -77,10 +77,10 @@ describe('ProjectSettingsComponent', () => {
           role: 'viewer',
         }),
       ),
-      updateBoardMemberRole: vi
+      updateProjectMemberRole: vi
         .fn()
         .mockReturnValue(of({ user_id: 'u-2', name: 'Bob', role: 'editor' })),
-      removeBoardMember: vi.fn().mockReturnValue(of(void 0)),
+      removeProjectMember: vi.fn().mockReturnValue(of(void 0)),
     };
 
     mockRouter = { navigate: vi.fn() };
@@ -111,7 +111,7 @@ describe('ProjectSettingsComponent', () => {
             queryParams: queryParamsSubject.asObservable(),
           },
         },
-        { provide: BoardService, useValue: mockBoardService },
+        { provide: ProjectService, useValue: mockProjectService },
         { provide: AuthService, useValue: mockAuthService },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
@@ -138,7 +138,7 @@ describe('ProjectSettingsComponent', () => {
       paramsSubject.next({ workspaceId: 'ws-1', boardId: 'board-1' });
       expect(component.workspaceId).toBe('ws-1');
       expect(component.boardId).toBe('board-1');
-      expect(mockBoardService.getBoard).toHaveBeenCalledWith('board-1');
+      expect(mockProjectService.getBoard).toHaveBeenCalledWith('board-1');
       expect(component.board()?.name).toBe('Test Board');
       expect(component.loading()).toBe(false);
     });
@@ -146,7 +146,7 @@ describe('ProjectSettingsComponent', () => {
     it('should load board members after board', () => {
       component.ngOnInit();
       paramsSubject.next({ workspaceId: 'ws-1', boardId: 'board-1' });
-      expect(mockBoardService.getBoardMembers).toHaveBeenCalledWith('board-1');
+      expect(mockProjectService.getProjectMembers).toHaveBeenCalledWith('board-1');
       expect(component.members().length).toBe(2);
     });
 
@@ -158,7 +158,7 @@ describe('ProjectSettingsComponent', () => {
     });
 
     it('should handle board load error', () => {
-      mockBoardService.getBoard.mockReturnValue(
+      mockProjectService.getBoard.mockReturnValue(
         throwError(() => new Error('fail')),
       );
       component.ngOnInit();
@@ -196,7 +196,7 @@ describe('ProjectSettingsComponent', () => {
 
       component.onSave();
 
-      expect(mockBoardService.updateBoard).toHaveBeenCalledWith('board-1', {
+      expect(mockProjectService.updateBoard).toHaveBeenCalledWith('board-1', {
         name: 'Updated Board',
         description: 'A board',
       });
@@ -208,13 +208,13 @@ describe('ProjectSettingsComponent', () => {
       component.form.patchValue({ name: '' });
       component.form.controls['name'].markAsTouched();
       component.onSave();
-      expect(mockBoardService.updateBoard).not.toHaveBeenCalled();
+      expect(mockProjectService.updateBoard).not.toHaveBeenCalled();
     });
 
     it('should handle save error', () => {
       component.ngOnInit();
       paramsSubject.next({ workspaceId: 'ws-1', boardId: 'board-1' });
-      mockBoardService.updateBoard.mockReturnValue(
+      mockProjectService.updateBoard.mockReturnValue(
         throwError(() => new Error('fail')),
       );
       component.form.patchValue({ name: 'New Name' });
@@ -236,7 +236,7 @@ describe('ProjectSettingsComponent', () => {
       component.boardId = 'board-1';
       component.members.set([...mockMembers] as any);
       component.onInviteResult({ email: 'charlie@test.com', role: 'viewer' });
-      expect(mockBoardService.inviteBoardMember).toHaveBeenCalledWith(
+      expect(mockProjectService.inviteProjectMember).toHaveBeenCalledWith(
         'board-1',
         {
           email: 'charlie@test.com',
@@ -252,7 +252,7 @@ describe('ProjectSettingsComponent', () => {
       component.boardId = 'board-1';
       component.members.set([...mockMembers] as any);
       component.onMemberRoleChange(mockMembers[1] as any, 'editor');
-      expect(mockBoardService.updateBoardMemberRole).toHaveBeenCalledWith(
+      expect(mockProjectService.updateProjectMemberRole).toHaveBeenCalledWith(
         'board-1',
         'u-2',
         { role: 'editor' },
@@ -273,7 +273,7 @@ describe('ProjectSettingsComponent', () => {
         opts.accept(),
       );
       component.onRemoveMember(mockMembers[1] as any);
-      expect(mockBoardService.removeBoardMember).toHaveBeenCalledWith(
+      expect(mockProjectService.removeProjectMember).toHaveBeenCalledWith(
         'board-1',
         'u-2',
       );
@@ -291,7 +291,7 @@ describe('ProjectSettingsComponent', () => {
 
       component.onDeleteBoard();
 
-      expect(mockBoardService.deleteBoard).toHaveBeenCalledWith('board-1');
+      expect(mockProjectService.deleteBoard).toHaveBeenCalledWith('board-1');
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/workspace', 'ws-1']);
     });
 
@@ -304,7 +304,7 @@ describe('ProjectSettingsComponent', () => {
     it('should handle delete error', () => {
       component.ngOnInit();
       paramsSubject.next({ workspaceId: 'ws-1', boardId: 'board-1' });
-      mockBoardService.deleteBoard.mockReturnValue(
+      mockProjectService.deleteBoard.mockReturnValue(
         throwError(() => new Error('fail')),
       );
       mockConfirmationService.confirm.mockImplementation((opts: any) =>

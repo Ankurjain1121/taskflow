@@ -10,7 +10,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { takeUntil, Subject } from 'rxjs';
-import { BoardService, Column } from '../../../core/services/board.service';
+import { ProjectService, Column } from '../../../core/services/board.service';
 import { ConfirmationService, MenuItem } from 'primeng/api';
 import { Menu } from 'primeng/menu';
 import { Dialog } from 'primeng/dialog';
@@ -206,7 +206,7 @@ import { ProjectStateService } from './board-state.service';
   `,
 })
 export class ProjectColumnDialogsComponent {
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private confirmationService = inject(ConfirmationService);
   private router = inject(Router);
   readonly state = inject(ProjectStateService);
@@ -321,7 +321,7 @@ export class ProjectColumnDialogsComponent {
     const name = this.renameDialogValue.trim();
     if (!name) return;
 
-    this.boardService
+    this.projectService
       .updateColumn(this.renameDialogColumnId, { name })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -348,7 +348,7 @@ export class ProjectColumnDialogsComponent {
         ? this.wipLimitDialogValue
         : null;
 
-    this.boardService
+    this.projectService
       .updateColumnWipLimit(this.wipLimitDialogColumnId, wipLimit)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -371,7 +371,7 @@ export class ProjectColumnDialogsComponent {
   }
 
   selectColumnIcon(icon: string | null): void {
-    this.boardService
+    this.projectService
       .updateColumnIcon(this.iconPickerColumnId, icon)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -403,7 +403,7 @@ export class ProjectColumnDialogsComponent {
     if (!name) return;
 
     this.duplicating.set(true);
-    this.boardService
+    this.projectService
       .duplicateBoard(this.boardId, {
         name,
         include_tasks: this.duplicateIncludeTasks,

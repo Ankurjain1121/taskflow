@@ -15,7 +15,7 @@ import {
   Workspace,
 } from '../../core/services/workspace.service';
 import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
-import { BoardService, Board } from '../../core/services/board.service';
+import { ProjectService, Board } from '../../core/services/board.service';
 import {
   CreateBoardDialogComponent,
   CreateBoardDialogResult,
@@ -232,7 +232,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
 export class WorkspaceComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private workspaceService = inject(WorkspaceService);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private settingsDialog = inject(WorkspaceSettingsDialogService);
 
   workspaceId = signal<string>('');
@@ -280,7 +280,7 @@ export class WorkspaceComponent implements OnInit {
     });
 
     // Load boards
-    this.boardService.listBoards(id).subscribe({
+    this.projectService.listBoards(id).subscribe({
       next: (boards) => this.boards.set(boards),
       error: () => {},
     });
@@ -306,7 +306,7 @@ export class WorkspaceComponent implements OnInit {
   }
 
   onBoardCreated(result: CreateBoardDialogResult): void {
-    this.boardService
+    this.projectService
       .createBoard(this.workspaceId(), {
         name: result.name,
         description: result.description,

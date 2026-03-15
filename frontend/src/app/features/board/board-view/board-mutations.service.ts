@@ -2,7 +2,7 @@ import { Injectable, WritableSignal, inject } from '@angular/core';
 import { Subject } from 'rxjs';
 import { generateKeyBetween } from 'fractional-indexing';
 
-import { BoardService, Column } from '../../../core/services/board.service';
+import { ProjectService, Column } from '../../../core/services/board.service';
 import {
   TaskService,
   Task,
@@ -21,8 +21,8 @@ import { CreateColumnDialogResult } from './create-column-dialog.component';
 export interface MutationContext {
   boardState: WritableSignal<Record<string, Task[]>>;
   columns: WritableSignal<Column[]>;
-  boardMembers: WritableSignal<
-    import('../../../core/services/board.service').BoardMember[]
+  projectMembers: WritableSignal<
+    import('../../../core/services/board.service').ProjectMember[]
   >;
   boardGroups: WritableSignal<TaskGroupWithStats[]>;
   allLabels: () => Label[];
@@ -33,7 +33,7 @@ export interface MutationContext {
 
 @Injectable()
 export class ProjectMutationsService {
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private taskService = inject(TaskService);
   private taskGroupService = inject(TaskGroupService);
   private saveStatus = inject(SaveStatusService);
@@ -170,7 +170,7 @@ export class ProjectMutationsService {
 
   optimisticAssignUser(taskId: string, userId: string): void {
     const snapshot = structuredClone(this.ctx.boardState());
-    const member = this.ctx.boardMembers().find((m) => m.user_id === userId);
+    const member = this.ctx.projectMembers().find((m) => m.user_id === userId);
     this.ctx.boardState.update((state) => {
       const newState: Record<string, Task[]> = {};
       for (const [colId, tasks] of Object.entries(state)) {
@@ -324,7 +324,7 @@ export class ProjectMutationsService {
     this.ctx.boardState.update((state) => ({ ...state, [tempId]: [] }));
 
     this.saveStatus.markSaving();
-    this.boardService
+    this.projectService
       .createColumn(boardId, {
         name: columnData.name,
         color: columnData.color,
@@ -364,7 +364,7 @@ export class ProjectMutationsService {
     this.ctx.columns.set(cols);
 
     const movedColumn = cols[currIdx];
-    this.boardService
+    this.projectService
       .reorderColumn(movedColumn.id, { new_index: currIdx })
       .subscribe({
         error: () => {
@@ -385,7 +385,7 @@ export class ProjectMutationsService {
       return newState;
     });
 
-    this.boardService.deleteColumn(columnId).subscribe({
+    this.projectService.deleteColumn(columnId).subscribe({
       error: () => {
         this.ctx.columns.set(colSnapshot);
         this.ctx.boardState.set(stateSnapshot);

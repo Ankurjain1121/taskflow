@@ -81,7 +81,7 @@ export interface ReorderColumnRequest {
   new_index: number;
 }
 
-export interface BoardMember {
+export interface ProjectMember {
   user_id: string;
   /** @deprecated Use project_id */
   board_id?: string;
@@ -91,6 +91,9 @@ export interface BoardMember {
   email?: string;
   avatar_url?: string | null;
 }
+
+/** @deprecated Use ProjectMember */
+export type BoardMember = ProjectMember;
 
 export interface InviteMemberRequest {
   email: string;
@@ -155,18 +158,21 @@ export interface BoardMeta {
   current_offset: number;
 }
 
-export interface BoardFullResponse {
+export interface ProjectFullResponse {
   board: Board & { columns?: Column[]; statuses?: ProjectStatus[] };
   tasks: TaskWithBadges[];
-  members: BoardMember[];
+  members: ProjectMember[];
   meta: BoardMeta;
   statuses?: ProjectStatus[];
 }
 
+/** @deprecated Use ProjectFullResponse */
+export type BoardFullResponse = ProjectFullResponse;
+
 @Injectable({
   providedIn: 'root',
 })
-export class BoardService {
+export class ProjectService {
   private readonly apiUrl = '/api';
   private cache = inject(CacheService);
 
@@ -375,24 +381,24 @@ export class BoardService {
       );
   }
 
-  // Board Member methods
-  getBoardMembers(boardId: string): Observable<BoardMember[]> {
+  // Project Member methods
+  getProjectMembers(boardId: string): Observable<ProjectMember[]> {
     return this.cache.get(
       `project-members:${boardId}`,
       () =>
-        this.http.get<BoardMember[]>(
+        this.http.get<ProjectMember[]>(
           `${this.apiUrl}/projects/${boardId}/members`,
         ),
       180000, // 3 min TTL
     );
   }
 
-  inviteBoardMember(
+  inviteProjectMember(
     boardId: string,
     request: InviteMemberRequest,
-  ): Observable<BoardMember> {
+  ): Observable<ProjectMember> {
     return this.http
-      .post<BoardMember>(`${this.apiUrl}/projects/${boardId}/members`, request)
+      .post<ProjectMember>(`${this.apiUrl}/projects/${boardId}/members`, request)
       .pipe(
         tap(() => {
           this.cache.invalidateKey(`project-members:${boardId}`);
@@ -400,13 +406,13 @@ export class BoardService {
       );
   }
 
-  updateBoardMemberRole(
+  updateProjectMemberRole(
     boardId: string,
     userId: string,
     request: UpdateMemberRoleRequest,
-  ): Observable<BoardMember> {
+  ): Observable<ProjectMember> {
     return this.http
-      .patch<BoardMember>(
+      .patch<ProjectMember>(
         `${this.apiUrl}/projects/${boardId}/members/${userId}`,
         request,
       )
@@ -417,7 +423,7 @@ export class BoardService {
       );
   }
 
-  removeBoardMember(boardId: string, userId: string): Observable<void> {
+  removeProjectMember(boardId: string, userId: string): Observable<void> {
     return this.http
       .delete<void>(`${this.apiUrl}/projects/${boardId}/members/${userId}`)
       .pipe(
@@ -430,7 +436,7 @@ export class BoardService {
   getBoardFull(
     boardId: string,
     params?: { limit?: number; offset?: number },
-  ): Observable<BoardFullResponse> {
+  ): Observable<ProjectFullResponse> {
     const queryParams: Record<string, string> = {};
     if (params?.limit != null) queryParams['limit'] = String(params.limit);
     if (params?.offset != null) queryParams['offset'] = String(params.offset);
@@ -439,7 +445,7 @@ export class BoardService {
     return this.cache.get(
       cacheKey,
       () =>
-        this.http.get<BoardFullResponse>(
+        this.http.get<ProjectFullResponse>(
           `${this.apiUrl}/projects/${boardId}/full`,
           { params: queryParams },
         ),
@@ -487,3 +493,6 @@ export class BoardService {
       );
   }
 }
+
+/** @deprecated Use ProjectService */
+export const BoardService = ProjectService;

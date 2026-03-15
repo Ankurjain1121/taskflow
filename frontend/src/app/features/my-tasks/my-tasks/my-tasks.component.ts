@@ -20,7 +20,7 @@ import {
   MyTasksSummary,
   MyTasksParams,
 } from '../../../core/services/my-tasks.service';
-import { BoardService, Board } from '../../../core/services/board.service';
+import { ProjectService, Board } from '../../../core/services/board.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
 import { TaskListItemComponent } from '../task-list-item/task-list-item.component';
@@ -401,7 +401,7 @@ export class MyTasksComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('scrollTrigger') scrollTrigger: ElementRef | undefined;
 
   private myTasksService = inject(MyTasksService);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private authService = inject(AuthService);
   private wsService = inject(WebSocketService);
   private destroy$ = new Subject<void>();

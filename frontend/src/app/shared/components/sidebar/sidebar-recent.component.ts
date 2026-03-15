@@ -13,7 +13,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { Subscription, filter, take } from 'rxjs';
-import { BoardService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/board.service';
 
 export interface RecentBoardEntry {
   id: string;
@@ -110,7 +110,7 @@ const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 })
 export class SidebarRecentComponent implements OnInit, OnDestroy {
   private router = inject(Router);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private injector = inject(Injector);
   private routerSub: Subscription | null = null;
 
@@ -178,7 +178,7 @@ export class SidebarRecentComponent implements OnInit, OnDestroy {
     });
 
     // Fetch the real board name
-    this.boardService
+    this.projectService
       .getBoard(boardId)
       .pipe(take(1))
       .subscribe({

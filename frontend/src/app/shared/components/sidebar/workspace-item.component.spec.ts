@@ -5,7 +5,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { WorkspaceItemComponent } from './workspace-item.component';
-import { BoardService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/board.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { FavoritesService } from '../../../core/services/favorites.service';
 import { WorkspaceSettingsDialogService } from '../../../core/services/workspace-settings-dialog.service';
@@ -13,7 +13,7 @@ import { WorkspaceSettingsDialogService } from '../../../core/services/workspace
 describe('WorkspaceItemComponent', () => {
   let component: WorkspaceItemComponent;
   let fixture: ComponentFixture<WorkspaceItemComponent>;
-  let mockBoardService: any;
+  let mockProjectService: any;
   let mockAuthService: any;
   let mockFavoritesService: any;
   let mockSettingsDialog: any;
@@ -42,7 +42,7 @@ describe('WorkspaceItemComponent', () => {
       })),
     });
 
-    mockBoardService = {
+    mockProjectService = {
       listBoards: vi.fn().mockReturnValue(
         of([
           {
@@ -106,7 +106,7 @@ describe('WorkspaceItemComponent', () => {
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: BoardService, useValue: mockBoardService },
+        { provide: ProjectService, useValue: mockProjectService },
         { provide: AuthService, useValue: mockAuthService },
         { provide: FavoritesService, useValue: mockFavoritesService },
         { provide: WorkspaceSettingsDialogService, useValue: mockSettingsDialog },
@@ -126,13 +126,13 @@ describe('WorkspaceItemComponent', () => {
   it('should expand and load boards on init', () => {
     component.ngOnInit();
     expect(component.expanded()).toBe(true);
-    expect(mockBoardService.listBoards).toHaveBeenCalledWith('ws-1');
+    expect(mockProjectService.listBoards).toHaveBeenCalledWith('ws-1');
     expect(component.boards().length).toBe(2);
     expect(component.loading()).toBe(false);
   });
 
   it('should handle board load error', () => {
-    mockBoardService.listBoards.mockReturnValue(
+    mockProjectService.listBoards.mockReturnValue(
       throwError(() => new Error('fail')),
     );
     component.ngOnInit();
@@ -156,21 +156,21 @@ describe('WorkspaceItemComponent', () => {
   it('should load boards when expanding from collapsed with empty boards', () => {
     component.expanded.set(false);
     component.boards.set([]);
-    mockBoardService.listBoards.mockClear();
+    mockProjectService.listBoards.mockClear();
 
     component.toggleExpanded();
     expect(component.expanded()).toBe(true);
-    expect(mockBoardService.listBoards).toHaveBeenCalledWith('ws-1');
+    expect(mockProjectService.listBoards).toHaveBeenCalledWith('ws-1');
   });
 
   it('should not reload boards when expanding if boards already loaded', () => {
     component.expanded.set(false);
     component.boards.set([{ id: 'b-1' } as any]);
-    mockBoardService.listBoards.mockClear();
+    mockProjectService.listBoards.mockClear();
 
     component.toggleExpanded();
     expect(component.expanded()).toBe(true);
-    expect(mockBoardService.listBoards).not.toHaveBeenCalled();
+    expect(mockProjectService.listBoards).not.toHaveBeenCalled();
   });
 
   it('should determine canCreateBoard based on current user', () => {
@@ -196,7 +196,7 @@ describe('WorkspaceItemComponent', () => {
       template: 'kanban',
     });
 
-    expect(mockBoardService.createBoard).toHaveBeenCalledWith('ws-1', {
+    expect(mockProjectService.createBoard).toHaveBeenCalledWith('ws-1', {
       name: 'New Board',
       description: 'desc',
       template: 'kanban',
@@ -206,7 +206,7 @@ describe('WorkspaceItemComponent', () => {
   });
 
   it('should handle board creation error', () => {
-    mockBoardService.createBoard.mockReturnValue(
+    mockProjectService.createBoard.mockReturnValue(
       throwError(() => new Error('fail')),
     );
     component.boards.set([]);

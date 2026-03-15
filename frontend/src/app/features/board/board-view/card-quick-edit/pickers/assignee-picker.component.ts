@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { BoardMember } from '../../../../../core/services/board.service';
+import { ProjectMember } from '../../../../../core/services/board.service';
 
 @Component({
   selector: 'app-assignee-picker',
@@ -87,7 +87,7 @@ import { BoardMember } from '../../../../../core/services/board.service';
   `,
 })
 export class AssigneePickerComponent implements OnInit {
-  members = input<BoardMember[]>([]);
+  members = input<ProjectMember[]>([]);
   selectedIds = input<string[]>([]);
   assigneesChanged = output<string[]>();
 
@@ -124,7 +124,7 @@ export class AssigneePickerComponent implements OnInit {
     this.assigneesChanged.emit([...current]);
   }
 
-  getMemberName(member: BoardMember): string {
+  getMemberName(member: ProjectMember): string {
     return member.name || member.email || 'Unknown';
   }
 

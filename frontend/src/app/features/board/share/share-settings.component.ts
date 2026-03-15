@@ -17,8 +17,8 @@ import { ProgressSpinner } from 'primeng/progressspinner';
 import { Toast } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import {
-  BoardShareService,
-  BoardShare,
+  ProjectShareService,
+  ProjectShare,
   CreateShareRequest,
 } from '../../../core/services/board-share.service';
 import { Clipboard } from '@angular/cdk/clipboard';
@@ -177,11 +177,11 @@ import { Clipboard } from '@angular/cdk/clipboard';
 export class ShareSettingsComponent implements OnInit {
   boardId = input.required<string>();
 
-  private shareService = inject(BoardShareService);
+  private shareService = inject(ProjectShareService);
   private clipboard = inject(Clipboard);
   private messageService = inject(MessageService);
 
-  shares = signal<BoardShare[]>([]);
+  shares = signal<ProjectShare[]>([]);
   loading = signal(true);
   creating = signal(false);
 
@@ -240,11 +240,11 @@ export class ShareSettingsComponent implements OnInit {
     });
   }
 
-  getShareUrl(share: BoardShare): string {
+  getShareUrl(share: ProjectShare): string {
     return `${window.location.origin}/shared/${share.share_token}`;
   }
 
-  copyLink(share: BoardShare) {
+  copyLink(share: ProjectShare) {
     this.clipboard.copy(this.getShareUrl(share));
     this.messageService.add({
       severity: 'info',
@@ -253,7 +253,7 @@ export class ShareSettingsComponent implements OnInit {
     });
   }
 
-  toggleShare(share: BoardShare, isActive: boolean) {
+  toggleShare(share: ProjectShare, isActive: boolean) {
     this.shareService.toggleShare(share.id, isActive).subscribe({
       next: (updated) => {
         this.shares.update((s) =>
@@ -263,7 +263,7 @@ export class ShareSettingsComponent implements OnInit {
     });
   }
 
-  deleteShare(share: BoardShare) {
+  deleteShare(share: ProjectShare) {
     this.shareService.deleteShare(share.id).subscribe({
       next: () => {
         this.shares.update((s) => s.filter((sh) => sh.id !== share.id));

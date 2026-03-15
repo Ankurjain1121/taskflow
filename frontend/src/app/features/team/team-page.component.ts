@@ -23,7 +23,7 @@ import {
   TenantMember,
   MemberRoleBatch,
 } from '../../core/services/workspace.service';
-import { BoardService } from '../../core/services/board.service';
+import { ProjectService } from '../../core/services/board.service';
 import { TeamService, MemberWorkload } from '../../core/services/team.service';
 import {
   MembersListComponent,
@@ -642,7 +642,7 @@ interface WorkspaceTeam {
 })
 export class TeamPageComponent implements OnInit {
   private workspaceService = inject(WorkspaceService);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private teamService = inject(TeamService);
 
   loading = signal(true);
@@ -855,7 +855,7 @@ export class TeamPageComponent implements OnInit {
             details: this.workspaceService
               .get(ws.id)
               .pipe(catchError(() => of(null))),
-            boards: this.boardService
+            boards: this.projectService
               .listBoards(ws.id)
               .pipe(catchError(() => of([] as { id: string; name: string }[]))),
           }),

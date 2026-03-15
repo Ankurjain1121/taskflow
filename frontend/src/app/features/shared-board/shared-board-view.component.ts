@@ -13,7 +13,7 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { InputTextModule } from 'primeng/inputtext';
 import { ChipModule } from 'primeng/chip';
 import {
-  BoardShareService,
+  ProjectShareService,
   SharedBoardAccess,
 } from '../../core/services/board-share.service';
 
@@ -154,7 +154,7 @@ import {
 })
 export class SharedProjectViewComponent implements OnInit {
   private route = inject(ActivatedRoute);
-  private shareService = inject(BoardShareService);
+  private shareService = inject(ProjectShareService);
 
   loading = signal(true);
   board = signal<SharedBoardAccess | null>(null);

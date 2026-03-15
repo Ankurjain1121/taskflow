@@ -18,7 +18,7 @@ import {
 } from '@angular/cdk/drag-drop';
 import { generateKeyBetween } from 'fractional-indexing';
 import {
-  BoardService,
+  ProjectService,
   Column,
   ColumnStatusMapping,
 } from '../../../core/services/board.service';
@@ -362,7 +362,7 @@ import { COLUMN_HEADER_COLORS } from '../../../shared/utils/task-colors';
   },
 })
 export class ColumnManagerComponent implements OnInit {
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
 
   boardId = input.required<string>();
 
@@ -395,7 +395,7 @@ export class ColumnManagerComponent implements OnInit {
 
     const movedColumn = columns[event.currentIndex];
 
-    this.boardService
+    this.projectService
       .reorderColumn(movedColumn.id, { new_index: event.currentIndex })
       .subscribe({
         next: () => this.loadColumns(),
@@ -425,7 +425,7 @@ export class ColumnManagerComponent implements OnInit {
       cols.map((c) => (c.id === column.id ? { ...c, color } : c)),
     );
 
-    this.boardService.updateColumn(column.id, { color }).subscribe({
+    this.projectService.updateColumn(column.id, { color }).subscribe({
       next: (updated) => {
         this.columns.update((cols) =>
           cols.map((c) => (c.id === column.id ? updated : c)),
@@ -462,7 +462,7 @@ export class ColumnManagerComponent implements OnInit {
     );
     this.pendingNames.delete(column.id);
 
-    this.boardService.updateColumn(column.id, { name }).subscribe({
+    this.projectService.updateColumn(column.id, { name }).subscribe({
       next: (updated) => {
         this.columns.update((cols) =>
           cols.map((c) => (c.id === column.id ? updated : c)),
@@ -489,7 +489,7 @@ export class ColumnManagerComponent implements OnInit {
       ),
     );
 
-    this.boardService
+    this.projectService
       .updateColumn(column.id, { status_mapping: newMapping })
       .subscribe({
         next: (updated) => {
@@ -513,7 +513,7 @@ export class ColumnManagerComponent implements OnInit {
     // Optimistic: remove immediately
     this.columns.update((cols) => cols.filter((c) => c.id !== column.id));
 
-    this.boardService.deleteColumn(column.id).subscribe({
+    this.projectService.deleteColumn(column.id).subscribe({
       error: (err) => {
         this.columns.set(snapshot);
 
@@ -561,7 +561,7 @@ export class ColumnManagerComponent implements OnInit {
     this.newColumnIsDone = false;
     this.newColumnColor.set('#6366f1');
 
-    this.boardService
+    this.projectService
       .createColumn(this.boardId(), {
         name: tempColumn.name,
         color: savedColor,
@@ -599,7 +599,7 @@ export class ColumnManagerComponent implements OnInit {
   private loadColumns(): void {
     this.loading.set(true);
 
-    this.boardService.listColumns(this.boardId()).subscribe({
+    this.projectService.listColumns(this.boardId()).subscribe({
       next: (columns) => {
         this.columns.set(
           columns.sort((a, b) => a.position.localeCompare(b.position)),

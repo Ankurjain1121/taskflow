@@ -5,14 +5,14 @@ import { of, throwError } from 'rxjs';
 import { TeamPageComponent } from './team-page.component';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { TeamService } from '../../core/services/team.service';
-import { BoardService } from '../../core/services/board.service';
+import { ProjectService } from '../../core/services/board.service';
 
 describe('TeamPageComponent', () => {
   let component: TeamPageComponent;
   let fixture: ComponentFixture<TeamPageComponent>;
   let mockWorkspaceService: any;
   let mockTeamService: any;
-  let mockBoardService: any;
+  let mockProjectService: any;
 
   beforeEach(async () => {
     mockWorkspaceService = {
@@ -65,7 +65,7 @@ describe('TeamPageComponent', () => {
       ),
     };
 
-    mockBoardService = {
+    mockProjectService = {
       listBoards: vi.fn().mockReturnValue(of([])),
     };
 
@@ -74,7 +74,7 @@ describe('TeamPageComponent', () => {
       providers: [
         { provide: WorkspaceService, useValue: mockWorkspaceService },
         { provide: TeamService, useValue: mockTeamService },
-        { provide: BoardService, useValue: mockBoardService },
+        { provide: ProjectService, useValue: mockProjectService },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();

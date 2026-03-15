@@ -25,7 +25,7 @@ import {
   CreatePositionRequest,
   UpdatePositionRequest,
 } from '../../../core/services/position.service';
-import { BoardMember } from '../../../core/services/board.service';
+import { ProjectMember } from '../../../core/services/board.service';
 
 @Component({
   selector: 'app-position-list',
@@ -431,7 +431,7 @@ import { BoardMember } from '../../../core/services/board.service';
 })
 export class PositionListComponent implements OnInit, OnChanges {
   boardId = input.required<string>();
-  boardMembers = input<BoardMember[]>([]);
+  projectMembers = input<ProjectMember[]>([]);
 
   private positionService = inject(PositionService);
   private confirmationService = inject(ConfirmationService);
@@ -464,7 +464,7 @@ export class PositionListComponent implements OnInit, OnChanges {
   availableHolderOptions = computed(() => {
     const pos = this.holderPosition();
     const currentHolderIds = new Set(pos?.holders.map((h) => h.user_id) ?? []);
-    return this.boardMembers()
+    return this.projectMembers()
       .filter((m) => !currentHolderIds.has(m.user_id))
       .map((m) => ({
         label: m.name || m.email || 'Unknown',

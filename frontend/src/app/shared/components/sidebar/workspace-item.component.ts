@@ -9,7 +9,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { BoardService, Board } from '../../../core/services/board.service';
+import { ProjectService, Board } from '../../../core/services/board.service';
 import { Workspace } from '../../../core/services/workspace.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { FavoritesService } from '../../../core/services/favorites.service';
@@ -314,7 +314,7 @@ import {
   `,
 })
 export class WorkspaceItemComponent implements OnInit {
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private authService = inject(AuthService);
   private favoritesService = inject(FavoritesService);
   private settingsDialog = inject(WorkspaceSettingsDialogService);
@@ -379,7 +379,7 @@ export class WorkspaceItemComponent implements OnInit {
   }
 
   onBoardCreated(result: CreateBoardDialogResult): void {
-    this.boardService
+    this.projectService
       .createBoard(this.workspace().id, {
         name: result.name,
         description: result.description,
@@ -443,7 +443,7 @@ export class WorkspaceItemComponent implements OnInit {
   archiveBoard(board: Board, event: Event): void {
     event.stopPropagation();
     this.activeMenuBoardId.set(null);
-    this.boardService.deleteBoard(board.id).subscribe({
+    this.projectService.deleteBoard(board.id).subscribe({
       next: () => {
         this.boards.update((boards) => boards.filter((b) => b.id !== board.id));
       },
@@ -461,7 +461,7 @@ export class WorkspaceItemComponent implements OnInit {
   private loadBoards(): void {
     this.loading.set(true);
     forkJoin({
-      boards: this.boardService.listBoards(this.workspace().id),
+      boards: this.projectService.listBoards(this.workspace().id),
       favorites: this.favoritesService.list(),
     }).subscribe({
       next: ({ boards, favorites }) => {

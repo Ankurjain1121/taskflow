@@ -8,8 +8,8 @@ import { MessageService } from 'primeng/api';
 
 import { ProjectViewComponent } from './board-view.component';
 import {
-  BoardService,
-  BoardFullResponse,
+  ProjectService,
+  ProjectFullResponse,
   Column,
 } from '../../../core/services/board.service';
 import {
@@ -75,7 +75,7 @@ const EMPTY_FILTERS: TaskFilters = {
 
 // --- Mocks ---
 
-function createMockBoardService() {
+function createMockProjectService() {
   return {
     getBoardFull: vi.fn(),
     createColumn: vi.fn(),
@@ -141,7 +141,7 @@ function createMockKeyboardShortcutsService() {
 describe('ProjectViewComponent', () => {
   let component: ProjectViewComponent;
   let fixture: ComponentFixture<ProjectViewComponent>;
-  let mockBoardService: ReturnType<typeof createMockBoardService>;
+  let mockProjectService: ReturnType<typeof createMockProjectService>;
   let mockTaskService: ReturnType<typeof createMockTaskService>;
   let mockTaskGroupService: ReturnType<typeof createMockTaskGroupService>;
   let mockWsService: ReturnType<typeof createMockWebSocketService>;
@@ -161,7 +161,7 @@ describe('ProjectViewComponent', () => {
     status_mapping: { done: true },
   });
 
-  const boardFullResponse: BoardFullResponse = {
+  const boardFullResponse: ProjectFullResponse = {
     board: {
       id: 'board-1',
       workspace_id: 'ws-1',
@@ -226,13 +226,13 @@ describe('ProjectViewComponent', () => {
   };
 
   beforeEach(async () => {
-    mockBoardService = createMockBoardService();
+    mockProjectService = createMockProjectService();
     mockTaskService = createMockTaskService();
     mockTaskGroupService = createMockTaskGroupService();
     mockWsService = createMockWebSocketService();
     routeParams$ = new Subject();
 
-    mockBoardService.getBoardFull.mockReturnValue(of(boardFullResponse));
+    mockProjectService.getBoardFull.mockReturnValue(of(boardFullResponse));
 
     await TestBed.configureTestingModule({
       imports: [
@@ -241,7 +241,7 @@ describe('ProjectViewComponent', () => {
         RouterTestingModule,
       ],
       providers: [
-        { provide: BoardService, useValue: mockBoardService },
+        { provide: ProjectService, useValue: mockProjectService },
         { provide: TaskService, useValue: mockTaskService },
         { provide: TaskGroupService, useValue: mockTaskGroupService },
         { provide: WebSocketService, useValue: mockWsService },
@@ -286,7 +286,7 @@ describe('ProjectViewComponent', () => {
       fixture.detectChanges();
       routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
 
-      expect(mockBoardService.getBoardFull).toHaveBeenCalledWith('board-1');
+      expect(mockProjectService.getBoardFull).toHaveBeenCalledWith('board-1');
       expect(component.state.board()?.name).toBe('Test Board');
       expect(component.state.columns()).toHaveLength(3);
       expect(component.state.loading()).toBe(false);
@@ -305,7 +305,7 @@ describe('ProjectViewComponent', () => {
     });
 
     it('should set loading=false and show error on failure', () => {
-      mockBoardService.getBoardFull.mockReturnValue(
+      mockProjectService.getBoardFull.mockReturnValue(
         throwError(() => new Error('Network error')),
       );
       fixture.detectChanges();
