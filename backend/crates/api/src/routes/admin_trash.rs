@@ -58,8 +58,7 @@ async fn delete_item(
     Path((entity_type_str, entity_id)): Path<(String, Uuid)>,
 ) -> Result<Json<TrashOpResponse>> {
     let scope = TrashScope::Tenant(admin.0.tenant_id);
-    let response =
-        trash_queries::delete_item(&state, &scope, &entity_type_str, entity_id).await?;
+    let response = trash_queries::delete_item(&state, &scope, &entity_type_str, entity_id).await?;
     Ok(Json(response))
 }
 

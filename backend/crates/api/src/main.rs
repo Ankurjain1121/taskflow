@@ -43,7 +43,7 @@ use crate::routes::{
     workspace_job_roles_router, workspace_labels_router, workspace_projects_router,
     workspace_router, workspace_teams_router, workspace_trash_router,
 };
-use crate::routes::{metrics_cron_router, metrics_router};
+use crate::routes::{metrics_cron_router, metrics_router, portfolio_router};
 use crate::state::AppState;
 use crate::ws::ws_handler;
 
@@ -193,6 +193,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Workspace routes
         .nest("/api/workspaces", workspace_router(state.clone()))
         .nest("/api/workspaces", workspace_job_roles_router(state.clone()))
+        .nest("/api/workspaces", portfolio_router(state.clone()))
         .nest(
             "/api/workspaces/{workspace_id}/projects",
             workspace_projects_router(state.clone()),

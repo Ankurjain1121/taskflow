@@ -29,12 +29,9 @@ async fn workspace_scope(
     workspace_id: Uuid,
     user_id: Uuid,
 ) -> Result<TrashScope> {
-    let is_member = taskflow_db::queries::workspaces::is_workspace_member(
-        &state.db,
-        workspace_id,
-        user_id,
-    )
-    .await?;
+    let is_member =
+        taskflow_db::queries::workspaces::is_workspace_member(&state.db, workspace_id, user_id)
+            .await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
@@ -61,9 +58,14 @@ async fn restore_workspace_trash(
     Json(body): Json<RestoreRequest>,
 ) -> Result<Json<TrashOpResponse>> {
     let scope = workspace_scope(&state, workspace_id, auth.0.user_id).await?;
-    let response =
-        trash_queries::restore_item(&state.db, &scope, &body.entity_type, body.entity_id, auth.0.user_id)
-            .await?;
+    let response = trash_queries::restore_item(
+        &state.db,
+        &scope,
+        &body.entity_type,
+        body.entity_id,
+        auth.0.user_id,
+    )
+    .await?;
     Ok(Json(response))
 }
 

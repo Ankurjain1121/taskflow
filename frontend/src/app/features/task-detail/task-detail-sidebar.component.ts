@@ -70,7 +70,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
         background: var(--card);
         border: 1px solid var(--border);
         border-radius: 0.75rem;
-        padding: 1.25rem;
+        padding: 0.875rem 1rem;
       }
       .assignee-chip {
         display: inline-flex;
@@ -122,9 +122,9 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
     `,
   ],
   template: `
-    <div class="space-y-5">
+    <div class="space-y-3">
       <!-- Status & Priority -->
-      <div class="sidebar-card space-y-4">
+      <div class="sidebar-card space-y-3">
         <!-- Column / Status -->
         <div>
           <label class="field-label">Status</label>
@@ -287,9 +287,11 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
         }
       </div>
 
-      <!-- Assignees -->
-      <div class="sidebar-card group">
-        <div class="flex items-center justify-between mb-3">
+      <!-- Assignees & Watchers -->
+      <div class="sidebar-card group space-y-4">
+        <!-- Assignees -->
+        <div>
+        <div class="flex items-center justify-between mb-2">
           <label class="field-label mb-0">Assignees</label>
           <button
             (click)="toggleAssigneeSearch()"
@@ -381,11 +383,11 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
             </div>
           </div>
         }
-      </div>
+        </div>
 
-      <!-- Watchers -->
-      <div class="sidebar-card group">
-        <div class="flex items-center justify-between mb-3">
+        <!-- Watchers -->
+        <div class="pt-3 border-t" style="border-color: var(--border)">
+        <div class="flex items-center justify-between mb-2">
           <label class="field-label mb-0">Watchers</label>
           <div
             class="flex gap-1 opacity-0 group-hover:opacity-100 transition-all"
@@ -489,6 +491,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
             </div>
           </div>
         }
+        </div>
       </div>
 
       <!-- Labels -->
@@ -549,7 +552,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
       }
 
       <!-- Metadata -->
-      <div class="sidebar-card space-y-3">
+      <div class="sidebar-card space-y-2">
         <div>
           <label class="field-label">Created</label>
           <p

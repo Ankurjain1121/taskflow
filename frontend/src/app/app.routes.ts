@@ -154,6 +154,13 @@ export const routes: Routes = [
         pathMatch: 'full' as const,
       },
       {
+        path: 'portfolio',
+        loadComponent: () =>
+          import(
+            './features/portfolio/portfolio-dashboard.component'
+          ).then((m) => m.PortfolioDashboardComponent),
+      },
+      {
         path: 'team',
         loadComponent: () =>
           import('./features/team/team-overview/team-overview.component').then(

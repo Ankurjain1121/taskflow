@@ -17,9 +17,8 @@ use crate::state::AppState;
 use taskflow_db::models::automation::AutomationTrigger;
 use taskflow_db::models::{Task, TaskBroadcast, WsBoardEvent};
 use taskflow_db::queries::{
-    add_watcher, assign_user, get_task_assignee_ids, get_task_board_id,
-    list_reminders_for_task, remove_reminder, remove_watcher, set_reminder,
-    unassign_user, ReminderInfo,
+    add_watcher, assign_user, get_task_assignee_ids, get_task_board_id, list_reminders_for_task,
+    remove_reminder, remove_watcher, set_reminder, unassign_user, ReminderInfo,
 };
 use taskflow_services::broadcast::events;
 use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};

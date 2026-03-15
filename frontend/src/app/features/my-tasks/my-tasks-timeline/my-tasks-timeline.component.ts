@@ -60,40 +60,38 @@ type ViewMode = 'assigned' | 'created';
         <!-- Welcome Banner -->
         @if (summary()) {
           <div
-            class="mb-6 rounded-xl p-6 animate-fade-in-up"
-            style="background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 70%, #7c3aed)); color: var(--primary-foreground)"
+            class="mb-6 rounded-xl p-6 animate-fade-in-up relative overflow-hidden"
+            style="background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 65%, #7c3aed)); color: var(--primary-foreground)"
           >
-            <h1 class="text-3xl font-bold mb-2">
-              {{ getGreeting() }}, {{ userName() }}!
-            </h1>
-            <div class="flex items-center gap-6 text-sm opacity-95">
-              <span>
-                <span class="font-semibold text-lg">{{
-                  summary()!.total_assigned
-                }}</span>
-                total tasks
-              </span>
-              <span>•</span>
-              <span>
-                <span class="font-semibold text-lg">{{
-                  summary()!.overdue
-                }}</span>
-                overdue
-              </span>
-              <span>•</span>
-              <span>
-                <span class="font-semibold text-lg">{{
-                  summary()!.due_soon
-                }}</span>
-                due soon
-              </span>
-              <span>•</span>
-              <span>
-                <span class="font-semibold text-lg">{{
-                  summary()!.completed_this_week
-                }}</span>
-                completed this week
-              </span>
+            <!-- Subtle pattern overlay -->
+            <div
+              class="absolute inset-0 opacity-[0.06]"
+              style="background-image: radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0); background-size: 24px 24px"
+            ></div>
+            <div class="relative">
+              <h1 class="text-3xl font-extrabold mb-3 tracking-tight">
+                {{ getGreeting() }}, {{ userName() }}!
+              </h1>
+              <div class="flex items-center gap-4 flex-wrap">
+                <div class="flex items-center gap-2 bg-white/15 rounded-lg px-3 py-1.5 backdrop-blur-sm">
+                  <span class="text-xl font-bold">{{ summary()!.total_assigned }}</span>
+                  <span class="text-sm opacity-90">tasks</span>
+                </div>
+                @if (summary()!.overdue > 0) {
+                  <div class="flex items-center gap-2 bg-red-500/30 rounded-lg px-3 py-1.5 backdrop-blur-sm">
+                    <span class="text-xl font-bold">{{ summary()!.overdue }}</span>
+                    <span class="text-sm opacity-90">overdue</span>
+                  </div>
+                }
+                <div class="flex items-center gap-2 bg-white/15 rounded-lg px-3 py-1.5 backdrop-blur-sm">
+                  <span class="text-xl font-bold">{{ summary()!.due_soon }}</span>
+                  <span class="text-sm opacity-90">due soon</span>
+                </div>
+                <div class="flex items-center gap-2 bg-white/15 rounded-lg px-3 py-1.5 backdrop-blur-sm">
+                  <span class="text-xl font-bold">{{ summary()!.completed_this_week }}</span>
+                  <span class="text-sm opacity-90">done this week</span>
+                </div>
+              </div>
             </div>
           </div>
         }
