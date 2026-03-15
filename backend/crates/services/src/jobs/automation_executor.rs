@@ -13,6 +13,7 @@
 use std::time::Duration;
 
 use redis::AsyncCommands;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -1009,6 +1010,69 @@ async fn execute_assign_to_role_members(
     }
 
     Ok(())
+}
+
+/// Result of a scheduled automation scan via the cron endpoint.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ScheduledAutomationResult {
+    pub tasks_scanned: usize,
+    pub triggers_fired: usize,
+    pub actions_executed: usize,
+    pub errors: usize,
+}
+
+/// Execute scheduled (time-based) automations.
+///
+/// Scans for tasks with due dates that have passed or are approaching,
+/// then fires the corresponding automation triggers (`TaskDueDatePassed`,
+/// `DueDateApproaching`) for each matching task.
+///
+/// Designed to be called from a cron endpoint (e.g., every 15 minutes).
+pub async fn execute_scheduled_automations(
+    pool: &PgPool,
+    redis: &mut redis::aio::ConnectionManager,
+) -> Result<ScheduledAutomationResult, AutomationExecutorError> {
+    use taskflow_db::queries::automation_evaluation::get_scheduled_trigger_tasks;
+
+    let tasks = get_scheduled_trigger_tasks(pool).await?;
+
+    let mut result = ScheduledAutomationResult {
+        tasks_scanned: tasks.len(),
+        triggers_fired: 0,
+        actions_executed: 0,
+        errors: 0,
+    };
+
+    for task in &tasks {
+        let context = TriggerContext {
+            task_id: task.task_id,
+            board_id: task.board_id,
+            tenant_id: task.tenant_id,
+            user_id: task.assignee_id.unwrap_or(Uuid::nil()),
+            previous_status_id: None,
+            new_status_id: None,
+            priority: None,
+            member_user_id: None,
+        };
+
+        let run = evaluate_trigger(pool, redis, task.trigger.clone(), context, 0).await;
+
+        if run.rules_matched > 0 {
+            result.triggers_fired += run.rules_matched;
+            result.actions_executed += run.actions_executed;
+            result.errors += run.errors;
+        }
+    }
+
+    tracing::info!(
+        tasks_scanned = result.tasks_scanned,
+        triggers_fired = result.triggers_fired,
+        actions_executed = result.actions_executed,
+        errors = result.errors,
+        "Scheduled automation scan completed"
+    );
+
+    Ok(result)
 }
 
 /// Convenience function to spawn automation evaluation as a background task.

@@ -4,11 +4,14 @@ import {
   signal,
   computed,
   inject,
+  DestroyRef,
   OnInit,
-  OnDestroy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import {
   TimeTrackingService,
   TimeEntryWithTask,
@@ -99,15 +102,18 @@ import {
     }
   `,
 })
-export class TimerWidgetComponent implements OnInit, OnDestroy {
+export class TimerWidgetComponent implements OnInit {
   private timeService = inject(TimeTrackingService);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
 
   entry = signal<TimeEntryWithTask | null>(null);
   stopping = signal(false);
   private tick = signal(0);
   private tickInterval: ReturnType<typeof setInterval> | null = null;
   private pollInterval: ReturnType<typeof setInterval> | null = null;
+  private retryTimeout: ReturnType<typeof setTimeout> | null = null;
+  private stopCancel$ = new Subject<void>();
 
   elapsed = computed(() => {
     this.tick(); // subscribe to tick updates
@@ -127,6 +133,23 @@ export class TimerWidgetComponent implements OnInit, OnDestroy {
       .join(':');
   });
 
+  constructor() {
+    // Clean up all resources on destroy
+    this.destroyRef.onDestroy(() => {
+      this.stopTicking();
+      if (this.pollInterval) {
+        clearInterval(this.pollInterval);
+        this.pollInterval = null;
+      }
+      if (this.retryTimeout) {
+        clearTimeout(this.retryTimeout);
+        this.retryTimeout = null;
+      }
+      this.stopCancel$.next();
+      this.stopCancel$.complete();
+    });
+  }
+
   ngOnInit(): void {
     this.pollRunningTimer();
 
@@ -136,21 +159,31 @@ export class TimerWidgetComponent implements OnInit, OnDestroy {
   }
 
   private pollRunningTimer(): void {
-    this.timeService.getRunningTimer().subscribe({
-      next: (timer) => {
-        const wasRunning = !!this.entry();
-        this.entry.set(timer);
+    this.timeService
+      .getRunningTimer()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (timer) => {
+          const wasRunning = !!this.entry();
+          this.entry.set(timer);
 
-        if (timer && !wasRunning) {
-          this.startTicking();
-        } else if (!timer && wasRunning) {
-          this.stopTicking();
-        }
-      },
-      error: () => {
-        // Silently fail — timer widget is non-critical
-      },
-    });
+          if (timer && !wasRunning) {
+            this.startTicking();
+          } else if (!timer && wasRunning) {
+            this.stopTicking();
+          }
+        },
+        error: (err) => {
+          // Stop polling on auth errors to avoid log noise
+          if (err?.status === 401 || err?.status === 403) {
+            this.stopTicking();
+            if (this.pollInterval) {
+              clearInterval(this.pollInterval);
+              this.pollInterval = null;
+            }
+          }
+        },
+      });
   }
 
   stopTimer(): void {
@@ -158,33 +191,49 @@ export class TimerWidgetComponent implements OnInit, OnDestroy {
     if (!e || this.stopping()) return;
 
     this.stopping.set(true);
-    this.timeService.stopTimer(e.id).subscribe({
-      next: () => {
-        this.entry.set(null);
-        this.stopping.set(false);
-        this.stopTicking();
-      },
-      error: () => {
-        // Retry once after 2 seconds
-        setTimeout(() => {
-          this.timeService.stopTimer(e.id).subscribe({
-            next: () => {
-              this.entry.set(null);
+    this.stopCancel$.next(); // cancel any previous retry
+
+    this.timeService
+      .stopTimer(e.id)
+      .pipe(takeUntil(this.stopCancel$))
+      .subscribe({
+        next: () => {
+          this.entry.set(null);
+          this.stopping.set(false);
+          this.stopTicking();
+        },
+        error: () => {
+          // Retry once after 2 seconds, verify entry ID still matches
+          this.retryTimeout = setTimeout(() => {
+            const current = this.entry();
+            if (!current || current.id !== e.id) {
               this.stopping.set(false);
-              this.stopTicking();
-            },
-            error: () => {
-              this.stopping.set(false);
-              // Timer stays visible — user can try again
-            },
-          });
-        }, 2000);
-      },
-    });
+              return;
+            }
+
+            this.timeService
+              .stopTimer(e.id)
+              .pipe(takeUntil(this.stopCancel$))
+              .subscribe({
+                next: () => {
+                  this.entry.set(null);
+                  this.stopping.set(false);
+                  this.stopTicking();
+                },
+                error: () => {
+                  this.stopping.set(false);
+                  // Timer stays visible — user can try again
+                },
+              });
+          }, 2000);
+        },
+      });
   }
 
   navigateToTask(entry: TimeEntryWithTask): void {
-    this.router.navigate(['/task', entry.task_id]);
+    if (entry.task_id) {
+      this.router.navigate(['/task', entry.task_id]);
+    }
   }
 
   private startTicking(): void {
@@ -198,14 +247,6 @@ export class TimerWidgetComponent implements OnInit, OnDestroy {
     if (this.tickInterval) {
       clearInterval(this.tickInterval);
       this.tickInterval = null;
-    }
-  }
-
-  ngOnDestroy(): void {
-    this.stopTicking();
-    if (this.pollInterval) {
-      clearInterval(this.pollInterval);
-      this.pollInterval = null;
     }
   }
 }

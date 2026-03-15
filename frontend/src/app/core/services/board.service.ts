@@ -92,9 +92,6 @@ export interface ProjectMember {
   avatar_url?: string | null;
 }
 
-/** @deprecated Use ProjectMember */
-export type BoardMember = ProjectMember;
-
 export interface InviteMemberRequest {
   email: string;
   role: 'viewer' | 'editor' | 'owner';
@@ -165,9 +162,6 @@ export interface ProjectFullResponse {
   meta: BoardMeta;
   statuses?: ProjectStatus[];
 }
-
-/** @deprecated Use ProjectFullResponse */
-export type BoardFullResponse = ProjectFullResponse;
 
 @Injectable({
   providedIn: 'root',
@@ -493,6 +487,3 @@ export class ProjectService {
       );
   }
 }
-
-/** @deprecated Use ProjectService */
-export const BoardService = ProjectService;

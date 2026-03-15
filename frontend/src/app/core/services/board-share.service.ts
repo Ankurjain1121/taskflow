@@ -77,9 +77,3 @@ export class ProjectShareService {
     return this.http.get<SharedBoardAccess>(`/api/shared/${token}`, { params });
   }
 }
-
-/** @deprecated Use ProjectShare */
-export type BoardShare = ProjectShare;
-
-/** @deprecated Use ProjectShareService */
-export const BoardShareService = ProjectShareService;

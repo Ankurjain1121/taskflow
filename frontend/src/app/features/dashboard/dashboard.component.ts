@@ -358,6 +358,7 @@ interface TeamOption {
           }
 
           <!-- Metrics View Toggle -->
+          @if (metricsLoading() || hasAnyMetrics()) {
           <div class="animate-fade-in-up stagger-6 mb-6">
             <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
               <div class="flex items-center gap-2">
@@ -455,14 +456,14 @@ interface TeamOption {
               </div>
             }
           </div>
+          }
 
           <!-- Analytics Section -->
           <div class="animate-fade-in-up stagger-6 mb-6">
-            <div class="mb-4">
-              <h2 class="widget-title text-sm">Analytics & Insights</h2>
-            </div>
-
             @defer (on viewport) {
+              <div class="mb-4">
+                <h2 class="widget-title text-sm">Analytics & Insights</h2>
+              </div>
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 <!-- Completion trend: full-width hero -->
                 <app-completion-trend
@@ -608,6 +609,14 @@ export class DashboardComponent implements OnInit {
   metricsVelocity = signal<VelocityPoint[]>([]);
   metricsWorkload = signal<WorkloadBalanceEntry[]>([]);
   metricsOnTime = signal<OnTimeMetric | null>(null);
+
+  hasAnyMetrics = computed(
+    () =>
+      this.metricsCycleTime().length > 0 ||
+      this.metricsVelocity().length > 0 ||
+      this.metricsWorkload().length > 0 ||
+      this.metricsOnTime() !== null,
+  );
 
   viewOptions: { value: DashboardView; label: string; icon: string }[] = [
     { value: 'workspace', label: 'Workspace', icon: 'pi pi-building' },

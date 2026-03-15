@@ -116,4 +116,44 @@ Bypass: `git commit --no-verify` (use sparingly).
 
 ---
 
+## Design Context
+
+### Users
+TaskFlow serves all segments: internal teams, SMB customers, enterprise organizations, and agencies/freelancers. Users are project managers, team leads, developers, and individual contributors who need to track work, collaborate, and stay on top of deadlines. They use TaskFlow throughout their workday — it's an always-open tool, so it must feel effortless and never fatiguing.
+
+### Brand Personality
+**Friendly, approachable, modern** — like Asana meets Monday.com. Warm and inviting without being childish. Professional enough for enterprise, but never cold or corporate. The interface should feel like a helpful teammate, not a bureaucratic tool.
+
+### Emotional Goals
+The UI should evoke all four pillars simultaneously:
+1. **Confidence & control** — "I know exactly where everything stands"
+2. **Delight & momentum** — satisfying micro-interactions, visible progress
+3. **Calm & focus** — no visual noise, clean hierarchy, breathing room
+4. **Energy & speed** — fast, responsive, keyboard-friendly
+
+### Aesthetic Direction
+- **References:** Linear (speed, keyboard-first, minimal chrome) + Monday.com (vibrancy, visual status, colorful boards)
+- **Anti-references:** Jira (cluttered, slow, overwhelming), generic Bootstrap dashboards
+- **Theme:** Light/dark with system detection. 8 interchangeable accent colors for personalization.
+- **Primary color:** Open to change from indigo — explore alternatives. Red is reserved for errors/destructive actions only, never as brand color.
+- **Typography:** Figtree — geometric, friendly, modern. Consistent weight hierarchy (400 body, 600 labels, 700 headings).
+
+### Design Principles
+1. **Clarity over decoration** — Every pixel earns its place. No ornamental elements that don't aid comprehension. White space is a feature.
+2. **Progressive density** — Show summary by default, reveal detail on demand. Dashboards are scannable; detail views are comprehensive.
+3. **Color with purpose** — Color encodes meaning (priority, status, progress), not just aesthetics. The palette is vibrant but systematic.
+4. **Responsive delight** — Micro-interactions (transitions, hover states, completion celebrations) make the tool feel alive without slowing anyone down. Respect `prefers-reduced-motion`.
+5. **Accessible by default** — WCAG AA compliance. Visible focus states, sufficient contrast, keyboard navigable, screen-reader friendly. Never rely on color alone to convey information.
+
+### Key Design Files
+| File | Purpose |
+|------|---------|
+| `frontend/src/styles.css` | Master design tokens |
+| `frontend/src/themes.css` | Theme variants (card style, radius, sidebar) |
+| `frontend/src/app/core/services/theme.service.ts` | Theme logic + PrimeNG bridge |
+| `frontend/src/app/core/constants/color-palettes.ts` | 8 accent color ramps |
+| `frontend/src/app/shared/utils/task-colors.ts` | Priority, status, column colors |
+
+---
+
 *Do the work, show results.*

@@ -2,8 +2,9 @@
 //!
 //! Functions used by the automation engine to find triggered rules and log results.
 
+use chrono::{DateTime, Utc};
 use serde_json;
-use sqlx::PgPool;
+use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 
 use crate::models::automation::{
@@ -124,4 +125,88 @@ pub async fn log_automation(
     .await?;
 
     Ok(log)
+}
+
+/// A task eligible for a scheduled automation trigger (due date passed or approaching).
+#[derive(FromRow, Debug, Clone)]
+pub struct ScheduledTriggerTask {
+    pub task_id: Uuid,
+    pub board_id: Uuid,
+    pub tenant_id: Uuid,
+    pub assignee_id: Option<Uuid>,
+    pub due_date: DateTime<Utc>,
+    pub trigger: AutomationTrigger,
+}
+
+/// Find tasks eligible for time-based automation triggers.
+///
+/// Returns tasks where:
+/// - `TaskDueDatePassed`: due_date < NOW() and task is not archived/deleted
+/// - `DueDateApproaching`: due_date is within the next 24 hours
+///
+/// Only returns tasks on boards that have active automation rules for these triggers.
+pub async fn get_scheduled_trigger_tasks(
+    pool: &PgPool,
+) -> Result<Vec<ScheduledTriggerTask>, sqlx::Error> {
+    // Find tasks whose due dates have passed (overdue)
+    let overdue = sqlx::query_as::<_, ScheduledTriggerTask>(
+        r#"
+        SELECT DISTINCT
+            t.id as task_id,
+            t.board_id,
+            b.tenant_id,
+            t.assignee_id,
+            t.due_date,
+            'task_due_date_passed'::automation_trigger as trigger
+        FROM tasks t
+        JOIN boards b ON b.id = t.board_id
+        WHERE t.due_date < NOW()
+          AND t.due_date > NOW() - INTERVAL '1 day'
+          AND t.deleted_at IS NULL
+          AND t.archived_at IS NULL
+          AND EXISTS (
+              SELECT 1 FROM automation_rules ar
+              WHERE ar.board_id = t.board_id
+                AND ar.trigger = 'task_due_date_passed'
+                AND ar.is_active = true
+          )
+        ORDER BY t.due_date ASC
+        LIMIT 500
+        "#,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    // Find tasks whose due dates are approaching (within next 24h)
+    let approaching = sqlx::query_as::<_, ScheduledTriggerTask>(
+        r#"
+        SELECT DISTINCT
+            t.id as task_id,
+            t.board_id,
+            b.tenant_id,
+            t.assignee_id,
+            t.due_date,
+            'due_date_approaching'::automation_trigger as trigger
+        FROM tasks t
+        JOIN boards b ON b.id = t.board_id
+        WHERE t.due_date > NOW()
+          AND t.due_date <= NOW() + INTERVAL '24 hours'
+          AND t.deleted_at IS NULL
+          AND t.archived_at IS NULL
+          AND EXISTS (
+              SELECT 1 FROM automation_rules ar
+              WHERE ar.board_id = t.board_id
+                AND ar.trigger = 'due_date_approaching'
+                AND ar.is_active = true
+          )
+        ORDER BY t.due_date ASC
+        LIMIT 500
+        "#,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let mut results = overdue;
+    results.extend(approaching);
+    Ok(results)
 }
