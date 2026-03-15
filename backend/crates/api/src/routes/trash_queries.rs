@@ -216,10 +216,7 @@ pub async fn delete_item(
 }
 
 /// Empty all trash for a tenant. Admin-only operation.
-pub async fn empty_trash(
-    state: &AppState,
-    tenant_id: Uuid,
-) -> Result<EmptyTrashResponse> {
+pub async fn empty_trash(state: &AppState, tenant_id: Uuid) -> Result<EmptyTrashResponse> {
     let minio = create_minio_service(state).await;
     let mut deleted_count: usize = 0;
 
@@ -232,8 +229,7 @@ pub async fn empty_trash(
     .await?;
 
     for task_id in task_ids {
-        if let Err(e) =
-            permanently_delete(&state.db, &minio, &TrashEntityType::Task, task_id).await
+        if let Err(e) = permanently_delete(&state.db, &minio, &TrashEntityType::Task, task_id).await
         {
             tracing::warn!(task_id = %task_id, error = %e, "Failed to delete task");
         } else {
@@ -345,33 +341,29 @@ async fn verify_workspace_scope(
     workspace_id: Uuid,
 ) -> Result<bool> {
     let exists: bool = match entity_type {
-        TrashEntityType::Board => {
-            sqlx::query_scalar(
-                r#"SELECT EXISTS(
+        TrashEntityType::Board => sqlx::query_scalar(
+            r#"SELECT EXISTS(
                     SELECT 1 FROM projects
                     WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NOT NULL
                 )"#,
-            )
-            .bind(entity_id)
-            .bind(workspace_id)
-            .fetch_one(pool)
-            .await
-            .map_err(AppError::from)?
-        }
-        TrashEntityType::Task => {
-            sqlx::query_scalar(
-                r#"SELECT EXISTS(
+        )
+        .bind(entity_id)
+        .bind(workspace_id)
+        .fetch_one(pool)
+        .await
+        .map_err(AppError::from)?,
+        TrashEntityType::Task => sqlx::query_scalar(
+            r#"SELECT EXISTS(
                     SELECT 1 FROM tasks t
                     JOIN projects b ON b.id = t.project_id
                     WHERE t.id = $1 AND b.workspace_id = $2 AND t.deleted_at IS NOT NULL
                 )"#,
-            )
-            .bind(entity_id)
-            .bind(workspace_id)
-            .fetch_one(pool)
-            .await
-            .map_err(AppError::from)?
-        }
+        )
+        .bind(entity_id)
+        .bind(workspace_id)
+        .fetch_one(pool)
+        .await
+        .map_err(AppError::from)?,
         TrashEntityType::Workspace => {
             // Should not reach here due to parse_entity_type guard
             return Ok(false);

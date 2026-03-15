@@ -28,8 +28,8 @@ export const ACCENT_PRESETS: {
   label: string;
   color: string;
 }[] = [
-  { value: 'indigo', label: 'Indigo', color: '#6366f1' },
   { value: 'blue',   label: 'Blue',   color: '#3b82f6' },
+  { value: 'indigo', label: 'Indigo', color: '#6366f1' },
   { value: 'green',  label: 'Green',  color: '#22c55e' },
   { value: 'orange', label: 'Orange', color: '#f97316' },
   { value: 'rose',   label: 'Rose',   color: '#f43f5e' },
@@ -52,7 +52,7 @@ export class ThemeService implements OnDestroy {
     this.loadFromStorage(THEME_KEY, 'system') as Theme,
   );
   readonly accent = signal<AccentColor>(
-    this.loadFromStorage(ACCENT_KEY, 'indigo') as AccentColor,
+    this.loadFromStorage(ACCENT_KEY, 'blue') as AccentColor,
   );
 
   private readonly systemPrefersDark = signal<boolean>(

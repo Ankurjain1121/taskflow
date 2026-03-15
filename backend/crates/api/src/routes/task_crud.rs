@@ -20,8 +20,8 @@ use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerCo
 
 use super::common::verify_project_membership;
 use super::task_helpers::{
-    broadcast_workspace_task_update, get_workspace_id_for_board, sanitize_html,
-    CreateTaskRequest, ListTasksResponse, UpdateTaskRequest,
+    broadcast_workspace_task_update, get_workspace_id_for_board, sanitize_html, CreateTaskRequest,
+    ListTasksResponse, UpdateTaskRequest,
 };
 
 /// GET /api/boards/:board_id/tasks

@@ -87,13 +87,19 @@ interface TeamOption {
         <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
           <div class="animate-fade-in-up">
             <h1
-              class="text-2xl font-semibold tracking-tight font-display"
+              class="text-2xl font-bold tracking-tight font-display"
               style="color: var(--foreground)"
             >
               {{ getGreeting() }}{{ userName() ? ', ' + userName() : '' }}
             </h1>
-            <p class="text-sm mt-0.5" style="color: var(--muted-foreground)">
-              Here's what's happening across your projects
+            <p class="text-sm mt-1" style="color: var(--muted-foreground)">
+              @if ((stats()?.overdue || 0) > 0) {
+                You have <span class="font-semibold text-red-500">{{ stats()?.overdue }}</span> overdue {{ stats()?.overdue === 1 ? 'task' : 'tasks' }} that {{ stats()?.overdue === 1 ? 'needs' : 'need' }} attention
+              } @else if ((stats()?.due_today || 0) > 0) {
+                {{ stats()?.due_today }} {{ stats()?.due_today === 1 ? 'task' : 'tasks' }} due today &mdash; you've got this
+              } @else {
+                Here's what's happening across your projects
+              }
             </p>
           </div>
 
@@ -146,110 +152,49 @@ interface TeamOption {
             <!-- Total Tasks -->
             <a
               routerLink="/my-tasks"
-              class="animate-fade-in-up stagger-1 widget-card p-5 cursor-pointer group"
-              style="border-left: 4px solid var(--primary)"
+              class="animate-fade-in-up stagger-1 stat-card stat-card--primary cursor-pointer group"
             >
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="widget-title">Total Tasks</p>
-                  <p
-                    class="text-3xl font-bold tracking-tight mt-1 animate-count-up font-display"
-                    style="color: var(--foreground)"
-                  >
-                    {{ stats()?.total_tasks || 0 }}
-                  </p>
-                </div>
-                <div
-                  class="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform"
-                >
-                  <i class="pi pi-clipboard text-primary"></i>
-                </div>
+              <div class="stat-card-icon">
+                <i class="pi pi-clipboard"></i>
               </div>
+              <p class="stat-card-value">{{ stats()?.total_tasks || 0 }}</p>
+              <p class="stat-card-label">Total Tasks</p>
             </a>
 
             <!-- Overdue -->
             <a
               routerLink="/my-tasks"
               [queryParams]="{ sort_by: 'due_date', sort_order: 'asc' }"
-              class="animate-fade-in-up stagger-2 widget-card p-5 cursor-pointer group"
-              style="border-left: 4px solid var(--destructive)"
+              class="animate-fade-in-up stagger-2 stat-card stat-card--danger cursor-pointer group"
+              [class.stat-card--danger-active]="(stats()?.overdue || 0) > 0"
             >
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="widget-title">Overdue</p>
-                  <p
-                    class="text-3xl font-bold mt-1 tracking-tight animate-count-up font-display"
-                    [class]="
-                      (stats()?.overdue || 0) > 0
-                        ? 'text-red-600 dark:text-red-400'
-                        : ''
-                    "
-                    [style.color]="
-                      (stats()?.overdue || 0) === 0 ? 'var(--foreground)' : ''
-                    "
-                  >
-                    {{ stats()?.overdue || 0 }}
-                  </p>
-                </div>
-                <div
-                  class="w-9 h-9 bg-red-50 dark:bg-red-900/30 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform"
-                >
-                  <i
-                    class="pi pi-exclamation-triangle text-red-500 dark:text-red-400"
-                  ></i>
-                </div>
+              <div class="stat-card-icon">
+                <i class="pi pi-exclamation-triangle"></i>
               </div>
+              <p class="stat-card-value">{{ stats()?.overdue || 0 }}</p>
+              <p class="stat-card-label">Overdue</p>
             </a>
 
             <!-- Due Today -->
             <a
               routerLink="/my-tasks"
               [queryParams]="{ sort_by: 'due_date' }"
-              class="animate-fade-in-up stagger-3 widget-card p-5 cursor-pointer group"
-              style="border-left: 4px solid var(--accent-warm)"
+              class="animate-fade-in-up stagger-3 stat-card stat-card--warning cursor-pointer group"
             >
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="widget-title">Due Today</p>
-                  <p
-                    class="text-3xl font-bold mt-1 tracking-tight animate-count-up font-display"
-                    style="color: var(--foreground)"
-                  >
-                    {{ stats()?.due_today || 0 }}
-                  </p>
-                </div>
-                <div
-                  class="w-9 h-9 bg-orange-50 dark:bg-orange-900/30 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform"
-                >
-                  <i
-                    class="pi pi-clock text-orange-500 dark:text-orange-400"
-                  ></i>
-                </div>
+              <div class="stat-card-icon">
+                <i class="pi pi-clock"></i>
               </div>
+              <p class="stat-card-value">{{ stats()?.due_today || 0 }}</p>
+              <p class="stat-card-label">Due Today</p>
             </a>
 
             <!-- Completed This Week -->
-            <div
-              class="animate-fade-in-up stagger-4 widget-card p-5"
-              style="border-left: 4px solid var(--success)"
-            >
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="widget-title">Completed This Week</p>
-                  <p
-                    class="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 tracking-tight animate-count-up font-display"
-                  >
-                    {{ stats()?.completed_this_week || 0 }}
-                  </p>
-                </div>
-                <div
-                  class="w-9 h-9 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center"
-                >
-                  <i
-                    class="pi pi-check-circle text-emerald-500 dark:text-emerald-400"
-                  ></i>
-                </div>
+            <div class="animate-fade-in-up stagger-4 stat-card stat-card--success">
+              <div class="stat-card-icon">
+                <i class="pi pi-check-circle"></i>
               </div>
+              <p class="stat-card-value">{{ stats()?.completed_this_week || 0 }}</p>
+              <p class="stat-card-label">Completed This Week</p>
             </div>
           </div>
 

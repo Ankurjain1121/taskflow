@@ -21,9 +21,7 @@ use taskflow_db::queries::board_shares::{
 fn map_share_error(e: BoardShareQueryError) -> AppError {
     match e {
         BoardShareQueryError::NotFound => AppError::NotFound("Project share not found".into()),
-        BoardShareQueryError::NotBoardMember => {
-            AppError::Forbidden("Not a project member".into())
-        }
+        BoardShareQueryError::NotBoardMember => AppError::Forbidden("Not a project member".into()),
         BoardShareQueryError::InvalidToken => AppError::NotFound("Invalid share token".into()),
         BoardShareQueryError::Expired => AppError::BadRequest("Share link has expired".into()),
         BoardShareQueryError::Inactive => AppError::BadRequest("Share link is inactive".into()),

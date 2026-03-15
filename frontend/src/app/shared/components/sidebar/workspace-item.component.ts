@@ -279,6 +279,17 @@ import {
             style="border-top: 1px solid var(--sidebar-border)"
           >
             <a
+              [routerLink]="['/workspace', workspace().id, 'portfolio']"
+              routerLinkActive="board-link-active"
+              class="board-link flex items-center gap-2 px-3 py-1 text-xs rounded-md"
+            >
+              <i
+                class="pi pi-th-large text-[10px]"
+                style="color: var(--sidebar-text-muted)"
+              ></i>
+              <span>Portfolio</span>
+            </a>
+            <a
               [routerLink]="['/workspace', workspace().id, 'team']"
               routerLinkActive="board-link-active"
               class="board-link flex items-center gap-2 px-3 py-1 text-xs rounded-md"
