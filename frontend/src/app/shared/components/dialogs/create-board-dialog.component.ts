@@ -302,7 +302,7 @@ export class CreateBoardDialogComponent implements OnInit {
 
   private loadTemplates(): void {
     this.loadingTemplates.set(true);
-    this.http.get<BoardTemplate[]>('/api/board-templates').subscribe({
+    this.http.get<BoardTemplate[]>('/api/project-blueprints').subscribe({
       next: (templates) => {
         this.templates.set(templates);
         const kanban = templates.find((t) => t.id === 'kanban') || null;
