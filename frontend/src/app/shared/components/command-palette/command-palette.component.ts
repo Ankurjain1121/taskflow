@@ -83,7 +83,7 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
               [placeholder]="
                 isCommandMode()
                   ? 'Type a command...'
-                  : 'Search tasks, boards... (> for commands)'
+                  : 'Search tasks, projects... (> for commands)'
               "
               class="flex-1 bg-transparent border-none outline-none text-lg text-[var(--card-foreground)] placeholder-gray-400"
               autocomplete="off"
@@ -220,7 +220,7 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
                       <span
                         class="text-xs text-[var(--muted-foreground)] shrink-0"
                       >
-                        {{ item.entityType === 'board' ? 'Board' : 'Task' }}
+                        {{ item.entityType === 'board' ? 'Project' : 'Task' }}
                       </span>
                     </button>
                   }
@@ -273,7 +273,7 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
                   >
                     <i class="pi pi-search text-3xl mb-2 opacity-50 block"></i>
                     <p class="text-sm">Search across your workspace</p>
-                    <p class="text-xs mt-1">Find tasks, boards, and comments</p>
+                    <p class="text-xs mt-1">Find tasks, projects, and comments</p>
                   </div>
                 }
               </div>
@@ -326,7 +326,7 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
                   <div
                     class="px-3 py-1 text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide"
                   >
-                    Boards ({{ results()!.boards.length }})
+                    Projects ({{ results()!.boards.length }})
                   </div>
                   @for (
                     board of results()!.boards;
@@ -567,7 +567,7 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
     {
       id: 'clear-filters',
       icon: 'filter-slash',
-      label: 'Clear Board Filters',
+      label: 'Clear Project Filters',
       shortcut: 'C',
       action: () =>
         document.dispatchEvent(new KeyboardEvent('keydown', { key: 'c' })),
@@ -723,10 +723,10 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
 
   onRecentItemClick(item: RecentItem): void {
     if (item.entityType === 'board') {
-      this.router.navigate(['/workspace', item.workspaceId, 'board', item.id]);
+      this.router.navigate(['/workspace', item.workspaceId, 'project', item.id]);
     } else if (item.entityType === 'task' && item.boardId) {
       this.router.navigate(
-        ['/workspace', item.workspaceId, 'board', item.boardId],
+        ['/workspace', item.workspaceId, 'project', item.boardId],
         { queryParams: { task: item.id } },
       );
     }
@@ -743,7 +743,7 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
       boardId: task.board_id,
     });
     this.router.navigate(
-      ['/workspace', task.workspace_id, 'board', task.board_id],
+      ['/workspace', task.workspace_id, 'project', task.board_id],
       { queryParams: { task: task.id } },
     );
     this.close();
@@ -756,13 +756,13 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
       workspaceId: board.workspace_id,
       workspaceName: board.workspace_name,
     });
-    this.router.navigate(['/workspace', board.workspace_id, 'board', board.id]);
+    this.router.navigate(['/workspace', board.workspace_id, 'project', board.id]);
     this.close();
   }
 
   navigateToComment(comment: CommentSearchResult): void {
     this.router.navigate(
-      ['/workspace', comment.workspace_id, 'board', comment.board_id],
+      ['/workspace', comment.workspace_id, 'project', comment.board_id],
       { queryParams: { task: comment.task_id } },
     );
     this.close();

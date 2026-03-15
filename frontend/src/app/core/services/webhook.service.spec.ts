@@ -56,21 +56,21 @@ describe('WebhookService', () => {
   });
 
   describe('listWebhooks()', () => {
-    it('should GET /api/boards/:boardId/webhooks', () => {
+    it('should GET /api/projects/:boardId/webhooks', () => {
       const webhooks = [MOCK_WEBHOOK];
 
       service.listWebhooks('board-1').subscribe((result) => {
         expect(result).toEqual(webhooks);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/webhooks');
+      const req = httpMock.expectOne('/api/projects/board-1/webhooks');
       expect(req.request.method).toBe('GET');
       req.flush(webhooks);
     });
   });
 
   describe('createWebhook()', () => {
-    it('should POST /api/boards/:boardId/webhooks with body', () => {
+    it('should POST /api/projects/:boardId/webhooks with body', () => {
       const createReq: CreateWebhookRequest = {
         url: 'https://example.com/hook',
         events: ['task.created'],
@@ -80,7 +80,7 @@ describe('WebhookService', () => {
         expect(result).toEqual(MOCK_WEBHOOK);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/webhooks');
+      const req = httpMock.expectOne('/api/projects/board-1/webhooks');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(createReq);
       req.flush(MOCK_WEBHOOK);

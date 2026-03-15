@@ -34,9 +34,9 @@ import { CreateTaskDialogResult } from './create-task-dialog.component';
 import { CreateColumnDialogResult } from './create-column-dialog.component';
 import { GroupByMode, SwimlaneGroup, SwimlaneState } from './swimlane.types';
 import { buildSwimlaneGroups, buildSwimlaneState } from './swimlane-utils';
-import { BoardFilterService } from './board-filter.service';
-import { BoardGroupingService } from './board-grouping.service';
-import { BoardMutationsService } from './board-mutations.service';
+import { ProjectFilterService } from './board-filter.service';
+import { ProjectGroupingService } from './board-grouping.service';
+import { ProjectMutationsService } from './board-mutations.service';
 
 export interface CardFields {
   showPriority: boolean;
@@ -65,16 +65,16 @@ export const DEFAULT_CARD_FIELDS: CardFields = {
 };
 
 @Injectable()
-export class BoardStateService {
+export class ProjectStateService {
   private boardService = inject(BoardService);
   private taskService = inject(TaskService);
   private taskGroupService = inject(TaskGroupService);
   private milestoneService = inject(MilestoneService);
   private dependencyService = inject(DependencyService);
   private wsService = inject(WebSocketService);
-  private filterService = inject(BoardFilterService);
-  private groupingService = inject(BoardGroupingService);
-  private mutations = inject(BoardMutationsService);
+  private filterService = inject(ProjectFilterService);
+  private groupingService = inject(ProjectGroupingService);
+  private mutations = inject(ProjectMutationsService);
 
   constructor() {
     this.mutations.init({

@@ -129,18 +129,29 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'board/:boardId',
+        path: 'project/:projectId',
         loadComponent: () =>
           import('./features/board/board-view/board-view.component').then(
-            (m) => m.BoardViewComponent,
+            (m) => m.ProjectViewComponent,
           ),
       },
       {
-        path: 'board/:boardId/settings',
+        path: 'project/:projectId/settings',
         loadComponent: () =>
           import('./features/board/board-settings/board-settings.component').then(
-            (m) => m.BoardSettingsComponent,
+            (m) => m.ProjectSettingsComponent,
           ),
+      },
+      // Redirects from old /board/ URLs for bookmarks
+      {
+        path: 'board/:boardId',
+        redirectTo: 'project/:boardId',
+        pathMatch: 'full' as const,
+      },
+      {
+        path: 'board/:boardId/settings',
+        redirectTo: 'project/:boardId/settings',
+        pathMatch: 'full' as const,
       },
       {
         path: 'team',

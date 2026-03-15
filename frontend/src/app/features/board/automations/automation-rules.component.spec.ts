@@ -117,7 +117,7 @@ describe('AutomationRulesComponent', () => {
     fixture.componentRef.setInput('boardId', 'board-1');
     fixture.detectChanges(); // triggers ngOnInit
 
-    const req = httpTesting.expectOne('/api/boards/board-1/automations');
+    const req = httpTesting.expectOne('/api/projects/board-1/automations');
     expect(req.request.method).toBe('GET');
     req.flush(rules);
     tick();
@@ -130,7 +130,7 @@ describe('AutomationRulesComponent', () => {
     fixture.componentRef.setInput('boardId', 'board-1');
     fixture.detectChanges();
 
-    const req = httpTesting.expectOne('/api/boards/board-1/automations');
+    const req = httpTesting.expectOne('/api/projects/board-1/automations');
     req.flush('Server error', {
       status: 500,
       statusText: 'Internal Server Error',
@@ -153,7 +153,7 @@ describe('AutomationRulesComponent', () => {
     fixture.detectChanges();
 
     // Load rules
-    const listReq = httpTesting.expectOne('/api/boards/board-1/automations');
+    const listReq = httpTesting.expectOne('/api/projects/board-1/automations');
     listReq.flush([rule]);
     tick();
 
@@ -178,7 +178,7 @@ describe('AutomationRulesComponent', () => {
     fixture.componentRef.setInput('boardId', 'board-1');
     fixture.detectChanges();
 
-    const listReq = httpTesting.expectOne('/api/boards/board-1/automations');
+    const listReq = httpTesting.expectOne('/api/projects/board-1/automations');
     listReq.flush([rule]);
     tick();
 
@@ -199,7 +199,7 @@ describe('AutomationRulesComponent', () => {
     fixture.componentRef.setInput('boardId', 'board-1');
     fixture.detectChanges();
 
-    const listReq = httpTesting.expectOne('/api/boards/board-1/automations');
+    const listReq = httpTesting.expectOne('/api/projects/board-1/automations');
     listReq.flush([rule]);
     tick();
 
@@ -214,7 +214,7 @@ describe('AutomationRulesComponent', () => {
     fixture.componentRef.setInput('boardId', 'board-1');
     fixture.detectChanges();
 
-    const listReq = httpTesting.expectOne('/api/boards/board-1/automations');
+    const listReq = httpTesting.expectOne('/api/projects/board-1/automations');
     listReq.flush([rule]);
     tick();
 
@@ -258,7 +258,7 @@ describe('AutomationRulesComponent', () => {
     fixture.componentRef.setInput('boardId', 'board-1');
     fixture.detectChanges();
 
-    const listReq = httpTesting.expectOne('/api/boards/board-1/automations');
+    const listReq = httpTesting.expectOne('/api/projects/board-1/automations');
     listReq.flush([]);
     tick();
 
@@ -275,7 +275,7 @@ describe('AutomationRulesComponent', () => {
     fixture.componentRef.setInput('boardId', 'board-1');
     fixture.detectChanges();
 
-    const listReq = httpTesting.expectOne('/api/boards/board-1/automations');
+    const listReq = httpTesting.expectOne('/api/projects/board-1/automations');
     listReq.flush([existingRule]);
     tick();
 
@@ -342,7 +342,7 @@ describe('AutomationRulesComponent', () => {
     fixture.componentRef.setInput('boardId', 'board-1');
     fixture.detectChanges();
 
-    const req1 = httpTesting.expectOne('/api/boards/board-1/automations');
+    const req1 = httpTesting.expectOne('/api/projects/board-1/automations');
     req1.flush([]);
     tick();
 
@@ -350,7 +350,7 @@ describe('AutomationRulesComponent', () => {
     fixture.componentRef.setInput('boardId', 'board-2');
     fixture.detectChanges();
 
-    const req2 = httpTesting.expectOne('/api/boards/board-2/automations');
+    const req2 = httpTesting.expectOne('/api/projects/board-2/automations');
     req2.flush([makeRule({ board_id: 'board-2' })]);
     tick();
 

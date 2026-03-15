@@ -102,7 +102,7 @@ export class ProjectTemplateService {
     request: SaveAsTemplateRequest,
   ): Observable<ProjectTemplate> {
     return this.http.post<ProjectTemplate>(
-      `${this.apiUrl}/boards/${boardId}/save-as-template`,
+      `${this.apiUrl}/projects/${boardId}/save-as-template`,
       request,
     );
   }

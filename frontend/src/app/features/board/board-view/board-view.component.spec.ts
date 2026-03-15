@@ -6,7 +6,7 @@ import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { of, Subject, throwError } from 'rxjs';
 import { MessageService } from 'primeng/api';
 
-import { BoardViewComponent } from './board-view.component';
+import { ProjectViewComponent } from './board-view.component';
 import {
   BoardService,
   BoardFullResponse,
@@ -138,9 +138,9 @@ function createMockKeyboardShortcutsService() {
   };
 }
 
-describe('BoardViewComponent', () => {
-  let component: BoardViewComponent;
-  let fixture: ComponentFixture<BoardViewComponent>;
+describe('ProjectViewComponent', () => {
+  let component: ProjectViewComponent;
+  let fixture: ComponentFixture<ProjectViewComponent>;
   let mockBoardService: ReturnType<typeof createMockBoardService>;
   let mockTaskService: ReturnType<typeof createMockTaskService>;
   let mockTaskGroupService: ReturnType<typeof createMockTaskGroupService>;
@@ -236,7 +236,7 @@ describe('BoardViewComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [
-        BoardViewComponent,
+        ProjectViewComponent,
         HttpClientTestingModule,
         RouterTestingModule,
       ],
@@ -262,12 +262,12 @@ describe('BoardViewComponent', () => {
         },
       ],
     })
-      .overrideComponent(BoardViewComponent, {
+      .overrideComponent(ProjectViewComponent, {
         set: { template: '<div></div>', schemas: [NO_ERRORS_SCHEMA] },
       })
       .compileComponents();
 
-    fixture = TestBed.createComponent(BoardViewComponent);
+    fixture = TestBed.createComponent(ProjectViewComponent);
     component = fixture.componentInstance;
     mockRouter = TestBed.inject(Router);
     vi.spyOn(mockRouter, 'navigate');
@@ -284,7 +284,7 @@ describe('BoardViewComponent', () => {
   describe('loadBoard (via ngOnInit route params)', () => {
     it('should load board data when route params emit', () => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
 
       expect(mockBoardService.getBoardFull).toHaveBeenCalledWith('board-1');
       expect(component.state.board()?.name).toBe('Test Board');
@@ -294,7 +294,7 @@ describe('BoardViewComponent', () => {
 
     it('should set boardState with tasks grouped by column_id', () => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
 
       const state = component.state.boardState();
       expect(state['col-1']).toHaveLength(1);
@@ -309,7 +309,7 @@ describe('BoardViewComponent', () => {
         throwError(() => new Error('Network error')),
       );
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
 
       expect(component.state.loading()).toBe(false);
       expect(component.state.errorMessage()).toBe('Failed to load board');
@@ -321,7 +321,7 @@ describe('BoardViewComponent', () => {
   describe('filterTasks (via filteredBoardState)', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
     });
 
     it('should return all tasks when no filters are active', () => {
@@ -416,7 +416,7 @@ describe('BoardViewComponent', () => {
   describe('onTaskMoved', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
     });
 
     it('should update boardState optimistically and call moveTask API', () => {
@@ -538,7 +538,7 @@ describe('BoardViewComponent', () => {
   describe('computed signals', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
     });
 
     it('connectedColumnIds should return column IDs prefixed with "column-"', () => {
@@ -564,11 +564,11 @@ describe('BoardViewComponent', () => {
   describe('view mode', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
     });
 
-    it('should default to kanban view', () => {
-      expect(component.viewMode()).toBe('kanban');
+    it('should default to list view', () => {
+      expect(component.viewMode()).toBe('list');
     });
 
     it('should switch to list view and load flat tasks', () => {
@@ -623,7 +623,7 @@ describe('BoardViewComponent', () => {
   describe('onTaskUpdated', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
     });
 
     it('should update the task in boardState', () => {
@@ -669,7 +669,7 @@ describe('BoardViewComponent', () => {
   describe('onCreateTask', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
     });
 
     it('should set up dialog with first column', () => {
@@ -688,7 +688,7 @@ describe('BoardViewComponent', () => {
   describe('onAddTaskToColumn', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
     });
 
     it('should set up dialog with the specified column', () => {
@@ -727,7 +727,7 @@ describe('BoardViewComponent', () => {
   describe('filterTasks advanced edge cases', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
     });
 
     it('should return empty array for non-existent column', () => {
@@ -838,7 +838,7 @@ describe('BoardViewComponent', () => {
   describe('view mode edge cases', () => {
     beforeEach(() => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
     });
 
     it('should switch back to kanban from list', () => {
@@ -858,7 +858,7 @@ describe('BoardViewComponent', () => {
   describe('ngOnDestroy', () => {
     it('should unsubscribe from WS on destroy', () => {
       fixture.detectChanges();
-      routeParams$.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      routeParams$.next({ workspaceId: 'ws-1', projectId: 'board-1' });
 
       component.ngOnDestroy();
 

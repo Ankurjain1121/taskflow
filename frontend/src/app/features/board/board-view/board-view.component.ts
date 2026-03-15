@@ -38,7 +38,7 @@ import {
 
 import { KanbanColumnComponent } from '../kanban-column/kanban-column.component';
 import {
-  BoardToolbarComponent,
+  ProjectToolbarComponent,
   ViewMode,
 } from '../board-toolbar/board-toolbar.component';
 import { TaskDetailComponent } from '../task-detail/task-detail.component';
@@ -52,33 +52,33 @@ import { TaskGroupHeaderComponent } from '../task-group-header/task-group-header
 import { ShortcutHelpComponent } from '../../../shared/components/shortcut-help/shortcut-help.component';
 import { ShortcutDiscoveryBannerComponent } from '../../../shared/components/shortcut-discovery-banner/shortcut-discovery-banner.component';
 import { SwimlaneContainerComponent } from '../swimlane-container/swimlane-container.component';
-import { SampleBoardBannerComponent } from '../sample-board-banner/sample-board-banner.component';
+import { SampleProjectBannerComponent } from '../sample-board-banner/sample-board-banner.component';
 import { SpotlightOverlayComponent } from '../../../shared/components/spotlight-overlay/spotlight-overlay.component';
-import { BOARD_SPOTLIGHT_STEPS } from './board-spotlight-steps';
+import { PROJECT_SPOTLIGHT_STEPS } from './board-spotlight-steps';
 import { ContextualHintComponent } from '../../../shared/components/contextual-hint/contextual-hint.component';
 import { FeatureHintsService } from '../../../core/services/feature-hints.service';
 import { BulkPreviewDialogComponent } from '../bulk-operations/bulk-preview-dialog.component';
 import { UndoToastComponent } from '../bulk-operations/undo-toast.component';
 
-import { BoardShortcutsService } from './board-shortcuts.service';
-import { BoardBulkActionsService } from './board-bulk-actions.service';
-import { BoardStateService } from './board-state.service';
-import { BoardFilterService } from './board-filter.service';
-import { BoardGroupingService } from './board-grouping.service';
-import { BoardMutationsService } from './board-mutations.service';
-import { BoardWebsocketHandler } from './board-websocket.handler';
-import { BoardDragDropHandler } from './board-drag-drop.handler';
+import { ProjectShortcutsService } from './board-shortcuts.service';
+import { ProjectBulkActionsService } from './board-bulk-actions.service';
+import { ProjectStateService } from './board-state.service';
+import { ProjectFilterService } from './board-filter.service';
+import { ProjectGroupingService } from './board-grouping.service';
+import { ProjectMutationsService } from './board-mutations.service';
+import { ProjectWebsocketHandler } from './board-websocket.handler';
+import { ProjectDragDropHandler } from './board-drag-drop.handler';
 import { CardQuickEditService } from './card-quick-edit/card-quick-edit.service';
 import { CardQuickEditPopoverComponent } from './card-quick-edit/card-quick-edit-popover.component';
-import { BoardCardOperationsService } from './board-card-operations.service';
-import { BoardBulkOperationsHandler } from './board-bulk-operations.handler';
-import { BoardColumnDialogsComponent } from './board-column-dialogs.component';
-import { BoardViewHeaderComponent } from './board-view-header.component';
-import { BoardLoadingSkeletonComponent } from './board-loading-skeleton.component';
+import { ProjectCardOperationsService } from './board-card-operations.service';
+import { ProjectBulkOperationsHandler } from './board-bulk-operations.handler';
+import { ProjectColumnDialogsComponent } from './board-column-dialogs.component';
+import { ProjectViewHeaderComponent } from './board-view-header.component';
+import { ProjectLoadingSkeletonComponent } from './board-loading-skeleton.component';
 import { MessageService } from 'primeng/api';
 
 @Component({
-  selector: 'app-board-view',
+  selector: 'app-project-view',
   standalone: true,
   imports: [
     CommonModule,
@@ -89,7 +89,7 @@ import { MessageService } from 'primeng/api';
     CreateColumnDialogComponent,
     CreateTaskGroupDialogComponent,
     KanbanColumnComponent,
-    BoardToolbarComponent,
+    ProjectToolbarComponent,
     TaskDetailComponent,
     ListViewComponent,
     CalendarViewComponent,
@@ -101,33 +101,33 @@ import { MessageService } from 'primeng/api';
     ShortcutHelpComponent,
     ShortcutDiscoveryBannerComponent,
     SwimlaneContainerComponent,
-    SampleBoardBannerComponent,
+    SampleProjectBannerComponent,
     SpotlightOverlayComponent,
     ContextualHintComponent,
     CardQuickEditPopoverComponent,
     BulkPreviewDialogComponent,
     UndoToastComponent,
-    BoardColumnDialogsComponent,
-    BoardViewHeaderComponent,
-    BoardLoadingSkeletonComponent,
+    ProjectColumnDialogsComponent,
+    ProjectViewHeaderComponent,
+    ProjectLoadingSkeletonComponent,
   ],
   providers: [
-    BoardShortcutsService,
-    BoardBulkActionsService,
-    BoardFilterService,
-    BoardGroupingService,
-    BoardMutationsService,
-    BoardStateService,
-    BoardWebsocketHandler,
-    BoardDragDropHandler,
-    BoardCardOperationsService,
-    BoardBulkOperationsHandler,
+    ProjectShortcutsService,
+    ProjectBulkActionsService,
+    ProjectFilterService,
+    ProjectGroupingService,
+    ProjectMutationsService,
+    ProjectStateService,
+    ProjectWebsocketHandler,
+    ProjectDragDropHandler,
+    ProjectCardOperationsService,
+    ProjectBulkOperationsHandler,
     CardQuickEditService,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [
     `
-      .board-root {
+      .project-root {
         height: calc(100vh - var(--nav-height));
         height: calc(100dvh - var(--nav-height));
       }
@@ -135,13 +135,13 @@ import { MessageService } from 'primeng/api';
   ],
   template: `
     <div
-      class="board-root flex flex-col transition-colors duration-300"
+      class="project-root flex flex-col transition-colors duration-300"
       [style.background]="
         state.board()?.background_color || 'var(--background)'
       "
     >
       <!-- Header -->
-      <app-board-view-header
+      <app-project-view-header
         [boardName]="state.board()?.name || ''"
         [boardDescription]="state.board()?.description ?? null"
         [workspaceId]="workspaceId"
@@ -153,7 +153,7 @@ import { MessageService } from 'primeng/api';
 
       <!-- Sample Board Banner -->
       @if (state.board()?.is_sample) {
-        <app-sample-board-banner
+        <app-sample-project-banner
           [boardId]="boardId"
           [workspaceId]="workspaceId"
           (deleted)="router.navigate(['/dashboard'])"
@@ -161,7 +161,7 @@ import { MessageService } from 'primeng/api';
       }
 
       <!-- Toolbar -->
-      <app-board-toolbar
+      <app-project-toolbar
         [boardId]="boardId"
         [assignees]="state.allAssignees()"
         [labels]="state.allLabels()"
@@ -175,7 +175,7 @@ import { MessageService } from 'primeng/api';
         (groupByChanged)="state.setGroupBy($event, boardId)"
         (cardFieldChanged)="state.updateCardField($event.key, $event.value)"
         (cardFieldsReset)="state.resetCardFields()"
-      ></app-board-toolbar>
+      ></app-project-toolbar>
 
       <!-- Shortcut Discovery Banner (first-visit only) -->
       <app-shortcut-discovery-banner />
@@ -203,7 +203,7 @@ import { MessageService } from 'primeng/api';
 
       <!-- Board Content -->
       @if (state.loading()) {
-        <app-board-loading-skeleton />
+        <app-project-loading-skeleton />
       } @else if (viewMode() === 'list') {
         <!-- List View -->
         <div class="flex-1 overflow-y-auto">
@@ -212,7 +212,7 @@ import { MessageService } from 'primeng/api';
               [tasks]="state.flatTasks()"
               [loading]="state.listLoading()"
               [columns]="state.columns()"
-              (taskClicked)="router.navigate(['/task', $event])"
+              (taskClicked)="state.selectedTaskId.set($event)"
               (titleChanged)="onListTitleChanged($event)"
               (priorityChanged)="onListPriorityChanged($event)"
               (statusChanged)="onListStatusChanged($event)"
@@ -232,7 +232,7 @@ import { MessageService } from 'primeng/api';
           @defer (when viewMode() === 'calendar') {
             <app-calendar-view
               [boardId]="boardId"
-              (taskClicked)="router.navigate(['/task', $event])"
+              (taskClicked)="state.selectedTaskId.set($event)"
             ></app-calendar-view>
           } @placeholder {
             <div
@@ -249,7 +249,7 @@ import { MessageService } from 'primeng/api';
             <app-gantt-view
               [tasks]="state.ganttTasks()"
               [dependencies]="state.boardDependencies()"
-              (taskClicked)="router.navigate(['/task', $event])"
+              (taskClicked)="state.selectedTaskId.set($event)"
             ></app-gantt-view>
           } @placeholder {
             <div
@@ -303,7 +303,7 @@ import { MessageService } from 'primeng/api';
             [groupBy]="state.groupBy()"
             [collapsedSwimlaneIds]="state.collapsedSwimlaneIds()"
             (taskMoved)="dragDrop.onSwimlaneTaskMoved($event)"
-            (taskClicked)="router.navigate(['/task', $event.id])"
+            (taskClicked)="state.selectedTaskId.set($event.id)"
             (addTaskClicked)="onAddTaskToColumn($event)"
             (selectionToggled)="onSelectionToggled($event)"
             (priorityChanged)="
@@ -356,7 +356,7 @@ import { MessageService } from 'primeng/api';
                 [density]="state.cardDensity()"
                 [cardFields]="state.cardFields()"
                 (taskMoved)="dragDrop.onTaskMoved($event)"
-                (taskClicked)="router.navigate(['/task', $event.id])"
+                (taskClicked)="state.selectedTaskId.set($event.id)"
                 (addTaskClicked)="onAddTaskToColumn($event)"
                 (selectionToggled)="onSelectionToggled($event)"
                 (priorityChanged)="
@@ -494,7 +494,7 @@ import { MessageService } from 'primeng/api';
       />
 
       <!-- Column Dialogs (rename, WIP, icon, duplicate, import/export, confirm) -->
-      <app-board-column-dialogs
+      <app-project-column-dialogs
         [boardId]="boardId"
         [workspaceId]="workspaceId"
         [boardName]="state.board()?.name || ''"
@@ -564,34 +564,34 @@ import { MessageService } from 'primeng/api';
     </div>
   `,
 })
-export class BoardViewComponent implements OnInit, OnDestroy {
+export class ProjectViewComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   readonly router = inject(Router);
   private wsService = inject(WebSocketService);
-  private shortcutsService = inject(BoardShortcutsService);
-  private wsHandler = inject(BoardWebsocketHandler);
-  readonly dragDrop = inject(BoardDragDropHandler);
-  readonly cardOps = inject(BoardCardOperationsService);
-  readonly bulkOps = inject(BoardBulkOperationsHandler);
+  private shortcutsService = inject(ProjectShortcutsService);
+  private wsHandler = inject(ProjectWebsocketHandler);
+  readonly dragDrop = inject(ProjectDragDropHandler);
+  readonly cardOps = inject(ProjectCardOperationsService);
+  readonly bulkOps = inject(ProjectBulkOperationsHandler);
   private presenceService = inject(PresenceService);
   private messageService = inject(MessageService);
-  readonly state = inject(BoardStateService);
+  readonly state = inject(ProjectStateService);
   private taskService = inject(TaskService);
   readonly quickEditService = inject(CardQuickEditService);
   readonly hintsService = inject(FeatureHintsService);
   private undoToast = viewChild(UndoToastComponent);
   private bulkPreviewDialog = viewChild(BulkPreviewDialogComponent);
-  readonly columnDialogs = viewChild(BoardColumnDialogsComponent);
+  readonly columnDialogs = viewChild(ProjectColumnDialogsComponent);
   readonly destroy$ = new Subject<void>();
 
   workspaceId = '';
   boardId = '';
 
   spotlightActive = signal(false);
-  readonly spotlightSteps = BOARD_SPOTLIGHT_STEPS;
+  readonly spotlightSteps = PROJECT_SPOTLIGHT_STEPS;
 
-  viewMode = signal<ViewMode>('kanban');
-  boardToolbar = viewChild(BoardToolbarComponent);
+  viewMode = signal<ViewMode>('list');
+  boardToolbar = viewChild(ProjectToolbarComponent);
 
   // Dialog visibility state
   showCreateTaskDialog = false;
@@ -619,10 +619,23 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
       this.workspaceId = params['workspaceId'];
-      this.boardId = params['boardId'];
+      this.boardId = params['projectId'];
+
+      // Restore viewMode from query params or localStorage
+      const qp = this.route.snapshot.queryParams;
+      const savedView = qp['view'] || localStorage.getItem(`taskflow_view_${this.boardId}`);
+      if (savedView && ['kanban', 'list', 'calendar', 'gantt', 'reports', 'time-report'].includes(savedView)) {
+        this.viewMode.set(savedView as ViewMode);
+      }
+
       this.state.loadBoard(this.boardId, this.destroy$);
       this.presenceService.joinBoard(this.boardId);
       this.columnDialogs()?.buildMoreMenuItems();
+
+      // Load flat tasks if starting in list view
+      if (this.viewMode() === 'list') {
+        this.state.loadFlatTasks(this.boardId, this.destroy$);
+      }
     });
 
     this.wsService.connect();
@@ -685,6 +698,15 @@ export class BoardViewComponent implements OnInit, OnDestroy {
 
   onViewModeChanged(mode: ViewMode): void {
     this.viewMode.set(mode);
+
+    // Persist viewMode to localStorage and URL
+    localStorage.setItem(`taskflow_view_${this.boardId}`, mode);
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { view: mode },
+      queryParamsHandling: 'merge',
+    });
+
     if (mode === 'list') {
       this.state.loadFlatTasks(this.boardId, this.destroy$);
     } else if (mode === 'gantt') {
@@ -779,7 +801,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
     this.router.navigate([
       '/workspace',
       this.workspaceId,
-      'board',
+      'project',
       newBoard.id,
     ]);
   }

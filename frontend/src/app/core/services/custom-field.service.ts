@@ -77,7 +77,7 @@ export class CustomFieldService {
 
   listBoardFields(boardId: string): Observable<BoardCustomField[]> {
     return this.http.get<BoardCustomField[]>(
-      `/api/boards/${boardId}/custom-fields`,
+      `/api/projects/${boardId}/custom-fields`,
     );
   }
 
@@ -86,7 +86,7 @@ export class CustomFieldService {
     req: CreateCustomFieldRequest,
   ): Observable<BoardCustomField> {
     return this.http.post<BoardCustomField>(
-      `/api/boards/${boardId}/custom-fields`,
+      `/api/projects/${boardId}/custom-fields`,
       req,
     );
   }

@@ -3,14 +3,14 @@ import { CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { of, throwError, Subject } from 'rxjs';
-import { BoardSettingsComponent } from './board-settings.component';
+import { ProjectSettingsComponent } from './board-settings.component';
 import { BoardService } from '../../../core/services/board.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmationService } from 'primeng/api';
 
-describe('BoardSettingsComponent', () => {
-  let component: BoardSettingsComponent;
-  let fixture: ComponentFixture<BoardSettingsComponent>;
+describe('ProjectSettingsComponent', () => {
+  let component: ProjectSettingsComponent;
+  let fixture: ComponentFixture<ProjectSettingsComponent>;
   let mockBoardService: any;
   let mockConfirmationService: any;
   let paramsSubject: Subject<any>;
@@ -101,7 +101,7 @@ describe('BoardSettingsComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [BoardSettingsComponent, HttpClientTestingModule],
+      imports: [ProjectSettingsComponent, HttpClientTestingModule],
       providers: [
         provideRouter([]),
         {
@@ -120,7 +120,7 @@ describe('BoardSettingsComponent', () => {
     mockRouter = TestBed.inject(Router);
     vi.spyOn(mockRouter, 'navigate').mockResolvedValue(true);
 
-    fixture = TestBed.createComponent(BoardSettingsComponent);
+    fixture = TestBed.createComponent(ProjectSettingsComponent);
     component = fixture.componentInstance;
     // Get the component-level ConfirmationService and spy on its confirm method
     const injector = fixture.debugElement.injector;

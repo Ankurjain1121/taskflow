@@ -3,14 +3,14 @@ import { takeUntil, Subject } from 'rxjs';
 import { Task, TaskService } from '../../../core/services/task.service';
 import { UndoService } from '../../../shared/services/undo.service';
 import { MessageService } from 'primeng/api';
-import { BoardStateService } from './board-state.service';
+import { ProjectStateService } from './board-state.service';
 
 @Injectable()
-export class BoardCardOperationsService {
+export class ProjectCardOperationsService {
   private taskService = inject(TaskService);
   private undoService = inject(UndoService);
   private messageService = inject(MessageService);
-  private state = inject(BoardStateService);
+  private state = inject(ProjectStateService);
 
   onCardColumnMove(
     event: { taskId: string; columnId: string },

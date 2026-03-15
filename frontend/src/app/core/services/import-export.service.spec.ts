@@ -33,7 +33,7 @@ describe('ImportExportService', () => {
   });
 
   describe('exportCsv()', () => {
-    it('should GET /api/boards/:boardId/export with format=csv and blob responseType', () => {
+    it('should GET /api/projects/:boardId/export with format=csv and blob responseType', () => {
       const csvBlob = new Blob(['title,priority\nTask 1,high'], {
         type: 'text/csv',
       });
@@ -43,7 +43,7 @@ describe('ImportExportService', () => {
       });
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/boards/board-1/export',
+        (r) => r.url === '/api/projects/board-1/export',
       );
       expect(req.request.method).toBe('GET');
       expect(req.request.params.get('format')).toBe('csv');
@@ -53,7 +53,7 @@ describe('ImportExportService', () => {
   });
 
   describe('exportJson()', () => {
-    it('should GET /api/boards/:boardId/export with format=json', () => {
+    it('should GET /api/projects/:boardId/export with format=json', () => {
       const jsonExport: ExportBoardJson = {
         board: {
           id: 'board-1',
@@ -72,7 +72,7 @@ describe('ImportExportService', () => {
       });
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/boards/board-1/export',
+        (r) => r.url === '/api/projects/board-1/export',
       );
       expect(req.request.method).toBe('GET');
       expect(req.request.params.get('format')).toBe('json');
@@ -81,7 +81,7 @@ describe('ImportExportService', () => {
   });
 
   describe('importJson()', () => {
-    it('should POST /api/boards/:boardId/import with tasks array', () => {
+    it('should POST /api/projects/:boardId/import with tasks array', () => {
       const tasks: ImportTaskItem[] = [
         { title: 'Task 1', priority: 'high' },
         { title: 'Task 2', column_name: 'Done' },
@@ -92,7 +92,7 @@ describe('ImportExportService', () => {
         expect(res).toEqual(result);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/import');
+      const req = httpMock.expectOne('/api/projects/board-1/import');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(tasks);
       req.flush(result);
@@ -100,7 +100,7 @@ describe('ImportExportService', () => {
   });
 
   describe('importCsv()', () => {
-    it('should POST /api/boards/:boardId/import/csv with csv_text', () => {
+    it('should POST /api/projects/:boardId/import/csv with csv_text', () => {
       const csvText = 'title,priority\nTask 1,high';
       const result: ImportResult = { imported_count: 1 };
 
@@ -108,7 +108,7 @@ describe('ImportExportService', () => {
         expect(res).toEqual(result);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/import/csv');
+      const req = httpMock.expectOne('/api/projects/board-1/import/csv');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual({ csv_text: csvText });
       req.flush(result);
@@ -116,7 +116,7 @@ describe('ImportExportService', () => {
   });
 
   describe('importTrello()', () => {
-    it('should POST /api/boards/:boardId/import/trello with trello data', () => {
+    it('should POST /api/projects/:boardId/import/trello with trello data', () => {
       const trelloData = { name: 'Trello Board', lists: [] };
       const result: TrelloImportResult = {
         imported_count: 5,
@@ -128,7 +128,7 @@ describe('ImportExportService', () => {
         expect(res).toEqual(result);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/import/trello');
+      const req = httpMock.expectOne('/api/projects/board-1/import/trello');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(trelloData);
       req.flush(result);

@@ -66,21 +66,21 @@ describe('AutomationService', () => {
   });
 
   describe('listRules()', () => {
-    it('should GET /api/boards/:boardId/automations', () => {
+    it('should GET /api/projects/:boardId/automations', () => {
       const rules = [MOCK_RULE_WITH_ACTIONS];
 
       service.listRules('board-1').subscribe((result) => {
         expect(result).toEqual(rules);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/automations');
+      const req = httpMock.expectOne('/api/projects/board-1/automations');
       expect(req.request.method).toBe('GET');
       req.flush(rules);
     });
   });
 
   describe('createRule()', () => {
-    it('should POST /api/boards/:boardId/automations with rule request', () => {
+    it('should POST /api/projects/:boardId/automations with rule request', () => {
       const createReq: CreateRuleRequest = {
         name: 'Auto-assign',
         trigger: 'task_created',
@@ -93,7 +93,7 @@ describe('AutomationService', () => {
         expect(result).toEqual(MOCK_RULE_WITH_ACTIONS);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/automations');
+      const req = httpMock.expectOne('/api/projects/board-1/automations');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(createReq);
       req.flush(MOCK_RULE_WITH_ACTIONS);
@@ -177,7 +177,7 @@ describe('AutomationService', () => {
           error: (e) => (error = e),
         });
 
-      const req = httpMock.expectOne('/api/boards/board-1/automations');
+      const req = httpMock.expectOne('/api/projects/board-1/automations');
       req.flush('Bad Request', { status: 400, statusText: 'Bad Request' });
 
       expect(error).toBeTruthy();

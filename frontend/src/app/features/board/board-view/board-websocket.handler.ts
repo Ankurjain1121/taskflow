@@ -4,7 +4,7 @@ import { Column } from '../../../core/services/board.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { PresenceService } from '../../../core/services/presence.service';
 import { ConflictNotificationService } from '../../../core/services/conflict-notification.service';
-import { BoardStateService } from './board-state.service';
+import { ProjectStateService } from './board-state.service';
 
 /**
  * Handles incoming WebSocket board events from the backend.
@@ -19,11 +19,11 @@ import { BoardStateService } from './board-state.service';
  * are at the message root (NOT nested in a "payload" wrapper).
  */
 @Injectable()
-export class BoardWebsocketHandler {
+export class ProjectWebsocketHandler {
   private authService = inject(AuthService);
   private presenceService = inject(PresenceService);
   private conflictNotification = inject(ConflictNotificationService);
-  private state = inject(BoardStateService);
+  private state = inject(ProjectStateService);
 
   handleMessage(message: Record<string, unknown>): void {
     // Check if this is a batched message
@@ -109,7 +109,7 @@ export class BoardWebsocketHandler {
   }
 
   private handleTaskCreated(broadcast: Partial<Task>): void {
-    if (!broadcast?.id || !broadcast?.column_id) return;
+    if (!broadcast?.id || !(broadcast?.status_id ?? broadcast?.column_id)) return;
 
     this.state.boardState.update((state) => {
       const newState = { ...state };
@@ -184,7 +184,7 @@ export class BoardWebsocketHandler {
       if (!movedTask) return state;
 
       // Insert into target column with updated position
-      const updated = { ...movedTask, column_id: targetColumnId, position };
+      const updated = { ...movedTask, status_id: targetColumnId, position };
       const columnTasks = newState[targetColumnId] || [];
       newState[targetColumnId] = [...columnTasks, updated].sort((a, b) =>
         a.position.localeCompare(b.position),

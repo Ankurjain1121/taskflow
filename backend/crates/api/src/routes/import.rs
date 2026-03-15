@@ -17,7 +17,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
-use super::task_helpers::verify_board_membership;
+use super::common::verify_project_membership;
 
 // ============================================================================
 // DTOs
@@ -241,9 +241,7 @@ async fn import_json_handler(
     Path(board_id): Path<Uuid>,
     Json(items): Json<Vec<ImportTaskItem>>,
 ) -> Result<Json<ImportResult>> {
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     if items.is_empty() {
         return Ok(Json(ImportResult { imported_count: 0 }));
@@ -305,9 +303,7 @@ async fn import_csv_handler(
     Path(board_id): Path<Uuid>,
     Json(body): Json<ImportCsvBody>,
 ) -> Result<Json<ImportResult>> {
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     let rows = parse_csv(&body.csv_text);
     if rows.is_empty() {
@@ -386,9 +382,7 @@ async fn import_trello_handler(
     Path(board_id): Path<Uuid>,
     Json(trello): Json<TrelloExport>,
 ) -> Result<Json<TrelloImportResult>> {
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     // Build a map of Trello list_id -> list_name
     let trello_lists = trello.lists.unwrap_or_default();

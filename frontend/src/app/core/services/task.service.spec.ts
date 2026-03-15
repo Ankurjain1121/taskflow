@@ -79,7 +79,7 @@ describe('TaskService', () => {
   });
 
   describe('createTask()', () => {
-    it('should POST to /api/boards/:boardId/tasks with body', () => {
+    it('should POST to /api/projects/:boardId/tasks with body', () => {
       const createReq: CreateTaskRequest = {
         title: 'New Task',
         description: 'Description',
@@ -91,7 +91,7 @@ describe('TaskService', () => {
         expect(task).toEqual(MOCK_TASK);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/tasks');
+      const req = httpMock.expectOne('/api/projects/board-1/tasks');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(createReq);
       req.flush(MOCK_TASK);
@@ -209,7 +209,7 @@ describe('TaskService', () => {
   });
 
   describe('listByBoard()', () => {
-    it('should GET /api/boards/:boardId/tasks and extract tasks map', () => {
+    it('should GET /api/projects/:boardId/tasks and extract tasks map', () => {
       const taskMap: Record<string, Task[]> = {
         'col-1': [MOCK_TASK],
         'col-2': [],
@@ -219,14 +219,14 @@ describe('TaskService', () => {
         expect(result).toEqual(taskMap);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/tasks');
+      const req = httpMock.expectOne('/api/projects/board-1/tasks');
       expect(req.request.method).toBe('GET');
       req.flush({ tasks: taskMap });
     });
   });
 
   describe('listFlat()', () => {
-    it('should GET /api/boards/:boardId/tasks/list', () => {
+    it('should GET /api/projects/:boardId/tasks/list', () => {
       const mockItems: TaskListItem[] = [
         {
           id: 'task-1',
@@ -247,14 +247,14 @@ describe('TaskService', () => {
         expect(items).toEqual(mockItems);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/tasks/list');
+      const req = httpMock.expectOne('/api/projects/board-1/tasks/list');
       expect(req.request.method).toBe('GET');
       req.flush(mockItems);
     });
   });
 
   describe('listCalendarTasks()', () => {
-    it('should GET /api/boards/:boardId/tasks/calendar with start and end params', () => {
+    it('should GET /api/projects/:boardId/tasks/calendar with start and end params', () => {
       const mockCalendarTasks: CalendarTask[] = [
         {
           id: 'task-1',
@@ -276,7 +276,7 @@ describe('TaskService', () => {
         });
 
       const req = httpMock.expectOne(
-        (r) => r.url === '/api/boards/board-1/tasks/calendar',
+        (r) => r.url === '/api/projects/board-1/tasks/calendar',
       );
       expect(req.request.method).toBe('GET');
       expect(req.request.params.get('start')).toBe('2026-02-01');
@@ -286,7 +286,7 @@ describe('TaskService', () => {
   });
 
   describe('listGanttTasks()', () => {
-    it('should GET /api/boards/:boardId/tasks/gantt', () => {
+    it('should GET /api/projects/:boardId/tasks/gantt', () => {
       const mockGanttTasks: GanttTask[] = [
         {
           id: 'task-1',
@@ -305,14 +305,14 @@ describe('TaskService', () => {
         expect(tasks).toEqual(mockGanttTasks);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/tasks/gantt');
+      const req = httpMock.expectOne('/api/projects/board-1/tasks/gantt');
       expect(req.request.method).toBe('GET');
       req.flush(mockGanttTasks);
     });
   });
 
   describe('bulkUpdate()', () => {
-    it('should POST /api/boards/:boardId/tasks/bulk-update', () => {
+    it('should POST /api/projects/:boardId/tasks/bulk-update', () => {
       const bulkReq: BulkUpdateRequest = {
         task_ids: ['task-1', 'task-2'],
         priority: 'high',
@@ -322,7 +322,7 @@ describe('TaskService', () => {
         expect(result).toEqual({ updated: 2 });
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/tasks/bulk-update');
+      const req = httpMock.expectOne('/api/projects/board-1/tasks/bulk-update');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(bulkReq);
       req.flush({ updated: 2 });
@@ -330,7 +330,7 @@ describe('TaskService', () => {
   });
 
   describe('bulkDelete()', () => {
-    it('should POST /api/boards/:boardId/tasks/bulk-delete', () => {
+    it('should POST /api/projects/:boardId/tasks/bulk-delete', () => {
       const bulkReq: BulkDeleteRequest = {
         task_ids: ['task-1', 'task-2'],
       };
@@ -339,7 +339,7 @@ describe('TaskService', () => {
         expect(result).toEqual({ deleted: 2 });
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/tasks/bulk-delete');
+      const req = httpMock.expectOne('/api/projects/board-1/tasks/bulk-delete');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(bulkReq);
       req.flush({ deleted: 2 });

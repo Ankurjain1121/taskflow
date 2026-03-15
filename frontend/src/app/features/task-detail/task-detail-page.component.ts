@@ -144,7 +144,7 @@ import { Toast } from 'primeng/toast';
               [routerLink]="[
                 '/workspace',
                 workspace()!.id,
-                'board',
+                'project',
                 board()!.id,
               ]"
               class="breadcrumb-link"
@@ -156,7 +156,7 @@ import { Toast } from 'primeng/toast';
                 [routerLink]="[
                   '/workspace',
                   workspace()!.id,
-                  'board',
+                  'project',
                   board()!.id,
                   'task',
                   parentTask()!.id,
@@ -451,7 +451,7 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
         this.editTitle.set(task.title);
         this.editDescription.set(task.description ?? '');
 
-        const boardId = (task as unknown as { board_id?: string }).board_id;
+        const boardId = task.project_id ?? (task as unknown as { board_id?: string }).board_id;
         if (boardId) {
           this.loadBoardContext(boardId);
         }

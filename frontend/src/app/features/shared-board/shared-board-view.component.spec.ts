@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { of, throwError } from 'rxjs';
-import { SharedBoardViewComponent } from './shared-board-view.component';
+import { SharedProjectViewComponent } from './shared-board-view.component';
 import {
   BoardShareService,
   SharedBoardAccess,
@@ -43,9 +43,9 @@ function createMockBoardAccess(
   };
 }
 
-describe('SharedBoardViewComponent', () => {
-  let component: SharedBoardViewComponent;
-  let fixture: ComponentFixture<SharedBoardViewComponent>;
+describe('SharedProjectViewComponent', () => {
+  let component: SharedProjectViewComponent;
+  let fixture: ComponentFixture<SharedProjectViewComponent>;
   let mockShareService: {
     accessSharedBoard: ReturnType<typeof vi.fn>;
   };
@@ -58,7 +58,7 @@ describe('SharedBoardViewComponent', () => {
     const paramMap = convertToParamMap(params);
 
     TestBed.configureTestingModule({
-      imports: [SharedBoardViewComponent],
+      imports: [SharedProjectViewComponent],
       providers: [
         { provide: BoardShareService, useValue: mockShareService },
         {
@@ -71,7 +71,7 @@ describe('SharedBoardViewComponent', () => {
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(SharedBoardViewComponent);
+    fixture = TestBed.createComponent(SharedProjectViewComponent);
     component = fixture.componentInstance;
   }
 

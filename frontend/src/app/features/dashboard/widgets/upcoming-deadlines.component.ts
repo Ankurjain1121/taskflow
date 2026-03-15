@@ -131,9 +131,7 @@ export class UpcomingDeadlinesComponent implements OnInit {
   }
 
   navigateToTask(deadline: UpcomingDeadline): void {
-    this.router.navigate(['/board', deadline.board_id], {
-      queryParams: { task: deadline.id },
-    });
+    this.router.navigate(['/task', deadline.id]);
   }
 
   getRelativeTime(days: number): string {

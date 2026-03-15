@@ -274,7 +274,7 @@ export class SubtaskListComponent implements OnInit, OnChanges {
   isChildDone(child: Task): boolean {
     const cols = this.boardColumns();
     if (!cols?.length) return false;
-    const col = cols.find(c => c.id === child.column_id);
+    const col = cols.find(c => c.id === (child.status_id ?? child.column_id));
     return col?.status_mapping?.done === true;
   }
 

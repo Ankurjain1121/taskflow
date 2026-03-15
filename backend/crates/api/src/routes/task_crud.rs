@@ -18,9 +18,10 @@ use taskflow_db::queries::{
 use taskflow_services::broadcast::events;
 use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
 
+use super::common::verify_project_membership;
 use super::task_helpers::{
     broadcast_workspace_task_update, get_workspace_id_for_board, sanitize_html,
-    verify_board_membership, CreateTaskRequest, ListTasksResponse, UpdateTaskRequest,
+    CreateTaskRequest, ListTasksResponse, UpdateTaskRequest,
 };
 
 /// GET /api/boards/:board_id/tasks
@@ -73,9 +74,7 @@ pub async fn create_task_handler(
     Json(body): Json<CreateTaskRequest>,
 ) -> Result<Json<Task>> {
     // Verify board membership first
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     let input = CreateTaskInput {
         title: body.title,
@@ -177,9 +176,7 @@ pub async fn update_task_handler(
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     // Verify board membership
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     let priority_changed = body.priority.is_some();
     let due_date_changed = body.due_date.is_some() || body.clear_due_date.unwrap_or(false);
@@ -342,9 +339,7 @@ pub async fn delete_task_handler(
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     // Verify board membership
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     soft_delete_task(&state.db, task_id)
         .await
@@ -403,9 +398,7 @@ pub async fn complete_task_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     // Find the first "done" status for this project
     let done_status_id: Option<uuid::Uuid> = sqlx::query_scalar(
@@ -447,9 +440,7 @@ pub async fn uncomplete_task_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     // Find the first non-done status for this project
     let status_id: Option<uuid::Uuid> = sqlx::query_scalar(
@@ -492,9 +483,7 @@ pub async fn duplicate_task_handler(
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     // Verify board membership
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     let task = duplicate_task(&state.db, task_id, tenant.user_id)
         .await

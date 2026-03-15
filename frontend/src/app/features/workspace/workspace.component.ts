@@ -98,7 +98,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
                     {{ boards().length }}
                   </p>
                   <p class="text-sm text-[var(--muted-foreground)]">
-                    {{ boards().length === 1 ? 'Board' : 'Boards' }}
+                    {{ boards().length === 1 ? 'Project' : 'Projects' }}
                   </p>
                 </div>
               </div>
@@ -148,7 +148,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
                   [routerLink]="[
                     '/workspace',
                     workspaceId(),
-                    'board',
+                    'project',
                     board.id,
                   ]"
                   class="animate-fade-in-up bg-[var(--card)] rounded-xl border border-[var(--border)] hover:shadow-md hover:border-[var(--primary)] transition-all duration-200 cursor-pointer group block overflow-hidden"

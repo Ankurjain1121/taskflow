@@ -28,7 +28,8 @@ use taskflow_db::queries::get_task_board_id;
 use taskflow_services::broadcast::events;
 use taskflow_services::BroadcastService;
 
-use super::task_helpers::{sanitize_html, verify_board_membership};
+use super::common::verify_project_membership;
+use super::task_helpers::sanitize_html;
 
 /// Regex for extracting @mentions in format @[username](userId)
 static MENTION_REGEX: Lazy<Regex> =
@@ -76,9 +77,7 @@ async fn list_comments_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     let comments = list_comments_by_task(&state.db, task_id).await?;
 
@@ -99,9 +98,7 @@ async fn create_comment_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     // Sanitize and extract mentioned user IDs from content
     let sanitized_content = sanitize_html(&body.content);
@@ -262,9 +259,7 @@ async fn update_comment_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     // Sanitize and extract mentioned user IDs from updated content
     let sanitized_content = sanitize_html(&body.content);
@@ -310,9 +305,7 @@ async fn delete_comment_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     // Delete the comment
     delete_comment(&state.db, comment_id).await?;

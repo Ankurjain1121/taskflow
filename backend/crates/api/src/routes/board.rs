@@ -1,4 +1,4 @@
-//! Board/Project REST endpoints
+//! Project REST endpoints
 //!
 //! Provides CRUD operations for projects and project membership management.
 
@@ -32,14 +32,14 @@ use super::common::MessageResponse;
 // Route Handlers
 // ============================================================================
 
-/// GET /api/workspaces/:workspace_id/boards
+/// GET /api/workspaces/:workspace_id/projects
 ///
-/// List all boards in a workspace that the user has access to.
-async fn list_boards(
+/// List all projects in a workspace that the user has access to.
+async fn list_projects(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(workspace_id): Path<Uuid>,
-) -> Result<Json<Vec<BoardResponse>>> {
+) -> Result<Json<Vec<ProjectResponse>>> {
     // Check workspace membership
     let is_member =
         workspaces::is_workspace_member(&state.db, workspace_id, auth.0.user_id).await?;
@@ -48,17 +48,17 @@ async fn list_boards(
     }
 
     // Check Redis cache first (30s TTL)
-    let cache_key = cache::workspace_boards_key(&workspace_id);
-    if let Some(cached) = cache::cache_get::<Vec<BoardResponse>>(&state.redis, &cache_key).await {
+    let cache_key = cache::workspace_projects_key(&workspace_id);
+    if let Some(cached) = cache::cache_get::<Vec<ProjectResponse>>(&state.redis, &cache_key).await {
         return Ok(Json(cached));
     }
 
-    let boards_list =
+    let projects_list =
         boards::list_boards_by_workspace(&state.db, workspace_id, auth.0.user_id).await?;
 
-    let response: Vec<BoardResponse> = boards_list
+    let response: Vec<ProjectResponse> = projects_list
         .into_iter()
-        .map(|b| BoardResponse {
+        .map(|b| ProjectResponse {
             id: b.id,
             name: b.name,
             description: b.description,
@@ -68,6 +68,7 @@ async fn list_boards(
             tenant_id: b.tenant_id,
             created_by_id: b.created_by_id,
             background_color: b.background_color,
+            is_sample: b.is_sample,
             created_at: b.created_at,
             updated_at: b.updated_at,
         })
@@ -79,11 +80,11 @@ async fn list_boards(
     Ok(Json(response))
 }
 
-/// GET /api/boards/:id
+/// GET /api/projects/:id
 ///
-/// Get a board by ID with its statuses.
+/// Get a project by ID with its statuses.
 /// Returns 304 Not Modified if the ETag matches (If-None-Match header).
-async fn get_board(
+async fn get_project(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
@@ -91,9 +92,9 @@ async fn get_board(
 ) -> Result<axum::response::Response> {
     let board = boards::get_board_by_id(&state.db, id, auth.0.user_id)
         .await?
-        .ok_or_else(|| AppError::NotFound("Board not found or access denied".into()))?;
+        .ok_or_else(|| AppError::NotFound("Project not found or access denied".into()))?;
 
-    let response = BoardDetailResponse {
+    let response = ProjectDetailResponse {
         id: board.project.id,
         name: board.project.name,
         description: board.project.description,
@@ -103,6 +104,7 @@ async fn get_board(
         tenant_id: board.project.tenant_id,
         created_by_id: board.project.created_by_id,
         background_color: board.project.background_color.clone(),
+        is_sample: board.project.is_sample,
         created_at: board.project.created_at,
         updated_at: board.project.updated_at,
         statuses: board
@@ -144,15 +146,15 @@ async fn get_board(
     Ok(response_json)
 }
 
-/// POST /api/workspaces/:workspace_id/boards
+/// POST /api/workspaces/:workspace_id/projects
 ///
-/// Create a new board with default statuses.
-async fn create_board(
+/// Create a new project with default statuses.
+async fn create_project(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(workspace_id): Path<Uuid>,
-    Json(payload): Json<CreateBoardRequest>,
-) -> Result<Json<BoardDetailResponse>> {
+    Json(payload): Json<CreateProjectRequest>,
+) -> Result<Json<ProjectDetailResponse>> {
     // Check workspace membership
     let is_member =
         workspaces::is_workspace_member(&state.db, workspace_id, auth.0.user_id).await?;
@@ -162,7 +164,7 @@ async fn create_board(
 
     let name = payload.name.trim();
     if name.is_empty() {
-        return Err(AppError::BadRequest("Board name is required".into()));
+        return Err(AppError::BadRequest("Project name is required".into()));
     }
 
     let board = boards::create_board(
@@ -175,10 +177,10 @@ async fn create_board(
     )
     .await?;
 
-    // Invalidate workspace boards cache
-    cache::cache_del(&state.redis, &cache::workspace_boards_key(&workspace_id)).await;
+    // Invalidate workspace projects cache
+    cache::cache_del(&state.redis, &cache::workspace_projects_key(&workspace_id)).await;
 
-    Ok(Json(BoardDetailResponse {
+    Ok(Json(ProjectDetailResponse {
         id: board.project.id,
         name: board.project.name,
         description: board.project.description,
@@ -188,6 +190,7 @@ async fn create_board(
         tenant_id: board.project.tenant_id,
         created_by_id: board.project.created_by_id,
         background_color: board.project.background_color.clone(),
+        is_sample: board.project.is_sample,
         created_at: board.project.created_at,
         updated_at: board.project.updated_at,
         statuses: board
@@ -207,16 +210,16 @@ async fn create_board(
     }))
 }
 
-/// PUT /api/boards/:id
+/// PUT /api/projects/:id
 ///
-/// Update a board's name and description.
-async fn update_board(
+/// Update a project's name and description.
+async fn update_project(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
-    Json(payload): Json<UpdateBoardRequest>,
-) -> Result<Json<BoardResponse>> {
-    // Check board membership with editor or owner role
+    Json(payload): Json<UpdateProjectRequest>,
+) -> Result<Json<ProjectResponse>> {
+    // Check project membership with editor or owner role
     let role = boards::get_board_member_role(&state.db, id, auth.0.user_id).await?;
     match role {
         Some(BoardMemberRole::Owner | BoardMemberRole::Editor) => {}
@@ -225,7 +228,7 @@ async fn update_board(
         }
         None => {
             return Err(AppError::NotFound(
-                "Board not found or access denied".into(),
+                "Project not found or access denied".into(),
             ));
         }
     }
@@ -233,7 +236,7 @@ async fn update_board(
     let name = payload.name.as_deref().map(|n| n.trim());
     if let Some(n) = name {
         if n.is_empty() {
-            return Err(AppError::BadRequest("Board name is required".into()));
+            return Err(AppError::BadRequest("Project name is required".into()));
         }
     }
 
@@ -246,16 +249,16 @@ async fn update_board(
         bg_color,
     )
     .await?
-    .ok_or_else(|| AppError::NotFound("Board not found".into()))?;
+    .ok_or_else(|| AppError::NotFound("Project not found".into()))?;
 
-    // Invalidate workspace boards cache
+    // Invalidate workspace projects cache
     cache::cache_del(
         &state.redis,
-        &cache::workspace_boards_key(&board.workspace_id),
+        &cache::workspace_projects_key(&board.workspace_id),
     )
     .await;
 
-    Ok(Json(BoardResponse {
+    Ok(Json(ProjectResponse {
         id: board.id,
         name: board.name,
         description: board.description,
@@ -265,71 +268,72 @@ async fn update_board(
         tenant_id: board.tenant_id,
         created_by_id: board.created_by_id,
         background_color: board.background_color,
+        is_sample: board.is_sample,
         created_at: board.created_at,
         updated_at: board.updated_at,
     }))
 }
 
-/// DELETE /api/boards/:id
+/// DELETE /api/projects/:id
 ///
-/// Soft-delete a board.
+/// Soft-delete a project.
 /// Requires Manager or Admin role.
-async fn delete_board(
+async fn delete_project(
     State(state): State<AppState>,
     auth: ManagerOrAdmin,
     Path(id): Path<Uuid>,
 ) -> Result<Json<MessageResponse>> {
-    // Check board membership
+    // Check project membership
     let is_member = boards::is_board_member(&state.db, id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::NotFound(
-            "Board not found or access denied".into(),
+            "Project not found or access denied".into(),
         ));
     }
 
     // Get workspace_id for cache invalidation before deletion
-    let board_info = boards::get_board_by_id(&state.db, id, auth.0.user_id).await?;
+    let project_info = boards::get_board_by_id(&state.db, id, auth.0.user_id).await?;
 
     let deleted = boards::soft_delete_board(&state.db, id).await?;
 
     if deleted {
-        // Invalidate workspace boards cache
-        if let Some(info) = board_info {
+        // Invalidate workspace projects cache
+        if let Some(info) = project_info {
             cache::cache_del(
                 &state.redis,
-                &cache::workspace_boards_key(&info.project.workspace_id),
+                &cache::workspace_projects_key(&info.project.workspace_id),
             )
             .await;
         }
         Ok(Json(MessageResponse {
-            message: "Board deleted successfully".into(),
+            message: "Project deleted successfully".into(),
         }))
     } else {
-        Err(AppError::NotFound("Board not found".into()))
+        Err(AppError::NotFound("Project not found".into()))
     }
 }
 
-/// GET /api/boards/:id/members
+/// GET /api/projects/:id/members
 ///
-/// List all members of a board.
-async fn list_board_members(
+/// List all members of a project.
+async fn list_project_members(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
-) -> Result<Json<Vec<BoardMemberResponse>>> {
-    // Check board membership
+) -> Result<Json<Vec<ProjectMemberResponse>>> {
+    // Check project membership
     let is_member = boards::is_board_member(&state.db, id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::NotFound(
-            "Board not found or access denied".into(),
+            "Project not found or access denied".into(),
         ));
     }
 
     let members = boards::list_board_members(&state.db, id).await?;
 
-    let response: Vec<BoardMemberResponse> = members
+    let response: Vec<ProjectMemberResponse> = members
         .into_iter()
-        .map(|m| BoardMemberResponse {
+        .map(|m| ProjectMemberResponse {
             id: m.id,
             project_id: m.project_id,
             user_id: m.user_id,
@@ -344,32 +348,32 @@ async fn list_board_members(
     Ok(Json(response))
 }
 
-/// POST /api/boards/:id/members
+/// POST /api/projects/:id/members
 ///
-/// Add a user to a board.
+/// Add a user to a project.
 /// Requires Manager or Admin role.
-async fn add_board_member(
+async fn add_project_member(
     State(state): State<AppState>,
     auth: ManagerOrAdmin,
     Path(id): Path<Uuid>,
-    Json(payload): Json<AddBoardMemberRequest>,
+    Json(payload): Json<AddProjectMemberRequest>,
 ) -> Result<Json<MessageResponse>> {
-    // Check board membership
+    // Check project membership
     let is_member = boards::is_board_member(&state.db, id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::NotFound(
-            "Board not found or access denied".into(),
+            "Project not found or access denied".into(),
         ));
     }
 
-    // Get board to check workspace membership of the user being added
-    let board = boards::get_board_internal(&state.db, id)
+    // Get project to check workspace membership of the user being added
+    let project = boards::get_board_internal(&state.db, id)
         .await?
-        .ok_or_else(|| AppError::NotFound("Board not found".into()))?;
+        .ok_or_else(|| AppError::NotFound("Project not found".into()))?;
 
     // Verify user is a workspace member
     let is_ws_member =
-        workspaces::is_workspace_member(&state.db, board.workspace_id, payload.user_id).await?;
+        workspaces::is_workspace_member(&state.db, project.workspace_id, payload.user_id).await?;
     if !is_ws_member {
         return Err(AppError::BadRequest(
             "User must be a workspace member first".into(),
@@ -383,20 +387,20 @@ async fn add_board_member(
     }))
 }
 
-/// DELETE /api/boards/:id/members/:user_id
+/// DELETE /api/projects/:id/members/:user_id
 ///
-/// Remove a user from a board.
+/// Remove a user from a project.
 /// Requires Manager or Admin role.
-async fn remove_board_member(
+async fn remove_project_member(
     State(state): State<AppState>,
     auth: ManagerOrAdmin,
     Path((id, user_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<MessageResponse>> {
-    // Check board membership
+    // Check project membership
     let is_member = boards::is_board_member(&state.db, id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::NotFound(
-            "Board not found or access denied".into(),
+            "Project not found or access denied".into(),
         ));
     }
 
@@ -411,17 +415,17 @@ async fn remove_board_member(
     }
 }
 
-/// PATCH /api/boards/:id/members/:user_id
+/// PATCH /api/projects/:id/members/:user_id
 ///
-/// Update a board member's role.
-/// Requires Editor role on the board.
-async fn update_board_member_role(
+/// Update a project member's role.
+/// Requires Editor role on the project.
+async fn update_project_member_role(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path((id, user_id)): Path<(Uuid, Uuid)>,
-    Json(payload): Json<UpdateBoardMemberRoleRequest>,
-) -> Result<Json<BoardMemberResponse>> {
-    // Check board membership with owner or editor role
+    Json(payload): Json<UpdateProjectMemberRoleRequest>,
+) -> Result<Json<ProjectMemberResponse>> {
+    // Check project membership with owner or editor role
     let role = boards::get_board_member_role(&state.db, id, auth.0.user_id).await?;
     match role {
         Some(BoardMemberRole::Owner | BoardMemberRole::Editor) => {}
@@ -430,7 +434,7 @@ async fn update_board_member_role(
         }
         None => {
             return Err(AppError::NotFound(
-                "Board not found or access denied".into(),
+                "Project not found or access denied".into(),
             ));
         }
     }
@@ -443,7 +447,7 @@ async fn update_board_member_role(
     let updated = boards::update_board_member_role(&state.db, id, user_id, payload.role).await?;
 
     if !updated {
-        return Err(AppError::NotFound("Board member not found".into()));
+        return Err(AppError::NotFound("Project member not found".into()));
     }
 
     // Fetch the updated member info
@@ -451,9 +455,9 @@ async fn update_board_member_role(
     let member = members
         .into_iter()
         .find(|m| m.user_id == user_id)
-        .ok_or_else(|| AppError::NotFound("Board member not found".into()))?;
+        .ok_or_else(|| AppError::NotFound("Project member not found".into()))?;
 
-    Ok(Json(BoardMemberResponse {
+    Ok(Json(ProjectMemberResponse {
         id: member.id,
         project_id: member.project_id,
         user_id: member.user_id,
@@ -465,26 +469,26 @@ async fn update_board_member_role(
     }))
 }
 
-/// POST /api/boards/:id/duplicate
+/// POST /api/projects/:id/duplicate
 ///
-/// Duplicate a board with statuses and optionally tasks.
-async fn duplicate_board(
+/// Duplicate a project with statuses and optionally tasks.
+async fn duplicate_project(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
-    Json(payload): Json<DuplicateBoardRequest>,
-) -> Result<Json<BoardDetailResponse>> {
+    Json(payload): Json<DuplicateProjectRequest>,
+) -> Result<Json<ProjectDetailResponse>> {
     // Verify membership
     let is_member = boards::is_board_member(&state.db, id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::NotFound(
-            "Board not found or access denied".into(),
+            "Project not found or access denied".into(),
         ));
     }
 
     let name = payload.name.trim();
     if name.is_empty() {
-        return Err(AppError::BadRequest("Board name is required".into()));
+        return Err(AppError::BadRequest("Project name is required".into()));
     }
 
     let include_tasks = payload.include_tasks.unwrap_or(false);
@@ -492,14 +496,14 @@ async fn duplicate_board(
     let result =
         boards::duplicate_board(&state.db, id, name, include_tasks, auth.0.user_id).await?;
 
-    // Invalidate workspace boards cache
+    // Invalidate workspace projects cache
     cache::cache_del(
         &state.redis,
-        &cache::workspace_boards_key(&result.project.workspace_id),
+        &cache::workspace_projects_key(&result.project.workspace_id),
     )
     .await;
 
-    Ok(Json(BoardDetailResponse {
+    Ok(Json(ProjectDetailResponse {
         id: result.project.id,
         name: result.project.name,
         description: result.project.description,
@@ -509,6 +513,7 @@ async fn duplicate_board(
         tenant_id: result.project.tenant_id,
         created_by_id: result.project.created_by_id,
         background_color: result.project.background_color,
+        is_sample: result.project.is_sample,
         created_at: result.project.created_at,
         updated_at: result.project.updated_at,
         statuses: result
@@ -528,28 +533,28 @@ async fn duplicate_board(
     }))
 }
 
-/// GET /api/board-templates
+/// GET /api/project-templates
 ///
-/// List available board templates.
-async fn list_board_templates() -> Json<Vec<board_templates::BoardTemplate>> {
+/// List available project templates.
+async fn list_project_templates() -> Json<Vec<board_templates::BoardTemplate>> {
     Json(board_templates::TEMPLATES.to_vec())
 }
 
-/// GET /api/boards/:id/full
+/// GET /api/projects/:id/full
 ///
-/// Get a board with statuses, tasks (with badge data), and members in a single request.
-/// This batch endpoint replaces multiple separate API calls needed to render a board view.
+/// Get a project with statuses, tasks (with badge data), and members in a single request.
+/// This batch endpoint replaces multiple separate API calls needed to render a project view.
 /// Supports optional `?limit=` and `?offset=` query params for task pagination.
-async fn get_board_full(
+async fn get_project_full(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
-    Query(query): Query<BoardFullQuery>,
-) -> Result<Json<BoardFullResponse>> {
+    Query(query): Query<ProjectFullQuery>,
+) -> Result<Json<ProjectFullResponse>> {
     let limit = query.limit.unwrap_or(1000).clamp(1, 1000);
     let offset = query.offset.unwrap_or(0).max(0);
 
-    // Fetch board+statuses, tasks with badges, members, assignees, and labels in parallel
+    // Fetch project+statuses, tasks with badges, members, assignees, and labels in parallel
     let (board_result, tasks_result, members_result, assignees_result, labels_result) = tokio::join!(
         boards::get_board_by_id(&state.db, id, auth.0.user_id),
         boards::list_board_tasks_with_badges(&state.db, id, Some(limit), Some(offset)),
@@ -559,7 +564,7 @@ async fn get_board_full(
     );
 
     let board = board_result?
-        .ok_or_else(|| AppError::NotFound("Board not found or access denied".into()))?;
+        .ok_or_else(|| AppError::NotFound("Project not found or access denied".into()))?;
 
     let paginated = tasks_result?;
     let task_rows = paginated.tasks;
@@ -620,7 +625,7 @@ async fn get_board_full(
         })
         .collect();
 
-    let board_detail = BoardDetailResponse {
+    let project_detail = ProjectDetailResponse {
         id: board.project.id,
         name: board.project.name,
         description: board.project.description,
@@ -630,6 +635,7 @@ async fn get_board_full(
         tenant_id: board.project.tenant_id,
         created_by_id: board.project.created_by_id,
         background_color: board.project.background_color.clone(),
+        is_sample: board.project.is_sample,
         created_at: board.project.created_at,
         updated_at: board.project.updated_at,
         statuses: board
@@ -648,9 +654,9 @@ async fn get_board_full(
             .collect(),
     };
 
-    let member_responses: Vec<BoardMemberResponse> = members
+    let member_responses: Vec<ProjectMemberResponse> = members
         .into_iter()
-        .map(|m| BoardMemberResponse {
+        .map(|m| ProjectMemberResponse {
             id: m.id,
             project_id: m.project_id,
             user_id: m.user_id,
@@ -662,11 +668,11 @@ async fn get_board_full(
         })
         .collect();
 
-    Ok(Json(BoardFullResponse {
-        board: board_detail,
+    Ok(Json(ProjectFullResponse {
+        project: project_detail,
         tasks,
         members: member_responses,
-        meta: BoardMeta {
+        meta: ProjectMeta {
             total_task_count,
             current_limit: limit,
             current_offset: offset,
@@ -678,42 +684,42 @@ async fn get_board_full(
 // Routers
 // ============================================================================
 
-/// Build the boards router for workspace-scoped routes
-/// Routes: /api/workspaces/:workspace_id/boards
-pub fn workspace_boards_router(state: AppState) -> Router<AppState> {
+/// Build the projects router for workspace-scoped routes
+/// Routes: /api/workspaces/:workspace_id/projects
+pub fn workspace_projects_router(state: AppState) -> Router<AppState> {
     Router::new()
-        .route("/", get(list_boards).post(create_board))
+        .route("/", get(list_projects).post(create_project))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
-/// Build the boards router for direct board routes
-/// Routes: /api/boards/:id
-pub fn board_router(state: AppState) -> Router<AppState> {
+/// Build the projects router for direct project routes
+/// Routes: /api/projects/:id
+pub fn project_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route(
             "/{id}",
-            get(get_board)
-                .put(update_board)
-                .patch(update_board)
-                .delete(delete_board),
+            get(get_project)
+                .put(update_project)
+                .patch(update_project)
+                .delete(delete_project),
         )
-        .route("/{id}/full", get(get_board_full))
-        .route("/{id}/duplicate", axum::routing::post(duplicate_board))
+        .route("/{id}/full", get(get_project_full))
+        .route("/{id}/duplicate", axum::routing::post(duplicate_project))
         .route(
             "/{id}/members",
-            get(list_board_members).post(add_board_member),
+            get(list_project_members).post(add_project_member),
         )
         .route(
             "/{id}/members/{user_id}",
-            delete(remove_board_member).patch(update_board_member_role),
+            delete(remove_project_member).patch(update_project_member_role),
         )
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
-/// Build the board templates router
-/// Routes: /api/board-templates
-pub fn board_templates_router(state: AppState) -> Router<AppState> {
+/// Build the project templates router
+/// Routes: /api/project-templates
+pub fn project_templates_router(state: AppState) -> Router<AppState> {
     Router::new()
-        .route("/", get(list_board_templates))
+        .route("/", get(list_project_templates))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

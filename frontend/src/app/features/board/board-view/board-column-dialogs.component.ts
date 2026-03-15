@@ -21,10 +21,10 @@ import { ButtonModule } from 'primeng/button';
 import { Checkbox } from 'primeng/checkbox';
 import { ImportDialogComponent } from '../import-export/import-dialog.component';
 import { ExportDialogComponent } from '../import-export/export-dialog.component';
-import { BoardStateService } from './board-state.service';
+import { ProjectStateService } from './board-state.service';
 
 @Component({
-  selector: 'app-board-column-dialogs',
+  selector: 'app-project-column-dialogs',
   standalone: true,
   imports: [
     FormsModule,
@@ -205,11 +205,11 @@ import { BoardStateService } from './board-state.service';
     <p-menu #moreMenu [popup]="true" [model]="moreMenuItems" />
   `,
 })
-export class BoardColumnDialogsComponent {
+export class ProjectColumnDialogsComponent {
   private boardService = inject(BoardService);
   private confirmationService = inject(ConfirmationService);
   private router = inject(Router);
-  readonly state = inject(BoardStateService);
+  readonly state = inject(ProjectStateService);
 
   @Input() boardId = '';
   @Input() workspaceId = '';
@@ -270,7 +270,7 @@ export class BoardColumnDialogsComponent {
           this.router.navigate([
             '/workspace',
             this.workspaceId,
-            'board',
+            'project',
             this.boardId,
             'settings',
           ]),
@@ -290,7 +290,7 @@ export class BoardColumnDialogsComponent {
         icon: 'pi pi-share-alt',
         command: () =>
           this.router.navigate(
-            ['/workspace', this.workspaceId, 'board', this.boardId, 'settings'],
+            ['/workspace', this.workspaceId, 'project', this.boardId, 'settings'],
             { queryParams: { tab: 6 } },
           ),
       },
@@ -299,7 +299,7 @@ export class BoardColumnDialogsComponent {
         label: 'Duplicate Board',
         icon: 'pi pi-copy',
         command: () => {
-          this.duplicateBoardName = `Copy of ${this.boardName || 'Board'}`;
+          this.duplicateBoardName = `Copy of ${this.boardName || 'Project'}`;
           this.duplicateIncludeTasks = false;
           this.showDuplicateDialog = true;
         },

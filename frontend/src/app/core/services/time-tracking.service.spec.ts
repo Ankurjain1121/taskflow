@@ -141,7 +141,7 @@ describe('TimeTrackingService', () => {
   });
 
   describe('getBoardTimeReport()', () => {
-    it('should GET /api/boards/:boardId/time-report', () => {
+    it('should GET /api/projects/:boardId/time-report', () => {
       const report: TaskTimeReport[] = [
         {
           task_id: 'task-1',
@@ -155,7 +155,7 @@ describe('TimeTrackingService', () => {
         expect(result).toEqual(report);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/time-report');
+      const req = httpMock.expectOne('/api/projects/board-1/time-report');
       expect(req.request.method).toBe('GET');
       req.flush(report);
     });

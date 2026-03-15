@@ -20,9 +20,14 @@ export interface EisenhowerTask {
   description: string | null;
   priority: string;
   due_date: string | null;
-  board_id: string;
+  /** Backend returns project_id */
+  project_id: string;
+  /** @deprecated use project_id */
+  board_id?: string;
   board_name: string;
-  column_id: string;
+  status_id: string;
+  /** @deprecated use status_id */
+  column_id?: string;
   column_name: string;
   position: string;
   is_done: boolean;

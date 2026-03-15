@@ -1,6 +1,6 @@
 import { SpotlightStep } from '../../../shared/components/spotlight-overlay/spotlight-overlay.component';
 
-export const BOARD_SPOTLIGHT_STEPS: SpotlightStep[] = [
+export const PROJECT_SPOTLIGHT_STEPS: SpotlightStep[] = [
   {
     targetSelector:
       '.kanban-columns-wrapper, app-kanban-column, .kanban-column',
@@ -10,7 +10,7 @@ export const BOARD_SPOTLIGHT_STEPS: SpotlightStep[] = [
     position: 'right',
   },
   {
-    targetSelector: '.toolbar-wrapper, app-board-toolbar',
+    targetSelector: '.toolbar-wrapper, app-project-toolbar',
     title: 'Find tasks fast with filters',
     description:
       'Use the search bar, priority filters, or quick filter pills to narrow down your view. Press F to focus search.',

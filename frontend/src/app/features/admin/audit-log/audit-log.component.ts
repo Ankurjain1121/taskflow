@@ -434,7 +434,7 @@ export class AuditLogComponent implements OnInit, OnDestroy {
 
   entityTypeOptions = [
     { label: 'Task', value: 'task' },
-    { label: 'Board', value: 'board' },
+    { label: 'Project', value: 'board' },
     { label: 'Workspace', value: 'workspace' },
     { label: 'User', value: 'user' },
     { label: 'Comment', value: 'comment' },
@@ -624,6 +624,7 @@ export class AuditLogComponent implements OnInit, OnDestroy {
   }
 
   formatEntityType(entityType: string): string {
+    if (entityType === 'board') return 'Project';
     return entityType.charAt(0).toUpperCase() + entityType.slice(1);
   }
 

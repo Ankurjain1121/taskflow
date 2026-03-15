@@ -70,10 +70,9 @@ Fix ALL errors before continuing. Use `./scripts/quick-check.sh` for combined ch
 
 | Email | Password | Role |
 |-------|----------|------|
-| alice@acme.com | Password123! | Admin |
-| bob@acme.com | Password123! | Member |
+| admin1@paraslace.in | (user's password) | Admin |
 
-Use `alice@acme.com / Password123!` for all testing and browser verification.
+Use `admin1@paraslace.in` for all testing and browser verification.
 
 ---
 

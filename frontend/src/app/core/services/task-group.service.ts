@@ -49,7 +49,7 @@ export class TaskGroupService {
 
   listGroups(projectId: string): Observable<TaskGroup[]> {
     return this.http.get<TaskGroup[]>(
-      `${this.API_URL}/boards/${projectId}/groups`,
+      `${this.API_URL}/projects/${projectId}/groups`,
     );
   }
 
@@ -58,7 +58,7 @@ export class TaskGroupService {
       .get<
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         any[]
-      >(`${this.API_URL}/boards/${projectId}/groups/stats`)
+      >(`${this.API_URL}/projects/${projectId}/groups/stats`)
       .pipe(
         map((items) =>
           items.map((item) => ({
@@ -80,7 +80,7 @@ export class TaskGroupService {
     request: CreateTaskGroupRequest,
   ): Observable<TaskGroup> {
     return this.http.post<TaskGroup>(
-      `${this.API_URL}/boards/${projectId}/groups`,
+      `${this.API_URL}/projects/${projectId}/groups`,
       request,
     );
   }

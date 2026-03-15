@@ -13,7 +13,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
-use super::task_helpers::verify_board_membership;
+use super::common::verify_project_membership;
 use taskflow_db::models::Milestone;
 use taskflow_db::queries::get_task_board_id;
 use taskflow_db::queries::milestones::{
@@ -122,9 +122,7 @@ async fn update_milestone_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Milestone not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     let input = UpdateMilestoneInput {
         name: body.name,
@@ -152,9 +150,7 @@ async fn delete_milestone_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Milestone not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     delete_milestone(&state.db, milestone_id)
         .await
@@ -176,9 +172,7 @@ async fn assign_milestone_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     assign_task_to_milestone(&state.db, task_id, body.milestone_id)
         .await
@@ -199,9 +193,7 @@ async fn unassign_milestone_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     unassign_task_from_milestone(&state.db, task_id)
         .await

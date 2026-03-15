@@ -45,7 +45,7 @@ export class BulkOperationsService {
     params?: Record<string, unknown>,
   ): Observable<PreviewResult> {
     return this.http.post<PreviewResult>(
-      `${this.apiUrl}/boards/${boardId}/bulk-operations/preview`,
+      `${this.apiUrl}/projects/${boardId}/bulk-operations/preview`,
       { action, task_ids: taskIds, params },
     );
   }
@@ -57,7 +57,7 @@ export class BulkOperationsService {
     params?: Record<string, unknown>,
   ): Observable<BulkOperationResult> {
     return this.http.post<BulkOperationResult>(
-      `${this.apiUrl}/boards/${boardId}/bulk-operations/execute`,
+      `${this.apiUrl}/projects/${boardId}/bulk-operations/execute`,
       { action, task_ids: taskIds, params },
     );
   }
@@ -71,7 +71,7 @@ export class BulkOperationsService {
 
   listOperations(boardId: string): Observable<BulkOperation[]> {
     return this.http.get<BulkOperation[]>(
-      `${this.apiUrl}/boards/${boardId}/bulk-operations`,
+      `${this.apiUrl}/projects/${boardId}/bulk-operations`,
     );
   }
 
@@ -89,7 +89,7 @@ export class BulkOperationsService {
     const rows = tasks.map((task) => [
       this.escapeCsv(task.title),
       task.priority ?? '',
-      task.column_id ?? '',
+      task.status_name ?? task.status_id ?? task.column_id ?? '',
       (task.assignees ?? []).map((a) => a.display_name).join('; '),
       task.due_date ?? '',
       (task.labels ?? []).map((l) => l.name).join('; '),

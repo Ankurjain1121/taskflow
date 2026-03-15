@@ -7,7 +7,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { A11yModule } from '@angular/cdk/a11y';
 import { CardQuickEditService } from './card-quick-edit.service';
-import { BoardStateService } from '../board-state.service';
+import { ProjectStateService } from '../board-state.service';
 import { PriorityPickerComponent } from './pickers/priority-picker.component';
 import { LabelPickerComponent } from './pickers/label-picker.component';
 import { AssigneePickerComponent } from './pickers/assignee-picker.component';
@@ -97,7 +97,7 @@ import { TaskPriority } from '../../../../core/services/task.service';
 })
 export class CardQuickEditPopoverComponent {
   readonly service = inject(CardQuickEditService);
-  private readonly boardState = inject(BoardStateService);
+  private readonly boardState = inject(ProjectStateService);
 
   readonly fieldLabel = computed(() => {
     switch (this.service.currentField()) {

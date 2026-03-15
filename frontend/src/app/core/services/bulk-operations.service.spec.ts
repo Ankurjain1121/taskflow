@@ -52,7 +52,7 @@ describe('BulkOperationsService', () => {
   });
 
   describe('previewOperation()', () => {
-    it('should POST to /api/boards/:boardId/bulk-operations/preview', () => {
+    it('should POST to /api/projects/:boardId/bulk-operations/preview', () => {
       const taskIds = ['t1', 't2', 't3'];
 
       service
@@ -62,7 +62,7 @@ describe('BulkOperationsService', () => {
         });
 
       const req = httpMock.expectOne(
-        '/api/boards/board-1/bulk-operations/preview',
+        '/api/projects/board-1/bulk-operations/preview',
       );
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual({
@@ -81,7 +81,7 @@ describe('BulkOperationsService', () => {
         });
 
       const req = httpMock.expectOne(
-        '/api/boards/board-1/bulk-operations/preview',
+        '/api/projects/board-1/bulk-operations/preview',
       );
       expect(req.request.body).toEqual({
         action: 'delete',
@@ -105,14 +105,14 @@ describe('BulkOperationsService', () => {
         });
 
       const req = httpMock.expectOne(
-        '/api/boards/board-1/bulk-operations/preview',
+        '/api/projects/board-1/bulk-operations/preview',
       );
       req.flush(previewWithWarnings);
     });
   });
 
   describe('executeOperation()', () => {
-    it('should POST to /api/boards/:boardId/bulk-operations/execute', () => {
+    it('should POST to /api/projects/:boardId/bulk-operations/execute', () => {
       service
         .executeOperation('board-1', 'move', ['t1', 't2'], {
           column_id: 'col-done',
@@ -123,7 +123,7 @@ describe('BulkOperationsService', () => {
         });
 
       const req = httpMock.expectOne(
-        '/api/boards/board-1/bulk-operations/execute',
+        '/api/projects/board-1/bulk-operations/execute',
       );
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual({
@@ -141,7 +141,7 @@ describe('BulkOperationsService', () => {
       });
 
       const req = httpMock.expectOne(
-        '/api/boards/board-1/bulk-operations/execute',
+        '/api/projects/board-1/bulk-operations/execute',
       );
       req.flush('Too many tasks', { status: 400, statusText: 'Bad Request' });
 
@@ -175,12 +175,12 @@ describe('BulkOperationsService', () => {
   });
 
   describe('listOperations()', () => {
-    it('should GET /api/boards/:boardId/bulk-operations', () => {
+    it('should GET /api/projects/:boardId/bulk-operations', () => {
       service.listOperations('board-1').subscribe((ops) => {
         expect(ops).toEqual([MOCK_OPERATION]);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/bulk-operations');
+      const req = httpMock.expectOne('/api/projects/board-1/bulk-operations');
       expect(req.request.method).toBe('GET');
       req.flush([MOCK_OPERATION]);
     });
@@ -190,7 +190,7 @@ describe('BulkOperationsService', () => {
         expect(ops).toEqual([]);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-empty/bulk-operations');
+      const req = httpMock.expectOne('/api/projects/board-empty/bulk-operations');
       req.flush([]);
     });
   });

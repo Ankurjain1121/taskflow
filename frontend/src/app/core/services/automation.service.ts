@@ -119,7 +119,7 @@ export class AutomationService {
 
   listRules(boardId: string): Observable<AutomationRuleWithActions[]> {
     return this.http.get<AutomationRuleWithActions[]>(
-      `/api/boards/${boardId}/automations`,
+      `/api/projects/${boardId}/automations`,
     );
   }
 
@@ -128,7 +128,7 @@ export class AutomationService {
     req: CreateRuleRequest,
   ): Observable<AutomationRuleWithActions> {
     return this.http.post<AutomationRuleWithActions>(
-      `/api/boards/${boardId}/automations`,
+      `/api/projects/${boardId}/automations`,
       req,
     );
   }

@@ -51,19 +51,19 @@ describe('PositionService', () => {
   });
 
   describe('listPositions()', () => {
-    it('should GET /api/boards/:boardId/positions', () => {
+    it('should GET /api/projects/:boardId/positions', () => {
       service.listPositions('board-1').subscribe((positions) => {
         expect(positions).toEqual([MOCK_POSITION]);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/positions');
+      const req = httpMock.expectOne('/api/projects/board-1/positions');
       expect(req.request.method).toBe('GET');
       req.flush([MOCK_POSITION]);
     });
   });
 
   describe('createPosition()', () => {
-    it('should POST /api/boards/:boardId/positions with body', () => {
+    it('should POST /api/projects/:boardId/positions with body', () => {
       const createReq: CreatePositionRequest = {
         name: 'Backend Dev',
         description: 'Builds APIs',
@@ -73,7 +73,7 @@ describe('PositionService', () => {
         expect(pos).toEqual(MOCK_POSITION);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/positions');
+      const req = httpMock.expectOne('/api/projects/board-1/positions');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(createReq);
       req.flush(MOCK_POSITION);

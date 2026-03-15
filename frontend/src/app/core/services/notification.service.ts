@@ -83,6 +83,8 @@ export class NotificationService implements OnDestroy {
    * Initialize real-time updates via WebSocket and polling fallback
    */
   startRealTimeUpdates(): void {
+    if (!this.authService.isAuthenticated()) return;
+
     this.stopRealTimeUpdates();
 
     // Initial fetch

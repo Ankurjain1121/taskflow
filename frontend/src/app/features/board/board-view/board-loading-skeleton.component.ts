@@ -2,7 +2,7 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-board-loading-skeleton',
+  selector: 'app-project-loading-skeleton',
   standalone: true,
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,4 +38,4 @@ import { CommonModule } from '@angular/common';
     </div>
   `,
 })
-export class BoardLoadingSkeletonComponent {}
+export class ProjectLoadingSkeletonComponent {}

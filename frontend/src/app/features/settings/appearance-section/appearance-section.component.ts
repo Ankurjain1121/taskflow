@@ -180,7 +180,7 @@ interface BoardViewOption {
         <!-- Default Board View -->
         <div class="flex flex-col gap-2">
           <label class="text-sm font-medium" style="color: var(--foreground)">
-            Default Board View
+            Default Project View
           </label>
           <p-select
             [options]="boardViewOptions"
@@ -303,14 +303,14 @@ export class AppearanceSectionComponent implements OnInit {
   ];
 
   boardViewOptions: BoardViewOption[] = [
-    { label: 'Kanban Board', value: 'kanban' },
+    { label: 'Kanban', value: 'kanban' },
     { label: 'List View', value: 'list' },
   ];
 
   preferences = {
     timezone: 'UTC',
     dateFormat: 'MMM dd, yyyy',
-    defaultBoardView: 'kanban',
+    defaultBoardView: 'list',
     sidebarDensity: 'comfortable',
     language: 'en',
   };
@@ -364,7 +364,7 @@ export class AppearanceSectionComponent implements OnInit {
           this.preferences = {
             timezone: prefs.timezone || 'UTC',
             dateFormat: prefs.date_format || 'MMM dd, yyyy',
-            defaultBoardView: prefs.default_project_view || 'kanban',
+            defaultBoardView: prefs.default_project_view || 'list',
             sidebarDensity: prefs.sidebar_density || 'comfortable',
             language: prefs.language || 'en',
           };

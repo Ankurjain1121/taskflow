@@ -98,7 +98,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
                           [routerLink]="[
                             '/workspace',
                             item.workspace_id,
-                            'board',
+                            'project',
                             item.board_id,
                           ]"
                           class="text-sm font-medium text-[var(--card-foreground)] dark:text-white hover:text-primary truncate block"
@@ -164,7 +164,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
                           [routerLink]="[
                             '/workspace',
                             item.workspace_id,
-                            'board',
+                            'project',
                             item.entity_id,
                           ]"
                           class="text-sm font-medium text-[var(--card-foreground)] dark:text-white hover:text-primary truncate block"

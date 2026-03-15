@@ -3,6 +3,7 @@ import {
   inject,
   signal,
   ChangeDetectionStrategy,
+  HostListener,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -213,6 +214,13 @@ export class OnboardingChecklistComponent {
   private shortcutsService = inject(KeyboardShortcutsService);
 
   showSkipConfirm = signal(false);
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (!this.checklist.isDismissed() && this.checklist.shouldShow()) {
+      this.checklist.dismiss();
+    }
+  }
 
   onCtaClick(item: ChecklistItem): void {
     if (item.ctaAction === 'open_shortcuts') {

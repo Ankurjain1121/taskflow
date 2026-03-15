@@ -38,8 +38,8 @@ export interface SharedBoardAccess {
     description: string | null;
     priority: string;
     due_date: string | null;
-    column_id: string;
-    column_name: string;
+    status_id: string | null;
+    status_name: string | null;
   }[];
 }
 
@@ -48,14 +48,14 @@ export class BoardShareService {
   constructor(private http: HttpClient) {}
 
   listShares(boardId: string): Observable<BoardShare[]> {
-    return this.http.get<BoardShare[]>(`/api/boards/${boardId}/shares`);
+    return this.http.get<BoardShare[]>(`/api/projects/${boardId}/shares`);
   }
 
   createShare(
     boardId: string,
     req: CreateShareRequest,
   ): Observable<BoardShare> {
-    return this.http.post<BoardShare>(`/api/boards/${boardId}/shares`, req);
+    return this.http.post<BoardShare>(`/api/projects/${boardId}/shares`, req);
   }
 
   deleteShare(shareId: string): Observable<void> {

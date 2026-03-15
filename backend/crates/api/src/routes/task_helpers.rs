@@ -112,26 +112,26 @@ pub async fn get_workspace_id_for_board(
     .await
 }
 
-/// Helper to verify a user is a board member
+/// Helper to verify a user is a board member.
+/// Returns `true` if the user is a member, `false` otherwise.
+///
+/// Prefer [`super::common::verify_project_membership`] for new code,
+/// which returns `Result<()>` and handles the error internally.
 pub async fn verify_board_membership(
     pool: &sqlx::PgPool,
     board_id: Uuid,
     user_id: Uuid,
 ) -> Result<bool> {
-    let is_member = sqlx::query_scalar!(
-        r#"
-        SELECT EXISTS(
-            SELECT 1 FROM project_members
-            WHERE project_id = $1 AND user_id = $2
-        ) as "exists!"
-        "#,
-        board_id,
-        user_id
-    )
-    .fetch_one(pool)
-    .await?;
-
-    Ok(is_member)
+    super::common::verify_project_membership(pool, board_id, user_id)
+        .await
+        .map(|()| true)
+        .or_else(|e| {
+            if matches!(&e, crate::errors::AppError::Forbidden(_)) {
+                Ok(false)
+            } else {
+                Err(e)
+            }
+        })
 }
 
 /// Helper to broadcast workspace update after task mutation

@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { GroupByMode } from './swimlane.types';
 
 @Injectable()
-export class BoardGroupingService {
+export class ProjectGroupingService {
   readonly groupBy = signal<GroupByMode>('none');
   readonly collapsedSwimlaneIds = signal<Set<string>>(new Set());
 

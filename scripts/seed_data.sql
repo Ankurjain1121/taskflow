@@ -1,5 +1,5 @@
 -- =============================================================================
--- TaskFlow Seed Data: Acme Corp (20 employees, 500 tasks, 4 boards)
+-- TaskFlow Seed Data: Acme Corp (20 employees, 500 tasks, 4 projects)
 -- =============================================================================
 -- Usage: run_seed.sh injects the hash via:
 --   printf "SET session.pass_hash='%s';\n" "$HASH" | cat - seed_data.sql | psql
@@ -10,13 +10,13 @@
 
 -- Temp tables to track generated IDs during the seed run
 CREATE TEMP TABLE IF NOT EXISTS _su (seq INT PRIMARY KEY, uid UUID NOT NULL);
-CREATE TEMP TABLE IF NOT EXISTS _sb (seq INT PRIMARY KEY, bid UUID NOT NULL);
-CREATE TEMP TABLE IF NOT EXISTS _sc (bid UUID, seq INT, cid UUID, PRIMARY KEY (bid, seq));
-CREATE TEMP TABLE IF NOT EXISTS _sg (bid UUID, seq INT, gid UUID, PRIMARY KEY (bid, seq));
-CREATE TEMP TABLE IF NOT EXISTS _sm (bid UUID, seq INT, mid UUID, PRIMARY KEY (bid, seq));
-CREATE TEMP TABLE IF NOT EXISTS _sl (bid UUID, seq INT, lid UUID, PRIMARY KEY (bid, seq));
-CREATE TEMP TABLE IF NOT EXISTS _sf (bid UUID, seq INT, fid UUID, PRIMARY KEY (bid, seq));
-CREATE TEMP TABLE IF NOT EXISTS _st (seq INT PRIMARY KEY, tid UUID NOT NULL, bid UUID NOT NULL);
+CREATE TEMP TABLE IF NOT EXISTS _sb (seq INT PRIMARY KEY, pid UUID NOT NULL);
+CREATE TEMP TABLE IF NOT EXISTS _ss (pid UUID, seq INT, sid UUID, PRIMARY KEY (pid, seq));
+CREATE TEMP TABLE IF NOT EXISTS _sg (pid UUID, seq INT, gid UUID, PRIMARY KEY (pid, seq));
+CREATE TEMP TABLE IF NOT EXISTS _sm (pid UUID, seq INT, mid UUID, PRIMARY KEY (pid, seq));
+CREATE TEMP TABLE IF NOT EXISTS _sl (pid UUID, seq INT, lid UUID, PRIMARY KEY (pid, seq));
+CREATE TEMP TABLE IF NOT EXISTS _sf (pid UUID, seq INT, fid UUID, PRIMARY KEY (pid, seq));
+CREATE TEMP TABLE IF NOT EXISTS _st (seq INT PRIMARY KEY, tid UUID NOT NULL, pid UUID NOT NULL);
 
 DO $$
 DECLARE
@@ -27,8 +27,8 @@ DECLARE
 
     -- Working variables
     v_id            UUID;
-    v_bid           UUID;
-    v_cid           UUID;
+    v_pid           UUID;
+    v_sid           UUID;
     v_gid           UUID;
     v_mid           UUID;
     v_lid           UUID;
@@ -40,7 +40,7 @@ DECLARE
 
     -- Loop counters
     i               INTEGER;
-    b               INTEGER;
+    p               INTEGER;
 
     -- Task generation state
     v_global_seq    INTEGER;
@@ -51,12 +51,13 @@ DECLARE
     v_mile_count    INTEGER;
     v_start_user    INTEGER;
     v_team_size     INTEGER;
+    v_status_count  INTEGER;
 
-    -- Team membership ranges per board (Engineering=1-5, Design=6-9, Mkt=10-13, Product=14-17)
+    -- Team membership ranges per project (Engineering=1-5, Design=6-9, Mkt=10-13, Product=14-17)
     team_starts     INTEGER[] := ARRAY[1, 6, 10, 14];
     team_sizes      INTEGER[] := ARRAY[5, 4,  4,  4];
 
-    -- Task title vocabulary: actions and subjects per board
+    -- Task title vocabulary: actions and subjects per project
     eng_actions     TEXT[] := ARRAY['Implement','Fix','Refactor','Add tests for','Review','Update','Optimize','Debug','Migrate','Remove'];
     eng_subjects    TEXT[] := ARRAY['authentication','API gateway','database queries','WebSocket handler','task service','user model','file upload','notification system','search feature','caching layer','rate limiter','CI pipeline','error handling','logging system','queue worker'];
 
@@ -117,8 +118,7 @@ BEGIN
             (17, 'quinn@acme.com',  'Quinn Rodriguez',   'Product Designer',    'Product'),
             (18, 'rachel@acme.com', 'Rachel Lewis',      'QA Lead',             'QA'),
             (19, 'sam@acme.com',    'Sam Robinson',      'QA Engineer',         'QA'),
-            (20, 'tara@acme.com',   'Tara Walker',       'Automation QA',       'QA'),
-            (21, 'rockyyyy@gmail.com', 'Rocky Kumar',    'Product Manager',     'Product')
+            (20, 'tara@acme.com',   'Tara Walker',       'Automation QA',       'QA')
     ),
     inserted AS (
         INSERT INTO users (id, email, name, password_hash, role, tenant_id,
@@ -199,299 +199,311 @@ BEGIN
     SELECT v_id, uid FROM _su WHERE seq BETWEEN 18 AND 20;
 
     -- =========================================================================
-    -- BOARD 1: Engineering Sprints
+    -- PROJECT 1: Engineering Sprints
     -- =========================================================================
     SELECT uid INTO v_uid FROM _su WHERE seq = 1;
 
-    INSERT INTO boards (id, name, description, workspace_id, tenant_id, created_by_id, prefix)
+    INSERT INTO projects (id, name, description, workspace_id, tenant_id, created_by_id, prefix)
     VALUES (gen_random_uuid(), 'Engineering Sprints', 'Sprint planning and execution',
             v_workspace_id, v_tenant_id, v_uid, 'ENG')
-    RETURNING id INTO v_bid;
-    INSERT INTO _sb VALUES (1, v_bid);
+    RETURNING id INTO v_pid;
+    INSERT INTO _sb VALUES (1, v_pid);
 
-    -- Add all eng team as board members
-    INSERT INTO board_members (board_id, user_id, role)
-    SELECT v_bid, uid, 'editor' FROM _su WHERE seq BETWEEN 1 AND 5;
+    -- Add all eng team as project members
+    INSERT INTO project_members (project_id, user_id, role)
+    SELECT v_pid, uid, 'editor' FROM _su WHERE seq BETWEEN 1 AND 5;
 
-    -- Columns
-    INSERT INTO board_columns (id, name, board_id, position, color, status_mapping) VALUES
-        (gen_random_uuid(), 'Todo',        v_bid, 'a0', '#64748b', '{"status":"todo"}'),
-        (gen_random_uuid(), 'In Progress', v_bid, 'a1', '#3b82f6', '{"status":"in_progress"}'),
-        (gen_random_uuid(), 'Review',      v_bid, 'a2', '#f59e0b', '{"status":"in_review"}'),
-        (gen_random_uuid(), 'Done',        v_bid, 'a3', '#10b981', '{"status":"done"}');
-    INSERT INTO _sc (bid, seq, cid)
-    SELECT v_bid, ROW_NUMBER() OVER (ORDER BY position), id
-    FROM board_columns WHERE board_id = v_bid ORDER BY position;
+    -- Capture trigger-created statuses (5 expected: Open, In Progress, On Hold, Completed, Cancelled)
+    INSERT INTO _ss (pid, seq, sid)
+    SELECT v_pid, ROW_NUMBER() OVER (ORDER BY position), id
+    FROM project_statuses WHERE project_id = v_pid ORDER BY position;
 
-    -- Groups: fetch auto-created "Ungrouped", then add Sprint 1, Sprint 2, Backlog
-    SELECT id INTO v_gid FROM task_groups WHERE board_id = v_bid AND name = 'Ungrouped';
-    INSERT INTO _sg VALUES (v_bid, 1, v_gid);
+    SELECT COUNT(*) INTO v_status_count FROM _ss WHERE pid = v_pid;
+    IF v_status_count != 5 THEN
+        RAISE EXCEPTION 'Expected 5 trigger-created statuses for project 1, got %', v_status_count;
+    END IF;
 
-    INSERT INTO task_groups (id, name, color, position, board_id, tenant_id, created_by_id)
-    VALUES (gen_random_uuid(), 'Sprint 1', '#3b82f6', 'b0', v_bid, v_tenant_id, v_uid)
+    -- Task lists: fetch auto-created "General", then add Sprint 1, Sprint 2, Backlog
+    SELECT id INTO v_gid FROM task_lists WHERE project_id = v_pid AND is_default = true;
+    IF v_gid IS NULL THEN
+        RAISE EXCEPTION 'Default task list not found for project 1 — trigger may have changed';
+    END IF;
+    INSERT INTO _sg VALUES (v_pid, 1, v_gid);
+
+    INSERT INTO task_lists (id, name, color, position, project_id, tenant_id, created_by_id)
+    VALUES (gen_random_uuid(), 'Sprint 1', '#3b82f6', 'b0', v_pid, v_tenant_id, v_uid)
     RETURNING id INTO v_gid;
-    INSERT INTO _sg VALUES (v_bid, 2, v_gid);
+    INSERT INTO _sg VALUES (v_pid, 2, v_gid);
 
-    INSERT INTO task_groups (id, name, color, position, board_id, tenant_id, created_by_id)
-    VALUES (gen_random_uuid(), 'Sprint 2', '#8b5cf6', 'b1', v_bid, v_tenant_id, v_uid)
+    INSERT INTO task_lists (id, name, color, position, project_id, tenant_id, created_by_id)
+    VALUES (gen_random_uuid(), 'Sprint 2', '#8b5cf6', 'b1', v_pid, v_tenant_id, v_uid)
     RETURNING id INTO v_gid;
-    INSERT INTO _sg VALUES (v_bid, 3, v_gid);
+    INSERT INTO _sg VALUES (v_pid, 3, v_gid);
 
-    INSERT INTO task_groups (id, name, color, position, board_id, tenant_id, created_by_id)
-    VALUES (gen_random_uuid(), 'Backlog', '#94a3b8', 'b2', v_bid, v_tenant_id, v_uid)
+    INSERT INTO task_lists (id, name, color, position, project_id, tenant_id, created_by_id)
+    VALUES (gen_random_uuid(), 'Backlog', '#94a3b8', 'b2', v_pid, v_tenant_id, v_uid)
     RETURNING id INTO v_gid;
-    INSERT INTO _sg VALUES (v_bid, 4, v_gid);
+    INSERT INTO _sg VALUES (v_pid, 4, v_gid);
 
     -- Milestones (3)
-    INSERT INTO milestones (id, name, description, due_date, color, board_id, tenant_id, created_by_id)
+    INSERT INTO milestones (id, name, description, due_date, color, project_id, tenant_id, created_by_id)
     VALUES
         (gen_random_uuid(), 'Sprint 1 Release', 'First sprint delivery',
-         now() + interval '14 days', '#3b82f6', v_bid, v_tenant_id, v_uid),
+         now() + interval '14 days', '#3b82f6', v_pid, v_tenant_id, v_uid),
         (gen_random_uuid(), 'Sprint 2 Release', 'Second sprint delivery',
-         now() + interval '28 days', '#8b5cf6', v_bid, v_tenant_id, v_uid),
+         now() + interval '28 days', '#8b5cf6', v_pid, v_tenant_id, v_uid),
         (gen_random_uuid(), 'MVP Launch', 'Minimum viable product',
-         now() + interval '60 days', '#10b981', v_bid, v_tenant_id, v_uid);
-    INSERT INTO _sm (bid, seq, mid)
-    SELECT v_bid, ROW_NUMBER() OVER (ORDER BY created_at), id
-    FROM milestones WHERE board_id = v_bid ORDER BY created_at;
+         now() + interval '60 days', '#10b981', v_pid, v_tenant_id, v_uid);
+    INSERT INTO _sm (pid, seq, mid)
+    SELECT v_pid, ROW_NUMBER() OVER (ORDER BY created_at), id
+    FROM milestones WHERE project_id = v_pid ORDER BY created_at;
 
     -- Labels (5)
-    INSERT INTO labels (id, name, color, board_id, workspace_id, tenant_id, created_by_id)
+    INSERT INTO labels (id, name, color, project_id, workspace_id, tenant_id, created_by_id)
     VALUES
-        (gen_random_uuid(), 'Bug',         '#ef4444', v_bid, v_workspace_id, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Feature',     '#3b82f6', v_bid, v_workspace_id, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Enhancement', '#10b981', v_bid, v_workspace_id, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Research',    '#8b5cf6', v_bid, v_workspace_id, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Blocker',     '#f59e0b', v_bid, v_workspace_id, v_tenant_id, v_uid);
-    INSERT INTO _sl (bid, seq, lid)
-    SELECT v_bid, ROW_NUMBER() OVER (ORDER BY created_at), id
-    FROM labels WHERE board_id = v_bid ORDER BY created_at;
+        (gen_random_uuid(), 'Bug',         '#ef4444', v_pid, v_workspace_id, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Feature',     '#3b82f6', v_pid, v_workspace_id, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Enhancement', '#10b981', v_pid, v_workspace_id, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Research',    '#8b5cf6', v_pid, v_workspace_id, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Blocker',     '#f59e0b', v_pid, v_workspace_id, v_tenant_id, v_uid);
+    INSERT INTO _sl (pid, seq, lid)
+    SELECT v_pid, ROW_NUMBER() OVER (ORDER BY created_at), id
+    FROM labels WHERE project_id = v_pid ORDER BY created_at;
 
     -- Custom fields (3)
-    INSERT INTO board_custom_fields (id, name, field_type, position, board_id, tenant_id, created_by_id)
+    INSERT INTO project_custom_fields (id, name, field_type, position, project_id, tenant_id, created_by_id)
     VALUES
-        (gen_random_uuid(), 'Story Points', 'number', 0, v_bid, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Sprint',       'text',   1, v_bid, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'PR URL',       'text',   2, v_bid, v_tenant_id, v_uid);
-    INSERT INTO _sf (bid, seq, fid)
-    SELECT v_bid, ROW_NUMBER() OVER (ORDER BY position), id
-    FROM board_custom_fields WHERE board_id = v_bid ORDER BY position;
+        (gen_random_uuid(), 'Story Points', 'number', 0, v_pid, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Sprint',       'text',   1, v_pid, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'PR URL',       'text',   2, v_pid, v_tenant_id, v_uid);
+    INSERT INTO _sf (pid, seq, fid)
+    SELECT v_pid, ROW_NUMBER() OVER (ORDER BY position), id
+    FROM project_custom_fields WHERE project_id = v_pid ORDER BY position;
 
     -- =========================================================================
-    -- BOARD 2: Design System
+    -- PROJECT 2: Design System
     -- =========================================================================
     SELECT uid INTO v_uid FROM _su WHERE seq = 6;
 
-    INSERT INTO boards (id, name, description, workspace_id, tenant_id, created_by_id, prefix)
+    INSERT INTO projects (id, name, description, workspace_id, tenant_id, created_by_id, prefix)
     VALUES (gen_random_uuid(), 'Design System', 'UI component library',
             v_workspace_id, v_tenant_id, v_uid, 'DSN')
-    RETURNING id INTO v_bid;
-    INSERT INTO _sb VALUES (2, v_bid);
+    RETURNING id INTO v_pid;
+    INSERT INTO _sb VALUES (2, v_pid);
 
-    INSERT INTO board_members (board_id, user_id, role)
-    SELECT v_bid, uid, 'editor' FROM _su WHERE seq BETWEEN 6 AND 9;
+    INSERT INTO project_members (project_id, user_id, role)
+    SELECT v_pid, uid, 'editor' FROM _su WHERE seq BETWEEN 6 AND 9;
 
-    INSERT INTO board_columns (id, name, board_id, position, color, status_mapping) VALUES
-        (gen_random_uuid(), 'Backlog',   v_bid, 'a0', '#64748b', '{"status":"todo"}'),
-        (gen_random_uuid(), 'In Design', v_bid, 'a1', '#8b5cf6', '{"status":"in_progress"}'),
-        (gen_random_uuid(), 'Review',    v_bid, 'a2', '#f59e0b', '{"status":"in_review"}'),
-        (gen_random_uuid(), 'Published', v_bid, 'a3', '#10b981', '{"status":"done"}');
-    INSERT INTO _sc (bid, seq, cid)
-    SELECT v_bid, ROW_NUMBER() OVER (ORDER BY position), id
-    FROM board_columns WHERE board_id = v_bid ORDER BY position;
+    INSERT INTO _ss (pid, seq, sid)
+    SELECT v_pid, ROW_NUMBER() OVER (ORDER BY position), id
+    FROM project_statuses WHERE project_id = v_pid ORDER BY position;
 
-    SELECT id INTO v_gid FROM task_groups WHERE board_id = v_bid AND name = 'Ungrouped';
-    INSERT INTO _sg VALUES (v_bid, 1, v_gid);
+    SELECT COUNT(*) INTO v_status_count FROM _ss WHERE pid = v_pid;
+    IF v_status_count != 5 THEN
+        RAISE EXCEPTION 'Expected 5 trigger-created statuses for project 2, got %', v_status_count;
+    END IF;
 
-    INSERT INTO task_groups (id, name, color, position, board_id, tenant_id, created_by_id)
-    VALUES (gen_random_uuid(), 'Components', '#8b5cf6', 'b0', v_bid, v_tenant_id, v_uid)
+    SELECT id INTO v_gid FROM task_lists WHERE project_id = v_pid AND is_default = true;
+    IF v_gid IS NULL THEN
+        RAISE EXCEPTION 'Default task list not found for project 2';
+    END IF;
+    INSERT INTO _sg VALUES (v_pid, 1, v_gid);
+
+    INSERT INTO task_lists (id, name, color, position, project_id, tenant_id, created_by_id)
+    VALUES (gen_random_uuid(), 'Components', '#8b5cf6', 'b0', v_pid, v_tenant_id, v_uid)
     RETURNING id INTO v_gid;
-    INSERT INTO _sg VALUES (v_bid, 2, v_gid);
+    INSERT INTO _sg VALUES (v_pid, 2, v_gid);
 
-    INSERT INTO task_groups (id, name, color, position, board_id, tenant_id, created_by_id)
-    VALUES (gen_random_uuid(), 'Tokens', '#3b82f6', 'b1', v_bid, v_tenant_id, v_uid)
+    INSERT INTO task_lists (id, name, color, position, project_id, tenant_id, created_by_id)
+    VALUES (gen_random_uuid(), 'Tokens', '#3b82f6', 'b1', v_pid, v_tenant_id, v_uid)
     RETURNING id INTO v_gid;
-    INSERT INTO _sg VALUES (v_bid, 3, v_gid);
+    INSERT INTO _sg VALUES (v_pid, 3, v_gid);
 
-    INSERT INTO task_groups (id, name, color, position, board_id, tenant_id, created_by_id)
-    VALUES (gen_random_uuid(), 'Documentation', '#94a3b8', 'b2', v_bid, v_tenant_id, v_uid)
+    INSERT INTO task_lists (id, name, color, position, project_id, tenant_id, created_by_id)
+    VALUES (gen_random_uuid(), 'Documentation', '#94a3b8', 'b2', v_pid, v_tenant_id, v_uid)
     RETURNING id INTO v_gid;
-    INSERT INTO _sg VALUES (v_bid, 4, v_gid);
+    INSERT INTO _sg VALUES (v_pid, 4, v_gid);
 
-    INSERT INTO milestones (id, name, due_date, color, board_id, tenant_id, created_by_id)
+    INSERT INTO milestones (id, name, due_date, color, project_id, tenant_id, created_by_id)
     VALUES
         (gen_random_uuid(), 'Design System v1.0',
-         now() + interval '30 days', '#8b5cf6', v_bid, v_tenant_id, v_uid),
+         now() + interval '30 days', '#8b5cf6', v_pid, v_tenant_id, v_uid),
         (gen_random_uuid(), 'Design System v2.0',
-         now() + interval '90 days', '#3b82f6', v_bid, v_tenant_id, v_uid);
-    INSERT INTO _sm (bid, seq, mid)
-    SELECT v_bid, ROW_NUMBER() OVER (ORDER BY created_at), id
-    FROM milestones WHERE board_id = v_bid ORDER BY created_at;
+         now() + interval '90 days', '#3b82f6', v_pid, v_tenant_id, v_uid);
+    INSERT INTO _sm (pid, seq, mid)
+    SELECT v_pid, ROW_NUMBER() OVER (ORDER BY created_at), id
+    FROM milestones WHERE project_id = v_pid ORDER BY created_at;
 
-    INSERT INTO labels (id, name, color, board_id, workspace_id, tenant_id, created_by_id)
+    INSERT INTO labels (id, name, color, project_id, workspace_id, tenant_id, created_by_id)
     VALUES
-        (gen_random_uuid(), 'Bug',       '#ef4444', v_bid, v_workspace_id, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Component', '#8b5cf6', v_bid, v_workspace_id, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Token',     '#3b82f6', v_bid, v_workspace_id, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Research',  '#10b981', v_bid, v_workspace_id, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Blocker',   '#f59e0b', v_bid, v_workspace_id, v_tenant_id, v_uid);
-    INSERT INTO _sl (bid, seq, lid)
-    SELECT v_bid, ROW_NUMBER() OVER (ORDER BY created_at), id
-    FROM labels WHERE board_id = v_bid ORDER BY created_at;
+        (gen_random_uuid(), 'Bug',       '#ef4444', v_pid, v_workspace_id, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Component', '#8b5cf6', v_pid, v_workspace_id, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Token',     '#3b82f6', v_pid, v_workspace_id, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Research',  '#10b981', v_pid, v_workspace_id, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Blocker',   '#f59e0b', v_pid, v_workspace_id, v_tenant_id, v_uid);
+    INSERT INTO _sl (pid, seq, lid)
+    SELECT v_pid, ROW_NUMBER() OVER (ORDER BY created_at), id
+    FROM labels WHERE project_id = v_pid ORDER BY created_at;
 
-    INSERT INTO board_custom_fields (id, name, field_type, position, board_id, tenant_id, created_by_id)
+    INSERT INTO project_custom_fields (id, name, field_type, position, project_id, tenant_id, created_by_id)
     VALUES
-        (gen_random_uuid(), 'Component Type', 'text',   0, v_bid, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Priority Score', 'number', 1, v_bid, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Figma URL',      'text',   2, v_bid, v_tenant_id, v_uid);
-    INSERT INTO _sf (bid, seq, fid)
-    SELECT v_bid, ROW_NUMBER() OVER (ORDER BY position), id
-    FROM board_custom_fields WHERE board_id = v_bid ORDER BY position;
+        (gen_random_uuid(), 'Component Type', 'text',   0, v_pid, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Priority Score', 'number', 1, v_pid, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Figma URL',      'text',   2, v_pid, v_tenant_id, v_uid);
+    INSERT INTO _sf (pid, seq, fid)
+    SELECT v_pid, ROW_NUMBER() OVER (ORDER BY position), id
+    FROM project_custom_fields WHERE project_id = v_pid ORDER BY position;
 
     -- =========================================================================
-    -- BOARD 3: Marketing Hub
+    -- PROJECT 3: Marketing Hub
     -- =========================================================================
     SELECT uid INTO v_uid FROM _su WHERE seq = 10;
 
-    INSERT INTO boards (id, name, description, workspace_id, tenant_id, created_by_id, prefix)
+    INSERT INTO projects (id, name, description, workspace_id, tenant_id, created_by_id, prefix)
     VALUES (gen_random_uuid(), 'Marketing Hub', 'Campaigns and content',
             v_workspace_id, v_tenant_id, v_uid, 'MKT')
-    RETURNING id INTO v_bid;
-    INSERT INTO _sb VALUES (3, v_bid);
+    RETURNING id INTO v_pid;
+    INSERT INTO _sb VALUES (3, v_pid);
 
-    INSERT INTO board_members (board_id, user_id, role)
-    SELECT v_bid, uid, 'editor' FROM _su WHERE seq BETWEEN 10 AND 13;
+    INSERT INTO project_members (project_id, user_id, role)
+    SELECT v_pid, uid, 'editor' FROM _su WHERE seq BETWEEN 10 AND 13;
 
-    INSERT INTO board_columns (id, name, board_id, position, color, status_mapping) VALUES
-        (gen_random_uuid(), 'Ideas',       v_bid, 'a0', '#64748b', '{"status":"todo"}'),
-        (gen_random_uuid(), 'In Progress', v_bid, 'a1', '#3b82f6', '{"status":"in_progress"}'),
-        (gen_random_uuid(), 'Approval',    v_bid, 'a2', '#f59e0b', '{"status":"in_review"}'),
-        (gen_random_uuid(), 'Live',        v_bid, 'a3', '#10b981', '{"status":"done"}');
-    INSERT INTO _sc (bid, seq, cid)
-    SELECT v_bid, ROW_NUMBER() OVER (ORDER BY position), id
-    FROM board_columns WHERE board_id = v_bid ORDER BY position;
+    INSERT INTO _ss (pid, seq, sid)
+    SELECT v_pid, ROW_NUMBER() OVER (ORDER BY position), id
+    FROM project_statuses WHERE project_id = v_pid ORDER BY position;
 
-    SELECT id INTO v_gid FROM task_groups WHERE board_id = v_bid AND name = 'Ungrouped';
-    INSERT INTO _sg VALUES (v_bid, 1, v_gid);
+    SELECT COUNT(*) INTO v_status_count FROM _ss WHERE pid = v_pid;
+    IF v_status_count != 5 THEN
+        RAISE EXCEPTION 'Expected 5 trigger-created statuses for project 3, got %', v_status_count;
+    END IF;
 
-    INSERT INTO task_groups (id, name, color, position, board_id, tenant_id, created_by_id)
-    VALUES (gen_random_uuid(), 'Campaigns', '#10b981', 'b0', v_bid, v_tenant_id, v_uid)
+    SELECT id INTO v_gid FROM task_lists WHERE project_id = v_pid AND is_default = true;
+    IF v_gid IS NULL THEN
+        RAISE EXCEPTION 'Default task list not found for project 3';
+    END IF;
+    INSERT INTO _sg VALUES (v_pid, 1, v_gid);
+
+    INSERT INTO task_lists (id, name, color, position, project_id, tenant_id, created_by_id)
+    VALUES (gen_random_uuid(), 'Campaigns', '#10b981', 'b0', v_pid, v_tenant_id, v_uid)
     RETURNING id INTO v_gid;
-    INSERT INTO _sg VALUES (v_bid, 2, v_gid);
+    INSERT INTO _sg VALUES (v_pid, 2, v_gid);
 
-    INSERT INTO task_groups (id, name, color, position, board_id, tenant_id, created_by_id)
-    VALUES (gen_random_uuid(), 'Content', '#3b82f6', 'b1', v_bid, v_tenant_id, v_uid)
+    INSERT INTO task_lists (id, name, color, position, project_id, tenant_id, created_by_id)
+    VALUES (gen_random_uuid(), 'Content', '#3b82f6', 'b1', v_pid, v_tenant_id, v_uid)
     RETURNING id INTO v_gid;
-    INSERT INTO _sg VALUES (v_bid, 3, v_gid);
+    INSERT INTO _sg VALUES (v_pid, 3, v_gid);
 
-    INSERT INTO task_groups (id, name, color, position, board_id, tenant_id, created_by_id)
-    VALUES (gen_random_uuid(), 'Events', '#f59e0b', 'b2', v_bid, v_tenant_id, v_uid)
+    INSERT INTO task_lists (id, name, color, position, project_id, tenant_id, created_by_id)
+    VALUES (gen_random_uuid(), 'Events', '#f59e0b', 'b2', v_pid, v_tenant_id, v_uid)
     RETURNING id INTO v_gid;
-    INSERT INTO _sg VALUES (v_bid, 4, v_gid);
+    INSERT INTO _sg VALUES (v_pid, 4, v_gid);
 
-    INSERT INTO milestones (id, name, due_date, color, board_id, tenant_id, created_by_id)
+    INSERT INTO milestones (id, name, due_date, color, project_id, tenant_id, created_by_id)
     VALUES
-        (gen_random_uuid(), 'Q1 Campaign',  now() + interval '45 days',  '#10b981', v_bid, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Q2 Campaign',  now() + interval '90 days',  '#3b82f6', v_bid, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Annual Event', now() + interval '180 days', '#f59e0b', v_bid, v_tenant_id, v_uid);
-    INSERT INTO _sm (bid, seq, mid)
-    SELECT v_bid, ROW_NUMBER() OVER (ORDER BY created_at), id
-    FROM milestones WHERE board_id = v_bid ORDER BY created_at;
+        (gen_random_uuid(), 'Q1 Campaign',  now() + interval '45 days',  '#10b981', v_pid, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Q2 Campaign',  now() + interval '90 days',  '#3b82f6', v_pid, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Annual Event', now() + interval '180 days', '#f59e0b', v_pid, v_tenant_id, v_uid);
+    INSERT INTO _sm (pid, seq, mid)
+    SELECT v_pid, ROW_NUMBER() OVER (ORDER BY created_at), id
+    FROM milestones WHERE project_id = v_pid ORDER BY created_at;
 
-    INSERT INTO labels (id, name, color, board_id, workspace_id, tenant_id, created_by_id)
+    INSERT INTO labels (id, name, color, project_id, workspace_id, tenant_id, created_by_id)
     VALUES
-        (gen_random_uuid(), 'Campaign',  '#10b981', v_bid, v_workspace_id, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Content',   '#3b82f6', v_bid, v_workspace_id, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Social',    '#8b5cf6', v_bid, v_workspace_id, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Research',  '#f59e0b', v_bid, v_workspace_id, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Urgent',    '#ef4444', v_bid, v_workspace_id, v_tenant_id, v_uid);
-    INSERT INTO _sl (bid, seq, lid)
-    SELECT v_bid, ROW_NUMBER() OVER (ORDER BY created_at), id
-    FROM labels WHERE board_id = v_bid ORDER BY created_at;
+        (gen_random_uuid(), 'Campaign',  '#10b981', v_pid, v_workspace_id, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Content',   '#3b82f6', v_pid, v_workspace_id, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Social',    '#8b5cf6', v_pid, v_workspace_id, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Research',  '#f59e0b', v_pid, v_workspace_id, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Urgent',    '#ef4444', v_pid, v_workspace_id, v_tenant_id, v_uid);
+    INSERT INTO _sl (pid, seq, lid)
+    SELECT v_pid, ROW_NUMBER() OVER (ORDER BY created_at), id
+    FROM labels WHERE project_id = v_pid ORDER BY created_at;
 
-    INSERT INTO board_custom_fields (id, name, field_type, position, board_id, tenant_id, created_by_id)
+    INSERT INTO project_custom_fields (id, name, field_type, position, project_id, tenant_id, created_by_id)
     VALUES
-        (gen_random_uuid(), 'Campaign Type', 'text',   0, v_bid, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Budget',        'number', 1, v_bid, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Launch URL',    'text',   2, v_bid, v_tenant_id, v_uid);
-    INSERT INTO _sf (bid, seq, fid)
-    SELECT v_bid, ROW_NUMBER() OVER (ORDER BY position), id
-    FROM board_custom_fields WHERE board_id = v_bid ORDER BY position;
+        (gen_random_uuid(), 'Campaign Type', 'text',   0, v_pid, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Budget',        'number', 1, v_pid, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Launch URL',    'text',   2, v_pid, v_tenant_id, v_uid);
+    INSERT INTO _sf (pid, seq, fid)
+    SELECT v_pid, ROW_NUMBER() OVER (ORDER BY position), id
+    FROM project_custom_fields WHERE project_id = v_pid ORDER BY position;
 
     -- =========================================================================
-    -- BOARD 4: Product Roadmap
+    -- PROJECT 4: Product Roadmap
     -- =========================================================================
     SELECT uid INTO v_uid FROM _su WHERE seq = 14;
 
-    INSERT INTO boards (id, name, description, workspace_id, tenant_id, created_by_id, prefix)
+    INSERT INTO projects (id, name, description, workspace_id, tenant_id, created_by_id, prefix)
     VALUES (gen_random_uuid(), 'Product Roadmap', 'Feature planning and releases',
             v_workspace_id, v_tenant_id, v_uid, 'PRD')
-    RETURNING id INTO v_bid;
-    INSERT INTO _sb VALUES (4, v_bid);
+    RETURNING id INTO v_pid;
+    INSERT INTO _sb VALUES (4, v_pid);
 
-    INSERT INTO board_members (board_id, user_id, role)
-    SELECT v_bid, uid, 'editor' FROM _su WHERE seq BETWEEN 14 AND 17;
+    INSERT INTO project_members (project_id, user_id, role)
+    SELECT v_pid, uid, 'editor' FROM _su WHERE seq BETWEEN 14 AND 17;
 
-    INSERT INTO board_columns (id, name, board_id, position, color, status_mapping) VALUES
-        (gen_random_uuid(), 'Planned',        v_bid, 'a0', '#64748b', '{"status":"todo"}'),
-        (gen_random_uuid(), 'In Development', v_bid, 'a1', '#3b82f6', '{"status":"in_progress"}'),
-        (gen_random_uuid(), 'Beta',           v_bid, 'a2', '#f59e0b', '{"status":"in_review"}'),
-        (gen_random_uuid(), 'Released',       v_bid, 'a3', '#10b981', '{"status":"done"}');
-    INSERT INTO _sc (bid, seq, cid)
-    SELECT v_bid, ROW_NUMBER() OVER (ORDER BY position), id
-    FROM board_columns WHERE board_id = v_bid ORDER BY position;
+    INSERT INTO _ss (pid, seq, sid)
+    SELECT v_pid, ROW_NUMBER() OVER (ORDER BY position), id
+    FROM project_statuses WHERE project_id = v_pid ORDER BY position;
 
-    SELECT id INTO v_gid FROM task_groups WHERE board_id = v_bid AND name = 'Ungrouped';
-    INSERT INTO _sg VALUES (v_bid, 1, v_gid);
+    SELECT COUNT(*) INTO v_status_count FROM _ss WHERE pid = v_pid;
+    IF v_status_count != 5 THEN
+        RAISE EXCEPTION 'Expected 5 trigger-created statuses for project 4, got %', v_status_count;
+    END IF;
 
-    INSERT INTO task_groups (id, name, color, position, board_id, tenant_id, created_by_id)
-    VALUES (gen_random_uuid(), 'Q1', '#3b82f6', 'b0', v_bid, v_tenant_id, v_uid)
+    SELECT id INTO v_gid FROM task_lists WHERE project_id = v_pid AND is_default = true;
+    IF v_gid IS NULL THEN
+        RAISE EXCEPTION 'Default task list not found for project 4';
+    END IF;
+    INSERT INTO _sg VALUES (v_pid, 1, v_gid);
+
+    INSERT INTO task_lists (id, name, color, position, project_id, tenant_id, created_by_id)
+    VALUES (gen_random_uuid(), 'Q1', '#3b82f6', 'b0', v_pid, v_tenant_id, v_uid)
     RETURNING id INTO v_gid;
-    INSERT INTO _sg VALUES (v_bid, 2, v_gid);
+    INSERT INTO _sg VALUES (v_pid, 2, v_gid);
 
-    INSERT INTO task_groups (id, name, color, position, board_id, tenant_id, created_by_id)
-    VALUES (gen_random_uuid(), 'Q2', '#8b5cf6', 'b1', v_bid, v_tenant_id, v_uid)
+    INSERT INTO task_lists (id, name, color, position, project_id, tenant_id, created_by_id)
+    VALUES (gen_random_uuid(), 'Q2', '#8b5cf6', 'b1', v_pid, v_tenant_id, v_uid)
     RETURNING id INTO v_gid;
-    INSERT INTO _sg VALUES (v_bid, 3, v_gid);
+    INSERT INTO _sg VALUES (v_pid, 3, v_gid);
 
-    INSERT INTO task_groups (id, name, color, position, board_id, tenant_id, created_by_id)
-    VALUES (gen_random_uuid(), 'Q3', '#10b981', 'b2', v_bid, v_tenant_id, v_uid)
+    INSERT INTO task_lists (id, name, color, position, project_id, tenant_id, created_by_id)
+    VALUES (gen_random_uuid(), 'Q3', '#10b981', 'b2', v_pid, v_tenant_id, v_uid)
     RETURNING id INTO v_gid;
-    INSERT INTO _sg VALUES (v_bid, 4, v_gid);
+    INSERT INTO _sg VALUES (v_pid, 4, v_gid);
 
-    INSERT INTO milestones (id, name, due_date, color, board_id, tenant_id, created_by_id)
+    INSERT INTO milestones (id, name, due_date, color, project_id, tenant_id, created_by_id)
     VALUES
-        (gen_random_uuid(), 'Q1 Release',  now() + interval '30 days', '#3b82f6', v_bid, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Beta Launch', now() + interval '45 days', '#f59e0b', v_bid, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Q2 Release',  now() + interval '90 days', '#8b5cf6', v_bid, v_tenant_id, v_uid);
-    INSERT INTO _sm (bid, seq, mid)
-    SELECT v_bid, ROW_NUMBER() OVER (ORDER BY created_at), id
-    FROM milestones WHERE board_id = v_bid ORDER BY created_at;
+        (gen_random_uuid(), 'Q1 Release',  now() + interval '30 days', '#3b82f6', v_pid, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Beta Launch', now() + interval '45 days', '#f59e0b', v_pid, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Q2 Release',  now() + interval '90 days', '#8b5cf6', v_pid, v_tenant_id, v_uid);
+    INSERT INTO _sm (pid, seq, mid)
+    SELECT v_pid, ROW_NUMBER() OVER (ORDER BY created_at), id
+    FROM milestones WHERE project_id = v_pid ORDER BY created_at;
 
-    INSERT INTO labels (id, name, color, board_id, workspace_id, tenant_id, created_by_id)
+    INSERT INTO labels (id, name, color, project_id, workspace_id, tenant_id, created_by_id)
     VALUES
-        (gen_random_uuid(), 'Feature',     '#3b82f6', v_bid, v_workspace_id, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Enhancement', '#10b981', v_bid, v_workspace_id, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Research',    '#8b5cf6', v_bid, v_workspace_id, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Bug',         '#ef4444', v_bid, v_workspace_id, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Blocker',     '#f59e0b', v_bid, v_workspace_id, v_tenant_id, v_uid);
-    INSERT INTO _sl (bid, seq, lid)
-    SELECT v_bid, ROW_NUMBER() OVER (ORDER BY created_at), id
-    FROM labels WHERE board_id = v_bid ORDER BY created_at;
+        (gen_random_uuid(), 'Feature',     '#3b82f6', v_pid, v_workspace_id, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Enhancement', '#10b981', v_pid, v_workspace_id, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Research',    '#8b5cf6', v_pid, v_workspace_id, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Bug',         '#ef4444', v_pid, v_workspace_id, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Blocker',     '#f59e0b', v_pid, v_workspace_id, v_tenant_id, v_uid);
+    INSERT INTO _sl (pid, seq, lid)
+    SELECT v_pid, ROW_NUMBER() OVER (ORDER BY created_at), id
+    FROM labels WHERE project_id = v_pid ORDER BY created_at;
 
-    INSERT INTO board_custom_fields (id, name, field_type, position, board_id, tenant_id, created_by_id)
+    INSERT INTO project_custom_fields (id, name, field_type, position, project_id, tenant_id, created_by_id)
     VALUES
-        (gen_random_uuid(), 'Feature Size', 'text',   0, v_bid, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'Confidence',   'number', 1, v_bid, v_tenant_id, v_uid),
-        (gen_random_uuid(), 'PRD URL',      'text',   2, v_bid, v_tenant_id, v_uid);
-    INSERT INTO _sf (bid, seq, fid)
-    SELECT v_bid, ROW_NUMBER() OVER (ORDER BY position), id
-    FROM board_custom_fields WHERE board_id = v_bid ORDER BY position;
+        (gen_random_uuid(), 'Feature Size', 'text',   0, v_pid, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'Confidence',   'number', 1, v_pid, v_tenant_id, v_uid),
+        (gen_random_uuid(), 'PRD URL',      'text',   2, v_pid, v_tenant_id, v_uid);
+    INSERT INTO _sf (pid, seq, fid)
+    SELECT v_pid, ROW_NUMBER() OVER (ORDER BY position), id
+    FROM project_custom_fields WHERE project_id = v_pid ORDER BY position;
 
-    RAISE NOTICE 'Boards, columns, groups, milestones, labels, custom fields ready. Generating 500 tasks...';
+    RAISE NOTICE 'Projects, statuses, task lists, milestones, labels, custom fields ready. Generating 500 tasks...';
 
     -- =========================================================================
-    -- TASKS (500 total: 125 per board)
+    -- TASKS (500 total: 125 per project)
     --
     -- Priority distribution (global seq):
     --   1-50   → urgent  (10%)
@@ -499,21 +511,21 @@ BEGIN
     --   176-375→ medium  (40%)
     --   376-500→ low     (25%)
     --
-    -- Column assignment: round-robin (1..4)
-    -- Group assignment:  round-robin (1..4)
-    -- Assignee:          rotated through board team
-    -- Milestone:         80% of tasks (i % 5 != 0)
+    -- Status assignment: round-robin across 5 trigger-created statuses
+    -- Task list assignment: round-robin (1..4)
+    -- Assignee:            rotated through project team
+    -- Milestone:           80% of tasks (i % 5 != 0)
     -- =========================================================================
-    FOR b IN 1..4 LOOP
-        SELECT bid INTO v_bid FROM _sb WHERE seq = b;
-        v_start_user := team_starts[b];
-        v_team_size  := team_sizes[b];
+    FOR p IN 1..4 LOOP
+        SELECT pid INTO v_pid FROM _sb WHERE seq = p;
+        v_start_user := team_starts[p];
+        v_team_size  := team_sizes[p];
 
-        -- Number of milestones for this board
-        v_mile_count := CASE b WHEN 2 THEN 2 ELSE 3 END;
+        -- Number of milestones for this project
+        v_mile_count := CASE p WHEN 2 THEN 2 ELSE 3 END;
 
         FOR i IN 1..125 LOOP
-            v_global_seq := (b - 1) * 125 + i;
+            v_global_seq := (p - 1) * 125 + i;
 
             -- Priority
             v_priority := CASE
@@ -523,29 +535,29 @@ BEGIN
                 ELSE                          'low'::task_priority
             END;
 
-            -- Column (round-robin 1..4)
-            SELECT cid INTO v_cid
-            FROM _sc WHERE bid = v_bid AND seq = ((i - 1) % 4) + 1;
+            -- Status (round-robin 1..5)
+            SELECT sid INTO v_sid
+            FROM _ss WHERE pid = v_pid AND seq = ((i - 1) % 5) + 1;
 
-            -- Group (round-robin 1..4)
+            -- Task list (round-robin 1..4)
             SELECT gid INTO v_gid
-            FROM _sg WHERE bid = v_bid AND seq = ((i - 1) % 4) + 1;
+            FROM _sg WHERE pid = v_pid AND seq = ((i - 1) % 4) + 1;
 
-            -- Creator: rotate through board team
+            -- Creator: rotate through project team
             SELECT uid INTO v_uid
             FROM _su WHERE seq = v_start_user + ((i - 1) % v_team_size);
 
             -- Milestone: 80% of tasks
             IF i % 5 != 0 THEN
                 SELECT mid INTO v_mid
-                FROM _sm WHERE bid = v_bid
+                FROM _sm WHERE pid = v_pid
                   AND seq = ((i - 1) % v_mile_count) + 1;
             ELSE
                 v_mid := NULL;
             END IF;
 
             -- Title
-            v_title := CASE b
+            v_title := CASE p
                 WHEN 1 THEN eng_actions[((i - 1) % 10) + 1] || ' ' || eng_subjects[((i - 1) % 15) + 1]
                 WHEN 2 THEN des_actions[((i - 1) % 10) + 1] || ' ' || des_subjects[((i - 1) % 15) + 1]
                 WHEN 3 THEN mkt_actions[((i - 1) % 10) + 1] || ' ' || mkt_subjects[((i - 1) % 15) + 1]
@@ -557,7 +569,7 @@ BEGIN
 
             INSERT INTO tasks (
                 id, title, description, priority,
-                board_id, column_id, group_id,
+                project_id, status_id, task_list_id,
                 position, task_number,
                 tenant_id, created_by_id,
                 milestone_id, due_date, estimated_hours
@@ -565,14 +577,14 @@ BEGIN
                 gen_random_uuid(),
                 v_title,
                 'Task ' || v_global_seq || ' — part of the '
-                    || CASE b
+                    || CASE p
                         WHEN 1 THEN 'engineering sprint workflow'
                         WHEN 2 THEN 'design system workflow'
                         WHEN 3 THEN 'marketing hub workflow'
                         ELSE        'product roadmap workflow'
                        END || '.',
                 v_priority,
-                v_bid, v_cid, v_gid,
+                v_pid, v_sid, v_gid,
                 'a' || lpad(i::TEXT, 5, '0'),
                 i,
                 v_tenant_id, v_uid,
@@ -582,7 +594,7 @@ BEGIN
             )
             RETURNING id INTO v_tid;
 
-            INSERT INTO _st (seq, tid, bid) VALUES (v_global_seq, v_tid, v_bid);
+            INSERT INTO _st (seq, tid, pid) VALUES (v_global_seq, v_tid, v_pid);
 
             -- Primary assignee (task creator)
             INSERT INTO task_assignees (task_id, user_id) VALUES (v_tid, v_uid);
@@ -599,7 +611,7 @@ BEGIN
             END IF;
         END LOOP;
 
-        RAISE NOTICE 'Board % — 125 tasks created.', b;
+        RAISE NOTICE 'Project % — 125 tasks created.', p;
     END LOOP;
 
     RAISE NOTICE 'All 500 tasks created. Adding subtasks, comments, watchers, deps, time entries, labels...';
@@ -696,15 +708,15 @@ BEGIN
     -- One entry per every 12th task
     -- =========================================================================
     FOR i IN 1..40 LOOP
-        SELECT tid, bid INTO v_tid, v_bid FROM _st WHERE seq = i * 12;
-        -- Assign to a user who is a member of that board
+        SELECT tid, pid INTO v_tid, v_pid FROM _st WHERE seq = i * 12;
+        -- Assign to a user who is a member of that project
         SELECT uid INTO v_uid FROM _su WHERE seq = ((i % 17) + 1);
 
         IF v_tid IS NOT NULL THEN
             INSERT INTO time_entries (
                 id, task_id, user_id, description,
                 started_at, ended_at, duration_minutes,
-                is_running, board_id, tenant_id
+                is_running, project_id, tenant_id, is_billable
             ) VALUES (
                 gen_random_uuid(),
                 v_tid, v_uid,
@@ -713,8 +725,9 @@ BEGIN
                 now() - ((41 - i) * interval '1 day'),
                 120 + (i % 180),
                 false,
-                v_bid,
-                v_tenant_id
+                v_pid,
+                v_tenant_id,
+                (i % 3 = 0)
             );
         END IF;
     END LOOP;
@@ -725,11 +738,11 @@ BEGIN
     -- =========================================================================
     FOR i IN 1..500 LOOP
         IF i % 4 != 0 THEN
-            SELECT tid, bid INTO v_tid, v_bid FROM _st WHERE seq = i;
+            SELECT tid, pid INTO v_tid, v_pid FROM _st WHERE seq = i;
 
             -- Primary label
             SELECT lid INTO v_lid FROM _sl
-            WHERE bid = v_bid AND seq = ((i - 1) % 5) + 1;
+            WHERE pid = v_pid AND seq = ((i - 1) % 5) + 1;
             INSERT INTO task_labels (task_id, label_id)
             VALUES (v_tid, v_lid)
             ON CONFLICT DO NOTHING;
@@ -737,7 +750,7 @@ BEGIN
             -- Second label for every 3rd labeled task
             IF i % 3 = 0 THEN
                 SELECT lid INTO v_lid FROM _sl
-                WHERE bid = v_bid AND seq = (i % 5) + 1;
+                WHERE pid = v_pid AND seq = (i % 5) + 1;
                 INSERT INTO task_labels (task_id, label_id)
                 VALUES (v_tid, v_lid)
                 ON CONFLICT DO NOTHING;
@@ -749,10 +762,10 @@ BEGIN
     RAISE NOTICE 'Tenant: Acme Corp (slug=acme-seed)';
     RAISE NOTICE 'Users: 20 (alice@acme.com = admin, all others = member)';
     RAISE NOTICE 'Workspace: Acme Workspace with 5 teams';
-    RAISE NOTICE 'Boards: 4 (Engineering Sprints, Design System, Marketing Hub, Product Roadmap)';
+    RAISE NOTICE 'Projects: 4 (Engineering Sprints, Design System, Marketing Hub, Product Roadmap)';
     RAISE NOTICE 'Tasks: 500 with assignees, labels, milestones, subtasks, comments, watchers, deps, time entries';
     RAISE NOTICE 'Password for all accounts: Password123!';
 END $$;
 
 -- Clean up temp tables
-DROP TABLE IF EXISTS _su, _sb, _sc, _sg, _sm, _sl, _sf, _st;
+DROP TABLE IF EXISTS _su, _sb, _ss, _sg, _sm, _sl, _sf, _st;

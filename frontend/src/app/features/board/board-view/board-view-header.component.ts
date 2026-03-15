@@ -7,12 +7,12 @@ import {
 import { RouterModule } from '@angular/router';
 import { Menu } from 'primeng/menu';
 import { MenuItem } from 'primeng/api';
-import { BoardPresenceComponent } from '../../../shared/components/board-presence/board-presence.component';
+import { ProjectPresenceComponent } from '../../../shared/components/board-presence/board-presence.component';
 
 @Component({
-  selector: 'app-board-view-header',
+  selector: 'app-project-view-header',
   standalone: true,
-  imports: [RouterModule, Menu, BoardPresenceComponent],
+  imports: [RouterModule, Menu, ProjectPresenceComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-[var(--card)] border-b border-[var(--border)] px-6 py-4">
@@ -29,14 +29,14 @@ import { BoardPresenceComponent } from '../../../shared/components/board-presenc
         </div>
         <div class="flex items-center gap-3">
           <!-- Board Presence -->
-          <app-board-presence />
+          <app-project-presence />
 
           <!-- Settings Button -->
           <a
             [routerLink]="[
               '/workspace',
               workspaceId(),
-              'board',
+              'project',
               boardId(),
               'settings',
             ]"
@@ -119,7 +119,7 @@ import { BoardPresenceComponent } from '../../../shared/components/board-presenc
     </div>
   `,
 })
-export class BoardViewHeaderComponent {
+export class ProjectViewHeaderComponent {
   boardName = input('');
   boardDescription = input<string | null>(null);
   workspaceId = input('');

@@ -315,7 +315,7 @@ export class StepSampleBoardComponent {
           this.router.navigate([
             '/workspace',
             this.generatedWorkspaceId,
-            'board',
+            'project',
             this.generatedBoardId,
           ]);
         } else {

@@ -672,7 +672,9 @@ export class SidebarComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.loadWorkspaces();
+    if (this.authService.isAuthenticated()) {
+      this.loadWorkspaces();
+    }
   }
 
   canCreateWorkspace(): boolean {

@@ -81,12 +81,12 @@ describe('BoardService', () => {
   });
 
   describe('getBoard()', () => {
-    it('should GET /api/boards/:boardId', () => {
+    it('should GET /api/projects/:boardId', () => {
       service.getBoard('board-1').subscribe((board) => {
         expect(board).toEqual(MOCK_BOARD);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1');
+      const req = httpMock.expectOne('/api/projects/board-1');
       expect(req.request.method).toBe('GET');
       req.flush(MOCK_BOARD);
     });
@@ -112,14 +112,14 @@ describe('BoardService', () => {
   });
 
   describe('updateBoard()', () => {
-    it('should PATCH /api/boards/:boardId with body', () => {
+    it('should PATCH /api/projects/:boardId with body', () => {
       const updateReq: UpdateBoardRequest = { name: 'Renamed Board' };
 
       service.updateBoard('board-1', updateReq).subscribe((board) => {
         expect(board).toEqual(MOCK_BOARD);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1');
+      const req = httpMock.expectOne('/api/projects/board-1');
       expect(req.request.method).toBe('PATCH');
       expect(req.request.body).toEqual(updateReq);
       req.flush(MOCK_BOARD);
@@ -127,31 +127,31 @@ describe('BoardService', () => {
   });
 
   describe('deleteBoard()', () => {
-    it('should DELETE /api/boards/:boardId', () => {
+    it('should DELETE /api/projects/:boardId', () => {
       service.deleteBoard('board-1').subscribe();
 
-      const req = httpMock.expectOne('/api/boards/board-1');
+      const req = httpMock.expectOne('/api/projects/board-1');
       expect(req.request.method).toBe('DELETE');
       req.flush(null);
     });
   });
 
   describe('listColumns()', () => {
-    it('should GET /api/boards/:boardId/columns', () => {
+    it('should GET /api/projects/:boardId/columns', () => {
       const columns = [MOCK_COLUMN];
 
       service.listColumns('board-1').subscribe((result) => {
         expect(result).toEqual(columns);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/columns');
+      const req = httpMock.expectOne('/api/projects/board-1/columns');
       expect(req.request.method).toBe('GET');
       req.flush(columns);
     });
   });
 
   describe('createColumn()', () => {
-    it('should POST /api/boards/:boardId/columns with body', () => {
+    it('should POST /api/projects/:boardId/columns with body', () => {
       const createReq: CreateColumnRequest = {
         name: 'In Progress',
         color: '#f59e0b',
@@ -162,7 +162,7 @@ describe('BoardService', () => {
         expect(column).toEqual(MOCK_COLUMN);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/columns');
+      const req = httpMock.expectOne('/api/projects/board-1/columns');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(createReq);
       req.flush(MOCK_COLUMN);
@@ -214,21 +214,21 @@ describe('BoardService', () => {
   });
 
   describe('getBoardMembers()', () => {
-    it('should GET /api/boards/:boardId/members', () => {
+    it('should GET /api/projects/:boardId/members', () => {
       const members = [MOCK_MEMBER];
 
       service.getBoardMembers('board-1').subscribe((result) => {
         expect(result).toEqual(members);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/members');
+      const req = httpMock.expectOne('/api/projects/board-1/members');
       expect(req.request.method).toBe('GET');
       req.flush(members);
     });
   });
 
   describe('inviteBoardMember()', () => {
-    it('should POST /api/boards/:boardId/members with email and role', () => {
+    it('should POST /api/projects/:boardId/members with email and role', () => {
       const inviteReq: InviteMemberRequest = {
         email: 'new@example.com',
         role: 'viewer',
@@ -238,7 +238,7 @@ describe('BoardService', () => {
         expect(member).toEqual(MOCK_MEMBER);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/members');
+      const req = httpMock.expectOne('/api/projects/board-1/members');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(inviteReq);
       req.flush(MOCK_MEMBER);
@@ -246,7 +246,7 @@ describe('BoardService', () => {
   });
 
   describe('updateBoardMemberRole()', () => {
-    it('should PATCH /api/boards/:boardId/members/:userId with role', () => {
+    it('should PATCH /api/projects/:boardId/members/:userId with role', () => {
       const roleReq: UpdateMemberRoleRequest = { role: 'editor' };
 
       service
@@ -255,7 +255,7 @@ describe('BoardService', () => {
           expect(member).toEqual(MOCK_MEMBER);
         });
 
-      const req = httpMock.expectOne('/api/boards/board-1/members/user-1');
+      const req = httpMock.expectOne('/api/projects/board-1/members/user-1');
       expect(req.request.method).toBe('PATCH');
       expect(req.request.body).toEqual(roleReq);
       req.flush(MOCK_MEMBER);
@@ -263,17 +263,17 @@ describe('BoardService', () => {
   });
 
   describe('removeBoardMember()', () => {
-    it('should DELETE /api/boards/:boardId/members/:userId', () => {
+    it('should DELETE /api/projects/:boardId/members/:userId', () => {
       service.removeBoardMember('board-1', 'user-1').subscribe();
 
-      const req = httpMock.expectOne('/api/boards/board-1/members/user-1');
+      const req = httpMock.expectOne('/api/projects/board-1/members/user-1');
       expect(req.request.method).toBe('DELETE');
       req.flush(null);
     });
   });
 
   describe('getBoardFull()', () => {
-    it('should GET /api/boards/:boardId/full', () => {
+    it('should GET /api/projects/:boardId/full', () => {
       const fullResponse: BoardFullResponse = {
         board: { ...MOCK_BOARD, columns: [MOCK_COLUMN] },
         tasks: [],
@@ -284,7 +284,7 @@ describe('BoardService', () => {
         expect(result).toEqual(fullResponse);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/full');
+      const req = httpMock.expectOne('/api/projects/board-1/full');
       expect(req.request.method).toBe('GET');
       req.flush(fullResponse);
     });
@@ -344,14 +344,14 @@ describe('BoardService', () => {
   });
 
   describe('duplicateBoard()', () => {
-    it('should POST /api/boards/:boardId/duplicate with body', () => {
+    it('should POST /api/projects/:boardId/duplicate with body', () => {
       const dupReq = { name: 'Copy of Board', include_tasks: true };
 
       service.duplicateBoard('board-1', dupReq).subscribe((board) => {
         expect(board).toEqual(MOCK_BOARD);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/duplicate');
+      const req = httpMock.expectOne('/api/projects/board-1/duplicate');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(dupReq);
       req.flush(MOCK_BOARD);
@@ -366,7 +366,7 @@ describe('BoardService', () => {
 
       const req = httpMock.expectOne(
         (r) =>
-          r.url === '/api/boards/board-1/full' &&
+          r.url === '/api/projects/board-1/full' &&
           r.params.get('limit') === '50' &&
           r.params.get('offset') === '100',
       );
@@ -387,7 +387,7 @@ describe('BoardService', () => {
         error: (e) => (error = e),
       });
 
-      const req = httpMock.expectOne('/api/boards/nonexistent');
+      const req = httpMock.expectOne('/api/projects/nonexistent');
       req.flush('Not Found', { status: 404, statusText: 'Not Found' });
 
       expect(error).toBeTruthy();
@@ -413,7 +413,7 @@ describe('BoardService', () => {
         error: (e) => (error = e),
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1');
+      const req = httpMock.expectOne('/api/projects/board-1');
       req.flush('Forbidden', { status: 403, statusText: 'Forbidden' });
 
       expect(error).toBeTruthy();

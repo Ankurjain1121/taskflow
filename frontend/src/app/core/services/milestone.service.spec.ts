@@ -45,14 +45,14 @@ describe('MilestoneService', () => {
   });
 
   describe('list()', () => {
-    it('should GET /api/boards/:boardId/milestones', () => {
+    it('should GET /api/projects/:boardId/milestones', () => {
       const milestones = [MOCK_MILESTONE];
 
       service.list('board-1').subscribe((result) => {
         expect(result).toEqual(milestones);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/milestones');
+      const req = httpMock.expectOne('/api/projects/board-1/milestones');
       expect(req.request.method).toBe('GET');
       req.flush(milestones);
     });
@@ -71,7 +71,7 @@ describe('MilestoneService', () => {
   });
 
   describe('create()', () => {
-    it('should POST /api/boards/:boardId/milestones with body', () => {
+    it('should POST /api/projects/:boardId/milestones with body', () => {
       const createReq: CreateMilestoneRequest = {
         name: 'Sprint 2',
         description: 'Second sprint',
@@ -83,7 +83,7 @@ describe('MilestoneService', () => {
         expect(result).toEqual(MOCK_MILESTONE);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/milestones');
+      const req = httpMock.expectOne('/api/projects/board-1/milestones');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(createReq);
       req.flush(MOCK_MILESTONE);

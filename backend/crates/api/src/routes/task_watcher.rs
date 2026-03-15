@@ -11,7 +11,7 @@ use crate::extractors::TenantContext;
 use crate::state::AppState;
 use taskflow_db::queries::{add_watcher, get_task_board_id, remove_watcher};
 
-use super::task_helpers::verify_board_membership;
+use super::common::verify_project_membership;
 
 #[derive(Deserialize)]
 pub struct AddWatcherRequest {
@@ -29,9 +29,7 @@ pub async fn add_watcher_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     add_watcher(&state.db, task_id, body.user_id).await?;
 
@@ -48,9 +46,7 @@ pub async fn remove_watcher_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     remove_watcher(&state.db, task_id, user_id).await?;
 

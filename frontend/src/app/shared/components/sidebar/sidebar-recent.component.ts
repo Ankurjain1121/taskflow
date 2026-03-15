@@ -61,7 +61,7 @@ const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
                   [routerLink]="[
                     '/workspace',
                     item.workspaceId,
-                    'board',
+                    'project',
                     item.id,
                   ]"
                   routerLinkActive="active"
@@ -156,7 +156,7 @@ export class SidebarRecentComponent implements OnInit, OnDestroy {
 
   private onNavigationEnd(event: NavigationEnd): void {
     const match = event.urlAfterRedirects.match(
-      /\/workspace\/([^/]+)\/board\/([^/?]+)/,
+      /\/workspace\/([^/]+)\/project\/([^/?]+)/,
     );
     if (!match) return;
 

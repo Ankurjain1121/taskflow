@@ -14,9 +14,9 @@ use taskflow_db::queries::{
 };
 use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
 
+use super::common::verify_project_membership;
 use super::task_helpers::{
-    broadcast_workspace_task_update, get_workspace_id_for_board, verify_board_membership,
-    MoveTaskRequest,
+    broadcast_workspace_task_update, get_workspace_id_for_board, MoveTaskRequest,
 };
 
 /// POST /api/tasks/:id/move
@@ -33,9 +33,7 @@ pub async fn move_task_handler(
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     // Verify board membership
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     // Capture previous status_id for automation trigger + blueprint validation
     let previous_status_id = sqlx::query_scalar::<_, Uuid>(

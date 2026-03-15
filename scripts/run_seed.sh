@@ -2,7 +2,7 @@
 # =============================================================================
 # TaskFlow Seed Runner
 # =============================================================================
-# Creates 20 employees, 5 teams, 4 boards, and 500 tasks in Acme Corp tenant.
+# Creates 20 employees, 5 teams, 4 projects, and 500 tasks in Acme Corp tenant.
 #
 # Usage:
 #   ./scripts/run_seed.sh           # Run seed (idempotent)
@@ -62,12 +62,22 @@ fi
 
 # =============================================================================
 # Database connection helper
+# Parse DATABASE_URL if set, otherwise use individual POSTGRES_* vars
 # =============================================================================
-PGPASSWORD="${POSTGRES_PASSWORD:-postgres}"
-PGHOST="${POSTGRES_HOST:-localhost}"
-PGPORT="${POSTGRES_PORT:-5432}"
-PGUSER="${POSTGRES_USER:-postgres}"
-PGDB="${POSTGRES_DB:-taskflow}"
+if [ -n "${DATABASE_URL:-}" ]; then
+    # Extract from: postgresql://user:pass@host:port/db
+    _db_url="${DATABASE_URL#postgresql://}"
+    PGUSER="${_db_url%%:*}";    _db_url="${_db_url#*:}"
+    PGPASSWORD="${_db_url%%@*}"; _db_url="${_db_url#*@}"
+    PGHOST="${_db_url%%:*}";    _db_url="${_db_url#*:}"
+    PGPORT="${_db_url%%/*}";    PGDB="${_db_url#*/}"
+else
+    PGPASSWORD="${POSTGRES_PASSWORD:-postgres}"
+    PGHOST="${POSTGRES_HOST:-localhost}"
+    PGPORT="${POSTGRES_PORT:-5432}"
+    PGUSER="${POSTGRES_USER:-postgres}"
+    PGDB="${POSTGRES_DB:-taskflow}"
+fi
 
 export PGPASSWORD
 
@@ -179,8 +189,8 @@ BEGIN
         DELETE FROM teams WHERE workspace_id = v_ws;
     END LOOP;
 
-    -- Delete boards (cascades to columns, tasks, etc.)
-    DELETE FROM boards WHERE tenant_id = v_tenant;
+    -- Delete projects (cascades to statuses, task_lists, tasks, etc.)
+    DELETE FROM projects WHERE tenant_id = v_tenant;
 
     -- Delete users (cascades to workspace_members, etc.)
     DELETE FROM workspaces WHERE tenant_id = v_tenant;
@@ -228,9 +238,9 @@ SELECT
             SELECT id FROM workspaces
             WHERE tenant_id = (SELECT id FROM tenants WHERE slug = 'acme-seed')
             LIMIT 1))                                                 AS teams,
-    (SELECT COUNT(*) FROM boards
+    (SELECT COUNT(*) FROM projects
         WHERE tenant_id = (SELECT id FROM tenants WHERE slug = 'acme-seed'))
-                                                                      AS boards,
+                                                                      AS projects,
     (SELECT COUNT(*) FROM tasks
         WHERE tenant_id = (SELECT id FROM tenants WHERE slug = 'acme-seed'))
                                                                       AS tasks,
@@ -261,7 +271,7 @@ VERIFY_SQL
 )
 
 # Parse results (pipe-separated from psql -tA)
-IFS='|' read -r v_tenants v_users v_workspaces v_teams v_boards v_tasks \
+IFS='|' read -r v_tenants v_users v_workspaces v_teams v_projects v_tasks \
                v_assignees v_subtasks v_comments v_watchers v_deps v_time \
                <<< "$VERIFY_OUTPUT"
 
@@ -273,7 +283,7 @@ printf "  %-20s %s\n" "Tenants:"      "$v_tenants  (expected: 1)"
 printf "  %-20s %s\n" "Users:"        "$v_users  (expected: 20)"
 printf "  %-20s %s\n" "Workspaces:"   "$v_workspaces  (expected: 1)"
 printf "  %-20s %s\n" "Teams:"        "$v_teams  (expected: 5)"
-printf "  %-20s %s\n" "Boards:"       "$v_boards  (expected: 4)"
+printf "  %-20s %s\n" "Projects:"     "$v_projects  (expected: 4)"
 printf "  %-20s %s\n" "Tasks:"        "$v_tasks  (expected: 500)"
 printf "  %-20s %s\n" "Assignees:"    "$v_assignees  (expected: ~625)"
 printf "  %-20s %s\n" "Subtasks:"     "$v_subtasks  (expected: ~117)"
@@ -304,7 +314,7 @@ ERRORS=0
 [ "$v_tenants"   = "1"   ] || { log_error "Expected 1 tenant, got $v_tenants";    ERRORS=$((ERRORS+1)); }
 [ "$v_users"     = "20"  ] || { log_error "Expected 20 users, got $v_users";      ERRORS=$((ERRORS+1)); }
 [ "$v_teams"     = "5"   ] || { log_error "Expected 5 teams, got $v_teams";       ERRORS=$((ERRORS+1)); }
-[ "$v_boards"    = "4"   ] || { log_error "Expected 4 boards, got $v_boards";     ERRORS=$((ERRORS+1)); }
+[ "$v_projects"  = "4"   ] || { log_error "Expected 4 projects, got $v_projects"; ERRORS=$((ERRORS+1)); }
 [ "$v_tasks"     = "500" ] || { log_error "Expected 500 tasks, got $v_tasks";     ERRORS=$((ERRORS+1)); }
 
 if [ "$ERRORS" -eq 0 ]; then

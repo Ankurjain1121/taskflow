@@ -121,7 +121,7 @@ export class TimeTrackingService {
 
   getBoardTimeReport(boardId: string): Observable<TaskTimeReport[]> {
     return this.http.get<TaskTimeReport[]>(
-      `${this.apiUrl}/boards/${boardId}/time-report`,
+      `${this.apiUrl}/projects/${boardId}/time-report`,
     );
   }
 

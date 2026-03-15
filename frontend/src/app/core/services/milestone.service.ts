@@ -34,7 +34,7 @@ export class MilestoneService {
   constructor(private http: HttpClient) {}
 
   list(boardId: string): Observable<Milestone[]> {
-    return this.http.get<Milestone[]>(`/api/boards/${boardId}/milestones`);
+    return this.http.get<Milestone[]>(`/api/projects/${boardId}/milestones`);
   }
 
   get(id: string): Observable<Milestone> {
@@ -42,7 +42,7 @@ export class MilestoneService {
   }
 
   create(boardId: string, req: CreateMilestoneRequest): Observable<Milestone> {
-    return this.http.post<Milestone>(`/api/boards/${boardId}/milestones`, req);
+    return this.http.post<Milestone>(`/api/projects/${boardId}/milestones`, req);
   }
 
   update(id: string, req: UpdateMilestoneRequest): Observable<Milestone> {
