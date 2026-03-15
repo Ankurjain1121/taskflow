@@ -9,7 +9,9 @@ use crate::extractors::TenantContext;
 use crate::state::AppState;
 use taskflow_db::models::automation::AutomationTrigger;
 use taskflow_db::models::{Task, WsBoardEvent};
-use taskflow_db::queries::{get_task_assignee_ids, get_task_board_id, move_task};
+use taskflow_db::queries::{
+    get_task_assignee_ids, get_task_board_id, move_task, validate_transition,
+};
 use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
 
 use super::task_helpers::{
@@ -35,13 +37,26 @@ pub async fn move_task_handler(
         return Err(AppError::Forbidden("Not a board member".into()));
     }
 
-    // Capture previous status_id for automation trigger
+    // Capture previous status_id for automation trigger + blueprint validation
     let previous_status_id = sqlx::query_scalar::<_, Uuid>(
         "SELECT status_id FROM tasks WHERE id = $1 AND deleted_at IS NULL",
     )
     .bind(task_id)
     .fetch_optional(&state.db)
     .await?;
+
+    // Validate blueprint transition before moving
+    if let Some(from_status_id) = previous_status_id {
+        validate_transition(&state.db, from_status_id, body.status_id)
+            .await
+            .map_err(|e| match e {
+                taskflow_db::queries::TaskQueryError::Other(msg) => AppError::ValidationError(msg),
+                taskflow_db::queries::TaskQueryError::NotFound => {
+                    AppError::NotFound("Source status not found".into())
+                }
+                other => AppError::from(other),
+            })?;
+    }
 
     let task = move_task(&state.db, task_id, body.status_id, body.position.clone()).await?;
 

@@ -17,4 +17,5 @@ pub struct TimeEntry {
     pub tenant_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub is_billable: bool,
 }

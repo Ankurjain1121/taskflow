@@ -61,6 +61,11 @@ pub struct DeleteStatusRequest {
     pub replace_with_status_id: Uuid,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateTransitionsRequest {
+    pub allowed: Option<Vec<Uuid>>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct StatusResponse {
     pub id: Uuid,
@@ -72,6 +77,13 @@ pub struct StatusResponse {
     pub status_type: String,
     pub is_default: bool,
     pub created_at: chrono::DateTime<chrono::Utc>,
+    pub allowed_transitions: Option<Vec<Uuid>>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TransitionsResponse {
+    pub status_id: Uuid,
+    pub allowed_transitions: Option<Vec<Uuid>>,
 }
 
 // ============================================================================
@@ -99,6 +111,15 @@ async fn require_viewer_access(state: &AppState, project_id: Uuid, user_id: Uuid
     Ok(())
 }
 
+/// Look up the project_id for a given status_id
+async fn get_project_id_for_status(state: &AppState, status_id: Uuid) -> Result<Uuid> {
+    sqlx::query_scalar::<_, Uuid>("SELECT project_id FROM project_statuses WHERE id = $1")
+        .bind(status_id)
+        .fetch_optional(&state.db)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Status not found".into()))
+}
+
 fn to_response(s: taskflow_db::models::ProjectStatus) -> StatusResponse {
     StatusResponse {
         id: s.id,
@@ -109,6 +130,7 @@ fn to_response(s: taskflow_db::models::ProjectStatus) -> StatusResponse {
         status_type: s.status_type,
         is_default: s.is_default,
         created_at: s.created_at,
+        allowed_transitions: s.allowed_transitions,
     }
 }
 
@@ -187,6 +209,7 @@ async fn create_status(
 }
 
 /// PUT /api/columns/:id/name (now renames a status)
+/// Fixed: auth check BEFORE write
 async fn rename_status(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
@@ -197,12 +220,14 @@ async fn rename_status(
         return Err(AppError::BadRequest("Status name is required".into()));
     }
 
+    // Auth BEFORE write
+    let project_id = get_project_id_for_status(&state, id).await?;
+    require_editor_access(&state, project_id, auth.0.user_id).await?;
+
     let status =
         project_statuses::update_project_status(&state.db, id, Some(&payload.name), None, None)
             .await
             .map_err(|_| AppError::NotFound("Status not found".into()))?;
-
-    require_editor_access(&state, status.project_id, auth.0.user_id).await?;
 
     Ok(Json(to_response(status)))
 }
@@ -214,13 +239,12 @@ async fn reorder_status(
     Path(id): Path<Uuid>,
     Json(payload): Json<ReorderStatusRequest>,
 ) -> Result<Json<StatusResponse>> {
-    // We need to look up the status to find its project_id
-    // Do the update first then verify access (since update_project_status returns the status)
     let all_statuses_result = sqlx::query_as::<_, taskflow_db::models::ProjectStatus>(
         r#"
         SELECT id, project_id, name, color,
                type as "status_type",
-               position, is_default, tenant_id, created_at
+               position, is_default, tenant_id, created_at,
+               allowed_transitions
         FROM project_statuses
         WHERE project_id = (SELECT project_id FROM project_statuses WHERE id = $1)
         ORDER BY position ASC
@@ -277,12 +301,17 @@ async fn reorder_status(
 }
 
 /// PUT /api/columns/:id/status-mapping (now updates status type)
+/// Fixed: auth check BEFORE write
 async fn update_status_type(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateStatusTypeRequest>,
 ) -> Result<Json<StatusResponse>> {
+    // Auth BEFORE write
+    let project_id = get_project_id_for_status(&state, id).await?;
+    require_editor_access(&state, project_id, auth.0.user_id).await?;
+
     let status = project_statuses::update_project_status(
         &state.db,
         id,
@@ -293,24 +322,59 @@ async fn update_status_type(
     .await
     .map_err(|_| AppError::NotFound("Status not found".into()))?;
 
-    require_editor_access(&state, status.project_id, auth.0.user_id).await?;
-
     Ok(Json(to_response(status)))
 }
 
 /// PUT /api/columns/:id/color
+/// Fixed: auth check BEFORE write
 async fn update_color(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateStatusColorRequest>,
 ) -> Result<Json<StatusResponse>> {
+    // Auth BEFORE write
+    let project_id = get_project_id_for_status(&state, id).await?;
+    require_editor_access(&state, project_id, auth.0.user_id).await?;
+
     let status =
         project_statuses::update_project_status(&state.db, id, None, Some(&payload.color), None)
             .await
             .map_err(|_| AppError::NotFound("Status not found".into()))?;
 
-    require_editor_access(&state, status.project_id, auth.0.user_id).await?;
+    Ok(Json(to_response(status)))
+}
+
+/// GET /api/columns/:id/transitions
+async fn get_transitions(
+    State(state): State<AppState>,
+    auth: AuthUserExtractor,
+    Path(id): Path<Uuid>,
+) -> Result<Json<TransitionsResponse>> {
+    let project_id = get_project_id_for_status(&state, id).await?;
+    require_viewer_access(&state, project_id, auth.0.user_id).await?;
+
+    let transitions = project_statuses::get_transitions(&state.db, id).await?;
+
+    Ok(Json(TransitionsResponse {
+        status_id: id,
+        allowed_transitions: transitions,
+    }))
+}
+
+/// PUT /api/columns/:id/transitions
+async fn update_transitions(
+    State(state): State<AppState>,
+    auth: AuthUserExtractor,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<UpdateTransitionsRequest>,
+) -> Result<Json<StatusResponse>> {
+    let project_id = get_project_id_for_status(&state, id).await?;
+    require_editor_access(&state, project_id, auth.0.user_id).await?;
+
+    let status = project_statuses::set_transitions(&state.db, id, payload.allowed.as_deref())
+        .await
+        .map_err(|_| AppError::NotFound("Status not found".into()))?;
 
     Ok(Json(to_response(status)))
 }
@@ -327,7 +391,8 @@ async fn delete_status(
         r#"
         SELECT id, project_id, name, color,
                type as "status_type",
-               position, is_default, tenant_id, created_at
+               position, is_default, tenant_id, created_at,
+               allowed_transitions
         FROM project_statuses
         WHERE id = $1
         "#,
@@ -373,5 +438,9 @@ pub fn column_router(state: AppState) -> Router<AppState> {
         .route("/{id}/position", put(reorder_status))
         .route("/{id}/status-mapping", put(update_status_type))
         .route("/{id}/color", put(update_color))
+        .route(
+            "/{id}/transitions",
+            get(get_transitions).put(update_transitions),
+        )
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

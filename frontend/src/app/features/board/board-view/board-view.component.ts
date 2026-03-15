@@ -14,7 +14,11 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { CdkDrag, CdkDropList, CdkDragDrop } from '@angular/cdk/drag-drop';
 
-import { Task } from '../../../core/services/task.service';
+import {
+  Task,
+  TaskService,
+  UpdateTaskRequest,
+} from '../../../core/services/task.service';
 import { Column } from '../../../core/services/board.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
 import { PresenceService } from '../../../core/services/presence.service';
@@ -207,7 +211,12 @@ import { MessageService } from 'primeng/api';
             <app-list-view
               [tasks]="state.flatTasks()"
               [loading]="state.listLoading()"
+              [columns]="state.columns()"
               (taskClicked)="router.navigate(['/task', $event])"
+              (titleChanged)="onListTitleChanged($event)"
+              (priorityChanged)="onListPriorityChanged($event)"
+              (statusChanged)="onListStatusChanged($event)"
+              (dueDateChanged)="onListDueDateChanged($event)"
             ></app-list-view>
           } @placeholder {
             <div
@@ -290,6 +299,7 @@ import { MessageService } from 'primeng/api';
             [focusedTaskId]="state.focusedTaskId()"
             [selectedTaskIds]="state.selectedTaskIds()"
             [allColumns]="state.columns()"
+            [statusTransitions]="state.statusTransitions()"
             [groupBy]="state.groupBy()"
             [collapsedSwimlaneIds]="state.collapsedSwimlaneIds()"
             (taskMoved)="dragDrop.onSwimlaneTaskMoved($event)"
@@ -340,6 +350,7 @@ import { MessageService } from 'primeng/api';
                 [focusedTaskId]="state.focusedTaskId()"
                 [selectedTaskIds]="state.selectedTaskIds()"
                 [allColumns]="state.columns()"
+                [statusTransitions]="state.statusTransitions()"
                 [boardPrefix]="state.board()?.prefix ?? null"
                 [isCollapsed]="state.isColumnCollapsed(column.id)"
                 [density]="state.cardDensity()"
@@ -565,6 +576,7 @@ export class BoardViewComponent implements OnInit, OnDestroy {
   private presenceService = inject(PresenceService);
   private messageService = inject(MessageService);
   readonly state = inject(BoardStateService);
+  private taskService = inject(TaskService);
   readonly quickEditService = inject(CardQuickEditService);
   readonly hintsService = inject(FeatureHintsService);
   private undoToast = viewChild(UndoToastComponent);
@@ -783,6 +795,71 @@ export class BoardViewComponent implements OnInit, OnDestroy {
       description: '',
       priority: 'medium',
     } as CreateTaskDialogResult);
+  }
+
+  // === List View Inline Edit Handlers ===
+
+  onListTitleChanged(event: { taskId: string; title: string }): void {
+    this.updateFlatTask(event.taskId, { title: event.title });
+  }
+
+  onListPriorityChanged(event: { taskId: string; priority: string }): void {
+    this.updateFlatTask(event.taskId, {
+      priority: event.priority as UpdateTaskRequest['priority'],
+    });
+  }
+
+  onListStatusChanged(event: { taskId: string; statusId: string }): void {
+    this.taskService
+      .moveTask(event.taskId, {
+        status_id: event.statusId,
+        position: 'bottom',
+      })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          // Refresh list to reflect new status name/color
+          this.state.loadFlatTasks(this.boardId, this.destroy$);
+        },
+        error: () => {
+          this.state.showError('Failed to move task');
+        },
+      });
+  }
+
+  onListDueDateChanged(event: {
+    taskId: string;
+    dueDate: string | null;
+  }): void {
+    const req: UpdateTaskRequest = event.dueDate
+      ? { due_date: event.dueDate }
+      : { clear_due_date: true };
+    this.updateFlatTask(event.taskId, req);
+  }
+
+  private updateFlatTask(taskId: string, req: UpdateTaskRequest): void {
+    // Optimistic update in flatTasks
+    this.state.flatTasks.update((tasks) =>
+      tasks.map((t) => (t.id === taskId ? { ...t, ...req } : t)),
+    );
+
+    this.taskService
+      .updateTask(taskId, req)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (updatedTask) => {
+          this.state.flatTasks.update((tasks) =>
+            tasks.map((t) =>
+              t.id === taskId ? { ...t, ...updatedTask } : t,
+            ),
+          );
+        },
+        error: () => {
+          this.state.showError('Failed to update task');
+          // Reload to revert
+          this.state.loadFlatTasks(this.boardId, this.destroy$);
+        },
+      });
   }
 
   // === Keyboard Navigation ===

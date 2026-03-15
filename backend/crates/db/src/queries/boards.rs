@@ -93,7 +93,8 @@ pub async fn get_project_by_id(
 
             let statuses = sqlx::query_as::<_, ProjectStatus>(
                 r#"
-                SELECT id, project_id, name, color, type, position, is_default, tenant_id, created_at
+                SELECT id, project_id, name, color, type, position, is_default, tenant_id, created_at,
+                       allowed_transitions
                 FROM project_statuses
                 WHERE project_id = $1
                 ORDER BY position ASC
@@ -305,7 +306,7 @@ pub async fn add_project_member(
         INSERT INTO project_members (project_id, user_id, role)
         VALUES ($1, $2, $3)
         ON CONFLICT (project_id, user_id) DO UPDATE SET role = $3
-        RETURNING id, project_id, user_id, role as "role: _", joined_at
+        RETURNING id, project_id, user_id, role as "role: _", joined_at, billing_rate_cents
         "#,
     )
     .bind(project_id)

@@ -90,6 +90,46 @@ pub struct AssigneeInfo {
     pub assigned_at: DateTime<Utc>,
 }
 
+/// Validate that a status transition is allowed by the blueprint.
+/// Returns Ok(()) if the transition is allowed, Err if blocked.
+/// NULL allowed_transitions = allow all (backward compat).
+/// Empty array = terminal status (no outgoing transitions).
+pub async fn validate_transition(
+    pool: &PgPool,
+    from_status_id: Uuid,
+    to_status_id: Uuid,
+) -> Result<(), TaskQueryError> {
+    if from_status_id == to_status_id {
+        return Ok(());
+    }
+
+    let allowed: Option<Option<Vec<Uuid>>> = sqlx::query_scalar::<_, Option<Vec<Uuid>>>(
+        "SELECT allowed_transitions FROM project_statuses WHERE id = $1",
+    )
+    .bind(from_status_id)
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| {
+        // Catch stale FK — status was deleted between reads
+        TaskQueryError::Other(format!("Status configuration changed: {e}"))
+    })?;
+
+    match allowed {
+        None => {
+            // Status not found
+            Err(TaskQueryError::NotFound)
+        }
+        Some(None) => {
+            // NULL = allow all transitions
+            Ok(())
+        }
+        Some(Some(ref transitions)) if transitions.contains(&to_status_id) => Ok(()),
+        Some(Some(_)) => Err(TaskQueryError::Other(
+            "Transition not allowed by blueprint".to_string(),
+        )),
+    }
+}
+
 /// Verify user is a member of the project
 pub(crate) async fn verify_board_membership(
     pool: &PgPool,

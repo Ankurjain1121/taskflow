@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        INSERT INTO project_statuses (project_id, name, color, type, position, is_default, tenant_id)\n        VALUES ($1, $2, $3, $4, $5, false, $6)\n        RETURNING id, project_id, name, color,\n                  type as \"status_type\",\n                  position, is_default, tenant_id, created_at\n        ",
+  "query": "\n        SELECT id, project_id, name, color,\n               type as \"status_type\",\n               position, is_default, tenant_id, created_at,\n               allowed_transitions\n        FROM project_statuses\n        WHERE project_id = $1\n        ORDER BY position ASC\n        ",
   "describe": {
     "columns": [
       {
@@ -47,15 +47,15 @@
         "ordinal": 8,
         "name": "created_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "allowed_transitions",
+        "type_info": "UuidArray"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid",
-        "Varchar",
-        "Varchar",
-        "Varchar",
-        "Varchar",
         "Uuid"
       ]
     },
@@ -68,8 +68,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "b884d4880ea6e00a67dd4853105b4b4978fc2d2567cc53ce743e2195125eb038"
+  "hash": "247f5b10a8b42dbe09d2f7ca7cec123014b2badb592f765a4fb2276890f9e5b0"
 }

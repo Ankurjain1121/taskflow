@@ -1,10 +1,10 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
     Json, Router,
 };
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
@@ -16,14 +16,15 @@ use crate::state::AppState;
 use taskflow_db::queries::get_task_board_id;
 use taskflow_db::queries::time_entries::{
     create_manual_entry, delete_entry, get_board_time_report, get_running_timer,
-    list_task_time_entries, start_timer, stop_timer, update_entry, ManualEntryInput,
-    StartTimerInput, TimeEntryQueryError, UpdateEntryInput,
+    get_timesheet_report, list_task_time_entries, start_timer, stop_timer, update_entry,
+    ManualEntryInput, StartTimerInput, TimeEntryQueryError, UpdateEntryInput,
 };
 
 /// Request body for starting a timer
 #[derive(Deserialize)]
 pub struct StartTimerRequest {
     pub description: Option<String>,
+    pub is_billable: Option<bool>,
 }
 
 /// Request body for creating a manual time entry
@@ -33,6 +34,7 @@ pub struct CreateManualEntryRequest {
     pub started_at: DateTime<Utc>,
     pub ended_at: DateTime<Utc>,
     pub duration_minutes: i32,
+    pub is_billable: Option<bool>,
 }
 
 /// Request body for updating a time entry
@@ -42,6 +44,16 @@ pub struct UpdateEntryRequest {
     pub started_at: Option<DateTime<Utc>>,
     pub ended_at: Option<DateTime<Utc>>,
     pub duration_minutes: Option<i32>,
+    pub is_billable: Option<bool>,
+}
+
+/// Query params for timesheet report
+#[derive(Deserialize)]
+pub struct TimesheetReportQuery {
+    pub start_date: Option<NaiveDate>,
+    pub end_date: Option<NaiveDate>,
+    pub user_id: Option<Uuid>,
+    pub billable_only: Option<bool>,
 }
 
 /// Helper to map TimeEntryQueryError to AppError
@@ -89,6 +101,7 @@ async fn start_timer_handler(
         description: body.description,
         board_id,
         tenant_id: tenant.tenant_id,
+        is_billable: body.is_billable,
     };
 
     let entry = start_timer(&state.db, input)
@@ -131,6 +144,7 @@ async fn create_manual_entry_handler(
         duration_minutes: body.duration_minutes,
         board_id,
         tenant_id: tenant.tenant_id,
+        is_billable: body.is_billable,
     };
 
     let entry = create_manual_entry(&state.db, input)
@@ -152,6 +166,7 @@ async fn update_entry_handler(
         started_at: body.started_at,
         ended_at: body.ended_at,
         duration_minutes: body.duration_minutes,
+        is_billable: body.is_billable,
     };
 
     let entry = update_entry(&state.db, id, input, tenant.user_id)
@@ -183,6 +198,28 @@ async fn board_time_report_handler(
     let report = get_board_time_report(&state.db, board_id, tenant.user_id)
         .await
         .map_err(map_time_entry_error)?;
+
+    Ok(Json(report))
+}
+
+/// GET /api/projects/{project_id}/timesheet-report
+async fn timesheet_report_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+    Path(project_id): Path<Uuid>,
+    Query(params): Query<TimesheetReportQuery>,
+) -> Result<Json<taskflow_db::queries::time_entries::TimesheetReport>> {
+    let report = get_timesheet_report(
+        &state.db,
+        project_id,
+        tenant.user_id,
+        params.start_date,
+        params.end_date,
+        params.user_id,
+        params.billable_only,
+    )
+    .await
+    .map_err(map_time_entry_error)?;
 
     Ok(Json(report))
 }
@@ -220,6 +257,11 @@ pub fn time_entry_router(state: AppState) -> Router<AppState> {
         .route(
             "/boards/{board_id}/time-report",
             get(board_time_report_handler),
+        )
+        // Project-scoped timesheet report
+        .route(
+            "/projects/{project_id}/timesheet-report",
+            get(timesheet_report_handler),
         )
         // User-scoped running timer
         .route("/time-entries/running", get(get_running_timer_handler))
