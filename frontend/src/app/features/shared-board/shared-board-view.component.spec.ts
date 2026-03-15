@@ -4,7 +4,7 @@ import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { SharedProjectViewComponent } from './shared-board-view.component';
 import {
-  BoardShareService,
+  ProjectShareService,
   SharedBoardAccess,
 } from '../../core/services/board-share.service';
 
@@ -60,7 +60,7 @@ describe('SharedProjectViewComponent', () => {
     TestBed.configureTestingModule({
       imports: [SharedProjectViewComponent],
       providers: [
-        { provide: BoardShareService, useValue: mockShareService },
+        { provide: ProjectShareService, useValue: mockShareService },
         {
           provide: ActivatedRoute,
           useValue: {

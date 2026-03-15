@@ -11,7 +11,7 @@ import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WorkspaceStateService } from '../../../core/services/workspace-state.service';
-import { BoardService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/board.service';
 
 export interface Breadcrumb {
   label: string;
@@ -61,7 +61,7 @@ export class BreadcrumbsComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private activatedRoute = inject(ActivatedRoute);
   private workspaceState = inject(WorkspaceStateService);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private destroyRef = inject(DestroyRef);
 
   breadcrumbs = signal<Breadcrumb[]>([]);
@@ -197,7 +197,7 @@ export class BreadcrumbsComponent implements OnInit, OnDestroy {
     }
 
     // Async path: fetch name and cache it.
-    this.boardService
+    this.projectService
       .getBoard(boardId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

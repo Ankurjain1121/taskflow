@@ -18,7 +18,7 @@ import {
   AutomationTemplate,
   TemplateCategory,
 } from '../../../core/services/automation.service';
-import { BoardService, Board } from '../../../core/services/board.service';
+import { ProjectService, Board } from '../../../core/services/board.service';
 
 interface TemplateGroup {
   category: TemplateCategory;
@@ -222,7 +222,7 @@ interface TemplateGroup {
 })
 export class AutomationTemplatesComponent implements OnInit {
   private automationService = inject(AutomationService);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private messageService = inject(MessageService);
 
   workspaceId = input.required<string>();
@@ -369,7 +369,7 @@ export class AutomationTemplatesComponent implements OnInit {
   }
 
   private loadBoards(): void {
-    this.boardService.listBoards(this.workspaceId()).subscribe({
+    this.projectService.listBoards(this.workspaceId()).subscribe({
       next: (boards) => {
         this.boards.set(boards);
         this.boardOptions.set(boards.map((b) => ({ id: b.id, name: b.name })));

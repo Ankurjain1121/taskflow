@@ -7,7 +7,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { BoardService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/board.service';
 
 @Component({
   selector: 'app-sample-project-banner',
@@ -85,7 +85,7 @@ export class SampleProjectBannerComponent implements OnInit {
 
   constructor(
     private router: Router,
-    private boardService: BoardService,
+    private projectService: ProjectService,
   ) {}
 
   ngOnInit(): void {
@@ -103,7 +103,7 @@ export class SampleProjectBannerComponent implements OnInit {
 
   deleteBoard(): void {
     this.isDeleting.set(true);
-    this.boardService.deleteBoard(this.boardId()).subscribe({
+    this.projectService.deleteBoard(this.boardId()).subscribe({
       next: () => {
         this.isDeleting.set(false);
         this.deleted.emit();

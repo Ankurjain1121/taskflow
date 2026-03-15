@@ -285,8 +285,8 @@ import { MessageService } from 'primeng/api';
             </div>
           }
         </div>
-      } @else if (state.groupBy() !== 'none') {
-        <!-- Swimlane View -->
+      } @else if (viewMode() === 'kanban' && state.groupBy() !== 'none') {
+        <!-- Swimlane View (kanban with grouping) -->
         <div class="flex-1 overflow-auto">
           <app-swimlane-container
             [swimlaneGroups]="state.swimlaneGroups()"
@@ -320,7 +320,7 @@ import { MessageService } from 'primeng/api';
             (swimlaneToggled)="state.toggleSwimlaneCollapse($event)"
           />
         </div>
-      } @else {
+      } @else if (viewMode() === 'kanban') {
         <!-- Kanban Board -->
         <div class="flex-1 overflow-x-auto p-4">
           @if (state.dragSimulationActive()) {
@@ -609,7 +609,7 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
 
   constructor() {
     effect(() => {
-      this.quickEditService.setBoardMembers(this.state.boardMembers());
+      this.quickEditService.setProjectMembers(this.state.projectMembers());
     });
     effect(() => {
       this.quickEditService.setAvailableLabels(this.state.allLabels());
@@ -727,7 +727,7 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
 
     this.createTaskDialogColumnId = columnId;
     this.createTaskDialogColumnName = column.name;
-    this.createTaskDialogMembers = this.state.boardMembers().map((m) => ({
+    this.createTaskDialogMembers = this.state.projectMembers().map((m) => ({
       id: m.user_id,
       name: m.name || m.email || 'Unknown',
       avatar_url: m.avatar_url ?? undefined,

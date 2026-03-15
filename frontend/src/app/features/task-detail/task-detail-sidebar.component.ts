@@ -139,6 +139,16 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
                 <p-tag value="Done" severity="success" />
               }
             </div>
+          } @else if (task()?.status_name) {
+            <div class="flex items-center gap-2 mt-1">
+              <span
+                class="w-3 h-3 rounded-full flex-shrink-0"
+                [style.background-color]="task()!.status_color || '#6366f1'"
+              ></span>
+              <span class="field-value">{{ task()!.status_name }}</span>
+            </div>
+          } @else {
+            <span class="field-value text-[var(--muted-foreground)] mt-1">No status</span>
           }
         </div>
 

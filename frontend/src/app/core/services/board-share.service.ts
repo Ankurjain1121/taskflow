@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-export interface BoardShare {
+export interface ProjectShare {
   id: string;
   board_id: string;
   share_token: string;
@@ -44,26 +44,26 @@ export interface SharedBoardAccess {
 }
 
 @Injectable({ providedIn: 'root' })
-export class BoardShareService {
+export class ProjectShareService {
   constructor(private http: HttpClient) {}
 
-  listShares(boardId: string): Observable<BoardShare[]> {
-    return this.http.get<BoardShare[]>(`/api/projects/${boardId}/shares`);
+  listShares(boardId: string): Observable<ProjectShare[]> {
+    return this.http.get<ProjectShare[]>(`/api/projects/${boardId}/shares`);
   }
 
   createShare(
     boardId: string,
     req: CreateShareRequest,
-  ): Observable<BoardShare> {
-    return this.http.post<BoardShare>(`/api/projects/${boardId}/shares`, req);
+  ): Observable<ProjectShare> {
+    return this.http.post<ProjectShare>(`/api/projects/${boardId}/shares`, req);
   }
 
   deleteShare(shareId: string): Observable<void> {
     return this.http.delete<void>(`/api/shares/${shareId}`);
   }
 
-  toggleShare(shareId: string, isActive: boolean): Observable<BoardShare> {
-    return this.http.put<BoardShare>(`/api/shares/${shareId}`, {
+  toggleShare(shareId: string, isActive: boolean): Observable<ProjectShare> {
+    return this.http.put<ProjectShare>(`/api/shares/${shareId}`, {
       is_active: isActive,
     });
   }
@@ -77,3 +77,9 @@ export class BoardShareService {
     return this.http.get<SharedBoardAccess>(`/api/shared/${token}`, { params });
   }
 }
+
+/** @deprecated Use ProjectShare */
+export type BoardShare = ProjectShare;
+
+/** @deprecated Use ProjectShareService */
+export const BoardShareService = ProjectShareService;

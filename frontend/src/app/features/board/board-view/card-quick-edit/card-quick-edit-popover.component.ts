@@ -72,7 +72,7 @@ import { TaskPriority } from '../../../../core/services/task.service';
           }
           @case ('assignee') {
             <app-assignee-picker
-              [members]="service.boardMembers()"
+              [members]="service.projectMembers()"
               [selectedIds]="currentAssigneeIds()"
               (assigneesChanged)="onAssigneesChanged($event)"
             />

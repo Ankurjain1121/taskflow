@@ -6,7 +6,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { SampleProjectBannerComponent } from './sample-board-banner.component';
-import { BoardService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/board.service';
 
 // Minimal stub component for catch-all route, suppressing NG04002 console noise.
 @Component({ standalone: true, template: '' })
@@ -50,7 +50,7 @@ describe('SampleProjectBannerComponent', () => {
   let host: TestHostComponent;
   let router: Router;
 
-  const mockBoardService = {
+  const mockProjectService = {
     deleteBoard: vi.fn(),
   };
 
@@ -68,7 +68,7 @@ describe('SampleProjectBannerComponent', () => {
           { path: '**', component: StubRouteComponent },
         ]),
       ],
-      providers: [{ provide: BoardService, useValue: mockBoardService }],
+      providers: [{ provide: ProjectService, useValue: mockProjectService }],
     }).compileComponents();
 
     router = TestBed.inject(Router);
@@ -140,18 +140,18 @@ describe('SampleProjectBannerComponent', () => {
   // --- deleteBoard() success path ---
 
   describe('deleteBoard() — success', () => {
-    it('should call boardService.deleteBoard with the boardId', () => {
-      mockBoardService.deleteBoard.mockReturnValue(of(null));
+    it('should call projectService.deleteBoard with the boardId', () => {
+      mockProjectService.deleteBoard.mockReturnValue(of(null));
       fixture.detectChanges();
       const banner = getBanner(fixture);
 
       banner.deleteBoard();
 
-      expect(mockBoardService.deleteBoard).toHaveBeenCalledWith(BOARD_ID);
+      expect(mockProjectService.deleteBoard).toHaveBeenCalledWith(BOARD_ID);
     });
 
     it('should emit the deleted output event on success', () => {
-      mockBoardService.deleteBoard.mockReturnValue(of(null));
+      mockProjectService.deleteBoard.mockReturnValue(of(null));
       fixture.detectChanges();
       const banner = getBanner(fixture);
 
@@ -161,7 +161,7 @@ describe('SampleProjectBannerComponent', () => {
     });
 
     it('should navigate to /dashboard on success', () => {
-      mockBoardService.deleteBoard.mockReturnValue(of(null));
+      mockProjectService.deleteBoard.mockReturnValue(of(null));
       const navigateSpy = vi.spyOn(router, 'navigate');
       fixture.detectChanges();
       const banner = getBanner(fixture);
@@ -172,7 +172,7 @@ describe('SampleProjectBannerComponent', () => {
     });
 
     it('should reset isDeleting to false after success', () => {
-      mockBoardService.deleteBoard.mockReturnValue(of(null));
+      mockProjectService.deleteBoard.mockReturnValue(of(null));
       fixture.detectChanges();
       const banner = getBanner(fixture);
 
@@ -189,7 +189,7 @@ describe('SampleProjectBannerComponent', () => {
       // Verify that isDeleting is true when the Observable constructor runs
       // (which happens synchronously inside deleteBoard before any async work).
       let isDeletingAtSubscribeTime = false;
-      mockBoardService.deleteBoard.mockReturnValue(
+      mockProjectService.deleteBoard.mockReturnValue(
         new Observable<null>((observer) => {
           // The Observable constructor is called synchronously by subscribe(),
           // which is called after this.isDeleting.set(true) in deleteBoard().
@@ -209,7 +209,7 @@ describe('SampleProjectBannerComponent', () => {
     });
 
     it('should reset isDeleting to false once the observable completes successfully', () => {
-      mockBoardService.deleteBoard.mockReturnValue(of(null));
+      mockProjectService.deleteBoard.mockReturnValue(of(null));
       fixture.detectChanges();
       const banner = getBanner(fixture);
 
@@ -223,7 +223,7 @@ describe('SampleProjectBannerComponent', () => {
 
   describe('deleteBoard() — error', () => {
     it('should reset isDeleting to false on error', () => {
-      mockBoardService.deleteBoard.mockReturnValue(
+      mockProjectService.deleteBoard.mockReturnValue(
         throwError(() => new Error('Server error')),
       );
       fixture.detectChanges();
@@ -235,7 +235,7 @@ describe('SampleProjectBannerComponent', () => {
     });
 
     it('should NOT emit deleted event on error', () => {
-      mockBoardService.deleteBoard.mockReturnValue(
+      mockProjectService.deleteBoard.mockReturnValue(
         throwError(() => new Error('Server error')),
       );
       fixture.detectChanges();
@@ -247,7 +247,7 @@ describe('SampleProjectBannerComponent', () => {
     });
 
     it('should NOT navigate on error', () => {
-      mockBoardService.deleteBoard.mockReturnValue(
+      mockProjectService.deleteBoard.mockReturnValue(
         throwError(() => new Error('Server error')),
       );
       const navigateSpy = vi.spyOn(router, 'navigate');

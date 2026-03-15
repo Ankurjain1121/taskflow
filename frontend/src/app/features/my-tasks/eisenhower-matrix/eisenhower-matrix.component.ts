@@ -31,7 +31,7 @@ import {
   WorkspaceService,
   Workspace,
 } from '../../../core/services/workspace.service';
-import { BoardService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/board.service';
 import {
   EisenhowerTaskCardComponent,
   DelegateMember,
@@ -390,7 +390,7 @@ export class EisenhowerMatrixComponent implements OnInit {
   private eisenhowerService = inject(EisenhowerService);
   private taskService = inject(TaskService);
   private workspaceService = inject(WorkspaceService);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private confirmationService = inject(ConfirmationService);
 
   loading = signal(false);
@@ -611,7 +611,7 @@ export class EisenhowerMatrixComponent implements OnInit {
   }
 
   private loadBoards(workspaceId: string) {
-    this.boardService.listBoards(workspaceId).subscribe({
+    this.projectService.listBoards(workspaceId).subscribe({
       next: (list) =>
         this.boards.set(list.map((b) => ({ id: b.id, name: b.name }))),
     });

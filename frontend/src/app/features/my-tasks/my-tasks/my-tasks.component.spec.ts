@@ -4,7 +4,7 @@ import { of, throwError, Subject } from 'rxjs';
 import { provideRouter } from '@angular/router';
 import { MyTasksComponent } from './my-tasks.component';
 import { MyTasksService } from '../../../core/services/my-tasks.service';
-import { BoardService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/board.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
 
@@ -67,7 +67,7 @@ describe('MyTasksComponent', () => {
       getMyTasksSummary: vi.fn().mockReturnValue(of(mockSummary)),
     };
 
-    const mockBoardService = {
+    const mockProjectService = {
       listBoards: vi.fn().mockReturnValue(of([])),
     };
 
@@ -94,7 +94,7 @@ describe('MyTasksComponent', () => {
       providers: [
         provideRouter([]),
         { provide: MyTasksService, useValue: mockMyTasksService },
-        { provide: BoardService, useValue: mockBoardService },
+        { provide: ProjectService, useValue: mockProjectService },
         { provide: AuthService, useValue: mockAuthService },
         { provide: WebSocketService, useValue: mockWsService },
       ],

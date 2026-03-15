@@ -83,7 +83,7 @@ export class ProjectPresenceComponent {
   readonly visibleViewers = computed((): ViewerDisplay[] => {
     const currentUserId = this.authService.currentUser()?.id;
     const viewerIds = this.presenceService.boardViewers();
-    const members = this.boardState.boardMembers();
+    const members = this.boardState.projectMembers();
     const viewerNameMap = this.presenceService.viewerNames();
 
     return viewerIds

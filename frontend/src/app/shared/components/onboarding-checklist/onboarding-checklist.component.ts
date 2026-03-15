@@ -19,7 +19,7 @@ import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortc
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (checklist.shouldShow() || checklist.isDismissed()) {
+    @if ((checklist.shouldShow() || checklist.isDismissed()) && !checklist.isSkipped()) {
       <!-- Collapsed pill -->
       @if (checklist.isDismissed() && !checklist.isSkipped()) {
         <button

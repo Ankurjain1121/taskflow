@@ -27,7 +27,7 @@ import {
   WorkspaceService,
   MemberSearchResult,
 } from '../../../core/services/workspace.service';
-import { BoardService, Column } from '../../../core/services/board.service';
+import { ProjectService, Column } from '../../../core/services/board.service';
 import {
   DependencyService,
   TaskDependency,
@@ -322,7 +322,7 @@ import { TaskDetailFieldsComponent } from './task-detail-fields.component';
 export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   private taskService = inject(TaskService);
   private workspaceService = inject(WorkspaceService);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private dependencyService = inject(DependencyService);
   private milestoneService = inject(MilestoneService);
   private customFieldService = inject(CustomFieldService);

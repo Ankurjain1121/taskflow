@@ -4,11 +4,11 @@ import { Subject, takeUntil, forkJoin } from 'rxjs';
 export const MAX_SELECTION = 500;
 
 import {
-  BoardService,
+  ProjectService,
   Board,
   Column,
-  BoardMember,
-  BoardFullResponse,
+  ProjectMember,
+  ProjectFullResponse,
   BoardMeta,
 } from '../../../core/services/board.service';
 import {
@@ -66,7 +66,7 @@ export const DEFAULT_CARD_FIELDS: CardFields = {
 
 @Injectable()
 export class ProjectStateService {
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private taskService = inject(TaskService);
   private taskGroupService = inject(TaskGroupService);
   private milestoneService = inject(MilestoneService);
@@ -80,7 +80,7 @@ export class ProjectStateService {
     this.mutations.init({
       boardState: this.boardState,
       columns: this.columns,
-      boardMembers: this.boardMembers,
+      projectMembers: this.projectMembers,
       boardGroups: this.boardGroups,
       allLabels: () => this.allLabels(),
       showError: (msg) => this.showError(msg),
@@ -113,7 +113,7 @@ export class ProjectStateService {
   readonly selectedTaskIds = signal<string[]>([]);
   readonly selectionMode = signal(false);
   readonly errorMessage = signal<string | null>(null);
-  readonly boardMembers = signal<BoardMember[]>([]);
+  readonly projectMembers = signal<ProjectMember[]>([]);
   readonly boardMilestones = signal<Milestone[]>([]);
   readonly boardGroups = signal<TaskGroupWithStats[]>([]);
   readonly collapsedColumnIds = signal<Set<string>>(new Set());
@@ -249,8 +249,8 @@ export class ProjectStateService {
 
     this.loadCollapsedColumns(boardId);
     this.groupingService.loadGroupBy(boardId);
-    this.boardService.getBoardFull(boardId).subscribe({
-      next: (response: BoardFullResponse) => {
+    this.projectService.getBoardFull(boardId).subscribe({
+      next: (response: ProjectFullResponse) => {
         this.board.set(response.board);
         const cols = (
           (response.board.columns ?? response.statuses ?? []) as Column[]
@@ -314,7 +314,7 @@ export class ProjectStateService {
           this.tasksLoaded.set(response.tasks.length);
         }
 
-        this.boardMembers.set(response.members);
+        this.projectMembers.set(response.members);
         this.loading.set(false);
 
         this.wsService.send('subscribe', { channel: `board:${boardId}` });
@@ -335,8 +335,8 @@ export class ProjectStateService {
 
   loadMoreTasks(boardId: string): void {
     const offset = this.tasksLoaded();
-    this.boardService.getBoardFull(boardId, { limit: 100, offset }).subscribe({
-      next: (response: BoardFullResponse) => {
+    this.projectService.getBoardFull(boardId, { limit: 100, offset }).subscribe({
+      next: (response: ProjectFullResponse) => {
         if (response.meta) {
           this.taskMeta.set(response.meta);
         }

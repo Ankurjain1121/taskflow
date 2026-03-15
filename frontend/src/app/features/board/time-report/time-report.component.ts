@@ -22,8 +22,8 @@ import {
   TimesheetEntry,
 } from '../../../core/services/time-tracking.service';
 import {
-  BoardService,
-  BoardMember,
+  ProjectService,
+  ProjectMember,
 } from '../../../core/services/board.service';
 
 type ViewMode = 'simple' | 'timesheet';
@@ -545,7 +545,7 @@ interface UserOption {
 })
 export class TimeReportComponent implements OnInit, OnChanges {
   private timeTrackingService = inject(TimeTrackingService);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
 
   boardId = input.required<string>();
 
@@ -553,7 +553,7 @@ export class TimeReportComponent implements OnInit, OnChanges {
   viewMode = signal<ViewMode>('simple');
   reportData = signal<TaskTimeReport[]>([]);
   timesheetData = signal<TimesheetReport | null>(null);
-  members = signal<BoardMember[]>([]);
+  members = signal<ProjectMember[]>([]);
 
   // Timesheet filters
   filterStartDate: Date | null = null;
@@ -697,7 +697,7 @@ export class TimeReportComponent implements OnInit, OnChanges {
   }
 
   private loadMembers(): void {
-    this.boardService.getBoardMembers(this.boardId()).subscribe({
+    this.projectService.getProjectMembers(this.boardId()).subscribe({
       next: (data) => {
         this.members.set(data);
       },

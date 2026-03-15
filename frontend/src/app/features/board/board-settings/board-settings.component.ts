@@ -18,9 +18,9 @@ import {
   Validators,
 } from '@angular/forms';
 import {
-  BoardService,
+  ProjectService,
   Board,
-  BoardMember,
+  ProjectMember,
   ProjectStatus,
 } from '../../../core/services/board.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -476,7 +476,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
                   <!-- Positions -->
                   <app-position-list
                     [boardId]="boardId"
-                    [boardMembers]="members()"
+                    [projectMembers]="members()"
                   />
                 </div>
               </p-tabpanel>
@@ -987,7 +987,7 @@ export class ProjectSettingsComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private authService = inject(AuthService);
   private confirmationService = inject(ConfirmationService);
   private messageService = inject(MessageService);
@@ -1002,7 +1002,7 @@ export class ProjectSettingsComponent implements OnInit {
   deleting = signal(false);
   archiving = signal(false);
   board = signal<Board | null>(null);
-  members = signal<BoardMember[]>([]);
+  members = signal<ProjectMember[]>([]);
   selectedColor = signal<string | null>(null);
   showInviteDialog = signal(false);
   showSaveTemplateDialog = signal(false);
@@ -1082,7 +1082,7 @@ export class ProjectSettingsComponent implements OnInit {
 
   loadWorkflow(): void {
     this.workflowLoading.set(true);
-    this.boardService
+    this.projectService
       .listStatuses(this.boardId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -1140,7 +1140,7 @@ export class ProjectSettingsComponent implements OnInit {
     this.workflowSaving.set(true);
     const map = this.transitionMap();
     const calls = this.workflowStatuses().map((s) =>
-      this.boardService.updateTransitions(s.id, map[s.id] ?? null),
+      this.projectService.updateTransitions(s.id, map[s.id] ?? null),
     );
 
     if (calls.length === 0) {
@@ -1199,7 +1199,7 @@ export class ProjectSettingsComponent implements OnInit {
     this.saving.set(true);
     const { name, description } = this.form.value;
 
-    this.boardService
+    this.projectService
       .updateBoard(this.boardId, { name, description })
       .subscribe({
         next: (updated) => {
@@ -1221,7 +1221,7 @@ export class ProjectSettingsComponent implements OnInit {
     const snapshot = this.members();
 
     // Optimistic: insert temp member
-    const tempMember: BoardMember = {
+    const tempMember: ProjectMember = {
       user_id: crypto.randomUUID(),
       board_id: this.boardId,
       role: result.role,
@@ -1231,8 +1231,8 @@ export class ProjectSettingsComponent implements OnInit {
     };
     this.members.update((members) => [...members, tempMember]);
 
-    this.boardService
-      .inviteBoardMember(this.boardId, {
+    this.projectService
+      .inviteProjectMember(this.boardId, {
         email: result.email,
         role: result.role,
       })
@@ -1249,7 +1249,7 @@ export class ProjectSettingsComponent implements OnInit {
       });
   }
 
-  onMemberRoleChange(member: BoardMember, role: 'viewer' | 'editor'): void {
+  onMemberRoleChange(member: ProjectMember, role: 'viewer' | 'editor'): void {
     const snapshot = this.members();
 
     // Optimistic: update role locally
@@ -1257,8 +1257,8 @@ export class ProjectSettingsComponent implements OnInit {
       members.map((m) => (m.user_id === member.user_id ? { ...m, role } : m)),
     );
 
-    this.boardService
-      .updateBoardMemberRole(this.boardId, member.user_id, { role })
+    this.projectService
+      .updateProjectMemberRole(this.boardId, member.user_id, { role })
       .subscribe({
         next: (updatedMember) => {
           this.members.update((members) =>
@@ -1274,7 +1274,7 @@ export class ProjectSettingsComponent implements OnInit {
       });
   }
 
-  onRemoveMember(member: BoardMember): void {
+  onRemoveMember(member: ProjectMember): void {
     this.confirmationService.confirm({
       message: `Remove ${member.name || member.email} from this board?`,
       header: 'Remove Member',
@@ -1289,8 +1289,8 @@ export class ProjectSettingsComponent implements OnInit {
           members.filter((m) => m.user_id !== member.user_id),
         );
 
-        this.boardService
-          .removeBoardMember(this.boardId, member.user_id)
+        this.projectService
+          .removeProjectMember(this.boardId, member.user_id)
           .subscribe({
             error: () => {
               this.members.set(snapshot);
@@ -1314,7 +1314,7 @@ export class ProjectSettingsComponent implements OnInit {
       accept: () => {
         this.deleting.set(true);
 
-        this.boardService.deleteBoard(this.boardId).subscribe({
+        this.projectService.deleteBoard(this.boardId).subscribe({
           next: () => {
             this.router.navigate(['/workspace', this.workspaceId]);
           },
@@ -1328,7 +1328,7 @@ export class ProjectSettingsComponent implements OnInit {
 
   selectBoardColor(color: string): void {
     this.selectedColor.set(color);
-    this.boardService
+    this.projectService
       .updateBoard(this.boardId, { background_color: color })
       .subscribe({
         next: (updated) => {
@@ -1346,7 +1346,7 @@ export class ProjectSettingsComponent implements OnInit {
 
   clearBoardColor(): void {
     this.selectedColor.set(null);
-    this.boardService
+    this.projectService
       .updateBoard(this.boardId, { background_color: null })
       .subscribe({
         next: (updated) => {
@@ -1374,7 +1374,7 @@ export class ProjectSettingsComponent implements OnInit {
       rejectButtonStyleClass: 'p-button-text p-button-sm',
       accept: () => {
         this.archiving.set(true);
-        this.boardService.deleteBoard(this.boardId).subscribe({
+        this.projectService.deleteBoard(this.boardId).subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',
@@ -1410,7 +1410,7 @@ export class ProjectSettingsComponent implements OnInit {
   private loadBoard(): void {
     this.loading.set(true);
 
-    this.boardService.getBoard(this.boardId).subscribe({
+    this.projectService.getBoard(this.boardId).subscribe({
       next: (board) => {
         this.board.set(board);
         this.selectedColor.set(board.background_color ?? null);
@@ -1418,7 +1418,7 @@ export class ProjectSettingsComponent implements OnInit {
           name: board.name,
           description: board.description || '',
         });
-        this.loadBoardMembers();
+        this.loadProjectMembers();
         this.loading.set(false);
       },
       error: () => {
@@ -1427,8 +1427,8 @@ export class ProjectSettingsComponent implements OnInit {
     });
   }
 
-  private loadBoardMembers(): void {
-    this.boardService.getBoardMembers(this.boardId).subscribe({
+  private loadProjectMembers(): void {
+    this.projectService.getProjectMembers(this.boardId).subscribe({
       next: (members) => {
         this.members.set(members);
       },

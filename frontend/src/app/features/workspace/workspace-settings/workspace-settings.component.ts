@@ -21,7 +21,7 @@ import {
   Workspace,
   WorkspaceMember,
 } from '../../../core/services/workspace.service';
-import { BoardService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/board.service';
 import { AuthService } from '../../../core/services/auth.service';
 import {
   MembersListComponent,
@@ -175,7 +175,7 @@ export class WorkspaceSettingsComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
   private workspaceService = inject(WorkspaceService);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private authService = inject(AuthService);
 
   @ViewChild(WorkspaceGeneralTabComponent)
@@ -274,7 +274,7 @@ export class WorkspaceSettingsComponent implements OnInit {
   }
 
   private loadBoards(): void {
-    this.boardService.listBoards(this.workspaceId).subscribe({
+    this.projectService.listBoards(this.workspaceId).subscribe({
       next: (boards) => {
         this.boards.set(boards.map((b) => ({ id: b.id, name: b.name })));
       },

@@ -19,7 +19,7 @@ import {
   Workspace,
   WorkspaceMember,
 } from '../../../core/services/workspace.service';
-import { BoardService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/board.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { WorkspaceSettingsDialogService } from '../../../core/services/workspace-settings-dialog.service';
 import { WorkspaceGeneralTabComponent } from './workspace-general-tab.component';
@@ -123,7 +123,7 @@ export class WorkspaceSettingsDialogComponent {
   readonly dialogService = inject(WorkspaceSettingsDialogService);
   private router = inject(Router);
   private workspaceService = inject(WorkspaceService);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private authService = inject(AuthService);
 
   @ViewChild(WorkspaceGeneralTabComponent)

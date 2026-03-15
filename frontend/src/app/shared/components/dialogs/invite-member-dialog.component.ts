@@ -22,7 +22,7 @@ import { Textarea } from 'primeng/textarea';
 import { Select } from 'primeng/select';
 import { Checkbox } from 'primeng/checkbox';
 import { FormsModule } from '@angular/forms';
-import { BoardService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/board.service';
 import { Workspace } from '../../../core/services/workspace.service';
 
 export interface InviteMemberDialogData {
@@ -320,7 +320,7 @@ interface EmailValidation {
 })
 export class InviteMemberDialogComponent {
   private fb = inject(FormBuilder);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
 
   /** Two-way bound visibility */
   visible = model(false);
@@ -402,7 +402,7 @@ export class InviteMemberDialogComponent {
     this.dynamicBoards.set([]);
     if (wsId) {
       this.loadingBoards.set(true);
-      this.boardService.listBoards(wsId).subscribe({
+      this.projectService.listBoards(wsId).subscribe({
         next: (boards) => {
           this.dynamicBoards.set(
             boards.map((b) => ({ id: b.id, name: b.name })),

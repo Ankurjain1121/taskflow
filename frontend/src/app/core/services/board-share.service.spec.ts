@@ -4,13 +4,13 @@ import {
   HttpTestingController,
 } from '@angular/common/http/testing';
 import {
-  BoardShareService,
-  BoardShare,
+  ProjectShareService,
+  ProjectShare,
   CreateShareRequest,
   SharedBoardAccess,
 } from './board-share.service';
 
-const MOCK_SHARE: BoardShare = {
+const MOCK_SHARE: ProjectShare = {
   id: 'share-1',
   board_id: 'board-1',
   share_token: 'token-abc',
@@ -23,16 +23,16 @@ const MOCK_SHARE: BoardShare = {
   created_at: '2026-02-20T00:00:00Z',
 };
 
-describe('BoardShareService', () => {
-  let service: BoardShareService;
+describe('ProjectShareService', () => {
+  let service: ProjectShareService;
   let httpMock: HttpTestingController;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
-      providers: [BoardShareService],
+      providers: [ProjectShareService],
     });
-    service = TestBed.inject(BoardShareService);
+    service = TestBed.inject(ProjectShareService);
     httpMock = TestBed.inject(HttpTestingController);
   });
 

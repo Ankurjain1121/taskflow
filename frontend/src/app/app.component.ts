@@ -26,6 +26,7 @@ import { ToastContainerComponent } from './shared/components/toast/toast.compone
 import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
 import { TopNavComponent } from './shared/components/top-nav/top-nav.component';
 import { WorkspaceSettingsDialogComponent } from './features/workspace/workspace-settings/workspace-settings-dialog.component';
+import { TimerWidgetComponent } from './shared/components/timer-widget/timer-widget.component';
 
 const routeTransition = trigger('routeAnimations', [
   transition('* <=> *', [
@@ -61,6 +62,7 @@ const routeTransition = trigger('routeAnimations', [
     SidebarComponent,
     TopNavComponent,
     WorkspaceSettingsDialogComponent,
+    TimerWidgetComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.component.html',

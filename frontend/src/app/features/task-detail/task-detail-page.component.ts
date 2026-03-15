@@ -27,7 +27,7 @@ import {
   UpdateTaskRequest,
 } from '../../core/services/task.service';
 import { AuthService } from '../../core/services/auth.service';
-import { BoardService, Board, Column } from '../../core/services/board.service';
+import { ProjectService, Board, Column } from '../../core/services/board.service';
 import {
   WorkspaceService,
   Workspace,
@@ -395,7 +395,7 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
   private location = inject(Location);
   private injector = inject(Injector);
   private taskService = inject(TaskService);
-  private boardService = inject(BoardService);
+  private projectService = inject(ProjectService);
   private workspaceService = inject(WorkspaceService);
   private authService = inject(AuthService);
   private recentItemsService = inject(RecentItemsService);
@@ -473,8 +473,8 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
 
   private loadBoardContext(boardId: string): void {
     forkJoin({
-      board: this.boardService.getBoard(boardId),
-      columns: this.boardService.listColumns(boardId),
+      board: this.projectService.getBoard(boardId),
+      columns: this.projectService.listColumns(boardId),
     }).subscribe({
       next: ({ board, columns }) => {
         this.board.set(board);

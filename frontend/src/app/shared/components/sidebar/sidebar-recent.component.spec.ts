@@ -6,12 +6,12 @@ import {
   SidebarRecentComponent,
   RecentBoardEntry,
 } from './sidebar-recent.component';
-import { BoardService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/board.service';
 
 describe('SidebarRecentComponent', () => {
   let component: SidebarRecentComponent;
   let fixture: ComponentFixture<SidebarRecentComponent>;
-  let mockBoardService: any;
+  let mockProjectService: any;
 
   beforeEach(async () => {
     Object.defineProperty(window, 'matchMedia', {
@@ -31,7 +31,7 @@ describe('SidebarRecentComponent', () => {
     // Clear localStorage before each test
     localStorage.removeItem('taskflow_recent_boards');
 
-    mockBoardService = {
+    mockProjectService = {
       getBoard: vi.fn().mockReturnValue(of({ id: 'b-1', name: 'My Board' })),
     };
 
@@ -39,7 +39,7 @@ describe('SidebarRecentComponent', () => {
       imports: [SidebarRecentComponent],
       providers: [
         provideRouter([]),
-        { provide: BoardService, useValue: mockBoardService },
+        { provide: ProjectService, useValue: mockProjectService },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
