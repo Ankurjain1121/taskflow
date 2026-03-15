@@ -250,7 +250,7 @@ async fn create_circuit_breaker_notification(
         .bind(Uuid::new_v4())
         .bind(owner_id)
         .bind("Too many automation errors in a short time. All automations for this board have been paused. Please review and re-enable them.")
-        .bind(format!("/boards/{}/settings", board_id))
+        .bind(format!("/projects/{}/settings", board_id))
         .execute(pool)
         .await?;
     }
@@ -714,7 +714,7 @@ async fn execute_send_notification(
         .bind(Uuid::new_v4())
         .bind(recipient_id)
         .bind(message)
-        .bind(format!("/boards/{}/tasks/{}", context.board_id, context.task_id))
+        .bind(format!("/projects/{}/tasks/{}", context.board_id, context.task_id))
         .execute(pool)
         .await?;
     }

@@ -116,18 +116,18 @@ async fn list_handler(
 pub fn bulk_ops_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route(
-            "/boards/{board_id}/bulk-operations/preview",
+            "/projects/{board_id}/bulk-operations/preview",
             post(preview_handler),
         )
         .route(
-            "/boards/{board_id}/bulk-operations/execute",
+            "/projects/{board_id}/bulk-operations/execute",
             post(execute_handler),
         )
         .route(
-            "/boards/{board_id}/bulk-operations/{op_id}/undo",
+            "/projects/{board_id}/bulk-operations/{op_id}/undo",
             post(undo_handler),
         )
-        .route("/boards/{board_id}/bulk-operations", get(list_handler))
+        .route("/projects/{board_id}/bulk-operations", get(list_handler))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 

@@ -163,11 +163,11 @@ pub fn custom_field_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Board-scoped custom field routes
         .route(
-            "/boards/{board_id}/custom-fields",
+            "/projects/{board_id}/custom-fields",
             get(list_custom_fields_handler),
         )
         .route(
-            "/boards/{board_id}/custom-fields",
+            "/projects/{board_id}/custom-fields",
             axum::routing::post(create_custom_field_handler),
         )
         // Custom field-specific routes

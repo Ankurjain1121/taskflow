@@ -207,11 +207,11 @@ pub fn milestone_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Board-scoped milestone routes
         .route(
-            "/boards/{board_id}/milestones",
+            "/projects/{board_id}/milestones",
             get(list_milestones_handler),
         )
         .route(
-            "/boards/{board_id}/milestones",
+            "/projects/{board_id}/milestones",
             post(create_milestone_handler),
         )
         // Milestone-specific routes

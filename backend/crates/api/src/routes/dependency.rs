@@ -166,7 +166,7 @@ pub fn dependency_router(state: AppState) -> Router<AppState> {
         .route("/dependencies/{id}", delete(delete_dependency_handler))
         // Board-level dependency routes
         .route(
-            "/boards/{board_id}/dependencies",
+            "/projects/{board_id}/dependencies",
             get(board_dependencies_handler),
         )
         .layer(from_fn_with_state(state.clone(), auth_middleware))

@@ -177,7 +177,7 @@ export class ProjectService {
       `projects:${workspaceId}`,
       () =>
         this.http.get<Board[]>(
-          `${this.apiUrl}/workspaces/${workspaceId}/boards`,
+          `${this.apiUrl}/workspaces/${workspaceId}/projects`,
         ),
       120000, // 2 min TTL
     );
@@ -196,7 +196,7 @@ export class ProjectService {
     request: CreateBoardRequest,
   ): Observable<Board> {
     return this.http
-      .post<Board>(`${this.apiUrl}/workspaces/${workspaceId}/boards`, request)
+      .post<Board>(`${this.apiUrl}/workspaces/${workspaceId}/projects`, request)
       .pipe(
         tap(() => {
           this.cache.invalidate(`projects:${workspaceId}`);

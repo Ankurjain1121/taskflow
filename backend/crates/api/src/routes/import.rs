@@ -536,10 +536,10 @@ async fn import_trello_handler(
 
 pub fn import_router(state: AppState) -> Router<AppState> {
     Router::new()
-        .route("/boards/{board_id}/import", post(import_json_handler))
-        .route("/boards/{board_id}/import/csv", post(import_csv_handler))
+        .route("/projects/{board_id}/import", post(import_json_handler))
+        .route("/projects/{board_id}/import/csv", post(import_csv_handler))
         .route(
-            "/boards/{board_id}/import/trello",
+            "/projects/{board_id}/import/trello",
             post(import_trello_handler),
         )
         .layer(from_fn_with_state(state.clone(), auth_middleware))
