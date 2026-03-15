@@ -62,11 +62,11 @@
   --success-light: #ecfdf5;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --primary: #6366f1;
+  --primary: #3b82f6;
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
-  --ring: #6366f1;
+  --ring: #3b82f6;
   --radius: 0.75rem;
 
   /* Sidebar tokens (light mode) */
@@ -118,11 +118,11 @@
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06);
 
   /* Chart tokens */
-  --chart-1: #6366f1;
+  --chart-1: #3b82f6;
   --chart-2: #10b981;
   --chart-3: #f97316;
   --chart-4: #f59e0b;
-  --chart-5: #8b5cf6;
+  --chart-5: #60a5fa;
 
   /* Due date chip tokens */
   --chip-overdue: #db2828;
@@ -148,11 +148,11 @@ html.dark {
   --success-light: #064e3b;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --primary: #818cf8;
-  --primary-foreground: #ffffff;
+  --primary: #60a5fa;
+  --primary-foreground: #1e3a5f;
   --secondary: #1e293b;
   --secondary-foreground: #f8fafc;
-  --ring: #818cf8;
+  --ring: #60a5fa;
 
   --sidebar-bg: #13152a;
   --sidebar-surface: rgba(255, 255, 255, 0.03);
@@ -181,11 +181,11 @@ html.dark {
   --status-amber-text: #fcd34d;
 
   /* Chart tokens */
-  --chart-1: #818cf8;
+  --chart-1: #60a5fa;
   --chart-2: #34d399;
   --chart-3: #fb923c;
   --chart-4: #fcd34d;
-  --chart-5: #a78bfa;
+  --chart-5: #93c5fd;
 
   /* Due date chip tokens */
   --chip-overdue: #f87171;
@@ -210,15 +210,30 @@ html.dark {
 /* ============================================
    Accent Color Overrides
    Applied via [data-accent] on <html>.
-   Default (indigo) uses :root values — no block needed.
+   Default (blue) uses :root values — no block needed.
    ============================================ */
 
-[data-accent="blue"] {
-  --primary: #2563eb;
+[data-accent="indigo"] {
+  --primary: #6366f1;
   --primary-foreground: #ffffff;
-  --ring: #2563eb;
-  --chart-1: #2563eb;
-  --chart-5: #3b82f6;
+  --ring: #6366f1;
+  --chart-1: #6366f1;
+  --chart-5: #818cf8;
+}
+html.dark[data-accent="indigo"] {
+  --primary: #818cf8;
+  --primary-foreground: #ffffff;
+  --ring: #818cf8;
+  --chart-1: #818cf8;
+  --chart-5: #a5b4fc;
+}
+
+[data-accent="blue"] {
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --ring: #3b82f6;
+  --chart-1: #3b82f6;
+  --chart-5: #60a5fa;
 }
 html.dark[data-accent="blue"] {
   --primary: #60a5fa;
@@ -761,6 +776,92 @@ button:active,
   border-color: var(--widget-hover-border);
   box-shadow: var(--shadow-glow);
   transform: translateY(-1px);
+}
+
+/* ============================================
+   Stat Cards (dashboard summary cards)
+   ============================================ */
+.stat-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  transition: all var(--duration-normal) var(--ease-standard);
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.stat-card-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+  font-size: 1.125rem;
+  transition: transform var(--duration-normal) var(--ease-standard);
+}
+.stat-card:hover .stat-card-icon {
+  transform: scale(1.1);
+}
+.stat-card-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  color: var(--foreground);
+}
+.stat-card-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  margin-top: 0.25rem;
+}
+
+/* Stat card color variants */
+.stat-card--primary {
+  border-left: 4px solid var(--primary);
+}
+.stat-card--primary .stat-card-icon {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+}
+
+.stat-card--danger {
+  border-left: 4px solid var(--destructive);
+}
+.stat-card--danger .stat-card-icon {
+  background: color-mix(in srgb, var(--destructive) 10%, transparent);
+  color: var(--destructive);
+}
+.stat-card--danger-active {
+  background: color-mix(in srgb, var(--destructive) 4%, var(--card));
+}
+.stat-card--danger-active .stat-card-value {
+  color: var(--destructive);
+}
+
+.stat-card--warning {
+  border-left: 4px solid #f59e0b;
+}
+.stat-card--warning .stat-card-icon {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.stat-card--success {
+  border-left: 4px solid var(--success);
+}
+.stat-card--success .stat-card-icon {
+  background: color-mix(in srgb, var(--success) 10%, transparent);
+  color: var(--success);
+}
+.stat-card--success .stat-card-value {
+  color: var(--success);
 }
 
 /* ============================================

@@ -36,35 +36,32 @@ import { AuthService } from '../../../core/services/auth.service';
   ],
   template: `
     <div class="auth-wrapper">
-      <!-- Decorative background blobs -->
-      <div class="blob blob-1"></div>
-      <div class="blob blob-2"></div>
-      <div class="blob blob-3"></div>
-
       <div class="auth-container">
         <!-- Left branded panel -->
         <div class="brand-panel">
+          <!-- Subtle radial pattern -->
+          <div class="brand-pattern"></div>
           <div class="brand-content">
             <!-- Logo -->
             <div class="logo-mark">
               <svg
-                width="48"
-                height="48"
-                viewBox="0 0 48 48"
+                width="40"
+                height="40"
+                viewBox="0 0 40 40"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <rect
-                  width="48"
-                  height="48"
-                  rx="12"
+                  width="40"
+                  height="40"
+                  rx="10"
                   fill="white"
-                  fill-opacity="0.15"
+                  fill-opacity="0.2"
                 />
                 <path
-                  d="M14 24.5L21 31.5L34 17.5"
+                  d="M12 20.5L18 26.5L28 15.5"
                   stroke="white"
-                  stroke-width="3.5"
+                  stroke-width="3"
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 />
@@ -75,30 +72,17 @@ import { AuthService } from '../../../core/services/auth.service';
               Manage projects with clarity.<br />Ship faster, together.
             </p>
 
-            <!-- Decorative grid dots -->
-            <div class="grid-dots">
-              @for (
-                dot of [
-                  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
-                  19, 20, 21, 22, 23, 24, 25,
-                ];
-                track dot
-              ) {
-                <div class="dot"></div>
-              }
-            </div>
-
             <div class="brand-features">
               <div class="feature-item">
-                <i class="pi pi-th-large feature-icon"></i>
+                <div class="feature-dot"></div>
                 <span>Kanban boards & timelines</span>
               </div>
               <div class="feature-item">
-                <i class="pi pi-users feature-icon"></i>
+                <div class="feature-dot"></div>
                 <span>Real-time collaboration</span>
               </div>
               <div class="feature-item">
-                <i class="pi pi-chart-line feature-icon"></i>
+                <div class="feature-dot"></div>
                 <span>Smart project insights</span>
               </div>
             </div>
@@ -255,20 +239,6 @@ import { AuthService } from '../../../core/services/auth.service';
         animation: fadeInUp 0.5s ease-out both;
       }
 
-      /* ===== Background blobs ===== */
-      @keyframes blobFloat {
-        0%,
-        100% {
-          transform: translate(0, 0) scale(1);
-        }
-        33% {
-          transform: translate(30px, -20px) scale(1.05);
-        }
-        66% {
-          transform: translate(-15px, 15px) scale(0.97);
-        }
-      }
-
       .auth-wrapper {
         min-height: 100vh;
         display: flex;
@@ -277,56 +247,6 @@ import { AuthService } from '../../../core/services/auth.service';
         background: var(--background);
         padding: 1rem;
         position: relative;
-        overflow: hidden;
-      }
-
-      .blob {
-        position: absolute;
-        border-radius: 50%;
-        filter: blur(80px);
-        opacity: 0.5;
-        animation: blobFloat 20s ease-in-out infinite;
-        pointer-events: none;
-      }
-
-      .blob-1 {
-        width: 500px;
-        height: 500px;
-        background: radial-gradient(
-          circle,
-          rgba(129, 140, 248, 0.3) 0%,
-          transparent 70%
-        );
-        top: -10%;
-        right: -5%;
-        animation-delay: 0s;
-      }
-
-      .blob-2 {
-        width: 400px;
-        height: 400px;
-        background: radial-gradient(
-          circle,
-          rgba(167, 139, 250, 0.25) 0%,
-          transparent 70%
-        );
-        bottom: -10%;
-        left: -5%;
-        animation-delay: -7s;
-      }
-
-      .blob-3 {
-        width: 300px;
-        height: 300px;
-        background: radial-gradient(
-          circle,
-          rgba(99, 102, 241, 0.2) 0%,
-          transparent 70%
-        );
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        animation-delay: -14s;
       }
 
       /* ===== Main container ===== */
@@ -346,13 +266,8 @@ import { AuthService } from '../../../core/services/auth.service';
 
       /* ===== Left brand panel ===== */
       .brand-panel {
-        flex: 0 0 420px;
-        background: linear-gradient(
-          145deg,
-          var(--primary) 0%,
-          color-mix(in srgb, var(--primary) 80%, black) 50%,
-          color-mix(in srgb, var(--primary) 65%, black) 100%
-        );
+        flex: 0 0 400px;
+        background: var(--primary);
         padding: 3rem 2.5rem;
         display: flex;
         flex-direction: column;
@@ -361,33 +276,12 @@ import { AuthService } from '../../../core/services/auth.service';
         overflow: hidden;
       }
 
-      .brand-panel::before {
-        content: '';
+      .brand-pattern {
         position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 100%;
-        height: 100%;
-        background: radial-gradient(
-          circle,
-          rgba(255, 255, 255, 0.08) 0%,
-          transparent 60%
-        );
-        pointer-events: none;
-      }
-
-      .brand-panel::after {
-        content: '';
-        position: absolute;
-        bottom: -30%;
-        left: -30%;
-        width: 80%;
-        height: 80%;
-        background: radial-gradient(
-          circle,
-          rgba(0, 0, 0, 0.1) 0%,
-          transparent 60%
-        );
+        inset: 0;
+        opacity: 0.07;
+        background-image: radial-gradient(circle at 1px 1px, white 1px, transparent 0);
+        background-size: 20px 20px;
         pointer-events: none;
       }
 
@@ -397,60 +291,45 @@ import { AuthService } from '../../../core/services/auth.service';
       }
 
       .logo-mark {
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.25rem;
       }
 
       .brand-title {
-        font-size: 2rem;
+        font-size: 1.75rem;
         font-weight: 800;
         color: white;
         letter-spacing: -0.025em;
-        margin: 0 0 0.75rem 0;
+        margin: 0 0 0.625rem 0;
       }
 
       .brand-tagline {
-        font-size: 1.05rem;
-        color: rgba(255, 255, 255, 0.8);
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.75);
         line-height: 1.6;
         margin: 0 0 2.5rem 0;
-      }
-
-      .grid-dots {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 1.25rem;
-        margin-bottom: 2.5rem;
-        opacity: 0.25;
-        max-width: 140px;
-      }
-
-      .dot {
-        width: 4px;
-        height: 4px;
-        border-radius: 50%;
-        background: white;
       }
 
       .brand-features {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.875rem;
       }
 
       .feature-item {
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        color: rgba(255, 255, 255, 0.85);
-        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.875rem;
         font-weight: 500;
       }
 
-      .feature-icon {
-        font-size: 20px !important;
-        width: 20px !important;
-        height: 20px !important;
-        color: rgba(255, 255, 255, 0.7);
+      .feature-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.5);
+        flex-shrink: 0;
       }
 
       /* ===== Right form panel ===== */
@@ -516,15 +395,15 @@ import { AuthService } from '../../../core/services/auth.service';
         color: var(--primary-foreground) !important;
         transition: all 0.2s ease !important;
         box-shadow:
-          0 1px 3px rgba(79, 70, 229, 0.3),
-          0 4px 12px rgba(79, 70, 229, 0.15) !important;
+          0 1px 3px rgba(59, 130, 246, 0.3),
+          0 4px 12px rgba(59, 130, 246, 0.15) !important;
         border: none !important;
       }
 
       .submit-btn:hover:not([disabled]) {
         box-shadow:
-          0 1px 3px rgba(79, 70, 229, 0.4),
-          0 8px 24px rgba(79, 70, 229, 0.25) !important;
+          0 1px 3px rgba(59, 130, 246, 0.4),
+          0 8px 24px rgba(59, 130, 246, 0.25) !important;
         transform: translateY(-1px);
       }
 
@@ -560,10 +439,6 @@ import { AuthService } from '../../../core/services/auth.service';
         .brand-panel {
           flex: 0 0 auto;
           padding: 2rem 1.5rem;
-        }
-
-        .grid-dots {
-          display: none;
         }
 
         .brand-features {
