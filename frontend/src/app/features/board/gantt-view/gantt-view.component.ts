@@ -6,10 +6,14 @@ import {
   signal,
   computed,
   inject,
+  ElementRef,
+  viewChild,
+  OnDestroy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CHART_PRIORITY_COLORS } from '../../../shared/utils/svg-charts';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
+import { TaskService } from '../../../core/services/task.service';
 
 export interface GanttTask {
   id: string;
@@ -43,6 +47,16 @@ interface GanttArrow {
 }
 
 type ZoomLevel = 'day' | 'week' | 'month';
+
+interface DragState {
+  taskId: string;
+  originalX: number;
+  currentX: number;
+  y: number;
+  width: number;
+  startMouseX: number;
+  bar: GanttBar;
+}
 
 @Component({
   selector: 'app-gantt-view',
@@ -177,21 +191,26 @@ type ZoomLevel = 'day' | 'week' | 'month';
 
                 <!-- Task bars -->
                 @for (bar of ganttBars(); track bar.task.id) {
-                  <g class="cursor-pointer" (click)="onTaskClick(bar.task)">
+                  <g
+                    class="cursor-grab"
+                    [class.cursor-grabbing]="dragState()?.taskId === bar.task.id"
+                    (click)="onTaskClick(bar.task)"
+                    (mousedown)="onBarMouseDown($event, bar)"
+                  >
                     <rect
-                      [attr.x]="bar.x"
+                      [attr.x]="dragState()?.taskId === bar.task.id ? dragState()!.currentX : bar.x"
                       [attr.y]="bar.y + 10"
                       [attr.width]="Math.max(bar.width, 8)"
                       height="20"
                       [attr.fill]="bar.color"
-                      [attr.opacity]="bar.task.is_done ? 0.4 : 0.85"
+                      [attr.opacity]="dragState()?.taskId === bar.task.id ? 0.6 : bar.task.is_done ? 0.4 : 0.85"
                       rx="4"
                       ry="4"
                     />
                     <!-- Task title on bar -->
                     @if (bar.width > 60) {
                       <text
-                        [attr.x]="bar.x + 6"
+                        [attr.x]="(dragState()?.taskId === bar.task.id ? dragState()!.currentX : bar.x) + 6"
                         [attr.y]="bar.y + 24"
                         fill="white"
                         font-size="10"
@@ -203,6 +222,23 @@ type ZoomLevel = 'day' | 'week' | 'month';
                       </text>
                     }
                   </g>
+                }
+
+                <!-- Ghost bar during drag -->
+                @if (dragState(); as ds) {
+                  <rect
+                    [attr.x]="ds.originalX"
+                    [attr.y]="ds.y + 10"
+                    [attr.width]="ds.width"
+                    height="20"
+                    fill="none"
+                    stroke="#94a3b8"
+                    stroke-width="1"
+                    stroke-dasharray="4,4"
+                    rx="4"
+                    ry="4"
+                    opacity="0.5"
+                  />
                 }
 
                 <!-- Dependency arrows -->
@@ -237,15 +273,23 @@ type ZoomLevel = 'day' | 'week' | 'month';
     </div>
   `,
 })
-export class GanttViewComponent {
+export class GanttViewComponent implements OnDestroy {
   tasks = input<GanttTask[]>([]);
   dependencies = input<GanttDependency[]>([]);
   taskClicked = output<string>();
+  taskUpdated = output<{ id: string; start_date: string; due_date: string }>();
+
+  private taskService = inject(TaskService);
 
   zoom = signal<ZoomLevel>('week');
   zoomLevels: ZoomLevel[] = ['day', 'week', 'month'];
+  dragState = signal<DragState | null>(null);
 
   Math = Math;
+
+  // Bound listeners for cleanup
+  private boundMouseMove = this.onMouseMove.bind(this);
+  private boundMouseUp = this.onMouseUp.bind(this);
 
   sortedTasks = computed(() => {
     return [...this.tasks()].sort((a, b) => {
@@ -420,10 +464,113 @@ export class GanttViewComponent {
   });
 
   onTaskClick(task: GanttTask): void {
-    this.taskClicked.emit(task.id);
+    // Don't emit click if we just finished dragging
+    if (!this.dragState()) {
+      this.taskClicked.emit(task.id);
+    }
   }
 
   getColor(priority: string): string {
     return CHART_PRIORITY_COLORS[priority] || '#6b7280';
+  }
+
+  // ── Drag-to-reschedule ──────────────────────────────────────────
+  //
+  //  mousedown on bar → track mouse → mouseup → compute new dates
+  //  Uses optimistic update with rollback on API error.
+  //
+  //  COORDINATE MATH:
+  //    pixelOffset = mouseX - startMouseX
+  //    dayOffset   = round(pixelOffset / dayWidth)
+  //    newDate     = oldDate + dayOffset days
+
+  onBarMouseDown(event: MouseEvent, bar: GanttBar): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    this.dragState.set({
+      taskId: bar.task.id,
+      originalX: bar.x,
+      currentX: bar.x,
+      y: bar.y,
+      width: bar.width,
+      startMouseX: event.clientX,
+      bar,
+    });
+
+    document.addEventListener('mousemove', this.boundMouseMove);
+    document.addEventListener('mouseup', this.boundMouseUp);
+  }
+
+  private onMouseMove(event: MouseEvent): void {
+    const ds = this.dragState();
+    if (!ds) return;
+
+    const deltaX = event.clientX - ds.startMouseX;
+    this.dragState.set({ ...ds, currentX: ds.originalX + deltaX });
+  }
+
+  private onMouseUp(event: MouseEvent): void {
+    document.removeEventListener('mousemove', this.boundMouseMove);
+    document.removeEventListener('mouseup', this.boundMouseUp);
+
+    const ds = this.dragState();
+    if (!ds) return;
+
+    const deltaX = ds.currentX - ds.originalX;
+    const dw = this.dayWidth();
+    const dayOffset = Math.round(deltaX / dw);
+
+    // Clear drag state
+    this.dragState.set(null);
+
+    // Skip if no meaningful movement (< 1 day)
+    if (dayOffset === 0) return;
+
+    // Compute new dates
+    const task = ds.bar.task;
+    const newStartDate = task.start_date
+      ? this.addDays(task.start_date, dayOffset)
+      : null;
+    const newDueDate = task.due_date
+      ? this.addDays(task.due_date, dayOffset)
+      : null;
+
+    if (!newStartDate && !newDueDate) return;
+
+    // Build update payload
+    const update: Record<string, string> = {};
+    if (newStartDate) update['start_date'] = newStartDate;
+    if (newDueDate) update['due_date'] = newDueDate;
+
+    // Emit for parent component awareness
+    this.taskUpdated.emit({
+      id: task.id,
+      start_date: newStartDate || task.start_date || '',
+      due_date: newDueDate || task.due_date || '',
+    });
+
+    // API call with optimistic update (parent handles actual data refresh)
+    this.taskService.updateTask(task.id, update).subscribe({
+      error: () => {
+        // Rollback: emit original dates
+        this.taskUpdated.emit({
+          id: task.id,
+          start_date: task.start_date || '',
+          due_date: task.due_date || '',
+        });
+      },
+    });
+  }
+
+  private addDays(dateStr: string, days: number): string {
+    const d = new Date(dateStr);
+    d.setDate(d.getDate() + days);
+    return d.toISOString();
+  }
+
+  ngOnDestroy(): void {
+    document.removeEventListener('mousemove', this.boundMouseMove);
+    document.removeEventListener('mouseup', this.boundMouseUp);
   }
 }
