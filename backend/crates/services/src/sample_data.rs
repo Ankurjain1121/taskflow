@@ -489,8 +489,8 @@ static DESIGN_TASKS: &[TaskDef] = &[
 ];
 
 pub(super) static SOFTWARE_TEMPLATE: TemplateConfig = TemplateConfig {
-    board_name: "Sprint Board",
-    board_description: "Your software development sprint board",
+    board_name: "Dev Board",
+    board_description: "Your software development task board",
     columns: SOFTWARE_COLUMNS,
     tasks: SOFTWARE_TASKS,
     labels: SOFTWARE_LABELS,
@@ -513,8 +513,8 @@ pub(super) static PERSONAL_TEMPLATE: TemplateConfig = TemplateConfig {
 };
 
 pub(super) static DESIGN_TEMPLATE: TemplateConfig = TemplateConfig {
-    board_name: "Design Sprint",
-    board_description: "Your design sprint workflow",
+    board_name: "Design Board",
+    board_description: "Your design task workflow",
     columns: DESIGN_COLUMNS,
     tasks: DESIGN_TASKS,
     labels: DESIGN_LABELS,

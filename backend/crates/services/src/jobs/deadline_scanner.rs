@@ -462,7 +462,7 @@ mod tests {
     #[test]
     fn test_due_soon_notification_body_format() {
         let task_title = "Fix login bug";
-        let project_name = "Sprint 42";
+        let project_name = "Project 42";
         let hours_until_due = 12_i64;
         let body = format!(
             "Task \"{}\" on project \"{}\" is due in {} hours",
@@ -470,7 +470,7 @@ mod tests {
         );
         assert_eq!(
             body,
-            "Task \"Fix login bug\" on project \"Sprint 42\" is due in 12 hours"
+            "Task \"Fix login bug\" on project \"Project 42\" is due in 12 hours"
         );
     }
 

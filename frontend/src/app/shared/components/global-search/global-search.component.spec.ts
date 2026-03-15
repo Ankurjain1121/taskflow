@@ -30,7 +30,7 @@ const SAMPLE_RESULTS: SearchResults = {
       title: 'Fix Bug',
       description: 'Fix the login bug',
       board_id: 'board-1',
-      board_name: 'Sprint Board',
+      board_name: 'Dev Board',
       workspace_id: 'ws-1',
       workspace_name: 'My Workspace',
     },
@@ -38,7 +38,7 @@ const SAMPLE_RESULTS: SearchResults = {
   boards: [
     {
       id: 'board-1',
-      name: 'Sprint Board',
+      name: 'Dev Board',
       description: 'Main board',
       workspace_id: 'ws-1',
       workspace_name: 'My Workspace',
@@ -51,7 +51,7 @@ const SAMPLE_RESULTS: SearchResults = {
       task_id: 'task-1',
       task_title: 'Fix Bug',
       board_id: 'board-1',
-      board_name: 'Sprint Board',
+      board_name: 'Dev Board',
       workspace_id: 'ws-1',
     },
   ],

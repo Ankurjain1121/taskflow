@@ -69,7 +69,7 @@ mod tests {
     #[test]
     fn test_get_template_software() {
         let t = get_template("software");
-        assert_eq!(t.board_name, "Sprint Board");
+        assert_eq!(t.board_name, "Dev Board");
         assert_eq!(t.columns.len(), 5);
         assert_eq!(t.tasks.len(), 8);
         assert_eq!(t.labels.len(), 3);
@@ -96,7 +96,7 @@ mod tests {
     #[test]
     fn test_get_template_design() {
         let t = get_template("design");
-        assert_eq!(t.board_name, "Design Sprint");
+        assert_eq!(t.board_name, "Design Board");
         assert_eq!(t.columns.len(), 5);
         assert_eq!(t.tasks.len(), 8);
         assert_eq!(t.labels.len(), 3);
@@ -105,7 +105,7 @@ mod tests {
     #[test]
     fn test_get_template_unknown_defaults_to_software() {
         let t = get_template("unknown");
-        assert_eq!(t.board_name, "Sprint Board");
+        assert_eq!(t.board_name, "Dev Board");
     }
 
     #[test]

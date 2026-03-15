@@ -1210,8 +1210,8 @@ async fn test_create_milestone() {
     let (tenant_id, user_id, _, board_id, _) = setup_full(&pool).await;
 
     let input = super::milestones::CreateMilestoneInput {
-        name: "Sprint 1".to_string(),
-        description: Some("First sprint".to_string()),
+        name: "Milestone 1".to_string(),
+        description: Some("First milestone".to_string()),
         due_date: Some(Utc::now() + Duration::days(14)),
         color: Some("#ff5722".to_string()),
     };
@@ -1220,8 +1220,8 @@ async fn test_create_milestone() {
         .await
         .expect("create_milestone");
 
-    assert_eq!(ms.name, "Sprint 1");
-    assert_eq!(ms.description.as_deref(), Some("First sprint"));
+    assert_eq!(ms.name, "Milestone 1");
+    assert_eq!(ms.description.as_deref(), Some("First milestone"));
     assert_eq!(ms.color, "#ff5722");
     assert_eq!(ms.project_id, board_id);
     assert_eq!(ms.tenant_id, tenant_id);

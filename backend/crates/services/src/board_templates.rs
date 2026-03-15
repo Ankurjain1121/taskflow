@@ -55,7 +55,7 @@ pub const TEMPLATES: &[BoardTemplate] = &[
                 is_done: false,
             },
             TemplateColumn {
-                name: "Sprint",
+                name: "Review",
                 color: "#8B5CF6",
                 is_done: false,
             },

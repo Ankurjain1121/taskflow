@@ -1,14 +1,13 @@
 -- =============================================================================
--- TaskFlow Seed Data: Acme Corp (20 employees, 500 tasks, 4 projects)
+-- TaskFlow Seed: Paraslace tenant (admin1@paraslace.in)
+-- 19 new users + 4 projects + 500 tasks for testing
 -- =============================================================================
--- Usage: run_seed.sh injects the hash via:
---   printf "SET session.pass_hash='%s';\n" "$HASH" | cat - seed_data.sql | psql
--- The DO block reads it with: current_setting('session.pass_hash')
+-- Usage: psql -f scripts/seed_paraslace.sql
+-- Or:   ./scripts/run_seed.sh --paraslace
 -- =============================================================================
 
 \set ON_ERROR_STOP on
 
--- Temp tables to track generated IDs during the seed run
 CREATE TEMP TABLE IF NOT EXISTS _su (seq INT PRIMARY KEY, uid UUID NOT NULL);
 CREATE TEMP TABLE IF NOT EXISTS _sb (seq INT PRIMARY KEY, pid UUID NOT NULL);
 CREATE TEMP TABLE IF NOT EXISTS _ss (pid UUID, seq INT, sid UUID, PRIMARY KEY (pid, seq));
@@ -20,12 +19,10 @@ CREATE TEMP TABLE IF NOT EXISTS _st (seq INT PRIMARY KEY, tid UUID NOT NULL, pid
 
 DO $$
 DECLARE
-    -- Core IDs
     v_tenant_id     UUID;
     v_workspace_id  UUID;
-    v_pass_hash     TEXT := current_setting('session.pass_hash');
+    v_pass_hash     TEXT;
 
-    -- Working variables
     v_id            UUID;
     v_pid           UUID;
     v_sid           UUID;
@@ -38,11 +35,9 @@ DECLARE
     v_src           UUID;
     v_tgt           UUID;
 
-    -- Loop counters
     i               INTEGER;
     p               INTEGER;
 
-    -- Task generation state
     v_global_seq    INTEGER;
     v_priority      task_priority;
     v_dep_type      dependency_type;
@@ -53,11 +48,9 @@ DECLARE
     v_team_size     INTEGER;
     v_status_count  INTEGER;
 
-    -- Team membership ranges per project (Engineering=1-5, Design=6-9, Mkt=10-13, Product=14-17)
     team_starts     INTEGER[] := ARRAY[1, 6, 10, 14];
     team_sizes      INTEGER[] := ARRAY[5, 4,  4,  4];
 
-    -- Task title vocabulary: actions and subjects per project
     eng_actions     TEXT[] := ARRAY['Implement','Fix','Refactor','Add tests for','Review','Update','Optimize','Debug','Migrate','Remove'];
     eng_subjects    TEXT[] := ARRAY['authentication','API gateway','database queries','WebSocket handler','task service','user model','file upload','notification system','search feature','caching layer','rate limiter','CI pipeline','error handling','logging system','queue worker'];
 
@@ -72,60 +65,65 @@ DECLARE
 
 BEGIN
     -- =========================================================================
-    -- IDEMPOTENCY CHECK
+    -- LOCATE EXISTING TENANT, WORKSPACE, ADMIN USER
     -- =========================================================================
-    IF EXISTS (SELECT 1 FROM tenants WHERE slug = 'acme-seed') THEN
-        RAISE NOTICE 'Seed data already exists (slug=acme-seed). Run with --force to recreate.';
+    SELECT id INTO v_tenant_id FROM tenants WHERE slug = 'paraslace';
+    IF v_tenant_id IS NULL THEN
+        RAISE EXCEPTION 'Tenant "paraslace" not found. Register admin1@paraslace.in first.';
+    END IF;
+
+    SELECT id INTO v_workspace_id FROM workspaces WHERE tenant_id = v_tenant_id LIMIT 1;
+    IF v_workspace_id IS NULL THEN
+        RAISE EXCEPTION 'No workspace found for paraslace tenant.';
+    END IF;
+
+    -- Reuse admin1 password hash for all new users
+    SELECT password_hash INTO v_pass_hash FROM users WHERE email = 'admin1@paraslace.in';
+
+    -- Idempotency: check if seed users already exist
+    IF EXISTS (SELECT 1 FROM users WHERE email = 'bob@paraslace.in' AND tenant_id = v_tenant_id) THEN
+        RAISE NOTICE 'Paraslace seed data already exists. Run with --force-paraslace to recreate.';
         RETURN;
     END IF;
 
-    RAISE NOTICE 'Creating Acme Corp seed data...';
+    RAISE NOTICE 'Seeding paraslace tenant with 19 users + 4 projects + 500 tasks...';
 
     -- =========================================================================
-    -- TENANT
+    -- Register admin1 as user seq 1
     -- =========================================================================
-    INSERT INTO tenants (id, name, slug, plan)
-    VALUES (gen_random_uuid(), 'Acme Corp', 'acme-seed', 'free')
-    RETURNING id INTO v_tenant_id;
+    SELECT id INTO v_uid FROM users WHERE email = 'admin1@paraslace.in';
+    INSERT INTO _su VALUES (1, v_uid);
 
     -- =========================================================================
-    -- USERS (20)
-    --   Seq  1    = alice  → Admin, Engineering Lead
-    --   Seq  2-5  = Engineering team
-    --   Seq  6-9  = Design team
-    --   Seq 10-13 = Marketing team
-    --   Seq 14-17 = Product team
-    --   Seq 18-20 = QA team
+    -- CREATE 19 NEW USERS (seq 2-20)
     -- =========================================================================
     WITH user_data(seq, email, full_name, job_title, dept) AS (
         VALUES
-            (1,  'alice@acme.com',  'Alice Johnson',    'Engineering Lead',    'Engineering'),
-            (2,  'bob@acme.com',    'Bob Smith',         'Senior Engineer',     'Engineering'),
-            (3,  'carol@acme.com',  'Carol White',       'Backend Engineer',    'Engineering'),
-            (4,  'david@acme.com',  'David Brown',       'Frontend Engineer',   'Engineering'),
-            (5,  'emma@acme.com',   'Emma Davis',        'DevOps Engineer',     'Engineering'),
-            (6,  'frank@acme.com',  'Frank Miller',      'Design Lead',         'Design'),
-            (7,  'grace@acme.com',  'Grace Wilson',      'UI Designer',         'Design'),
-            (8,  'henry@acme.com',  'Henry Taylor',      'UX Researcher',       'Design'),
-            (9,  'iris@acme.com',   'Iris Anderson',     'Visual Designer',     'Design'),
-            (10, 'james@acme.com',  'James Thomas',      'Marketing Lead',      'Marketing'),
-            (11, 'kate@acme.com',   'Kate Jackson',      'Content Strategist',  'Marketing'),
-            (12, 'liam@acme.com',   'Liam Harris',       'Growth Marketer',     'Marketing'),
-            (13, 'mia@acme.com',    'Mia Martin',        'Brand Designer',      'Marketing'),
-            (14, 'noah@acme.com',   'Noah Garcia',       'Product Lead',        'Product'),
-            (15, 'olivia@acme.com', 'Olivia Lee',        'Product Manager',     'Product'),
-            (16, 'peter@acme.com',  'Peter Clark',       'Product Analyst',     'Product'),
-            (17, 'quinn@acme.com',  'Quinn Rodriguez',   'Product Designer',    'Product'),
-            (18, 'rachel@acme.com', 'Rachel Lewis',      'QA Lead',             'QA'),
-            (19, 'sam@acme.com',    'Sam Robinson',      'QA Engineer',         'QA'),
-            (20, 'tara@acme.com',   'Tara Walker',       'Automation QA',       'QA')
+            (2,  'bob@paraslace.in',    'Bob Smith',         'Senior Engineer',     'Engineering'),
+            (3,  'carol@paraslace.in',  'Carol White',       'Backend Engineer',    'Engineering'),
+            (4,  'david@paraslace.in',  'David Brown',       'Frontend Engineer',   'Engineering'),
+            (5,  'emma@paraslace.in',   'Emma Davis',        'DevOps Engineer',     'Engineering'),
+            (6,  'frank@paraslace.in',  'Frank Miller',      'Design Lead',         'Design'),
+            (7,  'grace@paraslace.in',  'Grace Wilson',      'UI Designer',         'Design'),
+            (8,  'henry@paraslace.in',  'Henry Taylor',      'UX Researcher',       'Design'),
+            (9,  'iris@paraslace.in',   'Iris Anderson',     'Visual Designer',     'Design'),
+            (10, 'james@paraslace.in',  'James Thomas',      'Marketing Lead',      'Marketing'),
+            (11, 'kate@paraslace.in',   'Kate Jackson',      'Content Strategist',  'Marketing'),
+            (12, 'liam@paraslace.in',   'Liam Harris',       'Growth Marketer',     'Marketing'),
+            (13, 'mia@paraslace.in',    'Mia Martin',        'Brand Designer',      'Marketing'),
+            (14, 'noah@paraslace.in',   'Noah Garcia',       'Product Lead',        'Product'),
+            (15, 'olivia@paraslace.in', 'Olivia Lee',        'Product Manager',     'Product'),
+            (16, 'peter@paraslace.in',  'Peter Clark',       'Product Analyst',     'Product'),
+            (17, 'quinn@paraslace.in',  'Quinn Rodriguez',   'Product Designer',    'Product'),
+            (18, 'rachel@paraslace.in', 'Rachel Lewis',      'QA Lead',             'QA'),
+            (19, 'sam@paraslace.in',    'Sam Robinson',      'QA Engineer',         'QA'),
+            (20, 'tara@paraslace.in',   'Tara Walker',       'Automation QA',       'QA')
     ),
     inserted AS (
         INSERT INTO users (id, email, name, password_hash, role, tenant_id,
                            onboarding_completed, job_title, department)
         SELECT gen_random_uuid(), email, full_name, v_pass_hash,
-               CASE WHEN seq = 1 THEN 'admin'::user_role ELSE 'member'::user_role END,
-               v_tenant_id, true, job_title, dept
+               'member'::user_role, v_tenant_id, true, job_title, dept
         FROM user_data
         RETURNING id, email
     )
@@ -133,27 +131,19 @@ BEGIN
     SELECT ud.seq, ins.id
     FROM user_data ud JOIN inserted ins ON ud.email = ins.email;
 
-    -- =========================================================================
-    -- WORKSPACE
-    -- =========================================================================
-    SELECT uid INTO v_uid FROM _su WHERE seq = 1;
-
-    INSERT INTO workspaces (id, name, description, tenant_id, created_by_id)
-    VALUES (gen_random_uuid(), 'Acme Workspace', 'Main workspace for Acme Corp',
-            v_tenant_id, v_uid)
-    RETURNING id INTO v_workspace_id;
-
-    -- All 20 users join the workspace; alice is owner
+    -- All 20 users join the workspace
     INSERT INTO workspace_members (workspace_id, user_id, role)
-    SELECT v_workspace_id, uid,
-           CASE WHEN seq = 1 THEN 'owner'::workspace_member_role
-                ELSE 'member'::workspace_member_role END
-    FROM _su;
+    SELECT v_workspace_id, uid, 'member'::workspace_member_role
+    FROM _su WHERE seq >= 2
+    ON CONFLICT DO NOTHING;
+
+    -- Fix admin1 workspace role to owner if not already
+    UPDATE workspace_members SET role = 'owner' WHERE workspace_id = v_workspace_id
+        AND user_id = (SELECT uid FROM _su WHERE seq = 1);
 
     -- =========================================================================
     -- TEAMS (5)
     -- =========================================================================
-    -- Engineering (users 1-5)
     SELECT uid INTO v_uid FROM _su WHERE seq = 1;
     INSERT INTO teams (id, name, description, color, workspace_id, created_by_id)
     VALUES (gen_random_uuid(), 'Engineering', 'Software development team',
@@ -162,7 +152,6 @@ BEGIN
     INSERT INTO team_members (team_id, user_id)
     SELECT v_id, uid FROM _su WHERE seq BETWEEN 1 AND 5;
 
-    -- Design (users 6-9)
     SELECT uid INTO v_uid FROM _su WHERE seq = 6;
     INSERT INTO teams (id, name, description, color, workspace_id, created_by_id)
     VALUES (gen_random_uuid(), 'Design', 'UX/UI design team',
@@ -171,7 +160,6 @@ BEGIN
     INSERT INTO team_members (team_id, user_id)
     SELECT v_id, uid FROM _su WHERE seq BETWEEN 6 AND 9;
 
-    -- Marketing (users 10-13)
     SELECT uid INTO v_uid FROM _su WHERE seq = 10;
     INSERT INTO teams (id, name, description, color, workspace_id, created_by_id)
     VALUES (gen_random_uuid(), 'Marketing', 'Growth and content team',
@@ -180,7 +168,6 @@ BEGIN
     INSERT INTO team_members (team_id, user_id)
     SELECT v_id, uid FROM _su WHERE seq BETWEEN 10 AND 13;
 
-    -- Product (users 14-17)
     SELECT uid INTO v_uid FROM _su WHERE seq = 14;
     INSERT INTO teams (id, name, description, color, workspace_id, created_by_id)
     VALUES (gen_random_uuid(), 'Product', 'Product management team',
@@ -189,7 +176,6 @@ BEGIN
     INSERT INTO team_members (team_id, user_id)
     SELECT v_id, uid FROM _su WHERE seq BETWEEN 14 AND 17;
 
-    -- QA (users 18-20)
     SELECT uid INTO v_uid FROM _su WHERE seq = 18;
     INSERT INTO teams (id, name, description, color, workspace_id, created_by_id)
     VALUES (gen_random_uuid(), 'QA', 'Quality assurance team',
@@ -209,11 +195,9 @@ BEGIN
     RETURNING id INTO v_pid;
     INSERT INTO _sb VALUES (1, v_pid);
 
-    -- Add all eng team as project members
     INSERT INTO project_members (project_id, user_id, role)
     SELECT v_pid, uid, 'editor' FROM _su WHERE seq BETWEEN 1 AND 5;
 
-    -- Capture trigger-created statuses (5 expected: Open, In Progress, On Hold, Completed, Cancelled)
     INSERT INTO _ss (pid, seq, sid)
     SELECT v_pid, ROW_NUMBER() OVER (ORDER BY position), id
     FROM project_statuses WHERE project_id = v_pid ORDER BY position;
@@ -223,10 +207,9 @@ BEGIN
         RAISE EXCEPTION 'Expected 5 trigger-created statuses for project 1, got %', v_status_count;
     END IF;
 
-    -- Task lists: fetch auto-created "General", then add Phase 1, Phase 2, Backlog
     SELECT id INTO v_gid FROM task_lists WHERE project_id = v_pid AND is_default = true;
     IF v_gid IS NULL THEN
-        RAISE EXCEPTION 'Default task list not found for project 1 — trigger may have changed';
+        RAISE EXCEPTION 'Default task list not found for project 1';
     END IF;
     INSERT INTO _sg VALUES (v_pid, 1, v_gid);
 
@@ -245,7 +228,6 @@ BEGIN
     RETURNING id INTO v_gid;
     INSERT INTO _sg VALUES (v_pid, 4, v_gid);
 
-    -- Milestones (3)
     INSERT INTO milestones (id, name, description, due_date, color, project_id, tenant_id, created_by_id)
     VALUES
         (gen_random_uuid(), 'Phase 1 Release', 'First phase delivery',
@@ -258,7 +240,6 @@ BEGIN
     SELECT v_pid, ROW_NUMBER() OVER (ORDER BY created_at), id
     FROM milestones WHERE project_id = v_pid ORDER BY created_at;
 
-    -- Labels (5)
     INSERT INTO labels (id, name, color, project_id, workspace_id, tenant_id, created_by_id)
     VALUES
         (gen_random_uuid(), 'Bug',         '#ef4444', v_pid, v_workspace_id, v_tenant_id, v_uid),
@@ -270,7 +251,6 @@ BEGIN
     SELECT v_pid, ROW_NUMBER() OVER (ORDER BY created_at), id
     FROM labels WHERE project_id = v_pid ORDER BY created_at;
 
-    -- Custom fields (3)
     INSERT INTO project_custom_fields (id, name, field_type, position, project_id, tenant_id, created_by_id)
     VALUES
         (gen_random_uuid(), 'Story Points', 'number', 0, v_pid, v_tenant_id, v_uid),
@@ -293,6 +273,10 @@ BEGIN
 
     INSERT INTO project_members (project_id, user_id, role)
     SELECT v_pid, uid, 'editor' FROM _su WHERE seq BETWEEN 6 AND 9;
+    -- Ensure admin1 is a member of every project
+    INSERT INTO project_members (project_id, user_id, role)
+    SELECT v_pid, uid, 'editor' FROM _su WHERE seq = 1
+    ON CONFLICT DO NOTHING;
 
     INSERT INTO _ss (pid, seq, sid)
     SELECT v_pid, ROW_NUMBER() OVER (ORDER BY position), id
@@ -367,6 +351,9 @@ BEGIN
 
     INSERT INTO project_members (project_id, user_id, role)
     SELECT v_pid, uid, 'editor' FROM _su WHERE seq BETWEEN 10 AND 13;
+    INSERT INTO project_members (project_id, user_id, role)
+    SELECT v_pid, uid, 'editor' FROM _su WHERE seq = 1
+    ON CONFLICT DO NOTHING;
 
     INSERT INTO _ss (pid, seq, sid)
     SELECT v_pid, ROW_NUMBER() OVER (ORDER BY position), id
@@ -440,6 +427,9 @@ BEGIN
 
     INSERT INTO project_members (project_id, user_id, role)
     SELECT v_pid, uid, 'editor' FROM _su WHERE seq BETWEEN 14 AND 17;
+    INSERT INTO project_members (project_id, user_id, role)
+    SELECT v_pid, uid, 'editor' FROM _su WHERE seq = 1
+    ON CONFLICT DO NOTHING;
 
     INSERT INTO _ss (pid, seq, sid)
     SELECT v_pid, ROW_NUMBER() OVER (ORDER BY position), id
@@ -504,30 +494,16 @@ BEGIN
 
     -- =========================================================================
     -- TASKS (500 total: 125 per project)
-    --
-    -- Priority distribution (global seq):
-    --   1-50   → urgent  (10%)
-    --   51-175 → high    (25%)
-    --   176-375→ medium  (40%)
-    --   376-500→ low     (25%)
-    --
-    -- Status assignment: round-robin across 5 trigger-created statuses
-    -- Task list assignment: round-robin (1..4)
-    -- Assignee:            rotated through project team
-    -- Milestone:           80% of tasks (i % 5 != 0)
     -- =========================================================================
     FOR p IN 1..4 LOOP
         SELECT pid INTO v_pid FROM _sb WHERE seq = p;
         v_start_user := team_starts[p];
         v_team_size  := team_sizes[p];
-
-        -- Number of milestones for this project
         v_mile_count := CASE p WHEN 2 THEN 2 ELSE 3 END;
 
         FOR i IN 1..125 LOOP
             v_global_seq := (p - 1) * 125 + i;
 
-            -- Priority
             v_priority := CASE
                 WHEN v_global_seq <= 50  THEN 'urgent'::task_priority
                 WHEN v_global_seq <= 175 THEN 'high'::task_priority
@@ -535,19 +511,15 @@ BEGIN
                 ELSE                          'low'::task_priority
             END;
 
-            -- Status (round-robin 1..5)
             SELECT sid INTO v_sid
             FROM _ss WHERE pid = v_pid AND seq = ((i - 1) % 5) + 1;
 
-            -- Task list (round-robin 1..4)
             SELECT gid INTO v_gid
             FROM _sg WHERE pid = v_pid AND seq = ((i - 1) % 4) + 1;
 
-            -- Creator: rotate through project team
             SELECT uid INTO v_uid
             FROM _su WHERE seq = v_start_user + ((i - 1) % v_team_size);
 
-            -- Milestone: 80% of tasks
             IF i % 5 != 0 THEN
                 SELECT mid INTO v_mid
                 FROM _sm WHERE pid = v_pid
@@ -556,7 +528,6 @@ BEGIN
                 v_mid := NULL;
             END IF;
 
-            -- Title
             v_title := CASE p
                 WHEN 1 THEN eng_actions[((i - 1) % 10) + 1] || ' ' || eng_subjects[((i - 1) % 15) + 1]
                 WHEN 2 THEN des_actions[((i - 1) % 10) + 1] || ' ' || des_subjects[((i - 1) % 15) + 1]
@@ -564,7 +535,6 @@ BEGIN
                 ELSE        prd_actions[((i - 1) % 10) + 1] || ' ' || prd_subjects[((i - 1) % 15) + 1]
             END;
 
-            -- Due date: spread -20 to +90 days from now
             v_due := (now() + ((i - 20) * interval '1 day'))::DATE;
 
             INSERT INTO tasks (
@@ -596,10 +566,8 @@ BEGIN
 
             INSERT INTO _st (seq, tid, pid) VALUES (v_global_seq, v_tid, v_pid);
 
-            -- Primary assignee (task creator)
             INSERT INTO task_assignees (task_id, user_id) VALUES (v_tid, v_uid);
 
-            -- Second assignee for every 2nd task
             IF i % 2 = 0 THEN
                 SELECT uid INTO v_uid2
                 FROM _su WHERE seq = v_start_user + (i % v_team_size);
@@ -617,19 +585,16 @@ BEGIN
     RAISE NOTICE 'All 500 tasks created. Adding subtasks, comments, watchers, deps, time entries, labels...';
 
     -- =========================================================================
-    -- SUBTASKS (~130 total: 50 tasks get 2-3 subtasks)
-    -- Tasks at seq % 10 = 0 get subtasks
+    -- SUBTASKS
     -- =========================================================================
     SELECT uid INTO v_uid FROM _su WHERE seq = 1;
     FOR i IN 1..500 LOOP
         IF i % 10 = 0 THEN
             SELECT tid INTO v_tid FROM _st WHERE seq = i;
-
             INSERT INTO subtasks (id, title, is_completed, position, task_id, created_by_id)
             VALUES
                 (gen_random_uuid(), 'Research and define requirements', false, 'a0', v_tid, v_uid),
                 (gen_random_uuid(), 'Implement the solution',           false, 'a1', v_tid, v_uid);
-
             IF i % 30 = 0 THEN
                 INSERT INTO subtasks (id, title, is_completed, position, task_id, created_by_id)
                 VALUES (gen_random_uuid(), 'Write tests and review', false, 'a2', v_tid, v_uid);
@@ -638,15 +603,12 @@ BEGIN
     END LOOP;
 
     -- =========================================================================
-    -- COMMENTS (~80 comments across tasks)
-    -- Tasks where (seq % 6 = 0) OR (seq % 7 = 0 AND seq % 6 != 0) get a comment
+    -- COMMENTS
     -- =========================================================================
     FOR i IN 1..500 LOOP
         IF i % 6 = 0 OR (i % 7 = 0 AND i % 6 != 0) THEN
             SELECT tid INTO v_tid FROM _st WHERE seq = i;
-            -- Author: pick a user by round-robin (offset from primary assignee for variety)
             SELECT uid INTO v_uid FROM _su WHERE seq = ((i % 20) + 1);
-
             INSERT INTO comments (id, content, task_id, author_id)
             VALUES (
                 gen_random_uuid(),
@@ -657,22 +619,18 @@ BEGIN
                     WHEN 3 THEN 'Added unit tests. Coverage is now at 85%. Ready for review.'
                     ELSE        'Blocked by dependency on API changes. Will resume once that merges.'
                 END,
-                v_tid,
-                v_uid
+                v_tid, v_uid
             );
         END IF;
     END LOOP;
 
     -- =========================================================================
-    -- TASK WATCHERS (~62 tasks watched)
-    -- Every 8th task gets a watcher from a different team
+    -- TASK WATCHERS
     -- =========================================================================
     FOR i IN 1..500 LOOP
         IF i % 8 = 0 THEN
             SELECT tid INTO v_tid FROM _st WHERE seq = i;
-            -- Use QA/cross-team users as watchers (seq 18-20, cycling)
             SELECT uid INTO v_uid FROM _su WHERE seq = 18 + ((i / 8) % 3);
-
             INSERT INTO task_watchers (task_id, user_id)
             VALUES (v_tid, v_uid)
             ON CONFLICT DO NOTHING;
@@ -681,37 +639,30 @@ BEGIN
 
     -- =========================================================================
     -- TASK DEPENDENCIES (30 pairs)
-    -- Source task at seq = i*16, target at seq = i*16+3
     -- =========================================================================
     SELECT uid INTO v_uid FROM _su WHERE seq = 1;
     FOR i IN 1..30 LOOP
         SELECT tid INTO v_src FROM _st WHERE seq = i * 16;
         SELECT tid INTO v_tgt FROM _st WHERE seq = i * 16 + 3;
-
         v_dep_type := CASE (i % 3)
             WHEN 0 THEN 'blocks'::dependency_type
             WHEN 1 THEN 'related'::dependency_type
             ELSE        'blocked_by'::dependency_type
         END;
-
         IF v_src IS NOT NULL AND v_tgt IS NOT NULL AND v_src != v_tgt THEN
             INSERT INTO task_dependencies (
                 source_task_id, target_task_id, dependency_type, created_by_id
-            )
-            VALUES (v_src, v_tgt, v_dep_type, v_uid)
+            ) VALUES (v_src, v_tgt, v_dep_type, v_uid)
             ON CONFLICT DO NOTHING;
         END IF;
     END LOOP;
 
     -- =========================================================================
-    -- TIME ENTRIES (40 entries)
-    -- One entry per every 12th task
+    -- TIME ENTRIES (40)
     -- =========================================================================
     FOR i IN 1..40 LOOP
         SELECT tid, pid INTO v_tid, v_pid FROM _st WHERE seq = i * 12;
-        -- Assign to a user who is a member of that project
         SELECT uid INTO v_uid FROM _su WHERE seq = ((i % 17) + 1);
-
         IF v_tid IS NOT NULL THEN
             INSERT INTO time_entries (
                 id, task_id, user_id, description,
@@ -733,21 +684,16 @@ BEGIN
     END LOOP;
 
     -- =========================================================================
-    -- TASK LABELS (75% of tasks get 1-2 labels)
-    -- Skip every 4th task; 33% of labeled tasks get a second label
+    -- TASK LABELS
     -- =========================================================================
     FOR i IN 1..500 LOOP
         IF i % 4 != 0 THEN
             SELECT tid, pid INTO v_tid, v_pid FROM _st WHERE seq = i;
-
-            -- Primary label
             SELECT lid INTO v_lid FROM _sl
             WHERE pid = v_pid AND seq = ((i - 1) % 5) + 1;
             INSERT INTO task_labels (task_id, label_id)
             VALUES (v_tid, v_lid)
             ON CONFLICT DO NOTHING;
-
-            -- Second label for every 3rd labeled task
             IF i % 3 = 0 THEN
                 SELECT lid INTO v_lid FROM _sl
                 WHERE pid = v_pid AND seq = (i % 5) + 1;
@@ -758,14 +704,11 @@ BEGIN
         END IF;
     END LOOP;
 
-    RAISE NOTICE '=== Seed complete! ===';
-    RAISE NOTICE 'Tenant: Acme Corp (slug=acme-seed)';
-    RAISE NOTICE 'Users: 20 (alice@acme.com = admin, all others = member)';
-    RAISE NOTICE 'Workspace: Acme Workspace with 5 teams';
+    RAISE NOTICE '=== Paraslace seed complete! ===';
+    RAISE NOTICE 'Users: 20 (admin1@paraslace.in = admin, 19 new @paraslace.in members)';
     RAISE NOTICE 'Projects: 4 (Engineering Tasks, Design System, Marketing Hub, Product Roadmap)';
     RAISE NOTICE 'Tasks: 500 with assignees, labels, milestones, subtasks, comments, watchers, deps, time entries';
-    RAISE NOTICE 'Password for all accounts: Password123!';
+    RAISE NOTICE 'All new accounts share admin1 password.';
 END $$;
 
--- Clean up temp tables
 DROP TABLE IF EXISTS _su, _sb, _ss, _sg, _sm, _sl, _sf, _st;

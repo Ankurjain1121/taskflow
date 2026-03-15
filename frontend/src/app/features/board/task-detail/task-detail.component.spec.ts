@@ -128,8 +128,8 @@ describe('TaskDetailComponent', () => {
     mockMilestoneService = {
       list: vi.fn().mockReturnValue(
         of([
-          { id: 'ms-1', name: 'Sprint 1' },
-          { id: 'ms-2', name: 'Sprint 2' },
+          { id: 'ms-1', name: 'Milestone 1' },
+          { id: 'ms-2', name: 'Milestone 2' },
         ]),
       ),
       assignTask: vi.fn().mockReturnValue(of(void 0)),

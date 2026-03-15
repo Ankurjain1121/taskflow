@@ -334,7 +334,7 @@ export class CreateBoardDialogComponent implements OnInit {
             description: 'Backlog through Done with review stage',
             columns: [
               { name: 'Backlog', color: '#6B7280', is_done: false },
-              { name: 'Sprint', color: '#8B5CF6', is_done: false },
+              { name: 'Review', color: '#8B5CF6', is_done: false },
               { name: 'In Progress', color: '#3B82F6', is_done: false },
               { name: 'Review', color: '#F59E0B', is_done: false },
               { name: 'Done', color: '#10B981', is_done: true },

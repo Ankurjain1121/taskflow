@@ -77,7 +77,7 @@ const TEMPLATE_CATEGORIES = [
             pInputText
             id="templateName"
             formControlName="name"
-            placeholder="e.g. Sprint Project Template"
+            placeholder="e.g. Project Template"
             class="w-full"
           />
           @if (

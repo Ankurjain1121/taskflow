@@ -91,7 +91,7 @@ export class StepUseCaseComponent {
       id: 'software',
       icon: '\uD83D\uDCBB',
       title: 'Software Development',
-      description: 'Sprints, bugs, features, code reviews',
+      description: 'Tasks, bugs, features, code reviews',
     },
     {
       id: 'marketing',
