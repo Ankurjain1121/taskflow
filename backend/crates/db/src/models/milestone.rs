@@ -48,7 +48,7 @@ mod tests {
         let now = Utc::now();
         let milestone = Milestone {
             id: Uuid::new_v4(),
-            name: "Sprint 1".to_string(),
+            name: "Milestone 1".to_string(),
             description: None,
             due_date: None,
             color: "#6B7280".to_string(),

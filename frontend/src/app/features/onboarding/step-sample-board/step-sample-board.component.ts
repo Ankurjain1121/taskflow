@@ -254,10 +254,10 @@ export class StepSampleBoardComponent {
   };
 
   private boardNameMap: Record<string, string> = {
-    software: 'Sprint Board',
+    software: 'Dev Board',
     marketing: 'Campaign Tracker',
     personal: 'My Projects',
-    design: 'Design Sprint',
+    design: 'Design Board',
   };
 
   previewColumns = computed(

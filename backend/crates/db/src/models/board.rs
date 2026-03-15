@@ -62,8 +62,8 @@ mod tests {
         let now = Utc::now();
         let project = Project {
             id: Uuid::new_v4(),
-            name: "Sprint Project".to_string(),
-            description: Some("Sprint planning project".to_string()),
+            name: "Dev Project".to_string(),
+            description: Some("Dev planning project".to_string()),
             slack_webhook_url: None,
             prefix: Some("SPRI".to_string()),
             workspace_id: Uuid::new_v4(),
@@ -78,7 +78,7 @@ mod tests {
         let json = serde_json::to_string(&project).unwrap();
         let deserialized: Project = serde_json::from_str(&json).unwrap();
         assert_eq!(deserialized.id, project.id);
-        assert_eq!(deserialized.name, "Sprint Project");
+        assert_eq!(deserialized.name, "Dev Project");
     }
 
     #[test]

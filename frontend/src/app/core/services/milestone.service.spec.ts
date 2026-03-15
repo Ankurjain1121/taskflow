@@ -12,8 +12,8 @@ import {
 
 const MOCK_MILESTONE: Milestone = {
   id: 'ms-1',
-  name: 'Sprint 1',
-  description: 'First sprint',
+  name: 'Milestone 1',
+  description: 'First milestone',
   due_date: '2026-03-01',
   color: '#3b82f6',
   board_id: 'board-1',
@@ -73,8 +73,8 @@ describe('MilestoneService', () => {
   describe('create()', () => {
     it('should POST /api/projects/:boardId/milestones with body', () => {
       const createReq: CreateMilestoneRequest = {
-        name: 'Sprint 2',
-        description: 'Second sprint',
+        name: 'Milestone 2',
+        description: 'Second milestone',
         due_date: '2026-04-01',
         color: '#22c55e',
       };
@@ -92,7 +92,7 @@ describe('MilestoneService', () => {
 
   describe('update()', () => {
     it('should PUT /api/milestones/:id with body', () => {
-      const updateReq: UpdateMilestoneRequest = { name: 'Sprint 1 Updated' };
+      const updateReq: UpdateMilestoneRequest = { name: 'Milestone 1 Updated' };
 
       service.update('ms-1', updateReq).subscribe((result) => {
         expect(result).toEqual(MOCK_MILESTONE);
