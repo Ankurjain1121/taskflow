@@ -81,6 +81,7 @@ import { makeCellId } from '../board-view/swimlane-utils';
           [focusedTaskId]="focusedTaskId()"
           [selectedTaskIds]="selectedTaskIds()"
           [allColumns]="allColumns()"
+          [statusTransitions]="statusTransitions()"
           [boardPrefix]="boardPrefix()"
           [density]="density()"
           [cardFields]="cardFields()"
@@ -121,6 +122,7 @@ export class SwimlaneContainerComponent {
   focusedTaskId = input<string | null>(null);
   selectedTaskIds = input<string[]>([]);
   allColumns = input<Column[]>([]);
+  statusTransitions = input<Record<string, string[] | null>>({});
   groupBy = input<GroupByMode>('none');
   collapsedSwimlaneIds = input<Set<string>>(new Set());
 

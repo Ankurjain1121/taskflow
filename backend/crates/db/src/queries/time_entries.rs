@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
@@ -28,6 +28,7 @@ pub struct StartTimerInput {
     pub description: Option<String>,
     pub board_id: Uuid,
     pub tenant_id: Uuid,
+    pub is_billable: Option<bool>,
 }
 
 /// Input for creating a manual time entry
@@ -41,6 +42,7 @@ pub struct ManualEntryInput {
     pub duration_minutes: i32,
     pub board_id: Uuid,
     pub tenant_id: Uuid,
+    pub is_billable: Option<bool>,
 }
 
 /// Input for updating a time entry
@@ -50,6 +52,7 @@ pub struct UpdateEntryInput {
     pub started_at: Option<DateTime<Utc>>,
     pub ended_at: Option<DateTime<Utc>>,
     pub duration_minutes: Option<i32>,
+    pub is_billable: Option<bool>,
 }
 
 /// Aggregated time report per task
@@ -77,6 +80,55 @@ pub struct TimeEntryWithTask {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub task_title: String,
+    pub is_billable: bool,
+}
+
+/// Timesheet report entry (detailed per time entry)
+#[derive(Debug, FromRow, Serialize, Deserialize, Clone)]
+pub struct TimesheetEntry {
+    pub id: Uuid,
+    pub task_id: Uuid,
+    pub task_title: String,
+    pub user_id: Uuid,
+    pub user_name: String,
+    pub description: Option<String>,
+    pub started_at: DateTime<Utc>,
+    pub ended_at: Option<DateTime<Utc>>,
+    pub duration_minutes: i64,
+    pub is_billable: bool,
+    pub is_running: bool,
+    pub billing_rate_cents: Option<i32>,
+}
+
+/// Timesheet report summary
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TimesheetReport {
+    pub entries: Vec<TimesheetEntry>,
+    pub summary: TimesheetSummary,
+}
+
+/// Timesheet summary totals
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TimesheetSummary {
+    pub total_minutes: i64,
+    pub billable_minutes: i64,
+    pub non_billable_minutes: i64,
+    pub total_cost_cents: i64,
+}
+
+/// Verify user is a member of a project
+pub(crate) async fn verify_project_membership(
+    pool: &PgPool,
+    project_id: Uuid,
+    user_id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar::<_, bool>(
+        r#"SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)"#,
+    )
+    .bind(project_id)
+    .bind(user_id)
+    .fetch_one(pool)
+    .await
 }
 
 /// List all time entries for a task (verifies board membership)
@@ -94,15 +146,7 @@ pub async fn list_task_time_entries(
     .await?
     .ok_or(TimeEntryQueryError::NotFound)?;
 
-    let is_member = sqlx::query_scalar::<_, bool>(
-        r#"SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)"#,
-    )
-    .bind(board_id)
-    .bind(user_id)
-    .fetch_one(pool)
-    .await?;
-
-    if !is_member {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(TimeEntryQueryError::NotBoardMember);
     }
 
@@ -111,7 +155,7 @@ pub async fn list_task_time_entries(
         SELECT
             id, task_id, user_id, description, started_at, ended_at,
             duration_minutes, is_running, project_id, tenant_id,
-            created_at, updated_at
+            created_at, updated_at, is_billable
         FROM time_entries
         WHERE task_id = $1
         ORDER BY started_at DESC
@@ -129,16 +173,7 @@ pub async fn start_timer(
     pool: &PgPool,
     input: StartTimerInput,
 ) -> Result<TimeEntry, TimeEntryQueryError> {
-    // Verify board membership
-    let is_member = sqlx::query_scalar::<_, bool>(
-        r#"SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)"#,
-    )
-    .bind(input.board_id)
-    .bind(input.user_id)
-    .fetch_one(pool)
-    .await?;
-
-    if !is_member {
+    if !verify_project_membership(pool, input.board_id, input.user_id).await? {
         return Err(TimeEntryQueryError::NotBoardMember);
     }
 
@@ -160,14 +195,15 @@ pub async fn start_timer(
 
     // Create new running timer
     let id = Uuid::new_v4();
+    let is_billable = input.is_billable.unwrap_or(false);
     let entry = sqlx::query_as::<_, TimeEntry>(
         r#"
-        INSERT INTO time_entries (id, task_id, user_id, description, started_at, is_running, project_id, tenant_id)
-        VALUES ($1, $2, $3, $4, NOW(), true, $5, $6)
+        INSERT INTO time_entries (id, task_id, user_id, description, started_at, is_running, project_id, tenant_id, is_billable)
+        VALUES ($1, $2, $3, $4, NOW(), true, $5, $6, $7)
         RETURNING
             id, task_id, user_id, description, started_at, ended_at,
             duration_minutes, is_running, project_id, tenant_id,
-            created_at, updated_at
+            created_at, updated_at, is_billable
         "#,
     )
     .bind(id)
@@ -176,6 +212,7 @@ pub async fn start_timer(
     .bind(&input.description)
     .bind(input.board_id)
     .bind(input.tenant_id)
+    .bind(is_billable)
     .fetch_one(pool)
     .await?;
 
@@ -212,7 +249,7 @@ pub async fn stop_timer(
         RETURNING
             id, task_id, user_id, description, started_at, ended_at,
             duration_minutes, is_running, project_id, tenant_id,
-            created_at, updated_at
+            created_at, updated_at, is_billable
         "#,
     )
     .bind(entry_id)
@@ -228,28 +265,20 @@ pub async fn create_manual_entry(
     pool: &PgPool,
     input: ManualEntryInput,
 ) -> Result<TimeEntry, TimeEntryQueryError> {
-    // Verify board membership
-    let is_member = sqlx::query_scalar::<_, bool>(
-        r#"SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)"#,
-    )
-    .bind(input.board_id)
-    .bind(input.user_id)
-    .fetch_one(pool)
-    .await?;
-
-    if !is_member {
+    if !verify_project_membership(pool, input.board_id, input.user_id).await? {
         return Err(TimeEntryQueryError::NotBoardMember);
     }
 
     let id = Uuid::new_v4();
+    let is_billable = input.is_billable.unwrap_or(false);
     let entry = sqlx::query_as::<_, TimeEntry>(
         r#"
-        INSERT INTO time_entries (id, task_id, user_id, description, started_at, ended_at, duration_minutes, is_running, project_id, tenant_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8, $9)
+        INSERT INTO time_entries (id, task_id, user_id, description, started_at, ended_at, duration_minutes, is_running, project_id, tenant_id, is_billable)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8, $9, $10)
         RETURNING
             id, task_id, user_id, description, started_at, ended_at,
             duration_minutes, is_running, project_id, tenant_id,
-            created_at, updated_at
+            created_at, updated_at, is_billable
         "#,
     )
     .bind(id)
@@ -261,6 +290,7 @@ pub async fn create_manual_entry(
     .bind(input.duration_minutes)
     .bind(input.board_id)
     .bind(input.tenant_id)
+    .bind(is_billable)
     .fetch_one(pool)
     .await?;
 
@@ -294,12 +324,13 @@ pub async fn update_entry(
             started_at = COALESCE($3, started_at),
             ended_at = COALESCE($4, ended_at),
             duration_minutes = COALESCE($5, duration_minutes),
+            is_billable = COALESCE($6, is_billable),
             updated_at = NOW()
         WHERE id = $1
         RETURNING
             id, task_id, user_id, description, started_at, ended_at,
             duration_minutes, is_running, project_id, tenant_id,
-            created_at, updated_at
+            created_at, updated_at, is_billable
         "#,
     )
     .bind(id)
@@ -307,6 +338,7 @@ pub async fn update_entry(
     .bind(input.started_at)
     .bind(input.ended_at)
     .bind(input.duration_minutes)
+    .bind(input.is_billable)
     .fetch_optional(pool)
     .await?
     .ok_or(TimeEntryQueryError::NotFound)?;
@@ -351,16 +383,7 @@ pub async fn get_board_time_report(
     board_id: Uuid,
     user_id: Uuid,
 ) -> Result<Vec<TaskTimeReport>, TimeEntryQueryError> {
-    // Verify board membership
-    let is_member = sqlx::query_scalar::<_, bool>(
-        r#"SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)"#,
-    )
-    .bind(board_id)
-    .bind(user_id)
-    .fetch_one(pool)
-    .await?;
-
-    if !is_member {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(TimeEntryQueryError::NotBoardMember);
     }
 
@@ -386,6 +409,85 @@ pub async fn get_board_time_report(
     Ok(report)
 }
 
+/// Get detailed timesheet report with billing for a project
+pub async fn get_timesheet_report(
+    pool: &PgPool,
+    project_id: Uuid,
+    user_id: Uuid,
+    start_date: Option<NaiveDate>,
+    end_date: Option<NaiveDate>,
+    filter_user_id: Option<Uuid>,
+    billable_only: Option<bool>,
+) -> Result<TimesheetReport, TimeEntryQueryError> {
+    if !verify_project_membership(pool, project_id, user_id).await? {
+        return Err(TimeEntryQueryError::NotBoardMember);
+    }
+
+    let entries = sqlx::query_as::<_, TimesheetEntry>(
+        r#"
+        SELECT
+            te.id,
+            te.task_id,
+            t.title as task_title,
+            te.user_id,
+            COALESCE(u.display_name, u.name, u.email) as user_name,
+            te.description,
+            te.started_at,
+            te.ended_at,
+            COALESCE(
+                te.duration_minutes::bigint,
+                EXTRACT(EPOCH FROM (NOW() - te.started_at))::bigint / 60
+            ) as duration_minutes,
+            te.is_billable,
+            te.is_running,
+            pm.billing_rate_cents
+        FROM time_entries te
+        JOIN tasks t ON t.id = te.task_id
+        JOIN users u ON u.id = te.user_id
+        LEFT JOIN project_members pm ON pm.project_id = te.project_id AND pm.user_id = te.user_id
+        WHERE te.project_id = $1
+            AND ($2::date IS NULL OR te.started_at >= $2::date::timestamp AT TIME ZONE 'UTC')
+            AND ($3::date IS NULL OR te.started_at < ($3::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC')
+            AND ($4::uuid IS NULL OR te.user_id = $4)
+            AND ($5::bool IS NULL OR $5 = false OR te.is_billable = true)
+        ORDER BY te.started_at DESC
+        "#,
+    )
+    .bind(project_id)
+    .bind(start_date)
+    .bind(end_date)
+    .bind(filter_user_id)
+    .bind(billable_only)
+    .fetch_all(pool)
+    .await?;
+
+    // Compute summary
+    let mut total_minutes: i64 = 0;
+    let mut billable_minutes: i64 = 0;
+    let mut total_cost_cents: i64 = 0;
+
+    for entry in &entries {
+        total_minutes += entry.duration_minutes;
+        if entry.is_billable {
+            billable_minutes += entry.duration_minutes;
+            if let Some(rate) = entry.billing_rate_cents {
+                // cost = minutes * rate_cents / 60
+                total_cost_cents += entry.duration_minutes * rate as i64 / 60;
+            }
+        }
+    }
+
+    Ok(TimesheetReport {
+        entries,
+        summary: TimesheetSummary {
+            total_minutes,
+            billable_minutes,
+            non_billable_minutes: total_minutes - billable_minutes,
+            total_cost_cents,
+        },
+    })
+}
+
 /// Get the currently running timer for a user (with task info)
 pub async fn get_running_timer(
     pool: &PgPool,
@@ -396,7 +498,7 @@ pub async fn get_running_timer(
         SELECT
             te.id, te.task_id, te.user_id, te.description, te.started_at, te.ended_at,
             te.duration_minutes, te.is_running, te.project_id, te.tenant_id,
-            te.created_at, te.updated_at,
+            te.created_at, te.updated_at, te.is_billable,
             t.title as task_title
         FROM time_entries te
         JOIN tasks t ON t.id = te.task_id
@@ -492,6 +594,7 @@ mod tests {
             description: Some("Working on it".to_string()),
             board_id,
             tenant_id,
+            is_billable: None,
         };
 
         let entry = start_timer(&pool, input)
@@ -505,6 +608,7 @@ mod tests {
         assert_eq!(entry.description.as_deref(), Some("Working on it"));
         assert_eq!(entry.project_id, board_id);
         assert_eq!(entry.tenant_id, tenant_id);
+        assert!(!entry.is_billable);
     }
 
     #[tokio::test]
@@ -518,6 +622,7 @@ mod tests {
             description: None,
             board_id,
             tenant_id,
+            is_billable: None,
         };
 
         let started = start_timer(&pool, input).await.expect("start_timer");
@@ -548,6 +653,7 @@ mod tests {
             duration_minutes: 60,
             board_id,
             tenant_id,
+            is_billable: Some(true),
         };
 
         let entry = create_manual_entry(&pool, input)
@@ -560,6 +666,34 @@ mod tests {
         assert!(entry.ended_at.is_some());
         assert_eq!(entry.duration_minutes, Some(60));
         assert_eq!(entry.description.as_deref(), Some("Manual logging"));
+        assert!(entry.is_billable);
+    }
+
+    #[tokio::test]
+    async fn test_billable_default_false() {
+        let pool = test_pool().await;
+        let (tenant_id, user_id, board_id, task_id) = setup_with_task(&pool).await;
+
+        let started_at = Utc::now() - Duration::hours(2);
+        let ended_at = Utc::now() - Duration::hours(1);
+
+        let input = ManualEntryInput {
+            task_id,
+            user_id,
+            description: None,
+            started_at,
+            ended_at,
+            duration_minutes: 30,
+            board_id,
+            tenant_id,
+            is_billable: None,
+        };
+
+        let entry = create_manual_entry(&pool, input)
+            .await
+            .expect("create_manual_entry");
+
+        assert!(!entry.is_billable, "Default should be false");
     }
 
     #[tokio::test]
@@ -581,6 +715,7 @@ mod tests {
                 duration_minutes: 60,
                 board_id,
                 tenant_id,
+                is_billable: None,
             },
         )
         .await
@@ -599,6 +734,7 @@ mod tests {
                 duration_minutes: 60,
                 board_id,
                 tenant_id,
+                is_billable: None,
             },
         )
         .await
@@ -640,6 +776,7 @@ mod tests {
                 duration_minutes: 90,
                 board_id,
                 tenant_id,
+                is_billable: None,
             },
         )
         .await
@@ -670,6 +807,7 @@ mod tests {
             description: Some("Timer 1".to_string()),
             board_id,
             tenant_id,
+            is_billable: None,
         };
         let timer1 = start_timer(&pool, input1).await.expect("start first timer");
         assert!(timer1.is_running);
@@ -681,6 +819,7 @@ mod tests {
             description: Some("Timer 2".to_string()),
             board_id,
             tenant_id,
+            is_billable: None,
         };
         let timer2 = start_timer(&pool, input2)
             .await

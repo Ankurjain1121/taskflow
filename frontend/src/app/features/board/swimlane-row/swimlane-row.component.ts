@@ -120,6 +120,7 @@ import {
                 [isFocused]="focusedTaskId() === task.id"
                 [isSelected]="selectedTaskIds().includes(task.id)"
                 [columns]="allColumns()"
+                [statusTransitions]="statusTransitions()"
                 [boardPrefix]="boardPrefix()"
                 [subtaskProgress]="
                   task.subtask_total
@@ -183,6 +184,7 @@ export class SwimlaneRowComponent {
   focusedTaskId = input<string | null>(null);
   selectedTaskIds = input<string[]>([]);
   allColumns = input<Column[]>([]);
+  statusTransitions = input<Record<string, string[] | null>>({});
   boardPrefix = input<string | null>(null);
   density = input<'compact' | 'normal' | 'expanded'>('normal');
   cardFields = input<CardFields>(DEFAULT_CARD_FIELDS);

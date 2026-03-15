@@ -15,7 +15,8 @@ pub async fn list_project_statuses(
         r#"
         SELECT id, project_id, name, color,
                type as "status_type",
-               position, is_default, tenant_id, created_at
+               position, is_default, tenant_id, created_at,
+               allowed_transitions
         FROM project_statuses
         WHERE project_id = $1
         ORDER BY position ASC
@@ -36,7 +37,8 @@ pub async fn get_default_status(
         r#"
         SELECT id, project_id, name, color,
                type as "status_type",
-               position, is_default, tenant_id, created_at
+               position, is_default, tenant_id, created_at,
+               allowed_transitions
         FROM project_statuses
         WHERE project_id = $1 AND is_default = true
         LIMIT 1
@@ -89,7 +91,8 @@ pub async fn create_project_status(
         VALUES ($1, $2, $3, $4, $5, false, $6)
         RETURNING id, project_id, name, color,
                   type as "status_type",
-                  position, is_default, tenant_id, created_at
+                  position, is_default, tenant_id, created_at,
+                  allowed_transitions
         "#,
         project_id,
         name,
@@ -121,12 +124,48 @@ pub async fn update_project_status(
         WHERE id = $1
         RETURNING id, project_id, name, color,
                   type as "status_type",
-                  position, is_default, tenant_id, created_at
+                  position, is_default, tenant_id, created_at,
+                  allowed_transitions
         "#,
         id,
         name,
         color,
         type_str
+    )
+    .fetch_one(pool)
+    .await
+}
+
+/// Get allowed transitions for a status
+pub async fn get_transitions(pool: &PgPool, id: Uuid) -> Result<Option<Vec<Uuid>>, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT allowed_transitions FROM project_statuses WHERE id = $1"#,
+        id
+    )
+    .fetch_optional(pool)
+    .await
+    .map(|opt| opt.flatten())
+}
+
+/// Set allowed transitions for a status
+pub async fn set_transitions(
+    pool: &PgPool,
+    id: Uuid,
+    transitions: Option<&[Uuid]>,
+) -> Result<ProjectStatus, sqlx::Error> {
+    sqlx::query_as!(
+        ProjectStatus,
+        r#"
+        UPDATE project_statuses
+        SET allowed_transitions = $2
+        WHERE id = $1
+        RETURNING id, project_id, name, color,
+                  type as "status_type",
+                  position, is_default, tenant_id, created_at,
+                  allowed_transitions
+        "#,
+        id,
+        transitions
     )
     .fetch_one(pool)
     .await

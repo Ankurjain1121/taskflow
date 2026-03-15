@@ -32,6 +32,7 @@ pub struct ProjectMember {
     pub user_id: Uuid,
     pub role: BoardMemberRole,
     pub joined_at: DateTime<Utc>,
+    pub billing_rate_cents: Option<i32>,
 }
 
 pub type BoardMember = ProjectMember;
@@ -48,6 +49,8 @@ pub struct ProjectStatus {
     pub is_default: bool,
     pub tenant_id: Uuid,
     pub created_at: DateTime<Utc>,
+    /// NULL = allow all transitions (backward compat), empty = terminal status
+    pub allowed_transitions: Option<Vec<Uuid>>,
 }
 
 #[cfg(test)]
@@ -87,6 +90,7 @@ mod tests {
             user_id: Uuid::new_v4(),
             role: BoardMemberRole::Editor,
             joined_at: now,
+            billing_rate_cents: None,
         };
         let json = serde_json::to_string(&member).unwrap();
         let deserialized: ProjectMember = serde_json::from_str(&json).unwrap();

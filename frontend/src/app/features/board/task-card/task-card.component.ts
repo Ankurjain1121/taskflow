@@ -1122,6 +1122,7 @@ export class TaskCardComponent {
   subtaskProgress = input<{ completed: number; total: number } | null>(null);
   hasRunningTimer = input<boolean>(false);
   columns = input<Column[]>([]);
+  statusTransitions = input<Record<string, string[] | null>>({});
   boardPrefix = input<string | null>(null);
   density = input<'compact' | 'normal' | 'expanded'>('normal');
   lockedBy = input<TaskLockInfo | null>(null);
@@ -1359,14 +1360,28 @@ export class TaskCardComponent {
         icon: 'pi pi-arrow-right',
         items: this.columns()
           .filter((col) => col.id !== this.task().column_id)
-          .map((col) => ({
-            label: col.name,
-            command: () =>
-              this.columnMoveRequested.emit({
-                taskId: this.task().id,
-                columnId: col.id,
-              }),
-          })),
+          .map((col) => {
+            const currentStatusId =
+              this.task().status_id ?? this.task().column_id ?? '';
+            const allowed = this.statusTransitions()[currentStatusId];
+            const isAllowed =
+              allowed === null || allowed === undefined
+                ? true
+                : allowed.includes(col.id);
+            return {
+              label: col.name,
+              disabled: !isAllowed,
+              styleClass: isAllowed ? '' : 'opacity-50',
+              command: () => {
+                if (isAllowed) {
+                  this.columnMoveRequested.emit({
+                    taskId: this.task().id,
+                    columnId: col.id,
+                  });
+                }
+              },
+            };
+          }),
       },
       {
         label: 'Duplicate',

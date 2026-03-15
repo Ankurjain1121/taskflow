@@ -124,6 +124,7 @@ export class BoardStateService {
     if (!meta) return false;
     return this.tasksLoaded() < meta.total_task_count;
   });
+  readonly statusTransitions = signal<Record<string, string[] | null>>({});
   readonly dragSimulationActive = signal<boolean>(false);
   readonly dragSimulationSourceColumnId = signal<string | null>(null);
   readonly dragSimulationCurrentColumnId = signal<string | null>(null);
@@ -255,6 +256,15 @@ export class BoardStateService {
           (response.board.columns ?? response.statuses ?? []) as Column[]
         ).sort((a, b) => a.position.localeCompare(b.position));
         this.columns.set(cols);
+
+        // Build transition map from statuses that have allowed_transitions
+        const rawStatuses = response.board.columns ?? response.statuses ?? [];
+        const tMap: Record<string, string[] | null> = {};
+        for (const s of rawStatuses) {
+          const ps = s as { id: string; allowed_transitions?: string[] | null };
+          tMap[ps.id] = ps.allowed_transitions ?? null;
+        }
+        this.statusTransitions.set(tMap);
 
         const tasksByColumn: Record<string, Task[]> = {};
         for (const col of cols) {

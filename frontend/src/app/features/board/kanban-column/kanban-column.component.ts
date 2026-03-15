@@ -225,6 +225,7 @@ export interface TaskMoveEvent {
                 [isFocused]="focusedTaskId() === task.id"
                 [isSelected]="selectedTaskIds().includes(task.id)"
                 [columns]="allColumns()"
+                [statusTransitions]="statusTransitions()"
                 [boardPrefix]="boardPrefix()"
                 [subtaskProgress]="
                   task.subtask_total
@@ -265,6 +266,7 @@ export interface TaskMoveEvent {
                 [isFocused]="focusedTaskId() === task.id"
                 [isSelected]="selectedTaskIds().includes(task.id)"
                 [columns]="allColumns()"
+                [statusTransitions]="statusTransitions()"
                 [boardPrefix]="boardPrefix()"
                 [subtaskProgress]="
                   task.subtask_total
@@ -387,6 +389,7 @@ export class KanbanColumnComponent {
 
   selectedTaskIds = input<string[]>([]);
   allColumns = input<Column[]>([]);
+  statusTransitions = input<Record<string, string[] | null>>({});
   boardPrefix = input<string | null>(null);
   isCollapsed = input<boolean>(false);
   dragSimActive = input<boolean>(false);

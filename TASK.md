@@ -1,57 +1,163 @@
-# Upgrade Subtasks to First-Class Child Tasks — COMPLETE
+# TaskFlow — Phase 1: Zoho Projects Replacement (Bulletproofing)
 
 ## Objective
-Add `parent_task_id` and `depth` to the `tasks` table, making subtasks first-class tasks. Migrate existing subtask data. Max depth: 2 levels (0=root, 1=subtask, 2=sub-subtask).
+Close the 3 highest-impact feature gaps vs Zoho Projects: blueprint status transitions, inline list view editing, and timesheet billing. Make existing features production-solid.
 
-## Implementation Phases
+**Full roadmap:** Phases 2-4 (wiki, Gantt, budget, SSO, AI, etc.) deferred to future reviews.
 
-### Phase 1: Database Migration
-- [x] Create migration: `20260313000001_subtasks_to_child_tasks.sql`
-- [x] Add `parent_task_id UUID REFERENCES tasks(id) ON DELETE CASCADE`
-- [x] Add `depth SMALLINT NOT NULL DEFAULT 0`
-- [x] Create index + check constraint (depth 0-2)
-- [x] Migrate existing subtask data → tasks table (3 subtasks migrated)
-- [x] Migrate subtask assignees → task_assignees
+---
 
-### Phase 2: Backend Updates
-- [x] Task struct: add `parent_task_id`, `depth` fields
-- [x] Board queries: update LATERAL join, add parent filter, include `parent_task_id`
-- [x] Board types: add `parent_task_id` to `TaskWithBadges`
-- [x] Task queries: update all SELECT statements (12+ occurrences)
-- [x] Task helpers: accept `parent_task_id` in CreateTaskRequest
-- [x] Complete/uncomplete convenience endpoints
-- [x] `list_child_tasks()` function added
-- [x] Depth validation in `create_task()` (parent.depth + 1, max 2)
+## Key Decisions (from Eng Review)
 
-### Phase 3: Frontend Updates
-- [x] Task interface: add `parent_task_id`, `depth`
-- [x] TaskService: add `listChildren`, `createChild`, `completeTask`, `uncompleteTask`
-- [x] SubtaskListComponent: overhaul to rich child task cards (priority dot, clickable title, avatars, due date)
-- [x] Board view: backend filters root tasks only (parent_task_id IS NULL)
-- [x] Task detail: parent breadcrumb ("Part of: <parent title>")
-- [x] Task detail sidebar: "Part of" section with parent link
+| # | Decision | Rationale |
+|---|----------|-----------|
+| 1 | UUID[] column for `allowed_transitions` | Type-safe, compact, native `ANY()` check |
+| 2 | NULL = allow all transitions | Backward compatible, zero migration effort |
+| 3 | Shared `validate_transition()` function | Both move + update endpoints enforce blueprint |
+| 4 | Billing rate on `project_members` table | Per-user-per-project rate, cost computed at query time |
+| 5 | 4 editable fields: title, priority, status, due date | Assignee deferred (TODO-003) |
+| 6 | Extract `verify_project_membership()` in touched files only | DRY where we're working, don't over-refactor |
+| 7 | Fix auth-before-write in column.rs | Security: prevent unauthorized writes |
+| 8 | Integration tests with real DB | Follow existing time_entries.rs pattern |
+| 9 | TDD for list-view specs | Write specs before implementing inline edit |
+| 10 | No Redis caching for blueprint lookups | PK lookup is ~0.1ms, YAGNI |
+| 11 | Add index on time_entries(project_id, started_at) | Prevent table scan on date-range reports |
 
-### Phase 4: Verification
-- [x] `cargo check` + `cargo clippy` pass clean
-- [x] `tsc --noEmit` passes clean
-- [x] Production build succeeds
+---
+
+## Implementation Plan
+
+### 1.1 Blueprint / Status Transition Enforcement
+
+**Migration:**
+- [ ] `ALTER TABLE project_statuses ADD COLUMN allowed_transitions UUID[]`
+- [ ] NULL = allow all, empty array = terminal status (no outgoing)
+- [ ] Run `cargo sqlx prepare --workspace` after migration
+
+**Backend — shared validation:**
+- [ ] Create `validate_transition(pool, from_status_id, to_status_id) -> Result<()>` in `queries/tasks.rs`
+  - Load `allowed_transitions` for `from_status_id`
+  - If NULL → allow (backward compat)
+  - If to_status_id NOT IN array → return `AppError::UnprocessableEntity("Transition not allowed")`
+  - Wrap in catch for stale FK → return "status configuration changed" not 500
+- [ ] Call `validate_transition()` in `move_task_handler` (task_movement.rs) before `move_task()`
+- [ ] Call `validate_transition()` in `update_task_handler` (task_crud.rs) when `status_id` changes
+
+**Backend — blueprint config endpoints (column.rs):**
+- [ ] `GET /api/columns/:id/transitions` → returns `allowed_transitions` array
+- [ ] `PUT /api/columns/:id/transitions` → sets `allowed_transitions` (body: `{ allowed: [uuid, uuid] }`)
+- [ ] Fix auth-before-write in `rename_status` and `update_status_type` (Issue 7)
+
+**Frontend — Kanban integration:**
+- [ ] Load `allowed_transitions` with project statuses
+- [ ] Filter "Move to" dropdown in task card context menu
+- [ ] Show visual indicator on blocked transitions (greyed out)
+
+**Frontend — Blueprint config UI:**
+- [ ] New "Workflow" tab in board settings
+- [ ] Status × Status matrix with checkboxes
+- [ ] Save calls `PUT /api/columns/:id/transitions` per status
+
+**Tests (integration, real DB):**
+- [ ] NULL allows any move
+- [ ] Valid transition passes
+- [ ] Blocked transition returns 422
+- [ ] Invalid/missing status returns 404
+- [ ] Both move_task and update_task enforce
+- [ ] Blueprint config CRUD roundtrip
+
+### 1.2 Inline Editing in List View
+
+**Frontend specs FIRST (TDD):**
+- [ ] Create `list-view.component.spec.ts`
+- [ ] Spec: title blur triggers PATCH save
+- [ ] Spec: Enter saves and moves focus
+- [ ] Spec: Escape reverts to original value
+- [ ] Spec: empty title blocked (validation)
+- [ ] Spec: priority dropdown saves on select
+- [ ] Spec: status dropdown respects blueprint (filtered options)
+- [ ] Spec: due date picker saves on select
+
+**Frontend implementation:**
+- [ ] Import PrimeNG `pEditableColumn`, `pCellEditor`, `InputText`, `Select`, `DatePicker`
+- [ ] Title cell: text input with blur/Enter/Escape handling
+- [ ] Priority cell: dropdown (Low/Medium/High/Urgent)
+- [ ] Status cell: dropdown filtered by `allowed_transitions` (blueprint-aware)
+- [ ] Due date cell: PrimeNG DatePicker
+- [ ] Optimistic update with rollback on HTTP error (`.pipe(catchError(...))` reverts cell)
+- [ ] Status changes use `POST /api/tasks/:id/move` (not PATCH), consistent with Kanban
+
+**Backend:** No changes needed — existing update + move endpoints suffice.
+
+### 1.3 Timesheet Reports + Billable Hours
+
+**Migration:**
+- [ ] `ALTER TABLE time_entries ADD COLUMN is_billable BOOLEAN NOT NULL DEFAULT false`
+- [ ] `ALTER TABLE project_members ADD COLUMN billing_rate_cents INTEGER`
+- [ ] `CREATE INDEX idx_time_entries_project_started ON time_entries(project_id, started_at)`
+
+**Backend model updates:**
+- [ ] Add `is_billable` to `TimeEntry` struct
+- [ ] Add `billing_rate_cents` to `ProjectMember` struct (board.rs)
+- [ ] Extract `verify_project_membership()` to shared module (DRY fix)
+- [ ] Refactor time_entries.rs to use shared function
+
+**Backend — new timesheet report endpoint:**
+- [ ] `GET /api/projects/:id/timesheet-report?start_date=&end_date=&user_id=&billable_only=`
+- [ ] Query: JOIN time_entries + tasks + project_members
+- [ ] Handle running timers: `COALESCE(duration_minutes, EXTRACT(EPOCH FROM (NOW() - started_at))::int / 60)`
+- [ ] Response: `{ entries: [...], summary: { total_hours, billable_hours, non_billable_hours, total_cost_cents } }`
+
+**Backend — update existing endpoints:**
+- [ ] `CreateManualEntryRequest` + `StartTimerRequest`: add optional `is_billable`
+- [ ] `UpdateEntryRequest`: add optional `is_billable`
+
+**Frontend:**
+- [ ] Add `is_billable` to `TimeEntry` interface
+- [ ] Add `billing_rate_cents` to project member types
+- [ ] Billable toggle in time entry creation/edit forms
+- [ ] New "Timesheet" tab in project reports view
+- [ ] Date range picker, user filter, billable-only toggle
+- [ ] Summary cards: total hours, billable hours, total cost
+
+**Tests:**
+- [ ] `is_billable` flag persists on create
+- [ ] Default is false when omitted
+- [ ] Date range filtering works
+- [ ] User filtering works
+- [ ] Billable-only filter
+- [ ] Cost calculation: `minutes * rate_cents / 60`
+- [ ] Running timer included in report (COALESCE)
+- [ ] Empty state returns zero summary
+
+---
 
 ## Success Criteria
-- [x] Migration runs: parent_task_id and depth exist on tasks table
-- [x] Existing subtask data migrated correctly (3 of 6 — others had deleted parents)
-- [x] cargo check + clippy pass
-- [x] tsc --noEmit passes
-- [x] Child tasks have full task properties (they ARE tasks)
-- [x] Board shows only root tasks (WHERE parent_task_id IS NULL)
-- [x] Task card subtask progress counts child tasks in done columns
-- [x] SubtaskListComponent shows rich mini-cards
-- [x] Clicking child task navigates to full task detail
-- [x] Child task detail shows parent breadcrumb
-- [x] Depth constraint enforced (DB CHECK + create_task validation)
-- [x] Delete parent cascades to children (ON DELETE CASCADE)
+
+- [ ] Existing projects work unchanged (NULL = allow all transitions)
+- [ ] Blueprint configured project blocks invalid moves in both Kanban + list view
+- [ ] Blueprint UI: matrix of checkboxes per status, saves correctly
+- [ ] List view: click cell to edit title/priority/status/due date inline
+- [ ] List view: status dropdown only shows blueprint-allowed targets
+- [ ] List view: Escape reverts, Enter saves, blur saves
+- [ ] Time entries can be marked billable/non-billable
+- [ ] Project members can have billing rates set
+- [ ] Timesheet report filters by date/user/billable and shows cost summary
+- [ ] All integration tests pass (real DB)
+- [ ] `cargo check` + `cargo clippy` + `tsc --noEmit` + prod build pass
+- [ ] SQLx cache regenerated (`cargo sqlx prepare --workspace`)
+
+## Failure Modes Addressed
+- Stale FK in blueprint → catch + clear error message (not 500)
+- Inline edit network failure → optimistic rollback via catchError
+- Running timer in report → COALESCE computes live duration
+- Auth-before-write in column.rs → fixed
 
 ## Progress Log
-- [2026-03-06] Migration created and run — columns verified
-- [2026-03-06] Backend complete — all models, queries, routes updated (backend-agent)
-- [2026-03-06] Frontend complete — interfaces, services, components updated (frontend-agent)
-- [2026-03-06] All checks pass: cargo check, clippy, tsc, prod build
+- [2026-03-15] Full roadmap created from Zoho competitive analysis
+- [2026-03-15] Eng review completed — scoped to Phase 1, 11 decisions made
+- [2026-03-15] Phase 1 implementation complete:
+  - Migration: `allowed_transitions UUID[]` on project_statuses, `is_billable` on time_entries, `billing_rate_cents` on project_members, index on time_entries(project_id, started_at)
+  - Backend: `validate_transition()` in tasks.rs, called in move_task_handler; blueprint GET/PUT endpoints in column.rs; auth-before-write fixed in rename_status, update_status_type, update_color; timesheet report endpoint with date/user/billable filters
+  - Frontend: ProjectStatus.allowed_transitions; Workflow tab in board settings (transition matrix); task card "Move to" filtered by blueprint; list view inline editing (title/priority/status/due_date); timesheet report with billing summary
+  - All checks pass: cargo check, clippy, tsc --noEmit, prod build

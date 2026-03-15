@@ -28,6 +28,7 @@ export interface ProjectStatus {
   position: string;
   is_default: boolean;
   created_at: string;
+  allowed_transitions?: string[] | null;
 }
 
 export interface ColumnStatusMapping {
@@ -455,6 +456,33 @@ export class BoardService {
       .pipe(
         tap(() => {
           this.cache.invalidate(`projects:.*`);
+        }),
+      );
+  }
+
+  getTransitions(
+    statusId: string,
+  ): Observable<{ status_id: string; allowed_transitions: string[] | null }> {
+    return this.http.get<{
+      status_id: string;
+      allowed_transitions: string[] | null;
+    }>(`${this.apiUrl}/columns/${statusId}/transitions`);
+  }
+
+  updateTransitions(
+    statusId: string,
+    allowed: string[] | null,
+  ): Observable<ProjectStatus & { allowed_transitions: string[] | null }> {
+    return this.http
+      .put<ProjectStatus & { allowed_transitions: string[] | null }>(
+        `${this.apiUrl}/columns/${statusId}/transitions`,
+        { allowed },
+      )
+      .pipe(
+        tap(() => {
+          this.cache.invalidate(`statuses:.*`);
+          this.cache.invalidate(`columns:.*`);
+          this.cache.invalidate(`project-full:.*`);
         }),
       );
   }
