@@ -239,7 +239,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api/positions", positions_router(state.clone()))
         // Project routes
         .nest(
-            "/api/project-templates",
+            "/api/project-blueprints",
             project_templates_router(state.clone()),
         )
         .nest("/api/projects", project_router(state.clone()))
