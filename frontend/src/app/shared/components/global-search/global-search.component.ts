@@ -360,7 +360,7 @@ const MAX_RECENT_SEARCHES = 5;
                 <div class="px-4 pt-3 pb-1">
                   <span
                     class="text-xs font-semibold text-[var(--muted-foreground)] dark:text-gray-400 uppercase tracking-wider"
-                    >Boards</span
+                    >Projects</span
                   >
                 </div>
                 @for (board of results()!.boards; track board.id) {

@@ -63,7 +63,7 @@ import { AdminService, TrashItem } from '../../../core/services/admin.service';
             <p-tablist>
               <p-tab value="all">All Items</p-tab>
               <p-tab value="task">Tasks</p-tab>
-              <p-tab value="board">Boards</p-tab>
+              <p-tab value="board">Projects</p-tab>
               <p-tab value="workspace">Workspaces</p-tab>
             </p-tablist>
           </p-tabs>

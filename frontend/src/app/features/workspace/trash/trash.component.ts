@@ -43,7 +43,7 @@ interface TrashItem {
           class="px-3 py-2 text-sm border border-[var(--border)] rounded-md bg-[var(--background)] text-[var(--foreground)]"
         >
           <option value="">All types</option>
-          <option value="board">Boards</option>
+          <option value="board">Projects</option>
           <option value="task">Tasks</option>
         </select>
       </div>

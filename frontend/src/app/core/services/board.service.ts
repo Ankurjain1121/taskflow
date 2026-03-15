@@ -156,11 +156,10 @@ export interface BoardMeta {
 }
 
 export interface ProjectFullResponse {
-  board: Board & { columns?: Column[]; statuses?: ProjectStatus[] };
+  project: Board & { statuses?: ProjectStatus[] };
   tasks: TaskWithBadges[];
   members: ProjectMember[];
   meta: BoardMeta;
-  statuses?: ProjectStatus[];
 }
 
 @Injectable({

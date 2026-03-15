@@ -89,10 +89,10 @@ import { ArchiveService } from '../../../core/services/archive.service';
             >
           </nav>
           <h1 class="text-3xl font-bold text-[var(--foreground)]">
-            Board Settings
+            Project Settings
           </h1>
           <p class="mt-2 text-[var(--muted-foreground)]">
-            Configure your board's settings, columns, members, and integrations
+            Configure your project's settings, columns, members, and integrations
           </p>
         </div>
 
@@ -240,12 +240,12 @@ import { ArchiveService } from '../../../core/services/archive.service';
                         <h2
                           class="text-lg font-medium text-[var(--foreground)]"
                         >
-                          Board Color
+                          Project Color
                         </h2>
                       </div>
                       <div class="px-6 py-4">
                         <p class="text-sm text-[var(--muted-foreground)] mb-3">
-                          Choose a background color for this board.
+                          Choose a background color for this project.
                         </p>
                         <div class="flex flex-wrap items-center gap-2">
                           @for (color of presetColors; track color) {
@@ -309,10 +309,10 @@ import { ArchiveService } from '../../../core/services/archive.service';
                             <h3
                               class="text-sm font-medium text-[var(--foreground)]"
                             >
-                              Save Board as Template
+                              Save Project as Template
                             </h3>
                             <p class="text-sm text-[var(--muted-foreground)]">
-                              Save this board's structure as a reusable template
+                              Save this project's structure as a reusable template
                               including all columns and tasks.
                             </p>
                           </div>
@@ -347,7 +347,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
                         <h3
                           class="text-lg font-medium text-[var(--foreground)]"
                         >
-                          Board Members
+                          Project Members
                         </h3>
                         <button
                           (click)="onInviteMember()"
@@ -721,7 +721,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
               <!-- Tab 8: Advanced (Danger Zone) -->
               <p-tabpanel [value]="8">
                 <div class="py-6 space-y-6">
-                  <!-- Archive Board -->
+                  <!-- Archive Project -->
                   <section>
                     <div class="bg-[var(--card)] shadow rounded-lg">
                       <div class="px-6 py-4 border-b border-[var(--border)]">
@@ -950,7 +950,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
           </p-tabs>
         } @else {
           <div class="text-center py-12">
-            <p class="text-[var(--muted-foreground)]">Board not found</p>
+            <p class="text-[var(--muted-foreground)]">Project not found</p>
           </div>
         }
       </div>
