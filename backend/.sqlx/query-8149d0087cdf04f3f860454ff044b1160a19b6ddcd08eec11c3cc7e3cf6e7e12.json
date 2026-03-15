@@ -1,12 +1,12 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT created_at FROM activity_log WHERE id = $1",
+  "query": "SELECT id FROM workspaces WHERE tenant_id = $1 AND deleted_at IS NOT NULL",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "created_at",
-        "type_info": "Timestamptz"
+        "name": "id",
+        "type_info": "Uuid"
       }
     ],
     "parameters": {
@@ -18,5 +18,5 @@
       false
     ]
   },
-  "hash": "de74b426c45d20206ef77d4901feab26bb51f748b85b38ca77f70d8b201d0b0e"
+  "hash": "8149d0087cdf04f3f860454ff044b1160a19b6ddcd08eec11c3cc7e3cf6e7e12"
 }
