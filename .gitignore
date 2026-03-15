@@ -1,3 +1,7 @@
+# Screenshots (from QA/browser testing)
+*.png
+.playwright-mcp/
+
 # Rust
 /backend/target/
 **/*.rs.bk
