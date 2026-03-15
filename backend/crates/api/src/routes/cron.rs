@@ -17,8 +17,8 @@ use crate::state::AppState;
 use taskflow_db::queries::recurring_generation::{create_recurring_instance, get_due_configs};
 use taskflow_services::broadcast::BroadcastService;
 use taskflow_services::jobs::{
-    cleanup_expired_trash, scan_deadlines, send_weekly_digests, DeadlineScanResult,
-    TrashCleanupResult, WeeklyDigestResult,
+    cleanup_expired_trash, execute_scheduled_automations, scan_deadlines, send_weekly_digests,
+    DeadlineScanResult, ScheduledAutomationResult, TrashCleanupResult, WeeklyDigestResult,
 };
 use taskflow_services::minio::{MinioConfig, MinioService};
 use taskflow_services::notifications::{NotificationService, PostalClient};
@@ -227,6 +227,28 @@ async fn process_recurring_handler(
     }))
 }
 
+/// POST /api/cron/execute-automations
+///
+/// Scans for tasks with due dates that have passed or are approaching,
+/// then fires the corresponding time-based automation triggers.
+/// Should be triggered every 15 minutes.
+///
+/// Requires X-Cron-Secret header for authentication.
+async fn execute_automations_handler(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<ScheduledAutomationResult>> {
+    validate_cron_secret(&headers)?;
+
+    let mut redis = state.redis.clone();
+
+    let result = execute_scheduled_automations(&state.db, &mut redis)
+        .await
+        .map_err(|e| AppError::InternalError(format!("Automation execution failed: {}", e)))?;
+
+    Ok(Json(result))
+}
+
 /// Response for health check
 #[derive(Serialize)]
 struct CronHealthResponse {
@@ -247,6 +269,7 @@ async fn cron_health(headers: HeaderMap) -> Result<Json<CronHealthResponse>> {
             "/api/cron/weekly-digest",
             "/api/cron/trash-cleanup",
             "/api/cron/recurring-tasks",
+            "/api/cron/execute-automations",
         ],
     }))
 }
@@ -262,4 +285,8 @@ pub fn cron_router() -> Router<AppState> {
         .route("/cron/weekly-digest", get(weekly_digest_handler))
         .route("/cron/trash-cleanup", get(trash_cleanup_handler))
         .route("/cron/recurring-tasks", post(process_recurring_handler))
+        .route(
+            "/cron/execute-automations",
+            post(execute_automations_handler),
+        )
 }

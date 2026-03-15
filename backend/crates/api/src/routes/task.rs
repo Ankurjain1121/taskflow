@@ -7,16 +7,17 @@ use axum::{
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
-use super::task_assignment::{assign_user_handler, unassign_user_handler};
 use super::task_bulk;
+use super::task_collaboration::{
+    add_watcher_handler, assign_user_handler, list_reminders_handler, remove_reminder_handler,
+    remove_watcher_handler, set_reminder_handler, unassign_user_handler,
+};
 use super::task_crud::{
     complete_task_handler, create_task_handler, delete_task_handler, duplicate_task_handler,
     get_task, list_tasks, uncomplete_task_handler, update_task_handler,
 };
 use super::task_movement::move_task_handler;
-use super::task_reminder::{list_reminders_handler, remove_reminder_handler, set_reminder_handler};
 use super::task_views;
-use super::task_watcher::{add_watcher_handler, remove_watcher_handler};
 
 /// Create the task router
 pub fn task_router(state: AppState) -> Router<AppState> {

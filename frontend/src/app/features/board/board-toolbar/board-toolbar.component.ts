@@ -90,10 +90,11 @@ const DEFAULT_FILTERS: TaskFilters = {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="toolbar-wrapper border-b border-[var(--border)] px-5 py-3">
-      <div class="flex items-center gap-3 flex-wrap">
+    <div class="toolbar-wrapper border-b border-[var(--border)]">
+      <!-- Row 1: Always visible — Search + Quick Filters + View Toggle -->
+      <div class="flex items-center gap-2 px-5 py-2">
         <!-- Search Input -->
-        <p-iconfield class="flex-1 min-w-[200px] max-w-md">
+        <p-iconfield class="flex-1 min-w-[160px] max-w-sm">
           <p-inputicon styleClass="pi pi-search" />
           <input
             #searchInput
@@ -106,244 +107,128 @@ const DEFAULT_FILTERS: TaskFilters = {
           />
         </p-iconfield>
 
-        <!-- Priority Filter -->
-        <p-multiSelect
-          [options]="prioritySelectOptions"
-          [(ngModel)]="selectedPriorities"
-          (ngModelChange)="onPriorityFilterChange($event)"
-          placeholder="Priority"
-          optionLabel="label"
-          optionValue="value"
-          [showHeader]="false"
-          [style]="{ 'min-width': '10rem' }"
-          styleClass="w-auto"
-        >
-          <ng-template #item let-priority>
-            <div class="flex items-center gap-2">
-              <span
-                class="w-2.5 h-2.5 rounded-full"
-                [style.background-color]="priority.color"
-              ></span>
-              <span>{{ priority.label }}</span>
-            </div>
-          </ng-template>
-        </p-multiSelect>
-
-        <!-- Assignee Filter -->
-        <p-multiSelect
-          [options]="assignees()"
-          [(ngModel)]="selectedAssignees"
-          (ngModelChange)="onAssigneeFilterChange($event)"
-          placeholder="Assignee"
-          optionLabel="display_name"
-          optionValue="id"
-          [showHeader]="false"
-          [style]="{ 'min-width': '10rem' }"
-          styleClass="w-auto"
-        >
-          <ng-template #item let-assignee>
-            <div class="flex items-center gap-2">
-              <div
-                class="w-6 h-6 rounded-full bg-[var(--primary)] flex items-center justify-center text-[10px] font-bold text-white"
-              >
-                {{ getInitials(assignee.display_name) }}
-              </div>
-              <span>{{ assignee.display_name }}</span>
-            </div>
-          </ng-template>
-        </p-multiSelect>
-
-        <!-- Label Filter -->
-        @if (labels().length > 0) {
-          <p-multiSelect
-            [options]="labels()"
-            [(ngModel)]="selectedLabels"
-            (ngModelChange)="onLabelFilterChange($event)"
-            placeholder="Labels"
-            optionLabel="name"
-            optionValue="id"
-            [showHeader]="false"
-            [style]="{ 'min-width': '10rem' }"
-            styleClass="w-auto"
-          >
-            <ng-template #item let-label>
-              <div class="flex items-center gap-2">
-                <span
-                  class="w-2.5 h-2.5 rounded-full"
-                  [style.background-color]="label.color"
-                ></span>
-                <span>{{ label.name }}</span>
-              </div>
-            </ng-template>
-          </p-multiSelect>
-        }
-
-        <!-- Due Date Range -->
-        <div class="flex items-center gap-2">
-          <p-datePicker
-            [(ngModel)]="dueDateStartValue"
-            (ngModelChange)="onDueDateStartPickerChange($event)"
-            placeholder="Start date"
-            dateFormat="yy-mm-dd"
-            [showIcon]="true"
-            [showClear]="true"
-            styleClass="w-auto"
-            inputStyleClass="text-sm py-2"
-          />
-          <span class="text-[var(--muted-foreground)] text-xs font-medium"
-            >to</span
-          >
-          <p-datePicker
-            [(ngModel)]="dueDateEndValue"
-            (ngModelChange)="onDueDateEndPickerChange($event)"
-            placeholder="End date"
-            dateFormat="yy-mm-dd"
-            [showIcon]="true"
-            [showClear]="true"
-            styleClass="w-auto"
-            inputStyleClass="text-sm py-2"
-          />
-        </div>
-
-        <!-- Quick Filters -->
-        <div class="flex items-center gap-2">
+        <!-- Quick Filter Chips -->
+        <div class="flex items-center gap-1.5">
           <button
             (click)="toggleMyTasks()"
             [class]="
               isMyTasksActive()
-                ? 'px-3 py-1 rounded-full text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)]'
-                : 'px-3 py-1 rounded-full text-sm font-medium border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]'
+                ? 'quick-chip quick-chip--active'
+                : 'quick-chip'
             "
           >
             My Tasks
           </button>
           <button
-            (click)="toggleDueThisWeek()"
+            (click)="toggleOverdue()"
             [class]="
-              isDueThisWeekActive()
-                ? 'px-3 py-1 rounded-full text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)]'
-                : 'px-3 py-1 rounded-full text-sm font-medium border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]'
+              isOverdueActive()
+                ? 'quick-chip quick-chip--danger'
+                : 'quick-chip'
             "
           >
-            Due This Week
+            Overdue
           </button>
           <button
             (click)="toggleHighPriority()"
             [class]="
               isHighPriorityActive()
-                ? 'px-3 py-1 rounded-full text-sm font-medium bg-[var(--primary)] text-[var(--primary-foreground)]'
-                : 'px-3 py-1 rounded-full text-sm font-medium border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]'
+                ? 'quick-chip quick-chip--active'
+                : 'quick-chip'
             "
           >
             High Priority
           </button>
           <button
-            (click)="toggleOverdue()"
+            (click)="toggleDueThisWeek()"
             [class]="
-              isOverdueActive()
-                ? 'px-3 py-1 rounded-full text-sm font-medium bg-red-500 text-white'
-                : 'px-3 py-1 rounded-full text-sm font-medium border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]'
+              isDueThisWeekActive()
+                ? 'quick-chip quick-chip--active'
+                : 'quick-chip'
             "
           >
-            Overdue
+            Due This Week
           </button>
           @if (anyQuickFilterActive()) {
             <button
               (click)="clearQuickFilters()"
-              class="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] underline"
+              class="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] underline ml-1"
               pTooltip="Clear filters (C)"
               tooltipPosition="bottom"
             >
-              Clear all
+              Clear
             </button>
           }
         </div>
 
-        <!-- Filter Presets -->
-        @if (boardId()) {
-          <app-save-preset-dialog
-            [boardId]="boardId()"
-            [filters]="filters()"
-            [activeFilterCount]="activeFilterCount()"
-            [presets]="presets()"
-            (presetLoaded)="loadPreset($event)"
-            (presetsReloaded)="loadPresets()"
-          />
-        }
+        <!-- Spacer -->
+        <div class="flex-1"></div>
 
-        <!-- Density Toggle (kanban only) -->
-        @if (viewMode() === 'kanban') {
-          <div class="flex items-center gap-1 ml-auto">
-            <div
-              class="flex items-center gap-0.5 border border-[var(--border)] rounded-md p-0.5"
+        <!-- Filters Toggle Button -->
+        <button
+          (click)="filtersExpanded.set(!filtersExpanded())"
+          [class]="
+            filtersExpanded() || activeAdvancedFilterCount() > 0
+              ? 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/5 transition-colors'
+              : 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)] transition-colors'
+          "
+        >
+          <i class="pi pi-filter text-xs"></i>
+          Filters
+          @if (activeAdvancedFilterCount() > 0) {
+            <span
+              class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-[var(--primary)] text-white"
             >
-              <button
-                (click)="densityChanged.emit('compact')"
-                [class]="
-                  density() === 'compact'
-                    ? 'px-2 py-1 rounded text-xs font-medium bg-[var(--primary)] text-[var(--primary-foreground)] transition-colors'
-                    : 'px-2 py-1 rounded text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors'
-                "
-                title="Compact"
-                pTooltip="Compact density (D)"
-                tooltipPosition="bottom"
-              >
-                <i class="pi pi-minus text-xs"></i>
-              </button>
-              <button
-                (click)="densityChanged.emit('normal')"
-                [class]="
-                  density() === 'normal'
-                    ? 'px-2 py-1 rounded text-xs font-medium bg-[var(--primary)] text-[var(--primary-foreground)] transition-colors'
-                    : 'px-2 py-1 rounded text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors'
-                "
-                title="Normal"
-                pTooltip="Normal density (D)"
-                tooltipPosition="bottom"
-              >
-                <i class="pi pi-bars text-xs"></i>
-              </button>
-              <button
-                (click)="densityChanged.emit('expanded')"
-                [class]="
-                  density() === 'expanded'
-                    ? 'px-2 py-1 rounded text-xs font-medium bg-[var(--primary)] text-[var(--primary-foreground)] transition-colors'
-                    : 'px-2 py-1 rounded text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--secondary)] transition-colors'
-                "
-                title="Expanded"
-                pTooltip="Expanded density (D)"
-                tooltipPosition="bottom"
-              >
-                <i class="pi pi-th-large text-xs"></i>
-              </button>
-            </div>
-            <app-feature-help-icon
-              title="Card Density"
-              description="Switch between Compact, Normal, and Expanded views to control how much detail you see on cards."
-              shortcutKey="D"
-            />
-          </div>
-        }
+              {{ activeAdvancedFilterCount() }}
+            </span>
+          }
+        </button>
 
-        <!-- Fields Toggle (kanban only) -->
+        <!-- Kanban-only controls -->
         @if (viewMode() === 'kanban') {
+          <!-- Density Toggle -->
+          <div
+            class="flex items-center gap-0.5 border border-[var(--border)] rounded-md p-0.5"
+          >
+            <button
+              (click)="densityChanged.emit('compact')"
+              [class]="density() === 'compact' ? 'density-btn density-btn--active' : 'density-btn'"
+              pTooltip="Compact (D)" tooltipPosition="bottom"
+            >
+              <i class="pi pi-minus text-xs"></i>
+            </button>
+            <button
+              (click)="densityChanged.emit('normal')"
+              [class]="density() === 'normal' ? 'density-btn density-btn--active' : 'density-btn'"
+              pTooltip="Normal (D)" tooltipPosition="bottom"
+            >
+              <i class="pi pi-bars text-xs"></i>
+            </button>
+            <button
+              (click)="densityChanged.emit('expanded')"
+              [class]="density() === 'expanded' ? 'density-btn density-btn--active' : 'density-btn'"
+              pTooltip="Expanded (D)" tooltipPosition="bottom"
+            >
+              <i class="pi pi-th-large text-xs"></i>
+            </button>
+          </div>
+
+          <!-- Fields -->
           <app-card-fields-popover
             [cardFields]="cardFields()"
             (cardFieldChanged)="cardFieldChanged.emit($event)"
             (cardFieldsReset)="cardFieldsReset.emit()"
           />
-        }
 
-        <!-- Group By (kanban only) -->
-        @if (viewMode() === 'kanban') {
+          <!-- Group By -->
           <div class="flex items-center">
             @if (groupBy() !== 'none') {
               <button
-                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-l-md border border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)]/10 transition-colors"
+                class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-l-md border border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)]/10 transition-colors"
                 (click)="groupByMenu.toggle($event)"
               >
                 <i class="pi pi-table text-xs"></i>
-                Group: {{ groupByLabel() }}
+                {{ groupByLabel() }}
               </button>
               <button
                 class="flex items-center px-1.5 py-1.5 text-xs font-medium rounded-r-md border border-l-0 border-[var(--primary)] text-[var(--primary)] hover:bg-red-50 hover:border-red-400 hover:text-red-500 transition-colors"
@@ -354,20 +239,15 @@ const DEFAULT_FILTERS: TaskFilters = {
               </button>
             } @else {
               <button
-                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)] transition-colors"
+                class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)] transition-colors"
                 (click)="groupByMenu.toggle($event)"
+                pTooltip="Group By (G)" tooltipPosition="bottom"
               >
                 <i class="pi pi-table text-xs"></i>
-                Group By
+                Group
               </button>
             }
             <p-menu #groupByMenu [popup]="true" [model]="groupByMenuItems()" />
-            <app-feature-help-icon
-              class="ml-1"
-              title="Group By"
-              description="Organize your board by Assignee, Priority, or Label to see tasks in swimlane rows."
-              shortcutKey="G"
-            />
           </div>
         }
 
@@ -378,25 +258,135 @@ const DEFAULT_FILTERS: TaskFilters = {
           (ngModelChange)="viewModeChanged.emit($event)"
           optionLabel="icon"
           optionValue="value"
-          [class]="viewMode() !== 'kanban' ? 'ml-auto' : ''"
         >
           <ng-template #item let-item>
             <i [class]="item.icon" [title]="item.tooltip"></i>
           </ng-template>
         </p-selectButton>
-
-        <!-- Clear Filters -->
-        @if (activeFilterCount() > 0) {
-          <p-button
-            [label]="'Clear filters (' + activeFilterCount() + ')'"
-            icon="pi pi-times"
-            severity="secondary"
-            [text]="true"
-            size="small"
-            (onClick)="clearFilters()"
-          />
-        }
       </div>
+
+      <!-- Row 2: Collapsible advanced filters -->
+      @if (filtersExpanded()) {
+        <div
+          class="flex items-center gap-3 px-5 py-2.5 border-t border-[var(--border)] bg-[var(--muted)]/30"
+        >
+          <p-multiSelect
+            [options]="prioritySelectOptions"
+            [(ngModel)]="selectedPriorities"
+            (ngModelChange)="onPriorityFilterChange($event)"
+            placeholder="Priority"
+            optionLabel="label"
+            optionValue="value"
+            [showHeader]="false"
+            [style]="{ 'min-width': '9rem' }"
+            styleClass="w-auto"
+          >
+            <ng-template #item let-priority>
+              <div class="flex items-center gap-2">
+                <span
+                  class="w-2.5 h-2.5 rounded-full"
+                  [style.background-color]="priority.color"
+                ></span>
+                <span>{{ priority.label }}</span>
+              </div>
+            </ng-template>
+          </p-multiSelect>
+
+          <p-multiSelect
+            [options]="assignees()"
+            [(ngModel)]="selectedAssignees"
+            (ngModelChange)="onAssigneeFilterChange($event)"
+            placeholder="Assignee"
+            optionLabel="display_name"
+            optionValue="id"
+            [showHeader]="false"
+            [style]="{ 'min-width': '9rem' }"
+            styleClass="w-auto"
+          >
+            <ng-template #item let-assignee>
+              <div class="flex items-center gap-2">
+                <div
+                  class="w-6 h-6 rounded-full bg-[var(--primary)] flex items-center justify-center text-[10px] font-bold text-white"
+                >
+                  {{ getInitials(assignee.display_name) }}
+                </div>
+                <span>{{ assignee.display_name }}</span>
+              </div>
+            </ng-template>
+          </p-multiSelect>
+
+          @if (labels().length > 0) {
+            <p-multiSelect
+              [options]="labels()"
+              [(ngModel)]="selectedLabels"
+              (ngModelChange)="onLabelFilterChange($event)"
+              placeholder="Labels"
+              optionLabel="name"
+              optionValue="id"
+              [showHeader]="false"
+              [style]="{ 'min-width': '9rem' }"
+              styleClass="w-auto"
+            >
+              <ng-template #item let-label>
+                <div class="flex items-center gap-2">
+                  <span
+                    class="w-2.5 h-2.5 rounded-full"
+                    [style.background-color]="label.color"
+                  ></span>
+                  <span>{{ label.name }}</span>
+                </div>
+              </ng-template>
+            </p-multiSelect>
+          }
+
+          <div class="flex items-center gap-2">
+            <p-datePicker
+              [(ngModel)]="dueDateStartValue"
+              (ngModelChange)="onDueDateStartPickerChange($event)"
+              placeholder="Start date"
+              dateFormat="yy-mm-dd"
+              [showIcon]="true"
+              [showClear]="true"
+              styleClass="w-auto"
+              inputStyleClass="text-sm py-2"
+            />
+            <span class="text-[var(--muted-foreground)] text-xs font-medium">to</span>
+            <p-datePicker
+              [(ngModel)]="dueDateEndValue"
+              (ngModelChange)="onDueDateEndPickerChange($event)"
+              placeholder="End date"
+              dateFormat="yy-mm-dd"
+              [showIcon]="true"
+              [showClear]="true"
+              styleClass="w-auto"
+              inputStyleClass="text-sm py-2"
+            />
+          </div>
+
+          <!-- Filter Presets -->
+          @if (boardId()) {
+            <app-save-preset-dialog
+              [boardId]="boardId()"
+              [filters]="filters()"
+              [activeFilterCount]="activeFilterCount()"
+              [presets]="presets()"
+              (presetLoaded)="loadPreset($event)"
+              (presetsReloaded)="loadPresets()"
+            />
+          }
+
+          <div class="flex-1"></div>
+
+          @if (activeFilterCount() > 0) {
+            <button
+              (click)="clearFilters()"
+              class="text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+            >
+              Clear all ({{ activeFilterCount() }})
+            </button>
+          }
+        </div>
+      }
     </div>
   `,
   styles: [
@@ -412,6 +402,47 @@ const DEFAULT_FILTERS: TaskFilters = {
         background: color-mix(in srgb, var(--card) 85%, transparent);
         backdrop-filter: blur(12px) saturate(180%);
         -webkit-backdrop-filter: blur(12px) saturate(180%);
+      }
+
+      .quick-chip {
+        padding: 2px 10px;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border: 1px solid var(--border);
+        color: var(--muted-foreground);
+        transition: all 150ms;
+        white-space: nowrap;
+      }
+      .quick-chip:hover {
+        background: var(--secondary);
+      }
+      .quick-chip--active {
+        background: var(--primary);
+        color: var(--primary-foreground);
+        border-color: var(--primary);
+      }
+      .quick-chip--danger {
+        background: #ef4444;
+        color: white;
+        border-color: #ef4444;
+      }
+
+      .density-btn {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--muted-foreground);
+        transition: all 150ms;
+      }
+      .density-btn:hover {
+        color: var(--foreground);
+        background: var(--secondary);
+      }
+      .density-btn--active {
+        background: var(--primary);
+        color: var(--primary-foreground);
       }
     `,
   ],
@@ -453,6 +484,7 @@ export class ProjectToolbarComponent implements OnInit, OnDestroy {
   searchTerm = signal('');
   filters = signal<TaskFilters>({ ...DEFAULT_FILTERS });
   presets = signal<FilterPreset[]>([]);
+  filtersExpanded = signal(false);
   searchInputRef = viewChild<ElementRef<HTMLInputElement>>('searchInput');
 
   selectedPriorities: string[] = [];
@@ -501,6 +533,18 @@ export class ProjectToolbarComponent implements OnInit, OnDestroy {
       this.isHighPriorityActive() ||
       this.isOverdueActive(),
   );
+
+  readonly activeAdvancedFilterCount = computed(() => {
+    const f = this.filters();
+    let count = 0;
+    if (f.priorities.length) count++;
+    if (f.assigneeIds.length && !this.isMyTasksActive()) count++;
+    if (f.dueDateStart || f.dueDateEnd) {
+      if (!this.isDueThisWeekActive()) count++;
+    }
+    if (f.labelIds.length) count++;
+    return count;
+  });
 
   groupByLabel(): string {
     const map: Record<GroupByMode, string> = {
