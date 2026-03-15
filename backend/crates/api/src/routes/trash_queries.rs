@@ -223,19 +223,19 @@ pub async fn empty_trash(
     let minio = create_minio_service(state).await;
     let mut deleted_count: usize = 0;
 
-    // Delete in order: workspaces first (to avoid FK issues), then boards, then tasks
-    let workspace_ids: Vec<Uuid> = sqlx::query_scalar!(
-        r#"SELECT id FROM workspaces WHERE tenant_id = $1 AND deleted_at IS NOT NULL"#,
+    // Delete in FK-safe order: tasks first, then boards, then workspaces
+    let task_ids: Vec<Uuid> = sqlx::query_scalar!(
+        r#"SELECT id FROM tasks WHERE tenant_id = $1 AND deleted_at IS NOT NULL"#,
         tenant_id
     )
     .fetch_all(&state.db)
     .await?;
 
-    for ws_id in workspace_ids {
+    for task_id in task_ids {
         if let Err(e) =
-            permanently_delete(&state.db, &minio, &TrashEntityType::Workspace, ws_id).await
+            permanently_delete(&state.db, &minio, &TrashEntityType::Task, task_id).await
         {
-            tracing::warn!(workspace_id = %ws_id, error = %e, "Failed to delete workspace");
+            tracing::warn!(task_id = %task_id, error = %e, "Failed to delete task");
         } else {
             deleted_count += 1;
         }
@@ -258,18 +258,18 @@ pub async fn empty_trash(
         }
     }
 
-    let task_ids: Vec<Uuid> = sqlx::query_scalar!(
-        r#"SELECT id FROM tasks WHERE tenant_id = $1 AND deleted_at IS NOT NULL"#,
+    let workspace_ids: Vec<Uuid> = sqlx::query_scalar!(
+        r#"SELECT id FROM workspaces WHERE tenant_id = $1 AND deleted_at IS NOT NULL"#,
         tenant_id
     )
     .fetch_all(&state.db)
     .await?;
 
-    for task_id in task_ids {
+    for ws_id in workspace_ids {
         if let Err(e) =
-            permanently_delete(&state.db, &minio, &TrashEntityType::Task, task_id).await
+            permanently_delete(&state.db, &minio, &TrashEntityType::Workspace, ws_id).await
         {
-            tracing::warn!(task_id = %task_id, error = %e, "Failed to delete task");
+            tracing::warn!(workspace_id = %ws_id, error = %e, "Failed to delete workspace");
         } else {
             deleted_count += 1;
         }
@@ -389,7 +389,7 @@ async fn verify_tenant_scope(
     let exists: bool = match entity_type {
         TrashEntityType::Task => {
             sqlx::query_scalar!(
-                r#"SELECT EXISTS(SELECT 1 FROM tasks WHERE id = $1 AND tenant_id = $2) as "exists!""#,
+                r#"SELECT EXISTS(SELECT 1 FROM tasks WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NOT NULL) as "exists!""#,
                 entity_id,
                 tenant_id
             )
@@ -398,7 +398,7 @@ async fn verify_tenant_scope(
         }
         TrashEntityType::Board => {
             sqlx::query_scalar!(
-                r#"SELECT EXISTS(SELECT 1 FROM projects WHERE id = $1 AND tenant_id = $2) as "exists!""#,
+                r#"SELECT EXISTS(SELECT 1 FROM projects WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NOT NULL) as "exists!""#,
                 entity_id,
                 tenant_id
             )
@@ -407,7 +407,7 @@ async fn verify_tenant_scope(
         }
         TrashEntityType::Workspace => {
             sqlx::query_scalar!(
-                r#"SELECT EXISTS(SELECT 1 FROM workspaces WHERE id = $1 AND tenant_id = $2) as "exists!""#,
+                r#"SELECT EXISTS(SELECT 1 FROM workspaces WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NOT NULL) as "exists!""#,
                 entity_id,
                 tenant_id
             )

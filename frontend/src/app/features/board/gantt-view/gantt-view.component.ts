@@ -6,8 +6,6 @@ import {
   signal,
   computed,
   inject,
-  ElementRef,
-  viewChild,
   OnDestroy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
