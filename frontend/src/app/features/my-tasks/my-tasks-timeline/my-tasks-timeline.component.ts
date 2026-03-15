@@ -574,6 +574,7 @@ export class MyTasksTimelineComponent implements OnInit, OnDestroy {
    * Check if a task is completed based on column status mapping
    */
   private isTaskComplete(task: MyTask): boolean {
+    if (task.is_done !== undefined) return task.is_done;
     if (!task.column_status_mapping) {
       return false;
     }

@@ -20,8 +20,10 @@ use taskflow_db::queries::board_shares::{
 /// Map BoardShareQueryError to AppError
 fn map_share_error(e: BoardShareQueryError) -> AppError {
     match e {
-        BoardShareQueryError::NotFound => AppError::NotFound("Board share not found".into()),
-        BoardShareQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+        BoardShareQueryError::NotFound => AppError::NotFound("Project share not found".into()),
+        BoardShareQueryError::NotBoardMember => {
+            AppError::Forbidden("Not a project member".into())
+        }
         BoardShareQueryError::InvalidToken => AppError::NotFound("Invalid share token".into()),
         BoardShareQueryError::Expired => AppError::BadRequest("Share link has expired".into()),
         BoardShareQueryError::Inactive => AppError::BadRequest("Share link is inactive".into()),
@@ -30,7 +32,7 @@ fn map_share_error(e: BoardShareQueryError) -> AppError {
     }
 }
 
-/// GET /api/boards/{board_id}/shares
+/// GET /api/projects/{board_id}/shares
 async fn list_shares_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
@@ -43,7 +45,7 @@ async fn list_shares_handler(
     Ok(Json(shares))
 }
 
-/// POST /api/boards/{board_id}/shares
+/// POST /api/projects/{board_id}/shares
 async fn create_share_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
@@ -107,17 +109,17 @@ async fn access_shared_board_handler(
     Ok(Json(access))
 }
 
-/// Create the board share router (auth-protected routes)
-pub fn board_share_router(state: AppState) -> Router<AppState> {
+/// Create the project share router (auth-protected routes)
+pub fn project_share_router(state: AppState) -> Router<AppState> {
     Router::new()
-        .route("/boards/{board_id}/shares", get(list_shares_handler))
-        .route("/boards/{board_id}/shares", post(create_share_handler))
+        .route("/projects/{board_id}/shares", get(list_shares_handler))
+        .route("/projects/{board_id}/shares", post(create_share_handler))
         .route("/shares/{id}", delete(delete_share_handler))
         .route("/shares/{id}", put(toggle_share_handler))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
-/// Create the public shared board router (no auth)
-pub fn shared_board_public_router() -> Router<AppState> {
+/// Create the public shared project router (no auth)
+pub fn shared_project_public_router() -> Router<AppState> {
     Router::new().route("/shared/{token}", get(access_shared_board_handler))
 }

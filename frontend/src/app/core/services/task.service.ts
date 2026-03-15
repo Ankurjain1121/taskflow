@@ -250,7 +250,7 @@ export class TaskService {
 
   createTask(projectId: string, request: CreateTaskRequest): Observable<Task> {
     return this.http
-      .post<Task>(`${this.apiUrl}/boards/${projectId}/tasks`, request)
+      .post<Task>(`${this.apiUrl}/projects/${projectId}/tasks`, request)
       .pipe(
         tap(() => {
           this.cache.invalidate(`tasks:.*`);
@@ -332,7 +332,7 @@ export class TaskService {
         this.http
           .get<{
             tasks: Record<string, Task[]>;
-          }>(`${this.apiUrl}/boards/${projectId}/tasks`)
+          }>(`${this.apiUrl}/projects/${projectId}/tasks`)
           .pipe(map((response) => response.tasks)),
       60000, // 1 min TTL
     );
@@ -343,7 +343,7 @@ export class TaskService {
       `flat-tasks:${projectId}`,
       () =>
         this.http.get<TaskListItem[]>(
-          `${this.apiUrl}/boards/${projectId}/tasks/list`,
+          `${this.apiUrl}/projects/${projectId}/tasks/list`,
         ),
       60000, // 1 min TTL
     );
@@ -380,7 +380,7 @@ export class TaskService {
       `calendar-tasks:${projectId}:${start}:${end}`,
       () =>
         this.http.get<CalendarTask[]>(
-          `${this.apiUrl}/boards/${projectId}/tasks/calendar`,
+          `${this.apiUrl}/projects/${projectId}/tasks/calendar`,
           { params: { start, end } },
         ),
       180000, // 3 min TTL
@@ -392,7 +392,7 @@ export class TaskService {
       `gantt-tasks:${projectId}`,
       () =>
         this.http.get<GanttTask[]>(
-          `${this.apiUrl}/boards/${projectId}/tasks/gantt`,
+          `${this.apiUrl}/projects/${projectId}/tasks/gantt`,
         ),
       120000, // 2 min TTL
     );
@@ -403,7 +403,7 @@ export class TaskService {
     request: BulkUpdateRequest,
   ): Observable<{ updated: number }> {
     return this.http.post<{ updated: number }>(
-      `${this.apiUrl}/boards/${projectId}/tasks/bulk-update`,
+      `${this.apiUrl}/projects/${projectId}/tasks/bulk-update`,
       request,
     );
   }
@@ -413,7 +413,7 @@ export class TaskService {
     request: BulkDeleteRequest,
   ): Observable<{ deleted: number }> {
     return this.http.post<{ deleted: number }>(
-      `${this.apiUrl}/boards/${projectId}/tasks/bulk-delete`,
+      `${this.apiUrl}/projects/${projectId}/tasks/bulk-delete`,
       request,
     );
   }

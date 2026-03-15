@@ -387,7 +387,7 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   savingTemplate = signal(false);
   scopeOptions = [
     { label: 'Personal', value: 'personal' },
-    { label: 'Board', value: 'board' },
+    { label: 'Project', value: 'board' },
     { label: 'Workspace', value: 'workspace' },
   ];
 

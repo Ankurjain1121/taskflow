@@ -4,7 +4,7 @@ import { Task } from '../../../core/services/task.service';
 import { TaskFilters } from '../board-toolbar/board-toolbar.component';
 
 @Injectable()
-export class BoardFilterService {
+export class ProjectFilterService {
   filterTasks(tasks: Task[], filters: TaskFilters): Task[] {
     return tasks.filter((task) => {
       if (

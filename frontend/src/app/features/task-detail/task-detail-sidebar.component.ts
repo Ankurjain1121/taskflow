@@ -610,7 +610,7 @@ export class TaskDetailSidebarComponent {
     const t = this.task();
     const cols = this.columns();
     if (!t || !cols.length) return null;
-    return cols.find((c) => c.id === t.column_id) ?? null;
+    return cols.find((c) => c.id === (t.status_id ?? t.column_id)) ?? null;
   });
 
   dueDateValue = computed(() => {

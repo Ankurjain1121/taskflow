@@ -24,7 +24,7 @@ export interface InviteMemberDialogResult {
 }
 
 @Component({
-  selector: 'app-board-invite-member-dialog',
+  selector: 'app-project-invite-member-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
@@ -113,7 +113,7 @@ export interface InviteMemberDialogResult {
     </p-dialog>
   `,
 })
-export class InviteMemberDialogComponent {
+export class ProjectInviteMemberDialogComponent {
   private fb = inject(FormBuilder);
 
   /** Two-way bound visibility */

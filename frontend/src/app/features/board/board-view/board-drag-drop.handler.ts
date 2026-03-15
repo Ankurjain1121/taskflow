@@ -3,15 +3,15 @@ import { Router } from '@angular/router';
 import { generateKeyBetween } from 'fractional-indexing';
 import { Task, TaskService } from '../../../core/services/task.service';
 import { TaskMoveEvent } from '../kanban-column/kanban-column.component';
-import { BoardStateService } from './board-state.service';
+import { ProjectStateService } from './board-state.service';
 import { SwimlaneTaskMoveEvent } from './swimlane.types';
 import { NONE_KEY } from './swimlane-utils';
 
 @Injectable()
-export class BoardDragDropHandler {
+export class ProjectDragDropHandler {
   private taskService = inject(TaskService);
   private router = inject(Router);
-  private state = inject(BoardStateService);
+  private state = inject(ProjectStateService);
 
   onTaskMoved(event: TaskMoveEvent): void {
     const snapshot = structuredClone(this.state.boardState());

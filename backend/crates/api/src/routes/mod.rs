@@ -3,6 +3,7 @@ mod integration_tests;
 
 pub mod activity_log;
 pub mod admin_audit;
+pub mod audit_queries;
 pub mod admin_trash;
 pub mod admin_users;
 pub mod archive;
@@ -58,6 +59,7 @@ pub mod workspace_api_keys;
 pub mod workspace_audit;
 pub mod workspace_export;
 pub mod workspace_labels;
+pub mod trash_queries;
 pub mod workspace_trash;
 
 pub use activity_log::activity_log_router;
@@ -69,8 +71,8 @@ pub use attachment::attachment_router;
 pub use auth::auth_router;
 pub use automation::automation_router;
 pub use automation_templates::automation_templates_router;
-pub use board::{board_router, board_templates_router, workspace_boards_router};
-pub use board_share::{board_share_router, shared_board_public_router};
+pub use board::{project_router, project_templates_router, workspace_projects_router};
+pub use board_share::{project_share_router, shared_project_public_router};
 pub use bulk_ops::bulk_ops_router;
 pub use column::{board_columns_router, column_router};
 pub use comments::comment_router;

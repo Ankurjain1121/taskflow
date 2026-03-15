@@ -1,7 +1,7 @@
 //! Workspace Audit Log REST endpoints
 //!
-//! Provides workspace-scoped audit log querying. Reuses the activity_log table
-//! but filters by workspace through board membership.
+//! Provides workspace-scoped audit log querying. Thin wrapper around
+//! shared audit query logic in `audit_queries`.
 
 use axum::{
     extract::{Path, Query, State},
@@ -9,8 +9,7 @@ use axum::{
     routing::get,
     Json, Router,
 };
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
@@ -18,47 +17,28 @@ use crate::extractors::AuthUserExtractor;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
+use super::audit_queries::{self, AuditLogQuery, AuditScope};
+
 // ============================================================================
-// DTOs
+// Workspace-specific response DTOs (preserve original API shape)
 // ============================================================================
 
-#[derive(Debug, Deserialize)]
-pub struct WorkspaceAuditQuery {
-    pub cursor: Option<String>,
-    #[serde(default = "default_page_size")]
-    pub page_size: i64,
-    pub user_id: Option<Uuid>,
-    pub action: Option<String>,
-    pub entity_type: Option<String>,
-    pub date_from: Option<DateTime<Utc>>,
-    pub date_to: Option<DateTime<Utc>>,
-}
-
-fn default_page_size() -> i64 {
-    20
-}
-
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize)]
 pub struct WorkspaceAuditEntry {
-    pub id: Uuid,
+    pub id: uuid::Uuid,
     pub action: String,
     pub entity_type: String,
-    pub entity_id: Uuid,
-    pub user_id: Uuid,
+    pub entity_id: uuid::Uuid,
+    pub user_id: uuid::Uuid,
     pub user_name: String,
     pub metadata: Option<serde_json::Value>,
-    pub created_at: DateTime<Utc>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct PaginatedWorkspaceAudit {
     pub items: Vec<WorkspaceAuditEntry>,
     pub next_cursor: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct AuditActionsResponse {
-    pub actions: Vec<String>,
 }
 
 // ============================================================================
@@ -70,9 +50,8 @@ async fn list_workspace_audit_log(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(workspace_id): Path<Uuid>,
-    Query(query): Query<WorkspaceAuditQuery>,
+    Query(query): Query<AuditLogQuery>,
 ) -> Result<Json<PaginatedWorkspaceAudit>> {
-    // Verify workspace membership
     let is_member = taskflow_db::queries::workspaces::is_workspace_member(
         &state.db,
         workspace_id,
@@ -83,81 +62,31 @@ async fn list_workspace_audit_log(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
-    let page_size = query.page_size.clamp(1, 100);
-    let fetch_limit = page_size + 1;
-
-    let cursor_id = query.cursor.as_ref().and_then(|c| Uuid::parse_str(c).ok());
-
-    let cursor_created_at: Option<DateTime<Utc>> = if let Some(cid) = cursor_id {
-        sqlx::query_scalar!(r#"SELECT created_at FROM activity_log WHERE id = $1"#, cid)
-            .fetch_optional(&state.db)
-            .await?
-    } else {
-        None
+    let scope = AuditScope::Workspace {
+        tenant_id: auth.0.tenant_id,
+        workspace_id,
     };
+    let result = audit_queries::query_audit_log(&state.db, &scope, &query).await?;
 
-    // Parse action filter to string for LIKE matching
-    let action_filter = query.action.as_deref();
+    let items = result
+        .items
+        .into_iter()
+        .map(|e| WorkspaceAuditEntry {
+            id: e.id,
+            action: e.action,
+            entity_type: e.entity_type,
+            entity_id: e.entity_id,
+            user_id: e.user_id,
+            user_name: e.user_name,
+            metadata: e.metadata,
+            created_at: e.created_at,
+        })
+        .collect();
 
-    // Query activity_log for entries related to this workspace's boards and tasks
-    let items: Vec<WorkspaceAuditEntry> = sqlx::query_as(
-        r#"
-        SELECT
-            al.id,
-            al.action::text as action,
-            al.entity_type,
-            al.entity_id,
-            al.user_id,
-            u.name as user_name,
-            al.metadata,
-            al.created_at
-        FROM activity_log al
-        JOIN users u ON u.id = al.user_id
-        WHERE al.tenant_id = $1
-          AND (
-            -- Board-related: entity is a board in this workspace
-            (al.entity_type = 'board' AND al.entity_id IN (SELECT id FROM boards WHERE workspace_id = $2))
-            -- Task-related: entity is a task in a board in this workspace
-            OR (al.entity_type = 'task' AND al.entity_id IN (
-              SELECT t.id FROM tasks t JOIN boards b ON b.id = t.board_id WHERE b.workspace_id = $2
-            ))
-            -- Workspace-related
-            OR (al.entity_type = 'workspace' AND al.entity_id = $2)
-          )
-          AND ($3::uuid IS NULL OR al.user_id = $3)
-          AND ($4::text IS NULL OR al.action::text = $4)
-          AND ($5::text IS NULL OR al.entity_type = $5)
-          AND ($6::timestamptz IS NULL OR al.created_at >= $6)
-          AND ($7::timestamptz IS NULL OR al.created_at <= $7)
-          AND ($8::timestamptz IS NULL OR al.created_at < $8 OR (al.created_at = $8 AND al.id < $9))
-        ORDER BY al.created_at DESC, al.id DESC
-        LIMIT $10
-        "#,
-    )
-    .bind(auth.0.tenant_id)
-    .bind(workspace_id)
-    .bind(query.user_id)
-    .bind(action_filter)
-    .bind(query.entity_type.as_deref())
-    .bind(query.date_from)
-    .bind(query.date_to)
-    .bind(cursor_created_at)
-    .bind(cursor_id)
-    .bind(fetch_limit)
-    .fetch_all(&state.db)
-    .await
-    .map_err(AppError::from)?;
-
-    let has_more = items.len() > page_size as usize;
-    let items: Vec<_> = items.into_iter().take(page_size as usize).collect();
-
-    let next_cursor = if has_more {
-        items.last().map(|item| item.id.to_string())
-    } else {
-        None
-    };
-
-    Ok(Json(PaginatedWorkspaceAudit { items, next_cursor }))
+    Ok(Json(PaginatedWorkspaceAudit {
+        items,
+        next_cursor: result.next_cursor,
+    }))
 }
 
 /// GET /api/workspaces/:workspace_id/audit-log/actions
@@ -165,7 +94,7 @@ async fn list_workspace_audit_actions(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(workspace_id): Path<Uuid>,
-) -> Result<Json<AuditActionsResponse>> {
+) -> Result<Json<audit_queries::AuditActionsResponse>> {
     let is_member = taskflow_db::queries::workspaces::is_workspace_member(
         &state.db,
         workspace_id,
@@ -176,28 +105,13 @@ async fn list_workspace_audit_actions(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
-    let actions: Vec<String> = sqlx::query_scalar(
-        r#"
-        SELECT DISTINCT al.action::text
-        FROM activity_log al
-        WHERE al.tenant_id = $1
-          AND (
-            (al.entity_type = 'board' AND al.entity_id IN (SELECT id FROM boards WHERE workspace_id = $2))
-            OR (al.entity_type = 'task' AND al.entity_id IN (
-              SELECT t.id FROM tasks t JOIN boards b ON b.id = t.board_id WHERE b.workspace_id = $2
-            ))
-            OR (al.entity_type = 'workspace' AND al.entity_id = $2)
-          )
-        ORDER BY 1
-        "#,
-    )
-    .bind(auth.0.tenant_id)
-    .bind(workspace_id)
-    .fetch_all(&state.db)
-    .await
-    .map_err(AppError::from)?;
+    let scope = AuditScope::Workspace {
+        tenant_id: auth.0.tenant_id,
+        workspace_id,
+    };
+    let response = audit_queries::query_audit_actions(&state.db, &scope).await?;
 
-    Ok(Json(AuditActionsResponse { actions }))
+    Ok(Json(response))
 }
 
 // ============================================================================

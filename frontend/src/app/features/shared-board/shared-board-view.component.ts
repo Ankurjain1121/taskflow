@@ -18,7 +18,7 @@ import {
 } from '../../core/services/board-share.service';
 
 @Component({
-  selector: 'app-shared-board-view',
+  selector: 'app-shared-project-view',
   standalone: true,
   imports: [
     CommonModule,
@@ -152,7 +152,7 @@ import {
     }
   `,
 })
-export class SharedBoardViewComponent implements OnInit {
+export class SharedProjectViewComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private shareService = inject(BoardShareService);
 
@@ -207,7 +207,7 @@ export class SharedBoardViewComponent implements OnInit {
   }
 
   getTasksForColumn(columnId: string) {
-    return this.board()?.tasks.filter((t) => t.column_id === columnId) || [];
+    return this.board()?.tasks.filter((t) => t.status_id === columnId) || [];
   }
 
   getPriorityClass(priority: string): string {

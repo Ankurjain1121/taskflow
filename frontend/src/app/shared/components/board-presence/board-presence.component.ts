@@ -8,7 +8,7 @@ import { CommonModule } from '@angular/common';
 import { Tooltip } from 'primeng/tooltip';
 import { PresenceService } from '../../../core/services/presence.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { BoardStateService } from '../../../features/board/board-view/board-state.service';
+import { ProjectStateService } from '../../../features/board/board-view/board-state.service';
 
 interface ViewerDisplay {
   userId: string;
@@ -18,7 +18,7 @@ interface ViewerDisplay {
 }
 
 @Component({
-  selector: 'app-board-presence',
+  selector: 'app-project-presence',
   standalone: true,
   imports: [CommonModule, Tooltip],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -66,10 +66,10 @@ interface ViewerDisplay {
     }
   `,
 })
-export class BoardPresenceComponent {
+export class ProjectPresenceComponent {
   private presenceService = inject(PresenceService);
   private authService = inject(AuthService);
-  private boardState = inject(BoardStateService);
+  private boardState = inject(ProjectStateService);
 
   private readonly gradients = [
     'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',

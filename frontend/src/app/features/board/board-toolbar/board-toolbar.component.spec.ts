@@ -8,11 +8,11 @@ import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { provideRouter, Router, ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
-import { BoardToolbarComponent } from './board-toolbar.component';
+import { ProjectToolbarComponent } from './board-toolbar.component';
 
-describe('BoardToolbarComponent', () => {
-  let component: BoardToolbarComponent;
-  let fixture: ComponentFixture<BoardToolbarComponent>;
+describe('ProjectToolbarComponent', () => {
+  let component: ProjectToolbarComponent;
+  let fixture: ComponentFixture<ProjectToolbarComponent>;
   let router: Router;
   let queryParamsSubject: Subject<any>;
 
@@ -36,7 +36,7 @@ describe('BoardToolbarComponent', () => {
     queryParamsSubject = new Subject();
 
     await TestBed.configureTestingModule({
-      imports: [BoardToolbarComponent, HttpClientTestingModule],
+      imports: [ProjectToolbarComponent, HttpClientTestingModule],
       providers: [
         provideRouter([]),
         {
@@ -47,7 +47,7 @@ describe('BoardToolbarComponent', () => {
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(BoardToolbarComponent);
+    fixture = TestBed.createComponent(ProjectToolbarComponent);
     component = fixture.componentInstance;
     router = TestBed.inject(Router);
   });

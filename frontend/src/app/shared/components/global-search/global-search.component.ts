@@ -693,7 +693,7 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
 
   navigateToTask(task: TaskSearchResult): void {
     this.router.navigate(
-      ['/workspace', task.workspace_id, 'board', task.board_id],
+      ['/workspace', task.workspace_id, 'project', task.board_id],
       {
         queryParams: { task: task.id },
       },
@@ -702,13 +702,13 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
   }
 
   navigateToBoard(board: BoardSearchResult): void {
-    this.router.navigate(['/workspace', board.workspace_id, 'board', board.id]);
+    this.router.navigate(['/workspace', board.workspace_id, 'project', board.id]);
     this.close();
   }
 
   navigateToComment(comment: CommentSearchResult): void {
     this.router.navigate(
-      ['/workspace', comment.workspace_id, 'board', comment.board_id],
+      ['/workspace', comment.workspace_id, 'project', comment.board_id],
       {
         queryParams: { task: comment.task_id },
       },

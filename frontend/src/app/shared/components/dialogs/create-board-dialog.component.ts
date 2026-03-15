@@ -63,7 +63,7 @@ export interface BoardTemplate {
   ],
   template: `
     <p-dialog
-      header="Create New Board"
+      header="Create New Project"
       [(visible)]="visible"
       [modal]="true"
       [style]="{ width: '520px' }"
@@ -71,7 +71,7 @@ export interface BoardTemplate {
       (onShow)="onDialogShow()"
     >
       <p class="text-sm text-[var(--muted-foreground)] mb-4">
-        Create a new board in {{ workspaceName() }}
+        Create a new project in {{ workspaceName() }}
       </p>
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <!-- Board Name -->
@@ -79,7 +79,7 @@ export interface BoardTemplate {
           <label
             for="boardName"
             class="text-sm font-medium text-[var(--foreground)]"
-            >Board Name</label
+            >Project Name</label
           >
           <input
             pInputText
@@ -92,13 +92,13 @@ export interface BoardTemplate {
           @if (
             form.get('name')?.hasError('required') && form.get('name')?.touched
           ) {
-            <small class="text-red-500">Board name is required</small>
+            <small class="text-red-500">Project name is required</small>
           }
           @if (
             form.get('name')?.hasError('minlength') && form.get('name')?.touched
           ) {
             <small class="text-red-500"
-              >Board name must be at least 2 characters</small
+              >Project name must be at least 2 characters</small
             >
           }
         </div>
@@ -114,7 +114,7 @@ export interface BoardTemplate {
             pTextarea
             id="boardDesc"
             formControlName="description"
-            placeholder="Describe the purpose of this board"
+            placeholder="Describe the purpose of this project"
             rows="3"
             maxlength="500"
             class="w-full"
@@ -248,7 +248,7 @@ export interface BoardTemplate {
             [disabled]="isSubmitting"
           />
           <p-button
-            label="Create Board"
+            label="Create Project"
             (onClick)="onSubmit()"
             [disabled]="form.invalid || isSubmitting"
             [loading]="isSubmitting"
@@ -314,7 +314,7 @@ export class CreateBoardDialogComponent implements OnInit {
         const fallback: BoardTemplate[] = [
           {
             id: 'blank',
-            name: 'Blank Board',
+            name: 'Blank Project',
             description: 'Start from scratch',
             columns: [],
           },

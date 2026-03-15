@@ -52,7 +52,7 @@ export class DependencyService {
 
   getBoardDependencies(boardId: string): Observable<TaskDependency[]> {
     return this.http.get<TaskDependency[]>(
-      `/api/boards/${boardId}/dependencies`,
+      `/api/projects/${boardId}/dependencies`,
     );
   }
 }

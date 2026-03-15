@@ -32,7 +32,7 @@ export interface MutationContext {
 }
 
 @Injectable()
-export class BoardMutationsService {
+export class ProjectMutationsService {
   private boardService = inject(BoardService);
   private taskService = inject(TaskService);
   private taskGroupService = inject(TaskGroupService);

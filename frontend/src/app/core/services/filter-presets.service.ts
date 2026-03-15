@@ -29,7 +29,7 @@ export class FilterPresetsService {
 
   list(boardId: string): Observable<FilterPreset[]> {
     return this.http.get<FilterPreset[]>(
-      `${this.baseUrl}/boards/${boardId}/filter-presets`,
+      `${this.baseUrl}/projects/${boardId}/filter-presets`,
     );
   }
 
@@ -38,7 +38,7 @@ export class FilterPresetsService {
     body: CreateFilterPresetRequest,
   ): Observable<FilterPreset> {
     return this.http.post<FilterPreset>(
-      `${this.baseUrl}/boards/${boardId}/filter-presets`,
+      `${this.baseUrl}/projects/${boardId}/filter-presets`,
       body,
     );
   }
@@ -49,14 +49,14 @@ export class FilterPresetsService {
     body: UpdateFilterPresetRequest,
   ): Observable<FilterPreset> {
     return this.http.put<FilterPreset>(
-      `${this.baseUrl}/boards/${boardId}/filter-presets/${presetId}`,
+      `${this.baseUrl}/projects/${boardId}/filter-presets/${presetId}`,
       body,
     );
   }
 
   delete(boardId: string, presetId: string): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(
-      `${this.baseUrl}/boards/${boardId}/filter-presets/${presetId}`,
+      `${this.baseUrl}/projects/${boardId}/filter-presets/${presetId}`,
     );
   }
 }

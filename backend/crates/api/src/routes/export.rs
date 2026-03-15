@@ -19,7 +19,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
-use super::task_helpers::verify_board_membership;
+use super::common::verify_project_membership;
 
 // ============================================================================
 // DTOs
@@ -122,9 +122,7 @@ async fn export_handler(
     Path(board_id): Path<Uuid>,
     Query(query): Query<ExportQuery>,
 ) -> Result<Response> {
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     match query.format.as_str() {
         "csv" => export_csv(&state.db, board_id).await,

@@ -10,8 +10,8 @@ export interface Board {
   description: string | null;
   prefix?: string | null;
   background_color?: string | null;
-  is_sample: boolean;
-  position: string;
+  is_sample?: boolean;
+  position?: string;
   created_at: string;
   updated_at: string;
 }
@@ -186,7 +186,7 @@ export class BoardService {
   getBoard(boardId: string): Observable<Board> {
     return this.cache.get(
       `project:${boardId}`,
-      () => this.http.get<Board>(`${this.apiUrl}/boards/${boardId}`),
+      () => this.http.get<Board>(`${this.apiUrl}/projects/${boardId}`),
       120000, // 2 min TTL
     );
   }
@@ -206,7 +206,7 @@ export class BoardService {
 
   updateBoard(boardId: string, request: UpdateBoardRequest): Observable<Board> {
     return this.http
-      .patch<Board>(`${this.apiUrl}/boards/${boardId}`, request)
+      .patch<Board>(`${this.apiUrl}/projects/${boardId}`, request)
       .pipe(
         tap(() => {
           this.cache.invalidateKey(`project:${boardId}`);
@@ -217,7 +217,7 @@ export class BoardService {
   }
 
   deleteBoard(boardId: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/boards/${boardId}`).pipe(
+    return this.http.delete<void>(`${this.apiUrl}/projects/${boardId}`).pipe(
       tap(() => {
         this.cache.invalidateKey(`project:${boardId}`);
         this.cache.invalidate(`project-full:${boardId}:.*`);
@@ -229,7 +229,7 @@ export class BoardService {
   listColumns(boardId: string): Observable<Column[]> {
     return this.cache.get(
       `columns:${boardId}`,
-      () => this.http.get<Column[]>(`${this.apiUrl}/boards/${boardId}/columns`),
+      () => this.http.get<Column[]>(`${this.apiUrl}/projects/${boardId}/columns`),
       120000, // 2 min TTL
     );
   }
@@ -239,7 +239,7 @@ export class BoardService {
     request: CreateColumnRequest,
   ): Observable<Column> {
     return this.http
-      .post<Column>(`${this.apiUrl}/boards/${boardId}/columns`, request)
+      .post<Column>(`${this.apiUrl}/projects/${boardId}/columns`, request)
       .pipe(
         tap(() => {
           this.cache.invalidateKey(`columns:${boardId}`);
@@ -323,13 +323,13 @@ export class BoardService {
     );
   }
 
-  // Project Status methods (backed by /api/boards/{id}/columns + /api/columns/{id})
+  // Project Status methods (backed by /api/projects/{id}/columns + /api/columns/{id})
   listStatuses(projectId: string): Observable<ProjectStatus[]> {
     return this.cache.get(
       `statuses:${projectId}`,
       () =>
         this.http.get<ProjectStatus[]>(
-          `${this.apiUrl}/boards/${projectId}/columns`,
+          `${this.apiUrl}/projects/${projectId}/columns`,
         ),
       120000,
     );
@@ -341,7 +341,7 @@ export class BoardService {
   ): Observable<ProjectStatus> {
     return this.http
       .post<ProjectStatus>(
-        `${this.apiUrl}/boards/${projectId}/columns`,
+        `${this.apiUrl}/projects/${projectId}/columns`,
         req,
       )
       .pipe(
@@ -381,7 +381,7 @@ export class BoardService {
       `project-members:${boardId}`,
       () =>
         this.http.get<BoardMember[]>(
-          `${this.apiUrl}/boards/${boardId}/members`,
+          `${this.apiUrl}/projects/${boardId}/members`,
         ),
       180000, // 3 min TTL
     );
@@ -392,7 +392,7 @@ export class BoardService {
     request: InviteMemberRequest,
   ): Observable<BoardMember> {
     return this.http
-      .post<BoardMember>(`${this.apiUrl}/boards/${boardId}/members`, request)
+      .post<BoardMember>(`${this.apiUrl}/projects/${boardId}/members`, request)
       .pipe(
         tap(() => {
           this.cache.invalidateKey(`project-members:${boardId}`);
@@ -407,7 +407,7 @@ export class BoardService {
   ): Observable<BoardMember> {
     return this.http
       .patch<BoardMember>(
-        `${this.apiUrl}/boards/${boardId}/members/${userId}`,
+        `${this.apiUrl}/projects/${boardId}/members/${userId}`,
         request,
       )
       .pipe(
@@ -419,7 +419,7 @@ export class BoardService {
 
   removeBoardMember(boardId: string, userId: string): Observable<void> {
     return this.http
-      .delete<void>(`${this.apiUrl}/boards/${boardId}/members/${userId}`)
+      .delete<void>(`${this.apiUrl}/projects/${boardId}/members/${userId}`)
       .pipe(
         tap(() => {
           this.cache.invalidateKey(`project-members:${boardId}`);
@@ -440,7 +440,7 @@ export class BoardService {
       cacheKey,
       () =>
         this.http.get<BoardFullResponse>(
-          `${this.apiUrl}/boards/${boardId}/full`,
+          `${this.apiUrl}/projects/${boardId}/full`,
           { params: queryParams },
         ),
       60000, // 1 min TTL for full board data
@@ -452,7 +452,7 @@ export class BoardService {
     request: DuplicateBoardRequest,
   ): Observable<Board> {
     return this.http
-      .post<Board>(`${this.apiUrl}/boards/${boardId}/duplicate`, request)
+      .post<Board>(`${this.apiUrl}/projects/${boardId}/duplicate`, request)
       .pipe(
         tap(() => {
           this.cache.invalidate(`projects:.*`);

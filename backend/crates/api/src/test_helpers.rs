@@ -323,16 +323,16 @@ pub mod helpers {
             .nest("/api", routes::activity_log_router(state.clone()))
             .nest("/api/workspaces", routes::workspace_router(state.clone()))
             .nest(
-                "/api/workspaces/{workspace_id}/boards",
-                routes::workspace_boards_router(state.clone()),
+                "/api/workspaces/{workspace_id}/projects",
+                routes::workspace_projects_router(state.clone()),
             )
             .nest(
-                "/api/board-templates",
-                routes::board_templates_router(state.clone()),
+                "/api/project-templates",
+                routes::project_templates_router(state.clone()),
             )
-            .nest("/api/boards", routes::board_router(state.clone()))
+            .nest("/api/projects", routes::project_router(state.clone()))
             .nest(
-                "/api/boards/{board_id}/columns",
+                "/api/projects/{board_id}/columns",
                 routes::board_columns_router(state.clone()),
             )
             .nest("/api/columns", routes::column_router(state.clone()))
@@ -363,8 +363,8 @@ pub mod helpers {
             .nest("/api", routes::task_template_router(state.clone()))
             .nest("/api", routes::export::export_router(state.clone()))
             .nest("/api", routes::import::import_router(state.clone()))
-            .nest("/api", routes::board_share_router(state.clone()))
-            .nest("/api", routes::shared_board_public_router())
+            .nest("/api", routes::project_share_router(state.clone()))
+            .nest("/api", routes::shared_project_public_router())
             .nest("/api", routes::webhook_router(state.clone()))
             .nest("/api", routes::user_preferences_router(state.clone()))
             .nest("/api", routes::sessions_router(state.clone()))
@@ -374,7 +374,7 @@ pub mod helpers {
             .nest("/api", routes::archive_router(state.clone()))
             // Position routes
             .nest(
-                "/api/boards/{board_id}/positions",
+                "/api/projects/{board_id}/positions",
                 routes::board_positions_router(state.clone()),
             )
             .nest("/api/positions", routes::positions_router(state.clone()))

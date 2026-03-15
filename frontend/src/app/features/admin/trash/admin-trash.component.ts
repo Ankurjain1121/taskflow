@@ -578,6 +578,7 @@ export class AdminTrashComponent implements OnInit, OnDestroy {
   }
 
   formatEntityType(entityType: string): string {
+    if (entityType === 'board') return 'Project';
     return entityType.charAt(0).toUpperCase() + entityType.slice(1);
   }
 

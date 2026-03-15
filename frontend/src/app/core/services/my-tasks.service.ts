@@ -10,15 +10,21 @@ export interface MyTask {
   description: string | null;
   priority: TaskPriority;
   due_date: string | null;
-  column_id: string;
-  column_name: string;
-  column_status_mapping: ColumnStatusMapping | null;
+  /** @deprecated use status_id */
+  column_id?: string;
+  /** @deprecated use status_name */
+  column_name?: string;
+  column_status_mapping?: ColumnStatusMapping | null;
+  status_id: string | null;
+  status_name: string | null;
+  is_done: boolean;
   board_id: string;
   board_name: string;
   workspace_id: string;
-  workspace_name: string;
-  labels: Label[];
-  assignees: Assignee[];
+  workspace_name?: string;
+  labels?: Label[];
+  assignees?: Assignee[];
+  position: string;
   created_at: string;
   updated_at: string;
 }

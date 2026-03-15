@@ -45,7 +45,7 @@ export class PositionService {
 
   listPositions(boardId: string): Observable<Position[]> {
     return this.http.get<Position[]>(
-      `${this.apiUrl}/boards/${boardId}/positions`,
+      `${this.apiUrl}/projects/${boardId}/positions`,
     );
   }
 
@@ -54,7 +54,7 @@ export class PositionService {
     req: CreatePositionRequest,
   ): Observable<Position> {
     return this.http.post<Position>(
-      `${this.apiUrl}/boards/${boardId}/positions`,
+      `${this.apiUrl}/projects/${boardId}/positions`,
       req,
     );
   }

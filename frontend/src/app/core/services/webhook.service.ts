@@ -43,14 +43,14 @@ export class WebhookService {
   constructor(private http: HttpClient) {}
 
   listWebhooks(boardId: string): Observable<Webhook[]> {
-    return this.http.get<Webhook[]>(`/api/boards/${boardId}/webhooks`);
+    return this.http.get<Webhook[]>(`/api/projects/${boardId}/webhooks`);
   }
 
   createWebhook(
     boardId: string,
     req: CreateWebhookRequest,
   ): Observable<Webhook> {
-    return this.http.post<Webhook>(`/api/boards/${boardId}/webhooks`, req);
+    return this.http.post<Webhook>(`/api/projects/${boardId}/webhooks`, req);
   }
 
   updateWebhook(id: string, req: UpdateWebhookRequest): Observable<Webhook> {

@@ -70,7 +70,7 @@ const DEFAULT_FILTERS: TaskFilters = {
 };
 
 @Component({
-  selector: 'app-board-toolbar',
+  selector: 'app-project-toolbar',
   standalone: true,
   imports: [
     CommonModule,
@@ -416,7 +416,7 @@ const DEFAULT_FILTERS: TaskFilters = {
     `,
   ],
 })
-export class BoardToolbarComponent implements OnInit, OnDestroy {
+export class ProjectToolbarComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private filterPresetsService = inject(FilterPresetsService);

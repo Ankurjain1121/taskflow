@@ -147,7 +147,7 @@ describe('ProjectTemplateService', () => {
   });
 
   describe('saveBoardAsTemplate()', () => {
-    it('should POST /api/boards/:boardId/save-as-template', () => {
+    it('should POST /api/projects/:boardId/save-as-template', () => {
       const saveReq: SaveAsTemplateRequest = {
         name: 'Saved Template',
         category: 'custom',
@@ -157,7 +157,7 @@ describe('ProjectTemplateService', () => {
         expect(result).toEqual(MOCK_TEMPLATE);
       });
 
-      const req = httpMock.expectOne('/api/boards/board-1/save-as-template');
+      const req = httpMock.expectOne('/api/projects/board-1/save-as-template');
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(saveReq);
       req.flush(MOCK_TEMPLATE);

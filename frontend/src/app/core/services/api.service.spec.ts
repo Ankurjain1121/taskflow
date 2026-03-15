@@ -162,7 +162,7 @@ describe('ApiService', () => {
 
   describe('PUT requests', () => {
     it('should make PUT request with body', () => {
-      const endpoint = '/boards/123';
+      const endpoint = '/projects/123';
       const body = { name: 'Updated Name' };
       const response = { id: '123', ...body };
 

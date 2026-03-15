@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { BoardFilterService } from './board-filter.service';
+import { ProjectFilterService } from './board-filter.service';
 import { Task } from '../../../core/services/task.service';
 import { TaskFilters } from '../board-toolbar/board-toolbar.component';
 
@@ -31,14 +31,14 @@ const emptyFilters: TaskFilters = {
   overdue: false,
 };
 
-describe('BoardFilterService', () => {
-  let service: BoardFilterService;
+describe('ProjectFilterService', () => {
+  let service: ProjectFilterService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [BoardFilterService],
+      providers: [ProjectFilterService],
     });
-    service = TestBed.inject(BoardFilterService);
+    service = TestBed.inject(ProjectFilterService);
   });
 
   describe('no filters applied', () => {

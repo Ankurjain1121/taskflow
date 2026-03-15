@@ -182,7 +182,7 @@ import {
                   [routerLink]="[
                     '/workspace',
                     workspace().id,
-                    'board',
+                    'project',
                     board.id,
                   ]"
                   routerLinkActive="board-link-active"
@@ -238,7 +238,7 @@ import {
                       [routerLink]="[
                         '/workspace',
                         workspace().id,
-                        'board',
+                        'project',
                         board.id,
                       ]"
                       (click)="closeBoardMenu()"
@@ -453,7 +453,7 @@ export class WorkspaceItemComponent implements OnInit {
 
   copyBoardLink(board: Board, event: Event): void {
     event.stopPropagation();
-    const url = `${window.location.origin}/workspace/${this.workspace().id}/board/${board.id}`;
+    const url = `${window.location.origin}/workspace/${this.workspace().id}/project/${board.id}`;
     navigator.clipboard.writeText(url).catch(() => {});
     this.activeMenuBoardId.set(null);
   }

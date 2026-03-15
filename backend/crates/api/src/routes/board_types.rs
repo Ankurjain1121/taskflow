@@ -1,6 +1,6 @@
-//! DTOs for board/project REST endpoints.
+//! DTOs for project REST endpoints.
 //!
-//! Request and response structs used by the board route handlers.
+//! Request and response structs used by the project route handlers.
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -12,32 +12,32 @@ use taskflow_db::models::{BoardMemberRole, TaskPriority};
 // ============================================================================
 
 #[derive(Debug, Deserialize)]
-pub struct CreateBoardRequest {
+pub struct CreateProjectRequest {
     pub name: String,
     pub description: Option<String>,
     pub template: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct UpdateBoardRequest {
+pub struct UpdateProjectRequest {
     pub name: Option<String>,
     pub description: Option<String>,
     pub background_color: Option<Option<String>>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct AddBoardMemberRequest {
+pub struct AddProjectMemberRequest {
     pub user_id: Uuid,
     pub role: BoardMemberRole,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct UpdateBoardMemberRoleRequest {
+pub struct UpdateProjectMemberRoleRequest {
     pub role: BoardMemberRole,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct BoardResponse {
+pub struct ProjectResponse {
     pub id: Uuid,
     pub name: String,
     pub description: Option<String>,
@@ -47,6 +47,7 @@ pub struct BoardResponse {
     pub tenant_id: Uuid,
     pub created_by_id: Uuid,
     pub background_color: Option<String>,
+    pub is_sample: bool,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
@@ -65,7 +66,7 @@ pub struct StatusResponse {
 }
 
 #[derive(Debug, Serialize)]
-pub struct BoardDetailResponse {
+pub struct ProjectDetailResponse {
     pub id: Uuid,
     pub name: String,
     pub description: Option<String>,
@@ -75,13 +76,14 @@ pub struct BoardDetailResponse {
     pub tenant_id: Uuid,
     pub created_by_id: Uuid,
     pub background_color: Option<String>,
+    pub is_sample: bool,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
     pub statuses: Vec<StatusResponse>,
 }
 
 #[derive(Debug, Serialize)]
-pub struct BoardMemberResponse {
+pub struct ProjectMemberResponse {
     pub id: Uuid,
     pub project_id: Uuid,
     pub user_id: Uuid,
@@ -93,28 +95,28 @@ pub struct BoardMemberResponse {
 }
 
 // ============================================================================
-// Board Full (batch) Response DTOs
+// Project Full (batch) Response DTOs
 // ============================================================================
 
 #[derive(Debug, Deserialize)]
-pub struct BoardFullQuery {
+pub struct ProjectFullQuery {
     pub limit: Option<i64>,
     pub offset: Option<i64>,
 }
 
 #[derive(Debug, Serialize)]
-pub struct BoardMeta {
+pub struct ProjectMeta {
     pub total_task_count: i64,
     pub current_limit: i64,
     pub current_offset: i64,
 }
 
 #[derive(Debug, Serialize)]
-pub struct BoardFullResponse {
-    pub board: BoardDetailResponse,
+pub struct ProjectFullResponse {
+    pub project: ProjectDetailResponse,
     pub tasks: Vec<TaskWithBadges>,
-    pub members: Vec<BoardMemberResponse>,
-    pub meta: BoardMeta,
+    pub members: Vec<ProjectMemberResponse>,
+    pub meta: ProjectMeta,
 }
 
 #[derive(Debug, Serialize)]
@@ -155,11 +157,11 @@ pub struct LabelInfo {
 }
 
 // ============================================================================
-// Duplicate Board
+// Duplicate Project
 // ============================================================================
 
 #[derive(Debug, Deserialize)]
-pub struct DuplicateBoardRequest {
+pub struct DuplicateProjectRequest {
     pub name: String,
     pub include_tasks: Option<bool>,
 }

@@ -62,22 +62,7 @@ async fn verify_task_board_membership(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    let is_member = sqlx::query_scalar!(
-        r#"
-        SELECT EXISTS(
-            SELECT 1 FROM project_members
-            WHERE project_id = $1 AND user_id = $2
-        ) as "exists!"
-        "#,
-        board_id,
-        user_id
-    )
-    .fetch_one(&state.db)
-    .await?;
-
-    if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    super::common::verify_project_membership(&state.db, board_id, user_id).await?;
 
     Ok(board_id)
 }

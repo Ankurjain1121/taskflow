@@ -152,21 +152,43 @@ export class OnboardingChecklistService {
 
   dismiss(): void {
     this.isDismissed.set(true);
+    this.persistState();
   }
 
   reopen(): void {
     this.isDismissed.set(false);
+    this.persistState();
   }
 
   skipAll(): void {
     this.isSkipped.set(true);
+    this.persistState();
   }
 
   resetChecklist(): void {
     this.isSkipped.set(false);
     this.isDismissed.set(false);
     this.items.set(defaultItems());
+    this.persistState();
     this.autoDetect();
+  }
+
+  private persistState(): void {
+    if (!this.userId) return;
+    const state: ChecklistState = {
+      items: Object.fromEntries(this.items().map((i) => [i.id, i.completed])),
+      dismissed: this.isDismissed(),
+      skipped: this.isSkipped(),
+      lastUpdated: new Date().toISOString(),
+    };
+    try {
+      localStorage.setItem(
+        `${STORAGE_PREFIX}${this.userId}`,
+        JSON.stringify(state),
+      );
+    } catch {
+      // localStorage full or unavailable — silently ignore
+    }
   }
 
   private loadFromStorage(): void {

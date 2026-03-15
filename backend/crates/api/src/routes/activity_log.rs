@@ -18,7 +18,7 @@ use crate::state::AppState;
 use taskflow_db::queries::activity_log::{list_activity_by_task, PaginatedActivityLog};
 use taskflow_db::queries::get_task_board_id;
 
-use super::task_helpers::verify_board_membership;
+use super::common::verify_project_membership;
 
 /// Query parameters for activity log listing
 #[derive(Debug, Deserialize)]
@@ -54,9 +54,7 @@ async fn list_activity_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     // Parse cursor if provided
     let cursor = query.cursor.as_ref().and_then(|c| Uuid::parse_str(c).ok());

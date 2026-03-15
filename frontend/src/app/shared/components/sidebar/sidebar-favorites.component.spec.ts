@@ -4,13 +4,18 @@ import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { SidebarFavoritesComponent } from './sidebar-favorites.component';
 import { FavoritesService } from '../../../core/services/favorites.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 describe('SidebarFavoritesComponent', () => {
   let component: SidebarFavoritesComponent;
   let fixture: ComponentFixture<SidebarFavoritesComponent>;
   let mockFavoritesService: any;
+  let mockAuthService: any;
 
   beforeEach(async () => {
+    mockAuthService = {
+      isAuthenticated: vi.fn().mockReturnValue(true),
+    };
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -53,6 +58,7 @@ describe('SidebarFavoritesComponent', () => {
       providers: [
         provideRouter([]),
         { provide: FavoritesService, useValue: mockFavoritesService },
+        { provide: AuthService, useValue: mockAuthService },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();

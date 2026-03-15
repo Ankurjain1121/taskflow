@@ -1359,7 +1359,7 @@ export class TaskCardComponent {
         label: 'Move to Column',
         icon: 'pi pi-arrow-right',
         items: this.columns()
-          .filter((col) => col.id !== this.task().column_id)
+          .filter((col) => col.id !== (this.task().status_id ?? this.task().column_id))
           .map((col) => {
             const currentStatusId =
               this.task().status_id ?? this.task().column_id ?? '';

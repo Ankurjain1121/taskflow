@@ -58,13 +58,13 @@ import {
 
             <!-- Board and Column Info -->
             <p class="text-xs mt-1" style="color: var(--muted-foreground)">
-              {{ task().board_name }} / {{ task().column_name }}
+              {{ task().board_name }} / {{ task().status_name ?? task().column_name ?? 'No status' }}
             </p>
 
             <!-- Labels -->
-            @if (task().labels && task().labels.length > 0) {
+            @if (task().labels?.length) {
               <div class="flex flex-wrap gap-1 mt-2">
-                @for (label of task().labels.slice(0, 3); track label.id) {
+                @for (label of task().labels!.slice(0, 3); track label.id) {
                   <span
                     class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
                     [style.background-color]="label.color + '20'"
@@ -73,9 +73,9 @@ import {
                     {{ label.name }}
                   </span>
                 }
-                @if (task().labels.length > 3) {
+                @if (task().labels!.length > 3) {
                   <span class="text-xs" style="color: var(--muted-foreground)">
-                    +{{ task().labels.length - 3 }}
+                    +{{ task().labels!.length - 3 }}
                   </span>
                 }
               </div>
@@ -146,7 +146,9 @@ export class TaskListItemComponent {
   }
 
   isDone(): boolean {
-    const statusMapping = this.task().column_status_mapping;
+    const task = this.task();
+    if (task.is_done !== undefined) return task.is_done;
+    const statusMapping = task.column_status_mapping;
     return statusMapping?.done === true;
   }
 

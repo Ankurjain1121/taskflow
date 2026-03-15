@@ -10,7 +10,7 @@ import { Router } from '@angular/router';
 import { BoardService } from '../../../core/services/board.service';
 
 @Component({
-  selector: 'app-sample-board-banner',
+  selector: 'app-sample-project-banner',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -34,7 +34,7 @@ import { BoardService } from '../../../core/services/board.service';
             />
           </svg>
           <span class="text-sm text-amber-800 dark:text-amber-300">
-            This is a sample board to help you explore TaskFlow.
+            This is a sample project to help you explore TaskFlow.
           </span>
         </div>
         <div class="flex items-center gap-3">
@@ -47,7 +47,7 @@ import { BoardService } from '../../../core/services/board.service';
             @if (isDeleting()) {
               Deleting...
             } @else {
-              Delete this board
+              Delete this project
             }
           </button>
           <button
@@ -74,7 +74,7 @@ import { BoardService } from '../../../core/services/board.service';
     }
   `,
 })
-export class SampleBoardBannerComponent implements OnInit {
+export class SampleProjectBannerComponent implements OnInit {
   boardId = input.required<string>();
   workspaceId = input.required<string>();
 

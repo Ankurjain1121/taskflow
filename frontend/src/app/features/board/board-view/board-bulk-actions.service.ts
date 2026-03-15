@@ -5,12 +5,12 @@ import {
   BulkUpdateRequest,
 } from '../../../core/services/task.service';
 import { BulkAction } from '../bulk-actions/bulk-actions-bar.component';
-import { BoardStateService } from './board-state.service';
+import { ProjectStateService } from './board-state.service';
 
 @Injectable()
-export class BoardBulkActionsService {
+export class ProjectBulkActionsService {
   private taskService = inject(TaskService);
-  private state = inject(BoardStateService);
+  private state = inject(ProjectStateService);
 
   executeBulkAction(
     boardId: string,

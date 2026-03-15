@@ -13,7 +13,7 @@ use taskflow_db::queries::{
     get_task_board_id, list_reminders_for_task, remove_reminder, set_reminder, ReminderInfo,
 };
 
-use super::task_helpers::verify_board_membership;
+use super::common::verify_project_membership;
 
 #[derive(Deserialize)]
 pub struct SetReminderRequest {
@@ -31,9 +31,7 @@ pub async fn set_reminder_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     let reminder = set_reminder(
         &state.db,
@@ -56,9 +54,7 @@ pub async fn list_reminders_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     let reminders = list_reminders_for_task(&state.db, task_id, tenant.user_id).await?;
 
@@ -75,9 +71,7 @@ pub async fn remove_reminder_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     remove_reminder(&state.db, reminder_id, tenant.user_id).await?;
 

@@ -12,6 +12,7 @@ import {
   FavoritesService,
   FavoriteItem,
 } from '../../../core/services/favorites.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-sidebar-favorites',
@@ -89,6 +90,7 @@ import {
 })
 export class SidebarFavoritesComponent implements OnInit {
   private favoritesService = inject(FavoritesService);
+  private authService = inject(AuthService);
 
   collapsed = input(false);
   favorites = signal<FavoriteItem[]>([]);
@@ -107,12 +109,14 @@ export class SidebarFavoritesComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadFavorites();
+    if (this.authService.isAuthenticated()) {
+      this.loadFavorites();
+    }
   }
 
   getFavLink(fav: FavoriteItem): string[] {
     if (fav.entity_type === 'board' && fav.workspace_id) {
-      return ['/workspace', fav.workspace_id, 'board', fav.entity_id];
+      return ['/workspace', fav.workspace_id, 'project', fav.entity_id];
     }
     return ['/my-tasks'];
   }

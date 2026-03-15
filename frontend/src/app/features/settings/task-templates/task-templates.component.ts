@@ -302,7 +302,7 @@ export class TaskTemplatesComponent implements OnInit {
 
   scopeOptions = [
     { label: 'Personal', value: 'personal' },
-    { label: 'Board', value: 'board' },
+    { label: 'Project', value: 'board' },
     { label: 'Workspace', value: 'workspace' },
   ];
 

@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import { SampleBoardBannerComponent } from './sample-board-banner.component';
+import { SampleProjectBannerComponent } from './sample-board-banner.component';
 import { BoardService } from '../../../core/services/board.service';
 
 // Minimal stub component for catch-all route, suppressing NG04002 console noise.
@@ -16,7 +16,7 @@ class StubRouteComponent {}
 
 @Component({
   standalone: true,
-  imports: [SampleBoardBannerComponent],
+  imports: [SampleProjectBannerComponent],
   template: `
     <app-sample-board-banner
       [boardId]="boardId()"
@@ -38,14 +38,14 @@ class TestHostComponent {
 
 function getBanner(
   fixture: ComponentFixture<TestHostComponent>,
-): SampleBoardBannerComponent {
+): SampleProjectBannerComponent {
   return fixture.debugElement.children[0]
-    .componentInstance as SampleBoardBannerComponent;
+    .componentInstance as SampleProjectBannerComponent;
 }
 
 // --- Suite ---
 
-describe('SampleBoardBannerComponent', () => {
+describe('SampleProjectBannerComponent', () => {
   let fixture: ComponentFixture<TestHostComponent>;
   let host: TestHostComponent;
   let router: Router;
@@ -85,7 +85,7 @@ describe('SampleBoardBannerComponent', () => {
   it('should create successfully with required inputs', () => {
     fixture.detectChanges();
     const banner = getBanner(fixture);
-    expect(banner).toBeInstanceOf(SampleBoardBannerComponent);
+    expect(banner).toBeInstanceOf(SampleProjectBannerComponent);
   });
 
   // --- ngOnInit: localStorage dismissal ---

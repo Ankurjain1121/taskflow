@@ -14,6 +14,7 @@ use taskflow_db::queries::{assign_user, get_task_assignee_ids, get_task_board_id
 use taskflow_services::broadcast::events;
 use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
 
+use super::common::verify_project_membership;
 use super::task_helpers::{
     broadcast_workspace_task_update, get_workspace_id_for_board, verify_board_membership,
     AssignUserRequest,
@@ -33,9 +34,7 @@ pub async fn assign_user_handler(
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     // Verify board membership
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     // Verify the assignee is also a board member
     if !verify_board_membership(&state.db, board_id, body.user_id).await? {
@@ -152,9 +151,7 @@ pub async fn unassign_user_handler(
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     // Verify board membership
-    if !verify_board_membership(&state.db, board_id, tenant.user_id).await? {
-        return Err(AppError::Forbidden("Not a board member".into()));
-    }
+    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     unassign_user(&state.db, task_id, user_id).await?;
 

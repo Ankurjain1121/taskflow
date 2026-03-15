@@ -4,14 +4,14 @@ import { Task } from '../../../core/services/task.service';
 import { BulkOperationsService } from '../../../core/services/bulk-operations.service';
 import { BulkAction } from '../bulk-actions/bulk-actions-bar.component';
 import { BulkPreviewData } from '../bulk-operations/bulk-preview-dialog.component';
-import { BoardBulkActionsService } from './board-bulk-actions.service';
-import { BoardStateService } from './board-state.service';
+import { ProjectBulkActionsService } from './board-bulk-actions.service';
+import { ProjectStateService } from './board-state.service';
 
 @Injectable()
-export class BoardBulkOperationsHandler {
-  private bulkActionsService = inject(BoardBulkActionsService);
+export class ProjectBulkOperationsHandler {
+  private bulkActionsService = inject(ProjectBulkActionsService);
   private bulkOpsService = inject(BulkOperationsService);
-  private state = inject(BoardStateService);
+  private state = inject(ProjectStateService);
 
   readonly showBulkPreview = signal(false);
   readonly bulkPreviewData = signal<BulkPreviewData | null>(null);
@@ -138,12 +138,12 @@ export class BoardBulkOperationsHandler {
     action: BulkAction,
   ): Record<string, unknown> | undefined {
     const params: Record<string, unknown> = {};
-    if (action.column_id) params['column_id'] = action.column_id;
+    if (action.column_id) params['status_id'] = action.column_id;
     if (action.priority) params['priority'] = action.priority;
     if (action.milestone_id) params['milestone_id'] = action.milestone_id;
     if (action.clear_milestone) params['clear_milestone'] = true;
-    if (action.group_id) params['group_id'] = action.group_id;
-    if (action.clear_group) params['clear_group'] = true;
+    if (action.group_id) params['task_list_id'] = action.group_id;
+    if (action.clear_group) params['clear_task_list'] = true;
     return Object.keys(params).length > 0 ? params : undefined;
   }
 }

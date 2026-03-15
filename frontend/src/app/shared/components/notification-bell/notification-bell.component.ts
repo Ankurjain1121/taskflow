@@ -6,6 +6,7 @@ import {
   ElementRef,
   signal,
   computed,
+  inject,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { Router } from '@angular/router';
@@ -23,6 +24,7 @@ import {
   NotificationEventType,
 } from '../../../core/services/notification.service';
 import { NotificationSoundService } from '../../../core/services/notification-sound.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { NotificationItemComponent } from './notification-item.component';
 import { EmptyStateComponent } from '../empty-state/empty-state.component';
 
@@ -290,6 +292,8 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     );
   });
 
+  private authService = inject(AuthService);
+
   constructor(
     public notificationService: NotificationService,
     public soundService: NotificationSoundService,
@@ -297,8 +301,10 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Start real-time updates when component initializes
-    this.notificationService.startRealTimeUpdates();
+    // Only start real-time updates when authenticated
+    if (this.authService.isAuthenticated()) {
+      this.notificationService.startRealTimeUpdates();
+    }
   }
 
   ngOnDestroy(): void {

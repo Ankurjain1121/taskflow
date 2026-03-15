@@ -337,7 +337,7 @@ export class TemplateListComponent implements OnInit {
           this.router.navigate([
             '/workspace',
             this.dialogSelectedWorkspaceId,
-            'board',
+            'project',
             res.board_id,
           ]);
         },

@@ -48,3 +48,4 @@ coverage/
 # Ultraplan (keep for reference)
 # .ultraplan/
 .aider*
+.gstack/

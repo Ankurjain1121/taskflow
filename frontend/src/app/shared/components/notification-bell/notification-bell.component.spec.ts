@@ -6,6 +6,7 @@ import { of } from 'rxjs';
 import { NotificationBellComponent } from './notification-bell.component';
 import { NotificationService } from '../../../core/services/notification.service';
 import { NotificationSoundService } from '../../../core/services/notification-sound.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 describe('NotificationBellComponent', () => {
   let component: NotificationBellComponent;
@@ -13,8 +14,13 @@ describe('NotificationBellComponent', () => {
   let mockNotificationService: any;
   let mockSoundService: any;
   let mockRouter: any;
+  let mockAuthService: any;
 
   beforeEach(async () => {
+    mockAuthService = {
+      isAuthenticated: vi.fn().mockReturnValue(true),
+      currentUser: signal(null),
+    };
     mockNotificationService = {
       unreadCount: signal(3),
       displayBadge: signal('3'),
@@ -45,6 +51,7 @@ describe('NotificationBellComponent', () => {
         { provide: NotificationService, useValue: mockNotificationService },
         { provide: NotificationSoundService, useValue: mockSoundService },
         { provide: Router, useValue: mockRouter },
+        { provide: AuthService, useValue: mockAuthService },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();

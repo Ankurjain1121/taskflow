@@ -28,7 +28,7 @@ import { ConfirmDialog } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { ColumnManagerComponent } from '../column-manager/column-manager.component';
 import {
-  InviteMemberDialogComponent,
+  ProjectInviteMemberDialogComponent,
   InviteMemberDialogResult,
 } from './invite-member-dialog.component';
 import { PositionListComponent } from '../positions/position-list.component';
@@ -47,7 +47,7 @@ import { ExportDialogComponent } from '../import-export/export-dialog.component'
 import { ArchiveService } from '../../../core/services/archive.service';
 
 @Component({
-  selector: 'app-board-settings',
+  selector: 'app-project-settings',
   standalone: true,
   imports: [
     CommonModule,
@@ -55,7 +55,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
     FormsModule,
     RouterModule,
     ColumnManagerComponent,
-    InviteMemberDialogComponent,
+    ProjectInviteMemberDialogComponent,
     PositionListComponent,
     ConfirmDialog,
     SaveTemplateDialogComponent,
@@ -83,9 +83,9 @@ import { ArchiveService } from '../../../core/services/archive.service';
         <div class="mb-8">
           <nav class="text-sm text-[var(--muted-foreground)] mb-2">
             <a
-              [routerLink]="['/workspace', workspaceId, 'board', boardId]"
+              [routerLink]="['/workspace', workspaceId, 'project', boardId]"
               class="hover:text-primary"
-              >Back to Board</a
+              >Back to Project</a
             >
           </nav>
           <h1 class="text-3xl font-bold text-[var(--foreground)]">
@@ -957,7 +957,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
     </div>
 
     <!-- Invite Member Dialog (PrimeNG) -->
-    <app-board-invite-member-dialog
+    <app-project-invite-member-dialog
       [(visible)]="showInviteDialog"
       [boardId]="boardId"
       [boardName]="board()?.name || ''"
@@ -983,7 +983,7 @@ import { ArchiveService } from '../../../core/services/archive.service';
     <p-toast />
   `,
 })
-export class BoardSettingsComponent implements OnInit {
+export class ProjectSettingsComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private fb = inject(FormBuilder);
@@ -1056,7 +1056,7 @@ export class BoardSettingsComponent implements OnInit {
   ngOnInit(): void {
     this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       this.workspaceId = params['workspaceId'];
-      this.boardId = params['boardId'];
+      this.boardId = params['projectId'];
       this.loadBoard();
     });
 
