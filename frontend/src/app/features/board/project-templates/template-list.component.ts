@@ -207,7 +207,7 @@ export interface UseTemplateDialogResult {
 
     <!-- Use Template Dialog (inline) -->
     <p-dialog
-      header="Create Board from Template"
+      header="Create Project from Template"
       [(visible)]="showUseTemplateDialog"
       [modal]="true"
       [style]="{ width: '450px' }"
@@ -215,17 +215,17 @@ export interface UseTemplateDialogResult {
     >
       <div class="flex flex-col gap-4">
         <p class="text-[var(--muted-foreground)]">
-          Create a new board using the "{{ dialogTemplateName() }}" template.
+          Create a new project using the "{{ dialogTemplateName() }}" template.
         </p>
         <div class="flex flex-col gap-2">
           <label for="dialogBoardName" class="text-sm font-medium"
-            >Board Name</label
+            >Project Name</label
           >
           <input
             pInputText
             id="dialogBoardName"
             [(ngModel)]="dialogBoardName"
-            placeholder="My New Board"
+            placeholder="My New Project"
           />
         </div>
         <div class="flex flex-col gap-2">

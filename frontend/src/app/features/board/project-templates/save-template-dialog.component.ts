@@ -55,7 +55,7 @@ const TEMPLATE_CATEGORIES = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p-dialog
-      header="Save Board as Template"
+      header="Save Project as Template"
       [(visible)]="visible"
       [modal]="true"
       [style]="{ width: '500px' }"
@@ -77,7 +77,7 @@ const TEMPLATE_CATEGORIES = [
             pInputText
             id="templateName"
             formControlName="name"
-            placeholder="e.g. Sprint Board Template"
+            placeholder="e.g. Sprint Project Template"
             class="w-full"
           />
           @if (

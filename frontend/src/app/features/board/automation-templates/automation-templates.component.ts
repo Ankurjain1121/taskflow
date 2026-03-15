@@ -128,7 +128,7 @@ interface TemplateGroup {
                     <button
                       (click)="openApplyDialog(tmpl)"
                       class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-primary border border-primary rounded-md hover:bg-primary/10 transition-colors"
-                      title="Apply to a board"
+                      title="Apply to a project"
                     >
                       <svg
                         class="w-3.5 h-3.5"
@@ -156,26 +156,26 @@ interface TemplateGroup {
 
     <!-- Apply Dialog -->
     <p-dialog
-      header="Apply Template to Board"
+      header="Apply Template to Project"
       [modal]="true"
       [(visible)]="applyDialogVisible"
       [style]="{ width: '420px' }"
     >
       <div class="space-y-4">
         <p class="text-sm text-[var(--muted-foreground)]">
-          Select a board to apply
+          Select a project to apply
           <strong>{{ selectedTemplate()?.name }}</strong> to.
         </p>
         <div>
           <label class="block text-sm font-medium text-[var(--foreground)] mb-1"
-            >Board</label
+            >Project</label
           >
           <p-select
             [options]="boardOptions()"
             [(ngModel)]="selectedBoardId"
             optionLabel="name"
             optionValue="id"
-            placeholder="Select a board"
+            placeholder="Select a project"
             [style]="{ width: '100%' }"
           />
         </div>

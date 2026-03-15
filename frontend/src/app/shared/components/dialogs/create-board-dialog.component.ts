@@ -74,7 +74,7 @@ export interface BoardTemplate {
         Create a new project in {{ workspaceName() }}
       </p>
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
-        <!-- Board Name -->
+        <!-- Project Name -->
         <div class="flex flex-col gap-1 mb-4">
           <label
             for="boardName"

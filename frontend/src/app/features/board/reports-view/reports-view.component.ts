@@ -50,7 +50,7 @@ import {
         <!-- Header -->
         <div class="flex items-center justify-between">
           <h2 class="text-xl font-semibold text-[var(--card-foreground)]">
-            Board Analytics
+            Project Analytics
           </h2>
           <select
             class="text-sm border border-[var(--border)] rounded-lg px-3 py-1.5 bg-[var(--card)]"

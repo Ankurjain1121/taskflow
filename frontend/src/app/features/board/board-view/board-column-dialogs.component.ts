@@ -157,9 +157,9 @@ import { ProjectStateService } from './board-state.service';
       [boardName]="boardName"
     />
 
-    <!-- Duplicate Board Dialog -->
+    <!-- Duplicate Project Dialog -->
     <p-dialog
-      header="Duplicate Board"
+      header="Duplicate Project"
       [(visible)]="showDuplicateDialog"
       [modal]="true"
       [style]="{ width: '420px' }"
@@ -167,13 +167,13 @@ import { ProjectStateService } from './board-state.service';
       <div class="flex flex-col gap-4">
         <div>
           <label class="block text-sm font-medium text-[var(--foreground)] mb-1"
-            >Board Name</label
+            >Project Name</label
           >
           <input
             pInputText
             [(ngModel)]="duplicateBoardName"
             class="w-full"
-            placeholder="Enter board name"
+            placeholder="Enter project name"
           />
         </div>
         <label class="flex items-center gap-2">

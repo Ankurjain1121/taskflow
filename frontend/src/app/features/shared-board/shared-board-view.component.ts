@@ -84,7 +84,7 @@ import {
           <i
             class="pi pi-exclamation-circle text-6xl text-red-400 mb-4 block"
           ></i>
-          <h2 class="text-xl font-semibold mb-2">Unable to Access Board</h2>
+          <h2 class="text-xl font-semibold mb-2">Unable to Access Project</h2>
           <p class="text-[var(--muted-foreground)]">{{ error() }}</p>
         </div>
       </div>

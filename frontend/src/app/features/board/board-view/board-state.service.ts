@@ -251,14 +251,14 @@ export class ProjectStateService {
     this.groupingService.loadGroupBy(boardId);
     this.projectService.getBoardFull(boardId).subscribe({
       next: (response: ProjectFullResponse) => {
-        this.board.set(response.board);
+        this.board.set(response.project);
         const cols = (
-          (response.board.columns ?? response.statuses ?? []) as Column[]
+          (response.project?.statuses ?? []) as unknown as Column[]
         ).sort((a, b) => a.position.localeCompare(b.position));
         this.columns.set(cols);
 
         // Build transition map from statuses that have allowed_transitions
-        const rawStatuses = response.board.columns ?? response.statuses ?? [];
+        const rawStatuses = response.project?.statuses ?? [];
         const tMap: Record<string, string[] | null> = {};
         for (const s of rawStatuses) {
           const ps = s as { id: string; allowed_transitions?: string[] | null };

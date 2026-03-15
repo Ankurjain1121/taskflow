@@ -125,11 +125,11 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
           <!-- Board Grid Header -->
           <div class="flex items-center justify-between mb-5">
             <h2 class="text-xl font-semibold text-[var(--foreground)]">
-              Boards
+              Projects
             </h2>
             <p-button
               icon="pi pi-plus"
-              label="Create Board"
+              label="Create Project"
               (onClick)="openCreateBoardDialog()"
             />
           </div>
