@@ -358,3 +358,6 @@ onDrop(event, date)                      onBarMouseUp(event) → update task
 - [2026-03-15] Eng review: 9 decisions made. Phase 1 sequenced as delete→consolidate→rename→polish. Rename split into 4 atomic sub-commits. Task route consolidation deferred to Phase 2.
 - [2026-03-15] Phase 1 cleanup committed (d6621ec): 137 files, -1,113 net LOC. Delete orphans + consolidate audit/trash/membership + full board→project rename.
 - [2026-03-15] Gantt drag-to-reschedule implemented: mousedown/move/up on SVG bars, snap-to-day, optimistic update with rollback, ghost bar during drag.
+- [2026-03-15] Security fixes committed: audit cursor tenant isolation, ILIKE escaping, trash FK order, deleted_at check.
+- [2026-03-15] Phase 2 eng review: plan was 70% overbuilt — backend already done. Revised to frontend wiring + timer widget.
+- [2026-03-15] BoardService → ProjectService rename complete (49 files). Floating timer widget added. Dashboard charts already wired.
