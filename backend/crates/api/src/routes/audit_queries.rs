@@ -10,6 +10,14 @@ use uuid::Uuid;
 
 use crate::errors::Result;
 
+/// Escape ILIKE special characters (`%`, `_`, `\`) in a search string.
+fn escape_ilike(input: &str) -> String {
+    input
+        .replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_")
+}
+
 // ============================================================================
 // Shared types
 // ============================================================================
@@ -89,10 +97,19 @@ pub async fn query_audit_log(
 
     let cursor_id = query.cursor.as_ref().and_then(|c| Uuid::parse_str(c).ok());
 
+    let tenant_id = match scope {
+        AuditScope::Workspace { tenant_id, .. } => *tenant_id,
+        AuditScope::Tenant { tenant_id } => *tenant_id,
+    };
+
     let cursor_created_at: Option<DateTime<Utc>> = if let Some(cid) = cursor_id {
-        sqlx::query_scalar!(r#"SELECT created_at FROM activity_log WHERE id = $1"#, cid)
-            .fetch_optional(pool)
-            .await?
+        sqlx::query_scalar!(
+            r#"SELECT created_at FROM activity_log WHERE id = $1 AND tenant_id = $2"#,
+            cid,
+            tenant_id
+        )
+        .fetch_optional(pool)
+        .await?
     } else {
         None
     };
@@ -154,7 +171,7 @@ pub async fn query_audit_log(
     .bind(query.entity_type.as_deref())
     .bind(query.date_from)
     .bind(query.date_to)
-    .bind(query.search.as_deref())
+    .bind(query.search.as_deref().map(escape_ilike))
     .bind(cursor_created_at)
     .bind(cursor_id)
     .bind(fetch_limit)
