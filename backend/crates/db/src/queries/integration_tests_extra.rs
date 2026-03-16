@@ -409,13 +409,13 @@ async fn test_list_tasks_flat() {
     )
     .await;
 
-    let tasks = super::task_views::list_tasks_flat(&pool, board_id, user_id)
+    let result = super::task_views::list_tasks_flat(&pool, board_id, user_id, None, 50)
         .await
         .expect("list_tasks_flat");
 
-    assert!(!tasks.is_empty(), "should have at least one task");
+    assert!(!result.items.is_empty(), "should have at least one task");
     assert!(
-        tasks.iter().any(|t| t.title.contains(&unique)),
+        result.items.iter().any(|t| t.title.contains(&unique)),
         "should find our task"
     );
 }
@@ -444,15 +444,15 @@ async fn test_list_tasks_for_gantt() {
     )
     .await;
 
-    let tasks = super::task_views::list_tasks_for_gantt(&pool, board_id, user_id)
+    let result = super::task_views::list_tasks_for_gantt(&pool, board_id, user_id, None, 50)
         .await
         .expect("list_tasks_for_gantt");
 
     assert!(
-        !tasks.is_empty(),
+        !result.items.is_empty(),
         "gantt should have at least one task with dates"
     );
-    let found = tasks.iter().any(|t| t.title == "GanttTask");
+    let found = result.items.iter().any(|t| t.title == "GanttTask");
     assert!(found, "should find our gantt task");
 }
 
@@ -519,12 +519,12 @@ async fn test_gantt_empty_for_tasks_without_dates() {
     )
     .await;
 
-    let tasks = super::task_views::list_tasks_for_gantt(&pool, board_id, user_id)
+    let result = super::task_views::list_tasks_for_gantt(&pool, board_id, user_id, None, 50)
         .await
         .expect("list_tasks_for_gantt");
 
     // The task without dates should NOT appear in gantt
-    let found = tasks.iter().any(|t| t.title == "NoDateTask");
+    let found = result.items.iter().any(|t| t.title == "NoDateTask");
     assert!(!found, "task without dates should not appear in gantt view");
 }
 

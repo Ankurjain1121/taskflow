@@ -34,7 +34,7 @@ struct CountRow {
 }
 
 /// A recent activity entry with actor information for the dashboard feed
-#[derive(Debug, Serialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct DashboardActivityEntry {
     pub id: Uuid,
     pub action: ActivityAction,
@@ -154,7 +154,7 @@ pub async fn get_recent_activity(
 }
 
 /// Tasks grouped by status (column name)
-#[derive(Debug, Serialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct TasksByStatus {
     pub status: String,
     pub count: i64,
@@ -194,7 +194,7 @@ pub async fn get_tasks_by_status(
 }
 
 /// Tasks grouped by priority
-#[derive(Debug, Serialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct TasksByPriority {
     pub priority: TaskPriority,
     pub count: i64,
@@ -237,7 +237,7 @@ pub async fn get_tasks_by_priority(
 }
 
 /// Overdue task details for dashboard table
-#[derive(Debug, Serialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct OverdueTask {
     pub id: Uuid,
     pub title: String,
@@ -294,7 +294,7 @@ pub async fn get_overdue_tasks(
 }
 
 /// Completion trend data point
-#[derive(Debug, Serialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct CompletionTrendPoint {
     pub date: String,
     pub completed: i64,
@@ -339,7 +339,7 @@ pub async fn get_completion_trend(
 }
 
 /// Upcoming deadline task
-#[derive(Debug, Serialize, Clone, sqlx::FromRow)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct UpcomingDeadline {
     pub id: Uuid,
     pub title: String,

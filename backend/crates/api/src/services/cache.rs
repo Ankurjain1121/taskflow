@@ -35,23 +35,6 @@ pub async fn cache_del(redis: &redis::aio::ConnectionManager, key: &str) {
     let _: Result<(), _> = conn.del(key).await;
 }
 
-/// Delete all cached keys matching a pattern (for bulk invalidation).
-pub async fn cache_del_pattern(redis: &redis::aio::ConnectionManager, pattern: &str) {
-    let mut conn = redis.clone();
-    let keys: Vec<String> = redis::cmd("KEYS")
-        .arg(pattern)
-        .query_async(&mut conn)
-        .await
-        .unwrap_or_default();
-
-    if !keys.is_empty() {
-        let mut conn = redis.clone();
-        for key in keys {
-            let _: Result<(), _> = conn.del(&key).await;
-        }
-    }
-}
-
 /// Build a cache key for workspace project lists.
 pub fn workspace_projects_key(workspace_id: &uuid::Uuid) -> String {
     format!("cache:ws:{}:projects", workspace_id)
