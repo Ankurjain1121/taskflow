@@ -61,7 +61,7 @@ pub async fn bulk_update_handler(
     let updated = bulk_update_tasks(&state.db, board_id, ctx.user_id, input)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             _ => AppError::InternalError(format!("{}", e)),
         })?;
@@ -86,10 +86,20 @@ pub async fn bulk_delete_handler(
     let deleted = bulk_delete_tasks(&state.db, board_id, ctx.user_id, &req.task_ids)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             _ => AppError::InternalError(format!("{}", e)),
         })?;
 
     Ok(Json(json!({ "deleted": deleted })))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_max_bulk_task_ids() {
+        assert_eq!(MAX_BULK_TASK_IDS, 200);
+    }
 }

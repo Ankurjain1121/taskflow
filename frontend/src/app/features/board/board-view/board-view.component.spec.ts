@@ -233,6 +233,7 @@ describe('ProjectViewComponent', () => {
     routeParams$ = new Subject();
 
     mockProjectService.getBoardFull.mockReturnValue(of(boardFullResponse));
+    mockTaskService.listFlat.mockReturnValue(of([]));
 
     await TestBed.configureTestingModule({
       imports: [
@@ -258,6 +259,7 @@ describe('ProjectViewComponent', () => {
           useValue: {
             params: routeParams$.asObservable(),
             queryParams: of({}),
+            snapshot: { queryParams: {} },
           },
         },
       ],
@@ -853,6 +855,50 @@ describe('ProjectViewComponent', () => {
     });
   });
 
+  // --- List View Optimistic Update ---
+
+  describe('onListStatusChanged', () => {
+    it('should optimistically update flatTasks status fields', () => {
+      fixture.detectChanges();
+
+      // Set up columns directly (avoid relying on route param loading)
+      component.state.columns.set([col1, col2, col3]);
+
+      // Set up flat tasks directly
+      const flatTask = {
+        id: 'task-1',
+        title: 'Task One',
+        description: null,
+        priority: 'medium' as any,
+        due_date: null,
+        status_id: 'col-1',
+        status_name: 'To Do',
+        status_color: '#6366f1',
+        status_type: null,
+        task_list_id: null,
+        task_list_name: null,
+        position: 'a0',
+        created_by_id: 'user-1',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      };
+      component.state.flatTasks.set([flatTask]);
+
+      mockTaskService.moveTask.mockReturnValue(of(makeTask()));
+
+      component.onListStatusChanged({
+        taskId: 'task-1',
+        statusId: 'col-2',
+      });
+
+      const updated = component.state.flatTasks().find(
+        (t) => t.id === 'task-1',
+      );
+      expect(updated?.status_id).toBe('col-2');
+      expect(updated?.status_name).toBe('In Progress');
+    });
+  });
+
   // --- Cleanup ---
 
   describe('ngOnDestroy', () => {
@@ -863,7 +909,7 @@ describe('ProjectViewComponent', () => {
       component.ngOnDestroy();
 
       expect(mockWsService.send).toHaveBeenCalledWith('unsubscribe', {
-        channel: 'board:board-1',
+        channel: 'project:board-1',
       });
     });
   });

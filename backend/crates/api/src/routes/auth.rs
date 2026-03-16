@@ -813,4 +813,101 @@ mod tests {
         assert!(cookies.iter().any(|c| c.starts_with("access_token=")));
         assert!(cookies.iter().any(|c| c.starts_with("refresh_token=")));
     }
+
+    // === is_password_strong tests ===
+
+    #[test]
+    fn test_password_strong_valid() {
+        assert!(is_password_strong("Abcdefg1"));
+    }
+
+    #[test]
+    fn test_password_strong_long() {
+        assert!(is_password_strong("MyStr0ngPass"));
+    }
+
+    #[test]
+    fn test_password_strong_too_short() {
+        assert!(!is_password_strong("Abcde1"));
+    }
+
+    #[test]
+    fn test_password_strong_7_chars() {
+        assert!(!is_password_strong("Abcdef1"));
+    }
+
+    #[test]
+    fn test_password_strong_no_upper() {
+        assert!(!is_password_strong("abcdefg1"));
+    }
+
+    #[test]
+    fn test_password_strong_no_lower() {
+        assert!(!is_password_strong("ABCDEFG1"));
+    }
+
+    #[test]
+    fn test_password_strong_no_digit() {
+        assert!(!is_password_strong("Abcdefgh"));
+    }
+
+    #[test]
+    fn test_password_strong_empty() {
+        assert!(!is_password_strong(""));
+    }
+
+    #[test]
+    fn test_password_strong_spaces() {
+        assert!(is_password_strong("Ab cde1g"));
+    }
+
+    #[test]
+    fn test_password_strong_minimum_valid() {
+        // Exactly 8 chars with upper, lower, digit
+        assert!(is_password_strong("Abcdefg1"));
+    }
+
+    #[test]
+    fn test_password_strong_special_chars_only() {
+        // Special chars but no digit
+        assert!(!is_password_strong("Abcdefg!"));
+    }
+
+    #[test]
+    fn test_password_strong_with_special_chars() {
+        assert!(is_password_strong("Abcdef1!"));
+    }
+
+    #[test]
+    fn test_password_strong_very_long() {
+        let long_pass = format!("Aa1{}", "x".repeat(200));
+        assert!(is_password_strong(&long_pass));
+    }
+
+    #[test]
+    fn test_password_strong_unicode_uppercase() {
+        // Unicode uppercase letter should count
+        assert!(is_password_strong("\u{00C9}bcdefg1"));
+    }
+
+    #[test]
+    fn test_password_strong_unicode_lowercase() {
+        // Unicode lowercase should count
+        assert!(is_password_strong("A\u{00E9}cdefg1"));
+    }
+
+    #[test]
+    fn test_password_strong_digits_only_no_alpha() {
+        assert!(!is_password_strong("12345678"));
+    }
+
+    #[test]
+    fn test_password_strong_all_same_case_upper_with_digit() {
+        assert!(!is_password_strong("ABCDEFG1"));
+    }
+
+    #[test]
+    fn test_password_strong_all_same_case_lower_with_digit() {
+        assert!(!is_password_strong("abcdefg1"));
+    }
 }

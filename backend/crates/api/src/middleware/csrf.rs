@@ -92,7 +92,8 @@ fn extract_csrf_token(headers: &HeaderMap) -> Option<String> {
     headers
         .get("X-CSRF-Token")
         .and_then(|v| v.to_str().ok())
-        .map(|s| s.to_string())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
 }
 
 /// Validate CSRF token against Redis
@@ -227,5 +228,19 @@ mod tests {
         // Header names are case-insensitive in HTTP, but we're testing the exact match
         // Axum should normalize this, but let's verify
         assert!(extract_csrf_token(&headers).is_some());
+    }
+
+    #[test]
+    fn test_extract_csrf_empty_header() {
+        let mut headers = HeaderMap::new();
+        headers.insert("X-CSRF-Token", "".parse().expect("valid header"));
+        assert_eq!(extract_csrf_token(&headers), None);
+    }
+
+    #[test]
+    fn test_extract_csrf_whitespace_only() {
+        let mut headers = HeaderMap::new();
+        headers.insert("X-CSRF-Token", "   ".parse().expect("valid header"));
+        assert_eq!(extract_csrf_token(&headers), None);
     }
 }

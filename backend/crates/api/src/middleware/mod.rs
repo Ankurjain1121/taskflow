@@ -49,3 +49,33 @@ pub fn extract_client_ip(headers: &axum::http::HeaderMap) -> Option<String> {
 
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::http::{HeaderMap, HeaderValue};
+
+    #[test]
+    fn test_extract_ip_single() {
+        let mut headers = HeaderMap::new();
+        headers.insert("X-Forwarded-For", HeaderValue::from_static("1.2.3.4"));
+        assert_eq!(extract_client_ip(&headers), Some("1.2.3.4".to_string()));
+    }
+
+    #[test]
+    fn test_extract_ip_chain() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "X-Forwarded-For",
+            HeaderValue::from_static("1.2.3.4, 5.6.7.8"),
+        );
+        // First entry is the original client IP (single-hop nginx)
+        assert_eq!(extract_client_ip(&headers), Some("1.2.3.4".to_string()));
+    }
+
+    #[test]
+    fn test_extract_ip_missing() {
+        let headers = HeaderMap::new();
+        assert_eq!(extract_client_ip(&headers), None);
+    }
+}

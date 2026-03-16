@@ -334,6 +334,16 @@ describe('AuthService', () => {
     });
   });
 
+  describe('dead code removal verification', () => {
+    it('should not have getAccessToken method', () => {
+      expect((service as any).getAccessToken).toBeUndefined();
+    });
+
+    it('should not have getRefreshToken method', () => {
+      expect((service as any).getRefreshToken).toBeUndefined();
+    });
+  });
+
   describe('validateSession()', () => {
     it('should return false when no stored user', () => {
       let result: boolean | undefined;
