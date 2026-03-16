@@ -45,6 +45,7 @@ async fn list_my_tasks_handler(
     tenant: TenantContext,
     Query(query): Query<ListMyTasksQuery>,
 ) -> Result<Json<PaginatedMyTasks>> {
+    let limit = query.limit.clamp(1, 100);
     let tasks = list_my_tasks(
         &state.db,
         tenant.user_id,
@@ -52,7 +53,7 @@ async fn list_my_tasks_handler(
         query.sort_order,
         query.board_id,
         query.cursor,
-        query.limit,
+        limit,
     )
     .await?;
 

@@ -19,6 +19,8 @@ use crate::state::AppState;
 
 use super::common::verify_project_membership;
 
+const MAX_IMPORT_BATCH_SIZE: usize = 500;
+
 // ============================================================================
 // DTOs
 // ============================================================================
@@ -82,11 +84,6 @@ struct ColumnRow {
     position: String,
     #[allow(dead_code)]
     color: Option<String>,
-}
-
-#[derive(sqlx::FromRow)]
-struct ColumnIdRow {
-    id: Uuid,
 }
 
 #[derive(sqlx::FromRow)]
@@ -167,56 +164,6 @@ fn parse_csv(input: &str) -> Vec<Vec<String>> {
     rows
 }
 
-/// Resolve a column_name to a column_id for a given board.
-/// Falls back to the first column (by position) if the name is not found.
-async fn resolve_column_id(
-    db: &sqlx::PgPool,
-    board_id: Uuid,
-    column_name: Option<&str>,
-) -> Result<Uuid> {
-    if let Some(name) = column_name {
-        if !name.is_empty() {
-            let row: Option<ColumnIdRow> = sqlx::query_as(
-                "SELECT id FROM board_columns WHERE board_id = $1 AND LOWER(name) = LOWER($2) LIMIT 1",
-            )
-            .bind(board_id)
-            .bind(name)
-            .fetch_optional(db)
-            .await
-            .map_err(AppError::from)?;
-
-            if let Some(r) = row {
-                return Ok(r.id);
-            }
-        }
-    }
-
-    // Fallback: first column by position
-    let fallback: ColumnIdRow = sqlx::query_as(
-        "SELECT id FROM board_columns WHERE board_id = $1 ORDER BY position ASC LIMIT 1",
-    )
-    .bind(board_id)
-    .fetch_optional(db)
-    .await
-    .map_err(AppError::from)?
-    .ok_or_else(|| AppError::BadRequest("Board has no columns".into()))?;
-
-    Ok(fallback.id)
-}
-
-/// Get the next position key for a column.
-async fn next_position_in_column(db: &sqlx::PgPool, column_id: Uuid) -> Result<String> {
-    let count: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM tasks WHERE column_id = $1 AND deleted_at IS NULL",
-    )
-    .bind(column_id)
-    .fetch_one(db)
-    .await
-    .map_err(AppError::from)?;
-
-    Ok(format!("{:06}", count))
-}
-
 /// Synchronous fallback: pick the first column_id from the map or existing columns.
 fn resolve_column_id_sync(
     name_map: &std::collections::HashMap<String, Uuid>,
@@ -243,9 +190,47 @@ async fn import_json_handler(
 ) -> Result<Json<ImportResult>> {
     verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
+    if items.len() > MAX_IMPORT_BATCH_SIZE {
+        return Err(AppError::BadRequest(format!(
+            "Import batch size cannot exceed {} items",
+            MAX_IMPORT_BATCH_SIZE
+        )));
+    }
+
     if items.is_empty() {
         return Ok(Json(ImportResult { imported_count: 0 }));
     }
+
+    // Pre-fetch all columns for this board to avoid N+1 queries
+    let columns: Vec<ColumnRow> = sqlx::query_as(
+        "SELECT id, name, position, color FROM board_columns WHERE board_id = $1 ORDER BY position",
+    )
+    .bind(board_id)
+    .fetch_all(&state.db)
+    .await
+    .map_err(AppError::from)?;
+
+    if columns.is_empty() {
+        return Err(AppError::BadRequest("Board has no columns".into()));
+    }
+
+    let column_name_map: std::collections::HashMap<String, Uuid> = columns
+        .iter()
+        .map(|c| (c.name.to_lowercase(), c.id))
+        .collect();
+    let fallback_column_id = columns[0].id;
+
+    // Pre-fetch task counts per column for position tracking
+    let position_rows: Vec<(Uuid, i64)> = sqlx::query_as(
+        "SELECT column_id, COUNT(*) FROM tasks WHERE board_id = $1 AND deleted_at IS NULL GROUP BY column_id",
+    )
+    .bind(board_id)
+    .fetch_all(&state.db)
+    .await
+    .map_err(AppError::from)?;
+
+    let mut position_counters: std::collections::HashMap<Uuid, i64> =
+        position_rows.into_iter().collect();
 
     let mut imported: i64 = 0;
 
@@ -254,8 +239,18 @@ async fn import_json_handler(
             continue;
         }
 
-        let column_id = resolve_column_id(&state.db, board_id, item.column_name.as_deref()).await?;
-        let position = next_position_in_column(&state.db, column_id).await?;
+        let column_id = item
+            .column_name
+            .as_deref()
+            .filter(|n| !n.is_empty())
+            .and_then(|name| column_name_map.get(&name.to_lowercase()))
+            .copied()
+            .unwrap_or(fallback_column_id);
+
+        let count = position_counters.entry(column_id).or_insert(0);
+        let position = format!("{:06}", count);
+        *count += 1;
+
         let priority = normalize_priority(item.priority.as_deref().unwrap_or("medium"));
 
         let due_date: Option<DateTime<Utc>> = item.due_date.as_deref().and_then(|d| {
@@ -316,6 +311,44 @@ async fn import_csv_handler(
 
     let data_rows = if has_header { &rows[1..] } else { &rows[..] };
 
+    if data_rows.len() > MAX_IMPORT_BATCH_SIZE {
+        return Err(AppError::BadRequest(format!(
+            "Import batch size cannot exceed {} rows",
+            MAX_IMPORT_BATCH_SIZE
+        )));
+    }
+
+    // Pre-fetch all columns for this board to avoid N+1 queries
+    let columns: Vec<ColumnRow> = sqlx::query_as(
+        "SELECT id, name, position, color FROM board_columns WHERE board_id = $1 ORDER BY position",
+    )
+    .bind(board_id)
+    .fetch_all(&state.db)
+    .await
+    .map_err(AppError::from)?;
+
+    if columns.is_empty() {
+        return Err(AppError::BadRequest("Board has no columns".into()));
+    }
+
+    let column_name_map: std::collections::HashMap<String, Uuid> = columns
+        .iter()
+        .map(|c| (c.name.to_lowercase(), c.id))
+        .collect();
+    let fallback_column_id = columns[0].id;
+
+    // Pre-fetch task counts per column for position tracking
+    let position_rows: Vec<(Uuid, i64)> = sqlx::query_as(
+        "SELECT column_id, COUNT(*) FROM tasks WHERE board_id = $1 AND deleted_at IS NULL GROUP BY column_id",
+    )
+    .bind(board_id)
+    .fetch_all(&state.db)
+    .await
+    .map_err(AppError::from)?;
+
+    let mut position_counters: std::collections::HashMap<Uuid, i64> =
+        position_rows.into_iter().collect();
+
     let mut imported: i64 = 0;
 
     for row in data_rows {
@@ -333,8 +366,16 @@ async fn import_csv_handler(
         let column_name = row.get(3).map(|s| s.as_str()).filter(|s| !s.is_empty());
         let due_date_str = row.get(4).map(|s| s.as_str()).filter(|s| !s.is_empty());
 
-        let column_id = resolve_column_id(&state.db, board_id, column_name).await?;
-        let position = next_position_in_column(&state.db, column_id).await?;
+        let column_id = column_name
+            .filter(|n| !n.is_empty())
+            .and_then(|name| column_name_map.get(&name.to_lowercase()))
+            .copied()
+            .unwrap_or(fallback_column_id);
+
+        let count = position_counters.entry(column_id).or_insert(0);
+        let position = format!("{:06}", count);
+        *count += 1;
+
         let priority = normalize_priority(priority_str);
 
         let due_date: Option<DateTime<Utc>> = due_date_str.and_then(|d| {
@@ -448,6 +489,25 @@ async fn import_trello_handler(
 
     // Import cards as tasks
     let cards = trello.cards.unwrap_or_default();
+    if cards.len() > MAX_IMPORT_BATCH_SIZE {
+        return Err(AppError::BadRequest(format!(
+            "Import batch size cannot exceed {} cards",
+            MAX_IMPORT_BATCH_SIZE
+        )));
+    }
+
+    // Pre-fetch task counts per column for position tracking
+    let position_rows: Vec<(Uuid, i64)> = sqlx::query_as(
+        "SELECT column_id, COUNT(*) FROM tasks WHERE board_id = $1 AND deleted_at IS NULL GROUP BY column_id",
+    )
+    .bind(board_id)
+    .fetch_all(&state.db)
+    .await
+    .map_err(AppError::from)?;
+
+    let mut position_counters: std::collections::HashMap<Uuid, i64> =
+        position_rows.into_iter().collect();
+
     let mut imported: i64 = 0;
     let mut skipped: i64 = 0;
 
@@ -490,7 +550,10 @@ async fn import_trello_handler(
             continue;
         }
 
-        let position = next_position_in_column(&state.db, column_id).await?;
+        let count = position_counters.entry(column_id).or_insert(0);
+        let position = format!("{:06}", count);
+        *count += 1;
+
         let description = card.desc.as_deref().filter(|d| !d.is_empty());
 
         let due_date: Option<DateTime<Utc>> = card.due.as_deref().and_then(|d| {

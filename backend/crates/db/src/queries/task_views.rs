@@ -16,7 +16,12 @@ pub struct TaskListItem {
     pub priority: TaskPriority,
     pub due_date: Option<DateTime<Utc>>,
     pub status_id: Uuid,
+    pub status_name: String,
+    pub status_color: Option<String>,
+    pub status_type: Option<String>,
     pub column_name: String,
+    pub task_list_id: Option<Uuid>,
+    pub task_list_name: Option<String>,
     pub position: String,
     pub created_by_id: Uuid,
     pub created_at: DateTime<Utc>,
@@ -38,12 +43,18 @@ pub async fn list_tasks_flat(
         SELECT t.id, t.title, t.description,
                t.priority,
                t.due_date, t.status_id,
+               ps.name as status_name,
+               ps.color as status_color,
+               ps.type as status_type,
                ps.name as column_name,
+               t.task_list_id,
+               tl.name as task_list_name,
                t.position, t.created_by_id,
                t.created_at, t.updated_at
         FROM tasks t
         JOIN project_statuses ps ON ps.id = t.status_id
-        WHERE t.project_id = $1 AND t.deleted_at IS NULL
+        LEFT JOIN task_lists tl ON tl.id = t.task_list_id
+        WHERE t.project_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
         ORDER BY t.created_at DESC
         "#,
     )
@@ -94,6 +105,7 @@ pub async fn list_tasks_for_calendar(
         JOIN project_statuses ps ON ps.id = t.status_id
         WHERE t.project_id = $1
             AND t.deleted_at IS NULL
+            AND t.parent_task_id IS NULL
             AND t.due_date IS NOT NULL
             AND t.due_date >= $2
             AND t.due_date <= $3
@@ -147,6 +159,7 @@ pub async fn list_tasks_for_gantt(
         JOIN project_statuses ps ON ps.id = t.status_id
         WHERE t.project_id = $1
             AND t.deleted_at IS NULL
+            AND t.parent_task_id IS NULL
             AND (t.start_date IS NOT NULL OR t.due_date IS NOT NULL)
         ORDER BY COALESCE(t.start_date, t.due_date) ASC
         "#,

@@ -185,7 +185,8 @@ async fn get_rule_logs_handler(
     Path(rule_id): Path<Uuid>,
     Query(query): Query<LogsQuery>,
 ) -> Result<Json<Vec<AutomationLog>>> {
-    let logs = get_rule_logs(&state.db, rule_id, tenant.user_id, query.limit)
+    let limit = query.limit.clamp(1, 100);
+    let logs = get_rule_logs(&state.db, rule_id, tenant.user_id, limit)
         .await
         .map_err(map_automation_error)?;
 
@@ -197,7 +198,10 @@ pub fn automation_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Board-scoped automation routes
         .route("/projects/{board_id}/automations", get(list_rules_handler))
-        .route("/projects/{board_id}/automations", post(create_rule_handler))
+        .route(
+            "/projects/{board_id}/automations",
+            post(create_rule_handler),
+        )
         // Automation-specific routes
         .route("/automations/{id}", get(get_rule_handler))
         .route("/automations/{id}", put(update_rule_handler))

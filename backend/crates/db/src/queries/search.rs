@@ -77,7 +77,7 @@ pub async fn search_all(
         JOIN projects b ON b.id = t.project_id
         JOIN workspaces w ON w.id = b.workspace_id
         JOIN project_members bm ON bm.project_id = b.id AND bm.user_id = $5
-        WHERE t.tenant_id = $1 AND t.deleted_at IS NULL AND b.deleted_at IS NULL
+        WHERE t.tenant_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL AND b.deleted_at IS NULL
           AND (t.search_vector @@ plainto_tsquery('english', $2) OR t.title ILIKE $3)
           AND ($6::uuid IS NULL OR t.project_id = $6)
           AND ($7::text IS NULL OR EXISTS (

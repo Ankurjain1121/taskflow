@@ -14,6 +14,8 @@ use crate::state::AppState;
 use taskflow_db::models::TaskPriority;
 use taskflow_db::queries::{bulk_delete_tasks, bulk_update_tasks, BulkUpdateInput, TaskQueryError};
 
+const MAX_BULK_TASK_IDS: usize = 200;
+
 /// Request body for bulk update
 #[derive(Deserialize)]
 pub struct BulkUpdateRequest {
@@ -39,6 +41,13 @@ pub async fn bulk_update_handler(
     Path(board_id): Path<Uuid>,
     Json(req): Json<BulkUpdateRequest>,
 ) -> Result<Json<serde_json::Value>> {
+    if req.task_ids.len() > MAX_BULK_TASK_IDS {
+        return Err(AppError::BadRequest(format!(
+            "Bulk update is limited to {} tasks at a time",
+            MAX_BULK_TASK_IDS
+        )));
+    }
+
     let input = BulkUpdateInput {
         task_ids: req.task_ids,
         status_id: req.status_id,
@@ -67,6 +76,13 @@ pub async fn bulk_delete_handler(
     Path(board_id): Path<Uuid>,
     Json(req): Json<BulkDeleteRequest>,
 ) -> Result<Json<serde_json::Value>> {
+    if req.task_ids.len() > MAX_BULK_TASK_IDS {
+        return Err(AppError::BadRequest(format!(
+            "Bulk delete is limited to {} tasks at a time",
+            MAX_BULK_TASK_IDS
+        )));
+    }
+
     let deleted = bulk_delete_tasks(&state.db, board_id, ctx.user_id, &req.task_ids)
         .await
         .map_err(|e| match e {

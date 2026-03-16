@@ -17,6 +17,8 @@ use crate::middleware::auth_middleware;
 use crate::state::AppState;
 use taskflow_db::queries::bulk_operations::{self, BulkAction, TaskSnapshot};
 
+const MAX_BULK_TASK_IDS: usize = 200;
+
 /// Request body shared by preview and execute endpoints.
 #[derive(Deserialize)]
 pub struct BulkOperationRequest {
@@ -31,6 +33,13 @@ async fn preview_handler(
     Path(board_id): Path<Uuid>,
     Json(req): Json<BulkOperationRequest>,
 ) -> Result<Json<serde_json::Value>> {
+    if req.task_ids.len() > MAX_BULK_TASK_IDS {
+        return Err(AppError::BadRequest(format!(
+            "Bulk operations are limited to {} tasks at a time",
+            MAX_BULK_TASK_IDS
+        )));
+    }
+
     let summary = bulk_operations::preview_bulk_operation(
         &state.db,
         board_id,
@@ -51,6 +60,13 @@ async fn execute_handler(
     Path(board_id): Path<Uuid>,
     Json(req): Json<BulkOperationRequest>,
 ) -> Result<Json<serde_json::Value>> {
+    if req.task_ids.len() > MAX_BULK_TASK_IDS {
+        return Err(AppError::BadRequest(format!(
+            "Bulk operations are limited to {} tasks at a time",
+            MAX_BULK_TASK_IDS
+        )));
+    }
+
     // Snapshot tasks before applying changes
     let snapshot = bulk_operations::snapshot_tasks(&state.db, &req.task_ids, board_id)
         .await
@@ -67,8 +83,8 @@ async fn execute_handler(
     .await
     .map_err(map_bulk_error)?;
 
-    // Store snapshot in Redis with 1-hour TTL
-    store_undo_snapshot(&state.redis, &op.id, &snapshot).await;
+    // Store snapshot in Redis with 1-hour TTL (includes user_id for ownership check)
+    store_undo_snapshot(&state.redis, &op.id, ctx.user_id, &snapshot).await;
 
     Ok(Json(json!({
         "operation_id": op.id,
@@ -84,10 +100,16 @@ async fn undo_handler(
     ctx: TenantContext,
     Path((_board_id, op_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>> {
-    // Retrieve snapshot from Redis
-    let snapshot: Vec<TaskSnapshot> = retrieve_undo_snapshot(&state.redis, &op_id)
+    // Retrieve snapshot from Redis and verify ownership
+    let (owner_id, snapshot) = retrieve_undo_snapshot(&state.redis, &op_id)
         .await
         .ok_or_else(|| AppError::NotFound("Undo data has expired or is unavailable".to_string()))?;
+
+    if owner_id != ctx.user_id {
+        return Err(AppError::Forbidden(
+            "You can only undo your own operations".into(),
+        ));
+    }
 
     let restored = bulk_operations::undo_bulk_operation(&state.db, op_id, ctx.user_id, &snapshot)
         .await
@@ -136,10 +158,15 @@ pub fn bulk_ops_router(state: AppState) -> Router<AppState> {
 async fn store_undo_snapshot(
     redis: &redis::aio::ConnectionManager,
     operation_id: &Uuid,
+    user_id: Uuid,
     snapshot: &[TaskSnapshot],
 ) {
     let key = format!("undo:{}", operation_id);
-    if let Ok(json) = serde_json::to_string(snapshot) {
+    let payload = serde_json::json!({
+        "user_id": user_id,
+        "snapshot": snapshot,
+    });
+    if let Ok(json) = serde_json::to_string(&payload) {
         let mut conn = redis.clone();
         let _: std::result::Result<(), _> = conn.set_ex(&key, json, 3600u64).await;
     }
@@ -148,11 +175,17 @@ async fn store_undo_snapshot(
 async fn retrieve_undo_snapshot(
     redis: &redis::aio::ConnectionManager,
     operation_id: &Uuid,
-) -> Option<Vec<TaskSnapshot>> {
+) -> Option<(Uuid, Vec<TaskSnapshot>)> {
     let key = format!("undo:{}", operation_id);
     let mut conn = redis.clone();
     let result: Option<String> = conn.get(&key).await.ok()?;
-    result.and_then(|s| serde_json::from_str(&s).ok())
+    result.and_then(|s| {
+        let val: serde_json::Value = serde_json::from_str(&s).ok()?;
+        let user_id: Uuid = serde_json::from_value(val.get("user_id")?.clone()).ok()?;
+        let snapshot: Vec<TaskSnapshot> =
+            serde_json::from_value(val.get("snapshot")?.clone()).ok()?;
+        Some((user_id, snapshot))
+    })
 }
 
 async fn delete_undo_snapshot(redis: &redis::aio::ConnectionManager, operation_id: &Uuid) {
