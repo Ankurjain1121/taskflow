@@ -329,7 +329,7 @@ describe('GlobalSearchComponent', () => {
       component.navigateToTask(task);
 
       expect(mockRouter.navigate).toHaveBeenCalledWith(
-        ['/workspace', 'ws-1', 'board', 'board-1'],
+        ['/workspace', 'ws-1', 'project', 'board-1'],
         { queryParams: { task: 'task-1' } },
       );
       expect(closedSpy).toHaveBeenCalled();
@@ -350,7 +350,7 @@ describe('GlobalSearchComponent', () => {
       expect(mockRouter.navigate).toHaveBeenCalledWith([
         '/workspace',
         'ws-1',
-        'board',
+        'project',
         'board-1',
       ]);
       expect(closedSpy).toHaveBeenCalled();
@@ -371,7 +371,7 @@ describe('GlobalSearchComponent', () => {
       component.navigateToComment(comment);
 
       expect(mockRouter.navigate).toHaveBeenCalledWith(
-        ['/workspace', 'ws-1', 'board', 'board-1'],
+        ['/workspace', 'ws-1', 'project', 'board-1'],
         { queryParams: { task: 'task-1' } },
       );
       expect(closedSpy).toHaveBeenCalled();

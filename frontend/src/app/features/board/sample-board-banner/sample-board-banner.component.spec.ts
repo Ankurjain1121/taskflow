@@ -18,7 +18,7 @@ class StubRouteComponent {}
   standalone: true,
   imports: [SampleProjectBannerComponent],
   template: `
-    <app-sample-board-banner
+    <app-sample-project-banner
       [boardId]="boardId()"
       [workspaceId]="workspaceId()"
       (deleted)="onDeleted()"

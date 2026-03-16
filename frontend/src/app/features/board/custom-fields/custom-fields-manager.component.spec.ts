@@ -3,6 +3,7 @@ import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
+import { MessageService } from 'primeng/api';
 import { CustomFieldsManagerComponent } from './custom-fields-manager.component';
 
 describe('CustomFieldsManagerComponent', () => {
@@ -33,12 +34,14 @@ describe('CustomFieldsManagerComponent', () => {
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
+        MessageService,
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
 
     fixture = TestBed.createComponent(CustomFieldsManagerComponent);
     component = fixture.componentInstance;
+    fixture.componentRef.setInput('boardId', 'board-1');
   });
 
   it('should create', () => {

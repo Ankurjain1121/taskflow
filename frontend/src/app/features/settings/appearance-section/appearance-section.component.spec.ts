@@ -127,10 +127,10 @@ describe('AppearanceSectionComponent', () => {
     });
   });
 
-  describe('selectTheme', () => {
-    it('should delegate to ThemeService.setThemeSlug', () => {
-      component.selectTheme('sunset');
-      expect(mockThemeService.setThemeSlug).toHaveBeenCalledWith('sunset');
+  describe('setTheme (theme slug)', () => {
+    it('should delegate to ThemeService.setTheme', () => {
+      component.setTheme('dark');
+      expect(mockThemeService.setTheme).toHaveBeenCalledWith('dark');
     });
   });
 

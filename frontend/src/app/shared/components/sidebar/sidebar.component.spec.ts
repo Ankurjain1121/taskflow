@@ -76,6 +76,7 @@ describe('SidebarComponent', () => {
         tenant_id: 't-1',
         onboarding_completed: true,
       }),
+      isAuthenticated: vi.fn().mockReturnValue(true),
       signOut: vi.fn(),
     };
 

@@ -211,7 +211,7 @@ describe('AdminTrashComponent', () => {
 
     it('formatEntityType should capitalize', () => {
       expect(component.formatEntityType('task')).toBe('Task');
-      expect(component.formatEntityType('board')).toBe('Board');
+      expect(component.formatEntityType('board')).toBe('Project');
     });
 
     it('getEntityPrimeIcon should return correct icons', () => {
