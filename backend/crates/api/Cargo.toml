@@ -41,6 +41,10 @@ once_cell.workspace = true
 # HTML sanitization
 ammonia = "4"
 
+# Error tracking
+sentry.workspace = true
+sentry-tower.workspace = true
+
 # Local crates
 taskflow-db = { path = "../db" }
 taskflow-auth = { path = "../auth" }

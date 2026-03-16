@@ -8,9 +8,11 @@ import {
   inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ChartModule } from 'primeng/chart';
 import {
   ReportsService,
   BoardReport,
+  BurndownDataPoint,
 } from '../../../core/services/reports.service';
 import {
   createPieSegments,
@@ -25,7 +27,7 @@ import {
 @Component({
   selector: 'app-reports-view',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ChartModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
@@ -169,6 +171,29 @@ import {
                 class="flex items-center justify-center h-48 text-[var(--muted-foreground)] text-sm"
               >
                 No data
+              </div>
+            }
+          </div>
+
+          <!-- Burndown / Burnup Chart (PrimeNG) -->
+          <div
+            class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-6 lg:col-span-2"
+          >
+            <h3 class="text-sm font-medium text-[var(--muted-foreground)] mb-4">
+              Burndown / Burnup Chart
+            </h3>
+            @if (burndownChartData()) {
+              <p-chart
+                type="line"
+                [data]="burndownChartData()!"
+                [options]="burndownChartOptions"
+                [style]="{ height: '280px' }"
+              />
+            } @else {
+              <div
+                class="flex items-center justify-center h-48 text-[var(--muted-foreground)] text-sm"
+              >
+                Loading chart data...
               </div>
             }
           </div>
@@ -318,6 +343,7 @@ export class ReportsViewComponent implements OnInit {
 
   loading = signal(true);
   report = signal<BoardReport | null>(null);
+  burndownData = signal<BurndownDataPoint[]>([]);
   daysBack = signal(30);
 
   chartWidth = 400;
@@ -399,6 +425,83 @@ export class ReportsViewComponent implements OnInit {
     return r.overdue_analysis.some((b) => b.count > 0);
   });
 
+  burndownChartData = computed(() => {
+    const data = this.burndownData();
+    if (data.length === 0) return null;
+    return {
+      labels: data.map((p) =>
+        new Date(p.date).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        }),
+      ),
+      datasets: [
+        {
+          label: 'Remaining',
+          data: data.map((p) => p.remaining),
+          borderColor: '#6366f1',
+          backgroundColor: 'rgba(99, 102, 241, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 2,
+          borderWidth: 2,
+        },
+        {
+          label: 'Completed',
+          data: data.map((p) => p.completed_tasks),
+          borderColor: '#22c55e',
+          backgroundColor: 'rgba(34, 197, 94, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 2,
+          borderWidth: 2,
+        },
+        {
+          label: 'Ideal',
+          data: data.map((p) => p.ideal_line),
+          borderColor: '#9ca3af',
+          borderDash: [6, 4],
+          fill: false,
+          tension: 0,
+          pointRadius: 0,
+          borderWidth: 1.5,
+        },
+      ],
+    };
+  });
+
+  burndownChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index' as const,
+      intersect: false,
+    },
+    plugins: {
+      legend: {
+        display: true,
+        position: 'bottom' as const,
+        labels: { usePointStyle: true, pointStyle: 'circle', padding: 16 },
+      },
+      tooltip: {
+        cornerRadius: 8,
+        padding: 10,
+      },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { maxTicksLimit: 10, font: { size: 11 } },
+      },
+      y: {
+        beginAtZero: true,
+        ticks: { font: { size: 11 } },
+        grid: { color: 'rgba(0,0,0,0.04)' },
+        title: { display: true, text: 'Tasks', font: { size: 11 } },
+      },
+    },
+  };
+
   maxOverdue = computed(() => {
     const r = this.report();
     if (!r) return 1;
@@ -421,6 +524,12 @@ export class ReportsViewComponent implements OnInit {
         error: () => {
           this.loading.set(false);
         },
+      });
+    this.reportsService
+      .getBurndownChart(this.boardId(), this.daysBack())
+      .subscribe({
+        next: (data) => this.burndownData.set(data),
+        error: () => this.burndownData.set([]),
       });
   }
 
