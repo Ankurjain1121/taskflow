@@ -25,8 +25,8 @@ use crate::services::cache;
 use crate::services::http_cache::{check_if_none_match, generate_etag};
 use crate::state::AppState;
 
-use super::board_types::*;
 use super::common::MessageResponse;
+use super::helpers::project_types::*;
 
 // ============================================================================
 // Route Handlers

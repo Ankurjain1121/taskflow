@@ -23,7 +23,7 @@ use taskflow_db::queries::automations::{
 fn map_automation_error(e: AutomationQueryError) -> AppError {
     match e {
         AutomationQueryError::NotFound => AppError::NotFound("Automation rule not found".into()),
-        AutomationQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+        AutomationQueryError::NotBoardMember => AppError::Forbidden("Not a project member".into()),
         AutomationQueryError::Database(e) => AppError::SqlxError(e),
     }
 }

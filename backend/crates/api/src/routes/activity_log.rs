@@ -16,7 +16,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 use taskflow_db::queries::activity_log::{list_activity_by_task, PaginatedActivityLog};
-use taskflow_db::queries::get_task_board_id;
+use taskflow_db::queries::get_task_project_id;
 
 use super::common::verify_project_membership;
 
@@ -50,7 +50,7 @@ async fn list_activity_handler(
     Query(query): Query<ListActivityQuery>,
 ) -> Result<Json<PaginatedActivityLog>> {
     // Verify user has access to the task's board
-    let board_id = get_task_board_id(&state.db, task_id)
+    let board_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 

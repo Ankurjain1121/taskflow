@@ -16,7 +16,7 @@ use taskflow_db::queries::dependencies::{
     list_dependencies, BlockerInfo, CreateDependencyInput, DependencyQueryError,
     DependencyWithTask,
 };
-use taskflow_db::queries::get_task_board_id;
+use taskflow_db::queries::get_task_project_id;
 
 /// Helper: verify board membership through task -> board chain
 async fn verify_task_board_membership(
@@ -24,7 +24,7 @@ async fn verify_task_board_membership(
     task_id: Uuid,
     user_id: Uuid,
 ) -> Result<Uuid> {
-    let board_id = get_task_board_id(&state.db, task_id)
+    let board_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
@@ -42,7 +42,7 @@ async fn verify_task_board_membership(
     .await?;
 
     if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     Ok(board_id)
@@ -52,7 +52,7 @@ async fn verify_task_board_membership(
 fn map_dep_error(e: DependencyQueryError) -> AppError {
     match e {
         DependencyQueryError::NotFound => AppError::NotFound("Dependency not found".into()),
-        DependencyQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+        DependencyQueryError::NotBoardMember => AppError::Forbidden("Not a project member".into()),
         DependencyQueryError::CircularDependency => {
             AppError::BadRequest("Circular dependency detected".into())
         }

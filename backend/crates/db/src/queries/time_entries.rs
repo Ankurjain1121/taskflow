@@ -12,7 +12,7 @@ pub enum TimeEntryQueryError {
     Database(#[from] sqlx::Error),
     #[error("Time entry not found")]
     NotFound,
-    #[error("Not a board member")]
+    #[error("Not a project member")]
     NotBoardMember,
     #[error("A timer is already running")]
     AlreadyRunning,

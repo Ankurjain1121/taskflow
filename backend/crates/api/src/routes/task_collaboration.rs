@@ -17,7 +17,7 @@ use crate::state::AppState;
 use taskflow_db::models::automation::AutomationTrigger;
 use taskflow_db::models::{Task, TaskBroadcast, WsBoardEvent};
 use taskflow_db::queries::{
-    add_watcher, assign_user, get_task_assignee_ids, get_task_board_id, list_reminders_for_task,
+    add_watcher, assign_user, get_task_assignee_ids, get_task_project_id, list_reminders_for_task,
     remove_reminder, remove_watcher, set_reminder, unassign_user, ReminderInfo,
 };
 use taskflow_services::broadcast::events;
@@ -25,7 +25,7 @@ use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerCo
 
 use super::common::verify_project_membership;
 use super::task_helpers::{
-    broadcast_workspace_task_update, get_workspace_id_for_board, verify_board_membership,
+    broadcast_workspace_task_update, get_workspace_id_for_project, verify_project_member_bool,
     AssignUserRequest,
 };
 
@@ -53,18 +53,18 @@ pub async fn assign_user_handler(
     Path(task_id): Path<Uuid>,
     Json(body): Json<AssignUserRequest>,
 ) -> Result<Json<serde_json::Value>> {
-    // Get task's board_id for authorization
-    let board_id = get_task_board_id(&state.db, task_id)
+    // Get task's project_id for authorization
+    let project_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    // Verify board membership
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    // Verify project membership
+    verify_project_membership(&state.db, project_id, tenant.user_id).await?;
 
-    // Verify the assignee is also a board member
-    if !verify_board_membership(&state.db, board_id, body.user_id).await? {
+    // Verify the assignee is also a project member
+    if !verify_project_member_bool(&state.db, project_id, body.user_id).await? {
         return Err(AppError::BadRequest(
-            "User to assign is not a board member".into(),
+            "User to assign is not a project member".into(),
         ));
     }
 
@@ -109,7 +109,7 @@ pub async fn assign_user_handler(
     };
 
     if let Err(e) = broadcast_service
-        .broadcast_board_event(board_id, &event)
+        .broadcast_project_event(project_id, &event)
         .await
     {
         tracing::error!("Failed to broadcast task assigned event: {}", e);
@@ -122,7 +122,7 @@ pub async fn assign_user_handler(
             events::TASK_ASSIGNED,
             json!({
                 "task_id": task_id,
-                "board_id": board_id,
+                "project_id": project_id,
                 "assigned_by": tenant.user_id
             }),
         )
@@ -132,12 +132,12 @@ pub async fn assign_user_handler(
     }
 
     // Broadcast workspace update for team overview (assignee change affects workload)
-    if let Ok(Some(workspace_id)) = get_workspace_id_for_board(&state.db, board_id).await {
+    if let Ok(Some(workspace_id)) = get_workspace_id_for_project(&state.db, project_id).await {
         broadcast_workspace_task_update(
             &broadcast_service,
             workspace_id,
             task_id,
-            board_id,
+            project_id,
             &assignee_ids,
         )
         .await;
@@ -150,7 +150,7 @@ pub async fn assign_user_handler(
         AutomationTrigger::TaskAssigned,
         TriggerContext {
             task_id,
-            board_id,
+            board_id: project_id,
             tenant_id: tenant.tenant_id,
             user_id: tenant.user_id,
             previous_status_id: None,
@@ -170,13 +170,13 @@ pub async fn unassign_user_handler(
     tenant: TenantContext,
     Path((task_id, user_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>> {
-    // Get task's board_id for authorization
-    let board_id = get_task_board_id(&state.db, task_id)
+    // Get task's project_id for authorization
+    let project_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    // Verify board membership
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    // Verify project membership
+    verify_project_membership(&state.db, project_id, tenant.user_id).await?;
 
     unassign_user(&state.db, task_id, user_id).await?;
 
@@ -219,14 +219,14 @@ pub async fn unassign_user_handler(
     };
 
     if let Err(e) = broadcast_service
-        .broadcast_board_event(board_id, &event)
+        .broadcast_project_event(project_id, &event)
         .await
     {
         tracing::error!("Failed to broadcast task unassigned event: {}", e);
     }
 
     // Broadcast workspace update for team overview (unassign affects workload)
-    if let Ok(Some(workspace_id)) = get_workspace_id_for_board(&state.db, board_id).await {
+    if let Ok(Some(workspace_id)) = get_workspace_id_for_project(&state.db, project_id).await {
         // Include the removed user in the notification
         let mut all_affected = assignee_ids;
         all_affected.push(user_id);
@@ -234,7 +234,7 @@ pub async fn unassign_user_handler(
             &broadcast_service,
             workspace_id,
             task_id,
-            board_id,
+            project_id,
             &all_affected,
         )
         .await;
@@ -252,11 +252,11 @@ pub async fn add_watcher_handler(
     Path(task_id): Path<Uuid>,
     Json(body): Json<AddWatcherRequest>,
 ) -> Result<Json<serde_json::Value>> {
-    let board_id = get_task_board_id(&state.db, task_id)
+    let project_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, project_id, tenant.user_id).await?;
 
     add_watcher(&state.db, task_id, body.user_id).await?;
 
@@ -269,11 +269,11 @@ pub async fn remove_watcher_handler(
     tenant: TenantContext,
     Path((task_id, user_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>> {
-    let board_id = get_task_board_id(&state.db, task_id)
+    let project_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, project_id, tenant.user_id).await?;
 
     remove_watcher(&state.db, task_id, user_id).await?;
 
@@ -289,11 +289,11 @@ pub async fn set_reminder_handler(
     Path(task_id): Path<Uuid>,
     Json(body): Json<SetReminderRequest>,
 ) -> Result<Json<serde_json::Value>> {
-    let board_id = get_task_board_id(&state.db, task_id)
+    let project_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, project_id, tenant.user_id).await?;
 
     let reminder = set_reminder(
         &state.db,
@@ -312,11 +312,11 @@ pub async fn list_reminders_handler(
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<Vec<ReminderInfo>>> {
-    let board_id = get_task_board_id(&state.db, task_id)
+    let project_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, project_id, tenant.user_id).await?;
 
     let reminders = list_reminders_for_task(&state.db, task_id, tenant.user_id).await?;
 
@@ -329,11 +329,11 @@ pub async fn remove_reminder_handler(
     tenant: TenantContext,
     Path((task_id, reminder_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>> {
-    let board_id = get_task_board_id(&state.db, task_id)
+    let project_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, project_id, tenant.user_id).await?;
 
     remove_reminder(&state.db, reminder_id, tenant.user_id).await?;
 

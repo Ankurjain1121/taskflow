@@ -63,10 +63,10 @@ pub struct TaskCustomFieldValueWithField {
     pub value_bool: Option<bool>,
 }
 
-use super::verify_board_membership_internal;
+use super::verify_project_membership_internal;
 
 /// Internal helper: get task's board_id
-async fn get_task_board_id_internal(
+async fn get_task_project_id_internal(
     pool: &PgPool,
     task_id: Uuid,
 ) -> Result<Uuid, CustomFieldQueryError> {
@@ -90,7 +90,7 @@ pub async fn list_board_custom_fields(
     board_id: Uuid,
     user_id: Uuid,
 ) -> Result<Vec<BoardCustomField>, CustomFieldQueryError> {
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership_internal(pool, board_id, user_id).await? {
         return Err(CustomFieldQueryError::NotBoardMember);
     }
 
@@ -120,7 +120,7 @@ pub async fn create_custom_field(
     pool: &PgPool,
     input: CreateCustomFieldInput,
 ) -> Result<BoardCustomField, CustomFieldQueryError> {
-    if !verify_board_membership_internal(pool, input.board_id, input.created_by_id).await? {
+    if !verify_project_membership_internal(pool, input.board_id, input.created_by_id).await? {
         return Err(CustomFieldQueryError::NotBoardMember);
     }
 
@@ -187,7 +187,7 @@ pub async fn update_custom_field(
     .await?
     .ok_or(CustomFieldQueryError::NotFound)?;
 
-    if !verify_board_membership_internal(pool, existing, user_id).await? {
+    if !verify_project_membership_internal(pool, existing, user_id).await? {
         return Err(CustomFieldQueryError::NotBoardMember);
     }
 
@@ -239,7 +239,7 @@ pub async fn delete_custom_field(
     .await?
     .ok_or(CustomFieldQueryError::NotFound)?;
 
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership_internal(pool, board_id, user_id).await? {
         return Err(CustomFieldQueryError::NotBoardMember);
     }
 
@@ -278,9 +278,9 @@ pub async fn get_task_custom_field_values(
     task_id: Uuid,
     user_id: Uuid,
 ) -> Result<Vec<TaskCustomFieldValueWithField>, CustomFieldQueryError> {
-    let board_id = get_task_board_id_internal(pool, task_id).await?;
+    let board_id = get_task_project_id_internal(pool, task_id).await?;
 
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership_internal(pool, board_id, user_id).await? {
         return Err(CustomFieldQueryError::NotBoardMember);
     }
 
@@ -321,9 +321,9 @@ pub async fn set_task_custom_field_values(
     user_id: Uuid,
     values: Vec<SetFieldValue>,
 ) -> Result<Vec<TaskCustomFieldValue>, CustomFieldQueryError> {
-    let board_id = get_task_board_id_internal(pool, task_id).await?;
+    let board_id = get_task_project_id_internal(pool, task_id).await?;
 
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership_internal(pool, board_id, user_id).await? {
         return Err(CustomFieldQueryError::NotBoardMember);
     }
 

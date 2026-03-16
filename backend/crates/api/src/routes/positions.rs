@@ -80,7 +80,7 @@ async fn list_positions(
 ) -> Result<Json<Vec<PositionWithHolders>>> {
     let is_member = boards::is_board_member(&state.db, board_id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     let list = positions::list_positions(&state.db, board_id).await?;
@@ -96,7 +96,7 @@ async fn create_position(
 ) -> Result<Json<PositionWithHolders>> {
     let is_member = boards::is_board_member(&state.db, board_id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     let name = payload.name.trim();
@@ -141,7 +141,7 @@ async fn get_position(
 
     let is_member = boards::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     let response = build_position_with_holders(&state, position).await?;
@@ -161,7 +161,7 @@ async fn update_position(
 
     let is_member = boards::is_board_member(&state.db, existing.project_id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     if let Some(ref name) = payload.name {
@@ -207,7 +207,7 @@ async fn delete_position(
 
     let is_member = boards::is_board_member(&state.db, existing.project_id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     let deleted = positions::delete_position(&state.db, id).await?;
@@ -234,7 +234,7 @@ async fn add_holder(
 
     let is_member = boards::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     // Verify the target user is also a board member
@@ -265,7 +265,7 @@ async fn remove_holder(
 
     let is_member = boards::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     let removed = positions::remove_holder(&state.db, id, user_id).await?;
@@ -291,7 +291,7 @@ async fn list_position_recurring_tasks(
 
     let is_member = boards::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     let configs = positions::list_recurring_tasks_for_position(&state.db, id).await?;

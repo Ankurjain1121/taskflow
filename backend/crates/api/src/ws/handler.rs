@@ -345,7 +345,7 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                                     user_ids: viewers,
                                 };
                                 if let Err(e) =
-                                    broadcast.broadcast_board_event(board_id, &event).await
+                                    broadcast.broadcast_project_event(board_id, &event).await
                                 {
                                     tracing::error!("Presence broadcast error: {}", e);
                                 }
@@ -365,7 +365,7 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                                     user_ids: viewers,
                                 };
                                 if let Err(e) =
-                                    broadcast.broadcast_board_event(board_id, &event).await
+                                    broadcast.broadcast_project_event(board_id, &event).await
                                 {
                                     tracing::error!("Presence broadcast error: {}", e);
                                 }
@@ -381,7 +381,7 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                                     user_ids: active_users,
                                 };
                                 if let Err(e) =
-                                    broadcast.broadcast_board_event(board_id, &event).await
+                                    broadcast.broadcast_project_event(board_id, &event).await
                                 {
                                     tracing::error!("Heartbeat broadcast error: {}", e);
                                 }
@@ -402,7 +402,7 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                                 // Broadcast lock acquired to all board channels
                                 // We need the task's board_id to broadcast
                                 if let Ok(Some(board_id)) =
-                                    taskflow_db::queries::get_task_board_id(&state.db, task_id)
+                                    taskflow_db::queries::get_task_project_id(&state.db, task_id)
                                         .await
                                 {
                                     let event = WsBoardEvent::TaskLocked {
@@ -411,7 +411,7 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                                         user_name: user_name.clone(),
                                     };
                                     if let Err(e) =
-                                        broadcast.broadcast_board_event(board_id, &event).await
+                                        broadcast.broadcast_project_event(board_id, &event).await
                                     {
                                         tracing::error!("Lock broadcast error: {}", e);
                                     }
@@ -440,11 +440,11 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                             }
                             // Broadcast unlock
                             if let Ok(Some(board_id)) =
-                                taskflow_db::queries::get_task_board_id(&state.db, task_id).await
+                                taskflow_db::queries::get_task_project_id(&state.db, task_id).await
                             {
                                 let event = WsBoardEvent::TaskUnlocked { task_id, user_id };
                                 if let Err(e) =
-                                    broadcast.broadcast_board_event(board_id, &event).await
+                                    broadcast.broadcast_project_event(board_id, &event).await
                                 {
                                     tracing::error!("Unlock broadcast error: {}", e);
                                 }
@@ -496,7 +496,7 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                     board_id: *board_id,
                     user_ids: viewers,
                 };
-                if let Err(e) = broadcast.broadcast_board_event(*board_id, &event).await {
+                if let Err(e) = broadcast.broadcast_project_event(*board_id, &event).await {
                     tracing::error!("Presence cleanup broadcast error: {}", e);
                 }
             }
@@ -606,7 +606,7 @@ async fn wait_for_auth(
 }
 
 /// Validate channel format and authorization
-/// Channels are formatted as "board:{uuid}" or "user:{uuid}"
+/// Channels are formatted as "project:{uuid}", "board:{uuid}" (legacy), or "user:{uuid}"
 async fn validate_channel_access(
     channel: &str,
     user_id: Uuid,
@@ -625,8 +625,8 @@ async fn validate_channel_access(
     };
 
     match channel_type {
-        "board" => {
-            // Verify user is a member of the board
+        "project" | "board" => {
+            // Verify user is a member of the project
             is_board_member(pool, channel_id, user_id).await
         }
         "user" => {
@@ -668,7 +668,7 @@ fn is_valid_channel(channel: &str, user_id: Uuid, _tenant_id: Uuid) -> bool {
     };
 
     match channel_type {
-        "board" => true, // Format valid, actual auth done by validate_channel_access
+        "project" | "board" => true, // Format valid, actual auth done by validate_channel_access
         "user" => channel_id == user_id,
         "workspace" => true, // Format valid, actual auth done by validate_channel_access
         _ => false,
@@ -682,11 +682,11 @@ mod tests {
     #[test]
     fn test_client_message_deserialize() {
         // Test subscribe message format (frontend sends: { type: 'subscribe', payload: { channel: '...' } })
-        let json = r#"{"type": "subscribe", "payload": {"channel": "board:00000000-0000-0000-0000-000000000001"}}"#;
+        let json = r#"{"type": "subscribe", "payload": {"channel": "project:00000000-0000-0000-0000-000000000001"}}"#;
         let msg: ClientMessage = serde_json::from_str(json).unwrap();
         match msg {
             ClientMessage::Subscribe { payload } => {
-                assert!(payload.channel.starts_with("board:"));
+                assert!(payload.channel.starts_with("project:"));
             }
             _ => panic!("Expected Subscribe message"),
         }
@@ -767,7 +767,14 @@ mod tests {
         let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
         let tenant_id = Uuid::parse_str("00000000-0000-0000-0000-000000000002").unwrap();
 
-        // Valid board channel
+        // Valid project channel
+        assert!(is_valid_channel(
+            "project:00000000-0000-0000-0000-000000000003",
+            user_id,
+            tenant_id
+        ));
+
+        // Legacy board channel still valid
         assert!(is_valid_channel(
             "board:00000000-0000-0000-0000-000000000003",
             user_id,

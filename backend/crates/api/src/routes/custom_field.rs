@@ -24,7 +24,7 @@ use taskflow_db::queries::custom_fields::{
 fn map_cf_error(e: CustomFieldQueryError) -> AppError {
     match e {
         CustomFieldQueryError::NotFound => AppError::NotFound("Custom field not found".into()),
-        CustomFieldQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+        CustomFieldQueryError::NotBoardMember => AppError::Forbidden("Not a project member".into()),
         CustomFieldQueryError::Database(e) => AppError::SqlxError(e),
     }
 }

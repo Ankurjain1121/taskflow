@@ -13,7 +13,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
-use taskflow_db::queries::get_task_board_id;
+use taskflow_db::queries::get_task_project_id;
 use taskflow_db::queries::time_entries::{
     create_manual_entry, delete_entry, get_board_time_report, get_running_timer,
     get_timesheet_report, list_task_time_entries, start_timer, stop_timer, update_entry,
@@ -60,7 +60,7 @@ pub struct TimesheetReportQuery {
 fn map_time_entry_error(e: TimeEntryQueryError) -> AppError {
     match e {
         TimeEntryQueryError::NotFound => AppError::NotFound("Time entry not found".into()),
-        TimeEntryQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+        TimeEntryQueryError::NotBoardMember => AppError::Forbidden("Not a project member".into()),
         TimeEntryQueryError::AlreadyRunning => {
             AppError::Conflict("A timer is already running".into())
         }
@@ -91,7 +91,7 @@ async fn start_timer_handler(
     Path(task_id): Path<Uuid>,
     Json(body): Json<StartTimerRequest>,
 ) -> Result<Json<taskflow_db::models::TimeEntry>> {
-    let board_id = get_task_board_id(&state.db, task_id)
+    let board_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
@@ -131,7 +131,7 @@ async fn create_manual_entry_handler(
     Path(task_id): Path<Uuid>,
     Json(body): Json<CreateManualEntryRequest>,
 ) -> Result<Json<taskflow_db::models::TimeEntry>> {
-    let board_id = get_task_board_id(&state.db, task_id)
+    let board_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 

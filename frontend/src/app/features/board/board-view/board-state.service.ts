@@ -317,7 +317,7 @@ export class ProjectStateService {
         this.projectMembers.set(response.members);
         this.loading.set(false);
 
-        this.wsService.send('subscribe', { channel: `board:${boardId}` });
+        this.wsService.send('subscribe', { channel: `project:${boardId}` });
       },
       error: () => {
         this.loading.set(false);
