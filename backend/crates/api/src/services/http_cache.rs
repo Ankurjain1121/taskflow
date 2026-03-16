@@ -23,8 +23,8 @@ impl CacheType {
     /// Get the Cache-Control header value for this type
     pub fn header_value(&self) -> &'static str {
         match self {
-            CacheType::PublicRead => "public, max-age=60",
-            CacheType::Dynamic => "public, max-age=0, must-revalidate",
+            CacheType::PublicRead => "private, max-age=60",
+            CacheType::Dynamic => "private, max-age=0, must-revalidate",
             CacheType::NoCache => "no-cache, no-store, must-revalidate",
         }
     }
@@ -65,10 +65,10 @@ mod tests {
 
     #[test]
     fn test_cache_type_headers() {
-        assert_eq!(CacheType::PublicRead.header_value(), "public, max-age=60");
+        assert_eq!(CacheType::PublicRead.header_value(), "private, max-age=60");
         assert_eq!(
             CacheType::Dynamic.header_value(),
-            "public, max-age=0, must-revalidate"
+            "private, max-age=0, must-revalidate"
         );
         assert_eq!(
             CacheType::NoCache.header_value(),
