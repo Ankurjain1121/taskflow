@@ -10,9 +10,10 @@ use axum::{
 };
 use uuid::Uuid;
 
+use taskflow_db::models::UserRole;
 use taskflow_db::queries::workspaces;
 
-use crate::errors::Result;
+use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
@@ -35,11 +36,19 @@ async fn list_tenant_members(
 /// GET /api/tenant/members/:user_id/workspaces
 ///
 /// Get all workspaces a specific user belongs to within the tenant.
+/// Only the user themselves or an admin may query this endpoint.
 async fn get_member_workspaces(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(user_id): Path<Uuid>,
 ) -> Result<Json<Vec<workspaces::UserWorkspaceMembership>>> {
+    // Only allow users to query their own workspaces, or admins to query anyone's
+    if user_id != auth.0.user_id && auth.0.role != UserRole::Admin {
+        return Err(AppError::Forbidden(
+            "You can only view your own workspace memberships".into(),
+        ));
+    }
+
     let memberships = workspaces::get_user_workspaces(&state.db, user_id, auth.0.tenant_id).await?;
     Ok(Json(memberships))
 }
