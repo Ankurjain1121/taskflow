@@ -456,6 +456,12 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
       .cp-item:hover {
         background: var(--secondary);
       }
+
+      @media (prefers-reduced-motion: reduce) {
+        .backdrop-blur-sm {
+          backdrop-filter: none !important;
+        }
+      }
     `,
   ],
 })

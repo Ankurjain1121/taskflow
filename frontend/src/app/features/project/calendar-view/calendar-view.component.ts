@@ -123,60 +123,110 @@ interface CalendarCell {
           >
             Week
           </button>
+          <button
+            (click)="calendarView.set('day')"
+            class="px-3 py-1 text-xs font-medium transition-colors border-l border-[var(--border)]"
+            [class.bg-primary]="calendarView() === 'day'"
+            [class.text-white]="calendarView() === 'day'"
+            [class.text-[var(--muted-foreground)]]="calendarView() !== 'day'"
+            [class.hover:bg-[var(--muted)]]="calendarView() !== 'day'"
+          >
+            Day
+          </button>
         </div>
       </div>
 
-      <!-- Weekday Headers -->
-      <div class="grid grid-cols-7 border-b border-[var(--border)]">
-        @for (day of weekDays; track day) {
-          <div
-            class="py-2 text-center text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide"
-          >
-            {{ day }}
-          </div>
-        }
-      </div>
+      @if (calendarView() !== 'day') {
+        <!-- Weekday Headers -->
+        <div class="grid grid-cols-7 border-b border-[var(--border)]">
+          @for (day of weekDays; track day) {
+            <div
+              class="py-2 text-center text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide"
+            >
+              {{ day }}
+            </div>
+          }
+        </div>
 
-      <!-- Calendar Grid -->
-      <div
-        class="grid grid-cols-7 flex-1 border-b border-[var(--border)]"
-        style="grid-auto-rows: 1fr;"
-      >
-        @for (cell of calendarCells(); track cell.date.getTime()) {
-          <div
-            class="border-r border-b border-[var(--border)] p-1 min-h-[100px] overflow-hidden transition-colors"
-            [class.bg-[var(--secondary)]]="!cell.isCurrentMonth"
-            [style.background]="
-              cell.isToday
-                ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)'
-                : ''
-            "
-            (dragover)="onDragOver($event)"
-            (drop)="onDrop($event, cell.date)"
-          >
-            <!-- Day number -->
-            <div class="flex items-center justify-between mb-1 px-1">
-              <span
-                class="text-xs font-medium"
-                [class.text-gray-400]="!cell.isCurrentMonth"
-                [class.text-primary]="cell.isToday && cell.isCurrentMonth"
-                [class.text-[var(--foreground)]]="
-                  !cell.isToday && cell.isCurrentMonth
-                "
-              >
-                {{ cell.dayNumber }}
-              </span>
-              @if (cell.tasks.length > 3) {
-                <span class="text-[10px] text-gray-400"
-                  >+{{ cell.tasks.length - 3 }}</span
+        <!-- Calendar Grid -->
+        <div
+          class="grid grid-cols-7 flex-1 border-b border-[var(--border)]"
+          style="grid-auto-rows: 1fr;"
+        >
+          @for (cell of calendarCells(); track cell.date.getTime()) {
+            <div
+              class="border-r border-b border-[var(--border)] p-1 min-h-[100px] overflow-hidden transition-colors"
+              [class.bg-[var(--secondary)]]="!cell.isCurrentMonth"
+              [style.background]="
+                cell.isToday
+                  ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)'
+                  : ''
+              "
+              (dragover)="onDragOver($event)"
+              (drop)="onDrop($event, cell.date)"
+            >
+              <!-- Day number -->
+              <div class="flex items-center justify-between mb-1 px-1">
+                <span
+                  class="text-xs font-medium"
+                  [class.text-gray-400]="!cell.isCurrentMonth"
+                  [class.text-primary]="cell.isToday && cell.isCurrentMonth"
+                  [class.text-[var(--foreground)]]="
+                    !cell.isToday && cell.isCurrentMonth
+                  "
                 >
+                  {{ cell.dayNumber }}
+                </span>
+                @if (cell.tasks.length > 3) {
+                  <span class="text-[10px] text-gray-400"
+                    >+{{ cell.tasks.length - 3 }}</span
+                  >
+                }
+              </div>
+
+              <!-- Task blocks (max 3 visible) -->
+              @for (task of cell.tasks.slice(0, 3); track task.id) {
+                <div
+                  class="text-[11px] leading-tight px-1.5 py-0.5 rounded mb-0.5 cursor-pointer truncate border-l-2 transition-colors hover:opacity-80"
+                  [style.border-left-color]="getTaskBorderColor(task.priority)"
+                  [class.bg-green-50]="task.is_done"
+                  [class.text-green-700]="task.is_done"
+                  [class.line-through]="task.is_done"
+                  [class.bg-[var(--secondary)]]="!task.is_done"
+                  [class.text-[var(--foreground)]]="!task.is_done"
+                  draggable="true"
+                  (dragstart)="onDragStart($event, task)"
+                  (click)="onTaskClick(task)"
+                >
+                  {{ task.title }}
+                </div>
               }
             </div>
-
-            <!-- Task blocks (max 3 visible) -->
-            @for (task of cell.tasks.slice(0, 3); track task.id) {
+          }
+        </div>
+      } @else {
+        <!-- Day View: 24-hour vertical timeline -->
+        <div class="flex-1 overflow-y-auto border-b border-[var(--border)]">
+          <div class="relative" style="height: 1440px;">
+            @for (hour of hours; track hour) {
               <div
-                class="text-[11px] leading-tight px-1.5 py-0.5 rounded mb-0.5 cursor-pointer truncate border-l-2 transition-colors hover:opacity-80"
+                class="absolute left-0 right-0 border-b border-[var(--border)]"
+                [style.top.px]="hour * 60"
+                [style.height.px]="60"
+              >
+                <span
+                  class="absolute left-2 top-0 -translate-y-1/2 text-[10px] font-medium text-[var(--muted-foreground)] bg-[var(--card)] px-1"
+                >
+                  {{ formatHour(hour) }}
+                </span>
+              </div>
+            }
+            <!-- Task blocks positioned by time -->
+            @for (task of dayTasks(); track task.id) {
+              <div
+                class="absolute left-16 right-4 px-2 py-1 rounded cursor-pointer border-l-2 transition-colors hover:opacity-80"
+                [style.top.px]="getDayTaskTop(task)"
+                [style.height.px]="40"
                 [style.border-left-color]="getTaskBorderColor(task.priority)"
                 [class.bg-green-50]="task.is_done"
                 [class.text-green-700]="task.is_done"
@@ -187,12 +237,15 @@ interface CalendarCell {
                 (dragstart)="onDragStart($event, task)"
                 (click)="onTaskClick(task)"
               >
-                {{ task.title }}
+                <div class="text-xs font-medium truncate">{{ task.title }}</div>
+                <div class="text-[10px] text-[var(--muted-foreground)]">
+                  {{ formatTaskTime(task) }}
+                </div>
               </div>
             }
           </div>
-        }
-      </div>
+        </div>
+      }
     </div>
   `,
 })
@@ -202,13 +255,14 @@ export class CalendarViewComponent implements OnInit {
 
   private taskService = inject(TaskService);
 
-  calendarView = signal<'month' | 'week'>('month');
+  calendarView = signal<'month' | 'week' | 'day'>('month');
   currentDate = signal(new Date());
   tasks = signal<CalendarTask[]>([]);
   loading = signal(false);
   draggedTask: CalendarTask | null = null;
 
   weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  hours = Array.from({ length: 24 }, (_, i) => i);
 
   monthYearLabel = computed(() => {
     const d = this.currentDate();
@@ -224,6 +278,14 @@ export class CalendarViewComponent implements OnInit {
       return this.generateWeekCells(current, tasks);
     }
     return this.generateMonthCells(current, tasks);
+  });
+
+  dayTasks = computed((): CalendarTask[] => {
+    const current = this.currentDate();
+    const dateStr = this.toDateString(current);
+    return this.tasks().filter(
+      (t) => this.toDateString(new Date(t.due_date)) === dateStr,
+    );
   });
 
   ngOnInit(): void {
@@ -276,6 +338,26 @@ export class CalendarViewComponent implements OnInit {
       low: '#22c55e',
     };
     return colors[priority] || '#6b7280';
+  }
+
+  formatHour(hour: number): string {
+    if (hour === 0) return '12 AM';
+    if (hour < 12) return `${hour} AM`;
+    if (hour === 12) return '12 PM';
+    return `${hour - 12} PM`;
+  }
+
+  getDayTaskTop(task: CalendarTask): number {
+    const d = new Date(task.due_date);
+    return d.getHours() * 60 + d.getMinutes();
+  }
+
+  formatTaskTime(task: CalendarTask): string {
+    const d = new Date(task.due_date);
+    return d.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
   }
 
   onTaskClick(task: CalendarTask): void {

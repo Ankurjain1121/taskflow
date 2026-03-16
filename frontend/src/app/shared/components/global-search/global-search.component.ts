@@ -516,6 +516,15 @@ const MAX_RECENT_SEARCHES = 5;
       </div>
     }
   `,
+  styles: [
+    `
+      @media (prefers-reduced-motion: reduce) {
+        .backdrop-blur-sm {
+          backdrop-filter: none !important;
+        }
+      }
+    `,
+  ],
 })
 export class GlobalSearchComponent implements OnInit, OnDestroy {
   isOpen = input(false);

@@ -7,7 +7,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ProjectService, Board } from '../../../core/services/project.service';
 import { Workspace } from '../../../core/services/workspace.service';
@@ -91,46 +91,58 @@ import {
   template: `
     <div class="mb-0.5">
       <!-- Workspace Header -->
-      <button
-        (click)="toggleExpanded()"
+      <div
         class="workspace-header-btn w-full flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md"
         style="color: var(--sidebar-text-secondary)"
       >
-        <!-- Chevron -->
-        <svg
-          [class]="
-            'w-3.5 h-3.5 transition-transform duration-200 ' +
-            (expanded() ? 'rotate-90' : '')
-          "
-          style="color: var(--sidebar-text-muted)"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+        <!-- Chevron: toggles expand/collapse -->
+        <button
+          (click)="toggleExpanded(); $event.stopPropagation()"
+          class="flex items-center justify-center flex-shrink-0 p-0.5 rounded hover:bg-[var(--sidebar-surface-hover)]"
+          title="Toggle projects"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9 5l7 7-7 7"
-          />
-        </svg>
+          <svg
+            [class]="
+              'w-3.5 h-3.5 transition-transform duration-200 ' +
+              (expanded() ? 'rotate-90' : '')
+            "
+            style="color: var(--sidebar-text-muted)"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </button>
 
-        <!-- Workspace Icon (flat accent color, no shadow) -->
-        <span
-          class="workspace-icon w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-white"
-          [style.background]="getColor()"
+        <!-- Workspace name area: navigates to portfolio -->
+        <button
+          (click)="navigateToPortfolio()"
+          class="flex items-center gap-2 flex-1 min-w-0 text-left"
+          title="Open portfolio"
         >
-          {{ workspace().name.charAt(0).toUpperCase() }}
-        </span>
+          <!-- Workspace Icon -->
+          <span
+            class="workspace-icon w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
+            [style.background]="getColor()"
+          >
+            {{ workspace().name.charAt(0).toUpperCase() }}
+          </span>
 
-        <!-- Workspace Name -->
-        <span class="flex-1 text-left truncate">{{ workspace().name }}</span>
+          <!-- Workspace Name -->
+          <span class="flex-1 text-left truncate">{{ workspace().name }}</span>
+        </button>
 
         <!-- Add Board Button (manager/admin only) -->
         @if (canCreateBoard()) {
           <button
             (click)="onAddBoardClick($event)"
-            class="add-board-btn p-1 rounded opacity-0 group-hover:opacity-100"
+            class="add-board-btn p-1 rounded opacity-0 group-hover:opacity-100 flex-shrink-0"
             title="Add Project"
           >
             <svg
@@ -149,7 +161,7 @@ import {
             </svg>
           </button>
         }
-      </button>
+      </div>
 
       <!-- Boards List -->
       @if (expanded()) {
@@ -329,6 +341,7 @@ export class WorkspaceItemComponent implements OnInit {
   private authService = inject(AuthService);
   private favoritesService = inject(FavoritesService);
   private settingsDialog = inject(WorkspaceSettingsDialogService);
+  private router = inject(Router);
 
   workspace = input.required<Workspace>();
 
@@ -372,6 +385,10 @@ export class WorkspaceItemComponent implements OnInit {
     if (this.expanded() && this.boards().length === 0) {
       this.loadBoards();
     }
+  }
+
+  navigateToPortfolio(): void {
+    this.router.navigate(['/workspace', this.workspace().id, 'portfolio']);
   }
 
   canCreateBoard(): boolean {

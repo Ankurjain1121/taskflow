@@ -4,6 +4,7 @@ import {
   output,
   signal,
   computed,
+  effect,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -50,7 +51,7 @@ interface ColumnInput {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="mx-4 my-4 space-y-3">
+    <div class="mx-4 my-4 space-y-3 overflow-x-auto">
       <!-- Shared task row cells template -->
       <ng-template #taskRowCells let-task>
         <td (click)="$event.stopPropagation()">
@@ -194,8 +195,9 @@ interface ColumnInput {
           [customSort]="true"
           (sortFunction)="customSortFn($event)"
           sortMode="single"
-          [sortField]="'created_at'"
-          [sortOrder]="-1"
+          [sortField]="savedSortField()"
+          [sortOrder]="savedSortOrder()"
+          (onSort)="onSortChange($event)"
           [(selection)]="selectedTasks"
           [paginator]="displayTasks().length > 25"
           [rows]="25"
@@ -206,27 +208,28 @@ interface ColumnInput {
           dataKey="id"
           [rowHover]="true"
           styleClass="p-datatable-sm"
+          [resizableColumns]="true"
           rowGroupMode="subheader"
           groupRowsBy="task_list_id"
         >
           <ng-template #header>
             <tr>
-              <th style="width: 3rem">
+              <th style="min-width: 3rem; width: 3rem">
                 <p-tableHeaderCheckbox />
               </th>
-              <th pSortableColumn="title">
+              <th pSortableColumn="title" pResizableColumn style="min-width: 200px">
                 Title <p-sortIcon field="title" />
               </th>
-              <th pSortableColumn="priority" style="width: 120px">
+              <th pSortableColumn="priority" pResizableColumn style="min-width: 100px; width: 120px">
                 Priority <p-sortIcon field="priority" />
               </th>
-              <th pSortableColumn="status_name" style="width: 160px">
+              <th pSortableColumn="status_name" pResizableColumn style="min-width: 120px; width: 160px">
                 Status <p-sortIcon field="status_name" />
               </th>
-              <th pSortableColumn="due_date" style="width: 160px">
+              <th pSortableColumn="due_date" pResizableColumn style="min-width: 120px; width: 160px">
                 Due Date <p-sortIcon field="due_date" />
               </th>
-              <th pSortableColumn="created_at" style="width: 140px">
+              <th pSortableColumn="created_at" pResizableColumn style="min-width: 100px; width: 140px">
                 Created <p-sortIcon field="created_at" />
               </th>
             </tr>
@@ -322,8 +325,9 @@ interface ColumnInput {
           [value]="tasks()"
           [loading]="loading()"
           sortMode="single"
-          [sortField]="'created_at'"
-          [sortOrder]="-1"
+          [sortField]="savedSortField()"
+          [sortOrder]="savedSortOrder()"
+          (onSort)="onSortChange($event)"
           [(selection)]="selectedTasks"
           [paginator]="tasks().length > 25"
           [rows]="25"
@@ -334,25 +338,26 @@ interface ColumnInput {
           dataKey="id"
           [rowHover]="true"
           styleClass="p-datatable-sm"
+          [resizableColumns]="true"
         >
           <ng-template #header>
             <tr>
-              <th style="width: 3rem">
+              <th style="min-width: 3rem; width: 3rem">
                 <p-tableHeaderCheckbox />
               </th>
-              <th pSortableColumn="title">
+              <th pSortableColumn="title" pResizableColumn style="min-width: 200px">
                 Title <p-sortIcon field="title" />
               </th>
-              <th pSortableColumn="priority" style="width: 120px">
+              <th pSortableColumn="priority" pResizableColumn style="min-width: 100px; width: 120px">
                 Priority <p-sortIcon field="priority" />
               </th>
-              <th pSortableColumn="status_name" style="width: 160px">
+              <th pSortableColumn="status_name" pResizableColumn style="min-width: 120px; width: 160px">
                 Status <p-sortIcon field="status_name" />
               </th>
-              <th pSortableColumn="due_date" style="width: 160px">
+              <th pSortableColumn="due_date" pResizableColumn style="min-width: 120px; width: 160px">
                 Due Date <p-sortIcon field="due_date" />
               </th>
-              <th pSortableColumn="created_at" style="width: 140px">
+              <th pSortableColumn="created_at" pResizableColumn style="min-width: 100px; width: 140px">
                 Created <p-sortIcon field="created_at" />
               </th>
             </tr>
@@ -459,6 +464,7 @@ export class ListViewComponent {
   groups = input<TaskGroupWithStats[]>([]);
   loading = input<boolean>(false);
   columns = input<ColumnInput[]>([]);
+  projectId = input<string>('');
 
   taskClicked = output<string>();
   titleChanged = output<{ taskId: string; title: string }>();
@@ -468,6 +474,49 @@ export class ListViewComponent {
   groupToggled = output<TaskGroupWithStats>();
 
   selectedTasks: TaskListItem[] = [];
+
+  // Sort persistence
+  savedSortField = signal<string>('created_at');
+  savedSortOrder = signal<number>(-1);
+
+  constructor() {
+    // Load saved sort state reactively when projectId becomes available
+    effect(() => {
+      const pid = this.projectId();
+      if (pid) {
+        this.loadSortState(pid);
+      }
+    });
+  }
+
+  private loadSortState(pid: string): void {
+    try {
+      const stored = localStorage.getItem(`taskflow-sort-${pid}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.field) this.savedSortField.set(parsed.field);
+        if (parsed.order) this.savedSortOrder.set(parsed.order);
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
+  onSortChange(event: { field: string; order: number }): void {
+    this.savedSortField.set(event.field);
+    this.savedSortOrder.set(event.order);
+    const pid = this.projectId();
+    if (pid) {
+      try {
+        localStorage.setItem(
+          `taskflow-sort-${pid}`,
+          JSON.stringify({ field: event.field, order: event.order }),
+        );
+      } catch {
+        // Ignore storage errors
+      }
+    }
+  }
 
   // Editing state
   editingTitleTaskId = signal<string | null>(null);
