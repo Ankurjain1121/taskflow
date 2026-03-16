@@ -1,6 +1,7 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { RouterTestingModule } from '@angular/router/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { of, Subject, throwError } from 'rxjs';
@@ -91,6 +92,7 @@ function createMockTaskService() {
     listGanttTasks: vi.fn(),
     bulkUpdate: vi.fn(),
     bulkDelete: vi.fn(),
+    updateTask: vi.fn(),
   };
 }
 
@@ -162,7 +164,7 @@ describe('ProjectViewComponent', () => {
   });
 
   const boardFullResponse: ProjectFullResponse = {
-    board: {
+    project: {
       id: 'board-1',
       workspace_id: 'ws-1',
       name: 'Test Board',
@@ -170,7 +172,11 @@ describe('ProjectViewComponent', () => {
       position: 'a0',
       created_at: '2026-01-01T00:00:00Z',
       updated_at: '2026-01-01T00:00:00Z',
-      columns: [col1, col2, col3],
+      statuses: [
+        { ...col1, id: 'col-1', project_id: 'board-1', name: 'To Do', color: '#6366f1', type: 'not_started' as const, position: 'a0', is_default: true, created_at: '2026-01-01T00:00:00Z' },
+        { ...col2, id: 'col-2', project_id: 'board-1', name: 'In Progress', color: '#6366f1', type: 'active' as const, position: 'a1', is_default: false, created_at: '2026-01-01T00:00:00Z' },
+        { ...col3, id: 'col-3', project_id: 'board-1', name: 'Done', color: '#6366f1', type: 'done' as const, position: 'a2', is_default: false, created_at: '2026-01-01T00:00:00Z', status_mapping: { done: true } },
+      ] as any,
     },
     tasks: [
       {
@@ -180,8 +186,13 @@ describe('ProjectViewComponent', () => {
         priority: 'medium',
         due_date: null,
         column_id: 'col-1',
+        status_id: 'col-1',
+        status_name: 'To Do',
+        status_color: '#6366f1',
+        status_type: 'not_started',
         position: 'a0',
         group_id: null,
+        task_list_id: null,
         milestone_id: null,
         created_by_id: 'user-1',
         created_at: '2026-01-01T00:00:00Z',
@@ -200,8 +211,13 @@ describe('ProjectViewComponent', () => {
         priority: 'high',
         due_date: '2026-03-01',
         column_id: 'col-2',
+        status_id: 'col-2',
+        status_name: 'In Progress',
+        status_color: '#6366f1',
+        status_type: 'active',
         position: 'a0',
         group_id: null,
+        task_list_id: null,
         milestone_id: null,
         created_by_id: 'user-1',
         created_at: '2026-01-01T00:00:00Z',
@@ -223,6 +239,11 @@ describe('ProjectViewComponent', () => {
         email: 'alice@test.com',
       },
     ],
+    meta: {
+      total_task_count: 2,
+      current_limit: 100,
+      current_offset: 0,
+    },
   };
 
   beforeEach(async () => {
@@ -236,12 +257,11 @@ describe('ProjectViewComponent', () => {
     mockTaskService.listFlat.mockReturnValue(of([]));
 
     await TestBed.configureTestingModule({
-      imports: [
-        ProjectViewComponent,
-        HttpClientTestingModule,
-        RouterTestingModule,
-      ],
+      imports: [ProjectViewComponent],
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
         { provide: ProjectService, useValue: mockProjectService },
         { provide: TaskService, useValue: mockTaskService },
         { provide: TaskGroupService, useValue: mockTaskGroupService },
@@ -437,7 +457,7 @@ describe('ProjectViewComponent', () => {
       expect(mockTaskService.moveTask).toHaveBeenCalledWith(
         'task-1',
         expect.objectContaining({
-          column_id: 'col-2',
+          status_id: 'col-2',
           position: expect.any(String),
         }),
       );
@@ -611,7 +631,6 @@ describe('ProjectViewComponent', () => {
 
   describe('error management', () => {
     it('should clear error', () => {
-      // Trigger an error first
       component.state.showError('Something failed');
       expect(component.state.errorMessage()).toBe('Something failed');
 
@@ -634,6 +653,8 @@ describe('ProjectViewComponent', () => {
         column_id: 'col-1',
         title: 'Updated Title',
       });
+      // updateTaskInState uses status_id to find the bucket
+      (updated as any).status_id = 'col-1';
 
       component.state.updateTaskInState(updated);
 

@@ -58,7 +58,7 @@ describe('WorkspaceAdvancedTabComponent', () => {
   it('should have advanced placeholders', () => {
     expect(component.advancedPlaceholders.length).toBe(3);
     const titles = component.advancedPlaceholders.map((p) => p.title);
-    expect(titles).toContain('Default Board Settings');
+    expect(titles).toContain('Default Project Settings');
     expect(titles).toContain('Custom Field Definitions');
     expect(titles).toContain('Automation Defaults');
   });

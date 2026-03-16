@@ -139,11 +139,9 @@ describe('UpcomingDeadlinesComponent', () => {
   });
 
   describe('navigateToTask', () => {
-    it('should navigate to board with task query param', () => {
+    it('should navigate to task route', () => {
       component.navigateToTask(mockDeadlines[0]);
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/board', 'b-1'], {
-        queryParams: { task: 'd-1' },
-      });
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/task', 'd-1']);
     });
   });
 
@@ -222,11 +220,11 @@ describe('UpcomingDeadlinesComponent', () => {
     });
 
     it('should return correct class for low', () => {
-      expect(component.getPriorityClass('low')).toContain('bg-gray');
+      expect(component.getPriorityClass('low')).toContain('bg-[var(--muted)]');
     });
 
     it('should return default class for unknown priority', () => {
-      expect(component.getPriorityClass('unknown')).toContain('bg-gray');
+      expect(component.getPriorityClass('unknown')).toContain('bg-[var(--muted)]');
     });
 
     it('should be case insensitive', () => {

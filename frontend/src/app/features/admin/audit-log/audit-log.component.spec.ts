@@ -214,7 +214,7 @@ describe('AuditLogComponent', () => {
 
     it('formatEntityType should capitalize first letter', () => {
       expect(component.formatEntityType('task')).toBe('Task');
-      expect(component.formatEntityType('board')).toBe('Board');
+      expect(component.formatEntityType('board')).toBe('Project');
     });
 
     it('formatDetails should return formatted JSON', () => {

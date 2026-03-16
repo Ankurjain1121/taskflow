@@ -97,7 +97,7 @@ describe('ToastContainerComponent', () => {
         'unknown_type' as NotificationEventType,
       );
       expect(config.icon).toContain('pi-bell');
-      expect(config.color).toContain('gray');
+      expect(config.color).toContain('muted-foreground');
     });
   });
 

@@ -1,5 +1,6 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Component, signal } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import {
@@ -14,6 +15,10 @@ import {
 } from './kanban-column.component';
 import { Column } from '../../../core/services/board.service';
 import { Task } from '../../../core/services/task.service';
+import { PresenceService } from '../../../core/services/presence.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { OnboardingChecklistService } from '../../../core/services/onboarding-checklist.service';
+import { CardQuickEditService } from '../board-view/card-quick-edit/card-quick-edit.service';
 
 // --- Helpers ---
 
@@ -99,8 +104,42 @@ describe('KanbanColumnComponent', () => {
   let host: TestHostComponent;
 
   beforeEach(async () => {
+    // Mock window.matchMedia for PrimeNG Menu
+    if (!window.matchMedia) {
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: vi.fn().mockImplementation((query: string) => ({
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+        })),
+      });
+    }
+
     await TestBed.configureTestingModule({
-      imports: [TestHostComponent, DragDropModule, HttpClientTestingModule],
+      imports: [TestHostComponent, DragDropModule],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        {
+          provide: PresenceService,
+          useValue: { taskLocks: () => new Map() },
+        },
+        {
+          provide: AuthService,
+          useValue: { currentUser: () => ({ id: 'user-1' }) },
+        },
+        {
+          provide: OnboardingChecklistService,
+          useValue: { markComplete: vi.fn() },
+        },
+        CardQuickEditService,
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(TestHostComponent);
@@ -138,7 +177,6 @@ describe('KanbanColumnComponent', () => {
       host.tasks.set([]);
       fixture.detectChanges();
 
-      // The count badge has text-xs and bg-gray-200 classes (not the color dot)
       const countBadge = fixture.debugElement.query(
         By.css('.text-xs.rounded-full'),
       );
@@ -195,7 +233,9 @@ describe('KanbanColumnComponent', () => {
       host.tasks.set([makeTask({ id: 't1' }), makeTask({ id: 't2' })]);
       fixture.detectChanges();
 
-      const warning = fixture.debugElement.query(By.css('.text-amber-600'));
+      const warning = fixture.debugElement.query(
+        By.css('.text-\\[var\\(--status-amber-text\\)\\]'),
+      );
       expect(warning).toBeFalsy();
     });
 
@@ -208,7 +248,9 @@ describe('KanbanColumnComponent', () => {
       ]);
       fixture.detectChanges();
 
-      const warning = fixture.debugElement.query(By.css('.text-amber-600'));
+      const warning = fixture.debugElement.query(
+        By.css('.text-\\[var\\(--status-amber-text\\)\\]'),
+      );
       expect(warning).toBeFalsy();
     });
   });
@@ -216,19 +258,23 @@ describe('KanbanColumnComponent', () => {
   // --- Empty State ---
 
   describe('empty state', () => {
-    it('should show "Drop tasks here" when no tasks', () => {
+    it('should show empty state component when no tasks', () => {
       host.tasks.set([]);
       fixture.detectChanges();
 
-      const emptyText = fixture.nativeElement.textContent;
-      expect(emptyText).toContain('Drag tasks here');
+      const emptyState = fixture.debugElement.query(
+        By.css('app-empty-state'),
+      );
+      expect(emptyState).toBeTruthy();
     });
 
     it('should NOT show empty state when tasks exist', () => {
       host.tasks.set([makeTask()]);
       fixture.detectChanges();
 
-      const emptyState = fixture.debugElement.query(By.css('.border-dashed'));
+      const emptyState = fixture.debugElement.query(
+        By.css('app-empty-state'),
+      );
       expect(emptyState).toBeFalsy();
     });
   });
@@ -439,8 +485,5 @@ describe('KanbanColumnComponent', () => {
       const taskCards = fixture.debugElement.queryAll(By.css('app-task-card'));
       expect(taskCards).toHaveLength(3);
     });
-
-    // Note: data-task-id attributes were removed from the template;
-    // tasks are rendered directly as <app-task-card> components
   });
 });

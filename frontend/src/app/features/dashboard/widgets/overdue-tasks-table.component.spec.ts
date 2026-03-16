@@ -114,12 +114,12 @@ describe('OverdueTasksTableComponent', () => {
       expect(component.getPriorityClass('medium')).toContain('blue');
     });
 
-    it('should return gray classes for low', () => {
-      expect(component.getPriorityClass('low')).toContain('gray');
+    it('should return muted classes for low', () => {
+      expect(component.getPriorityClass('low')).toContain('bg-[var(--muted)]');
     });
 
-    it('should return default gray for unknown priority', () => {
-      expect(component.getPriorityClass('other')).toContain('gray');
+    it('should return default muted for unknown priority', () => {
+      expect(component.getPriorityClass('other')).toContain('bg-[var(--muted)]');
     });
   });
 });

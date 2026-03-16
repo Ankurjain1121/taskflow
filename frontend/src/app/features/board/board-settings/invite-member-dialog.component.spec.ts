@@ -1,10 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
-import { InviteMemberDialogComponent } from './invite-member-dialog.component';
+import { ProjectInviteMemberDialogComponent } from './invite-member-dialog.component';
 
 describe('InviteMemberDialogComponent', () => {
-  let component: InviteMemberDialogComponent;
-  let fixture: ComponentFixture<InviteMemberDialogComponent>;
+  let component: ProjectInviteMemberDialogComponent;
+  let fixture: ComponentFixture<ProjectInviteMemberDialogComponent>;
 
   beforeEach(async () => {
     Object.defineProperty(window, 'matchMedia', {
@@ -22,11 +22,11 @@ describe('InviteMemberDialogComponent', () => {
     });
 
     await TestBed.configureTestingModule({
-      imports: [InviteMemberDialogComponent],
+      imports: [ProjectInviteMemberDialogComponent],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(InviteMemberDialogComponent);
+    fixture = TestBed.createComponent(ProjectInviteMemberDialogComponent);
     component = fixture.componentInstance;
   });
 

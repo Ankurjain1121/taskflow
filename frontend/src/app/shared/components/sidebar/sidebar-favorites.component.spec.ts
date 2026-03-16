@@ -40,6 +40,7 @@ describe('SidebarFavoritesComponent', () => {
             name: 'Board Alpha',
             board_id: 'b-1',
             workspace_id: 'ws-1',
+            created_at: '2024-01-01T00:00:00Z',
           },
           {
             id: 'f-2',
@@ -48,6 +49,7 @@ describe('SidebarFavoritesComponent', () => {
             name: 'Task Beta',
             board_id: null,
             workspace_id: null,
+            created_at: '2024-01-01T00:00:00Z',
           },
         ]),
       ),
@@ -95,7 +97,7 @@ describe('SidebarFavoritesComponent', () => {
       workspace_id: 'ws-1',
     };
     const link = component.getFavLink(fav);
-    expect(link).toEqual(['/workspace', 'ws-1', 'board', 'b-1']);
+    expect(link).toEqual(['/workspace', 'ws-1', 'project', 'b-1']);
   });
 
   it('should return my-tasks link for non-board entity type', () => {

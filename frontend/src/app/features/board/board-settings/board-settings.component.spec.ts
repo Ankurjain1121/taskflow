@@ -135,7 +135,7 @@ describe('ProjectSettingsComponent', () => {
   describe('ngOnInit / loadBoard', () => {
     it('should load board and members on route params change', () => {
       component.ngOnInit();
-      paramsSubject.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      paramsSubject.next({ workspaceId: 'ws-1', projectId: 'board-1' });
       expect(component.workspaceId).toBe('ws-1');
       expect(component.boardId).toBe('board-1');
       expect(mockProjectService.getBoard).toHaveBeenCalledWith('board-1');
@@ -145,16 +145,9 @@ describe('ProjectSettingsComponent', () => {
 
     it('should load board members after board', () => {
       component.ngOnInit();
-      paramsSubject.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      paramsSubject.next({ workspaceId: 'ws-1', projectId: 'board-1' });
       expect(mockProjectService.getProjectMembers).toHaveBeenCalledWith('board-1');
       expect(component.members().length).toBe(2);
-    });
-
-    it('should patch form with board data', () => {
-      component.ngOnInit();
-      paramsSubject.next({ workspaceId: 'ws-1', boardId: 'board-1' });
-      expect(component.form.value.name).toBe('Test Board');
-      expect(component.form.value.description).toBe('A board');
     });
 
     it('should handle board load error', () => {
@@ -162,7 +155,7 @@ describe('ProjectSettingsComponent', () => {
         throwError(() => new Error('fail')),
       );
       component.ngOnInit();
-      paramsSubject.next({ workspaceId: 'ws-1', boardId: 'board-bad' });
+      paramsSubject.next({ workspaceId: 'ws-1', projectId: 'board-bad' });
       expect(component.loading()).toBe(false);
     });
   });
@@ -173,118 +166,29 @@ describe('ProjectSettingsComponent', () => {
     });
   });
 
-  describe('getInitials', () => {
-    it('should compute initials from name', () => {
-      expect(component.getInitials('Alice Smith')).toBe('AS');
-    });
-
-    it('should return ? for undefined', () => {
-      expect(component.getInitials(undefined as any)).toBe('?');
-    });
-
-    it('should handle single name', () => {
-      expect(component.getInitials('Bob')).toBe('B');
+  describe('onBoardUpdated', () => {
+    it('should update the board signal', () => {
+      const updated = { ...mockBoard, name: 'New Name' };
+      component.onBoardUpdated(updated as any);
+      expect(component.board()?.name).toBe('New Name');
     });
   });
 
-  describe('onSave', () => {
-    it('should save board and mark form pristine', () => {
-      component.ngOnInit();
-      paramsSubject.next({ workspaceId: 'ws-1', boardId: 'board-1' });
-      component.form.patchValue({ name: 'Updated Board' });
-      component.form.markAsDirty();
-
-      component.onSave();
-
-      expect(mockProjectService.updateBoard).toHaveBeenCalledWith('board-1', {
-        name: 'Updated Board',
-        description: 'A board',
-      });
-      expect(component.saving()).toBe(false);
-      expect(component.board()?.name).toBe('Updated Board');
-    });
-
-    it('should not save if form is invalid', () => {
-      component.form.patchValue({ name: '' });
-      component.form.controls['name'].markAsTouched();
-      component.onSave();
-      expect(mockProjectService.updateBoard).not.toHaveBeenCalled();
-    });
-
-    it('should handle save error', () => {
-      component.ngOnInit();
-      paramsSubject.next({ workspaceId: 'ws-1', boardId: 'board-1' });
-      mockProjectService.updateBoard.mockReturnValue(
-        throwError(() => new Error('fail')),
-      );
-      component.form.patchValue({ name: 'New Name' });
-      component.form.markAsDirty();
-      component.onSave();
-      expect(component.saving()).toBe(false);
-    });
-  });
-
-  describe('onInviteMember', () => {
-    it('should show invite dialog', () => {
-      component.onInviteMember();
-      expect(component.showInviteDialog()).toBe(true);
-    });
-  });
-
-  describe('onInviteResult', () => {
-    it('should add new member to list', () => {
-      component.boardId = 'board-1';
-      component.members.set([...mockMembers] as any);
-      component.onInviteResult({ email: 'charlie@test.com', role: 'viewer' });
-      expect(mockProjectService.inviteProjectMember).toHaveBeenCalledWith(
-        'board-1',
-        {
-          email: 'charlie@test.com',
-          role: 'viewer',
-        },
-      );
-      expect(component.members().length).toBe(3);
-    });
-  });
-
-  describe('onMemberRoleChange', () => {
-    it('should update member role', () => {
-      component.boardId = 'board-1';
-      component.members.set([...mockMembers] as any);
-      component.onMemberRoleChange(mockMembers[1] as any, 'editor');
-      expect(mockProjectService.updateProjectMemberRole).toHaveBeenCalledWith(
-        'board-1',
-        'u-2',
-        { role: 'editor' },
-      );
-    });
-  });
-
-  describe('onRemoveMember', () => {
-    it('should show confirmation dialog', () => {
-      component.onRemoveMember(mockMembers[0] as any);
-      expect(mockConfirmationService.confirm).toHaveBeenCalled();
-    });
-
-    it('should remove member when confirmed', () => {
-      component.boardId = 'board-1';
-      component.members.set([...mockMembers] as any);
-      mockConfirmationService.confirm.mockImplementation((opts: any) =>
-        opts.accept(),
-      );
-      component.onRemoveMember(mockMembers[1] as any);
-      expect(mockProjectService.removeProjectMember).toHaveBeenCalledWith(
-        'board-1',
-        'u-2',
-      );
-      expect(component.members().length).toBe(1);
+  describe('showError', () => {
+    it('should set and clear error message', () => {
+      vi.useFakeTimers();
+      component.showError('Test error');
+      expect(component.errorMessage()).toBe('Test error');
+      vi.advanceTimersByTime(5000);
+      expect(component.errorMessage()).toBeNull();
+      vi.useRealTimers();
     });
   });
 
   describe('onDeleteBoard', () => {
     it('should show confirmation and delete on accept', () => {
       component.ngOnInit();
-      paramsSubject.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      paramsSubject.next({ workspaceId: 'ws-1', projectId: 'board-1' });
       mockConfirmationService.confirm.mockImplementation((opts: any) =>
         opts.accept(),
       );
@@ -303,7 +207,7 @@ describe('ProjectSettingsComponent', () => {
 
     it('should handle delete error', () => {
       component.ngOnInit();
-      paramsSubject.next({ workspaceId: 'ws-1', boardId: 'board-1' });
+      paramsSubject.next({ workspaceId: 'ws-1', projectId: 'board-1' });
       mockProjectService.deleteBoard.mockReturnValue(
         throwError(() => new Error('fail')),
       );
@@ -314,6 +218,49 @@ describe('ProjectSettingsComponent', () => {
       component.onDeleteBoard();
 
       expect(component.deleting()).toBe(false);
+    });
+  });
+
+  describe('onArchiveBoard', () => {
+    it('should show confirmation and archive on accept', () => {
+      component.ngOnInit();
+      paramsSubject.next({ workspaceId: 'ws-1', projectId: 'board-1' });
+      mockConfirmationService.confirm.mockImplementation((opts: any) =>
+        opts.accept(),
+      );
+
+      component.onArchiveBoard();
+
+      expect(mockProjectService.deleteBoard).toHaveBeenCalledWith('board-1');
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/workspace', 'ws-1']);
+    });
+
+    it('should not archive if board is null', () => {
+      component.board.set(null);
+      component.onArchiveBoard();
+      expect(mockConfirmationService.confirm).not.toHaveBeenCalled();
+    });
+
+    it('should handle archive error', () => {
+      component.ngOnInit();
+      paramsSubject.next({ workspaceId: 'ws-1', projectId: 'board-1' });
+      mockProjectService.deleteBoard.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
+      mockConfirmationService.confirm.mockImplementation((opts: any) =>
+        opts.accept(),
+      );
+
+      component.onArchiveBoard();
+
+      expect(component.archiving()).toBe(false);
+    });
+  });
+
+  describe('onTabChange', () => {
+    it('should update active tab', () => {
+      component.onTabChange(3);
+      expect(component.activeTab()).toBe(3);
     });
   });
 });
