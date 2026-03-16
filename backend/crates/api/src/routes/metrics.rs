@@ -10,6 +10,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use sqlx;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
@@ -45,9 +46,23 @@ const METRICS_CACHE_TTL: u64 = 120;
 /// on-time %, and workload distribution. Cached for 120 seconds.
 async fn get_workspace_metrics_handler(
     State(state): State<AppState>,
-    _tenant: TenantContext,
+    tenant: TenantContext,
     Path(workspace_id): Path<Uuid>,
 ) -> Result<Json<WorkspaceDashboard>> {
+    // Verify user is a member of this workspace
+    let is_member: bool = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM workspace_members WHERE workspace_id = $1 AND user_id = $2)",
+    )
+    .bind(workspace_id)
+    .bind(tenant.user_id)
+    .fetch_one(&state.db)
+    .await
+    .map_err(|e| AppError::InternalError(format!("Membership check failed: {}", e)))?;
+
+    if !is_member {
+        return Err(AppError::Forbidden("Not a member of this workspace".into()));
+    }
+
     let cache_key = workspace_metrics_key(&workspace_id);
     if let Some(cached) = cache::cache_get::<WorkspaceDashboard>(&state.redis, &cache_key).await {
         return Ok(Json(cached));
@@ -67,9 +82,29 @@ async fn get_workspace_metrics_handler(
 /// Fetch team-level metrics dashboard. Cached for 120 seconds.
 async fn get_team_metrics_handler(
     State(state): State<AppState>,
-    _tenant: TenantContext,
+    tenant: TenantContext,
     Path(team_id): Path<Uuid>,
 ) -> Result<Json<TeamDashboard>> {
+    // Verify user is a member of the team's workspace
+    let is_member: bool = sqlx::query_scalar::<_, bool>(
+        r#"SELECT EXISTS(
+            SELECT 1 FROM workspace_members wm
+            JOIN teams t ON t.workspace_id = wm.workspace_id
+            WHERE t.id = $1 AND wm.user_id = $2
+        )"#,
+    )
+    .bind(team_id)
+    .bind(tenant.user_id)
+    .fetch_one(&state.db)
+    .await
+    .map_err(|e| AppError::InternalError(format!("Membership check failed: {}", e)))?;
+
+    if !is_member {
+        return Err(AppError::Forbidden(
+            "Not a member of this team's workspace".into(),
+        ));
+    }
+
     let cache_key = team_metrics_key(&team_id);
     if let Some(cached) = cache::cache_get::<TeamDashboard>(&state.redis, &cache_key).await {
         return Ok(Json(cached));
