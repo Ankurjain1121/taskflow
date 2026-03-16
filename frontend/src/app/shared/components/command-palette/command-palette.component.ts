@@ -85,7 +85,7 @@ const SELECTED_BG = 'rgba(99,102,241,0.1)';
                   ? 'Type a command...'
                   : 'Search tasks, projects... (> for commands)'
               "
-              class="flex-1 bg-transparent border-none outline-none text-lg text-[var(--card-foreground)] placeholder-gray-400"
+              class="flex-1 bg-transparent border-none outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] text-lg text-[var(--card-foreground)] placeholder-gray-400"
               autocomplete="off"
               (keydown)="onInputKeydown($event)"
             />

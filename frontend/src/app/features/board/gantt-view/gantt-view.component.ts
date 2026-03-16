@@ -117,7 +117,12 @@ interface DragState {
             @for (task of sortedTasks(); track task.id) {
               <div
                 class="h-10 border-b border-[var(--border)] flex items-center px-3 gap-2 hover:bg-[var(--muted)] cursor-pointer"
+                role="button"
+                tabindex="0"
+                [attr.aria-label]="task.title"
                 (click)="onTaskClick(task)"
+                (keydown.enter)="onTaskClick(task)"
+                (keydown.space)="onTaskClick(task)"
               >
                 <div
                   class="w-2 h-2 rounded-full flex-shrink-0"
@@ -192,7 +197,11 @@ interface DragState {
                   <g
                     class="cursor-grab"
                     [class.cursor-grabbing]="dragState()?.taskId === bar.task.id"
+                    tabindex="0"
+                    role="button"
+                    [attr.aria-label]="bar.task.title + ' - click to open, drag to reschedule'"
                     (click)="onTaskClick(bar.task)"
+                    (keydown.enter)="onTaskClick(bar.task)"
                     (mousedown)="onBarMouseDown($event, bar)"
                   >
                     <rect

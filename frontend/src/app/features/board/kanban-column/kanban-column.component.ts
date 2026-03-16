@@ -150,7 +150,7 @@ export interface TaskMoveEvent {
               <!-- Collapse Button -->
               <button
                 (click)="collapseToggled.emit(column().id)"
-                class="p-1 hover:bg-[var(--secondary)] rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                class="p-1 hover:bg-[var(--secondary)] rounded opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
                 title="Collapse column"
               >
                 <svg
@@ -171,8 +171,9 @@ export interface TaskMoveEvent {
               <!-- Column Menu -->
               <button
                 (click)="columnMenu.toggle($event)"
-                class="p-1 hover:bg-[var(--secondary)] rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                class="p-1 hover:bg-[var(--secondary)] rounded opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
                 title="Column options"
+                aria-label="Column options"
               >
                 <svg
                   class="w-4 h-4 text-[var(--muted-foreground)]"

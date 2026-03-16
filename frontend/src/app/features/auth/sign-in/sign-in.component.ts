@@ -107,18 +107,19 @@ import { AuthService } from '../../../core/services/auth.service';
                   formControlName="email"
                   placeholder="you@example.com"
                   class="w-full"
+                  [attr.aria-describedby]="signInForm.get('email')?.hasError('required') && signInForm.get('email')?.touched ? 'email-required-error' : signInForm.get('email')?.hasError('email') && signInForm.get('email')?.touched ? 'email-invalid-error' : null"
                 />
                 @if (
                   signInForm.get('email')?.hasError('required') &&
                   signInForm.get('email')?.touched
                 ) {
-                  <small class="p-error">Email is required</small>
+                  <small id="email-required-error" class="p-error">Email is required</small>
                 }
                 @if (
                   signInForm.get('email')?.hasError('email') &&
                   signInForm.get('email')?.touched
                 ) {
-                  <small class="p-error">Please enter a valid email</small>
+                  <small id="email-invalid-error" class="p-error">Please enter a valid email</small>
                 }
               </div>
 
@@ -132,18 +133,19 @@ import { AuthService } from '../../../core/services/auth.service';
                   [feedback]="false"
                   styleClass="w-full"
                   inputStyleClass="w-full"
+                  [attr.aria-describedby]="signInForm.get('password')?.hasError('required') && signInForm.get('password')?.touched ? 'signin-password-required-error' : signInForm.get('password')?.hasError('minlength') && signInForm.get('password')?.touched ? 'signin-password-minlength-error' : null"
                 />
                 @if (
                   signInForm.get('password')?.hasError('required') &&
                   signInForm.get('password')?.touched
                 ) {
-                  <small class="p-error">Password is required</small>
+                  <small id="signin-password-required-error" class="p-error">Password is required</small>
                 }
                 @if (
                   signInForm.get('password')?.hasError('minlength') &&
                   signInForm.get('password')?.touched
                 ) {
-                  <small class="p-error"
+                  <small id="signin-password-minlength-error" class="p-error"
                     >Password must be at least 8 characters</small
                   >
                 }

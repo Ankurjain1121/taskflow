@@ -93,18 +93,19 @@ import { AuthService } from '../../../core/services/auth.service';
                   [feedback]="false"
                   styleClass="w-full"
                   inputStyleClass="w-full"
+                  [attr.aria-describedby]="resetForm.get('newPassword')?.hasError('required') && resetForm.get('newPassword')?.touched ? 'reset-password-required-error' : resetForm.get('newPassword')?.hasError('minlength') && resetForm.get('newPassword')?.touched ? 'reset-password-minlength-error' : null"
                 />
                 @if (
                   resetForm.get('newPassword')?.hasError('required') &&
                   resetForm.get('newPassword')?.touched
                 ) {
-                  <small class="p-error">Password is required</small>
+                  <small id="reset-password-required-error" class="p-error">Password is required</small>
                 }
                 @if (
                   resetForm.get('newPassword')?.hasError('minlength') &&
                   resetForm.get('newPassword')?.touched
                 ) {
-                  <small class="p-error"
+                  <small id="reset-password-minlength-error" class="p-error"
                     >Password must be at least 8 characters</small
                   >
                 }
@@ -122,12 +123,13 @@ import { AuthService } from '../../../core/services/auth.service';
                   [feedback]="false"
                   styleClass="w-full"
                   inputStyleClass="w-full"
+                  [attr.aria-describedby]="resetForm.get('confirmPassword')?.hasError('required') && resetForm.get('confirmPassword')?.touched ? 'reset-confirm-required-error' : resetForm.get('confirmPassword')?.hasError('passwordMismatch') && resetForm.get('confirmPassword')?.touched ? 'reset-confirm-mismatch-error' : null"
                 />
                 @if (
                   resetForm.get('confirmPassword')?.hasError('required') &&
                   resetForm.get('confirmPassword')?.touched
                 ) {
-                  <small class="p-error">Please confirm your password</small>
+                  <small id="reset-confirm-required-error" class="p-error">Please confirm your password</small>
                 }
                 @if (
                   resetForm
@@ -135,7 +137,7 @@ import { AuthService } from '../../../core/services/auth.service';
                     ?.hasError('passwordMismatch') &&
                   resetForm.get('confirmPassword')?.touched
                 ) {
-                  <small class="p-error">Passwords do not match</small>
+                  <small id="reset-confirm-mismatch-error" class="p-error">Passwords do not match</small>
                 }
               </div>
 

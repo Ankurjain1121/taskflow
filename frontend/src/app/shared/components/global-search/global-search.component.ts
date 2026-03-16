@@ -91,7 +91,7 @@ const MAX_RECENT_SEARCHES = 5;
                   ? 'Type a command...'
                   : 'Search tasks, boards, comments... (type > for commands)'
               "
-              class="flex-1 bg-transparent border-none outline-none text-lg text-[var(--card-foreground)] dark:text-gray-100 placeholder-gray-400"
+              class="flex-1 bg-transparent border-none outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] text-lg text-[var(--card-foreground)] dark:text-gray-100 placeholder-gray-400"
               autocomplete="off"
             />
             @if (query()) {

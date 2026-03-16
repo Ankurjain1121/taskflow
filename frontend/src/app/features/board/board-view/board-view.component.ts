@@ -328,6 +328,7 @@ import { MessageService } from 'primeng/api';
           @if (state.dragSimulationActive()) {
             <div
               class="fixed top-16 left-1/2 -translate-x-1/2 z-30 bg-[var(--primary)] text-[var(--primary-foreground)] px-4 py-2 rounded-full text-sm font-medium shadow-lg pointer-events-none"
+              aria-live="polite"
             >
               Drag mode · ← → to move · Space to drop · Esc to cancel
             </div>

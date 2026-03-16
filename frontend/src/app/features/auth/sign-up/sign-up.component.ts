@@ -122,12 +122,13 @@ import { AuthService } from '../../../core/services/auth.service';
                   formControlName="name"
                   placeholder="John Doe"
                   class="w-full"
+                  [attr.aria-describedby]="signUpForm.get('name')?.hasError('required') && signUpForm.get('name')?.touched ? 'signup-name-required-error' : null"
                 />
                 @if (
                   signUpForm.get('name')?.hasError('required') &&
                   signUpForm.get('name')?.touched
                 ) {
-                  <small class="p-error">Name is required</small>
+                  <small id="signup-name-required-error" class="p-error">Name is required</small>
                 }
               </div>
 
@@ -140,18 +141,19 @@ import { AuthService } from '../../../core/services/auth.service';
                   formControlName="email"
                   placeholder="you@example.com"
                   class="w-full"
+                  [attr.aria-describedby]="signUpForm.get('email')?.hasError('required') && signUpForm.get('email')?.touched ? 'signup-email-required-error' : signUpForm.get('email')?.hasError('email') && signUpForm.get('email')?.touched ? 'signup-email-invalid-error' : null"
                 />
                 @if (
                   signUpForm.get('email')?.hasError('required') &&
                   signUpForm.get('email')?.touched
                 ) {
-                  <small class="p-error">Email is required</small>
+                  <small id="signup-email-required-error" class="p-error">Email is required</small>
                 }
                 @if (
                   signUpForm.get('email')?.hasError('email') &&
                   signUpForm.get('email')?.touched
                 ) {
-                  <small class="p-error">Please enter a valid email</small>
+                  <small id="signup-email-invalid-error" class="p-error">Please enter a valid email</small>
                 }
               </div>
 
@@ -165,18 +167,19 @@ import { AuthService } from '../../../core/services/auth.service';
                   [feedback]="false"
                   styleClass="w-full"
                   inputStyleClass="w-full"
+                  [attr.aria-describedby]="signUpForm.get('password')?.hasError('required') && signUpForm.get('password')?.touched ? 'signup-password-required-error' : signUpForm.get('password')?.hasError('minlength') && signUpForm.get('password')?.touched ? 'signup-password-minlength-error' : null"
                 />
                 @if (
                   signUpForm.get('password')?.hasError('required') &&
                   signUpForm.get('password')?.touched
                 ) {
-                  <small class="p-error">Password is required</small>
+                  <small id="signup-password-required-error" class="p-error">Password is required</small>
                 }
                 @if (
                   signUpForm.get('password')?.hasError('minlength') &&
                   signUpForm.get('password')?.touched
                 ) {
-                  <small class="p-error"
+                  <small id="signup-password-minlength-error" class="p-error"
                     >Password must be at least 8 characters</small
                   >
                 }
@@ -209,12 +212,13 @@ import { AuthService } from '../../../core/services/auth.service';
                   [feedback]="false"
                   styleClass="w-full"
                   inputStyleClass="w-full"
+                  [attr.aria-describedby]="signUpForm.get('confirmPassword')?.hasError('required') && signUpForm.get('confirmPassword')?.touched ? 'signup-confirm-required-error' : signUpForm.get('confirmPassword')?.hasError('passwordMismatch') && signUpForm.get('confirmPassword')?.touched ? 'signup-confirm-mismatch-error' : null"
                 />
                 @if (
                   signUpForm.get('confirmPassword')?.hasError('required') &&
                   signUpForm.get('confirmPassword')?.touched
                 ) {
-                  <small class="p-error">Please confirm your password</small>
+                  <small id="signup-confirm-required-error" class="p-error">Please confirm your password</small>
                 }
                 @if (
                   signUpForm
@@ -222,7 +226,7 @@ import { AuthService } from '../../../core/services/auth.service';
                     ?.hasError('passwordMismatch') &&
                   signUpForm.get('confirmPassword')?.touched
                 ) {
-                  <small class="p-error">Passwords do not match</small>
+                  <small id="signup-confirm-mismatch-error" class="p-error">Passwords do not match</small>
                 }
               </div>
 
