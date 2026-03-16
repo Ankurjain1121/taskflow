@@ -258,7 +258,10 @@ pub async fn health_handler(State(state): State<AppState>) -> (StatusCode, Json<
 ///
 /// Returns internal metrics for memory debugging: channel counts,
 /// WebSocket connections, DB pool stats, and process RSS.
-pub async fn detailed_health_handler(State(state): State<AppState>) -> Json<serde_json::Value> {
+pub async fn detailed_health_handler(
+    State(state): State<AppState>,
+    _admin: crate::extractors::AdminUser,
+) -> Json<serde_json::Value> {
     use std::sync::atomic::Ordering;
 
     let db_size = state.db.size();

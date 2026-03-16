@@ -3,12 +3,7 @@
 //! These endpoints are designed to be called by an external scheduler (e.g., cron, Cloud Scheduler).
 //! They are protected by a shared secret header, not user authentication.
 
-use axum::{
-    extract::State,
-    http::HeaderMap,
-    routing::{get, post},
-    Json, Router,
-};
+use axum::{extract::State, http::HeaderMap, routing::post, Json, Router};
 use serde::Serialize;
 use std::env;
 
@@ -280,10 +275,10 @@ async fn cron_health(headers: HeaderMap) -> Result<Json<CronHealthResponse>> {
 /// They use X-Cron-Secret header validation instead.
 pub fn cron_router() -> Router<AppState> {
     Router::new()
-        .route("/cron/health", get(cron_health))
-        .route("/cron/deadline-scan", get(deadline_scan_handler))
-        .route("/cron/weekly-digest", get(weekly_digest_handler))
-        .route("/cron/trash-cleanup", get(trash_cleanup_handler))
+        .route("/cron/health", post(cron_health))
+        .route("/cron/deadline-scan", post(deadline_scan_handler))
+        .route("/cron/weekly-digest", post(weekly_digest_handler))
+        .route("/cron/trash-cleanup", post(trash_cleanup_handler))
         .route("/cron/recurring-tasks", post(process_recurring_handler))
         .route(
             "/cron/execute-automations",

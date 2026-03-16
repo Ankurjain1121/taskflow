@@ -1,7 +1,7 @@
 # TaskFlow Operations Runbook
 
 > Auto-generated from source-of-truth: scripts/, docker-compose.yml, .env.example, codemaps/
-> Last updated: 2026-03-05
+> Last updated: 2026-03-16
 
 ## Deployment
 
@@ -31,8 +31,8 @@ This script:
 2. Validates `.env` (checks DOMAIN and JWT_SECRET)
 3. Creates Docker network
 4. Pulls and builds images
-5. Starts infrastructure (postgres, redis, mongodb, minio)
-6. Waits for PostgreSQL, runs migrations
+5. Starts infrastructure (minio)
+6. Waits for PostgreSQL (host), runs migrations
 7. Starts backend + frontend
 8. Configures nginx reverse proxy
 9. Runs auth smoke test
@@ -73,7 +73,7 @@ docker compose --profile whatsapp up -d
 | Service | Type | Details |
 |---------|------|---------|
 | backend | Docker | taskflow-backend:8080 (Rust/Axum) |
-| frontend | Docker | taskflow-frontend:4200→80 (Angular/Nginx) |
+| frontend | Docker | taskflow-frontend:80 (Angular/Nginx) |
 | minio | Docker | taskflow-minio:9000/9001 (S3 storage) |
 | PostgreSQL 16 | Host | 10.0.2.1:5432, user: taskflow_app |
 | Redis 7 | Host | 10.0.2.1:6379 |
@@ -112,7 +112,6 @@ docker compose logs -f
 # Specific service
 docker compose logs -f backend
 docker compose logs -f frontend
-docker compose logs -f postgres
 
 # Last N lines
 docker compose logs --tail 100 backend
@@ -144,12 +143,25 @@ curl http://localhost/health
 curl https://taskflow.paraslace.in/api/health
 ```
 
+### Resource Monitoring
+
+```bash
+# Docker container stats
+docker stats --no-stream
+
+# Memory usage with threshold warnings (>80% limit)
+./scripts/monitor-memory.sh
+
+# Disk usage for Docker volumes (warns if MinIO >5GB)
+./scripts/check-disk-usage.sh
+```
+
 ## Database Operations
 
 ### Overview
 
 - **PostgreSQL 16** with multi-tenant RLS
-- **45+ tables**, **12 enums**, **41 migrations**, **3 materialized views**
+- **45+ tables**, **12 enums**, **47 migrations**, **3 materialized views**
 - Migrations auto-run on backend startup via `sqlx::migrate!()`
 
 ### Run Migrations Manually
@@ -195,19 +207,20 @@ psql -h 10.0.2.1 -U taskflow_app -d taskflow -c "SELECT refresh_metrics_views();
 | Category | Tables |
 |----------|--------|
 | Core Identity | tenants, users, accounts, refresh_tokens, password_reset_tokens, user_preferences |
-| Workspace & Board | workspaces, workspace_members, boards, board_members, board_columns |
+| Workspace | workspaces, workspace_members, workspace_api_keys, invitations |
+| Projects | projects, project_members, project_statuses, project_shares |
 | Teams & Positions | teams, team_members, positions, position_holders |
-| Tasks | tasks, task_assignees, task_groups, subtasks, labels, task_labels, task_dependencies, milestones |
+| Tasks | tasks, task_assignees, task_lists, subtasks, labels, task_labels, task_dependencies, task_watchers, task_reminders, milestones |
 | Collaboration | comments, attachments, activity_log |
 | Notifications | notifications, notification_preferences |
 | Time Tracking | time_entries |
 | Recurring Tasks | recurring_task_configs |
-| Custom Fields | board_custom_fields, task_custom_field_values |
-| Templates | project_templates (+columns/tasks), task_templates (+subtasks/labels/custom_fields) |
-| Automations | automation_rules, automation_actions, automation_logs |
-| Sharing | board_shares, webhooks, webhook_deliveries, favorites |
-| Themes | themes |
-| Billing | invitations, subscriptions, processed_webhooks |
+| Custom Fields | project_custom_fields, task_custom_field_values |
+| Templates | project_templates (+groups/tasks/labels/custom_fields), task_templates (+subtasks/labels/custom_fields) |
+| Automations | automation_rules, automation_actions, automation_logs, automation_templates, automation_rate_counters |
+| Sharing | project_shares, webhooks, webhook_deliveries, favorites |
+| Billing | subscriptions, processed_webhooks |
+| Search & Nav | recent_items, filter_presets, bulk_operations |
 
 ## Common Issues and Fixes
 
@@ -219,22 +232,23 @@ psql -h 10.0.2.1 -U taskflow_app -d taskflow -c "SELECT refresh_metrics_views();
 
 | Error | Fix |
 |-------|-----|
-| "connection refused" to postgres | Wait for postgres healthcheck: `docker compose up -d postgres && sleep 5` |
-| "connection refused" to redis | Ensure redis is running: `docker compose up -d redis` |
+| "connection refused" to postgres | Ensure host PostgreSQL is running: `systemctl status postgresql` |
+| "connection refused" to redis | Ensure host Redis is running: `systemctl status redis` |
 | Migration error | Check migration SQL syntax; run `docker compose up migrate` separately |
 | JWT_SECRET not set | Check `.env` file has valid JWT_SECRET (min 32 chars) |
 | CRON_SECRET not set | Add CRON_SECRET to `.env` (required for cron endpoints) |
+| GLIBC mismatch | Use `ubuntu:24.04` base image (not `debian:bookworm-slim`) |
 
 ### Frontend build fails
 
 **Symptom**: `ng build` errors in CI or Docker.
 
 ```bash
-# Reproduce locally
-docker run --rm -v $(pwd)/frontend:/app -w /app node:22-slim sh -c "npm ci && npm run build -- --configuration=production"
-
 # Check TypeScript errors
 cd frontend && npx tsc --noEmit
+
+# Full production build test
+cd frontend && npm run build -- --configuration=production
 ```
 
 ### WebSocket not connecting
@@ -264,6 +278,13 @@ redis-cli -h 10.0.2.1 ping
 redis-cli -h 10.0.2.1 -n 0 DBSIZE  # App (pub/sub, rate limiting, bulk undo)
 ```
 
+### SQLx offline cache stale
+
+After schema changes, regenerate the offline cache:
+```bash
+cd backend && cargo sqlx prepare --workspace
+```
+
 ## Rollback Procedures
 
 ### Quick Rollback (to previous commit)
@@ -291,6 +312,8 @@ docker compose up migrate
 docker compose restart backend
 ```
 
+**Important**: SQLx uses SHA-384 checksums for migrations. If you need to manually register a migration, use `sha384sum file.sql`.
+
 ### Emergency: Restore from Backup
 
 ```bash
@@ -298,7 +321,7 @@ docker compose restart backend
 docker compose stop backend
 
 # Restore database
-cat backup.sql | docker compose exec -T postgres psql -U postgres -d taskflow
+psql -h 10.0.2.1 -U taskflow_app -d taskflow < backup.sql
 
 # Restart
 docker compose start backend
@@ -316,6 +339,10 @@ docker compose ps
 
 ```bash
 docker stats --no-stream
+
+# Detailed monitoring scripts
+./scripts/monitor-memory.sh        # Memory with threshold warnings
+./scripts/check-disk-usage.sh      # Disk usage for volumes
 ```
 
 ### Cron Jobs
@@ -324,18 +351,20 @@ Backend exposes cron endpoints (authenticated via `X-Cron-Secret` header):
 
 | Endpoint | Schedule | Purpose |
 |----------|----------|---------|
-| `GET /api/cron/deadline-scan` | Every 15 min | Notify users of upcoming/overdue deadlines |
-| `GET /api/cron/weekly-digest` | Weekly | Send weekly summary emails |
-| `GET /api/cron/trash-cleanup` | Daily | Permanently delete items in trash > 30 days |
+| `POST /api/cron/deadline-scan` | Every 15 min | Notify users of upcoming/overdue deadlines |
+| `POST /api/cron/weekly-digest` | Weekly | Send weekly summary emails |
+| `POST /api/cron/trash-cleanup` | Daily | Permanently delete items in trash > 30 days |
 | `POST /api/cron/recurring-tasks` | Every hour | Create task instances from recurring configs |
+| `POST /api/cron/refresh-metrics` | Every 6 hours | Refresh materialized views for metrics |
 
 Set up external cron (e.g., system crontab or uptime monitor):
 ```bash
-# Example crontab
-*/15 * * * * curl -s -H "X-Cron-Secret: $CRON_SECRET" https://taskflow.paraslace.in/api/cron/deadline-scan
-0 9 * * 1 curl -s -H "X-Cron-Secret: $CRON_SECRET" https://taskflow.paraslace.in/api/cron/weekly-digest
-0 3 * * * curl -s -H "X-Cron-Secret: $CRON_SECRET" https://taskflow.paraslace.in/api/cron/trash-cleanup
+# Example crontab — all endpoints use POST (never GET for side-effectful jobs)
+*/15 * * * * curl -s -X POST -H "X-Cron-Secret: $CRON_SECRET" https://taskflow.paraslace.in/api/cron/deadline-scan
+0 9 * * 1 curl -s -X POST -H "X-Cron-Secret: $CRON_SECRET" https://taskflow.paraslace.in/api/cron/weekly-digest
+0 3 * * * curl -s -X POST -H "X-Cron-Secret: $CRON_SECRET" https://taskflow.paraslace.in/api/cron/trash-cleanup
 0 * * * * curl -s -X POST -H "X-Cron-Secret: $CRON_SECRET" https://taskflow.paraslace.in/api/cron/recurring-tasks
+0 */6 * * * curl -s -X POST -H "X-Cron-Secret: $CRON_SECRET" https://taskflow.paraslace.in/api/cron/refresh-metrics
 ```
 
 ## SSL/TLS
@@ -363,13 +392,13 @@ nginx reverse proxy config at `/etc/nginx/sites-available/`:
 
 Key proxy rules:
 - `/api/*` -> `backend:8080`
-- `/ws` -> `backend:8080` (with WebSocket upgrade headers)
+- `/api/ws` -> `backend:8080` (with WebSocket upgrade headers)
 - `/` -> `frontend:80` (Angular SPA)
 - Static files served with caching headers
 
 WebSocket upgrade config:
 ```nginx
-location /ws {
+location /api/ws {
     proxy_pass http://localhost:8080;
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
@@ -379,12 +408,15 @@ location /ws {
 
 ## Background Jobs
 
-| Job | Module | Purpose |
-|-----|--------|---------|
-| automation_executor | services/jobs/ | Evaluate automation trigger rules |
-| deadline_scanner | services/jobs/ | Scan for overdue/upcoming tasks |
-| trash_cleanup | services/jobs/ | Permanently delete expired trash (30-day retention) |
-| weekly_digest | services/jobs/ | Send weekly task summaries |
+| Job | Module | Trigger | Purpose |
+|-----|--------|---------|---------|
+| automation_executor | services/jobs/ | Event-driven + scheduled | Evaluate automation trigger rules |
+| deadline_scanner | services/jobs/ | Cron (15 min) | Scan for overdue/upcoming tasks, send notifications |
+| trash_cleanup | services/jobs/ | Cron (daily) | Permanently delete expired trash (30-day retention) |
+| weekly_digest | services/jobs/ | Cron (weekly) | Send weekly task summaries via email |
+| recurring_tasks | (built-in) | 10-min tick + cron | Create task instances from recurring configs |
+| metrics_refresh | (cron endpoint) | Cron (6 hours) | Refresh materialized views |
+| channel_gc | (built-in) | Every 60s | Clean up dead WebSocket broadcast channels |
 
 ## Architecture Quick Reference
 
@@ -395,12 +427,12 @@ location /ws {
                 taskflow.paraslace.in
                  /           \
                 /             \
-      [frontend:4200]    [backend:8080]
-      nginx + Angular    Rust / Axum         ← Docker containers
-      SPA + API proxy         |
+      [frontend:80]     [backend:8080]
+      nginx + Angular    Rust / Axum         <- Docker containers
+      SPA                     |
                           /---+---\
                          /    |    \
-                 [postgres] [redis] [minio]  ← Host PG/Redis, Docker MinIO
+                 [postgres] [redis] [minio]  <- Host PG/Redis, Docker MinIO
                   :5432     :6379   :9000
                  (host)    (host)  (docker)
 ```
