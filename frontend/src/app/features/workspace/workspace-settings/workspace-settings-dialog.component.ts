@@ -19,7 +19,7 @@ import {
   Workspace,
   WorkspaceMember,
 } from '../../../core/services/workspace.service';
-import { ProjectService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/project.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { WorkspaceSettingsDialogService } from '../../../core/services/workspace-settings-dialog.service';
 import { WorkspaceGeneralTabComponent } from './workspace-general-tab.component';

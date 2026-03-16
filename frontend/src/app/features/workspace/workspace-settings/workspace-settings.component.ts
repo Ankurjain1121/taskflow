@@ -21,7 +21,7 @@ import {
   Workspace,
   WorkspaceMember,
 } from '../../../core/services/workspace.service';
-import { ProjectService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/project.service';
 import { AuthService } from '../../../core/services/auth.service';
 import {
   MembersListComponent,

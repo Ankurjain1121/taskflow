@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { TaskPriority, Label, Assignee } from './task.service';
-import { ColumnStatusMapping } from './board.service';
+import { ColumnStatusMapping } from './project.service';
 
 export interface MyTask {
   id: string;

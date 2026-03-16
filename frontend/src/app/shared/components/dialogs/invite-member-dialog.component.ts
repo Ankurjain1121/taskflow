@@ -22,7 +22,7 @@ import { Textarea } from 'primeng/textarea';
 import { Select } from 'primeng/select';
 import { Checkbox } from 'primeng/checkbox';
 import { FormsModule } from '@angular/forms';
-import { ProjectService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/project.service';
 import { Workspace } from '../../../core/services/workspace.service';
 
 export interface InviteMemberDialogData {

@@ -20,7 +20,7 @@ import {
   MyTasksSummary,
   MyTasksParams,
 } from '../../../core/services/my-tasks.service';
-import { ProjectService, Board } from '../../../core/services/board.service';
+import { ProjectService, Board } from '../../../core/services/project.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
 import { TaskListItemComponent } from '../task-list-item/task-list-item.component';

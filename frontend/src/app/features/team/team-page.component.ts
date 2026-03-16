@@ -23,7 +23,7 @@ import {
   TenantMember,
   MemberRoleBatch,
 } from '../../core/services/workspace.service';
-import { ProjectService } from '../../core/services/board.service';
+import { ProjectService } from '../../core/services/project.service';
 import { TeamService, MemberWorkload } from '../../core/services/team.service';
 import {
   MembersListComponent,

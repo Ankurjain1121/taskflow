@@ -15,7 +15,7 @@ import {
   Workspace,
 } from '../../core/services/workspace.service';
 import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
-import { ProjectService, Board } from '../../core/services/board.service';
+import { ProjectService, Board } from '../../core/services/project.service';
 import {
   CreateBoardDialogComponent,
   CreateBoardDialogResult,

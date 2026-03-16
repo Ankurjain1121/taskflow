@@ -6,7 +6,7 @@ import { SharedProjectViewComponent } from './shared-board-view.component';
 import {
   ProjectShareService,
   SharedBoardAccess,
-} from '../../core/services/board-share.service';
+} from '../../core/services/project-share.service';
 
 function createMockBoardAccess(
   overrides: Partial<SharedBoardAccess> = {},

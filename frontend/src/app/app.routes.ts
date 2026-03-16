@@ -131,14 +131,14 @@ export const routes: Routes = [
       {
         path: 'project/:projectId',
         loadComponent: () =>
-          import('./features/board/board-view/board-view.component').then(
+          import('./features/project/project-view/board-view.component').then(
             (m) => m.ProjectViewComponent,
           ),
       },
       {
         path: 'project/:projectId/settings',
         loadComponent: () =>
-          import('./features/board/board-settings/board-settings.component').then(
+          import('./features/project/project-settings/board-settings.component').then(
             (m) => m.ProjectSettingsComponent,
           ),
       },
@@ -251,7 +251,7 @@ export const routes: Routes = [
   {
     path: 'templates',
     loadComponent: () =>
-      import('./features/board/project-templates/template-list.component').then(
+      import('./features/project/project-templates/template-list.component').then(
         (m) => m.TemplateListComponent,
       ),
     canActivate: [authGuard],

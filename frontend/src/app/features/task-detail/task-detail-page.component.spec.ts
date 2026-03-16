@@ -10,7 +10,7 @@ import {
   Task,
   TaskPriority,
 } from '../../core/services/task.service';
-import { ProjectService, Board, Column } from '../../core/services/board.service';
+import { ProjectService, Board, Column } from '../../core/services/project.service';
 import {
   WorkspaceService,
   Workspace,

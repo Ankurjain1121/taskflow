@@ -4,7 +4,7 @@ import { of, throwError, Subject } from 'rxjs';
 import { provideRouter } from '@angular/router';
 import { MyTasksComponent } from './my-tasks.component';
 import { MyTasksService } from '../../../core/services/my-tasks.service';
-import { ProjectService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/project.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
 
