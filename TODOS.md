@@ -1,16 +1,11 @@
 # TODOS
 
-## TODO-001: Refactor board membership verification (DRY)
-**Priority:** Low | **Depends on:** Phase 1 completion
+## TODO-001: Refactor board membership verification (DRY) — RESOLVED
+**Priority:** Low | **Status:** Resolved
 
-Extract `verify_project_membership(pool, project_id, user_id)` shared function (created in Phase 1 for time_entries.rs) and replace all ~6 inline copies across:
-- `task_crud.rs`
-- `task_helpers.rs`
-- `task_movement.rs`
-- `attachment.rs`
-- `comments.rs`
+Resolved by Phase 3D cleanup: `verify_board_membership` wrapper deleted from `task_helpers.rs`, callers migrated to `common::verify_project_membership`. The `verify_board_membership_internal` in `db/queries/mod.rs` renamed to `verify_project_membership_internal`.
 
-**Why:** DRY violation — each copy is slightly different inline SQL doing `SELECT EXISTS(SELECT 1 FROM project_members ...)`. Risk of divergence if project_members schema changes.
+Remaining inline copies in `task_crud.rs`, `attachment.rs`, `comments.rs` should migrate to `common::verify_project_membership` incrementally when those files are next touched.
 
 ---
 
@@ -79,3 +74,53 @@ Replace `'unsafe-inline'` in `script-src` CSP directive with per-request nonces.
 **Why:** Security hardening. Low urgency since the API CSP mainly protects error pages — the Angular SPA serves its own CSP separately.
 
 **Where to start:** `middleware/security_headers.rs:29`. Requires coordinating nonce injection with Angular's index.html serving.
+
+---
+
+## TODO-008: Extract raw SQL from route handlers incrementally
+**Priority:** Low | **Depends on:** Nothing
+
+When touching any route file, move its `sqlx::query` calls to `db/src/queries/`. Currently 114 queries across 33 route files bypass the query layer. Track progress per-file.
+
+**Why:** Separation of concerns — route handlers should delegate data access to the query layer. Inline SQL makes it hard to test queries independently and increases risk of inconsistent query patterns.
+
+**Where to start:** Pick any route file being modified for other reasons and extract its SQL to the matching queries module.
+
+---
+
+## TODO-009: Security hardening batch (6 MEDIUM items)
+**Priority:** Medium | **Depends on:** Various
+
+Grouped security improvements:
+- CSP nonce migration (see TODO-007)
+- Per-device sessions (see TODO-004)
+- Shared board password from JSON body (see TODO-006)
+- Redis-backed rate limiting (replace in-memory DashMap)
+- Workspace export email leak audit
+- WebSocket cookie-only auth (remove token from query string)
+
+**Why:** Defense-in-depth. None are critical individually but collectively reduce attack surface.
+
+---
+
+## TODO-010: Rate limiter GC error recovery
+**Priority:** Low | **Depends on:** Nothing
+
+`rate_limit.rs:42` spawns a background task for garbage collection that can panic silently. Add error logging and restart logic.
+
+**Why:** Silent panic means the GC stops running, and the DashMap grows unbounded until the process restarts.
+
+**Where to start:** `middleware/rate_limit.rs` — wrap the spawned task in a loop with error handling.
+
+---
+
+## TODO-011: Rename frontend board-* files to project-*
+**Priority:** Low | **Depends on:** Nothing
+
+Rename feature files to match the project terminology:
+- `board-view.component.ts` → `project-view.component.ts`
+- `board-settings/` → `project-settings/`
+- `board-state.service.ts` → `project-state.service.ts`
+- All related files in `features/board/`
+
+**Why:** Consistency with backend naming. Deferred from the board→project rename to limit import path churn in a single PR.

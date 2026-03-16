@@ -332,7 +332,7 @@ it('should clean up effect on destroy', () => {
 
 - **Vitest**: 10-20x faster than Karma/Jasmine
 - **Serial E2E**: Chromium only, 1 worker for stability (can parallelize later)
-- **Coverage thresholds**: 60% (can increase as codebase matures)
+- **Coverage thresholds**: 100% target (enforced in vite.config.ts)
 
 ---
 
@@ -434,7 +434,7 @@ it('should debounce search', fakeAsync(() => {
 | Suite | Threshold | Blocks Deploy? |
 |-------|-----------|----------------|
 | Backend (`cargo test`) | All pass | YES |
-| Frontend unit (`vitest`) | 60% coverage | YES |
+| Frontend unit (`vitest`) | 100% coverage | YES |
 | Frontend E2E (`playwright`) | All pass | YES |
 | Clippy warnings | Zero warnings | YES |
 | TypeScript (`tsc --noEmit`) | Zero errors | YES |
