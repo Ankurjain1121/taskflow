@@ -20,13 +20,13 @@ use tower_http::cors::{AllowOrigin, CorsLayer};
 use tower_http::trace::TraceLayer;
 
 use crate::config::Config;
-use crate::middleware::auth_middleware;
 use crate::middleware::cache_headers_middleware;
 use crate::middleware::rate_limit::{
     rate_limit_layer, rate_limit_middleware, user_rate_limit_layer, user_rate_limit_middleware,
 };
 use crate::middleware::request_id::request_id_middleware;
 use crate::middleware::security_headers_middleware;
+use crate::middleware::{audit_middleware, auth_middleware, csrf_middleware};
 use crate::routes::{
     activity_log_router, admin_audit_router, admin_trash_router, admin_users_router,
     archive_router, attachment_router, automation_router, automation_templates_router,
@@ -80,7 +80,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Method::DELETE,
             Method::OPTIONS,
         ])
-        .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE])
+        .allow_headers([
+            AUTHORIZATION,
+            ACCEPT,
+            CONTENT_TYPE,
+            axum::http::HeaderName::from_static("x-csrf-token"),
+        ])
         .allow_credentials(true);
 
     // Build protected routes (require auth)
@@ -121,6 +126,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             axum::routing::post(routes::invitation::resend_handler),
         )
         .route("/health/detailed", get(routes::detailed_health_handler))
+        .layer(from_fn_with_state(state.clone(), audit_middleware))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware));
 
     // Rate-limited public routes (auth endpoints vulnerable to brute force)
@@ -137,6 +144,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "/auth/forgot-password",
             axum::routing::post(routes::auth_password::forgot_password_handler),
         )
+        .route(
+            "/auth/refresh",
+            axum::routing::post(routes::auth::refresh_handler),
+        )
+        .route(
+            "/auth/reset-password",
+            axum::routing::post(routes::auth_password::reset_password_handler),
+        )
         .layer(from_fn(rate_limit_middleware))
         .layer(rate_limit_layer(5, 60)); // 5 requests per 60 seconds per IP
 
@@ -151,16 +166,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Build public routes (not rate-limited)
     let public_routes = Router::new()
         .route(
-            "/auth/refresh",
-            axum::routing::post(routes::auth::refresh_handler),
-        )
-        .route(
             "/auth/logout",
             axum::routing::post(routes::auth::logout_handler),
-        )
-        .route(
-            "/auth/reset-password",
-            axum::routing::post(routes::auth_password::reset_password_handler),
         )
         .route(
             "/invitations/validate/{token}",
