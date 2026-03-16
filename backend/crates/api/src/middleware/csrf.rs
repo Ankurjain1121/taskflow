@@ -63,11 +63,15 @@ pub async fn csrf_middleware(
     };
 
     // Get user ID from extensions (set by auth middleware)
+    // Fail-closed: if no AuthUser is present, reject the request
     let user_id = match req.extensions().get::<crate::middleware::auth::AuthUser>() {
         Some(auth_user) => auth_user.user_id,
         None => {
-            // If no auth user, skip CSRF check (will fail auth check elsewhere)
-            return next.run(req).await;
+            return (
+                StatusCode::FORBIDDEN,
+                Json(CsrfErrorResponse::invalid_token()),
+            )
+                .into_response();
         }
     };
 

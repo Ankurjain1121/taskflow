@@ -26,24 +26,11 @@ pub struct AuditEntity {
     pub entity_id: Uuid,
 }
 
-/// Extract IP address from request headers
+/// Extract IP address from request headers.
+/// Delegates to the shared `extract_client_ip` utility which takes the first
+/// entry in X-Forwarded-For (original client behind single-hop nginx).
 fn extract_ip_address(req: &Request<Body>) -> Option<String> {
-    // Try X-Forwarded-For first (for proxied requests)
-    if let Some(forwarded) = req.headers().get("X-Forwarded-For") {
-        if let Ok(s) = forwarded.to_str() {
-            // X-Forwarded-For can contain multiple IPs, take the first one
-            return Some(s.split(',').next().unwrap_or(s).trim().to_string());
-        }
-    }
-
-    // Try X-Real-IP
-    if let Some(real_ip) = req.headers().get("X-Real-IP") {
-        if let Ok(s) = real_ip.to_str() {
-            return Some(s.to_string());
-        }
-    }
-
-    None
+    super::extract_client_ip(req.headers())
 }
 
 /// Extract user agent from request headers

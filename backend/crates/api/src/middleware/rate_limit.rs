@@ -90,21 +90,12 @@ impl RateLimiter {
 }
 
 /// Extract client IP address from request.
-/// When behind a reverse proxy (Caddy), the peer address is the proxy's IP.
-/// We trust X-Forwarded-For set by Caddy, but take the LAST entry (the one
-/// added by the trusted reverse proxy) to prevent client spoofing.
+/// Delegates to the shared `extract_client_ip` utility (first entry in
+/// X-Forwarded-For behind single-hop nginx), with a fallback to the peer
+/// address from `ConnectInfo`.
 fn extract_ip(req: &Request<Body>) -> String {
-    // When behind a reverse proxy, use X-Forwarded-For (last entry = real client IP)
-    if let Some(forwarded) = req.headers().get("X-Forwarded-For") {
-        if let Ok(s) = forwarded.to_str() {
-            // Take the LAST IP — the one appended by the trusted reverse proxy (Caddy)
-            if let Some(last_ip) = s.rsplit(',').next() {
-                let ip = last_ip.trim();
-                if !ip.is_empty() {
-                    return ip.to_string();
-                }
-            }
-        }
+    if let Some(ip) = super::extract_client_ip(req.headers()) {
+        return ip;
     }
 
     // Fallback to peer address (direct connection without reverse proxy)
@@ -356,13 +347,13 @@ mod tests {
     }
 
     #[test]
-    fn test_extract_ip_forwarded_for_last_entry() {
+    fn test_extract_ip_forwarded_for_first_entry() {
         let req = Request::builder()
-            .header("X-Forwarded-For", "spoofed.ip, proxy.ip, real-client.ip")
+            .header("X-Forwarded-For", "real-client.ip, proxy.ip, nginx.ip")
             .body(Body::empty())
             .expect("build request");
         let ip = extract_ip(&req);
-        // Should take the LAST IP (the one appended by the trusted reverse proxy)
+        // Should take the FIRST IP (the original client behind single-hop nginx)
         assert_eq!(ip, "real-client.ip");
     }
 
