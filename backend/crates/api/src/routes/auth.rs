@@ -28,6 +28,8 @@ use super::auth_password;
 use super::auth_profile;
 use super::common::MessageResponse;
 
+const SESSION_TTL_SECS: usize = 30 * 60;
+
 // ============================================================================
 // Request/Response DTOs (shared across auth modules)
 // ============================================================================
@@ -72,6 +74,18 @@ pub struct UserResponse {
     pub bio: Option<String>,
     pub onboarding_completed: bool,
     pub last_login_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+/// Validate password complexity: >= 8 chars, at least one uppercase, one lowercase, one digit.
+pub fn is_password_strong(password: &str) -> bool {
+    password.len() >= 8
+        && password.chars().any(|c| c.is_uppercase())
+        && password.chars().any(|c| c.is_lowercase())
+        && password.chars().any(|c| c.is_ascii_digit())
 }
 
 // ============================================================================
@@ -151,7 +165,7 @@ pub async fn sign_in_handler(
 
     // Create session in Redis (30 minutes idle timeout)
     let session_key = format!("session:{}", user.id);
-    const SESSION_TTL_SECS: usize = 30 * 60;
+
     redis::cmd("SET")
         .arg(&session_key)
         .arg("1")
@@ -216,9 +230,10 @@ pub async fn sign_up_handler(
     if payload.email.trim().is_empty() || !payload.email.contains('@') {
         return Err(AppError::BadRequest("Valid email is required".into()));
     }
-    if payload.password.len() < 8 {
+    if !is_password_strong(&payload.password) {
         return Err(AppError::BadRequest(
-            "Password must be at least 8 characters".into(),
+            "Password must be at least 8 characters and contain uppercase, lowercase, and a digit"
+                .into(),
         ));
     }
 
@@ -279,7 +294,7 @@ pub async fn sign_up_handler(
 
     // Create session in Redis (30 minutes idle timeout)
     let session_key = format!("session:{}", user.id);
-    const SESSION_TTL_SECS: usize = 30 * 60;
+
     redis::cmd("SET")
         .arg(&session_key)
         .arg("1")
@@ -420,7 +435,7 @@ pub async fn refresh_handler(
     .await?;
 
     // Generate a new CSRF token
-    const SESSION_TTL_SECS: usize = 30 * 60;
+
     let csrf_token = store_csrf_token(&state, user.id, SESSION_TTL_SECS)
         .await
         .map_err(|e| AppError::InternalError(format!("Failed to create CSRF token: {}", e)))?;
