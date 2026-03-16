@@ -3,12 +3,12 @@
 //! Contains scheduled jobs for deadline scanning, weekly digests, trash cleanup,
 //! and automation execution.
 
-pub mod automation_executor;
+pub mod automation;
 pub mod deadline_scanner;
 pub mod trash_cleanup;
 pub mod weekly_digest;
 
-pub use automation_executor::{
+pub use automation::{
     evaluate_trigger, execute_scheduled_automations, resolve_column_by_name, resolve_label_by_name,
     spawn_automation_evaluation, AutomationExecutorError, AutomationRunResult,
     ScheduledAutomationResult, TriggerContext,

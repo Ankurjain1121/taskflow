@@ -4,9 +4,7 @@ import {
   input,
   output,
   signal,
-  viewChild,
   ViewChild,
-  ElementRef,
   ChangeDetectionStrategy,
   inject,
 } from '@angular/core';
@@ -34,12 +32,18 @@ import { PriorityBadgeComponent } from '../../../shared/components/priority-badg
 import {
   getPriorityColor,
   getPriorityLabel,
-  getDueDateColor,
-  isOverdue,
-  isToday,
-  PRIORITY_FLAG_COLORS,
 } from '../../../shared/utils/task-colors';
-import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
+import {
+  getBorderColor,
+  getPriorityFlagColor,
+  formatDueDate,
+  getAvatarGradient,
+  getInitials,
+  getDueDateColors,
+  getOverflowLabelsTooltip,
+} from './task-card-colors.utils';
+import { buildContextMenu } from './task-card-context-menu.utils';
+import { TaskCardTitleEditComponent } from './task-card-title-edit.component';
 
 @Component({
   selector: 'app-task-card',
@@ -52,6 +56,7 @@ import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
     TieredMenu,
     Tooltip,
     PriorityBadgeComponent,
+    TaskCardTitleEditComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -365,43 +370,14 @@ import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
             </span>
           }
 
-          <!-- Title -->
-          @if (!isEditingTitle()) {
-            <div class="flex items-start gap-1.5 group/title mb-2.5">
-              <h4
-                class="text-sm font-semibold text-[var(--card-foreground)] line-clamp-2 leading-snug tracking-tight flex-1 min-w-0"
-              >
-                {{ task().title }}
-              </h4>
-              <button
-                (click)="onTitleEditStart($event)"
-                class="flex-shrink-0 mt-0.5 opacity-0 group-hover/title:opacity-100 transition-opacity duration-150 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                title="Edit title"
-                aria-label="Edit task title"
-              >
-                <i class="pi pi-pencil text-xs"></i>
-              </button>
-            </div>
-          }
-          @if (isEditingTitle()) {
-            <input
-              #titleInput
-              type="text"
-              [value]="editTitleValue()"
-              (input)="onTitleInput($event)"
-              (blur)="onTitleSave()"
-              (keydown.enter)="onTitleSave()"
-              (keydown.escape)="onTitleCancel()"
-              (click)="$event.stopPropagation()"
-              maxlength="200"
-              aria-label="Edit task title"
-              class="w-full text-sm font-semibold mb-2.5
-                     bg-[var(--card)] text-[var(--card-foreground)]
-                     border border-[var(--border)] rounded-md px-2 py-1
-                     focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-0
-                     transition-shadow duration-150"
-            />
-          }
+          <!-- Title (inline edit sub-component) -->
+          <app-task-card-title-edit
+            [task]="task()"
+            [isEditing]="isEditingTitle()"
+            (titleChanged)="onTitleChanged($event)"
+            (editStarted)="onTitleEditStart()"
+            (editCancelled)="onTitleEditEnd()"
+          />
 
           <!-- Description preview (2 lines in expanded mode) -->
           @if (
@@ -701,43 +677,14 @@ import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
             </span>
           }
 
-          <!-- Title -->
-          @if (!isEditingTitle()) {
-            <div class="flex items-start gap-1.5 group/title mb-2.5">
-              <h4
-                class="text-sm font-semibold text-[var(--card-foreground)] line-clamp-2 leading-snug tracking-tight flex-1 min-w-0"
-              >
-                {{ task().title }}
-              </h4>
-              <button
-                (click)="onTitleEditStart($event)"
-                class="flex-shrink-0 mt-0.5 opacity-0 group-hover/title:opacity-100 transition-opacity duration-150 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                title="Edit title"
-                aria-label="Edit task title"
-              >
-                <i class="pi pi-pencil text-xs"></i>
-              </button>
-            </div>
-          }
-          @if (isEditingTitle()) {
-            <input
-              #titleInput
-              type="text"
-              [value]="editTitleValue()"
-              (input)="onTitleInput($event)"
-              (blur)="onTitleSave()"
-              (keydown.enter)="onTitleSave()"
-              (keydown.escape)="onTitleCancel()"
-              (click)="$event.stopPropagation()"
-              maxlength="200"
-              aria-label="Edit task title"
-              class="w-full text-sm font-semibold mb-2.5
-                     bg-[var(--card)] text-[var(--card-foreground)]
-                     border border-[var(--border)] rounded-md px-2 py-1
-                     focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-0
-                     transition-shadow duration-150"
-            />
-          }
+          <!-- Title (inline edit sub-component) -->
+          <app-task-card-title-edit
+            [task]="task()"
+            [isEditing]="isEditingTitle()"
+            (titleChanged)="onTitleChanged($event)"
+            (editStarted)="onTitleEditStart()"
+            (editCancelled)="onTitleEditEnd()"
+          />
 
           <!-- Description preview (1 line, only when non-empty) -->
           @if (
@@ -1146,13 +1093,17 @@ export class TaskCardComponent {
   deleteRequested = output<string>();
 
   isEditingTitle = signal(false);
-  editTitleValue = signal('');
-  titleInput = viewChild<ElementRef>('titleInput');
-  private isSaving = false;
 
   @ViewChild('cardMenu') cardMenu!: TieredMenu;
 
   contextMenuItems: MenuItem[] = [];
+
+  private readonly priorityOrder: string[] = [
+    'low',
+    'medium',
+    'high',
+    'urgent',
+  ];
 
   get priorityColors() {
     return getPriorityColor(this.task().priority);
@@ -1163,86 +1114,38 @@ export class TaskCardComponent {
   }
 
   get dueDateColors(): { class: string; chipClass: string } {
-    return getDueDateColor(this.task().due_date);
+    return getDueDateColors(this.task().due_date);
   }
 
   getBorderColor(): string {
-    const colors: Record<string, string> = {
-      urgent: '#ef4444',
-      high: '#f97316',
-      medium: '#eab308',
-      low: '#3b82f6',
-    };
-    return colors[this.task().priority] || '#9ca3af';
+    return getBorderColor(this.task().priority);
   }
 
   getPriorityFlagColor(): string {
-    return PRIORITY_FLAG_COLORS[this.task().priority] || '#9ca3af';
+    return getPriorityFlagColor(this.task().priority);
   }
 
   formatDueDate(date: string): string {
-    const dueDate = new Date(date);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    if (isToday(date)) {
-      return 'Today';
-    }
-
-    if (
-      dueDate.getDate() === tomorrow.getDate() &&
-      dueDate.getMonth() === tomorrow.getMonth() &&
-      dueDate.getFullYear() === tomorrow.getFullYear()
-    ) {
-      return 'Tomorrow';
-    }
-
-    if (isOverdue(date)) {
-      return 'Overdue';
-    }
-
-    return dueDate.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
+    return formatDueDate(date);
   }
 
   getInitials(name: string): string {
-    return name
-      .split(' ')
-      .map((n) => n.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+    return getInitials(name);
   }
 
   getOverflowLabelsTooltip(): string {
-    const labels = this.task().labels;
-    if (!labels || labels.length <= 2) return '';
-    return labels
-      .slice(2)
-      .map((l) => l.name)
-      .join(', ');
+    return getOverflowLabelsTooltip(this.task().labels);
   }
 
   getAvatarGradient(index: number): string {
-    const gradients = [
-      'linear-gradient(135deg, #6366f1, #8b5cf6)',
-      'linear-gradient(135deg, #3b82f6, #06b6d4)',
-      'linear-gradient(135deg, #f59e0b, #ef4444)',
-      'linear-gradient(135deg, #10b981, #14b8a6)',
-    ];
-    return gradients[index % gradients.length];
+    return getAvatarGradient(index);
   }
 
   onCardClick(event: MouseEvent): void {
-    // Only emit if not dragging
     if ((event.target as HTMLElement).closest('.cdk-drag-preview')) {
       return;
     }
 
-    // Ctrl/Cmd+click for bulk selection
     if (event.ctrlKey || event.metaKey) {
       event.preventDefault();
       this.selectionToggled.emit(this.task().id);
@@ -1260,22 +1163,15 @@ export class TaskCardComponent {
   onRightClick(event: MouseEvent): void {
     event.preventDefault();
     event.stopPropagation();
-    this.buildContextMenu();
+    this.rebuildContextMenu();
     this.cardMenu.toggle(event);
   }
 
   onMenuToggle(event: Event): void {
     event.stopPropagation();
-    this.buildContextMenu();
+    this.rebuildContextMenu();
     this.cardMenu.toggle(event);
   }
-
-  private readonly priorityOrder: string[] = [
-    'low',
-    'medium',
-    'high',
-    'urgent',
-  ];
 
   openQuickEdit(event: Event, field: QuickEditField): void {
     if (!this.quickEditService) return;
@@ -1298,116 +1194,33 @@ export class TaskCardComponent {
     });
   }
 
-  onTitleEditStart(event: MouseEvent): void {
-    event.stopPropagation();
-    this.isSaving = false;
-    this.editTitleValue.set(this.task().title);
+  onTitleEditStart(): void {
     this.isEditingTitle.set(true);
-    setTimeout(() => {
-      const el = this.titleInput()?.nativeElement as
-        | HTMLInputElement
-        | undefined;
-      el?.select();
-    }, 0);
   }
 
-  onTitleInput(event: Event): void {
-    this.editTitleValue.set((event.target as HTMLInputElement).value);
-  }
-
-  onTitleSave(): void {
-    if (this.isSaving) return;
-    const newTitle = this.editTitleValue().trim();
-    if (!newTitle) {
-      this.onTitleCancel();
-      return;
-    }
-    if (newTitle !== this.task().title) {
-      this.isSaving = true;
-      this.titleChanged.emit({ taskId: this.task().id, title: newTitle });
-    }
+  onTitleEditEnd(): void {
     this.isEditingTitle.set(false);
   }
 
-  onTitleCancel(): void {
-    this.isSaving = false;
-    this.isEditingTitle.set(false);
+  onTitleChanged(event: { taskId: string; title: string }): void {
+    this.titleChanged.emit(event);
   }
 
-  private buildContextMenu(): void {
-    const priorities = [
-      { label: 'Urgent', value: 'urgent', color: PRIORITY_COLORS['urgent'] },
-      { label: 'High', value: 'high', color: PRIORITY_COLORS['high'] },
-      { label: 'Medium', value: 'medium', color: PRIORITY_COLORS['medium'] },
-      { label: 'Low', value: 'low', color: PRIORITY_COLORS['low'] },
-    ];
-
-    this.contextMenuItems = [
+  private rebuildContextMenu(): void {
+    this.contextMenuItems = buildContextMenu(
+      this.task(),
+      this.columns(),
+      this.statusTransitions(),
       {
-        label: 'Set Priority',
-        icon: 'pi pi-flag',
-        items: priorities.map((p) => ({
-          label: p.label,
-          command: () =>
-            this.priorityChanged.emit({
-              taskId: this.task().id,
-              priority: p.value,
-            }),
-        })),
+        onPriorityChanged: (taskId, priority) =>
+          this.priorityChanged.emit({ taskId, priority }),
+        onColumnMoveRequested: (taskId, columnId) =>
+          this.columnMoveRequested.emit({ taskId, columnId }),
+        onDuplicateRequested: (taskId) =>
+          this.duplicateRequested.emit(taskId),
+        onDeleteRequested: (taskId) =>
+          this.deleteRequested.emit(taskId),
       },
-      {
-        label: 'Move to Column',
-        icon: 'pi pi-arrow-right',
-        items: this.columns()
-          .filter((col) => col.id !== (this.task().status_id ?? this.task().column_id))
-          .map((col) => {
-            const currentStatusId =
-              this.task().status_id ?? this.task().column_id ?? '';
-            const allowed = this.statusTransitions()[currentStatusId];
-            const isAllowed =
-              allowed === null || allowed === undefined
-                ? true
-                : allowed.includes(col.id);
-            return {
-              label: col.name,
-              disabled: !isAllowed,
-              styleClass: isAllowed ? '' : 'opacity-50',
-              command: () => {
-                if (isAllowed) {
-                  this.columnMoveRequested.emit({
-                    taskId: this.task().id,
-                    columnId: col.id,
-                  });
-                }
-              },
-            };
-          }),
-      },
-      {
-        label: 'Duplicate',
-        icon: 'pi pi-copy',
-        command: () => this.duplicateRequested.emit(this.task().id),
-      },
-      {
-        label: 'Copy Link',
-        icon: 'pi pi-link',
-        command: () => {
-          const url = `${window.location.origin}/task/${this.task().id}`;
-          navigator.clipboard.writeText(url);
-        },
-      },
-      { separator: true },
-      {
-        label: 'Delete',
-        icon: 'pi pi-trash',
-        disabled: false,
-        style: { color: 'var(--red-500)' },
-        command: () => {
-          if (confirm(`Delete "${this.task().title}"?`)) {
-            this.deleteRequested.emit(this.task().id);
-          }
-        },
-      },
-    ];
+    );
   }
 }
