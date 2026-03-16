@@ -18,6 +18,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
+use taskflow_db::models::WorkspaceMemberRole;
 
 // ============================================================================
 // DTOs
@@ -134,16 +135,32 @@ async fn export_workspace(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
+    // Determine if this user can see member emails (Owner/Admin only)
+    let user_role = taskflow_db::queries::workspaces::get_workspace_member_role(
+        &state.db,
+        workspace_id,
+        auth.0.user_id,
+    )
+    .await?;
+    let can_see_emails = matches!(
+        user_role,
+        Some(WorkspaceMemberRole::Owner) | Some(WorkspaceMemberRole::Admin)
+    );
+
     match query.format.as_str() {
-        "csv" => export_csv(&state.db, workspace_id).await,
-        "json" => export_json(&state.db, workspace_id).await,
+        "csv" => export_csv(&state.db, workspace_id, can_see_emails).await,
+        "json" => export_json(&state.db, workspace_id, can_see_emails).await,
         _ => Err(AppError::BadRequest(
             "Invalid format. Use 'csv' or 'json'.".into(),
         )),
     }
 }
 
-async fn export_json(db: &sqlx::PgPool, workspace_id: Uuid) -> Result<Response> {
+async fn export_json(
+    db: &sqlx::PgPool,
+    workspace_id: Uuid,
+    can_see_emails: bool,
+) -> Result<Response> {
     let ws: WsRow = sqlx::query_as(
         "SELECT id, name, description FROM workspaces WHERE id = $1 AND deleted_at IS NULL",
     )
@@ -228,7 +245,11 @@ async fn export_json(db: &sqlx::PgPool, workspace_id: Uuid) -> Result<Response> 
             .into_iter()
             .map(|m| ExportMember {
                 name: m.name,
-                email: m.email,
+                email: if can_see_emails {
+                    m.email
+                } else {
+                    "[redacted]".to_string()
+                },
                 role: m.role,
             })
             .collect(),
@@ -249,7 +270,11 @@ async fn export_json(db: &sqlx::PgPool, workspace_id: Uuid) -> Result<Response> 
     Ok(Json(export).into_response())
 }
 
-async fn export_csv(db: &sqlx::PgPool, workspace_id: Uuid) -> Result<Response> {
+async fn export_csv(
+    db: &sqlx::PgPool,
+    workspace_id: Uuid,
+    _can_see_emails: bool,
+) -> Result<Response> {
     let ws_name: Option<String> =
         sqlx::query_scalar("SELECT name FROM workspaces WHERE id = $1 AND deleted_at IS NULL")
             .bind(workspace_id)

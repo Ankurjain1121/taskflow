@@ -187,7 +187,7 @@ describe('authInterceptor', () => {
         return of(successResponse);
       };
 
-      mockAuthService.refresh.mockReturnValue(of({ access_token: 'new' }));
+      mockAuthService.refresh.mockReturnValue(of({ csrf_token: 'csrf', user: {} }));
 
       let receivedResponse: HttpResponse<unknown> | undefined;
 

@@ -29,6 +29,9 @@ pub enum AppError {
     #[error("Validation error: {0}")]
     ValidationError(String),
 
+    #[error("Too many requests: {0}")]
+    TooManyRequests(String),
+
     #[error("Service unavailable: {0}")]
     ServiceUnavailable(String),
 
@@ -68,6 +71,11 @@ impl IntoResponse for AppError {
             AppError::ValidationError(msg) => (
                 StatusCode::UNPROCESSABLE_ENTITY,
                 "VALIDATION_ERROR",
+                msg.clone(),
+            ),
+            AppError::TooManyRequests(msg) => (
+                StatusCode::TOO_MANY_REQUESTS,
+                "TOO_MANY_REQUESTS",
                 msg.clone(),
             ),
             AppError::ServiceUnavailable(msg) => (

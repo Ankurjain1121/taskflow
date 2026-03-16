@@ -3562,6 +3562,7 @@ dependencies = [
  "tokio",
  "tracing",
  "ts-rs",
+ "url",
  "uuid",
 ]
 

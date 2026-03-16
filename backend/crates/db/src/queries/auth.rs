@@ -97,6 +97,25 @@ pub async fn revoke_refresh_token(pool: &PgPool, token_id: Uuid) -> Result<(), s
     Ok(())
 }
 
+/// Revoke all refresh tokens for a user (sign-out-all)
+pub async fn revoke_all_user_refresh_tokens(
+    pool: &PgPool,
+    user_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        UPDATE refresh_tokens
+        SET revoked_at = NOW()
+        WHERE user_id = $1 AND revoked_at IS NULL
+        "#,
+    )
+    .bind(user_id)
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
 /// Create a new user with a new tenant (for self-registration)
 ///
 /// Wrapped in a transaction so that a failed user insert does not leave an orphaned tenant.

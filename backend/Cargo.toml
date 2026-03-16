@@ -55,6 +55,9 @@ dashmap = "6"
 # S3/MinIO
 aws-sdk-s3 = { version = "1", features = ["behavior-version-latest"] }
 
+# URL parsing
+url = "2"
+
 # Regex
 regex = "1"
 once_cell = "1"
