@@ -92,11 +92,12 @@ async fn get_recent_activity_handler(
     tenant: TenantContext,
     Query(query): Query<RecentActivityQuery>,
 ) -> Result<Json<Vec<DashboardActivityEntry>>> {
+    let limit = query.limit.clamp(1, 50);
     let activity = get_recent_activity(
         &state.db,
         tenant.user_id,
         tenant.tenant_id,
-        query.limit,
+        limit,
         query.workspace_id,
     )
     .await?;
@@ -129,8 +130,8 @@ async fn get_overdue_tasks_handler(
     tenant: TenantContext,
     Query(query): Query<RecentActivityQuery>,
 ) -> Result<Json<Vec<OverdueTask>>> {
-    let data =
-        get_overdue_tasks(&state.db, tenant.user_id, query.limit, query.workspace_id).await?;
+    let limit = query.limit.clamp(1, 50);
+    let data = get_overdue_tasks(&state.db, tenant.user_id, limit, query.workspace_id).await?;
     Ok(Json(data))
 }
 
@@ -140,8 +141,8 @@ async fn get_completion_trend_handler(
     tenant: TenantContext,
     Query(query): Query<TrendQuery>,
 ) -> Result<Json<Vec<CompletionTrendPoint>>> {
-    let data =
-        get_completion_trend(&state.db, tenant.user_id, query.days, query.workspace_id).await?;
+    let days = query.days.clamp(1, 365);
+    let data = get_completion_trend(&state.db, tenant.user_id, days, query.workspace_id).await?;
     Ok(Json(data))
 }
 
@@ -151,8 +152,8 @@ async fn get_upcoming_deadlines_handler(
     tenant: TenantContext,
     Query(query): Query<DeadlinesQuery>,
 ) -> Result<Json<Vec<UpcomingDeadline>>> {
-    let data =
-        get_upcoming_deadlines(&state.db, tenant.user_id, query.days, query.workspace_id).await?;
+    let days = query.days.clamp(1, 365);
+    let data = get_upcoming_deadlines(&state.db, tenant.user_id, days, query.workspace_id).await?;
     Ok(Json(data))
 }
 

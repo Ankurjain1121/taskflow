@@ -97,7 +97,8 @@ async fn get_deliveries_handler(
     Path(webhook_id): Path<Uuid>,
     Query(query): Query<DeliveriesQuery>,
 ) -> Result<Json<Vec<taskflow_db::models::WebhookDelivery>>> {
-    let deliveries = get_webhook_deliveries(&state.db, webhook_id, tenant.user_id, query.limit)
+    let limit = query.limit.clamp(1, 100);
+    let deliveries = get_webhook_deliveries(&state.db, webhook_id, tenant.user_id, limit)
         .await
         .map_err(map_webhook_error)?;
 
@@ -108,7 +109,10 @@ async fn get_deliveries_handler(
 pub fn webhook_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/projects/{board_id}/webhooks", get(list_webhooks_handler))
-        .route("/projects/{board_id}/webhooks", post(create_webhook_handler))
+        .route(
+            "/projects/{board_id}/webhooks",
+            post(create_webhook_handler),
+        )
         .route("/webhooks/{id}", put(update_webhook_handler))
         .route("/webhooks/{id}", delete(delete_webhook_handler))
         .route("/webhooks/{id}/deliveries", get(get_deliveries_handler))

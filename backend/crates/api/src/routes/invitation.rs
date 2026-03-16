@@ -4,6 +4,7 @@
 
 use axum::{
     extract::{Path, Query, State},
+    middleware::from_fn_with_state,
     routing::{delete, get, post},
     Json, Router,
 };
@@ -20,6 +21,7 @@ use taskflow_services::{spawn_automation_evaluation, TriggerContext};
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
+use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
 // ============================================================================
@@ -164,6 +166,13 @@ pub async fn create_handler(
     auth: AuthUserExtractor,
     Json(payload): Json<CreateInvitationRequest>,
 ) -> Result<Json<InvitationResponse>> {
+    // Verify the user is a member of the target workspace
+    let is_member =
+        workspaces::is_workspace_member(&state.db, payload.workspace_id, auth.0.user_id).await?;
+    if !is_member {
+        return Err(AppError::Forbidden("Not a member of this workspace".into()));
+    }
+
     // Validate email
     if payload.email.is_empty() || !payload.email.contains('@') {
         return Err(AppError::BadRequest("Invalid email address".into()));
@@ -480,6 +489,13 @@ pub async fn bulk_create_handler(
     auth: AuthUserExtractor,
     Json(payload): Json<BulkCreateInvitationRequest>,
 ) -> Result<Json<BulkCreateInvitationResponse>> {
+    // Verify the user is a member of the target workspace
+    let is_member =
+        workspaces::is_workspace_member(&state.db, payload.workspace_id, auth.0.user_id).await?;
+    if !is_member {
+        return Err(AppError::Forbidden("Not a member of this workspace".into()));
+    }
+
     if payload.emails.is_empty() {
         return Err(AppError::BadRequest(
             "At least one email is required".into(),
@@ -706,14 +722,19 @@ pub async fn resend_handler(
 /// - GET /all (with workspace_id query param)
 /// - DELETE /{id}
 /// - POST /{id}/resend
-pub fn invitation_router() -> Router<AppState> {
-    Router::new()
+pub fn invitation_router(state: AppState) -> Router<AppState> {
+    let protected = Router::new()
         .route("/", post(create_handler))
         .route("/", get(list_handler))
         .route("/bulk", post(bulk_create_handler))
         .route("/all", get(list_all_handler))
-        .route("/validate/{token}", get(validate_handler))
-        .route("/accept", post(accept_handler))
         .route("/{id}", delete(delete_handler))
         .route("/{id}/resend", post(resend_handler))
+        .layer(from_fn_with_state(state.clone(), auth_middleware));
+
+    let public = Router::new()
+        .route("/validate/{token}", get(validate_handler))
+        .route("/accept", post(accept_handler));
+
+    protected.merge(public)
 }

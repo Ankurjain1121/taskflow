@@ -169,22 +169,20 @@ async fn create_comment_handler(
         let author_name = comment.author_name.clone();
         tokio::spawn(async move {
             // Fetch task title for notification body
-            let task_title: String = sqlx::query_scalar(
-                "SELECT title FROM tasks WHERE id = $1 AND deleted_at IS NULL",
-            )
-            .bind(task_id)
-            .fetch_optional(&db)
-            .await
-            .ok()
-            .flatten()
-            .unwrap_or_else(|| "a task".to_string());
+            let task_title: String =
+                sqlx::query_scalar("SELECT title FROM tasks WHERE id = $1 AND deleted_at IS NULL")
+                    .bind(task_id)
+                    .fetch_optional(&db)
+                    .await
+                    .ok()
+                    .flatten()
+                    .unwrap_or_else(|| "a task".to_string());
 
             for user_id in mentioned_user_ids {
                 if user_id != author_id {
                     // Create persistent in-app notification
                     let notif_title = format!("{} mentioned you", author_name);
-                    let notif_body =
-                        format!("in a comment on \"{}\"", task_title);
+                    let notif_body = format!("in a comment on \"{}\"", task_title);
                     let link_url = format!("/task/{}", task_id);
                     let _ = sqlx::query(
                         r#"INSERT INTO notifications (id, recipient_id, event_type, title, body, link_url)
