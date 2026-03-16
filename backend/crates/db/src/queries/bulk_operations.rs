@@ -270,15 +270,7 @@ async fn verify_board_membership(
     board_id: Uuid,
     user_id: Uuid,
 ) -> Result<(), TaskQueryError> {
-    let is_member = sqlx::query_scalar::<_, bool>(
-        "SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)",
-    )
-    .bind(board_id)
-    .bind(user_id)
-    .fetch_one(pool)
-    .await?;
-
-    if !is_member {
+    if !super::membership::verify_project_membership(pool, board_id, user_id).await? {
         return Err(TaskQueryError::NotProjectMember);
     }
     Ok(())

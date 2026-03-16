@@ -33,7 +33,7 @@ pub struct CreateBoardShareInput {
     pub permissions: Option<serde_json::Value>,
 }
 
-use super::verify_project_membership_internal;
+use super::membership::verify_project_membership;
 
 /// Generate a unique share token using UUIDs
 fn generate_share_token() -> String {
@@ -50,7 +50,7 @@ pub async fn list_board_shares(
     board_id: Uuid,
     user_id: Uuid,
 ) -> Result<Vec<BoardShare>, BoardShareQueryError> {
-    if !verify_project_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(BoardShareQueryError::NotBoardMember);
     }
 
@@ -80,7 +80,7 @@ pub async fn create_board_share(
     user_id: Uuid,
     tenant_id: Uuid,
 ) -> Result<BoardShare, BoardShareQueryError> {
-    if !verify_project_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(BoardShareQueryError::NotBoardMember);
     }
 
@@ -145,7 +145,7 @@ pub async fn delete_board_share(
             .await?
             .ok_or(BoardShareQueryError::NotFound)?;
 
-    if !verify_project_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(BoardShareQueryError::NotBoardMember);
     }
 
@@ -171,7 +171,7 @@ pub async fn toggle_board_share(
             .await?
             .ok_or(BoardShareQueryError::NotFound)?;
 
-    if !verify_project_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(BoardShareQueryError::NotBoardMember);
     }
 

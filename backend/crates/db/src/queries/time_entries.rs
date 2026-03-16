@@ -116,20 +116,7 @@ pub struct TimesheetSummary {
     pub total_cost_cents: i64,
 }
 
-/// Verify user is a member of a project
-pub(crate) async fn verify_project_membership(
-    pool: &PgPool,
-    project_id: Uuid,
-    user_id: Uuid,
-) -> Result<bool, sqlx::Error> {
-    sqlx::query_scalar::<_, bool>(
-        r#"SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)"#,
-    )
-    .bind(project_id)
-    .bind(user_id)
-    .fetch_one(pool)
-    .await
-}
+use super::membership::verify_project_membership;
 
 /// List all time entries for a task (verifies board membership)
 pub async fn list_task_time_entries(

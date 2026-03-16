@@ -51,7 +51,7 @@ pub struct TemplateWithDetails {
     pub tasks: Vec<ProjectTemplateTask>,
 }
 
-use super::verify_project_membership_internal;
+use super::membership::verify_project_membership;
 
 /// List all templates accessible to a tenant (own templates + public ones)
 pub async fn list_templates(
@@ -218,7 +218,7 @@ pub async fn save_board_as_template(
     tenant_id: Uuid,
 ) -> Result<ProjectTemplate, ProjectTemplateQueryError> {
     // Verify user is a member of the board
-    if !verify_project_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(ProjectTemplateQueryError::NotBoardMember);
     }
 

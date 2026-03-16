@@ -51,27 +51,7 @@ pub struct MilestoneWithProgress {
     pub completed_tasks: i64,
 }
 
-/// Verify user is a member of the board
-async fn verify_board_membership(
-    pool: &PgPool,
-    board_id: Uuid,
-    user_id: Uuid,
-) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query_scalar::<_, bool>(
-        r#"
-        SELECT EXISTS(
-            SELECT 1 FROM project_members
-            WHERE project_id = $1 AND user_id = $2
-        )
-        "#,
-    )
-    .bind(board_id)
-    .bind(user_id)
-    .fetch_one(pool)
-    .await?;
-
-    Ok(result)
-}
+use super::membership::verify_project_membership;
 
 /// List all milestones for a board with progress info
 pub async fn list_milestones(
@@ -79,7 +59,7 @@ pub async fn list_milestones(
     board_id: Uuid,
     user_id: Uuid,
 ) -> Result<Vec<MilestoneWithProgress>, MilestoneQueryError> {
-    if !verify_board_membership(pool, board_id, user_id).await? {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(MilestoneQueryError::NotBoardMember);
     }
 
@@ -153,7 +133,7 @@ pub async fn get_milestone(
     .ok_or(MilestoneQueryError::NotFound)?;
 
     // Verify board membership
-    if !verify_board_membership(pool, milestone.project_id, user_id).await? {
+    if !verify_project_membership(pool, milestone.project_id, user_id).await? {
         return Err(MilestoneQueryError::NotBoardMember);
     }
 
@@ -168,7 +148,7 @@ pub async fn create_milestone(
     tenant_id: Uuid,
     user_id: Uuid,
 ) -> Result<Milestone, MilestoneQueryError> {
-    if !verify_board_membership(pool, board_id, user_id).await? {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(MilestoneQueryError::NotBoardMember);
     }
 

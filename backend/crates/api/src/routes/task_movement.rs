@@ -10,13 +10,14 @@ use crate::state::AppState;
 use taskflow_db::models::automation::AutomationTrigger;
 use taskflow_db::models::{Task, WsBoardEvent};
 use taskflow_db::queries::{
-    get_task_assignee_ids, get_task_project_id, move_task, validate_transition,
+    get_task_assignee_ids, get_task_board_id, get_task_status_id, is_done_status, move_task,
+    validate_transition,
 };
 use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
 
 use super::common::verify_project_membership;
 use super::task_helpers::{
-    broadcast_workspace_task_update, get_workspace_id_for_project, MoveTaskRequest,
+    broadcast_workspace_task_update, get_workspace_id_for_board, MoveTaskRequest,
 };
 
 /// POST /api/tasks/:id/move
@@ -28,7 +29,7 @@ pub async fn move_task_handler(
     Json(body): Json<MoveTaskRequest>,
 ) -> Result<Json<Task>> {
     // Get task's board_id for authorization
-    let board_id = get_task_project_id(&state.db, task_id)
+    let board_id = get_task_board_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
@@ -36,12 +37,7 @@ pub async fn move_task_handler(
     verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     // Capture previous status_id for automation trigger + blueprint validation
-    let previous_status_id = sqlx::query_scalar::<_, Uuid>(
-        "SELECT status_id FROM tasks WHERE id = $1 AND deleted_at IS NULL",
-    )
-    .bind(task_id)
-    .fetch_optional(&state.db)
-    .await?;
+    let previous_status_id = get_task_status_id(&state.db, task_id).await?;
 
     // Validate blueprint transition before moving
     if let Some(from_status_id) = previous_status_id {
@@ -69,14 +65,14 @@ pub async fn move_task_handler(
     };
 
     if let Err(e) = broadcast_service
-        .broadcast_project_event(board_id, &event)
+        .broadcast_board_event(board_id, &event)
         .await
     {
         tracing::error!("Failed to broadcast task moved event: {}", e);
     }
 
     // Broadcast workspace update for team overview (task move can change status)
-    if let Ok(Some(workspace_id)) = get_workspace_id_for_project(&state.db, board_id).await {
+    if let Ok(Some(workspace_id)) = get_workspace_id_for_board(&state.db, board_id).await {
         let assignee_ids = get_task_assignee_ids(&state.db, task_id)
             .await
             .unwrap_or_default();
@@ -108,20 +104,11 @@ pub async fn move_task_handler(
     );
 
     // Check if the task was moved to a "done" status - trigger TaskCompleted
-    let is_done_status = sqlx::query_scalar::<_, bool>(
-        r#"
-        SELECT type = 'done'
-        FROM project_statuses WHERE id = $1
-        "#,
-    )
-    .bind(body.status_id)
-    .fetch_optional(&state.db)
-    .await
-    .ok()
-    .flatten()
-    .unwrap_or(false);
+    let is_done = is_done_status(&state.db, body.status_id)
+        .await
+        .unwrap_or(false);
 
-    if is_done_status {
+    if is_done {
         spawn_automation_evaluation(
             state.db.clone(),
             state.redis.clone(),

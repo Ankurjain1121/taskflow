@@ -130,27 +130,7 @@ pub async fn validate_transition(
     }
 }
 
-/// Verify user is a member of the project
-pub(crate) async fn verify_board_membership(
-    pool: &PgPool,
-    project_id: Uuid,
-    user_id: Uuid,
-) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query_scalar::<_, bool>(
-        r#"
-        SELECT EXISTS(
-            SELECT 1 FROM project_members
-            WHERE project_id = $1 AND user_id = $2
-        )
-        "#,
-    )
-    .bind(project_id)
-    .bind(user_id)
-    .fetch_one(pool)
-    .await?;
-
-    Ok(result)
-}
+use super::membership::verify_project_membership;
 
 /// List tasks for a project, grouped by status_id (capped at 1000 rows).
 /// Returns HashMap<status_id, Vec<Task>>
@@ -160,7 +140,7 @@ pub async fn list_tasks_by_board(
     user_id: Uuid,
 ) -> Result<HashMap<Uuid, Vec<Task>>, TaskQueryError> {
     // First verify user is a project member
-    if !verify_board_membership(pool, project_id, user_id).await? {
+    if !verify_project_membership(pool, project_id, user_id).await? {
         return Err(TaskQueryError::NotProjectMember);
     }
 
@@ -223,7 +203,7 @@ pub async fn get_task_by_id(
     };
 
     // Verify user is a project member
-    if !verify_board_membership(pool, task.project_id, user_id).await? {
+    if !verify_project_membership(pool, task.project_id, user_id).await? {
         return Err(TaskQueryError::NotProjectMember);
     }
 
@@ -795,6 +775,101 @@ pub async fn list_child_tasks(
     .fetch_all(pool)
     .await?;
     Ok(children)
+}
+
+/// Fetch a full Task row by ID (non-deleted).
+/// Used when callers need the complete task for broadcasting or diffing.
+pub async fn get_task_row(pool: &PgPool, task_id: Uuid) -> Result<Option<Task>, sqlx::Error> {
+    sqlx::query_as::<_, Task>(
+        r#"
+        SELECT
+            id, title, description, priority,
+            due_date, start_date, estimated_hours,
+            project_id, status_id, task_list_id, position,
+            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
+            tenant_id, created_by_id, deleted_at, created_at, updated_at,
+            version, parent_task_id, depth
+        FROM tasks
+        WHERE id = $1 AND deleted_at IS NULL
+        "#,
+    )
+    .bind(task_id)
+    .fetch_optional(pool)
+    .await
+}
+
+/// Fetch the current status_id for a task (non-deleted).
+pub async fn get_task_status_id(
+    pool: &PgPool,
+    task_id: Uuid,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    sqlx::query_scalar::<_, Uuid>(
+        "SELECT status_id FROM tasks WHERE id = $1 AND deleted_at IS NULL",
+    )
+    .bind(task_id)
+    .fetch_optional(pool)
+    .await
+}
+
+/// Check whether a project status has type = 'done'.
+pub async fn is_done_status(pool: &PgPool, status_id: Uuid) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT type = 'done'
+        FROM project_statuses WHERE id = $1
+        "#,
+    )
+    .bind(status_id)
+    .fetch_optional(pool)
+    .await
+    .map(|opt| opt.unwrap_or(false))
+}
+
+/// Find the first status with type = 'done' for a project.
+pub async fn find_done_status(
+    pool: &PgPool,
+    project_id: Uuid,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    sqlx::query_scalar(
+        r#"
+        SELECT id FROM project_statuses
+        WHERE project_id = $1 AND type = 'done'
+        ORDER BY position ASC
+        LIMIT 1
+        "#,
+    )
+    .bind(project_id)
+    .fetch_optional(pool)
+    .await
+}
+
+/// Find the first status with type != 'done' for a project.
+pub async fn find_non_done_status(
+    pool: &PgPool,
+    project_id: Uuid,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    sqlx::query_scalar(
+        r#"
+        SELECT id FROM project_statuses
+        WHERE project_id = $1 AND type != 'done'
+        ORDER BY position ASC
+        LIMIT 1
+        "#,
+    )
+    .bind(project_id)
+    .fetch_optional(pool)
+    .await
+}
+
+/// Get a user's display_name by ID.
+pub async fn get_user_display_name(
+    pool: &PgPool,
+    user_id: Uuid,
+) -> Result<Option<String>, sqlx::Error> {
+    sqlx::query_scalar("SELECT display_name FROM users WHERE id = $1")
+        .bind(user_id)
+        .fetch_optional(pool)
+        .await
 }
 
 #[cfg(test)]

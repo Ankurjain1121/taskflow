@@ -82,7 +82,7 @@ fn build_calc_config(
 }
 
 /// Internal helper: get task's board_id
-async fn get_task_project_id_internal(
+async fn get_task_board_id_internal(
     pool: &PgPool,
     task_id: Uuid,
 ) -> Result<Uuid, RecurringQueryError> {
@@ -99,7 +99,7 @@ async fn get_task_project_id_internal(
     Ok(board_id)
 }
 
-use super::verify_project_membership_internal;
+use super::membership::verify_project_membership;
 
 /// Add one calendar month to a DateTime, clamping to month-end if needed.
 fn add_months(from: DateTime<Utc>, months: u32) -> DateTime<Utc> {
@@ -217,8 +217,8 @@ pub async fn get_config_for_task(
     user_id: Uuid,
 ) -> Result<RecurringTaskConfig, RecurringQueryError> {
     // Verify board membership
-    let board_id = get_task_project_id_internal(pool, task_id).await?;
-    if !verify_project_membership_internal(pool, board_id, user_id).await? {
+    let board_id = get_task_board_id_internal(pool, task_id).await?;
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(RecurringQueryError::NotBoardMember);
     }
 
@@ -268,10 +268,10 @@ pub async fn create_config(
     tenant_id: Uuid,
 ) -> Result<RecurringTaskConfig, RecurringQueryError> {
     // Verify task exists and get board_id
-    let board_id = get_task_project_id_internal(pool, task_id).await?;
+    let board_id = get_task_board_id_internal(pool, task_id).await?;
 
     // Verify board membership
-    if !verify_project_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(RecurringQueryError::NotBoardMember);
     }
 
@@ -386,7 +386,7 @@ pub async fn update_config(
     .ok_or(RecurringQueryError::NotFound)?;
 
     // Verify board membership
-    if !verify_project_membership_internal(pool, existing.project_id, user_id).await? {
+    if !verify_project_membership(pool, existing.project_id, user_id).await? {
         return Err(RecurringQueryError::NotBoardMember);
     }
 
@@ -510,7 +510,7 @@ pub async fn delete_config(
     .ok_or(RecurringQueryError::NotFound)?;
 
     // Verify board membership
-    if !verify_project_membership_internal(pool, existing.project_id, user_id).await? {
+    if !verify_project_membership(pool, existing.project_id, user_id).await? {
         return Err(RecurringQueryError::NotBoardMember);
     }
 
