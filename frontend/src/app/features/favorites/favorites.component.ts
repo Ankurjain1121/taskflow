@@ -19,18 +19,18 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
   imports: [CommonModule, RouterLink, EmptyStateComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-[var(--secondary)] dark:bg-gray-900">
+    <div class="min-h-screen bg-[var(--secondary)]">
       <header
-        class="bg-[var(--card)] dark:bg-gray-800 shadow-sm border-b border-[var(--border)] dark:border-gray-700"
+        class="bg-[var(--card)] shadow-sm border-b border-[var(--border)]"
       >
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <h1
-            class="text-2xl font-bold text-[var(--card-foreground)] dark:text-white"
+            class="text-2xl font-bold text-[var(--card-foreground)]"
           >
             Favorites
           </h1>
           <p
-            class="text-[var(--muted-foreground)] dark:text-gray-400 mt-1 text-sm"
+            class="text-[var(--muted-foreground)] mt-1 text-sm"
           >
             Quick access to your starred tasks and boards
           </p>
@@ -42,7 +42,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
           <div class="space-y-3">
             @for (i of [1, 2, 3, 4, 5]; track i) {
               <div
-                class="bg-[var(--card)] dark:bg-gray-800 rounded-lg border border-[var(--border)] dark:border-gray-700 p-4"
+                class="bg-[var(--card)] rounded-lg border border-[var(--border)] p-4"
               >
                 <div class="flex items-center gap-3">
                   <div class="skeleton w-8 h-8 rounded"></div>
@@ -59,7 +59,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
           </div>
         } @else if (error()) {
           <div
-            class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-sm text-red-700 dark:text-red-400"
+            class="bg-[var(--status-red-bg)] border border-[var(--status-red-border)] rounded-lg p-4 text-sm text-[var(--status-red-text)]"
           >
             {{ error() }}
           </div>
@@ -70,14 +70,14 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
           @if (taskItems().length > 0) {
             <div class="mb-8">
               <h2
-                class="text-sm font-semibold text-[var(--muted-foreground)] dark:text-gray-400 uppercase tracking-wider mb-3"
+                class="text-sm font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-3"
               >
                 Tasks ({{ taskItems().length }})
               </h2>
               <div class="space-y-2">
                 @for (item of taskItems(); track item.id) {
                   <div
-                    class="bg-[var(--card)] dark:bg-gray-800 rounded-lg border border-[var(--border)] dark:border-gray-700 p-4 flex items-center gap-3 hover:border-primary/30 transition-colors group"
+                    class="bg-[var(--card)] rounded-lg border border-[var(--border)] p-4 flex items-center gap-3 hover:border-primary/30 transition-colors group"
                   >
                     <svg
                       class="w-5 h-5 text-primary flex-shrink-0"
@@ -101,13 +101,13 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
                             'project',
                             item.board_id,
                           ]"
-                          class="text-sm font-medium text-[var(--card-foreground)] dark:text-white hover:text-primary truncate block"
+                          class="text-sm font-medium text-[var(--card-foreground)] hover:text-primary truncate block"
                         >
                           {{ item.name }}
                         </a>
                       } @else {
                         <span
-                          class="text-sm font-medium text-[var(--card-foreground)] dark:text-white truncate block"
+                          class="text-sm font-medium text-[var(--card-foreground)] truncate block"
                           >{{ item.name }}</span
                         >
                       }
@@ -136,14 +136,14 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
           @if (boardItems().length > 0) {
             <div>
               <h2
-                class="text-sm font-semibold text-[var(--muted-foreground)] dark:text-gray-400 uppercase tracking-wider mb-3"
+                class="text-sm font-semibold text-[var(--muted-foreground)] uppercase tracking-wider mb-3"
               >
                 Boards ({{ boardItems().length }})
               </h2>
               <div class="space-y-2">
                 @for (item of boardItems(); track item.id) {
                   <div
-                    class="bg-[var(--card)] dark:bg-gray-800 rounded-lg border border-[var(--border)] dark:border-gray-700 p-4 flex items-center gap-3 hover:border-primary/30 transition-colors group"
+                    class="bg-[var(--card)] rounded-lg border border-[var(--border)] p-4 flex items-center gap-3 hover:border-primary/30 transition-colors group"
                   >
                     <svg
                       class="w-5 h-5 text-emerald-500 flex-shrink-0"
@@ -167,13 +167,13 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
                             'project',
                             item.entity_id,
                           ]"
-                          class="text-sm font-medium text-[var(--card-foreground)] dark:text-white hover:text-primary truncate block"
+                          class="text-sm font-medium text-[var(--card-foreground)] hover:text-primary truncate block"
                         >
                           {{ item.name }}
                         </a>
                       } @else {
                         <span
-                          class="text-sm font-medium text-[var(--card-foreground)] dark:text-white truncate block"
+                          class="text-sm font-medium text-[var(--card-foreground)] truncate block"
                           >{{ item.name }}</span
                         >
                       }

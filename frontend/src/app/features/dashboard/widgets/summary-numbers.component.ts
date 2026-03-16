@@ -112,14 +112,26 @@ export interface SummaryStats {
 export class SummaryNumbersComponent {
   stats = input.required<SummaryStats>();
 
+  private getCssVar(name: string, fallback: string): string {
+    return (
+      getComputedStyle(document.documentElement)
+        .getPropertyValue(name)
+        .trim() || fallback
+    );
+  }
+
   cards = computed(() => {
     const s = this.stats();
+    const primaryColor = this.getCssVar('--primary', '#6366f1');
+    const successColor = this.getCssVar('--success', '#22c55e');
+    const destructiveColor = this.getCssVar('--destructive', '#ef4444');
+    const ringColor = this.getCssVar('--ring', '#8b5cf6');
     return [
       {
         label: 'Total Tasks',
         value: s.totalTasks,
         isPercentage: false,
-        color: '#6366f1',
+        color: primaryColor,
         iconPath:
           'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
         trend: 0,
@@ -129,7 +141,7 @@ export class SummaryNumbersComponent {
         label: 'Completed This Week',
         value: s.completedThisWeek,
         isPercentage: false,
-        color: '#22c55e',
+        color: successColor,
         iconPath: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
         trend:
           s.completedLastWeek > 0
@@ -143,7 +155,7 @@ export class SummaryNumbersComponent {
         label: 'Overdue',
         value: s.overdueTasks,
         isPercentage: false,
-        color: '#ef4444',
+        color: destructiveColor,
         iconPath:
           'M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z',
         trend:
@@ -156,7 +168,7 @@ export class SummaryNumbersComponent {
         label: 'Completion Rate',
         value: s.completionRate,
         isPercentage: true,
-        color: '#8b5cf6',
+        color: ringColor,
         iconPath:
           'M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5',
         trend:

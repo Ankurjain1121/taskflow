@@ -106,7 +106,7 @@ export class WorkloadBalanceComponent {
       x: {
         beginAtZero: true,
         ticks: { stepSize: 1, font: { size: 11 } },
-        grid: { color: 'rgba(0,0,0,0.04)' },
+        grid: { color: 'rgba(128,128,128,0.08)' },
         title: { display: true, text: 'Tasks', font: { size: 11 } },
       },
       y: {

@@ -58,7 +58,7 @@ export function getPriorityIcon(priority: TaskPriority): string {
 }
 
 export function getDueDateDisplayColor(dateStr: string): string {
-  if (isOverdue(dateStr)) return '#dc2626';
-  if (isToday(dateStr)) return '#d97706';
+  if (isOverdue(dateStr)) return 'var(--status-red-text)';
+  if (isToday(dateStr)) return 'var(--status-amber-text)';
   return 'var(--foreground)';
 }

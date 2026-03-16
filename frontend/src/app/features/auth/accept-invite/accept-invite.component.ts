@@ -365,7 +365,7 @@ type PageState =
 
                 @if (errorMessage()) {
                   <div
-                    class="mb-5 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-start gap-2"
+                    class="mb-5 p-3.5 bg-[var(--status-red-bg)] border border-[var(--status-red-border)] text-[var(--status-red-text)] rounded-xl text-sm flex items-start gap-2"
                   >
                     <i
                       class="pi pi-exclamation-circle text-red-500 shrink-0"

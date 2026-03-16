@@ -82,10 +82,10 @@ import { AdminService, TrashItem } from '../../../core/services/admin.service';
         <!-- Error State -->
         @if (error()) {
           <div
-            class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 mb-6"
+            class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3 mb-6"
           >
             <svg
-              class="w-5 h-5 text-red-600 flex-shrink-0"
+              class="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -96,10 +96,10 @@ import { AdminService, TrashItem } from '../../../core/services/admin.service';
               />
             </svg>
             <div>
-              <p class="text-sm font-medium text-red-800">{{ error() }}</p>
+              <p class="text-sm font-medium text-red-800 dark:text-red-300">{{ error() }}</p>
               <button
                 (click)="loadTrashItems()"
-                class="text-sm text-red-600 hover:text-red-800 underline mt-1"
+                class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 underline mt-1"
               >
                 Try again
               </button>
@@ -595,9 +595,9 @@ export class AdminTrashComponent implements OnInit, OnDestroy {
     const baseClasses = 'w-8 h-8 rounded flex items-center justify-center';
 
     const typeColors: Record<string, string> = {
-      task: 'bg-blue-100 text-blue-600',
-      board: 'bg-purple-100 text-purple-600',
-      workspace: 'bg-green-100 text-green-600',
+      task: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+      board: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
+      workspace: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
     };
 
     return `${baseClasses} ${typeColors[entityType] || 'bg-[var(--secondary)] text-[var(--muted-foreground)]'}`;
@@ -656,9 +656,9 @@ export class AdminTrashComponent implements OnInit, OnDestroy {
     const diffMs = expires.getTime() - now.getTime();
     const diffDays = Math.ceil(diffMs / 86400000);
 
-    if (diffDays <= 0) return `${baseClasses} bg-red-100 text-red-800`;
-    if (diffDays <= 3) return `${baseClasses} bg-orange-100 text-orange-800`;
-    if (diffDays <= 7) return `${baseClasses} bg-yellow-100 text-yellow-800`;
+    if (diffDays <= 0) return `${baseClasses} bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300`;
+    if (diffDays <= 3) return `${baseClasses} bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300`;
+    if (diffDays <= 7) return `${baseClasses} bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300`;
     return `${baseClasses} bg-[var(--secondary)] text-[var(--card-foreground)]`;
   }
 }

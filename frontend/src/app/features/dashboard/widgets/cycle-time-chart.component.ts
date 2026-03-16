@@ -108,7 +108,7 @@ export class CycleTimeChartComponent {
       y: {
         beginAtZero: true,
         ticks: { font: { size: 11 } },
-        grid: { color: 'rgba(0,0,0,0.04)' },
+        grid: { color: 'rgba(128,128,128,0.08)' },
         title: { display: true, text: 'Days', font: { size: 11 } },
       },
     },
