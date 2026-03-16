@@ -518,21 +518,13 @@ mod tests {
     use super::*;
     use crate::models::TaskPriority;
     use crate::queries::{auth, boards, tasks, workspaces};
+    use crate::test_helpers::test_pool;
     use chrono::Duration;
-    use sqlx::PgPool;
 
     const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
 
     fn unique_email() -> String {
         format!("inttest-time-{}@example.com", Uuid::new_v4())
-    }
-
-    async fn test_pool() -> PgPool {
-        let url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgresql://taskflow@localhost:5433/taskflow".to_string());
-        PgPool::connect(&url)
-            .await
-            .expect("Failed to connect to test database")
     }
 
     async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {

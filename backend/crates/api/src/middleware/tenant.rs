@@ -145,11 +145,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_set_tenant_context_sets_session_variable() {
-        let pool = PgPool::connect(
-            "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow",
-        )
-        .await
-        .expect("test db connection");
+        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let pool = PgPool::connect(&database_url)
+            .await
+            .expect("test db connection");
 
         let tenant_id = Uuid::new_v4();
 
@@ -176,11 +175,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_with_tenant_executes_closure() {
-        let pool = PgPool::connect(
-            "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow",
-        )
-        .await
-        .expect("test db connection");
+        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let pool = PgPool::connect(&database_url)
+            .await
+            .expect("test db connection");
 
         let tenant_id = Uuid::new_v4();
 
@@ -200,7 +198,7 @@ mod tests {
     #[tokio::test]
     async fn test_with_tenant_tx_executes_and_commits() {
         let pool = PgPool::connect(
-            "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow",
+            &std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests"),
         )
         .await
         .expect("test db connection");
@@ -230,7 +228,7 @@ mod tests {
     #[tokio::test]
     async fn test_set_tenant_context_helper() {
         let pool = PgPool::connect(
-            "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow",
+            &std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests"),
         )
         .await
         .expect("test db connection");
@@ -253,7 +251,7 @@ mod tests {
     #[tokio::test]
     async fn test_tenant_context_is_transaction_scoped() {
         let pool = PgPool::connect(
-            "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow",
+            &std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests"),
         )
         .await
         .expect("test db connection");

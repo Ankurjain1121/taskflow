@@ -1,3 +1,12 @@
+/// Create a test database connection pool from DATABASE_URL environment variable.
+/// Panics if DATABASE_URL is not set — never use hardcoded credentials.
+pub async fn test_pool() -> sqlx::PgPool {
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests");
+    sqlx::PgPool::connect(&database_url)
+        .await
+        .expect("Failed to connect to test database")
+}
+
 #[cfg(test)]
 pub mod fixtures {
     use uuid::Uuid;

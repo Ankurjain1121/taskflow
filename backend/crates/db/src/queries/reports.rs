@@ -126,7 +126,7 @@ async fn get_completion_rate(pool: &PgPool, board_id: Uuid) -> Result<Completion
             ) as completed
         FROM tasks t
         LEFT JOIN project_statuses ps ON ps.id = t.status_id
-        WHERE t.project_id = $1 AND t.deleted_at IS NULL
+        WHERE t.project_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
         "#,
     )
     .bind(board_id)
@@ -146,40 +146,44 @@ async fn get_burndown(
     board_id: Uuid,
     days_back: i32,
 ) -> Result<Vec<BurndownPoint>, sqlx::Error> {
-    // For each day in the range, count tasks that were created before that day
-    // and not yet completed (moved to done column) before that day.
-    // Simplified approach: count all non-deleted tasks created on or before each date,
-    // minus tasks in done columns that were last updated before that date.
-    // Even simpler: just count remaining (non-done) tasks as of each day using activity_log.
-    //
-    // Simplest approach: generate date series, for each date count tasks
-    // where created_at <= date AND (not done OR completed after date).
-    // Since we don't track completion time separately, we'll use a simpler metric:
-    // tasks created up to each date as "total scope", and current completion rate applied.
-    //
-    // Most practical approach: count tasks created per day (cumulative) as the top line.
+    // Pre-aggregate daily task counts (created and completed) in CTEs,
+    // then use cumulative window functions. This scans the tasks table once
+    // instead of once per day in the date series.
     let points = sqlx::query_as::<_, BurndownPoint>(
         r#"
-        WITH date_series AS (
-            SELECT generate_series(
+        WITH daily_created AS (
+            SELECT created_at::date AS day, COUNT(*) AS cnt
+            FROM tasks
+            WHERE project_id = $1 AND deleted_at IS NULL AND parent_task_id IS NULL
+            GROUP BY 1
+        ),
+        daily_done AS (
+            SELECT t.created_at::date AS day, COUNT(*) AS cnt
+            FROM tasks t
+            LEFT JOIN project_statuses ps ON ps.id = t.status_id
+            WHERE t.project_id = $1 AND t.deleted_at IS NULL AND ps.type = 'done' AND t.parent_task_id IS NULL
+            GROUP BY 1
+        ),
+        series AS (
+            SELECT d::date AS day
+            FROM generate_series(
                 CURRENT_DATE - ($2 || ' days')::interval,
                 CURRENT_DATE,
                 '1 day'::interval
-            )::date AS date
+            ) d
+        ),
+        joined AS (
+            SELECT
+                s.day,
+                COALESCE(SUM(dc.cnt) OVER (ORDER BY s.day), 0)
+                - COALESCE(SUM(dd.cnt) OVER (ORDER BY s.day), 0) AS remaining
+            FROM series s
+            LEFT JOIN daily_created dc ON dc.day = s.day
+            LEFT JOIN daily_done dd ON dd.day = s.day
         )
-        SELECT
-            ds.date,
-            (
-                SELECT COUNT(*)
-                FROM tasks t
-                LEFT JOIN project_statuses ps ON ps.id = t.status_id
-                WHERE t.project_id = $1
-                  AND t.deleted_at IS NULL
-                  AND t.created_at::date <= ds.date
-                  AND (ps.type IS DISTINCT FROM 'done')
-            ) AS remaining
-        FROM date_series ds
-        ORDER BY ds.date
+        SELECT day AS date, remaining
+        FROM joined
+        ORDER BY day
         "#,
     )
     .bind(board_id)
@@ -201,7 +205,7 @@ async fn get_priority_distribution(
             priority::text as priority,
             COUNT(*) as count
         FROM tasks
-        WHERE project_id = $1 AND deleted_at IS NULL
+        WHERE project_id = $1 AND deleted_at IS NULL AND parent_task_id IS NULL
         GROUP BY priority
         ORDER BY
             CASE priority::text
@@ -238,7 +242,7 @@ async fn get_assignee_workload(
         JOIN users u ON u.id = ta.user_id
         JOIN tasks t ON t.id = ta.task_id
         LEFT JOIN project_statuses ps ON ps.id = t.status_id
-        WHERE t.project_id = $1 AND t.deleted_at IS NULL
+        WHERE t.project_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
         GROUP BY u.id, u.name, u.avatar_url
         ORDER BY total_tasks DESC
         "#,
@@ -270,6 +274,7 @@ async fn get_overdue_analysis(
             AND t.deleted_at IS NULL
             AND t.due_date < NOW()
             AND (ps.type IS DISTINCT FROM 'done')
+            AND t.parent_task_id IS NULL
         "#,
     )
     .bind(board_id)
@@ -308,16 +313,9 @@ mod tests {
     use super::*;
     use crate::models::TaskPriority;
     use crate::queries::{auth, boards, tasks, workspaces};
+    use crate::test_helpers::test_pool;
 
     const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
-
-    async fn test_pool() -> sqlx::PgPool {
-        sqlx::PgPool::connect(
-            "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow",
-        )
-        .await
-        .expect("Failed to connect to test database")
-    }
 
     fn unique_email() -> String {
         format!("inttest-rp-{}@example.com", Uuid::new_v4())

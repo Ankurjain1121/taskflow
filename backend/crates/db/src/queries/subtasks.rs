@@ -122,51 +122,36 @@ pub async fn update_subtask(
     assigned_to_id: Option<Option<Uuid>>,
     due_date: Option<Option<NaiveDate>>,
 ) -> Result<Subtask, SubtaskQueryError> {
-    // Build SET clause dynamically based on which fields are provided
-    let mut set_parts = vec!["updated_at = NOW()".to_string()];
-    let mut param_idx = 2u32; // $1 is subtask_id
-
-    if title.is_some() {
-        set_parts.push(format!("title = ${param_idx}"));
-        param_idx += 1;
-    }
-    if assigned_to_id.is_some() {
-        set_parts.push(format!("assigned_to_id = ${param_idx}"));
-        param_idx += 1;
-    }
-    if due_date.is_some() {
-        set_parts.push(format!("due_date = ${param_idx}"));
-        // param_idx not needed after last use
-    }
-
-    let query = format!(
+    // Fixed parameter positions (no dynamic param_idx tracking):
+    // $1 = subtask_id
+    // $2 = title (NULL means "don't update")         — COALESCE($2::text, title)
+    // $3 = update_assigned flag (bool)               — CASE WHEN $3 THEN $4::uuid ELSE assigned_to_id END
+    // $4 = assigned_to_id value (may be NULL)
+    // $5 = update_due_date flag (bool)               — CASE WHEN $5 THEN $6::date ELSE due_date END
+    // $6 = due_date value (may be NULL)
+    let subtask = sqlx::query_as::<_, Subtask>(
         r#"
         UPDATE subtasks
-        SET {}
+        SET
+            title = COALESCE($2::text, title),
+            assigned_to_id = CASE WHEN $3::boolean THEN $4::uuid ELSE assigned_to_id END,
+            due_date = CASE WHEN $5::boolean THEN $6::date ELSE due_date END,
+            updated_at = NOW()
         WHERE id = $1
         RETURNING
             id, title, is_completed, position, task_id, created_by_id,
             assigned_to_id, due_date, completed_at, created_at, updated_at
         "#,
-        set_parts.join(", ")
-    );
-
-    let mut q = sqlx::query_as::<_, Subtask>(&query).bind(subtask_id);
-
-    if let Some(t) = title {
-        q = q.bind(t);
-    }
-    if let Some(a) = assigned_to_id {
-        q = q.bind(a);
-    }
-    if let Some(d) = due_date {
-        q = q.bind(d);
-    }
-
-    let subtask = q
-        .fetch_optional(pool)
-        .await?
-        .ok_or(SubtaskQueryError::NotFound)?;
+    )
+    .bind(subtask_id)
+    .bind(title)
+    .bind(assigned_to_id.is_some())
+    .bind(assigned_to_id.flatten())
+    .bind(due_date.is_some())
+    .bind(due_date.flatten())
+    .fetch_optional(pool)
+    .await?
+    .ok_or(SubtaskQueryError::NotFound)?;
 
     Ok(subtask)
 }
@@ -408,16 +393,9 @@ struct SubtaskPromoteRow {
 mod tests {
     use super::*;
     use crate::queries::{auth, boards, tasks, workspaces};
+    use crate::test_helpers::test_pool;
 
     const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
-
-    async fn test_pool() -> sqlx::PgPool {
-        sqlx::PgPool::connect(&std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgresql://taskflow_app:dev_password@10.0.2.1:5432/taskflow".to_string()
-        }))
-        .await
-        .expect("Failed to connect to test database")
-    }
 
     fn unique_email() -> String {
         format!("inttest-st-{}@example.com", Uuid::new_v4())

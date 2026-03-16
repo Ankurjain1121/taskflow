@@ -363,16 +363,9 @@ mod tests {
     use super::*;
     use crate::models::{CustomFieldType, TaskPriority, UserRole};
     use crate::queries::{auth, boards, tasks, workspaces};
+    use crate::test_helpers::test_pool;
 
     const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
-
-    async fn test_pool() -> PgPool {
-        PgPool::connect(&std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgresql://taskflow_app:dev_password@10.0.2.1:5432/taskflow".to_string()
-        }))
-        .await
-        .expect("Failed to connect to test database")
-    }
 
     fn unique_email() -> String {
         format!("inttest-cf-{}@example.com", Uuid::new_v4())
