@@ -51,7 +51,7 @@ pub struct UpdateRuleInput {
     pub actions: Option<Vec<CreateActionInput>>,
 }
 
-use super::verify_project_membership_internal;
+use super::membership::verify_project_membership;
 
 /// Internal helper: get the board_id for a rule
 async fn get_rule_board_id_internal(
@@ -103,7 +103,7 @@ pub async fn list_rules(
     board_id: Uuid,
     user_id: Uuid,
 ) -> Result<Vec<AutomationRuleWithActions>, AutomationQueryError> {
-    if !verify_project_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(AutomationQueryError::NotBoardMember);
     }
 
@@ -173,7 +173,7 @@ pub async fn get_rule(
     .await?
     .ok_or(AutomationQueryError::NotFound)?;
 
-    if !verify_project_membership_internal(pool, rule.project_id, user_id).await? {
+    if !verify_project_membership(pool, rule.project_id, user_id).await? {
         return Err(AutomationQueryError::NotBoardMember);
     }
 
@@ -191,7 +191,7 @@ pub async fn create_rule(
     user_id: Uuid,
     tenant_id: Uuid,
 ) -> Result<AutomationRuleWithActions, AutomationQueryError> {
-    if !verify_project_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(AutomationQueryError::NotBoardMember);
     }
 
@@ -277,7 +277,7 @@ pub async fn update_rule(
 ) -> Result<AutomationRuleWithActions, AutomationQueryError> {
     let board_id = get_rule_board_id_internal(pool, rule_id).await?;
 
-    if !verify_project_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(AutomationQueryError::NotBoardMember);
     }
 
@@ -392,7 +392,7 @@ pub async fn delete_rule(
 ) -> Result<(), AutomationQueryError> {
     let board_id = get_rule_board_id_internal(pool, rule_id).await?;
 
-    if !verify_project_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(AutomationQueryError::NotBoardMember);
     }
 
@@ -423,7 +423,7 @@ pub async fn get_rule_logs(
 ) -> Result<Vec<AutomationLog>, AutomationQueryError> {
     let board_id = get_rule_board_id_internal(pool, rule_id).await?;
 
-    if !verify_project_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(AutomationQueryError::NotBoardMember);
     }
 

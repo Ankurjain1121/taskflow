@@ -57,8 +57,8 @@ pub async fn list_dependencies(
     user_id: Uuid,
 ) -> Result<Vec<DependencyWithTask>, DependencyQueryError> {
     // Verify user has access to the task's board
-    let board_id = get_task_project_id_internal(pool, task_id).await?;
-    if !verify_project_membership_internal(pool, board_id, user_id).await? {
+    let board_id = get_task_board_id_internal(pool, task_id).await?;
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(DependencyQueryError::NotBoardMember);
     }
 
@@ -109,8 +109,8 @@ pub async fn create_dependency(
     user_id: Uuid,
 ) -> Result<DependencyWithTask, DependencyQueryError> {
     // Get board IDs for both tasks
-    let source_board_id = get_task_project_id_internal(pool, source_task_id).await?;
-    let target_board_id = get_task_project_id_internal(pool, input.target_task_id).await?;
+    let source_board_id = get_task_board_id_internal(pool, source_task_id).await?;
+    let target_board_id = get_task_board_id_internal(pool, input.target_task_id).await?;
 
     // Verify same board
     if source_board_id != target_board_id {
@@ -118,7 +118,7 @@ pub async fn create_dependency(
     }
 
     // Verify user is a board member
-    if !verify_project_membership_internal(pool, source_board_id, user_id).await? {
+    if !verify_project_membership(pool, source_board_id, user_id).await? {
         return Err(DependencyQueryError::NotBoardMember);
     }
 
@@ -266,7 +266,7 @@ pub async fn get_board_dependencies(
     user_id: Uuid,
 ) -> Result<Vec<DependencyWithTask>, DependencyQueryError> {
     // Verify user is a board member
-    if !verify_project_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(DependencyQueryError::NotBoardMember);
     }
 
@@ -301,7 +301,7 @@ pub async fn get_board_dependencies(
 }
 
 /// Internal helper: get task's board_id
-async fn get_task_project_id_internal(
+async fn get_task_board_id_internal(
     pool: &PgPool,
     task_id: Uuid,
 ) -> Result<Uuid, DependencyQueryError> {
@@ -318,4 +318,4 @@ async fn get_task_project_id_internal(
     Ok(board_id)
 }
 
-use super::verify_project_membership_internal;
+use super::membership::verify_project_membership;

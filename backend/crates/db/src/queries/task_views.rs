@@ -5,7 +5,8 @@ use uuid::Uuid;
 
 use crate::models::TaskPriority;
 
-use super::tasks::{verify_board_membership, TaskQueryError};
+use super::membership::verify_project_membership;
+use super::tasks::TaskQueryError;
 
 /// Flat list of tasks for list view (with enriched data)
 #[derive(Debug, Serialize, sqlx::FromRow)]
@@ -28,34 +29,15 @@ pub struct TaskListItem {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Paginated response for task list items
-#[derive(Debug, Serialize)]
-pub struct PaginatedTaskList {
-    pub items: Vec<TaskListItem>,
-    pub next_cursor: Option<String>,
-}
-
-/// Paginated response for gantt tasks
-#[derive(Debug, Serialize)]
-pub struct PaginatedGanttTasks {
-    pub items: Vec<GanttTask>,
-    pub next_cursor: Option<String>,
-}
-
-/// List all tasks for a board as a flat list with column names (cursor-based pagination)
+/// List all tasks for a board as a flat list with column names
 pub async fn list_tasks_flat(
     pool: &PgPool,
     board_id: Uuid,
     user_id: Uuid,
-    cursor: Option<Uuid>,
-    limit: i64,
-) -> Result<PaginatedTaskList, TaskQueryError> {
-    if !verify_board_membership(pool, board_id, user_id).await? {
+) -> Result<Vec<TaskListItem>, TaskQueryError> {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(TaskQueryError::NotProjectMember);
     }
-
-    let limit = limit.clamp(1, 200);
-    let fetch_limit = limit + 1;
 
     let tasks = sqlx::query_as::<_, TaskListItem>(
         r#"
@@ -74,26 +56,14 @@ pub async fn list_tasks_flat(
         JOIN project_statuses ps ON ps.id = t.status_id
         LEFT JOIN task_lists tl ON tl.id = t.task_list_id
         WHERE t.project_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
-          AND ($2::uuid IS NULL OR t.id < $2)
-        ORDER BY t.created_at DESC, t.id DESC
-        LIMIT $3
+        ORDER BY t.created_at DESC
         "#,
     )
     .bind(board_id)
-    .bind(cursor)
-    .bind(fetch_limit)
     .fetch_all(pool)
     .await?;
 
-    let has_more = tasks.len() > limit as usize;
-    let items: Vec<TaskListItem> = tasks.into_iter().take(limit as usize).collect();
-    let next_cursor = if has_more {
-        items.last().map(|item| item.id.to_string())
-    } else {
-        None
-    };
-
-    Ok(PaginatedTaskList { items, next_cursor })
+    Ok(tasks)
 }
 
 /// Calendar task for date-based views
@@ -118,7 +88,7 @@ pub async fn list_tasks_for_calendar(
     start: DateTime<Utc>,
     end: DateTime<Utc>,
 ) -> Result<Vec<CalendarTask>, TaskQueryError> {
-    if !verify_board_membership(pool, board_id, user_id).await? {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(TaskQueryError::NotProjectMember);
     }
 
@@ -166,20 +136,15 @@ pub struct GanttTask {
     pub milestone_id: Option<Uuid>,
 }
 
-/// List tasks for a board that have dates (for Gantt chart, cursor-based pagination)
+/// List tasks for a board that have dates (for Gantt chart)
 pub async fn list_tasks_for_gantt(
     pool: &PgPool,
     board_id: Uuid,
     user_id: Uuid,
-    cursor: Option<Uuid>,
-    limit: i64,
-) -> Result<PaginatedGanttTasks, TaskQueryError> {
-    if !verify_board_membership(pool, board_id, user_id).await? {
+) -> Result<Vec<GanttTask>, TaskQueryError> {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(TaskQueryError::NotProjectMember);
     }
-
-    let limit = limit.clamp(1, 200);
-    let fetch_limit = limit + 1;
 
     let tasks = sqlx::query_as::<_, GanttTask>(
         r#"
@@ -197,24 +162,12 @@ pub async fn list_tasks_for_gantt(
             AND t.deleted_at IS NULL
             AND t.parent_task_id IS NULL
             AND (t.start_date IS NOT NULL OR t.due_date IS NOT NULL)
-            AND ($2::uuid IS NULL OR t.id > $2)
-        ORDER BY COALESCE(t.start_date, t.due_date) ASC, t.id ASC
-        LIMIT $3
+        ORDER BY COALESCE(t.start_date, t.due_date) ASC
         "#,
     )
     .bind(board_id)
-    .bind(cursor)
-    .bind(fetch_limit)
     .fetch_all(pool)
     .await?;
 
-    let has_more = tasks.len() > limit as usize;
-    let items: Vec<GanttTask> = tasks.into_iter().take(limit as usize).collect();
-    let next_cursor = if has_more {
-        items.last().map(|item| item.id.to_string())
-    } else {
-        None
-    };
-
-    Ok(PaginatedGanttTasks { items, next_cursor })
+    Ok(tasks)
 }

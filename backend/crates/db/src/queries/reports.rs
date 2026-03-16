@@ -61,27 +61,7 @@ pub struct BoardReport {
     pub overdue_analysis: Vec<OverdueBucket>,
 }
 
-/// Verify user is a member of the board
-async fn verify_board_membership(
-    pool: &PgPool,
-    board_id: Uuid,
-    user_id: Uuid,
-) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query_scalar::<_, bool>(
-        r#"
-        SELECT EXISTS(
-            SELECT 1 FROM project_members
-            WHERE project_id = $1 AND user_id = $2
-        )
-        "#,
-    )
-    .bind(board_id)
-    .bind(user_id)
-    .fetch_one(pool)
-    .await?;
-
-    Ok(result)
-}
+use super::membership::verify_project_membership;
 
 /// Get full board report
 pub async fn get_board_report(
@@ -90,7 +70,7 @@ pub async fn get_board_report(
     user_id: Uuid,
     days_back: i32,
 ) -> Result<BoardReport, ReportQueryError> {
-    if !verify_board_membership(pool, board_id, user_id).await? {
+    if !verify_project_membership(pool, board_id, user_id).await? {
         return Err(ReportQueryError::NotBoardMember);
     }
 
