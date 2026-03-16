@@ -93,6 +93,19 @@ async fn get_recent_activity_handler(
     Query(query): Query<RecentActivityQuery>,
 ) -> Result<Json<Vec<DashboardActivityEntry>>> {
     let limit = query.limit.clamp(1, 50);
+    let ws_str = query
+        .workspace_id
+        .map_or("all".to_string(), |id| id.to_string());
+    let cache_key = format!(
+        "dashboard:{}:{}:recent-activity:{}",
+        tenant.user_id, ws_str, limit
+    );
+    if let Some(cached) =
+        cache::cache_get::<Vec<DashboardActivityEntry>>(&state.redis, &cache_key).await
+    {
+        return Ok(Json(cached));
+    }
+
     let activity = get_recent_activity(
         &state.db,
         tenant.user_id,
@@ -101,6 +114,8 @@ async fn get_recent_activity_handler(
         query.workspace_id,
     )
     .await?;
+
+    cache::cache_set(&state.redis, &cache_key, &activity, 30).await;
     Ok(Json(activity))
 }
 
@@ -110,7 +125,17 @@ async fn get_tasks_by_status_handler(
     tenant: TenantContext,
     Query(filter): Query<DashboardFilter>,
 ) -> Result<Json<Vec<TasksByStatus>>> {
+    let ws_str = filter
+        .workspace_id
+        .map_or("all".to_string(), |id| id.to_string());
+    let cache_key = format!("dashboard:{}:{}:tasks-by-status", tenant.user_id, ws_str);
+    if let Some(cached) = cache::cache_get::<Vec<TasksByStatus>>(&state.redis, &cache_key).await {
+        return Ok(Json(cached));
+    }
+
     let data = get_tasks_by_status(&state.db, tenant.user_id, filter.workspace_id).await?;
+
+    cache::cache_set(&state.redis, &cache_key, &data, 30).await;
     Ok(Json(data))
 }
 
@@ -120,7 +145,17 @@ async fn get_tasks_by_priority_handler(
     tenant: TenantContext,
     Query(filter): Query<DashboardFilter>,
 ) -> Result<Json<Vec<TasksByPriority>>> {
+    let ws_str = filter
+        .workspace_id
+        .map_or("all".to_string(), |id| id.to_string());
+    let cache_key = format!("dashboard:{}:{}:tasks-by-priority", tenant.user_id, ws_str);
+    if let Some(cached) = cache::cache_get::<Vec<TasksByPriority>>(&state.redis, &cache_key).await {
+        return Ok(Json(cached));
+    }
+
     let data = get_tasks_by_priority(&state.db, tenant.user_id, filter.workspace_id).await?;
+
+    cache::cache_set(&state.redis, &cache_key, &data, 30).await;
     Ok(Json(data))
 }
 
@@ -131,7 +166,20 @@ async fn get_overdue_tasks_handler(
     Query(query): Query<RecentActivityQuery>,
 ) -> Result<Json<Vec<OverdueTask>>> {
     let limit = query.limit.clamp(1, 50);
+    let ws_str = query
+        .workspace_id
+        .map_or("all".to_string(), |id| id.to_string());
+    let cache_key = format!(
+        "dashboard:{}:{}:overdue-tasks:{}",
+        tenant.user_id, ws_str, limit
+    );
+    if let Some(cached) = cache::cache_get::<Vec<OverdueTask>>(&state.redis, &cache_key).await {
+        return Ok(Json(cached));
+    }
+
     let data = get_overdue_tasks(&state.db, tenant.user_id, limit, query.workspace_id).await?;
+
+    cache::cache_set(&state.redis, &cache_key, &data, 30).await;
     Ok(Json(data))
 }
 
@@ -142,7 +190,22 @@ async fn get_completion_trend_handler(
     Query(query): Query<TrendQuery>,
 ) -> Result<Json<Vec<CompletionTrendPoint>>> {
     let days = query.days.clamp(1, 365);
+    let ws_str = query
+        .workspace_id
+        .map_or("all".to_string(), |id| id.to_string());
+    let cache_key = format!(
+        "dashboard:{}:{}:completion-trend:{}",
+        tenant.user_id, ws_str, days
+    );
+    if let Some(cached) =
+        cache::cache_get::<Vec<CompletionTrendPoint>>(&state.redis, &cache_key).await
+    {
+        return Ok(Json(cached));
+    }
+
     let data = get_completion_trend(&state.db, tenant.user_id, days, query.workspace_id).await?;
+
+    cache::cache_set(&state.redis, &cache_key, &data, 30).await;
     Ok(Json(data))
 }
 
@@ -153,7 +216,21 @@ async fn get_upcoming_deadlines_handler(
     Query(query): Query<DeadlinesQuery>,
 ) -> Result<Json<Vec<UpcomingDeadline>>> {
     let days = query.days.clamp(1, 365);
+    let ws_str = query
+        .workspace_id
+        .map_or("all".to_string(), |id| id.to_string());
+    let cache_key = format!(
+        "dashboard:{}:{}:upcoming-deadlines:{}",
+        tenant.user_id, ws_str, days
+    );
+    if let Some(cached) = cache::cache_get::<Vec<UpcomingDeadline>>(&state.redis, &cache_key).await
+    {
+        return Ok(Json(cached));
+    }
+
     let data = get_upcoming_deadlines(&state.db, tenant.user_id, days, query.workspace_id).await?;
+
+    cache::cache_set(&state.redis, &cache_key, &data, 30).await;
     Ok(Json(data))
 }
 
