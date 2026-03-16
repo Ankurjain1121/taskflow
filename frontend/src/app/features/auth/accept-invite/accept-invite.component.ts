@@ -47,9 +47,6 @@ type PageState =
   ],
   template: `
     <div class="auth-wrapper">
-      <div class="blob blob-1"></div>
-      <div class="blob blob-2"></div>
-
       <div class="auth-container">
         <!-- Left branded panel -->
         <div class="brand-panel">
@@ -96,7 +93,7 @@ type PageState =
                   [style]="{ width: '48px', height: '48px' }"
                   strokeWidth="4"
                 />
-                <p class="text-gray-500 mt-4">Validating invitation...</p>
+                <p class="text-[var(--muted-foreground)] mt-4">Validating invitation...</p>
               </div>
             }
 
@@ -104,14 +101,14 @@ type PageState =
             @if (pageState() === 'expired') {
               <div class="text-center py-12">
                 <div
-                  class="mx-auto w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center mb-4"
+                  class="mx-auto w-16 h-16 rounded-full bg-[var(--status-amber-bg)] flex items-center justify-center mb-4"
                 >
-                  <i class="pi pi-clock text-2xl text-yellow-600"></i>
+                  <i class="pi pi-clock text-2xl text-[var(--status-amber-text)]"></i>
                 </div>
-                <h2 class="text-xl font-bold text-gray-900 mb-2">
+                <h2 class="text-xl font-bold text-[var(--foreground)] mb-2">
                   Invitation Expired
                 </h2>
-                <p class="text-gray-500 mb-6">
+                <p class="text-[var(--muted-foreground)] mb-6">
                   This invitation link has expired. Please ask the workspace
                   admin to send a new invitation.
                 </p>
@@ -127,14 +124,14 @@ type PageState =
             @if (pageState() === 'already_accepted') {
               <div class="text-center py-12">
                 <div
-                  class="mx-auto w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-4"
+                  class="mx-auto w-16 h-16 rounded-full bg-[var(--status-blue-bg)] flex items-center justify-center mb-4"
                 >
-                  <i class="pi pi-check text-2xl text-blue-600"></i>
+                  <i class="pi pi-check text-2xl text-[var(--status-blue-text)]"></i>
                 </div>
-                <h2 class="text-xl font-bold text-gray-900 mb-2">
+                <h2 class="text-xl font-bold text-[var(--foreground)] mb-2">
                   Already Accepted
                 </h2>
-                <p class="text-gray-500 mb-6">
+                <p class="text-[var(--muted-foreground)] mb-6">
                   This invitation has already been accepted. You can sign in
                   with your existing account.
                 </p>
@@ -150,14 +147,14 @@ type PageState =
             @if (pageState() === 'invalid') {
               <div class="text-center py-12">
                 <div
-                  class="mx-auto w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4"
+                  class="mx-auto w-16 h-16 rounded-full bg-[var(--status-red-bg)] flex items-center justify-center mb-4"
                 >
-                  <i class="pi pi-times text-2xl text-red-600"></i>
+                  <i class="pi pi-times text-2xl text-[var(--status-red-text)]"></i>
                 </div>
-                <h2 class="text-xl font-bold text-gray-900 mb-2">
+                <h2 class="text-xl font-bold text-[var(--foreground)] mb-2">
                   Invalid Invitation
                 </h2>
-                <p class="text-gray-500 mb-6">
+                <p class="text-[var(--muted-foreground)] mb-6">
                   This invitation link is not valid. Please check your email for
                   the correct link or contact the workspace admin.
                 </p>
@@ -173,14 +170,14 @@ type PageState =
             @if (pageState() === 'success') {
               <div class="text-center py-12">
                 <div
-                  class="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4"
+                  class="mx-auto w-16 h-16 rounded-full bg-[var(--status-green-bg)] flex items-center justify-center mb-4"
                 >
-                  <i class="pi pi-check text-2xl text-green-600"></i>
+                  <i class="pi pi-check text-2xl text-[var(--status-green-text)]"></i>
                 </div>
-                <h2 class="text-xl font-bold text-gray-900 mb-2">
+                <h2 class="text-xl font-bold text-[var(--foreground)] mb-2">
                   Account Created!
                 </h2>
-                <p class="text-gray-500 mb-6">
+                <p class="text-[var(--muted-foreground)] mb-6">
                   Your account has been set up successfully. You can now sign in
                   to access your workspace.
                 </p>
@@ -215,7 +212,7 @@ type PageState =
                     [disabled]="true"
                     class="w-full"
                   />
-                  <small class="text-gray-400"
+                  <small class="text-[var(--muted-foreground)]"
                     >Email is set by the invitation</small
                   >
                 </div>
@@ -394,7 +391,7 @@ type PageState =
               </form>
 
               <div class="form-footer">
-                <p class="text-sm text-gray-500">
+                <p class="text-sm text-[var(--muted-foreground)]">
                   Already have an account?
                   <a
                     routerLink="/auth/sign-in"
@@ -431,19 +428,6 @@ type PageState =
         animation: fadeInUp 0.5s ease-out both;
       }
 
-      @keyframes blobFloat {
-        0%,
-        100% {
-          transform: translate(0, 0) scale(1);
-        }
-        33% {
-          transform: translate(30px, -20px) scale(1.05);
-        }
-        66% {
-          transform: translate(-15px, 15px) scale(0.97);
-        }
-      }
-
       .auth-wrapper {
         min-height: 100vh;
         display: flex;
@@ -453,40 +437,6 @@ type PageState =
         padding: 1rem;
         position: relative;
         overflow: hidden;
-      }
-
-      .blob {
-        position: absolute;
-        border-radius: 50%;
-        filter: blur(80px);
-        opacity: 0.5;
-        animation: blobFloat 20s ease-in-out infinite;
-        pointer-events: none;
-      }
-
-      .blob-1 {
-        width: 500px;
-        height: 500px;
-        background: radial-gradient(
-          circle,
-          rgba(129, 140, 248, 0.3) 0%,
-          transparent 70%
-        );
-        top: -10%;
-        right: -5%;
-      }
-
-      .blob-2 {
-        width: 400px;
-        height: 400px;
-        background: radial-gradient(
-          circle,
-          rgba(167, 139, 250, 0.25) 0%,
-          transparent 70%
-        );
-        bottom: -10%;
-        left: -5%;
-        animation-delay: -7s;
       }
 
       .auth-container {

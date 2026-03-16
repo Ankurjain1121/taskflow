@@ -40,11 +40,6 @@ import { AuthService } from '../../../core/services/auth.service';
   ],
   template: `
     <div class="auth-wrapper">
-      <!-- Decorative background blobs -->
-      <div class="blob blob-1"></div>
-      <div class="blob blob-2"></div>
-      <div class="blob blob-3"></div>
-
       <div class="auth-container">
         <!-- Left branded panel -->
         <div class="brand-panel">
@@ -161,7 +156,7 @@ import { AuthService } from '../../../core/services/auth.service';
               </div>
 
               <div class="field-spacing">
-                <label for="password" class="field-label">Password</label>
+                <label for="signup-password" class="field-label">Password</label>
                 <p-password
                   inputId="signup-password"
                   formControlName="password"
@@ -203,7 +198,7 @@ import { AuthService } from '../../../core/services/auth.service';
               }
 
               <div class="field-spacing">
-                <label for="confirmPassword" class="field-label"
+                <label for="signup-confirmPassword" class="field-label"
                   >Confirm Password</label
                 >
                 <p-password
@@ -300,20 +295,6 @@ import { AuthService } from '../../../core/services/auth.service';
         animation: fadeInUp 0.5s ease-out both;
       }
 
-      /* ===== Background blobs ===== */
-      @keyframes blobFloat {
-        0%,
-        100% {
-          transform: translate(0, 0) scale(1);
-        }
-        33% {
-          transform: translate(30px, -20px) scale(1.05);
-        }
-        66% {
-          transform: translate(-15px, 15px) scale(0.97);
-        }
-      }
-
       .auth-wrapper {
         min-height: 100vh;
         display: flex;
@@ -323,55 +304,6 @@ import { AuthService } from '../../../core/services/auth.service';
         padding: 1rem;
         position: relative;
         overflow: hidden;
-      }
-
-      .blob {
-        position: absolute;
-        border-radius: 50%;
-        filter: blur(80px);
-        opacity: 0.5;
-        animation: blobFloat 20s ease-in-out infinite;
-        pointer-events: none;
-      }
-
-      .blob-1 {
-        width: 500px;
-        height: 500px;
-        background: radial-gradient(
-          circle,
-          rgba(129, 140, 248, 0.3) 0%,
-          transparent 70%
-        );
-        top: -10%;
-        right: -5%;
-        animation-delay: 0s;
-      }
-
-      .blob-2 {
-        width: 400px;
-        height: 400px;
-        background: radial-gradient(
-          circle,
-          rgba(167, 139, 250, 0.25) 0%,
-          transparent 70%
-        );
-        bottom: -10%;
-        left: -5%;
-        animation-delay: -7s;
-      }
-
-      .blob-3 {
-        width: 300px;
-        height: 300px;
-        background: radial-gradient(
-          circle,
-          rgba(99, 102, 241, 0.2) 0%,
-          transparent 70%
-        );
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        animation-delay: -14s;
       }
 
       /* ===== Main container ===== */

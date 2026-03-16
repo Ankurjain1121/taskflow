@@ -123,7 +123,7 @@ import { AuthService } from '../../../core/services/auth.service';
               </div>
 
               <div class="field-spacing">
-                <label for="password" class="field-label">Password</label>
+                <label for="signin-password" class="field-label">Password</label>
                 <p-password
                   inputId="signin-password"
                   formControlName="password"

@@ -36,7 +36,7 @@ import { AuthService } from '../../../core/services/auth.service';
 
         <div class="card-body">
           @if (!submitted) {
-            <p class="text-gray-600 text-sm mb-6 text-center">
+            <p class="text-[var(--muted-foreground)] text-sm mb-6 text-center">
               Enter your email address and we'll send you a link to reset your
               password.
             </p>
@@ -68,7 +68,7 @@ import { AuthService } from '../../../core/services/auth.service';
 
               @if (errorMessage) {
                 <div
-                  class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded"
+                  class="mb-4 p-3 bg-[var(--status-red-bg)] border border-[var(--status-red-border)] text-[var(--status-red-text)] rounded"
                 >
                   {{ errorMessage }}
                 </div>
@@ -99,7 +99,7 @@ import { AuthService } from '../../../core/services/auth.service';
                 style="font-size: 48px;"
               ></i>
               <h3 class="text-lg font-semibold mb-2">Check your email</h3>
-              <p class="text-gray-600 text-sm mb-6">
+              <p class="text-[var(--muted-foreground)] text-sm mb-6">
                 If an account with that email exists, we've sent a password
                 reset link. Please check your inbox and spam folder.
               </p>
@@ -108,7 +108,7 @@ import { AuthService } from '../../../core/services/auth.service';
         </div>
 
         <div class="card-footer">
-          <p class="text-sm text-gray-600">
+          <p class="text-sm text-[var(--muted-foreground)]">
             Remember your password?
             <a routerLink="/auth/sign-in" class="text-blue-600 hover:underline">
               Sign in

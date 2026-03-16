@@ -29,7 +29,7 @@ export interface BulkAction {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-gray-900 text-white rounded-lg shadow-2xl px-5 py-3 flex items-center gap-4"
+      class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-[var(--foreground)] text-[var(--background)] rounded-lg shadow-2xl px-5 py-3 flex items-center gap-4"
     >
       <span class="text-sm font-medium">
         {{ selectedCount() }} task{{ selectedCount() > 1 ? 's' : '' }} selected
@@ -38,12 +38,12 @@ export interface BulkAction {
         }
       </span>
 
-      <div class="w-px h-6 bg-gray-600"></div>
+      <div class="w-px h-6 bg-[var(--border)]"></div>
 
       <!-- Move to Column -->
       <div class="relative">
         <select
-          class="bg-gray-800 text-white text-sm rounded px-2 py-1.5 border border-gray-600 cursor-pointer"
+          class="bg-[var(--foreground)]/90 text-[var(--background)] text-sm rounded px-2 py-1.5 border border-[var(--border)] cursor-pointer"
           [ngModel]="''"
           (ngModelChange)="onMoveToColumn($event)"
         >
@@ -57,7 +57,7 @@ export interface BulkAction {
       <!-- Set Priority -->
       <div class="relative">
         <select
-          class="bg-gray-800 text-white text-sm rounded px-2 py-1.5 border border-gray-600 cursor-pointer"
+          class="bg-[var(--foreground)]/90 text-[var(--background)] text-sm rounded px-2 py-1.5 border border-[var(--border)] cursor-pointer"
           [ngModel]="''"
           (ngModelChange)="onSetPriority($event)"
         >
@@ -73,7 +73,7 @@ export interface BulkAction {
       @if (milestones().length > 0) {
         <div class="relative">
           <select
-            class="bg-gray-800 text-white text-sm rounded px-2 py-1.5 border border-gray-600 cursor-pointer"
+            class="bg-[var(--foreground)]/90 text-[var(--background)] text-sm rounded px-2 py-1.5 border border-[var(--border)] cursor-pointer"
             [ngModel]="''"
             (ngModelChange)="onSetMilestone($event)"
           >
@@ -90,7 +90,7 @@ export interface BulkAction {
       @if (groups().length > 1) {
         <div class="relative">
           <select
-            class="bg-gray-800 text-white text-sm rounded px-2 py-1.5 border border-gray-600 cursor-pointer"
+            class="bg-[var(--foreground)]/90 text-[var(--background)] text-sm rounded px-2 py-1.5 border border-[var(--border)] cursor-pointer"
             [ngModel]="''"
             (ngModelChange)="onMoveToGroup($event)"
           >
@@ -106,7 +106,7 @@ export interface BulkAction {
       <!-- CSV Export -->
       <button
         (click)="onExport()"
-        class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 rounded transition-colors"
+        class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[var(--muted)] hover:bg-[var(--secondary)] rounded transition-colors"
         title="Export selected tasks as CSV"
       >
         <svg
@@ -128,7 +128,7 @@ export interface BulkAction {
       <!-- Delete -->
       <button
         (click)="onDelete()"
-        class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 rounded transition-colors"
+        class="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-[var(--destructive)] hover:opacity-90 rounded transition-colors"
       >
         <svg
           class="w-4 h-4"
@@ -149,7 +149,7 @@ export interface BulkAction {
       <!-- Cancel Selection -->
       <button
         (click)="onCancel()"
-        class="ml-2 text-gray-400 hover:text-white transition-colors"
+        class="ml-2 text-[var(--background)]/60 hover:text-[var(--background)] transition-colors"
         title="Cancel selection"
       >
         <svg

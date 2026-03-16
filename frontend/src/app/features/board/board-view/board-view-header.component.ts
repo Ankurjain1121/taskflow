@@ -67,9 +67,10 @@ import { ProjectPresenceComponent } from '../../../shared/components/board-prese
           <!-- More Menu -->
           <button
             (click)="moreMenu.toggle($event)"
+            aria-label="More options"
             class="inline-flex items-center justify-center w-9 h-9 text-[var(--foreground)] bg-[var(--card)] border border-[var(--border)] rounded-md hover:bg-[var(--muted)]"
           >
-            <i class="pi pi-ellipsis-v text-sm"></i>
+            <i class="pi pi-ellipsis-v text-sm" aria-hidden="true"></i>
           </button>
           <p-menu #moreMenu [popup]="true" [model]="menuItems()" />
 

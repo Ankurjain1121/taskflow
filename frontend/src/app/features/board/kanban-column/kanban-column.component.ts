@@ -53,9 +53,10 @@ export interface TaskMoveEvent {
   template: `
     @if (isCollapsed()) {
       <!-- Collapsed Column -->
-      <div
+      <button
         (click)="collapseToggled.emit(column().id)"
-        class="flex flex-col items-center bg-[var(--muted)] rounded-lg min-h-[500px] w-[40px] flex-shrink-0 cursor-pointer hover:bg-[var(--secondary)] transition-colors"
+        [attr.aria-label]="'Expand ' + column().name + ' column'"
+        class="flex flex-col items-center text-left bg-[var(--muted)] rounded-lg min-h-[500px] w-[40px] flex-shrink-0 cursor-pointer hover:bg-[var(--secondary)] transition-colors border-none p-0"
       >
         <div
           class="h-1 w-full rounded-t-lg"
@@ -74,7 +75,7 @@ export interface TaskMoveEvent {
             {{ column().name }}
           </span>
         </div>
-      </div>
+      </button>
     } @else {
       <div
         class="flex flex-col bg-[var(--muted)] rounded-lg min-h-[500px] w-[272px] flex-shrink-0"

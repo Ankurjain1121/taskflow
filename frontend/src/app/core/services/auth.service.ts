@@ -48,14 +48,15 @@ export interface SignUpRequest {
   password: string;
 }
 
-const USER_KEY = 'taskflow_user';
+/** Only non-sensitive flags are persisted — full user comes from /auth/me */
+const AUTH_FLAG_KEY = 'taskflow_auth';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
   private readonly apiUrl = '/api/auth';
-  private _currentUser = signal<User | null>(this.loadUserFromStorage());
+  private _currentUser = signal<User | null>(null);
   private refreshResult$ = new BehaviorSubject<
     'idle' | 'pending' | 'success' | 'failed'
   >('idle');
@@ -74,8 +75,8 @@ export class AuthService {
    * Called by APP_INITIALIZER before any route guard runs.
    */
   validateSession(): Observable<boolean> {
-    const storedUser = this.loadUserFromStorage();
-    if (!storedUser) {
+    const hasSession = this.hasStoredSession();
+    if (!hasSession) {
       this._currentUser.set(null);
       return of(false);
     }
@@ -84,7 +85,7 @@ export class AuthService {
       .get<User>(`${this.apiUrl}/me`, { withCredentials: true })
       .pipe(
         map((user) => {
-          localStorage.setItem(USER_KEY, JSON.stringify(user));
+          this.storeSessionFlag();
           this._currentUser.set(user);
           return true;
         }),
@@ -194,14 +195,6 @@ export class AuthService {
     this.router.navigate(['/auth/sign-in'], { queryParams });
   }
 
-  getAccessToken(): string | null {
-    return null;
-  }
-
-  getRefreshToken(): string | null {
-    return null;
-  }
-
   isRefreshInProgress(): boolean {
     return this.refreshResult$.value === 'pending';
   }
@@ -236,7 +229,7 @@ export class AuthService {
   }): Observable<User> {
     return this.http.patch<User>(`${this.apiUrl}/me`, data).pipe(
       tap((user) => {
-        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        this.storeSessionFlag();
         this._currentUser.set(user);
       }),
     );
@@ -259,25 +252,25 @@ export class AuthService {
   }
 
   private handleAuthSuccess(response: TokenResponse): void {
-    localStorage.setItem(USER_KEY, JSON.stringify(response.user));
+    this.storeSessionFlag();
     this._currentUser.set(response.user);
   }
 
   private clearLocalState(): void {
-    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(AUTH_FLAG_KEY);
+    // Also clean up legacy key if present from older versions
+    localStorage.removeItem('taskflow_user');
     this._currentUser.set(null);
     this.refreshResult$.next('idle');
   }
 
-  private loadUserFromStorage(): User | null {
-    const userJson = localStorage.getItem(USER_KEY);
-    if (userJson) {
-      try {
-        return JSON.parse(userJson);
-      } catch {
-        return null;
-      }
-    }
-    return null;
+  /** Check if a session flag exists (no PII stored). */
+  private hasStoredSession(): boolean {
+    return localStorage.getItem(AUTH_FLAG_KEY) === '1';
+  }
+
+  /** Store a minimal non-sensitive session flag. */
+  private storeSessionFlag(): void {
+    localStorage.setItem(AUTH_FLAG_KEY, '1');
   }
 }

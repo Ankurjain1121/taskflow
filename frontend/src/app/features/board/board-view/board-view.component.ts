@@ -180,8 +180,8 @@ import { MessageService } from 'primeng/api';
       <!-- Shortcut Discovery Banner (first-visit only) -->
       <app-shortcut-discovery-banner />
 
-      <!-- Task Group Headers -->
-      @if (state.boardGroups().length > 1) {
+      <!-- Task Group Headers (kanban/other views only, not list view) -->
+      @if (state.boardGroups().length > 1 && viewMode() !== 'list') {
         <div
           class="px-4 py-2 bg-[var(--card)] border-b border-[var(--border)] space-y-1"
         >
@@ -210,6 +210,7 @@ import { MessageService } from 'primeng/api';
           @defer (when viewMode() === 'list') {
             <app-list-view
               [tasks]="state.flatTasks()"
+              [groups]="state.boardGroups()"
               [loading]="state.listLoading()"
               [columns]="state.columns()"
               (taskClicked)="state.selectedTaskId.set($event)"
@@ -217,6 +218,7 @@ import { MessageService } from 'primeng/api';
               (priorityChanged)="onListPriorityChanged($event)"
               (statusChanged)="onListStatusChanged($event)"
               (dueDateChanged)="onListDueDateChanged($event)"
+              (groupToggled)="state.toggleGroupCollapse($event)"
             ></app-list-view>
           } @placeholder {
             <div
@@ -541,15 +543,18 @@ import { MessageService } from 'primeng/api';
       <!-- Snackbar for errors -->
       @if (state.errorMessage()) {
         <div
+          role="alert"
+          aria-live="assertive"
           class="fixed bottom-4 right-4 bg-[var(--destructive)] text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3"
         >
           <span>{{ state.errorMessage() }}</span>
-          <button (click)="state.clearError()" class="hover:opacity-70">
+          <button (click)="state.clearError()" class="hover:opacity-70" aria-label="Dismiss error">
             <svg
               class="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path
                 stroke-linecap="round"
@@ -832,6 +837,18 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
   }
 
   onListStatusChanged(event: { taskId: string; statusId: string }): void {
+    // Find the target column to get status name/color for optimistic update
+    const targetColumn = this.state.columns().find((c) => c.id === event.statusId);
+    if (targetColumn) {
+      this.state.flatTasks.update((tasks) =>
+        tasks.map((t) =>
+          t.id === event.taskId
+            ? { ...t, status_id: event.statusId, status_name: targetColumn.name, status_color: targetColumn.color }
+            : t,
+        ),
+      );
+    }
+
     this.taskService
       .moveTask(event.taskId, {
         status_id: event.statusId,
@@ -839,12 +856,10 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
       })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => {
-          // Refresh list to reflect new status name/color
-          this.state.loadFlatTasks(this.boardId, this.destroy$);
-        },
         error: () => {
           this.state.showError('Failed to move task');
+          // Reload to revert optimistic update
+          this.state.loadFlatTasks(this.boardId, this.destroy$);
         },
       });
   }
