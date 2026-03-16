@@ -137,18 +137,13 @@ pub async fn get_eisenhower_matrix(
     user_id: Uuid,
     filters: &EisenhowerFilters,
 ) -> Result<EisenhowerMatrixResponse, sqlx::Error> {
-    // Build dynamic WHERE clauses
-    let mut extra_where = String::new();
-    if filters.workspace_id.is_some() {
-        extra_where.push_str(" AND b.workspace_id = $2");
-    }
-    if filters.board_id.is_some() {
-        let idx = if filters.workspace_id.is_some() { 3 } else { 2 };
-        extra_where.push_str(&format!(" AND t.project_id = ${idx}"));
-    }
-    if filters.daily {
-        extra_where.push_str(" AND t.due_date IS NOT NULL AND t.due_date::date <= CURRENT_DATE");
-    }
+    // Fixed parameter positions: $1=user_id, $2=workspace_id, $3=board_id
+    // daily filter is a static SQL fragment (no parameter needed)
+    let daily_clause = if filters.daily {
+        "AND t.due_date IS NOT NULL AND t.due_date::date <= CURRENT_DATE"
+    } else {
+        ""
+    };
 
     let query = format!(
         r#"
@@ -176,18 +171,17 @@ pub async fn get_eisenhower_matrix(
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           AND c.type != 'done'
-          {extra_where}
+          AND ($2::uuid IS NULL OR b.workspace_id = $2)
+          AND ($3::uuid IS NULL OR t.project_id = $3)
+          {daily_clause}
         ORDER BY t.due_date ASC NULLS LAST, t.created_at DESC
         "#,
     );
 
-    let mut q = sqlx::query_as::<_, EisenhowerTaskRow>(&query).bind(user_id);
-    if let Some(ws_id) = filters.workspace_id {
-        q = q.bind(ws_id);
-    }
-    if let Some(b_id) = filters.board_id {
-        q = q.bind(b_id);
-    }
+    let q = sqlx::query_as::<_, EisenhowerTaskRow>(&query)
+        .bind(user_id)
+        .bind(filters.workspace_id)
+        .bind(filters.board_id);
 
     let rows: Vec<EisenhowerTaskRow> = q.fetch_all(pool).await?;
 

@@ -107,18 +107,7 @@ pub async fn list_my_tasks(
         (MyTasksSortBy::UpdatedAt, SortOrder::Desc) => "t.updated_at DESC, t.id DESC",
     };
 
-    let mut conditions = String::new();
-    let mut param_idx = 2u32; // $1 is user_id
-
-    if board_filter.is_some() {
-        conditions.push_str(&format!(" AND t.project_id = ${}", param_idx));
-        param_idx += 1;
-    }
-    if cursor.is_some() {
-        conditions.push_str(&format!(" AND t.id > ${}", param_idx));
-        param_idx += 1;
-    }
-
+    // Fixed parameter positions: $1=user_id, $2=board_filter, $3=cursor, $4=limit
     let query_str = format!(
         r#"
         SELECT
@@ -144,21 +133,19 @@ pub async fn list_my_tasks(
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
           AND t.parent_task_id IS NULL
-          {}
+          AND ($2::uuid IS NULL OR t.project_id = $2)
+          AND ($3::uuid IS NULL OR t.id > $3)
         ORDER BY {}
-        LIMIT ${}
+        LIMIT $4
         "#,
-        conditions, order_clause, param_idx
+        order_clause
     );
 
-    let mut query = sqlx::query_as::<_, MyTaskRow>(&query_str).bind(user_id);
-    if let Some(project_id) = board_filter {
-        query = query.bind(project_id);
-    }
-    if let Some(cursor_id) = cursor {
-        query = query.bind(cursor_id);
-    }
-    query = query.bind(fetch_limit);
+    let query = sqlx::query_as::<_, MyTaskRow>(&query_str)
+        .bind(user_id)
+        .bind(board_filter)
+        .bind(cursor)
+        .bind(fetch_limit);
 
     let rows = query.fetch_all(pool).await?;
 
