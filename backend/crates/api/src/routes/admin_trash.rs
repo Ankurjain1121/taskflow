@@ -17,7 +17,7 @@ use crate::extractors::AdminUser;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
-use super::trash_queries::{
+use super::helpers::trash_queries::{
     self, EmptyTrashResponse, RestoreRequest, TrashListResponse, TrashOpResponse, TrashQuery,
     TrashScope,
 };
@@ -85,7 +85,7 @@ pub fn admin_trash_router(state: AppState) -> Router<AppState> {
 
 #[cfg(test)]
 mod tests {
-    use super::trash_queries::{RestoreRequest, TrashQuery};
+    use crate::routes::helpers::trash_queries::{RestoreRequest, TrashQuery};
 
     #[test]
     fn test_default_page_size() {

@@ -17,7 +17,7 @@ use crate::extractors::AuthUserExtractor;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
-use super::audit_queries::{self, AuditLogQuery, AuditScope};
+use super::helpers::audit_queries::{self, AuditLogQuery, AuditScope};
 
 // ============================================================================
 // Workspace-specific response DTOs (preserve original API shape)

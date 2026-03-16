@@ -7,7 +7,7 @@ import {
 import { RouterModule } from '@angular/router';
 import { Menu } from 'primeng/menu';
 import { MenuItem } from 'primeng/api';
-import { ProjectPresenceComponent } from '../../../shared/components/board-presence/board-presence.component';
+import { ProjectPresenceComponent } from '../board-presence/board-presence.component';
 
 @Component({
   selector: 'app-project-view-header',

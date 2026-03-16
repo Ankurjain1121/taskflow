@@ -19,7 +19,7 @@ use crate::extractors::AuthUserExtractor;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
-use super::trash_queries::{
+use super::helpers::trash_queries::{
     self, RestoreRequest, TrashListResponse, TrashOpResponse, TrashQuery, TrashScope,
 };
 

@@ -15,7 +15,7 @@ use crate::extractors::AdminUser;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 
-use super::audit_queries::{self, AuditLogQuery, AuditScope};
+use super::helpers::audit_queries::{self, AuditLogQuery, AuditScope};
 
 // ============================================================================
 // Route Handlers
@@ -64,7 +64,7 @@ pub fn admin_audit_router(state: AppState) -> Router<AppState> {
 
 #[cfg(test)]
 mod tests {
-    use super::audit_queries::AuditLogQuery;
+    use crate::routes::helpers::audit_queries::AuditLogQuery;
 
     #[test]
     fn test_query_params_deserialize() {

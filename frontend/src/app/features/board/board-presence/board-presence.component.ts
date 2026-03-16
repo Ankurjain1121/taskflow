@@ -8,7 +8,7 @@ import { CommonModule } from '@angular/common';
 import { Tooltip } from 'primeng/tooltip';
 import { PresenceService } from '../../../core/services/presence.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { ProjectStateService } from '../../../features/board/board-view/board-state.service';
+import { ProjectStateService } from '../board-view/board-state.service';
 
 interface ViewerDisplay {
   userId: string;
