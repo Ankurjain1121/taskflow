@@ -1,70 +1,52 @@
 Codemap Diff Report
 ===================
-Generated: 2026-02-23
-Previous: 2026-02-18 (commit dfb29e9)
-Current:  2026-02-23 (commit f6f3095)
+Generated: 2026-03-16
+Previous:  2026-03-05
 
-Status: UPDATE (5 days since last generation)
+## Changes Since Last Scan
 
-Changes detected:
-  architecture.md  - ~25% changed
-    + Fixed reverse proxy: Caddy -> nginx
-    + Added task status derivation decision
-    + Added ts-rs type generation decision
-    + Added OnPush change detection decision
-    + Updated service count: 39 -> 51+
-    + Added discover, shared-board, task-detail features
-    + Added positions feature
+### Migrations Added (7 new)
+- 20260310000001_metrics_materialized_views.sql
+- 20260311000001_bulk_operations.sql
+- 20260312000001_fix_theme_accents.sql
+- 20260313000001_subtasks_to_child_tasks.sql
+- 20260314000001_board_to_project_rename.sql
+- 20260315000001_drop_themes.sql
+- 20260316000001_projects_architecture.sql + 20260316000002_blueprint_and_billing.sql
 
-  backend.md       - ~35% changed
-    + Route files: 35+ -> 58 (new: teams, positions, sessions, tenant, upload, task_template, themes, user_preferences, workspace_api_keys)
-    + API endpoints: 100+ -> 150+
-    + Query modules: 35+ -> 38+
-    + Added extractors section
-    + Added request_id middleware
-    + Added background jobs section (automation_executor, deadline_scanner, trash_cleanup, weekly_digest)
-    + Added notification subsystem (email, slack, whatsapp)
-    + Added auth RBAC detail (workspace/board-level roles)
-    + Added WebSocket message types
+### Architecture Changes
+- boards → projects rename completed across entire codebase (routes, models, queries, frontend)
+- Sprints feature removed entirely (references cleaned up)
+- Themes table dropped (theme data moved elsewhere)
+- Subscriptions + billing schema added (LAGO/Stripe fields)
+- Project blueprints/templates refactored
+- Materialized views added for metrics (cycle time, velocity, workload)
+- Bulk operations table and routes added
 
-  frontend.md      - ~40% changed
-    + Services: 39 -> 51+ (new: session, team-groups, user-preferences, theme-api, api-key, task-template, position, upload, toast, workspace-settings-dialog)
-    + Added errorInterceptor
-    + Added discover, shared-board routes
-    + Added workspace sub-routes (team/balance, team/member/:uid)
-    + Added settings sub-routes (security, appearance)
-    + Expanded board feature tree (20+ sub-dirs)
-    + Expanded team feature tree (11 sub-components)
-    + Added workspace feature detail (settings tabs, teams, discover)
-    + Updated key dependencies versions
+### Frontend Changes
+- Feature modules: 15 → 16 (portfolio module added)
+- New shared components: spotlight-overlay, shortcut-discovery-banner, contextual-hint
+- Testing: migrated from Karma/Jasmine to Vitest + @testing-library/angular
+- Playwright updated to ^1.58.2
 
-  data.md          - ~40% changed
-    + Tables: 40 -> 45+ (new: teams, team_members, positions, position_holders, user_preferences, themes, task_templates, task_template_*)
-    + Migrations: 10 -> 21 (11 new migrations since Feb 18)
-    + Added enums: workspace_member_role, workspace_visibility
-    + Expanded enum values: recurrence_pattern (+yearly, weekdays, custom_weekly), automation_trigger (+5), automation_action_type (+5)
-    + Added positions/role-based assignment pattern
-    + Added theme system (themes table, user preference FKs)
-    + Added type generation pipeline section
-    + Updated entity relationships (teams, positions, user preferences)
+### Backend Changes
+- ~150 endpoints (up from ~130)
+- New route modules: portfolio, metrics, bulk_ops, positions, workspace job roles
+- New services: automation rate limiting, metrics refresh
+- Migration count: 40 → 47
 
-Overall diff percentage: ~35%
+### Dependencies Updated
+- @angular/* ^19.2 (was ^19.x)
+- primeng ^19.1.4
+- @tiptap/* ^3.20 (new)
+- vitest ^3.2.4 (new, replaces Karma)
+- tailwindcss ^4.1.18
 
-Files updated:
-  codemaps/architecture.md  - Overall system architecture
-  codemaps/backend.md       - Rust backend structure (150+ API endpoints, 38+ query modules)
-  codemaps/frontend.md      - Angular frontend structure (51+ services, 30+ routes)
-  codemaps/data.md          - PostgreSQL schema (45+ tables, 11 enums, 21 migrations)
+### Documentation Updated
+- `docs/CONTRIB.md` — Updated: project structure counts, 16 feature modules, 47 migrations, new scripts (monitor-memory, check-disk-usage), table renames (boards→projects), billing schema, TipTap/Vitest additions
+- `docs/RUNBOOK.md` — Updated: table references (boards→projects, themes dropped), added SQLx cache staleness fix, added refresh-metrics cron job, added monitoring scripts, added channel_gc background job, corrected host service info
 
-Coverage:
-  - 4 backend crates mapped (api, auth, db, services)
-  - 150+ API endpoints documented (58 route files)
-  - 38+ database query modules listed
-  - 51+ frontend services cataloged
-  - 30+ frontend routes mapped
-  - 45+ database tables with columns
-  - 21 migrations documented
-  - 15 Docker services documented
-  - CI/CD pipeline (5 GitHub Actions jobs)
-  - Key architectural decisions captured
-  - Type generation pipeline documented
+### Staleness Check
+All docs refreshed 2026-03-16. No files older than 90 days.
+- `docs/dark-mode-audit.html` — 24 days old (within threshold)
+- Next recommended refresh: after next major feature addition.

@@ -1,75 +1,79 @@
-<!-- Generated: 2026-03-05 | Files scanned: 40 migrations | Token estimate: ~900 -->
-
-# Data Codemap (PostgreSQL 16)
-
-## Core Tables
-
-| Table | Key Columns | Foreign Keys |
-|-------|-------------|--------------|
-| tenants | id, name, slug, plan | — |
-| users | id, email, name, password_hash, role, tenant_id | tenants |
-| refresh_tokens | id, user_id, token_hash, expires_at | users CASCADE |
-| workspaces | id, name, tenant_id, created_by_id | tenants, users |
-| workspace_members | workspace_id, user_id, role | workspaces CASCADE, users CASCADE |
-| boards | id, name, workspace_id, tenant_id, is_sample | workspaces CASCADE, tenants |
-| board_members | board_id, user_id, role | boards CASCADE, users CASCADE |
-| board_columns | id, board_id, name, position, color, icon, wip_limit | boards CASCADE |
-| tasks | id, board_id, column_id, title, priority, due_date, position, version | boards CASCADE, board_columns |
-| task_assignees | task_id, user_id | tasks CASCADE, users CASCADE |
-| labels | id, board_id, name, color | boards CASCADE |
-| task_labels | task_id, label_id | tasks CASCADE, labels CASCADE |
-| comments | id, task_id, author_id, parent_id, content, mentioned_user_ids | tasks CASCADE, users |
-| attachments | id, task_id, file_name, storage_key, mime_type | tasks CASCADE |
-| activity_log | id, action, entity_type, entity_id, user_id, metadata (JSONB) | users, tenants |
-| notifications | id, recipient_id, event_type, title, is_read, archived | users |
-
-## Entity Relationships
-
-```
-tenants 1→N users, workspaces
-workspaces 1→N boards, workspace_members
-boards 1→N board_columns, board_members, labels
-board_columns 1→N tasks
-tasks N→N users (task_assignees), N→N labels (task_labels)
-tasks 1→N comments, attachments, subtasks, task_watchers, task_reminders
-comments self-referential (parent_id) for threading
-```
-
-## Migration History (40 migrations)
-
-| Phase | Dates | Migrations | Summary |
-|-------|-------|------------|---------|
-| Initial | 2026-02-05 | 1 | Core schema: tenants, users, workspaces, boards, tasks, comments, attachments |
-| Audit | 2026-02-06 | 1 | Extended activity logging |
-| Phase 1-4 | 2026-02-09..12 | 4 | Automations, webhooks, templates, recurring tasks, subtasks, kanban |
-| Features | 2026-02-13..14 | 3 | Eisenhower matrix, task groups, favorites |
-| Performance | 2026-02-18 | 1 | Missing indexes on user_id columns |
-| Teams | 2026-02-20..22 | 8 | Settings, teams, member roles, visibility, profiles, positions |
-| Task System | 2026-02-24..26 | 7 | Task IDs, subtask enhancements, labels, filters, WIP limits, watchers, reminders |
-| Board UX | 2026-03-03..08 | 6 | Column icons, board backgrounds, owner role, recent items, notification archive, task versioning, column_entered_at, is_sample |
-| Phase J | 2026-03-09..12 | 4 | Automation templates, metrics views, bulk operations, theme accents |
-
-## Materialized Views
-
-| View | Key | Purpose |
-|------|-----|---------|
-| metrics_cycle_time_by_week | (board_id, week_start) | Avg days creation → done |
-| metrics_task_velocity | (board_id, week_start) | Tasks completed per week |
-| metrics_workload_by_person | (workspace_id, user_id) | Active/overdue/completed counts |
-
-Refresh: `refresh_metrics_views()` — concurrent refresh all 3.
-
-## Key Indexes
-
-- `idx_tasks_due_date_active(due_date) WHERE deleted_at IS NULL` — overdue queries
-- `idx_workspace_members_user(user_id)` — user workspace lookups
-- `idx_board_members_user(user_id)` — user board access
-- `idx_task_assignees_user(user_id)` — assigned task queries
+<!-- Generated: 2026-03-16 | Migrations: 47 | Token estimate: ~900 -->
+# Data
 
 ## Enums
 
-- `user_role`: admin, manager, member
-- `board_member_role`: viewer, editor
-- `task_priority`: urgent, high, medium, low
-- `activity_action`: created, updated, moved, assigned, commented, deleted, ...
-- `subscription_status`: active, trialing, past_due, cancelled, expired
+`user_role` (admin, manager, member) | `workspace_member_role` (owner, admin, member, viewer) | `board_member_role` (viewer, editor) | `task_priority` (urgent, high, medium, low) | `activity_action` (created, updated, moved, assigned, ...) | `dependency_type` (blocks, blocked_by, related) | `recurrence_pattern` (daily, weekly, biweekly, monthly, yearly, weekdays, custom, custom_weekly) | `custom_field_type` (text, number, date, dropdown, checkbox) | `automation_trigger` (12 types) | `automation_action_type` (11 types) | `subscription_status` (active, trialing, past_due, cancelled, expired)
+
+## Tables (~45)
+
+### Identity & Auth
+`tenants` (id, name, slug, plan) → `users` (email, password_hash, role, tenant_id) → `refresh_tokens`, `password_reset_tokens`, `accounts`
+
+### Workspaces
+`workspaces` (name, tenant_id, created_by_id) → `workspace_members` (role) → `workspace_api_keys`
+`invitations` (email, token, workspace_id, board_ids)
+
+### Teams
+`teams` (name, workspace_id) → `team_members` (user_id)
+
+### Projects
+`projects` (name, prefix, workspace_id, tenant_id, background_color, is_sample) → `project_members` (role, billing_rate_cents)
+`project_statuses` (name, color, type[not_started/active/done/cancelled], position, is_default, allowed_transitions)
+`project_shares` (share_token, password_hash, expires_at, permissions)
+
+### Task Lists
+`task_lists` (name, color, position, project_id, is_default)
+
+### Tasks
+`tasks` (title, description, priority, due_date, start_date, estimated_hours, position, task_number, version, status_id, task_list_id, milestone_id, project_id, tenant_id)
+`task_assignees` | `task_labels` | `task_dependencies` (source, target, type) | `task_watchers` | `task_reminders` | `task_custom_field_values` | `subtasks` (title, is_completed, position)
+`time_entries` (started_at, ended_at, duration_minutes, is_running, is_billable, task_id, project_id)
+
+### Labels
+`labels` (name, color, workspace_id, board_id nullable)
+
+### Comments & Attachments
+`comments` (content, mentioned_user_ids JSONB, parent_id self-ref, task_id, author_id)
+`attachments` (file_name, file_size, mime_type, storage_key, task_id)
+
+### Custom Fields
+`project_custom_fields` (name, field_type, options JSONB, project_id) → `task_custom_field_values`
+
+### Milestones
+`milestones` (name, due_date, color, project_id)
+
+### Automation
+`automation_rules` (trigger, trigger_config, conditions, board_id) → `automation_actions` (action_type, action_config) + `automation_logs`
+`automation_templates` (name, category, trigger_type, workspace_id) | `automation_rate_counters`
+
+### Webhooks
+`webhooks` (url, secret, events[], board_id) → `webhook_deliveries` | `processed_webhooks`
+
+### Templates
+`project_templates` → `project_template_tasks`, `_labels`, `_custom_fields`, `_groups`
+`task_templates` → `task_template_subtasks`, `_labels`, `_custom_fields`
+
+### Recurring
+`recurring_task_configs` (pattern, cron_expression, next_run_at, task_id, board_id)
+
+### Notifications & Activity
+`notifications` (event_type, title, body, recipient_id, archived_at) | `notification_preferences` (in_app, email, slack, whatsapp)
+`activity_log` (action, entity_type, entity_id, metadata JSONB, user_id, tenant_id)
+`recent_items` (entity_type, entity_id, user_id)
+
+### Misc
+`user_preferences` | `subscriptions` (lago, stripe fields) | `favorites` | `filter_presets` | `bulk_operations` | `positions` → `position_holders`
+
+### Materialized Views
+`metrics_cycle_time_by_week` | `metrics_task_velocity` | `metrics_workload_by_person`
+
+## Key Relationships
+
+```
+tenant ──1:N──> users, workspaces, projects
+workspace ──1:N──> projects, teams, labels, workspace_members
+project ──1:N──> task_lists, project_statuses, tasks, milestones, automation_rules, webhooks, custom_fields
+task ──N:M──> users (assignees, watchers) | task ──1:N──> comments, attachments, subtasks, time_entries
+task ──N:M──> labels | task ──N:N──> tasks (dependencies)
+```
