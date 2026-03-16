@@ -5,7 +5,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { WorkspaceItemComponent } from './workspace-item.component';
-import { ProjectService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/project.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { FavoritesService } from '../../../core/services/favorites.service';
 import { WorkspaceSettingsDialogService } from '../../../core/services/workspace-settings-dialog.service';

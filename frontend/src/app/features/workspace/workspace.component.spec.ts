@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { WorkspaceComponent } from './workspace.component';
 import { WorkspaceService } from '../../core/services/workspace.service';
-import { ProjectService } from '../../core/services/board.service';
+import { ProjectService } from '../../core/services/project.service';
 
 describe('WorkspaceComponent', () => {
   let component: WorkspaceComponent;

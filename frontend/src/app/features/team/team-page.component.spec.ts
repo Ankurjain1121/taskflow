@@ -5,7 +5,7 @@ import { of, throwError } from 'rxjs';
 import { TeamPageComponent } from './team-page.component';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { TeamService } from '../../core/services/team.service';
-import { ProjectService } from '../../core/services/board.service';
+import { ProjectService } from '../../core/services/project.service';
 
 describe('TeamPageComponent', () => {
   let component: TeamPageComponent;

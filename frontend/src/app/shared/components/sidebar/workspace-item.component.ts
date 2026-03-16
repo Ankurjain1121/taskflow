@@ -9,7 +9,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { ProjectService, Board } from '../../../core/services/board.service';
+import { ProjectService, Board } from '../../../core/services/project.service';
 import { Workspace } from '../../../core/services/workspace.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { FavoritesService } from '../../../core/services/favorites.service';

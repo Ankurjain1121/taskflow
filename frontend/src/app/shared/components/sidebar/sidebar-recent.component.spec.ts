@@ -6,7 +6,7 @@ import {
   SidebarRecentComponent,
   RecentBoardEntry,
 } from './sidebar-recent.component';
-import { ProjectService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/project.service';
 
 describe('SidebarRecentComponent', () => {
   let component: SidebarRecentComponent;

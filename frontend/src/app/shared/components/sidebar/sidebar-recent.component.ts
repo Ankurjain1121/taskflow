@@ -13,7 +13,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { Subscription, filter, take } from 'rxjs';
-import { ProjectService } from '../../../core/services/board.service';
+import { ProjectService } from '../../../core/services/project.service';
 
 export interface RecentBoardEntry {
   id: string;

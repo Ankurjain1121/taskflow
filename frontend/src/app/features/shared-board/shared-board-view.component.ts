@@ -15,7 +15,7 @@ import { ChipModule } from 'primeng/chip';
 import {
   ProjectShareService,
   SharedBoardAccess,
-} from '../../core/services/board-share.service';
+} from '../../core/services/project-share.service';
 
 @Component({
   selector: 'app-shared-project-view',
