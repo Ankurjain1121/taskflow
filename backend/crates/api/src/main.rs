@@ -41,7 +41,7 @@ use crate::routes::{
     tenant_router, time_entry_router, upload_router, user_preferences_router, webhook_router,
     workspace_api_keys_router, workspace_audit_router, workspace_export_router,
     workspace_job_roles_router, workspace_labels_router, workspace_projects_router,
-    workspace_router, workspace_teams_router, workspace_trash_router,
+    workspace_router, workspace_teams_router, workspace_trash_router, charts_router,
 };
 use crate::routes::{metrics_cron_router, metrics_router, portfolio_router};
 use crate::state::AppState;
@@ -51,6 +51,26 @@ use crate::ws::ws_handler;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load config
     let config = Config::from_env()?;
+
+    // Initialize Sentry error tracking (skips gracefully if SENTRY_DSN not set)
+    let _sentry_guard = std::env::var("SENTRY_DSN").ok().and_then(|dsn| {
+        if dsn.is_empty() {
+            return None;
+        }
+        Some(sentry::init((
+            dsn,
+            sentry::ClientOptions {
+                release: sentry::release_name!(),
+                environment: Some(
+                    std::env::var("SENTRY_ENVIRONMENT")
+                        .unwrap_or_else(|_| "production".to_string())
+                        .into(),
+                ),
+                traces_sample_rate: 0.1,
+                ..Default::default()
+            },
+        )))
+    });
 
     // Set up tracing
     tracing_subscriber::fmt()
@@ -283,6 +303,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", admin_trash_router(state.clone()))
         // Reports routes
         .nest("/api", reports_router(state.clone()))
+        // Charts routes (burndown/burnup)
+        .nest("/api", charts_router(state.clone()))
         // Search routes
         .nest("/api", search_router(state.clone()))
         // Recent items routes
@@ -350,6 +372,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(from_fn(security_headers_middleware))
         .layer(TraceLayer::new_for_http())
         .layer(from_fn(request_id_middleware))
+        .layer(sentry_tower::NewSentryLayer::new_from_top())
+        .layer(sentry_tower::SentryHttpLayer::new().enable_transaction())
         .layer(CompressionLayer::new())
         .layer(cors)
         .with_state(state.clone());

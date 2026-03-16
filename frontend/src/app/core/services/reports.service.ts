@@ -39,6 +39,14 @@ export interface BoardReport {
   overdue_analysis: OverdueBucket[];
 }
 
+export interface BurndownDataPoint {
+  date: string;
+  total_tasks: number;
+  completed_tasks: number;
+  remaining: number;
+  ideal_line: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -50,5 +58,16 @@ export class ReportsService {
     return this.http.get<BoardReport>(`/api/projects/${boardId}/reports`, {
       params,
     });
+  }
+
+  getBurndownChart(
+    boardId: string,
+    days: number = 30,
+  ): Observable<BurndownDataPoint[]> {
+    const params = new HttpParams().set('days', days.toString());
+    return this.http.get<BurndownDataPoint[]>(
+      `/api/projects/${boardId}/charts/burndown`,
+      { params },
+    );
   }
 }
