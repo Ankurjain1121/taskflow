@@ -1,7 +1,7 @@
 # Contributing to TaskFlow
 
 > Auto-generated from source-of-truth: package.json, Cargo.toml, .env.example, scripts/, codemaps/
-> Last updated: 2026-03-05
+> Last updated: 2026-03-16
 
 ## Prerequisites
 
@@ -38,18 +38,18 @@ open http://localhost:4200
 taskflow/
 ├── backend/                Rust API server (Axum 0.8)
 │   └── crates/
-│       ├── api/            HTTP routes (68 files, 150+ endpoints), middleware (6), WebSocket
+│       ├── api/            HTTP routes (~150 endpoints), middleware (8), WebSocket
 │       ├── auth/           JWT (RS256/HS256), Argon2 passwords, RBAC
-│       ├── db/             SQLx models (33 modules), 41 migrations, 45+ tables
+│       ├── db/             SQLx models (30+), queries (35+ modules), 47 migrations, 45+ tables
 │       └── services/       Broadcast, notifications, S3, audit, trash, jobs (4)
 ├── frontend/               Angular 19 SPA
 │   ├── src/app/
-│   │   ├── core/           51+ services, guards, interceptors, initializers
-│   │   ├── features/       15 feature modules (auth, board, dashboard, my-tasks, team, workspace, settings, admin, etc.)
-│   │   └── shared/         Layout, sidebar, search, dialogs, pipes, utils
-│   └── e2e/                Playwright E2E tests (16 standard + 9 comprehensive specs)
+│   │   ├── core/           ~55 services, guards, interceptors, initializers
+│   │   ├── features/       16 feature modules (auth, board, dashboard, my-tasks, team, workspace, settings, admin, portfolio, etc.)
+│   │   └── shared/         ~25 components, sidebar, search, dialogs, pipes, utils
+│   └── e2e/                Playwright E2E tests
 ├── docs/CODEMAPS/          Architecture documentation (architecture, backend, frontend, data, dependencies)
-├── scripts/                Automation scripts
+├── scripts/                Automation scripts (15 files)
 ├── .githooks/              Pre-commit hooks
 └── .github/workflows/      CI/CD pipeline
 ```
@@ -59,7 +59,9 @@ taskflow/
 | Layer | Technology | Version |
 |-------|-----------|---------|
 | Frontend | Angular (standalone, OnPush) | 19.2 |
-| UI Library | PrimeNG (Aura theme) + Tailwind CSS | 19 / 4 |
+| UI Library | PrimeNG (Aura theme) + Tailwind CSS | 19.1 / 4.1 |
+| Rich Text | TipTap | 3.20 |
+| Charts | Chart.js | 4.5 |
 | State | Signals + RxJS (no NgRx) | - |
 | Backend | Rust + Axum | 1.93 / 0.8 |
 | Database | PostgreSQL (multi-tenant via RLS) | 16 |
@@ -68,8 +70,7 @@ taskflow/
 | Reverse Proxy | nginx | - |
 | Auth | JWT (RS256/HS256) + HttpOnly cookies | - |
 | Testing | Vitest (unit), Playwright (E2E), cargo test | - |
-| Charts | Chart.js | 4 |
-| Type Generation | ts-rs (Rust -> TypeScript) | - |
+| Type Generation | ts-rs (Rust -> TypeScript) | 10 |
 
 ## Frontend Scripts (package.json)
 
@@ -79,9 +80,9 @@ taskflow/
 | `npm run build` | `ng build` | Production build to dist/frontend |
 | `npm run watch` | `ng build --watch --configuration development` | Rebuild on file changes |
 | `npm test` | `ng test` | Run unit tests (Vitest) |
+| `npm run test:coverage` | `ng test -- --coverage` | Unit tests with coverage report |
 | `npm run test:e2e` | `npx playwright test --project=chromium` | Run E2E tests headless |
 | `npm run test:e2e:headed` | `npx playwright test --project=chromium --headed` | Run E2E tests with browser |
-| `npm run test:coverage` | `ng test -- --coverage` | Unit tests with coverage report |
 | `npm run test:e2e:report` | `npx playwright show-report playwright-report` | View E2E test report |
 
 ## Backend Commands
@@ -90,6 +91,7 @@ taskflow/
 |---------|-------------|
 | `cargo check --workspace --all-targets` | Type-check all crates (fast) |
 | `cargo clippy --workspace --all-targets -- -D warnings` | Lint with warnings as errors |
+| `cargo fmt --all -- --check` | Check formatting |
 | `cargo test` | Run all unit/integration tests |
 | `cargo build --release` | Production build |
 | `cargo run --bin taskflow-api` | Run API server locally |
@@ -106,12 +108,15 @@ Note: Backend builds require `SQLX_OFFLINE=true` when no database is available.
 | `pre-deploy-check.sh` | `./scripts/pre-deploy-check.sh` | Full pre-deploy: compile + lint + build + SQL + Docker |
 | `deploy-vps.sh` | `./scripts/deploy-vps.sh` | Full VPS deployment with smoke tests |
 | | `./scripts/deploy-vps.sh --skip-checks` | Deploy without pre-checks (hotfixes) |
-| `setup-hooks.sh` | `./scripts/setup-hooks.sh` | Configure git pre-commit hooks |
-| `smoke-test-auth.sh` | `./scripts/smoke-test-auth.sh [url]` | Test auth endpoints (health, signup, login, refresh) |
-| `smoke-test-comprehensive.sh` | `./scripts/smoke-test-comprehensive.sh [url]` | Extended endpoint testing |
-| `configure-minio-cors.sh` | `./scripts/configure-minio-cors.sh` | Set MinIO CORS rules |
+| `setup-hooks.sh` | `./scripts/setup-hooks.sh` | Configure git pre-commit hooks (run once) |
+| `smoke-test-auth.sh` | `./scripts/smoke-test-auth.sh [url]` | Test auth lifecycle (register, login, logout) |
+| `smoke-test-comprehensive.sh` | `./scripts/smoke-test-comprehensive.sh [url]` | Extended 25-scenario API testing |
+| `configure-minio-cors.sh` | `./scripts/configure-minio-cors.sh` | Set MinIO CORS rules for browser uploads |
+| `check-disk-usage.sh` | `./scripts/check-disk-usage.sh` | Docker volume disk usage, warns if MinIO > 5GB |
+| `monitor-memory.sh` | `./scripts/monitor-memory.sh` | Container memory stats, warns if > 80% limit |
 | `docker-entrypoint.sh` | (internal) | Container entrypoint: init-db + start server |
-| `init-db.sh` | (internal) | Wait for PG, create Lago DB, create MinIO bucket, seed |
+| `init-db.sh` | (internal) | Wait for PG, create databases, create MinIO bucket, seed |
+| `run_seed.sh` | `./scripts/run_seed.sh [--force]` | Seed 20 users, 5 teams, 4 projects, 500 tasks |
 
 ## Environment Variables
 
@@ -121,8 +126,10 @@ Note: Backend builds require `SQLX_OFFLINE=true` when no database is available.
 |----------|---------|-------------|
 | `JWT_SECRET` | (placeholder) | JWT signing secret (min 32 chars) |
 | `JWT_REFRESH_SECRET` | (placeholder) | Refresh token secret (min 32 chars) |
-| `POSTGRES_PASSWORD` | `postgres` | PostgreSQL password |
+| `POSTGRES_PASSWORD` | `CHANGE_ME` | PostgreSQL password |
 | `CRON_SECRET` | (placeholder) | Secret for cron endpoint auth |
+| `MINIO_ACCESS_KEY` | `CHANGE_ME` | MinIO access key |
+| `MINIO_SECRET_KEY` | `CHANGE_ME` | MinIO secret key |
 
 ### Database
 
@@ -130,24 +137,13 @@ Note: Backend builds require `SQLX_OFFLINE=true` when no database is available.
 |----------|---------|-------------|
 | `POSTGRES_USER` | `postgres` | PostgreSQL user |
 | `POSTGRES_DB` | `taskflow` | Primary database |
-| `POSTGRES_PORT` | `5432` | PostgreSQL port |
 | `DATABASE_URL` | (constructed) | Full connection string |
-| `LAGO_DB` | `lago` | Billing database |
 
 ### Redis
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `REDIS_PORT` | `6379` | Redis port |
 | `REDIS_URL` | `redis://localhost:6379/0` | App Redis (db0=app, db1=Lago, db2=Novu) |
-
-### MongoDB (for Novu)
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `MONGO_ROOT_USER` | `admin` | MongoDB admin user |
-| `MONGO_ROOT_PASSWORD` | `admin` | MongoDB admin password |
-| `MONGO_DB` | `novu` | Notification database |
 
 ### Auth
 
@@ -162,8 +158,6 @@ Note: Backend builds require `SQLX_OFFLINE=true` when no database is available.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MINIO_ACCESS_KEY` | `minioadmin` | MinIO access key |
-| `MINIO_SECRET_KEY` | `minioadmin` | MinIO secret key |
 | `MINIO_BUCKET` | `task-attachments` | Storage bucket name |
 | `MINIO_ENDPOINT` | `http://localhost:9000` | Internal endpoint (backend) |
 | `MINIO_PUBLIC_URL` | `https://files.paraslace.in` | Public endpoint (frontend uploads) |
@@ -195,9 +189,9 @@ Note: Backend builds require `SQLX_OFFLINE=true` when no database is available.
 
 ```
 backend/crates/
-├── api/       Binary: HTTP server, 58 route files, 5 middleware, WebSocket
+├── api/       Binary: HTTP server, ~60 route files, 8 middleware, WebSocket
 ├── auth/      JWT tokens (RS256/HS256), Argon2, RBAC role hierarchy
-├── db/        38+ query modules, 21 migrations, 45+ tables
+├── db/        35+ query modules, 47 migrations, 45+ tables
 └── services/  Broadcast (Redis pub/sub), notifications, S3, audit, 4 background jobs
 ```
 
@@ -207,48 +201,50 @@ Dependencies: `api -> {auth, db, services}`, `services -> {auth, db}`, `auth -> 
 
 | Middleware | Purpose |
 |-----------|---------|
-| auth | JWT from cookie/Bearer -> AuthUser{user_id, tenant_id, role} |
-| rate_limit | IP sliding-window via DashMap (60/min global, per-user overrides) |
-| security_headers | X-Frame-Options, X-Content-Type-Options, Referrer-Policy, X-XSS-Protection |
+| compression | Gzip response compression (tower-http) |
+| cors | CORS with exact-origin allow, credentials enabled |
+| request_id | Unique X-Request-ID for tracing |
+| security_headers | X-Frame-Options, X-Content-Type-Options, Referrer-Policy |
 | cache_headers | Cache-Control based on route |
-| audit | POST/PUT/PATCH/DELETE audit logging (fire-and-forget) |
+| rate_limit | IP sliding-window (60/min global, per-user 100/min, specialized per-route) |
+| auth | JWT from cookie/Bearer -> AuthUser{user_id, tenant_id, role} |
 | tenant | SET app.tenant_id per-tx for RLS |
-| request_id | Unique request ID for tracing |
 
 ### Key Features
 
-- **150+ API endpoints** across 68 route files
+- **~150 API endpoints** across ~60 route files
 - **Multi-tenancy** via PostgreSQL Row-Level Security (RLS)
-- **Real-time** via WebSocket + Redis pub/sub (board/user/workspace channels)
+- **Real-time** via WebSocket + Redis pub/sub (project channels)
 - **Role hierarchy**: Global (Admin > Manager > Member) > Workspace (Owner > Admin > Member > Viewer) > Board (Editor > Viewer)
 - **Fractional indexing** for stable kanban ordering
 - **Full-text search** via PostgreSQL tsvector + GIN index
 
 ## Frontend Architecture
 
-### Feature Modules (15)
+### Feature Modules (16)
 
 | Module | Description |
 |--------|-------------|
-| auth | Sign-in/up, password reset, accept-invite (5 components) |
-| onboarding | 4-step wizard (welcome, workspace, invite, sample-board) |
-| dashboard | Stats + 8 widgets (status, priority, trend, overdue, deadlines, my-tasks, workload) |
-| board | Core kanban (LARGEST): kanban, list, calendar, gantt, reports, time-report, bulk-actions, automations, webhooks, import/export, templates, settings, custom-fields, positions, shares |
-| project | Project-mode views (table, card, detail, settings) |
+| auth | Sign-in/up, password reset, accept-invite |
+| onboarding | Multi-step wizard (welcome, use-case, workspace, sample-board, invite) |
+| dashboard | Stats + modular widget cards |
+| board | Core project workspace: kanban, list, calendar, gantt, reports, automations, bulk ops, import/export, custom fields, milestones, sharing, webhooks, templates |
 | my-tasks | Personal task timeline + Eisenhower matrix |
-| team | Team hub (org members, workload, boards, member detail) |
-| workspace | Workspace settings, members, teams, discover/join |
-| settings | Profile, security, appearance, notifications sections |
+| team | Team hub (overview, member detail, workload balance, org members, roles) |
+| workspace | Workspace settings, members, teams, discover/join, labels, trash, audit |
+| settings | Profile, security, appearance, notifications, task templates |
 | admin | Audit log, user management, trash (adminGuard) |
+| portfolio | Cross-project portfolio dashboard |
 | favorites | Bookmarked items |
 | archive | Archived items |
-| shared-board | Public board view |
+| shared-board | Public read-only board view |
 | task-detail | Standalone task page (/task/:id) |
+| tasks | Reusable task list rendering components |
 | help | Help page |
 
-### Core Services (51+)
+### Core Services (~55)
 
-Auth/session (5), workspace/team (6), board/task (13), dashboard/reporting (4), notifications/real-time (3), search/navigation (3), integrations/data (6), theme/appearance (2), admin/system (6), plus shared pipes and utils.
+Auth/session (5), workspace/team (6), board/task (13), dashboard/reporting (4), notifications/real-time (3), search/navigation (3), integrations/data (6), theme/appearance (2), admin/system (6), time-tracking (2), plus shared pipes and utils.
 
 ### State Management
 
@@ -286,6 +282,7 @@ cargo test --package taskflow-db    # Specific crate
 ### Frontend (Angular)
 ```bash
 npm test                            # Unit tests (Vitest)
+npm run test:coverage               # Unit tests with coverage
 npm run test:e2e                    # E2E tests (Playwright, headless)
 npm run test:e2e:headed             # E2E tests (visible browser)
 ```
@@ -318,9 +315,9 @@ GitHub Actions runs on push/PR to `master`:
 
 ## Database Schema at a Glance
 
-- **45+ tables** across 41 migrations
-- **12 enums** (user_role, task_priority, automation_trigger, etc.)
+- **45+ tables** across 47 migrations
+- **12 enums** (user_role, task_priority, automation_trigger, subscription_status, etc.)
 - **3 materialized views** (cycle_time, velocity, workload) for dashboard metrics
 - **Key indexes**: GIN on search_vector, partial indexes on eisenhower, due_date, running time entries, recurring next_run
-- **4 triggers**: updated_at auto-set (17+ tables), search_vector maintenance, default task group creation, teams updated_at
+- **Recent changes**: boards→projects rename, themes table dropped, subscriptions/billing schema added
 - See `docs/CODEMAPS/data.md` for full schema details

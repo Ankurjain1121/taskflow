@@ -1,45 +1,61 @@
-<!-- Generated: 2026-03-05 | Token estimate: ~400 -->
-
-# Dependencies Codemap
+<!-- Generated: 2026-03-16 | Token estimate: ~500 -->
+# Dependencies
 
 ## External Services
 
-| Service | Purpose | Connection |
-|---------|---------|------------|
-| PostgreSQL 16 | Primary data store | Host: 10.0.2.1:5432, user: taskflow_app |
-| Redis 7 | Cache, rate limits, bulk undo snapshots (1hr TTL) | Host: 10.0.2.1:6379 |
-| MinIO | S3-compatible file storage (attachments) | Container: taskflow-minio:9000 |
-| Postal | Transactional email (digests, invites, reminders) | External SMTP via env vars |
-| Nginx | Reverse proxy, SSL termination, rate limiting | Host: /etc/nginx/sites-available/ |
+| Service | Type | Status |
+|---------|------|--------|
+| PostgreSQL 16 | Primary database (host 10.0.2.1:5432) | Active |
+| Redis 7 | Cache + WebSocket pubsub (host 10.0.2.1:6379) | Active |
+| MinIO | S3-compatible file storage (Docker, port 9000) | Active |
+| Postal | Self-hosted SMTP email | Active |
+| Novu | Notification platform | Configured, inactive |
+| LAGO | Usage-based billing | Schema only, inactive |
+| WAHA | WhatsApp HTTP API | Implemented, inactive |
+| Slack | Webhook notifications (per-project URL) | Partial |
+| Stripe | Payment processing | Schema only, no client |
 
-## Backend Dependencies (Rust)
+## Backend Key Crates
 
 | Crate | Version | Purpose |
 |-------|---------|---------|
-| axum | 0.8 | HTTP framework + WebSocket |
-| sqlx | 0.8 | Async PostgreSQL driver |
-| tokio | 1.x | Async runtime |
-| jsonwebtoken | * | JWT encode/decode |
-| argon2 | * | Password hashing |
-| serde/serde_json | 1.x | Serialization |
-| tower-http | * | CORS, compression, tracing layers |
-| minio-rs | * | S3 client for MinIO |
+| axum | 0.8 | Web framework + WebSocket |
+| tokio | 1 | Async runtime |
+| sqlx | 0.8 | PostgreSQL driver (offline mode) |
+| redis | 0.27 | Redis client (async) |
+| aws-sdk-s3 | 1 | MinIO/S3 client |
+| jsonwebtoken | 10 | JWT (RS256 + HS256) |
+| argon2 | 0.5 | Password hashing |
+| tower / tower-http | 0.5/0.6 | Middleware (CORS, compression, tracing) |
+| serde / serde_json | 1 | Serialization |
+| chrono | 0.4 | Date/time |
+| reqwest | 0.12 | HTTP client (email, webhooks) |
+| ts-rs | 10 | TypeScript type generation |
+| dashmap | 6 | Concurrent hashmap |
+| tracing | 0.1 | Structured logging |
 
-## Frontend Dependencies (Angular)
+## Frontend Key Packages
 
-| Package | Purpose |
-|---------|---------|
-| Angular 19 | SPA framework (standalone components, signals) |
-| TypeScript 5.7 | Type system |
-| Tailwind CSS 4 | Utility-first styling |
-| PrimeNG 19 | UI component library (Aura theme) |
-| RxJS | Reactive streams (HTTP, WS) |
+| Package | Version | Purpose |
+|---------|---------|---------|
+| @angular/* | ^19.2 | Full framework |
+| primeng | ^19.1.4 | UI components |
+| @tiptap/* | ^3.20 | Rich text editor |
+| chart.js | ^4.5.1 | Charts/dashboards |
+| tailwindcss | ^4.1.18 | Utility CSS |
+| rxjs | ~7.8.0 | Reactive streams |
+| fractional-indexing | ^3.2.0 | Drag-and-drop ordering |
+| vitest | ^3.2.4 | Unit testing |
+| @playwright/test | ^1.58.2 | E2E testing |
 
-## Infrastructure
+## Docker Services
 
-| Component | Config |
-|-----------|--------|
-| Docker Compose | 3 containers: backend, frontend, minio |
-| Nginx | Reverse proxy at taskflow.paraslace.in, SSL via certbot |
-| Network | Bridge: 10.0.2.0/24, gateway 10.0.2.1 |
-| UFW | Ports: 80, 443, 5432 (local), 6379 (local), 9000 |
+```
+minio (minio/minio:latest) ──port 9000/9001
+minio-setup (minio/mc:latest) ──one-shot bucket provisioner
+backend (taskflow-backend) ──port 8080
+frontend (taskflow-frontend) ──port 80 (Nginx)
+Network: taskflow-network (10.0.2.0/24)
+```
+
+PostgreSQL and Redis run on the host, not in Docker.
