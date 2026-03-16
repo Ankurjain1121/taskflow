@@ -30,7 +30,7 @@ pub async fn verify_project_membership(
     .await?;
 
     if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     Ok(())

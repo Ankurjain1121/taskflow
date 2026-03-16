@@ -30,7 +30,7 @@ async fn get_board_report_handler(
     let report = get_board_report(&state.db, board_id, tenant.user_id, days_back)
         .await
         .map_err(|e| match e {
-            ReportQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            ReportQueryError::NotBoardMember => AppError::Forbidden("Not a project member".into()),
             ReportQueryError::Database(e) => AppError::SqlxError(e),
         })?;
 

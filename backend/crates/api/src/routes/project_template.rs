@@ -24,7 +24,7 @@ fn map_error(e: ProjectTemplateQueryError) -> AppError {
             AppError::NotFound("Project template not found".into())
         }
         ProjectTemplateQueryError::NotBoardMember => {
-            AppError::Forbidden("Not a board member".into())
+            AppError::Forbidden("Not a project member".into())
         }
         ProjectTemplateQueryError::Forbidden => {
             AppError::Forbidden("You do not have permission for this action".into())

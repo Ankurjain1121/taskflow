@@ -14,7 +14,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
 use crate::state::AppState;
 use taskflow_db::models::{Subtask, SubtaskWithAssignee, Task};
-use taskflow_db::queries::get_task_board_id;
+use taskflow_db::queries::get_task_project_id;
 use taskflow_db::queries::subtasks::{
     create_subtask, delete_subtask, get_subtask_progress, get_subtask_task_id,
     list_subtasks_by_task, promote_subtask_to_task, reorder_subtask, toggle_subtask,
@@ -58,7 +58,7 @@ async fn verify_task_board_membership(
     task_id: Uuid,
     user_id: Uuid,
 ) -> Result<Uuid> {
-    let board_id = get_task_board_id(&state.db, task_id)
+    let board_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
@@ -292,7 +292,7 @@ async fn list_children_handler(
         .await
         .map_err(|e| match e {
             taskflow_db::queries::TaskQueryError::NotProjectMember => {
-                AppError::Forbidden("Not a board member".into())
+                AppError::Forbidden("Not a project member".into())
             }
             taskflow_db::queries::TaskQueryError::NotFound => {
                 AppError::NotFound("Task not found".into())

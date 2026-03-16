@@ -15,7 +15,7 @@ use crate::state::AppState;
 
 use super::common::verify_project_membership;
 use taskflow_db::models::Milestone;
-use taskflow_db::queries::get_task_board_id;
+use taskflow_db::queries::get_task_project_id;
 use taskflow_db::queries::milestones::{
     assign_task_to_milestone, create_milestone, delete_milestone, get_milestone,
     get_milestone_board_id, list_milestones, unassign_task_from_milestone, update_milestone,
@@ -49,7 +49,7 @@ pub struct AssignMilestoneRequest {
 /// Map MilestoneQueryError to AppError
 fn map_milestone_error(e: MilestoneQueryError) -> AppError {
     match e {
-        MilestoneQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+        MilestoneQueryError::NotBoardMember => AppError::Forbidden("Not a project member".into()),
         MilestoneQueryError::NotFound => AppError::NotFound("Milestone not found".into()),
         MilestoneQueryError::Database(e) => AppError::SqlxError(e),
     }
@@ -168,7 +168,7 @@ async fn assign_milestone_handler(
     Json(body): Json<AssignMilestoneRequest>,
 ) -> Result<Json<serde_json::Value>> {
     // Verify board membership through task -> board
-    let board_id = get_task_board_id(&state.db, task_id)
+    let board_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
@@ -189,7 +189,7 @@ async fn unassign_milestone_handler(
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>> {
     // Verify board membership through task -> board
-    let board_id = get_task_board_id(&state.db, task_id)
+    let board_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 

@@ -24,19 +24,19 @@ impl BroadcastService {
         Self { redis }
     }
 
-    /// Broadcast an update to all subscribers of a board channel
+    /// Broadcast an update to all subscribers of a project channel
     ///
     /// # Arguments
-    /// * `board_id` - The board's UUID
+    /// * `project_id` - The project's UUID
     /// * `event` - Event name (e.g., "task:created", "task:updated", "task:moved", "task:deleted")
     /// * `data` - JSON data to broadcast
-    pub async fn broadcast_board_update(
+    pub async fn broadcast_project_update(
         &self,
-        board_id: Uuid,
+        project_id: Uuid,
         event: &str,
         data: Value,
     ) -> Result<(), BroadcastError> {
-        let channel = format!("board:{}", board_id);
+        let channel = format!("project:{}", project_id);
         let message = json!({
             "event": event,
             "data": data
@@ -47,13 +47,23 @@ impl BroadcastService {
         tracing::debug!(
             channel = %channel,
             event = %event,
-            "Broadcasting board update"
+            "Broadcasting project update"
         );
 
         let mut conn = self.redis.clone();
         conn.publish::<_, _, ()>(&channel, &message_str).await?;
 
         Ok(())
+    }
+
+    /// Alias for backward compat
+    pub async fn broadcast_board_update(
+        &self,
+        board_id: Uuid,
+        event: &str,
+        data: Value,
+    ) -> Result<(), BroadcastError> {
+        self.broadcast_project_update(board_id, event, data).await
     }
 
     /// Broadcast an update to a specific user's channel
@@ -88,24 +98,33 @@ impl BroadcastService {
         Ok(())
     }
 
-    /// Broadcast a typed event to a board channel
-    pub async fn broadcast_board_event<T: Serialize>(
+    /// Broadcast a typed event to a project channel
+    pub async fn broadcast_project_event<T: Serialize>(
         &self,
-        board_id: Uuid,
+        project_id: Uuid,
         event: &T,
     ) -> Result<(), BroadcastError> {
-        let channel = format!("board:{}", board_id);
+        let channel = format!("project:{}", project_id);
         let message_str = serde_json::to_string(event)?;
 
         tracing::debug!(
             channel = %channel,
-            "Broadcasting typed board event"
+            "Broadcasting typed project event"
         );
 
         let mut conn = self.redis.clone();
         conn.publish::<_, _, ()>(&channel, &message_str).await?;
 
         Ok(())
+    }
+
+    /// Alias for backward compat
+    pub async fn broadcast_board_event<T: Serialize>(
+        &self,
+        board_id: Uuid,
+        event: &T,
+    ) -> Result<(), BroadcastError> {
+        self.broadcast_project_event(board_id, event).await
     }
 
     /// Broadcast an update to all subscribers of a workspace channel
@@ -231,10 +250,10 @@ mod tests {
     }
 
     #[test]
-    fn test_channel_format_board() {
-        let board_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
-        let channel = format!("board:{}", board_id);
-        assert_eq!(channel, "board:550e8400-e29b-41d4-a716-446655440000");
+    fn test_channel_format_project() {
+        let project_id = Uuid::parse_str("550e8400-e29b-41d4-a716-446655440000").unwrap();
+        let channel = format!("project:{}", project_id);
+        assert_eq!(channel, "project:550e8400-e29b-41d4-a716-446655440000");
     }
 
     #[test]

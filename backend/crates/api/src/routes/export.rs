@@ -220,7 +220,7 @@ async fn export_csv(db: &sqlx::PgPool, board_id: Uuid) -> Result<Response> {
     let filename = format!(
         "{}_export.csv",
         board_name
-            .unwrap_or_else(|| "board".into())
+            .unwrap_or_else(|| "project".into())
             .replace(' ', "_")
             .to_lowercase()
     );

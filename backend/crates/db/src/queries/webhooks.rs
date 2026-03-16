@@ -33,7 +33,7 @@ pub struct UpdateWebhookInput {
     pub is_active: Option<bool>,
 }
 
-use super::verify_board_membership_internal;
+use super::verify_project_membership_internal;
 
 /// Internal helper: get webhook's board_id
 async fn get_webhook_board_id_internal(
@@ -57,7 +57,7 @@ pub async fn list_webhooks(
     board_id: Uuid,
     user_id: Uuid,
 ) -> Result<Vec<Webhook>, WebhookQueryError> {
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership_internal(pool, board_id, user_id).await? {
         return Err(WebhookQueryError::NotBoardMember);
     }
 
@@ -86,7 +86,7 @@ pub async fn create_webhook(
     user_id: Uuid,
     tenant_id: Uuid,
 ) -> Result<Webhook, WebhookQueryError> {
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership_internal(pool, board_id, user_id).await? {
         return Err(WebhookQueryError::NotBoardMember);
     }
 
@@ -128,7 +128,7 @@ pub async fn update_webhook(
 ) -> Result<Webhook, WebhookQueryError> {
     let board_id = get_webhook_board_id_internal(pool, webhook_id).await?;
 
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership_internal(pool, board_id, user_id).await? {
         return Err(WebhookQueryError::NotBoardMember);
     }
 
@@ -165,7 +165,7 @@ pub async fn delete_webhook(
 ) -> Result<(), WebhookQueryError> {
     let board_id = get_webhook_board_id_internal(pool, webhook_id).await?;
 
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership_internal(pool, board_id, user_id).await? {
         return Err(WebhookQueryError::NotBoardMember);
     }
 
@@ -187,7 +187,7 @@ pub async fn get_webhook_deliveries(
 ) -> Result<Vec<WebhookDelivery>, WebhookQueryError> {
     let board_id = get_webhook_board_id_internal(pool, webhook_id).await?;
 
-    if !verify_board_membership_internal(pool, board_id, user_id).await? {
+    if !verify_project_membership_internal(pool, board_id, user_id).await? {
         return Err(WebhookQueryError::NotBoardMember);
     }
 

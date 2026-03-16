@@ -227,62 +227,52 @@ pub async fn get_task_by_id(
         return Err(TaskQueryError::NotProjectMember);
     }
 
-    // Fetch assignees with user info
-    let assignees = sqlx::query_as::<_, AssigneeInfo>(
-        r#"
-        SELECT
-            ta.user_id,
-            u.name,
-            u.avatar_url,
-            ta.assigned_at
-        FROM task_assignees ta
-        JOIN users u ON u.id = ta.user_id
-        WHERE ta.task_id = $1
-        "#,
-    )
-    .bind(task_id)
-    .fetch_all(pool)
-    .await?;
-
-    // Fetch labels
-    let labels = sqlx::query_as::<_, Label>(
-        r#"
-        SELECT l.id, l.name, l.color, l.project_id
-        FROM labels l
-        JOIN task_labels tl ON tl.label_id = l.id
-        WHERE tl.task_id = $1
-        "#,
-    )
-    .bind(task_id)
-    .fetch_all(pool)
-    .await?;
-
-    // Get comment count
-    let comment_count: i64 = sqlx::query_scalar::<_, i64>(
-        r#"
-        SELECT COUNT(*)
-        FROM comments
-        WHERE task_id = $1 AND deleted_at IS NULL
-        "#,
-    )
-    .bind(task_id)
-    .fetch_one(pool)
-    .await?;
-
-    // Get attachment count
-    let attachment_count: i64 = sqlx::query_scalar::<_, i64>(
-        r#"
-        SELECT COUNT(*)
-        FROM attachments
-        WHERE task_id = $1 AND deleted_at IS NULL
-        "#,
-    )
-    .bind(task_id)
-    .fetch_one(pool)
-    .await?;
-
-    // Fetch watchers with user info
-    let watchers = super::task_watchers::get_watcher_info(pool, task_id).await?;
+    // Fetch assignees, labels, counts, and watchers in parallel
+    let (assignees, labels, comment_count, attachment_count, watchers) = tokio::try_join!(
+        sqlx::query_as::<_, AssigneeInfo>(
+            r#"
+            SELECT
+                ta.user_id,
+                u.name,
+                u.avatar_url,
+                ta.assigned_at
+            FROM task_assignees ta
+            JOIN users u ON u.id = ta.user_id
+            WHERE ta.task_id = $1
+            "#,
+        )
+        .bind(task_id)
+        .fetch_all(pool),
+        sqlx::query_as::<_, Label>(
+            r#"
+            SELECT l.id, l.name, l.color, l.project_id
+            FROM labels l
+            JOIN task_labels tl ON tl.label_id = l.id
+            WHERE tl.task_id = $1
+            "#,
+        )
+        .bind(task_id)
+        .fetch_all(pool),
+        sqlx::query_scalar::<_, i64>(
+            r#"
+            SELECT COUNT(*)
+            FROM comments
+            WHERE task_id = $1 AND deleted_at IS NULL
+            "#,
+        )
+        .bind(task_id)
+        .fetch_one(pool),
+        sqlx::query_scalar::<_, i64>(
+            r#"
+            SELECT COUNT(*)
+            FROM attachments
+            WHERE task_id = $1 AND deleted_at IS NULL
+            "#,
+        )
+        .bind(task_id)
+        .fetch_one(pool),
+        super::task_watchers::get_watcher_info(pool, task_id),
+    )?;
 
     Ok(Some(TaskWithDetails {
         task,
@@ -767,7 +757,10 @@ pub async fn duplicate_task(
 }
 
 /// Get task's project_id (for authorization checks)
-pub async fn get_task_board_id(pool: &PgPool, task_id: Uuid) -> Result<Option<Uuid>, sqlx::Error> {
+pub async fn get_task_project_id(
+    pool: &PgPool,
+    task_id: Uuid,
+) -> Result<Option<Uuid>, sqlx::Error> {
     sqlx::query_scalar::<_, Uuid>(
         r#"
         SELECT project_id FROM tasks WHERE id = $1 AND deleted_at IS NULL
@@ -778,12 +771,9 @@ pub async fn get_task_board_id(pool: &PgPool, task_id: Uuid) -> Result<Option<Uu
     .await
 }
 
-/// Alias
-pub async fn get_task_project_id(
-    pool: &PgPool,
-    task_id: Uuid,
-) -> Result<Option<Uuid>, sqlx::Error> {
-    get_task_board_id(pool, task_id).await
+/// Alias for backward compat
+pub async fn get_task_board_id(pool: &PgPool, task_id: Uuid) -> Result<Option<Uuid>, sqlx::Error> {
+    get_task_project_id(pool, task_id).await
 }
 
 /// List child tasks for a parent task

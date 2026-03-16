@@ -114,9 +114,9 @@ use uuid::Uuid;
 
 /// Verify that a user is a member of a project.
 /// Returns `true` if the user is a member, `false` otherwise.
-pub(crate) async fn verify_board_membership_internal(
+pub(crate) async fn verify_project_membership_internal(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     user_id: Uuid,
 ) -> Result<bool, sqlx::Error> {
     let result = sqlx::query_scalar::<_, bool>(
@@ -127,7 +127,7 @@ pub(crate) async fn verify_board_membership_internal(
         )
         "#,
     )
-    .bind(board_id)
+    .bind(project_id)
     .bind(user_id)
     .fetch_one(pool)
     .await?;

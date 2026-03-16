@@ -92,7 +92,7 @@ async fn get_upload_url(
     }
 
     if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     // Generate unique storage key
@@ -129,7 +129,7 @@ async fn confirm_upload(
     }
 
     if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     // Verify the object exists in MinIO
@@ -190,7 +190,7 @@ async fn list_attachments(
     }
 
     if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     let attachments = list_by_task(&state.db, task_id)
@@ -222,7 +222,7 @@ async fn get_download_url(
     }
 
     if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     // Generate presigned download URL (1 hour expiry)
@@ -257,7 +257,7 @@ async fn delete_attachment_handler(
     }
 
     if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     // Check if user can delete (uploader, admin, or manager)

@@ -21,7 +21,7 @@ fn map_recurring_error(e: RecurringQueryError) -> AppError {
     match e {
         RecurringQueryError::NotFound => AppError::NotFound("Recurring config not found".into()),
         RecurringQueryError::TaskNotFound => AppError::NotFound("Task not found".into()),
-        RecurringQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+        RecurringQueryError::NotBoardMember => AppError::Forbidden("Not a project member".into()),
         RecurringQueryError::Database(e) => AppError::SqlxError(e),
     }
 }

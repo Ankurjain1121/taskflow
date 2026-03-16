@@ -21,7 +21,7 @@ use taskflow_db::queries::webhooks::{
 fn map_webhook_error(e: WebhookQueryError) -> AppError {
     match e {
         WebhookQueryError::NotFound => AppError::NotFound("Webhook not found".into()),
-        WebhookQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+        WebhookQueryError::NotBoardMember => AppError::Forbidden("Not a project member".into()),
         WebhookQueryError::Database(e) => AppError::SqlxError(e),
     }
 }

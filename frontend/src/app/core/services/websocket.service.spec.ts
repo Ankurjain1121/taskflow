@@ -109,11 +109,11 @@ describe('WebSocketService', () => {
     it('should send messages via socket when connected', () => {
       service.connect();
 
-      service.send('subscribe', { channel: 'board:123' });
+      service.send('subscribe', { channel: 'project:123' });
 
       expect((mockSocketSubject as any).next).toHaveBeenCalledWith({
         type: 'subscribe',
-        payload: { channel: 'board:123' },
+        payload: { channel: 'project:123' },
       });
     });
   });

@@ -22,7 +22,7 @@ pub struct Project {
     pub updated_at: DateTime<Utc>,
 }
 
-// Keep Board as alias for backward compat within crate
+/// Backward-compatible alias — prefer `Project` in new code.
 pub type Board = Project;
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
@@ -35,6 +35,7 @@ pub struct ProjectMember {
     pub billing_rate_cents: Option<i32>,
 }
 
+/// Backward-compatible alias — prefer `ProjectMember` in new code.
 pub type BoardMember = ProjectMember;
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]

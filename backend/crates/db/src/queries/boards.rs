@@ -5,15 +5,17 @@ use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::{Board, BoardMemberRole, ProjectMember, ProjectStatus, TaskList, TaskPriority};
+use crate::models::{
+    BoardMemberRole, Project, ProjectMember, ProjectStatus, TaskList, TaskPriority,
+};
 
 /// List projects in a workspace that the user has access to
 pub async fn list_projects_by_workspace(
     pool: &PgPool,
     workspace_id: Uuid,
     user_id: Uuid,
-) -> Result<Vec<Board>, sqlx::Error> {
-    sqlx::query_as::<_, Board>(
+) -> Result<Vec<Project>, sqlx::Error> {
+    sqlx::query_as::<_, Project>(
         r#"
         SELECT b.id, b.name, b.description, b.slack_webhook_url, b.prefix,
                b.workspace_id, b.tenant_id, b.created_by_id,
@@ -37,7 +39,7 @@ pub async fn list_boards_by_workspace(
     pool: &PgPool,
     workspace_id: Uuid,
     user_id: Uuid,
-) -> Result<Vec<Board>, sqlx::Error> {
+) -> Result<Vec<Project>, sqlx::Error> {
     list_projects_by_workspace(pool, workspace_id, user_id).await
 }
 
@@ -45,7 +47,7 @@ pub async fn list_boards_by_workspace(
 #[derive(serde::Serialize, Clone, Debug)]
 pub struct ProjectWithTaskLists {
     #[serde(flatten)]
-    pub project: Board,
+    pub project: Project,
     pub task_lists: Vec<TaskList>,
     pub statuses: Vec<ProjectStatus>,
 }
@@ -59,7 +61,7 @@ pub async fn get_project_by_id(
     id: Uuid,
     user_id: Uuid,
 ) -> Result<Option<ProjectWithTaskLists>, sqlx::Error> {
-    let project = sqlx::query_as::<_, Board>(
+    let project = sqlx::query_as::<_, Project>(
         r#"
         SELECT b.id, b.name, b.description, b.slack_webhook_url, b.prefix,
                b.workspace_id, b.tenant_id, b.created_by_id,
@@ -137,7 +139,7 @@ pub async fn create_project(
     let mut tx = pool.begin().await?;
 
     // Create project
-    let project = sqlx::query_as::<_, Board>(
+    let project = sqlx::query_as::<_, Project>(
         r#"
         INSERT INTO projects (name, description, workspace_id, tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4, $5)
@@ -220,10 +222,10 @@ pub async fn update_project(
     name: Option<&str>,
     description: Option<&str>,
     background_color: Option<Option<&str>>,
-) -> Result<Option<Board>, sqlx::Error> {
+) -> Result<Option<Project>, sqlx::Error> {
     match background_color {
         Some(color) => {
-            sqlx::query_as::<_, Board>(
+            sqlx::query_as::<_, Project>(
                 r#"
                 UPDATE projects
                 SET name = COALESCE($2, name),
@@ -243,7 +245,7 @@ pub async fn update_project(
             .await
         }
         None => {
-            sqlx::query_as::<_, Board>(
+            sqlx::query_as::<_, Project>(
                 r#"
                 UPDATE projects
                 SET name = COALESCE($2, name),
@@ -269,7 +271,7 @@ pub async fn update_board(
     name: Option<&str>,
     description: Option<&str>,
     background_color: Option<Option<&str>>,
-) -> Result<Option<Board>, sqlx::Error> {
+) -> Result<Option<Project>, sqlx::Error> {
     update_project(pool, id, name, description, background_color).await
 }
 
@@ -486,8 +488,8 @@ pub async fn get_board_member_role(
 }
 
 /// Get project without membership check (for internal use)
-pub async fn get_project_internal(pool: &PgPool, id: Uuid) -> Result<Option<Board>, sqlx::Error> {
-    sqlx::query_as::<_, Board>(
+pub async fn get_project_internal(pool: &PgPool, id: Uuid) -> Result<Option<Project>, sqlx::Error> {
+    sqlx::query_as::<_, Project>(
         r#"
         SELECT id, name, description, slack_webhook_url, prefix,
                workspace_id, tenant_id, created_by_id,
@@ -502,7 +504,7 @@ pub async fn get_project_internal(pool: &PgPool, id: Uuid) -> Result<Option<Boar
     .await
 }
 
-pub async fn get_board_internal(pool: &PgPool, id: Uuid) -> Result<Option<Board>, sqlx::Error> {
+pub async fn get_board_internal(pool: &PgPool, id: Uuid) -> Result<Option<Project>, sqlx::Error> {
     get_project_internal(pool, id).await
 }
 
@@ -716,7 +718,7 @@ pub async fn duplicate_project(
     let mut tx = pool.begin().await?;
 
     // 1. Copy the project
-    let new_project = sqlx::query_as::<_, Board>(
+    let new_project = sqlx::query_as::<_, Project>(
         r#"
         INSERT INTO projects (name, description, workspace_id, tenant_id, created_by_id, background_color)
         SELECT $2, description, workspace_id, tenant_id, $3, background_color

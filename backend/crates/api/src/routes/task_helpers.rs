@@ -44,7 +44,7 @@ pub fn sanitize_html(input: &str) -> String {
         .to_string()
 }
 
-/// Response for listing tasks by board
+/// Response for listing tasks by project
 #[derive(serde::Serialize)]
 pub struct ListTasksResponse {
     pub tasks: std::collections::HashMap<Uuid, Vec<taskflow_db::models::Task>>,
@@ -99,30 +99,38 @@ pub struct AssignUserRequest {
     pub user_id: Uuid,
 }
 
-/// Helper to get workspace_id from board_id
-pub async fn get_workspace_id_for_board(
+/// Helper to get workspace_id from project_id
+pub async fn get_workspace_id_for_project(
     pool: &sqlx::PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
 ) -> std::result::Result<Option<Uuid>, sqlx::Error> {
     sqlx::query_scalar::<_, Uuid>(
         "SELECT workspace_id FROM projects WHERE id = $1 AND deleted_at IS NULL",
     )
-    .bind(board_id)
+    .bind(project_id)
     .fetch_optional(pool)
     .await
 }
 
-/// Helper to verify a user is a board member.
+/// Alias for backward compat
+pub async fn get_workspace_id_for_board(
+    pool: &sqlx::PgPool,
+    board_id: Uuid,
+) -> std::result::Result<Option<Uuid>, sqlx::Error> {
+    get_workspace_id_for_project(pool, board_id).await
+}
+
+/// Helper to verify a user is a project member.
 /// Returns `true` if the user is a member, `false` otherwise.
 ///
 /// Prefer [`super::common::verify_project_membership`] for new code,
 /// which returns `Result<()>` and handles the error internally.
-pub async fn verify_board_membership(
+pub async fn verify_project_member_bool(
     pool: &sqlx::PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     user_id: Uuid,
 ) -> Result<bool> {
-    super::common::verify_project_membership(pool, board_id, user_id)
+    super::common::verify_project_membership(pool, project_id, user_id)
         .await
         .map(|()| true)
         .or_else(|e| {
@@ -139,7 +147,7 @@ pub async fn broadcast_workspace_task_update(
     broadcast_service: &BroadcastService,
     workspace_id: Uuid,
     task_id: Uuid,
-    board_id: Uuid,
+    project_id: Uuid,
     assignee_ids: &[Uuid],
 ) {
     // Broadcast to workspace channel
@@ -149,7 +157,7 @@ pub async fn broadcast_workspace_task_update(
             events::WORKLOAD_CHANGED,
             json!({
                 "task_id": task_id,
-                "board_id": board_id
+                "project_id": project_id
             }),
         )
         .await
@@ -165,7 +173,7 @@ pub async fn broadcast_workspace_task_update(
                 events::TASK_UPDATED,
                 json!({
                     "task_id": task_id,
-                    "board_id": board_id,
+                    "project_id": project_id,
                     "workspace_id": workspace_id
                 }),
             )

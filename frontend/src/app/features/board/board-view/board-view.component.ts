@@ -694,7 +694,7 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     this.shortcutsService.unregister();
-    this.wsService.send('unsubscribe', { channel: `board:${this.boardId}` });
+    this.wsService.send('unsubscribe', { channel: `project:${this.boardId}` });
   }
 
   getFilteredTasksForColumn(columnId: string): Task[] {

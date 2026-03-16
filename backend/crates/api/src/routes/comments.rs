@@ -24,7 +24,7 @@ use taskflow_db::queries::comments::{
     create_comment, delete_comment, get_comment_author_id, get_comment_task_id,
     list_comments_by_task, update_comment, CommentWithAuthor,
 };
-use taskflow_db::queries::get_task_board_id;
+use taskflow_db::queries::get_task_project_id;
 use taskflow_services::broadcast::events;
 use taskflow_services::BroadcastService;
 
@@ -72,12 +72,12 @@ async fn list_comments_handler(
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<ListCommentsResponse>> {
-    // Verify user has access to the task's board
-    let board_id = get_task_board_id(&state.db, task_id)
+    // Verify user has access to the task's project
+    let project_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, project_id, tenant.user_id).await?;
 
     let comments = list_comments_by_task(&state.db, task_id).await?;
 
@@ -93,12 +93,12 @@ async fn create_comment_handler(
     Path(task_id): Path<Uuid>,
     Json(body): Json<CreateCommentRequest>,
 ) -> Result<(StatusCode, Json<CommentWithAuthor>)> {
-    // Verify user has access to the task's board
-    let board_id = get_task_board_id(&state.db, task_id)
+    // Verify user has access to the task's project
+    let project_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, project_id, tenant.user_id).await?;
 
     // Sanitize and extract mentioned user IDs from content
     let sanitized_content = sanitize_html(&body.content);
@@ -137,8 +137,8 @@ async fn create_comment_handler(
     let comment_clone = comment.clone();
     tokio::spawn(async move {
         if let Err(e) = broadcast_service
-            .broadcast_board_update(
-                board_id,
+            .broadcast_project_update(
+                project_id,
                 events::COMMENT_CREATED,
                 json!({
                     "task_id": task_id,
@@ -279,16 +279,16 @@ async fn update_comment_handler(
         ));
     }
 
-    // Verify user has access to the task's board
+    // Verify user has access to the task's project
     let task_id = get_comment_task_id(&state.db, comment_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Comment not found".into()))?;
 
-    let board_id = get_task_board_id(&state.db, task_id)
+    let project_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, project_id, tenant.user_id).await?;
 
     // Sanitize and extract mentioned user IDs from updated content
     let sanitized_content = sanitize_html(&body.content);
@@ -325,16 +325,16 @@ async fn delete_comment_handler(
         ));
     }
 
-    // Verify user has access to the task's board
+    // Verify user has access to the task's project
     let task_id = get_comment_task_id(&state.db, comment_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Comment not found".into()))?;
 
-    let board_id = get_task_board_id(&state.db, task_id)
+    let project_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, project_id, tenant.user_id).await?;
 
     // Delete the comment
     delete_comment(&state.db, comment_id).await?;

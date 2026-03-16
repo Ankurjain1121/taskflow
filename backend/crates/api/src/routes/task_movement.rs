@@ -10,13 +10,13 @@ use crate::state::AppState;
 use taskflow_db::models::automation::AutomationTrigger;
 use taskflow_db::models::{Task, WsBoardEvent};
 use taskflow_db::queries::{
-    get_task_assignee_ids, get_task_board_id, move_task, validate_transition,
+    get_task_assignee_ids, get_task_project_id, move_task, validate_transition,
 };
 use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
 
 use super::common::verify_project_membership;
 use super::task_helpers::{
-    broadcast_workspace_task_update, get_workspace_id_for_board, MoveTaskRequest,
+    broadcast_workspace_task_update, get_workspace_id_for_project, MoveTaskRequest,
 };
 
 /// POST /api/tasks/:id/move
@@ -28,7 +28,7 @@ pub async fn move_task_handler(
     Json(body): Json<MoveTaskRequest>,
 ) -> Result<Json<Task>> {
     // Get task's board_id for authorization
-    let board_id = get_task_board_id(&state.db, task_id)
+    let board_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
@@ -69,14 +69,14 @@ pub async fn move_task_handler(
     };
 
     if let Err(e) = broadcast_service
-        .broadcast_board_event(board_id, &event)
+        .broadcast_project_event(board_id, &event)
         .await
     {
         tracing::error!("Failed to broadcast task moved event: {}", e);
     }
 
     // Broadcast workspace update for team overview (task move can change status)
-    if let Ok(Some(workspace_id)) = get_workspace_id_for_board(&state.db, board_id).await {
+    if let Ok(Some(workspace_id)) = get_workspace_id_for_project(&state.db, board_id).await {
         let assignee_ids = get_task_assignee_ids(&state.db, task_id)
             .await
             .unwrap_or_default();
