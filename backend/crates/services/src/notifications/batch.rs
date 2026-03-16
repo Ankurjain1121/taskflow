@@ -118,10 +118,23 @@ pub async fn flush_all_pending(
     redis: &mut redis::aio::ConnectionManager,
 ) -> Result<HashMap<Uuid, Vec<NotificationPayload>>, BatchError> {
     let pattern = format!("{}*", BATCH_KEY_PREFIX);
-    let keys: Vec<String> = redis::cmd("KEYS")
-        .arg(&pattern)
-        .query_async(redis)
-        .await?;
+    let mut keys: Vec<String> = Vec::new();
+    let mut cursor: u64 = 0;
+    loop {
+        let (new_cursor, batch): (u64, Vec<String>) = redis::cmd("SCAN")
+            .arg(cursor)
+            .arg("MATCH")
+            .arg(&pattern)
+            .arg("COUNT")
+            .arg(100)
+            .query_async(redis)
+            .await?;
+        keys.extend(batch);
+        cursor = new_cursor;
+        if cursor == 0 {
+            break;
+        }
+    }
 
     let mut results = HashMap::new();
 
@@ -158,6 +171,14 @@ pub async fn flush_all_pending(
     Ok(results)
 }
 
+/// HTML-escape user-provided strings to prevent XSS in email clients
+fn html_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
 /// Generate a merged digest HTML email from multiple notifications
 fn generate_merged_email_html(payloads: &[NotificationPayload], app_url: &str) -> String {
     let items_html: String = payloads
@@ -186,7 +207,7 @@ fn generate_merged_email_html(payloads: &[NotificationPayload], app_url: &str) -
                         <div style="color: #6b7280; font-size: 14px;">{}{}</div>
                     </td>
                 </tr>"#,
-                p.title, p.body, link
+                html_escape(&p.title), html_escape(&p.body), link
             )
         })
         .collect();
@@ -294,7 +315,7 @@ pub async fn run_flush_cycle(
     </p>
 </body>
 </html>"#,
-                p.title, p.body, link_html, app_url
+                html_escape(&p.title), html_escape(&p.body), link_html, app_url
             );
 
             postal.send_email(&email, &subject, &html).await

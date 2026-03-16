@@ -26,8 +26,7 @@ use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerCo
 
 use super::common::verify_project_membership;
 use super::task_helpers::{
-    broadcast_workspace_task_update, get_workspace_id_for_board, verify_board_membership,
-    AssignUserRequest,
+    broadcast_workspace_task_update, get_workspace_id_for_board, AssignUserRequest,
 };
 
 // ── Watcher types ───────────────────────────────────────────────────────────
@@ -62,10 +61,10 @@ pub async fn assign_user_handler(
     // Verify board membership
     verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
-    // Verify the assignee is also a board member
-    if !verify_board_membership(&state.db, board_id, body.user_id).await? {
+    // Verify the assignee is also a project member
+    if !taskflow_db::queries::verify_project_membership(&state.db, board_id, body.user_id).await? {
         return Err(AppError::BadRequest(
-            "User to assign is not a board member".into(),
+            "User to assign is not a project member".into(),
         ));
     }
 

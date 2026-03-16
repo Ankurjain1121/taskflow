@@ -14,7 +14,7 @@ import {
   WorkspaceService,
   Workspace,
 } from '../../core/services/workspace.service';
-import { ProjectService, Board } from '../../core/services/board.service';
+import { ProjectService, Board } from '../../core/services/project.service';
 import {
   ReportsService,
   BurndownPoint,

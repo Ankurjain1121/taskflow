@@ -7,12 +7,10 @@ import {
 import { RouterModule } from '@angular/router';
 import { Menu } from 'primeng/menu';
 import { MenuItem } from 'primeng/api';
-import { ProjectPresenceComponent } from '../board-presence/board-presence.component';
-
 @Component({
   selector: 'app-project-view-header',
   standalone: true,
-  imports: [RouterModule, Menu, ProjectPresenceComponent],
+  imports: [RouterModule, Menu],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="bg-[var(--card)] border-b border-[var(--border)] px-6 py-4">
@@ -28,9 +26,6 @@ import { ProjectPresenceComponent } from '../board-presence/board-presence.compo
           }
         </div>
         <div class="flex items-center gap-3">
-          <!-- Board Presence -->
-          <app-project-presence />
-
           <!-- Settings Button -->
           <a
             [routerLink]="[

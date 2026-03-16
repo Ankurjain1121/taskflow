@@ -14,6 +14,8 @@ pub enum WebhookQueryError {
     NotBoardMember,
     #[error("Webhook not found")]
     NotFound,
+    #[error("Invalid URL: {0}")]
+    InvalidUrl(String),
 }
 
 /// Input for creating a webhook

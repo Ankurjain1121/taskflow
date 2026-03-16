@@ -11,6 +11,34 @@ export interface CompletionRate {
 export interface BurndownPoint {
   date: string;
   remaining: number;
+  total_tasks: number;
+  remaining_tasks: number;
+}
+
+export interface BurnupPoint {
+  date: string;
+  total_scope: number;
+  completed: number;
+}
+
+export interface ResourceEntry {
+  user_id: string;
+  user_name: string;
+  task_count: number;
+  hours_logged: number;
+  week_start: string;
+}
+
+export interface CompletionRatePoint {
+  week_start: string;
+  completed: number;
+  total: number;
+}
+
+export interface ReportJobStatus {
+  status: 'pending' | 'completed' | 'failed';
+  download_url?: string;
+  error_message?: string;
 }
 
 export interface PriorityCount {
@@ -53,7 +81,10 @@ export interface BurndownDataPoint {
 export class ReportsService {
   constructor(private http: HttpClient) {}
 
-  getBoardReport(boardId: string, days: number = 30): Observable<BoardReport> {
+  getBoardReport(
+    boardId: string,
+    days: number = 30,
+  ): Observable<BoardReport> {
     const params = new HttpParams().set('days', days.toString());
     return this.http.get<BoardReport>(`/api/projects/${boardId}/reports`, {
       params,
@@ -68,6 +99,76 @@ export class ReportsService {
     return this.http.get<BurndownDataPoint[]>(
       `/api/projects/${boardId}/charts/burndown`,
       { params },
+    );
+  }
+
+  getBurndown(projectId: string, days: number): Observable<BurndownPoint[]> {
+    const params = new HttpParams()
+      .set('project_id', projectId)
+      .set('days', days.toString());
+    return this.http.get<BurndownPoint[]>('/api/reports/burndown', { params });
+  }
+
+  getBurnup(projectId: string, days: number): Observable<BurnupPoint[]> {
+    const params = new HttpParams()
+      .set('project_id', projectId)
+      .set('days', days.toString());
+    return this.http.get<BurnupPoint[]>('/api/reports/burnup', { params });
+  }
+
+  getResourceUtilization(
+    workspaceId: string,
+    weeks: number,
+  ): Observable<ResourceEntry[]> {
+    const params = new HttpParams()
+      .set('workspace_id', workspaceId)
+      .set('weeks', weeks.toString());
+    return this.http.get<ResourceEntry[]>('/api/reports/resource', { params });
+  }
+
+  getCompletionRate(
+    projectId: string,
+    weeks: number,
+  ): Observable<CompletionRatePoint[]> {
+    const params = new HttpParams()
+      .set('project_id', projectId)
+      .set('weeks', weeks.toString());
+    return this.http.get<CompletionRatePoint[]>(
+      '/api/reports/completion-rate',
+      { params },
+    );
+  }
+
+  exportCsv(
+    projectId: string,
+    reportType: string,
+    days: number,
+  ): Observable<Blob> {
+    const params = new HttpParams()
+      .set('project_id', projectId)
+      .set('report_type', reportType)
+      .set('days', days.toString());
+    return this.http.get('/api/reports/export/csv', {
+      params,
+      responseType: 'blob',
+    });
+  }
+
+  requestPdfExport(
+    projectId: string,
+    reportType: string,
+    days: number,
+  ): Observable<{ job_id: string }> {
+    return this.http.post<{ job_id: string }>('/api/reports/export/pdf', {
+      project_id: projectId,
+      report_type: reportType,
+      days,
+    });
+  }
+
+  getPdfStatus(jobId: string): Observable<ReportJobStatus> {
+    return this.http.get<ReportJobStatus>(
+      `/api/reports/export/${jobId}/status`,
     );
   }
 }

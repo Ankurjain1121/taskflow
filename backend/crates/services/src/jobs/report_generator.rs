@@ -88,15 +88,14 @@ fn generate_pdf_bytes(
             // genpdf requires font files; in production, bundle fonts in the Docker image.
             // For now, attempt system fonts.
             genpdf::fonts::from_files("/usr/share/fonts/truetype/liberation", "LiberationSans", None)
-                .unwrap_or_else(|_| {
+                .or_else(|_| {
                     genpdf::fonts::from_files(
                         "/usr/share/fonts/truetype/dejavu",
                         "DejaVuSans",
                         None,
                     )
-                    .map_err(|e| ReportGeneratorError::PdfGeneration(format!("No fonts available: {e}")))
-                    .expect("No system fonts found — install liberation-fonts or dejavu-fonts")
                 })
+                .map_err(|e| ReportGeneratorError::PdfGeneration(format!("No fonts available: {e}")))?
         });
 
     let mut doc = genpdf::Document::new(font_family);

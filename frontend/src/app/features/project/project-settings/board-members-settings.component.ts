@@ -11,7 +11,7 @@ import { FormsModule } from '@angular/forms';
 import {
   ProjectService,
   ProjectMember,
-} from '../../../core/services/board.service';
+} from '../../../core/services/project.service';
 import { ConfirmationService } from 'primeng/api';
 import { ConfirmDialog } from 'primeng/confirmdialog';
 import {

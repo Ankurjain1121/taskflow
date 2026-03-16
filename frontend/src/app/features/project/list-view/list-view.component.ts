@@ -555,8 +555,9 @@ export class ListViewComponent {
   });
 
   sortedTasks = computed(() => {
-    const tasks = this.tasks();
+    const tasks = this.tasks() ?? [];
     const posMap = this.groupPositionMap();
+    if (!Array.isArray(tasks)) return [];
     return [...tasks].sort((a, b) => {
       const ga = posMap.get(a.task_list_id) ?? Number.MAX_SAFE_INTEGER;
       const gb = posMap.get(b.task_list_id) ?? Number.MAX_SAFE_INTEGER;

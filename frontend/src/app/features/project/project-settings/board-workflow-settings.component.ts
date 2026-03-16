@@ -12,7 +12,7 @@ import { CommonModule } from '@angular/common';
 import {
   ProjectService,
   ProjectStatus,
-} from '../../../core/services/board.service';
+} from '../../../core/services/project.service';
 import { MessageService } from 'primeng/api';
 
 @Component({
