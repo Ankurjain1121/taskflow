@@ -846,11 +846,11 @@ button:active,
 }
 
 .stat-card--warning {
-  border-left: 4px solid #f59e0b;
+  border-left: 4px solid var(--status-amber-text);
 }
 .stat-card--warning .stat-card-icon {
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
+  background: var(--status-amber-bg);
+  color: var(--status-amber-text);
 }
 
 .stat-card--success {

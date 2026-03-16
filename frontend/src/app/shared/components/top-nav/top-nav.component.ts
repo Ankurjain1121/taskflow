@@ -123,8 +123,9 @@ import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortc
           (click)="quickCreate.emit()"
           pTooltip="Create task"
           tooltipPosition="bottom"
+          aria-label="Create task"
         >
-          <i class="pi pi-plus"></i>
+          <i class="pi pi-plus" aria-hidden="true"></i>
         </button>
 
         <button
@@ -145,8 +146,9 @@ import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortc
           (click)="themePanel.toggle($event)"
           pTooltip="Theme"
           tooltipPosition="bottom"
+          aria-label="Toggle theme"
         >
-          <i [class]="themeIcon()"></i>
+          <i [class]="themeIcon()" aria-hidden="true"></i>
         </button>
         <p-popover #themePanel>
           <div class="p-3 space-y-3" style="min-width: 220px">

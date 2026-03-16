@@ -51,15 +51,11 @@ import { AuthService } from '../../../core/services/auth.service';
                 style="font-size: 48px;"
               ></i>
               <h3 class="text-lg font-semibold mb-2">Invalid Reset Link</h3>
-              <p class="text-gray-600 text-sm mb-6">
+              <p class="text-[var(--muted-foreground)] text-sm mb-6">
                 This password reset link is invalid. Please request a new one.
               </p>
-              <a routerLink="/auth/forgot-password">
-                <button
-                  pButton
-                  label="Request New Link"
-                  class="action-btn"
-                ></button>
+              <a routerLink="/auth/forgot-password" class="action-btn inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium" style="background: var(--primary); color: var(--primary-foreground); text-decoration: none;">
+                Request New Link
               </a>
             </div>
           } @else if (resetSuccess) {
@@ -71,20 +67,16 @@ import { AuthService } from '../../../core/services/auth.service';
               <h3 class="text-lg font-semibold mb-2">
                 Password Reset Successfully
               </h3>
-              <p class="text-gray-600 text-sm mb-6">
+              <p class="text-[var(--muted-foreground)] text-sm mb-6">
                 Your password has been reset. You can now sign in with your new
                 password.
               </p>
-              <a routerLink="/auth/sign-in">
-                <button
-                  pButton
-                  label="Go to Sign In"
-                  class="action-btn"
-                ></button>
+              <a routerLink="/auth/sign-in" class="action-btn inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium" style="background: var(--primary); color: var(--primary-foreground); text-decoration: none;">
+                Go to Sign In
               </a>
             </div>
           } @else {
-            <p class="text-gray-600 text-sm mb-6 text-center">
+            <p class="text-[var(--muted-foreground)] text-sm mb-6 text-center">
               Enter your new password below.
             </p>
 
@@ -149,7 +141,7 @@ import { AuthService } from '../../../core/services/auth.service';
 
               @if (errorMessage) {
                 <div
-                  class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded"
+                  class="mb-4 p-3 bg-[var(--status-red-bg)] border border-[var(--status-red-border)] text-[var(--status-red-text)] rounded"
                 >
                   {{ errorMessage }}
                 </div>
@@ -177,7 +169,7 @@ import { AuthService } from '../../../core/services/auth.service';
         </div>
 
         <div class="card-footer">
-          <p class="text-sm text-gray-600">
+          <p class="text-sm text-[var(--muted-foreground)]">
             Remember your password?
             <a routerLink="/auth/sign-in" class="text-blue-600 hover:underline">
               Sign in

@@ -3,6 +3,7 @@ import {
   input,
   output,
   signal,
+  computed,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -13,6 +14,7 @@ import { Select } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import { TaskListItem } from '../../../core/services/task.service';
+import { TaskGroupWithStats } from '../../../core/services/task-group.service';
 import {
   getPriorityLabel,
   getPriorityColorHex,
@@ -48,198 +50,336 @@ interface ColumnInput {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="mx-4 my-4">
-      <p-table
-        [value]="tasks()"
-        [loading]="loading()"
-        sortMode="single"
-        [sortField]="'created_at'"
-        [sortOrder]="-1"
-        [(selection)]="selectedTasks"
-        [paginator]="tasks().length > 25"
-        [rows]="25"
-        [rowsPerPageOptions]="[10, 25, 50, 100]"
-        [showCurrentPageReport]="true"
-        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} tasks"
-        selectionMode="multiple"
-        dataKey="id"
-        [rowHover]="true"
-        styleClass="p-datatable-sm"
-      >
-        <ng-template #header>
-          <tr>
-            <th style="width: 3rem">
-              <p-tableHeaderCheckbox />
-            </th>
-            <th pSortableColumn="title">Title <p-sortIcon field="title" /></th>
-            <th pSortableColumn="priority" style="width: 120px">
-              Priority <p-sortIcon field="priority" />
-            </th>
-            <th pSortableColumn="status_name" style="width: 160px">
-              Status <p-sortIcon field="status_name" />
-            </th>
-            <th pSortableColumn="due_date" style="width: 160px">
-              Due Date <p-sortIcon field="due_date" />
-            </th>
-            <th pSortableColumn="created_at" style="width: 140px">
-              Created <p-sortIcon field="created_at" />
-            </th>
-          </tr>
-        </ng-template>
-        <ng-template #body let-task>
-          <tr
-            [pSelectableRow]="task"
-            class="cursor-pointer"
-            (click)="onRowClick(task)"
-          >
-            <td (click)="$event.stopPropagation()">
-              <p-tableCheckbox [value]="task" />
-            </td>
-
-            <!-- Title (inline editable) -->
-            <td (click)="$event.stopPropagation()">
-              @if (editingTitleTaskId() === task.id) {
-                <input
-                  pInputText
-                  type="text"
-                  class="w-full text-sm"
-                  [ngModel]="editingTitleValue()"
-                  (ngModelChange)="editingTitleValue.set($event)"
-                  (blur)="saveTitleEdit(task)"
-                  (keydown.enter)="saveTitleEdit(task)"
-                  (keydown.escape)="cancelTitleEdit()"
-                  #titleInput
-                />
-              } @else {
-                <div
-                  class="text-sm font-medium text-[var(--foreground)] cursor-text hover:bg-[var(--muted)] rounded px-1 py-0.5 -mx-1"
-                  (click)="startTitleEdit(task)"
-                >
-                  {{ task.title }}
-                </div>
-                @if (task.description) {
-                  <div
-                    class="text-xs text-[var(--muted-foreground)] line-clamp-1 mt-0.5 cursor-pointer"
-                    (click)="onRowClick(task)"
-                  >
-                    {{ task.description }}
-                  </div>
-                }
-              }
-            </td>
-
-            <!-- Priority (inline editable) -->
-            <td (click)="$event.stopPropagation()">
-              @if (editingPriorityTaskId() === task.id) {
-                <p-select
-                  [options]="priorityOptions"
-                  [ngModel]="task.priority"
-                  (ngModelChange)="onPrioritySelect(task.id, $event)"
-                  optionLabel="label"
-                  optionValue="value"
-                  [appendTo]="'body'"
-                  [autoDisplayFirst]="false"
-                  styleClass="w-full text-xs"
-                  (onHide)="editingPriorityTaskId.set(null)"
-                />
-              } @else {
-                <div
-                  class="flex items-center justify-center h-8 rounded text-xs font-medium text-white cursor-pointer transition-opacity hover:opacity-85"
-                  [style.background-color]="getPriorityHexColor(task.priority)"
-                  (click)="editingPriorityTaskId.set(task.id)"
-                >
-                  {{ getPriorityLabelText(task.priority) }}
-                </div>
-              }
-            </td>
-
-            <!-- Status (inline editable) -->
-            <td (click)="$event.stopPropagation()">
-              @if (editingStatusTaskId() === task.id) {
-                <p-select
-                  [options]="getStatusOptionsForTask(task)"
-                  [ngModel]="task.status_id"
-                  (ngModelChange)="onStatusSelect(task.id, $event)"
-                  optionLabel="name"
-                  optionValue="id"
-                  [appendTo]="'body'"
-                  [autoDisplayFirst]="false"
-                  styleClass="w-full text-xs"
-                  (onHide)="editingStatusTaskId.set(null)"
-                />
-              } @else {
-                <div
-                  class="flex items-center justify-center h-8 rounded text-xs font-medium cursor-pointer transition-opacity hover:opacity-85"
-                  [style.background]="
-                    task.status_color || 'var(--secondary)'
+    <div class="mx-4 my-4 space-y-3">
+      <!-- Shared task row cells template -->
+      <ng-template #taskRowCells let-task>
+        <td (click)="$event.stopPropagation()">
+          <p-tableCheckbox [value]="task" />
+        </td>
+        <td (click)="$event.stopPropagation()">
+          @if (editingTitleTaskId() === task.id) {
+            <input
+              pInputText
+              type="text"
+              class="w-full text-sm"
+              [ngModel]="editingTitleValue()"
+              (ngModelChange)="editingTitleValue.set($event)"
+              (blur)="saveTitleEdit(task)"
+              (keydown.enter)="saveTitleEdit(task)"
+              (keydown.escape)="cancelTitleEdit()"
+              #titleInput
+            />
+          } @else {
+            <div
+              class="text-sm font-medium text-[var(--foreground)] cursor-text hover:bg-[var(--muted)] rounded px-1 py-0.5 -mx-1"
+              (click)="startTitleEdit(task, $event)"
+            >
+              {{ task.title }}
+            </div>
+            @if (task.description) {
+              <div
+                class="text-xs text-[var(--muted-foreground)] line-clamp-1 mt-0.5 cursor-pointer"
+                (click)="onRowClick(task)"
+              >
+                {{ task.description }}
+              </div>
+            }
+          }
+        </td>
+        <td (click)="$event.stopPropagation()">
+          @if (editingPriorityTaskId() === task.id) {
+            <p-select
+              [options]="priorityOptions"
+              [ngModel]="task.priority"
+              (ngModelChange)="onPrioritySelect(task.id, $event)"
+              optionLabel="label"
+              optionValue="value"
+              [appendTo]="'body'"
+              [autoDisplayFirst]="false"
+              styleClass="w-full text-xs"
+              (onHide)="editingPriorityTaskId.set(null)"
+            />
+          } @else {
+            <button
+              class="flex items-center justify-center w-full h-8 rounded text-xs font-medium text-white cursor-pointer transition-opacity hover:opacity-85 border-none"
+              [style.background-color]="getPriorityHexColor(task.priority)"
+              (click)="editingPriorityTaskId.set(task.id)"
+              [attr.aria-label]="'Priority: ' + getPriorityLabelText(task.priority) + '. Click to edit'"
+            >
+              {{ getPriorityLabelText(task.priority) }}
+            </button>
+          }
+        </td>
+        <td (click)="$event.stopPropagation()">
+          @if (editingStatusTaskId() === task.id) {
+            <p-select
+              [options]="getStatusOptionsForTask(task)"
+              [ngModel]="task.status_id"
+              (ngModelChange)="onStatusSelect(task.id, $event)"
+              optionLabel="name"
+              optionValue="id"
+              [appendTo]="'body'"
+              [autoDisplayFirst]="false"
+              styleClass="w-full text-xs"
+              (onHide)="editingStatusTaskId.set(null)"
+            />
+          } @else {
+            <button
+              class="flex items-center justify-center w-full h-8 rounded text-xs font-medium cursor-pointer transition-opacity hover:opacity-85 border-none"
+              [style.background]="
+                task.status_color || 'var(--secondary)'
+              "
+              [style.color]="
+                task.status_color
+                  ? '#fff'
+                  : 'var(--secondary-foreground)'
+              "
+              (click)="editingStatusTaskId.set(task.id)"
+              [attr.aria-label]="'Status: ' + (task.status_name || task.column_name) + '. Click to edit'"
+            >
+              {{ task.status_name || task.column_name }}
+            </button>
+          }
+        </td>
+        <td (click)="$event.stopPropagation()">
+          @if (editingDueDateTaskId() === task.id) {
+            <p-datepicker
+              [ngModel]="
+                task.due_date ? parseDate(task.due_date) : null
+              "
+              (ngModelChange)="onDueDateSelect(task.id, $event)"
+              [showIcon]="true"
+              [appendTo]="'body'"
+              dateFormat="M dd"
+              [showButtonBar]="true"
+              (onClose)="editingDueDateTaskId.set(null)"
+              [inline]="false"
+              styleClass="w-full text-sm"
+            />
+          } @else {
+            <button
+              class="cursor-pointer hover:bg-[var(--muted)] rounded px-1 py-0.5 -mx-1 border-none bg-transparent text-left"
+              (click)="editingDueDateTaskId.set(task.id)"
+              [attr.aria-label]="'Due date: ' + (task.due_date ? formatDueDate(task.due_date) : 'Not set') + '. Click to edit'"
+            >
+              @if (task.due_date) {
+                <span
+                  [class]="
+                    'text-sm ' + getDueDateColorClass(task.due_date)
                   "
-                  [style.color]="
-                    task.status_color
-                      ? '#fff'
-                      : 'var(--secondary-foreground)'
-                  "
-                  (click)="editingStatusTaskId.set(task.id)"
                 >
-                  {{ task.status_name || task.column_name }}
-                </div>
-              }
-            </td>
-
-            <!-- Due Date (inline editable) -->
-            <td (click)="$event.stopPropagation()">
-              @if (editingDueDateTaskId() === task.id) {
-                <p-datepicker
-                  [ngModel]="task.due_date ? parseDate(task.due_date) : null"
-                  (ngModelChange)="onDueDateSelect(task.id, $event)"
-                  [showIcon]="true"
-                  [appendTo]="'body'"
-                  dateFormat="M dd"
-                  [showButtonBar]="true"
-                  (onClose)="editingDueDateTaskId.set(null)"
-                  [inline]="false"
-                  styleClass="w-full text-sm"
-                />
+                  {{ formatDueDate(task.due_date) }}
+                </span>
               } @else {
-                <div
-                  class="cursor-pointer hover:bg-[var(--muted)] rounded px-1 py-0.5 -mx-1"
-                  (click)="editingDueDateTaskId.set(task.id)"
+                <span class="text-sm text-[var(--muted-foreground)]"
+                  >--</span
                 >
-                  @if (task.due_date) {
+              }
+            </button>
+          }
+        </td>
+        <td>
+          <span class="text-sm text-[var(--muted-foreground)]">
+            {{ formatDate(task.created_at) }}
+          </span>
+        </td>
+      </ng-template>
+
+      @if (hasGroups()) {
+        <!-- Grouped view — single table with native row grouping -->
+        <p-table
+          [value]="displayTasks()"
+          [loading]="loading()"
+          [customSort]="true"
+          (sortFunction)="customSortFn($event)"
+          sortMode="single"
+          [sortField]="'created_at'"
+          [sortOrder]="-1"
+          [(selection)]="selectedTasks"
+          [paginator]="displayTasks().length > 25"
+          [rows]="25"
+          [rowsPerPageOptions]="[10, 25, 50, 100]"
+          [showCurrentPageReport]="true"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} tasks"
+          selectionMode="multiple"
+          dataKey="id"
+          [rowHover]="true"
+          styleClass="p-datatable-sm"
+          rowGroupMode="subheader"
+          groupRowsBy="task_list_id"
+        >
+          <ng-template #header>
+            <tr>
+              <th style="width: 3rem">
+                <p-tableHeaderCheckbox />
+              </th>
+              <th pSortableColumn="title">
+                Title <p-sortIcon field="title" />
+              </th>
+              <th pSortableColumn="priority" style="width: 120px">
+                Priority <p-sortIcon field="priority" />
+              </th>
+              <th pSortableColumn="status_name" style="width: 160px">
+                Status <p-sortIcon field="status_name" />
+              </th>
+              <th pSortableColumn="due_date" style="width: 160px">
+                Due Date <p-sortIcon field="due_date" />
+              </th>
+              <th pSortableColumn="created_at" style="width: 140px">
+                Created <p-sortIcon field="created_at" />
+              </th>
+            </tr>
+          </ng-template>
+          <ng-template #groupheader let-task>
+            @let group = getGroupData(task.task_list_id);
+            <tr pRowGroupHeader>
+              <td
+                colspan="6"
+                class="!p-0 !border-none"
+              >
+                <div
+                  class="flex items-center justify-between px-4 py-2.5 cursor-pointer select-none transition-colors hover:brightness-95"
+                  [style.background-color]="(group?.group?.color ?? '#6b7280') + '15'"
+                  [style.border-left]="'3px solid ' + (group?.group?.color ?? '#6b7280')"
+                  (click)="onToggleGroupById(task.task_list_id)"
+                >
+                  <div class="flex items-center gap-2">
+                    <i
+                      class="pi text-xs text-[var(--muted-foreground)]"
+                      [class.pi-chevron-right]="group?.group?.collapsed"
+                      [class.pi-chevron-down]="!group?.group?.collapsed"
+                    ></i>
                     <span
-                      [class]="
-                        'text-sm ' + getDueDateColorClass(task.due_date)
-                      "
+                      class="text-sm font-semibold"
+                      [style.color]="group?.group?.color ?? '#6b7280'"
                     >
-                      {{ formatDueDate(task.due_date) }}
+                      {{ group?.group?.name ?? 'Ungrouped' }}
                     </span>
-                  } @else {
-                    <span class="text-sm text-[var(--muted-foreground)]"
-                      >--</span
+                    <span
+                      class="text-xs text-[var(--muted-foreground)] px-2 py-0.5 bg-[var(--secondary)] rounded-full"
                     >
-                  }
+                      {{ group?.completed_count ?? 0 }} /
+                      {{ group?.task_count ?? 0 }}
+                    </span>
+                    @if (
+                      group?.estimated_hours != null &&
+                      group!.estimated_hours! > 0
+                    ) {
+                      <span
+                        class="text-xs text-[var(--muted-foreground)] px-2 py-0.5 bg-[var(--secondary)] rounded-full flex items-center gap-1"
+                      >
+                        <i class="pi pi-clock" style="font-size: 0.7rem"></i>
+                        {{ group!.estimated_hours!.toFixed(1) }}h
+                      </span>
+                    }
+                    <span
+                      class="text-xs font-medium px-2 py-0.5 rounded-full"
+                      [class]="getCompletionClassFromPct(getCompletionPct(group))"
+                    >
+                      {{ getCompletionPct(group) }}%
+                    </span>
+                  </div>
+                  <span class="text-xs text-[var(--muted-foreground)]">
+                    {{ group?.task_count ?? 0 }} tasks
+                  </span>
                 </div>
-              }
-            </td>
-
-            <td>
-              <span class="text-sm text-[var(--muted-foreground)]">
-                {{ formatDate(task.created_at) }}
-              </span>
-            </td>
-          </tr>
-        </ng-template>
-        <ng-template #emptymessage>
-          <tr>
-            <td colspan="6">
-              <app-empty-state
-                variant="column-filtered"
-                title="No tasks match your filters"
-                description="Try adjusting your filters or clear them to see all tasks."
-              />
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template #body let-task>
+            @if (isGroupCollapsed(task.task_list_id)) {
+              <tr style="display: none">
+                <td colspan="6"></td>
+              </tr>
+            } @else {
+              <tr
+                [pSelectableRow]="task"
+                class="cursor-pointer"
+                (click)="onRowClick(task)"
+              >
+                <ng-container
+                  *ngTemplateOutlet="taskRowCells; context: { $implicit: task }"
+                ></ng-container>
+              </tr>
+            }
+          </ng-template>
+          <ng-template #emptymessage>
+            <tr>
+              <td colspan="6">
+                <app-empty-state
+                  variant="column-filtered"
+                  title="No tasks match your filters"
+                  description="Try adjusting your filters or clear them to see all tasks."
+                />
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      } @else {
+        <!-- Flat view (no groups or single group) -->
+        <p-table
+          [value]="tasks()"
+          [loading]="loading()"
+          sortMode="single"
+          [sortField]="'created_at'"
+          [sortOrder]="-1"
+          [(selection)]="selectedTasks"
+          [paginator]="tasks().length > 25"
+          [rows]="25"
+          [rowsPerPageOptions]="[10, 25, 50, 100]"
+          [showCurrentPageReport]="true"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} tasks"
+          selectionMode="multiple"
+          dataKey="id"
+          [rowHover]="true"
+          styleClass="p-datatable-sm"
+        >
+          <ng-template #header>
+            <tr>
+              <th style="width: 3rem">
+                <p-tableHeaderCheckbox />
+              </th>
+              <th pSortableColumn="title">
+                Title <p-sortIcon field="title" />
+              </th>
+              <th pSortableColumn="priority" style="width: 120px">
+                Priority <p-sortIcon field="priority" />
+              </th>
+              <th pSortableColumn="status_name" style="width: 160px">
+                Status <p-sortIcon field="status_name" />
+              </th>
+              <th pSortableColumn="due_date" style="width: 160px">
+                Due Date <p-sortIcon field="due_date" />
+              </th>
+              <th pSortableColumn="created_at" style="width: 140px">
+                Created <p-sortIcon field="created_at" />
+              </th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-task>
+            <tr
+              [pSelectableRow]="task"
+              class="cursor-pointer"
+              (click)="onRowClick(task)"
+            >
+              <ng-container
+                *ngTemplateOutlet="taskRowCells; context: { $implicit: task }"
+              ></ng-container>
+            </tr>
+          </ng-template>
+          <ng-template #emptymessage>
+            <tr>
+              <td colspan="6">
+                <app-empty-state
+                  variant="column-filtered"
+                  title="No tasks match your filters"
+                  description="Try adjusting your filters or clear them to see all tasks."
+                />
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      }
     </div>
   `,
   styles: [
@@ -265,11 +405,19 @@ interface ColumnInput {
         transition: background-color 150ms ease;
       }
 
-      :host ::ng-deep .p-datatable .p-datatable-tbody > tr:nth-child(even) {
+      :host
+        ::ng-deep
+        .p-datatable
+        .p-datatable-tbody
+        > tr:not(.p-rowgroup-header):nth-child(even) {
         background: color-mix(in srgb, var(--background) 95%, var(--primary));
       }
 
-      :host ::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
+      :host
+        ::ng-deep
+        .p-datatable
+        .p-datatable-tbody
+        > tr:not(.p-rowgroup-header):hover {
         background: color-mix(
           in srgb,
           var(--background) 90%,
@@ -284,11 +432,30 @@ interface ColumnInput {
       :host ::ng-deep .p-datepicker {
         min-width: 100%;
       }
+
+      :host
+        ::ng-deep
+        .p-datatable
+        .p-datatable-tbody
+        > tr.p-rowgroup-header {
+        background: transparent !important;
+      }
+
+      :host
+        ::ng-deep
+        .p-datatable
+        .p-datatable-tbody
+        > tr.p-rowgroup-header
+        > td {
+        padding: 0 !important;
+        border: none !important;
+      }
     `,
   ],
 })
 export class ListViewComponent {
   tasks = input<TaskListItem[]>([]);
+  groups = input<TaskGroupWithStats[]>([]);
   loading = input<boolean>(false);
   columns = input<ColumnInput[]>([]);
 
@@ -297,6 +464,7 @@ export class ListViewComponent {
   priorityChanged = output<{ taskId: string; priority: string }>();
   statusChanged = output<{ taskId: string; statusId: string }>();
   dueDateChanged = output<{ taskId: string; dueDate: string | null }>();
+  groupToggled = output<TaskGroupWithStats>();
 
   selectedTasks: TaskListItem[] = [];
 
@@ -314,25 +482,140 @@ export class ListViewComponent {
     { label: 'Urgent', value: 'urgent' },
   ];
 
+  // === Computed signals ===
+
+  hasGroups = computed(() => this.groups().length > 1);
+
+  groupMap = computed(() => {
+    const map = new Map<string, TaskGroupWithStats>();
+    for (const g of this.groups()) {
+      map.set(g.group.id, g);
+    }
+    return map;
+  });
+
+  groupPositionMap = computed(() => {
+    const map = new Map<string | null, number>();
+    const groups = this.groups();
+    for (let i = 0; i < groups.length; i++) {
+      map.set(groups[i].group.id, i);
+    }
+    map.set(null, groups.length); // ungrouped goes last
+    return map;
+  });
+
+  sortedTasks = computed(() => {
+    const tasks = this.tasks();
+    const posMap = this.groupPositionMap();
+    return [...tasks].sort((a, b) => {
+      const ga = posMap.get(a.task_list_id) ?? Number.MAX_SAFE_INTEGER;
+      const gb = posMap.get(b.task_list_id) ?? Number.MAX_SAFE_INTEGER;
+      if (ga !== gb) return ga - gb;
+      return a.position.localeCompare(b.position);
+    });
+  });
+
+  displayTasks = computed(() => {
+    const tasks = this.sortedTasks();
+    const collapsedIds = new Set(
+      this.groups()
+        .filter((g) => g.group.collapsed)
+        .map((g) => g.group.id),
+    );
+    if (collapsedIds.size === 0) return tasks;
+
+    // Keep one sentinel task per collapsed group so PrimeNG renders its group header
+    const seenCollapsed = new Set<string>();
+    return tasks.filter((task) => {
+      const gid = task.task_list_id;
+      if (gid === null || !collapsedIds.has(gid)) return true;
+      if (seenCollapsed.has(gid)) return false;
+      seenCollapsed.add(gid);
+      return true;
+    });
+  });
+
+  // === Group helpers ===
+
+  getGroupData(id: string | null): TaskGroupWithStats | undefined {
+    if (id === null) return undefined;
+    return this.groupMap().get(id);
+  }
+
+  getCompletionPct(group: TaskGroupWithStats | undefined): number {
+    if (!group || group.task_count === 0) return 0;
+    return Math.round((group.completed_count / group.task_count) * 100);
+  }
+
+  getCompletionClassFromPct(pct: number): string {
+    if (pct === 100)
+      return 'bg-[var(--status-green-bg)] text-[var(--status-green-text)]';
+    if (pct > 0)
+      return 'bg-[var(--status-blue-bg)] text-[var(--status-blue-text)]';
+    return 'bg-[var(--secondary)] text-[var(--muted-foreground)]';
+  }
+
+  isGroupCollapsed(taskListId: string | null): boolean {
+    if (taskListId === null) return false;
+    const group = this.groupMap().get(taskListId);
+    return group?.group.collapsed ?? false;
+  }
+
+  onToggleGroupById(taskListId: string | null): void {
+    if (taskListId === null) return;
+    const group = this.groupMap().get(taskListId);
+    if (group) {
+      this.groupToggled.emit(group);
+    }
+  }
+
+  customSortFn(event: {
+    data: TaskListItem[];
+    field: string;
+    order: number;
+  }): void {
+    const posMap = this.groupPositionMap();
+    event.data.sort((a, b) => {
+      // Primary: preserve group ordering
+      const ga = posMap.get(a.task_list_id) ?? Number.MAX_SAFE_INTEGER;
+      const gb = posMap.get(b.task_list_id) ?? Number.MAX_SAFE_INTEGER;
+      if (ga !== gb) return ga - gb;
+
+      // Secondary: sort by user-selected column within each group
+      const va = (a as unknown as Record<string, unknown>)[event.field];
+      const vb = (b as unknown as Record<string, unknown>)[event.field];
+      let result = 0;
+      if (va == null && vb != null) result = -1;
+      else if (va != null && vb == null) result = 1;
+      else if (va != null && vb != null) {
+        if (typeof va === 'string' && typeof vb === 'string') {
+          result = va.localeCompare(vb);
+        } else {
+          result = va < vb ? -1 : va > vb ? 1 : 0;
+        }
+      }
+      return result * event.order;
+    });
+  }
+
   // === Title editing ===
 
-  startTitleEdit(task: TaskListItem): void {
+  startTitleEdit(task: TaskListItem, event?: MouseEvent): void {
     this.editingTitleTaskId.set(task.id);
     this.editingTitleValue.set(task.title);
-    // Focus input after render
     setTimeout(() => {
-      const input = document.querySelector(
-        'input[pInputText]',
-      ) as HTMLInputElement | null;
-      input?.focus();
-      input?.select();
+      const container = (event?.target as HTMLElement)?.closest('td');
+      const el = container
+        ? (container.querySelector('input[pInputText]') as HTMLInputElement | null)
+        : (document.querySelector('input[pInputText]') as HTMLInputElement | null);
+      el?.focus();
+      el?.select();
     });
   }
 
   saveTitleEdit(task: TaskListItem): void {
     const newTitle = this.editingTitleValue().trim();
     if (!newTitle) {
-      // Empty title blocked - revert
       this.cancelTitleEdit();
       return;
     }
@@ -367,7 +650,6 @@ export class ListViewComponent {
       currentStatus?.allowed_transitions &&
       currentStatus.allowed_transitions.length > 0
     ) {
-      // Filter to only allowed transitions + current status
       return allCols.filter(
         (c) =>
           c.id === task.status_id ||
@@ -375,7 +657,6 @@ export class ListViewComponent {
       );
     }
 
-    // No restrictions - show all statuses
     return allCols.map((c) => ({ id: c.id, name: c.name, color: c.color }));
   }
 
