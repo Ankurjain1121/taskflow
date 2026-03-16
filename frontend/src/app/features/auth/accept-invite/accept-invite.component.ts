@@ -226,12 +226,13 @@ type PageState =
                     formControlName="name"
                     placeholder="John Doe"
                     class="w-full"
+                    [attr.aria-describedby]="acceptForm.get('name')?.hasError('required') && acceptForm.get('name')?.touched ? 'invite-name-required-error' : null"
                   />
                   @if (
                     acceptForm.get('name')?.hasError('required') &&
                     acceptForm.get('name')?.touched
                   ) {
-                    <small class="p-error">Name is required</small>
+                    <small id="invite-name-required-error" class="p-error">Name is required</small>
                   }
                 </div>
 
@@ -245,18 +246,19 @@ type PageState =
                     [feedback]="false"
                     styleClass="w-full"
                     inputStyleClass="w-full"
+                    [attr.aria-describedby]="acceptForm.get('password')?.hasError('required') && acceptForm.get('password')?.touched ? 'invite-password-required-error' : acceptForm.get('password')?.hasError('minlength') && acceptForm.get('password')?.touched ? 'invite-password-minlength-error' : null"
                   />
                   @if (
                     acceptForm.get('password')?.hasError('required') &&
                     acceptForm.get('password')?.touched
                   ) {
-                    <small class="p-error">Password is required</small>
+                    <small id="invite-password-required-error" class="p-error">Password is required</small>
                   }
                   @if (
                     acceptForm.get('password')?.hasError('minlength') &&
                     acceptForm.get('password')?.touched
                   ) {
-                    <small class="p-error"
+                    <small id="invite-password-minlength-error" class="p-error"
                       >Password must be at least 8 characters</small
                     >
                   }
@@ -274,12 +276,13 @@ type PageState =
                     [feedback]="false"
                     styleClass="w-full"
                     inputStyleClass="w-full"
+                    [attr.aria-describedby]="acceptForm.get('confirmPassword')?.hasError('required') && acceptForm.get('confirmPassword')?.touched ? 'invite-confirm-required-error' : acceptForm.get('confirmPassword')?.hasError('passwordMismatch') && acceptForm.get('confirmPassword')?.touched ? 'invite-confirm-mismatch-error' : null"
                   />
                   @if (
                     acceptForm.get('confirmPassword')?.hasError('required') &&
                     acceptForm.get('confirmPassword')?.touched
                   ) {
-                    <small class="p-error">Please confirm your password</small>
+                    <small id="invite-confirm-required-error" class="p-error">Please confirm your password</small>
                   }
                   @if (
                     acceptForm
@@ -287,7 +290,7 @@ type PageState =
                       ?.hasError('passwordMismatch') &&
                     acceptForm.get('confirmPassword')?.touched
                   ) {
-                    <small class="p-error">Passwords do not match</small>
+                    <small id="invite-confirm-mismatch-error" class="p-error">Passwords do not match</small>
                   }
                 </div>
 
@@ -325,12 +328,13 @@ type PageState =
                     rows="3"
                     class="w-full"
                     style="resize: vertical"
+                    [attr.aria-describedby]="acceptForm.get('bio')?.hasError('maxlength') && acceptForm.get('bio')?.touched ? 'invite-bio-maxlength-error' : null"
                   ></textarea>
                   @if (
                     acceptForm.get('bio')?.hasError('maxlength') &&
                     acceptForm.get('bio')?.touched
                   ) {
-                    <small class="p-error"
+                    <small id="invite-bio-maxlength-error" class="p-error"
                       >Bio must be 500 characters or less</small
                     >
                   }

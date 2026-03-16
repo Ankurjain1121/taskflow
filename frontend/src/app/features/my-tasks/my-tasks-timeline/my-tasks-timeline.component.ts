@@ -113,6 +113,7 @@ type ViewMode = 'assigned' | 'created';
               [style.color]="
                 viewMode() !== 'assigned' ? 'var(--foreground)' : ''
               "
+              [attr.aria-pressed]="viewMode() === 'assigned'"
             >
               My Tasks
             </button>
@@ -127,6 +128,7 @@ type ViewMode = 'assigned' | 'created';
               [style.color]="
                 viewMode() !== 'created' ? 'var(--foreground)' : ''
               "
+              [attr.aria-pressed]="viewMode() === 'created'"
             >
               Tasks I Created
             </button>

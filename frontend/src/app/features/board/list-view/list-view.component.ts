@@ -62,6 +62,7 @@ interface ColumnInput {
               pInputText
               type="text"
               class="w-full text-sm"
+              aria-label="Edit task title"
               [ngModel]="editingTitleValue()"
               (ngModelChange)="editingTitleValue.set($event)"
               (blur)="saveTitleEdit(task)"

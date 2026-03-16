@@ -51,18 +51,19 @@ import { AuthService } from '../../../core/services/auth.service';
                   formControlName="email"
                   placeholder="you@example.com"
                   class="w-full"
+                  [attr.aria-describedby]="forgotForm.get('email')?.hasError('required') && forgotForm.get('email')?.touched ? 'forgot-email-required-error' : forgotForm.get('email')?.hasError('email') && forgotForm.get('email')?.touched ? 'forgot-email-invalid-error' : null"
                 />
                 @if (
                   forgotForm.get('email')?.hasError('required') &&
                   forgotForm.get('email')?.touched
                 ) {
-                  <small class="p-error">Email is required</small>
+                  <small id="forgot-email-required-error" class="p-error">Email is required</small>
                 }
                 @if (
                   forgotForm.get('email')?.hasError('email') &&
                   forgotForm.get('email')?.touched
                 ) {
-                  <small class="p-error">Please enter a valid email</small>
+                  <small id="forgot-email-invalid-error" class="p-error">Please enter a valid email</small>
                 }
               </div>
 

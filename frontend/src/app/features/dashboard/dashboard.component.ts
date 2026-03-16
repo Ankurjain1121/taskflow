@@ -155,7 +155,7 @@ interface TeamOption {
               class="animate-fade-in-up stagger-1 stat-card stat-card--primary cursor-pointer group"
             >
               <div class="stat-card-icon">
-                <i class="pi pi-clipboard"></i>
+                <i class="pi pi-clipboard" aria-hidden="true"></i>
               </div>
               <p class="stat-card-value">{{ stats()?.total_tasks || 0 }}</p>
               <p class="stat-card-label">Total Tasks</p>
@@ -169,7 +169,7 @@ interface TeamOption {
               [class.stat-card--danger-active]="(stats()?.overdue || 0) > 0"
             >
               <div class="stat-card-icon">
-                <i class="pi pi-exclamation-triangle"></i>
+                <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
               </div>
               <p class="stat-card-value">{{ stats()?.overdue || 0 }}</p>
               <p class="stat-card-label">Overdue</p>
@@ -182,7 +182,7 @@ interface TeamOption {
               class="animate-fade-in-up stagger-3 stat-card stat-card--warning cursor-pointer group"
             >
               <div class="stat-card-icon">
-                <i class="pi pi-clock"></i>
+                <i class="pi pi-clock" aria-hidden="true"></i>
               </div>
               <p class="stat-card-value">{{ stats()?.due_today || 0 }}</p>
               <p class="stat-card-label">Due Today</p>
@@ -191,7 +191,7 @@ interface TeamOption {
             <!-- Completed This Week -->
             <div class="animate-fade-in-up stagger-4 stat-card stat-card--success">
               <div class="stat-card-icon">
-                <i class="pi pi-check-circle"></i>
+                <i class="pi pi-check-circle" aria-hidden="true"></i>
               </div>
               <p class="stat-card-value">{{ stats()?.completed_this_week || 0 }}</p>
               <p class="stat-card-label">Completed This Week</p>
@@ -316,6 +316,7 @@ interface TeamOption {
                     <button
                       (click)="setActiveView(view.value)"
                       class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
+                      [attr.aria-pressed]="activeView() === view.value"
                       [style.background]="
                         activeView() === view.value
                           ? 'var(--card)'
