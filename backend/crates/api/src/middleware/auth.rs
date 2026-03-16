@@ -90,7 +90,8 @@ pub async fn auth_middleware(
     };
 
     // Validate session exists in Redis (session timeout enforcement)
-    let session_key = format!("session:{}", claims.sub);
+    let token_id = claims.token_id.unwrap_or_default();
+    let session_key = format!("session:{}:{}", claims.sub, token_id);
     match check_and_refresh_session(&state, &session_key).await {
         Ok(_) => {
             // Session is valid, refresh TTL
@@ -110,7 +111,7 @@ pub async fn auth_middleware(
         user_id: claims.sub,
         tenant_id: claims.tenant_id,
         role: claims.role,
-        token_id: claims.token_id.unwrap_or_default(),
+        token_id,
     };
     request.extensions_mut().insert(auth_user);
 
@@ -135,7 +136,8 @@ pub async fn optional_auth_middleware(
     if let Some(token) = token {
         if let Ok(claims) = verify_access_token(&token, &state.jwt_keys) {
             // Validate session exists in Redis
-            let session_key = format!("session:{}", claims.sub);
+            let token_id = claims.token_id.unwrap_or_default();
+            let session_key = format!("session:{}:{}", claims.sub, token_id);
             if check_and_refresh_session(&state, &session_key)
                 .await
                 .is_ok()
@@ -144,7 +146,7 @@ pub async fn optional_auth_middleware(
                     user_id: claims.sub,
                     tenant_id: claims.tenant_id,
                     role: claims.role,
-                    token_id: claims.token_id.unwrap_or_default(),
+                    token_id,
                 };
                 request.extensions_mut().insert(auth_user);
             }

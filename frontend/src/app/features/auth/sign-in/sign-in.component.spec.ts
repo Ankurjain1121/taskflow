@@ -147,7 +147,7 @@ describe('SignInComponent', () => {
     });
 
     it('should call authService.signIn with correct credentials', () => {
-      mockAuthService.signIn.mockReturnValue(of({ access_token: 'token' }));
+      mockAuthService.signIn.mockReturnValue(of({ csrf_token: 'csrf', user: {} }));
       const navigateSpy = vi.spyOn(router, 'navigateByUrl');
 
       component.signInForm.setValue({
@@ -167,7 +167,7 @@ describe('SignInComponent', () => {
     });
 
     it('should navigate to returnUrl after successful sign in', () => {
-      mockAuthService.signIn.mockReturnValue(of({ access_token: 'token' }));
+      mockAuthService.signIn.mockReturnValue(of({ csrf_token: 'csrf', user: {} }));
       mockActivatedRoute.snapshot.queryParams = { returnUrl: '/board/123' };
 
       const navigateSpy = vi.spyOn(router, 'navigateByUrl');
@@ -183,7 +183,7 @@ describe('SignInComponent', () => {
     });
 
     it('should sanitize returnUrl to prevent open redirect', () => {
-      mockAuthService.signIn.mockReturnValue(of({ access_token: 'token' }));
+      mockAuthService.signIn.mockReturnValue(of({ csrf_token: 'csrf', user: {} }));
       mockActivatedRoute.snapshot.queryParams = { returnUrl: '//evil.com' };
 
       const navigateSpy = vi.spyOn(router, 'navigateByUrl');

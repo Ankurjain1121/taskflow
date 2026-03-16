@@ -30,6 +30,11 @@ use super::common::MessageResponse;
 
 const SESSION_TTL_SECS: usize = 30 * 60;
 
+/// Maximum failed login attempts before lockout
+const MAX_LOGIN_ATTEMPTS: i64 = 5;
+/// Lockout duration in seconds (15 minutes)
+const LOGIN_LOCKOUT_SECS: i64 = 900;
+
 // ============================================================================
 // Request/Response DTOs (shared across auth modules)
 // ============================================================================
@@ -54,8 +59,6 @@ pub struct RefreshRequest {
 
 #[derive(Debug, Serialize)]
 pub struct AuthResponse {
-    pub access_token: String,
-    pub refresh_token: String,
     pub csrf_token: String,
     pub user: UserResponse,
 }
@@ -108,6 +111,22 @@ pub async fn sign_in_handler(
         ));
     }
 
+    // Check brute-force lockout
+    let lockout_key = format!("login_attempts:{}", payload.email.to_lowercase());
+    let attempts: Option<i64> = redis::cmd("GET")
+        .arg(&lockout_key)
+        .query_async(&mut state.redis.clone())
+        .await
+        .unwrap_or(None);
+
+    if let Some(count) = attempts {
+        if count >= MAX_LOGIN_ATTEMPTS {
+            return Err(AppError::TooManyRequests(
+                "Too many failed login attempts. Please try again in 15 minutes.".into(),
+            ));
+        }
+    }
+
     // Fetch user by email
     let user = auth::get_user_by_email(&state.db, &payload.email)
         .await?
@@ -118,8 +137,27 @@ pub async fn sign_in_handler(
         .map_err(|_| AppError::InternalError("Password verification failed".into()))?;
 
     if !password_valid {
+        // Increment failed login attempts with lockout TTL
+        let _: () = redis::cmd("INCR")
+            .arg(&lockout_key)
+            .query_async(&mut state.redis.clone())
+            .await
+            .unwrap_or(());
+        let _: () = redis::cmd("EXPIRE")
+            .arg(&lockout_key)
+            .arg(LOGIN_LOCKOUT_SECS)
+            .query_async(&mut state.redis.clone())
+            .await
+            .unwrap_or(());
         return Err(AppError::Unauthorized("Invalid email or password".into()));
     }
+
+    // Clear failed login attempts on successful login
+    let _: () = redis::cmd("DEL")
+        .arg(&lockout_key)
+        .query_async(&mut state.redis.clone())
+        .await
+        .unwrap_or(());
 
     // Update last_login_at
     sqlx::query("UPDATE users SET last_login_at = NOW() WHERE id = $1")
@@ -164,7 +202,7 @@ pub async fn sign_in_handler(
     .await?;
 
     // Create session in Redis (30 minutes idle timeout)
-    let session_key = format!("session:{}", user.id);
+    let session_key = format!("session:{}:{}", user.id, token_id);
 
     redis::cmd("SET")
         .arg(&session_key)
@@ -190,8 +228,6 @@ pub async fn sign_in_handler(
     )?;
 
     let response_body = AuthResponse {
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
         csrf_token,
         user: UserResponse {
             id: user.id,
@@ -293,7 +329,7 @@ pub async fn sign_up_handler(
     .await?;
 
     // Create session in Redis (30 minutes idle timeout)
-    let session_key = format!("session:{}", user.id);
+    let session_key = format!("session:{}:{}", user.id, token_id);
 
     redis::cmd("SET")
         .arg(&session_key)
@@ -319,8 +355,6 @@ pub async fn sign_up_handler(
     )?;
 
     let response_body = AuthResponse {
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
         csrf_token,
         user: UserResponse {
             id: user.id,
@@ -450,8 +484,6 @@ pub async fn refresh_handler(
     )?;
 
     let response_body = AuthResponse {
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
         csrf_token,
         user: UserResponse {
             id: user.id,
@@ -497,8 +529,8 @@ pub async fn sign_out_handler(
         }
     }
 
-    // Revoke session from Redis
-    let session_key = format!("session:{}", auth.0.user_id);
+    // Revoke current session from Redis (scoped to this token)
+    let session_key = format!("session:{}:{}", auth.0.user_id, auth.0.token_id);
     let _: () = redis::cmd("DEL")
         .arg(&session_key)
         .query_async(&mut state.redis.clone())
@@ -540,6 +572,40 @@ pub async fn logout_handler(
             message: "Successfully logged out".into(),
         }),
     ))
+}
+
+/// POST /api/auth/sign-out-all
+///
+/// Sign out all sessions for the current user by deleting all session keys
+/// matching `session:{user_id}:*` and revoking all refresh tokens.
+pub async fn sign_out_all_handler(
+    State(state): State<AppState>,
+    auth: AuthUserExtractor,
+) -> Result<Json<MessageResponse>> {
+    let user_id = auth.0.user_id;
+
+    // Find and delete all session keys for this user
+    let pattern = format!("session:{}:*", user_id);
+    let keys: Vec<String> = redis::cmd("KEYS")
+        .arg(&pattern)
+        .query_async(&mut state.redis.clone())
+        .await
+        .unwrap_or_default();
+
+    if !keys.is_empty() {
+        let _: () = redis::cmd("DEL")
+            .arg(&keys)
+            .query_async(&mut state.redis.clone())
+            .await
+            .unwrap_or(());
+    }
+
+    // Revoke all refresh tokens for this user
+    auth::revoke_all_user_refresh_tokens(&state.db, user_id).await?;
+
+    Ok(Json(MessageResponse {
+        message: "All sessions have been signed out".into(),
+    }))
 }
 
 // ============================================================================
@@ -659,6 +725,7 @@ pub fn auth_router() -> Router<AppState> {
         .route("/sign-up", post(sign_up_handler))
         .route("/refresh", post(refresh_handler))
         .route("/sign-out", post(sign_out_handler))
+        .route("/sign-out-all", post(sign_out_all_handler))
         .route("/logout", post(logout_handler))
         .route(
             "/me",

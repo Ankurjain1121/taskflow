@@ -59,19 +59,9 @@ pub async fn ws_handler(
         }
     }
 
-    // If token provided in query param, validate immediately (legacy method)
-    if let Some(token) = &query.token {
-        let claims = verify_access_token(token, &state.jwt_keys)
-            .map_err(|_| AppError::Unauthorized("Invalid or expired token".into()))?;
-
-        tracing::info!(
-            user_id = %claims.sub,
-            "WebSocket connection upgrade requested (token in query)"
-        );
-
-        return Ok(ws.on_upgrade(move |socket| {
-            handle_socket(socket, state, Some((claims.sub, claims.tenant_id)))
-        }));
+    // Query param auth is deprecated — log warning and ignore the token
+    if query.token.is_some() {
+        tracing::warn!("WebSocket query param auth is deprecated and no longer supported. Use cookie or first-message auth.");
     }
 
     // No token in cookie or query - will authenticate via first message

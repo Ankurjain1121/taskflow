@@ -23,6 +23,7 @@ fn map_webhook_error(e: WebhookQueryError) -> AppError {
         WebhookQueryError::NotFound => AppError::NotFound("Webhook not found".into()),
         WebhookQueryError::NotBoardMember => AppError::Forbidden("Not a project member".into()),
         WebhookQueryError::Database(e) => AppError::SqlxError(e),
+        WebhookQueryError::InvalidUrl(msg) => AppError::BadRequest(msg),
     }
 }
 

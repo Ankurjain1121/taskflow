@@ -29,6 +29,28 @@ use taskflow_services::{MinioConfig, MinioService};
 /// Maximum file size allowed (10MB)
 const MAX_FILE_SIZE: i64 = 10_485_760;
 
+/// Allowed MIME types for file uploads
+const ALLOWED_MIME_TYPES: &[&str] = &[
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "image/svg+xml",
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "text/plain",
+    "text/csv",
+    "text/markdown",
+    "application/zip",
+    "application/gzip",
+    "application/x-tar",
+];
+
 /// Request body for generating an upload URL
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -83,6 +105,14 @@ async fn get_upload_url(
         return Err(AppError::BadRequest("File size must be positive".into()));
     }
 
+    // Validate MIME type against allowlist
+    if !ALLOWED_MIME_TYPES.contains(&body.mime_type.as_str()) {
+        return Err(AppError::BadRequest(format!(
+            "File type '{}' is not allowed. Supported types: images, PDFs, documents, spreadsheets, presentations, text, and archives.",
+            body.mime_type
+        )));
+    }
+
     // Verify board membership
     let (is_member, board_id) =
         verify_task_board_membership(&state.db, task_id, tenant.user_id).await?;
@@ -120,6 +150,14 @@ async fn confirm_upload(
     Path(task_id): Path<Uuid>,
     Json(body): Json<ConfirmUploadRequest>,
 ) -> Result<Json<AttachmentWithUploader>> {
+    // Validate MIME type against allowlist
+    if !ALLOWED_MIME_TYPES.contains(&body.mime_type.as_str()) {
+        return Err(AppError::BadRequest(format!(
+            "File type '{}' is not allowed.",
+            body.mime_type
+        )));
+    }
+
     // Verify board membership
     let (is_member, board_id) =
         verify_task_board_membership(&state.db, task_id, tenant.user_id).await?;

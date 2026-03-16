@@ -22,9 +22,7 @@ const MOCK_USER: User = {
 };
 
 const MOCK_TOKEN_RESPONSE: TokenResponse = {
-  access_token: 'access-abc',
-  refresh_token: 'refresh-xyz',
-  expires_in: 3600,
+  csrf_token: 'csrf-abc',
   user: MOCK_USER,
 };
 

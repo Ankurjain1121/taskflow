@@ -188,7 +188,7 @@ describe('SignUpComponent', () => {
     });
 
     it('should call authService.signUp and navigate on success', () => {
-      mockAuthService.signUp.mockReturnValue(of({ access_token: 'token' }));
+      mockAuthService.signUp.mockReturnValue(of({ csrf_token: 'csrf', user: {} }));
       const navigateSpy = vi.spyOn(router, 'navigate');
 
       component.signUpForm.setValue({

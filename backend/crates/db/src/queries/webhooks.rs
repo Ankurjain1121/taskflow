@@ -14,6 +14,8 @@ pub enum WebhookQueryError {
     NotBoardMember,
     #[error("Webhook not found")]
     NotFound,
+    #[error("Invalid webhook URL: {0}")]
+    InvalidUrl(String),
 }
 
 /// Input for creating a webhook
@@ -33,7 +35,64 @@ pub struct UpdateWebhookInput {
     pub is_active: Option<bool>,
 }
 
+use std::net::IpAddr;
+
 use super::verify_project_membership_internal;
+
+/// Validate a webhook URL to prevent SSRF attacks.
+/// Requires HTTPS and blocks private/loopback IP addresses and known local hostnames.
+fn validate_webhook_url(url: &str) -> Result<(), WebhookQueryError> {
+    let parsed = url::Url::parse(url)
+        .map_err(|_| WebhookQueryError::InvalidUrl("Unable to parse URL".to_string()))?;
+
+    // Require HTTPS
+    if parsed.scheme() != "https" {
+        return Err(WebhookQueryError::InvalidUrl(
+            "Only HTTPS URLs are allowed".to_string(),
+        ));
+    }
+
+    let host = parsed
+        .host_str()
+        .ok_or_else(|| WebhookQueryError::InvalidUrl("URL must have a host".to_string()))?;
+
+    // Block known local hostnames
+    let blocked_hosts = [
+        "localhost",
+        "127.0.0.1",
+        "[::1]",
+        "0.0.0.0",
+        "metadata.google.internal",
+    ];
+    let host_lower = host.to_lowercase();
+    if blocked_hosts.contains(&host_lower.as_str()) || host_lower.ends_with(".local") {
+        return Err(WebhookQueryError::InvalidUrl(
+            "Private/local hostnames are not allowed".to_string(),
+        ));
+    }
+
+    // If host is an IP address, check against private ranges
+    if let Ok(ip) = host.parse::<IpAddr>() {
+        let is_private = match ip {
+            IpAddr::V4(v4) => {
+                v4.is_loopback()
+                    || v4.is_private()
+                    || v4.is_link_local()
+                    || v4.is_broadcast()
+                    || v4.is_unspecified()
+                    || v4.octets()[0] == 169 && v4.octets()[1] == 254 // link-local
+            }
+            IpAddr::V6(v6) => v6.is_loopback() || v6.is_unspecified(),
+        };
+        if is_private {
+            return Err(WebhookQueryError::InvalidUrl(
+                "Private/internal IP addresses are not allowed".to_string(),
+            ));
+        }
+    }
+
+    Ok(())
+}
 
 /// Internal helper: get webhook's board_id
 async fn get_webhook_board_id_internal(
@@ -86,6 +145,8 @@ pub async fn create_webhook(
     user_id: Uuid,
     tenant_id: Uuid,
 ) -> Result<Webhook, WebhookQueryError> {
+    validate_webhook_url(&input.url)?;
+
     if !verify_project_membership_internal(pool, board_id, user_id).await? {
         return Err(WebhookQueryError::NotBoardMember);
     }
@@ -126,6 +187,11 @@ pub async fn update_webhook(
     input: UpdateWebhookInput,
     user_id: Uuid,
 ) -> Result<Webhook, WebhookQueryError> {
+    // Validate new URL if provided
+    if let Some(ref url) = input.url {
+        validate_webhook_url(url)?;
+    }
+
     let board_id = get_webhook_board_id_internal(pool, webhook_id).await?;
 
     if !verify_project_membership_internal(pool, board_id, user_id).await? {

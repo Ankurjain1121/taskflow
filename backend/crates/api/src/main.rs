@@ -153,7 +153,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             axum::routing::post(routes::auth_password::reset_password_handler),
         )
         .layer(from_fn(rate_limit_middleware))
-        .layer(rate_limit_layer(5, 60)); // 5 requests per 60 seconds per IP
+        .layer(rate_limit_layer(state.redis.clone(), 5, 60)); // 5 requests per 60 seconds per IP
 
     let rate_limited_invitations = Router::new()
         .route(
@@ -161,7 +161,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             axum::routing::post(routes::invitation::accept_handler),
         )
         .layer(from_fn(rate_limit_middleware))
-        .layer(rate_limit_layer(5, 60)); // 5 requests per 60 seconds per IP
+        .layer(rate_limit_layer(state.redis.clone(), 5, 60)); // 5 requests per 60 seconds per IP
 
     // Build public routes (not rate-limited)
     let public_routes = Router::new()
@@ -300,7 +300,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "/api",
             automation_router(state.clone())
                 .layer(from_fn(user_rate_limit_middleware))
-                .layer(user_rate_limit_layer(20, 60)),
+                .layer(user_rate_limit_layer(state.redis.clone(), 20, 60)),
         )
         // Automation templates (Phase J)
         .nest("/api", automation_templates_router(state.clone()))
@@ -309,7 +309,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "/api",
             bulk_ops_router(state.clone())
                 .layer(from_fn(user_rate_limit_middleware))
-                .layer(user_rate_limit_layer(10, 60)),
+                .layer(user_rate_limit_layer(state.redis.clone(), 10, 60)),
         )
         // Task templates
         .nest("/api", task_template_router(state.clone()))
@@ -318,13 +318,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "/api",
             routes::export::export_router(state.clone())
                 .layer(from_fn(rate_limit_middleware))
-                .layer(rate_limit_layer(10, 60)),
+                .layer(rate_limit_layer(state.redis.clone(), 10, 60)),
         )
         .nest(
             "/api",
             routes::import::import_router(state.clone())
                 .layer(from_fn(rate_limit_middleware))
-                .layer(rate_limit_layer(10, 60)),
+                .layer(rate_limit_layer(state.redis.clone(), 10, 60)),
         )
         // Phase 4: Client portal (project shares)
         .nest("/api", project_share_router(state.clone()))
@@ -341,10 +341,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", archive_router(state.clone()))
         // Per-user rate limit (100 req/min per authenticated user)
         .layer(from_fn(user_rate_limit_middleware))
-        .layer(user_rate_limit_layer(100, 60))
+        .layer(user_rate_limit_layer(state.redis.clone(), 100, 60))
         // Global rate limit on all routes (60 req/min per IP)
         .layer(from_fn(rate_limit_middleware))
-        .layer(rate_limit_layer(60, 60))
+        .layer(rate_limit_layer(state.redis.clone(), 60, 60))
         // HTTP caching headers (Cache-Control)
         .layer(from_fn(cache_headers_middleware))
         .layer(from_fn(security_headers_middleware))
