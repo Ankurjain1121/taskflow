@@ -61,7 +61,7 @@ type ViewMode = 'assigned' | 'created';
         @if (summary()) {
           <div
             class="mb-6 rounded-xl p-6 animate-fade-in-up relative overflow-hidden"
-            style="background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 65%, #7c3aed)); color: var(--primary-foreground)"
+            style="background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 65%, black)); color: var(--primary-foreground)"
           >
             <!-- Subtle pattern overlay -->
             <div

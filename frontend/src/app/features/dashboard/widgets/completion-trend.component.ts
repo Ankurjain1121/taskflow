@@ -183,7 +183,7 @@ export class CompletionTrendComponent implements OnInit {
       y: {
         beginAtZero: true,
         ticks: { stepSize: 1, font: { size: 11 } },
-        grid: { color: 'rgba(0,0,0,0.04)' },
+        grid: { color: 'rgba(128,128,128,0.08)' },
       },
     },
   };

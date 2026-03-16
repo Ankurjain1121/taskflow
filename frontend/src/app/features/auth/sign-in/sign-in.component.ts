@@ -269,13 +269,48 @@ import { AuthService } from '../../../core/services/auth.service';
       /* ===== Left brand panel ===== */
       .brand-panel {
         flex: 0 0 400px;
-        background: var(--primary);
+        background: linear-gradient(
+          145deg,
+          var(--primary) 0%,
+          color-mix(in srgb, var(--primary) 80%, black) 50%,
+          color-mix(in srgb, var(--primary) 65%, black) 100%
+        );
         padding: 3rem 2.5rem;
         display: flex;
         flex-direction: column;
         justify-content: center;
         position: relative;
         overflow: hidden;
+      }
+
+      .brand-panel::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.08) 0%,
+          transparent 60%
+        );
+        pointer-events: none;
+      }
+
+      .brand-panel::after {
+        content: '';
+        position: absolute;
+        bottom: -30%;
+        left: -30%;
+        width: 80%;
+        height: 80%;
+        background: radial-gradient(
+          circle,
+          rgba(0, 0, 0, 0.1) 0%,
+          transparent 60%
+        );
+        pointer-events: none;
       }
 
       .brand-pattern {

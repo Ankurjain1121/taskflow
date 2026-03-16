@@ -494,13 +494,13 @@ export class MembersListComponent implements OnInit {
 
   getRoleBadgeClass(role: string): string {
     const classes: Record<string, string> = {
-      owner: 'bg-purple-100 text-purple-800',
-      admin: 'bg-blue-100 text-blue-800',
+      owner: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300',
+      admin: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
       manager: 'bg-primary/10 text-primary',
-      member: 'bg-gray-100 text-gray-800',
-      viewer: 'bg-gray-100 text-gray-600',
+      member: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300',
+      viewer: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400',
     };
-    return classes[role] || 'bg-gray-100 text-gray-800';
+    return classes[role] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300';
   }
 
   getStatusLabel(status: string): string {
@@ -514,11 +514,11 @@ export class MembersListComponent implements OnInit {
 
   getStatusBadgeClass(status: string): string {
     const classes: Record<string, string> = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      accepted: 'bg-green-100 text-green-800',
-      expired: 'bg-red-100 text-red-800',
+      pending: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
+      accepted: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300',
+      expired: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
     };
-    return classes[status] || 'bg-gray-100 text-gray-800';
+    return classes[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300';
   }
 
   formatDate(dateString: string): string {

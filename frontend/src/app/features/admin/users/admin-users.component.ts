@@ -117,10 +117,10 @@ import { MenuItem } from 'primeng/api';
         <!-- Error State -->
         @if (error()) {
           <div
-            class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 mb-6"
+            class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3 mb-6"
           >
             <svg
-              class="w-5 h-5 text-red-600 flex-shrink-0"
+              class="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -131,10 +131,10 @@ import { MenuItem } from 'primeng/api';
               />
             </svg>
             <div>
-              <p class="text-sm font-medium text-red-800">{{ error() }}</p>
+              <p class="text-sm font-medium text-red-800 dark:text-red-300">{{ error() }}</p>
               <button
                 (click)="loadUsers()"
-                class="text-sm text-red-600 hover:text-red-800 underline mt-1"
+                class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 underline mt-1"
               >
                 Try again
               </button>
@@ -232,7 +232,7 @@ import { MenuItem } from 'primeng/api';
                               {{ user.display_name }}
                               @if (!user.email_verified) {
                                 <span
-                                  class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800"
+                                  class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300"
                                 >
                                   Unverified
                                 </span>
@@ -594,8 +594,8 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
       'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
 
     const roleColors: Record<string, string> = {
-      admin: 'bg-purple-100 text-purple-800',
-      manager: 'bg-blue-100 text-blue-800',
+      admin: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300',
+      manager: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
       member: 'bg-[var(--secondary)] text-[var(--card-foreground)]',
     };
 

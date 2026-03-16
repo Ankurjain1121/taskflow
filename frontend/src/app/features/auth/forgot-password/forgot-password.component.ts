@@ -111,7 +111,7 @@ import { AuthService } from '../../../core/services/auth.service';
         <div class="card-footer">
           <p class="text-sm text-[var(--muted-foreground)]">
             Remember your password?
-            <a routerLink="/auth/sign-in" class="text-blue-600 hover:underline">
+            <a routerLink="/auth/sign-in" class="hover:underline">
               Sign in
             </a>
           </p>

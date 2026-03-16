@@ -128,6 +128,9 @@
   --chip-overdue: #db2828;
   --chip-due-soon: #f2711c;
   --chip-completed: #21ba45;
+
+  /* Surface overlay */
+  --surface-overlay: rgba(255, 255, 255, 0.95);
 }
 
 html.dark {
@@ -191,6 +194,9 @@ html.dark {
   --chip-overdue: #f87171;
   --chip-due-soon: #fb923c;
   --chip-completed: #4ade80;
+
+  /* Surface overlay */
+  --surface-overlay: rgba(30, 30, 46, 0.95);
 }
 
 /* Surface elevation tokens */
