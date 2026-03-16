@@ -199,7 +199,7 @@ async fn delete_undo_snapshot(redis: &redis::aio::ConnectionManager, operation_i
 fn map_bulk_error(e: taskflow_db::queries::TaskQueryError) -> AppError {
     match e {
         taskflow_db::queries::TaskQueryError::NotProjectMember => {
-            AppError::Forbidden("Not a board member".into())
+            AppError::Forbidden("Not a project member".into())
         }
         taskflow_db::queries::TaskQueryError::Database(e) => AppError::SqlxError(e),
         taskflow_db::queries::TaskQueryError::Other(msg) if msg.contains("limited to") => {
@@ -214,5 +214,15 @@ fn map_bulk_error(e: taskflow_db::queries::TaskQueryError) -> AppError {
             AppError::NotFound(msg)
         }
         _ => AppError::InternalError(format!("{}", e)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_max_bulk_task_ids() {
+        assert_eq!(MAX_BULK_TASK_IDS, 200);
     }
 }

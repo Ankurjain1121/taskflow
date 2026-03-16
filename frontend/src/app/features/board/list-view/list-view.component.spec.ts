@@ -439,6 +439,22 @@ describe('ListViewComponent', () => {
     });
   });
 
+  describe('startTitleEdit', () => {
+    it('should scope to closest td when event target is provided', () => {
+      const task = makeTask({ id: 'task-1', title: 'Original' });
+      // Create a mock event with a target inside a td
+      const mockTd = document.createElement('td');
+      const mockDiv = document.createElement('div');
+      mockTd.appendChild(mockDiv);
+      const mockEvent = { target: mockDiv } as unknown as MouseEvent;
+
+      component.startTitleEdit(task, mockEvent);
+
+      expect(component.editingTitleTaskId()).toBe('task-1');
+      expect(component.editingTitleValue()).toBe('Original');
+    });
+  });
+
   describe('onToggleGroupById', () => {
     it('should emit groupToggled with the correct group', () => {
       const group = makeGroup('g-a', 'Alpha', '1000');

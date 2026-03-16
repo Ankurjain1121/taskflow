@@ -607,3 +607,78 @@ pub fn import_router(state: AppState) -> Router<AppState> {
         )
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // === normalize_priority tests ===
+
+    #[test]
+    fn test_normalize_priority_valid_values() {
+        assert_eq!(normalize_priority("urgent"), "urgent");
+        assert_eq!(normalize_priority("high"), "high");
+        assert_eq!(normalize_priority("medium"), "medium");
+        assert_eq!(normalize_priority("low"), "low");
+    }
+
+    #[test]
+    fn test_normalize_priority_case_insensitive() {
+        assert_eq!(normalize_priority("HIGH"), "high");
+        assert_eq!(normalize_priority("Urgent"), "urgent");
+        assert_eq!(normalize_priority("Low"), "low");
+    }
+
+    #[test]
+    fn test_normalize_priority_unknown() {
+        assert_eq!(normalize_priority("critical"), "medium");
+        assert_eq!(normalize_priority("none"), "medium");
+        assert_eq!(normalize_priority("invalid"), "medium");
+    }
+
+    #[test]
+    fn test_normalize_priority_whitespace() {
+        assert_eq!(normalize_priority(" low "), "low");
+        assert_eq!(normalize_priority("  high  "), "high");
+    }
+
+    // === parse_csv tests ===
+
+    #[test]
+    fn test_parse_csv_basic() {
+        let csv = "title,description,priority\nTask 1,A task,high";
+        let rows = parse_csv(csv);
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0], vec!["title", "description", "priority"]);
+        assert_eq!(rows[1], vec!["Task 1", "A task", "high"]);
+    }
+
+    #[test]
+    fn test_parse_csv_quoted_fields() {
+        let csv = "title,description\n\"Task, with comma\",desc";
+        let rows = parse_csv(csv);
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[1][0], "Task, with comma");
+        assert_eq!(rows[1][1], "desc");
+    }
+
+    #[test]
+    fn test_parse_csv_empty() {
+        let rows = parse_csv("");
+        assert_eq!(rows.len(), 0);
+    }
+
+    #[test]
+    fn test_parse_csv_header_only() {
+        let csv = "title,description,priority";
+        let rows = parse_csv(csv);
+        assert_eq!(rows.len(), 1); // Just the header row
+    }
+
+    // === Constant change-detector ===
+
+    #[test]
+    fn test_max_import_batch_size() {
+        assert_eq!(MAX_IMPORT_BATCH_SIZE, 500);
+    }
+}
