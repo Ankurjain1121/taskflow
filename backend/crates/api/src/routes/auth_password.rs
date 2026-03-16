@@ -16,7 +16,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
 use crate::state::AppState;
 
-use super::auth::hash_token;
+use super::auth::{hash_token, is_password_strong};
 use super::common::MessageResponse;
 
 // ============================================================================
@@ -57,9 +57,10 @@ pub async fn change_password_handler(
     auth_ext: AuthUserExtractor,
     Json(payload): Json<ChangePasswordRequest>,
 ) -> Result<Json<MessageResponse>> {
-    if payload.new_password.len() < 8 {
+    if !is_password_strong(&payload.new_password) {
         return Err(AppError::BadRequest(
-            "New password must be at least 8 characters".into(),
+            "Password must be at least 8 characters and contain uppercase, lowercase, and a digit"
+                .into(),
         ));
     }
 
@@ -261,9 +262,10 @@ pub async fn reset_password_handler(
     State(state): State<AppState>,
     Json(payload): Json<ResetPasswordRequest>,
 ) -> Result<Json<MessageResponse>> {
-    if payload.new_password.len() < 8 {
+    if !is_password_strong(&payload.new_password) {
         return Err(AppError::BadRequest(
-            "Password must be at least 8 characters".into(),
+            "Password must be at least 8 characters and contain uppercase, lowercase, and a digit"
+                .into(),
         ));
     }
 
