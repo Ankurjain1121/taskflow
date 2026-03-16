@@ -213,6 +213,7 @@ import { MessageService } from 'primeng/api';
               [groups]="state.boardGroups()"
               [loading]="state.listLoading()"
               [columns]="state.columns()"
+              [projectId]="boardId"
               (taskClicked)="state.selectedTaskId.set($event)"
               (titleChanged)="onListTitleChanged($event)"
               (priorityChanged)="onListPriorityChanged($event)"
