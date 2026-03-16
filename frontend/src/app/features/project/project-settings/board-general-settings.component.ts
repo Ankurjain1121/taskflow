@@ -18,7 +18,7 @@ import {
 import {
   ProjectService,
   Board,
-} from '../../../core/services/board.service';
+} from '../../../core/services/project.service';
 import { MessageService } from 'primeng/api';
 import { SaveTemplateDialogComponent } from '../project-templates/save-template-dialog.component';
 

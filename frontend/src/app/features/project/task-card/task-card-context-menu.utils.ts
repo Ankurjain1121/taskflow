@@ -1,6 +1,6 @@
 import { MenuItem } from 'primeng/api';
 import { Task } from '../../../core/services/task.service';
-import { Column } from '../../../core/services/board.service';
+import { Column } from '../../../core/services/project.service';
 import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
 
 export interface ContextMenuCallbacks {

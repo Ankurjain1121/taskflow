@@ -70,7 +70,10 @@ pub async fn upsert(
         "task-commented",
         "task-completed",
         "mention-in-comment",
+        "task-updated-watcher",
+        "task-reminder",
         "weekly-digest",
+        "daily-digest",
     ];
 
     if !valid_events.contains(&event_type) {
@@ -84,8 +87,8 @@ pub async fn upsert(
         r#"
         INSERT INTO notification_preferences (id, user_id, event_type, in_app, email, slack, whatsapp)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
-        ON CONFLICT (user_id, event_type) DO UPDATE
-        SET
+        ON CONFLICT (user_id, event_type, COALESCE(project_id, '00000000-0000-0000-0000-000000000000'))
+        DO UPDATE SET
             in_app = EXCLUDED.in_app,
             email = EXCLUDED.email,
             slack = EXCLUDED.slack,

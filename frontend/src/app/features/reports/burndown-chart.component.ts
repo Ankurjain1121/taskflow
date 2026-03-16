@@ -64,7 +64,7 @@ export class BurndownChartComponent {
   latestRemaining = computed(() => {
     const d = this.data();
     if (d.length === 0) return 0;
-    return d[d.length - 1].remaining_tasks;
+    return d[d.length - 1].remaining;
   });
 
   chartData = computed(() => {
@@ -92,7 +92,7 @@ export class BurndownChartComponent {
         },
         {
           label: 'Remaining',
-          data: points.map((p) => p.remaining_tasks),
+          data: points.map((p) => p.remaining),
           fill: true,
           borderColor: 'rgb(245, 158, 11)',
           backgroundColor: 'rgba(245, 158, 11, 0.08)',

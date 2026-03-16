@@ -33,7 +33,7 @@ import {
   Workspace,
   MemberSearchResult,
 } from '../../core/services/workspace.service';
-import { SubtaskListComponent } from '../board/subtask-list/subtask-list.component';
+import { SubtaskListComponent } from '../project/subtask-list/subtask-list.component';
 import { CommentListComponent } from '../tasks/components/comment-list/comment-list.component';
 import { ActivityTimelineComponent } from '../tasks/components/activity-timeline/activity-timeline.component';
 import { TaskDetailSidebarComponent } from './task-detail-sidebar.component';
