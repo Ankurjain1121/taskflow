@@ -25,12 +25,7 @@ struct StatsRow {
     pub total_tasks: i64,
     pub overdue: i64,
     pub due_today: i64,
-}
-
-/// Internal row type for the completed count query
-#[derive(Debug, sqlx::FromRow)]
-struct CountRow {
-    pub count: i64,
+    pub completed_this_week: i64,
 }
 
 /// A recent activity entry with actor information for the dashboard feed
@@ -55,51 +50,41 @@ pub async fn get_dashboard_stats(
     let now = chrono::Utc::now();
     let seven_days_ago = now - chrono::Duration::days(7);
 
+    // NOTE: Parameters are shared between outer query and scalar subquery.
+    // $1=user_id, $2=now, $3=seven_days_ago, $4=workspace_id
     let stats = sqlx::query_as::<_, StatsRow>(
         r#"
         SELECT
-            COUNT(DISTINCT t.id)::bigint as total_tasks,
+            COUNT(DISTINCT t.id)::bigint AS total_tasks,
+            COUNT(DISTINCT t.id) FILTER (
+                WHERE t.due_date IS NOT NULL AND t.due_date < $2 AND bc.type != 'done'
+            )::bigint AS overdue,
             COUNT(DISTINCT t.id) FILTER (
                 WHERE t.due_date IS NOT NULL
-                AND t.due_date < $2
-                AND bc.type != 'done'
-            )::bigint as overdue,
-            COUNT(DISTINCT t.id) FILTER (
-                WHERE t.due_date IS NOT NULL
-                AND t.due_date::date = CURRENT_DATE
-            )::bigint as due_today
+                AND t.due_date >= CURRENT_DATE AND t.due_date < CURRENT_DATE + INTERVAL '1 day'
+            )::bigint AS due_today,
+            (SELECT COUNT(DISTINCT al.entity_id)::bigint
+             FROM activity_log al
+             INNER JOIN tasks t2 ON t2.id = al.entity_id AND t2.deleted_at IS NULL
+             INNER JOIN task_assignees ta2 ON ta2.task_id = t2.id AND ta2.user_id = $1
+             INNER JOIN project_statuses bc2 ON bc2.id = t2.status_id
+             WHERE al.action = 'moved' AND al.entity_type = 'task'
+               AND al.created_at >= $3 AND bc2.type = 'done'
+               AND ($4::uuid IS NULL OR EXISTS (
+                   SELECT 1 FROM projects p2 WHERE p2.id = t2.project_id AND p2.workspace_id = $4
+               ))
+            ) AS completed_this_week
         FROM tasks t
         INNER JOIN task_assignees ta ON ta.task_id = t.id
         INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
         INNER JOIN project_statuses bc ON bc.id = t.status_id
         INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
-        WHERE ta.user_id = $1
-          AND t.deleted_at IS NULL
-          AND ($3::uuid IS NULL OR b.workspace_id = $3)
+        WHERE ta.user_id = $1 AND t.deleted_at IS NULL
+          AND ($4::uuid IS NULL OR b.workspace_id = $4)
         "#,
     )
     .bind(user_id)
     .bind(now)
-    .bind(workspace_id)
-    .fetch_one(pool)
-    .await?;
-
-    let completed = sqlx::query_as::<_, CountRow>(
-        r#"
-        SELECT COUNT(DISTINCT al.entity_id)::bigint as count
-        FROM activity_log al
-        INNER JOIN tasks t ON t.id = al.entity_id AND t.deleted_at IS NULL
-        INNER JOIN task_assignees ta ON ta.task_id = t.id AND ta.user_id = $1
-        INNER JOIN projects b ON b.id = t.project_id AND b.deleted_at IS NULL
-        INNER JOIN project_statuses bc ON bc.id = t.status_id
-        WHERE al.action = 'moved'
-          AND al.entity_type = 'task'
-          AND al.created_at >= $2
-          AND bc.type = 'done'
-          AND ($3::uuid IS NULL OR b.workspace_id = $3)
-        "#,
-    )
-    .bind(user_id)
     .bind(seven_days_ago)
     .bind(workspace_id)
     .fetch_one(pool)
@@ -108,7 +93,7 @@ pub async fn get_dashboard_stats(
     Ok(DashboardStats {
         total_tasks: stats.total_tasks,
         overdue: stats.overdue,
-        completed_this_week: completed.count,
+        completed_this_week: stats.completed_this_week,
         due_today: stats.due_today,
     })
 }

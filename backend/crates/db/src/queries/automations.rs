@@ -1,4 +1,4 @@
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -6,6 +6,83 @@ use uuid::Uuid;
 use crate::models::automation::{
     AutomationAction, AutomationActionType, AutomationLog, AutomationRule, AutomationTrigger,
 };
+
+/// Flat row from a JOIN of automation_rules + automation_actions.
+/// Used internally to fold into `AutomationRuleWithActions`.
+#[derive(Debug, sqlx::FromRow)]
+pub(crate) struct RuleActionRow {
+    pub rule_id: Uuid,
+    pub rule_name: String,
+    pub project_id: Uuid,
+    pub trigger: AutomationTrigger,
+    pub trigger_config: serde_json::Value,
+    pub is_active: bool,
+    pub tenant_id: Uuid,
+    pub created_by_id: Uuid,
+    pub rule_created_at: DateTime<Utc>,
+    pub rule_updated_at: DateTime<Utc>,
+    pub conditions: Option<serde_json::Value>,
+    pub execution_count: i32,
+    pub last_triggered_at: Option<DateTime<Utc>>,
+    pub action_id: Option<Uuid>,
+    pub action_type: Option<AutomationActionType>,
+    pub action_config: Option<serde_json::Value>,
+    pub action_position: Option<i32>,
+}
+
+/// Fold flat JOIN rows into grouped `AutomationRuleWithActions`.
+///
+/// Assumes rows are ordered by rule (all rows for the same rule are contiguous)
+/// which is guaranteed when the SQL sorts by `ar.created_at` before `aa.position`.
+pub(crate) fn fold_rules_with_actions(rows: Vec<RuleActionRow>) -> Vec<AutomationRuleWithActions> {
+    let mut results: Vec<AutomationRuleWithActions> = Vec::new();
+
+    for row in rows {
+        // Check if we already have this rule (it will be the last one due to ordering)
+        let needs_new = results
+            .last()
+            .is_none_or(|last| last.rule.id != row.rule_id);
+
+        if needs_new {
+            results.push(AutomationRuleWithActions {
+                rule: AutomationRule {
+                    id: row.rule_id,
+                    name: row.rule_name,
+                    project_id: row.project_id,
+                    trigger: row.trigger,
+                    trigger_config: row.trigger_config,
+                    is_active: row.is_active,
+                    tenant_id: row.tenant_id,
+                    created_by_id: row.created_by_id,
+                    created_at: row.rule_created_at,
+                    updated_at: row.rule_updated_at,
+                    conditions: row.conditions,
+                    execution_count: row.execution_count,
+                    last_triggered_at: row.last_triggered_at,
+                },
+                actions: Vec::new(),
+            });
+        }
+
+        // If this row has an action, append it
+        if let Some(action_id) = row.action_id {
+            let current = results.last_mut().expect("just pushed or matched");
+            current.actions.push(AutomationAction {
+                id: action_id,
+                rule_id: current.rule.id,
+                action_type: row.action_type.expect("action_type present when action_id present"),
+                action_config: row
+                    .action_config
+                    .expect("action_config present when action_id present"),
+                position: row
+                    .action_position
+                    .expect("action_position present when action_id present"),
+            });
+        }
+    }
+
+    results
+}
 
 /// Error type for automation query operations
 #[derive(Debug, thiserror::Error)]
@@ -71,33 +148,9 @@ async fn get_rule_board_id_internal(
     Ok(board_id)
 }
 
-/// Internal helper: fetch actions for a rule
-async fn fetch_actions_for_rule(
-    pool: &PgPool,
-    rule_id: Uuid,
-) -> Result<Vec<AutomationAction>, sqlx::Error> {
-    let actions = sqlx::query_as::<_, AutomationAction>(
-        r#"
-        SELECT
-            id,
-            rule_id,
-            action_type,
-            action_config,
-            position
-        FROM automation_actions
-        WHERE rule_id = $1
-        ORDER BY position ASC
-        "#,
-    )
-    .bind(rule_id)
-    .fetch_all(pool)
-    .await?;
-
-    Ok(actions)
-}
-
 /// List all automation rules for a board, with their actions.
 /// Verifies board membership before returning.
+/// Uses a single JOIN query instead of N+1 fetches.
 pub async fn list_rules(
     pool: &PgPool,
     board_id: Uuid,
@@ -107,38 +160,25 @@ pub async fn list_rules(
         return Err(AutomationQueryError::NotBoardMember);
     }
 
-    let rules = sqlx::query_as::<_, AutomationRule>(
+    let rows = sqlx::query_as::<_, RuleActionRow>(
         r#"
         SELECT
-            id,
-            name,
-            project_id,
-            trigger,
-            trigger_config,
-            is_active,
-            tenant_id,
-            created_by_id,
-            created_at,
-            updated_at,
-            conditions,
-            execution_count,
-            last_triggered_at
-        FROM automation_rules
-        WHERE project_id = $1
-        ORDER BY created_at DESC
+            ar.id as rule_id, ar.name as rule_name, ar.project_id, ar.trigger,
+            ar.trigger_config, ar.is_active, ar.tenant_id, ar.created_by_id,
+            ar.created_at as rule_created_at, ar.updated_at as rule_updated_at,
+            ar.conditions, ar.execution_count, ar.last_triggered_at,
+            aa.id as action_id, aa.action_type, aa.action_config, aa.position as action_position
+        FROM automation_rules ar
+        LEFT JOIN automation_actions aa ON aa.rule_id = ar.id
+        WHERE ar.project_id = $1
+        ORDER BY ar.created_at DESC, aa.position ASC
         "#,
     )
     .bind(board_id)
     .fetch_all(pool)
     .await?;
 
-    let mut results = Vec::with_capacity(rules.len());
-    for rule in rules {
-        let actions = fetch_actions_for_rule(pool, rule.id).await?;
-        results.push(AutomationRuleWithActions { rule, actions });
-    }
-
-    Ok(results)
+    Ok(fold_rules_with_actions(rows))
 }
 
 /// Get a single automation rule with its actions.
@@ -177,7 +217,17 @@ pub async fn get_rule(
         return Err(AutomationQueryError::NotBoardMember);
     }
 
-    let actions = fetch_actions_for_rule(pool, rule.id).await?;
+    let actions = sqlx::query_as::<_, AutomationAction>(
+        r#"
+        SELECT id, rule_id, action_type, action_config, position
+        FROM automation_actions
+        WHERE rule_id = $1
+        ORDER BY position ASC
+        "#,
+    )
+    .bind(rule.id)
+    .fetch_all(pool)
+    .await?;
 
     Ok(AutomationRuleWithActions { rule, actions })
 }
@@ -734,5 +784,118 @@ mod tests {
             updated_rule.rule.execution_count, 1,
             "execution_count should be 1"
         );
+    }
+
+    // --- Unit tests for fold_rules_with_actions ---
+
+    fn make_row(
+        rule_id: Uuid,
+        rule_name: &str,
+        action_id: Option<Uuid>,
+        action_type: Option<AutomationActionType>,
+        action_position: Option<i32>,
+    ) -> RuleActionRow {
+        RuleActionRow {
+            rule_id,
+            rule_name: rule_name.to_string(),
+            project_id: Uuid::new_v4(),
+            trigger: AutomationTrigger::TaskCreated,
+            trigger_config: serde_json::json!({}),
+            is_active: true,
+            tenant_id: Uuid::new_v4(),
+            created_by_id: Uuid::new_v4(),
+            rule_created_at: Utc::now(),
+            rule_updated_at: Utc::now(),
+            conditions: None,
+            execution_count: 0,
+            last_triggered_at: None,
+            action_id,
+            action_type,
+            action_config: action_id.map(|_| serde_json::json!({})),
+            action_position,
+        }
+    }
+
+    #[test]
+    fn test_fold_rule_with_zero_actions() {
+        let rule_id = Uuid::new_v4();
+        let rows = vec![make_row(rule_id, "Empty rule", None, None, None)];
+
+        let result = fold_rules_with_actions(rows);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].rule.id, rule_id);
+        assert_eq!(result[0].rule.name, "Empty rule");
+        assert!(result[0].actions.is_empty());
+    }
+
+    #[test]
+    fn test_fold_rule_with_one_action() {
+        let rule_id = Uuid::new_v4();
+        let action_id = Uuid::new_v4();
+        let rows = vec![make_row(
+            rule_id,
+            "One action",
+            Some(action_id),
+            Some(AutomationActionType::MoveTask),
+            Some(0),
+        )];
+
+        let result = fold_rules_with_actions(rows);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].actions.len(), 1);
+        assert_eq!(result[0].actions[0].id, action_id);
+        assert_eq!(result[0].actions[0].action_type, AutomationActionType::MoveTask);
+        assert_eq!(result[0].actions[0].position, 0);
+    }
+
+    #[test]
+    fn test_fold_multiple_rules_multiple_actions() {
+        let rule1 = Uuid::new_v4();
+        let rule2 = Uuid::new_v4();
+        let a1 = Uuid::new_v4();
+        let a2 = Uuid::new_v4();
+        let a3 = Uuid::new_v4();
+        let a4 = Uuid::new_v4();
+
+        // Rows come sorted: rule1 rows first, then rule2 rows
+        let rows = vec![
+            make_row(rule1, "Rule A", Some(a1), Some(AutomationActionType::MoveTask), Some(0)),
+            make_row(rule1, "Rule A", Some(a2), Some(AutomationActionType::AssignTask), Some(1)),
+            make_row(rule2, "Rule B", Some(a3), Some(AutomationActionType::SendNotification), Some(0)),
+            make_row(rule2, "Rule B", Some(a4), Some(AutomationActionType::AddComment), Some(1)),
+        ];
+
+        let result = fold_rules_with_actions(rows);
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].rule.name, "Rule A");
+        assert_eq!(result[0].actions.len(), 2);
+        assert_eq!(result[0].actions[0].id, a1);
+        assert_eq!(result[0].actions[1].id, a2);
+        assert_eq!(result[1].rule.name, "Rule B");
+        assert_eq!(result[1].actions.len(), 2);
+        assert_eq!(result[1].actions[0].id, a3);
+        assert_eq!(result[1].actions[1].id, a4);
+    }
+
+    #[test]
+    fn test_fold_single_rule_multiple_rows() {
+        let rule_id = Uuid::new_v4();
+        let a1 = Uuid::new_v4();
+        let a2 = Uuid::new_v4();
+        let a3 = Uuid::new_v4();
+
+        let rows = vec![
+            make_row(rule_id, "Multi", Some(a1), Some(AutomationActionType::SetPriority), Some(0)),
+            make_row(rule_id, "Multi", Some(a2), Some(AutomationActionType::AddLabel), Some(1)),
+            make_row(rule_id, "Multi", Some(a3), Some(AutomationActionType::SendNotification), Some(2)),
+        ];
+
+        let result = fold_rules_with_actions(rows);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].rule.id, rule_id);
+        assert_eq!(result[0].actions.len(), 3);
+        assert_eq!(result[0].actions[0].position, 0);
+        assert_eq!(result[0].actions[1].position, 1);
+        assert_eq!(result[0].actions[2].position, 2);
     }
 }

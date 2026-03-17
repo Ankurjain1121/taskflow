@@ -286,7 +286,7 @@ pub async fn get_board_dependencies(
         FROM task_dependencies td
         JOIN tasks source_t ON source_t.id = td.source_task_id
         JOIN tasks target_t ON target_t.id = td.target_task_id
-        JOIN board_columns bc ON bc.id = target_t.status_id
+        JOIN project_statuses bc ON bc.id = target_t.status_id
         WHERE source_t.project_id = $1
           AND source_t.deleted_at IS NULL
           AND target_t.deleted_at IS NULL
