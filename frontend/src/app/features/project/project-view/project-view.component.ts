@@ -54,27 +54,27 @@ import { ShortcutDiscoveryBannerComponent } from '../../../shared/components/sho
 import { SwimlaneContainerComponent } from '../swimlane-container/swimlane-container.component';
 import { SampleProjectBannerComponent } from '../sample-project-banner/sample-board-banner.component';
 import { SpotlightOverlayComponent } from '../../../shared/components/spotlight-overlay/spotlight-overlay.component';
-import { PROJECT_SPOTLIGHT_STEPS } from './board-spotlight-steps';
+import { PROJECT_SPOTLIGHT_STEPS } from './project-spotlight-steps';
 import { ContextualHintComponent } from '../../../shared/components/contextual-hint/contextual-hint.component';
 import { FeatureHintsService } from '../../../core/services/feature-hints.service';
 import { BulkPreviewDialogComponent } from '../bulk-operations/bulk-preview-dialog.component';
 import { UndoToastComponent } from '../bulk-operations/undo-toast.component';
 
-import { ProjectShortcutsService } from './board-shortcuts.service';
-import { ProjectBulkActionsService } from './board-bulk-actions.service';
-import { ProjectStateService } from './board-state.service';
-import { ProjectFilterService } from './board-filter.service';
-import { ProjectGroupingService } from './board-grouping.service';
-import { ProjectMutationsService } from './board-mutations.service';
-import { ProjectWebsocketHandler } from './board-websocket.handler';
-import { ProjectDragDropHandler } from './board-drag-drop.handler';
+import { ProjectShortcutsService } from './project-shortcuts.service';
+import { ProjectBulkActionsService } from './project-bulk-actions.service';
+import { ProjectStateService } from './project-state.service';
+import { ProjectFilterService } from './project-filter.service';
+import { ProjectGroupingService } from './project-grouping.service';
+import { ProjectMutationsService } from './project-mutations.service';
+import { ProjectWebsocketHandler } from './project-websocket.handler';
+import { ProjectDragDropHandler } from './project-drag-drop.handler';
 import { CardQuickEditService } from './card-quick-edit/card-quick-edit.service';
 import { CardQuickEditPopoverComponent } from './card-quick-edit/card-quick-edit-popover.component';
-import { ProjectCardOperationsService } from './board-card-operations.service';
-import { ProjectBulkOperationsHandler } from './board-bulk-operations.handler';
-import { ProjectColumnDialogsComponent } from './board-column-dialogs.component';
-import { ProjectViewHeaderComponent } from './board-view-header.component';
-import { ProjectLoadingSkeletonComponent } from './board-loading-skeleton.component';
+import { ProjectCardOperationsService } from './project-card-operations.service';
+import { ProjectBulkOperationsHandler } from './project-bulk-operations.handler';
+import { ProjectColumnDialogsComponent } from './project-column-dialogs.component';
+import { ProjectViewHeaderComponent } from './project-view-header.component';
+import { ProjectLoadingSkeletonComponent } from './project-loading-skeleton.component';
 import { MessageService } from 'primeng/api';
 
 @Component({

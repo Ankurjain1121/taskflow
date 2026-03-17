@@ -10,7 +10,7 @@ import { ButtonModule } from 'primeng/button';
 import { Popover } from 'primeng/popover';
 import { Tooltip } from 'primeng/tooltip';
 import { FeatureHelpIconComponent } from '../../../shared/components/feature-help-icon/feature-help-icon.component';
-import { CardFields } from '../project-view/board-state.service';
+import { CardFields } from '../project-view/project-state.service';
 
 export const CARD_FIELD_OPTIONS: { key: keyof CardFields; label: string }[] = [
   { key: 'showPriority', label: 'Priority' },

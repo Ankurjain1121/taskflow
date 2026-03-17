@@ -131,7 +131,7 @@ export const routes: Routes = [
       {
         path: 'project/:projectId',
         loadComponent: () =>
-          import('./features/project/project-view/board-view.component').then(
+          import('./features/project/project-view/project-view.component').then(
             (m) => m.ProjectViewComponent,
           ),
       },

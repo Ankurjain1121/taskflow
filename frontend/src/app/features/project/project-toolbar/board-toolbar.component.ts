@@ -26,7 +26,7 @@ import {
 } from '../../../core/services/filter-presets.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { GroupByMode } from '../project-view/swimlane.types';
-import { CardFields } from '../project-view/board-state.service';
+import { CardFields } from '../project-view/project-state.service';
 import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';

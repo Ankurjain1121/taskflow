@@ -4,7 +4,7 @@ import { Column } from '../../../core/services/project.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { PresenceService } from '../../../core/services/presence.service';
 import { ConflictNotificationService } from '../../../core/services/conflict-notification.service';
-import { ProjectStateService } from './board-state.service';
+import { ProjectStateService } from './project-state.service';
 
 /**
  * Handles incoming WebSocket board events from the backend.

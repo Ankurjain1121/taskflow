@@ -23,7 +23,7 @@ import {
 import {
   CardFields,
   DEFAULT_CARD_FIELDS,
-} from '../project-view/board-state.service';
+} from '../project-view/project-state.service';
 import {
   makeCellId,
   parseCellId,

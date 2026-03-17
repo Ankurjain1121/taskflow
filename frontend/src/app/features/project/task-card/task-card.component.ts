@@ -22,7 +22,7 @@ import { Column } from '../../../core/services/project.service';
 import {
   CardFields,
   DEFAULT_CARD_FIELDS,
-} from '../project-view/board-state.service';
+} from '../project-view/project-state.service';
 import { TaskLockInfo } from '../../../core/services/presence.service';
 import {
   CardQuickEditService,

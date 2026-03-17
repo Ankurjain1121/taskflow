@@ -21,7 +21,7 @@ import { ButtonModule } from 'primeng/button';
 import { Checkbox } from 'primeng/checkbox';
 import { ImportDialogComponent } from '../import-export/import-dialog.component';
 import { ExportDialogComponent } from '../import-export/export-dialog.component';
-import { ProjectStateService } from './board-state.service';
+import { ProjectStateService } from './project-state.service';
 
 @Component({
   selector: 'app-project-column-dialogs',

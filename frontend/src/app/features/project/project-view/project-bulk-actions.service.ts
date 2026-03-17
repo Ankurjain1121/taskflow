@@ -5,7 +5,7 @@ import {
   BulkUpdateRequest,
 } from '../../../core/services/task.service';
 import { BulkAction } from '../bulk-actions/bulk-actions-bar.component';
-import { ProjectStateService } from './board-state.service';
+import { ProjectStateService } from './project-state.service';
 
 @Injectable()
 export class ProjectBulkActionsService {

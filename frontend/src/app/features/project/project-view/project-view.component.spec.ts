@@ -7,7 +7,7 @@ import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { of, Subject, throwError } from 'rxjs';
 import { MessageService } from 'primeng/api';
 
-import { ProjectViewComponent } from './board-view.component';
+import { ProjectViewComponent } from './project-view.component';
 import {
   ProjectService,
   ProjectFullResponse,
