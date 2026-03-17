@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { ProjectFilterService } from './project-filter.service';
 import { Task } from '../../../core/services/task.service';
-import { TaskFilters } from '../project-toolbar/board-toolbar.component';
+import { TaskFilters } from '../project-toolbar/project-toolbar.component';
 
 const makeTask = (overrides: Partial<Task> = {}): Task => ({
   id: 'task-1',

@@ -21,7 +21,7 @@ import {
 import { PositionListComponent } from '../positions/position-list.component';
 
 @Component({
-  selector: 'app-board-members-settings',
+  selector: 'app-project-members-settings',
   standalone: true,
   imports: [
     CommonModule,
@@ -184,7 +184,7 @@ import { PositionListComponent } from '../positions/position-list.component';
     <p-confirmDialog />
   `,
 })
-export class BoardMembersSettingsComponent {
+export class ProjectMembersSettingsComponent {
   private projectService = inject(ProjectService);
   private confirmationService = inject(ConfirmationService);
 

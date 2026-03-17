@@ -138,7 +138,7 @@ export const routes: Routes = [
       {
         path: 'project/:projectId/settings',
         loadComponent: () =>
-          import('./features/project/project-settings/board-settings.component').then(
+          import('./features/project/project-settings/project-settings.component').then(
             (m) => m.ProjectSettingsComponent,
           ),
       },

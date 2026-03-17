@@ -15,14 +15,14 @@ import { AuthService } from '../../../core/services/auth.service';
 import { FavoritesService } from '../../../core/services/favorites.service';
 import { WorkspaceSettingsDialogService } from '../../../core/services/workspace-settings-dialog.service';
 import {
-  CreateBoardDialogComponent,
-  CreateBoardDialogResult,
-} from '../dialogs/create-board-dialog.component';
+  CreateProjectDialogComponent,
+  CreateProjectDialogResult,
+} from '../dialogs/create-project-dialog.component';
 
 @Component({
   selector: 'app-workspace-item',
   standalone: true,
-  imports: [CommonModule, RouterModule, CreateBoardDialogComponent],
+  imports: [CommonModule, RouterModule, CreateProjectDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [
     `
@@ -328,8 +328,8 @@ import {
     </div>
 
     <!-- Create Board Dialog (PrimeNG) -->
-    <app-create-board-dialog
-      [(visible)]="showCreateBoardDialog"
+    <app-create-project-dialog
+      [(visible)]="showCreateProjectDialog"
       [workspaceId]="workspace().id"
       [workspaceName]="workspace().name"
       (created)="onBoardCreated($event)"
@@ -348,7 +348,7 @@ export class WorkspaceItemComponent implements OnInit {
   expanded = signal(false);
   loading = signal(false);
   boards = signal<Board[]>([]);
-  showCreateBoardDialog = signal(false);
+  showCreateProjectDialog = signal(false);
   favoriteIds = signal<Set<string>>(new Set());
   activeMenuBoardId = signal<string | null>(null);
 
@@ -403,10 +403,10 @@ export class WorkspaceItemComponent implements OnInit {
 
   onAddBoardClick(event: Event): void {
     event.stopPropagation();
-    this.showCreateBoardDialog.set(true);
+    this.showCreateProjectDialog.set(true);
   }
 
-  onBoardCreated(result: CreateBoardDialogResult): void {
+  onBoardCreated(result: CreateProjectDialogResult): void {
     this.projectService
       .createBoard(this.workspace().id, {
         name: result.name,

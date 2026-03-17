@@ -40,7 +40,7 @@ import { KanbanColumnComponent } from '../kanban-column/kanban-column.component'
 import {
   ProjectToolbarComponent,
   ViewMode,
-} from '../project-toolbar/board-toolbar.component';
+} from '../project-toolbar/project-toolbar.component';
 import { TaskDetailComponent } from '../task-detail/task-detail.component';
 import { ListViewComponent } from '../list-view/list-view.component';
 import { CalendarViewComponent } from '../calendar-view/calendar-view.component';

@@ -165,11 +165,11 @@ describe('WorkspaceComponent', () => {
     });
   });
 
-  describe('openCreateBoardDialog', () => {
-    it('should set showCreateBoardDialog to true', () => {
-      expect(component.showCreateBoardDialog()).toBe(false);
-      component.openCreateBoardDialog();
-      expect(component.showCreateBoardDialog()).toBe(true);
+  describe('openCreateProjectDialog', () => {
+    it('should set showCreateProjectDialog to true', () => {
+      expect(component.showCreateProjectDialog()).toBe(false);
+      component.openCreateProjectDialog();
+      expect(component.showCreateProjectDialog()).toBe(true);
     });
   });
 

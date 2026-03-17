@@ -3,11 +3,11 @@ import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
-import { CreateBoardDialogComponent } from './create-board-dialog.component';
+import { CreateProjectDialogComponent } from './create-project-dialog.component';
 
-describe('CreateBoardDialogComponent', () => {
-  let component: CreateBoardDialogComponent;
-  let fixture: ComponentFixture<CreateBoardDialogComponent>;
+describe('CreateProjectDialogComponent', () => {
+  let component: CreateProjectDialogComponent;
+  let fixture: ComponentFixture<CreateProjectDialogComponent>;
 
   beforeEach(async () => {
     // Mock window.matchMedia for ThemeService
@@ -28,7 +28,7 @@ describe('CreateBoardDialogComponent', () => {
     }
 
     await TestBed.configureTestingModule({
-      imports: [CreateBoardDialogComponent],
+      imports: [CreateProjectDialogComponent],
       providers: [
         provideRouter([]),
         provideHttpClient(),
@@ -37,7 +37,7 @@ describe('CreateBoardDialogComponent', () => {
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(CreateBoardDialogComponent);
+    fixture = TestBed.createComponent(CreateProjectDialogComponent);
     component = fixture.componentInstance;
   });
 
