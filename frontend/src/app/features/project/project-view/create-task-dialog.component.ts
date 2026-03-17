@@ -183,13 +183,15 @@ export interface CreateTaskDialogResult {
             styleClass="w-full"
           >
             <ng-template #selectedItem let-selected>
-              <div class="flex items-center gap-2" *ngIf="selected">
+              @if (selected) {
+              <div class="flex items-center gap-2">
                 <span
                   class="w-2 h-2 rounded-full inline-block"
                   [style.background-color]="selected.color"
                 ></span>
                 {{ selected.label }}
               </div>
+              }
             </ng-template>
             <ng-template #item let-priority>
               <div class="flex items-center gap-2">

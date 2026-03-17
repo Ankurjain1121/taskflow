@@ -460,8 +460,7 @@ export class MyTasksComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.loading.set(false);
           this.loadBoards();
         },
-        error: (err) => {
-          console.error('Failed to load tasks:', err);
+        error: () => {
           this.error.set('Failed to load tasks. Please try again.');
           this.loading.set(false);
         },
@@ -490,8 +489,7 @@ export class MyTasksComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.nextCursor.set(response.next_cursor);
           this.loading.set(false);
         },
-        error: (err) => {
-          console.error('Failed to load tasks:', err);
+        error: () => {
           this.error.set('Failed to load tasks. Please try again.');
           this.loading.set(false);
         },
@@ -565,9 +563,7 @@ export class MyTasksComponent implements OnInit, OnDestroy, AfterViewChecked {
         next: (summary) => {
           this.summary.set(summary);
         },
-        error: (err) => {
-          console.error('Failed to load summary:', err);
-        },
+        error: () => { /* handled by error interceptor */ },
       });
   }
 

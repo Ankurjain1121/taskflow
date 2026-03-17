@@ -238,8 +238,7 @@ export class CommentListComponent implements OnInit, OnDestroy {
           this.comments.set(comments);
           this.isLoading.set(false);
         },
-        error: (error) => {
-          console.error('Failed to load comments:', error);
+        error: () => {
           this.isLoading.set(false);
         },
       });

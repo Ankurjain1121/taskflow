@@ -55,13 +55,15 @@ import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
               styleClass="w-full"
             >
               <ng-template #selectedItem let-selected>
-                <div class="flex items-center gap-2" *ngIf="selected">
+                @if (selected) {
+                <div class="flex items-center gap-2">
                   <span
                     class="w-2.5 h-2.5 rounded-full"
                     [style.background-color]="selected.color"
                   ></span>
                   {{ selected.label }}
                 </div>
+                }
               </ng-template>
               <ng-template #item let-priority>
                 <div class="flex items-center gap-2">

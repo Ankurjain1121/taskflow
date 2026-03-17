@@ -448,7 +448,7 @@ export class AutomationRulesComponent implements OnInit, OnChanges {
             rules.map((r) => (r.rule.id === updated.rule.id ? updated : r)),
           );
         },
-        error: (err) => console.error('Failed to toggle automation rule:', err),
+        error: () => { /* handled by error interceptor */ },
       });
   }
 
@@ -466,8 +466,7 @@ export class AutomationRulesComponent implements OnInit, OnChanges {
         this.logs.set(logs);
         this.logsLoading.set(false);
       },
-      error: (err) => {
-        console.error('Failed to load automation logs:', err);
+      error: () => {
         this.logsLoading.set(false);
       },
     });
@@ -493,7 +492,7 @@ export class AutomationRulesComponent implements OnInit, OnChanges {
           rules.filter((r) => r.rule.id !== rwa.rule.id),
         );
       },
-      error: (err) => console.error('Failed to delete automation rule:', err),
+      error: () => { /* handled by error interceptor */ },
     });
   }
 
@@ -522,8 +521,7 @@ export class AutomationRulesComponent implements OnInit, OnChanges {
         this.rules.set(rules);
         this.loading.set(false);
       },
-      error: (err) => {
-        console.error('Failed to load automation rules:', err);
+      error: () => {
         this.loading.set(false);
       },
     });
