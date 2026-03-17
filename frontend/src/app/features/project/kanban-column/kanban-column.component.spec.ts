@@ -18,7 +18,7 @@ import { Task } from '../../../core/services/task.service';
 import { PresenceService } from '../../../core/services/presence.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { OnboardingChecklistService } from '../../../core/services/onboarding-checklist.service';
-import { CardQuickEditService } from '../board-view/card-quick-edit/card-quick-edit.service';
+import { CardQuickEditService } from '../project-view/card-quick-edit/card-quick-edit.service';
 
 // --- Helpers ---
 
