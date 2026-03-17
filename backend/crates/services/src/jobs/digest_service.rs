@@ -237,6 +237,7 @@ async fn fetch_batch_stats(
     lookahead_end: chrono::DateTime<Utc>,
 ) -> Result<Vec<UserBatchStats>, sqlx::Error> {
     // Use raw query_as since the CTE returns multiple rows
+    #[allow(clippy::type_complexity)]
     let rows: Vec<(Uuid, Option<i64>, Option<i64>, Option<i64>, Option<i64>)> = sqlx::query_as(
         r#"
         WITH completed AS (
