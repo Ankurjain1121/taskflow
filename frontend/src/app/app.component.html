@@ -49,8 +49,10 @@
   </div>
 </div>
 
-<!-- Command Palette -->
-<app-command-palette [isOpen]="searchOpen()" (closed)="closeSearch()" />
+<!-- Command Palette (deferred until idle, pre-loaded on interaction) -->
+@defer (on idle) {
+  <app-command-palette [isOpen]="searchOpen()" (closed)="closeSearch()" />
+}
 
 <!-- Toast Notifications -->
 <app-toast-container />
