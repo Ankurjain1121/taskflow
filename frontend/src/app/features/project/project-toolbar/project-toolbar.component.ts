@@ -46,7 +46,8 @@ export type ViewMode =
   | 'calendar'
   | 'gantt'
   | 'reports'
-  | 'time-report';
+  | 'time-report'
+  | 'activity';
 
 export interface TaskFilters {
   search: string;
@@ -591,6 +592,7 @@ export class ProjectToolbarComponent implements OnInit, OnDestroy {
     { value: 'gantt', icon: 'pi pi-align-left', tooltip: 'Gantt chart (4)' },
     { value: 'reports', icon: 'pi pi-chart-bar', tooltip: 'Reports view (5)' },
     { value: 'time-report', icon: 'pi pi-clock', tooltip: 'Time report (6)' },
+    { value: 'activity', icon: 'pi pi-history', tooltip: 'Activity feed (7)' },
   ];
 
   ngOnInit(): void {
