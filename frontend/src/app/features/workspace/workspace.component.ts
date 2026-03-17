@@ -4,9 +4,12 @@ import {
   ChangeDetectionStrategy,
   inject,
   signal,
+  computed,
+  effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ButtonModule } from 'primeng/button';
 import { ProgressSpinner } from 'primeng/progressspinner';
 
@@ -235,6 +238,7 @@ export class WorkspaceComponent implements OnInit {
   private projectService = inject(ProjectService);
   private settingsDialog = inject(WorkspaceSettingsDialogService);
 
+  private paramMap = toSignal(this.route.paramMap);
   workspaceId = signal<string>('');
   workspace = signal<Workspace | null>(null);
   /** Reads the shared project list signal from ProjectService */
@@ -255,14 +259,19 @@ export class WorkspaceComponent implements OnInit {
     '#ec4899',
   ];
 
-  ngOnInit(): void {
-    this.route.paramMap.subscribe((params) => {
-      const id = params.get('workspaceId');
+  constructor() {
+    effect(() => {
+      const pm = this.paramMap();
+      const id = pm?.get('workspaceId');
       if (id) {
         this.workspaceId.set(id);
         this.loadData();
       }
     });
+  }
+
+  ngOnInit(): void {
+    // Data loading is handled by the effect reacting to paramMap changes
   }
 
   loadData(): void {

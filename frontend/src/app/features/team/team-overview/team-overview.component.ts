@@ -4,11 +4,13 @@ import {
   inject,
   OnInit,
   OnDestroy,
+  effect,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   TeamService,
   MemberWorkload,
@@ -164,20 +166,28 @@ export class TeamOverviewComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private teamService = inject(TeamService);
   private wsService = inject(WebSocketService);
-  private destroy$ = new Subject<void>();
 
+  private params = toSignal(this.route.params);
+  private destroy$ = new Subject<void>();
   workspaceId = '';
 
   loading = signal(true);
   error = signal<string | null>(null);
   members = signal<MemberWorkload[]>([]);
 
-  ngOnInit(): void {
-    this.route.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
-      this.workspaceId = params['workspaceId'];
-      this.loadTeamWorkload();
-      this.setupWebSocket();
+  constructor() {
+    effect(() => {
+      const p = this.params();
+      if (p) {
+        this.workspaceId = p['workspaceId'];
+        this.loadTeamWorkload();
+        this.setupWebSocket();
+      }
     });
+  }
+
+  ngOnInit(): void {
+    // Data loading is handled by the effect reacting to route param changes
   }
 
   ngOnDestroy(): void {

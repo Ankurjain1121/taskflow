@@ -546,7 +546,7 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
       icon: 'key',
       label: 'Show Keyboard Shortcuts',
       shortcut: '?',
-      action: () => this.shortcutsService.helpRequested$.next(),
+      action: () => this.shortcutsService.helpRequested.update((n) => n + 1),
     },
     {
       id: 'settings',

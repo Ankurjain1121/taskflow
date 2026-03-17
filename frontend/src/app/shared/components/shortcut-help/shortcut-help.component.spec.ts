@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Subject } from 'rxjs';
+import { signal } from '@angular/core';
 import { ShortcutHelpComponent } from './shortcut-help.component';
 import {
   KeyboardShortcutsService,
@@ -10,8 +10,9 @@ import {
 describe('ShortcutHelpComponent', () => {
   let component: ShortcutHelpComponent;
   let fixture: ComponentFixture<ShortcutHelpComponent>;
+  let helpRequestedSignal: ReturnType<typeof signal<number>>;
   let mockShortcutsService: {
-    helpRequested$: Subject<void>;
+    helpRequested: ReturnType<typeof signal<number>>;
     getByCategory: ReturnType<typeof vi.fn>;
     formatShortcut: ReturnType<typeof vi.fn>;
     pushDisable: ReturnType<typeof vi.fn>;
@@ -21,8 +22,9 @@ describe('ShortcutHelpComponent', () => {
   };
 
   beforeEach(async () => {
+    helpRequestedSignal = signal(0);
     mockShortcutsService = {
-      helpRequested$: new Subject<void>(),
+      helpRequested: helpRequestedSignal,
       getByCategory: vi.fn().mockReturnValue(new Map()),
       formatShortcut: vi.fn((s: KeyboardShortcut) => s.key),
       pushDisable: vi.fn(),
@@ -57,11 +59,10 @@ describe('ShortcutHelpComponent', () => {
     });
   });
 
-  describe('helpRequested$ subscription', () => {
+  describe('helpRequested signal', () => {
     it('should become visible when help is requested', () => {
-      component.ngOnInit();
-
-      mockShortcutsService.helpRequested$.next();
+      helpRequestedSignal.set(1);
+      TestBed.flushEffects();
 
       expect(component.visible()).toBe(true);
     });
@@ -86,8 +87,8 @@ describe('ShortcutHelpComponent', () => {
       ]);
       mockShortcutsService.getByCategory.mockReturnValue(categoriesMap);
 
-      component.ngOnInit();
-      mockShortcutsService.helpRequested$.next();
+      helpRequestedSignal.set(1);
+      TestBed.flushEffects();
 
       expect(component.filteredCategories()).toHaveLength(2);
       expect(component.filteredCategories()[0].name).toBe('Navigation');
@@ -128,10 +129,9 @@ describe('ShortcutHelpComponent', () => {
       expect(() => component.ngOnDestroy()).not.toThrow();
     });
 
-    it('should handle being called without ngOnInit', () => {
+    it('should handle being called without setup', () => {
       const freshFixture = TestBed.createComponent(ShortcutHelpComponent);
       const freshComponent = freshFixture.componentInstance;
-      // ngOnInit not called, sub is undefined
       expect(() => freshComponent.ngOnDestroy()).not.toThrow();
     });
   });
@@ -144,8 +144,8 @@ describe('ShortcutHelpComponent', () => {
 
     it('should render content when visible', () => {
       mockShortcutsService.getByCategory.mockReturnValue(new Map());
-      component.ngOnInit();
-      mockShortcutsService.helpRequested$.next();
+      helpRequestedSignal.set(1);
+      TestBed.flushEffects();
       fixture.detectChanges();
 
       expect(fixture.nativeElement.querySelector('.fixed')).toBeTruthy();
@@ -163,8 +163,8 @@ describe('ShortcutHelpComponent', () => {
       ]);
       mockShortcutsService.getByCategory.mockReturnValue(categoriesMap);
 
-      component.ngOnInit();
-      mockShortcutsService.helpRequested$.next();
+      helpRequestedSignal.set(1);
+      TestBed.flushEffects();
       fixture.detectChanges();
 
       const text = fixture.nativeElement.textContent;

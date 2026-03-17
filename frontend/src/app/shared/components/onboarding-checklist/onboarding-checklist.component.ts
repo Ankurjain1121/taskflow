@@ -224,7 +224,7 @@ export class OnboardingChecklistComponent {
 
   onCtaClick(item: ChecklistItem): void {
     if (item.ctaAction === 'open_shortcuts') {
-      this.shortcutsService.helpRequested$.next();
+      this.shortcutsService.helpRequested.update((n) => n + 1);
       return;
     }
     if (item.ctaRoute) {

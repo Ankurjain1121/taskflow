@@ -1,17 +1,19 @@
 import {
   Component,
   signal,
+  computed,
   inject,
   Injector,
   OnInit,
-  OnDestroy,
   ChangeDetectionStrategy,
   afterNextRender,
+  effect,
 } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { Subscription, forkJoin } from 'rxjs';
+import { forkJoin } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { InputTextModule } from 'primeng/inputtext';
 import { Textarea } from 'primeng/textarea';
 import { ButtonModule } from 'primeng/button';
@@ -330,6 +332,7 @@ import { Toast } from 'primeng/toast';
             </div>
 
             <!-- Comments / Activity Tabs -->
+            @defer (on viewport) {
             <div class="main-card">
               <p-tabs value="0">
                 <p-tablist>
@@ -362,6 +365,9 @@ import { Toast } from 'primeng/toast';
                 </p-tabpanels>
               </p-tabs>
             </div>
+            } @placeholder {
+              <div class="h-48"></div>
+            }
           </div>
 
           <!-- Sidebar (Right 1/3) -->
@@ -389,7 +395,7 @@ import { Toast } from 'primeng/toast';
     }
   `,
 })
-export class TaskDetailPageComponent implements OnInit, OnDestroy {
+export class TaskDetailPageComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private location = inject(Location);
@@ -400,9 +406,9 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private recentItemsService = inject(RecentItemsService);
   private messageService = inject(MessageService);
-  private routeSub: Subscription | null = null;
 
-  taskId = signal('');
+  private params = toSignal(this.route.params);
+  readonly taskId = computed(() => this.params()?.['taskId'] ?? '');
   task = signal<Task | null>(null);
   board = signal<Board | null>(null);
   workspace = signal<Workspace | null>(null);
@@ -417,18 +423,17 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
   editDescription = signal('');
   editingField = signal<string | null>(null);
 
-  ngOnInit(): void {
-    this.routeSub = this.route.params.subscribe((params) => {
-      const id = params['taskId'];
-      if (id && id !== this.taskId()) {
-        this.taskId.set(id);
+  constructor() {
+    effect(() => {
+      const id = this.taskId();
+      if (id) {
         this.loadTask(id);
       }
     });
   }
 
-  ngOnDestroy(): void {
-    this.routeSub?.unsubscribe();
+  ngOnInit(): void {
+    // Task loading is handled by the effect reacting to taskId changes
   }
 
   goBack(): void {

@@ -52,7 +52,7 @@ pub struct ProjectResponse {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct StatusResponse {
     pub id: Uuid,
     pub name: String,
@@ -65,7 +65,7 @@ pub struct StatusResponse {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ProjectDetailResponse {
     pub id: Uuid,
     pub name: String,

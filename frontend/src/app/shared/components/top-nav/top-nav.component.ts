@@ -338,7 +338,7 @@ export class TopNavComponent {
   });
 
   openShortcutHelp(): void {
-    this.shortcutsService.helpRequested$.next();
+    this.shortcutsService.helpRequested.update((n) => n + 1);
   }
 
   setTheme(theme: Theme): void {

@@ -361,3 +361,8 @@ onDrop(event, date)                      onBarMouseUp(event) → update task
 - [2026-03-15] Security fixes committed: audit cursor tenant isolation, ILIKE escaping, trash FK order, deleted_at check.
 - [2026-03-15] Phase 2 eng review: plan was 70% overbuilt — backend already done. Revised to frontend wiring + timer widget.
 - [2026-03-15] BoardService → ProjectService rename complete (49 files). Floating timer widget added. Dashboard charts already wired.
+- [2026-03-17] **Performance Sprint started:**
+  - Phase 1A: nginx static assets → `Cache-Control: public, immutable` (verified)
+  - Phase 1B: DB pool → 30 max / 5 min connections
+  - Phase 1C: `list_projects_by_workspace` → LIMIT 200
+  - Phase 2+3: OnPush migration, @defer, signals, Redis caching (in progress)

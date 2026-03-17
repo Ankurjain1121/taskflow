@@ -3,7 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { ActivatedRoute, Router } from '@angular/router';
-import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
 import { of, Subject, throwError } from 'rxjs';
 import { MessageService } from 'primeng/api';
 
@@ -136,7 +136,7 @@ function createMockKeyboardShortcutsService() {
   return {
     register: vi.fn(),
     unregisterByCategory: vi.fn(),
-    helpRequested$: new Subject<void>(),
+    helpRequested: signal(0),
   };
 }
 

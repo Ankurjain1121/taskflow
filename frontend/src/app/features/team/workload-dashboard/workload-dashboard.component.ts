@@ -1,13 +1,13 @@
 import {
   Component,
-  DestroyRef,
   signal,
   computed,
   inject,
   OnInit,
+  effect,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import {
@@ -213,7 +213,9 @@ import {
 export class WorkloadDashboardComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private teamService = inject(TeamService);
-  private destroyRef = inject(DestroyRef);
+
+  private params = toSignal(this.route.params);
+  private readonly workspaceId = computed(() => this.params()?.['workspaceId'] as string | undefined);
 
   loading = signal(true);
   error = signal<string | null>(null);
@@ -249,13 +251,17 @@ export class WorkloadDashboardComponent implements OnInit {
     return Math.max(max, 10);
   });
 
-  ngOnInit(): void {
-    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
-      const workspaceId = params['workspaceId'];
-      if (workspaceId) {
-        this.loadWorkload(workspaceId);
+  constructor() {
+    effect(() => {
+      const wsId = this.workspaceId();
+      if (wsId) {
+        this.loadWorkload(wsId);
       }
     });
+  }
+
+  ngOnInit(): void {
+    // Workload loading is handled by the effect reacting to workspaceId changes
   }
 
   getInitials(name: string): string {

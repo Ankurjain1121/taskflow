@@ -10,8 +10,8 @@ import { DOCUMENT } from '@angular/common';
 import { PrimeNG } from 'primeng/config';
 import Aura from '@primeng/themes/aura';
 import { definePreset } from '@primeng/themes';
-import { Subject, EMPTY } from 'rxjs';
-import { debounceTime, switchMap, catchError, filter } from 'rxjs/operators';
+import { EMPTY } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { COLOR_PALETTES } from '../constants/color-palettes';
 import { UserPreferencesService } from './user-preferences.service';
 import { AuthService } from './auth.service';
@@ -70,7 +70,8 @@ export class ThemeService implements OnDestroy {
 
   readonly isDark = computed(() => this.resolvedTheme() === 'dark');
 
-  private readonly _saveSubject = new Subject<Record<string, string>>();
+  private _saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private _pendingSave: Record<string, string> | null = null;
   private mediaQuery: MediaQueryList | null = null;
   private mediaQueryListener: ((e: MediaQueryListEvent) => void) | null = null;
 
@@ -100,18 +101,15 @@ export class ThemeService implements OnDestroy {
       this.updatePrimeNG(accent, resolved === 'dark');
     });
 
-    // Debounced server save (only when authenticated)
-    this._saveSubject
-      .pipe(
-        filter(() => this.authService.isAuthenticated()),
-        debounceTime(500),
-        switchMap((prefs) =>
-          this.userPrefsService
-            .updatePreferences(prefs)
-            .pipe(catchError(() => EMPTY)),
-        ),
-      )
-      .subscribe();
+    // Debounced server save effect (only when authenticated)
+    effect(() => {
+      const theme = this.theme();
+      const accent = this.accent();
+      // Only save if authenticated and prefs have been loaded
+      if (this.authService.isAuthenticated() && this._prefsLoaded) {
+        this.debouncedSave({ color_mode: theme, accent_color: accent });
+      }
+    });
 
     // Load user preferences from server once authenticated
     effect(() => {
@@ -127,13 +125,11 @@ export class ThemeService implements OnDestroy {
   setTheme(t: Theme): void {
     this.theme.set(t);
     this.saveToStorage(THEME_KEY, t);
-    this._saveSubject.next({ color_mode: t });
   }
 
   setAccent(a: AccentColor): void {
     this.accent.set(a);
     this.saveToStorage(ACCENT_KEY, a);
-    this._saveSubject.next({ accent_color: a });
   }
 
   setColorMode(mode: ColorMode): void {
@@ -269,5 +265,26 @@ export class ThemeService implements OnDestroy {
     if (this.mediaQuery && this.mediaQueryListener) {
       this.mediaQuery.removeEventListener('change', this.mediaQueryListener);
     }
+    if (this._saveTimer) {
+      clearTimeout(this._saveTimer);
+    }
+  }
+
+  private debouncedSave(prefs: Record<string, string>): void {
+    this._pendingSave = { ...this._pendingSave, ...prefs };
+    if (this._saveTimer) {
+      clearTimeout(this._saveTimer);
+    }
+    this._saveTimer = setTimeout(() => {
+      const toSave = this._pendingSave;
+      this._pendingSave = null;
+      this._saveTimer = null;
+      if (toSave) {
+        this.userPrefsService
+          .updatePreferences(toSave)
+          .pipe(catchError(() => EMPTY))
+          .subscribe();
+      }
+    }, 500);
   }
 }

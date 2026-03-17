@@ -45,7 +45,7 @@ pub fn sanitize_html(input: &str) -> String {
 }
 
 /// Response for listing tasks by project
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct ListTasksResponse {
     pub tasks: std::collections::HashMap<Uuid, Vec<taskflow_db::models::Task>>,
 }

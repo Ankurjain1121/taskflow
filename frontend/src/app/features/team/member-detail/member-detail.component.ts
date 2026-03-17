@@ -1,13 +1,13 @@
 import {
   Component,
   computed,
-  DestroyRef,
   signal,
   inject,
   OnInit,
+  effect,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin, of, catchError } from 'rxjs';
@@ -405,10 +405,10 @@ import { WorkspaceMemberInfo } from '../../../shared/types/workspace.types';
 })
 export class MemberDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
-  private destroyRef = inject(DestroyRef);
   private workspaceService = inject(WorkspaceService);
   private teamService = inject(TeamService);
 
+  private params = toSignal(this.route.params);
   workspaceId = '';
   userId = '';
 
@@ -466,12 +466,19 @@ export class MemberDetailComponent implements OnInit {
     return groups.filter((g) => g.tasks.length > 0);
   });
 
-  ngOnInit(): void {
-    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
-      this.workspaceId = params['workspaceId'];
-      this.userId = params['userId'];
-      this.loadData();
+  constructor() {
+    effect(() => {
+      const p = this.params();
+      if (p) {
+        this.workspaceId = p['workspaceId'];
+        this.userId = p['userId'];
+        this.loadData();
+      }
     });
+  }
+
+  ngOnInit(): void {
+    // Data loading is handled by the effect reacting to route param changes
   }
 
   getInitials(name: string): string {

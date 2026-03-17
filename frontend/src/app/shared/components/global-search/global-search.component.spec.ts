@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { of, Subject } from 'rxjs';
-import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { of } from 'rxjs';
+import { CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
 import {
   GlobalSearchComponent,
   CommandAction,
@@ -66,7 +66,7 @@ describe('GlobalSearchComponent', () => {
     resolvedTheme: ReturnType<typeof vi.fn>;
     setTheme: ReturnType<typeof vi.fn>;
   };
-  let mockShortcutsService: { helpRequested$: Subject<void> };
+  let mockShortcutsService: { helpRequested: ReturnType<typeof signal<number>> };
 
   beforeEach(async () => {
     mockSearchService = {
@@ -83,7 +83,7 @@ describe('GlobalSearchComponent', () => {
     };
 
     mockShortcutsService = {
-      helpRequested$: new Subject<void>(),
+      helpRequested: signal(0),
     };
 
     // localStorage is mocked globally in test-setup.ts

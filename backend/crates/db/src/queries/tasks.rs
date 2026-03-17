@@ -799,10 +799,7 @@ pub async fn get_task_row(pool: &PgPool, task_id: Uuid) -> Result<Option<Task>, 
 }
 
 /// Fetch the current status_id for a task (non-deleted).
-pub async fn get_task_status_id(
-    pool: &PgPool,
-    task_id: Uuid,
-) -> Result<Option<Uuid>, sqlx::Error> {
+pub async fn get_task_status_id(pool: &PgPool, task_id: Uuid) -> Result<Option<Uuid>, sqlx::Error> {
     sqlx::query_scalar::<_, Uuid>(
         "SELECT status_id FROM tasks WHERE id = $1 AND deleted_at IS NULL",
     )

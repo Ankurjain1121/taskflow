@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
+use crate::services::cache;
 use crate::state::AppState;
 use taskflow_db::models::automation::AutomationTrigger;
 use taskflow_db::models::{Task, WsBoardEvent};
@@ -53,6 +54,9 @@ pub async fn move_task_handler(
     }
 
     let task = move_task(&state.db, task_id, body.status_id, body.position.clone()).await?;
+
+    // Invalidate project tasks cache
+    cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
 
     // Broadcast the task moved event
     let broadcast_service = BroadcastService::new(state.redis.clone());

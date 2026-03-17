@@ -580,7 +580,7 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
       icon: 'keyboard',
       label: 'Show Keyboard Shortcuts',
       shortcut: '?',
-      action: () => this.shortcutsService.helpRequested$.next(),
+      action: () => this.shortcutsService.helpRequested.update((n) => n + 1),
     },
   ];
 
