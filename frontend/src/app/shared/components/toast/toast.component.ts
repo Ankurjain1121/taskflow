@@ -47,10 +47,11 @@ const EVENT_TYPE_ICONS: Record<NotificationEventType, EventTypeConfig> = {
     <div
       class="fixed bottom-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none"
     >
-      @for (toast of toastService.toasts(); track toast.id) {
+      @for (toast of toastService.toasts(); track toast.id; let i = $index) {
         <div
           @toastAnim
           class="pointer-events-auto w-80 max-w-[calc(100vw-2rem)] bg-[var(--card)] rounded-lg shadow-lg border border-[var(--border)] overflow-hidden cursor-pointer"
+          [style.transition-delay]="i * 60 + 'ms'"
           role="alert"
           (click)="onToastClick(toast)"
         >

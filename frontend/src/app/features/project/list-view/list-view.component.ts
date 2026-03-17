@@ -55,9 +55,6 @@ interface ColumnInput {
       <!-- Shared task row cells template -->
       <ng-template #taskRowCells let-task>
         <td (click)="$event.stopPropagation()">
-          <p-tableCheckbox [value]="task" />
-        </td>
-        <td (click)="$event.stopPropagation()">
           @if (editingTitleTaskId() === task.id) {
             <input
               pInputText
@@ -301,6 +298,9 @@ interface ColumnInput {
                 class="cursor-pointer"
                 (click)="onRowClick(task)"
               >
+                <td (click)="$event.stopPropagation()">
+                  <p-tableCheckbox [value]="task" />
+                </td>
                 <ng-container
                   *ngTemplateOutlet="taskRowCells; context: { $implicit: task }"
                 ></ng-container>
@@ -368,6 +368,9 @@ interface ColumnInput {
               class="cursor-pointer"
               (click)="onRowClick(task)"
             >
+              <td (click)="$event.stopPropagation()">
+                <p-tableCheckbox [value]="task" />
+              </td>
               <ng-container
                 *ngTemplateOutlet="taskRowCells; context: { $implicit: task }"
               ></ng-container>

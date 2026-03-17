@@ -389,6 +389,7 @@ import { Toast } from 'primeng/toast';
             (deleteRequested)="onDelete()"
             (reminderSet)="onSetReminder($event)"
             (reminderRemoved)="onRemoveReminder($event)"
+            (estimatedHoursChanged)="onEstimatedHoursChange($event)"
           />
         </div>
       </div>
@@ -578,6 +579,14 @@ export class TaskDetailPageComponent implements OnInit {
   onDueDateChange(date: Date | null): void {
     const due_date = date ? date.toISOString() : null;
     this.updateTask({ due_date } as UpdateTaskRequest);
+  }
+
+  onEstimatedHoursChange(hours: number | null): void {
+    if (hours === null) {
+      this.updateTask({ clear_estimated_hours: true } as UpdateTaskRequest);
+    } else {
+      this.updateTask({ estimated_hours: hours } as UpdateTaskRequest);
+    }
   }
 
   private updateTask(updates: UpdateTaskRequest): void {

@@ -32,7 +32,6 @@ export const appConfig: ApplicationConfig = {
       withViewTransitions(),
     ),
     provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
-    MessageService,
     provideAnimationsAsync(),
     providePrimeNG({
       theme: {
@@ -46,6 +45,7 @@ export const appConfig: ApplicationConfig = {
         },
       },
     }),
+    MessageService,
     {
       provide: APP_INITIALIZER,
       useFactory: authInitializerFactory,

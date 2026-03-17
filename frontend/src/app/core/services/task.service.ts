@@ -72,6 +72,7 @@ export interface Task {
   task_number?: number | null;
   assignee_id?: string | null;
   due_date: string | null;
+  estimated_hours?: number | null;
   created_by?: string;
   created_by_id?: string;
   created_at: string;
@@ -162,6 +163,8 @@ export interface UpdateTaskRequest {
   assignee_id?: string | null;
   due_date?: string | null;
   clear_due_date?: boolean;
+  estimated_hours?: number | null;
+  clear_estimated_hours?: boolean;
   milestone_id?: string | null;
   status_id?: string | null;
   version?: number;

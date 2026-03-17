@@ -39,10 +39,16 @@ import { UpcomingDeadlinesComponent } from './widgets/upcoming-deadlines.compone
 import { CycleTimeChartComponent } from './widgets/cycle-time-chart.component';
 import { VelocityChartComponent } from './widgets/velocity-chart.component';
 import { WorkloadBalanceComponent } from './widgets/workload-balance.component';
+import { ResourceUtilizationComponent } from './widgets/resource-utilization.component';
 import { OnTimeMetricComponent } from './widgets/on-time-metric.component';
+import {
+  ReportsService,
+  ResourceUtilizationEntry,
+} from '../../core/services/reports.service';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { OnboardingChecklistComponent } from '../../shared/components/onboarding-checklist/onboarding-checklist.component';
 import { OnboardingChecklistService } from '../../core/services/onboarding-checklist.service';
+import { CountUpDirective } from '../../shared/directives/count-up.directive';
 
 type DashboardView = 'workspace' | 'team' | 'personal';
 
@@ -75,9 +81,11 @@ interface TeamOption {
     CycleTimeChartComponent,
     VelocityChartComponent,
     WorkloadBalanceComponent,
+    ResourceUtilizationComponent,
     OnTimeMetricComponent,
     EmptyStateComponent,
     OnboardingChecklistComponent,
+    CountUpDirective,
   ],
   template: `
     <div class="min-h-screen" style="background: var(--background)">
@@ -157,7 +165,7 @@ interface TeamOption {
               <div class="stat-card-icon">
                 <i class="pi pi-clipboard" aria-hidden="true"></i>
               </div>
-              <p class="stat-card-value">{{ stats()?.total_tasks || 0 }}</p>
+              <p class="stat-card-value animate-count-up" [appCountUp]="stats()?.total_tasks || 0"></p>
               <p class="stat-card-label">Total Tasks</p>
             </a>
 
@@ -171,7 +179,7 @@ interface TeamOption {
               <div class="stat-card-icon">
                 <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
               </div>
-              <p class="stat-card-value">{{ stats()?.overdue || 0 }}</p>
+              <p class="stat-card-value animate-count-up" [appCountUp]="stats()?.overdue || 0"></p>
               <p class="stat-card-label">Overdue</p>
             </a>
 
@@ -184,7 +192,7 @@ interface TeamOption {
               <div class="stat-card-icon">
                 <i class="pi pi-clock" aria-hidden="true"></i>
               </div>
-              <p class="stat-card-value">{{ stats()?.due_today || 0 }}</p>
+              <p class="stat-card-value animate-count-up" [appCountUp]="stats()?.due_today || 0"></p>
               <p class="stat-card-label">Due Today</p>
             </a>
 
@@ -193,7 +201,7 @@ interface TeamOption {
               <div class="stat-card-icon">
                 <i class="pi pi-check-circle" aria-hidden="true"></i>
               </div>
-              <p class="stat-card-value">{{ stats()?.completed_this_week || 0 }}</p>
+              <p class="stat-card-value animate-count-up" [appCountUp]="stats()?.completed_this_week || 0"></p>
               <p class="stat-card-label">Completed This Week</p>
             </div>
           </div>
@@ -396,6 +404,12 @@ interface TeamOption {
                     class="min-h-[300px]"
                   />
                 }
+                @if (activeView() === 'workspace' && utilization().length > 0) {
+                  <app-resource-utilization
+                    [data]="utilization()"
+                    class="min-h-[300px]"
+                  />
+                }
                 <app-on-time-metric
                   [data]="metricsOnTime()"
                   class="min-h-[300px]"
@@ -539,6 +553,7 @@ export class DashboardComponent implements OnInit {
   private workspaceState = inject(WorkspaceStateService);
   private teamGroupsService = inject(TeamGroupsService);
   private checklistService = inject(OnboardingChecklistService);
+  private reportsService = inject(ReportsService);
   private injector = inject(Injector);
 
   workspaces = signal<Workspace[]>([]);
@@ -559,6 +574,7 @@ export class DashboardComponent implements OnInit {
   metricsVelocity = signal<VelocityPoint[]>([]);
   metricsWorkload = signal<WorkloadBalanceEntry[]>([]);
   metricsOnTime = signal<OnTimeMetric | null>(null);
+  utilization = signal<ResourceUtilizationEntry[]>([]);
 
   hasAnyMetrics = computed(
     () =>
@@ -772,6 +788,7 @@ export class DashboardComponent implements OnInit {
     this.metricsVelocity.set([]);
     this.metricsWorkload.set([]);
     this.metricsOnTime.set(null);
+    this.utilization.set([]);
 
     if (view === 'personal') {
       this.dashboardService.getPersonalDashboard().subscribe({
@@ -815,6 +832,11 @@ export class DashboardComponent implements OnInit {
           this.metricsLoading.set(false);
         },
         error: () => this.metricsLoading.set(false),
+      });
+      // Fetch resource utilization in parallel
+      this.reportsService.getUtilizationByWorkspace(wsId).subscribe({
+        next: (data) => this.utilization.set(data),
+        error: () => this.utilization.set([]),
       });
     }
   }

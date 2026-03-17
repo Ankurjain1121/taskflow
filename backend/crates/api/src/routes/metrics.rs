@@ -19,8 +19,9 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
 use taskflow_db::queries::metrics::{
-    get_personal_dashboard, get_team_dashboard, get_workspace_dashboard, refresh_metrics,
-    PersonalDashboard, TeamDashboard, WorkspaceDashboard,
+    get_personal_dashboard, get_resource_utilization, get_team_dashboard,
+    get_workspace_dashboard, refresh_metrics, PersonalDashboard, ResourceUtilizationRow,
+    TeamDashboard, WorkspaceDashboard,
 };
 
 /// Cache key for workspace metrics
@@ -141,6 +142,44 @@ async fn get_personal_metrics_handler(
     Ok(Json(dashboard))
 }
 
+/// GET /api/workspaces/{workspace_id}/resource-utilization
+///
+/// Per-user resource utilization: estimated hours vs actual logged hours.
+/// Cached for 120 seconds.
+async fn get_resource_utilization_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+    Path(workspace_id): Path<Uuid>,
+) -> Result<Json<Vec<ResourceUtilizationRow>>> {
+    let is_member: bool = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM workspace_members WHERE workspace_id = $1 AND user_id = $2)",
+    )
+    .bind(workspace_id)
+    .bind(tenant.user_id)
+    .fetch_one(&state.db)
+    .await
+    .map_err(|e| AppError::InternalError(format!("Membership check failed: {}", e)))?;
+
+    if !is_member {
+        return Err(AppError::Forbidden("Not a member of this workspace".into()));
+    }
+
+    let cache_key = format!("cache:metrics:utilization:{}", workspace_id);
+    if let Some(cached) =
+        cache::cache_get::<Vec<ResourceUtilizationRow>>(&state.redis, &cache_key).await
+    {
+        return Ok(Json(cached));
+    }
+
+    let rows = get_resource_utilization(&state.db, workspace_id)
+        .await
+        .map_err(|e| AppError::InternalError(format!("Resource utilization failed: {}", e)))?;
+
+    cache::cache_set(&state.redis, &cache_key, &rows, METRICS_CACHE_TTL).await;
+
+    Ok(Json(rows))
+}
+
 /// Validate the X-Cron-Secret header for the refresh endpoint
 fn validate_cron_secret(headers: &HeaderMap) -> Result<()> {
     let expected_secret = std::env::var("CRON_SECRET").unwrap_or_default();
@@ -202,6 +241,10 @@ pub fn metrics_router(state: AppState) -> Router<AppState> {
         )
         .route("/teams/{team_id}/metrics", get(get_team_metrics_handler))
         .route("/me/metrics", get(get_personal_metrics_handler))
+        .route(
+            "/workspaces/{workspace_id}/resource-utilization",
+            get(get_resource_utilization_handler),
+        )
         .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

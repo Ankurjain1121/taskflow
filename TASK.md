@@ -60,27 +60,27 @@ All items shipped. Orphan deletion, Gantt drag-to-reschedule (with document-leve
 
 ### Phase 2: MISSING ESSENTIALS
 
-#### 2.1 Email Notification Pipeline — MOSTLY DONE
+#### 2.1 Email Notification Pipeline — DONE
 - [x] Email provider integration (Postal + Resend)
 - [x] Background worker for email queue
 - [x] Email templates (HTML + plain text)
 - [x] Weekly/daily digest email
-- [ ] Honor notification preferences per-event toggle (partial)
+- [x] Notification preferences UI + API (per-event toggles, in-app/email/Slack channels)
 
-#### 2.2 Resource Utilization
-- [ ] Backend: assigned tasks per user with hours/deadlines
-- [ ] Backend: utilization % per user per week
-- [ ] Frontend: resource utilization chart (bar chart per member)
-- [ ] Frontend: workload heatmap (overloaded/available)
-- [ ] Cross-project utilization view
+#### 2.2 Resource Utilization — DONE
+**Approach:** Planned vs Actual (no capacity config — compare estimated_hours on tasks vs logged time_entries)
+- [x] `estimated_hours` column on tasks (DB + model + CRUD — already existed)
+- [x] `GET /workspaces/{id}/resource-utilization` endpoint (120s Redis cache, workspace membership check)
+- [x] Task detail sidebar: "Estimated hours" inline-edit field
+- [x] Resource utilization dashboard widget (grouped bar chart: planned vs actual per member, with print fallback table)
 
-#### 2.3 Reporting & Charts — MOSTLY DONE
-- [x] Burndown chart per project
-- [x] Burnup chart per project
-- [x] CSV export for charts
-- [ ] Task completion rate chart
-- [ ] Time tracking: planned vs actual hours
-- [ ] Export reports to PDF
+#### 2.3 Reporting & Charts — DONE
+- [x] Burndown/burnup charts + CSV export
+- [x] Completion trend chart (30/60/90 day)
+- [x] Cycle time, velocity, on-time metrics
+- [x] Time tracking: timer widget + time report (summary + timesheet views)
+- [x] Client-side PDF export (`@media print` CSS + Export PDF button on time report)
+- [x] Print-mode chart fallback (bar charts hidden, data tables shown in print)
 
 #### 2.4 Observability — DONE
 - [x] `tracing` crate for structured logging
@@ -88,8 +88,8 @@ All items shipped. Orphan deletion, Gantt drag-to-reschedule (with document-leve
 - [x] `/metrics` endpoint for Prometheus
 - [x] JSON log format for production
 
-#### 2.5 Deferred from Phase 1
-- [ ] Task route consolidation: 7 → 3 files (crud, assignments, mutations)
+#### 2.5 Task Routes — DONE (different approach)
+- [x] 10 focused files averaging ~200 lines each (well-organized, no consolidation needed)
 
 ---
 

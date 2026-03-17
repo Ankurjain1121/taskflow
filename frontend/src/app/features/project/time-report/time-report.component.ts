@@ -14,6 +14,7 @@ import { FormsModule } from '@angular/forms';
 import { DatePicker } from 'primeng/datepicker';
 import { Select } from 'primeng/select';
 import { Checkbox } from 'primeng/checkbox';
+import { MessageService } from 'primeng/api';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import {
   TimeTrackingService,
@@ -65,6 +66,17 @@ interface UserOption {
               </h2>
             </div>
 
+            <div class="flex items-center gap-2">
+            <!-- Export PDF Button -->
+            <button
+              class="no-print flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--card-foreground)] hover:bg-[var(--secondary)] transition-colors"
+              (click)="exportPdf()"
+              title="Export as PDF"
+            >
+              <i class="pi pi-print text-sm"></i>
+              Export PDF
+            </button>
+
             <!-- View Mode Toggle -->
             <div
               class="flex items-center bg-[var(--secondary)] rounded-lg p-0.5"
@@ -91,6 +103,7 @@ interface UserOption {
               >
                 Timesheet
               </button>
+            </div>
             </div>
           </div>
 
@@ -192,8 +205,8 @@ interface UserOption {
           @if (reportData().length === 0) {
             <app-empty-state variant="time-tracking" />
           } @else {
-            <!-- Bar Chart -->
-            <div class="px-6 py-4 border-b border-[var(--border)]">
+            <!-- Bar Chart (hidden in print — table below is the fallback) -->
+            <div class="px-6 py-4 border-b border-[var(--border)] print-hide">
               <h3 class="text-sm font-medium text-[var(--foreground)] mb-4">
                 Time per Task
               </h3>
@@ -589,6 +602,10 @@ export class TimeReportComponent implements OnInit, OnChanges {
         this.loadTimesheetReport();
       }
     }
+  }
+
+  exportPdf(): void {
+    window.print();
   }
 
   setViewMode(mode: ViewMode): void {

@@ -245,6 +245,33 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
           }
         </div>
 
+        <!-- Estimated Hours -->
+        <div>
+          <label class="field-label">Estimated Hours</label>
+          @if (editingField() === 'estimated_hours') {
+            <div data-edit-field="estimated_hours">
+              <input
+                type="number"
+                min="0"
+                step="0.5"
+                class="w-full px-2 py-1 text-sm rounded border border-[var(--border)] bg-[var(--card)]"
+                [value]="task()!.estimated_hours ?? ''"
+                (keydown.enter)="saveEstimatedHours($event); stopEditing()"
+                (blur)="saveEstimatedHours($event); stopEditing()"
+                placeholder="e.g. 4"
+              />
+            </div>
+          } @else {
+            <div (click)="startEditing('estimated_hours')" class="field-editable mt-1">
+              @if (task()!.estimated_hours) {
+                <span class="text-sm" style="color: var(--foreground)">{{ task()!.estimated_hours }}h</span>
+              } @else {
+                <span class="text-sm" style="color: var(--muted-foreground)">No estimate</span>
+              }
+            </div>
+          }
+        </div>
+
         <!-- Reminders (only shown when task has a due date) -->
         @if (task()!.due_date) {
           <div>
@@ -612,6 +639,7 @@ export class TaskDetailSidebarComponent {
   deleteRequested = output<void>();
   reminderSet = output<number>();
   reminderRemoved = output<string>();
+  estimatedHoursChanged = output<number | null>();
 
   editingField = signal<string | null>(null);
   showAssigneeSearch = signal(false);
@@ -690,6 +718,14 @@ export class TaskDetailSidebarComponent {
 
   stopEditing(): void {
     this.editingField.set(null);
+  }
+
+  saveEstimatedHours(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = input.value.trim();
+    const hours = value ? parseFloat(value) : null;
+    if (hours !== null && (isNaN(hours) || hours < 0)) return;
+    this.estimatedHoursChanged.emit(hours);
   }
 
   toggleAssigneeSearch(): void {
