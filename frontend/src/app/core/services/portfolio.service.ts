@@ -31,23 +31,20 @@ export interface PortfolioMilestone {
   completed_tasks: number;
 }
 
+export interface PortfolioResponse {
+  projects: PortfolioProject[];
+  milestones: PortfolioMilestone[];
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class PortfolioService {
   private readonly http = inject(HttpClient);
 
-  getPortfolio(workspaceId: string): Observable<PortfolioProject[]> {
-    return this.http.get<PortfolioProject[]>(
+  getPortfolio(workspaceId: string): Observable<PortfolioResponse> {
+    return this.http.get<PortfolioResponse>(
       `/api/workspaces/${workspaceId}/portfolio`,
-    );
-  }
-
-  getPortfolioMilestones(
-    workspaceId: string,
-  ): Observable<PortfolioMilestone[]> {
-    return this.http.get<PortfolioMilestone[]>(
-      `/api/workspaces/${workspaceId}/portfolio/milestones`,
     );
   }
 }

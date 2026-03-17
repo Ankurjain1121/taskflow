@@ -303,9 +303,9 @@ pub async fn execute_scheduled_automations(
     for task in &tasks {
         let context = TriggerContext {
             task_id: task.task_id,
-            board_id: task.board_id,
+            board_id: task.project_id,
             tenant_id: task.tenant_id,
-            user_id: task.assignee_id.unwrap_or(Uuid::nil()),
+            user_id: Uuid::nil(),
             previous_status_id: None,
             new_status_id: None,
             priority: None,

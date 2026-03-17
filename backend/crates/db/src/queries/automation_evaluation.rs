@@ -92,9 +92,8 @@ pub async fn log_automation(
 #[derive(FromRow, Debug, Clone)]
 pub struct ScheduledTriggerTask {
     pub task_id: Uuid,
-    pub board_id: Uuid,
+    pub project_id: Uuid,
     pub tenant_id: Uuid,
-    pub assignee_id: Option<Uuid>,
     pub due_date: DateTime<Utc>,
     pub trigger: AutomationTrigger,
 }
@@ -114,20 +113,18 @@ pub async fn get_scheduled_trigger_tasks(
         r#"
         SELECT DISTINCT
             t.id as task_id,
-            t.board_id,
-            b.tenant_id,
-            t.assignee_id,
+            t.project_id,
+            p.tenant_id,
             t.due_date,
             'task_due_date_passed'::automation_trigger as trigger
         FROM tasks t
-        JOIN boards b ON b.id = t.board_id
+        JOIN projects p ON p.id = t.project_id
         WHERE t.due_date < NOW()
           AND t.due_date > NOW() - INTERVAL '1 day'
           AND t.deleted_at IS NULL
-          AND t.archived_at IS NULL
           AND EXISTS (
               SELECT 1 FROM automation_rules ar
-              WHERE ar.board_id = t.board_id
+              WHERE ar.project_id = t.project_id
                 AND ar.trigger = 'task_due_date_passed'
                 AND ar.is_active = true
           )
@@ -143,20 +140,18 @@ pub async fn get_scheduled_trigger_tasks(
         r#"
         SELECT DISTINCT
             t.id as task_id,
-            t.board_id,
-            b.tenant_id,
-            t.assignee_id,
+            t.project_id,
+            p.tenant_id,
             t.due_date,
             'due_date_approaching'::automation_trigger as trigger
         FROM tasks t
-        JOIN boards b ON b.id = t.board_id
+        JOIN projects p ON p.id = t.project_id
         WHERE t.due_date > NOW()
           AND t.due_date <= NOW() + INTERVAL '24 hours'
           AND t.deleted_at IS NULL
-          AND t.archived_at IS NULL
           AND EXISTS (
               SELECT 1 FROM automation_rules ar
-              WHERE ar.board_id = t.board_id
+              WHERE ar.project_id = t.project_id
                 AND ar.trigger = 'due_date_approaching'
                 AND ar.is_active = true
           )

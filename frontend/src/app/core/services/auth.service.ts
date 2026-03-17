@@ -7,12 +7,11 @@ import {
   throwError,
   of,
   switchMap,
-  filter,
-  take,
   map,
   timeout,
+  shareReplay,
+  finalize,
 } from 'rxjs';
-import { toObservable } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 
 export interface User {
@@ -69,8 +68,7 @@ export class AuthService {
   private readonly apiUrl = '/api/auth';
   private _currentUser = signal<User | null>(null);
   private _csrfToken = signal<string | null>(null);
-  private _refreshResult = signal<'idle' | 'pending' | 'success' | 'failed'>('idle');
-  private readonly refreshResult$ = toObservable(this._refreshResult);
+  private _refreshInFlight$: Observable<TokenResponse> | null = null;
 
   readonly currentUser = this._currentUser.asReadonly();
   readonly isAuthenticated = computed(() => this._currentUser() !== null);
@@ -150,20 +148,11 @@ export class AuthService {
   }
 
   refresh(): Observable<TokenResponse> {
-    if (this._refreshResult() === 'pending') {
-      // A refresh is already in flight — wait for its result
-      return this.waitForRefresh().pipe(
-        switchMap((success) =>
-          success
-            ? of(null as unknown as TokenResponse)
-            : throwError(() => new Error('Refresh failed')),
-        ),
-      );
+    if (this._refreshInFlight$) {
+      return this._refreshInFlight$;
     }
 
-    this._refreshResult.set('pending');
-
-    return this.http
+    this._refreshInFlight$ = this.http
       .post<TokenResponse>(
         `${this.apiUrl}/refresh`,
         {},
@@ -173,27 +162,17 @@ export class AuthService {
         timeout(10000),
         tap((response) => {
           this.handleAuthSuccess(response);
-          this._refreshResult.set('success');
-          setTimeout(() => this._refreshResult.set('idle'), 100);
         }),
         catchError((error) => {
-          this._refreshResult.set('failed');
-          setTimeout(() => this._refreshResult.set('idle'), 100);
           return throwError(() => error);
         }),
+        finalize(() => {
+          this._refreshInFlight$ = null;
+        }),
+        shareReplay({ bufferSize: 1, refCount: false }),
       );
-  }
 
-  /**
-   * Wait for an in-flight refresh to complete.
-   * Returns true if refresh succeeded, false if it failed.
-   */
-  waitForRefresh(): Observable<boolean> {
-    return this.refreshResult$.pipe(
-      filter((status) => status === 'success' || status === 'failed'),
-      take(1),
-      map((status) => status === 'success'),
-    );
+    return this._refreshInFlight$;
   }
 
   signOut(reason?: 'expired' | 'manual'): void {
@@ -209,10 +188,6 @@ export class AuthService {
       queryParams['reason'] = 'session_expired';
     }
     this.router.navigate(['/auth/sign-in'], { queryParams });
-  }
-
-  isRefreshInProgress(): boolean {
-    return this._refreshResult() === 'pending';
   }
 
   forgotPassword(email: string): Observable<{ message: string }> {
@@ -286,7 +261,7 @@ export class AuthService {
     localStorage.removeItem('taskflow_user');
     this._currentUser.set(null);
     this._csrfToken.set(null);
-    this._refreshResult.set('idle');
+    this._refreshInFlight$ = null;
   }
 
   /** Check if a session flag exists (no PII stored). */
