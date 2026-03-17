@@ -12,10 +12,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
-import { CdkDrag, CdkDropList, CdkDragDrop } from '@angular/cdk/drag-drop';
-
 import {
-  Task,
   TaskService,
   UpdateTaskRequest,
 } from '../../../core/services/task.service';
@@ -36,7 +33,7 @@ import {
   CreateTaskGroupDialogResult,
 } from '../create-task-group-dialog/create-task-group-dialog.component';
 
-import { KanbanColumnComponent } from '../kanban-column/kanban-column.component';
+import { ProjectKanbanBoardComponent } from './project-kanban-board.component';
 import {
   ProjectToolbarComponent,
   ViewMode,
@@ -83,12 +80,10 @@ import { MessageService } from 'primeng/api';
   imports: [
     CommonModule,
     RouterModule,
-    CdkDrag,
-    CdkDropList,
     CreateTaskDialogComponent,
     CreateColumnDialogComponent,
     CreateTaskGroupDialogComponent,
-    KanbanColumnComponent,
+    ProjectKanbanBoardComponent,
     ProjectToolbarComponent,
     TaskDetailComponent,
     ListViewComponent,
@@ -325,96 +320,46 @@ import { MessageService } from 'primeng/api';
         </div>
       } @else if (viewMode() === 'kanban') {
         <!-- Kanban Board -->
-        <div class="flex-1 overflow-x-auto p-4">
-          @if (state.dragSimulationActive()) {
-            <div
-              class="fixed top-16 left-1/2 -translate-x-1/2 z-30 bg-[var(--primary)] text-[var(--primary-foreground)] px-4 py-2 rounded-full text-sm font-medium shadow-lg pointer-events-none"
-              aria-live="polite"
-            >
-              Drag mode · ← → to move · Space to drop · Esc to cancel
-            </div>
-          }
-          <div
-            class="flex gap-2 h-full"
-            cdkDropList
-            cdkDropListOrientation="horizontal"
-            (cdkDropListDropped)="onColumnDrop($event)"
-          >
-            @for (column of state.columns(); track column.id) {
-              <app-kanban-column
-                cdkDrag
-                [cdkDragData]="column"
-                [attr.data-column-index]="$index"
-                [column]="column"
-                [dragSimActive]="state.dragSimulationActive()"
-                [dragSimCurrentColId]="state.dragSimulationCurrentColumnId()"
-                [tasks]="getFilteredTasksForColumn(column.id)"
-                [connectedLists]="state.connectedColumnIds()"
-                [celebratingTaskId]="state.celebratingTaskId()"
-                [focusedTaskId]="state.focusedTaskId()"
-                [selectedTaskIds]="state.selectedTaskIds()"
-                [allColumns]="state.columns()"
-                [statusTransitions]="state.statusTransitions()"
-                [boardPrefix]="state.board()?.prefix ?? null"
-                [isCollapsed]="state.isColumnCollapsed(column.id)"
-                [density]="state.cardDensity()"
-                [cardFields]="state.cardFields()"
-                (taskMoved)="dragDrop.onTaskMoved($event)"
-                (taskClicked)="state.selectedTaskId.set($event.id)"
-                (addTaskClicked)="onAddTaskToColumn($event)"
-                (selectionToggled)="onSelectionToggled($event)"
-                (priorityChanged)="
-                  state.optimisticUpdateTask($event.taskId, {
-                    priority: $any($event.priority),
-                  })
-                "
-                (titleChanged)="
-                  state.optimisticUpdateTask($event.taskId, {
-                    title: $event.title,
-                  })
-                "
-                (columnMoveRequested)="
-                  cardOps.onCardColumnMove($event, destroy$)
-                "
-                (duplicateRequested)="cardOps.onCardDuplicate($event, destroy$)"
-                (deleteRequested)="state.deleteTask($event)"
-                (quickTaskCreated)="onQuickTaskCreated($event)"
-                (collapseToggled)="state.toggleColumnCollapse(boardId, $event)"
-                (renameRequested)="columnDialogs()?.openRenameDialog($event)"
-                (wipLimitRequested)="
-                  columnDialogs()?.openWipLimitDialog($event)
-                "
-                (columnDeleteRequested)="
-                  columnDialogs()?.confirmDeleteColumn($event)
-                "
-                (iconChangeRequested)="columnDialogs()?.openIconPicker($event)"
-              ></app-kanban-column>
-            }
-
-            <!-- Add Column Button -->
-            <div class="flex-shrink-0">
-              <button
-                (click)="onAddColumn()"
-                class="w-[272px] h-12 flex items-center justify-center gap-2 bg-[var(--secondary)] hover:bg-[var(--muted)] rounded-lg text-[var(--muted-foreground)] transition-colors"
-              >
-                <svg
-                  class="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-                Add Column
-              </button>
-            </div>
-          </div>
-        </div>
+        <app-project-kanban-board
+          [columns]="state.columns()"
+          [filteredBoardState]="state.filteredBoardState()"
+          [dragSimulationActive]="state.dragSimulationActive()"
+          [dragSimulationCurrentColumnId]="state.dragSimulationCurrentColumnId()"
+          [celebratingTaskId]="state.celebratingTaskId()"
+          [focusedTaskId]="state.focusedTaskId()"
+          [selectedTaskIds]="state.selectedTaskIds()"
+          [connectedColumnIds]="state.connectedColumnIds()"
+          [statusTransitions]="state.statusTransitions()"
+          [boardPrefix]="state.board()?.prefix ?? null"
+          [collapsedColumnIds]="state.collapsedColumnIds()"
+          [density]="state.cardDensity()"
+          [cardFields]="state.cardFields()"
+          (taskMoved)="dragDrop.onTaskMoved($event)"
+          (taskClicked)="state.selectedTaskId.set($event.id)"
+          (addTaskClicked)="onAddTaskToColumn($event)"
+          (selectionToggled)="onSelectionToggled($event)"
+          (priorityChanged)="
+            state.optimisticUpdateTask($event.taskId, {
+              priority: $any($event.priority),
+            })
+          "
+          (titleChanged)="
+            state.optimisticUpdateTask($event.taskId, {
+              title: $event.title,
+            })
+          "
+          (columnMoveRequested)="cardOps.onCardColumnMove($event, destroy$)"
+          (duplicateRequested)="cardOps.onCardDuplicate($event, destroy$)"
+          (deleteRequested)="state.deleteTask($event)"
+          (quickTaskCreated)="onQuickTaskCreated($event)"
+          (collapseToggled)="state.toggleColumnCollapse(boardId, $event)"
+          (renameRequested)="columnDialogs()?.openRenameDialog($event)"
+          (wipLimitRequested)="columnDialogs()?.openWipLimitDialog($event)"
+          (columnDeleteRequested)="columnDialogs()?.confirmDeleteColumn($event)"
+          (iconChangeRequested)="columnDialogs()?.openIconPicker($event)"
+          (columnDrop)="onColumnDrop($event)"
+          (addColumn)="onAddColumn()"
+        />
       }
 
       <!-- Task Detail Panel -->
@@ -699,10 +644,6 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
     this.wsService.send('unsubscribe', { channel: `project:${this.boardId}` });
   }
 
-  getFilteredTasksForColumn(columnId: string): Task[] {
-    return this.state.filteredBoardState()[columnId] || [];
-  }
-
   onViewModeChanged(mode: ViewMode): void {
     this.viewMode.set(mode);
 
@@ -813,8 +754,7 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
     ]);
   }
 
-  onColumnDrop(event: CdkDragDrop<unknown>): void {
-    if (event.previousIndex === event.currentIndex) return;
+  onColumnDrop(event: { previousIndex: number; currentIndex: number }): void {
     this.state.reorderColumn(event.previousIndex, event.currentIndex);
   }
 
