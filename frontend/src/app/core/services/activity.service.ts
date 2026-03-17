@@ -63,4 +63,25 @@ export class ActivityService {
       { params },
     );
   }
+
+  listByProject(
+    boardId: string,
+    cursor?: string,
+    limit?: number,
+  ): Observable<ActivityListResponse> {
+    let params = new HttpParams();
+
+    if (cursor) {
+      params = params.set('cursor', cursor);
+    }
+
+    if (limit) {
+      params = params.set('limit', limit.toString());
+    }
+
+    return this.http.get<ActivityListResponse>(
+      `${this.apiUrl}/projects/${boardId}/activity`,
+      { params },
+    );
+  }
 }

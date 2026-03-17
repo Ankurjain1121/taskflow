@@ -63,7 +63,8 @@ pub use membership::verify_project_membership;
 
 // activity_log
 pub use activity_log::{
-    insert_activity_log, list_activity_by_task, ActivityLogWithActor, PaginatedActivityLog,
+    insert_activity_log, list_activity_by_project, list_activity_by_task, ActivityLogWithActor,
+    PaginatedActivityLog,
 };
 
 // attachments

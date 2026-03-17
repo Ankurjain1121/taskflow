@@ -50,6 +50,7 @@ import { PROJECT_SPOTLIGHT_STEPS } from './project-spotlight-steps';
 import { FeatureHintsService } from '../../../core/services/feature-hints.service';
 import { BulkPreviewDialogComponent } from '../bulk-operations/bulk-preview-dialog.component';
 import { UndoToastComponent } from '../bulk-operations/undo-toast.component';
+import { ActivityFeedComponent } from '../activity-feed/activity-feed.component';
 
 import { ProjectShortcutsService } from './project-shortcuts.service';
 import { ProjectBulkActionsService } from './project-bulk-actions.service';
@@ -98,6 +99,7 @@ import { MessageService } from 'primeng/api';
     ProjectViewHeaderComponent,
     ProjectLoadingSkeletonComponent,
     ProjectViewOverlaysComponent,
+    ActivityFeedComponent,
   ],
   providers: [
     ProjectShortcutsService,
@@ -269,6 +271,19 @@ import { MessageService } from 'primeng/api';
         <div class="flex-1 overflow-y-auto">
           @defer (when viewMode() === 'time-report') {
             <app-time-report [boardId]="boardId"></app-time-report>
+          } @placeholder {
+            <div
+              class="flex-1 flex items-center justify-center py-12 text-[var(--muted-foreground)]"
+            >
+              <i class="pi pi-spin pi-spinner text-xl"></i>
+            </div>
+          }
+        </div>
+      } @else if (viewMode() === 'activity') {
+        <!-- Activity Feed View -->
+        <div class="flex-1 overflow-y-auto">
+          @defer (when viewMode() === 'activity') {
+            <app-activity-feed [boardId]="boardId"></app-activity-feed>
           } @placeholder {
             <div
               class="flex-1 flex items-center justify-center py-12 text-[var(--muted-foreground)]"
@@ -499,7 +514,7 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
       // Restore viewMode from query params or localStorage
       const qp = this.route.snapshot.queryParams;
       const savedView = qp['view'] || localStorage.getItem(`taskflow_view_${this.boardId}`);
-      if (savedView && ['kanban', 'list', 'calendar', 'gantt', 'reports', 'time-report'].includes(savedView)) {
+      if (savedView && ['kanban', 'list', 'calendar', 'gantt', 'reports', 'time-report', 'activity'].includes(savedView)) {
         this.viewMode.set(savedView as ViewMode);
       }
 

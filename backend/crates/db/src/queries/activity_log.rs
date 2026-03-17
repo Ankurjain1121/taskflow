@@ -158,6 +158,109 @@ pub async fn list_activity_by_task(
     Ok(PaginatedActivityLog { items, next_cursor })
 }
 
+/// List activity log entries for a project with cursor-based pagination
+///
+/// Returns activity for:
+/// - Tasks belonging to the project (entity_type = 'task', entity_id IN project tasks)
+/// - The board/project itself (entity_type = 'board', entity_id = board_id)
+/// - Columns in the project (entity_type = 'column')
+///
+/// # Arguments
+/// * `pool` - Database connection pool
+/// * `board_id` - The project/board UUID
+/// * `cursor` - Optional cursor (activity log entry ID) for pagination
+/// * `limit` - Number of entries to return (default 50, max 100)
+///
+/// Returns entries ordered by created_at DESC (newest first)
+pub async fn list_activity_by_project(
+    pool: &PgPool,
+    board_id: Uuid,
+    cursor: Option<Uuid>,
+    limit: i64,
+) -> Result<PaginatedActivityLog, sqlx::Error> {
+    let limit = limit.clamp(1, 100);
+    let fetch_limit = limit + 1;
+
+    let base_query = r#"
+        SELECT
+            al.id,
+            al.action,
+            al.entity_type,
+            al.entity_id,
+            al.user_id,
+            al.metadata,
+            al.tenant_id,
+            al.created_at,
+            u.name as actor_name,
+            u.avatar_url as actor_avatar_url
+        FROM activity_log al
+        JOIN users u ON u.id = al.user_id
+        WHERE (
+            (al.entity_type = 'task' AND al.entity_id IN (
+                SELECT id FROM tasks WHERE board_id = $1 AND deleted_at IS NULL
+            ))
+            OR (al.entity_type = 'board' AND al.entity_id = $1)
+            OR (al.entity_type = 'column' AND al.entity_id IN (
+                SELECT id FROM board_columns WHERE board_id = $1
+            ))
+        )
+    "#;
+
+    let items = if let Some(cursor_id) = cursor {
+        let cursor_created_at: Option<DateTime<Utc>> = sqlx::query_scalar(
+            "SELECT created_at FROM activity_log WHERE id = $1",
+        )
+        .bind(cursor_id)
+        .fetch_optional(pool)
+        .await?;
+
+        if let Some(cursor_time) = cursor_created_at {
+            let query = format!(
+                "{} AND (al.created_at, al.id) < ($2, $3) ORDER BY al.created_at DESC, al.id DESC LIMIT $4",
+                base_query
+            );
+            sqlx::query_as::<_, ActivityLogWithActor>(&query)
+                .bind(board_id)
+                .bind(cursor_time)
+                .bind(cursor_id)
+                .bind(fetch_limit)
+                .fetch_all(pool)
+                .await?
+        } else {
+            let query = format!(
+                "{} ORDER BY al.created_at DESC, al.id DESC LIMIT $2",
+                base_query
+            );
+            sqlx::query_as::<_, ActivityLogWithActor>(&query)
+                .bind(board_id)
+                .bind(fetch_limit)
+                .fetch_all(pool)
+                .await?
+        }
+    } else {
+        let query = format!(
+            "{} ORDER BY al.created_at DESC, al.id DESC LIMIT $2",
+            base_query
+        );
+        sqlx::query_as::<_, ActivityLogWithActor>(&query)
+            .bind(board_id)
+            .bind(fetch_limit)
+            .fetch_all(pool)
+            .await?
+    };
+
+    let has_more = items.len() > limit as usize;
+    let items: Vec<_> = items.into_iter().take(limit as usize).collect();
+
+    let next_cursor = if has_more {
+        items.last().map(|item| item.id.to_string())
+    } else {
+        None
+    };
+
+    Ok(PaginatedActivityLog { items, next_cursor })
+}
+
 /// Record a new activity log entry
 ///
 /// This is a low-level function. Prefer using ActivityLogService convenience methods.
