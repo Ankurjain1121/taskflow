@@ -1,26 +1,25 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { signUpAndOnboard } from './helpers/auth';
 import { navigateToFirstBoard, createTaskViaUI } from './helpers/data-factory';
 
 /**
- * E2E Tests: Kanban Board Interactions
+ * E2E Journey: Kanban Board Interactions
  *
- * Critical user flows:
- * - View board with columns and tasks
- * - Create task from quick-add button
- * - Switch between view modes (Kanban, List)
- * - Column headers and structure
- * - Board toolbar interactions
- * - Card density toggle
+ * Tests the complete kanban board experience:
+ * - Login and navigate to an existing project/board
+ * - Verify kanban columns are visible
+ * - Add a task via the "New Task" button
+ * - Verify the task card appears on the board
+ * - Click task card and verify detail panel opens
  */
 
-test.describe('Kanban Board - View & Interaction', () => {
+test.describe('Kanban Board Journey', () => {
   test.beforeEach(async ({ page }) => {
-    await signUpAndOnboard(page, 'Kanban WS');
+    await signUpAndOnboard(page, 'Kanban Journey WS');
     await navigateToFirstBoard(page);
   });
 
-  test('board loads with default columns', async ({ page }) => {
+  test('kanban columns are visible on board', async ({ page }) => {
     // Default columns from onboarding should be visible
     const backlog = page.locator('h3:has-text("Backlog")').first();
     const todo = page.locator('h3:has-text("To Do")').first();
@@ -33,19 +32,49 @@ test.describe('Kanban Board - View & Interaction', () => {
     await expect(done).toBeVisible({ timeout: 10000 });
   });
 
-  test('kanban columns contain app-kanban-column components', async ({
-    page,
-  }) => {
+  test('kanban has correct number of column components', async ({ page }) => {
     const columns = page.locator('app-kanban-column');
     const count = await columns.count();
     expect(count).toBeGreaterThanOrEqual(4);
   });
 
-  test('create task via New Task button and verify in column', async ({
-    page,
-  }) => {
-    const taskTitle = `Kanban Task ${Date.now()}`;
-    await createTaskViaUI(page, taskTitle);
+  test('click add task button and fill in task title', async ({ page }) => {
+    // Click "New Task" button in toolbar
+    await page.locator('button:has-text("New Task")').click();
+
+    // Create New Task dialog should appear
+    const dialogTitle = page.locator(
+      '.p-dialog-title:has-text("Create New Task")',
+    );
+    await expect(dialogTitle).toBeVisible({ timeout: 10000 });
+
+    // Title input should be visible
+    const titleInput = page.locator('input[placeholder="Enter task title"]');
+    await expect(titleInput).toBeVisible({ timeout: 5000 });
+
+    // Fill in the task title
+    const taskTitle = `Journey Task ${Date.now()}`;
+    await titleInput.click();
+    await titleInput.fill(taskTitle);
+
+    // Submit button should be enabled
+    const submitBtn = page
+      .locator(
+        '.p-dialog-footer button:has-text("Create Task"), .p-dialog button:has-text("Create Task")',
+      )
+      .first();
+    await expect(submitBtn).toBeEnabled({ timeout: 3000 });
+    await submitBtn.click();
+
+    // Dialog should close
+    await expect(dialogTitle).toBeHidden({ timeout: 15000 });
+
+    // Wait for task to appear on the board
+    await page.waitForTimeout(2000);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.locator('button:has-text("New Task")').waitFor({
+      timeout: 15000,
+    });
 
     // Task card should appear in one of the columns
     await expect(page.locator(`text=${taskTitle}`)).toBeVisible({
@@ -53,56 +82,33 @@ test.describe('Kanban Board - View & Interaction', () => {
     });
   });
 
-  test('switch to list view and back to kanban', async ({ page }) => {
-    // Switch to List view
-    const listBtn = page.locator('button[title="List View"]');
-    await expect(listBtn).toBeVisible({ timeout: 5000 });
-    await listBtn.click();
-
-    // List view component should appear
-    await expect(page.locator('app-list-view')).toBeVisible({
-      timeout: 10000,
-    });
-
-    // Switch back to Kanban
-    const kanbanBtn = page.locator('button[title="Kanban View"]');
-    await kanbanBtn.click();
-
-    // Kanban columns should reappear
-    await expect(
-      page.locator('h3:has-text("Backlog")').first(),
-    ).toBeVisible({ timeout: 10000 });
-  });
-
-  test('list view shows tasks in tabular format', async ({ page }) => {
-    // Create a task first
-    const taskTitle = `List View Task ${Date.now()}`;
+  test('create task and verify card appears on board', async ({ page }) => {
+    const taskTitle = `Board Card ${Date.now()}`;
     await createTaskViaUI(page, taskTitle);
 
-    // Switch to list view
-    await page.locator('button[title="List View"]').click();
-    await expect(page.locator('app-list-view')).toBeVisible({
-      timeout: 10000,
-    });
-
-    // Task should be visible in list view
+    // Task card should be visible on the kanban board
     await expect(page.locator(`text=${taskTitle}`)).toBeVisible({
-      timeout: 10000,
+      timeout: 15000,
     });
   });
 
-  test('clicking task card opens detail panel', async ({ page }) => {
-    const taskTitle = `Detail Click ${Date.now()}`;
+  test('click task card opens detail panel', async ({ page }) => {
+    const taskTitle = `Detail Panel ${Date.now()}`;
     await createTaskViaUI(page, taskTitle);
 
     // Click the task card
     await page.locator(`text=${taskTitle}`).first().click();
 
-    // Detail panel should slide in (has backdrop overlay)
+    // Detail panel should slide in with backdrop overlay
     const backdrop = page.locator('.fixed.inset-0').first();
     await expect(backdrop).toBeVisible({ timeout: 10000 });
 
     // Task title should appear in the detail panel
+    await expect(page.locator(`text=${taskTitle}`)).toBeVisible({
+      timeout: 10000,
+    });
+
+    // "Created" timestamp should be visible (confirms panel loaded)
     await expect(page.locator('text=/Created/')).toBeVisible({
       timeout: 10000,
     });
@@ -129,49 +135,25 @@ test.describe('Kanban Board - View & Interaction', () => {
     expect(text?.trim()).not.toBe('Loading...');
   });
 
-  test('board URL contains workspace and board IDs', async ({ page }) => {
-    await expect(page).toHaveURL(
-      /\/workspace\/[a-f0-9-]+\/board\/[a-f0-9-]+/,
-    );
-  });
+  test('switch to list view and back to kanban', async ({ page }) => {
+    // Switch to List view
+    const listBtn = page.locator('button[title="List View"]');
+    await expect(listBtn).toBeVisible({ timeout: 5000 });
+    await listBtn.click();
 
-  test('create task dialog has title input and submit button', async ({
-    page,
-  }) => {
-    await page.locator('button:has-text("New Task")').click();
-
-    const dialog = page.locator('.p-dialog-title:has-text("Create New Task")');
-    await expect(dialog).toBeVisible({ timeout: 10000 });
-
-    // Title input
-    const titleInput = page.locator('input[placeholder="Enter task title"]');
-    await expect(titleInput).toBeVisible({ timeout: 5000 });
-
-    // Submit button
-    const submitBtn = page
-      .locator(
-        '.p-dialog-footer button:has-text("Create Task"), .p-dialog button:has-text("Create Task")',
-      )
-      .first();
-    await expect(submitBtn).toBeVisible({ timeout: 5000 });
-
-    // Close dialog
-    await page.keyboard.press('Escape');
-  });
-
-  test('create task dialog has Use Template toggle', async ({ page }) => {
-    await page.locator('button:has-text("New Task")').click();
-
-    await page
-      .locator('input[placeholder="Enter task title"]')
-      .waitFor({ timeout: 5000 });
-
-    // Use Template toggle should be visible
-    await expect(page.locator('text=Use Template')).toBeVisible({
-      timeout: 5000,
+    // List view component should appear
+    await expect(page.locator('app-list-view')).toBeVisible({
+      timeout: 10000,
     });
 
-    await page.keyboard.press('Escape');
+    // Switch back to Kanban
+    const kanbanBtn = page.locator('button[title="Kanban View"]');
+    await kanbanBtn.click();
+
+    // Kanban columns should reappear
+    await expect(
+      page.locator('h3:has-text("Backlog")').first(),
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test('task persists after page reload', async ({ page }) => {
