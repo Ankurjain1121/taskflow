@@ -139,7 +139,7 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
                 <p-tag value="Done" severity="success" />
               }
             </div>
-          } @else if (task()?.status_name) {
+          } @else if (task().status_name) {
             <div class="flex items-center gap-2 mt-1">
               <span
                 class="w-3 h-3 rounded-full flex-shrink-0"

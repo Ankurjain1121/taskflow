@@ -143,7 +143,7 @@ export interface DelegateMember {
                   <div
                     class="w-5 h-5 rounded-full bg-[color-mix(in_srgb,var(--primary)_20%,var(--card))] flex items-center justify-center text-[8px] font-bold text-[var(--primary)]"
                   >
-                    {{ assignee.display_name?.charAt(0)?.toUpperCase() }}
+                    {{ assignee.display_name.charAt(0).toUpperCase() }}
                   </div>
                   <span class="text-xs text-[var(--muted-foreground)]">{{
                     assignee.display_name

@@ -13,7 +13,6 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { Card } from 'primeng/card';
-import { Chip } from 'primeng/chip';
 import { InputText } from 'primeng/inputtext';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { Select } from 'primeng/select';
@@ -52,7 +51,6 @@ export interface UseTemplateDialogResult {
     FormsModule,
     ButtonModule,
     Card,
-    Chip,
     InputText,
     ProgressSpinner,
     Select,

@@ -36,7 +36,6 @@ import { SelectButton } from 'primeng/selectbutton';
 import { ButtonModule } from 'primeng/button';
 import { Menu } from 'primeng/menu';
 import { Tooltip } from 'primeng/tooltip';
-import { FeatureHelpIconComponent } from '../../../shared/components/feature-help-icon/feature-help-icon.component';
 import { CardFieldsPopoverComponent } from './card-fields-popover.component';
 import { SavePresetDialogComponent } from './save-preset-dialog.component';
 import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
@@ -84,7 +83,6 @@ const DEFAULT_FILTERS: TaskFilters = {
     ButtonModule,
     Menu,
     Tooltip,
-    FeatureHelpIconComponent,
     CardFieldsPopoverComponent,
     SavePresetDialogComponent,
   ],

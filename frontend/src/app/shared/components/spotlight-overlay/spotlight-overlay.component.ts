@@ -70,10 +70,10 @@ export interface SpotlightStep {
           [style.left.px]="tooltipLeft()"
         >
           <h3 class="text-base font-semibold text-[var(--foreground)]">
-            {{ currentStep()?.title }}
+            {{ currentStep().title }}
           </h3>
           <p class="text-sm text-[var(--muted-foreground)] mt-2">
-            {{ currentStep()?.description }}
+            {{ currentStep().description }}
           </p>
           <div class="flex items-center justify-between mt-4">
             <!-- Step dots -->

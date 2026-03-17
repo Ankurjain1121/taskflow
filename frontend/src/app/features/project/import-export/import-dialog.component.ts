@@ -13,7 +13,6 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { Dialog } from 'primeng/dialog';
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
-import { ProgressSpinner } from 'primeng/progressspinner';
 import {
   ImportExportService,
   ImportTaskItem,
@@ -41,7 +40,6 @@ export interface ImportDialogResult {
     Tab,
     TabPanels,
     TabPanel,
-    ProgressSpinner,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

@@ -10,7 +10,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { Tag } from 'primeng/tag';
 import {
   WorkspaceService,
   WorkspaceJobRole,
@@ -20,7 +19,7 @@ import {
   selector: 'app-workspace-roles',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, Tag],
+  imports: [CommonModule, FormsModule, ButtonModule, InputTextModule],
   template: `
     <div class="space-y-4">
       <div class="flex items-center justify-between">
