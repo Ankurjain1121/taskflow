@@ -121,6 +121,7 @@ pub mod helpers {
             pubsub_relay,
             s3_client,
             ws_connection_count: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            prometheus_handle: None,
         }
     }
 
