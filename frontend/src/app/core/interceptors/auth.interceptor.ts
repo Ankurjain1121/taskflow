@@ -45,26 +45,6 @@ export const authInterceptor: HttpInterceptorFn = (
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401 && !req.url.includes('/auth/')) {
-        if (authService.isRefreshInProgress()) {
-          // Another request already triggered a refresh — wait for it, then retry
-          return authService.waitForRefresh().pipe(
-            switchMap((success) => {
-              if (success) {
-                const freshCsrf = authService.csrfToken();
-                const retryReq = req.clone({
-                  withCredentials: true,
-                  ...(freshCsrf && !['GET', 'HEAD', 'OPTIONS'].includes(req.method.toUpperCase())
-                    ? { setHeaders: { 'X-CSRF-Token': freshCsrf } }
-                    : {}),
-                });
-                return next(retryReq);
-              }
-              return throwError(() => error);
-            }),
-          );
-        }
-
-        // First 401 — start the refresh
         return authService.refresh().pipe(
           switchMap(() => {
             const freshCsrf = authService.csrfToken();

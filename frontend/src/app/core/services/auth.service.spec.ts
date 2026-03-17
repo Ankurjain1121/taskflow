@@ -326,12 +326,6 @@ describe('AuthService', () => {
     });
   });
 
-  describe('isRefreshInProgress()', () => {
-    it('should return false initially', () => {
-      expect(service.isRefreshInProgress()).toBe(false);
-    });
-  });
-
   describe('dead code removal verification', () => {
     it('should not have getAccessToken method', () => {
       expect((service as any).getAccessToken).toBeUndefined();

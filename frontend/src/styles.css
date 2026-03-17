@@ -95,9 +95,9 @@
 
   /* Elevation tokens */
   --shadow-glow:
-    0 0 0 1px color-mix(in srgb, var(--primary) 8%, transparent),
-    0 4px 16px color-mix(in srgb, var(--primary) 6%, transparent);
-  --widget-hover-border: color-mix(in srgb, var(--primary) 20%, transparent);
+    0 0 0 1px color-mix(in srgb, var(--primary) 12%, transparent),
+    0 8px 32px color-mix(in srgb, var(--primary) 10%, transparent);
+  --widget-hover-border: color-mix(in srgb, var(--primary) 28%, transparent);
 
   /* Layout tokens */
   --nav-height: 48px;
@@ -112,10 +112,11 @@
   --duration-normal: 200ms;
 
   /* Shadow tokens */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.14), 0 6px 12px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.18), 0 8px 16px rgba(0, 0, 0, 0.1);
 
   /* Chart tokens */
   --chart-1: #3b82f6;
@@ -166,9 +167,9 @@ html.dark {
   --sidebar-text-secondary: rgba(203, 213, 225, 0.8);
   --sidebar-text-muted: rgba(148, 163, 184, 0.5);
   --shadow-glow:
-    0 0 0 1px color-mix(in srgb, var(--primary) 10%, transparent),
-    0 4px 16px color-mix(in srgb, var(--primary) 8%, transparent);
-  --widget-hover-border: color-mix(in srgb, var(--primary) 25%, transparent);
+    0 0 0 1px color-mix(in srgb, var(--primary) 15%, transparent),
+    0 8px 32px color-mix(in srgb, var(--primary) 12%, transparent);
+  --widget-hover-border: color-mix(in srgb, var(--primary) 30%, transparent);
 
   --status-red-bg: rgba(220, 38, 38, 0.12);
   --status-red-border: rgba(220, 38, 38, 0.3);
@@ -452,7 +453,7 @@ body {
   outline: none;
   box-shadow:
     0 0 0 2px var(--background),
-    0 0 0 4px color-mix(in srgb, var(--primary) 50%, transparent);
+    0 0 0 4px color-mix(in srgb, var(--primary) 60%, transparent);
   border-radius: 4px;
 }
 
@@ -479,7 +480,7 @@ a {
 
 button:active,
 [role="button"]:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 
 /* ============================================
@@ -562,7 +563,7 @@ button:active,
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -582,7 +583,7 @@ button:active,
 @keyframes slideInRight {
   from {
     opacity: 0;
-    transform: translateX(16px);
+    transform: translateX(24px);
   }
   to {
     opacity: 1;
@@ -602,45 +603,45 @@ button:active,
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.4s ease-out both;
+  animation: fadeInUp 0.5s var(--ease-out-expo) both;
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.3s ease-out both;
+  animation: fadeIn 0.4s ease-out both;
 }
 
 .animate-slide-in-right {
-  animation: slideInRight 0.4s ease-out both;
+  animation: slideInRight 0.5s var(--ease-out-expo) both;
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.3s ease-out both;
+  animation: scaleIn 0.4s var(--ease-out-expo) both;
 }
 
 /* Stagger delays for lists */
 .stagger-1 {
-  animation-delay: 0.05s;
+  animation-delay: 0.06s;
 }
 .stagger-2 {
-  animation-delay: 0.1s;
+  animation-delay: 0.12s;
 }
 .stagger-3 {
-  animation-delay: 0.15s;
+  animation-delay: 0.18s;
 }
 .stagger-4 {
-  animation-delay: 0.2s;
+  animation-delay: 0.24s;
 }
 .stagger-5 {
-  animation-delay: 0.25s;
-}
-.stagger-6 {
   animation-delay: 0.3s;
 }
+.stagger-6 {
+  animation-delay: 0.36s;
+}
 .stagger-7 {
-  animation-delay: 0.35s;
+  animation-delay: 0.42s;
 }
 .stagger-8 {
-  animation-delay: 0.4s;
+  animation-delay: 0.48s;
 }
 
 /* ============================================
@@ -663,10 +664,10 @@ button:active,
   }
 }
 ::view-transition-old(root) {
-  animation: 90ms ease-out both fade-out;
+  animation: 120ms ease-out both fade-out;
 }
 ::view-transition-new(root) {
-  animation: 210ms ease-in both fade-in;
+  animation: 280ms var(--ease-out-expo) both fade-in;
 }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(root),
@@ -684,8 +685,8 @@ button:active,
     box-shadow 150ms ease;
 }
 .task-card:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
 }
 
 /* ============================================
@@ -781,7 +782,7 @@ button:active,
 .widget-card:hover {
   border-color: var(--widget-hover-border);
   box-shadow: var(--shadow-glow);
-  transform: translateY(-1px);
+  transform: translateY(-3px);
 }
 
 /* ============================================
@@ -797,28 +798,28 @@ button:active,
   transition: all var(--duration-normal) var(--ease-standard);
 }
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
 }
 .stat-card-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.625rem;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 0.75rem;
-  font-size: 1.125rem;
-  transition: transform var(--duration-normal) var(--ease-standard);
+  font-size: 1.25rem;
+  transition: transform var(--duration-normal) var(--ease-out-expo);
 }
 .stat-card:hover .stat-card-icon {
-  transform: scale(1.1);
+  transform: scale(1.15) rotate(-3deg);
 }
 .stat-card-value {
-  font-size: 1.75rem;
-  font-weight: 800;
+  font-size: 2.25rem;
+  font-weight: 900;
   line-height: 1;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.04em;
   color: var(--foreground);
 }
 .stat-card-label {
@@ -833,16 +834,18 @@ button:active,
   border-left: 4px solid var(--primary);
 }
 .stat-card--primary .stat-card-icon {
-  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
   color: var(--primary);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 15%, transparent);
 }
 
 .stat-card--danger {
   border-left: 4px solid var(--destructive);
 }
 .stat-card--danger .stat-card-icon {
-  background: color-mix(in srgb, var(--destructive) 10%, transparent);
+  background: color-mix(in srgb, var(--destructive) 12%, transparent);
   color: var(--destructive);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--destructive) 15%, transparent);
 }
 .stat-card--danger-active {
   background: color-mix(in srgb, var(--destructive) 4%, var(--card));
@@ -857,14 +860,16 @@ button:active,
 .stat-card--warning .stat-card-icon {
   background: var(--status-amber-bg);
   color: var(--status-amber-text);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
 }
 
 .stat-card--success {
   border-left: 4px solid var(--success);
 }
 .stat-card--success .stat-card-icon {
-  background: color-mix(in srgb, var(--success) 10%, transparent);
+  background: color-mix(in srgb, var(--success) 12%, transparent);
   color: var(--success);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--success) 15%, transparent);
 }
 .stat-card--success .stat-card-value {
   color: var(--success);
@@ -1078,10 +1083,11 @@ button:active,
    Card Drag Styles
    ============================================ */
 .cdk-drag-preview {
-  transform: rotate(1.5deg) !important;
+  transform: rotate(2deg) scale(1.03) !important;
   box-shadow:
-    0 16px 32px rgba(0, 0, 0, 0.18),
-    0 4px 8px rgba(0, 0, 0, 0.1) !important;
+    0 20px 48px rgba(0, 0, 0, 0.2),
+    0 8px 16px rgba(0, 0, 0, 0.12),
+    0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent) !important;
   border-radius: var(--radius);
   z-index: 1000 !important;
 }
@@ -1256,4 +1262,44 @@ html.dark {
   background: var(--card);
   color: var(--card-foreground);
   border: 1px solid var(--border);
+}
+
+/* ============================================
+   Bold Interaction Enhancements
+   ============================================ */
+
+/* Dramatic count-up for big numbers */
+.animate-count-up {
+  animation: countUp 0.6s var(--ease-out-expo) both;
+}
+
+/* Sidebar active indicator — bold accent bar */
+.sidebar-active-indicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  border-radius: 0 3px 3px 0;
+  background: var(--primary);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+/* Bold selection highlight */
+::selection {
+  background-color: color-mix(in srgb, var(--primary) 30%, transparent);
+}
+::-moz-selection {
+  background-color: color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
+/* Bolder PrimeNG button hover */
+.p-button:not(.p-button-text):not(.p-button-outlined):hover {
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
+/* Bolder dialog entrance */
+.p-dialog {
+  box-shadow: var(--shadow-xl, var(--shadow-lg)) !important;
 }
