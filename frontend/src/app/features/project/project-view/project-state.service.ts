@@ -328,9 +328,11 @@ export class ProjectStateService {
 
     this.milestoneService.list(boardId).subscribe({
       next: (milestones) => this.boardMilestones.set(milestones),
+      error: (err) => { console.error('Failed to load milestones:', err); },
     });
     this.taskGroupService.listGroupsWithStats(boardId).subscribe({
       next: (groups) => this.boardGroups.set(groups),
+      error: (err) => { console.error('Failed to load task groups:', err); },
     });
   }
 
@@ -416,6 +418,7 @@ export class ProjectStateService {
         this.ganttTasks.set(tasks as unknown as GanttTask[]);
         this.boardDependencies.set(deps as unknown as GanttDependency[]);
       },
+      error: (err) => { console.error('Failed to load Gantt data:', err); },
     });
   }
 

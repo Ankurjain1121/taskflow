@@ -1,16 +1,22 @@
 import {
   Component,
   input,
+  output,
   signal,
   inject,
+  DestroyRef,
   OnInit,
   OnChanges,
   SimpleChanges,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { generateKeyBetween } from 'fractional-indexing';
 import {
   CdkDropList,
   CdkDrag,
@@ -245,9 +251,12 @@ import { Column } from '../../../core/services/project.service';
 export class SubtaskListComponent implements OnInit, OnChanges {
   private taskService = inject(TaskService);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
+  private taskId$ = new Subject<string>();
 
   taskId = input.required<string>();
   boardColumns = input<Column[]>([]);
+  childrenLoaded = output<number>();
 
   loading = signal(true);
   children = signal<Task[]>([]);
@@ -256,12 +265,27 @@ export class SubtaskListComponent implements OnInit, OnChanges {
   errorMessage = signal<string | null>(null);
 
   ngOnInit(): void {
-    this.loadChildren();
+    this.taskId$.pipe(
+      switchMap(id => this.loadChildrenForId(id)),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (response) => {
+        this.children.set(response.children);
+        this.progress.set(response.progress);
+        this.childrenLoaded.emit(response.children.length);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+        this.showError('Failed to load subtasks');
+      },
+    });
+    this.taskId$.next(this.taskId());
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['taskId'] && !changes['taskId'].firstChange) {
-      this.loadChildren();
+      this.taskId$.next(this.taskId());
     }
   }
 
@@ -335,6 +359,7 @@ export class SubtaskListComponent implements OnInit, OnChanges {
   }
 
   onDelete(child: Task): void {
+    if (!confirm('Delete this subtask?')) return;
     const snapshot = this.children();
     const snapshotProgress = this.progress();
 
@@ -366,15 +391,13 @@ export class SubtaskListComponent implements OnInit, OnChanges {
     const next = event.currentIndex < items.length - 1 ? items[event.currentIndex + 1] : null;
 
     let newPosition: string;
-    if (prev && next) {
-      // Between two items — simple midpoint string
-      newPosition = prev.position + '5';
-    } else if (prev) {
-      newPosition = prev.position + '5';
-    } else if (next) {
-      newPosition = 'A';
-    } else {
-      newPosition = 'a';
+    try {
+      const prevPos = prev?.position ?? null;
+      const nextPos = next?.position ?? null;
+      newPosition = generateKeyBetween(prevPos, nextPos);
+    } catch {
+      // Fallback to string concatenation if positions are malformed
+      newPosition = prev ? prev.position + 'a' : 'a0';
     }
 
     this.taskService.moveTask(moved.id, { status_id: moved.status_id ?? undefined, position: newPosition }).subscribe({
@@ -431,18 +454,12 @@ export class SubtaskListComponent implements OnInit, OnChanges {
     setTimeout(() => this.errorMessage.set(null), 5000);
   }
 
-  private loadChildren(): void {
+  private loadChildrenForId(taskId: string) {
     this.loading.set(true);
-    this.taskService.listChildren(this.taskId()).subscribe({
-      next: (response) => {
-        this.children.set(response.children);
-        this.progress.set(response.progress);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.loading.set(false);
-        this.showError('Failed to load subtasks');
-      },
-    });
+    return this.taskService.listChildren(taskId);
+  }
+
+  private loadChildren(): void {
+    this.taskId$.next(this.taskId());
   }
 }

@@ -183,14 +183,14 @@ interface TemplateGroup {
       <ng-template #footer>
         <div class="flex justify-end gap-2 pt-2">
           <button
-            (click)="applyDialogVisible.set(false)"
+            (click)="applyDialogVisible = false"
             class="px-4 py-2 text-sm font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
           >
             Cancel
           </button>
           <button
             (click)="onApply()"
-            [disabled]="!selectedBoardId() || applying()"
+            [disabled]="!selectedBoardId || applying()"
             class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:brightness-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             @if (applying()) {
@@ -233,9 +233,9 @@ export class AutomationTemplatesComponent implements OnInit {
   boards = signal<Board[]>([]);
   boardOptions = signal<{ id: string; name: string }[]>([]);
 
-  applyDialogVisible = signal(false);
+  applyDialogVisible = false;
   selectedTemplate = signal<AutomationTemplate | null>(null);
-  selectedBoardId = signal<string | null>(null);
+  selectedBoardId: string | null = null;
   applying = signal(false);
 
   private readonly categoryConfig: Record<
@@ -311,13 +311,13 @@ export class AutomationTemplatesComponent implements OnInit {
 
   openApplyDialog(template: AutomationTemplate): void {
     this.selectedTemplate.set(template);
-    this.selectedBoardId.set(null);
-    this.applyDialogVisible.set(true);
+    this.selectedBoardId = null;
+    this.applyDialogVisible = true;
   }
 
   onApply(): void {
     const template = this.selectedTemplate();
-    const boardId = this.selectedBoardId();
+    const boardId = this.selectedBoardId;
     if (!template || !boardId) return;
 
     this.applying.set(true);
@@ -326,7 +326,7 @@ export class AutomationTemplatesComponent implements OnInit {
       .subscribe({
         next: () => {
           this.applying.set(false);
-          this.applyDialogVisible.set(false);
+          this.applyDialogVisible = false;
           const boardName =
             this.boards().find((b) => b.id === boardId)?.name ?? 'board';
           this.messageService.add({
