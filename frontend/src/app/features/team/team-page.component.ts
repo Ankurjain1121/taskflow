@@ -26,7 +26,6 @@ import {
 import { ProjectService } from '../../core/services/project.service';
 import { TeamService, MemberWorkload } from '../../core/services/team.service';
 import {
-  MembersListComponent,
   MemberWithDetails,
 } from '../workspace/members-list/members-list.component';
 import { TeamsListComponent } from '../workspace/teams/teams-list.component';
@@ -59,7 +58,6 @@ interface WorkspaceTeam {
     TabPanel,
     Tab,
     Select,
-    MembersListComponent,
     TeamsListComponent,
     WorkspacesPanelComponent,
     OrgMembersComponent,
@@ -363,12 +361,12 @@ interface WorkspaceTeam {
                                           <p
                                             class="text-lg font-semibold"
                                             [class]="
-                                              (member.due_today ?? 0) > 0
+                                              member.due_today > 0
                                                 ? 'text-amber-600'
                                                 : 'text-[var(--card-foreground)]'
                                             "
                                           >
-                                            {{ member.due_today ?? 0 }}
+                                            {{ member.due_today }}
                                           </p>
                                           <p
                                             class="text-[10px] text-[var(--muted-foreground)]"
@@ -380,7 +378,7 @@ interface WorkspaceTeam {
                                           <p
                                             class="text-lg font-semibold text-blue-600"
                                           >
-                                            {{ member.due_this_week ?? 0 }}
+                                            {{ member.due_this_week }}
                                           </p>
                                           <p
                                             class="text-[10px] text-[var(--muted-foreground)]"
@@ -548,7 +546,7 @@ interface WorkspaceTeam {
                                               overdue
                                             </span>
                                           }
-                                          @if ((member.due_today ?? 0) > 0) {
+                                          @if (member.due_today > 0) {
                                             <span
                                               class="text-xs text-amber-600 font-medium"
                                             >
@@ -556,7 +554,7 @@ interface WorkspaceTeam {
                                             </span>
                                           }
                                           @if (
-                                            (member.due_this_week ?? 0) > 0
+                                            member.due_this_week > 0
                                           ) {
                                             <span
                                               class="text-xs text-blue-500 font-medium"

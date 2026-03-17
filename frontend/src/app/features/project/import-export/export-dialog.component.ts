@@ -12,7 +12,6 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { Dialog } from 'primeng/dialog';
 import { RadioButton } from 'primeng/radiobutton';
-import { ProgressSpinner } from 'primeng/progressspinner';
 import { ImportExportService } from '../../../core/services/import-export.service';
 
 export interface ExportDialogData {
@@ -29,7 +28,6 @@ export interface ExportDialogData {
     ButtonModule,
     Dialog,
     RadioButton,
-    ProgressSpinner,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

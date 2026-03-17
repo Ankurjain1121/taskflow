@@ -12,7 +12,6 @@ import { ButtonModule } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { InputText } from 'primeng/inputtext';
-import { Select } from 'primeng/select';
 import { MultiSelect } from 'primeng/multiselect';
 import {
   Accordion,
@@ -21,7 +20,6 @@ import {
   AccordionContent,
 } from 'primeng/accordion';
 import { ProgressSpinner } from 'primeng/progressspinner';
-import { Tooltip } from 'primeng/tooltip';
 import { Chip } from 'primeng/chip';
 import { Toast } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
@@ -55,14 +53,12 @@ const AVAILABLE_EVENTS = [
     Card,
     ToggleSwitch,
     InputText,
-    Select,
     MultiSelect,
     Accordion,
     AccordionPanel,
     AccordionHeader,
     AccordionContent,
     ProgressSpinner,
-    Tooltip,
     Chip,
     Toast,
   ],

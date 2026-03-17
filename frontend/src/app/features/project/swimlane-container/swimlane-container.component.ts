@@ -75,7 +75,7 @@ import { makeCellId } from '../project-view/swimlane-utils';
         <app-swimlane-row
           [swimlaneGroup]="group"
           [columns]="columns()"
-          [tasksPerColumn]="swimlaneState()[group.key] ?? {}"
+          [tasksPerColumn]="swimlaneState()[group.key]"
           [connectedListIds]="allCellIds()"
           [celebratingTaskId]="celebratingTaskId()"
           [focusedTaskId]="focusedTaskId()"

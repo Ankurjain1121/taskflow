@@ -108,7 +108,7 @@ import { TeamDetailDialogComponent } from './team-detail-dialog.component';
                   class="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold text-sm flex-shrink-0"
                   [style.background-color]="team.color"
                 >
-                  {{ team.name?.charAt(0)?.toUpperCase() }}
+                  {{ team.name.charAt(0).toUpperCase() }}
                 </div>
                 <div class="flex-1 min-w-0">
                   <h3 class="font-medium text-[var(--foreground)] truncate">

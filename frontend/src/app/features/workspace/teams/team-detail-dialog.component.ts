@@ -177,7 +177,7 @@ const PRESET_COLORS = [
                     <div
                       class="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium text-primary"
                     >
-                      {{ member.name?.charAt(0)?.toUpperCase() }}
+                      {{ member.name.charAt(0).toUpperCase() }}
                     </div>
                     <div>
                       <div class="text-sm text-[var(--foreground)]">
