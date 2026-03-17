@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use dashmap::DashMap;
+use metrics_exporter_prometheus::PrometheusHandle;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use tokio::sync::broadcast;
 use uuid::Uuid;
@@ -21,6 +22,7 @@ pub struct AppState {
     pub pubsub_relay: PubSubRelay,
     pub s3_client: aws_sdk_s3::Client,
     pub ws_connection_count: Arc<AtomicUsize>,
+    pub prometheus_handle: Option<Arc<PrometheusHandle>>,
 }
 
 impl AppState {
@@ -76,6 +78,20 @@ impl AppState {
             config.jwt_rsa_public_key.as_deref(),
         )?);
 
+        // Initialize Prometheus metrics recorder
+        let prometheus_handle = match metrics_exporter_prometheus::PrometheusBuilder::new()
+            .install_recorder()
+        {
+            Ok(handle) => {
+                tracing::info!("Prometheus metrics recorder installed");
+                Some(Arc::new(handle))
+            }
+            Err(e) => {
+                tracing::warn!("Failed to install Prometheus recorder: {e}");
+                None
+            }
+        };
+
         Ok(Self {
             db,
             config: Arc::new(config),
@@ -85,6 +101,7 @@ impl AppState {
             pubsub_relay,
             s3_client,
             ws_connection_count: Arc::new(AtomicUsize::new(0)),
+            prometheus_handle,
         })
     }
 

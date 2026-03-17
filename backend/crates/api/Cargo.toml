@@ -45,6 +45,10 @@ ammonia = "4"
 sentry.workspace = true
 sentry-tower.workspace = true
 
+# Metrics (Prometheus)
+metrics.workspace = true
+metrics-exporter-prometheus.workspace = true
+
 # Local crates
 taskflow-db = { path = "../db" }
 taskflow-auth = { path = "../auth" }

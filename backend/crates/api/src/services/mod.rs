@@ -3,6 +3,7 @@
 //! Business logic services for the TaskFlow API.
 
 pub mod activity_log;
+pub mod app_metrics;
 pub mod cache;
 pub mod http_cache;
 
