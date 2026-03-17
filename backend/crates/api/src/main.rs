@@ -38,7 +38,7 @@ use crate::routes::{
     onboarding_router, positions_router, project_router, project_share_router,
     project_template_router, project_templates_router, readiness_handler, recent_items_router,
     recurring_router, reports_router, search_router, sessions_router, shared_project_public_router,
-    subtask_router, task_group_routes, task_router, task_template_router, team_overview_router,
+    subtask_router, task_group_routes, task_labels_router, task_router, task_template_router, team_overview_router,
     teams_router, tenant_router, time_entry_router, upload_router, user_preferences_router,
     webhook_router, workspace_api_keys_router, workspace_audit_router, workspace_export_router,
     workspace_job_roles_router, workspace_labels_router, workspace_projects_router,
@@ -204,7 +204,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             axum::routing::post(routes::totp::challenge_handler),
         )
         .layer(from_fn(rate_limit_middleware))
-        .layer(rate_limit_layer(state.redis.clone(), 5, 60)); // 5 requests per 60 seconds per IP
+        .layer(rate_limit_layer(state.redis.clone(), 20, 60)); // 20 requests per 60 seconds per IP
 
     let rate_limited_invitations = Router::new()
         .route(
@@ -237,6 +237,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", rate_limited_invitations)
         .nest("/api", public_routes)
         .nest("/api", task_router(state.clone()))
+        .nest("/api", task_labels_router(state.clone()))
         .nest("/api", subtask_router(state.clone()))
         .nest("/api", task_group_routes(state.clone()))
         .nest("/api", dependency_router(state.clone()))

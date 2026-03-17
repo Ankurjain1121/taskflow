@@ -32,12 +32,13 @@ backend/
     services/src/     # Background jobs, notifications
 frontend/src/app/
   core/               # Guards, interceptors, services, initializers
-  features/           # 15 modules: admin, archive, auth, board, dashboard,
-                      #   favorites, help, my-tasks, onboarding, settings,
-                      #   shared-board, task-detail, tasks, team, workspace
+  features/           # 16 modules: admin, archive, auth, dashboard, favorites,
+                      #   help, my-tasks, onboarding, portfolio, project,
+                      #   settings, shared-board, task-detail, tasks, team, workspace
   shared/             # Reusable components, pipes, types, utils
 scripts/              # quick-check.sh, pre-deploy-check.sh, deploy-vps.sh,
-                      #   setup-hooks.sh, smoke-test-*.sh, init-db.sh, run_seed.sh
+                      #   setup-hooks.sh, smoke-test-*.sh, init-db.sh, run_seed.sh,
+                      #   docker-entrypoint.sh, monitor-memory.sh, check-disk-usage.sh
 ```
 
 ## Organization Rules
@@ -78,12 +79,12 @@ Use `admin1@paraslace.in` for all testing and browser verification.
 
 ## VPS Deployment
 
-**This IS the VPS.** App path: `/home/ankur/taskflow` | **Domain:** taskflow.paraslace.in
+**This IS the VPS.** App path: `/home/ankur/projects/taskflow` | **Domain:** taskflow.paraslace.in
 
-> **IMPORTANT:** `/root/taskflow` is DEPRECATED. Do NOT use it. All work happens in `/home/ankur/taskflow`.
+> **IMPORTANT:** `/root/taskflow` is DEPRECATED. Do NOT use it. All work happens in `/home/ankur/projects/taskflow`.
 
 ```bash
-# Deploy (from /home/ankur/taskflow):
+# Deploy (from /home/ankur/projects/taskflow):
 docker compose build && docker compose up -d
 ```
 

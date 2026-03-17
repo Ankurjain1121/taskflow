@@ -8,7 +8,6 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
 import { SkeletonModule } from 'primeng/skeleton';
 import {
   PortfolioService,
@@ -366,10 +365,7 @@ export class PortfolioDashboardComponent implements OnInit {
     this.loading.set(true);
     this.error.set(false);
 
-    forkJoin({
-      projects: this.portfolioService.getPortfolio(this.workspaceId),
-      milestones: this.portfolioService.getPortfolioMilestones(this.workspaceId),
-    }).subscribe({
+    this.portfolioService.getPortfolio(this.workspaceId).subscribe({
       next: ({ projects, milestones }) => {
         this.projects.set(projects);
         const sorted = [...milestones].sort((a, b) => {
