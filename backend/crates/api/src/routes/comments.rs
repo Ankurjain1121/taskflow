@@ -26,6 +26,8 @@ use taskflow_db::queries::comments::{
 };
 use taskflow_db::queries::get_task_project_id;
 use taskflow_services::broadcast::events;
+use taskflow_services::notifications::dispatcher::notify;
+use taskflow_services::notifications::{NotificationEvent, NotificationService};
 use taskflow_services::BroadcastService;
 
 use super::common::verify_project_membership;
@@ -160,13 +162,14 @@ async fn create_comment_handler(
         }
     });
 
-    // Send notifications for mentions (fire and forget)
+    // Send notifications for mentions via the dispatcher (fire and forget)
+    // This routes through in-app, email, and Slack channels based on user preferences.
     if !mentioned_user_ids.is_empty() {
         let db = state.db.clone();
-        let broadcast_service = BroadcastService::new(state.redis.clone());
+        let redis = state.redis.clone();
         let author_id = tenant.user_id;
-        let comment_id = comment.id;
         let author_name = comment.author_name.clone();
+        let app_url = state.config.app_url.clone();
         tokio::spawn(async move {
             // Fetch task title for notification body
             let task_title: String =
@@ -178,83 +181,131 @@ async fn create_comment_handler(
                     .flatten()
                     .unwrap_or_else(|| "a task".to_string());
 
-            for user_id in mentioned_user_ids {
-                if user_id != author_id {
-                    // Create persistent in-app notification
-                    let notif_title = format!("{} mentioned you", author_name);
-                    let notif_body = format!("in a comment on \"{}\"", task_title);
-                    let link_url = format!("/task/{}", task_id);
-                    let _ = sqlx::query(
-                        r#"INSERT INTO notifications (id, recipient_id, event_type, title, body, link_url)
-                           VALUES ($1, $2, 'mention-in-comment', $3, $4, $5)"#,
-                    )
-                    .bind(Uuid::new_v4())
-                    .bind(user_id)
-                    .bind(&notif_title)
-                    .bind(&notif_body)
-                    .bind(&link_url)
-                    .execute(&db)
-                    .await;
+            // Fetch project's Slack webhook URL
+            let slack_webhook: Option<String> = sqlx::query_scalar(
+                r#"SELECT p.slack_webhook_url FROM projects p
+                   JOIN tasks t ON t.project_id = p.id
+                   WHERE t.id = $1 AND t.deleted_at IS NULL"#,
+            )
+            .bind(task_id)
+            .fetch_optional(&db)
+            .await
+            .ok()
+            .flatten();
 
-                    // Broadcast real-time WebSocket event
-                    if let Err(e) = broadcast_service
-                        .broadcast_user_update(
-                            user_id,
-                            "mention-in-comment",
-                            json!({
-                                "task_id": task_id,
-                                "comment_id": comment_id,
-                                "mentioned_by": author_id
-                            }),
-                        )
-                        .await
-                    {
-                        tracing::error!(
-                            "Failed to send mention notification to {}: {}",
-                            user_id,
-                            e
-                        );
-                    }
+            // Build the NotificationService for the dispatcher
+            let broadcast = BroadcastService::new(redis.clone());
+            let notification_svc =
+                NotificationService::new(db.clone(), broadcast, None, app_url.clone());
+
+            let notif_title = format!("{} mentioned you", author_name);
+            let notif_body = format!("in a comment on \"{}\"", task_title);
+            let link_url = format!("/task/{}", task_id);
+
+            for user_id in mentioned_user_ids {
+                if user_id == author_id {
+                    continue;
+                }
+                if let Err(e) = notify(
+                    &db,
+                    &redis,
+                    &notification_svc,
+                    NotificationEvent::MentionInComment,
+                    user_id,
+                    &notif_title,
+                    &notif_body,
+                    Some(link_url.as_str()),
+                    &app_url,
+                    slack_webhook.as_deref(),
+                )
+                .await
+                {
+                    tracing::error!(
+                        user_id = %user_id,
+                        error = %e,
+                        "Failed to dispatch mention notification"
+                    );
                 }
             }
         });
     }
 
-    // Send notifications to task assignees (fire and forget)
-    let db = state.db.clone();
-    let redis = state.redis.clone();
-    let author_id = tenant.user_id;
-    let comment_id = comment.id;
-    tokio::spawn(async move {
-        // Get task assignees
-        let assignee_ids = taskflow_db::queries::get_task_assignee_ids(&db, task_id)
-            .await
-            .unwrap_or_default();
+    // Send task-commented notifications to assignees via dispatcher (fire and forget)
+    {
+        let db = state.db.clone();
+        let redis = state.redis.clone();
+        let author_id = tenant.user_id;
+        let author_name = comment.author_name.clone();
+        let app_url = state.config.app_url.clone();
+        let mentioned = extract_mentioned_user_ids(&sanitized_content);
+        tokio::spawn(async move {
+            // Get task assignees
+            let assignee_ids = taskflow_db::queries::get_task_assignee_ids(&db, task_id)
+                .await
+                .unwrap_or_default();
 
-        let broadcast_service = BroadcastService::new(redis);
-        for assignee_id in assignee_ids {
-            if assignee_id != author_id {
-                if let Err(e) = broadcast_service
-                    .broadcast_user_update(
-                        assignee_id,
-                        "task-commented",
-                        json!({
-                            "task_id": task_id,
-                            "comment_id": comment_id,
-                            "commented_by": author_id
-                        }),
-                    )
+            if assignee_ids.is_empty() {
+                return;
+            }
+
+            // Fetch task title
+            let task_title: String =
+                sqlx::query_scalar("SELECT title FROM tasks WHERE id = $1 AND deleted_at IS NULL")
+                    .bind(task_id)
+                    .fetch_optional(&db)
                     .await
+                    .ok()
+                    .flatten()
+                    .unwrap_or_else(|| "a task".to_string());
+
+            // Fetch project's Slack webhook URL
+            let slack_webhook: Option<String> = sqlx::query_scalar(
+                r#"SELECT p.slack_webhook_url FROM projects p
+                   JOIN tasks t ON t.project_id = p.id
+                   WHERE t.id = $1 AND t.deleted_at IS NULL"#,
+            )
+            .bind(task_id)
+            .fetch_optional(&db)
+            .await
+            .ok()
+            .flatten();
+
+            let broadcast = BroadcastService::new(redis.clone());
+            let notification_svc =
+                NotificationService::new(db.clone(), broadcast, None, app_url.clone());
+
+            let notif_title = format!("{} commented", author_name);
+            let notif_body = format!("on \"{}\"", task_title);
+            let link_url = format!("/task/{}", task_id);
+
+            for assignee_id in assignee_ids {
+                // Skip the comment author and users already notified via @mention
+                if assignee_id == author_id || mentioned.contains(&assignee_id) {
+                    continue;
+                }
+                if let Err(e) = notify(
+                    &db,
+                    &redis,
+                    &notification_svc,
+                    NotificationEvent::TaskCommented,
+                    assignee_id,
+                    &notif_title,
+                    &notif_body,
+                    Some(link_url.as_str()),
+                    &app_url,
+                    slack_webhook.as_deref(),
+                )
+                .await
                 {
                     tracing::error!(
-                        "Failed to send task-commented notification to {}: {}",
-                        assignee_id,
-                        e
+                        assignee_id = %assignee_id,
+                        error = %e,
+                        "Failed to dispatch task-commented notification"
                     );
                 }
             }
-        }
-    });
+        });
+    }
 
     Ok((StatusCode::CREATED, Json(comment)))
 }
