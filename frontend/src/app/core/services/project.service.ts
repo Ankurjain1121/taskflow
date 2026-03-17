@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { CacheService } from './cache.service';
@@ -169,25 +169,50 @@ export class ProjectService {
   private readonly apiUrl = '/api';
   private cache = inject(CacheService);
 
+  // === Signal-based state ===
+  /** All boards for the current workspace */
+  readonly projects = signal<Board[]>([]);
+  /** Currently active/selected project */
+  readonly activeProject = signal<Board | null>(null);
+  /** ID of the currently active project */
+  readonly activeProjectId = computed(() => this.activeProject()?.id ?? null);
+  /** Number of projects in the current workspace */
+  readonly projectCount = computed(() => this.projects().length);
+
   constructor(private http: HttpClient) {}
 
+  /** Set the active project by board object */
+  setActiveProject(board: Board | null): void {
+    this.activeProject.set(board);
+  }
+
+  /** Clear all signal state (e.g., on workspace switch) */
+  clearState(): void {
+    this.projects.set([]);
+    this.activeProject.set(null);
+  }
+
   listBoards(workspaceId: string): Observable<Board[]> {
-    return this.cache.get(
-      `projects:${workspaceId}`,
-      () =>
-        this.http.get<Board[]>(
-          `${this.apiUrl}/workspaces/${workspaceId}/projects`,
-        ),
-      120000, // 2 min TTL
-    );
+    return this.cache
+      .get(
+        `projects:${workspaceId}`,
+        () =>
+          this.http.get<Board[]>(
+            `${this.apiUrl}/workspaces/${workspaceId}/projects`,
+          ),
+        120000, // 2 min TTL
+      )
+      .pipe(tap((boards) => this.projects.set(boards)));
   }
 
   getBoard(boardId: string): Observable<Board> {
-    return this.cache.get(
-      `project:${boardId}`,
-      () => this.http.get<Board>(`${this.apiUrl}/projects/${boardId}`),
-      120000, // 2 min TTL
-    );
+    return this.cache
+      .get(
+        `project:${boardId}`,
+        () => this.http.get<Board>(`${this.apiUrl}/projects/${boardId}`),
+        120000, // 2 min TTL
+      )
+      .pipe(tap((board) => this.activeProject.set(board)));
   }
 
   createBoard(
@@ -197,8 +222,9 @@ export class ProjectService {
     return this.http
       .post<Board>(`${this.apiUrl}/workspaces/${workspaceId}/projects`, request)
       .pipe(
-        tap(() => {
+        tap((board) => {
           this.cache.invalidate(`projects:${workspaceId}`);
+          this.projects.update((list) => [...list, board]);
         }),
       );
   }
@@ -207,10 +233,16 @@ export class ProjectService {
     return this.http
       .patch<Board>(`${this.apiUrl}/projects/${boardId}`, request)
       .pipe(
-        tap(() => {
+        tap((updated) => {
           this.cache.invalidateKey(`project:${boardId}`);
           this.cache.invalidate(`project-full:${boardId}:.*`);
           this.cache.invalidate(`projects:.*`);
+          this.projects.update((list) =>
+            list.map((b) => (b.id === boardId ? updated : b)),
+          );
+          if (this.activeProject()?.id === boardId) {
+            this.activeProject.set(updated);
+          }
         }),
       );
   }
@@ -221,6 +253,10 @@ export class ProjectService {
         this.cache.invalidateKey(`project:${boardId}`);
         this.cache.invalidate(`project-full:${boardId}:.*`);
         this.cache.invalidate(`projects:.*`);
+        this.projects.update((list) => list.filter((b) => b.id !== boardId));
+        if (this.activeProject()?.id === boardId) {
+          this.activeProject.set(null);
+        }
       }),
     );
   }
@@ -453,8 +489,9 @@ export class ProjectService {
     return this.http
       .post<Board>(`${this.apiUrl}/projects/${boardId}/duplicate`, request)
       .pipe(
-        tap(() => {
+        tap((newBoard) => {
           this.cache.invalidate(`projects:.*`);
+          this.projects.update((list) => [...list, newBoard]);
         }),
       );
   }

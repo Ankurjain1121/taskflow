@@ -252,6 +252,7 @@ export class ProjectStateService {
     this.projectService.getBoardFull(boardId).subscribe({
       next: (response: ProjectFullResponse) => {
         this.board.set(response.project);
+        this.projectService.setActiveProject(response.project);
         const cols = (
           (response.project?.statuses ?? []) as unknown as Column[]
         ).sort((a, b) => a.position.localeCompare(b.position));
