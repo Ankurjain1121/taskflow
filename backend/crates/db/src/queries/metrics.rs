@@ -348,6 +348,46 @@ pub async fn get_personal_dashboard(
     })
 }
 
+/// Per-user resource utilization for a workspace
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+pub struct ResourceUtilizationRow {
+    pub user_id: Uuid,
+    pub user_name: String,
+    pub total_estimated_hours: f64,
+    pub total_actual_hours: f64,
+    pub task_count: i64,
+}
+
+/// Fetch per-user resource utilization for a workspace.
+///
+/// Aggregates estimated hours (from tasks), actual hours (from time entries),
+/// and task count for each workspace member.
+pub async fn get_resource_utilization(
+    pool: &PgPool,
+    workspace_id: Uuid,
+) -> Result<Vec<ResourceUtilizationRow>, sqlx::Error> {
+    sqlx::query_as::<_, ResourceUtilizationRow>(
+        r#"
+        SELECT
+            u.id AS user_id,
+            u.name AS user_name,
+            COALESCE(SUM(t.estimated_hours), 0)::FLOAT8 AS total_estimated_hours,
+            COALESCE(SUM(te.duration_minutes)::FLOAT8 / 60.0, 0)::FLOAT8 AS total_actual_hours,
+            COUNT(DISTINCT t.id)::BIGINT AS task_count
+        FROM users u
+        JOIN workspace_members wm ON wm.user_id = u.id AND wm.workspace_id = $1
+        LEFT JOIN task_assignees ta ON ta.user_id = u.id
+        LEFT JOIN tasks t ON t.id = ta.task_id AND t.deleted_at IS NULL
+        LEFT JOIN time_entries te ON te.user_id = u.id AND te.ended_at IS NOT NULL
+        GROUP BY u.id, u.name
+        ORDER BY total_estimated_hours DESC
+        "#,
+    )
+    .bind(workspace_id)
+    .fetch_all(pool)
+    .await
+}
+
 /// Refresh all materialized metrics views by calling the SQL function.
 pub async fn refresh_metrics(pool: &PgPool) -> Result<(), sqlx::Error> {
     sqlx::query("SELECT refresh_metrics_views()")

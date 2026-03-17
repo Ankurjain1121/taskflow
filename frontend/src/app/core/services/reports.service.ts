@@ -29,6 +29,14 @@ export interface ResourceEntry {
   week_start: string;
 }
 
+export interface ResourceUtilizationEntry {
+  user_id: string;
+  user_name: string;
+  total_estimated_hours: number;
+  total_actual_hours: number;
+  task_count: number;
+}
+
 export interface CompletionRatePoint {
   week_start: string;
   completed: number;
@@ -134,6 +142,14 @@ export class ReportsService {
       .set('workspace_id', workspaceId)
       .set('weeks', weeks.toString());
     return this.http.get<ResourceEntry[]>('/api/reports/resource', { params });
+  }
+
+  getUtilizationByWorkspace(
+    workspaceId: string,
+  ): Observable<ResourceUtilizationEntry[]> {
+    return this.http.get<ResourceUtilizationEntry[]>(
+      `/api/workspaces/${workspaceId}/resource-utilization`,
+    );
   }
 
   getCompletionRate(
