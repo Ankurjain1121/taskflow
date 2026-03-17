@@ -79,18 +79,17 @@ impl AppState {
         )?);
 
         // Initialize Prometheus metrics recorder
-        let prometheus_handle = match metrics_exporter_prometheus::PrometheusBuilder::new()
-            .install_recorder()
-        {
-            Ok(handle) => {
-                tracing::info!("Prometheus metrics recorder installed");
-                Some(Arc::new(handle))
-            }
-            Err(e) => {
-                tracing::warn!("Failed to install Prometheus recorder: {e}");
-                None
-            }
-        };
+        let prometheus_handle =
+            match metrics_exporter_prometheus::PrometheusBuilder::new().install_recorder() {
+                Ok(handle) => {
+                    tracing::info!("Prometheus metrics recorder installed");
+                    Some(Arc::new(handle))
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to install Prometheus recorder: {e}");
+                    None
+                }
+            };
 
         Ok(Self {
             db,

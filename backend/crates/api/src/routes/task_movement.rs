@@ -143,13 +143,11 @@ pub async fn move_task_handler(
                 .flatten()
                 .unwrap_or_else(|| "Someone".to_string());
 
-            let assignees = get_task_assignee_ids(&db, task_id).await.unwrap_or_default();
-            let notification_svc = NotificationService::new(
-                db.clone(),
-                BroadcastService::new(redis),
-                None,
-                app_url,
-            );
+            let assignees = get_task_assignee_ids(&db, task_id)
+                .await
+                .unwrap_or_default();
+            let notification_svc =
+                NotificationService::new(db.clone(), BroadcastService::new(redis), None, app_url);
             let title = format!("{} completed a task", completer_name);
             let body = format!("\"{}\" has been marked as done", task_title);
             let link = format!("/task/{}", task_id);

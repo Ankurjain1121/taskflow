@@ -145,7 +145,8 @@ pub async fn generate_digests(
         let user_ids: Vec<Uuid> = users.iter().map(|(id, _, _)| *id).collect();
 
         // Single batch CTE query for all users in this batch
-        let batch_stats = fetch_batch_stats(pool, &user_ids, period_start, now, lookahead_end).await;
+        let batch_stats =
+            fetch_batch_stats(pool, &user_ids, period_start, now, lookahead_end).await;
         let stats_map = match batch_stats {
             Ok(stats) => stats,
             Err(e) => {
@@ -163,12 +164,15 @@ pub async fn generate_digests(
         for (user_id, email, name) in &users {
             result.users_processed += 1;
 
-            let stats = stats_map
-                .iter()
-                .find(|s| s.user_id == *user_id);
+            let stats = stats_map.iter().find(|s| s.user_id == *user_id);
 
             let (completed, created, overdue, due_soon) = match stats {
-                Some(s) => (s.tasks_completed, s.tasks_created, s.tasks_overdue, s.tasks_due_soon),
+                Some(s) => (
+                    s.tasks_completed,
+                    s.tasks_created,
+                    s.tasks_overdue,
+                    s.tasks_due_soon,
+                ),
                 None => (0, 0, 0, 0),
             };
 
@@ -177,14 +181,8 @@ pub async fn generate_digests(
                 continue;
             }
 
-            let html = generate_weekly_digest_html(
-                name,
-                completed,
-                created,
-                overdue,
-                due_soon,
-                app_url,
-            );
+            let html =
+                generate_weekly_digest_html(name, completed, created, overdue, due_soon, app_url);
 
             match postal
                 .send_email(email, period.email_subject(), &html)
@@ -309,13 +307,15 @@ async fn fetch_batch_stats(
 
     let stats = rows
         .into_iter()
-        .map(|(user_id, completed, created, overdue, due_soon)| UserBatchStats {
-            user_id,
-            tasks_completed: completed.unwrap_or(0),
-            tasks_created: created.unwrap_or(0),
-            tasks_overdue: overdue.unwrap_or(0),
-            tasks_due_soon: due_soon.unwrap_or(0),
-        })
+        .map(
+            |(user_id, completed, created, overdue, due_soon)| UserBatchStats {
+                user_id,
+                tasks_completed: completed.unwrap_or(0),
+                tasks_created: created.unwrap_or(0),
+                tasks_overdue: overdue.unwrap_or(0),
+                tasks_due_soon: due_soon.unwrap_or(0),
+            },
+        )
         .collect();
 
     Ok(stats)

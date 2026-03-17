@@ -207,12 +207,11 @@ pub async fn list_activity_by_project(
     "#;
 
     let items = if let Some(cursor_id) = cursor {
-        let cursor_created_at: Option<DateTime<Utc>> = sqlx::query_scalar(
-            "SELECT created_at FROM activity_log WHERE id = $1",
-        )
-        .bind(cursor_id)
-        .fetch_optional(pool)
-        .await?;
+        let cursor_created_at: Option<DateTime<Utc>> =
+            sqlx::query_scalar("SELECT created_at FROM activity_log WHERE id = $1")
+                .bind(cursor_id)
+                .fetch_optional(pool)
+                .await?;
 
         if let Some(cursor_time) = cursor_created_at {
             let query = format!(
