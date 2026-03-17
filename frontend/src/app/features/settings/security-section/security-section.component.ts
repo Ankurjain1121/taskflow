@@ -10,12 +10,14 @@ import { FormsModule } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
+import { DialogModule } from 'primeng/dialog';
 import { MessageService } from 'primeng/api';
 import { AuthService } from '../../../core/services/auth.service';
 import {
   SessionService,
   SessionInfo,
 } from '../../../core/services/session.service';
+import { TwoFactorService } from '../../../core/services/two-factor.service';
 
 @Component({
   selector: 'app-security-section',
@@ -27,10 +29,269 @@ import {
     InputTextModule,
     ButtonModule,
     ToastModule,
+    DialogModule,
   ],
   providers: [MessageService],
   template: `
     <p-toast />
+
+    <!-- Two-Factor Authentication Card -->
+    <div
+      class="rounded-lg border shadow-sm p-6 mb-6"
+      style="background: var(--card); border-color: var(--border)"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2
+            class="text-xl font-semibold"
+            style="color: var(--foreground)"
+          >
+            Two-Factor Authentication
+          </h2>
+          <p class="text-sm mt-1" style="color: var(--muted-foreground)">
+            Add an extra layer of security to your account using a TOTP
+            authenticator app.
+          </p>
+        </div>
+        @if (twoFactorEnabled()) {
+          <span
+            class="text-xs px-2.5 py-1 rounded-full font-medium"
+            style="background: #22c55e20; color: #22c55e"
+            >Enabled</span
+          >
+        }
+      </div>
+
+      @if (twoFactorLoading()) {
+        <div
+          class="h-10 rounded animate-pulse"
+          style="background: var(--muted)"
+        ></div>
+      } @else if (!twoFactorEnabled()) {
+        <!-- Setup flow -->
+        @if (setupStep() === 'idle') {
+          <p-button
+            label="Enable Two-Factor Authentication"
+            icon="pi pi-shield"
+            (onClick)="startSetup()"
+            [loading]="setupLoading()"
+          />
+        } @else if (setupStep() === 'qr') {
+          <div class="space-y-4">
+            <p class="text-sm" style="color: var(--foreground)">
+              Scan this QR code with your authenticator app (Google
+              Authenticator, Authy, etc.), or manually enter the secret key
+              below.
+            </p>
+            <div
+              class="p-4 rounded-lg inline-block"
+              style="background: white"
+            >
+              <img
+                [src]="
+                  'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' +
+                  encodeURI(otpauthUri())
+                "
+                alt="QR Code for authenticator app"
+                width="200"
+                height="200"
+              />
+            </div>
+            <div>
+              <label
+                class="text-xs font-medium block mb-1"
+                style="color: var(--muted-foreground)"
+                >Secret Key (manual entry)</label
+              >
+              <code
+                class="text-sm px-3 py-2 rounded block select-all break-all"
+                style="
+                  background: var(--muted);
+                  color: var(--foreground);
+                  font-family: monospace;
+                "
+                >{{ totpSecret() }}</code
+              >
+            </div>
+            <div class="flex flex-col gap-2 max-w-xs">
+              <label
+                for="setupCode"
+                class="text-sm font-medium"
+                style="color: var(--foreground)"
+                >Enter the 6-digit code from your app</label
+              >
+              <input
+                pInputText
+                id="setupCode"
+                type="text"
+                [(ngModel)]="setupCode"
+                placeholder="000000"
+                class="w-full text-center tracking-widest text-lg"
+                maxlength="6"
+                autocomplete="one-time-code"
+                inputmode="numeric"
+                pattern="[0-9]*"
+              />
+              <p-button
+                label="Verify & Enable"
+                icon="pi pi-check"
+                [disabled]="setupCode.length !== 6 || verifyLoading()"
+                [loading]="verifyLoading()"
+                (onClick)="verifySetup()"
+              />
+            </div>
+          </div>
+        } @else if (setupStep() === 'recovery') {
+          <div class="space-y-4">
+            <div
+              class="p-4 rounded-lg border"
+              style="
+                background: var(--muted);
+                border-color: var(--border);
+              "
+            >
+              <div class="flex items-center gap-2 mb-3">
+                <i
+                  class="pi pi-exclamation-triangle"
+                  style="color: var(--status-amber-text)"
+                ></i>
+                <span
+                  class="text-sm font-semibold"
+                  style="color: var(--foreground)"
+                  >Save your recovery codes</span
+                >
+              </div>
+              <p
+                class="text-sm mb-3"
+                style="color: var(--muted-foreground)"
+              >
+                These codes can be used to access your account if you lose
+                your authenticator device. Each code can only be used once.
+                Store them in a safe place.
+              </p>
+              <div
+                class="grid grid-cols-2 gap-2 p-3 rounded"
+                style="background: var(--card); font-family: monospace"
+              >
+                @for (code of recoveryCodes(); track code) {
+                  <span
+                    class="text-sm py-1 px-2 rounded"
+                    style="
+                      background: var(--muted);
+                      color: var(--foreground);
+                    "
+                    >{{ code }}</span
+                  >
+                }
+              </div>
+            </div>
+            <p-button
+              label="I've saved my recovery codes"
+              icon="pi pi-check"
+              (onClick)="finishSetup()"
+            />
+          </div>
+        }
+      } @else {
+        <!-- Disable flow -->
+        <p-button
+          label="Disable Two-Factor Authentication"
+          severity="danger"
+          [outlined]="true"
+          icon="pi pi-shield"
+          (onClick)="showDisableDialog.set(true)"
+        />
+      }
+    </div>
+
+    <!-- Disable 2FA Dialog -->
+    <p-dialog
+      header="Disable Two-Factor Authentication"
+      [(visible)]="showDisableDialogValue"
+      [modal]="true"
+      [style]="{ width: '28rem' }"
+      [closable]="true"
+    >
+      <div class="space-y-4">
+        <p class="text-sm" style="color: var(--muted-foreground)">
+          Enter your 6-digit authenticator code or a recovery code to
+          disable 2FA.
+        </p>
+        @if (!disableUseRecovery()) {
+          <div class="flex flex-col gap-2">
+            <label
+              for="disableCode"
+              class="text-sm font-medium"
+              style="color: var(--foreground)"
+              >Authenticator Code</label
+            >
+            <input
+              pInputText
+              id="disableCode"
+              type="text"
+              [(ngModel)]="disableCode"
+              placeholder="000000"
+              class="w-full text-center tracking-widest text-lg"
+              maxlength="6"
+              autocomplete="one-time-code"
+              inputmode="numeric"
+              pattern="[0-9]*"
+            />
+          </div>
+        } @else {
+          <div class="flex flex-col gap-2">
+            <label
+              for="disableRecovery"
+              class="text-sm font-medium"
+              style="color: var(--foreground)"
+              >Recovery Code</label
+            >
+            <input
+              pInputText
+              id="disableRecovery"
+              type="text"
+              [(ngModel)]="disableRecoveryCode"
+              placeholder="Enter recovery code"
+              class="w-full"
+              autocomplete="off"
+            />
+          </div>
+        }
+        <button
+          type="button"
+          class="text-sm text-primary cursor-pointer bg-transparent border-none font-medium"
+          (click)="
+            disableUseRecovery.set(!disableUseRecovery());
+            disableCode = '';
+            disableRecoveryCode = ''
+          "
+        >
+          @if (!disableUseRecovery()) {
+            Use a recovery code instead
+          } @else {
+            Use authenticator code instead
+          }
+        </button>
+      </div>
+      <ng-template pTemplate="footer">
+        <p-button
+          label="Cancel"
+          [text]="true"
+          (onClick)="showDisableDialog.set(false)"
+        />
+        <p-button
+          label="Disable 2FA"
+          severity="danger"
+          [disabled]="
+            disableLoading() ||
+            (!disableUseRecovery() && disableCode.length !== 6) ||
+            (disableUseRecovery() && !disableRecoveryCode)
+          "
+          [loading]="disableLoading()"
+          (onClick)="disable2fa()"
+        />
+      </ng-template>
+    </p-dialog>
 
     <!-- Change Password Card -->
     <div
@@ -314,6 +575,7 @@ import {
 export class SecuritySectionComponent implements OnInit {
   private authService = inject(AuthService);
   private sessionService = inject(SessionService);
+  private twoFactorService = inject(TwoFactorService);
   private messageService = inject(MessageService);
 
   currentPassword = '';
@@ -330,9 +592,153 @@ export class SecuritySectionComponent implements OnInit {
   hideNewPassword = signal(true);
   hideConfirmPassword = signal(true);
 
+  // 2FA state
+  twoFactorLoading = signal(true);
+  twoFactorEnabled = signal(false);
+  setupStep = signal<'idle' | 'qr' | 'recovery'>('idle');
+  setupLoading = signal(false);
+  verifyLoading = signal(false);
+  totpSecret = signal('');
+  otpauthUri = signal('');
+  setupCode = '';
+  recoveryCodes = signal<string[]>([]);
+
+  // Disable 2FA
+  showDisableDialog = signal(false);
+  disableLoading = signal(false);
+  disableCode = '';
+  disableRecoveryCode = '';
+  disableUseRecovery = signal(false);
+
+  get showDisableDialogValue(): boolean {
+    return this.showDisableDialog();
+  }
+  set showDisableDialogValue(val: boolean) {
+    this.showDisableDialog.set(val);
+  }
+
   ngOnInit(): void {
     this.loadSessions();
+    this.load2faStatus();
   }
+
+  encodeURI(uri: string): string {
+    return encodeURIComponent(uri);
+  }
+
+  // ==========================
+  // 2FA Methods
+  // ==========================
+
+  load2faStatus(): void {
+    this.twoFactorLoading.set(true);
+    this.twoFactorService.getStatus().subscribe({
+      next: (status) => {
+        this.twoFactorEnabled.set(status.enabled);
+        this.twoFactorLoading.set(false);
+      },
+      error: () => {
+        this.twoFactorLoading.set(false);
+      },
+    });
+  }
+
+  startSetup(): void {
+    this.setupLoading.set(true);
+    this.twoFactorService.setup().subscribe({
+      next: (response) => {
+        this.totpSecret.set(response.secret);
+        this.otpauthUri.set(response.otpauth_uri);
+        this.setupStep.set('qr');
+        this.setupLoading.set(false);
+      },
+      error: (error) => {
+        this.setupLoading.set(false);
+        const message =
+          error.error?.error?.message ?? 'Failed to start 2FA setup';
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: message,
+        });
+      },
+    });
+  }
+
+  verifySetup(): void {
+    this.verifyLoading.set(true);
+    this.twoFactorService.verify(this.setupCode).subscribe({
+      next: (response) => {
+        this.recoveryCodes.set(response.recovery_codes);
+        this.setupStep.set('recovery');
+        this.verifyLoading.set(false);
+      },
+      error: (error) => {
+        this.verifyLoading.set(false);
+        const message =
+          error.error?.error?.message ?? 'Invalid verification code';
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: message,
+        });
+      },
+    });
+  }
+
+  finishSetup(): void {
+    this.twoFactorEnabled.set(true);
+    this.setupStep.set('idle');
+    this.setupCode = '';
+    this.recoveryCodes.set([]);
+    this.totpSecret.set('');
+    this.otpauthUri.set('');
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'Two-factor authentication has been enabled.',
+    });
+  }
+
+  disable2fa(): void {
+    this.disableLoading.set(true);
+
+    const params: { code?: string; recovery_code?: string } = {};
+    if (this.disableUseRecovery()) {
+      params.recovery_code = this.disableRecoveryCode.trim();
+    } else {
+      params.code = this.disableCode.trim();
+    }
+
+    this.twoFactorService.disable(params).subscribe({
+      next: () => {
+        this.disableLoading.set(false);
+        this.showDisableDialog.set(false);
+        this.twoFactorEnabled.set(false);
+        this.disableCode = '';
+        this.disableRecoveryCode = '';
+        this.disableUseRecovery.set(false);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Two-factor authentication has been disabled.',
+        });
+      },
+      error: (error) => {
+        this.disableLoading.set(false);
+        const message = error.error?.error?.message ?? 'Failed to disable 2FA';
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: message,
+        });
+      },
+    });
+  }
+
+  // ==========================
+  // Password Methods
+  // ==========================
 
   changePassword(): void {
     if (this.newPassword !== this.confirmPassword) {
@@ -375,6 +781,10 @@ export class SecuritySectionComponent implements OnInit {
         },
       });
   }
+
+  // ==========================
+  // Session Methods
+  // ==========================
 
   loadSessions(): void {
     this.sessionsLoading.set(true);

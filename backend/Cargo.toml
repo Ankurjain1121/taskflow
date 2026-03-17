@@ -25,6 +25,10 @@ jsonwebtoken = { version = "10", features = ["aws_lc_rs"] }
 argon2 = "0.5"
 password-hash = { version = "0.5", features = ["rand_core"] }
 sha2 = "0.10"
+hmac = "0.12"
+totp-lite = "2"
+data-encoding = "2"
+rand = "0.9"
 
 # Types
 uuid = { version = "1", features = ["v4", "serde"] }

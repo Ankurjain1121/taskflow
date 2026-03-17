@@ -10,6 +10,7 @@ import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
   FormGroup,
+  FormsModule,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
@@ -19,7 +20,11 @@ import { ButtonModule } from 'primeng/button';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { PasswordModule } from 'primeng/password';
 import { finalize } from 'rxjs';
-import { AuthService } from '../../../core/services/auth.service';
+import {
+  AuthService,
+  isTwoFactorRequired,
+} from '../../../core/services/auth.service';
+import { TwoFactorService } from '../../../core/services/two-factor.service';
 
 @Component({
   selector: 'app-sign-in',
@@ -33,6 +38,7 @@ import { AuthService } from '../../../core/services/auth.service';
     ButtonModule,
     ProgressSpinner,
     PasswordModule,
+    FormsModule,
   ],
   template: `
     <div class="auth-wrapper">
@@ -92,85 +98,142 @@ import { AuthService } from '../../../core/services/auth.service';
         <!-- Right form panel -->
         <div class="form-panel">
           <div class="form-wrapper fade-in">
-            <div class="form-header">
-              <h2 class="form-title">Welcome back</h2>
-              <p class="form-subtitle">Sign in to your account to continue</p>
-            </div>
-
-            <form [formGroup]="signInForm" (ngSubmit)="onSubmit()">
-              <div class="field-spacing">
-                <label for="email" class="field-label">Email</label>
-                <input
-                  pInputText
-                  id="email"
-                  type="email"
-                  formControlName="email"
-                  placeholder="you@example.com"
-                  class="w-full"
-                  [attr.aria-describedby]="signInForm.get('email')?.hasError('required') && signInForm.get('email')?.touched ? 'email-required-error' : signInForm.get('email')?.hasError('email') && signInForm.get('email')?.touched ? 'email-invalid-error' : null"
-                />
-                @if (
-                  signInForm.get('email')?.hasError('required') &&
-                  signInForm.get('email')?.touched
-                ) {
-                  <small id="email-required-error" class="p-error">Email is required</small>
-                }
-                @if (
-                  signInForm.get('email')?.hasError('email') &&
-                  signInForm.get('email')?.touched
-                ) {
-                  <small id="email-invalid-error" class="p-error">Please enter a valid email</small>
-                }
+            @if (!requires2fa) {
+              <!-- Standard sign-in form -->
+              <div class="form-header">
+                <h2 class="form-title">Welcome back</h2>
+                <p class="form-subtitle">Sign in to your account to continue</p>
               </div>
 
-              <div class="field-spacing">
-                <label for="signin-password" class="field-label">Password</label>
-                <p-password
-                  inputId="signin-password"
-                  formControlName="password"
-                  placeholder="Enter your password"
-                  [toggleMask]="true"
-                  [feedback]="false"
-                  styleClass="w-full"
-                  inputStyleClass="w-full"
-                  [attr.aria-describedby]="signInForm.get('password')?.hasError('required') && signInForm.get('password')?.touched ? 'signin-password-required-error' : signInForm.get('password')?.hasError('minlength') && signInForm.get('password')?.touched ? 'signin-password-minlength-error' : null"
-                />
-                @if (
-                  signInForm.get('password')?.hasError('required') &&
-                  signInForm.get('password')?.touched
-                ) {
-                  <small id="signin-password-required-error" class="p-error">Password is required</small>
-                }
-                @if (
-                  signInForm.get('password')?.hasError('minlength') &&
-                  signInForm.get('password')?.touched
-                ) {
-                  <small id="signin-password-minlength-error" class="p-error"
-                    >Password must be at least 8 characters</small
-                  >
-                }
-              </div>
-
-              <div class="flex justify-end mb-5 -mt-1">
-                <a
-                  routerLink="/auth/forgot-password"
-                  class="text-sm text-primary hover:text-primary transition-colors font-medium"
-                >
-                  Forgot password?
-                </a>
-              </div>
-
-              @if (sessionExpiredMessage) {
-                <div
-                  class="mb-5 p-3.5 bg-[var(--status-amber-bg)] border border-[var(--status-amber-border)] text-[var(--status-amber-text)] rounded-xl text-sm flex items-start gap-2"
-                >
-                  <i
-                    class="pi pi-clock text-[var(--status-amber-text)] shrink-0"
-                    style="font-size: 20px; margin-top: 1px;"
-                  ></i>
-                  <span>{{ sessionExpiredMessage }}</span>
+              <form [formGroup]="signInForm" (ngSubmit)="onSubmit()">
+                <div class="field-spacing">
+                  <label for="email" class="field-label">Email</label>
+                  <input
+                    pInputText
+                    id="email"
+                    type="email"
+                    formControlName="email"
+                    placeholder="you@example.com"
+                    class="w-full"
+                    [attr.aria-describedby]="signInForm.get('email')?.hasError('required') && signInForm.get('email')?.touched ? 'email-required-error' : signInForm.get('email')?.hasError('email') && signInForm.get('email')?.touched ? 'email-invalid-error' : null"
+                  />
+                  @if (
+                    signInForm.get('email')?.hasError('required') &&
+                    signInForm.get('email')?.touched
+                  ) {
+                    <small id="email-required-error" class="p-error">Email is required</small>
+                  }
+                  @if (
+                    signInForm.get('email')?.hasError('email') &&
+                    signInForm.get('email')?.touched
+                  ) {
+                    <small id="email-invalid-error" class="p-error">Please enter a valid email</small>
+                  }
                 </div>
-              }
+
+                <div class="field-spacing">
+                  <label for="signin-password" class="field-label">Password</label>
+                  <p-password
+                    inputId="signin-password"
+                    formControlName="password"
+                    placeholder="Enter your password"
+                    [toggleMask]="true"
+                    [feedback]="false"
+                    styleClass="w-full"
+                    inputStyleClass="w-full"
+                    [attr.aria-describedby]="signInForm.get('password')?.hasError('required') && signInForm.get('password')?.touched ? 'signin-password-required-error' : signInForm.get('password')?.hasError('minlength') && signInForm.get('password')?.touched ? 'signin-password-minlength-error' : null"
+                  />
+                  @if (
+                    signInForm.get('password')?.hasError('required') &&
+                    signInForm.get('password')?.touched
+                  ) {
+                    <small id="signin-password-required-error" class="p-error">Password is required</small>
+                  }
+                  @if (
+                    signInForm.get('password')?.hasError('minlength') &&
+                    signInForm.get('password')?.touched
+                  ) {
+                    <small id="signin-password-minlength-error" class="p-error"
+                      >Password must be at least 8 characters</small
+                    >
+                  }
+                </div>
+
+                <div class="flex justify-end mb-5 -mt-1">
+                  <a
+                    routerLink="/auth/forgot-password"
+                    class="text-sm text-primary hover:text-primary transition-colors font-medium"
+                  >
+                    Forgot password?
+                  </a>
+                </div>
+
+                @if (sessionExpiredMessage) {
+                  <div
+                    class="mb-5 p-3.5 bg-[var(--status-amber-bg)] border border-[var(--status-amber-border)] text-[var(--status-amber-text)] rounded-xl text-sm flex items-start gap-2"
+                  >
+                    <i
+                      class="pi pi-clock text-[var(--status-amber-text)] shrink-0"
+                      style="font-size: 20px; margin-top: 1px;"
+                    ></i>
+                    <span>{{ sessionExpiredMessage }}</span>
+                  </div>
+                }
+
+                @if (errorMessage) {
+                  <div
+                    class="mb-5 p-3.5 bg-[var(--status-red-bg)] border border-[var(--status-red-border)] text-[var(--status-red-text)] rounded-xl text-sm flex items-start gap-2"
+                  >
+                    <i
+                      class="pi pi-exclamation-circle text-[var(--status-red-text)] shrink-0"
+                      style="font-size: 20px; margin-top: 1px;"
+                    ></i>
+                    <span>{{ errorMessage }}</span>
+                  </div>
+                }
+
+                <button
+                  pButton
+                  type="submit"
+                  class="submit-btn w-full"
+                  [disabled]="isLoading || signInForm.invalid"
+                >
+                  @if (isLoading) {
+                    <p-progressSpinner
+                      [style]="{ width: '20px', height: '20px' }"
+                      strokeWidth="4"
+                      styleClass="inline-spinner"
+                    />
+                    Signing in...
+                  } @else {
+                    Sign In
+                  }
+                </button>
+              </form>
+
+              <div class="form-footer">
+                <p class="text-sm text-[var(--muted-foreground)]">
+                  Don't have an account?
+                  <a
+                    routerLink="/auth/sign-up"
+                    class="text-primary hover:text-primary font-semibold transition-colors"
+                  >
+                    Sign up
+                  </a>
+                </p>
+              </div>
+            } @else {
+              <!-- 2FA verification form -->
+              <div class="form-header">
+                <h2 class="form-title">Two-Factor Authentication</h2>
+                <p class="form-subtitle">
+                  @if (!useRecoveryCode) {
+                    Enter the 6-digit code from your authenticator app
+                  } @else {
+                    Enter one of your recovery codes
+                  }
+                </p>
+              </div>
 
               @if (errorMessage) {
                 <div
@@ -184,36 +247,83 @@ import { AuthService } from '../../../core/services/auth.service';
                 </div>
               }
 
-              <button
-                pButton
-                type="submit"
-                class="submit-btn w-full"
-                [disabled]="isLoading || signInForm.invalid"
-              >
-                @if (isLoading) {
-                  <p-progressSpinner
-                    [style]="{ width: '20px', height: '20px' }"
-                    strokeWidth="4"
-                    styleClass="inline-spinner"
-                  />
-                  Signing in...
+              <form (ngSubmit)="onSubmit2fa()">
+                @if (!useRecoveryCode) {
+                  <div class="field-spacing">
+                    <label for="totp-code" class="field-label">Verification Code</label>
+                    <input
+                      pInputText
+                      id="totp-code"
+                      type="text"
+                      [(ngModel)]="totpCode"
+                      [ngModelOptions]="{standalone: true}"
+                      placeholder="000000"
+                      class="w-full text-center tracking-widest text-lg"
+                      maxlength="6"
+                      autocomplete="one-time-code"
+                      inputmode="numeric"
+                      pattern="[0-9]*"
+                    />
+                  </div>
                 } @else {
-                  Sign In
+                  <div class="field-spacing">
+                    <label for="recovery-code" class="field-label">Recovery Code</label>
+                    <input
+                      pInputText
+                      id="recovery-code"
+                      type="text"
+                      [(ngModel)]="recoveryCode"
+                      [ngModelOptions]="{standalone: true}"
+                      placeholder="Enter recovery code"
+                      class="w-full"
+                      autocomplete="off"
+                    />
+                  </div>
                 }
-              </button>
-            </form>
 
-            <div class="form-footer">
-              <p class="text-sm text-[var(--muted-foreground)]">
-                Don't have an account?
-                <a
-                  routerLink="/auth/sign-up"
-                  class="text-primary hover:text-primary font-semibold transition-colors"
+                <button
+                  pButton
+                  type="submit"
+                  class="submit-btn w-full"
+                  [disabled]="isLoading || (!useRecoveryCode && totpCode.length !== 6) || (useRecoveryCode && !recoveryCode)"
                 >
-                  Sign up
-                </a>
-              </p>
-            </div>
+                  @if (isLoading) {
+                    <p-progressSpinner
+                      [style]="{ width: '20px', height: '20px' }"
+                      strokeWidth="4"
+                      styleClass="inline-spinner"
+                    />
+                    Verifying...
+                  } @else {
+                    Verify
+                  }
+                </button>
+              </form>
+
+              <div class="mt-4 text-center">
+                <button
+                  type="button"
+                  class="text-sm text-primary hover:text-primary font-medium cursor-pointer bg-transparent border-none"
+                  (click)="toggleRecoveryCode()"
+                >
+                  @if (!useRecoveryCode) {
+                    Use a recovery code instead
+                  } @else {
+                    Use authenticator app instead
+                  }
+                </button>
+              </div>
+
+              <div class="form-footer">
+                <button
+                  type="button"
+                  class="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer bg-transparent border-none transition-colors"
+                  (click)="cancelTwoFactor()"
+                >
+                  Back to sign in
+                </button>
+              </div>
+            }
           </div>
         </div>
       </div>
@@ -496,6 +606,7 @@ import { AuthService } from '../../../core/services/auth.service';
 export class SignInComponent {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
+  private twoFactorService = inject(TwoFactorService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private cdr = inject(ChangeDetectorRef);
@@ -510,6 +621,13 @@ export class SignInComponent {
   hidePassword = true;
   errorMessage = '';
   sessionExpiredMessage = '';
+
+  // 2FA state
+  requires2fa = false;
+  tempToken = '';
+  totpCode = '';
+  recoveryCode = '';
+  useRecoveryCode = false;
 
   constructor() {
     const reason = this.route.snapshot.queryParams['reason'];
@@ -549,15 +667,14 @@ export class SignInComponent {
         }),
       )
       .subscribe({
-        next: () => {
-          let returnUrl =
-            this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
-          // SECURITY: Validate returnUrl to prevent open redirect attacks
-          // Only allow relative URLs starting with a single slash (not protocol-relative //)
-          if (!returnUrl.startsWith('/') || returnUrl.startsWith('//')) {
-            returnUrl = '/dashboard';
+        next: (response) => {
+          if (isTwoFactorRequired(response)) {
+            this.requires2fa = true;
+            this.tempToken = response.temp_token;
+            this.cdr.markForCheck();
+            return;
           }
-          this.router.navigateByUrl(returnUrl);
+          this.navigateAfterLogin();
         },
         error: (error) => {
           if (error.status === 401) {
@@ -575,5 +692,82 @@ export class SignInComponent {
           }
         },
       });
+  }
+
+  onSubmit2fa(): void {
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    const params: {
+      temp_token: string;
+      code?: string;
+      recovery_code?: string;
+    } = { temp_token: this.tempToken };
+
+    if (this.useRecoveryCode) {
+      params.recovery_code = this.recoveryCode.trim();
+    } else {
+      params.code = this.totpCode.trim();
+    }
+
+    this.twoFactorService
+      .challenge(params)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.isLoading = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: (response) => {
+          // The challenge returns the same shape as a normal auth response
+          this.authService.handleTwoFactorSuccess(
+            response as unknown as import('../../../core/services/auth.service').TokenResponse,
+          );
+          this.navigateAfterLogin();
+        },
+        error: (error) => {
+          if (error.status === 401) {
+            this.errorMessage = 'Invalid verification code';
+          } else if (error.status === 429) {
+            this.errorMessage =
+              'Too many attempts. Please wait and try again.';
+          } else {
+            this.errorMessage =
+              error.error?.error?.message ||
+              'Verification failed. Please try again.';
+          }
+        },
+      });
+  }
+
+  toggleRecoveryCode(): void {
+    this.useRecoveryCode = !this.useRecoveryCode;
+    this.errorMessage = '';
+    this.totpCode = '';
+    this.recoveryCode = '';
+    this.cdr.markForCheck();
+  }
+
+  cancelTwoFactor(): void {
+    this.requires2fa = false;
+    this.tempToken = '';
+    this.totpCode = '';
+    this.recoveryCode = '';
+    this.useRecoveryCode = false;
+    this.errorMessage = '';
+    this.cdr.markForCheck();
+  }
+
+  private navigateAfterLogin(): void {
+    let returnUrl =
+      this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+    // SECURITY: Validate returnUrl to prevent open redirect attacks
+    // Only allow relative URLs starting with a single slash (not protocol-relative //)
+    if (!returnUrl.startsWith('/') || returnUrl.startsWith('//')) {
+      returnUrl = '/dashboard';
+    }
+    this.router.navigateByUrl(returnUrl);
   }
 }

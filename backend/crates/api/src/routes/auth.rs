@@ -159,6 +159,35 @@ pub async fn sign_in_handler(
         .await
         .unwrap_or(());
 
+    // Check if user has 2FA enabled
+    let has_2fa: bool = sqlx::query_scalar(
+        "SELECT COALESCE((SELECT totp_enabled FROM user_2fa WHERE user_id = $1), false)",
+    )
+    .bind(user.id)
+    .fetch_one(&state.db)
+    .await
+    .unwrap_or(false);
+
+    if has_2fa {
+        // Issue a short-lived temp token instead of the real JWT
+        let temp_token = Uuid::new_v4().to_string();
+        let temp_key = format!("2fa_temp:{}", temp_token);
+        redis::cmd("SET")
+            .arg(&temp_key)
+            .arg(user.id.to_string())
+            .arg("EX")
+            .arg(300i64) // 5 minutes
+            .query_async::<()>(&mut state.redis.clone())
+            .await
+            .map_err(|e| AppError::InternalError(format!("Failed to store temp token: {e}")))?;
+
+        let body = serde_json::json!({
+            "requires_2fa": true,
+            "temp_token": temp_token,
+        });
+        return Ok(Json(body).into_response());
+    }
+
     // Update last_login_at
     sqlx::query("UPDATE users SET last_login_at = NOW() WHERE id = $1")
         .bind(user.id)
@@ -637,7 +666,7 @@ fn extract_cookie(headers: &HeaderMap, name: &str) -> Option<String> {
 /// Build Set-Cookie headers for access and refresh tokens.
 /// Sets HttpOnly, SameSite=Lax. Secure flag is based on whether APP_URL uses https.
 /// Domain attribute is omitted so cookies scope to the exact host that set them.
-fn build_auth_cookie_headers(
+pub(crate) fn build_auth_cookie_headers(
     access_token: &str,
     refresh_token: &str,
     access_expiry_secs: i64,
