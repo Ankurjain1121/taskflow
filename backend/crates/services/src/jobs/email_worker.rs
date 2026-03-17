@@ -14,10 +14,7 @@ use super::email_queue::{dequeue_email, enqueue_email, push_to_dlq, EmailQueueEr
 ///
 /// This function never returns under normal operation. It continuously
 /// dequeues email jobs from Redis and sends them via the Postal API.
-pub async fn run_email_worker(
-    redis: redis::aio::ConnectionManager,
-    postal: PostalClient,
-) {
+pub async fn run_email_worker(redis: redis::aio::ConnectionManager, postal: PostalClient) {
     tracing::info!("Email worker started — listening on queue");
 
     let mut consecutive_redis_errors: u32 = 0;
@@ -110,8 +107,7 @@ pub async fn run_email_worker(
             Err(EmailQueueError::Redis(_)) => {
                 consecutive_redis_errors += 1;
                 // Exponential backoff on Redis connection errors: 1s, 2s, 4s (capped)
-                let backoff_secs =
-                    1u64 << consecutive_redis_errors.min(2);
+                let backoff_secs = 1u64 << consecutive_redis_errors.min(2);
                 tracing::error!(
                     consecutive_errors = consecutive_redis_errors,
                     backoff_secs,

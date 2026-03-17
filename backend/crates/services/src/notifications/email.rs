@@ -78,11 +78,12 @@ impl ResendClient {
     ///
     /// Returns `None` if `RESEND_API_KEY` is empty or not set.
     pub fn from_env() -> Option<Self> {
-        let api_key = std::env::var("RESEND_API_KEY").ok().filter(|s| !s.is_empty())?;
+        let api_key = std::env::var("RESEND_API_KEY")
+            .ok()
+            .filter(|s| !s.is_empty())?;
         let from_address = std::env::var("RESEND_FROM_ADDRESS")
             .unwrap_or_else(|_| "noreply@taskflow.local".into());
-        let from_name =
-            std::env::var("RESEND_FROM_NAME").unwrap_or_else(|_| "TaskFlow".into());
+        let from_name = std::env::var("RESEND_FROM_NAME").unwrap_or_else(|_| "TaskFlow".into());
 
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(30))

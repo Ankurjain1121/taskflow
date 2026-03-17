@@ -171,12 +171,8 @@ pub async fn assign_user_handler(
                     .flatten()
                     .unwrap_or_else(|| "a task".to_string());
 
-            let notification_svc = NotificationService::new(
-                db.clone(),
-                BroadcastService::new(redis),
-                None,
-                app_url,
-            );
+            let notification_svc =
+                NotificationService::new(db.clone(), BroadcastService::new(redis), None, app_url);
             let title = format!("{} assigned you to a task", assigner_name);
             let body = format!("\"{}\"", task_title);
             let link = format!("/task/{}", task_id);

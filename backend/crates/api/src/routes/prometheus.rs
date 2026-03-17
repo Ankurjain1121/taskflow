@@ -122,10 +122,7 @@ mod tests {
     fn test_validate_cron_secret_matches() {
         unsafe { std::env::set_var("CRON_SECRET", "test-secret-123") };
         let mut headers = HeaderMap::new();
-        headers.insert(
-            "X-Cron-Secret",
-            HeaderValue::from_static("test-secret-123"),
-        );
+        headers.insert("X-Cron-Secret", HeaderValue::from_static("test-secret-123"));
         let result = validate_cron_secret(&headers);
         assert!(result.is_ok());
         unsafe { std::env::remove_var("CRON_SECRET") };

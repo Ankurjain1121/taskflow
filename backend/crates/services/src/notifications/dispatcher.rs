@@ -99,14 +99,13 @@ pub async fn notify(
 
     if email_enabled {
         // Look up the user's email address
-        let user_email: Option<String> = sqlx::query_scalar(
-            r#"SELECT email FROM users WHERE id = $1 AND deleted_at IS NULL"#,
-        )
-        .bind(recipient_id)
-        .fetch_optional(pool)
-        .await
-        .ok()
-        .flatten();
+        let user_email: Option<String> =
+            sqlx::query_scalar(r#"SELECT email FROM users WHERE id = $1 AND deleted_at IS NULL"#)
+                .bind(recipient_id)
+                .fetch_optional(pool)
+                .await
+                .ok()
+                .flatten();
 
         if let Some(email) = user_email {
             let full_link = link_url.map(|u| {
@@ -215,9 +214,10 @@ mod tests {
 
     #[test]
     fn test_dispatch_error_display() {
-        let err = DispatchError::EmailQueue(crate::jobs::email_queue::EmailQueueError::Serialization(
-            serde_json::from_str::<crate::jobs::email_queue::EmailJob>("bad").unwrap_err(),
-        ));
+        let err =
+            DispatchError::EmailQueue(crate::jobs::email_queue::EmailQueueError::Serialization(
+                serde_json::from_str::<crate::jobs::email_queue::EmailJob>("bad").unwrap_err(),
+            ));
         let msg = format!("{}", err);
         assert!(msg.contains("Email queue error"), "got: {}", msg);
     }
