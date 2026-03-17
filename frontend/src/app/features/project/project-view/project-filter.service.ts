@@ -6,10 +6,15 @@ import { TaskFilters } from '../project-toolbar/project-toolbar.component';
 @Injectable()
 export class ProjectFilterService {
   filterTasks(tasks: Task[], filters: TaskFilters): Task[] {
+    // Hoist expensive computations outside the loop
+    const searchLower = filters.search?.toLowerCase();
+    const startDate = filters.dueDateStart ? new Date(filters.dueDateStart) : null;
+    const endDate = filters.dueDateEnd ? new Date(filters.dueDateEnd) : null;
+
     return tasks.filter((task) => {
       if (
-        filters.search &&
-        !task.title.toLowerCase().includes(filters.search.toLowerCase())
+        searchLower &&
+        !task.title.toLowerCase().includes(searchLower)
       ) {
         return false;
       }
@@ -22,32 +27,30 @@ export class ProjectFilterService {
       }
 
       if (filters.assigneeIds.length > 0) {
-        const taskAssigneeIds = task.assignees?.map((a) => a.id) || [];
         const hasMatchingAssignee = filters.assigneeIds.some((id) =>
-          taskAssigneeIds.includes(id),
+          (task.assignees ?? []).some((a) => a.id === id),
         );
         if (!hasMatchingAssignee) {
           return false;
         }
       }
 
-      if (filters.dueDateStart || filters.dueDateEnd) {
+      if (startDate || endDate) {
         if (!task.due_date) {
           return false;
         }
         const dueDate = new Date(task.due_date);
-        if (filters.dueDateStart && dueDate < new Date(filters.dueDateStart)) {
+        if (startDate && dueDate < startDate) {
           return false;
         }
-        if (filters.dueDateEnd && dueDate > new Date(filters.dueDateEnd)) {
+        if (endDate && dueDate > endDate) {
           return false;
         }
       }
 
       if (filters.labelIds.length > 0) {
-        const taskLabelIds = task.labels?.map((l) => l.id) || [];
         const hasMatchingLabel = filters.labelIds.some((id) =>
-          taskLabelIds.includes(id),
+          (task.labels ?? []).some((l) => l.id === id),
         );
         if (!hasMatchingLabel) {
           return false;

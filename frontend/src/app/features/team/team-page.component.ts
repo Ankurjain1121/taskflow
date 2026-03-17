@@ -217,7 +217,7 @@ interface WorkspaceTeam {
                     />
                   </div>
 
-                  @for (ws of filteredWorkspaces(); track ws.id) {
+                  @for (ws of filteredWorkspaces; track ws.id) {
                     <div class="mb-8">
                       <h2
                         class="text-lg font-semibold text-[var(--card-foreground)] mb-4"
@@ -228,7 +228,7 @@ interface WorkspaceTeam {
                     </div>
                   }
 
-                  @if (filteredWorkspaces().length === 0) {
+                  @if (filteredWorkspaces.length === 0) {
                     <div class="text-center py-8">
                       <p class="text-sm text-[var(--muted-foreground)]">
                         No workspaces found for the selected filter.
@@ -648,7 +648,7 @@ export class TeamPageComponent implements OnInit {
   allWorkspaces = signal<Workspace[]>([]);
   workspaceMembers = signal<WorkspaceWithMembers[]>([]);
   workspaceTeams = signal<WorkspaceTeam[]>([]);
-  selectedWorkspaceFilter = signal<string>('all');
+  selectedWorkspaceFilter: string = 'all';
 
   // Tenant members (lazy loaded on Members tab)
   tenantMembers = signal<TenantMember[]>([]);
@@ -708,11 +708,11 @@ export class TeamPageComponent implements OnInit {
     return options;
   });
 
-  filteredWorkspaces = computed(() => {
-    const filter = this.selectedWorkspaceFilter();
+  get filteredWorkspaces(): Workspace[] {
+    const filter = this.selectedWorkspaceFilter;
     if (filter === 'all') return this.allWorkspaces();
     return this.allWorkspaces().filter((ws) => ws.id === filter);
-  });
+  }
 
   ngOnInit(): void {
     this.loadData();
@@ -829,6 +829,7 @@ export class TeamPageComponent implements OnInit {
           const allRoles = results.flat();
           this.allMemberRoles.set(allRoles);
         },
+        error: (err) => { console.error('Failed to load member roles:', err); },
       });
     }
   }
@@ -884,6 +885,7 @@ export class TeamPageComponent implements OnInit {
             });
             this.workspaceMembers.set(wsMembers);
           },
+          error: (err) => { console.error('Failed to load workspace members:', err); },
         });
 
         forkJoin(workloadRequests).subscribe({
@@ -893,6 +895,9 @@ export class TeamPageComponent implements OnInit {
               members: results[i],
             }));
             this.workspaceTeams.set(teams);
+            this.loading.set(false);
+          },
+          error: () => {
             this.loading.set(false);
           },
         });

@@ -89,7 +89,7 @@ export interface BulkAddResult {
           <p-button
             label="Add to Workspace"
             (onClick)="onAdd()"
-            [disabled]="!selectedWorkspaceId() || saving()"
+            [disabled]="!selectedWorkspaceId || saving()"
             [loading]="saving()"
           />
         </div>
@@ -108,7 +108,7 @@ export class AddToWorkspaceDialogComponent {
 
   added = output<BulkAddResult>();
 
-  selectedWorkspaceId = signal<string | null>(null);
+  selectedWorkspaceId: string | null = null;
   saving = signal(false);
 
   availableWorkspaces = computed(() => {
@@ -117,7 +117,7 @@ export class AddToWorkspaceDialogComponent {
   });
 
   onAdd(): void {
-    const wsId = this.selectedWorkspaceId();
+    const wsId = this.selectedWorkspaceId;
     const userIds = this.users().map((u) => u.user_id);
     if (!wsId || userIds.length === 0) return;
 
@@ -126,7 +126,7 @@ export class AddToWorkspaceDialogComponent {
       next: (result) => {
         this.saving.set(false);
         this.visible.set(false);
-        this.selectedWorkspaceId.set(null);
+        this.selectedWorkspaceId = null;
         this.added.emit({
           workspaceId: wsId,
           userIds,

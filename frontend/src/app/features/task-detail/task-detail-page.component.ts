@@ -328,7 +328,7 @@ import { Toast } from 'primeng/toast';
 
             <!-- Subtasks -->
             <div class="main-card p-5">
-              <app-subtask-list [taskId]="taskId()" [boardColumns]="columns()" />
+              <app-subtask-list [taskId]="taskId()" [boardColumns]="columns()" (childrenLoaded)="childrenCount.set($event)" />
             </div>
 
             <!-- Comments / Activity Tabs -->
@@ -714,6 +714,9 @@ export class TaskDetailPageComponent implements OnInit {
           watchers: [...(t.watchers ?? []), newWatcher],
         });
       },
+      error: () => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to add watcher' });
+      },
     });
   }
 
@@ -728,6 +731,9 @@ export class TaskDetailPageComponent implements OnInit {
             (w) => w.user_id !== watcher.user_id,
           ),
         });
+      },
+      error: () => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to remove watcher' });
       },
     });
   }
@@ -765,6 +771,9 @@ export class TaskDetailPageComponent implements OnInit {
         };
         this.reminders.set([...this.reminders(), newReminder]);
       },
+      error: () => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to set reminder' });
+      },
     });
   }
 
@@ -774,6 +783,9 @@ export class TaskDetailPageComponent implements OnInit {
     this.taskService.removeReminder(t.id, reminderId).subscribe({
       next: () => {
         this.reminders.set(this.reminders().filter((r) => r.id !== reminderId));
+      },
+      error: () => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to remove reminder' });
       },
     });
   }

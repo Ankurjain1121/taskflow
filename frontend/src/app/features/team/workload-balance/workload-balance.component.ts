@@ -175,7 +175,7 @@ import {
                         </select>
                         <button
                           (click)="onReassign()"
-                          [disabled]="!targetMemberId() || reassigning()"
+                          [disabled]="!targetMemberId || reassigning()"
                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-primary rounded-md hover:brightness-90 disabled:opacity-50 transition-all"
                         >
                           @if (reassigning()) {
@@ -316,7 +316,7 @@ export class WorkloadBalanceComponent implements OnInit {
   selectedMember = signal<MemberWorkload | null>(null);
   memberTasks = signal<MemberTask[]>([]);
   selectedTaskIds = signal<string[]>([]);
-  targetMemberId = signal('');
+  targetMemberId: string = '';
 
   reassignTargets = computed(() => {
     const selected = this.selectedMember();
@@ -353,7 +353,7 @@ export class WorkloadBalanceComponent implements OnInit {
   selectMember(member: MemberWorkload): void {
     this.selectedMember.set(member);
     this.selectedTaskIds.set([]);
-    this.targetMemberId.set('');
+    this.targetMemberId = '';
     this.loadMemberTasks(member.user_id);
   }
 
@@ -386,13 +386,13 @@ export class WorkloadBalanceComponent implements OnInit {
   }
 
   onReassign(): void {
-    if (!this.targetMemberId() || this.selectedTaskIds().length === 0) return;
+    if (!this.targetMemberId || this.selectedTaskIds().length === 0) return;
     this.showConfirmDialog.set(true);
   }
 
   confirmReassign(): void {
     const selected = this.selectedMember();
-    if (!selected || !this.targetMemberId()) return;
+    if (!selected || !this.targetMemberId) return;
 
     this.reassigning.set(true);
 
@@ -401,14 +401,14 @@ export class WorkloadBalanceComponent implements OnInit {
         this.workspaceId,
         this.selectedTaskIds(),
         selected.user_id,
-        this.targetMemberId(),
+        this.targetMemberId,
       )
       .subscribe({
         next: () => {
           this.reassigning.set(false);
           this.showConfirmDialog.set(false);
           this.selectedTaskIds.set([]);
-          this.targetMemberId.set('');
+          this.targetMemberId = '';
           // Reload data
           this.loadMembers();
           this.loadMemberTasks(selected.user_id);
@@ -423,7 +423,7 @@ export class WorkloadBalanceComponent implements OnInit {
 
   getTargetMemberName(): string {
     const target = this.members().find(
-      (m) => m.user_id === this.targetMemberId(),
+      (m) => m.user_id === this.targetMemberId,
     );
     return target?.user_name || 'selected member';
   }
