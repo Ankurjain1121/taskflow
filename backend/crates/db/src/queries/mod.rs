@@ -62,25 +62,26 @@ mod integration_tests_extra;
 pub use membership::verify_project_membership;
 
 // activity_log
-pub use activity_log::{insert_activity_log, list_activity_by_task, ActivityLogWithActor, PaginatedActivityLog};
+pub use activity_log::{
+    insert_activity_log, list_activity_by_task, ActivityLogWithActor, PaginatedActivityLog,
+};
 
 // attachments
 pub use attachments::{
     can_delete_attachment, create_attachment, delete_attachment, get_attachment_by_id,
-    get_attachment_with_uploader, list_by_task, verify_task_board_membership,
-    AttachmentQueryError, AttachmentWithUploader, DeletedAttachment,
+    get_attachment_with_uploader, list_by_task, verify_task_board_membership, AttachmentQueryError,
+    AttachmentWithUploader, DeletedAttachment,
 };
 
 // automation_evaluation
 pub use automation_evaluation::{
-    get_active_rules_for_trigger, get_scheduled_trigger_tasks, log_automation,
-    ScheduledTriggerTask,
+    get_active_rules_for_trigger, get_scheduled_trigger_tasks, log_automation, ScheduledTriggerTask,
 };
 
 // automation_templates
 pub use automation_templates::{
-    apply_template, get_template as get_automation_template, list_templates as list_automation_templates,
-    seed_system_templates, toggle_template,
+    apply_template, get_template as get_automation_template,
+    list_templates as list_automation_templates, seed_system_templates, toggle_template,
 };
 
 // automations
@@ -114,9 +115,9 @@ pub use boards::{
 
 // comments
 pub use comments::{
-    create_comment, delete_comment, get_comment_author_id, get_comment_by_id,
-    get_comment_task_id, list_comments_by_task, update_comment, CommentQueryError,
-    CommentWithAuthor, CreateCommentInput, UpdateCommentInput,
+    create_comment, delete_comment, get_comment_author_id, get_comment_by_id, get_comment_task_id,
+    list_comments_by_task, update_comment, CommentQueryError, CommentWithAuthor,
+    CreateCommentInput, UpdateCommentInput,
 };
 
 // custom_fields
@@ -151,15 +152,16 @@ pub use eisenhower::{
 
 // my_tasks
 pub use my_tasks::{
-    list_my_tasks, my_tasks_summary, MyTaskItem, MyTasksSortBy, MyTasksSummary,
-    PaginatedMyTasks, SortOrder,
+    list_my_tasks, my_tasks_summary, MyTaskItem, MyTasksSortBy, MyTasksSummary, PaginatedMyTasks,
+    SortOrder,
 };
 
 // notification_preferences
 pub use notification_preferences::{
-    get_preference, list_by_user as list_notification_preferences, reset_all as reset_notification_preferences,
-    should_notify, upsert as upsert_notification_preference, NotificationChannel,
-    NotificationPreferenceError, UpsertPreferenceInput,
+    get_preference, list_by_user as list_notification_preferences,
+    reset_all as reset_notification_preferences, should_notify,
+    upsert as upsert_notification_preference, NotificationChannel, NotificationPreferenceError,
+    UpsertPreferenceInput,
 };
 
 // notifications
@@ -183,10 +185,9 @@ pub use project_statuses::{
 
 // project_templates
 pub use project_templates::{
-    create_board_from_template, create_template, delete_template, get_template,
-    list_templates, save_board_as_template, CreateBoardFromTemplateInput,
-    CreateTemplateFromBoardInput, CreateTemplateInput, ProjectTemplateQueryError,
-    TemplateWithDetails,
+    create_board_from_template, create_template, delete_template, get_template, list_templates,
+    save_board_as_template, CreateBoardFromTemplateInput, CreateTemplateFromBoardInput,
+    CreateTemplateInput, ProjectTemplateQueryError, TemplateWithDetails,
 };
 
 // recurring
@@ -213,10 +214,10 @@ pub use task_bulk::{bulk_delete_tasks, bulk_update_tasks, BulkUpdateInput};
 
 // task_groups
 pub use task_groups::{
-    create_task_group, get_default_task_list, get_task_group_by_id,
-    list_task_groups_by_board, list_task_groups_with_stats, list_task_lists_by_project,
-    soft_delete_task_group, toggle_task_group_collapse, update_task_group_color,
-    update_task_group_name, update_task_group_position,
+    create_task_group, get_default_task_list, get_task_group_by_id, list_task_groups_by_board,
+    list_task_groups_with_stats, list_task_lists_by_project, soft_delete_task_group,
+    toggle_task_group_collapse, update_task_group_color, update_task_group_name,
+    update_task_group_position,
 };
 
 // task_reminders
@@ -228,9 +229,9 @@ pub use task_reminders::{
 // task_templates
 pub use task_templates::{
     create_task_from_template, create_task_template, delete_task_template, get_task_template,
-    list_task_templates, save_task_as_template, update_task_template,
-    CreateTaskTemplateInput, TaskTemplateQueryError, TaskTemplateWithDetails,
-    TemplateCustomFieldInput, UpdateTaskTemplateInput,
+    list_task_templates, save_task_as_template, update_task_template, CreateTaskTemplateInput,
+    TaskTemplateQueryError, TaskTemplateWithDetails, TemplateCustomFieldInput,
+    UpdateTaskTemplateInput,
 };
 
 // task_views
@@ -240,21 +241,23 @@ pub use task_views::{
 };
 
 // task_watchers
-pub use task_watchers::{add_watcher, get_task_watcher_ids, get_watcher_info, remove_watcher, WatcherInfo};
+pub use task_watchers::{
+    add_watcher, get_task_watcher_ids, get_watcher_info, remove_watcher, WatcherInfo,
+};
 
 // tasks
 pub use tasks::{
     create_task, duplicate_task, find_done_status, find_non_done_status, get_task_board_id,
-    get_task_by_id, get_task_project_id, get_task_row, get_task_status_id,
-    get_user_display_name, is_done_status, list_child_tasks, list_tasks_by_board, move_task,
-    soft_delete_task, update_task, update_task_list, update_task_status, validate_transition,
-    AssigneeInfo, CreateTaskInput, TaskQueryError, TaskWithDetails, UpdateTaskInput,
+    get_task_by_id, get_task_project_id, get_task_row, get_task_status_id, get_user_display_name,
+    is_done_status, list_child_tasks, list_tasks_by_board, move_task, soft_delete_task,
+    update_task, update_task_list, update_task_status, validate_transition, AssigneeInfo,
+    CreateTaskInput, TaskQueryError, TaskWithDetails, UpdateTaskInput,
 };
 
 // team_overview
 pub use team_overview::{
-    get_member_active_tasks, get_overloaded_members, get_workload, reassign_tasks,
-    MemberTask, MemberWorkload, OverloadedMember,
+    get_member_active_tasks, get_overloaded_members, get_workload, reassign_tasks, MemberTask,
+    MemberWorkload, OverloadedMember,
 };
 
 // teams
@@ -268,34 +271,32 @@ pub use teams::{
 pub use time_entries::{
     create_manual_entry, delete_entry, get_board_time_report, get_running_timer,
     get_timesheet_report, list_task_time_entries, start_timer, stop_timer, update_entry,
-    ManualEntryInput, StartTimerInput, TaskTimeReport, TimeEntryQueryError,
-    TimeEntryWithTask, TimesheetEntry, TimesheetReport, TimesheetSummary, UpdateEntryInput,
+    ManualEntryInput, StartTimerInput, TaskTimeReport, TimeEntryQueryError, TimeEntryWithTask,
+    TimesheetEntry, TimesheetReport, TimesheetSummary, UpdateEntryInput,
 };
 
 // webhooks
 pub use webhooks::{
     create_webhook, delete_webhook, get_active_webhooks_for_event, get_webhook_deliveries,
-    list_webhooks, log_webhook_delivery, update_webhook, CreateWebhookInput,
-    UpdateWebhookInput, WebhookQueryError,
+    list_webhooks, log_webhook_delivery, update_webhook, CreateWebhookInput, UpdateWebhookInput,
+    WebhookQueryError,
 };
 
 // workspaces
 pub use workspaces::{
-    add_workspace_member, bulk_add_workspace_members, create_workspace,
-    get_user_workspaces, get_workspace_by_id, get_workspace_member_role,
-    get_workspace_visibility, is_workspace_member, join_open_workspace,
-    list_open_workspaces, list_tenant_members, list_workspaces_for_user,
-    remove_workspace_member, search_workspace_members, soft_delete_workspace,
-    update_workspace, update_workspace_member_role, update_workspace_visibility,
-    TenantMemberInfo, UserWorkspaceMembership, WorkspaceMemberInfo, WorkspaceWithMembers,
+    add_workspace_member, bulk_add_workspace_members, create_workspace, get_user_workspaces,
+    get_workspace_by_id, get_workspace_member_role, get_workspace_visibility, is_workspace_member,
+    join_open_workspace, list_open_workspaces, list_tenant_members, list_workspaces_for_user,
+    remove_workspace_member, search_workspace_members, soft_delete_workspace, update_workspace,
+    update_workspace_member_role, update_workspace_visibility, TenantMemberInfo,
+    UserWorkspaceMembership, WorkspaceMemberInfo, WorkspaceWithMembers,
 };
 
 // workspace_job_roles
 pub use workspace_job_roles::{
     assign_role_to_member, create_job_role, delete_job_role, get_member_roles,
     get_members_with_role, get_roles_for_all_members, list_job_roles, remove_role_from_member,
-    update_job_role, CreateJobRoleInput, MemberJobRoleInfo, MemberRoleBatch,
-    UpdateJobRoleInput,
+    update_job_role, CreateJobRoleInput, MemberJobRoleInfo, MemberRoleBatch, UpdateJobRoleInput,
 };
 
 // archive
@@ -313,11 +314,10 @@ pub use favorites::{add_favorite, is_favorited, list_favorites, remove_favorite,
 
 // invitations
 pub use invitations::{
-    accept_invitation, add_workspace_member as invitation_add_workspace_member,
-    create_invitation, create_invitation_with_details, delete_invitation,
-    get_invitation_by_id, get_invitation_by_token, get_pending_invitation_by_email,
-    get_workspace_tenant_id, list_all_invitations, list_pending_invitations,
-    resend_invitation,
+    accept_invitation, add_workspace_member as invitation_add_workspace_member, create_invitation,
+    create_invitation_with_details, delete_invitation, get_invitation_by_id,
+    get_invitation_by_token, get_pending_invitation_by_email, get_workspace_tenant_id,
+    list_all_invitations, list_pending_invitations, resend_invitation,
 };
 
 // milestones
@@ -338,8 +338,8 @@ pub use recent_items::{list_recent_items, upsert_recent_item, RecentItem};
 
 // reports
 pub use reports::{
-    get_board_report, AssigneeWorkload, BoardReport, BurndownPoint, CompletionRate,
-    OverdueBucket, PriorityCount, ReportQueryError,
+    get_board_report, AssigneeWorkload, BoardReport, BurndownPoint, CompletionRate, OverdueBucket,
+    PriorityCount, ReportQueryError,
 };
 
 // search

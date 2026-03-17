@@ -90,6 +90,31 @@ async fn get_project(
     Path(id): Path<Uuid>,
     headers: axum::http::HeaderMap,
 ) -> Result<axum::response::Response> {
+    // Check Redis cache first (30s TTL)
+    let cache_key = cache::project_detail_key(&id);
+    if let Some(cached) = cache::cache_get::<ProjectDetailResponse>(&state.redis, &cache_key).await
+    {
+        // Still apply ETag logic on cached response
+        let json_str = serde_json::to_string(&cached).unwrap_or_else(|_| String::from("{}"));
+        let etag = generate_etag(&json_str);
+
+        if check_if_none_match(&headers, &etag) {
+            return Ok(axum::response::Response::builder()
+                .status(axum::http::StatusCode::NOT_MODIFIED)
+                .header("etag", etag)
+                .body(axum::body::Body::empty())
+                .unwrap_or_else(|_| axum::response::Response::new(axum::body::Body::empty())));
+        }
+
+        let mut response_json = Json(cached).into_response();
+        response_json.headers_mut().insert(
+            "etag",
+            axum::http::HeaderValue::from_str(&format!("\"{}\"", etag))
+                .unwrap_or_else(|_| axum::http::HeaderValue::from_static("")),
+        );
+        return Ok(response_json);
+    }
+
     let board = boards::get_board_by_id(&state.db, id, auth.0.user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Project not found or access denied".into()))?;
@@ -122,6 +147,9 @@ async fn get_project(
             })
             .collect(),
     };
+
+    // Store in cache (30 second TTL)
+    cache::cache_set(&state.redis, &cache_key, &response, 30).await;
 
     // Generate ETag from response JSON
     let json_str = serde_json::to_string(&response).unwrap_or_else(|_| String::from("{}"));
@@ -251,12 +279,13 @@ async fn update_project(
     .await?
     .ok_or_else(|| AppError::NotFound("Project not found".into()))?;
 
-    // Invalidate workspace projects cache
+    // Invalidate workspace projects cache and project detail cache
     cache::cache_del(
         &state.redis,
         &cache::workspace_projects_key(&board.workspace_id),
     )
     .await;
+    cache::cache_del(&state.redis, &cache::project_detail_key(&id)).await;
 
     Ok(Json(ProjectResponse {
         id: board.id,
@@ -297,13 +326,16 @@ async fn delete_project(
     let deleted = boards::soft_delete_board(&state.db, id).await?;
 
     if deleted {
-        // Invalidate workspace projects cache
+        // Invalidate workspace projects cache and project detail cache
         if let Some(info) = project_info {
             cache::cache_del(
                 &state.redis,
                 &cache::workspace_projects_key(&info.project.workspace_id),
             )
             .await;
+            cache::cache_del(&state.redis, &cache::project_detail_key(&id)).await;
+            // Also invalidate task cache for this project
+            cache::cache_del(&state.redis, &cache::project_tasks_key(&id)).await;
         }
         Ok(Json(MessageResponse {
             message: "Project deleted successfully".into(),

@@ -447,7 +447,7 @@ export class HelpComponent implements OnInit {
   }
 
   openShortcutModal(): void {
-    this.shortcutsService.helpRequested$.next();
+    this.shortcutsService.helpRequested.update((n) => n + 1);
   }
 
   formatShortcut(shortcut: KeyboardShortcut): string {

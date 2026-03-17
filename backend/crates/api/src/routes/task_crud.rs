@@ -7,6 +7,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
+use crate::services::cache;
 use crate::state::AppState;
 use taskflow_db::models::automation::AutomationTrigger;
 use taskflow_db::models::{Task, TaskBroadcast, WsBoardEvent};
@@ -32,6 +33,12 @@ pub async fn list_tasks(
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
 ) -> Result<Json<ListTasksResponse>> {
+    // Check Redis cache first (10s TTL)
+    let cache_key = cache::project_tasks_key(&board_id);
+    if let Some(cached) = cache::cache_get::<ListTasksResponse>(&state.redis, &cache_key).await {
+        return Ok(Json(cached));
+    }
+
     let tasks = list_tasks_by_board(&state.db, board_id, tenant.user_id)
         .await
         .map_err(|e| match e {
@@ -42,7 +49,12 @@ pub async fn list_tasks(
             TaskQueryError::Other(msg) => AppError::InternalError(msg),
         })?;
 
-    Ok(Json(ListTasksResponse { tasks }))
+    let response = ListTasksResponse { tasks };
+
+    // Store in cache (10 second TTL)
+    cache::cache_set(&state.redis, &cache_key, &response, 10).await;
+
+    Ok(Json(response))
 }
 
 /// GET /api/tasks/:id
@@ -101,6 +113,9 @@ pub async fn create_task_handler(
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
             TaskQueryError::Other(msg) => AppError::InternalError(msg),
         })?;
+
+    // Invalidate project tasks cache
+    cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
 
     // Broadcast the task created event
     let broadcast_service = BroadcastService::new(state.redis.clone());
@@ -214,6 +229,9 @@ pub async fn update_task_handler(
             }
             TaskQueryError::Other(msg) => AppError::InternalError(msg),
         })?;
+
+    // Invalidate project tasks cache
+    cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
 
     // Compute changed fields by comparing old and new task
     let changed_fields = old_task.map(|old| {
@@ -346,6 +364,9 @@ pub async fn delete_task_handler(
             TaskQueryError::Other(msg) => AppError::InternalError(msg),
         })?;
 
+    // Invalidate project tasks cache
+    cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
+
     // Broadcast the task deleted event
     let broadcast_service = BroadcastService::new(state.redis.clone());
 
@@ -412,6 +433,9 @@ pub async fn complete_task_handler(
                 _ => AppError::InternalError("Failed to complete task".into()),
             })?;
 
+    // Invalidate project tasks cache
+    cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
+
     Ok(Json(task))
 }
 
@@ -444,6 +468,9 @@ pub async fn uncomplete_task_handler(
             _ => AppError::InternalError("Failed to uncomplete task".into()),
         })?;
 
+    // Invalidate project tasks cache
+    cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
+
     Ok(Json(task))
 }
 
@@ -471,6 +498,9 @@ pub async fn duplicate_task_handler(
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
             TaskQueryError::Other(msg) => AppError::InternalError(msg),
         })?;
+
+    // Invalidate project tasks cache
+    cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
 
     // Broadcast the task created event
     let broadcast_service = BroadcastService::new(state.redis.clone());

@@ -1,13 +1,14 @@
 import {
   Component,
-  DestroyRef,
   signal,
+  computed,
   inject,
   OnInit,
+  effect,
   ChangeDetectionStrategy,
   viewChild,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import {
@@ -257,9 +258,11 @@ import { ProjectIntegrationsSettingsComponent } from './project-integrations-set
 export class ProjectSettingsComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private projectService = inject(ProjectService);
-  private destroyRef = inject(DestroyRef);
 
   private workflowSettings = viewChild<ProjectWorkflowSettingsComponent>('workflowSettings');
+
+  private params = toSignal(this.route.params);
+  private queryParams = toSignal(this.route.queryParams);
 
   workspaceId = '';
   boardId = '';
@@ -270,23 +273,33 @@ export class ProjectSettingsComponent implements OnInit {
   errorMessage = signal<string | null>(null);
   activeTab = signal(0);
 
-  ngOnInit(): void {
-    this.route.params.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
-      this.workspaceId = params['workspaceId'];
-      this.boardId = params['projectId'];
-      this.loadBoard();
+  constructor() {
+    effect(() => {
+      const p = this.params();
+      if (p) {
+        this.workspaceId = p['workspaceId'];
+        this.boardId = p['projectId'];
+        this.loadBoard();
+      }
     });
 
     // Support ?tab=N query param to open specific tab
-    this.route.queryParams.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((queryParams) => {
-      const tabParam = queryParams['tab'];
-      if (tabParam !== undefined && tabParam !== null) {
-        const tabIndex = parseInt(tabParam, 10);
-        if (!isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 9) {
-          this.activeTab.set(tabIndex);
+    effect(() => {
+      const qp = this.queryParams();
+      if (qp) {
+        const tabParam = qp['tab'];
+        if (tabParam !== undefined && tabParam !== null) {
+          const tabIndex = parseInt(tabParam, 10);
+          if (!isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 9) {
+            this.activeTab.set(tabIndex);
+          }
         }
       }
     });
+  }
+
+  ngOnInit(): void {
+    // Data loading is handled by effects reacting to route param changes
   }
 
   onTabChange(tabValue: unknown): void {

@@ -21,6 +21,7 @@ use taskflow_services::{spawn_automation_evaluation, TriggerContext};
 use crate::errors::{AppError, Result};
 use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
 use crate::middleware::auth_middleware;
+use crate::services::cache;
 use crate::state::AppState;
 
 use super::common::MessageResponse;
@@ -113,7 +114,7 @@ pub struct WorkspaceResponse {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct WorkspaceDetailResponse {
     pub id: Uuid,
     pub name: String,
@@ -126,7 +127,7 @@ pub struct WorkspaceDetailResponse {
     pub members: Vec<MemberInfo>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct MemberInfo {
     pub user_id: Uuid,
     pub name: String,
@@ -207,11 +208,19 @@ async fn get_workspace(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
+    // Check Redis cache first (60s TTL)
+    let cache_key = cache::workspace_members_key(&id);
+    if let Some(cached) =
+        cache::cache_get::<WorkspaceDetailResponse>(&state.redis, &cache_key).await
+    {
+        return Ok(Json(cached));
+    }
+
     let workspace = workspaces::get_workspace_by_id(&state.db, id, auth.0.tenant_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
 
-    Ok(Json(WorkspaceDetailResponse {
+    let response = WorkspaceDetailResponse {
         id: workspace.workspace.id,
         name: workspace.workspace.name,
         description: workspace.workspace.description,
@@ -234,7 +243,12 @@ async fn get_workspace(
                 joined_at: m.joined_at,
             })
             .collect(),
-    }))
+    };
+
+    // Store in cache (60 second TTL)
+    cache::cache_set(&state.redis, &cache_key, &response, 60).await;
+
+    Ok(Json(response))
 }
 
 /// POST /api/workspaces
@@ -393,6 +407,9 @@ async fn add_member(
 
     workspaces::add_workspace_member(&state.db, id, payload.user_id).await?;
 
+    // Invalidate workspace members cache
+    cache::cache_del(&state.redis, &cache::workspace_members_key(&id)).await;
+
     // Fire MemberJoined automation trigger
     fire_member_joined_trigger(
         state.db.clone(),
@@ -433,6 +450,9 @@ async fn remove_member(
     let removed = workspaces::remove_workspace_member(&state.db, id, user_id).await?;
 
     if removed {
+        // Invalidate workspace members cache
+        cache::cache_del(&state.redis, &cache::workspace_members_key(&id)).await;
+
         Ok(Json(MessageResponse {
             message: "Member removed successfully".into(),
         }))
@@ -502,6 +522,9 @@ async fn update_member_role(
     if !updated {
         return Err(AppError::NotFound("Member not found".into()));
     }
+
+    // Invalidate workspace members cache
+    cache::cache_del(&state.redis, &cache::workspace_members_key(&workspace_id)).await;
 
     // Fetch the updated member info to return
     let workspace_detail =
@@ -583,6 +606,9 @@ async fn join_workspace(
 
     workspaces::join_open_workspace(&state.db, id, auth.0.user_id).await?;
 
+    // Invalidate workspace members cache
+    cache::cache_del(&state.redis, &cache::workspace_members_key(&id)).await;
+
     // Fire MemberJoined automation trigger
     fire_member_joined_trigger(
         state.db.clone(),
@@ -644,6 +670,9 @@ async fn bulk_add_members(
     }
 
     let added = workspaces::bulk_add_workspace_members(&state.db, id, &payload.user_ids).await?;
+
+    // Invalidate workspace members cache
+    cache::cache_del(&state.redis, &cache::workspace_members_key(&id)).await;
 
     Ok(Json(BulkAddMembersResponse { added }))
 }

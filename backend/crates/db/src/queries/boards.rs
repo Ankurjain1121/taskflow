@@ -26,6 +26,7 @@ pub async fn list_projects_by_workspace(
           AND bm.user_id = $2
           AND b.deleted_at IS NULL
         ORDER BY b.created_at DESC
+        LIMIT 200
         "#,
     )
     .bind(workspace_id)

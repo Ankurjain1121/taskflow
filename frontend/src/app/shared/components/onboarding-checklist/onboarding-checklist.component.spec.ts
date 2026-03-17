@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { Subject } from 'rxjs';
 import { OnboardingChecklistComponent } from './onboarding-checklist.component';
 import {
   OnboardingChecklistService,
@@ -49,8 +48,9 @@ describe('OnboardingChecklistComponent', () => {
     navigate: vi.fn(),
   };
 
+  const helpRequestedSignal = signal(0);
   const mockShortcutsService = {
-    helpRequested$: new Subject<void>(),
+    helpRequested: helpRequestedSignal,
   };
 
   beforeEach(async () => {
@@ -75,8 +75,8 @@ describe('OnboardingChecklistComponent', () => {
   });
 
   describe('onCtaClick()', () => {
-    it('calls shortcutsService.helpRequested$.next() when ctaAction is open_shortcuts', () => {
-      const nextSpy = vi.spyOn(mockShortcutsService.helpRequested$, 'next');
+    it('increments shortcutsService.helpRequested when ctaAction is open_shortcuts', () => {
+      const before = mockShortcutsService.helpRequested();
       const item = makeChecklistItem({
         ctaRoute: undefined,
         ctaAction: 'open_shortcuts',
@@ -84,7 +84,7 @@ describe('OnboardingChecklistComponent', () => {
 
       component.onCtaClick(item);
 
-      expect(nextSpy).toHaveBeenCalled();
+      expect(mockShortcutsService.helpRequested()).toBe(before + 1);
       expect(mockRouter.navigate).not.toHaveBeenCalled();
     });
 
@@ -100,7 +100,7 @@ describe('OnboardingChecklistComponent', () => {
     });
 
     it('does nothing when item has neither ctaRoute nor ctaAction', () => {
-      const nextSpy = vi.spyOn(mockShortcutsService.helpRequested$, 'next');
+      const before = mockShortcutsService.helpRequested();
       const item = makeChecklistItem({
         ctaRoute: undefined,
         ctaAction: undefined,
@@ -108,7 +108,7 @@ describe('OnboardingChecklistComponent', () => {
 
       component.onCtaClick(item);
 
-      expect(nextSpy).not.toHaveBeenCalled();
+      expect(mockShortcutsService.helpRequested()).toBe(before);
       expect(mockRouter.navigate).not.toHaveBeenCalled();
     });
   });

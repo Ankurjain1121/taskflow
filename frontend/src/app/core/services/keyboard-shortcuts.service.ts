@@ -1,5 +1,4 @@
 import { Injectable, OnDestroy, signal } from '@angular/core';
-import { Subject } from 'rxjs';
 
 export interface KeyboardShortcut {
   key: string;
@@ -22,7 +21,7 @@ export class KeyboardShortcutsService implements OnDestroy {
   private pendingTimer: ReturnType<typeof setTimeout> | null = null;
   private static readonly SEQUENCE_TIMEOUT_MS = 500;
 
-  readonly helpRequested$ = new Subject<void>();
+  readonly helpRequested = signal(0);
 
   readonly recentlyUsedIds = signal<string[]>([]);
 
@@ -102,7 +101,7 @@ export class KeyboardShortcutsService implements OnDestroy {
     // Show help on ?
     if (e.key === '?' && !e.ctrlKey && !e.altKey) {
       e.preventDefault();
-      this.helpRequested$.next();
+      this.helpRequested.update((n) => n + 1);
       return;
     }
 

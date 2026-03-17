@@ -3,13 +3,12 @@ import {
   signal,
   computed,
   inject,
-  OnInit,
+  effect,
   OnDestroy,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
 import {
   KeyboardShortcutsService,
   KeyboardShortcut,
@@ -147,9 +146,8 @@ import {
     }
   `,
 })
-export class ShortcutHelpComponent implements OnInit, OnDestroy {
+export class ShortcutHelpComponent implements OnDestroy {
   private shortcutsService = inject(KeyboardShortcutsService);
-  private sub!: Subscription;
 
   visible = signal(false);
   searchQuery = '';
@@ -181,21 +179,23 @@ export class ShortcutHelpComponent implements OnInit, OnDestroy {
       .filter((cat) => cat.shortcuts.length > 0);
   });
 
-  ngOnInit(): void {
-    this.sub = this.shortcutsService.helpRequested$.subscribe(() => {
-      this.updateCategories();
-      this.shortcutsService.pushDisable();
-      this.visible.set(true);
-      try {
-        localStorage.setItem('tf_shortcut_modal_opened', '1');
-      } catch {
-        /* ignore */
+  constructor() {
+    effect(() => {
+      const count = this.shortcutsService.helpRequested();
+      if (count > 0) {
+        this.updateCategories();
+        this.shortcutsService.pushDisable();
+        this.visible.set(true);
+        try {
+          localStorage.setItem('tf_shortcut_modal_opened', '1');
+        } catch {
+          /* ignore */
+        }
       }
     });
   }
 
   ngOnDestroy(): void {
-    this.sub?.unsubscribe();
     if (this.visible()) {
       this.shortcutsService.popDisable();
     }

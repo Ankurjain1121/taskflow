@@ -5,7 +5,6 @@ import {
   tap,
   catchError,
   throwError,
-  BehaviorSubject,
   of,
   switchMap,
   filter,
@@ -13,6 +12,7 @@ import {
   map,
   timeout,
 } from 'rxjs';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 
 export interface User {
@@ -56,9 +56,8 @@ export class AuthService {
   private readonly apiUrl = '/api/auth';
   private _currentUser = signal<User | null>(null);
   private _csrfToken = signal<string | null>(null);
-  private refreshResult$ = new BehaviorSubject<
-    'idle' | 'pending' | 'success' | 'failed'
-  >('idle');
+  private _refreshResult = signal<'idle' | 'pending' | 'success' | 'failed'>('idle');
+  private readonly refreshResult$ = toObservable(this._refreshResult);
 
   readonly currentUser = this._currentUser.asReadonly();
   readonly isAuthenticated = computed(() => this._currentUser() !== null);
@@ -134,7 +133,7 @@ export class AuthService {
   }
 
   refresh(): Observable<TokenResponse> {
-    if (this.refreshResult$.value === 'pending') {
+    if (this._refreshResult() === 'pending') {
       // A refresh is already in flight — wait for its result
       return this.waitForRefresh().pipe(
         switchMap((success) =>
@@ -145,7 +144,7 @@ export class AuthService {
       );
     }
 
-    this.refreshResult$.next('pending');
+    this._refreshResult.set('pending');
 
     return this.http
       .post<TokenResponse>(
@@ -157,12 +156,12 @@ export class AuthService {
         timeout(10000),
         tap((response) => {
           this.handleAuthSuccess(response);
-          this.refreshResult$.next('success');
-          setTimeout(() => this.refreshResult$.next('idle'), 100);
+          this._refreshResult.set('success');
+          setTimeout(() => this._refreshResult.set('idle'), 100);
         }),
         catchError((error) => {
-          this.refreshResult$.next('failed');
-          setTimeout(() => this.refreshResult$.next('idle'), 100);
+          this._refreshResult.set('failed');
+          setTimeout(() => this._refreshResult.set('idle'), 100);
           return throwError(() => error);
         }),
       );
@@ -196,7 +195,7 @@ export class AuthService {
   }
 
   isRefreshInProgress(): boolean {
-    return this.refreshResult$.value === 'pending';
+    return this._refreshResult() === 'pending';
   }
 
   forgotPassword(email: string): Observable<{ message: string }> {
@@ -265,7 +264,7 @@ export class AuthService {
     localStorage.removeItem('taskflow_user');
     this._currentUser.set(null);
     this._csrfToken.set(null);
-    this.refreshResult$.next('idle');
+    this._refreshResult.set('idle');
   }
 
   /** Check if a session flag exists (no PII stored). */

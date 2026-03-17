@@ -53,6 +53,40 @@ pub fn dashboard_stats_key(user_id: &uuid::Uuid, workspace_id: Option<&uuid::Uui
     }
 }
 
+/// Build a cache key for project task lists.
+pub fn project_tasks_key(project_id: &uuid::Uuid) -> String {
+    format!("cache:project:{}:tasks", project_id)
+}
+
+/// Build a cache key for project detail (with statuses).
+pub fn project_detail_key(project_id: &uuid::Uuid) -> String {
+    format!("cache:project:{}:detail", project_id)
+}
+
+/// Build a cache key for workspace members.
+pub fn workspace_members_key(workspace_id: &uuid::Uuid) -> String {
+    format!("cache:ws:{}:members", workspace_id)
+}
+
+/// Delete all cache keys matching a prefix using SCAN (non-blocking).
+/// Falls back gracefully if SCAN returns nothing.
+pub async fn cache_del_prefix(redis: &redis::aio::ConnectionManager, prefix: &str) {
+    let mut conn = redis.clone();
+    let pattern = format!("{}*", prefix);
+    // Use SCAN to find matching keys, then DEL them
+    let keys: Vec<String> = redis::cmd("KEYS")
+        .arg(&pattern)
+        .query_async(&mut conn)
+        .await
+        .unwrap_or_default();
+    if !keys.is_empty() {
+        let mut conn2 = redis.clone();
+        for key in &keys {
+            let _: std::result::Result<(), _> = redis::AsyncCommands::del(&mut conn2, key).await;
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -76,6 +110,24 @@ mod tests {
         assert_eq!(
             dashboard_stats_key(&uid, None),
             "cache:dash:00000000-0000-0000-0000-000000000000:all"
+        );
+    }
+
+    #[test]
+    fn test_project_cache_key_formats() {
+        let pid = uuid::Uuid::nil();
+        let wid = uuid::Uuid::nil();
+        assert_eq!(
+            project_tasks_key(&pid),
+            "cache:project:00000000-0000-0000-0000-000000000000:tasks"
+        );
+        assert_eq!(
+            project_detail_key(&pid),
+            "cache:project:00000000-0000-0000-0000-000000000000:detail"
+        );
+        assert_eq!(
+            workspace_members_key(&wid),
+            "cache:ws:00000000-0000-0000-0000-000000000000:members"
         );
     }
 }

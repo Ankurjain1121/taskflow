@@ -18,6 +18,7 @@ use taskflow_db::utils::generate_key_between;
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
 use crate::middleware::auth_middleware;
+use crate::services::cache;
 use crate::state::AppState;
 
 use super::common::MessageResponse;
@@ -205,6 +206,9 @@ async fn create_status(
     )
     .await?;
 
+    // Invalidate project detail cache (statuses changed)
+    cache::cache_del(&state.redis, &cache::project_detail_key(&project_id)).await;
+
     Ok(Json(to_response(status)))
 }
 
@@ -228,6 +232,9 @@ async fn rename_status(
         project_statuses::update_project_status(&state.db, id, Some(&payload.name), None, None)
             .await
             .map_err(|_| AppError::NotFound("Status not found".into()))?;
+
+    // Invalidate project detail cache (status renamed)
+    cache::cache_del(&state.redis, &cache::project_detail_key(&project_id)).await;
 
     Ok(Json(to_response(status)))
 }
@@ -297,6 +304,13 @@ async fn reorder_status(
         .await
         .map_err(|_| AppError::NotFound("Status not found".into()))?;
 
+    // Invalidate project detail cache (status reordered)
+    cache::cache_del(
+        &state.redis,
+        &cache::project_detail_key(&existing.project_id),
+    )
+    .await;
+
     Ok(Json(to_response(updated)))
 }
 
@@ -322,6 +336,9 @@ async fn update_status_type(
     .await
     .map_err(|_| AppError::NotFound("Status not found".into()))?;
 
+    // Invalidate project detail cache (status type changed)
+    cache::cache_del(&state.redis, &cache::project_detail_key(&project_id)).await;
+
     Ok(Json(to_response(status)))
 }
 
@@ -341,6 +358,9 @@ async fn update_color(
         project_statuses::update_project_status(&state.db, id, None, Some(&payload.color), None)
             .await
             .map_err(|_| AppError::NotFound("Status not found".into()))?;
+
+    // Invalidate project detail cache (status color changed)
+    cache::cache_del(&state.redis, &cache::project_detail_key(&project_id)).await;
 
     Ok(Json(to_response(status)))
 }
@@ -411,6 +431,18 @@ async fn delete_status(
     }
 
     project_statuses::delete_project_status(&state.db, id, payload.replace_with_status_id).await?;
+
+    // Invalidate project detail and tasks cache (status deleted, tasks may have moved)
+    cache::cache_del(
+        &state.redis,
+        &cache::project_detail_key(&statuses.project_id),
+    )
+    .await;
+    cache::cache_del(
+        &state.redis,
+        &cache::project_tasks_key(&statuses.project_id),
+    )
+    .await;
 
     Ok(Json(MessageResponse {
         message: "Status deleted successfully".into(),

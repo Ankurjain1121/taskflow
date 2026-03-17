@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Subject } from 'rxjs';
+import { signal } from '@angular/core';
 import { ShortcutDiscoveryBannerComponent } from './shortcut-discovery-banner.component';
 import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
 
@@ -10,13 +10,15 @@ const BANNER_DISMISSED_KEY = 'tf_shortcut_dismissed_banner';
 describe('ShortcutDiscoveryBannerComponent', () => {
   let component: ShortcutDiscoveryBannerComponent;
   let fixture: ComponentFixture<ShortcutDiscoveryBannerComponent>;
-  let mockShortcutsService: { helpRequested$: Subject<void> };
+  let helpRequestedSignal: ReturnType<typeof signal<number>>;
+  let mockShortcutsService: { helpRequested: ReturnType<typeof signal<number>> };
 
   beforeEach(async () => {
     localStorage.clear();
 
+    helpRequestedSignal = signal(0);
     mockShortcutsService = {
-      helpRequested$: new Subject<void>(),
+      helpRequested: helpRequestedSignal,
     };
 
     await TestBed.configureTestingModule({
@@ -94,14 +96,15 @@ describe('ShortcutDiscoveryBannerComponent', () => {
     });
   });
 
-  describe('helpRequested$ subscription', () => {
-    it('hides the banner when helpRequested$ emits', () => {
+  describe('helpRequested signal', () => {
+    it('hides the banner when helpRequested increments', () => {
       vi.useFakeTimers();
       fixture.detectChanges();
       component.ngOnInit();
       expect(component.visible()).toBe(true);
 
-      mockShortcutsService.helpRequested$.next();
+      helpRequestedSignal.set(1);
+      TestBed.flushEffects();
 
       expect(component.visible()).toBe(false);
     });

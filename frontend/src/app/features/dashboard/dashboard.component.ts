@@ -304,6 +304,7 @@ interface TeamOption {
 
           <!-- Metrics View Toggle -->
           @if (metricsLoading() || hasAnyMetrics()) {
+          @defer (on viewport) {
           <div class="animate-fade-in-up stagger-6 mb-6">
             <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
               <div class="flex items-center gap-2">
@@ -402,6 +403,9 @@ interface TeamOption {
               </div>
             }
           </div>
+          } @placeholder {
+            <div class="h-[300px]"></div>
+          }
           }
 
           <!-- Analytics Section -->

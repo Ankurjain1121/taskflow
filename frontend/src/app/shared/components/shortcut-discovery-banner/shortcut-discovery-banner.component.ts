@@ -4,9 +4,9 @@ import {
   OnDestroy,
   signal,
   inject,
+  effect,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
 
 const MODAL_OPENED_KEY = 'tf_shortcut_modal_opened';
@@ -63,9 +63,12 @@ export class ShortcutDiscoveryBannerComponent implements OnInit, OnDestroy {
   private autoDismissTimer?: ReturnType<typeof setTimeout>;
 
   constructor() {
-    this.shortcutsService.helpRequested$
-      .pipe(takeUntilDestroyed())
-      .subscribe(() => this.hide());
+    effect(() => {
+      const count = this.shortcutsService.helpRequested();
+      if (count > 0) {
+        this.hide();
+      }
+    });
   }
 
   ngOnInit(): void {

@@ -14,6 +14,7 @@ use uuid::Uuid;
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::auth_middleware;
+use crate::services::cache;
 use crate::state::AppState;
 use taskflow_db::queries::bulk_operations::{self, BulkAction, TaskSnapshot};
 
@@ -83,6 +84,9 @@ async fn execute_handler(
     .await
     .map_err(map_bulk_error)?;
 
+    // Invalidate project tasks cache after bulk operation
+    cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
+
     // Store snapshot in Redis with 1-hour TTL (includes user_id for ownership check)
     store_undo_snapshot(&state.redis, &op.id, ctx.user_id, &snapshot).await;
 
@@ -98,7 +102,7 @@ async fn execute_handler(
 async fn undo_handler(
     State(state): State<AppState>,
     ctx: TenantContext,
-    Path((_board_id, op_id)): Path<(Uuid, Uuid)>,
+    Path((board_id, op_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>> {
     // Retrieve snapshot from Redis and verify ownership
     let (owner_id, snapshot) = retrieve_undo_snapshot(&state.redis, &op_id)
@@ -114,6 +118,9 @@ async fn undo_handler(
     let restored = bulk_operations::undo_bulk_operation(&state.db, op_id, ctx.user_id, &snapshot)
         .await
         .map_err(map_bulk_error)?;
+
+    // Invalidate project tasks cache after undo
+    cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
 
     // Remove the Redis snapshot (one-time undo)
     delete_undo_snapshot(&state.redis, &op_id).await;
