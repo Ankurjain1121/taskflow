@@ -48,7 +48,7 @@ export class WorkspaceStateService {
     if (!this.workspaceList$) {
       this.workspaceList$ = this.workspaceService
         .list()
-        .pipe(shareReplay({ bufferSize: 1, refCount: true }));
+        .pipe(shareReplay({ bufferSize: 1, refCount: false }));
     }
     return this.workspaceList$;
   }

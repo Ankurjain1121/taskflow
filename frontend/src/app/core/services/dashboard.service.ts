@@ -85,7 +85,7 @@ export class DashboardService {
     if (existing && Date.now() - existing.timestamp < CACHE_TTL_MS) {
       return existing.observable;
     }
-    const obs = factory().pipe(shareReplay({ bufferSize: 1, refCount: true }));
+    const obs = factory().pipe(shareReplay({ bufferSize: 1, refCount: false }));
     this.cache.set(key, { observable: obs, timestamp: Date.now() });
     return obs;
   }
