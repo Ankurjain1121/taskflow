@@ -44,7 +44,7 @@ export class CacheService {
     }
 
     // Use shareReplay to deduplicate concurrent requests
-    const obs = factory().pipe(shareReplay({ bufferSize: 1, refCount: true }));
+    const obs = factory().pipe(shareReplay({ bufferSize: 1, refCount: false }));
     this.cache.set(key, { observable: obs, timestamp: Date.now() });
     return obs;
   }
