@@ -72,45 +72,38 @@ pub async fn get_workload(
 ) -> Result<Vec<MemberWorkload>, sqlx::Error> {
     let rows = sqlx::query_as::<_, WorkloadAgg>(
         r#"
-        SELECT
-            u.id as user_id,
-            u.name as user_name,
-            u.avatar_url as user_avatar,
-            COUNT(DISTINCT t.id) FILTER (WHERE t.id IS NOT NULL) as total_tasks,
-            COUNT(DISTINCT t.id) FILTER (
-                WHERE t.id IS NOT NULL
-                AND bc.type != 'done'
-            ) as active_tasks,
-            COUNT(DISTINCT t.id) FILTER (
-                WHERE t.id IS NOT NULL
-                AND t.due_date < NOW()
-                AND bc.type != 'done'
-            ) as overdue_tasks,
-            COUNT(DISTINCT t.id) FILTER (
-                WHERE t.id IS NOT NULL
-                AND bc.type = 'done'
-            ) as done_tasks,
-            COUNT(DISTINCT t.id) FILTER (
-                WHERE t.id IS NOT NULL AND t.due_date IS NOT NULL
-                AND t.due_date::date = CURRENT_DATE
-                AND bc.type != 'done'
-            ) as due_today,
-            COUNT(DISTINCT t.id) FILTER (
-                WHERE t.id IS NOT NULL AND t.due_date IS NOT NULL
-                AND t.due_date::date > CURRENT_DATE
-                AND t.due_date::date <= (CURRENT_DATE + INTERVAL '7 days')::date
-                AND bc.type != 'done'
-            ) as due_this_week
+        WITH user_task_stats AS (
+            SELECT ta.user_id,
+                COUNT(DISTINCT t.id) AS total_tasks,
+                COUNT(DISTINCT t.id) FILTER (WHERE ps.type != 'done') AS active_tasks,
+                COUNT(DISTINCT t.id) FILTER (WHERE t.due_date < NOW() AND ps.type != 'done') AS overdue_tasks,
+                COUNT(DISTINCT t.id) FILTER (WHERE ps.type = 'done') AS done_tasks,
+                COUNT(DISTINCT t.id) FILTER (
+                    WHERE t.due_date >= CURRENT_DATE AND t.due_date < CURRENT_DATE + INTERVAL '1 day'
+                    AND ps.type != 'done'
+                ) AS due_today,
+                COUNT(DISTINCT t.id) FILTER (
+                    WHERE t.due_date >= CURRENT_DATE + INTERVAL '1 day'
+                    AND t.due_date < CURRENT_DATE + INTERVAL '8 days'
+                    AND ps.type != 'done'
+                ) AS due_this_week
+            FROM task_assignees ta
+            INNER JOIN tasks t ON t.id = ta.task_id AND t.deleted_at IS NULL
+            INNER JOIN projects p ON p.id = t.project_id AND p.workspace_id = $1 AND p.deleted_at IS NULL
+            LEFT JOIN project_statuses ps ON ps.id = t.status_id
+            GROUP BY ta.user_id
+        )
+        SELECT u.id AS user_id, u.name AS user_name, u.avatar_url AS user_avatar,
+            COALESCE(uts.total_tasks, 0) AS total_tasks,
+            COALESCE(uts.active_tasks, 0) AS active_tasks,
+            COALESCE(uts.overdue_tasks, 0) AS overdue_tasks,
+            COALESCE(uts.done_tasks, 0) AS done_tasks,
+            COALESCE(uts.due_today, 0) AS due_today,
+            COALESCE(uts.due_this_week, 0) AS due_this_week
         FROM workspace_members wm
-        INNER JOIN users u ON u.id = wm.user_id
-        LEFT JOIN task_assignees ta ON ta.user_id = u.id
-        LEFT JOIN tasks t ON t.id = ta.task_id AND t.deleted_at IS NULL
-        LEFT JOIN project_statuses bc ON bc.id = t.status_id
-        LEFT JOIN projects b ON b.id = t.project_id AND b.workspace_id = $1
+        INNER JOIN users u ON u.id = wm.user_id AND u.tenant_id = $2 AND u.deleted_at IS NULL
+        LEFT JOIN user_task_stats uts ON uts.user_id = u.id
         WHERE wm.workspace_id = $1
-          AND u.tenant_id = $2
-          AND u.deleted_at IS NULL
-        GROUP BY u.id, u.name, u.avatar_url
         ORDER BY u.name ASC
         "#,
     )
@@ -161,22 +154,20 @@ pub async fn get_overloaded_members(
             u.name as user_name,
             u.avatar_url as user_avatar,
             COUNT(DISTINCT t.id) FILTER (
-                WHERE t.deleted_at IS NULL
-                AND bc.type != 'done'
+                WHERE bc.type != 'done'
             ) as active_tasks
         FROM workspace_members wm
         INNER JOIN users u ON u.id = wm.user_id
-        LEFT JOIN task_assignees ta ON ta.user_id = u.id
-        LEFT JOIN tasks t ON t.id = ta.task_id AND t.deleted_at IS NULL
+        INNER JOIN task_assignees ta ON ta.user_id = u.id
+        INNER JOIN tasks t ON t.id = ta.task_id AND t.deleted_at IS NULL
+        INNER JOIN projects p ON p.id = t.project_id AND p.workspace_id = $1 AND p.deleted_at IS NULL
         LEFT JOIN project_statuses bc ON bc.id = t.status_id
-        LEFT JOIN projects b ON b.id = t.project_id AND b.workspace_id = $1
         WHERE wm.workspace_id = $1
           AND u.tenant_id = $2
           AND u.deleted_at IS NULL
         GROUP BY u.id, u.name, u.avatar_url
         HAVING COUNT(DISTINCT t.id) FILTER (
-            WHERE t.deleted_at IS NULL
-            AND bc.type != 'done'
+            WHERE bc.type != 'done'
         ) >= $3
         ORDER BY active_tasks DESC
         "#,

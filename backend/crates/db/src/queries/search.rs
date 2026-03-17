@@ -91,8 +91,8 @@ pub async fn search_all(
               WHERE tl.task_id = t.id AND l.name ILIKE '%' || $8 || '%'
           ))
           AND ($9::text IS NULL OR EXISTS (
-              SELECT 1 FROM board_columns col
-              WHERE col.id = t.status_id AND col.name ILIKE '%' || $9 || '%'
+              SELECT 1 FROM project_statuses ps2
+              WHERE ps2.id = t.status_id AND ps2.name ILIKE '%' || $9 || '%'
           ))
         ORDER BY ts_rank(t.search_vector, plainto_tsquery('english', $2)) DESC,
                  t.updated_at DESC
@@ -121,7 +121,7 @@ pub async fn search_all(
         JOIN workspaces w ON w.id = b.workspace_id
         JOIN project_members bm ON bm.project_id = b.id AND bm.user_id = $4
         WHERE b.tenant_id = $1 AND b.deleted_at IS NULL
-          AND (b.name ILIKE $2 OR b.description ILIKE $2)
+          AND (b.search_vector @@ plainto_tsquery('english', $6) OR b.name ILIKE $2 OR b.description ILIKE $2)
           AND ($5::uuid IS NULL OR b.id = $5)
         LIMIT $3
         "#,
@@ -131,6 +131,7 @@ pub async fn search_all(
     .bind(limit)
     .bind(user_id)
     .bind(filters.board_id)
+    .bind(query)
     .fetch_all(pool)
     .await?;
 
@@ -146,7 +147,7 @@ pub async fn search_all(
         JOIN projects b ON b.id = t.project_id
         JOIN project_members bm ON bm.project_id = b.id AND bm.user_id = $4
         WHERE b.tenant_id = $1 AND c.deleted_at IS NULL AND t.deleted_at IS NULL
-          AND c.content ILIKE $2
+          AND (c.search_vector @@ plainto_tsquery('english', $6) OR c.content ILIKE $2)
           AND ($5::uuid IS NULL OR t.project_id = $5)
         LIMIT $3
         "#,
@@ -156,6 +157,7 @@ pub async fn search_all(
     .bind(limit)
     .bind(user_id)
     .bind(filters.board_id)
+    .bind(query)
     .fetch_all(pool)
     .await?;
 

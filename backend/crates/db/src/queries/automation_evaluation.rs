@@ -7,65 +7,32 @@ use serde_json;
 use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 
-use crate::models::automation::{
-    AutomationAction, AutomationLog, AutomationRule, AutomationTrigger,
-};
+use crate::models::automation::{AutomationLog, AutomationTrigger};
 
-use super::automations::{AutomationQueryError, AutomationRuleWithActions};
+use super::automations::{fold_rules_with_actions, AutomationQueryError, AutomationRuleWithActions, RuleActionRow};
 
-/// Internal helper: fetch actions for a rule (duplicated here to avoid cross-module coupling).
-async fn fetch_actions_for_rule(
-    pool: &PgPool,
-    rule_id: Uuid,
-) -> Result<Vec<AutomationAction>, sqlx::Error> {
-    let actions = sqlx::query_as::<_, AutomationAction>(
-        r#"
-        SELECT
-            id,
-            rule_id,
-            action_type,
-            action_config,
-            position
-        FROM automation_actions
-        WHERE rule_id = $1
-        ORDER BY position ASC
-        "#,
-    )
-    .bind(rule_id)
-    .fetch_all(pool)
-    .await?;
-
-    Ok(actions)
-}
-
-/// Get all active rules for a specific trigger on a board.
+/// Get all active rules for a specific trigger on a project.
+/// Uses a single JOIN query instead of N+1 fetches.
 /// Used by the automation engine to find rules that should fire.
 pub async fn get_active_rules_for_trigger(
     pool: &PgPool,
     board_id: Uuid,
     trigger: AutomationTrigger,
 ) -> Result<Vec<AutomationRuleWithActions>, AutomationQueryError> {
-    let rules = sqlx::query_as::<_, AutomationRule>(
+    let rows = sqlx::query_as::<_, RuleActionRow>(
         r#"
         SELECT
-            id,
-            name,
-            board_id,
-            trigger,
-            trigger_config,
-            is_active,
-            tenant_id,
-            created_by_id,
-            created_at,
-            updated_at,
-            conditions,
-            execution_count,
-            last_triggered_at
-        FROM automation_rules
-        WHERE board_id = $1
-          AND trigger = $2
-          AND is_active = true
-        ORDER BY created_at ASC
+            ar.id as rule_id, ar.name as rule_name, ar.project_id, ar.trigger,
+            ar.trigger_config, ar.is_active, ar.tenant_id, ar.created_by_id,
+            ar.created_at as rule_created_at, ar.updated_at as rule_updated_at,
+            ar.conditions, ar.execution_count, ar.last_triggered_at,
+            aa.id as action_id, aa.action_type, aa.action_config, aa.position as action_position
+        FROM automation_rules ar
+        LEFT JOIN automation_actions aa ON aa.rule_id = ar.id
+        WHERE ar.project_id = $1
+          AND ar.trigger = $2
+          AND ar.is_active = true
+        ORDER BY ar.created_at ASC, aa.position ASC
         "#,
     )
     .bind(board_id)
@@ -73,13 +40,7 @@ pub async fn get_active_rules_for_trigger(
     .fetch_all(pool)
     .await?;
 
-    let mut results = Vec::with_capacity(rules.len());
-    for rule in rules {
-        let actions = fetch_actions_for_rule(pool, rule.id).await?;
-        results.push(AutomationRuleWithActions { rule, actions });
-    }
-
-    Ok(results)
+    Ok(fold_rules_with_actions(rows))
 }
 
 /// Log an automation execution result and update rule execution stats.
