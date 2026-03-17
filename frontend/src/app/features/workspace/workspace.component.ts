@@ -237,7 +237,8 @@ export class WorkspaceComponent implements OnInit {
 
   workspaceId = signal<string>('');
   workspace = signal<Workspace | null>(null);
-  boards = signal<Board[]>([]);
+  /** Reads the shared project list signal from ProjectService */
+  readonly boards = this.projectService.projects;
   members = signal<WorkspaceMemberInfo[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
@@ -279,9 +280,8 @@ export class WorkspaceComponent implements OnInit {
       },
     });
 
-    // Load boards
+    // Load boards — listBoards() updates projectService.projects signal via tap
     this.projectService.listBoards(id).subscribe({
-      next: (boards) => this.boards.set(boards),
       error: () => {},
     });
 
@@ -313,9 +313,6 @@ export class WorkspaceComponent implements OnInit {
         template: result.template,
       })
       .subscribe({
-        next: () => {
-          this.loadData();
-        },
         error: () => {
           // Error handling - board creation failed
         },

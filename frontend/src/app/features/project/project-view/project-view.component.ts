@@ -12,10 +12,6 @@ import {
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
-import {
-  TaskService,
-  UpdateTaskRequest,
-} from '../../../core/services/task.service';
 import { Column } from '../../../core/services/project.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
 import { PresenceService } from '../../../core/services/presence.service';
@@ -50,9 +46,7 @@ import { ShortcutHelpComponent } from '../../../shared/components/shortcut-help/
 import { ShortcutDiscoveryBannerComponent } from '../../../shared/components/shortcut-discovery-banner/shortcut-discovery-banner.component';
 import { SwimlaneContainerComponent } from '../swimlane-container/swimlane-container.component';
 import { SampleProjectBannerComponent } from '../sample-project-banner/sample-board-banner.component';
-import { SpotlightOverlayComponent } from '../../../shared/components/spotlight-overlay/spotlight-overlay.component';
 import { PROJECT_SPOTLIGHT_STEPS } from './project-spotlight-steps';
-import { ContextualHintComponent } from '../../../shared/components/contextual-hint/contextual-hint.component';
 import { FeatureHintsService } from '../../../core/services/feature-hints.service';
 import { BulkPreviewDialogComponent } from '../bulk-operations/bulk-preview-dialog.component';
 import { UndoToastComponent } from '../bulk-operations/undo-toast.component';
@@ -65,12 +59,13 @@ import { ProjectGroupingService } from './project-grouping.service';
 import { ProjectMutationsService } from './project-mutations.service';
 import { ProjectWebsocketHandler } from './project-websocket.handler';
 import { ProjectDragDropHandler } from './project-drag-drop.handler';
+import { ProjectListEditHandler } from './project-list-edit.handler';
 import { CardQuickEditService } from './card-quick-edit/card-quick-edit.service';
-import { CardQuickEditPopoverComponent } from './card-quick-edit/card-quick-edit-popover.component';
 import { ProjectCardOperationsService } from './project-card-operations.service';
 import { ProjectBulkOperationsHandler } from './project-bulk-operations.handler';
 import { ProjectColumnDialogsComponent } from './project-column-dialogs.component';
 import { ProjectViewHeaderComponent } from './project-view-header.component';
+import { ProjectViewOverlaysComponent } from './project-view-overlays.component';
 import { ProjectLoadingSkeletonComponent } from './project-loading-skeleton.component';
 import { MessageService } from 'primeng/api';
 
@@ -105,6 +100,7 @@ import { MessageService } from 'primeng/api';
     ProjectColumnDialogsComponent,
     ProjectViewHeaderComponent,
     ProjectLoadingSkeletonComponent,
+    ProjectViewOverlaysComponent,
   ],
   providers: [
     ProjectShortcutsService,
@@ -115,6 +111,7 @@ import { MessageService } from 'primeng/api';
     ProjectStateService,
     ProjectWebsocketHandler,
     ProjectDragDropHandler,
+    ProjectListEditHandler,
     ProjectCardOperationsService,
     ProjectBulkOperationsHandler,
     CardQuickEditService,
@@ -210,10 +207,10 @@ import { MessageService } from 'primeng/api';
               [columns]="state.columns()"
               [projectId]="boardId"
               (taskClicked)="state.selectedTaskId.set($event)"
-              (titleChanged)="onListTitleChanged($event)"
-              (priorityChanged)="onListPriorityChanged($event)"
-              (statusChanged)="onListStatusChanged($event)"
-              (dueDateChanged)="onListDueDateChanged($event)"
+              (titleChanged)="listEdit.onTitleChanged($event, boardId, destroy$)"
+              (priorityChanged)="listEdit.onPriorityChanged($event, boardId, destroy$)"
+              (statusChanged)="listEdit.onStatusChanged($event, boardId, destroy$)"
+              (dueDateChanged)="listEdit.onDueDateChanged($event, boardId, destroy$)"
               (groupToggled)="state.toggleGroupCollapse($event)"
             ></app-list-view>
           } @placeholder {
@@ -398,22 +395,6 @@ import { MessageService } from 'primeng/api';
       <!-- Undo Toast -->
       <app-undo-toast />
 
-      <!-- Card Quick-Edit Popover -->
-      @if (quickEditService.isOpen() && quickEditService.anchorRect()) {
-        <div
-          class="fixed inset-0 z-40"
-          (click)="quickEditService.close()"
-          aria-hidden="true"
-        ></div>
-        <div
-          class="fixed z-50"
-          [style.left.px]="quickEditService.anchorRect()!.left"
-          [style.top.px]="quickEditService.anchorRect()!.bottom + 4"
-        >
-          <app-card-quick-edit-popover />
-        </div>
-      }
-
       <!-- Keyboard Shortcuts Help -->
       <app-shortcut-help></app-shortcut-help>
 
@@ -452,67 +433,12 @@ import { MessageService } from 'primeng/api';
         (boardDuplicated)="onBoardDuplicated($event)"
       />
 
-      <!-- Spotlight Overlay (first-run tour) -->
-      <app-spotlight-overlay
-        [steps]="spotlightSteps"
-        [active]="spotlightActive()"
-        (completed)="spotlightActive.set(false)"
-        (skipped)="spotlightActive.set(false)"
+      <!-- Overlays: Quick-edit, Spotlight, Hints, Error Snackbar -->
+      <app-project-view-overlays
+        [spotlightSteps]="spotlightSteps"
+        [spotlightActive]="spotlightActive()"
+        (spotlightDone)="spotlightActive.set(false)"
       />
-
-      <!-- Contextual Hints -->
-      @if (
-        hintsService.boardVisitCount() >= 2 &&
-        !hintsService.isHintDismissed('board-shortcuts')
-      ) {
-        <app-contextual-hint
-          hintId="board-shortcuts"
-          message="Press ? to see all keyboard shortcuts. Navigate the board without touching your mouse!"
-          shortcutKey="?"
-          [delayMs]="3000"
-        />
-      }
-      @if (
-        hintsService.boardVisitCount() >= 3 &&
-        !hintsService.isHintDismissed('board-cmd-k')
-      ) {
-        <app-contextual-hint
-          hintId="board-cmd-k"
-          message="Press Ctrl+K to open the command palette for quick actions and search."
-          shortcutKey="Ctrl+K"
-          [delayMs]="5000"
-        />
-      }
-
-      <!-- ARIA live region for keyboard announcements -->
-      <div aria-live="polite" class="sr-only" id="board-announcements"></div>
-
-      <!-- Snackbar for errors -->
-      @if (state.errorMessage()) {
-        <div
-          role="alert"
-          aria-live="assertive"
-          class="fixed bottom-4 right-4 bg-[var(--destructive)] text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3"
-        >
-          <span>{{ state.errorMessage() }}</span>
-          <button (click)="state.clearError()" class="hover:opacity-70" aria-label="Dismiss error">
-            <svg
-              class="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-      }
     </div>
   `,
 })
@@ -523,12 +449,12 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
   private shortcutsService = inject(ProjectShortcutsService);
   private wsHandler = inject(ProjectWebsocketHandler);
   readonly dragDrop = inject(ProjectDragDropHandler);
+  readonly listEdit = inject(ProjectListEditHandler);
   readonly cardOps = inject(ProjectCardOperationsService);
   readonly bulkOps = inject(ProjectBulkOperationsHandler);
   private presenceService = inject(PresenceService);
   private messageService = inject(MessageService);
   readonly state = inject(ProjectStateService);
-  private taskService = inject(TaskService);
   readonly quickEditService = inject(CardQuickEditService);
   readonly hintsService = inject(FeatureHintsService);
   private undoToast = viewChild(UndoToastComponent);
@@ -764,81 +690,6 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
       description: '',
       priority: 'medium',
     } as CreateTaskDialogResult);
-  }
-
-  // === List View Inline Edit Handlers ===
-
-  onListTitleChanged(event: { taskId: string; title: string }): void {
-    this.updateFlatTask(event.taskId, { title: event.title });
-  }
-
-  onListPriorityChanged(event: { taskId: string; priority: string }): void {
-    this.updateFlatTask(event.taskId, {
-      priority: event.priority as UpdateTaskRequest['priority'],
-    });
-  }
-
-  onListStatusChanged(event: { taskId: string; statusId: string }): void {
-    // Find the target column to get status name/color for optimistic update
-    const targetColumn = this.state.columns().find((c) => c.id === event.statusId);
-    if (targetColumn) {
-      this.state.flatTasks.update((tasks) =>
-        tasks.map((t) =>
-          t.id === event.taskId
-            ? { ...t, status_id: event.statusId, status_name: targetColumn.name, status_color: targetColumn.color }
-            : t,
-        ),
-      );
-    }
-
-    this.taskService
-      .moveTask(event.taskId, {
-        status_id: event.statusId,
-        position: 'bottom',
-      })
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        error: () => {
-          this.state.showError('Failed to move task');
-          // Reload to revert optimistic update
-          this.state.loadFlatTasks(this.boardId, this.destroy$);
-        },
-      });
-  }
-
-  onListDueDateChanged(event: {
-    taskId: string;
-    dueDate: string | null;
-  }): void {
-    const req: UpdateTaskRequest = event.dueDate
-      ? { due_date: event.dueDate }
-      : { clear_due_date: true };
-    this.updateFlatTask(event.taskId, req);
-  }
-
-  private updateFlatTask(taskId: string, req: UpdateTaskRequest): void {
-    // Optimistic update in flatTasks
-    this.state.flatTasks.update((tasks) =>
-      tasks.map((t) => (t.id === taskId ? { ...t, ...req } : t)),
-    );
-
-    this.taskService
-      .updateTask(taskId, req)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (updatedTask) => {
-          this.state.flatTasks.update((tasks) =>
-            tasks.map((t) =>
-              t.id === taskId ? { ...t, ...updatedTask } : t,
-            ),
-          );
-        },
-        error: () => {
-          this.state.showError('Failed to update task');
-          // Reload to revert
-          this.state.loadFlatTasks(this.boardId, this.destroy$);
-        },
-      });
   }
 
   // === Keyboard Navigation ===

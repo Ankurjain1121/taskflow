@@ -196,6 +196,14 @@ export class BreadcrumbsComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Fast path: check the activeProject signal (populated by prior getBoard calls).
+    const active = this.projectService.activeProject();
+    if (active?.id === boardId && active.name) {
+      this.projectNameCache.set(boardId, active.name);
+      this.setProjectName(boardId, active.name);
+      return;
+    }
+
     // Async path: fetch name and cache it.
     this.projectService
       .getBoard(boardId)
