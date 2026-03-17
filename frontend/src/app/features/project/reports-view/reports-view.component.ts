@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ChartModule } from 'primeng/chart';
+import { ButtonModule } from 'primeng/button';
 import {
   ReportsService,
   BoardReport,
@@ -27,7 +28,7 @@ import {
 @Component({
   selector: 'app-reports-view',
   standalone: true,
-  imports: [CommonModule, ChartModule],
+  imports: [CommonModule, ChartModule, ButtonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) {
@@ -54,16 +55,28 @@ import {
           <h2 class="text-xl font-semibold text-[var(--card-foreground)]">
             Project Analytics
           </h2>
-          <select
-            class="text-sm border border-[var(--border)] rounded-lg px-3 py-1.5 bg-[var(--card)]"
-            [value]="daysBack()"
-            (change)="onDaysChange($event)"
-          >
-            <option value="7">Last 7 days</option>
-            <option value="14">Last 14 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 90 days</option>
-          </select>
+          <div class="flex items-center gap-2">
+            <select
+              class="text-sm border border-[var(--border)] rounded-lg px-3 py-1.5 bg-[var(--card)]"
+              [value]="daysBack()"
+              (change)="onDaysChange($event)"
+            >
+              <option value="7">Last 7 days</option>
+              <option value="14">Last 14 days</option>
+              <option value="30">Last 30 days</option>
+              <option value="90">Last 90 days</option>
+            </select>
+            <button
+              pButton
+              label="Export CSV"
+              icon="pi pi-download"
+              severity="secondary"
+              [outlined]="true"
+              size="small"
+              [loading]="exporting()"
+              (click)="onExportCsv()"
+            ></button>
+          </div>
         </div>
 
         <!-- Charts Grid -->
@@ -342,6 +355,7 @@ export class ReportsViewComponent implements OnInit {
   private reportsService = inject(ReportsService);
 
   loading = signal(true);
+  exporting = signal(false);
   report = signal<BoardReport | null>(null);
   burndownData = signal<BurndownDataPoint[]>([]);
   daysBack = signal(30);
@@ -537,6 +551,26 @@ export class ReportsViewComponent implements OnInit {
     const value = parseInt((event.target as HTMLSelectElement).value, 10);
     this.daysBack.set(value);
     this.loadReport();
+  }
+
+  onExportCsv(): void {
+    this.exporting.set(true);
+    this.reportsService
+      .exportBurndownCsv(this.boardId(), this.daysBack())
+      .subscribe({
+        next: (blob) => {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'burndown.csv';
+          link.click();
+          URL.revokeObjectURL(url);
+          this.exporting.set(false);
+        },
+        error: () => {
+          this.exporting.set(false);
+        },
+      });
   }
 
   priorityBarWidth(count: number): number {

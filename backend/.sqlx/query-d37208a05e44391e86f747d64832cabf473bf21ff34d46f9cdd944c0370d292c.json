@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        INSERT INTO notification_preferences (id, user_id, event_type, in_app, email, slack, whatsapp)\n        VALUES ($1, $2, $3, $4, $5, $6, $7)\n        ON CONFLICT (user_id, event_type) DO UPDATE\n        SET\n            in_app = EXCLUDED.in_app,\n            email = EXCLUDED.email,\n            slack = EXCLUDED.slack,\n            whatsapp = EXCLUDED.whatsapp,\n            updated_at = NOW()\n        RETURNING id, user_id, event_type, in_app, email, slack, whatsapp, created_at, updated_at\n        ",
+  "query": "\n        INSERT INTO notification_preferences (id, user_id, event_type, in_app, email, slack, whatsapp)\n        VALUES ($1, $2, $3, $4, $5, $6, $7)\n        ON CONFLICT (user_id, event_type, COALESCE(project_id, '00000000-0000-0000-0000-000000000000'))\n        DO UPDATE SET\n            in_app = EXCLUDED.in_app,\n            email = EXCLUDED.email,\n            slack = EXCLUDED.slack,\n            whatsapp = EXCLUDED.whatsapp,\n            updated_at = NOW()\n        RETURNING id, user_id, event_type, in_app, email, slack, whatsapp, created_at, updated_at\n        ",
   "describe": {
     "columns": [
       {
@@ -72,5 +72,5 @@
       false
     ]
   },
-  "hash": "fe81ddeacb704d44e8da2c2bac14163f96308d7f5189fbedb2cbfc36ac39d467"
+  "hash": "d37208a05e44391e86f747d64832cabf473bf21ff34d46f9cdd944c0370d292c"
 }

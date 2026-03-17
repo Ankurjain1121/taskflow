@@ -102,6 +102,16 @@ export class ReportsService {
     );
   }
 
+  exportBurndownCsv(boardId: string, days: number = 30): Observable<Blob> {
+    const params = new HttpParams()
+      .set('days', days.toString())
+      .set('format', 'csv');
+    return this.http.get(
+      `/api/projects/${boardId}/charts/burndown/export`,
+      { params, responseType: 'blob' },
+    );
+  }
+
   getBurndown(projectId: string, days: number): Observable<BurndownPoint[]> {
     const params = new HttpParams()
       .set('project_id', projectId)
