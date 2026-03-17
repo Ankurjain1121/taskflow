@@ -15,16 +15,18 @@ pub use board_templates::{get_template, BoardTemplate, TEMPLATES as BOARD_TEMPLA
 pub use broadcast::{BroadcastError, BroadcastService};
 pub use jobs::{
     cleanup_expired_trash, evaluate_trigger, resolve_column_by_name, resolve_label_by_name,
-    scan_deadlines, send_weekly_digests, spawn_automation_evaluation, AutomationExecutorError,
-    AutomationRunResult, DeadlineScanResult, TrashCleanupResult, TriggerContext,
-    WeeklyDigestResult,
+    run_email_worker, scan_deadlines, send_daily_digests, send_weekly_digests,
+    spawn_automation_evaluation, AutomationExecutorError, AutomationRunResult, DeadlineScanResult,
+    TrashCleanupResult, TriggerContext, WeeklyDigestResult,
 };
 pub use minio::{MinioConfig, MinioError, MinioService};
 pub use notifications::{
-    generate_weekly_digest_html, is_slack_enabled, is_whatsapp_enabled, send_slack_notification,
-    send_whatsapp_notification, EmailError, NotificationEvent, NotificationService,
-    NotificationServiceError, PostalClient, SlackError, WhatsAppError,
+    build_email_provider, generate_weekly_digest_html, is_slack_enabled, is_whatsapp_enabled,
+    send_slack_notification, send_whatsapp_notification, AnyEmailProvider, EmailError,
+    NotificationEvent, NotificationService, NotificationServiceError, PostalClient, ResendClient,
+    SlackError, WhatsAppError,
 };
+pub use notifications::dispatcher::{notify, DispatchError, DispatchResult};
 pub use novu::{NovuClient, NovuError};
 pub use presence::{PresenceError, PresenceService, TaskLockInfo};
 pub use sample_board::{generate_sample_board, SampleBoardError};

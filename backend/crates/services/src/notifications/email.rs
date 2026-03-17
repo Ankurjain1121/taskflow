@@ -1,6 +1,10 @@
-//! Email notification provider using Postal
+//! Email notification providers
 //!
-//! Provides email sending capabilities via self-hosted Postal SMTP relay.
+//! Provides email sending capabilities via pluggable providers:
+//! - **ResendClient** — Resend API (preferred, set `RESEND_API_KEY`)
+//! - **PostalClient** — self-hosted Postal SMTP relay (fallback, set `POSTAL_API_KEY`)
+//!
+//! Both implement the `EmailProvider` trait so callers are provider-agnostic.
 
 use reqwest::Client;
 use serde::Serialize;
@@ -15,6 +19,129 @@ pub enum EmailError {
     #[error("API error: {status} - {message}")]
     Api { status: u16, message: String },
 }
+
+// ---------------------------------------------------------------------------
+// AnyEmailProvider enum (object-safe alternative to dyn trait)
+// ---------------------------------------------------------------------------
+
+/// An email provider that delegates to the configured backend.
+///
+/// Using an enum instead of `dyn Trait` avoids async-trait object-safety issues
+/// while still allowing runtime selection between Resend and Postal.
+#[derive(Clone)]
+pub enum AnyEmailProvider {
+    Resend(ResendClient),
+    Postal(PostalClient),
+}
+
+impl AnyEmailProvider {
+    /// Send an email via the configured provider.
+    pub async fn send_email(
+        &self,
+        to: &str,
+        subject: &str,
+        html_body: &str,
+    ) -> Result<(), EmailError> {
+        match self {
+            AnyEmailProvider::Resend(client) => client.send_email(to, subject, html_body).await,
+            AnyEmailProvider::Postal(client) => client.send_email(to, subject, html_body).await,
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// ResendClient
+// ---------------------------------------------------------------------------
+
+/// Email client using the Resend API (<https://resend.com/docs/api-reference/emails/send-email>).
+///
+/// Requires `RESEND_API_KEY` and optionally `RESEND_FROM_ADDRESS` / `RESEND_FROM_NAME`.
+#[derive(Clone)]
+pub struct ResendClient {
+    client: Client,
+    api_key: String,
+    from_address: String,
+    from_name: String,
+}
+
+/// JSON body for the Resend `POST /emails` endpoint
+#[derive(Serialize)]
+struct ResendSendPayload<'a> {
+    from: &'a str,
+    to: &'a [&'a str],
+    subject: &'a str,
+    html: &'a str,
+}
+
+impl ResendClient {
+    /// Create a new Resend client.
+    ///
+    /// Returns `None` if `RESEND_API_KEY` is empty or not set.
+    pub fn from_env() -> Option<Self> {
+        let api_key = std::env::var("RESEND_API_KEY").ok().filter(|s| !s.is_empty())?;
+        let from_address = std::env::var("RESEND_FROM_ADDRESS")
+            .unwrap_or_else(|_| "noreply@taskflow.local".into());
+        let from_name =
+            std::env::var("RESEND_FROM_NAME").unwrap_or_else(|_| "TaskFlow".into());
+
+        let client = Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .expect("Failed to create HTTP client");
+
+        Some(Self {
+            client,
+            api_key,
+            from_address,
+            from_name,
+        })
+    }
+}
+
+impl ResendClient {
+    /// Send an email via the Resend API
+    pub async fn send_email(
+        &self,
+        to: &str,
+        subject: &str,
+        html_body: &str,
+    ) -> Result<(), EmailError> {
+        let from = format!("{} <{}>", self.from_name, self.from_address);
+        let recipients = [to];
+
+        let payload = ResendSendPayload {
+            from: &from,
+            to: &recipients,
+            subject,
+            html: html_body,
+        };
+
+        let response = self
+            .client
+            .post("https://api.resend.com/emails")
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("Content-Type", "application/json")
+            .json(&payload)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let status = response.status().as_u16();
+            let message = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(EmailError::Api { status, message });
+        }
+
+        tracing::debug!(to = to, subject = subject, "Email sent via Resend");
+        Ok(())
+    }
+}
+
+// ---------------------------------------------------------------------------
+// PostalClient
+// ---------------------------------------------------------------------------
 
 /// Postal email client for sending notifications
 #[derive(Clone)]
@@ -160,6 +287,42 @@ impl PostalClient {
 
         self.send_email(to, &subject, &html_body).await
     }
+}
+
+// ---------------------------------------------------------------------------
+// Provider factory
+// ---------------------------------------------------------------------------
+
+/// Build the best available email provider from environment variables.
+///
+/// Priority: `RESEND_API_KEY` > `POSTAL_API_KEY` > `None` (email disabled).
+/// When `None` is returned the caller should log a warning and skip email sends.
+pub fn build_email_provider(
+    config_postal_api_key: &str,
+    config_postal_api_url: &str,
+    config_postal_from_address: &str,
+    config_postal_from_name: &str,
+) -> Option<AnyEmailProvider> {
+    // Try Resend first
+    if let Some(resend) = ResendClient::from_env() {
+        tracing::info!("Email provider: Resend (RESEND_API_KEY set)");
+        return Some(AnyEmailProvider::Resend(resend));
+    }
+
+    // Fall back to Postal
+    if !config_postal_api_key.is_empty() {
+        tracing::info!("Email provider: Postal (POSTAL_API_KEY set)");
+        let postal = PostalClient::new(
+            config_postal_api_url.to_string(),
+            config_postal_api_key.to_string(),
+            config_postal_from_address.to_string(),
+            config_postal_from_name.to_string(),
+        );
+        return Some(AnyEmailProvider::Postal(postal));
+    }
+
+    tracing::warn!("Email disabled: neither RESEND_API_KEY nor POSTAL_API_KEY is set");
+    None
 }
 
 /// Generate HTML email for weekly digest
