@@ -12,10 +12,9 @@ import { AuthService } from '../services/auth.service';
 
 describe('authInterceptor', () => {
   let mockAuthService: {
-    isRefreshInProgress: ReturnType<typeof vi.fn>;
-    waitForRefresh: ReturnType<typeof vi.fn>;
     refresh: ReturnType<typeof vi.fn>;
     signOut: ReturnType<typeof vi.fn>;
+    csrfToken: ReturnType<typeof vi.fn>;
   };
   let mockRouter: {
     navigate: ReturnType<typeof vi.fn>;
@@ -24,10 +23,9 @@ describe('authInterceptor', () => {
 
   beforeEach(() => {
     mockAuthService = {
-      isRefreshInProgress: vi.fn().mockReturnValue(false),
-      waitForRefresh: vi.fn(),
       refresh: vi.fn(),
       signOut: vi.fn(),
+      csrfToken: vi.fn().mockReturnValue(null),
     };
 
     mockRouter = {
@@ -228,8 +226,8 @@ describe('authInterceptor', () => {
     });
   });
 
-  describe('401 handling — refresh already in progress', () => {
-    it('should wait for existing refresh and retry on success', () => {
+  describe('401 handling — concurrent requests share single refresh', () => {
+    it('should call refresh for each 401 (idempotent via shareReplay)', () => {
       const req = new HttpRequest('GET', '/api/tasks');
       const error401 = new HttpErrorResponse({
         status: 401,
@@ -240,8 +238,7 @@ describe('authInterceptor', () => {
         body: { data: [] },
       });
 
-      mockAuthService.isRefreshInProgress.mockReturnValue(true);
-      mockAuthService.waitForRefresh.mockReturnValue(of(true));
+      mockAuthService.refresh.mockReturnValue(of({ csrf_token: 'csrf', user: {} }));
 
       let callCount = 0;
       const next: HttpHandlerFn = (r) => {
@@ -260,33 +257,8 @@ describe('authInterceptor', () => {
         },
       });
 
-      expect(mockAuthService.refresh).not.toHaveBeenCalled();
-      expect(mockAuthService.waitForRefresh).toHaveBeenCalledOnce();
+      expect(mockAuthService.refresh).toHaveBeenCalledOnce();
       expect(receivedResponse).toBe(successResponse);
-    });
-
-    it('should propagate error when waiting refresh returns failure', () => {
-      const req = new HttpRequest('GET', '/api/tasks');
-      const error401 = new HttpErrorResponse({
-        status: 401,
-        url: '/api/tasks',
-      });
-
-      mockAuthService.isRefreshInProgress.mockReturnValue(true);
-      mockAuthService.waitForRefresh.mockReturnValue(of(false));
-
-      const next: HttpHandlerFn = () => throwError(() => error401);
-
-      let caughtError: HttpErrorResponse | undefined;
-
-      runInterceptor(req, next).subscribe({
-        error: (err) => {
-          caughtError = err;
-        },
-      });
-
-      expect(caughtError).toBe(error401);
-      expect(mockAuthService.refresh).not.toHaveBeenCalled();
     });
   });
 

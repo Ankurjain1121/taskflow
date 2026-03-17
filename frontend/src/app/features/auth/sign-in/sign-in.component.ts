@@ -366,24 +366,26 @@ import { TwoFactorService } from '../../../core/services/two-factor.service';
         display: flex;
         width: 100%;
         max-width: 960px;
-        min-height: 600px;
+        min-height: 620px;
         border-radius: 1.5rem;
         overflow: hidden;
         box-shadow:
-          0 25px 50px -12px rgba(0, 0, 0, 0.08),
-          0 0 0 1px rgba(0, 0, 0, 0.03);
+          0 32px 64px -16px rgba(0, 0, 0, 0.14),
+          0 16px 32px -8px rgba(0, 0, 0, 0.08),
+          0 0 0 1px rgba(0, 0, 0, 0.04);
         position: relative;
         z-index: 1;
       }
 
       /* ===== Left brand panel ===== */
       .brand-panel {
-        flex: 0 0 400px;
+        flex: 0 0 420px;
         background: linear-gradient(
-          145deg,
-          var(--primary) 0%,
-          color-mix(in srgb, var(--primary) 80%, black) 50%,
-          color-mix(in srgb, var(--primary) 65%, black) 100%
+          155deg,
+          color-mix(in srgb, var(--primary) 90%, white) 0%,
+          var(--primary) 35%,
+          color-mix(in srgb, var(--primary) 75%, black) 70%,
+          color-mix(in srgb, var(--primary) 55%, black) 100%
         );
         padding: 3rem 2.5rem;
         display: flex;
@@ -396,14 +398,14 @@ import { TwoFactorService } from '../../../core/services/two-factor.service';
       .brand-panel::before {
         content: '';
         position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 100%;
-        height: 100%;
+        top: -40%;
+        right: -40%;
+        width: 120%;
+        height: 120%;
         background: radial-gradient(
           circle,
-          rgba(255, 255, 255, 0.08) 0%,
-          transparent 60%
+          rgba(255, 255, 255, 0.12) 0%,
+          transparent 55%
         );
         pointer-events: none;
       }
@@ -411,14 +413,14 @@ import { TwoFactorService } from '../../../core/services/two-factor.service';
       .brand-panel::after {
         content: '';
         position: absolute;
-        bottom: -30%;
-        left: -30%;
+        bottom: -20%;
+        left: -20%;
         width: 80%;
         height: 80%;
         background: radial-gradient(
           circle,
-          rgba(0, 0, 0, 0.1) 0%,
-          transparent 60%
+          rgba(0, 0, 0, 0.12) 0%,
+          transparent 55%
         );
         pointer-events: none;
       }
@@ -426,9 +428,9 @@ import { TwoFactorService } from '../../../core/services/two-factor.service';
       .brand-pattern {
         position: absolute;
         inset: 0;
-        opacity: 0.07;
+        opacity: 0.1;
         background-image: radial-gradient(circle at 1px 1px, white 1px, transparent 0);
-        background-size: 20px 20px;
+        background-size: 24px 24px;
         pointer-events: none;
       }
 
@@ -442,10 +444,10 @@ import { TwoFactorService } from '../../../core/services/two-factor.service';
       }
 
       .brand-title {
-        font-size: 1.75rem;
-        font-weight: 800;
+        font-size: 2.25rem;
+        font-weight: 900;
         color: white;
-        letter-spacing: -0.025em;
+        letter-spacing: -0.04em;
         margin: 0 0 0.625rem 0;
       }
 
@@ -472,11 +474,12 @@ import { TwoFactorService } from '../../../core/services/two-factor.service';
       }
 
       .feature-dot {
-        width: 6px;
-        height: 6px;
+        width: 8px;
+        height: 8px;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.5);
+        background: rgba(255, 255, 255, 0.6);
         flex-shrink: 0;
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
       }
 
       /* ===== Right form panel ===== */
@@ -499,11 +502,11 @@ import { TwoFactorService } from '../../../core/services/two-factor.service';
       }
 
       .form-title {
-        font-size: 1.625rem;
-        font-weight: 700;
+        font-size: 1.75rem;
+        font-weight: 800;
         color: var(--foreground);
         margin: 0 0 0.5rem 0;
-        letter-spacing: -0.025em;
+        letter-spacing: -0.035em;
       }
 
       .form-subtitle {
@@ -533,29 +536,29 @@ import { TwoFactorService } from '../../../core/services/two-factor.service';
 
       /* ===== Submit button ===== */
       .submit-btn {
-        height: 48px !important;
+        height: 50px !important;
         font-size: 15px !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         border-radius: 12px !important;
         letter-spacing: 0.01em;
         background: var(--primary) !important;
         color: var(--primary-foreground) !important;
-        transition: all 0.2s ease !important;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
         box-shadow:
-          0 1px 3px rgba(59, 130, 246, 0.3),
-          0 4px 12px rgba(59, 130, 246, 0.15) !important;
+          0 2px 4px rgba(59, 130, 246, 0.3),
+          0 6px 20px rgba(59, 130, 246, 0.2) !important;
         border: none !important;
       }
 
       .submit-btn:hover:not([disabled]) {
         box-shadow:
-          0 1px 3px rgba(59, 130, 246, 0.4),
-          0 8px 24px rgba(59, 130, 246, 0.25) !important;
-        transform: translateY(-1px);
+          0 2px 4px rgba(59, 130, 246, 0.4),
+          0 12px 32px rgba(59, 130, 246, 0.3) !important;
+        transform: translateY(-2px);
       }
 
       .submit-btn:active:not([disabled]) {
-        transform: translateY(0);
+        transform: translateY(0) scale(0.98);
       }
 
       .submit-btn[disabled] {
