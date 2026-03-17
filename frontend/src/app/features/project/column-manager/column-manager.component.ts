@@ -606,8 +606,7 @@ export class ColumnManagerComponent implements OnInit {
         );
         this.loading.set(false);
       },
-      error: (err) => {
-        console.error('Failed to load columns:', err);
+      error: () => {
         this.loading.set(false);
       },
     });

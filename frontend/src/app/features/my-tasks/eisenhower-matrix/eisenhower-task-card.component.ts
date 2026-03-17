@@ -167,7 +167,8 @@ export interface DelegateMember {
               (click)="$event.stopPropagation()"
             >
               <ng-template #selectedItem let-selected>
-                <div class="flex items-center gap-2" *ngIf="selected">
+                @if (selected) {
+                <div class="flex items-center gap-2">
                   <div
                     class="w-5 h-5 rounded-full bg-[color-mix(in_srgb,var(--primary)_20%,var(--card))] flex items-center justify-center text-[8px] font-bold text-[var(--primary)]"
                   >
@@ -175,6 +176,7 @@ export interface DelegateMember {
                   </div>
                   <span class="text-sm">{{ selected.name }}</span>
                 </div>
+                }
               </ng-template>
               <ng-template #item let-member>
                 <div class="flex items-center gap-2">

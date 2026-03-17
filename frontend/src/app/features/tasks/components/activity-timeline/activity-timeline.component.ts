@@ -178,8 +178,7 @@ export class ActivityTimelineComponent implements OnInit, OnDestroy {
           this.nextCursor.set(response.nextCursor);
           this.isLoading.set(false);
         },
-        error: (error) => {
-          console.error('Failed to load activities:', error);
+        error: () => {
           this.isLoading.set(false);
         },
       });
@@ -203,8 +202,7 @@ export class ActivityTimelineComponent implements OnInit, OnDestroy {
           this.nextCursor.set(response.nextCursor);
           this.isLoadingMore.set(false);
         },
-        error: (error) => {
-          console.error('Failed to load more activities:', error);
+        error: () => {
           this.isLoadingMore.set(false);
         },
       });

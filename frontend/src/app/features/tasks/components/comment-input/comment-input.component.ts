@@ -185,8 +185,7 @@ export class CommentInputComponent implements OnDestroy {
           this.isSubmitting.set(false);
           this.commentCreated.emit(comment);
         },
-        error: (error) => {
-          console.error('Failed to create comment:', error);
+        error: () => {
           this.isSubmitting.set(false);
         },
       });

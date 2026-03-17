@@ -24,11 +24,16 @@ export const authInterceptor: HttpInterceptorFn = (
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  // Add withCredentials to all /api requests so cookies are sent automatically
+  // Add withCredentials and CSRF token to all /api requests
   let authReq = req;
   if (req.url.startsWith('/api')) {
+    const csrfToken = authService.csrfToken();
+    const needsCsrf =
+      csrfToken &&
+      !['GET', 'HEAD', 'OPTIONS'].includes(req.method.toUpperCase());
     authReq = req.clone({
       withCredentials: true,
+      ...(needsCsrf ? { setHeaders: { 'X-CSRF-Token': csrfToken } } : {}),
     });
   }
 

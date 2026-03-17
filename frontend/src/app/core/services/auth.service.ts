@@ -55,12 +55,14 @@ const AUTH_FLAG_KEY = 'taskflow_auth';
 export class AuthService {
   private readonly apiUrl = '/api/auth';
   private _currentUser = signal<User | null>(null);
+  private _csrfToken = signal<string | null>(null);
   private refreshResult$ = new BehaviorSubject<
     'idle' | 'pending' | 'success' | 'failed'
   >('idle');
 
   readonly currentUser = this._currentUser.asReadonly();
   readonly isAuthenticated = computed(() => this._currentUser() !== null);
+  readonly csrfToken = this._csrfToken.asReadonly();
 
   constructor(
     private http: HttpClient,
@@ -252,6 +254,9 @@ export class AuthService {
   private handleAuthSuccess(response: TokenResponse): void {
     this.storeSessionFlag();
     this._currentUser.set(response.user);
+    if (response.csrf_token) {
+      this._csrfToken.set(response.csrf_token);
+    }
   }
 
   private clearLocalState(): void {
@@ -259,6 +264,7 @@ export class AuthService {
     // Also clean up legacy key if present from older versions
     localStorage.removeItem('taskflow_user');
     this._currentUser.set(null);
+    this._csrfToken.set(null);
     this.refreshResult$.next('idle');
   }
 

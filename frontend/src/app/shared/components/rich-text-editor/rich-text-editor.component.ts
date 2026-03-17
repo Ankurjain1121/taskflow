@@ -377,7 +377,7 @@ export class RichTextEditorComponent implements OnInit, OnDestroy {
       ],
       content: this.content() || '',
       editable: !this.readonly(),
-      onUpdate: ({ editor }) => {
+      onUpdate: ({ editor }: { editor: Editor }) => {
         this.skipNextUpdate = true;
         const html = editor.getHTML();
         this.contentChanged.emit(html === '<p></p>' ? '' : html);

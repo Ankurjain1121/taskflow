@@ -419,7 +419,7 @@ export class MilestoneListComponent implements OnInit, OnChanges {
         this.showCreateForm.set(false);
         this.resetCreateForm();
       },
-      error: (err) => console.error('Failed to create milestone:', err),
+      error: () => { /* handled by error interceptor */ },
     });
   }
 
@@ -459,7 +459,7 @@ export class MilestoneListComponent implements OnInit, OnChanges {
         );
         this.editingId.set(null);
       },
-      error: (err) => console.error('Failed to update milestone:', err),
+      error: () => { /* handled by error interceptor */ },
     });
   }
 
@@ -476,7 +476,7 @@ export class MilestoneListComponent implements OnInit, OnChanges {
       next: () => {
         this.milestones.update((m) => m.filter((ms) => ms.id !== milestone.id));
       },
-      error: (err) => console.error('Failed to delete milestone:', err),
+      error: () => { /* handled by error interceptor */ },
     });
   }
 
@@ -514,8 +514,7 @@ export class MilestoneListComponent implements OnInit, OnChanges {
         this.milestones.set(milestones);
         this.loading.set(false);
       },
-      error: (err) => {
-        console.error('Failed to load milestones:', err);
+      error: () => {
         this.loading.set(false);
       },
     });
