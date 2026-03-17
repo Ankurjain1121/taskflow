@@ -23,12 +23,12 @@ import { RadioButton } from 'primeng/radiobutton';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { HttpClient } from '@angular/common/http';
 
-export interface CreateBoardDialogData {
+export interface CreateProjectDialogData {
   workspaceId: string;
   workspaceName: string;
 }
 
-export interface CreateBoardDialogResult {
+export interface CreateProjectDialogResult {
   name: string;
   description?: string;
   template?: string;
@@ -48,7 +48,7 @@ export interface BoardTemplate {
 }
 
 @Component({
-  selector: 'app-create-board-dialog',
+  selector: 'app-create-project-dialog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
@@ -258,7 +258,7 @@ export interface BoardTemplate {
     </p-dialog>
   `,
 })
-export class CreateBoardDialogComponent implements OnInit {
+export class CreateProjectDialogComponent implements OnInit {
   private fb = inject(FormBuilder);
   private http = inject(HttpClient);
 
@@ -270,7 +270,7 @@ export class CreateBoardDialogComponent implements OnInit {
   workspaceName = input<string>('');
 
   /** Emits result when dialog closes with a value */
-  created = output<CreateBoardDialogResult>();
+  created = output<CreateProjectDialogResult>();
 
   templates = signal<BoardTemplate[]>([]);
   loadingTemplates = signal(true);
@@ -359,7 +359,7 @@ export class CreateBoardDialogComponent implements OnInit {
       return;
     }
 
-    const result: CreateBoardDialogResult = {
+    const result: CreateProjectDialogResult = {
       name: this.form.value.name.trim(),
     };
 

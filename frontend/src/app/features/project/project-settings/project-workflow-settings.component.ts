@@ -16,7 +16,7 @@ import {
 import { MessageService } from 'primeng/api';
 
 @Component({
-  selector: 'app-board-workflow-settings',
+  selector: 'app-project-workflow-settings',
   standalone: true,
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -117,7 +117,7 @@ import { MessageService } from 'primeng/api';
     </div>
   `,
 })
-export class BoardWorkflowSettingsComponent {
+export class ProjectWorkflowSettingsComponent {
   private projectService = inject(ProjectService);
   private messageService = inject(MessageService);
   private destroyRef = inject(DestroyRef);

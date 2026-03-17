@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { isOverdue } from '../../../shared/utils/task-colors';
 import { Task } from '../../../core/services/task.service';
-import { TaskFilters } from '../project-toolbar/board-toolbar.component';
+import { TaskFilters } from '../project-toolbar/project-toolbar.component';
 
 @Injectable()
 export class ProjectFilterService {

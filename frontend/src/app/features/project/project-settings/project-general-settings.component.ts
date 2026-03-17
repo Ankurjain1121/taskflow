@@ -23,7 +23,7 @@ import { MessageService } from 'primeng/api';
 import { SaveTemplateDialogComponent } from '../project-templates/save-template-dialog.component';
 
 @Component({
-  selector: 'app-board-general-settings',
+  selector: 'app-project-general-settings',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, SaveTemplateDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -215,7 +215,7 @@ import { SaveTemplateDialogComponent } from '../project-templates/save-template-
     />
   `,
 })
-export class BoardGeneralSettingsComponent implements OnInit {
+export class ProjectGeneralSettingsComponent implements OnInit {
   private fb = inject(FormBuilder);
   private projectService = inject(ProjectService);
   private messageService = inject(MessageService);

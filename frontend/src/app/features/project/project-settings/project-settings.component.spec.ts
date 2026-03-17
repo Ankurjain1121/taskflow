@@ -3,7 +3,7 @@ import { CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ActivatedRoute, Router, provideRouter } from '@angular/router';
 import { of, throwError, Subject } from 'rxjs';
-import { ProjectSettingsComponent } from './board-settings.component';
+import { ProjectSettingsComponent } from './project-settings.component';
 import { ProjectService } from '../../../core/services/project.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmationService } from 'primeng/api';

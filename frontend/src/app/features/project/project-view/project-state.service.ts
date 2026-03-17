@@ -29,7 +29,7 @@ import {
 import { DependencyService } from '../../../core/services/dependency.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
 import { GanttTask, GanttDependency } from '../gantt-view/gantt-view.component';
-import { TaskFilters } from '../project-toolbar/board-toolbar.component';
+import { TaskFilters } from '../project-toolbar/project-toolbar.component';
 import { CreateTaskDialogResult } from './create-task-dialog.component';
 import { CreateColumnDialogResult } from './create-column-dialog.component';
 import { GroupByMode, SwimlaneGroup, SwimlaneState } from './swimlane.types';

@@ -8,7 +8,7 @@ import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { provideRouter, Router, ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
-import { ProjectToolbarComponent } from './board-toolbar.component';
+import { ProjectToolbarComponent } from './project-toolbar.component';
 
 describe('ProjectToolbarComponent', () => {
   let component: ProjectToolbarComponent;

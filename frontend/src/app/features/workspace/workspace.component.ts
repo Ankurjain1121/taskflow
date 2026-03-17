@@ -17,9 +17,9 @@ import {
 import { WorkspaceMemberInfo } from '../../shared/types/workspace.types';
 import { ProjectService, Board } from '../../core/services/project.service';
 import {
-  CreateBoardDialogComponent,
-  CreateBoardDialogResult,
-} from '../../shared/components/dialogs/create-board-dialog.component';
+  CreateProjectDialogComponent,
+  CreateProjectDialogResult,
+} from '../../shared/components/dialogs/create-project-dialog.component';
 import { WorkspaceSettingsDialogService } from '../../core/services/workspace-settings-dialog.service';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 
@@ -31,7 +31,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
     RouterLink,
     ButtonModule,
     ProgressSpinner,
-    CreateBoardDialogComponent,
+    CreateProjectDialogComponent,
     EmptyStateComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -130,7 +130,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
             <p-button
               icon="pi pi-plus"
               label="Create Project"
-              (onClick)="openCreateBoardDialog()"
+              (onClick)="openCreateProjectDialog()"
             />
           </div>
 
@@ -138,7 +138,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
           @if (boards().length === 0) {
             <app-empty-state
               variant="board"
-              (ctaClicked)="openCreateBoardDialog()"
+              (ctaClicked)="openCreateProjectDialog()"
             />
           } @else {
             <!-- Board Cards Grid -->
@@ -211,8 +211,8 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
     </div>
 
     <!-- Create Board Dialog (PrimeNG) -->
-    <app-create-board-dialog
-      [(visible)]="showCreateBoardDialog"
+    <app-create-project-dialog
+      [(visible)]="showCreateProjectDialog"
       [workspaceId]="workspaceId()"
       [workspaceName]="workspace()?.name || 'Workspace'"
       (created)="onBoardCreated($event)"
@@ -241,7 +241,7 @@ export class WorkspaceComponent implements OnInit {
   members = signal<WorkspaceMemberInfo[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
-  showCreateBoardDialog = signal(false);
+  showCreateProjectDialog = signal(false);
 
   private boardAccentColors = [
     '#6366f1',
@@ -301,11 +301,11 @@ export class WorkspaceComponent implements OnInit {
     this.settingsDialog.open(this.workspaceId());
   }
 
-  openCreateBoardDialog(): void {
-    this.showCreateBoardDialog.set(true);
+  openCreateProjectDialog(): void {
+    this.showCreateProjectDialog.set(true);
   }
 
-  onBoardCreated(result: CreateBoardDialogResult): void {
+  onBoardCreated(result: CreateProjectDialogResult): void {
     this.projectService
       .createBoard(this.workspaceId(), {
         name: result.name,

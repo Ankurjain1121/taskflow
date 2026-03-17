@@ -18,7 +18,7 @@ import {
   FilterPresetsService,
   FilterPreset,
 } from '../../../core/services/filter-presets.service';
-import { TaskFilters } from './board-toolbar.component';
+import { TaskFilters } from './project-toolbar.component';
 
 @Component({
   selector: 'app-save-preset-dialog',

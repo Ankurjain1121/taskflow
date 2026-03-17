@@ -183,7 +183,7 @@ describe('WorkspaceItemComponent', () => {
     const event = { stopPropagation: vi.fn() } as any;
     component.onAddBoardClick(event);
     expect(event.stopPropagation).toHaveBeenCalled();
-    expect(component.showCreateBoardDialog()).toBe(true);
+    expect(component.showCreateProjectDialog()).toBe(true);
   });
 
   it('should create board and add to list', () => {

@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
-import { ViewMode } from '../project-toolbar/board-toolbar.component';
+import { ViewMode } from '../project-toolbar/project-toolbar.component';
 import { ProjectStateService } from './project-state.service';
 import { ProjectDragDropHandler } from './project-drag-drop.handler';
 

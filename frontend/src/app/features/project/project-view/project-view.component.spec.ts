@@ -25,7 +25,7 @@ import { DependencyService } from '../../../core/services/dependency.service';
 import { MilestoneService } from '../../../core/services/milestone.service';
 import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
 import { TaskMoveEvent } from '../kanban-column/kanban-column.component';
-import { TaskFilters } from '../project-toolbar/board-toolbar.component';
+import { TaskFilters } from '../project-toolbar/project-toolbar.component';
 
 // --- Helpers ---
 
