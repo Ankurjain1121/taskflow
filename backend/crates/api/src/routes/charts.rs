@@ -1,8 +1,10 @@
 use axum::{
-    extract::{Path, Query, State},
-    middleware::from_fn_with_state,
-    routing::get,
     Json, Router,
+    extract::{Path, Query, State},
+    http::header,
+    middleware::from_fn_with_state,
+    response::IntoResponse,
+    routing::get,
 };
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
@@ -28,16 +30,14 @@ pub struct ChartQuery {
     pub days: Option<i32>,
 }
 
-/// GET /api/projects/{board_id}/charts/burndown?days=30
-async fn get_burndown_chart_handler(
-    State(state): State<AppState>,
-    tenant: TenantContext,
-    Path(board_id): Path<Uuid>,
-    Query(query): Query<ChartQuery>,
-) -> Result<Json<Vec<BurndownDataPoint>>> {
-    let days_back = query.days.unwrap_or(30).clamp(1, 365);
+#[derive(Deserialize)]
+pub struct ExportQuery {
+    pub days: Option<i32>,
+    pub format: Option<String>,
+}
 
-    // Verify membership
+/// Verify the user is a member of the given project.
+async fn verify_membership(state: &AppState, board_id: Uuid, user_id: Uuid) -> Result<()> {
     let is_member = sqlx::query_scalar::<_, bool>(
         r#"
         SELECT EXISTS(
@@ -47,7 +47,7 @@ async fn get_burndown_chart_handler(
         "#,
     )
     .bind(board_id)
-    .bind(tenant.user_id)
+    .bind(user_id)
     .fetch_one(&state.db)
     .await
     .map_err(|e| {
@@ -62,7 +62,15 @@ async fn get_burndown_chart_handler(
         return Err(AppError::Forbidden("Not a board member".into()));
     }
 
-    // Query daily created and completed counts over the period
+    Ok(())
+}
+
+/// Shared burndown query logic. Returns computed burndown data points.
+async fn fetch_burndown_data(
+    state: &AppState,
+    board_id: Uuid,
+    days_back: i32,
+) -> Result<Vec<BurndownDataPoint>> {
     #[derive(sqlx::FromRow)]
     struct DailyPoint {
         date: NaiveDate,
@@ -120,7 +128,6 @@ async fn get_burndown_chart_handler(
         .enumerate()
         .map(|(i, p)| {
             let remaining = p.total_created - p.total_completed;
-            // Ideal line: linear from first day's total to 0
             let ideal = if total_points > 1 {
                 first_total as f64 * (1.0 - (i as f64 / (total_points - 1) as f64))
             } else {
@@ -136,7 +143,70 @@ async fn get_burndown_chart_handler(
         })
         .collect();
 
+    Ok(result)
+}
+
+/// GET /api/projects/{board_id}/charts/burndown?days=30
+async fn get_burndown_chart_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+    Path(board_id): Path<Uuid>,
+    Query(query): Query<ChartQuery>,
+) -> Result<Json<Vec<BurndownDataPoint>>> {
+    let days_back = query.days.unwrap_or(30).clamp(1, 365);
+    verify_membership(&state, board_id, tenant.user_id).await?;
+    let result = fetch_burndown_data(&state, board_id, days_back).await?;
     Ok(Json(result))
+}
+
+const MAX_CSV_ROWS: usize = 10_000;
+
+/// GET /api/projects/{board_id}/charts/burndown/export?format=csv&days=30
+async fn export_burndown_csv_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+    Path(board_id): Path<Uuid>,
+    Query(query): Query<ExportQuery>,
+) -> Result<impl IntoResponse> {
+    let days_back = query.days.unwrap_or(30).clamp(1, 365);
+
+    // Only CSV format is supported
+    let format = query.format.as_deref().unwrap_or("csv");
+    if format != "csv" {
+        return Err(AppError::BadRequest(
+            "Only CSV format is supported for burndown export".into(),
+        ));
+    }
+
+    verify_membership(&state, board_id, tenant.user_id).await?;
+    let data = fetch_burndown_data(&state, board_id, days_back).await?;
+
+    // Limit to MAX_CSV_ROWS
+    let data = if data.len() > MAX_CSV_ROWS {
+        &data[..MAX_CSV_ROWS]
+    } else {
+        &data
+    };
+
+    let mut csv = String::with_capacity(data.len() * 60);
+    csv.push_str("date,created,completed,remaining,ideal\n");
+
+    for point in data {
+        csv.push_str(&format!(
+            "{},{},{},{},{}\n",
+            point.date, point.total_tasks, point.completed_tasks, point.remaining, point.ideal_line
+        ));
+    }
+
+    let headers = [
+        (header::CONTENT_TYPE, "text/csv; charset=utf-8"),
+        (
+            header::CONTENT_DISPOSITION,
+            "attachment; filename=\"burndown.csv\"",
+        ),
+    ];
+
+    Ok((headers, csv))
 }
 
 pub fn charts_router(state: AppState) -> Router<AppState> {
@@ -144,6 +214,10 @@ pub fn charts_router(state: AppState) -> Router<AppState> {
         .route(
             "/projects/{board_id}/charts/burndown",
             get(get_burndown_chart_handler),
+        )
+        .route(
+            "/projects/{board_id}/charts/burndown/export",
+            get(export_burndown_csv_handler),
         )
         .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
