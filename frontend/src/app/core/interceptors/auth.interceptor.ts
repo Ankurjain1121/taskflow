@@ -50,7 +50,13 @@ export const authInterceptor: HttpInterceptorFn = (
           return authService.waitForRefresh().pipe(
             switchMap((success) => {
               if (success) {
-                const retryReq = req.clone({ withCredentials: true });
+                const freshCsrf = authService.csrfToken();
+                const retryReq = req.clone({
+                  withCredentials: true,
+                  ...(freshCsrf && !['GET', 'HEAD', 'OPTIONS'].includes(req.method.toUpperCase())
+                    ? { setHeaders: { 'X-CSRF-Token': freshCsrf } }
+                    : {}),
+                });
                 return next(retryReq);
               }
               return throwError(() => error);
@@ -61,7 +67,13 @@ export const authInterceptor: HttpInterceptorFn = (
         // First 401 — start the refresh
         return authService.refresh().pipe(
           switchMap(() => {
-            const retryReq = req.clone({ withCredentials: true });
+            const freshCsrf = authService.csrfToken();
+            const retryReq = req.clone({
+              withCredentials: true,
+              ...(freshCsrf && !['GET', 'HEAD', 'OPTIONS'].includes(req.method.toUpperCase())
+                ? { setHeaders: { 'X-CSRF-Token': freshCsrf } }
+                : {}),
+            });
             return next(retryReq);
           }),
           catchError((refreshError) => {

@@ -20,7 +20,7 @@ use taskflow_services::board_templates;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::services::http_cache::{check_if_none_match, generate_etag};
 use crate::state::AppState;
@@ -721,6 +721,7 @@ async fn get_project_full(
 pub fn workspace_projects_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(list_projects).post(create_project))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
@@ -745,6 +746,7 @@ pub fn project_router(state: AppState) -> Router<AppState> {
             "/{id}/members/{user_id}",
             delete(remove_project_member).patch(update_project_member_role),
         )
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
@@ -753,5 +755,6 @@ pub fn project_router(state: AppState) -> Router<AppState> {
 pub fn project_templates_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(list_project_templates))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

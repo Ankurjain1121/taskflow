@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::queries::webhooks::{
     create_webhook, delete_webhook, get_webhook_deliveries, list_webhooks, update_webhook,
@@ -117,5 +117,6 @@ pub fn webhook_router(state: AppState) -> Router<AppState> {
         .route("/webhooks/{id}", put(update_webhook_handler))
         .route("/webhooks/{id}", delete(delete_webhook_handler))
         .route("/webhooks/{id}/deliveries", get(get_deliveries_handler))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

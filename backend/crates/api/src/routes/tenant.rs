@@ -15,7 +15,7 @@ use taskflow_db::queries::workspaces;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 // ============================================================================
@@ -62,5 +62,6 @@ pub fn tenant_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/members", get(list_tenant_members))
         .route("/members/{user_id}/workspaces", get(get_member_workspaces))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

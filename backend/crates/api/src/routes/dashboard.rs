@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 use crate::errors::Result;
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
 use taskflow_db::queries::dashboard::{
@@ -244,6 +244,7 @@ pub fn dashboard_router(state: AppState) -> Router<AppState> {
         .route("/overdue-tasks", get(get_overdue_tasks_handler))
         .route("/completion-trend", get(get_completion_trend_handler))
         .route("/upcoming-deadlines", get(get_upcoming_deadlines_handler))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 

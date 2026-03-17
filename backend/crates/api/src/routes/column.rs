@@ -17,7 +17,7 @@ use taskflow_db::utils::generate_key_between;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
 
@@ -458,6 +458,7 @@ async fn delete_status(
 pub fn board_columns_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(list_statuses).post(create_status))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
@@ -474,5 +475,6 @@ pub fn column_router(state: AppState) -> Router<AppState> {
             "/{id}/transitions",
             get(get_transitions).put(update_transitions),
         )
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

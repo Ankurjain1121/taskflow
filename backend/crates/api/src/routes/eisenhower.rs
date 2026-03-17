@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::queries::eisenhower::{
     get_eisenhower_matrix, reset_eisenhower_overrides, update_eisenhower_overrides,
@@ -118,5 +118,6 @@ pub fn eisenhower_router(state: AppState) -> Router<AppState> {
         .route("/", get(get_eisenhower_matrix_handler))
         .route("/tasks/{id}", put(update_task_eisenhower))
         .route("/reset", put(reset_eisenhower))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

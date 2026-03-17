@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::queries::favorites::{
     add_favorite, is_favorited, list_favorites, remove_favorite, FavoriteItem,
@@ -145,5 +145,6 @@ pub fn favorites_router(state: AppState) -> Router<AppState> {
             "/check/{entity_type}/{entity_id}",
             get(check_favorite_handler),
         )
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

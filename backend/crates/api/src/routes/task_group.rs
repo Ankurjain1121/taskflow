@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::models::{CreateTaskGroupRequest, UpdateTaskGroupRequest};
 use taskflow_db::queries::{
@@ -30,6 +30,7 @@ pub fn task_group_routes(state: AppState) -> Router<AppState> {
         .route("/groups/{id}", put(update_group))
         .route("/groups/{id}/collapse", put(toggle_collapse))
         .route("/groups/{id}", delete(delete_group))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 

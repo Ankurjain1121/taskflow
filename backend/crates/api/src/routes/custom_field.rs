@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::models::{BoardCustomField, CustomFieldType, TaskCustomFieldValue};
 use taskflow_db::queries::custom_fields::{
@@ -182,5 +182,6 @@ pub fn custom_field_router(state: AppState) -> Router<AppState> {
             "/tasks/{task_id}/custom-fields",
             put(set_task_field_values_handler),
         )
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

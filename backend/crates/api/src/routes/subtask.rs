@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::models::{Subtask, SubtaskWithAssignee, Task};
 use taskflow_db::queries::get_task_project_id;
@@ -461,5 +461,6 @@ pub fn subtask_router(state: AppState) -> Router<AppState> {
         .route("/subtasks/{id}/reorder", put(reorder_subtask_handler))
         .route("/subtasks/{id}/promote", post(promote_subtask_handler))
         .route("/subtasks/{id}", delete(delete_subtask_handler))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

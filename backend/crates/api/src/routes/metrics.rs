@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
 use taskflow_db::queries::metrics::{
@@ -202,6 +202,7 @@ pub fn metrics_router(state: AppState) -> Router<AppState> {
         )
         .route("/teams/{team_id}/metrics", get(get_team_metrics_handler))
         .route("/me/metrics", get(get_personal_metrics_handler))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 

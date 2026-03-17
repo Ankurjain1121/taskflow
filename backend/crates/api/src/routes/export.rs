@@ -16,7 +16,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 use super::common::verify_project_membership;
@@ -349,5 +349,6 @@ async fn export_json(db: &sqlx::PgPool, board_id: Uuid) -> Result<Response> {
 pub fn export_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/projects/{board_id}/export", get(export_handler))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

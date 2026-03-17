@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::models::task_template::TaskTemplate;
 use taskflow_db::queries::task_templates::{
@@ -201,5 +201,6 @@ pub fn task_template_router(state: AppState) -> Router<AppState> {
             post(create_from_template),
         )
         .route("/tasks/{task_id}/save-as-template", post(save_as_template))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

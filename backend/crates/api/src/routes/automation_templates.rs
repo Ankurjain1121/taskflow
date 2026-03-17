@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::ManagerOrAdmin;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 use taskflow_db::models::automation_template::{
@@ -138,5 +138,6 @@ pub fn automation_templates_router(state: AppState) -> Router<AppState> {
             "/workspaces/{workspace_id}/automation-templates/{template_id}/apply",
             post(apply_template_handler),
         )
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

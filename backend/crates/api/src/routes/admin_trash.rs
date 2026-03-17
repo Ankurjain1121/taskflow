@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 use crate::errors::Result;
 use crate::extractors::AdminUser;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 use super::helpers::trash_queries::{
@@ -80,6 +80,7 @@ pub fn admin_trash_router(state: AppState) -> Router<AppState> {
             delete(delete_item),
         )
         .route("/admin/trash/empty", delete(empty_trash_handler))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 

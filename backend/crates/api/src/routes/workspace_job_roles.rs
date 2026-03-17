@@ -20,7 +20,7 @@ use taskflow_db::queries::workspaces;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 use super::common::MessageResponse;
@@ -307,5 +307,6 @@ pub fn workspace_job_roles_router(state: AppState) -> Router<AppState> {
             "/{id}/members/{user_id}/roles/{role_id}",
             delete(remove_role),
         )
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

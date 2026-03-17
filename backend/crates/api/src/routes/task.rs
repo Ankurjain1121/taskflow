@@ -4,7 +4,7 @@ use axum::{
     Router,
 };
 
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 use super::task_bulk;
@@ -73,5 +73,6 @@ pub fn task_router(state: AppState) -> Router<AppState> {
             "/tasks/{id}/reminders/{reminder_id}",
             delete(remove_reminder_handler),
         )
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

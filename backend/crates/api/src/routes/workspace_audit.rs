@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 use super::helpers::audit_queries::{self, AuditLogQuery, AuditScope};
@@ -122,5 +122,6 @@ pub fn workspace_audit_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/audit-log", get(list_workspace_audit_log))
         .route("/audit-log/actions", get(list_workspace_audit_actions))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

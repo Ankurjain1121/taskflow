@@ -21,7 +21,7 @@ use taskflow_services::{spawn_automation_evaluation, TriggerContext};
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 // ============================================================================
@@ -730,6 +730,7 @@ pub fn invitation_router(state: AppState) -> Router<AppState> {
         .route("/all", get(list_all_handler))
         .route("/{id}", delete(delete_handler))
         .route("/{id}/resend", post(resend_handler))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware));
 
     let public = Router::new()

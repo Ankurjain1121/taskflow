@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::queries::recent_items;
 
@@ -71,5 +71,6 @@ pub fn recent_items_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/recent-items", get(list_recent_items_handler))
         .route("/recent-items", post(upsert_recent_item_handler))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

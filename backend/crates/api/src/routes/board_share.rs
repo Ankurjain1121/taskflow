@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::queries::board_shares::{
     access_shared_board, create_board_share, delete_board_share, list_board_shares,
@@ -89,18 +89,30 @@ async fn toggle_share_handler(
     Ok(Json(share))
 }
 
-#[derive(Deserialize)]
-struct AccessShareRequest {
-    password: Option<String>,
-}
-
-/// GET /api/shared/{token} (public - no auth)
+/// GET /api/shared/{token} (public - no auth, password-less access)
 async fn access_shared_board_handler(
     State(state): State<AppState>,
     Path(token): Path<String>,
-    axum::extract::Query(query): axum::extract::Query<AccessShareRequest>,
 ) -> Result<Json<taskflow_db::queries::board_shares::SharedBoardAccess>> {
-    let access = access_shared_board(&state.db, &token, query.password.as_deref())
+    let access = access_shared_board(&state.db, &token, None)
+        .await
+        .map_err(map_share_error)?;
+
+    Ok(Json(access))
+}
+
+#[derive(Deserialize)]
+struct AccessShareBody {
+    password: Option<String>,
+}
+
+/// POST /api/shared/{token}/access (public - no auth, password in body)
+async fn access_shared_board_post_handler(
+    State(state): State<AppState>,
+    Path(token): Path<String>,
+    Json(body): Json<AccessShareBody>,
+) -> Result<Json<taskflow_db::queries::board_shares::SharedBoardAccess>> {
+    let access = access_shared_board(&state.db, &token, body.password.as_deref())
         .await
         .map_err(map_share_error)?;
 
@@ -114,10 +126,16 @@ pub fn project_share_router(state: AppState) -> Router<AppState> {
         .route("/projects/{board_id}/shares", post(create_share_handler))
         .route("/shares/{id}", delete(delete_share_handler))
         .route("/shares/{id}", put(toggle_share_handler))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
 /// Create the public shared project router (no auth)
 pub fn shared_project_public_router() -> Router<AppState> {
-    Router::new().route("/shared/{token}", get(access_shared_board_handler))
+    Router::new()
+        .route("/shared/{token}", get(access_shared_board_handler))
+        .route(
+            "/shared/{token}/access",
+            post(access_shared_board_post_handler),
+        )
 }

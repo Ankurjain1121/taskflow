@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::{AdminUser, TenantContext};
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::queries::archive::{list_archive, PaginatedArchive};
 use taskflow_services::minio::{MinioConfig, MinioService};
@@ -185,5 +185,6 @@ pub fn archive_router(state: AppState) -> Router<AppState> {
             "/archive/{entity_type}/{entity_id}",
             delete(delete_archive_handler),
         )
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

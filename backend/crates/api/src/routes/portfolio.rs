@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
 use taskflow_db::queries::portfolio::{
@@ -84,6 +84,7 @@ async fn get_portfolio_handler(
 pub fn portfolio_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/{workspace_id}/portfolio", get(get_portfolio_handler))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 

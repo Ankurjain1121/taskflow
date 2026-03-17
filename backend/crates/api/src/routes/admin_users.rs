@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AdminUser;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::models::UserRole;
 
@@ -363,6 +363,7 @@ pub fn admin_users_router(state: AppState) -> Router<AppState> {
         .route("/admin/users", get(list_users))
         .route("/admin/users/{id}/role", put(update_user_role))
         .route("/admin/users/{id}", delete(delete_user))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
