@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 #[derive(Debug, Serialize)]
@@ -160,5 +160,6 @@ pub fn sessions_router(state: AppState) -> Router<AppState> {
         .route("/users/me/sessions", get(list_sessions))
         .route("/users/me/sessions", delete(revoke_all_other_sessions))
         .route("/users/me/sessions/{id}", delete(revoke_session))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 // ============================================================================
@@ -207,5 +207,6 @@ pub fn filter_presets_router(state: AppState) -> Router<AppState> {
             "/{preset_id}",
             axum::routing::put(update_preset).delete(delete_preset),
         )
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

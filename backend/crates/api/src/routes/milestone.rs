@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 use super::common::verify_project_membership;
@@ -224,5 +224,6 @@ pub fn milestone_router(state: AppState) -> Router<AppState> {
             "/tasks/{task_id}/milestone",
             delete(unassign_milestone_handler),
         )
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::queries::recurring::{
     create_config, delete_config, get_config_for_task, update_config, CreateRecurringInput,
@@ -93,5 +93,6 @@ pub fn recurring_router(state: AppState) -> Router<AppState> {
         // Recurring-specific routes
         .route("/recurring/{id}", put(update_config_handler))
         .route("/recurring/{id}", delete(delete_config_handler))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

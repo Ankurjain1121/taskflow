@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::queries::reports::ReportQueryError;
 
@@ -145,5 +145,6 @@ pub fn charts_router(state: AppState) -> Router<AppState> {
             "/projects/{board_id}/charts/burndown",
             get(get_burndown_chart_handler),
         )
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use crate::errors::Result;
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::queries::my_tasks::{
     list_my_tasks, my_tasks_summary, MyTasksSortBy, MyTasksSummary, PaginatedMyTasks, SortOrder,
@@ -82,5 +82,6 @@ pub fn my_tasks_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(list_my_tasks_handler))
         .route("/summary", get(get_my_tasks_summary))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

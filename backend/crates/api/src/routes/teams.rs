@@ -15,7 +15,7 @@ use taskflow_db::queries::{teams, workspaces};
 
 use crate::errors::{AppError, Result};
 use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 use super::common::MessageResponse;
@@ -409,6 +409,7 @@ async fn remove_team_member(
 pub fn workspace_teams_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(list_teams).post(create_team))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
@@ -419,5 +420,6 @@ pub fn teams_router(state: AppState) -> Router<AppState> {
         .route("/{id}", get(get_team).put(update_team).delete(delete_team))
         .route("/{id}/members", axum::routing::post(add_team_member))
         .route("/{id}/members/{user_id}", delete(remove_team_member))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

@@ -72,8 +72,11 @@ export class ProjectShareService {
     token: string,
     password?: string,
   ): Observable<SharedBoardAccess> {
-    const params: Record<string, string> = {};
-    if (password) params['password'] = password;
-    return this.http.get<SharedBoardAccess>(`/api/shared/${token}`, { params });
+    if (password) {
+      return this.http.post<SharedBoardAccess>(`/api/shared/${token}/access`, {
+        password,
+      });
+    }
+    return this.http.get<SharedBoardAccess>(`/api/shared/${token}`);
   }
 }

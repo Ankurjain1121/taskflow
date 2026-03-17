@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 // ============================================================================
@@ -255,5 +255,6 @@ pub fn workspace_labels_router(state: AppState) -> Router<AppState> {
             "/{label_id}",
             put(update_label_handler).delete(delete_label),
         )
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

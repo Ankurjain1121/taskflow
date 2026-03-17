@@ -13,7 +13,7 @@ use serde_json::json;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::models::NotificationPreference;
 use taskflow_db::queries::notification_preferences::{
@@ -107,5 +107,6 @@ pub fn notification_preferences_router(state: AppState) -> Router<AppState> {
         .route("/notification-preferences", get(list_preferences))
         .route("/notification-preferences", put(update_preference))
         .route("/notification-preferences", delete(reset_preferences))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::queries::get_task_project_id;
 use taskflow_db::queries::time_entries::{
@@ -265,5 +265,6 @@ pub fn time_entry_router(state: AppState) -> Router<AppState> {
         )
         // User-scoped running timer
         .route("/time-entries/running", get(get_running_timer_handler))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

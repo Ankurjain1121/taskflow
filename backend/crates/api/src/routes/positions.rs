@@ -16,7 +16,7 @@ use taskflow_db::queries::{boards, positions};
 
 use crate::errors::{AppError, Result};
 use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 use super::common::MessageResponse;
@@ -306,6 +306,7 @@ async fn list_position_recurring_tasks(
 pub fn board_positions_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(list_positions).post(create_position))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
@@ -321,5 +322,6 @@ pub fn positions_router(state: AppState) -> Router<AppState> {
         .route("/{id}/holders", post(add_holder))
         .route("/{id}/holders/{user_id}", delete(remove_holder))
         .route("/{id}/recurring-tasks", get(list_position_recurring_tasks))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

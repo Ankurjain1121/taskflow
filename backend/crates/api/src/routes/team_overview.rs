@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::ManagerOrAdmin;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::queries::is_workspace_member;
 use taskflow_db::queries::team_overview::{
@@ -190,5 +190,6 @@ pub fn team_overview_router(state: AppState) -> Router<AppState> {
         .route("/overloaded-members", get(get_overloaded_members_handler))
         .route("/members/{user_id}/tasks", get(get_member_tasks_handler))
         .route("/reassign-tasks", post(reassign_tasks_handler))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

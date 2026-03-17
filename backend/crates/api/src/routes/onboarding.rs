@@ -25,7 +25,7 @@ use taskflow_services::sample_board::generate_sample_board;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 // ============================================================================
@@ -397,6 +397,7 @@ pub fn onboarding_router(state: AppState) -> Router<AppState> {
             post(generate_sample_board_handler),
         )
         .route("/complete", post(complete_onboarding))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware));
 
     // Public routes

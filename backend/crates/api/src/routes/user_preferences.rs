@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
 
@@ -142,5 +142,6 @@ pub fn user_preferences_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/users/me/preferences", get(get_preferences))
         .route("/users/me/preferences", put(update_preferences))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

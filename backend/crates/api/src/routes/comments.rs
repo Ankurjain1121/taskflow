@@ -17,7 +17,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::ActivityLogService;
 use crate::state::AppState;
 use taskflow_db::queries::comments::{
@@ -351,6 +351,7 @@ pub fn comment_router(state: AppState) -> Router<AppState> {
         // Comment-specific routes
         .route("/comments/{id}", put(update_comment_handler))
         .route("/comments/{id}", delete(delete_comment_handler))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 

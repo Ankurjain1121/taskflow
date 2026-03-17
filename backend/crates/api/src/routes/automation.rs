@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::models::automation::{AutomationActionType, AutomationLog, AutomationTrigger};
 use taskflow_db::queries::automations::{
@@ -208,5 +208,6 @@ pub fn automation_router(state: AppState) -> Router<AppState> {
         .route("/automations/{id}", delete(delete_rule_handler))
         // Automation logs
         .route("/automations/{id}/logs", get(get_rule_logs_handler))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

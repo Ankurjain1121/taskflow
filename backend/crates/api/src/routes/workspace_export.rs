@@ -16,7 +16,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::models::WorkspaceMemberRole;
 
@@ -373,5 +373,6 @@ struct TaskWithBoard {
 pub fn workspace_export_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/export", get(export_workspace))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

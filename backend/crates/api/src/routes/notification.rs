@@ -16,7 +16,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::queries::notifications::{
     archive_notification, get_unread_count, list_notifications, mark_all_read, mark_read,
@@ -154,5 +154,6 @@ pub fn notification_router(state: AppState) -> Router<AppState> {
         .route("/notifications/{id}", delete(archive_notification_handler))
         .route("/notifications/{id}/read", put(mark_read_handler))
         .route("/notifications/read-all", put(mark_all_read_handler))
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

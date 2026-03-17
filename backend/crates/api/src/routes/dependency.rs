@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::queries::dependencies::{
     check_blockers, create_dependency, delete_dependency, get_board_dependencies,
@@ -169,5 +169,6 @@ pub fn dependency_router(state: AppState) -> Router<AppState> {
             "/projects/{board_id}/dependencies",
             get(board_dependencies_handler),
         )
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

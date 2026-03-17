@@ -20,7 +20,7 @@ use taskflow_services::{spawn_automation_evaluation, TriggerContext};
 
 use crate::errors::{AppError, Result};
 use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
 
@@ -700,5 +700,6 @@ pub fn workspace_router(state: AppState) -> Router<AppState> {
             "/{id}/members/{user_id}",
             delete(remove_member).patch(update_member_role),
         )
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::ManagerOrAdmin;
-use crate::middleware::auth_middleware;
+use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 use taskflow_db::queries::{api_keys, is_workspace_member};
@@ -193,5 +193,6 @@ pub fn workspace_api_keys_router(state: AppState) -> Router<AppState> {
             "/workspaces/{workspace_id}/api-keys/{key_id}",
             delete(revoke_api_key),
         )
+        .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
