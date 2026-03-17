@@ -21,9 +21,11 @@ import { CommonModule } from '@angular/common';
 import { ToastModule } from 'primeng/toast';
 import { ThemeService } from './core/services/theme.service';
 import { KeyboardShortcutsService } from './core/services/keyboard-shortcuts.service';
+import { CommandPaletteComponent } from './shared/components/command-palette/command-palette.component';
 import { ToastContainerComponent } from './shared/components/toast/toast.component';
 import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
 import { TopNavComponent } from './shared/components/top-nav/top-nav.component';
+import { WorkspaceSettingsDialogComponent } from './features/workspace/workspace-settings/workspace-settings-dialog.component';
 import { TimerWidgetComponent } from './shared/components/timer-widget/timer-widget.component';
 
 const routeTransition = trigger('routeAnimations', [
@@ -59,6 +61,8 @@ const routeTransition = trigger('routeAnimations', [
     SidebarComponent,
     TopNavComponent,
     TimerWidgetComponent,
+    CommandPaletteComponent,
+    WorkspaceSettingsDialogComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.component.html',
