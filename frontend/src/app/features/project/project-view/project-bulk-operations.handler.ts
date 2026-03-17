@@ -4,8 +4,8 @@ import { Task } from '../../../core/services/task.service';
 import { BulkOperationsService } from '../../../core/services/bulk-operations.service';
 import { BulkAction } from '../bulk-actions/bulk-actions-bar.component';
 import { BulkPreviewData } from '../bulk-operations/bulk-preview-dialog.component';
-import { ProjectBulkActionsService } from './board-bulk-actions.service';
-import { ProjectStateService } from './board-state.service';
+import { ProjectBulkActionsService } from './project-bulk-actions.service';
+import { ProjectStateService } from './project-state.service';
 
 @Injectable()
 export class ProjectBulkOperationsHandler {

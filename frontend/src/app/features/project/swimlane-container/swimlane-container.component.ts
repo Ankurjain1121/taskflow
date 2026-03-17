@@ -20,7 +20,7 @@ import { EmptyStateComponent } from '../../../shared/components/empty-state/empt
 import {
   CardFields,
   DEFAULT_CARD_FIELDS,
-} from '../project-view/board-state.service';
+} from '../project-view/project-state.service';
 import { makeCellId } from '../project-view/swimlane-utils';
 
 @Component({

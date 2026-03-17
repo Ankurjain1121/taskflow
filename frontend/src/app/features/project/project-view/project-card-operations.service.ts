@@ -3,7 +3,7 @@ import { takeUntil, Subject } from 'rxjs';
 import { Task, TaskService } from '../../../core/services/task.service';
 import { UndoService } from '../../../shared/services/undo.service';
 import { MessageService } from 'primeng/api';
-import { ProjectStateService } from './board-state.service';
+import { ProjectStateService } from './project-state.service';
 
 @Injectable()
 export class ProjectCardOperationsService {

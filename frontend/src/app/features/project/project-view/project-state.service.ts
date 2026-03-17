@@ -34,9 +34,9 @@ import { CreateTaskDialogResult } from './create-task-dialog.component';
 import { CreateColumnDialogResult } from './create-column-dialog.component';
 import { GroupByMode, SwimlaneGroup, SwimlaneState } from './swimlane.types';
 import { buildSwimlaneGroups, buildSwimlaneState } from './swimlane-utils';
-import { ProjectFilterService } from './board-filter.service';
-import { ProjectGroupingService } from './board-grouping.service';
-import { ProjectMutationsService } from './board-mutations.service';
+import { ProjectFilterService } from './project-filter.service';
+import { ProjectGroupingService } from './project-grouping.service';
+import { ProjectMutationsService } from './project-mutations.service';
 
 export interface CardFields {
   showPriority: boolean;

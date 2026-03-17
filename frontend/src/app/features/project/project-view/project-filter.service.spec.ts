@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { ProjectFilterService } from './board-filter.service';
+import { ProjectFilterService } from './project-filter.service';
 import { Task } from '../../../core/services/task.service';
 import { TaskFilters } from '../project-toolbar/board-toolbar.component';
 

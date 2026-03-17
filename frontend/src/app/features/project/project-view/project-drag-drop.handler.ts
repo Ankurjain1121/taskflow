@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { generateKeyBetween } from 'fractional-indexing';
 import { Task, TaskService } from '../../../core/services/task.service';
 import { TaskMoveEvent } from '../kanban-column/kanban-column.component';
-import { ProjectStateService } from './board-state.service';
+import { ProjectStateService } from './project-state.service';
 import { SwimlaneTaskMoveEvent } from './swimlane.types';
 import { NONE_KEY } from './swimlane-utils';
 
