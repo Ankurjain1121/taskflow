@@ -18,10 +18,11 @@ use taskflow_db::models::automation::AutomationTrigger;
 use taskflow_db::models::{TaskBroadcast, WsBoardEvent};
 use taskflow_db::queries::{
     add_watcher, assign_user, get_task_assignee_ids, get_task_board_id, get_task_row,
-    list_reminders_for_task, remove_reminder, remove_watcher, set_reminder, unassign_user,
-    ReminderInfo,
+    get_user_display_name, list_reminders_for_task, remove_reminder, remove_watcher, set_reminder,
+    unassign_user, ReminderInfo,
 };
 use taskflow_services::broadcast::events;
+use taskflow_services::notifications::NotificationService;
 use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
 
 use super::common::verify_project_membership;
@@ -147,6 +148,52 @@ pub async fn assign_user_handler(
             member_user_id: None,
         },
     );
+
+    // Send persistent TaskAssigned notification (fire-and-forget, skip self-notify)
+    if body.user_id != tenant.user_id {
+        let db = state.db.clone();
+        let redis = state.redis.clone();
+        let app_url = state.config.app_url.clone();
+        let assignee_id = body.user_id;
+        let assigner_id = tenant.user_id;
+        tokio::spawn(async move {
+            let assigner_name = get_user_display_name(&db, assigner_id)
+                .await
+                .ok()
+                .flatten()
+                .unwrap_or_else(|| "Someone".to_string());
+            let task_title: String =
+                sqlx::query_scalar("SELECT title FROM tasks WHERE id = $1 AND deleted_at IS NULL")
+                    .bind(task_id)
+                    .fetch_optional(&db)
+                    .await
+                    .ok()
+                    .flatten()
+                    .unwrap_or_else(|| "a task".to_string());
+
+            let notification_svc = NotificationService::new(
+                db.clone(),
+                BroadcastService::new(redis),
+                None,
+                app_url,
+            );
+            let title = format!("{} assigned you to a task", assigner_name);
+            let body = format!("\"{}\"", task_title);
+            let link = format!("/task/{}", task_id);
+            if let Err(e) = notification_svc
+                .create_notification(
+                    assignee_id,
+                    taskflow_services::NotificationEvent::TaskAssigned,
+                    &title,
+                    &body,
+                    Some(&link),
+                )
+                .await
+            {
+                tracing::error!(error = %e, "Failed to create TaskAssigned notification");
+            }
+        });
+    }
 
     Ok(Json(json!({ "success": true })))
 }

@@ -11,9 +11,10 @@ use crate::state::AppState;
 use taskflow_db::models::automation::AutomationTrigger;
 use taskflow_db::models::{Task, WsBoardEvent};
 use taskflow_db::queries::{
-    get_task_assignee_ids, get_task_board_id, get_task_status_id, is_done_status, move_task,
-    validate_transition,
+    get_task_assignee_ids, get_task_board_id, get_task_status_id, get_user_display_name,
+    is_done_status, move_task, validate_transition,
 };
+use taskflow_services::notifications::NotificationService;
 use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
 
 use super::common::verify_project_membership;
@@ -128,6 +129,52 @@ pub async fn move_task_handler(
                 member_user_id: None,
             },
         );
+
+        // Send TaskCompleted notifications to assignees (fire-and-forget, skip completer)
+        let db = state.db.clone();
+        let redis = state.redis.clone();
+        let app_url = state.config.app_url.clone();
+        let completer_id = tenant.user_id;
+        let task_title = task.title.clone();
+        tokio::spawn(async move {
+            let completer_name = get_user_display_name(&db, completer_id)
+                .await
+                .ok()
+                .flatten()
+                .unwrap_or_else(|| "Someone".to_string());
+
+            let assignees = get_task_assignee_ids(&db, task_id).await.unwrap_or_default();
+            let notification_svc = NotificationService::new(
+                db.clone(),
+                BroadcastService::new(redis),
+                None,
+                app_url,
+            );
+            let title = format!("{} completed a task", completer_name);
+            let body = format!("\"{}\" has been marked as done", task_title);
+            let link = format!("/task/{}", task_id);
+
+            for assignee_id in assignees {
+                if assignee_id != completer_id {
+                    if let Err(e) = notification_svc
+                        .create_notification(
+                            assignee_id,
+                            taskflow_services::NotificationEvent::TaskCompleted,
+                            &title,
+                            &body,
+                            Some(&link),
+                        )
+                        .await
+                    {
+                        tracing::error!(
+                            assignee_id = %assignee_id,
+                            error = %e,
+                            "Failed to create TaskCompleted notification"
+                        );
+                    }
+                }
+            }
+        });
     }
 
     Ok(Json(task))
