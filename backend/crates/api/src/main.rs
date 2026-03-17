@@ -21,6 +21,7 @@ use tower_http::trace::TraceLayer;
 
 use crate::config::Config;
 use crate::middleware::cache_headers_middleware;
+use crate::middleware::metrics_middleware;
 use crate::middleware::rate_limit::{
     rate_limit_layer, rate_limit_middleware, user_rate_limit_layer, user_rate_limit_middleware,
 };
@@ -43,7 +44,6 @@ use crate::routes::{
     workspace_job_roles_router, workspace_labels_router, workspace_projects_router,
     workspace_router, workspace_teams_router, workspace_trash_router,
 };
-use crate::middleware::metrics_middleware;
 use crate::routes::{metrics_cron_router, metrics_router, portfolio_router, prometheus_router};
 use crate::state::AppState;
 use crate::ws::ws_handler;
@@ -88,9 +88,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .with_env_filter(env_filter)
             .init();
     } else {
-        tracing_subscriber::fmt()
-            .with_env_filter(env_filter)
-            .init();
+        tracing_subscriber::fmt().with_env_filter(env_filter).init();
     }
 
     tracing::info!("Starting TaskFlow API on {}:{}", config.host, config.port);
@@ -136,6 +134,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route(
             "/auth/change-password",
             axum::routing::post(routes::auth_password::change_password_handler),
+        )
+        .route(
+            "/auth/2fa/setup",
+            axum::routing::post(routes::totp::setup_handler),
+        )
+        .route(
+            "/auth/2fa/verify",
+            axum::routing::post(routes::totp::verify_handler),
+        )
+        .route(
+            "/auth/2fa/disable",
+            axum::routing::post(routes::totp::disable_handler),
+        )
+        .route(
+            "/auth/2fa/status",
+            axum::routing::get(routes::totp::status_handler),
         )
         .route(
             "/invitations",
@@ -184,6 +198,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route(
             "/auth/reset-password",
             axum::routing::post(routes::auth_password::reset_password_handler),
+        )
+        .route(
+            "/auth/2fa/challenge",
+            axum::routing::post(routes::totp::challenge_handler),
         )
         .layer(from_fn(rate_limit_middleware))
         .layer(rate_limit_layer(state.redis.clone(), 5, 60)); // 5 requests per 60 seconds per IP
@@ -463,7 +481,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         {
             tracing::info!("Email worker skipped: RESEND_API_KEY set but email worker requires POSTAL_API_KEY (emails sent inline via dispatcher)");
         } else {
-            tracing::warn!("Email worker disabled: neither RESEND_API_KEY nor POSTAL_API_KEY is set");
+            tracing::warn!(
+                "Email worker disabled: neither RESEND_API_KEY nor POSTAL_API_KEY is set"
+            );
         }
     }
 

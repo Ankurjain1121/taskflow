@@ -4184,14 +4184,17 @@ dependencies = [
  "axum",
  "chrono",
  "dashmap",
+ "data-encoding",
  "dotenvy",
  "futures-util",
+ "hmac",
  "jsonwebtoken",
  "metrics",
  "metrics-exporter-prometheus",
  "mockall",
  "once_cell",
  "proptest",
+ "rand 0.9.2",
  "redis",
  "regex",
  "reqwest 0.12.28",
@@ -4207,6 +4210,7 @@ dependencies = [
  "taskflow-services",
  "thiserror 2.0.18",
  "tokio",
+ "totp-lite",
  "tower",
  "tower-http",
  "tracing",
@@ -4540,6 +4544,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "702d4415e08923e7e1ef96cd5727c0dfed80b4d2fa25db9647fe5eb6f7c5a4c4"
 dependencies = [
  "winnow",
+]
+
+[[package]]
+name = "totp-lite"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8e43134db17199f7f721803383ac5854edd0d3d523cc34dba321d6acfbe76c3"
+dependencies = [
+ "digest",
+ "hmac",
+ "sha1",
+ "sha2",
 ]
 
 [[package]]

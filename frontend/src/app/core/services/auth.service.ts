@@ -35,6 +35,19 @@ export interface TokenResponse {
   user: User;
 }
 
+export interface TwoFactorRequiredResponse {
+  requires_2fa: true;
+  temp_token: string;
+}
+
+export type SignInResponse = TokenResponse | TwoFactorRequiredResponse;
+
+export function isTwoFactorRequired(
+  response: SignInResponse,
+): response is TwoFactorRequiredResponse {
+  return 'requires_2fa' in response && response.requires_2fa === true;
+}
+
 export interface SignInRequest {
   email: string;
   password: string;
@@ -110,11 +123,15 @@ export class AuthService {
       );
   }
 
-  signIn(email: string, password: string): Observable<TokenResponse> {
+  signIn(email: string, password: string): Observable<SignInResponse> {
     return this.http
-      .post<TokenResponse>(`${this.apiUrl}/sign-in`, { email, password })
+      .post<SignInResponse>(`${this.apiUrl}/sign-in`, { email, password })
       .pipe(
-        tap((response) => this.handleAuthSuccess(response)),
+        tap((response) => {
+          if (!isTwoFactorRequired(response)) {
+            this.handleAuthSuccess(response);
+          }
+        }),
         catchError((error) => {
           return throwError(() => error);
         }),
@@ -248,6 +265,11 @@ export class AuthService {
       `${this.apiUrl}/change-password`,
       data,
     );
+  }
+
+  /** Called after successful 2FA challenge to set auth state */
+  handleTwoFactorSuccess(response: TokenResponse): void {
+    this.handleAuthSuccess(response);
   }
 
   private handleAuthSuccess(response: TokenResponse): void {
