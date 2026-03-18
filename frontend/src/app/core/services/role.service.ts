@@ -66,7 +66,7 @@ export class RoleService {
 
   listRoles(workspaceId: string): Observable<WorkspaceRole[]> {
     return this.http.get<WorkspaceRole[]>(
-      `/api/workspaces/${workspaceId}/roles`,
+      `/api/workspaces/${workspaceId}/permission-roles`,
     );
   }
 
@@ -75,7 +75,7 @@ export class RoleService {
     data: CreateRoleRequest,
   ): Observable<WorkspaceRole> {
     return this.http.post<WorkspaceRole>(
-      `/api/workspaces/${workspaceId}/roles`,
+      `/api/workspaces/${workspaceId}/permission-roles`,
       data,
     );
   }
@@ -86,14 +86,14 @@ export class RoleService {
     data: UpdateRoleRequest,
   ): Observable<WorkspaceRole> {
     return this.http.put<WorkspaceRole>(
-      `/api/workspaces/${workspaceId}/roles/${roleId}`,
+      `/api/workspaces/${workspaceId}/permission-roles/${roleId}`,
       data,
     );
   }
 
   deleteRole(workspaceId: string, roleId: string): Observable<void> {
     return this.http.delete<void>(
-      `/api/workspaces/${workspaceId}/roles/${roleId}`,
+      `/api/workspaces/${workspaceId}/permission-roles/${roleId}`,
     );
   }
 }
