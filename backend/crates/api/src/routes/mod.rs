@@ -62,6 +62,7 @@ pub mod workspace_api_keys;
 pub mod workspace_audit;
 pub mod workspace_export;
 pub mod workspace_labels;
+pub mod roles;
 pub mod workspace_trash;
 
 pub use activity_log::activity_log_router;
@@ -131,4 +132,5 @@ pub use workspace_audit::workspace_audit_router;
 pub use workspace_export::workspace_export_router;
 pub use workspace_job_roles::workspace_job_roles_router;
 pub use workspace_labels::workspace_labels_router;
+pub use roles::{project_visibility_router, workspace_roles_router};
 pub use workspace_trash::workspace_trash_router;

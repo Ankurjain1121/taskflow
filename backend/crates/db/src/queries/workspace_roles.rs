@@ -91,8 +91,8 @@ pub async fn create_workspace_role(
     workspace_id: Uuid,
     input: CreateWorkspaceRoleInput,
 ) -> Result<WorkspaceRole, sqlx::Error> {
-    let capabilities_json = serde_json::to_value(&input.capabilities)
-        .unwrap_or_else(|_| serde_json::json!({}));
+    let capabilities_json =
+        serde_json::to_value(&input.capabilities).unwrap_or_else(|_| serde_json::json!({}));
     let position = input.position.unwrap_or(99);
 
     sqlx::query_as::<_, WorkspaceRole>(
@@ -146,10 +146,7 @@ pub async fn update_workspace_role(
 }
 
 /// Delete a custom role. System roles cannot be deleted.
-pub async fn delete_workspace_role(
-    pool: &PgPool,
-    role_id: Uuid,
-) -> Result<bool, sqlx::Error> {
+pub async fn delete_workspace_role(pool: &PgPool, role_id: Uuid) -> Result<bool, sqlx::Error> {
     let result = sqlx::query(
         r#"
         DELETE FROM workspace_roles

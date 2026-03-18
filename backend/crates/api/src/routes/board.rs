@@ -589,7 +589,7 @@ async fn get_project_full(
     // Fetch project+statuses, tasks with badges, members, assignees, and labels in parallel
     let (board_result, tasks_result, members_result, assignees_result, labels_result) = tokio::join!(
         boards::get_board_by_id(&state.db, id, auth.0.user_id),
-        boards::list_board_tasks_with_badges(&state.db, id, Some(limit), Some(offset)),
+        boards::list_board_tasks_with_badges(&state.db, id, auth.0.user_id, Some(limit), Some(offset)),
         boards::list_board_members(&state.db, id),
         boards::list_board_task_assignees(&state.db, id),
         boards::list_board_task_labels(&state.db, id),
