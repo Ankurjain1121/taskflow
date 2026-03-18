@@ -163,6 +163,7 @@ interface WorkspaceOption {
           @defer (on viewport) {
             <app-dashboard-act2
               [workspaceId]="activeWorkspaceId()"
+              [overdueCount]="stats()?.overdue || 0"
               class="block mb-8 animate-fade-in-up"
             />
           } @placeholder {

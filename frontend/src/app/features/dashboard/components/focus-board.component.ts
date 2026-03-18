@@ -40,7 +40,7 @@ const SNOOZE_STORAGE_KEY = 'taskflow_snoozed_tasks';
       <!-- Task cards grid -->
       <div class="p-5">
         @if (visibleTasks().length > 0) {
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             @for (task of visibleTasks().slice(0, 5); track task.id; let i = $index) {
               <div
                 class="animate-fade-in-up"
