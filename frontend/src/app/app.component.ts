@@ -7,7 +7,7 @@ import {
   signal,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
+import { RouterOutlet, Router, NavigationEnd, ActivatedRoute } from '@angular/router';
 import {
   trigger,
   transition,
@@ -21,6 +21,7 @@ import { CommonModule } from '@angular/common';
 import { ToastModule } from 'primeng/toast';
 import { ThemeService } from './core/services/theme.service';
 import { KeyboardShortcutsService } from './core/services/keyboard-shortcuts.service';
+import { WorkspaceContextService } from './core/services/workspace-context.service';
 import { CommandPaletteComponent } from './shared/components/command-palette/command-palette.component';
 import { ToastContainerComponent } from './shared/components/toast/toast.component';
 import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
@@ -90,9 +91,14 @@ export class AppComponent implements OnInit, OnDestroy {
   private themeService = inject(ThemeService);
   private router = inject(Router);
   private keyboardShortcuts = inject(KeyboardShortcutsService);
+  private wsContext = inject(WorkspaceContextService);
 
   ngOnInit(): void {
     this.registerGlobalShortcuts();
+
+    // Initialize workspace context
+    const initialWsId = this.extractWorkspaceId(this.router.url);
+    this.wsContext.init(initialWsId ?? undefined);
 
     this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
@@ -101,6 +107,13 @@ export class AppComponent implements OnInit, OnDestroy {
         const hideSidebar =
           url.startsWith('/auth') || url.startsWith('/onboarding');
         this.showSidebar.set(!hideSidebar);
+
+        // Sync workspace context from URL
+        const wsId = this.extractWorkspaceId(url);
+        if (wsId) {
+          this.wsContext.syncFromUrl(wsId);
+        }
+
         // Close mobile sidebar on navigation
         if (this.mobileOpen()) {
           this.closeMobileSidebar();
@@ -184,6 +197,11 @@ export class AppComponent implements OnInit, OnDestroy {
     );
   }
 
+  private extractWorkspaceId(url: string): string | null {
+    const match = url.match(/\/workspace\/([^/]+)/);
+    return match ? match[1] : null;
+  }
+
   private registerGlobalShortcuts(): void {
     this.keyboardShortcuts.register('nav-dashboard', {
       prefix: 'g',
@@ -207,6 +225,14 @@ export class AppComponent implements OnInit, OnDestroy {
       description: 'Go to Eisenhower Matrix',
       category: 'Navigation',
       action: () => this.router.navigate(['/eisenhower']),
+    });
+
+    this.keyboardShortcuts.register('nav-inbox', {
+      prefix: 'g',
+      key: 'i',
+      description: 'Go to Inbox',
+      category: 'Navigation',
+      action: () => this.router.navigate(['/inbox']),
     });
   }
 }
