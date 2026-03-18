@@ -144,22 +144,40 @@ pub async fn list_tasks_by_board(
         return Err(TaskQueryError::NotProjectMember);
     }
 
-    // Fetch tasks for the project with safety limit
+    // Fetch tasks for the project with safety limit (respects visibility filtering)
     let tasks = sqlx::query_as::<_, Task>(
         r#"
         SELECT
-            id, title, description, priority, due_date, start_date,
-            estimated_hours, project_id, task_list_id, status_id, position,
-            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
-            tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth
-        FROM tasks
-        WHERE project_id = $1 AND deleted_at IS NULL AND parent_task_id IS NULL
-        ORDER BY position ASC
+            t.id, t.title, t.description, t.priority, t.due_date, t.start_date,
+            t.estimated_hours, t.project_id, t.task_list_id, t.status_id, t.position,
+            t.milestone_id, t.task_number, t.eisenhower_urgency, t.eisenhower_importance,
+            t.tenant_id, t.created_by_id, t.deleted_at, t.created_at, t.updated_at,
+            t.version, t.parent_task_id, t.depth
+        FROM tasks t
+        LEFT JOIN task_lists tl ON tl.id = t.task_list_id
+        WHERE t.project_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
+          AND (
+            -- No role assigned yet (pre-migration) = full access
+            NOT EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = t.project_id AND pm.user_id = $2 AND pm.role_id IS NOT NULL)
+            OR
+            -- Role has can_view_all_tasks capability
+            (SELECT wr.capabilities->>'can_view_all_tasks' = 'true'
+             FROM workspace_roles wr
+             JOIN project_members pm ON pm.role_id = wr.id
+             WHERE pm.project_id = t.project_id AND pm.user_id = $2)
+            OR
+            -- Effective visibility is public (default)
+            COALESCE(tl.effective_visibility, 'public') = 'public'
+            OR
+            -- User is assigned to this task
+            EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.user_id = $2)
+          )
+        ORDER BY t.position ASC
         LIMIT 1000
         "#,
     )
     .bind(project_id)
+    .bind(user_id)
     .fetch_all(pool)
     .await?;
 

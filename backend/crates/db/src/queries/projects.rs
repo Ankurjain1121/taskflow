@@ -564,17 +564,39 @@ pub struct PaginatedTasks {
 pub async fn list_project_tasks_with_badges(
     pool: &PgPool,
     project_id: Uuid,
+    user_id: Uuid,
     limit: Option<i64>,
     offset: Option<i64>,
 ) -> Result<PaginatedTasks, sqlx::Error> {
     let limit_val = limit.unwrap_or(1000).clamp(1, 1000);
     let offset_val = offset.unwrap_or(0).max(0);
 
-    // Get total count first (cheap indexed query)
+    // Get total count first (respects visibility filtering)
     let total_count: i64 = sqlx::query_scalar(
-        r#"SELECT COUNT(*) FROM tasks WHERE project_id = $1 AND deleted_at IS NULL AND parent_task_id IS NULL"#,
+        r#"SELECT COUNT(*)
+        FROM tasks t
+        LEFT JOIN task_lists tl ON tl.id = t.task_list_id
+        WHERE t.project_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
+          AND (
+            -- No role assigned yet (pre-migration) = full access
+            NOT EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = t.project_id AND pm.user_id = $2 AND pm.role_id IS NOT NULL)
+            OR
+            -- Role has can_view_all_tasks capability
+            (SELECT wr.capabilities->>'can_view_all_tasks' = 'true'
+             FROM workspace_roles wr
+             JOIN project_members pm ON pm.role_id = wr.id
+             WHERE pm.project_id = t.project_id AND pm.user_id = $2)
+            OR
+            -- Effective visibility is public (default)
+            COALESCE(tl.effective_visibility, 'public') = 'public'
+            OR
+            -- User is assigned to this task
+            EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.user_id = $2)
+          )
+        "#,
     )
     .bind(project_id)
+    .bind(user_id)
     .fetch_one(pool)
     .await?;
 
@@ -599,6 +621,7 @@ pub async fn list_project_tasks_with_badges(
             COALESCE(tmr.has_running, false) AS "has_running_timer",
             COALESCE(cmt.cnt, 0) AS "comment_count"
         FROM tasks t
+        LEFT JOIN task_lists tl ON tl.id = t.task_list_id
         LEFT JOIN LATERAL (
             SELECT COUNT(*)::bigint AS total,
                    COUNT(*) FILTER (WHERE child.status_id IN (
@@ -620,6 +643,18 @@ pub async fn list_project_tasks_with_badges(
             WHERE c.task_id = t.id AND c.deleted_at IS NULL
         ) cmt ON true
         WHERE t.project_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
+          AND (
+            NOT EXISTS (SELECT 1 FROM project_members pm WHERE pm.project_id = t.project_id AND pm.user_id = $4 AND pm.role_id IS NOT NULL)
+            OR
+            (SELECT wr.capabilities->>'can_view_all_tasks' = 'true'
+             FROM workspace_roles wr
+             JOIN project_members pm ON pm.role_id = wr.id
+             WHERE pm.project_id = t.project_id AND pm.user_id = $4)
+            OR
+            COALESCE(tl.effective_visibility, 'public') = 'public'
+            OR
+            EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.user_id = $4)
+          )
         ORDER BY t.position ASC
         LIMIT $2 OFFSET $3
         "#,
@@ -627,6 +662,7 @@ pub async fn list_project_tasks_with_badges(
     .bind(project_id)
     .bind(limit_val)
     .bind(offset_val)
+    .bind(user_id)
     .fetch_all(pool)
     .await?;
 
@@ -636,10 +672,11 @@ pub async fn list_project_tasks_with_badges(
 pub async fn list_board_tasks_with_badges(
     pool: &PgPool,
     board_id: Uuid,
+    user_id: Uuid,
     limit: Option<i64>,
     offset: Option<i64>,
 ) -> Result<PaginatedTasks, sqlx::Error> {
-    list_project_tasks_with_badges(pool, board_id, limit, offset).await
+    list_project_tasks_with_badges(pool, board_id, user_id, limit, offset).await
 }
 
 /// Fetch assignees for tasks in a project (capped at 5000 rows)

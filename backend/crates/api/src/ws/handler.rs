@@ -20,7 +20,7 @@ use crate::ws::batch_handler::{BatchHandler, BatchMessage};
 use crate::ws::messages::{ClientMessage, ServerMessage, WsQuery};
 use taskflow_auth::jwt::verify_access_token;
 use taskflow_db::models::WsBoardEvent;
-use taskflow_db::queries::boards::is_board_member;
+use taskflow_db::queries::projects::is_board_member;
 use taskflow_services::{BroadcastService, PresenceService};
 
 /// WebSocket upgrade handler

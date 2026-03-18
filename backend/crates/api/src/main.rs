@@ -42,9 +42,11 @@ use crate::routes::{
     team_overview_router, teams_router, tenant_router, time_entry_router, upload_router,
     user_preferences_router, webhook_router, workspace_api_keys_router, workspace_audit_router,
     workspace_export_router, workspace_job_roles_router, workspace_labels_router,
-    workspace_projects_router, workspace_router, workspace_teams_router, workspace_trash_router,
+    workspace_projects_router, workspace_roles_router, workspace_router, workspace_teams_router,
+    workspace_trash_router,
 };
 use crate::routes::{metrics_cron_router, metrics_router, portfolio_router, prometheus_router};
+use crate::routes::project_visibility_router;
 use crate::state::AppState;
 use crate::ws::ws_handler;
 
@@ -257,6 +259,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "/api/workspaces/{workspace_id}/projects",
             workspace_projects_router(state.clone()),
         )
+        // Workspace permission roles routes (custom RBAC roles)
+        .nest(
+            "/api/workspaces/{workspace_id}/permission-roles",
+            workspace_roles_router(state.clone()),
+        )
         // Workspace labels routes
         .nest(
             "/api/workspaces/{workspace_id}/labels",
@@ -302,6 +309,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             project_templates_router(state.clone()),
         )
         .nest("/api/projects", project_router(state.clone()))
+        .nest(
+            "/api/projects/{project_id}/visibility",
+            project_visibility_router(state.clone()),
+        )
         .nest(
             "/api/projects/{board_id}/columns",
             board_columns_router(state.clone()),

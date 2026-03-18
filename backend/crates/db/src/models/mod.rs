@@ -29,6 +29,7 @@ pub mod user_preferences;
 pub mod webhook;
 pub mod workspace;
 pub mod workspace_api_key;
+pub mod workspace_role;
 pub mod ws_events;
 
 pub use activity::*;
@@ -62,4 +63,5 @@ pub use user_preferences::*;
 pub use webhook::*;
 pub use workspace::*;
 pub use workspace_api_key::*;
+pub use workspace_role::*;
 pub use ws_events::*;

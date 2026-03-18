@@ -5,8 +5,8 @@ pub mod auth;
 pub mod automation_evaluation;
 pub mod automation_templates;
 pub mod automations;
-pub mod board_shares;
-pub mod boards;
+pub mod project_shares;
+pub mod projects;
 pub mod bulk_operations;
 pub mod comments;
 pub mod custom_fields;
@@ -47,6 +47,7 @@ pub mod user_preferences;
 pub mod webhooks;
 pub mod workspace_api_keys;
 pub mod workspace_job_roles;
+pub mod workspace_roles;
 pub mod workspaces;
 
 #[cfg(test)]
@@ -92,15 +93,15 @@ pub use automations::{
     UpdateRuleInput,
 };
 
-// board_shares
-pub use board_shares::{
+// project_shares
+pub use project_shares::{
     access_shared_board, create_board_share, delete_board_share, list_board_shares,
     toggle_board_share, BoardShareQueryError, CreateBoardShareInput, SharedBoardAccess,
     SharedColumn, SharedTask,
 };
 
-// boards
-pub use boards::{
+// projects
+pub use projects::{
     add_board_member, add_project_member, create_board, create_project, duplicate_board,
     duplicate_project, get_board_by_id, get_board_internal, get_board_member_role,
     get_project_by_id, get_project_internal, get_project_member_role, is_board_member,
@@ -292,6 +293,13 @@ pub use workspaces::{
     remove_workspace_member, search_workspace_members, soft_delete_workspace, update_workspace,
     update_workspace_member_role, update_workspace_visibility, TenantMemberInfo,
     UserWorkspaceMembership, WorkspaceMemberInfo, WorkspaceWithMembers,
+};
+
+// workspace_roles
+pub use workspace_roles::{
+    create_workspace_role, delete_workspace_role, get_workspace_role, get_workspace_role_by_name,
+    list_workspace_roles, seed_system_roles, update_workspace_role, CreateWorkspaceRoleInput,
+    UpdateWorkspaceRoleInput, WorkspaceRoleSummary,
 };
 
 // workspace_job_roles
