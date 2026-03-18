@@ -146,9 +146,9 @@ pub async fn query_audit_log(
           AND (
             $2::uuid IS NULL
             OR (
-              (al.entity_type = 'board' AND al.entity_id IN (SELECT id FROM boards WHERE workspace_id = $2))
+              (al.entity_type IN ('board', 'project') AND al.entity_id IN (SELECT id FROM projects WHERE workspace_id = $2))
               OR (al.entity_type = 'task' AND al.entity_id IN (
-                SELECT t.id FROM tasks t JOIN boards b ON b.id = t.board_id WHERE b.workspace_id = $2
+                SELECT t.id FROM tasks t JOIN projects p ON p.id = t.project_id WHERE p.workspace_id = $2
               ))
               OR (al.entity_type = 'workspace' AND al.entity_id = $2)
             )
@@ -215,9 +215,9 @@ pub async fn query_audit_actions(
           AND (
             $2::uuid IS NULL
             OR (
-              (al.entity_type = 'board' AND al.entity_id IN (SELECT id FROM boards WHERE workspace_id = $2))
+              (al.entity_type IN ('board', 'project') AND al.entity_id IN (SELECT id FROM projects WHERE workspace_id = $2))
               OR (al.entity_type = 'task' AND al.entity_id IN (
-                SELECT t.id FROM tasks t JOIN boards b ON b.id = t.board_id WHERE b.workspace_id = $2
+                SELECT t.id FROM tasks t JOIN projects p ON p.id = t.project_id WHERE p.workspace_id = $2
               ))
               OR (al.entity_type = 'workspace' AND al.entity_id = $2)
             )

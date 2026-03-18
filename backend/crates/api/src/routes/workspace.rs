@@ -358,6 +358,42 @@ async fn delete_workspace(
     }
 }
 
+/// GET /api/workspaces/:id/members
+///
+/// List all members of a workspace.
+async fn list_members(
+    State(state): State<AppState>,
+    auth: AuthUserExtractor,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Vec<MemberInfo>>> {
+    // Check membership
+    let is_member = workspaces::is_workspace_member(&state.db, id, auth.0.user_id).await?;
+    if !is_member {
+        return Err(AppError::Forbidden("Not a member of this workspace".into()));
+    }
+
+    let workspace = workspaces::get_workspace_by_id(&state.db, id, auth.0.tenant_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
+
+    let members: Vec<MemberInfo> = workspace
+        .members
+        .into_iter()
+        .map(|m| MemberInfo {
+            user_id: m.user_id,
+            name: m.name,
+            email: m.email,
+            avatar_url: m.avatar_url,
+            job_title: m.job_title,
+            department: m.department,
+            role: m.role,
+            joined_at: m.joined_at,
+        })
+        .collect();
+
+    Ok(Json(members))
+}
+
 /// GET /api/workspaces/:id/members/search?q=<query>
 ///
 /// Search workspace members by name or email.
@@ -695,7 +731,7 @@ pub fn workspace_router(state: AppState) -> Router<AppState> {
         .route("/{id}/join", post(join_workspace))
         .route("/{id}/members/search", get(search_members))
         .route("/{id}/members/bulk", post(bulk_add_members))
-        .route("/{id}/members", post(add_member))
+        .route("/{id}/members", get(list_members).post(add_member))
         .route(
             "/{id}/members/{user_id}",
             delete(remove_member).patch(update_member_role),

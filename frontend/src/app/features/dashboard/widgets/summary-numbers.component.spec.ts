@@ -109,5 +109,85 @@ describe('SummaryNumbersComponent', () => {
         .find((c) => c.label === 'Completed This Week');
       expect(completedCard!.trend).toBe(0);
     });
+
+    it('should handle zero values for all stats', () => {
+      const zeroStats: SummaryStats = {
+        totalTasks: 0,
+        completedThisWeek: 0,
+        completedLastWeek: 0,
+        overdueTasks: 0,
+        overdueLastWeek: 0,
+        completionRate: 0,
+        completionRateLastWeek: 0,
+      };
+      fixture.componentRef.setInput('stats', zeroStats);
+      fixture.detectChanges();
+      const cards = component.cards();
+      expect(cards.every((c) => c.value === 0)).toBe(true);
+      expect(cards.every((c) => c.trend === 0)).toBe(true);
+    });
+
+    it('should handle very large numbers', () => {
+      fixture.componentRef.setInput('stats', {
+        ...mockStats,
+        totalTasks: 99999,
+      });
+      fixture.detectChanges();
+      const totalCard = component
+        .cards()
+        .find((c) => c.label === 'Total Tasks');
+      expect(totalCard!.value).toBe(99999);
+    });
+
+    it('should handle negative trend when completed drops', () => {
+      fixture.componentRef.setInput('stats', {
+        ...mockStats,
+        completedThisWeek: 4,
+        completedLastWeek: 10,
+      });
+      fixture.detectChanges();
+      const completedCard = component
+        .cards()
+        .find((c) => c.label === 'Completed This Week');
+      // (4 - 10) / 10 * 100 = -60
+      expect(completedCard!.trend).toBe(-60);
+    });
+
+    it('should compute correct trend percentage', () => {
+      // Already using mockStats: (12 - 8) / 8 * 100 = 50
+      const completedCard = component
+        .cards()
+        .find((c) => c.label === 'Completed This Week');
+      expect(completedCard!.trend).toBe(50);
+    });
+
+    it('should mark Completion Rate as percentage', () => {
+      const rateCard = component
+        .cards()
+        .find((c) => c.label === 'Completion Rate');
+      expect(rateCard!.isPercentage).toBe(true);
+    });
+
+    it('should mark Total Tasks as non-percentage', () => {
+      const totalCard = component
+        .cards()
+        .find((c) => c.label === 'Total Tasks');
+      expect(totalCard!.isPercentage).toBe(false);
+    });
+
+    it('should set trendPositive correctly', () => {
+      const completedCard = component
+        .cards()
+        .find((c) => c.label === 'Completed This Week');
+      expect(completedCard!.trendPositive).toBe(true);
+
+      const rateCard = component
+        .cards()
+        .find((c) => c.label === 'Completion Rate');
+      expect(rateCard!.trendPositive).toBe(true);
+
+      const overdueCard = component.cards().find((c) => c.label === 'Overdue');
+      expect(overdueCard!.trendPositive).toBe(false);
+    });
   });
 });

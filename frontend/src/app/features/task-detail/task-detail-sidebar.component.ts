@@ -128,14 +128,14 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
         <!-- Column / Status -->
         <div>
           <label class="field-label">Status</label>
-          @if (currentColumn()) {
+          @if (currentColumn(); as col) {
             <div class="flex items-center gap-2 mt-1">
               <span
                 class="w-3 h-3 rounded-full flex-shrink-0"
-                [style.background-color]="currentColumn()!.color || '#6366f1'"
+                [style.background-color]="col.color || '#6366f1'"
               ></span>
-              <span class="field-value">{{ currentColumn()!.name }}</span>
-              @if (currentColumn()!.status_mapping?.done) {
+              <span class="field-value">{{ col.name }}</span>
+              @if (col.status_mapping?.done) {
                 <p-tag value="Done" severity="success" />
               }
             </div>
@@ -143,9 +143,9 @@ import { getPriorityLabel } from '../../shared/utils/task-colors';
             <div class="flex items-center gap-2 mt-1">
               <span
                 class="w-3 h-3 rounded-full flex-shrink-0"
-                [style.background-color]="task()!.status_color || '#6366f1'"
+                [style.background-color]="task().status_color || '#6366f1'"
               ></span>
-              <span class="field-value">{{ task()!.status_name }}</span>
+              <span class="field-value">{{ task().status_name }}</span>
             </div>
           } @else {
             <span class="field-value text-[var(--muted-foreground)] mt-1">No status</span>

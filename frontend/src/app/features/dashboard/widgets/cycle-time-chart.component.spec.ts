@@ -67,4 +67,46 @@ describe('CycleTimeChartComponent', () => {
   it('should set y-axis to begin at zero', () => {
     expect(component.chartOptions.scales.y.beginAtZero).toBe(true);
   });
+
+  it('should handle single data point', () => {
+    const points: CycleTimePoint[] = [
+      { week_start: '2026-02-17', avg_cycle_days: 4.2 },
+    ];
+    fixture.componentRef.setInput('data', points);
+    fixture.detectChanges();
+
+    expect(component.latestValue()).toBe('4.2');
+    expect(component.chartData().labels.length).toBe(1);
+  });
+
+  it('should format latestValue to 1 decimal place', () => {
+    const points: CycleTimePoint[] = [
+      { week_start: '2026-02-17', avg_cycle_days: 2.8 },
+    ];
+    fixture.componentRef.setInput('data', points);
+    fixture.detectChanges();
+
+    // toFixed(1) produces "2.8", not "2.80" or "3"
+    expect(component.latestValue()).toBe('2.8');
+  });
+
+  it('should use tension 0.4 for smooth line', () => {
+    const points: CycleTimePoint[] = [
+      { week_start: '2026-02-17', avg_cycle_days: 3.5 },
+    ];
+    fixture.componentRef.setInput('data', points);
+    fixture.detectChanges();
+
+    expect(component.chartData().datasets[0].tension).toBe(0.4);
+  });
+
+  it('should set point radius to 3', () => {
+    const points: CycleTimePoint[] = [
+      { week_start: '2026-02-17', avg_cycle_days: 3.5 },
+    ];
+    fixture.componentRef.setInput('data', points);
+    fixture.detectChanges();
+
+    expect(component.chartData().datasets[0].pointRadius).toBe(3);
+  });
 });

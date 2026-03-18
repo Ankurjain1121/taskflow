@@ -35,7 +35,8 @@ export function formatShortDate(dateStr: string): string {
   });
 }
 
-export function getInitials(name: string): string {
+export function getInitials(name: string | undefined | null): string {
+  if (!name) return '?';
   return name
     .split(' ')
     .map((n) => n.charAt(0))
@@ -44,7 +45,8 @@ export function getInitials(name: string): string {
     .substring(0, 2);
 }
 
-export function getAvatarColor(name: string): string {
+export function getAvatarColor(name: string | undefined | null): string {
+  if (!name) return AVATAR_COLORS[0];
   const code = name.charCodeAt(0) || 0;
   return AVATAR_COLORS[code % AVATAR_COLORS.length];
 }

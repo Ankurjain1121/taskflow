@@ -121,5 +121,59 @@ describe('OverdueTasksTableComponent', () => {
     it('should return default muted for unknown priority', () => {
       expect(component.getPriorityClass('other')).toContain('bg-[var(--muted)]');
     });
+
+    it('should handle case-insensitive priority in getPriorityClass', () => {
+      expect(component.getPriorityClass('HIGH')).toContain('orange');
+      expect(component.getPriorityClass('High')).toContain('orange');
+      expect(component.getPriorityClass('URGENT')).toContain('red');
+      expect(component.getPriorityClass('Medium')).toContain('blue');
+    });
+  });
+
+  describe('loading state', () => {
+    it('should start in loading state', () => {
+      expect(component.loading()).toBe(true);
+    });
+
+    it('should set loading false after successful load', async () => {
+      expect(component.loading()).toBe(true);
+      await component.loadData();
+      expect(component.loading()).toBe(false);
+    });
+
+    it('should set loading false after error', async () => {
+      mockDashboardService.getOverdueTasks.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
+      await component.loadData();
+      expect(component.loading()).toBe(false);
+    });
+
+    it('should keep tasks empty on error', async () => {
+      mockDashboardService.getOverdueTasks.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
+      await component.loadData();
+      expect(component.tasks()).toEqual([]);
+    });
+  });
+
+  describe('workspace filtering', () => {
+    it('should pass workspaceId to service', async () => {
+      fixture.componentRef.setInput('workspaceId', 'ws-abc');
+      await component.loadData();
+      expect(mockDashboardService.getOverdueTasks).toHaveBeenCalledWith(
+        10,
+        'ws-abc',
+      );
+    });
+
+    it('should request limit of 10 tasks', async () => {
+      await component.loadData();
+      expect(mockDashboardService.getOverdueTasks).toHaveBeenCalledWith(
+        10,
+        undefined,
+      );
+    });
   });
 });

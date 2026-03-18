@@ -69,4 +69,49 @@ describe('VelocityChartComponent', () => {
     expect(component.chartOptions.responsive).toBe(true);
     expect(component.chartOptions.scales.y.beginAtZero).toBe(true);
   });
+
+  it('should handle single data point', () => {
+    const points: VelocityPoint[] = [
+      { week_start: '2026-02-17', tasks_completed: 7 },
+    ];
+    fixture.componentRef.setInput('data', points);
+    fixture.detectChanges();
+
+    expect(component.avgVelocity()).toBe(7);
+    expect(component.chartData().labels.length).toBe(1);
+  });
+
+  it('should generate correct date labels', () => {
+    const points: VelocityPoint[] = [
+      { week_start: '2026-02-17', tasks_completed: 5 },
+      { week_start: '2026-03-03', tasks_completed: 8 },
+    ];
+    fixture.componentRef.setInput('data', points);
+    fixture.detectChanges();
+
+    const labels = component.chartData().labels;
+    // Labels should be in month/day format like "Feb 17", "Mar 3"
+    expect(labels[0]).toContain('Feb');
+    expect(labels[1]).toContain('Mar');
+  });
+
+  it('should use bar chart with border radius 4', () => {
+    const points: VelocityPoint[] = [
+      { week_start: '2026-02-17', tasks_completed: 5 },
+    ];
+    fixture.componentRef.setInput('data', points);
+    fixture.detectChanges();
+
+    expect(component.chartData().datasets[0].borderRadius).toBe(4);
+  });
+
+  it('should set bar percentage to 0.6', () => {
+    const points: VelocityPoint[] = [
+      { week_start: '2026-02-17', tasks_completed: 5 },
+    ];
+    fixture.componentRef.setInput('data', points);
+    fixture.detectChanges();
+
+    expect(component.chartData().datasets[0].barPercentage).toBe(0.6);
+  });
 });

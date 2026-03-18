@@ -90,4 +90,53 @@ describe('OnTimeMetricComponent', () => {
     const circumference = 2 * Math.PI * 50;
     expect(component.dashArray()).toBe(`${circumference} ${circumference}`);
   });
+
+  it('should round percentage to nearest integer', () => {
+    fixture.componentRef.setInput('data', {
+      on_time_pct: 87.4,
+      total_completed: 100,
+      on_time_count: 87,
+    });
+    fixture.detectChanges();
+
+    // Math.round(87.4) = 87
+    expect(component.percentage()).toBe(87);
+  });
+
+  it('should handle 0% on time', () => {
+    fixture.componentRef.setInput('data', {
+      on_time_pct: 0,
+      total_completed: 10,
+      on_time_count: 0,
+    });
+    fixture.detectChanges();
+
+    expect(component.percentage()).toBe(0);
+    expect(component.gaugeColor()).toBe('rgb(239, 68, 68)'); // red
+  });
+
+  it('should handle 100% on time', () => {
+    fixture.componentRef.setInput('data', {
+      on_time_pct: 100,
+      total_completed: 10,
+      on_time_count: 10,
+    });
+    fixture.detectChanges();
+
+    expect(component.percentage()).toBe(100);
+    expect(component.gaugeColor()).toBe('rgb(16, 185, 129)'); // green
+  });
+
+  it('should compute dash offset as 0 for 100%', () => {
+    fixture.componentRef.setInput('data', {
+      on_time_pct: 100,
+      total_completed: 10,
+      on_time_count: 10,
+    });
+    fixture.detectChanges();
+
+    const circumference = 2 * Math.PI * 50;
+    // offset = circumference - (100/100) * circumference = 0
+    expect(component.dashOffset()).toBeCloseTo(0, 1);
+  });
 });
