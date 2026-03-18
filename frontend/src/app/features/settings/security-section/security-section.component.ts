@@ -1,5 +1,6 @@
 import {
   Component,
+  computed,
   inject,
   signal,
   OnInit,
@@ -494,7 +495,7 @@ import { TwoFactorService } from '../../../core/services/two-factor.service';
         </p>
       } @else {
         <div class="space-y-3">
-          @for (session of sessions(); track session.id) {
+          @for (session of visibleSessions(); track session.id) {
             <div
               class="rounded-lg border p-4 flex items-center gap-4"
               style="border-color: var(--border)"
@@ -561,6 +562,26 @@ import { TwoFactorService } from '../../../core/services/two-factor.service';
             </div>
           }
         </div>
+        @if (!showAllSessions() && sessions().length > 5) {
+          <button
+            type="button"
+            class="mt-3 text-sm font-medium cursor-pointer bg-transparent border-none"
+            style="color: var(--primary)"
+            (click)="showAllSessions.set(true)"
+          >
+            Show all ({{ sessions().length }})
+          </button>
+        }
+        @if (showAllSessions() && sessions().length > 5) {
+          <button
+            type="button"
+            class="mt-3 text-sm font-medium cursor-pointer bg-transparent border-none"
+            style="color: var(--primary)"
+            (click)="showAllSessions.set(false)"
+          >
+            Show fewer
+          </button>
+        }
       }
     </div>
   `,
@@ -587,6 +608,10 @@ export class SecuritySectionComponent implements OnInit {
   revokeAllLoading = signal(false);
   revokingSessionId = signal<string | null>(null);
   sessions = signal<SessionInfo[]>([]);
+  showAllSessions = signal(false);
+  visibleSessions = computed(() =>
+    this.showAllSessions() ? this.sessions() : this.sessions().slice(0, 5),
+  );
 
   hideCurrentPassword = signal(true);
   hideNewPassword = signal(true);
