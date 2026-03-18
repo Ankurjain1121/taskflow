@@ -189,7 +189,7 @@ pub mod helpers {
     /// Returns (tenant_id, user_id, workspace_id, board_id, first_column_id).
     pub async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
         let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-        let bwc = taskflow_db::queries::boards::create_board(
+        let bwc = taskflow_db::queries::projects::create_board(
             pool,
             "API IntTest Board",
             None,

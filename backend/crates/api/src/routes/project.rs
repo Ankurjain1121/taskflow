@@ -14,7 +14,7 @@ use axum::{
 use uuid::Uuid;
 
 use taskflow_db::models::BoardMemberRole;
-use taskflow_db::queries::{boards, workspaces};
+use taskflow_db::queries::{projects, workspaces};
 
 use taskflow_services::board_templates;
 
@@ -54,7 +54,7 @@ async fn list_projects(
     }
 
     let projects_list =
-        boards::list_boards_by_workspace(&state.db, workspace_id, auth.0.user_id).await?;
+        projects::list_boards_by_workspace(&state.db, workspace_id, auth.0.user_id).await?;
 
     let response: Vec<ProjectResponse> = projects_list
         .into_iter()
@@ -115,7 +115,7 @@ async fn get_project(
         return Ok(response_json);
     }
 
-    let board = boards::get_board_by_id(&state.db, id, auth.0.user_id)
+    let board = projects::get_board_by_id(&state.db, id, auth.0.user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Project not found or access denied".into()))?;
 
@@ -195,7 +195,7 @@ async fn create_project(
         return Err(AppError::BadRequest("Project name is required".into()));
     }
 
-    let board = boards::create_board(
+    let board = projects::create_board(
         &state.db,
         name,
         payload.description.as_deref(),
@@ -248,7 +248,7 @@ async fn update_project(
     Json(payload): Json<UpdateProjectRequest>,
 ) -> Result<Json<ProjectResponse>> {
     // Check project membership with editor or owner role
-    let role = boards::get_board_member_role(&state.db, id, auth.0.user_id).await?;
+    let role = projects::get_board_member_role(&state.db, id, auth.0.user_id).await?;
     match role {
         Some(BoardMemberRole::Owner | BoardMemberRole::Editor) => {}
         Some(BoardMemberRole::Viewer) => {
@@ -269,7 +269,7 @@ async fn update_project(
     }
 
     let bg_color = payload.background_color.as_ref().map(|c| c.as_deref());
-    let board = boards::update_board(
+    let board = projects::update_board(
         &state.db,
         id,
         name,
@@ -313,7 +313,7 @@ async fn delete_project(
     Path(id): Path<Uuid>,
 ) -> Result<Json<MessageResponse>> {
     // Check project membership
-    let is_member = boards::is_board_member(&state.db, id, auth.0.user_id).await?;
+    let is_member = projects::is_board_member(&state.db, id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::NotFound(
             "Project not found or access denied".into(),
@@ -321,9 +321,9 @@ async fn delete_project(
     }
 
     // Get workspace_id for cache invalidation before deletion
-    let project_info = boards::get_board_by_id(&state.db, id, auth.0.user_id).await?;
+    let project_info = projects::get_board_by_id(&state.db, id, auth.0.user_id).await?;
 
-    let deleted = boards::soft_delete_board(&state.db, id).await?;
+    let deleted = projects::soft_delete_board(&state.db, id).await?;
 
     if deleted {
         // Invalidate workspace projects cache and project detail cache
@@ -354,14 +354,14 @@ async fn list_project_members(
     Path(id): Path<Uuid>,
 ) -> Result<Json<Vec<ProjectMemberResponse>>> {
     // Check project membership
-    let is_member = boards::is_board_member(&state.db, id, auth.0.user_id).await?;
+    let is_member = projects::is_board_member(&state.db, id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::NotFound(
             "Project not found or access denied".into(),
         ));
     }
 
-    let members = boards::list_board_members(&state.db, id).await?;
+    let members = projects::list_board_members(&state.db, id).await?;
 
     let response: Vec<ProjectMemberResponse> = members
         .into_iter()
@@ -391,7 +391,7 @@ async fn add_project_member(
     Json(payload): Json<AddProjectMemberRequest>,
 ) -> Result<Json<MessageResponse>> {
     // Check project membership
-    let is_member = boards::is_board_member(&state.db, id, auth.0.user_id).await?;
+    let is_member = projects::is_board_member(&state.db, id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::NotFound(
             "Project not found or access denied".into(),
@@ -399,7 +399,7 @@ async fn add_project_member(
     }
 
     // Get project to check workspace membership of the user being added
-    let project = boards::get_board_internal(&state.db, id)
+    let project = projects::get_board_internal(&state.db, id)
         .await?
         .ok_or_else(|| AppError::NotFound("Project not found".into()))?;
 
@@ -412,7 +412,7 @@ async fn add_project_member(
         ));
     }
 
-    boards::add_board_member(&state.db, id, payload.user_id, payload.role).await?;
+    projects::add_board_member(&state.db, id, payload.user_id, payload.role).await?;
 
     Ok(Json(MessageResponse {
         message: "Member added successfully".into(),
@@ -429,14 +429,14 @@ async fn remove_project_member(
     Path((id, user_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<MessageResponse>> {
     // Check project membership
-    let is_member = boards::is_board_member(&state.db, id, auth.0.user_id).await?;
+    let is_member = projects::is_board_member(&state.db, id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::NotFound(
             "Project not found or access denied".into(),
         ));
     }
 
-    let removed = boards::remove_board_member(&state.db, id, user_id).await?;
+    let removed = projects::remove_board_member(&state.db, id, user_id).await?;
 
     if removed {
         Ok(Json(MessageResponse {
@@ -458,7 +458,7 @@ async fn update_project_member_role(
     Json(payload): Json<UpdateProjectMemberRoleRequest>,
 ) -> Result<Json<ProjectMemberResponse>> {
     // Check project membership with owner or editor role
-    let role = boards::get_board_member_role(&state.db, id, auth.0.user_id).await?;
+    let role = projects::get_board_member_role(&state.db, id, auth.0.user_id).await?;
     match role {
         Some(BoardMemberRole::Owner | BoardMemberRole::Editor) => {}
         Some(BoardMemberRole::Viewer) => {
@@ -476,14 +476,14 @@ async fn update_project_member_role(
         return Err(AppError::BadRequest("Cannot change your own role".into()));
     }
 
-    let updated = boards::update_board_member_role(&state.db, id, user_id, payload.role).await?;
+    let updated = projects::update_board_member_role(&state.db, id, user_id, payload.role).await?;
 
     if !updated {
         return Err(AppError::NotFound("Project member not found".into()));
     }
 
     // Fetch the updated member info
-    let members = boards::list_board_members(&state.db, id).await?;
+    let members = projects::list_board_members(&state.db, id).await?;
     let member = members
         .into_iter()
         .find(|m| m.user_id == user_id)
@@ -511,7 +511,7 @@ async fn duplicate_project(
     Json(payload): Json<DuplicateProjectRequest>,
 ) -> Result<Json<ProjectDetailResponse>> {
     // Verify membership
-    let is_member = boards::is_board_member(&state.db, id, auth.0.user_id).await?;
+    let is_member = projects::is_board_member(&state.db, id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::NotFound(
             "Project not found or access denied".into(),
@@ -526,7 +526,7 @@ async fn duplicate_project(
     let include_tasks = payload.include_tasks.unwrap_or(false);
 
     let result =
-        boards::duplicate_board(&state.db, id, name, include_tasks, auth.0.user_id).await?;
+        projects::duplicate_board(&state.db, id, name, include_tasks, auth.0.user_id).await?;
 
     // Invalidate workspace projects cache
     cache::cache_del(
@@ -588,11 +588,11 @@ async fn get_project_full(
 
     // Fetch project+statuses, tasks with badges, members, assignees, and labels in parallel
     let (board_result, tasks_result, members_result, assignees_result, labels_result) = tokio::join!(
-        boards::get_board_by_id(&state.db, id, auth.0.user_id),
-        boards::list_board_tasks_with_badges(&state.db, id, auth.0.user_id, Some(limit), Some(offset)),
-        boards::list_board_members(&state.db, id),
-        boards::list_board_task_assignees(&state.db, id),
-        boards::list_board_task_labels(&state.db, id),
+        projects::get_board_by_id(&state.db, id, auth.0.user_id),
+        projects::list_board_tasks_with_badges(&state.db, id, auth.0.user_id, Some(limit), Some(offset)),
+        projects::list_board_members(&state.db, id),
+        projects::list_board_task_assignees(&state.db, id),
+        projects::list_board_task_labels(&state.db, id),
     );
 
     let board = board_result?

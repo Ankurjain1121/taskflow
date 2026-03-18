@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use taskflow_db::models::{BoardMemberRole, Capabilities, WorkspaceRole};
-use taskflow_db::queries::{boards, workspace_roles, workspaces};
+use taskflow_db::queries::{projects, workspace_roles, workspaces};
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
@@ -293,7 +293,7 @@ async fn update_project_visibility(
     }
 
     // Check project membership and role
-    let role = boards::get_board_member_role(&state.db, project_id, auth.0.user_id).await?;
+    let role = projects::get_board_member_role(&state.db, project_id, auth.0.user_id).await?;
 
     let has_permission = match role {
         Some(BoardMemberRole::Owner | BoardMemberRole::Editor) => true,
@@ -308,7 +308,7 @@ async fn update_project_visibility(
     if !has_permission {
         // As fallback, check workspace-level can_manage_project_settings capability
         // Get the project's workspace_id
-        let board = boards::get_board_internal(&state.db, project_id)
+        let board = projects::get_board_internal(&state.db, project_id)
             .await?
             .ok_or_else(|| AppError::NotFound("Project not found".into()))?;
 

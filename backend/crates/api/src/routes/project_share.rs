@@ -12,7 +12,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::board_shares::{
+use taskflow_db::queries::project_shares::{
     access_shared_board, create_board_share, delete_board_share, list_board_shares,
     toggle_board_share, BoardShareQueryError, CreateBoardShareInput,
 };
@@ -93,7 +93,7 @@ async fn toggle_share_handler(
 async fn access_shared_board_handler(
     State(state): State<AppState>,
     Path(token): Path<String>,
-) -> Result<Json<taskflow_db::queries::board_shares::SharedBoardAccess>> {
+) -> Result<Json<taskflow_db::queries::project_shares::SharedBoardAccess>> {
     let access = access_shared_board(&state.db, &token, None)
         .await
         .map_err(map_share_error)?;
@@ -111,7 +111,7 @@ async fn access_shared_board_post_handler(
     State(state): State<AppState>,
     Path(token): Path<String>,
     Json(body): Json<AccessShareBody>,
-) -> Result<Json<taskflow_db::queries::board_shares::SharedBoardAccess>> {
+) -> Result<Json<taskflow_db::queries::project_shares::SharedBoardAccess>> {
     let access = access_shared_board(&state.db, &token, body.password.as_deref())
         .await
         .map_err(map_share_error)?;
