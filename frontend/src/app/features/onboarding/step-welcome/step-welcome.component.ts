@@ -161,11 +161,11 @@ export class StepWelcomeComponent {
     this.isLoading = true;
     this.error = null;
 
-    // Complete onboarding and navigate to dashboard
+    // Complete onboarding and navigate to workspace dashboard
     this.onboardingService.completeOnboarding().subscribe({
       next: () => {
         this.isLoading = false;
-        this.router.navigate(['/dashboard']);
+        this.router.navigate(['/workspace', this.workspaceId(), 'dashboard']);
       },
       error: (err) => {
         this.isLoading = false;

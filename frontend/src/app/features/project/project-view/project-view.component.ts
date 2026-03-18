@@ -15,6 +15,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { Column } from '../../../core/services/project.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
 import { PresenceService } from '../../../core/services/presence.service';
+import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
 
 import {
   CreateTaskDialogComponent,
@@ -149,7 +150,7 @@ import { MessageService } from 'primeng/api';
         <app-sample-project-banner
           [boardId]="boardId"
           [workspaceId]="workspaceId"
-          (deleted)="router.navigate(['/dashboard'])"
+          (deleted)="navigateToDashboard()"
         />
       }
 
@@ -478,6 +479,7 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
   readonly bulkOps = inject(ProjectBulkOperationsHandler);
   private presenceService = inject(PresenceService);
   private messageService = inject(MessageService);
+  private wsContext = inject(WorkspaceContextService);
   readonly state = inject(ProjectStateService);
   readonly quickEditService = inject(CardQuickEditService);
   readonly hintsService = inject(FeatureHintsService);
@@ -592,6 +594,15 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
     this.shortcutsService.unregister();
     this.wsService.send('unsubscribe', { channel: `project:${this.boardId}` });
+  }
+
+  navigateToDashboard(): void {
+    const wsId = this.wsContext.activeWorkspaceId();
+    if (wsId) {
+      this.router.navigate(['/workspace', wsId, 'dashboard']);
+    } else {
+      this.router.navigate(['/dashboard']);
+    }
   }
 
   onViewModeChanged(mode: ViewMode): void {

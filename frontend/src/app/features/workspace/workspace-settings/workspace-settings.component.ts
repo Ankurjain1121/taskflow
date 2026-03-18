@@ -230,7 +230,8 @@ export class WorkspaceSettingsComponent implements OnInit {
 
     this.workspaceService.delete(this.workspaceId).subscribe({
       next: () => {
-        this.router.navigate(['/dashboard']);
+        // Workspace deleted — redirect to discover (can't use deleted workspace route)
+        this.router.navigate(['/discover']);
       },
     });
   }

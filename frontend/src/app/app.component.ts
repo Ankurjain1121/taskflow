@@ -28,6 +28,7 @@ import { SidebarComponent } from './shared/components/sidebar/sidebar.component'
 import { TopNavComponent } from './shared/components/top-nav/top-nav.component';
 import { WorkspaceSettingsDialogComponent } from './features/workspace/workspace-settings/workspace-settings-dialog.component';
 import { TimerWidgetComponent } from './shared/components/timer-widget/timer-widget.component';
+import { ViewSwitcherComponent, ViewOption } from './shared/components/view-switcher/view-switcher.component';
 
 const routeTransition = trigger('routeAnimations', [
   transition('* <=> *', [
@@ -64,6 +65,7 @@ const routeTransition = trigger('routeAnimations', [
     TimerWidgetComponent,
     CommandPaletteComponent,
     WorkspaceSettingsDialogComponent,
+    ViewSwitcherComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.component.html',
@@ -74,6 +76,7 @@ export class AppComponent implements OnInit, OnDestroy {
   title = 'frontend';
 
   searchOpen = signal(false);
+  viewSwitcherOpen = signal(false);
   showSidebar = signal(false);
 
   sidebarCollapsed = signal(
@@ -145,6 +148,10 @@ export class AppComponent implements OnInit, OnDestroy {
       event.preventDefault();
       this.searchOpen.set(true);
     }
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'V') {
+      event.preventDefault();
+      this.viewSwitcherOpen.set(true);
+    }
   }
 
   openSearch(): void {
@@ -179,6 +186,18 @@ export class AppComponent implements OnInit, OnDestroy {
     // Will be connected to task creation dialog in a later feature
   }
 
+  closeViewSwitcher(): void {
+    this.viewSwitcherOpen.set(false);
+  }
+
+  onViewSelected(view: ViewOption): void {
+    this.viewSwitcherOpen.set(false);
+    if (view.section === 'workspace') {
+      this.navigateToWsRoute(view.id);
+    }
+    // Project and saved views require project context — handled by the view-switcher consumer
+  }
+
   getSidebarClasses(): string {
     if (this.isMobile()) {
       return this.mobileOpen()
@@ -202,21 +221,30 @@ export class AppComponent implements OnInit, OnDestroy {
     return match ? match[1] : null;
   }
 
+  private navigateToWsRoute(path: string): void {
+    const wsId = this.wsContext.activeWorkspaceId();
+    if (wsId) {
+      this.router.navigate(['/workspace', wsId, path]);
+    } else {
+      this.router.navigate(['/' + path]);
+    }
+  }
+
   private registerGlobalShortcuts(): void {
     this.keyboardShortcuts.register('nav-dashboard', {
       prefix: 'g',
       key: 'd',
       description: 'Go to Dashboard',
       category: 'Navigation',
-      action: () => this.router.navigate(['/dashboard']),
+      action: () => this.navigateToWsRoute('dashboard'),
     });
 
     this.keyboardShortcuts.register('nav-my-tasks', {
       prefix: 'g',
       key: 'm',
-      description: 'Go to My Tasks',
+      description: 'Go to My Work',
       category: 'Navigation',
-      action: () => this.router.navigate(['/my-tasks']),
+      action: () => this.navigateToWsRoute('my-work'),
     });
 
     this.keyboardShortcuts.register('nav-eisenhower', {
@@ -224,7 +252,7 @@ export class AppComponent implements OnInit, OnDestroy {
       key: 'e',
       description: 'Go to Eisenhower Matrix',
       category: 'Navigation',
-      action: () => this.router.navigate(['/eisenhower']),
+      action: () => this.navigateToWsRoute('eisenhower'),
     });
 
     this.keyboardShortcuts.register('nav-inbox', {
@@ -232,7 +260,7 @@ export class AppComponent implements OnInit, OnDestroy {
       key: 'i',
       description: 'Go to Inbox',
       category: 'Navigation',
-      action: () => this.router.navigate(['/inbox']),
+      action: () => this.navigateToWsRoute('inbox'),
     });
   }
 }

@@ -12,7 +12,7 @@ use serde::Deserialize;
 use uuid::Uuid;
 
 use taskflow_db::models::{PositionWithHolders, RecurringTaskConfig};
-use taskflow_db::queries::{projects, positions};
+use taskflow_db::queries::{positions, projects};
 
 use crate::errors::{AppError, Result};
 use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
@@ -139,7 +139,8 @@ async fn get_position(
         .await?
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
-    let is_member = projects::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
+    let is_member =
+        projects::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a project member".into()));
     }
@@ -159,7 +160,8 @@ async fn update_position(
         .await?
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
-    let is_member = projects::is_board_member(&state.db, existing.project_id, auth.0.user_id).await?;
+    let is_member =
+        projects::is_board_member(&state.db, existing.project_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a project member".into()));
     }
@@ -205,7 +207,8 @@ async fn delete_position(
         .await?
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
-    let is_member = projects::is_board_member(&state.db, existing.project_id, auth.0.user_id).await?;
+    let is_member =
+        projects::is_board_member(&state.db, existing.project_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a project member".into()));
     }
@@ -232,7 +235,8 @@ async fn add_holder(
         .await?
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
-    let is_member = projects::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
+    let is_member =
+        projects::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a project member".into()));
     }
@@ -263,7 +267,8 @@ async fn remove_holder(
         .await?
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
-    let is_member = projects::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
+    let is_member =
+        projects::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a project member".into()));
     }
@@ -289,7 +294,8 @@ async fn list_position_recurring_tasks(
         .await?
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
-    let is_member = projects::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
+    let is_member =
+        projects::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a project member".into()));
     }

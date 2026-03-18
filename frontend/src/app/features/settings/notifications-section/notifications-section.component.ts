@@ -81,7 +81,7 @@ interface PreferenceRow {
           >
         } @else {
           <span
-            class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 ml-4 shrink-0"
+            class="px-2 py-1 text-xs font-medium rounded-full bg-[var(--muted)] text-[var(--muted-foreground)] ml-4 shrink-0"
             >Not set up</span
           >
         }

@@ -9,6 +9,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Dialog } from 'primeng/dialog';
+import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
 import { Tabs } from 'primeng/tabs';
 import { TabList } from 'primeng/tabs';
 import { TabPanels } from 'primeng/tabs';
@@ -133,6 +134,7 @@ export class WorkspaceSettingsDialogComponent {
   private workspaceService = inject(WorkspaceService);
   private projectService = inject(ProjectService);
   private authService = inject(AuthService);
+  private wsContext = inject(WorkspaceContextService);
 
   @ViewChild(WorkspaceGeneralTabComponent)
   generalTab?: WorkspaceGeneralTabComponent;
@@ -186,7 +188,8 @@ export class WorkspaceSettingsDialogComponent {
     this.workspaceService.delete(wsId).subscribe({
       next: () => {
         this.dialogService.close();
-        this.router.navigate(['/dashboard']);
+        // Workspace deleted — redirect to discover (can't use deleted workspace route)
+        this.router.navigate(['/discover']);
       },
     });
   }

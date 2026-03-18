@@ -1,5 +1,6 @@
 import {
   Component,
+  inject,
   input,
   output,
   signal,
@@ -8,6 +9,7 @@ import {
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { ProjectService } from '../../../core/services/project.service';
+import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
 
 @Component({
   selector: 'app-sample-project-banner',
@@ -83,6 +85,8 @@ export class SampleProjectBannerComponent implements OnInit {
   dismissed = signal(false);
   isDeleting = signal(false);
 
+  private wsContext = inject(WorkspaceContextService);
+
   constructor(
     private router: Router,
     private projectService: ProjectService,
@@ -107,7 +111,12 @@ export class SampleProjectBannerComponent implements OnInit {
       next: () => {
         this.isDeleting.set(false);
         this.deleted.emit();
-        this.router.navigate(['/dashboard']);
+        const wsId = this.wsContext.activeWorkspaceId();
+        if (wsId) {
+          this.router.navigate(['/workspace', wsId, 'dashboard']);
+        } else {
+          this.router.navigate(['/dashboard']);
+        }
       },
       error: () => {
         this.isDeleting.set(false);

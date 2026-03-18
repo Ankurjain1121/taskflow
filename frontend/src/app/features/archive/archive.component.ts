@@ -18,9 +18,9 @@ import { AuthService } from '../../core/services/auth.service';
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-[var(--secondary)] dark:bg-gray-900">
+    <div class="min-h-screen bg-[var(--secondary)]">
       <header
-        class="bg-[var(--card)] dark:bg-gray-800 shadow-sm border-b border-[var(--border)] dark:border-gray-700"
+        class="bg-[var(--card)] shadow-sm border-b border-[var(--border)]"
       >
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <h1
@@ -66,7 +66,7 @@ import { AuthService } from '../../core/services/auth.service';
           <div class="space-y-3">
             @for (i of [1, 2, 3]; track i) {
               <div
-                class="bg-[var(--card)] dark:bg-gray-800 rounded-lg border border-[var(--border)] dark:border-gray-700 p-4"
+                class="bg-[var(--card)] rounded-lg border border-[var(--border)] p-4"
               >
                 <div class="flex items-center gap-3">
                   <div class="skeleton w-8 h-8 rounded"></div>
@@ -117,7 +117,7 @@ import { AuthService } from '../../core/services/auth.service';
           <div class="space-y-2">
             @for (item of items(); track item.entity_id) {
               <div
-                class="bg-[var(--card)] dark:bg-gray-800 rounded-lg border border-[var(--border)] dark:border-gray-700 p-4 flex items-center gap-3"
+                class="bg-[var(--card)] rounded-lg border border-[var(--border)] p-4 flex items-center gap-3"
               >
                 <!-- Entity type icon -->
                 @if (item.entity_type === 'task') {
@@ -249,7 +249,7 @@ export class ArchiveComponent implements OnInit {
     const active = this.activeFilter() === filter;
     return active
       ? 'bg-primary/10 text-primary'
-      : 'bg-[var(--card)] dark:bg-gray-800 text-[var(--muted-foreground)] dark:text-gray-400 hover:bg-[var(--muted)] dark:hover:bg-gray-700';
+      : 'bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)]';
   }
 
   loadArchive(): void {

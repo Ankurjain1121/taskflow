@@ -41,10 +41,10 @@ interface EmailEntry {
                 [(ngModel)]="email.value"
                 (blur)="validateEmail(email)"
                 placeholder="colleague@company.com"
-                class="w-full px-4 py-3 border border-[var(--border)] dark:border-gray-600 rounded-lg
-                       bg-[var(--card)] dark:bg-gray-800 text-[var(--card-foreground)] dark:text-white
-                       focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                       placeholder-gray-400 dark:placeholder-gray-500"
+                class="w-full px-4 py-3 border border-[var(--border)] rounded-lg
+                       bg-[var(--card)] text-[var(--card-foreground)]
+                       focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent
+                       placeholder-[var(--muted-foreground)]"
                 [class.border-red-500]="email.error"
               />
               @if (email.error) {

@@ -8,7 +8,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::models::{BoardMemberRole, TaskPriority, UserRole};
-use crate::queries::{auth, projects, comments, tasks, workspaces};
+use crate::queries::{auth, comments, projects, tasks, workspaces};
 
 /// Connect to the real test database.
 async fn test_pool() -> PgPool {
@@ -561,9 +561,10 @@ async fn test_add_board_member() {
     .await
     .unwrap();
 
-    let member = projects::add_board_member(&pool, bwc.project.id, user2.id, BoardMemberRole::Viewer)
-        .await
-        .unwrap();
+    let member =
+        projects::add_board_member(&pool, bwc.project.id, user2.id, BoardMemberRole::Viewer)
+            .await
+            .unwrap();
 
     assert_eq!(member.project_id, bwc.project.id);
     assert_eq!(member.user_id, user2.id);

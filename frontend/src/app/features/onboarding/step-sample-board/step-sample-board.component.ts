@@ -36,7 +36,7 @@ interface SampleColumn {
 
       <!-- Sample Board Preview -->
       <div
-        class="bg-[var(--secondary)] dark:bg-gray-800 rounded-xl p-6 border border-[var(--border)] dark:border-gray-700"
+        class="bg-[var(--muted)] rounded-xl p-6 border border-[var(--border)]"
       >
         <div class="flex items-center mb-4">
           <div
@@ -67,7 +67,7 @@ interface SampleColumn {
                   </span>
                 </div>
                 <span
-                  class="text-xs text-[var(--muted-foreground)] dark:text-gray-400 bg-[var(--secondary)] dark:bg-gray-600 px-1.5 py-0.5 rounded"
+                  class="text-xs text-[var(--muted-foreground)] bg-[var(--muted)] px-1.5 py-0.5 rounded"
                 >
                   {{ column.taskCount }}
                 </span>
@@ -76,7 +76,7 @@ interface SampleColumn {
               <div class="space-y-2">
                 @for (i of getTaskPlaceholders(column.taskCount); track i) {
                   <div
-                    class="h-8 bg-[var(--secondary)] dark:bg-gray-600 rounded animate-pulse"
+                    class="h-8 bg-[var(--muted)] rounded animate-pulse"
                   ></div>
                 }
               </div>
@@ -319,7 +319,7 @@ export class StepSampleBoardComponent {
             this.generatedBoardId,
           ]);
         } else {
-          this.router.navigate(['/dashboard']);
+          this.router.navigate(['/workspace', this.workspaceId(), 'dashboard']);
         }
       },
       error: (err) => {

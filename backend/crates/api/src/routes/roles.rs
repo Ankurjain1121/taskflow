@@ -5,7 +5,7 @@
 use axum::{
     extract::{Path, State},
     middleware::from_fn_with_state,
-    routing::{delete, get, put},
+    routing::{get, put},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
@@ -92,9 +92,8 @@ async fn require_manage_roles(
 ) -> Result<()> {
     // Get the user's workspace membership role
     let ws_role = workspaces::get_workspace_member_role(pool, workspace_id, user_id).await?;
-    let ws_role = ws_role.ok_or_else(|| {
-        AppError::Forbidden("Not a member of this workspace".into())
-    })?;
+    let ws_role =
+        ws_role.ok_or_else(|| AppError::Forbidden("Not a member of this workspace".into()))?;
 
     // Check by legacy enum role: Owner and Admin can always manage roles
     let role_name = format!("{:?}", ws_role);
@@ -134,9 +133,7 @@ async fn list_roles(
     let is_member =
         workspaces::is_workspace_member(&state.db, workspace_id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::Forbidden(
-            "Not a member of this workspace".into(),
-        ));
+        return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
     let roles = workspace_roles::list_workspace_roles(&state.db, workspace_id).await?;
@@ -257,9 +254,7 @@ async fn delete_role(
 
     // Cannot delete system roles
     if existing.is_system {
-        return Err(AppError::Forbidden(
-            "System roles cannot be deleted".into(),
-        ));
+        return Err(AppError::Forbidden("System roles cannot be deleted".into()));
     }
 
     let deleted = workspace_roles::delete_workspace_role(&state.db, role_id).await?;
@@ -312,12 +307,9 @@ async fn update_project_visibility(
             .await?
             .ok_or_else(|| AppError::NotFound("Project not found".into()))?;
 
-        let ws_role = workspaces::get_workspace_member_role(
-            &state.db,
-            board.workspace_id,
-            auth.0.user_id,
-        )
-        .await?;
+        let ws_role =
+            workspaces::get_workspace_member_role(&state.db, board.workspace_id, auth.0.user_id)
+                .await?;
 
         let ws_has_permission = if let Some(ref wr) = ws_role {
             let role_name = format!("{:?}", wr);

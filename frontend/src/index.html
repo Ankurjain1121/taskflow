@@ -24,6 +24,7 @@
           (mode === 'system' &&
             window.matchMedia('(prefers-color-scheme: dark)').matches);
         if (isDark) document.documentElement.classList.add('dark');
+        document.documentElement.setAttribute('data-sidebar-style', 'dark');
         var accent = localStorage.getItem('taskflow-accent') || 'indigo';
         if (accent !== 'indigo')
           document.documentElement.setAttribute('data-accent', accent);

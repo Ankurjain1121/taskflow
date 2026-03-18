@@ -113,27 +113,23 @@ interface WorkspaceOption {
             }
           </div>
         } @else {
-          <!-- Stat Cards -->
+          <!-- Stat Cards — number IS the design -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <a routerLink="/my-tasks" class="animate-fade-in-up stagger-1 stat-card stat-card--primary cursor-pointer group">
-              <div class="stat-card-icon"><i class="pi pi-clipboard" aria-hidden="true"></i></div>
-              <p class="stat-card-value animate-count-up" [appCountUp]="stats()?.total_tasks || 0"></p>
+            <a routerLink="/my-tasks" class="animate-fade-in-up stagger-1 stat-card cursor-pointer group">
               <p class="stat-card-label">Total Tasks</p>
+              <p class="stat-card-value animate-count-up" [appCountUp]="stats()?.total_tasks || 0"></p>
             </a>
-            <a routerLink="/my-tasks" [queryParams]="{ sort_by: 'due_date', sort_order: 'asc' }" class="animate-fade-in-up stagger-2 stat-card stat-card--danger cursor-pointer group" [class.stat-card--danger-active]="(stats()?.overdue || 0) > 0">
-              <div class="stat-card-icon"><i class="pi pi-exclamation-triangle" aria-hidden="true"></i></div>
-              <p class="stat-card-value animate-count-up" [appCountUp]="stats()?.overdue || 0"></p>
+            <a routerLink="/my-tasks" [queryParams]="{ sort_by: 'due_date', sort_order: 'asc' }" class="animate-fade-in-up stagger-2 stat-card cursor-pointer group" [class.stat-card--danger-active]="(stats()?.overdue || 0) > 0">
               <p class="stat-card-label">Overdue</p>
+              <p class="stat-card-value animate-count-up" [style.color]="(stats()?.overdue || 0) > 0 ? 'var(--destructive)' : 'var(--foreground)'" [appCountUp]="stats()?.overdue || 0"></p>
             </a>
-            <a routerLink="/my-tasks" [queryParams]="{ sort_by: 'due_date' }" class="animate-fade-in-up stagger-3 stat-card stat-card--warning cursor-pointer group">
-              <div class="stat-card-icon"><i class="pi pi-clock" aria-hidden="true"></i></div>
-              <p class="stat-card-value animate-count-up" [appCountUp]="stats()?.due_today || 0"></p>
+            <a routerLink="/my-tasks" [queryParams]="{ sort_by: 'due_date' }" class="animate-fade-in-up stagger-3 stat-card cursor-pointer group">
               <p class="stat-card-label">Due Today</p>
+              <p class="stat-card-value animate-count-up" [appCountUp]="stats()?.due_today || 0"></p>
             </a>
-            <div class="animate-fade-in-up stagger-4 stat-card stat-card--success">
-              <div class="stat-card-icon"><i class="pi pi-check-circle" aria-hidden="true"></i></div>
-              <p class="stat-card-value animate-count-up" [appCountUp]="stats()?.completed_this_week || 0"></p>
+            <div class="animate-fade-in-up stagger-4 stat-card">
               <p class="stat-card-label">Completed This Week</p>
+              <p class="stat-card-value animate-count-up" style="color: var(--success)" [appCountUp]="stats()?.completed_this_week || 0"></p>
             </div>
           </div>
 

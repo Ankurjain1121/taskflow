@@ -13,6 +13,7 @@ import {
 } from '../../core/services/keyboard-shortcuts.service';
 import { OnboardingChecklistService } from '../../core/services/onboarding-checklist.service';
 import { FeatureHintsService } from '../../core/services/feature-hints.service';
+import { WorkspaceContextService } from '../../core/services/workspace-context.service';
 
 interface ShortcutGroup {
   category: string;
@@ -25,9 +26,9 @@ interface ShortcutGroup {
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-[var(--secondary)] dark:bg-gray-900">
+    <div class="min-h-screen bg-[var(--secondary)]">
       <header
-        class="bg-[var(--card)] dark:bg-gray-800 shadow-sm border-b border-[var(--border)] dark:border-gray-700"
+        class="bg-[var(--card)] shadow-sm border-b border-[var(--border)]"
       >
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <h1
@@ -52,7 +53,7 @@ interface ShortcutGroup {
             Getting Started
           </h2>
           <div
-            class="bg-[var(--card)] dark:bg-gray-800 rounded-xl border border-[var(--border)] dark:border-gray-700 p-6 space-y-4"
+            class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-6 space-y-4"
           >
             <div class="flex gap-4">
               <div
@@ -179,7 +180,7 @@ interface ShortcutGroup {
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             @for (feature of features; track feature.title) {
               <div
-                class="bg-[var(--card)] dark:bg-gray-800 rounded-xl border border-[var(--border)] dark:border-gray-700 p-5"
+                class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5"
               >
                 <div class="flex items-start gap-3">
                   <span class="text-xl">{{ feature.icon }}</span>
@@ -222,7 +223,7 @@ interface ShortcutGroup {
           </div>
           @if (shortcutGroups().length === 0) {
             <div
-              class="bg-[var(--card)] dark:bg-gray-800 rounded-xl border border-[var(--border)] dark:border-gray-700 p-6 text-sm text-[var(--muted-foreground)] dark:text-gray-400"
+              class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-6 text-sm text-[var(--muted-foreground)] dark:text-gray-400"
             >
               <p>
                 Keyboard shortcuts are registered as you navigate the app. Open
@@ -231,7 +232,7 @@ interface ShortcutGroup {
               <p class="mt-2">
                 Press
                 <kbd
-                  class="px-1.5 py-0.5 bg-[var(--secondary)] dark:bg-gray-700 rounded text-xs font-mono"
+                  class="px-1.5 py-0.5 bg-[var(--secondary)] rounded text-xs font-mono"
                   >?</kbd
                 >
                 anywhere to see available shortcuts.
@@ -241,7 +242,7 @@ interface ShortcutGroup {
             <div class="space-y-6">
               @for (group of shortcutGroups(); track group.category) {
                 <div
-                  class="bg-[var(--card)] dark:bg-gray-800 rounded-xl border border-[var(--border)] dark:border-gray-700 p-5"
+                  class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-5"
                 >
                   <h3
                     class="text-sm font-semibold text-[var(--muted-foreground)] dark:text-gray-400 uppercase tracking-wider mb-3"
@@ -259,7 +260,7 @@ interface ShortcutGroup {
                           >{{ shortcut.description }}</span
                         >
                         <kbd
-                          class="px-2 py-1 bg-[var(--secondary)] dark:bg-gray-700 rounded text-xs font-mono text-[var(--muted-foreground)] dark:text-gray-300 min-w-[2rem] text-center"
+                          class="px-2 py-1 bg-[var(--secondary)] rounded text-xs font-mono text-[var(--muted-foreground)] dark:text-gray-300 min-w-[2rem] text-center"
                         >
                           {{ formatShortcut(shortcut) }}
                         </kbd>
@@ -280,7 +281,7 @@ interface ShortcutGroup {
             FAQ
           </h2>
           <div
-            class="bg-[var(--card)] dark:bg-gray-800 rounded-xl border border-[var(--border)] dark:border-gray-700 divide-y divide-[var(--border)] dark:divide-gray-700"
+            class="bg-[var(--card)] rounded-xl border border-[var(--border)] divide-y divide-[var(--border)]"
           >
             @for (faq of faqs; track faq.q) {
               <details class="p-5 group">
@@ -320,7 +321,7 @@ interface ShortcutGroup {
             Feedback
           </h2>
           <div
-            class="bg-[var(--card)] dark:bg-gray-800 rounded-xl border border-[var(--border)] dark:border-gray-700 p-6 text-center"
+            class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-6 text-center"
           >
             <p
               class="text-sm text-[var(--muted-foreground)] dark:text-gray-400 mb-4"
@@ -357,6 +358,7 @@ export class HelpComponent implements OnInit {
   readonly checklistService = inject(OnboardingChecklistService);
   private featureHintsService = inject(FeatureHintsService);
   private router = inject(Router);
+  private wsContext = inject(WorkspaceContextService);
 
   shortcutGroups = signal<ShortcutGroup[]>([]);
 
@@ -456,11 +458,20 @@ export class HelpComponent implements OnInit {
 
   restartChecklist(): void {
     this.checklistService.resetChecklist();
-    this.router.navigate(['/dashboard']);
+    this.navigateToDashboard();
   }
 
   restartFeatureTour(): void {
     this.featureHintsService.resetAll();
-    this.router.navigate(['/dashboard']);
+    this.navigateToDashboard();
+  }
+
+  private navigateToDashboard(): void {
+    const wsId = this.wsContext.activeWorkspaceId();
+    if (wsId) {
+      this.router.navigate(['/workspace', wsId, 'dashboard']);
+    } else {
+      this.router.navigate(['/dashboard']);
+    }
   }
 }

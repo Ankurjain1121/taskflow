@@ -148,7 +148,7 @@ export class NotificationItemComponent {
   getIconBgClass(): string {
     return (
       EVENT_TYPE_BG[this.notification().event_type] ||
-      'bg-gray-100 dark:bg-gray-800'
+      'bg-[var(--muted)]'
     );
   }
 

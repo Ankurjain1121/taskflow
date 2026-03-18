@@ -15,6 +15,7 @@ import { NotificationBellComponent } from '../notification-bell/notification-bel
 import { SaveStatusIndicatorComponent } from '../save-status-indicator/save-status-indicator.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
+import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
 
 @Component({
   selector: 'app-top-nav',
@@ -127,6 +128,7 @@ export class TopNavComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly shortcutsService = inject(KeyboardShortcutsService);
+  private readonly wsContext = inject(WorkspaceContextService);
 
   readonly menuToggle = output<void>();
   readonly searchOpen = output<void>();
@@ -184,6 +186,11 @@ export class TopNavComponent {
   }
 
   goToInbox(): void {
-    this.router.navigate(['/inbox']);
+    const wsId = this.wsContext.activeWorkspaceId();
+    if (wsId) {
+      this.router.navigate(['/workspace', wsId, 'inbox']);
+    } else {
+      this.router.navigate(['/inbox']);
+    }
   }
 }

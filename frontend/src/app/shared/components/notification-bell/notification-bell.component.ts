@@ -167,7 +167,7 @@ const TAB_EVENT_TYPES: Record<
               <!-- Today section -->
               @if (todayNotifications().length > 0) {
                 <div
-                  class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 dark:bg-gray-800"
+                  class="px-4 py-2 text-xs font-semibold uppercase tracking-wider bg-[var(--muted)] text-[var(--muted-foreground)]"
                 >
                   Today
                 </div>
@@ -186,7 +186,7 @@ const TAB_EVENT_TYPES: Record<
               <!-- Earlier section -->
               @if (earlierNotifications().length > 0) {
                 <div
-                  class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50 dark:bg-gray-800"
+                  class="px-4 py-2 text-xs font-semibold uppercase tracking-wider bg-[var(--muted)] text-[var(--muted-foreground)]"
                 >
                   Earlier
                 </div>
