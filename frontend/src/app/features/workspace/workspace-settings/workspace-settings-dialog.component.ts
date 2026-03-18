@@ -25,6 +25,7 @@ import { WorkspaceSettingsDialogService } from '../../../core/services/workspace
 import { WorkspaceGeneralTabComponent } from './workspace-general-tab.component';
 import { WorkspaceApiKeysTabComponent } from './workspace-api-keys-tab.component';
 import { WorkspaceAdvancedTabComponent } from './workspace-advanced-tab.component';
+import { WorkspaceRolesTabComponent } from './workspace-roles-tab.component';
 
 interface MemberInfo {
   user_id: string;
@@ -45,6 +46,7 @@ interface MemberInfo {
     WorkspaceGeneralTabComponent,
     WorkspaceApiKeysTabComponent,
     WorkspaceAdvancedTabComponent,
+    WorkspaceRolesTabComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -85,8 +87,9 @@ interface MemberInfo {
         <p-tabs [value]="0">
           <p-tablist>
             <p-tab [value]="0">General</p-tab>
-            <p-tab [value]="1">Integrations</p-tab>
-            <p-tab [value]="2">Advanced</p-tab>
+            <p-tab [value]="1">Roles</p-tab>
+            <p-tab [value]="2">Integrations</p-tab>
+            <p-tab [value]="3">Advanced</p-tab>
           </p-tablist>
           <p-tabpanels>
             <p-tabpanel [value]="0">
@@ -99,11 +102,16 @@ interface MemberInfo {
               />
             </p-tabpanel>
             <p-tabpanel [value]="1">
-              <app-workspace-api-keys-tab
+              <app-workspace-roles-tab
                 [workspaceId]="dialogService.workspaceId()"
               />
             </p-tabpanel>
             <p-tabpanel [value]="2">
+              <app-workspace-api-keys-tab
+                [workspaceId]="dialogService.workspaceId()"
+              />
+            </p-tabpanel>
+            <p-tabpanel [value]="3">
               <app-workspace-advanced-tab
                 [workspace]="workspace()"
                 [workspaceId]="dialogService.workspaceId()"
