@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use taskflow_db::models::BoardMemberRole;
-use taskflow_db::queries::{projects, project_statuses};
+use taskflow_db::queries::{project_statuses, projects};
 use taskflow_db::utils::generate_key_between;
 
 use crate::errors::{AppError, Result};

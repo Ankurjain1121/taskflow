@@ -45,13 +45,13 @@
 
 /* CSS Custom Properties for Theme System */
 :root {
-  --background: #f6f7fb;
+  --background: #eef0f4;
   --foreground: #0f172a;
   --card: #ffffff;
   --card-foreground: #0f172a;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --muted: #f8f9fb;
+  --muted: #f5f6fa;
   --muted-foreground: #64748b;
   --accent: #fff7ed;
   --accent-foreground: #9a3412;
@@ -69,15 +69,15 @@
   --ring: #3b82f6;
   --radius: 1rem;
 
-  /* Sidebar tokens (light mode) */
-  --sidebar-bg: #f0f1f5;
-  --sidebar-surface: rgba(0, 0, 0, 0.03);
-  --sidebar-surface-hover: rgba(0, 0, 0, 0.05);
-  --sidebar-surface-active: color-mix(in srgb, var(--primary) 8%, transparent);
-  --sidebar-border: rgba(0, 0, 0, 0.08);
-  --sidebar-text-primary: #0f172a;
-  --sidebar-text-secondary: rgba(51, 65, 85, 0.85);
-  --sidebar-text-muted: rgba(100, 116, 139, 0.6);
+  /* Sidebar tokens (always dark) */
+  --sidebar-bg: #1e1e2e;
+  --sidebar-surface: rgba(255, 255, 255, 0.03);
+  --sidebar-surface-hover: rgba(255, 255, 255, 0.08);
+  --sidebar-surface-active: color-mix(in srgb, var(--primary) 14%, transparent);
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-text-primary: rgba(255, 255, 255, 0.95);
+  --sidebar-text-secondary: rgba(255, 255, 255, 0.7);
+  --sidebar-text-muted: rgba(255, 255, 255, 0.5);
 
   /* Status color tokens */
   --status-red-bg: #fef2f2;
@@ -141,7 +141,7 @@ html.dark {
   --card-foreground: #f8fafc;
   --border: rgba(255, 255, 255, 0.1);
   --input: rgba(255, 255, 255, 0.15);
-  --muted: #1e293b;
+  --muted: #222544;
   --muted-foreground: #94a3b8;
   --accent: #431407;
   --accent-foreground: #fed7aa;
@@ -712,6 +712,26 @@ button:active,
   ::view-transition-old(root),
   ::view-transition-new(root) {
     animation: none;
+  }
+}
+
+/* ============================================
+   Card Nav Variant Hover
+   ============================================ */
+.card-nav {
+  transition:
+    transform var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+.card-nav:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--widget-hover-border);
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-nav:hover {
+    transform: none;
   }
 }
 

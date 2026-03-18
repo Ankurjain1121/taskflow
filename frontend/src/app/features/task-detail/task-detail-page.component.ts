@@ -40,6 +40,7 @@ import { CommentListComponent } from '../tasks/components/comment-list/comment-l
 import { ActivityTimelineComponent } from '../tasks/components/activity-timeline/activity-timeline.component';
 import { TaskDetailSidebarComponent } from './task-detail-sidebar.component';
 import { RecentItemsService } from '../../core/services/recent-items.service';
+import { WorkspaceContextService } from '../../core/services/workspace-context.service';
 import { MessageService } from 'primeng/api';
 import { Toast } from 'primeng/toast';
 
@@ -406,6 +407,7 @@ export class TaskDetailPageComponent implements OnInit {
   private workspaceService = inject(WorkspaceService);
   private authService = inject(AuthService);
   private recentItemsService = inject(RecentItemsService);
+  private wsContext = inject(WorkspaceContextService);
   private messageService = inject(MessageService);
 
   private params = toSignal(this.route.params);
@@ -441,7 +443,12 @@ export class TaskDetailPageComponent implements OnInit {
     if (window.history.length > 1) {
       this.location.back();
     } else {
-      this.router.navigate(['/dashboard']);
+      const wsId = this.wsContext.activeWorkspaceId();
+      if (wsId) {
+        this.router.navigate(['/workspace', wsId, 'dashboard']);
+      } else {
+        this.router.navigate(['/dashboard']);
+      }
     }
   }
 

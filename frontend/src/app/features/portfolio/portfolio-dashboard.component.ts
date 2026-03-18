@@ -387,13 +387,13 @@ export class PortfolioDashboardComponent implements OnInit {
   getHealthClasses(health: string): string {
     switch (health) {
       case 'on_track':
-        return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400';
+        return 'bg-[var(--status-green-bg)] text-[var(--status-green-text)]';
       case 'at_risk':
-        return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400';
+        return 'bg-[var(--status-amber-bg)] text-[var(--status-amber-text)]';
       case 'behind':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+        return 'bg-[var(--status-red-bg)] text-[var(--status-red-text)]';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400';
+        return 'bg-[var(--muted)] text-[var(--muted-foreground)]';
     }
   }
 

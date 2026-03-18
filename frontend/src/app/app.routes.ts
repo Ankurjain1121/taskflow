@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard, publicOnlyGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
+import { workspaceRedirectGuard } from './core/guards/workspace-redirect.guard';
 
 export const routes: Routes = [
   {
@@ -55,76 +56,8 @@ export const routes: Routes = [
     canActivate: [authGuard],
     data: { hideSidebar: true },
   },
-  {
-    path: 'dashboard',
-    loadComponent: () =>
-      import('./features/dashboard/dashboard.component').then(
-        (m) => m.DashboardComponent,
-      ),
-    canActivate: [authGuard],
-  },
-  {
-    path: 'my-tasks',
-    loadComponent: () =>
-      import('./features/my-tasks/my-tasks-timeline/my-tasks-timeline.component').then(
-        (m) => m.MyTasksTimelineComponent,
-      ),
-    canActivate: [authGuard],
-  },
-  {
-    path: 'inbox',
-    loadComponent: () =>
-      import('./features/inbox/inbox.component').then(
-        (m) => m.InboxComponent,
-      ),
-    canActivate: [authGuard],
-  },
-  {
-    path: 'eisenhower',
-    loadComponent: () =>
-      import('./features/my-tasks/eisenhower-matrix/eisenhower-matrix.component').then(
-        (m) => m.EisenhowerMatrixComponent,
-      ),
-    canActivate: [authGuard],
-  },
-  {
-    path: 'favorites',
-    loadComponent: () =>
-      import('./features/favorites/favorites.component').then(
-        (m) => m.FavoritesComponent,
-      ),
-    canActivate: [authGuard],
-  },
-  {
-    path: 'archive',
-    loadComponent: () =>
-      import('./features/archive/archive.component').then(
-        (m) => m.ArchiveComponent,
-      ),
-    canActivate: [authGuard],
-  },
-  {
-    path: 'team',
-    loadComponent: () =>
-      import('./features/team/team-page.component').then(
-        (m) => m.TeamPageComponent,
-      ),
-    canActivate: [authGuard],
-  },
-  {
-    path: 'help',
-    loadComponent: () =>
-      import('./features/help/help.component').then((m) => m.HelpComponent),
-    canActivate: [authGuard],
-  },
-  {
-    path: 'discover',
-    loadComponent: () =>
-      import('./features/workspace/discover/discover-workspaces.component').then(
-        (m) => m.DiscoverWorkspacesComponent,
-      ),
-    canActivate: [authGuard],
-  },
+
+  // ── Workspace-scoped routes ──────────────────────────────────────
   {
     path: 'workspace/:workspaceId',
     canActivate: [authGuard],
@@ -136,6 +69,68 @@ export const routes: Routes = [
             (m) => m.WorkspaceComponent,
           ),
       },
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./features/dashboard/dashboard.component').then(
+            (m) => m.DashboardComponent,
+          ),
+      },
+      {
+        path: 'my-work',
+        loadComponent: () =>
+          import('./features/my-work/my-work-shell.component').then(
+            (m) => m.MyWorkShellComponent,
+          ),
+      },
+      {
+        path: 'inbox',
+        loadComponent: () =>
+          import('./features/inbox/inbox.component').then(
+            (m) => m.InboxComponent,
+          ),
+      },
+      {
+        path: 'eisenhower',
+        loadComponent: () =>
+          import('./features/my-tasks/eisenhower-matrix/eisenhower-matrix.component').then(
+            (m) => m.EisenhowerMatrixComponent,
+          ),
+      },
+      {
+        path: 'all-tasks',
+        loadComponent: () =>
+          import('./features/workspace/all-tasks/all-tasks.component').then(
+            (m) => m.AllTasksComponent,
+          ),
+      },
+      {
+        path: 'favorites',
+        loadComponent: () =>
+          import('./features/favorites/favorites.component').then(
+            (m) => m.FavoritesComponent,
+          ),
+      },
+      {
+        path: 'archive',
+        loadComponent: () =>
+          import('./features/archive/archive.component').then(
+            (m) => m.ArchiveComponent,
+          ),
+      },
+      {
+        path: 'help',
+        loadComponent: () =>
+          import('./features/help/help.component').then((m) => m.HelpComponent),
+      },
+      {
+        path: 'team-page',
+        loadComponent: () =>
+          import('./features/team/team-page.component').then(
+            (m) => m.TeamPageComponent,
+          ),
+      },
+      // Project routes
       {
         path: 'project/:projectId',
         loadComponent: () =>
@@ -195,6 +190,26 @@ export const routes: Routes = [
           ),
       },
     ],
+  },
+
+  // ── Legacy redirect routes (keep 90 days for backwards compat) ───
+  // These catch old global routes and redirect to workspace-scoped equivalents
+  { path: 'dashboard', canActivate: [workspaceRedirectGuard('dashboard')], children: [] },
+  { path: 'my-tasks', canActivate: [workspaceRedirectGuard('my-work')], children: [] },
+  { path: 'inbox', canActivate: [workspaceRedirectGuard('inbox')], children: [] },
+  { path: 'eisenhower', canActivate: [workspaceRedirectGuard('eisenhower')], children: [] },
+  { path: 'favorites', canActivate: [workspaceRedirectGuard('favorites')], children: [] },
+  { path: 'archive', canActivate: [workspaceRedirectGuard('archive')], children: [] },
+  { path: 'team', canActivate: [workspaceRedirectGuard('team-page')], children: [] },
+  { path: 'help', canActivate: [workspaceRedirectGuard('help')], children: [] },
+
+  {
+    path: 'discover',
+    loadComponent: () =>
+      import('./features/workspace/discover/discover-workspaces.component').then(
+        (m) => m.DiscoverWorkspacesComponent,
+      ),
+    canActivate: [authGuard],
   },
   {
     path: 'settings',

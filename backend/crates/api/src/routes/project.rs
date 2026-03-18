@@ -589,7 +589,13 @@ async fn get_project_full(
     // Fetch project+statuses, tasks with badges, members, assignees, and labels in parallel
     let (board_result, tasks_result, members_result, assignees_result, labels_result) = tokio::join!(
         projects::get_board_by_id(&state.db, id, auth.0.user_id),
-        projects::list_board_tasks_with_badges(&state.db, id, auth.0.user_id, Some(limit), Some(offset)),
+        projects::list_board_tasks_with_badges(
+            &state.db,
+            id,
+            auth.0.user_id,
+            Some(limit),
+            Some(offset)
+        ),
         projects::list_board_members(&state.db, id),
         projects::list_board_task_assignees(&state.db, id),
         projects::list_board_task_labels(&state.db, id),
@@ -725,6 +731,26 @@ pub fn workspace_projects_router(state: AppState) -> Router<AppState> {
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }
 
+/// GET /api/projects/:id/overview
+///
+/// Get aggregated project data: task counts, overdue, milestones, activity, members.
+async fn get_project_overview(
+    State(state): State<AppState>,
+    auth: AuthUserExtractor,
+    Path(id): Path<Uuid>,
+) -> Result<Json<taskflow_db::queries::project_overview::ProjectOverview>> {
+    // Verify project membership
+    let is_member = projects::is_project_member(&state.db, id, auth.0.user_id).await?;
+    if !is_member {
+        return Err(AppError::Forbidden("Not a project member".into()));
+    }
+
+    let overview =
+        taskflow_db::queries::project_overview::get_project_overview(&state.db, id).await?;
+
+    Ok(Json(overview))
+}
+
 /// Build the projects router for direct project routes
 /// Routes: /api/projects/:id
 pub fn project_router(state: AppState) -> Router<AppState> {
@@ -737,6 +763,7 @@ pub fn project_router(state: AppState) -> Router<AppState> {
                 .delete(delete_project),
         )
         .route("/{id}/full", get(get_project_full))
+        .route("/{id}/overview", get(get_project_overview))
         .route("/{id}/duplicate", axum::routing::post(duplicate_project))
         .route(
             "/{id}/members",

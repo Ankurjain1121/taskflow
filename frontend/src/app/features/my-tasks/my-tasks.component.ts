@@ -143,12 +143,12 @@ export class MyTasksComponent implements OnInit {
 
   getPriorityBadgeClass(priority: string): string {
     const classes: Record<string, string> = {
-      urgent: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
-      high: 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300',
-      medium: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
-      low: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
+      urgent: 'bg-[var(--status-red-bg)] text-[var(--status-red-text)]',
+      high: 'bg-[var(--status-amber-bg)] text-[var(--status-amber-text)]',
+      medium: 'bg-[var(--status-blue-bg)] text-[var(--status-blue-text)]',
+      low: 'bg-[var(--status-blue-bg)] text-[var(--status-blue-text)]',
     };
-    return classes[priority] || 'bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-300';
+    return classes[priority] || 'bg-[var(--muted)] text-[var(--muted-foreground)]';
   }
 
   formatDueDate(dueDateStr: string | null): string {

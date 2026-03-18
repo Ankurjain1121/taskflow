@@ -5,11 +5,13 @@ import {
   input,
   output,
   signal,
+  computed,
   ElementRef,
 } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { TooltipModule } from 'primeng/tooltip';
 import { NotificationService } from '../../../core/services/notification.service';
+import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
 import { SidebarNavItemComponent } from './sidebar-nav-item.component';
 import { WorkspaceSwitcherComponent } from './workspace-switcher.component';
 import { SidebarProjectsComponent } from './sidebar-projects.component';
@@ -81,15 +83,15 @@ import { SidebarFooterComponent } from './sidebar-footer.component';
       <!-- Zone 2: Primary Nav -->
       <div class="px-2 py-2 space-y-0.5">
         <app-sidebar-nav-item
-          icon="pi-home" label="Home" route="/dashboard"
+          icon="pi-home" label="Home" [route]="dashboardRoute()"
           [collapsed]="collapsed()" [exactMatch]="true"
           (navClick)="onNavClick()" />
         <app-sidebar-nav-item
-          icon="pi-clipboard" label="My Work" route="/my-tasks"
+          icon="pi-clipboard" label="My Work" [route]="myWorkRoute()"
           [collapsed]="collapsed()"
           (navClick)="onNavClick()" />
         <app-sidebar-nav-item
-          icon="pi-inbox" label="Inbox" route="/inbox"
+          icon="pi-inbox" label="Inbox" [route]="inboxRoute()"
           [collapsed]="collapsed()" [badge]="unreadCount()"
           (navClick)="onNavClick()" />
       </div>
@@ -124,9 +126,19 @@ export class SidebarComponent {
   searchOpen = output<void>();
 
   private readonly notificationService = inject(NotificationService);
+  private readonly wsContext = inject(WorkspaceContextService);
   private readonly elementRef = inject(ElementRef);
   readonly unreadCount = this.notificationService.unreadCount;
   readonly focusIndex = signal(-1);
+
+  private readonly wsBase = computed(() => {
+    const wsId = this.wsContext.activeWorkspaceId();
+    return wsId ? `/workspace/${wsId}` : '';
+  });
+
+  readonly dashboardRoute = computed(() => `${this.wsBase()}/dashboard`);
+  readonly myWorkRoute = computed(() => `${this.wsBase()}/my-work`);
+  readonly inboxRoute = computed(() => `${this.wsBase()}/inbox`);
 
   onNavClick(): void {
     if (this.isMobileOpen()) {

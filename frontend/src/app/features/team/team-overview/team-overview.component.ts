@@ -50,7 +50,7 @@ import { OverloadBannerComponent } from '../overload-banner/overload-banner.comp
           <div class="space-y-4">
             @for (i of [1, 2, 3, 4]; track i) {
               <div
-                class="bg-[var(--card)] dark:bg-gray-800 rounded-xl border border-[var(--border)] dark:border-gray-700 p-4 flex items-center gap-4"
+                class="bg-[var(--card)] rounded-xl border border-[var(--border)] p-4 flex items-center gap-4"
               >
                 <div
                   class="skeleton skeleton-circle w-10 h-10 flex-shrink-0"

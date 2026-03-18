@@ -28,25 +28,27 @@ use crate::middleware::rate_limit::{
 use crate::middleware::request_id::request_id_middleware;
 use crate::middleware::security_headers_middleware;
 use crate::middleware::{audit_middleware, auth_middleware, csrf_middleware};
+use crate::routes::project_visibility_router;
 use crate::routes::{
     activity_log_router, admin_audit_router, admin_trash_router, admin_users_router,
     archive_router, attachment_router, automation_router, automation_templates_router,
-    board_columns_router, board_positions_router, bulk_ops_router, charts_router, column_router,
-    comment_router, cron_router, custom_field_router, dashboard_router, dependency_router,
-    eisenhower_router, favorites_router, filter_presets_router, health_handler, liveness_handler,
-    milestone_router, my_tasks_router, notification_preferences_router, notification_router,
-    onboarding_router, positions_router, project_router, project_share_router,
-    project_template_router, project_templates_router, readiness_handler, recent_items_router,
-    recurring_router, reports_router, search_router, sessions_router, shared_project_public_router,
-    subtask_router, task_group_routes, task_labels_router, task_router, task_template_router,
-    team_overview_router, teams_router, tenant_router, time_entry_router, upload_router,
-    user_preferences_router, webhook_router, workspace_api_keys_router, workspace_audit_router,
-    workspace_export_router, workspace_job_roles_router, workspace_labels_router,
-    workspace_projects_router, workspace_roles_router, workspace_router, workspace_teams_router,
+    batch_my_tasks_router, board_columns_router, board_positions_router, bulk_ops_router,
+    charts_router, column_router, comment_router, cron_router, custom_field_router,
+    dashboard_router, dependency_router, eisenhower_router, favorites_router,
+    filter_presets_router, health_handler, liveness_handler, milestone_router, my_tasks_router,
+    notification_preferences_router, notification_router, onboarding_router, personal_board_router,
+    positions_router, project_router, project_share_router, project_template_router,
+    project_templates_router, readiness_handler, recent_items_router, recurring_router,
+    reports_router, saved_views_router, search_router, sessions_router,
+    shared_project_public_router, subtask_router, task_group_routes, task_labels_router,
+    task_router, task_snooze_router, task_template_router, team_overview_router, teams_router,
+    tenant_router, time_entry_router, upload_router, user_preferences_router, webhook_router,
+    workspace_api_keys_router, workspace_audit_router, workspace_export_router,
+    workspace_job_roles_router, workspace_labels_router, workspace_projects_router,
+    workspace_roles_router, workspace_router, workspace_tasks_router, workspace_teams_router,
     workspace_trash_router,
 };
 use crate::routes::{metrics_cron_router, metrics_router, portfolio_router, prometheus_router};
-use crate::routes::project_visibility_router;
 use crate::state::AppState;
 use crate::ws::ws_handler;
 
@@ -406,6 +408,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Phase 5: Favorites & Archive
         .nest("/api/favorites", favorites_router(state.clone()))
         .nest("/api", archive_router(state.clone()))
+        // Unified Phase 2: New routes
+        .nest("/api", saved_views_router(state.clone()))
+        .nest("/api", workspace_tasks_router(state.clone()))
+        .nest("/api", personal_board_router(state.clone()))
+        .nest("/api", task_snooze_router(state.clone()))
+        .nest("/api", batch_my_tasks_router(state.clone()))
         // Per-user rate limit (300 req/min per authenticated user)
         .layer(from_fn(user_rate_limit_middleware))
         .layer(user_rate_limit_layer(state.redis.clone(), 300, 60))

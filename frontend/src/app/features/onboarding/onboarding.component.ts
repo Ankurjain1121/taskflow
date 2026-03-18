@@ -44,7 +44,7 @@ interface AbbreviatedFlowStep {
   ],
   template: `
     <div
-      class="min-h-screen bg-[var(--secondary)] dark:bg-gray-900 flex flex-col items-center justify-center p-4"
+      class="min-h-screen bg-[var(--background)] flex flex-col items-center justify-center p-4"
     >
       <!-- Loading State -->
       @if (isLoading()) {
@@ -105,15 +105,14 @@ interface AbbreviatedFlowStep {
             <div
               class="w-2.5 h-2.5 rounded-full transition-colors"
               [class.bg-blue-600]="i <= currentStepIndex()"
-              [class.bg-gray-300]="i > currentStepIndex()"
-              [class.dark:bg-gray-600]="i > currentStepIndex()"
+              [class.bg-[var(--border)]]="i > currentStepIndex()"
             ></div>
           }
         </div>
 
         <!-- Card Container -->
         <div
-          class="w-full max-w-md bg-[var(--card)] dark:bg-gray-800 rounded-2xl shadow-xl p-8"
+          class="w-full max-w-md bg-[var(--card)] rounded-2xl shadow-xl p-8"
         >
           <!-- Full Flow Steps -->
           @if (flow() === 'full') {
@@ -245,7 +244,7 @@ export class OnboardingComponent implements OnInit {
     this.http.get<{ onboarding_completed: boolean }>('/api/auth/me').subscribe({
       next: (response) => {
         if (response.onboarding_completed) {
-          // Already completed onboarding, redirect to dashboard
+          // Already completed onboarding — redirect guard will resolve workspace
           this.router.navigate(['/dashboard']);
           return;
         }

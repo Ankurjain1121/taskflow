@@ -34,6 +34,7 @@ import {
 } from '../../../core/services/search.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
+import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
 
 export interface CommandAction {
   icon: string;
@@ -60,7 +61,7 @@ const MAX_RECENT_SEARCHES = 5;
       >
         <!-- Search Dialog -->
         <div
-          class="w-full max-w-2xl bg-[var(--card)] dark:bg-gray-800 rounded-xl shadow-2xl border border-[var(--border)] dark:border-gray-700 overflow-hidden"
+          class="w-full max-w-2xl bg-[var(--card)] rounded-xl shadow-2xl border border-[var(--border)] overflow-hidden"
           (click)="$event.stopPropagation()"
         >
           <!-- Search Input -->
@@ -115,7 +116,7 @@ const MAX_RECENT_SEARCHES = 5;
               </button>
             }
             <kbd
-              class="hidden sm:inline-flex items-center px-2 py-0.5 text-xs font-medium text-gray-400 bg-[var(--secondary)] dark:bg-gray-700 rounded"
+              class="hidden sm:inline-flex items-center px-2 py-0.5 text-xs font-medium text-gray-400 bg-[var(--secondary)]  rounded"
             >
               ESC
             </kbd>
@@ -199,7 +200,7 @@ const MAX_RECENT_SEARCHES = 5;
                     >
                     @if (action.shortcut) {
                       <kbd
-                        class="text-xs px-1.5 py-0.5 rounded bg-[var(--secondary)] dark:bg-gray-700 text-[var(--muted-foreground)] dark:text-gray-400 font-mono"
+                        class="text-xs px-1.5 py-0.5 rounded bg-[var(--secondary)]  text-[var(--muted-foreground)] dark:text-gray-400 font-mono"
                         >{{ action.shortcut }}</kbd
                       >
                     }
@@ -484,14 +485,14 @@ const MAX_RECENT_SEARCHES = 5;
             <div class="flex items-center gap-3">
               <span class="flex items-center gap-1">
                 <kbd
-                  class="px-1.5 py-0.5 bg-[var(--secondary)] dark:bg-gray-700 rounded text-[10px]"
+                  class="px-1.5 py-0.5 bg-[var(--secondary)]  rounded text-[10px]"
                   >&#8593;&#8595;</kbd
                 >
                 navigate
               </span>
               <span class="flex items-center gap-1">
                 <kbd
-                  class="px-1.5 py-0.5 bg-[var(--secondary)] dark:bg-gray-700 rounded text-[10px]"
+                  class="px-1.5 py-0.5 bg-[var(--secondary)]  rounded text-[10px]"
                   >&#9166;</kbd
                 >
                 select
@@ -499,14 +500,14 @@ const MAX_RECENT_SEARCHES = 5;
             </div>
             <span class="flex items-center gap-1">
               <kbd
-                class="px-1.5 py-0.5 bg-[var(--secondary)] dark:bg-gray-700 rounded text-[10px]"
+                class="px-1.5 py-0.5 bg-[var(--secondary)]  rounded text-[10px]"
                 >&gt;</kbd
               >
               commands
             </span>
             <span class="flex items-center gap-1">
               <kbd
-                class="px-1.5 py-0.5 bg-[var(--secondary)] dark:bg-gray-700 rounded text-[10px]"
+                class="px-1.5 py-0.5 bg-[var(--secondary)]  rounded text-[10px]"
                 >esc</kbd
               >
               close
@@ -536,6 +537,7 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private themeService = inject(ThemeService);
   private shortcutsService = inject(KeyboardShortcutsService);
+  private wsContext = inject(WorkspaceContextService);
 
   query = signal('');
   loading = signal(false);
@@ -559,13 +561,13 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
       icon: 'dashboard',
       label: 'Go to Dashboard',
       shortcut: 'G D',
-      action: () => this.router.navigate(['/dashboard']),
+      action: () => this.navigateToWsRoute('dashboard'),
     },
     {
       icon: 'task_alt',
-      label: 'Go to My Tasks',
+      label: 'Go to My Work',
       shortcut: 'G M',
-      action: () => this.router.navigate(['/my-tasks']),
+      action: () => this.navigateToWsRoute('my-work'),
     },
     {
       icon: 'dark_mode',
@@ -739,6 +741,16 @@ export class GlobalSearchComponent implements OnInit, OnDestroy {
     } catch {
       // Ignore parse errors
     }
+  }
+
+  private navigateToWsRoute(path: string): void {
+    const wsId = this.wsContext.activeWorkspaceId();
+    if (wsId) {
+      this.router.navigate(['/workspace', wsId, path]);
+    } else {
+      this.router.navigate(['/' + path]);
+    }
+    this.close();
   }
 
   private saveRecentSearch(query: string): void {

@@ -494,13 +494,13 @@ export class MembersListComponent implements OnInit {
 
   getRoleBadgeClass(role: string): string {
     const classes: Record<string, string> = {
-      owner: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300',
-      admin: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
+      owner: 'bg-[color-mix(in_srgb,#7c3aed_12%,transparent)] text-[#7c3aed]',
+      admin: 'bg-[var(--status-blue-bg)] text-[var(--status-blue-text)]',
       manager: 'bg-primary/10 text-primary',
-      member: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300',
-      viewer: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400',
+      member: 'bg-[var(--muted)] text-[var(--muted-foreground)]',
+      viewer: 'bg-[var(--muted)] text-[var(--muted-foreground)]',
     };
-    return classes[role] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300';
+    return classes[role] || 'bg-[var(--muted)] text-[var(--muted-foreground)]';
   }
 
   getStatusLabel(status: string): string {
@@ -514,11 +514,11 @@ export class MembersListComponent implements OnInit {
 
   getStatusBadgeClass(status: string): string {
     const classes: Record<string, string> = {
-      pending: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
-      accepted: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300',
-      expired: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
+      pending: 'bg-[var(--status-amber-bg)] text-[var(--status-amber-text)]',
+      accepted: 'bg-[var(--status-green-bg)] text-[var(--status-green-text)]',
+      expired: 'bg-[var(--status-red-bg)] text-[var(--status-red-text)]',
     };
-    return classes[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300';
+    return classes[status] || 'bg-[var(--muted)] text-[var(--muted-foreground)]';
   }
 
   formatDate(dateString: string): string {

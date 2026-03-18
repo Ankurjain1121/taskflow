@@ -68,6 +68,15 @@
 <!-- Undo Toast (for undo service) -->
 <p-toast key="undo" position="bottom-center" />
 
+<!-- View Switcher (deferred until idle) -->
+@defer (on idle) {
+  <app-view-switcher
+    [isOpen]="viewSwitcherOpen()"
+    (closed)="closeViewSwitcher()"
+    (viewSelected)="onViewSelected($event)"
+  />
+}
+
 <!-- Workspace Settings Dialog (global, deferred to idle) -->
 @defer (on idle) {
   <app-workspace-settings-dialog />

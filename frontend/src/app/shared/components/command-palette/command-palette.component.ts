@@ -38,6 +38,7 @@ import {
   RecentItemsService,
   RecentItem,
 } from '../../../core/services/recent-items.service';
+import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
 
 export interface CommandAction {
   id: string;
@@ -479,6 +480,7 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
   private themeService = inject(ThemeService);
   private shortcutsService = inject(KeyboardShortcutsService);
   private recentItemsService = inject(RecentItemsService);
+  private wsContext = inject(WorkspaceContextService);
 
   query = signal('');
   loading = signal(false);
@@ -515,21 +517,21 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
       icon: 'home',
       label: 'Go to Dashboard',
       shortcut: 'G D',
-      action: () => this.router.navigate(['/dashboard']),
+      action: () => this.navigateToWsRoute('dashboard'),
     },
     {
       id: 'my-tasks',
       icon: 'check-square',
-      label: 'Go to My Tasks',
+      label: 'Go to My Work',
       shortcut: 'G M',
-      action: () => this.router.navigate(['/my-tasks']),
+      action: () => this.navigateToWsRoute('my-work'),
     },
     {
       id: 'eisenhower',
       icon: 'th-large',
       label: 'Go to Eisenhower Matrix',
       shortcut: 'G E',
-      action: () => this.router.navigate(['/eisenhower']),
+      action: () => this.navigateToWsRoute('eisenhower'),
     },
     {
       id: 'dark-mode',
@@ -826,6 +828,16 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
       ) as HTMLElement | null;
       item?.scrollIntoView({ block: 'nearest' });
     });
+  }
+
+  private navigateToWsRoute(path: string): void {
+    const wsId = this.wsContext.activeWorkspaceId();
+    if (wsId) {
+      this.router.navigate(['/workspace', wsId, path]);
+    } else {
+      this.router.navigate(['/' + path]);
+    }
+    this.close();
   }
 
   private saveRecentSearch(searchQuery: string): void {
