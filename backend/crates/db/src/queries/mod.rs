@@ -47,6 +47,7 @@ pub mod user_preferences;
 pub mod webhooks;
 pub mod workspace_api_keys;
 pub mod workspace_job_roles;
+pub mod workspace_roles;
 pub mod workspaces;
 
 #[cfg(test)]
@@ -292,6 +293,13 @@ pub use workspaces::{
     remove_workspace_member, search_workspace_members, soft_delete_workspace, update_workspace,
     update_workspace_member_role, update_workspace_visibility, TenantMemberInfo,
     UserWorkspaceMembership, WorkspaceMemberInfo, WorkspaceWithMembers,
+};
+
+// workspace_roles
+pub use workspace_roles::{
+    create_workspace_role, delete_workspace_role, get_workspace_role, get_workspace_role_by_name,
+    list_workspace_roles, seed_system_roles, update_workspace_role, CreateWorkspaceRoleInput,
+    UpdateWorkspaceRoleInput, WorkspaceRoleSummary,
 };
 
 // workspace_job_roles
