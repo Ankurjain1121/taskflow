@@ -8,7 +8,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::models::{BoardMemberRole, TaskPriority, UserRole};
-use crate::queries::{auth, boards, comments, tasks, workspaces};
+use crate::queries::{auth, projects, comments, tasks, workspaces};
 
 /// Connect to the real test database.
 async fn test_pool() -> PgPool {

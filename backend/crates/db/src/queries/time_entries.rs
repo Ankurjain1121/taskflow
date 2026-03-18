@@ -504,7 +504,7 @@ pub async fn get_running_timer(
 mod tests {
     use super::*;
     use crate::models::TaskPriority;
-    use crate::queries::{auth, boards, tasks, workspaces};
+    use crate::queries::{auth, projects, tasks, workspaces};
     use crate::test_helpers::test_pool;
     use chrono::Duration;
 

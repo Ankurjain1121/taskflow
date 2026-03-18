@@ -533,7 +533,7 @@ pub async fn create_board_from_template(
 mod tests {
     use super::*;
     use crate::models::UserRole;
-    use crate::queries::{auth, boards, workspaces};
+    use crate::queries::{auth, projects, workspaces};
     use sqlx::PgPool;
 
     const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
