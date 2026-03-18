@@ -1,139 +1,105 @@
-# TASK: Hierarchical Permission System (Enterprise RBAC)
+# TASK: Reimagine Dashboard — Mission Control
 
 ## Objective
-Build a ClickUp-style hierarchical permission system with cascading visibility, custom roles, guest access, and audit trail. Replace fixed role enums with a flexible role table.
+Transform the dashboard from a long, scroll-heavy data dump (850-line monolith, 13 widgets, 3 empty states) into a mission control with three acts: (1) "Here's Your Day" — action-first, above the fold, (2) "How Things Are Going" — project health + trends, (3) "The Full Picture" — detailed analytics on demand.
 
 ## Key Decisions
-- **Role storage**: Replace PG enums with `workspace_roles` table (FK-based)
-- **Query strategy**: SQL-level filtering (no application-level or Redis cache)
-- **Inheritance**: Workspace → Project → Task List, with override at each level
-- **Phasing**: Build all, ship all (no incremental releases)
+- **Focus Board priority**: Auto-sort by urgency (overdue → due today → priority). No manual pin.
+- **Snooze behavior**: Hide from focus board for today only (localStorage). Due date unchanged.
+- **Streak logic**: Count distinct days with at least 1 task completed (from activity_log)
+- **Project health thresholds**: green (overdue/active < 0.1), amber (0.1-0.3), red (> 0.3 or overdue > 5)
+- **Branch**: `feat/reimagine-dashboard` worktree at `../taskflow-dashboard`
+
+## Accepted Scope (from CEO Review)
+1. 3-act progressive disclosure layout
+2. Focus Board with interactive task cards (complete, snooze, delegate)
+3. Project Pulse cards with health indicators + sparklines
+4. Streak counter with completion micro-animations
+5. Time-aware greeting with contextual urgency
+6. Delightful empty states with illustrations and CTAs
+7. Keyboard shortcuts (1-5 select, Enter/Space/S/D act)
+8. Focus Mode toggle
 
 ## Architecture
 
-### Permission Resolution Flow
-```
-resolve_visibility(user, task):
-  1. Get user's role in project (via role_id → workspace_roles)
-  2. If role has can_view_all_tasks → VISIBLE
-  3. Get effective_visibility for task's container:
-     - task_list.visibility_override ?? project.visibility ?? workspace.default
-  4. If effective = 'public' → VISIBLE
-  5. If effective = 'assignee_only' → check task_assignees
-  6. Else → NOT VISIBLE
-```
+### Backend (3 new endpoints)
+- `GET /api/dashboard/focus-tasks` — top 5 priority tasks, RBAC-filtered
+- `GET /api/dashboard/project-pulse` — per-project health + sparkline
+- `GET /api/dashboard/streak` — completion streak data
 
-### New DB Schema
-
-#### Migration 1: Workspace Roles Table
-```sql
-CREATE TABLE workspace_roles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  workspace_id UUID NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
-  name VARCHAR(100) NOT NULL,
-  description TEXT,
-  is_system BOOLEAN NOT NULL DEFAULT false,
-  capabilities JSONB NOT NULL DEFAULT '{}',
-  position INTEGER NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(workspace_id, name)
-);
-CREATE INDEX idx_workspace_roles_workspace ON workspace_roles(workspace_id);
+### Frontend Component Decomposition
+```
+dashboard-shell.component.ts (<200 lines, orchestrator)
+├── Act 1: Here's Your Day
+│   ├── smart-greeting.component.ts
+│   ├── streak-counter.component.ts
+│   ├── summary-numbers.component.ts (existing)
+│   ├── focus-board.component.ts
+│   │   └── focus-task-card.component.ts
+│   └── recent-activity (inline, compact 5 items)
+├── Act 2: How Things Are Going (@defer)
+│   ├── project-pulse.component.ts
+│   │   └── project-pulse-card.component.ts
+│   ├── completion-trend (existing)
+│   ├── on-time-metric (existing)
+│   ├── tasks-by-status (existing)
+│   └── tasks-by-priority (existing)
+└── Act 3: The Full Picture (@defer, accordion)
+    ├── cycle-time-chart (existing)
+    ├── velocity-chart (existing)
+    ├── workload-balance (existing)
+    └── resource-utilization (existing)
 ```
 
-System capabilities (JSONB keys):
-- `can_view_all_tasks` — see all tasks regardless of assignment
-- `can_create_tasks` — create new tasks
-- `can_edit_own_tasks` — edit tasks assigned to self
-- `can_edit_all_tasks` — edit any task
-- `can_delete_tasks` — delete tasks
-- `can_manage_members` — add/remove project members
-- `can_manage_project_settings` — change project visibility, statuses
-- `can_manage_automations` — create/edit automation rules
-- `can_export` — export data (CSV, PDF)
-- `can_manage_billing` — billing and subscription
-- `can_invite_members` — invite new workspace members
-- `can_manage_roles` — create/edit custom roles
+## Implementation Phases
 
-Default system roles per workspace:
-| Role | view_all | create | edit_own | edit_all | delete | members | settings |
-|------|----------|--------|----------|----------|--------|---------|----------|
-| Owner | true | true | true | true | true | true | true |
-| Admin | true | true | true | true | true | true | true |
-| Manager | true | true | true | true | false | true | false |
-| Member | false | true | true | false | false | false | false |
-| Viewer | false | false | false | false | false | false | false |
-| Guest | false | false | false | false | false | false | false |
+### Phase 1: Backend Endpoints
+- [ ] GET /api/dashboard/focus-tasks
+- [ ] GET /api/dashboard/project-pulse
+- [ ] GET /api/dashboard/streak
 
-#### Migration 2: Visibility columns + role_id FK
-```sql
-ALTER TABLE workspace_members ADD COLUMN role_id UUID REFERENCES workspace_roles(id);
-ALTER TABLE project_members ADD COLUMN role_id UUID REFERENCES workspace_roles(id);
-ALTER TABLE workspaces ADD COLUMN default_project_visibility VARCHAR(20) NOT NULL DEFAULT 'public';
-ALTER TABLE projects ADD COLUMN visibility VARCHAR(20) NOT NULL DEFAULT 'public';
-ALTER TABLE projects ADD COLUMN is_private BOOLEAN NOT NULL DEFAULT false;
-ALTER TABLE task_lists ADD COLUMN visibility_override VARCHAR(20) DEFAULT NULL;
-```
+### Phase 2: Dashboard Shell + Act 1
+- [ ] Rewrite dashboard.component.ts as thin shell
+- [ ] smart-greeting.component.ts
+- [ ] streak-counter.component.ts
+- [ ] focus-board.component.ts + focus-task-card.component.ts
+- [ ] Update dashboard.service.ts with new endpoints
 
-#### Migration 3: Data migration (enum → role_id)
-Map existing enum values to system role IDs per workspace.
+### Phase 3: Act 2 + Act 3
+- [ ] dashboard-act2.component.ts (project pulse + charts)
+- [ ] project-pulse.component.ts + project-pulse-card.component.ts
+- [ ] dashboard-act3.component.ts (metrics accordion)
 
-#### Migration 4: Guest access
-```sql
-CREATE TABLE guest_project_access (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  can_comment BOOLEAN NOT NULL DEFAULT true,
-  can_edit BOOLEAN NOT NULL DEFAULT false,
-  granted_by UUID NOT NULL REFERENCES users(id),
-  granted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(user_id, project_id)
-);
-```
+### Phase 4: Polish
+- [ ] Keyboard shortcuts
+- [ ] Focus Mode
+- [ ] Delightful empty states
+- [ ] Animations (count-up, completion, streak)
 
-### SQL Query Pattern for Visibility
-```sql
-WHERE t.project_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
-  AND (
-    wr.capabilities->>'can_view_all_tasks' = 'true'
-    OR COALESCE(tl.visibility_override, p.visibility, w.default_project_visibility) = 'public'
-    OR EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.user_id = $2)
-  )
-```
-
-## Implementation Steps
-
-### Step 1: DB migrations (workspace_roles + system seed)
-### Step 2: Migrate role enums to role_id FK
-### Step 3: Add visibility columns
-### Step 4: SQL-level task filtering (boards.rs, tasks.rs, dashboard)
-### Step 5: Backend API for roles CRUD
-### Step 6: Guest access (table + invitation + scoped API)
-### Step 7: Permission audit trail (activity_log extension)
-### Step 8: Frontend — project settings visibility UI
-### Step 9: Frontend — role management UI (workspace settings)
-### Step 10: Frontend — sidebar/dashboard filtering for private projects
-### Step 11: Frontend — guest access UI
-### Step 12: Testing + verification
+### Phase 5: Verify + Deploy
+- [ ] cargo check + clippy clean
+- [ ] tsc --noEmit + ng build clean
+- [ ] Docker build + deploy
+- [ ] QA test on live site
 
 ## Success Criteria
-- [ ] Private projects hidden from non-members in sidebar/search/dashboard
-- [ ] Assignee-only mode: members see only their tasks, owners/managers see all
-- [ ] Inheritance: workspace default → project override → task list override
-- [ ] Custom roles: create/edit/delete with capability matrix
-- [ ] Guest access: invite externals to specific projects
-- [ ] Audit trail: permission changes logged
-- [ ] Existing data unbroken (500 tasks, 4 projects, all roles migrated)
-- [ ] API security: permissions enforced server-side
-- [ ] Dashboard/search/WebSocket respect visibility
-
-## Also: Sidebar UX Fix
-- Move workspace settings to a clickable dropdown (not cluttering sidebar)
-- Check existing workspace settings location and consolidate
+- [ ] Dashboard loads above-the-fold with greeting + stats + focus board
+- [ ] Focus Board shows top 5 tasks, inline complete/snooze works
+- [ ] Project Pulse shows health cards for all accessible projects
+- [ ] Streak counter shows consecutive completion days
+- [ ] Smart greeting adapts to time of day and task urgency
+- [ ] Empty states are encouraging with CTAs
+- [ ] Keyboard shortcuts work (1-5 select, Enter/Space/S/D act)
+- [ ] Focus Mode toggles full-screen task view
+- [ ] No 850-line monolith — all components < 400 lines
+- [ ] Dark mode works for all new components
+- [ ] prefers-reduced-motion respected
 
 ## Progress Log
-- 2026-03-18: Plan created via /plan-ceo-review
-- 2026-03-18: Step 1 complete — workspace_roles table migration + model + queries
-- 2026-03-18: Step 4 complete — SQL-level visibility filtering added to boards.rs (list_project_tasks_with_badges) and tasks.rs (list_tasks_by_board)
+- 2026-03-18: CEO review CLEAR (all 8 proposals accepted, SCOPE EXPANSION)
+- 2026-03-18: Implementation started — backend + frontend agents in parallel
+
+---
+
+# PAUSED: Hierarchical Permission System (RBAC)
+Steps 1 & 4 complete. Steps 2-12 remaining. Independent of dashboard work.

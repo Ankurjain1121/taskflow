@@ -18,10 +18,11 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
 use taskflow_db::queries::dashboard::{
-    get_completion_trend, get_dashboard_stats, get_overdue_tasks, get_recent_activity,
-    get_tasks_by_priority, get_tasks_by_status, get_upcoming_deadlines, CompletionTrendPoint,
-    DashboardActivityEntry, DashboardStats, OverdueTask, TasksByPriority, TasksByStatus,
-    UpcomingDeadline,
+    get_completion_trend, get_dashboard_stats, get_focus_tasks, get_overdue_tasks,
+    get_project_pulse, get_recent_activity, get_tasks_by_priority, get_tasks_by_status,
+    get_upcoming_deadlines, get_user_streak, CompletionTrendPoint, DashboardActivityEntry,
+    DashboardStats, FocusTask, OverdueTask, ProjectPulse, TasksByPriority, TasksByStatus,
+    UpcomingDeadline, UserStreak,
 };
 
 /// Common workspace filter applied to all dashboard endpoints
@@ -234,6 +235,62 @@ async fn get_upcoming_deadlines_handler(
     Ok(Json(data))
 }
 
+/// GET /api/dashboard/focus-tasks
+async fn get_focus_tasks_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+    Query(filter): Query<DashboardFilter>,
+) -> Result<Json<Vec<FocusTask>>> {
+    let ws_str = filter
+        .workspace_id
+        .map_or("all".to_string(), |id| id.to_string());
+    let cache_key = format!("dashboard:{}:{}:focus-tasks", tenant.user_id, ws_str);
+    if let Some(cached) = cache::cache_get::<Vec<FocusTask>>(&state.redis, &cache_key).await {
+        return Ok(Json(cached));
+    }
+
+    let data = get_focus_tasks(&state.db, tenant.user_id, filter.workspace_id).await?;
+
+    cache::cache_set(&state.redis, &cache_key, &data, 30).await;
+    Ok(Json(data))
+}
+
+/// GET /api/dashboard/project-pulse
+async fn get_project_pulse_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+    Query(filter): Query<DashboardFilter>,
+) -> Result<Json<Vec<ProjectPulse>>> {
+    let ws_str = filter
+        .workspace_id
+        .map_or("all".to_string(), |id| id.to_string());
+    let cache_key = format!("dashboard:{}:{}:project-pulse", tenant.user_id, ws_str);
+    if let Some(cached) = cache::cache_get::<Vec<ProjectPulse>>(&state.redis, &cache_key).await {
+        return Ok(Json(cached));
+    }
+
+    let data = get_project_pulse(&state.db, tenant.user_id, filter.workspace_id).await?;
+
+    cache::cache_set(&state.redis, &cache_key, &data, 30).await;
+    Ok(Json(data))
+}
+
+/// GET /api/dashboard/streak
+async fn get_streak_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+) -> Result<Json<UserStreak>> {
+    let cache_key = format!("dashboard:{}:streak", tenant.user_id);
+    if let Some(cached) = cache::cache_get::<UserStreak>(&state.redis, &cache_key).await {
+        return Ok(Json(cached));
+    }
+
+    let data = get_user_streak(&state.db, tenant.user_id).await?;
+
+    cache::cache_set(&state.redis, &cache_key, &data, 30).await;
+    Ok(Json(data))
+}
+
 /// Create the dashboard router
 pub fn dashboard_router(state: AppState) -> Router<AppState> {
     Router::new()
@@ -244,6 +301,9 @@ pub fn dashboard_router(state: AppState) -> Router<AppState> {
         .route("/overdue-tasks", get(get_overdue_tasks_handler))
         .route("/completion-trend", get(get_completion_trend_handler))
         .route("/upcoming-deadlines", get(get_upcoming_deadlines_handler))
+        .route("/focus-tasks", get(get_focus_tasks_handler))
+        .route("/project-pulse", get(get_project_pulse_handler))
+        .route("/streak", get(get_streak_handler))
         .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

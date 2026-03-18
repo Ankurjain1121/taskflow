@@ -921,7 +921,7 @@ button:active,
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
   color: var(--muted-foreground);
 }
 
@@ -1601,4 +1601,24 @@ small.p-error,
 /* Print-show utility (hidden by default, visible in print) */
 .print-show {
   display: none;
+}
+
+/* ============================================
+   Scroll Indicator (between dashboard acts)
+   ============================================ */
+@keyframes scrollBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
+}
+.scroll-indicator {
+  animation: fadeIn 1s ease-out 1.5s both;
+}
+.scroll-chevron {
+  animation: scrollBounce 1.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-indicator,
+  .scroll-chevron {
+    animation: none !important;
+  }
 }

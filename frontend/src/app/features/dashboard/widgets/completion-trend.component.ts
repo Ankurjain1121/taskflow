@@ -83,10 +83,16 @@ import {
         </div>
       } @else {
         <div
-          class="flex items-center justify-center h-48"
+          class="flex flex-col items-center justify-center h-48 gap-3"
           style="color: var(--muted-foreground)"
         >
-          <p class="text-sm">No completion data for this period</p>
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+            <rect x="4" y="28" width="6" height="8" rx="1" fill="currentColor" opacity="0.15"/>
+            <rect x="13" y="22" width="6" height="14" rx="1" fill="currentColor" opacity="0.2"/>
+            <rect x="22" y="16" width="6" height="20" rx="1" fill="currentColor" opacity="0.25"/>
+            <rect x="31" y="10" width="6" height="26" rx="1" fill="currentColor" opacity="0.3"/>
+          </svg>
+          <p class="text-sm">Complete tasks to see your trend here</p>
         </div>
       }
     </div>
