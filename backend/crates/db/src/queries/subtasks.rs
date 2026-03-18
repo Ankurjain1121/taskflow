@@ -392,7 +392,7 @@ struct SubtaskPromoteRow {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::queries::{auth, boards, tasks, workspaces};
+    use crate::queries::{auth, projects, tasks, workspaces};
     use crate::test_helpers::test_pool;
 
     const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
