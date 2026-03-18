@@ -135,3 +135,5 @@ WHERE t.project_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
 
 ## Progress Log
 - 2026-03-18: Plan created via /plan-ceo-review
+- 2026-03-18: Step 1 complete — workspace_roles table migration + model + queries
+- 2026-03-18: Step 4 complete — SQL-level visibility filtering added to boards.rs (list_project_tasks_with_badges) and tasks.rs (list_tasks_by_board)

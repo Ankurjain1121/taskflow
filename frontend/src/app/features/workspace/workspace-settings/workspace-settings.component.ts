@@ -34,6 +34,7 @@ import { TeamsListComponent } from '../teams/teams-list.component';
 import { WorkspaceLabelsComponent } from '../labels/workspace-labels.component';
 import { AuditLogComponent } from '../audit-log/audit-log.component';
 import { TrashComponent } from '../trash/trash.component';
+import { WorkspaceRolesTabComponent } from './workspace-roles-tab.component';
 
 @Component({
   selector: 'app-workspace-settings',
@@ -53,6 +54,7 @@ import { TrashComponent } from '../trash/trash.component';
     WorkspaceLabelsComponent,
     AuditLogComponent,
     TrashComponent,
+    WorkspaceRolesTabComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -95,12 +97,13 @@ import { TrashComponent } from '../trash/trash.component';
             <p-tablist>
               <p-tab [value]="0">General</p-tab>
               <p-tab [value]="1">Members</p-tab>
-              <p-tab [value]="2">Teams</p-tab>
-              <p-tab [value]="3">Labels</p-tab>
-              <p-tab [value]="4">Audit Log</p-tab>
-              <p-tab [value]="5">Trash</p-tab>
-              <p-tab [value]="6">Integrations</p-tab>
-              <p-tab [value]="7">Advanced</p-tab>
+              <p-tab [value]="2">Roles</p-tab>
+              <p-tab [value]="3">Teams</p-tab>
+              <p-tab [value]="4">Labels</p-tab>
+              <p-tab [value]="5">Audit Log</p-tab>
+              <p-tab [value]="6">Trash</p-tab>
+              <p-tab [value]="7">Integrations</p-tab>
+              <p-tab [value]="8">Advanced</p-tab>
             </p-tablist>
             <p-tabpanels>
               <!-- Tab 0: General -->
@@ -127,33 +130,38 @@ import { TrashComponent } from '../trash/trash.component';
                 </div>
               </p-tabpanel>
 
-              <!-- Tab 2: Teams -->
+              <!-- Tab 2: Roles -->
               <p-tabpanel [value]="2">
+                <app-workspace-roles-tab [workspaceId]="workspaceId" />
+              </p-tabpanel>
+
+              <!-- Tab 3: Teams -->
+              <p-tabpanel [value]="3">
                 <app-teams-list [workspaceId]="workspaceId" />
               </p-tabpanel>
 
-              <!-- Tab 3: Labels -->
-              <p-tabpanel [value]="3">
+              <!-- Tab 4: Labels -->
+              <p-tabpanel [value]="4">
                 <app-workspace-labels [workspaceId]="workspaceId" />
               </p-tabpanel>
 
-              <!-- Tab 4: Audit Log -->
-              <p-tabpanel [value]="4">
+              <!-- Tab 5: Audit Log -->
+              <p-tabpanel [value]="5">
                 <app-audit-log [workspaceId]="workspaceId" />
               </p-tabpanel>
 
-              <!-- Tab 5: Trash -->
-              <p-tabpanel [value]="5">
+              <!-- Tab 6: Trash -->
+              <p-tabpanel [value]="6">
                 <app-trash [workspaceId]="workspaceId" />
               </p-tabpanel>
 
-              <!-- Tab 6: Integrations -->
-              <p-tabpanel [value]="6">
+              <!-- Tab 7: Integrations -->
+              <p-tabpanel [value]="7">
                 <app-workspace-api-keys-tab [workspaceId]="workspaceId" />
               </p-tabpanel>
 
-              <!-- Tab 7: Advanced -->
-              <p-tabpanel [value]="7">
+              <!-- Tab 8: Advanced -->
+              <p-tabpanel [value]="8">
                 <app-workspace-advanced-tab
                   [workspace]="workspace()"
                   [workspaceId]="workspaceId"

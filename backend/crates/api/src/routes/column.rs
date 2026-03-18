@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use taskflow_db::models::BoardMemberRole;
-use taskflow_db::queries::{boards, project_statuses};
+use taskflow_db::queries::{projects, project_statuses};
 use taskflow_db::utils::generate_key_between;
 
 use crate::errors::{AppError, Result};
@@ -92,7 +92,7 @@ pub struct TransitionsResponse {
 // ============================================================================
 
 async fn require_editor_access(state: &AppState, project_id: Uuid, user_id: Uuid) -> Result<()> {
-    let role = boards::get_board_member_role(&state.db, project_id, user_id).await?;
+    let role = projects::get_board_member_role(&state.db, project_id, user_id).await?;
     match role {
         Some(BoardMemberRole::Owner | BoardMemberRole::Editor) => Ok(()),
         Some(BoardMemberRole::Viewer) => Err(AppError::Forbidden("Editor role required".into())),
@@ -103,7 +103,7 @@ async fn require_editor_access(state: &AppState, project_id: Uuid, user_id: Uuid
 }
 
 async fn require_viewer_access(state: &AppState, project_id: Uuid, user_id: Uuid) -> Result<()> {
-    let is_member = boards::is_board_member(&state.db, project_id, user_id).await?;
+    let is_member = projects::is_board_member(&state.db, project_id, user_id).await?;
     if !is_member {
         return Err(AppError::NotFound(
             "Project not found or access denied".into(),
@@ -191,7 +191,7 @@ async fn create_status(
     let status_type = payload.status_type.as_deref().unwrap_or("active");
 
     // Get tenant_id from project
-    let project = boards::get_board_internal(&state.db, project_id)
+    let project = projects::get_board_internal(&state.db, project_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Project not found".into()))?;
 

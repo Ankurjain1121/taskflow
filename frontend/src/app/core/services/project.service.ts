@@ -12,6 +12,7 @@ export interface Board {
   background_color?: string | null;
   is_sample?: boolean;
   position?: string;
+  visibility?: 'public' | 'private' | 'assignee_only' | null;
   created_at: string;
   updated_at: string;
 }
@@ -241,6 +242,29 @@ export class ProjectService {
             list.map((b) => (b.id === boardId ? updated : b)),
           );
           if (this.activeProject()?.id === boardId) {
+            this.activeProject.set(updated);
+          }
+        }),
+      );
+  }
+
+  updateProjectVisibility(
+    projectId: string,
+    visibility: 'public' | 'private' | 'assignee_only' | null,
+  ): Observable<Board> {
+    return this.http
+      .put<Board>(`${this.apiUrl}/projects/${projectId}/visibility`, {
+        visibility,
+      })
+      .pipe(
+        tap((updated) => {
+          this.cache.invalidateKey(`project:${projectId}`);
+          this.cache.invalidate(`project-full:${projectId}:.*`);
+          this.cache.invalidate(`projects:.*`);
+          this.projects.update((list) =>
+            list.map((b) => (b.id === projectId ? updated : b)),
+          );
+          if (this.activeProject()?.id === projectId) {
             this.activeProject.set(updated);
           }
         }),
