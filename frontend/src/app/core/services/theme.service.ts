@@ -164,6 +164,11 @@ export class ThemeService implements OnDestroy {
                 300: s2, 400: s2, 500: s2, 600: s2,
                 700: s2, 800: s2, 900: s2, 950: s2,
               },
+              text: {
+                color: fg,
+                hoverColor: fg,
+                mutedColor: mutedFg,
+              },
               highlight: {
                 background: `color-mix(in srgb, ${hi} ${hlPct}, transparent)`,
                 focusBackground: `color-mix(in srgb, ${hi} ${hlFPct}, transparent)`,
