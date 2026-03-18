@@ -161,6 +161,56 @@ import {
             </svg>
           </button>
         }
+
+        <!-- Workspace menu (3-dot) -->
+        <div class="relative">
+          <button
+            (click)="toggleWorkspaceMenu($event)"
+            class="add-board-btn p-1 rounded opacity-0 group-hover:opacity-100 flex-shrink-0"
+            title="Workspace options"
+          >
+            <i class="pi pi-ellipsis-h text-xs sidebar-icon-color"></i>
+          </button>
+
+          @if (workspaceMenuOpen()) {
+            <div
+              class="fixed inset-0 z-10"
+              (click)="workspaceMenuOpen.set(false)"
+            ></div>
+            <div
+              class="absolute right-0 top-full mt-1 w-44 rounded-lg shadow-lg border py-1 z-20"
+              style="background: var(--surface-overlay); border-color: var(--sidebar-border)"
+            >
+              <a
+                [routerLink]="['/workspace', workspace().id, 'portfolio']"
+                (click)="workspaceMenuOpen.set(false)"
+                class="flex items-center gap-2.5 px-3 py-1.5 text-xs hover:bg-[var(--sidebar-surface-hover)] cursor-pointer"
+                style="color: var(--sidebar-text-secondary)"
+              >
+                <i class="pi pi-th-large text-xs"></i>
+                <span>Portfolio</span>
+              </a>
+              <a
+                [routerLink]="['/workspace', workspace().id, 'team']"
+                (click)="workspaceMenuOpen.set(false)"
+                class="flex items-center gap-2.5 px-3 py-1.5 text-xs hover:bg-[var(--sidebar-surface-hover)] cursor-pointer"
+                style="color: var(--sidebar-text-secondary)"
+              >
+                <i class="pi pi-users text-xs"></i>
+                <span>Team Overview</span>
+              </a>
+              <div style="border-top: 1px solid var(--sidebar-border); margin: 2px 0"></div>
+              <button
+                (click)="openSettings($event); workspaceMenuOpen.set(false)"
+                class="flex items-center gap-2.5 px-3 py-1.5 text-xs w-full text-left hover:bg-[var(--sidebar-surface-hover)]"
+                style="color: var(--sidebar-text-secondary)"
+              >
+                <i class="pi pi-cog text-xs"></i>
+                <span>Settings</span>
+              </button>
+            </div>
+          }
+        </div>
       </div>
 
       <!-- Boards List -->
@@ -285,44 +335,6 @@ import {
             }
           }
 
-          <!-- Workspace quick links -->
-          <div
-            class="mt-1 pt-1"
-            style="border-top: 1px solid var(--sidebar-border)"
-          >
-            <a
-              [routerLink]="['/workspace', workspace().id, 'portfolio']"
-              routerLinkActive="board-link-active"
-              class="board-link flex items-center gap-2 px-3 py-1 text-xs rounded-md"
-            >
-              <i
-                class="pi pi-th-large text-[10px]"
-                style="color: var(--sidebar-text-muted)"
-              ></i>
-              <span>Portfolio</span>
-            </a>
-            <a
-              [routerLink]="['/workspace', workspace().id, 'team']"
-              routerLinkActive="board-link-active"
-              class="board-link flex items-center gap-2 px-3 py-1 text-xs rounded-md"
-            >
-              <i
-                class="pi pi-chart-bar text-[10px]"
-                style="color: var(--sidebar-text-muted)"
-              ></i>
-              <span>Team Overview</span>
-            </a>
-            <button
-              (click)="openSettings($event)"
-              class="board-link flex items-center gap-2 px-3 py-1 text-xs rounded-md w-full text-left"
-            >
-              <i
-                class="pi pi-cog text-[10px]"
-                style="color: var(--sidebar-text-muted)"
-              ></i>
-              <span>Settings</span>
-            </button>
-          </div>
         </div>
       }
     </div>
@@ -351,6 +363,7 @@ export class WorkspaceItemComponent implements OnInit {
   showCreateProjectDialog = signal(false);
   favoriteIds = signal<Set<string>>(new Set());
   activeMenuBoardId = signal<string | null>(null);
+  workspaceMenuOpen = signal(false);
 
   private readonly colors = [
     '#6366f1',
@@ -394,6 +407,11 @@ export class WorkspaceItemComponent implements OnInit {
   canCreateBoard(): boolean {
     const user = this.authService.currentUser();
     return !!user;
+  }
+
+  toggleWorkspaceMenu(event: Event): void {
+    event.stopPropagation();
+    this.workspaceMenuOpen.update((v) => !v);
   }
 
   openSettings(event: Event): void {
