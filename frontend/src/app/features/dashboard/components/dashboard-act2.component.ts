@@ -40,7 +40,8 @@ import { ProjectPulse } from '../dashboard.types';
     <!-- Analytics -->
     <div class="mb-8 animate-fade-in-up stagger-2">
       <div class="mb-4 mt-2">
-        <h2 class="text-xs font-semibold tracking-widest uppercase" style="color: var(--muted-foreground)">
+        <h2 class="widget-title flex items-center gap-2">
+          <i class="pi pi-chart-bar text-primary text-sm"></i>
           Analytics & Insights
         </h2>
       </div>
@@ -66,10 +67,12 @@ import { ProjectPulse } from '../dashboard.types';
             [workspaceId]="workspaceId()"
             class="min-h-[360px]"
           />
-          <app-overdue-tasks-table
-            [workspaceId]="workspaceId()"
-            class="lg:col-span-2 min-h-[360px]"
-          />
+          @if (overdueCount() > 5) {
+            <app-overdue-tasks-table
+              [workspaceId]="workspaceId()"
+              class="lg:col-span-2 min-h-[360px]"
+            />
+          }
         </div>
       } @placeholder {
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -95,6 +98,7 @@ export class DashboardAct2Component {
   private injector = inject(Injector);
 
   readonly workspaceId = input<string | undefined>();
+  readonly overdueCount = input(0);
 
   readonly projectPulse = signal<ProjectPulse[]>([]);
 

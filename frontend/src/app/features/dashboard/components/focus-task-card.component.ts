@@ -20,15 +20,16 @@ import { FocusTask } from '../dashboard.types';
       [class.pointer-events-none]="completing()"
       [class.ring-2]="selected()"
       [class.ring-primary]="selected()"
+      [class.ring-offset-2]="selected()"
       [style.border-left-color]="priorityBorderColor()"
     >
       <!-- Project row -->
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 min-w-0">
         <span
           class="w-2.5 h-2.5 rounded-full flex-shrink-0"
           [style.background]="task().project_color || 'var(--primary)'"
         ></span>
-        <span class="text-xs font-medium truncate" style="color: var(--muted-foreground)">
+        <span class="text-xs font-medium truncate min-w-0 flex-1" style="color: var(--muted-foreground)">
           {{ task().project_name }}
         </span>
         <span
