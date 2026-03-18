@@ -51,6 +51,7 @@ import { FeatureHintsService } from '../../../core/services/feature-hints.servic
 import { BulkPreviewDialogComponent } from '../bulk-operations/bulk-preview-dialog.component';
 import { UndoToastComponent } from '../bulk-operations/undo-toast.component';
 import { ActivityFeedComponent } from '../activity-feed/activity-feed.component';
+import { MoveToProjectDialogComponent } from './move-to-project-dialog.component';
 
 import { ProjectShortcutsService } from './project-shortcuts.service';
 import { ProjectBulkActionsService } from './project-bulk-actions.service';
@@ -100,6 +101,7 @@ import { MessageService } from 'primeng/api';
     ProjectLoadingSkeletonComponent,
     ProjectViewOverlaysComponent,
     ActivityFeedComponent,
+    MoveToProjectDialogComponent,
   ],
   providers: [
     ProjectShortcutsService,
@@ -358,6 +360,7 @@ import { MessageService } from 'primeng/api';
             })
           "
           (columnMoveRequested)="cardOps.onCardColumnMove($event, destroy$)"
+          (moveToProjectRequested)="cardOps.openMoveToProjectDialog($event)"
           (duplicateRequested)="cardOps.onCardDuplicate($event, destroy$)"
           (deleteRequested)="state.deleteTask($event)"
           (quickTaskCreated)="onQuickTaskCreated($event)"
@@ -433,6 +436,15 @@ import { MessageService } from 'primeng/api';
       <app-create-task-group-dialog
         [(visible)]="showCreateGroupDialog"
         (created)="onCreateGroupResult($event)"
+      />
+
+      <!-- Move to Project Dialog -->
+      <app-move-to-project-dialog
+        [visible]="cardOps.moveToProjectDialogVisible()"
+        [taskId]="cardOps.moveToProjectTaskId()"
+        [currentProjectId]="boardId"
+        (confirmed)="cardOps.onMoveToProject($event, destroy$)"
+        (cancelled)="cardOps.closeMoveToProjectDialog()"
       />
 
       <!-- Column Dialogs (rename, WIP, icon, duplicate, import/export, confirm) -->

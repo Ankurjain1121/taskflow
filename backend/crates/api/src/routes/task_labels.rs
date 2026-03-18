@@ -115,7 +115,9 @@ async fn add_label(
     .await
     .map_err(AppError::from)?;
 
-    Ok(Json(serde_json::json!({ "message": "Label added to task" })))
+    Ok(Json(
+        serde_json::json!({ "message": "Label added to task" }),
+    ))
 }
 
 /// DELETE /api/tasks/:id/labels/:label_id
@@ -134,14 +136,12 @@ async fn remove_label(
     // Verify project membership
     verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
-    let result = sqlx::query(
-        "DELETE FROM task_labels WHERE task_id = $1 AND label_id = $2",
-    )
-    .bind(task_id)
-    .bind(label_id)
-    .execute(&state.db)
-    .await
-    .map_err(AppError::from)?;
+    let result = sqlx::query("DELETE FROM task_labels WHERE task_id = $1 AND label_id = $2")
+        .bind(task_id)
+        .bind(label_id)
+        .execute(&state.db)
+        .await
+        .map_err(AppError::from)?;
 
     if result.rows_affected() == 0 {
         return Err(AppError::NotFound("Label not assigned to this task".into()));

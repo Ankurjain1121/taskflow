@@ -318,7 +318,7 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
             class="nav-item flex items-center gap-3 px-3 py-2 rounded-md text-sm"
           >
             <span class="nav-indicator"></span>
-            <i class="pi pi-inbox text-sm flex-shrink-0 sidebar-icon-color"></i>
+            <i class="pi pi-box text-sm flex-shrink-0 sidebar-icon-color"></i>
             <span
               class="sidebar-text"
               style="color: var(--sidebar-text-secondary)"
@@ -334,7 +334,7 @@ import { SidebarRecentComponent } from './sidebar-recent.component';
             pTooltip="Archived"
             tooltipPosition="right"
           >
-            <i class="pi pi-inbox sidebar-icon-color text-sm"></i>
+            <i class="pi pi-box sidebar-icon-color text-sm"></i>
           </a>
         }
 

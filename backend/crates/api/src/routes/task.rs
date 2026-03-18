@@ -16,7 +16,7 @@ use super::task_crud::{
     complete_task_handler, create_task_handler, delete_task_handler, duplicate_task_handler,
     get_task, list_tasks, uncomplete_task_handler, update_task_handler,
 };
-use super::task_movement::move_task_handler;
+use super::task_movement::{move_task_handler, move_task_to_project_handler};
 use super::task_views;
 
 /// Create the task router
@@ -50,6 +50,10 @@ pub fn task_router(state: AppState) -> Router<AppState> {
         .route("/tasks/{id}", patch(update_task_handler))
         .route("/tasks/{id}", delete(delete_task_handler))
         .route("/tasks/{id}/move", patch(move_task_handler))
+        .route(
+            "/tasks/{id}/move-to-project",
+            post(move_task_to_project_handler),
+        )
         .route("/tasks/{id}/duplicate", post(duplicate_task_handler))
         .route("/tasks/{id}/complete", post(complete_task_handler))
         .route("/tasks/{id}/uncomplete", post(uncomplete_task_handler))

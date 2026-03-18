@@ -9,7 +9,9 @@ use uuid::Uuid;
 
 use crate::models::automation::{AutomationLog, AutomationTrigger};
 
-use super::automations::{fold_rules_with_actions, AutomationQueryError, AutomationRuleWithActions, RuleActionRow};
+use super::automations::{
+    fold_rules_with_actions, AutomationQueryError, AutomationRuleWithActions, RuleActionRow,
+};
 
 /// Get all active rules for a specific trigger on a project.
 /// Uses a single JOIN query instead of N+1 fetches.

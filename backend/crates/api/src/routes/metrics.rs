@@ -19,9 +19,8 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
 use taskflow_db::queries::metrics::{
-    get_personal_dashboard, get_resource_utilization, get_team_dashboard,
-    get_workspace_dashboard, refresh_metrics, PersonalDashboard, ResourceUtilizationRow,
-    TeamDashboard, WorkspaceDashboard,
+    get_personal_dashboard, get_resource_utilization, get_team_dashboard, get_workspace_dashboard,
+    refresh_metrics, PersonalDashboard, ResourceUtilizationRow, TeamDashboard, WorkspaceDashboard,
 };
 
 /// Cache key for workspace metrics

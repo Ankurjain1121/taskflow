@@ -32,12 +32,10 @@ import { InputIcon } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
 import { MultiSelect } from 'primeng/multiselect';
 import { DatePicker } from 'primeng/datepicker';
-import { SelectButton } from 'primeng/selectbutton';
 import { ButtonModule } from 'primeng/button';
-import { Menu } from 'primeng/menu';
 import { Tooltip } from 'primeng/tooltip';
-import { CardFieldsPopoverComponent } from './card-fields-popover.component';
 import { SavePresetDialogComponent } from './save-preset-dialog.component';
+import { DisplayPopoverComponent } from './display-popover.component';
 import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
 
 export type ViewMode =
@@ -80,20 +78,18 @@ const DEFAULT_FILTERS: TaskFilters = {
     InputTextModule,
     MultiSelect,
     DatePicker,
-    SelectButton,
     ButtonModule,
-    Menu,
     Tooltip,
-    CardFieldsPopoverComponent,
     SavePresetDialogComponent,
+    DisplayPopoverComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="toolbar-wrapper border-b border-[var(--border)]">
-      <!-- Row 1: Always visible — Search + Quick Filters + View Toggle -->
-      <div class="flex items-center gap-2 px-5 py-2">
+      <!-- Row 1: Search + Quick Filters + Filters + Display -->
+      <div class="flex items-center gap-2 px-3 sm:px-5 py-2">
         <!-- Search Input -->
-        <p-iconfield class="flex-1 min-w-[160px] max-w-sm">
+        <p-iconfield class="flex-1 min-w-[100px] sm:min-w-[160px] max-w-sm">
           <p-inputicon styleClass="pi pi-search" />
           <input
             #searchInput
@@ -132,8 +128,8 @@ const DEFAULT_FILTERS: TaskFilters = {
             (click)="toggleHighPriority()"
             [class]="
               isHighPriorityActive()
-                ? 'quick-chip quick-chip--active'
-                : 'quick-chip'
+                ? 'quick-chip quick-chip--active hidden sm:inline-flex'
+                : 'quick-chip hidden sm:inline-flex'
             "
           >
             High Priority
@@ -142,8 +138,8 @@ const DEFAULT_FILTERS: TaskFilters = {
             (click)="toggleDueThisWeek()"
             [class]="
               isDueThisWeekActive()
-                ? 'quick-chip quick-chip--active'
-                : 'quick-chip'
+                ? 'quick-chip quick-chip--active hidden sm:inline-flex'
+                : 'quick-chip hidden sm:inline-flex'
             "
           >
             Due This Week
@@ -183,91 +179,24 @@ const DEFAULT_FILTERS: TaskFilters = {
           }
         </button>
 
-        <!-- Kanban-only controls -->
-        @if (viewMode() === 'kanban') {
-          <!-- Density Toggle -->
-          <div
-            class="flex items-center gap-0.5 border border-[var(--border)] rounded-md p-0.5"
-          >
-            <button
-              (click)="densityChanged.emit('compact')"
-              [class]="density() === 'compact' ? 'density-btn density-btn--active' : 'density-btn'"
-              pTooltip="Compact (D)" tooltipPosition="bottom"
-            >
-              <i class="pi pi-minus text-xs"></i>
-            </button>
-            <button
-              (click)="densityChanged.emit('normal')"
-              [class]="density() === 'normal' ? 'density-btn density-btn--active' : 'density-btn'"
-              pTooltip="Normal (D)" tooltipPosition="bottom"
-            >
-              <i class="pi pi-bars text-xs"></i>
-            </button>
-            <button
-              (click)="densityChanged.emit('expanded')"
-              [class]="density() === 'expanded' ? 'density-btn density-btn--active' : 'density-btn'"
-              pTooltip="Expanded (D)" tooltipPosition="bottom"
-            >
-              <i class="pi pi-th-large text-xs"></i>
-            </button>
-          </div>
-
-          <!-- Fields -->
-          <app-card-fields-popover
-            [cardFields]="cardFields()"
-            (cardFieldChanged)="cardFieldChanged.emit($event)"
-            (cardFieldsReset)="cardFieldsReset.emit()"
-          />
-
-          <!-- Group By -->
-          <div class="flex items-center">
-            @if (groupBy() !== 'none') {
-              <button
-                class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-l-md border border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)]/10 transition-colors"
-                (click)="groupByMenu.toggle($event)"
-              >
-                <i class="pi pi-table text-xs"></i>
-                {{ groupByLabel() }}
-              </button>
-              <button
-                class="flex items-center px-1.5 py-1.5 text-xs font-medium rounded-r-md border border-l-0 border-[var(--primary)] text-[var(--primary)] hover:bg-red-50 hover:border-red-400 hover:text-red-500 transition-colors"
-                (click)="groupByChanged.emit('none')"
-                title="Clear grouping"
-              >
-                <i class="pi pi-times text-xs"></i>
-              </button>
-            } @else {
-              <button
-                class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)] transition-colors"
-                (click)="groupByMenu.toggle($event)"
-                pTooltip="Group By (G)" tooltipPosition="bottom"
-              >
-                <i class="pi pi-table text-xs"></i>
-                Group
-              </button>
-            }
-            <p-menu #groupByMenu [popup]="true" [model]="groupByMenuItems()" />
-          </div>
-        }
-
-        <!-- View Toggle -->
-        <p-selectButton
-          [options]="viewModeOptions"
-          [ngModel]="viewMode()"
-          (ngModelChange)="viewModeChanged.emit($event)"
-          optionLabel="icon"
-          optionValue="value"
-        >
-          <ng-template #item let-item>
-            <i [class]="item.icon" [title]="item.tooltip"></i>
-          </ng-template>
-        </p-selectButton>
+        <!-- Display Popover (replaces view toggle + density + fields + group-by) -->
+        <app-display-popover
+          [viewMode]="viewMode()"
+          [density]="density()"
+          [groupBy]="groupBy()"
+          [cardFields]="cardFields()"
+          (viewModeChanged)="viewModeChanged.emit($event)"
+          (densityChanged)="densityChanged.emit($event)"
+          (groupByChanged)="groupByChanged.emit($event)"
+          (cardFieldChanged)="cardFieldChanged.emit($event)"
+          (cardFieldsReset)="cardFieldsReset.emit()"
+        />
       </div>
 
       <!-- Row 2: Collapsible advanced filters -->
       @if (filtersExpanded()) {
         <div
-          class="flex items-center gap-3 px-5 py-2.5 border-t border-[var(--border)] bg-[var(--muted)]/30"
+          class="flex flex-wrap items-center gap-3 px-3 sm:px-5 py-2.5 border-t border-[var(--border)] bg-[var(--muted)]/30"
         >
           <p-multiSelect
             [options]="prioritySelectOptions"
@@ -278,7 +207,7 @@ const DEFAULT_FILTERS: TaskFilters = {
             optionValue="value"
             [showHeader]="false"
             [style]="{ 'min-width': '9rem' }"
-            styleClass="w-auto"
+            styleClass="w-full sm:w-auto"
           >
             <ng-template #item let-priority>
               <div class="flex items-center gap-2">
@@ -300,7 +229,7 @@ const DEFAULT_FILTERS: TaskFilters = {
             optionValue="id"
             [showHeader]="false"
             [style]="{ 'min-width': '9rem' }"
-            styleClass="w-auto"
+            styleClass="w-full sm:w-auto"
           >
             <ng-template #item let-assignee>
               <div class="flex items-center gap-2">
@@ -324,7 +253,7 @@ const DEFAULT_FILTERS: TaskFilters = {
               optionValue="id"
               [showHeader]="false"
               [style]="{ 'min-width': '9rem' }"
-              styleClass="w-auto"
+              styleClass="w-full sm:w-auto"
             >
               <ng-template #item let-label>
                 <div class="flex items-center gap-2">
@@ -338,7 +267,7 @@ const DEFAULT_FILTERS: TaskFilters = {
             </p-multiSelect>
           }
 
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 w-full sm:w-auto">
             <p-datePicker
               [(ngModel)]="dueDateStartValue"
               (ngModelChange)="onDueDateStartPickerChange($event)"
@@ -427,22 +356,6 @@ const DEFAULT_FILTERS: TaskFilters = {
         border-color: #ef4444;
       }
 
-      .density-btn {
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        font-weight: 500;
-        color: var(--muted-foreground);
-        transition: all 150ms;
-      }
-      .density-btn:hover {
-        color: var(--foreground);
-        background: var(--secondary);
-      }
-      .density-btn--active {
-        background: var(--primary);
-        color: var(--primary-foreground);
-      }
     `,
   ],
 })
@@ -545,55 +458,6 @@ export class ProjectToolbarComponent implements OnInit, OnDestroy {
     return count;
   });
 
-  groupByLabel(): string {
-    const map: Record<GroupByMode, string> = {
-      none: 'None',
-      assignee: 'Assignee',
-      priority: 'Priority',
-      label: 'Label',
-    };
-    return map[this.groupBy()];
-  }
-
-  groupByMenuItems(): { label: string; icon?: string; command: () => void }[] {
-    const current = this.groupBy();
-    return [
-      {
-        label: 'None',
-        icon: current === 'none' ? 'pi pi-check' : '',
-        command: () => this.groupByChanged.emit('none'),
-      },
-      {
-        label: 'Assignee',
-        icon: current === 'assignee' ? 'pi pi-check' : '',
-        command: () => this.groupByChanged.emit('assignee'),
-      },
-      {
-        label: 'Priority',
-        icon: current === 'priority' ? 'pi pi-check' : '',
-        command: () => this.groupByChanged.emit('priority'),
-      },
-      {
-        label: 'Label',
-        icon: current === 'label' ? 'pi pi-check' : '',
-        command: () => this.groupByChanged.emit('label'),
-      },
-    ];
-  }
-
-  viewModeOptions = [
-    {
-      value: 'kanban',
-      icon: 'pi pi-objects-column',
-      tooltip: 'Kanban view (1)',
-    },
-    { value: 'list', icon: 'pi pi-list', tooltip: 'List view (2)' },
-    { value: 'calendar', icon: 'pi pi-calendar', tooltip: 'Calendar view (3)' },
-    { value: 'gantt', icon: 'pi pi-align-left', tooltip: 'Gantt chart (4)' },
-    { value: 'reports', icon: 'pi pi-chart-bar', tooltip: 'Reports view (5)' },
-    { value: 'time-report', icon: 'pi pi-clock', tooltip: 'Time report (6)' },
-    { value: 'activity', icon: 'pi pi-history', tooltip: 'Activity feed (7)' },
-  ];
 
   ngOnInit(): void {
     this.route.queryParams

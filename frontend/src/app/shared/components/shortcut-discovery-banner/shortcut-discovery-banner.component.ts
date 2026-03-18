@@ -77,7 +77,7 @@ export class ShortcutDiscoveryBannerComponent implements OnInit, OnDestroy {
       const dismissed = localStorage.getItem(BANNER_DISMISSED_KEY);
       if (!alreadyOpened && !dismissed) {
         this.visible.set(true);
-        this.autoDismissTimer = setTimeout(() => this.hide(), 8000);
+        this.autoDismissTimer = setTimeout(() => this.dismiss(), 8000);
       }
     } catch {
       // localStorage unavailable — skip banner

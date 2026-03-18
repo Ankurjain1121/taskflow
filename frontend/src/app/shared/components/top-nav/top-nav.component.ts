@@ -87,7 +87,7 @@ import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortc
       <!-- Left: Mobile hamburger + Breadcrumbs -->
       <div class="flex items-center gap-2 flex-1 min-w-0">
         <button
-          class="nav-icon-btn lg:hidden p-1.5 rounded-md"
+          class="nav-icon-btn lg:hidden p-2.5 rounded-md"
           (click)="menuToggle.emit()"
           aria-label="Toggle sidebar"
         >
@@ -115,7 +115,7 @@ import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortc
       </button>
 
       <!-- Right: Save status + Quick create + Notifications + Theme + User -->
-      <div class="flex items-center gap-1">
+      <div class="flex items-center gap-1.5">
         <app-save-status-indicator />
 
         <button
@@ -126,16 +126,6 @@ import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortc
           aria-label="Create task"
         >
           <i class="pi pi-plus" aria-hidden="true"></i>
-        </button>
-
-        <button
-          class="nav-icon-btn w-8 h-8 flex items-center justify-center rounded-md"
-          (click)="openShortcutHelp()"
-          pTooltip="Keyboard shortcuts (?)"
-          tooltipPosition="bottom"
-          aria-label="Open keyboard shortcuts"
-        >
-          <span class="text-sm font-semibold select-none leading-none">?</span>
         </button>
 
         <app-notification-bell />
