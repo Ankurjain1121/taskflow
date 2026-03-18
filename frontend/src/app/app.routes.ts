@@ -72,6 +72,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'inbox',
+    loadComponent: () =>
+      import('./features/inbox/inbox.component').then(
+        (m) => m.InboxComponent,
+      ),
+    canActivate: [authGuard],
+  },
+  {
     path: 'eisenhower',
     loadComponent: () =>
       import('./features/my-tasks/eisenhower-matrix/eisenhower-matrix.component').then(

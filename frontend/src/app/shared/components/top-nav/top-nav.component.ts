@@ -9,18 +9,11 @@ import { Router } from '@angular/router';
 import { TooltipModule } from 'primeng/tooltip';
 import { AvatarModule } from 'primeng/avatar';
 import { MenuModule } from 'primeng/menu';
-import { PopoverModule } from 'primeng/popover';
-import { MenuItem, PrimeIcons } from 'primeng/api';
+import { MenuItem } from 'primeng/api';
 import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component';
 import { NotificationBellComponent } from '../notification-bell/notification-bell.component';
 import { SaveStatusIndicatorComponent } from '../save-status-indicator/save-status-indicator.component';
 import { AuthService } from '../../../core/services/auth.service';
-import {
-  ThemeService,
-  Theme,
-  AccentColor,
-  ACCENT_PRESETS,
-} from '../../../core/services/theme.service';
 import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
 
 @Component({
@@ -31,7 +24,6 @@ import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortc
     TooltipModule,
     AvatarModule,
     MenuModule,
-    PopoverModule,
     BreadcrumbsComponent,
     NotificationBellComponent,
     SaveStatusIndicatorComponent,
@@ -49,19 +41,6 @@ import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortc
         z-index: 40;
       }
 
-      .search-trigger {
-        border: 1px solid var(--border);
-        background: var(--background);
-        color: var(--muted-foreground);
-        transition:
-          background 0.15s ease,
-          border-color 0.15s ease;
-      }
-      .search-trigger:hover {
-        background: var(--muted);
-        border-color: var(--muted-foreground);
-      }
-
       .nav-icon-btn {
         color: var(--muted-foreground);
         transition:
@@ -73,11 +52,6 @@ import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortc
         background: var(--muted);
       }
 
-      .theme-swatch {
-        transition:
-          transform 0.15s ease,
-          border-color 0.15s ease;
-      }
     `,
   ],
   template: `
@@ -96,27 +70,28 @@ import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortc
         <app-breadcrumbs class="min-w-0" />
       </div>
 
-      <!-- Center: Search trigger -->
-      <button
-        class="search-trigger hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm cursor-pointer"
-        (click)="searchOpen.emit()"
-      >
-        <i class="pi pi-search text-xs"></i>
-        <span>Search...</span>
-        <kbd
-          class="text-xs opacity-60 ml-1 px-1.5 py-0.5 rounded border"
-          style="
-            border-color: var(--border);
-            background: var(--muted);
-            font-family: inherit;
-          "
-          >Ctrl+K</kbd
-        >
-      </button>
-
-      <!-- Right: Save status + Quick create + Notifications + Theme + User -->
+      <!-- Right: Save status + Search + Quick create + Notifications + User -->
       <div class="flex items-center gap-1.5">
         <app-save-status-indicator />
+
+        <button
+          class="nav-icon-btn hidden sm:flex items-center gap-1.5 px-2 py-1.5 rounded-md text-sm"
+          (click)="searchOpen.emit()"
+          pTooltip="Search"
+          tooltipPosition="bottom"
+          aria-label="Search"
+        >
+          <i class="pi pi-search" style="font-size: 0.85rem" aria-hidden="true"></i>
+          <kbd
+            class="text-[10px] opacity-60 px-1 py-0.5 rounded border"
+            style="
+              border-color: var(--border);
+              background: var(--muted);
+              font-family: inherit;
+              color: var(--muted-foreground);
+            "
+          >&#8984;K</kbd>
+        </button>
 
         <button
           class="nav-icon-btn p-2 rounded-md"
@@ -128,113 +103,7 @@ import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortc
           <i class="pi pi-plus" aria-hidden="true"></i>
         </button>
 
-        <app-notification-bell />
-
-        <!-- Theme popover trigger -->
-        <button
-          class="nav-icon-btn p-2 rounded-md"
-          (click)="themePanel.toggle($event)"
-          pTooltip="Theme"
-          tooltipPosition="bottom"
-          aria-label="Toggle theme"
-        >
-          <i [class]="themeIcon()" aria-hidden="true"></i>
-        </button>
-        <p-popover #themePanel>
-          <div class="p-3 space-y-3" style="min-width: 220px">
-            <!-- Mode -->
-            <div>
-              <div
-                class="text-xs font-semibold uppercase tracking-wider mb-2"
-                style="color: var(--muted-foreground)"
-              >
-                Mode
-              </div>
-              <div class="flex gap-1.5">
-                @for (option of themeOptions; track option.value) {
-                  <button
-                    (click)="setTheme(option.value)"
-                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border"
-                    [style.border-color]="
-                      currentTheme() === option.value
-                        ? 'var(--primary)'
-                        : 'var(--border)'
-                    "
-                    [style.background]="
-                      currentTheme() === option.value
-                        ? 'var(--muted)'
-                        : 'transparent'
-                    "
-                    [style.color]="
-                      currentTheme() === option.value
-                        ? 'var(--primary)'
-                        : 'var(--foreground)'
-                    "
-                  >
-                    <i [class]="option.icon" style="font-size: 0.75rem"></i>
-                    {{ option.label }}
-                  </button>
-                }
-              </div>
-            </div>
-            <!-- Accent color -->
-            <div
-              style="
-                border-top: 1px solid var(--border);
-                padding-top: 0.75rem;
-              "
-            >
-              <div
-                class="text-xs font-semibold uppercase tracking-wider mb-2"
-                style="color: var(--muted-foreground)"
-              >
-                Accent
-              </div>
-              <div class="flex gap-2 flex-wrap">
-                @for (a of accentPresets; track a.value) {
-                  <button
-                    class="theme-swatch w-6 h-6 rounded-full border-2 flex items-center justify-center"
-                    [style.background]="a.color"
-                    [style.border-color]="
-                      currentAccent() === a.value
-                        ? 'var(--foreground)'
-                        : 'transparent'
-                    "
-                    [style.transform]="
-                      currentAccent() === a.value ? 'scale(1.15)' : 'scale(1)'
-                    "
-                    (click)="setAccent(a.value)"
-                    [pTooltip]="a.label"
-                    tooltipPosition="bottom"
-                  >
-                    @if (currentAccent() === a.value) {
-                      <i
-                        class="pi pi-check text-white"
-                        style="font-size: 0.6rem"
-                      ></i>
-                    }
-                  </button>
-                }
-              </div>
-            </div>
-            <!-- More themes link -->
-            <div
-              style="
-                border-top: 1px solid var(--border);
-                padding-top: 0.75rem;
-              "
-            >
-              <button
-                class="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border"
-                style="border-color: var(--border); color: var(--muted-foreground)"
-                (click)="goToThemes(); themePanel.hide()"
-              >
-                <i class="pi pi-palette" style="font-size: 0.75rem"></i>
-                More themes...
-              </button>
-            </div>
-          </div>
-        </p-popover>
+        <app-notification-bell (click)="goToInbox()" />
 
         <!-- User Avatar Dropdown -->
         <button
@@ -256,7 +125,6 @@ import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortc
 })
 export class TopNavComponent {
   private readonly authService = inject(AuthService);
-  private readonly themeService = inject(ThemeService);
   private readonly router = inject(Router);
   private readonly shortcutsService = inject(KeyboardShortcutsService);
 
@@ -265,22 +133,6 @@ export class TopNavComponent {
   readonly quickCreate = output<void>();
 
   private readonly currentUser = this.authService.currentUser;
-  readonly currentTheme = this.themeService.theme;
-  readonly currentAccent = this.themeService.accent;
-  readonly accentPresets = ACCENT_PRESETS;
-
-  readonly themeOptions: { value: Theme; label: string; icon: string }[] = [
-    { value: 'light', label: 'Light', icon: 'pi pi-sun' },
-    { value: 'dark', label: 'Dark', icon: 'pi pi-moon' },
-    { value: 'system', label: 'System', icon: 'pi pi-desktop' },
-  ];
-
-  readonly themeIcon = computed(() => {
-    const t = this.themeService.theme();
-    if (t === 'light') return 'pi pi-sun';
-    if (t === 'dark') return 'pi pi-moon';
-    return 'pi pi-desktop';
-  });
 
   readonly userInitials = computed(() => {
     const name = this.currentUser()?.name;
@@ -331,15 +183,7 @@ export class TopNavComponent {
     this.shortcutsService.helpRequested.update((n) => n + 1);
   }
 
-  setTheme(theme: Theme): void {
-    this.themeService.setTheme(theme);
-  }
-
-  setAccent(accent: AccentColor): void {
-    this.themeService.setAccent(accent);
-  }
-
-  goToThemes(): void {
-    this.router.navigate(['/settings/appearance']);
+  goToInbox(): void {
+    this.router.navigate(['/inbox']);
   }
 }
