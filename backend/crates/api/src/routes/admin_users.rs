@@ -28,25 +28,18 @@ pub struct ListUsersQuery {
     pub role: Option<String>,
 }
 
-/// User with workspace memberships
+/// User view for admin panel
 #[derive(Debug, Serialize)]
 pub struct AdminUserView {
     pub id: Uuid,
     pub email: String,
-    pub name: String,
+    pub display_name: String,
     pub avatar_url: Option<String>,
     pub role: UserRole,
-    pub onboarding_completed: bool,
+    pub workspace_count: i64,
     pub created_at: DateTime<Utc>,
-    pub workspaces: Vec<WorkspaceMembership>,
-}
-
-/// Workspace membership info
-#[derive(Debug, Serialize)]
-pub struct WorkspaceMembership {
-    pub workspace_id: Uuid,
-    pub workspace_name: String,
-    pub joined_at: DateTime<Utc>,
+    pub last_active_at: Option<DateTime<Utc>>,
+    pub email_verified: bool,
 }
 
 /// Request body for role update
@@ -123,50 +116,65 @@ async fn list_users(
     .fetch_all(&state.db)
     .await?;
 
-    // Fetch workspace memberships for all users
+    // Fetch workspace membership counts for all users
     let user_ids: Vec<Uuid> = users.iter().map(|u| u.id).collect();
 
-    let memberships: Vec<(Uuid, Uuid, String, DateTime<Utc>)> = sqlx::query_as(
+    let workspace_counts: Vec<(Uuid, i64)> = sqlx::query_as(
         r#"
         SELECT
             wm.user_id,
-            wm.workspace_id,
-            w.name,
-            wm.joined_at
+            COUNT(*)::bigint as count
         FROM workspace_members wm
         JOIN workspaces w ON w.id = wm.workspace_id
         WHERE wm.user_id = ANY($1)
           AND w.deleted_at IS NULL
-        ORDER BY wm.joined_at DESC
+        GROUP BY wm.user_id
         "#,
     )
     .bind(&user_ids)
     .fetch_all(&state.db)
     .await?;
 
-    // Build response with memberships
+    // Fetch last active timestamps from refresh_tokens
+    let last_active: Vec<(Uuid, Option<DateTime<Utc>>)> = sqlx::query_as(
+        r#"
+        SELECT
+            user_id,
+            MAX(last_active_at) as last_active_at
+        FROM refresh_tokens
+        WHERE user_id = ANY($1)
+        GROUP BY user_id
+        "#,
+    )
+    .bind(&user_ids)
+    .fetch_all(&state.db)
+    .await?;
+
+    // Build response
     let result: Vec<AdminUserView> = users
         .into_iter()
         .map(|user| {
-            let user_memberships: Vec<WorkspaceMembership> = memberships
+            let workspace_count = workspace_counts
                 .iter()
-                .filter(|(uid, _, _, _)| *uid == user.id)
-                .map(|(_, ws_id, ws_name, joined_at)| WorkspaceMembership {
-                    workspace_id: *ws_id,
-                    workspace_name: ws_name.clone(),
-                    joined_at: *joined_at,
-                })
-                .collect();
+                .find(|(uid, _)| *uid == user.id)
+                .map(|(_, count)| *count)
+                .unwrap_or(0);
+
+            let last_active_at = last_active
+                .iter()
+                .find(|(uid, _)| *uid == user.id)
+                .and_then(|(_, ts)| *ts);
 
             AdminUserView {
                 id: user.id,
                 email: user.email,
-                name: user.name,
+                display_name: user.name,
                 avatar_url: user.avatar_url,
                 role: user.role,
-                onboarding_completed: user.onboarding_completed,
+                workspace_count,
                 created_at: user.created_at,
-                workspaces: user_memberships,
+                last_active_at,
+                email_verified: user.onboarding_completed,
             }
         })
         .collect();
