@@ -70,7 +70,9 @@ pub(crate) fn fold_rules_with_actions(rows: Vec<RuleActionRow>) -> Vec<Automatio
             current.actions.push(AutomationAction {
                 id: action_id,
                 rule_id: current.rule.id,
-                action_type: row.action_type.expect("action_type present when action_id present"),
+                action_type: row
+                    .action_type
+                    .expect("action_type present when action_id present"),
                 action_config: row
                     .action_config
                     .expect("action_config present when action_id present"),
@@ -844,7 +846,10 @@ mod tests {
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].actions.len(), 1);
         assert_eq!(result[0].actions[0].id, action_id);
-        assert_eq!(result[0].actions[0].action_type, AutomationActionType::MoveTask);
+        assert_eq!(
+            result[0].actions[0].action_type,
+            AutomationActionType::MoveTask
+        );
         assert_eq!(result[0].actions[0].position, 0);
     }
 
@@ -859,10 +864,34 @@ mod tests {
 
         // Rows come sorted: rule1 rows first, then rule2 rows
         let rows = vec![
-            make_row(rule1, "Rule A", Some(a1), Some(AutomationActionType::MoveTask), Some(0)),
-            make_row(rule1, "Rule A", Some(a2), Some(AutomationActionType::AssignTask), Some(1)),
-            make_row(rule2, "Rule B", Some(a3), Some(AutomationActionType::SendNotification), Some(0)),
-            make_row(rule2, "Rule B", Some(a4), Some(AutomationActionType::AddComment), Some(1)),
+            make_row(
+                rule1,
+                "Rule A",
+                Some(a1),
+                Some(AutomationActionType::MoveTask),
+                Some(0),
+            ),
+            make_row(
+                rule1,
+                "Rule A",
+                Some(a2),
+                Some(AutomationActionType::AssignTask),
+                Some(1),
+            ),
+            make_row(
+                rule2,
+                "Rule B",
+                Some(a3),
+                Some(AutomationActionType::SendNotification),
+                Some(0),
+            ),
+            make_row(
+                rule2,
+                "Rule B",
+                Some(a4),
+                Some(AutomationActionType::AddComment),
+                Some(1),
+            ),
         ];
 
         let result = fold_rules_with_actions(rows);
@@ -885,9 +914,27 @@ mod tests {
         let a3 = Uuid::new_v4();
 
         let rows = vec![
-            make_row(rule_id, "Multi", Some(a1), Some(AutomationActionType::SetPriority), Some(0)),
-            make_row(rule_id, "Multi", Some(a2), Some(AutomationActionType::AddLabel), Some(1)),
-            make_row(rule_id, "Multi", Some(a3), Some(AutomationActionType::SendNotification), Some(2)),
+            make_row(
+                rule_id,
+                "Multi",
+                Some(a1),
+                Some(AutomationActionType::SetPriority),
+                Some(0),
+            ),
+            make_row(
+                rule_id,
+                "Multi",
+                Some(a2),
+                Some(AutomationActionType::AddLabel),
+                Some(1),
+            ),
+            make_row(
+                rule_id,
+                "Multi",
+                Some(a3),
+                Some(AutomationActionType::SendNotification),
+                Some(2),
+            ),
         ];
 
         let result = fold_rules_with_actions(rows);

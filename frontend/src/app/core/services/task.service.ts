@@ -292,6 +292,19 @@ export class TaskService {
       );
   }
 
+  moveTaskToProject(
+    taskId: string,
+    request: { target_project_id: string; target_status_id: string; position: string },
+  ): Observable<Task> {
+    return this.http
+      .post<Task>(`${this.apiUrl}/tasks/${taskId}/move-to-project`, request)
+      .pipe(
+        tap(() => {
+          this.invalidateTaskAndProjectCaches(taskId);
+        }),
+      );
+  }
+
   deleteTask(taskId: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/tasks/${taskId}`).pipe(
       tap(() => {

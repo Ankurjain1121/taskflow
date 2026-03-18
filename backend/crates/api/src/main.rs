@@ -38,11 +38,11 @@ use crate::routes::{
     onboarding_router, positions_router, project_router, project_share_router,
     project_template_router, project_templates_router, readiness_handler, recent_items_router,
     recurring_router, reports_router, search_router, sessions_router, shared_project_public_router,
-    subtask_router, task_group_routes, task_labels_router, task_router, task_template_router, team_overview_router,
-    teams_router, tenant_router, time_entry_router, upload_router, user_preferences_router,
-    webhook_router, workspace_api_keys_router, workspace_audit_router, workspace_export_router,
-    workspace_job_roles_router, workspace_labels_router, workspace_projects_router,
-    workspace_router, workspace_teams_router, workspace_trash_router,
+    subtask_router, task_group_routes, task_labels_router, task_router, task_template_router,
+    team_overview_router, teams_router, tenant_router, time_entry_router, upload_router,
+    user_preferences_router, webhook_router, workspace_api_keys_router, workspace_audit_router,
+    workspace_export_router, workspace_job_roles_router, workspace_labels_router,
+    workspace_projects_router, workspace_router, workspace_teams_router, workspace_trash_router,
 };
 use crate::routes::{metrics_cron_router, metrics_router, portfolio_router, prometheus_router};
 use crate::state::AppState;

@@ -1,9 +1,10 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { takeUntil, Subject } from 'rxjs';
 import { Task, TaskService } from '../../../core/services/task.service';
 import { UndoService } from '../../../shared/services/undo.service';
 import { MessageService } from 'primeng/api';
 import { ProjectStateService } from './project-state.service';
+import { MoveToProjectResult } from './move-to-project-dialog.component';
 
 @Injectable()
 export class ProjectCardOperationsService {
@@ -11,6 +12,56 @@ export class ProjectCardOperationsService {
   private undoService = inject(UndoService);
   private messageService = inject(MessageService);
   private state = inject(ProjectStateService);
+
+  readonly moveToProjectDialogVisible = signal(false);
+  readonly moveToProjectTaskId = signal<string | null>(null);
+
+  openMoveToProjectDialog(taskId: string): void {
+    this.moveToProjectTaskId.set(taskId);
+    this.moveToProjectDialogVisible.set(true);
+  }
+
+  closeMoveToProjectDialog(): void {
+    this.moveToProjectDialogVisible.set(false);
+    this.moveToProjectTaskId.set(null);
+  }
+
+  onMoveToProject(result: MoveToProjectResult, destroy$: Subject<void>): void {
+    const snapshot = structuredClone(this.state.boardState());
+
+    // Optimistic: remove from current board
+    this.state.boardState.update((boardState) => {
+      const newState: Record<string, Task[]> = {};
+      for (const [colId, tasks] of Object.entries(boardState)) {
+        newState[colId] = tasks.filter((t) => t.id !== result.taskId);
+      }
+      return newState;
+    });
+
+    this.closeMoveToProjectDialog();
+
+    this.taskService
+      .moveTaskToProject(result.taskId, {
+        target_project_id: result.targetProjectId,
+        target_status_id: result.targetStatusId,
+        position: result.position,
+      })
+      .pipe(takeUntil(destroy$))
+      .subscribe({
+        next: () => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Task moved',
+            detail: `Moved to ${result.targetProjectName}`,
+            life: 3000,
+          });
+        },
+        error: () => {
+          this.state.boardState.set(snapshot);
+          this.state.showError('Failed to move task to project');
+        },
+      });
+  }
 
   onCardColumnMove(
     event: { taskId: string; columnId: string },

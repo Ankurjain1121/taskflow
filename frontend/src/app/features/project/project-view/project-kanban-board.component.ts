@@ -60,6 +60,7 @@ import { CardFields } from './project-state.service';
             (priorityChanged)="priorityChanged.emit($event)"
             (titleChanged)="titleChanged.emit($event)"
             (columnMoveRequested)="columnMoveRequested.emit($event)"
+            (moveToProjectRequested)="moveToProjectRequested.emit($event)"
             (duplicateRequested)="duplicateRequested.emit($event)"
             (deleteRequested)="deleteRequested.emit($event)"
             (quickTaskCreated)="quickTaskCreated.emit($event)"
@@ -124,6 +125,7 @@ export class ProjectKanbanBoardComponent {
     taskId: string;
     columnId: string;
   }>();
+  readonly moveToProjectRequested = output<string>();
   readonly duplicateRequested = output<string>();
   readonly deleteRequested = output<string>();
   readonly quickTaskCreated = output<{ columnId: string; title: string }>();

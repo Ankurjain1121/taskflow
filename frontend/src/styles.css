@@ -1131,15 +1131,46 @@ button:active,
   z-index: 1000 !important;
 }
 .cdk-drag-animating {
-  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+  transition: transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 /* Smooth reflow when siblings shift during drag */
 .cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
 .cdk-drag-placeholder {
-  opacity: 0.4;
-  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+  height: 3px !important;
+  min-height: 3px !important;
+  max-height: 3px !important;
+  padding: 0 !important;
+  margin: 4px 0 !important;
+  border: none !important;
+  overflow: hidden;
+  background: var(--primary);
+  border-radius: 2px;
+  opacity: 1;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--primary) 40%, transparent);
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.cdk-drag-placeholder * {
+  display: none !important;
+}
+
+/* Column glow when drag target */
+.drag-target-glow {
+  outline: 2px solid color-mix(in srgb, var(--primary) 50%, transparent);
+  outline-offset: -2px;
+  box-shadow: inset 0 0 16px color-mix(in srgb, var(--primary) 8%, transparent);
+  transition: all 200ms ease-out;
+}
+
+/* Touch-friendly tap targets on coarse pointer devices */
+@media (pointer: coarse) {
+  .quick-chip,
+  .density-btn,
+  .nav-icon-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
 /* ============================================
@@ -1196,6 +1227,18 @@ button:active,
   }
   .cdk-drag-preview {
     transform: none !important;
+  }
+  .cdk-drag-animating {
+    transition: transform 0ms !important;
+  }
+  .cdk-drag-placeholder {
+    transition: transform 0ms !important;
+    box-shadow: none !important;
+  }
+  .drag-target-glow {
+    outline: none !important;
+    box-shadow: none !important;
+    transition: none !important;
   }
 }
 

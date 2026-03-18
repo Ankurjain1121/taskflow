@@ -1089,6 +1089,7 @@ export class TaskCardComponent {
   priorityChanged = output<{ taskId: string; priority: string }>();
   titleChanged = output<{ taskId: string; title: string }>();
   columnMoveRequested = output<{ taskId: string; columnId: string }>();
+  moveToProjectRequested = output<string>();
   duplicateRequested = output<string>();
   deleteRequested = output<string>();
 
@@ -1216,6 +1217,8 @@ export class TaskCardComponent {
           this.priorityChanged.emit({ taskId, priority }),
         onColumnMoveRequested: (taskId, columnId) =>
           this.columnMoveRequested.emit({ taskId, columnId }),
+        onMoveToProjectRequested: (taskId) =>
+          this.moveToProjectRequested.emit(taskId),
         onDuplicateRequested: (taskId) =>
           this.duplicateRequested.emit(taskId),
         onDeleteRequested: (taskId) =>

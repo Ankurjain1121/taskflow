@@ -79,7 +79,7 @@ export interface TaskMoveEvent {
     } @else {
       <div
         class="flex flex-col bg-[var(--muted)] rounded-lg min-h-[500px] w-[272px] flex-shrink-0"
-        [class.ring-2]="isDragTarget()"
+        [class.drag-target-glow]="isDragTarget()"
       >
         <!-- Color Accent Bar -->
         <div
@@ -245,6 +245,7 @@ export interface TaskMoveEvent {
                 (priorityChanged)="priorityChanged.emit($event)"
                 (titleChanged)="titleChanged.emit($event)"
                 (columnMoveRequested)="columnMoveRequested.emit($event)"
+                (moveToProjectRequested)="moveToProjectRequested.emit($event)"
                 (duplicateRequested)="duplicateRequested.emit($event)"
                 (deleteRequested)="deleteRequested.emit($event)"
               ></app-task-card>
@@ -286,6 +287,7 @@ export interface TaskMoveEvent {
                 (priorityChanged)="priorityChanged.emit($event)"
                 (titleChanged)="titleChanged.emit($event)"
                 (columnMoveRequested)="columnMoveRequested.emit($event)"
+                (moveToProjectRequested)="moveToProjectRequested.emit($event)"
                 (duplicateRequested)="duplicateRequested.emit($event)"
                 (deleteRequested)="deleteRequested.emit($event)"
               ></app-task-card>
@@ -421,6 +423,7 @@ export class KanbanColumnComponent {
   priorityChanged = output<{ taskId: string; priority: string }>();
   titleChanged = output<{ taskId: string; title: string }>();
   columnMoveRequested = output<{ taskId: string; columnId: string }>();
+  moveToProjectRequested = output<string>();
   duplicateRequested = output<string>();
   deleteRequested = output<string>();
   quickTaskCreated = output<{ columnId: string; title: string }>();

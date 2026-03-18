@@ -756,6 +756,91 @@ pub async fn get_task_board_id(pool: &PgPool, task_id: Uuid) -> Result<Option<Uu
     get_task_project_id(pool, task_id).await
 }
 
+/// Move a task to a different project, status, and position
+pub async fn move_task_to_project(
+    pool: &PgPool,
+    task_id: Uuid,
+    target_project_id: Uuid,
+    target_status_id: Uuid,
+    new_position: String,
+) -> Result<Task, TaskQueryError> {
+    let task = sqlx::query_as::<_, Task>(
+        r#"
+        UPDATE tasks
+        SET
+            project_id = $2,
+            status_id = $3,
+            position = $4,
+            updated_at = NOW()
+        WHERE id = $1 AND deleted_at IS NULL
+        RETURNING
+            id, title, description, priority, due_date, start_date,
+            estimated_hours, project_id, task_list_id, status_id, position,
+            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
+            tenant_id, created_by_id, deleted_at, created_at, updated_at,
+            version, parent_task_id, depth
+        "#,
+    )
+    .bind(task_id)
+    .bind(target_project_id)
+    .bind(target_status_id)
+    .bind(&new_position)
+    .fetch_optional(pool)
+    .await?
+    .ok_or(TaskQueryError::NotFound)?;
+
+    Ok(task)
+}
+
+/// Strip project-scoped labels from a task when moving it to another project
+pub async fn strip_task_labels_for_project(
+    pool: &PgPool,
+    task_id: Uuid,
+    source_project_id: Uuid,
+) -> Result<u64, TaskQueryError> {
+    let rows = sqlx::query(
+        r#"
+        DELETE FROM task_labels
+        WHERE task_id = $1
+          AND label_id IN (SELECT id FROM labels WHERE project_id = $2)
+        "#,
+    )
+    .bind(task_id)
+    .bind(source_project_id)
+    .execute(pool)
+    .await?
+    .rows_affected();
+
+    Ok(rows)
+}
+
+/// Move subtasks to a different project and status
+pub async fn move_subtasks_to_project(
+    pool: &PgPool,
+    parent_task_id: Uuid,
+    target_project_id: Uuid,
+    target_status_id: Uuid,
+) -> Result<Vec<Uuid>, TaskQueryError> {
+    let subtask_ids = sqlx::query_scalar::<_, Uuid>(
+        r#"
+        UPDATE tasks
+        SET
+            project_id = $2,
+            status_id = $3,
+            updated_at = NOW()
+        WHERE parent_task_id = $1 AND deleted_at IS NULL
+        RETURNING id
+        "#,
+    )
+    .bind(parent_task_id)
+    .bind(target_project_id)
+    .bind(target_status_id)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(subtask_ids)
+}
+
 /// List child tasks for a parent task
 pub async fn list_child_tasks(
     pool: &PgPool,

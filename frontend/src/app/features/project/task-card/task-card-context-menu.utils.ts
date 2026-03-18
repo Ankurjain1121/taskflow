@@ -6,6 +6,7 @@ import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
 export interface ContextMenuCallbacks {
   onPriorityChanged: (taskId: string, priority: string) => void;
   onColumnMoveRequested: (taskId: string, columnId: string) => void;
+  onMoveToProjectRequested?: (taskId: string) => void;
   onDuplicateRequested: (taskId: string) => void;
   onDeleteRequested: (taskId: string) => void;
 }
@@ -57,6 +58,15 @@ export function buildContextMenu(
           };
         }),
     },
+    ...(callbacks.onMoveToProjectRequested
+      ? [
+          {
+            label: 'Move to Project',
+            icon: 'pi pi-share-alt',
+            command: () => callbacks.onMoveToProjectRequested!(task.id),
+          },
+        ]
+      : []),
     {
       label: 'Duplicate',
       icon: 'pi pi-copy',
