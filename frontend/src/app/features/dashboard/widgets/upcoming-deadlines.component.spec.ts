@@ -232,4 +232,30 @@ describe('UpcomingDeadlinesComponent', () => {
       expect(component.getPriorityClass('High')).toContain('bg-orange');
     });
   });
+
+  describe('additional boundary tests', () => {
+    it('should request 14 days of deadlines', async () => {
+      await component.loadData();
+      expect(mockDashboardService.getUpcomingDeadlines).toHaveBeenCalledWith(
+        14,
+        undefined,
+      );
+    });
+
+    it('should return "Due in 2 weeks" for 14 days', () => {
+      expect(component.getRelativeTime(14)).toBe('Due in 2 weeks');
+    });
+
+    it('should handle exactly 7 days', () => {
+      expect(component.getRelativeTime(7)).toBe('Due in 1 week');
+    });
+
+    it('should handle 4 days', () => {
+      expect(component.getRelativeTime(4)).toBe('Due in 4 days');
+    });
+
+    it('should show blue urgency for 10 days', () => {
+      expect(component.getUrgencyColor(10)).toBe('bg-blue-500');
+    });
+  });
 });

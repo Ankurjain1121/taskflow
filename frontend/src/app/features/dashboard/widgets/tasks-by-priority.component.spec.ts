@@ -128,5 +128,37 @@ describe('TasksByPriorityComponent', () => {
     it('should return gray for unknown', () => {
       expect(component.getPriorityColor('unknown')).toBe('#9ca3af');
     });
+
+    it('should handle case-insensitive priority matching', () => {
+      expect(component.getPriorityColor('URGENT')).toBe('#ef4444');
+      expect(component.getPriorityColor('Urgent')).toBe('#ef4444');
+      expect(component.getPriorityColor('HIGH')).toBe('#f97316');
+      expect(component.getPriorityColor('High')).toBe('#f97316');
+    });
+  });
+
+  it('should start in loading state', () => {
+    const freshFixture = TestBed.createComponent(TasksByPriorityComponent);
+    const freshComponent = freshFixture.componentInstance;
+    expect(freshComponent.loading()).toBe(true);
+  });
+
+  it('should pass workspaceId to service', async () => {
+    fixture.componentRef.setInput('workspaceId', 'ws-456');
+    fixture.detectChanges();
+    await component.loadData();
+    expect(mockDashboardService.getTasksByPriority).toHaveBeenCalledWith(
+      'ws-456',
+    );
+  });
+
+  it('should use horizontal bar chart (indexAxis: y)', () => {
+    expect(component.chartOptions.indexAxis).toBe('y');
+  });
+
+  it('should set bar thickness to 28', () => {
+    component.data.set(mockData);
+    const chart = component.chartData();
+    expect(chart.datasets[0].barThickness).toBe(28);
   });
 });

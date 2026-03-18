@@ -110,4 +110,49 @@ describe('CompletionTrendComponent', () => {
       expect(chart.datasets[0].data).toEqual([]);
     });
   });
+
+  it('should start with 30 days selected', () => {
+    expect(component.selectedDays()).toBe(30);
+  });
+
+  it('should have day options [30, 60, 90]', () => {
+    expect(component.dayOptions).toEqual([30, 60, 90]);
+  });
+
+  it('should pass selected days to service', async () => {
+    component.setDays(90);
+    expect(mockDashboardService.getCompletionTrend).toHaveBeenCalledWith(
+      90,
+      undefined,
+    );
+  });
+
+  it('should compute totalCompleted as sum of all points', async () => {
+    // mockData: 3 + 5 + 2 = 10
+    await component.loadData();
+    expect(component.totalCompleted()).toBe(10);
+  });
+
+  it('should generate line chart with fill and tension', () => {
+    component.data.set(mockData);
+    const chart = component.chartData();
+    expect(chart.datasets[0].fill).toBe(true);
+    expect(chart.datasets[0].tension).toBe(0.4);
+  });
+
+  it('should use gradient background', () => {
+    component.data.set(mockData);
+    const chart = component.chartData();
+    expect(typeof chart.datasets[0].backgroundColor).toBe('function');
+  });
+
+  it('should handle large dataset', async () => {
+    const largeData = Array.from({ length: 90 }, (_, i) => ({
+      date: `2026-01-${String(i + 1).padStart(2, '0')}`,
+      completed: i % 5,
+    }));
+    mockDashboardService.getCompletionTrend.mockReturnValue(of(largeData));
+    await component.loadData();
+    expect(component.data().length).toBe(90);
+  });
 });

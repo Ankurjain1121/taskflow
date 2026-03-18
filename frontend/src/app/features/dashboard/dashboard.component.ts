@@ -212,16 +212,16 @@ interface TeamOption {
           </div>
 
           <!-- Recent Activity -->
-          @if (recentActivity().length > 0) {
+          <div
+            class="animate-fade-in-up stagger-5 widget-card mb-6 overflow-hidden"
+          >
             <div
-              class="animate-fade-in-up stagger-5 widget-card mb-6 overflow-hidden"
+              class="px-5 py-3.5"
+              style="border-bottom: 1px solid var(--border)"
             >
-              <div
-                class="px-5 py-3.5"
-                style="border-bottom: 1px solid var(--border)"
-              >
-                <h2 class="widget-title">Recent Activity</h2>
-              </div>
+              <h2 class="widget-title">Recent Activity</h2>
+            </div>
+            @if (recentActivity().length > 0) {
               <div style="border-color: var(--border)">
                 @for (
                   activity of displayedActivity();
@@ -307,8 +307,13 @@ interface TeamOption {
                   </button>
                 </div>
               }
-            </div>
-          }
+            } @else {
+              <div class="px-5 py-8 text-center">
+                <i class="pi pi-history text-2xl mb-2" style="color: var(--muted-foreground)"></i>
+                <p class="text-sm" style="color: var(--muted-foreground)">No recent activity yet</p>
+              </div>
+            }
+          </div>
 
           <!-- Metrics View Toggle -->
           @if (metricsLoading() || hasAnyMetrics()) {
@@ -621,6 +626,7 @@ export class DashboardComponent implements OnInit {
     }
 
     this.userName.set(user.name?.split(' ')[0] || null);
+    this.dashboardService.invalidateCache();
     this.loadWorkspaces();
     this.checklistService.initialize();
 
@@ -793,9 +799,9 @@ export class DashboardComponent implements OnInit {
     if (view === 'personal') {
       this.dashboardService.getPersonalDashboard().subscribe({
         next: (d) => {
-          this.metricsCycleTime.set(d.cycle_time);
-          this.metricsVelocity.set(d.velocity);
-          this.metricsOnTime.set(d.on_time);
+          this.metricsCycleTime.set(d.cycle_time ?? []);
+          this.metricsVelocity.set(d.velocity ?? []);
+          this.metricsOnTime.set(d.on_time ?? null);
           this.metricsLoading.set(false);
         },
         error: () => this.metricsLoading.set(false),
@@ -808,10 +814,10 @@ export class DashboardComponent implements OnInit {
       }
       this.dashboardService.getTeamDashboard(teamId).subscribe({
         next: (d) => {
-          this.metricsCycleTime.set(d.cycle_time);
-          this.metricsVelocity.set(d.velocity);
-          this.metricsWorkload.set(d.workload_balance);
-          this.metricsOnTime.set(d.on_time);
+          this.metricsCycleTime.set(d.cycle_time ?? []);
+          this.metricsVelocity.set(d.velocity ?? []);
+          this.metricsWorkload.set(d.workload_balance ?? []);
+          this.metricsOnTime.set(d.on_time ?? null);
           this.metricsLoading.set(false);
         },
         error: () => this.metricsLoading.set(false),
@@ -825,10 +831,10 @@ export class DashboardComponent implements OnInit {
       }
       this.dashboardService.getWorkspaceDashboard(wsId).subscribe({
         next: (d) => {
-          this.metricsCycleTime.set(d.cycle_time);
-          this.metricsVelocity.set(d.velocity);
-          this.metricsWorkload.set(d.workload_balance);
-          this.metricsOnTime.set(d.on_time);
+          this.metricsCycleTime.set(d.cycle_time ?? []);
+          this.metricsVelocity.set(d.velocity ?? []);
+          this.metricsWorkload.set(d.workload_balance ?? []);
+          this.metricsOnTime.set(d.on_time ?? null);
           this.metricsLoading.set(false);
         },
         error: () => this.metricsLoading.set(false),

@@ -117,4 +117,38 @@ describe('TasksByStatusComponent', () => {
       expect(mockRouter.navigate).not.toHaveBeenCalled();
     });
   });
+
+  it('should start in loading state', () => {
+    // Before loadData is called, loading should be true (initial signal value)
+    const freshFixture = TestBed.createComponent(TasksByStatusComponent);
+    const freshComponent = freshFixture.componentInstance;
+    expect(freshComponent.loading()).toBe(true);
+  });
+
+  it('should pass workspaceId to service', async () => {
+    fixture.componentRef.setInput('workspaceId', 'ws-123');
+    fixture.detectChanges();
+    await component.loadData();
+    expect(mockDashboardService.getTasksByStatus).toHaveBeenCalledWith(
+      'ws-123',
+    );
+  });
+
+  it('should use default color when item.color is null', () => {
+    component.data.set([
+      { status: 'Todo', count: 5, color: null as any },
+    ]);
+    const chart = component.chartData();
+    expect(chart.datasets[0].backgroundColor).toEqual(['#6366f1']);
+  });
+
+  it('should set doughnut chart options with cutout 75%', () => {
+    expect(component.chartOptions.cutout).toBe('75%');
+  });
+
+  it('should handle empty event element gracefully', () => {
+    component.data.set(mockData);
+    component.onChartClick(null as any);
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
+  });
 });

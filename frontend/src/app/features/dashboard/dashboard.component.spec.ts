@@ -15,6 +15,7 @@ import {
 import { WorkspaceStateService } from '../../core/services/workspace-state.service';
 import { TeamGroupsService } from '../../core/services/team-groups.service';
 import { OnboardingChecklistService } from '../../core/services/onboarding-checklist.service';
+import { ReportsService } from '../../core/services/reports.service';
 
 const MOCK_STATS: DashboardStats = {
   total_tasks: 42,
@@ -72,6 +73,14 @@ describe('DashboardComponent', () => {
     exportDashboardCsv: vi.fn(),
   };
 
+  const mockReportsService = {
+    getUtilizationByWorkspace: vi.fn().mockReturnValue(of([])),
+  };
+
+  const mockTeamGroupsService = {
+    listTeams: vi.fn().mockReturnValue(of([])),
+  };
+
   const mockWorkspaceState = {
     workspaces: signal([
       {
@@ -100,12 +109,40 @@ describe('DashboardComponent', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
+    // Polyfill window.matchMedia for vitest (jsdom) environment
+    if (!window.matchMedia) {
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: vi.fn().mockImplementation((query: string) => ({
+          matches: false,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+        })),
+      });
+    }
+
+    // Polyfill IntersectionObserver for @defer (on viewport)
+    if (!globalThis.IntersectionObserver) {
+      (globalThis as Record<string, unknown>).IntersectionObserver = class {
+        observe(): void {}
+        unobserve(): void {}
+        disconnect(): void {}
+      };
+    }
+
     // Re-set default mock return values after clearAllMocks
     mockDashboardService.getStats.mockReturnValue(of(MOCK_STATS));
     mockDashboardService.getRecentActivity.mockReturnValue(of(MOCK_ACTIVITY));
     mockDashboardService.getWorkspaceDashboard.mockReturnValue(of({ cycle_time: [], velocity: [], workload_balance: [], on_time: null }));
     mockDashboardService.getTeamDashboard.mockReturnValue(of({ cycle_time: [], velocity: [], workload_balance: [], on_time: null }));
     mockDashboardService.getPersonalDashboard.mockReturnValue(of({ cycle_time: [], velocity: [], on_time: null }));
+    mockReportsService.getUtilizationByWorkspace.mockReturnValue(of([]));
+    mockTeamGroupsService.listTeams.mockReturnValue(of([]));
 
     await TestBed.configureTestingModule({
       imports: [
@@ -117,7 +154,8 @@ describe('DashboardComponent', () => {
         { provide: AuthService, useValue: mockAuthService },
         { provide: DashboardService, useValue: mockDashboardService },
         { provide: WorkspaceStateService, useValue: mockWorkspaceState },
-        { provide: TeamGroupsService, useValue: { listTeams: vi.fn().mockReturnValue(of([])) } },
+        { provide: TeamGroupsService, useValue: mockTeamGroupsService },
+        { provide: ReportsService, useValue: mockReportsService },
         { provide: OnboardingChecklistService, useValue: {
           initialize: vi.fn(),
           shouldShow: signal(false),
@@ -395,6 +433,183 @@ describe('DashboardComponent', () => {
 
       expect(component.selectedWorkspaceId()).toBeNull();
       expect(mockWorkspaceState.selectWorkspace).toHaveBeenCalledWith(null);
+    });
+  });
+
+  describe('setActiveView()', () => {
+    it('should update activeView signal and reload metrics', () => {
+      component.ngOnInit();
+      vi.clearAllMocks();
+      mockDashboardService.getPersonalDashboard.mockReturnValue(of({ cycle_time: [], velocity: [], on_time: null }));
+
+      component.setActiveView('personal');
+
+      expect(component.activeView()).toBe('personal');
+      expect(mockDashboardService.getPersonalDashboard).toHaveBeenCalled();
+    });
+  });
+
+  describe('onTeamChange()', () => {
+    it('should update selectedTeamId and reload metrics', () => {
+      component.ngOnInit();
+      component.activeView.set('team');
+      vi.clearAllMocks();
+      mockDashboardService.getTeamDashboard.mockReturnValue(of({ cycle_time: [], velocity: [], workload_balance: [], on_time: null }));
+
+      component.onTeamChange('team-1');
+
+      expect(component.selectedTeamId()).toBe('team-1');
+      expect(mockDashboardService.getTeamDashboard).toHaveBeenCalledWith('team-1');
+    });
+  });
+
+  describe('hasAnyMetrics computed', () => {
+    it('should return true when any metric data exists', () => {
+      component.metricsCycleTime.set([{ week_start: '2026-02-17', avg_cycle_days: 3.5 }]);
+      expect(component.hasAnyMetrics()).toBe(true);
+    });
+
+    it('should return true when onTime metric exists', () => {
+      component.metricsOnTime.set({ on_time_pct: 90, total_completed: 10, on_time_count: 9 });
+      expect(component.hasAnyMetrics()).toBe(true);
+    });
+
+    it('should return false when all metric arrays are empty', () => {
+      component.metricsCycleTime.set([]);
+      component.metricsVelocity.set([]);
+      component.metricsWorkload.set([]);
+      component.metricsOnTime.set(null);
+      expect(component.hasAnyMetrics()).toBe(false);
+    });
+  });
+
+  describe('loadMetrics() behavior', () => {
+    beforeEach(() => {
+      component.ngOnInit();
+      vi.clearAllMocks();
+      mockDashboardService.getPersonalDashboard.mockReturnValue(of({ cycle_time: [], velocity: [], on_time: null }));
+      mockDashboardService.getTeamDashboard.mockReturnValue(of({ cycle_time: [], velocity: [], workload_balance: [], on_time: null }));
+      mockDashboardService.getWorkspaceDashboard.mockReturnValue(of({ cycle_time: [], velocity: [], workload_balance: [], on_time: null }));
+      mockReportsService.getUtilizationByWorkspace.mockReturnValue(of([]));
+    });
+
+    it('personal view should call getPersonalDashboard', () => {
+      component.setActiveView('personal');
+      expect(mockDashboardService.getPersonalDashboard).toHaveBeenCalled();
+    });
+
+    it('team view with teamId should call getTeamDashboard', () => {
+      component.activeView.set('team');
+      component.selectedTeamId.set('team-1');
+      vi.clearAllMocks();
+      mockDashboardService.getTeamDashboard.mockReturnValue(of({ cycle_time: [], velocity: [], workload_balance: [], on_time: null }));
+
+      component.onTeamChange('team-1');
+      expect(mockDashboardService.getTeamDashboard).toHaveBeenCalledWith('team-1');
+    });
+
+    it('team view without teamId should NOT call getTeamDashboard', () => {
+      component.activeView.set('team');
+      component.selectedTeamId.set(null);
+      vi.clearAllMocks();
+      mockDashboardService.getTeamDashboard.mockReturnValue(of({ cycle_time: [], velocity: [], workload_balance: [], on_time: null }));
+
+      component.setActiveView('team');
+      expect(mockDashboardService.getTeamDashboard).not.toHaveBeenCalled();
+      expect(component.metricsLoading()).toBe(false);
+    });
+
+    it('workspace view with wsId should call getWorkspaceDashboard', () => {
+      component.selectedWorkspaceId.set('ws-1');
+      vi.clearAllMocks();
+      mockDashboardService.getWorkspaceDashboard.mockReturnValue(of({ cycle_time: [], velocity: [], workload_balance: [], on_time: null }));
+      mockReportsService.getUtilizationByWorkspace.mockReturnValue(of([]));
+
+      component.setActiveView('workspace');
+      expect(mockDashboardService.getWorkspaceDashboard).toHaveBeenCalledWith('ws-1');
+    });
+
+    it('workspace view without wsId should NOT call getWorkspaceDashboard', () => {
+      component.selectedWorkspaceId.set(null);
+      vi.clearAllMocks();
+      mockDashboardService.getWorkspaceDashboard.mockReturnValue(of({ cycle_time: [], velocity: [], workload_balance: [], on_time: null }));
+
+      component.setActiveView('workspace');
+      expect(mockDashboardService.getWorkspaceDashboard).not.toHaveBeenCalled();
+      expect(component.metricsLoading()).toBe(false);
+    });
+
+    it('metrics error should set metricsLoading to false', () => {
+      mockDashboardService.getPersonalDashboard.mockReturnValue(throwError(() => new Error('fail')));
+
+      component.setActiveView('personal');
+      expect(component.metricsLoading()).toBe(false);
+    });
+  });
+
+  describe('exportMetricsCsv()', () => {
+    it('should call exportDashboardCsv with combined data', () => {
+      component.metricsCycleTime.set([
+        { week_start: '2026-02-17', avg_cycle_days: 3.5 },
+      ]);
+      component.metricsVelocity.set([
+        { week_start: '2026-02-17', tasks_completed: 5 },
+      ]);
+
+      component.exportMetricsCsv();
+
+      expect(mockDashboardService.exportDashboardCsv).toHaveBeenCalledWith([
+        { week_start: '2026-02-17', avg_cycle_days: 3.5, tasks_completed: 5 },
+      ]);
+    });
+
+    it('should not call export when data is empty', () => {
+      component.metricsCycleTime.set([]);
+      component.metricsVelocity.set([]);
+
+      component.exportMetricsCsv();
+
+      expect(mockDashboardService.exportDashboardCsv).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('teamOptions computed', () => {
+    it('should map teams to label/value pairs', () => {
+      component.teams.set([
+        { id: 'team-1', name: 'Alpha Team', description: null, color: '#000', workspace_id: 'ws-1', member_count: 3, created_at: '' },
+        { id: 'team-2', name: 'Beta Team', description: null, color: '#000', workspace_id: 'ws-1', member_count: 2, created_at: '' },
+      ]);
+
+      const options = component.teamOptions();
+      expect(options).toEqual([
+        { label: 'Alpha Team', value: 'team-1' },
+        { label: 'Beta Team', value: 'team-2' },
+      ]);
+    });
+  });
+
+  describe('navigateToOnboarding()', () => {
+    it('should navigate to /onboarding', () => {
+      const navigateSpy = vi.spyOn(router, 'navigate');
+      component.navigateToOnboarding();
+      expect(navigateSpy).toHaveBeenCalledWith(['/onboarding']);
+    });
+  });
+
+  describe('stats loading error', () => {
+    it('getStats error should leave stats as null', () => {
+      component.stats.set(null);
+      mockDashboardService.getStats.mockReturnValue(throwError(() => new Error('fail')));
+      // Directly trigger workspace change which calls loadStats internally
+      component.onWorkspaceChange('ws-1');
+      expect(component.stats()).toBeNull();
+    });
+
+    it('getRecentActivity error should leave recentActivity empty', () => {
+      mockDashboardService.getRecentActivity.mockReturnValue(throwError(() => new Error('fail')));
+      component.recentActivity.set([]);
+      component.onWorkspaceChange('ws-1');
+      expect(component.recentActivity()).toEqual([]);
     });
   });
 });

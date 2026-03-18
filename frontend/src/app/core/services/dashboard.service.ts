@@ -180,20 +180,20 @@ export class DashboardService {
   getWorkspaceDashboard(workspaceId: string): Observable<WorkspaceDashboard> {
     return this.getCached(`ws-dashboard:${workspaceId}`, () =>
       this.http.get<WorkspaceDashboard>(
-        `${this.apiUrl}/metrics/workspace/${workspaceId}`,
+        `/api/workspaces/${workspaceId}/metrics/workspace`,
       ),
     );
   }
 
   getTeamDashboard(teamId: string): Observable<TeamDashboard> {
     return this.getCached(`team-dashboard:${teamId}`, () =>
-      this.http.get<TeamDashboard>(`${this.apiUrl}/metrics/team/${teamId}`),
+      this.http.get<TeamDashboard>(`/api/teams/${teamId}/metrics`),
     );
   }
 
   getPersonalDashboard(): Observable<PersonalDashboard> {
     return this.getCached('personal-dashboard', () =>
-      this.http.get<PersonalDashboard>(`${this.apiUrl}/metrics/personal`),
+      this.http.get<PersonalDashboard>('/api/me/metrics'),
     );
   }
 

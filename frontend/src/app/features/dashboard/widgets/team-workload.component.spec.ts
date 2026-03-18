@@ -111,5 +111,83 @@ describe('TeamWorkloadComponent', () => {
         component.getBarWidth({ active_tasks: 0, total_tasks: 0 } as any),
       ).toBe(0);
     });
+
+    it('should handle exactly 20 tasks as 100%', () => {
+      expect(
+        component.getBarWidth({ active_tasks: 20, total_tasks: 25 } as any),
+      ).toBe(100);
+    });
+
+    it('should handle 25 tasks as 100% (capped)', () => {
+      expect(
+        component.getBarWidth({ active_tasks: 25, total_tasks: 30 } as any),
+      ).toBe(100);
+    });
+
+    it('should handle 5 tasks as 25%', () => {
+      expect(
+        component.getBarWidth({ active_tasks: 5, total_tasks: 10 } as any),
+      ).toBe(25);
+    });
+  });
+
+  describe('getBarColor edge cases', () => {
+    it('should prioritize overloaded over overdue', () => {
+      expect(
+        component.getBarColor({
+          is_overloaded: true,
+          overdue_tasks: 3,
+        } as any),
+      ).toBe('bg-red-500');
+    });
+
+    it('should return emerald when no overdue and not overloaded', () => {
+      expect(
+        component.getBarColor({
+          is_overloaded: false,
+          overdue_tasks: 0,
+        } as any),
+      ).toBe('bg-emerald-500');
+    });
+  });
+
+  describe('loading behavior', () => {
+    it('should set loading true during load', () => {
+      fixture.componentRef.setInput('workspaceId', 'ws-1');
+      fixture.detectChanges();
+      // loadWorkload is called via effect, service returns synchronous of()
+      // so loading transitions true->false. We verify service was called.
+      expect(mockTeamService.getTeamWorkload).toHaveBeenCalled();
+    });
+
+    it('should call teamService.getTeamWorkload with workspaceId', () => {
+      fixture.componentRef.setInput('workspaceId', 'ws-test');
+      fixture.detectChanges();
+      expect(mockTeamService.getTeamWorkload).toHaveBeenCalledWith('ws-test');
+    });
+
+    it('should handle service error gracefully', () => {
+      mockTeamService.getTeamWorkload.mockReturnValue(
+        throwError(() => new Error('Network error')),
+      );
+      fixture.componentRef.setInput('workspaceId', 'ws-err');
+      fixture.detectChanges();
+      expect(component.members()).toEqual([]);
+      expect(component.loading()).toBe(false);
+    });
+  });
+
+  describe('no workspace', () => {
+    it('should clear members when workspaceId is undefined', () => {
+      // First load with a workspace
+      fixture.componentRef.setInput('workspaceId', 'ws-1');
+      fixture.detectChanges();
+      expect(component.members().length).toBeGreaterThan(0);
+
+      // Then clear workspace
+      fixture.componentRef.setInput('workspaceId', undefined);
+      fixture.detectChanges();
+      expect(component.members()).toEqual([]);
+    });
   });
 });

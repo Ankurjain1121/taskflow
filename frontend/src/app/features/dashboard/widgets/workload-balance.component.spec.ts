@@ -91,4 +91,70 @@ describe('WorkloadBalanceComponent', () => {
   it('should expose overloaded threshold constant', () => {
     expect(component.threshold).toBe(10);
   });
+
+  it('should expose OVERLOADED_THRESHOLD as 10', () => {
+    expect(component.threshold).toBe(10);
+  });
+
+  it('should use minimum 200px height for 1-6 entries', () => {
+    const entries: WorkloadBalanceEntry[] = [
+      { user_id: 'u1', user_name: 'Alice', active_tasks: 5 },
+    ];
+    fixture.componentRef.setInput('data', entries);
+    fixture.detectChanges();
+    // Max(200, 1 * 32) = 200
+    expect(component.chartHeight()).toBe('200px');
+
+    const entries6: WorkloadBalanceEntry[] = [];
+    for (let i = 0; i < 6; i++) {
+      entries6.push({ user_id: `u${i}`, user_name: `User ${i}`, active_tasks: 3 });
+    }
+    fixture.componentRef.setInput('data', entries6);
+    fixture.detectChanges();
+    // Max(200, 6 * 32 = 192) = 200
+    expect(component.chartHeight()).toBe('200px');
+  });
+
+  it('should color exactly 10 tasks as green (not overloaded)', () => {
+    const entries: WorkloadBalanceEntry[] = [
+      { user_id: 'u1', user_name: 'Alice', active_tasks: 10 },
+    ];
+    fixture.componentRef.setInput('data', entries);
+    fixture.detectChanges();
+
+    const chartData = component.chartData();
+    // 10 is NOT > 10, so green
+    expect(chartData.datasets[0].backgroundColor[0]).toContain('16, 185, 129');
+  });
+
+  it('should color 11 tasks as amber (overloaded)', () => {
+    const entries: WorkloadBalanceEntry[] = [
+      { user_id: 'u1', user_name: 'Alice', active_tasks: 11 },
+    ];
+    fixture.componentRef.setInput('data', entries);
+    fixture.detectChanges();
+
+    const chartData = component.chartData();
+    // 11 > 10, so amber
+    expect(chartData.datasets[0].backgroundColor[0]).toContain('245, 158, 11');
+  });
+
+  it('should handle single user data', () => {
+    const entries: WorkloadBalanceEntry[] = [
+      { user_id: 'u1', user_name: 'Solo', active_tasks: 7 },
+    ];
+    fixture.componentRef.setInput('data', entries);
+    fixture.detectChanges();
+
+    const chartData = component.chartData();
+    expect(chartData.labels).toEqual(['Solo']);
+    expect(chartData.datasets[0].data).toEqual([7]);
+  });
+
+  it('should generate correct tooltip callback', () => {
+    const tooltipCallback = component.chartOptions.plugins.tooltip.callbacks.label;
+    expect(tooltipCallback({ parsed: { x: 5 } })).toBe('5 active tasks');
+    expect(tooltipCallback({ parsed: { x: 0 } })).toBe('0 active tasks');
+    expect(tooltipCallback({ parsed: { x: 12 } })).toBe('12 active tasks');
+  });
 });
