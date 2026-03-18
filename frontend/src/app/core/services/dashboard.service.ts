@@ -1,6 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, shareReplay } from 'rxjs';
+import {
+  FocusTask,
+  ProjectPulse,
+  StreakData,
+} from '../../features/dashboard/dashboard.types';
 
 export interface DashboardStats {
   total_tasks: number;
@@ -173,6 +178,30 @@ export class DashboardService {
     return this.http.get<MyTask[]>(`${this.apiUrl}/my-tasks`, {
       params: this.buildParams(workspaceId),
     });
+  }
+
+  // --- Focus Tasks, Project Pulse, Streak ---
+
+  getFocusTasks(workspaceId?: string): Observable<FocusTask[]> {
+    return this.getCached(`focus-tasks:${workspaceId ?? ''}`, () =>
+      this.http.get<FocusTask[]>(`${this.apiUrl}/focus-tasks`, {
+        params: this.buildParams(workspaceId),
+      }),
+    );
+  }
+
+  getProjectPulse(workspaceId?: string): Observable<ProjectPulse[]> {
+    return this.getCached(`project-pulse:${workspaceId ?? ''}`, () =>
+      this.http.get<ProjectPulse[]>(`${this.apiUrl}/project-pulse`, {
+        params: this.buildParams(workspaceId),
+      }),
+    );
+  }
+
+  getStreak(): Observable<StreakData> {
+    return this.getCached('streak', () =>
+      this.http.get<StreakData>(`${this.apiUrl}/streak`),
+    );
   }
 
   // --- Phase J Metrics Endpoints ---
