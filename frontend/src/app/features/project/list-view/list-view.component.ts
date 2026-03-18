@@ -69,12 +69,13 @@ interface ColumnInput {
               #titleInput
             />
           } @else {
-            <div
-              class="text-sm font-medium text-[var(--foreground)] cursor-text hover:bg-[var(--muted)] rounded px-1 py-0.5 -mx-1"
-              (click)="startTitleEdit(task, $event)"
+            <a
+              class="text-sm font-medium text-[var(--foreground)] hover:text-[var(--primary)] hover:underline cursor-pointer rounded px-1 py-0.5 -mx-1"
+              (click)="onRowClick(task)"
+              (dblclick)="startTitleEdit(task, $event)"
             >
               {{ task.title }}
-            </div>
+            </a>
             @if (task.description) {
               <div
                 class="text-xs text-[var(--muted-foreground)] line-clamp-1 mt-0.5 cursor-pointer"
