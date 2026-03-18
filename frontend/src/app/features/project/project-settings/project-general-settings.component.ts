@@ -9,6 +9,7 @@ import {
   effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import {
   FormBuilder,
   FormGroup,
@@ -20,12 +21,13 @@ import {
   Board,
 } from '../../../core/services/project.service';
 import { MessageService } from 'primeng/api';
+import { Select } from 'primeng/select';
 import { SaveTemplateDialogComponent } from '../project-templates/save-template-dialog.component';
 
 @Component({
   selector: 'app-project-general-settings',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, SaveTemplateDialogComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, Select, SaveTemplateDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="py-6 space-y-8">
@@ -112,6 +114,103 @@ import { SaveTemplateDialogComponent } from '../project-templates/save-template-
               </button>
             </div>
           </form>
+        </div>
+      </section>
+
+      <!-- Visibility -->
+      <section class="animate-fade-in-up">
+        <div class="bg-[var(--card)] shadow rounded-lg">
+          <div class="px-6 py-4 border-b border-[var(--border)]">
+            <h2 class="text-lg font-medium text-[var(--foreground)]">
+              Visibility
+            </h2>
+          </div>
+          <div class="px-6 py-4 space-y-4">
+            <p class="text-sm text-[var(--muted-foreground)]">
+              Control who can see this project and its tasks.
+            </p>
+
+            <div class="max-w-sm">
+              <p-select
+                [options]="visibilityOptions"
+                [(ngModel)]="selectedVisibility"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Select visibility"
+                styleClass="w-full"
+                (onChange)="onVisibilityChange($event.value)"
+              >
+                <ng-template #selectedItem let-selected>
+                  <div class="flex items-center gap-2" *ngIf="selected">
+                    <i [class]="selected.icon + ' text-sm'"></i>
+                    <span>{{ selected.label }}</span>
+                  </div>
+                </ng-template>
+                <ng-template #item let-option>
+                  <div class="flex items-center gap-2">
+                    <i [class]="option.icon + ' text-sm'"></i>
+                    <span>{{ option.label }}</span>
+                  </div>
+                </ng-template>
+              </p-select>
+            </div>
+
+            @if (savingVisibility()) {
+              <div class="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+                <svg
+                  class="animate-spin h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Updating visibility...
+              </div>
+            }
+
+            <!-- Info cards for each visibility level -->
+            <div class="space-y-3 pt-2">
+              <div class="flex items-start gap-3 p-3 rounded-md border border-[var(--border)] bg-[var(--muted)]/30">
+                <i class="pi pi-globe text-[var(--muted-foreground)] mt-0.5"></i>
+                <div>
+                  <p class="text-sm font-medium text-[var(--foreground)]">Public</p>
+                  <p class="text-xs text-[var(--muted-foreground)]">
+                    All project members can see all tasks. This is the default setting.
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3 p-3 rounded-md border border-[var(--border)] bg-[var(--muted)]/30">
+                <i class="pi pi-lock text-[var(--muted-foreground)] mt-0.5"></i>
+                <div>
+                  <p class="text-sm font-medium text-[var(--foreground)]">Private</p>
+                  <p class="text-xs text-[var(--muted-foreground)]">
+                    Project is hidden from non-members, but all members can see all tasks within it.
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-start gap-3 p-3 rounded-md border border-[var(--border)] bg-[var(--muted)]/30">
+                <i class="pi pi-eye text-[var(--muted-foreground)] mt-0.5"></i>
+                <div>
+                  <p class="text-sm font-medium text-[var(--foreground)]">Assignee Only</p>
+                  <p class="text-xs text-[var(--muted-foreground)]">
+                    Members only see tasks assigned to them. Managers and owners can see all tasks.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -227,8 +326,16 @@ export class ProjectGeneralSettingsComponent implements OnInit {
   errorOccurred = output<string>();
 
   saving = signal(false);
+  savingVisibility = signal(false);
   selectedColor = signal<string | null>(null);
+  selectedVisibility = signal<string>('public');
   showSaveTemplateDialog = signal(false);
+
+  readonly visibilityOptions = [
+    { label: 'Public', value: 'public', icon: 'pi pi-globe' },
+    { label: 'Private', value: 'private', icon: 'pi pi-lock' },
+    { label: 'Assignee Only', value: 'assignee_only', icon: 'pi pi-eye' },
+  ];
 
   readonly presetColors = [
     '#6366f1',
@@ -273,6 +380,7 @@ export class ProjectGeneralSettingsComponent implements OnInit {
         description: b.description || '',
       });
       this.selectedColor.set(b.background_color ?? null);
+      this.selectedVisibility.set(b.visibility ?? 'public');
     }
   });
 
@@ -296,6 +404,42 @@ export class ProjectGeneralSettingsComponent implements OnInit {
         },
         error: () => {
           this.saving.set(false);
+        },
+      });
+  }
+
+  onVisibilityChange(value: string): void {
+    const visibility = value as 'public' | 'private' | 'assignee_only';
+
+    const confirmed = confirm(
+      'Changing project visibility affects what team members can see. Are you sure you want to continue?',
+    );
+    if (!confirmed) {
+      // Revert to the board's current visibility
+      const currentBoard = this.board();
+      this.selectedVisibility.set(currentBoard?.visibility ?? 'public');
+      return;
+    }
+
+    this.savingVisibility.set(true);
+    this.projectService
+      .updateProjectVisibility(this.boardId(), visibility)
+      .subscribe({
+        next: (updated) => {
+          this.boardUpdated.emit(updated);
+          this.savingVisibility.set(false);
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Visibility Updated',
+            detail: `Project visibility set to ${this.visibilityOptions.find((o) => o.value === visibility)?.label ?? visibility}.`,
+            life: 3000,
+          });
+        },
+        error: () => {
+          this.savingVisibility.set(false);
+          const currentBoard = this.board();
+          this.selectedVisibility.set(currentBoard?.visibility ?? 'public');
+          this.errorOccurred.emit('Failed to update project visibility');
         },
       });
   }

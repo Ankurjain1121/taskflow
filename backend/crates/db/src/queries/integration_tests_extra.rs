@@ -45,7 +45,7 @@ async fn setup_user_and_workspace(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
 /// Create user + workspace + project, return (tenant_id, user_id, workspace_id, project_id, default_task_list_id)
 async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-    let bwc = super::boards::create_board(pool, "Extra Board", None, ws_id, tenant_id, user_id)
+    let bwc = super::projects::create_board(pool, "Extra Board", None, ws_id, tenant_id, user_id)
         .await
         .expect("create_board");
     let first_list_id = bwc.task_lists[0].id;
@@ -1066,7 +1066,7 @@ async fn test_search_finds_board_by_name() {
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
     let needle = format!("Zephyr{}", Uuid::new_v4().as_simple());
-    let _board = super::boards::create_board(&pool, &needle, None, ws_id, tenant_id, user_id)
+    let _board = super::projects::create_board(&pool, &needle, None, ws_id, tenant_id, user_id)
         .await
         .expect("create_board");
 
@@ -1137,11 +1137,11 @@ async fn test_archive_board_and_list() {
     let pool = test_pool().await;
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
-    let bwc = super::boards::create_board(&pool, "ArchiveBoard", None, ws_id, tenant_id, user_id)
+    let bwc = super::projects::create_board(&pool, "ArchiveBoard", None, ws_id, tenant_id, user_id)
         .await
         .expect("create_board");
 
-    super::boards::soft_delete_board(&pool, bwc.project.id)
+    super::projects::soft_delete_board(&pool, bwc.project.id)
         .await
         .expect("soft_delete_board");
 
@@ -1165,7 +1165,7 @@ async fn test_archive_mixed_listing() {
     let pool = test_pool().await;
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
-    let bwc = super::boards::create_board(&pool, "MixBoard", None, ws_id, tenant_id, user_id)
+    let bwc = super::projects::create_board(&pool, "MixBoard", None, ws_id, tenant_id, user_id)
         .await
         .expect("create_board");
     let col_id = bwc.statuses[0].id;
@@ -1185,7 +1185,7 @@ async fn test_archive_mixed_listing() {
     super::tasks::soft_delete_task(&pool, task.id)
         .await
         .expect("soft_delete_task");
-    super::boards::soft_delete_board(&pool, bwc.project.id)
+    super::projects::soft_delete_board(&pool, bwc.project.id)
         .await
         .expect("soft_delete_board");
 

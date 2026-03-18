@@ -567,7 +567,7 @@ mod tests {
 
     async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
         let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-        let bwc = boards::create_board(pool, "ProjTmpl Board", None, ws_id, tenant_id, user_id)
+        let bwc = projects::create_board(pool, "ProjTmpl Board", None, ws_id, tenant_id, user_id)
             .await
             .expect("create_board");
         let first_col_id = bwc.task_lists[0].id;
@@ -720,7 +720,7 @@ mod tests {
         .expect("create_board_from_template should succeed");
 
         // Verify the new board exists
-        let new_board = boards::get_board_by_id(&pool, new_board_id, user_id)
+        let new_board = projects::get_board_by_id(&pool, new_board_id, user_id)
             .await
             .expect("get_board_by_id")
             .expect("new board should exist");

@@ -32,7 +32,7 @@ async fn create_full_test_setup(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid)
             .await
             .expect("create workspace");
 
-    let board = super::boards::create_board(
+    let board = super::projects::create_board(
         pool,
         "Test Board",
         None,

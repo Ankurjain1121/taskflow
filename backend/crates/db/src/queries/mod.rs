@@ -5,8 +5,8 @@ pub mod auth;
 pub mod automation_evaluation;
 pub mod automation_templates;
 pub mod automations;
-pub mod board_shares;
-pub mod boards;
+pub mod project_shares;
+pub mod projects;
 pub mod bulk_operations;
 pub mod comments;
 pub mod custom_fields;
@@ -93,15 +93,15 @@ pub use automations::{
     UpdateRuleInput,
 };
 
-// board_shares
-pub use board_shares::{
+// project_shares
+pub use project_shares::{
     access_shared_board, create_board_share, delete_board_share, list_board_shares,
     toggle_board_share, BoardShareQueryError, CreateBoardShareInput, SharedBoardAccess,
     SharedColumn, SharedTask,
 };
 
-// boards
-pub use boards::{
+// projects
+pub use projects::{
     add_board_member, add_project_member, create_board, create_project, duplicate_board,
     duplicate_project, get_board_by_id, get_board_internal, get_board_member_role,
     get_project_by_id, get_project_internal, get_project_member_role, is_board_member,
