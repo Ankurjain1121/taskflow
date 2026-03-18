@@ -1433,6 +1433,11 @@ html.dark {
   transition: transform 300ms var(--ease-out-expo);
 }
 
+/* --- Tab inactive label fix (Aura default is white, invisible on light bg) --- */
+.p-tabs {
+  --p-tabs-tab-color: var(--muted-foreground, #64748b);
+}
+
 /* --- Tab content fade --- */
 .p-tabpanels > .p-tabpanel {
   animation: fadeIn 200ms ease-out both;
