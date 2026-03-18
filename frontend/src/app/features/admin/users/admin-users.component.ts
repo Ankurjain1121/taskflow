@@ -401,26 +401,26 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
   selectedRole: string | null = null;
 
   roleOptions = [
-    { label: 'Admin', value: 'admin' },
-    { label: 'Manager', value: 'manager' },
-    { label: 'Member', value: 'member' },
+    { label: 'Admin', value: 'Admin' },
+    { label: 'Manager', value: 'Manager' },
+    { label: 'Member', value: 'Member' },
   ];
 
   roleChangeOptions = [
-    { label: 'Admin', value: 'admin' },
-    { label: 'Manager', value: 'manager' },
-    { label: 'Member', value: 'member' },
+    { label: 'Admin', value: 'Admin' },
+    { label: 'Manager', value: 'Manager' },
+    { label: 'Member', value: 'Member' },
   ];
 
   // Computed stats
   adminCount = computed(
-    () => this.users().filter((u) => u.role === 'admin').length,
+    () => this.users().filter((u) => u.role === 'Admin').length,
   );
   managerCount = computed(
-    () => this.users().filter((u) => u.role === 'manager').length,
+    () => this.users().filter((u) => u.role === 'Manager').length,
   );
   memberCount = computed(
-    () => this.users().filter((u) => u.role === 'member').length,
+    () => this.users().filter((u) => u.role === 'Member').length,
   );
 
   // Shared popup menu
@@ -476,7 +476,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
 
   onRoleChange(user: AdminUser, newRole: string): void {
     if (user.role === newRole) return;
-    this.updateUserRole(user, newRole as 'admin' | 'manager' | 'member');
+    this.updateUserRole(user, newRole as 'Admin' | 'Manager' | 'Member');
   }
 
   getUserMenuItems(user: AdminUser): MenuItem[] {
@@ -484,20 +484,20 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
       {
         label: 'Make Admin',
         icon: 'pi pi-shield',
-        disabled: user.role === 'admin',
-        command: () => this.onChangeRole(user, 'admin'),
+        disabled: user.role === 'Admin',
+        command: () => this.onChangeRole(user, 'Admin'),
       },
       {
         label: 'Make Manager',
         icon: 'pi pi-users',
-        disabled: user.role === 'manager',
-        command: () => this.onChangeRole(user, 'manager'),
+        disabled: user.role === 'Manager',
+        command: () => this.onChangeRole(user, 'Manager'),
       },
       {
         label: 'Make Member',
         icon: 'pi pi-user',
-        disabled: user.role === 'member',
-        command: () => this.onChangeRole(user, 'member'),
+        disabled: user.role === 'Member',
+        command: () => this.onChangeRole(user, 'Member'),
       },
       { separator: true },
       {
@@ -514,14 +514,14 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
     this.sharedUserMenu.toggle(event);
   }
 
-  onChangeRole(user: AdminUser, newRole: 'admin' | 'manager' | 'member'): void {
+  onChangeRole(user: AdminUser, newRole: 'Admin' | 'Manager' | 'Member'): void {
     if (user.role === newRole) return;
     this.updateUserRole(user, newRole);
   }
 
   private updateUserRole(
     user: AdminUser,
-    newRole: 'admin' | 'manager' | 'member',
+    newRole: 'Admin' | 'Manager' | 'Member',
   ): void {
     this.updatingUser.set(user.id);
 
@@ -594,9 +594,9 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
       'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
 
     const roleColors: Record<string, string> = {
-      admin: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300',
-      manager: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
-      member: 'bg-[var(--secondary)] text-[var(--card-foreground)]',
+      Admin: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300',
+      Manager: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
+      Member: 'bg-[var(--secondary)] text-[var(--card-foreground)]',
     };
 
     return `${baseClasses} ${roleColors[role] || 'bg-[var(--secondary)] text-[var(--card-foreground)]'}`;
