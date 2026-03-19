@@ -60,6 +60,7 @@ describe('TeamOverviewComponent', () => {
 
     mockTeamService = {
       getTeamWorkload: vi.fn().mockReturnValue(of(mockMembers)),
+      getOverloadedMembers: vi.fn().mockReturnValue(of([])),
     };
 
     mockWsService = {
@@ -89,9 +90,9 @@ describe('TeamOverviewComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  describe('ngOnInit', () => {
-    it('should load team workload and setup websocket', () => {
-      component.ngOnInit();
+  describe('data loading', () => {
+    it('should load team workload and setup websocket on init', () => {
+      fixture.detectChanges();
       expect(component.workspaceId).toBe('ws-1');
       expect(mockTeamService.getTeamWorkload).toHaveBeenCalledWith('ws-1');
       expect(mockWsService.connect).toHaveBeenCalled();
@@ -127,7 +128,7 @@ describe('TeamOverviewComponent', () => {
 
   describe('websocket handling', () => {
     it('should reload on task events', () => {
-      component.ngOnInit();
+      fixture.detectChanges();
       vi.clearAllMocks();
       mockTeamService.getTeamWorkload.mockReturnValue(of(mockMembers));
 
@@ -136,7 +137,7 @@ describe('TeamOverviewComponent', () => {
     });
 
     it('should handle workload:updated event with direct data', () => {
-      component.ngOnInit();
+      fixture.detectChanges();
       const updatedMembers = [{ ...mockMembers[0], active_tasks: 8 }];
       messagesSubject.next({
         type: 'workload:updated',

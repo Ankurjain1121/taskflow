@@ -92,7 +92,7 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
                 </div>
               } @empty {
                 <div class="text-center py-6" style="color: var(--muted-foreground)">
-                  <p class="text-sm">No tasks</p>
+                  <p class="text-sm">Drop tasks here or enjoy the calm</p>
                 </div>
               }
             </div>

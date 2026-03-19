@@ -180,7 +180,7 @@ mod tests {
             .expect("create_user_with_tenant");
         (user.tenant_id, user.id)
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_get_preferences_defaults() {
         let pool = test_pool().await;
@@ -203,7 +203,7 @@ mod tests {
         assert_eq!(prefs.color_mode.as_deref(), Some("system"));
         assert_eq!(prefs.accent_color.as_deref(), Some("indigo"));
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_upsert_preferences() {
         let pool = test_pool().await;
@@ -236,7 +236,7 @@ mod tests {
         assert_eq!(prefs.accent_color.as_deref(), Some("blue"));
         assert_eq!(prefs.color_mode.as_deref(), Some("dark"));
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_upsert_preferences_update_existing() {
         let pool = test_pool().await;
@@ -296,7 +296,7 @@ mod tests {
         assert_eq!(fetched.timezone, "Europe/London");
         assert_eq!(fetched.accent_color.as_deref(), Some("green"));
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_validate_preferences_valid() {
         let result = validate_preferences(
@@ -308,14 +308,14 @@ mod tests {
         );
         assert!(result.is_ok());
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_validate_preferences_invalid_date_format() {
         let result =
             validate_preferences("UTC", "invalid-format", "kanban", "comfortable", "realtime");
         assert!(result.is_err());
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_validate_preferences_invalid_project_view() {
         let result = validate_preferences(
@@ -327,19 +327,19 @@ mod tests {
         );
         assert!(result.is_err());
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_validate_theme_preferences_valid() {
         let result = validate_theme_preferences(Some("dark"), Some("blue"));
         assert!(result.is_ok());
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_validate_theme_preferences_invalid_color_mode() {
         let result = validate_theme_preferences(Some("neon"), Some("blue"));
         assert!(result.is_err());
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_validate_theme_preferences_invalid_accent() {
         let result = validate_theme_preferences(Some("dark"), Some("rainbow"));

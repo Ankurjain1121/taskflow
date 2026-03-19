@@ -66,7 +66,7 @@ interface CacheEntry<T> {
   timestamp: number;
 }
 
-const CACHE_TTL_MS = 30_000;
+const CACHE_TTL_MS = 120_000;
 
 @Injectable({
   providedIn: 'root',

@@ -17,7 +17,7 @@ describe('AdminUsersComponent', () => {
       email: 'alice@example.com',
       display_name: 'Alice Smith',
       avatar_url: null,
-      role: 'admin',
+      role: 'Admin',
       workspace_count: 3,
       created_at: '2025-01-15T00:00:00Z',
       last_active_at: new Date().toISOString(),
@@ -28,7 +28,7 @@ describe('AdminUsersComponent', () => {
       email: 'bob@example.com',
       display_name: 'Bob Jones',
       avatar_url: 'https://example.com/bob.jpg',
-      role: 'manager',
+      role: 'Manager',
       workspace_count: 1,
       created_at: '2025-06-01T00:00:00Z',
       last_active_at: null,
@@ -39,7 +39,7 @@ describe('AdminUsersComponent', () => {
       email: 'carol@example.com',
       display_name: 'Carol',
       avatar_url: null,
-      role: 'member',
+      role: 'Member',
       workspace_count: 2,
       created_at: '2025-09-01T00:00:00Z',
       last_active_at: new Date(Date.now() - 86400000 * 10).toISOString(),
@@ -94,7 +94,10 @@ describe('AdminUsersComponent', () => {
   describe('loadUsers', () => {
     it('should load users on init', () => {
       component.ngOnInit();
-      expect(mockAdminService.getUsers).toHaveBeenCalled();
+      expect(mockAdminService.getUsers).toHaveBeenCalledWith({
+        search: undefined,
+        role: undefined,
+      });
       expect(component.users().length).toBe(3);
       expect(component.loading()).toBe(false);
     });
@@ -138,18 +141,18 @@ describe('AdminUsersComponent', () => {
 
   describe('onRoleChange', () => {
     it('should not call service when role is unchanged', () => {
-      component.onRoleChange(mockUsers[0], 'admin');
+      component.onRoleChange(mockUsers[0], 'Admin');
       expect(mockAdminService.updateUserRole).not.toHaveBeenCalled();
     });
 
     it('should update role via service', () => {
       component.users.set([...mockUsers]);
-      component.onRoleChange(mockUsers[1], 'admin');
+      component.onRoleChange(mockUsers[1], 'Admin');
       expect(mockAdminService.updateUserRole).toHaveBeenCalledWith(
         'u-2',
-        'admin',
+        'Admin',
       );
-      expect(component.users().find((u) => u.id === 'u-2')?.role).toBe('admin');
+      expect(component.users().find((u) => u.id === 'u-2')?.role).toBe('Admin');
     });
 
     it('should handle role change error', () => {
@@ -157,7 +160,7 @@ describe('AdminUsersComponent', () => {
         throwError(() => new Error('fail')),
       );
       component.users.set([...mockUsers]);
-      component.onRoleChange(mockUsers[1], 'admin');
+      component.onRoleChange(mockUsers[1], 'Admin');
       expect(component.updatingUser()).toBeNull();
     });
   });
@@ -214,8 +217,8 @@ describe('AdminUsersComponent', () => {
     });
 
     it('getRoleBadgeClass should return correct classes', () => {
-      expect(component.getRoleBadgeClass('admin')).toContain('purple');
-      expect(component.getRoleBadgeClass('manager')).toContain('blue');
+      expect(component.getRoleBadgeClass('Admin')).toContain('purple');
+      expect(component.getRoleBadgeClass('Manager')).toContain('blue');
     });
 
     it('formatDate should format date string', () => {

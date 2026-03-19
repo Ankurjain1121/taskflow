@@ -17,6 +17,8 @@ use crate::extractors::AuthUserExtractor;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
+use super::validation::{validate_hex_color, validate_required_string, MAX_SHORT_NAME_LEN};
+
 // ============================================================================
 // DTOs
 // ============================================================================
@@ -102,22 +104,11 @@ async fn create_label(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
-    let name = payload.name.trim();
-    if name.is_empty() {
-        return Err(AppError::BadRequest("Label name is required".into()));
-    }
-    if name.len() > 100 {
-        return Err(AppError::BadRequest(
-            "Label name must be 100 characters or less".into(),
-        ));
-    }
+    validate_required_string("Label name", &payload.name, MAX_SHORT_NAME_LEN)?;
 
+    let name = payload.name.trim();
     let color = payload.color.trim();
-    if color.is_empty() || color.len() > 7 {
-        return Err(AppError::BadRequest(
-            "Color must be a valid hex color (e.g. #FF5733)".into(),
-        ));
-    }
+    validate_hex_color(color)?;
 
     let label: LabelResponse = sqlx::query_as(
         r#"
@@ -166,17 +157,11 @@ async fn update_label_handler(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
-    let name = payload.name.trim();
-    if name.is_empty() {
-        return Err(AppError::BadRequest("Label name is required".into()));
-    }
+    validate_required_string("Label name", &payload.name, MAX_SHORT_NAME_LEN)?;
 
+    let name = payload.name.trim();
     let color = payload.color.trim();
-    if color.is_empty() || color.len() > 7 {
-        return Err(AppError::BadRequest(
-            "Color must be a valid hex color (e.g. #FF5733)".into(),
-        ));
-    }
+    validate_hex_color(color)?;
 
     let label: LabelResponse = sqlx::query_as(
         r#"

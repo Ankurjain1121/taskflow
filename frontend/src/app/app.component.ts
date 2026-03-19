@@ -99,22 +99,27 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.registerGlobalShortcuts();
 
-    // Initialize workspace context
-    const initialWsId = this.extractWorkspaceId(this.router.url);
-    this.wsContext.init(initialWsId ?? undefined);
-
+    // Workspace context init is deferred to NavigationEnd so that route guards
+    // have resolved — at ngOnInit time, router.url is still '/' before the
+    // auth guard redirects to /auth/sign-in, causing a 401 race condition.
     this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe((event: NavigationEnd) => {
         const url = event.url;
-        const hideSidebar =
+        const isAuthPage =
           url.startsWith('/auth') || url.startsWith('/onboarding');
-        this.showSidebar.set(!hideSidebar);
+        this.showSidebar.set(!isAuthPage);
 
-        // Sync workspace context from URL
-        const wsId = this.extractWorkspaceId(url);
-        if (wsId) {
-          this.wsContext.syncFromUrl(wsId);
+        // Initialize workspace context on authenticated pages only
+        if (!isAuthPage) {
+          if (this.wsContext.workspaces().length === 0) {
+            this.wsContext.init(this.extractWorkspaceId(url) ?? undefined);
+          }
+          // Sync workspace context from URL
+          const wsId = this.extractWorkspaceId(url);
+          if (wsId) {
+            this.wsContext.syncFromUrl(wsId);
+          }
         }
 
         // Close mobile sidebar on navigation
@@ -122,11 +127,6 @@ export class AppComponent implements OnInit, OnDestroy {
           this.closeMobileSidebar();
         }
       });
-
-    const currentUrl = this.router.url;
-    const hideSidebar =
-      currentUrl.startsWith('/auth') || currentUrl.startsWith('/onboarding');
-    this.showSidebar.set(!hideSidebar);
   }
 
   ngOnDestroy(): void {

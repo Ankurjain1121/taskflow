@@ -14,6 +14,7 @@ import {
   TaskGroupService,
   TaskGroupWithStats,
 } from '../../../core/services/task-group.service';
+import { RecurringService } from '../../../core/services/recurring.service';
 import { SaveStatusService } from '../../../core/services/save-status.service';
 import { CreateTaskDialogResult } from './create-task-dialog.component';
 import { CreateColumnDialogResult } from './create-column-dialog.component';
@@ -36,6 +37,7 @@ export class ProjectMutationsService {
   private projectService = inject(ProjectService);
   private taskService = inject(TaskService);
   private taskGroupService = inject(TaskGroupService);
+  private recurringService = inject(RecurringService);
   private saveStatus = inject(SaveStatusService);
 
   private ctx!: MutationContext;
@@ -59,12 +61,12 @@ export class ProjectMutationsService {
       id: tempId,
       project_id: boardId,
       status_id: columnId,
-      task_list_id: taskData.group_id ?? null,
+      task_list_id: null,
       title: taskData.title,
       description: taskData.description ?? null,
       priority: (taskData.priority as Task['priority']) ?? 'medium',
       position: 'zzzzzz',
-      milestone_id: taskData.milestone_id ?? null,
+      milestone_id: null,
       due_date: taskData.due_date ?? null,
       created_by: '',
       created_at: now,
@@ -90,10 +92,8 @@ export class ProjectMutationsService {
         due_date: taskData.due_date,
         start_date: taskData.start_date,
         estimated_hours: taskData.estimated_hours,
-        task_list_id: taskData.group_id,
-        milestone_id: taskData.milestone_id,
         assignee_ids: taskData.assignee_ids,
-        label_ids: taskData.label_ids,
+        reporting_person_id: taskData.reporting_person_id,
       })
       .subscribe({
         next: (realTask) => {
@@ -106,6 +106,32 @@ export class ProjectMutationsService {
               .sort((a, b) => a.position.localeCompare(b.position));
             return newState;
           });
+
+          // Post-create: set up recurring config
+          if (taskData.is_recurring && taskData.recurrence_pattern) {
+            this.recurringService
+              .createConfig(realTask.id, {
+                pattern: taskData.recurrence_pattern,
+              })
+              .subscribe({
+                error: () =>
+                  this.ctx.showError(
+                    'Task created but recurring schedule could not be set',
+                  ),
+              });
+          }
+
+          // Post-create: add watchers
+          if (taskData.watcher_ids?.length) {
+            for (const userId of taskData.watcher_ids) {
+              this.taskService.addWatcher(realTask.id, userId).subscribe({
+                error: () =>
+                  this.ctx.showError(
+                    'Task created but watchers could not be added',
+                  ),
+              });
+            }
+          }
         },
         error: () => {
           this.saveStatus.markError();

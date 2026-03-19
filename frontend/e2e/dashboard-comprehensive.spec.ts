@@ -126,7 +126,7 @@ test.describe('Dashboard — Comprehensive Feature Tests', () => {
 
   test('2.2 stat cards show numeric values', async () => {
     await expect(page.locator('text=Total Tasks')).toBeVisible({ timeout: 10000 });
-    const statValues = page.locator('.text-3xl.font-bold');
+    const statValues = page.locator('.stat-card-value');
     const count = await statValues.count();
     expect(count).toBeGreaterThanOrEqual(4);
 
@@ -507,27 +507,17 @@ test.describe('Dashboard — Comprehensive Feature Tests', () => {
   // ──────────────────────────────────────────────────────────
   // 19. WORKSPACES SECTION
   // ──────────────────────────────────────────────────────────
-  test('19.1 Workspaces section shows cards', async () => {
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(1500);
-
-    const wsHeading = page.getByRole('heading', { name: 'Your Workspaces' });
-    await expect(wsHeading).toBeVisible({ timeout: 10000 });
-
-    const wsCards = page.locator('a:has-text("Open Workspace")');
-    const count = await wsCards.count();
-    expect(count).toBeGreaterThanOrEqual(1);
+  test('19.1 Sidebar shows project items', async () => {
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
     await page.screenshot({ path: 'test-results/dashboard-19.1-workspaces.png' });
   });
 
-  test('19.2 clicking workspace navigates correctly', async () => {
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(1500);
-
-    const wsCard = page.locator('a:has-text("Open Workspace")').first();
-    await expect(wsCard).toBeVisible({ timeout: 10000 });
-    await wsCard.click();
-    await expect(page).toHaveURL(/\/workspace\//, { timeout: 15000 });
+  test('19.2 clicking sidebar project navigates correctly', async () => {
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
+    await projectLink.click();
+    await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
     await page.screenshot({ path: 'test-results/dashboard-19.2-workspace-nav.png' });
   });
 
@@ -647,12 +637,10 @@ test.describe('Dashboard — Comprehensive Feature Tests', () => {
   // 26. BROWSER NAVIGATION
   // ──────────────────────────────────────────────────────────
   test('26.1 back/forward preserves dashboard state', async () => {
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(1000);
-    const wsCard = page.locator('a:has-text("Open Workspace")').first();
-    await expect(wsCard).toBeVisible({ timeout: 10000 });
-    await wsCard.click();
-    await expect(page).toHaveURL(/\/workspace\//, { timeout: 15000 });
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
+    await projectLink.click();
+    await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
 
     await page.goBack();
     await page.waitForURL('**/dashboard', { timeout: 15000 });

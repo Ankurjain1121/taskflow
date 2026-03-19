@@ -1,10 +1,21 @@
 import { test, expect } from '@playwright/test';
 import { SettingsPage } from './pages/SettingsPage';
-import { signUpAndOnboard, TEST_NAME } from './helpers/auth';
+import { signUpAndOnboard, signInTestUser, TEST_NAME } from './helpers/auth';
 
 test.describe('Settings', () => {
+  let testEmail: string;
+
+  test.beforeAll(async ({ browser }, testInfo) => {
+    testInfo.setTimeout(120_000);
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    testEmail = await signUpAndOnboard(page, 'Settings WS');
+    await page.close();
+    await context.close();
+  });
+
   test.beforeEach(async ({ page }) => {
-    await signUpAndOnboard(page, 'Settings WS');
+    await signInTestUser(page, testEmail);
   });
 
   test('settings page loads with heading', async ({ page }) => {

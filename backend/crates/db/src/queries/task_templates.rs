@@ -602,7 +602,7 @@ mod tests {
         let first_col_id = bwc.task_lists[0].id;
         (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_create_task_template() {
         let pool = test_pool().await;
@@ -635,7 +635,7 @@ mod tests {
         assert_eq!(template.tenant_id, tenant_id);
         assert_eq!(template.created_by_id, user_id);
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_get_task_template() {
         let pool = test_pool().await;
@@ -669,7 +669,7 @@ mod tests {
         assert_eq!(details.subtasks[0].title, "Sub1");
         assert_eq!(details.subtasks[1].title, "Sub2");
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_list_task_templates() {
         let pool = test_pool().await;
@@ -734,7 +734,7 @@ mod tests {
             "list should contain template 2"
         );
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_create_task_from_template() {
         let pool = test_pool().await;
@@ -771,7 +771,7 @@ mod tests {
                    due_date, start_date, estimated_hours, project_id, status_id,
                    task_list_id, position, milestone_id, task_number, eisenhower_urgency,
                    eisenhower_importance, tenant_id, created_by_id, deleted_at,
-                   created_at, updated_at, version, parent_task_id, depth
+                   created_at, updated_at, version, parent_task_id, depth, reporting_person_id
             FROM tasks WHERE id = $1
             "#,
         )
@@ -794,7 +794,7 @@ mod tests {
                 .expect("count subtasks");
         assert_eq!(subtask_count, 1, "should have 1 subtask from template");
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_delete_task_template() {
         let pool = test_pool().await;

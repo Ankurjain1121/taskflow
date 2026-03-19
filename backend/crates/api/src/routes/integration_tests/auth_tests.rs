@@ -4,6 +4,7 @@ use super::common::*;
 // AUTH MIDDLEWARE — HAPPY PATH
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_protected_route_without_token_returns_401() {
     let (app, _state) = test_app().await;
@@ -21,6 +22,7 @@ async fn test_protected_route_without_token_returns_401() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_protected_route_with_invalid_token_returns_401() {
     let (app, _state) = test_app().await;
@@ -39,6 +41,7 @@ async fn test_protected_route_with_invalid_token_returns_401() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_auth_via_cookie() {
     let (app, state) = test_app().await;
@@ -63,6 +66,7 @@ async fn test_auth_via_cookie() {
 // AUTH MIDDLEWARE — ERROR SCENARIOS
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_expired_token_format_returns_401() {
     let (app, _state) = test_app().await;
@@ -86,6 +90,7 @@ async fn test_expired_token_format_returns_401() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_empty_bearer_token_returns_401() {
     let (app, _state) = test_app().await;
@@ -104,6 +109,7 @@ async fn test_empty_bearer_token_returns_401() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_missing_bearer_prefix_returns_401() {
     let (app, state) = test_app().await;
@@ -129,6 +135,7 @@ async fn test_missing_bearer_prefix_returns_401() {
 // SESSION ROUTES
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_sessions() {
     let (app, state) = test_app().await;
@@ -149,6 +156,7 @@ async fn test_list_sessions() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_revoke_nonexistent_session_returns_404() {
     let (app, state) = test_app().await;
@@ -174,6 +182,7 @@ async fn test_revoke_nonexistent_session_returns_404() {
 // USER PREFERENCES ROUTES
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_user_preferences() {
     let (app, state) = test_app().await;
@@ -194,6 +203,7 @@ async fn test_get_user_preferences() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_update_user_preferences() {
     let (app, state) = test_app().await;
@@ -226,6 +236,7 @@ async fn test_update_user_preferences() {
 // SECURITY HARDENING TESTS (Session Timeout, CSRF, Rate Limiting)
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_csrf_token_provided_in_login_response() {
     let (app, state) = test_app().await;
@@ -265,6 +276,7 @@ async fn test_csrf_token_provided_in_login_response() {
     assert!(!csrf_token.is_empty(), "CSRF token should not be empty");
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_session_created_on_login() {
     let (app, state) = test_app().await;
@@ -302,6 +314,7 @@ async fn test_session_created_on_login() {
     assert!(exists, "Session should exist in Redis after login");
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_session_expiration_returns_401() {
     let (app, state) = test_app().await;

@@ -2,16 +2,20 @@ import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { ActivatedRoute } from '@angular/router';
-import { of, throwError, Subject } from 'rxjs';
+import { of, throwError } from 'rxjs';
+import { signal } from '@angular/core';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { WorkspaceComponent } from './workspace.component';
 import { WorkspaceService } from '../../core/services/workspace.service';
 import { ProjectService } from '../../core/services/project.service';
+import { WorkspaceSettingsDialogService } from '../../core/services/workspace-settings-dialog.service';
 
 describe('WorkspaceComponent', () => {
   let component: WorkspaceComponent;
   let fixture: ComponentFixture<WorkspaceComponent>;
+
+  const projectsSignal = signal<any[]>([]);
 
   const mockWorkspaceService = {
     get: vi.fn(),
@@ -21,14 +25,16 @@ describe('WorkspaceComponent', () => {
   const mockProjectService = {
     listBoards: vi.fn(),
     createBoard: vi.fn(),
+    projects: projectsSignal,
   };
 
-  const paramMapSubject = new Subject<{
-    get: (key: string) => string | null;
-  }>();
+  const mockSettingsDialogService = {
+    open: vi.fn(),
+  };
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    projectsSignal.set([]);
 
     mockWorkspaceService.get.mockReturnValue(
       of({
@@ -56,23 +62,22 @@ describe('WorkspaceComponent', () => {
       ]),
     );
 
+    const boardData = [
+      {
+        id: 'b-1',
+        workspace_id: 'ws-1',
+        name: 'Board 1',
+        description: 'First board',
+        position: '0',
+        created_at: '2026-01-15T10:00:00Z',
+        updated_at: '2026-01-15T10:00:00Z',
+      },
+    ];
     mockProjectService.listBoards.mockReturnValue(
-      of([
-        {
-          id: 'b-1',
-          workspace_id: 'ws-1',
-          name: 'Board 1',
-          description: 'First board',
-          position: '0',
-          created_at: '2026-01-15T10:00:00Z',
-          updated_at: '2026-01-15T10:00:00Z',
-        },
-      ]),
+      of(boardData).pipe(
+        require('rxjs').tap((boards: any) => projectsSignal.set(boards)),
+      ),
     );
-
-    const mockRoute = {
-      paramMap: paramMapSubject.asObservable(),
-    };
 
     await TestBed.configureTestingModule({
       imports: [
@@ -83,7 +88,14 @@ describe('WorkspaceComponent', () => {
       providers: [
         { provide: WorkspaceService, useValue: mockWorkspaceService },
         { provide: ProjectService, useValue: mockProjectService },
-        { provide: ActivatedRoute, useValue: mockRoute },
+        {
+          provide: WorkspaceSettingsDialogService,
+          useValue: mockSettingsDialogService,
+        },
+        {
+          provide: ActivatedRoute,
+          useValue: { paramMap: of({ get: () => null }) },
+        },
       ],
     }).compileComponents();
 
@@ -93,27 +105,6 @@ describe('WorkspaceComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
-  });
-
-  describe('ngOnInit', () => {
-    it('should load data when workspaceId is provided in route params', () => {
-      component.ngOnInit();
-      paramMapSubject.next({
-        get: (key: string) => (key === 'workspaceId' ? 'ws-1' : null),
-      });
-
-      expect(component.workspaceId()).toBe('ws-1');
-      expect(mockWorkspaceService.get).toHaveBeenCalledWith('ws-1');
-      expect(mockProjectService.listBoards).toHaveBeenCalledWith('ws-1');
-      expect(mockWorkspaceService.getMembers).toHaveBeenCalledWith('ws-1');
-    });
-
-    it('should not load data when workspaceId is null', () => {
-      component.ngOnInit();
-      paramMapSubject.next({ get: () => null });
-
-      expect(mockWorkspaceService.get).not.toHaveBeenCalled();
-    });
   });
 
   describe('loadData', () => {

@@ -10,8 +10,6 @@ export class DashboardPage {
   readonly overdueStat: Locator;
   readonly dueTodayStat: Locator;
   readonly completedStat: Locator;
-  readonly workspaceCards: Locator;
-  readonly workspacesHeading: Locator;
   readonly loadingSpinner: Locator;
 
   constructor(page: Page) {
@@ -29,10 +27,6 @@ export class DashboardPage {
     this.overdueStat = page.locator('text=Overdue');
     this.dueTodayStat = page.locator('text=Due Today');
     this.completedStat = page.locator('text=Completed This Week');
-    this.workspaceCards = page.locator('a:has-text("Open Workspace")');
-    this.workspacesHeading = page.getByRole('heading', {
-      name: 'Your Workspaces',
-    });
     this.loadingSpinner = page.locator('.animate-spin');
   }
 
@@ -64,18 +58,19 @@ export class DashboardPage {
     await this.page.waitForLoadState('domcontentloaded');
   }
 
-  async expectWorkspacesVisible() {
+  async expectProjectsVisible() {
     await this.waitForContentLoaded();
-    await expect(this.workspacesHeading).toBeVisible({ timeout: 10000 });
+    const projectItem = this.page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectItem).toBeVisible({ timeout: 10000 });
   }
 
-  async getWorkspaceCount(): Promise<number> {
+  async getProjectCount(): Promise<number> {
     await this.waitForContentLoaded();
-    return await this.workspaceCards.count();
+    return await this.page.locator('app-sidebar-projects a.project-item').count();
   }
 
-  async clickFirstWorkspace() {
+  async clickFirstProject() {
     await this.waitForContentLoaded();
-    await this.workspaceCards.first().click();
+    await this.page.locator('app-sidebar-projects a.project-item').first().click();
   }
 }

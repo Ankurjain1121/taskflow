@@ -27,10 +27,10 @@ test.describe('Dashboard', () => {
     await dashboard.expectLoaded();
 
     // The workspace section should be visible
-    await dashboard.expectWorkspacesVisible();
+    await dashboard.expectProjectsVisible();
 
-    // There should be at least one workspace card
-    const count = await dashboard.getWorkspaceCount();
+    // There should be at least one project item in sidebar
+    const count = await dashboard.getProjectCount();
     expect(count).toBeGreaterThanOrEqual(1);
   });
 
@@ -63,8 +63,8 @@ test.describe('Dashboard', () => {
     await dashboard.expectLoaded();
     await dashboard.expectStatsVisible();
 
-    // Each stat card has a .text-3xl.font-bold number
-    const statValues = page.locator('.text-3xl.font-bold');
+    // Each stat card has a .stat-card-value number
+    const statValues = page.locator('.stat-card-value');
     const count = await statValues.count();
     expect(count).toBeGreaterThanOrEqual(1);
 
@@ -110,13 +110,13 @@ test.describe('Dashboard', () => {
   test('click workspace card navigates to workspace page', async ({ page }) => {
     const dashboard = new DashboardPage(page);
     await dashboard.expectLoaded();
-    await dashboard.expectWorkspacesVisible();
+    await dashboard.expectProjectsVisible();
 
-    // Click the first workspace
-    await dashboard.clickFirstWorkspace();
+    // Click the first project in the sidebar
+    await dashboard.clickFirstProject();
 
-    // Should navigate to a workspace URL
-    await expect(page).toHaveURL(/\/workspace\//, { timeout: 15000 });
+    // Should navigate to a project URL
+    await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
   });
 
   // NEW: Overdue tasks section renders

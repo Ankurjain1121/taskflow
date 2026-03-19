@@ -144,7 +144,7 @@ test.describe('Favorites & Archive', () => {
 
     // Wait for sidebar to render board links
     await page.waitForTimeout(2000);
-    const boardCards = page.locator('a[href*="/board/"]');
+    const boardCards = page.locator('a[href*="/project/"]');
     const count = await boardCards.count();
     // Board links should exist once sidebar renders; accept 0 if sidebar uses different selectors
     expect(count).toBeGreaterThanOrEqual(0);

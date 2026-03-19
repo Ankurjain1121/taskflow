@@ -67,7 +67,7 @@ describe('task-detail-helpers', () => {
     });
 
     it('should handle empty string', () => {
-      expect(getInitials('')).toBe('');
+      expect(getInitials('')).toBe('?');
     });
 
     it('should limit to 2 characters max', () => {
@@ -158,12 +158,12 @@ describe('task-detail-helpers', () => {
 
     it('should return red color for overdue dates', () => {
       const result = getDueDateDisplayColor('2026-02-20');
-      expect(result).toBe('#dc2626');
+      expect(result).toBe('var(--status-red-text)');
     });
 
     it('should return amber color for today due date', () => {
       const result = getDueDateDisplayColor('2026-02-22');
-      expect(result).toBe('#d97706');
+      expect(result).toBe('var(--status-amber-text)');
     });
 
     it('should return default color for future dates', () => {

@@ -87,9 +87,9 @@ describe('WorkloadDashboardComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  describe('ngOnInit', () => {
-    it('should load workload data', () => {
-      component.ngOnInit();
+  describe('data loading', () => {
+    it('should load workload data on init', () => {
+      fixture.detectChanges();
       expect(mockTeamService.getTeamWorkload).toHaveBeenCalledWith('ws-1');
       expect(component.members()).toEqual(mockMembers);
       expect(component.loading()).toBe(false);
@@ -99,7 +99,7 @@ describe('WorkloadDashboardComponent', () => {
       mockTeamService.getTeamWorkload.mockReturnValue(
         throwError(() => new Error('fail')),
       );
-      component.ngOnInit();
+      fixture.detectChanges();
       expect(component.error()).toBe(
         'Failed to load workload data. Please try again.',
       );

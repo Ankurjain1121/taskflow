@@ -1,29 +1,23 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndOnboard } from './helpers/auth';
+import { signUpAndOnboard, signInTestUser } from './helpers/auth';
 
 test.describe('Theme Preferences Save', () => {
+  let testEmail: string;
+
+  test.beforeAll(async ({ browser }, testInfo) => {
+    testInfo.setTimeout(120_000);
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    testEmail = await signUpAndOnboard(page, 'Theme Test WS');
+    await page.close();
+    await context.close();
+  });
+
+  test.beforeEach(async ({ page }) => {
+    await signInTestUser(page, testEmail);
+  });
+
   test('theme preference PUT returns 200 after login', async ({ page }) => {
-    // Sign up and onboard a fresh user
-    await signUpAndOnboard(page, 'Theme Test WS');
-
-    // Intercept the preferences PUT request
-    const putPromise = page.waitForResponse(
-      (resp) =>
-        resp.url().includes('/api/users/me/preferences') &&
-        resp.request().method() === 'PUT',
-      { timeout: 15000 },
-    );
-
-    // Change theme by calling the API directly through the browser
-    await page.evaluate(() => {
-      return fetch('/api/users/me/preferences', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ color_mode: 'dark' }),
-      }).then((r) => r.status);
-    });
-
     // Verify the response
     const status = await page.evaluate(() => {
       return fetch('/api/users/me/preferences', {
@@ -40,8 +34,6 @@ test.describe('Theme Preferences Save', () => {
   test('partial theme update preserves existing preferences', async ({
     page,
   }) => {
-    await signUpAndOnboard(page, 'Theme Partial WS');
-
     // First, get current preferences
     const before = await page.evaluate(() =>
       fetch('/api/users/me/preferences', { credentials: 'include' }).then((r) =>
@@ -74,8 +66,6 @@ test.describe('Theme Preferences Save', () => {
   });
 
   test('accent color saves and persists', async ({ page }) => {
-    await signUpAndOnboard(page, 'Accent Test WS');
-
     const updateStatus = await page.evaluate(() =>
       fetch('/api/users/me/preferences', {
         method: 'PUT',

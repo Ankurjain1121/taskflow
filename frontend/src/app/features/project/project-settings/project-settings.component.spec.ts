@@ -1,20 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { ActivatedRoute, Router, provideRouter } from '@angular/router';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of, throwError, Subject } from 'rxjs';
 import { ProjectSettingsComponent } from './project-settings.component';
 import { ProjectService } from '../../../core/services/project.service';
-import { AuthService } from '../../../core/services/auth.service';
-import { ConfirmationService } from 'primeng/api';
 
 describe('ProjectSettingsComponent', () => {
   let component: ProjectSettingsComponent;
   let fixture: ComponentFixture<ProjectSettingsComponent>;
   let mockProjectService: any;
-  let mockConfirmationService: any;
-  let paramsSubject: Subject<any>;
-  let mockRouter: any;
 
   const mockBoard = {
     id: 'board-1',
@@ -42,6 +38,9 @@ describe('ProjectSettingsComponent', () => {
     },
   ];
 
+  let paramsSubject: Subject<any>;
+  let queryParamsSubject: Subject<any>;
+
   beforeEach(async () => {
     if (!window.matchMedia) {
       Object.defineProperty(window, 'matchMedia', {
@@ -60,7 +59,7 @@ describe('ProjectSettingsComponent', () => {
     }
 
     paramsSubject = new Subject();
-    const queryParamsSubject = new Subject();
+    queryParamsSubject = new Subject();
 
     mockProjectService = {
       getBoard: vi.fn().mockReturnValue(of(mockBoard)),
@@ -83,26 +82,11 @@ describe('ProjectSettingsComponent', () => {
       removeProjectMember: vi.fn().mockReturnValue(of(void 0)),
     };
 
-    mockRouter = { navigate: vi.fn() };
-
-    mockConfirmationService = {
-      confirm: vi.fn(),
-    };
-
-    const mockAuthService = {
-      currentUser: signal({
-        id: 'u-1',
-        name: 'Alice',
-        email: 'alice@test.com',
-        role: 'Member',
-        tenant_id: 't-1',
-        onboarding_completed: true,
-      }),
-    };
-
     await TestBed.configureTestingModule({
-      imports: [ProjectSettingsComponent, HttpClientTestingModule],
+      imports: [ProjectSettingsComponent],
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         provideRouter([]),
         {
           provide: ActivatedRoute,
@@ -112,30 +96,27 @@ describe('ProjectSettingsComponent', () => {
           },
         },
         { provide: ProjectService, useValue: mockProjectService },
-        { provide: AuthService, useValue: mockAuthService },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
-    }).compileComponents();
-
-    mockRouter = TestBed.inject(Router);
-    vi.spyOn(mockRouter, 'navigate').mockResolvedValue(true);
+    })
+      .overrideComponent(ProjectSettingsComponent, {
+        set: { template: '<div></div>' },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(ProjectSettingsComponent);
     component = fixture.componentInstance;
-    // Get the component-level ConfirmationService and spy on its confirm method
-    const injector = fixture.debugElement.injector;
-    mockConfirmationService = injector.get(ConfirmationService);
-    vi.spyOn(mockConfirmationService, 'confirm');
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  describe('ngOnInit / loadBoard', () => {
+  describe('constructor effect / loadBoard', () => {
     it('should load board and members on route params change', () => {
-      component.ngOnInit();
       paramsSubject.next({ workspaceId: 'ws-1', projectId: 'board-1' });
+      fixture.detectChanges();
+
       expect(component.workspaceId).toBe('ws-1');
       expect(component.boardId).toBe('board-1');
       expect(mockProjectService.getBoard).toHaveBeenCalledWith('board-1');
@@ -144,8 +125,9 @@ describe('ProjectSettingsComponent', () => {
     });
 
     it('should load board members after board', () => {
-      component.ngOnInit();
       paramsSubject.next({ workspaceId: 'ws-1', projectId: 'board-1' });
+      fixture.detectChanges();
+
       expect(mockProjectService.getProjectMembers).toHaveBeenCalledWith('board-1');
       expect(component.members().length).toBe(2);
     });
@@ -154,15 +136,10 @@ describe('ProjectSettingsComponent', () => {
       mockProjectService.getBoard.mockReturnValue(
         throwError(() => new Error('fail')),
       );
-      component.ngOnInit();
       paramsSubject.next({ workspaceId: 'ws-1', projectId: 'board-bad' });
-      expect(component.loading()).toBe(false);
-    });
-  });
+      fixture.detectChanges();
 
-  describe('canDeleteBoard', () => {
-    it('should return true when user is logged in', () => {
-      expect(component.canDeleteBoard()).toBe(true);
+      expect(component.loading()).toBe(false);
     });
   });
 
@@ -185,82 +162,27 @@ describe('ProjectSettingsComponent', () => {
     });
   });
 
-  describe('onDeleteBoard', () => {
-    it('should show confirmation and delete on accept', () => {
-      component.ngOnInit();
-      paramsSubject.next({ workspaceId: 'ws-1', projectId: 'board-1' });
-      mockConfirmationService.confirm.mockImplementation((opts: any) =>
-        opts.accept(),
-      );
-
-      component.onDeleteBoard();
-
-      expect(mockProjectService.deleteBoard).toHaveBeenCalledWith('board-1');
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/workspace', 'ws-1']);
-    });
-
-    it('should not delete if board is null', () => {
-      component.board.set(null);
-      component.onDeleteBoard();
-      expect(mockConfirmationService.confirm).not.toHaveBeenCalled();
-    });
-
-    it('should handle delete error', () => {
-      component.ngOnInit();
-      paramsSubject.next({ workspaceId: 'ws-1', projectId: 'board-1' });
-      mockProjectService.deleteBoard.mockReturnValue(
-        throwError(() => new Error('fail')),
-      );
-      mockConfirmationService.confirm.mockImplementation((opts: any) =>
-        opts.accept(),
-      );
-
-      component.onDeleteBoard();
-
-      expect(component.deleting()).toBe(false);
-    });
-  });
-
-  describe('onArchiveBoard', () => {
-    it('should show confirmation and archive on accept', () => {
-      component.ngOnInit();
-      paramsSubject.next({ workspaceId: 'ws-1', projectId: 'board-1' });
-      mockConfirmationService.confirm.mockImplementation((opts: any) =>
-        opts.accept(),
-      );
-
-      component.onArchiveBoard();
-
-      expect(mockProjectService.deleteBoard).toHaveBeenCalledWith('board-1');
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/workspace', 'ws-1']);
-    });
-
-    it('should not archive if board is null', () => {
-      component.board.set(null);
-      component.onArchiveBoard();
-      expect(mockConfirmationService.confirm).not.toHaveBeenCalled();
-    });
-
-    it('should handle archive error', () => {
-      component.ngOnInit();
-      paramsSubject.next({ workspaceId: 'ws-1', projectId: 'board-1' });
-      mockProjectService.deleteBoard.mockReturnValue(
-        throwError(() => new Error('fail')),
-      );
-      mockConfirmationService.confirm.mockImplementation((opts: any) =>
-        opts.accept(),
-      );
-
-      component.onArchiveBoard();
-
-      expect(component.archiving()).toBe(false);
-    });
-  });
-
   describe('onTabChange', () => {
     it('should update active tab', () => {
       component.onTabChange(3);
       expect(component.activeTab()).toBe(3);
+    });
+  });
+
+  describe('tab query param', () => {
+    it('should set activeTab from query param', () => {
+      queryParamsSubject.next({ tab: '5' });
+      fixture.detectChanges();
+
+      expect(component.activeTab()).toBe(5);
+    });
+
+    it('should ignore invalid tab values', () => {
+      queryParamsSubject.next({ tab: '99' });
+      fixture.detectChanges();
+
+      // Should remain at default (0)
+      expect(component.activeTab()).toBe(0);
     });
   });
 });

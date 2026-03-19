@@ -34,22 +34,19 @@ test.describe('Dashboard Views', () => {
 
   test('workspace switcher lists all 10 workspaces', async ({ page }) => {
     // User[0] is in all 10 workspaces
-    const workspaceLinks = page.locator('a:has-text("Open Workspace")');
+    const workspaceLinks = page.locator('app-sidebar-projects a.project-item');
     await expect(workspaceLinks.first()).toBeVisible({ timeout: 15000 });
     const count = await workspaceLinks.count();
     expect(count).toBeGreaterThanOrEqual(10);
   });
 
-  test('switching workspace updates sidebar boards', async ({ page }) => {
-    // Click into first workspace
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await page.waitForURL(/\/workspace\//, { timeout: 15000 });
+  test('clicking project navigates to project page', async ({ page }) => {
+    // Click into first project
+    await page.locator('app-sidebar-projects a.project-item').first().click();
+    await page.waitForURL(/\/project\//, { timeout: 15000 });
 
-    // Sidebar should show boards
-    const boardsHeading = page
-      .locator('h2:has-text("Boards"), h3:has-text("Boards")')
-      .first();
-    await expect(boardsHeading).toBeVisible({ timeout: 15000 });
+    // Page should load
+    await expect(page.locator('body')).toBeVisible();
   });
 
   test('dashboard shows tasks assigned to current user', async ({ page }) => {
@@ -65,44 +62,32 @@ test.describe('Dashboard Views', () => {
     expect(content).toBeTruthy();
   });
 
-  test('recently viewed section updates after visiting a board', async ({
+  test('recently viewed section updates after visiting a project', async ({
     page,
   }) => {
-    // Navigate to a board first
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await page.waitForURL(/\/workspace\//, { timeout: 15000 });
+    // Navigate to a project first via sidebar
+    await page.locator('app-sidebar-projects a.project-item').first().click();
+    await page.waitForURL(/\/project\//, { timeout: 15000 });
 
-    const boardLink = page.locator('a[href*="/board/"]').first();
-    if (await boardLink.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await boardLink.click();
-      await page.waitForURL(/\/board\//, { timeout: 15000 });
-
-      // Go back to dashboard
-      await page.goto('/dashboard');
-      await page.waitForURL('**/dashboard', { timeout: 15000 });
-    }
+    // Go back to dashboard
+    await page.goto('/dashboard');
+    await page.waitForURL('**/dashboard', { timeout: 15000 });
   });
 
-  test('quick-add task from dashboard creates task in default board', async ({
+  test('quick-add task from project page', async ({
     page,
   }) => {
-    // Navigate to a board to test quick-add
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await page.waitForURL(/\/workspace\//, { timeout: 15000 });
+    // Navigate to a project via sidebar
+    await page.locator('app-sidebar-projects a.project-item').first().click();
+    await page.waitForURL(/\/project\//, { timeout: 15000 });
 
-    const boardLink = page.locator('a[href*="/board/"]').first();
-    if (await boardLink.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await boardLink.click();
-      await page.waitForURL(/\/board\//, { timeout: 15000 });
-
-      const newTaskBtn = page.locator('button:has-text("New Task")');
-      if (await newTaskBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await newTaskBtn.click();
-        const dialog = page.locator('mat-dialog-container, [role="dialog"]');
-        await expect(dialog).toBeVisible({ timeout: 10000 });
-        // Close without creating
-        await page.keyboard.press('Escape');
-      }
+    const newTaskBtn = page.locator('button:has-text("New Task")');
+    if (await newTaskBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await newTaskBtn.click();
+      const dialog = page.locator('mat-dialog-container, [role="dialog"]');
+      await expect(dialog).toBeVisible({ timeout: 10000 });
+      // Close without creating
+      await page.keyboard.press('Escape');
     }
   });
 
@@ -151,13 +136,13 @@ test.describe('Dashboard Views', () => {
     }
   });
 
-  test('workspace with 0 tasks shows appropriate empty state', async ({
+  test('project with 0 tasks shows appropriate empty state', async ({
     page,
   }) => {
-    // Navigate to a workspace and check empty board state
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await page.waitForURL(/\/workspace\//, { timeout: 15000 });
-    // The workspace view should load without errors
+    // Navigate to a project and check empty state
+    await page.locator('app-sidebar-projects a.project-item').first().click();
+    await page.waitForURL(/\/project\//, { timeout: 15000 });
+    // The project view should load without errors
     await expect(page.locator('body')).toBeVisible();
   });
 
@@ -178,7 +163,7 @@ test.describe('Dashboard Views', () => {
   test('multiple rapid workspace switches do not cause race conditions', async ({
     page,
   }) => {
-    const wsLinks = page.locator('a:has-text("Open Workspace")');
+    const wsLinks = page.locator('app-sidebar-projects a.project-item');
     await expect(wsLinks.first()).toBeVisible({ timeout: 15000 });
     const count = await wsLinks.count();
     if (count >= 2) {
@@ -189,7 +174,7 @@ test.describe('Dashboard Views', () => {
       await page.waitForURL('**/dashboard', { timeout: 15000 });
       await wsLinks.first().waitFor({ timeout: 10000 });
       await wsLinks.nth(Math.min(1, count - 1)).click();
-      await page.waitForURL(/\/workspace\//, { timeout: 15000 });
+      await page.waitForURL(/\/project\//, { timeout: 15000 });
       // Page should not be in a broken state
       await expect(page.locator('body')).toBeVisible();
     }
@@ -198,9 +183,9 @@ test.describe('Dashboard Views', () => {
   test('dashboard data refreshes after browser back/forward navigation', async ({
     page,
   }) => {
-    // Navigate to workspace
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await page.waitForURL(/\/workspace\//, { timeout: 15000 });
+    // Navigate to project
+    await page.locator('app-sidebar-projects a.project-item').first().click();
+    await page.waitForURL(/\/project\//, { timeout: 15000 });
 
     // Go back to dashboard
     await page.goBack();
@@ -208,9 +193,9 @@ test.describe('Dashboard Views', () => {
 
     // Go forward
     await page.goForward();
-    await page.waitForURL(/\/workspace\//, { timeout: 15000 });
+    await page.waitForURL(/\/project\//, { timeout: 15000 });
 
-    // Should still show workspace content
+    // Should still show project content
     await expect(page.locator('body')).toBeVisible();
   });
 });

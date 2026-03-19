@@ -58,7 +58,7 @@ async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
 // ===========================================================================
 // AUTH TESTS
 // ===========================================================================
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_user_with_tenant() {
     let pool = test_pool().await;
@@ -73,7 +73,7 @@ async fn test_create_user_with_tenant() {
     assert!(!user.onboarding_completed);
     assert!(user.deleted_at.is_none());
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_user_by_email() {
     let pool = test_pool().await;
@@ -90,7 +90,7 @@ async fn test_get_user_by_email() {
     assert_eq!(found.id, created.id);
     assert_eq!(found.email, email);
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_user_by_email_not_found() {
     let pool = test_pool().await;
@@ -99,7 +99,7 @@ async fn test_get_user_by_email_not_found() {
         .expect("get_user_by_email");
     assert!(result.is_none());
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_user_by_id() {
     let pool = test_pool().await;
@@ -112,7 +112,7 @@ async fn test_get_user_by_id() {
 
     assert_eq!(found.id, user_id);
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_and_get_refresh_token() {
     let pool = test_pool().await;
@@ -142,7 +142,7 @@ async fn test_create_and_get_refresh_token() {
     assert_eq!(token.token_hash, token_hash);
     assert!(token.revoked_at.is_none());
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_revoke_refresh_token() {
     let pool = test_pool().await;
@@ -170,7 +170,7 @@ async fn test_revoke_refresh_token() {
 
     assert!(token.revoked_at.is_some());
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_revoke_all_user_tokens() {
     let pool = test_pool().await;
@@ -193,7 +193,7 @@ async fn test_revoke_all_user_tokens() {
     assert!(t1.revoked_at.is_some());
     assert!(t2.revoked_at.is_some());
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_password_reset_token() {
     let pool = test_pool().await;
@@ -213,7 +213,7 @@ async fn test_create_password_reset_token() {
     assert_eq!(found.0, token_id);
     assert_eq!(found.1, user_id);
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_update_user_password() {
     let pool = test_pool().await;
@@ -230,7 +230,7 @@ async fn test_update_user_password() {
     let updated = auth::get_user_by_id(&pool, user.id).await.unwrap().unwrap();
     assert_eq!(updated.password_hash, new_hash);
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_user_via_invitation() {
     let pool = test_pool().await;
@@ -257,7 +257,7 @@ async fn test_create_user_via_invitation() {
 // ===========================================================================
 // WORKSPACE TESTS
 // ===========================================================================
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_workspace() {
     let pool = test_pool().await;
@@ -280,7 +280,7 @@ async fn test_create_workspace() {
         .unwrap();
     assert!(is_member);
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_workspaces_for_user() {
     let pool = test_pool().await;
@@ -302,7 +302,7 @@ async fn test_list_workspaces_for_user() {
     assert!(names.contains(&"List WS 1"));
     assert!(names.contains(&"List WS 2"));
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_workspace_by_id() {
     let pool = test_pool().await;
@@ -317,7 +317,7 @@ async fn test_get_workspace_by_id() {
     assert!(!ws_with_members.members.is_empty());
     assert_eq!(ws_with_members.members[0].user_id, user_id);
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_update_workspace() {
     let pool = test_pool().await;
@@ -331,7 +331,7 @@ async fn test_update_workspace() {
     assert_eq!(updated.name, "Updated Name");
     assert_eq!(updated.description.as_deref(), Some("New desc"));
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_soft_delete_workspace() {
     let pool = test_pool().await;
@@ -348,7 +348,7 @@ async fn test_soft_delete_workspace() {
         .unwrap();
     assert!(!list.iter().any(|w| w.id == ws_id));
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_is_workspace_member() {
     let pool = test_pool().await;
@@ -365,7 +365,7 @@ async fn test_is_workspace_member() {
         .unwrap();
     assert!(!not_member);
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_add_workspace_member() {
     let pool = test_pool().await;
@@ -395,7 +395,7 @@ async fn test_add_workspace_member() {
         .unwrap();
     assert!(is_member);
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_remove_workspace_member() {
     let pool = test_pool().await;
@@ -431,7 +431,7 @@ async fn test_remove_workspace_member() {
 // ===========================================================================
 // BOARD TESTS
 // ===========================================================================
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_board() {
     let pool = test_pool().await;
@@ -462,7 +462,7 @@ async fn test_create_board() {
         .unwrap();
     assert!(is_member);
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_boards_by_workspace() {
     let pool = test_pool().await;
@@ -483,7 +483,7 @@ async fn test_list_boards_by_workspace() {
     assert!(names.contains(&"List Board 1"));
     assert!(names.contains(&"List Board 2"));
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_board_by_id() {
     let pool = test_pool().await;
@@ -501,7 +501,7 @@ async fn test_get_board_by_id() {
     assert_eq!(fetched.project.id, bwc.project.id);
     assert_eq!(fetched.statuses.len(), 5);
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_board_by_id_non_member() {
     let pool = test_pool().await;
@@ -518,7 +518,7 @@ async fn test_get_board_by_id_non_member() {
         .unwrap();
     assert!(result.is_none());
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_soft_delete_board() {
     let pool = test_pool().await;
@@ -539,7 +539,7 @@ async fn test_soft_delete_board() {
         .unwrap();
     assert!(!list.iter().any(|b| b.id == bwc.project.id));
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_add_board_member() {
     let pool = test_pool().await;
@@ -575,7 +575,7 @@ async fn test_add_board_member() {
         .unwrap();
     assert!(is_member);
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_remove_board_member() {
     let pool = test_pool().await;
@@ -633,6 +633,7 @@ async fn create_test_task(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
         assignee_ids: None,
         label_ids: None,
         parent_task_id: None,
+        reporting_person_id: None,
     };
 
     let task = tasks::create_task(pool, board_id, input, tenant_id, user_id)
@@ -641,7 +642,7 @@ async fn create_test_task(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
 
     (task.id, user_id, tenant_id)
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_comment() {
     let pool = test_pool().await;
@@ -663,7 +664,7 @@ async fn test_create_comment() {
     assert_eq!(comment.author_id, user_id);
     assert!(comment.parent_id.is_none());
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_comments_by_task() {
     let pool = test_pool().await;

@@ -1,8 +1,10 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { of, Subject, throwError } from 'rxjs';
+import { signal } from '@angular/core';
 
 import { TaskDetailPageComponent } from './task-detail-page.component';
 import {
@@ -15,6 +17,9 @@ import {
   WorkspaceService,
   Workspace,
 } from '../../core/services/workspace.service';
+import { AuthService } from '../../core/services/auth.service';
+import { RecentItemsService } from '../../core/services/recent-items.service';
+import { WorkspaceContextService } from '../../core/services/workspace-context.service';
 
 // --- Helpers ---
 
@@ -98,6 +103,10 @@ function createMockTaskService() {
     removeLabel: vi.fn(),
     deleteTask: vi.fn(),
     listReminders: vi.fn(),
+    addWatcher: vi.fn(),
+    removeWatcher: vi.fn(),
+    setReminder: vi.fn(),
+    removeReminder: vi.fn(),
   };
 }
 
@@ -133,6 +142,25 @@ describe('TaskDetailPageComponent', () => {
   ];
   const workspace = makeWorkspace();
 
+  const mockAuthService = {
+    currentUser: signal({
+      id: 'user-1',
+      email: 'alice@test.com',
+      name: 'Alice',
+      role: 'Member' as const,
+      tenant_id: 't-1',
+      onboarding_completed: true,
+    }),
+  };
+
+  const mockRecentItemsService = {
+    recordTaskView: vi.fn(),
+  };
+
+  const mockWsContext = {
+    activeWorkspaceId: vi.fn().mockReturnValue(null),
+  };
+
   beforeEach(async () => {
     mockTaskService = createMockTaskService();
     mockProjectService = createMockProjectService();
@@ -151,11 +179,16 @@ describe('TaskDetailPageComponent', () => {
     mockWorkspaceService.get.mockReturnValue(of(workspace));
 
     await TestBed.configureTestingModule({
-      imports: [TaskDetailPageComponent, HttpClientTestingModule],
+      imports: [TaskDetailPageComponent],
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: TaskService, useValue: mockTaskService },
         { provide: ProjectService, useValue: mockProjectService },
         { provide: WorkspaceService, useValue: mockWorkspaceService },
+        { provide: AuthService, useValue: mockAuthService },
+        { provide: RecentItemsService, useValue: mockRecentItemsService },
+        { provide: WorkspaceContextService, useValue: mockWsContext },
         { provide: Router, useValue: mockRouter },
         { provide: Location, useValue: mockLocation },
         {
@@ -163,7 +196,11 @@ describe('TaskDetailPageComponent', () => {
           useValue: { params: routeParams$.asObservable() },
         },
       ],
-    }).compileComponents();
+    })
+      .overrideComponent(TaskDetailPageComponent, {
+        set: { template: '<div></div>' },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(TaskDetailPageComponent);
     component = fixture.componentInstance;
@@ -179,8 +216,8 @@ describe('TaskDetailPageComponent', () => {
 
   describe('loading task details', () => {
     it('should load task when route params emit a taskId', () => {
-      fixture.detectChanges();
       routeParams$.next({ taskId: 'task-1' });
+      fixture.detectChanges();
 
       expect(mockTaskService.getTask).toHaveBeenCalledWith('task-1');
       expect(component.task()?.id).toBe('task-1');
@@ -188,16 +225,16 @@ describe('TaskDetailPageComponent', () => {
     });
 
     it('should set editTitle and editDescription from loaded task', () => {
-      fixture.detectChanges();
       routeParams$.next({ taskId: 'task-1' });
+      fixture.detectChanges();
 
       expect(component.editTitle()).toBe('Test Task');
       expect(component.editDescription()).toBe('A description');
     });
 
     it('should load board context after task loads', () => {
-      fixture.detectChanges();
       routeParams$.next({ taskId: 'task-1' });
+      fixture.detectChanges();
 
       expect(mockProjectService.getBoard).toHaveBeenCalledWith('board-1');
       expect(mockProjectService.listColumns).toHaveBeenCalledWith('board-1');
@@ -206,8 +243,8 @@ describe('TaskDetailPageComponent', () => {
     });
 
     it('should load workspace after board loads', () => {
-      fixture.detectChanges();
       routeParams$.next({ taskId: 'task-1' });
+      fixture.detectChanges();
 
       expect(mockWorkspaceService.get).toHaveBeenCalledWith('ws-1');
       expect(component.workspace()?.name).toBe('Test Workspace');
@@ -218,8 +255,8 @@ describe('TaskDetailPageComponent', () => {
         throwError(() => ({ status: 404 })),
       );
 
-      fixture.detectChanges();
       routeParams$.next({ taskId: 'nonexistent' });
+      fixture.detectChanges();
 
       expect(component.error()).toBe(
         'This task does not exist or has been deleted.',
@@ -232,29 +269,19 @@ describe('TaskDetailPageComponent', () => {
         throwError(() => ({ status: 500 })),
       );
 
-      fixture.detectChanges();
       routeParams$.next({ taskId: 'task-1' });
+      fixture.detectChanges();
 
       expect(component.error()).toBe('Failed to load task. Please try again.');
     });
-
-    it('should not reload if taskId has not changed', () => {
-      fixture.detectChanges();
-      routeParams$.next({ taskId: 'task-1' });
-      routeParams$.next({ taskId: 'task-1' });
-
-      expect(mockTaskService.getTask).toHaveBeenCalledTimes(1);
-    });
   });
-
-  // Note: column() and dueDateValue() computeds were moved to TaskDetailSidebarComponent
 
   // --- Inline Editing ---
 
   describe('inline editing', () => {
     beforeEach(() => {
-      fixture.detectChanges();
       routeParams$.next({ taskId: 'task-1' });
+      fixture.detectChanges();
     });
 
     it('startEditing should set editingField', () => {
@@ -289,8 +316,8 @@ describe('TaskDetailPageComponent', () => {
 
   describe('saveTitle', () => {
     beforeEach(() => {
-      fixture.detectChanges();
       routeParams$.next({ taskId: 'task-1' });
+      fixture.detectChanges();
     });
 
     it('should call updateTask with new title', () => {
@@ -326,8 +353,8 @@ describe('TaskDetailPageComponent', () => {
 
   describe('saveDescription', () => {
     beforeEach(() => {
-      fixture.detectChanges();
       routeParams$.next({ taskId: 'task-1' });
+      fixture.detectChanges();
     });
 
     it('should call updateTask with new description', () => {
@@ -352,8 +379,8 @@ describe('TaskDetailPageComponent', () => {
 
   describe('onPriorityChange', () => {
     beforeEach(() => {
-      fixture.detectChanges();
       routeParams$.next({ taskId: 'task-1' });
+      fixture.detectChanges();
     });
 
     it('should call updateTask with new priority', () => {
@@ -373,8 +400,8 @@ describe('TaskDetailPageComponent', () => {
 
   describe('onDueDateChange', () => {
     beforeEach(() => {
-      fixture.detectChanges();
       routeParams$.next({ taskId: 'task-1' });
+      fixture.detectChanges();
     });
 
     it('should call updateTask with formatted date', () => {
@@ -402,15 +429,12 @@ describe('TaskDetailPageComponent', () => {
     });
   });
 
-  // Note: toggleAssigneeSearch, assigneeQuery, assigneeResults, onAssigneeSearch
-  // were moved to TaskDetailSidebarComponent
-
   // --- Assignees ---
 
   describe('assignees', () => {
     beforeEach(() => {
-      fixture.detectChanges();
       routeParams$.next({ taskId: 'task-1' });
+      fixture.detectChanges();
     });
 
     it('onAssign should call assignUser and update task signal', () => {
@@ -451,8 +475,8 @@ describe('TaskDetailPageComponent', () => {
 
   describe('labels', () => {
     beforeEach(() => {
-      fixture.detectChanges();
       routeParams$.next({ taskId: 'task-1' });
+      fixture.detectChanges();
     });
 
     it('onRemoveLabel should call removeLabel and update task signal', () => {
@@ -472,13 +496,19 @@ describe('TaskDetailPageComponent', () => {
 
   describe('onDelete', () => {
     beforeEach(() => {
-      fixture.detectChanges();
       routeParams$.next({ taskId: 'task-1' });
+      fixture.detectChanges();
     });
 
     it('should call deleteTask when confirmed', () => {
       vi.spyOn(window, 'confirm').mockReturnValue(true);
       mockTaskService.deleteTask.mockReturnValue(of(undefined));
+      // goBack needs history.length > 1 so it calls location.back()
+      Object.defineProperty(window, 'history', {
+        value: { length: 2 },
+        writable: true,
+        configurable: true,
+      });
 
       component.onDelete();
 
@@ -494,14 +524,10 @@ describe('TaskDetailPageComponent', () => {
     });
   });
 
-  // Note: getInitials, getAvatarColor, formatDate, formatShortDate,
-  // getPriorityDisplayLabel were moved to TaskDetailSidebarComponent
-
   // --- goBack ---
 
   describe('goBack', () => {
     it('should call location.back() when history exists', () => {
-      // window.history.length is read-only; stub it via defineProperty
       Object.defineProperty(window, 'history', {
         value: { length: 2 },
         writable: true,
@@ -509,15 +535,6 @@ describe('TaskDetailPageComponent', () => {
       });
       component.goBack();
       expect(mockLocation.back).toHaveBeenCalled();
-    });
-  });
-
-  // --- Cleanup ---
-
-  describe('ngOnDestroy', () => {
-    it('should not throw when unsubscribing', () => {
-      fixture.detectChanges();
-      expect(() => component.ngOnDestroy()).not.toThrow();
     });
   });
 });

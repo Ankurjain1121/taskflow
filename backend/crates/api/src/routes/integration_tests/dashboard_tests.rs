@@ -4,6 +4,7 @@ use super::common::*;
 // DASHBOARD ROUTES — HAPPY PATH
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_dashboard_stats() {
     let (app, state) = test_app().await;
@@ -24,6 +25,7 @@ async fn test_dashboard_stats() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_dashboard_recent_activity() {
     let (app, state) = test_app().await;
@@ -44,6 +46,7 @@ async fn test_dashboard_recent_activity() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_dashboard_tasks_by_priority() {
     let (app, state) = test_app().await;
@@ -64,6 +67,7 @@ async fn test_dashboard_tasks_by_priority() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_dashboard_completion_trend() {
     let (app, state) = test_app().await;
@@ -84,6 +88,7 @@ async fn test_dashboard_completion_trend() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_dashboard_upcoming_deadlines() {
     let (app, state) = test_app().await;
@@ -108,6 +113,7 @@ async fn test_dashboard_upcoming_deadlines() {
 // DASHBOARD — ERROR SCENARIOS
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_dashboard_stats_unauthorized() {
     let (app, _state) = test_app().await;
@@ -129,6 +135,7 @@ async fn test_dashboard_stats_unauthorized() {
 // SEARCH ROUTES
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_search_with_query() {
     let (app, state) = test_app().await;
@@ -149,6 +156,7 @@ async fn test_search_with_query() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_search_empty_query_returns_400() {
     let (app, state) = test_app().await;
@@ -169,6 +177,7 @@ async fn test_search_empty_query_returns_400() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_search_unauthorized() {
     let (app, _state) = test_app().await;
@@ -190,6 +199,7 @@ async fn test_search_unauthorized() {
 // FAVORITES ROUTES
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_favorites_empty() {
     let (app, state) = test_app().await;
@@ -210,6 +220,7 @@ async fn test_list_favorites_empty() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_add_board_favorite() {
     let (app, state) = test_app().await;
@@ -238,6 +249,7 @@ async fn test_add_board_favorite() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_add_favorite_invalid_type_returns_400() {
     let (app, state) = test_app().await;
@@ -270,6 +282,7 @@ async fn test_add_favorite_invalid_type_returns_400() {
 // NOTIFICATION ROUTES
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_notifications() {
     let (app, state) = test_app().await;
@@ -290,6 +303,7 @@ async fn test_list_notifications() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_notification_unread_count() {
     let (app, state) = test_app().await;
@@ -316,6 +330,7 @@ async fn test_notification_unread_count() {
     assert!(json.get("count").is_some());
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_mark_all_notifications_read() {
     let (app, state) = test_app().await;
@@ -337,6 +352,7 @@ async fn test_mark_all_notifications_read() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_notification_preferences() {
     let (app, state) = test_app().await;
@@ -361,6 +377,7 @@ async fn test_list_notification_preferences() {
 // THEME ROUTES (PUBLIC)
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_themes() {
     let (app, _state) = test_app().await;
@@ -378,6 +395,7 @@ async fn test_list_themes() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_theme_nonexistent_returns_404() {
     let (app, _state) = test_app().await;
@@ -399,6 +417,7 @@ async fn test_get_theme_nonexistent_returns_404() {
 // HEALTH ROUTES
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_health_live_returns_ok() {
     let (app, _state) = test_app().await;
@@ -416,6 +435,7 @@ async fn test_health_live_returns_ok() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_health_ready_returns_ok() {
     let (app, _state) = test_app().await;
@@ -433,6 +453,7 @@ async fn test_health_ready_returns_ok() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_health_full_returns_json() {
     let (app, _state) = test_app().await;

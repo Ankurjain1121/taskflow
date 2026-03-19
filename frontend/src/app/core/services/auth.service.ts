@@ -92,11 +92,10 @@ export class AuthService {
     }
 
     return this.http
-      .get<User>(`${this.apiUrl}/me`, { withCredentials: true })
+      .get<TokenResponse>(`${this.apiUrl}/me`, { withCredentials: true })
       .pipe(
-        map((user) => {
-          this.storeSessionFlag();
-          this._currentUser.set(user);
+        map((response) => {
+          this.handleAuthSuccess(response);
           return true;
         }),
         catchError(() =>

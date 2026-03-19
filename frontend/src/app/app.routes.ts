@@ -92,10 +92,8 @@ export const routes: Routes = [
       },
       {
         path: 'eisenhower',
-        loadComponent: () =>
-          import('./features/my-tasks/eisenhower-matrix/eisenhower-matrix.component').then(
-            (m) => m.EisenhowerMatrixComponent,
-          ),
+        redirectTo: 'my-work',
+        pathMatch: 'full',
       },
       {
         path: 'all-tasks',

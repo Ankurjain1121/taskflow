@@ -65,6 +65,7 @@ pub struct CreateTaskRequest {
     pub assignee_ids: Option<Vec<Uuid>>,
     pub label_ids: Option<Vec<Uuid>>,
     pub parent_task_id: Option<Uuid>,
+    pub reporting_person_id: Option<Uuid>,
 }
 
 /// Request body for updating a task
@@ -497,6 +498,7 @@ mod tests {
             version: 1,
             parent_task_id: None,
             depth: 0,
+            reporting_person_id: None,
         };
         let mut tasks = std::collections::HashMap::new();
         tasks.insert(status_id, vec![task]);

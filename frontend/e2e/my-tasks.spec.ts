@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndOnboard } from './helpers/auth';
+import { signUpAndOnboard, signInTestUser } from './helpers/auth';
 import { DashboardPage } from './pages/DashboardPage';
 
 /** Wait for the My Tasks page to fully load (greeting banner visible) */
@@ -12,9 +12,20 @@ async function waitForMyTasksPage(page: import('@playwright/test').Page) {
   await expect(myTasksBtn).toBeVisible({ timeout: 20000 });
 }
 
+let testEmail: string;
+
 test.describe('My Tasks', () => {
+  test.beforeAll(async ({ browser }) => {
+    test.setTimeout(120000);
+    const page = await browser.newPage();
+    testEmail = await signUpAndOnboard(page, 'My Tasks WS');
+    await page.close();
+  });
+
   test.beforeEach(async ({ page }) => {
-    await signUpAndOnboard(page, 'My Tasks WS');
+    await signInTestUser(page, testEmail);
+    await page.goto('/dashboard');
+    await page.waitForLoadState('networkidle').catch(() => {});
   });
 
   test('page loads with view toggle and content', async ({ page }) => {

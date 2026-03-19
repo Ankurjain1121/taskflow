@@ -22,6 +22,9 @@ import {
   getDueDateColor,
   isOverdue,
   isToday,
+  type ColorByMode,
+  type ColorableTask,
+  resolveCardColor,
 } from '../../../shared/utils/task-colors';
 
 interface StatusOption {
@@ -297,6 +300,7 @@ interface ColumnInput {
               <tr
                 [pSelectableRow]="task"
                 class="cursor-pointer"
+                [style.border-left]="getRowStripe(task) ? '4px solid ' + getRowStripe(task) : 'none'"
                 (click)="onRowClick(task)"
               >
                 <td (click)="$event.stopPropagation()">
@@ -469,6 +473,19 @@ export class ListViewComponent {
   loading = input<boolean>(false);
   columns = input<ColumnInput[]>([]);
   projectId = input<string>('');
+  colorBy = input<ColorByMode>('priority');
+
+  getRowStripe(task: TaskListItem): string | null {
+    if (this.colorBy() === 'priority') return null;
+    // TaskListItem has limited fields — only priority is available for color resolution
+    const colorable: ColorableTask = {
+      priority: task.priority,
+      labels: [],
+      assignees: [],
+      project_color: null,
+    };
+    return resolveCardColor(colorable, this.colorBy());
+  }
 
   taskClicked = output<string>();
   titleChanged = output<{ taskId: string; title: string }>();

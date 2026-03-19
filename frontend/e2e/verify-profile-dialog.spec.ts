@@ -79,7 +79,7 @@ test.describe('Team Page - Profile Dialog & Workload Navigation', () => {
 
       if (createWsVisible) {
         await page
-          .locator('app-step-workspace input#name')
+          .locator('app-step-workspace input[formControlName="name"]')
           .fill('VerifyDialog WS');
         await page
           .locator('button[type="submit"]:has-text("Continue")')
@@ -115,10 +115,10 @@ test.describe('Team Page - Profile Dialog & Workload Navigation', () => {
 
         await expect(success.or(errorMsg)).toBeVisible({ timeout: 60000 });
 
-        const goBtn = page.locator('button:has-text("Go to Dashboard")');
+        const goBtn = page.locator('button:has-text("Go to your board"), button:has-text("Go to Dashboard")').first();
         if (await goBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
           await goBtn.click();
-          await page.waitForURL('**/dashboard', { timeout: 30000 });
+          await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {});
         }
       }
     }

@@ -539,7 +539,7 @@ mod tests {
         let first_col_id = bwc.task_lists[0].id;
         (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_create_rule() {
         let pool = test_pool().await;
@@ -573,7 +573,7 @@ mod tests {
         );
         assert_eq!(result.actions[0].position, 0);
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_list_rules() {
         let pool = test_pool().await;
@@ -625,7 +625,7 @@ mod tests {
             );
         }
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_create_rule_with_multiple_actions() {
         let pool = test_pool().await;
@@ -660,7 +660,7 @@ mod tests {
         assert_eq!(result.actions[1].position, 1);
         assert_eq!(result.actions[2].position, 2);
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_toggle_active() {
         let pool = test_pool().await;
@@ -709,7 +709,7 @@ mod tests {
             .expect("update_rule to reactivate");
         assert!(reactivated.rule.is_active, "should be active again");
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_delete_rule() {
         let pool = test_pool().await;
@@ -736,7 +736,7 @@ mod tests {
         let result = get_rule(&pool, created.rule.id, user_id).await;
         assert!(result.is_err(), "rule should be deleted");
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_log_automation_and_get_logs() {
         let pool = test_pool().await;

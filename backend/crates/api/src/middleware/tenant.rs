@@ -143,9 +143,16 @@ where
 mod tests {
     use super::*;
 
+    fn load_db_url() -> String {
+        let _ = dotenvy::from_path("../../.env");
+        let _ = dotenvy::dotenv();
+        std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests")
+    }
+
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_set_tenant_context_sets_session_variable() {
-        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let database_url = load_db_url();
         let pool = PgPool::connect(&database_url)
             .await
             .expect("test db connection");
@@ -172,10 +179,10 @@ mod tests {
 
         // Transaction rolls back on drop -- no side effects
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_with_tenant_executes_closure() {
-        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let database_url = load_db_url();
         let pool = PgPool::connect(&database_url)
             .await
             .expect("test db connection");
@@ -194,11 +201,11 @@ mod tests {
 
         assert_eq!(result, tenant_id.to_string());
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_with_tenant_tx_executes_and_commits() {
         let pool = PgPool::connect(
-            &std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests"),
+            &load_db_url(),
         )
         .await
         .expect("test db connection");
@@ -224,11 +231,11 @@ mod tests {
 
         tx.commit().await.expect("commit");
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_set_tenant_context_helper() {
         let pool = PgPool::connect(
-            &std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests"),
+            &load_db_url(),
         )
         .await
         .expect("test db connection");
@@ -247,11 +254,11 @@ mod tests {
 
         assert_eq!(row.0, tenant_id.to_string());
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_tenant_context_is_transaction_scoped() {
         let pool = PgPool::connect(
-            &std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests"),
+            &load_db_url(),
         )
         .await
         .expect("test db connection");

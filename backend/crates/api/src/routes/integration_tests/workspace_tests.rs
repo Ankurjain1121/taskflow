@@ -4,6 +4,7 @@ use super::common::*;
 // WORKSPACE ROUTES — HAPPY PATH
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_workspaces_empty() {
     let (app, state) = test_app().await;
@@ -30,6 +31,7 @@ async fn test_list_workspaces_empty() {
     assert!(json.is_array(), "Expected JSON array");
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_workspace() {
     let (app, state) = test_app().await;
@@ -65,6 +67,7 @@ async fn test_create_workspace() {
     assert!(json.get("id").is_some(), "Response should have 'id'");
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_workspace_by_id() {
     let (app, state) = test_app().await;
@@ -92,6 +95,7 @@ async fn test_get_workspace_by_id() {
     assert!(json.get("members").is_some(), "Should include members list");
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_update_workspace() {
     let (app, state) = test_app().await;
@@ -126,6 +130,7 @@ async fn test_update_workspace() {
     assert_eq!(json["name"], "Updated WS Name");
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_delete_workspace() {
     let (app, state) = test_app().await;
@@ -151,6 +156,7 @@ async fn test_delete_workspace() {
 // WORKSPACE ROUTES — ERROR SCENARIOS
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_workspace_empty_name_returns_400() {
     let (app, state) = test_app().await;
@@ -173,6 +179,7 @@ async fn test_create_workspace_empty_name_returns_400() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_workspace_member_role_enforcement() {
     let (app, state) = test_app().await;
@@ -196,6 +203,7 @@ async fn test_workspace_member_role_enforcement() {
     assert_eq!(response.status(), StatusCode::FORBIDDEN);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_workspace_nonexistent_returns_404() {
     let (app, state) = test_app().await;
@@ -220,6 +228,7 @@ async fn test_get_workspace_nonexistent_returns_404() {
     );
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_update_workspace_nonexistent_returns_404() {
     let (app, state) = test_app().await;
@@ -247,6 +256,7 @@ async fn test_update_workspace_nonexistent_returns_404() {
     );
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_delete_workspace_nonexistent_returns_404() {
     let (app, state) = test_app().await;
@@ -272,6 +282,7 @@ async fn test_delete_workspace_nonexistent_returns_404() {
     );
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_workspace_missing_body_returns_400() {
     let (app, state) = test_app().await;
@@ -294,6 +305,7 @@ async fn test_create_workspace_missing_body_returns_400() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_workspace_invalid_json_returns_400() {
     let (app, state) = test_app().await;

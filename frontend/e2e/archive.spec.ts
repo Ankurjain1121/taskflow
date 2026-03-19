@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndOnboard } from './helpers/auth';
+import { signUpAndOnboard, signInTestUser } from './helpers/auth';
 import {
   navigateToFirstBoard,
   createTaskViaUI,
@@ -7,9 +7,20 @@ import {
 } from './helpers/data-factory';
 import { ArchivePage } from './pages/ArchivePage';
 
+let testEmail: string;
+
 test.describe('Archive Page', () => {
+  test.beforeAll(async ({ browser }) => {
+    test.setTimeout(120000);
+    const page = await browser.newPage();
+    testEmail = await signUpAndOnboard(page, 'Archive WS');
+    await page.close();
+  });
+
   test.beforeEach(async ({ page }) => {
-    await signUpAndOnboard(page, 'Archive WS');
+    await signInTestUser(page, testEmail);
+    await page.goto('/dashboard');
+    await page.waitForLoadState('networkidle').catch(() => {});
   });
 
   test('page loads with Archive heading', async ({ page }) => {

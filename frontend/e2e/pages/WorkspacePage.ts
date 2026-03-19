@@ -15,7 +15,7 @@ export class WorkspacePage {
     this.page = page;
     this.workspaceName = page.locator('h1').first();
     this.boardsHeading = page.locator('h2:has-text("Boards")');
-    this.boardCards = page.locator('a[href*="/board/"]');
+    this.boardCards = page.locator('a[href*="/project/"]');
     this.createBoardButton = page.locator('button:has-text("Create Board")');
     this.settingsLink = page
       .locator('a[href*="/settings"]:has-text("Settings")')
@@ -37,6 +37,6 @@ export class WorkspacePage {
 
   async clickFirstBoard() {
     await this.boardCards.first().click();
-    await expect(this.page).toHaveURL(/\/board\//, { timeout: 15000 });
+    await expect(this.page).toHaveURL(/\/project\//, { timeout: 15000 });
   }
 }

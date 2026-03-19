@@ -169,8 +169,8 @@ export class MyWorkTimelineComponent implements OnInit, OnDestroy {
       if (response) {
         this.allTasks.set(response.items);
       }
-    } catch {
-      // empty state shown
+    } catch (err) {
+      console.error('Failed to load my tasks:', err);
     } finally {
       this.loading.set(false);
     }

@@ -135,7 +135,7 @@ export async function completeOnboarding(
   await expect(page.locator('text=Create Your Workspace')).toBeVisible({
     timeout: 15000,
   });
-  await page.locator('input#name').fill(workspaceName ?? 'Test Workspace');
+  await page.locator('app-step-workspace input[formControlName="name"]').fill(workspaceName ?? 'Test Workspace');
   await page.locator('button[type="submit"]:has-text("Continue")').click();
 
   // Step 2: Skip invite step
@@ -153,9 +153,10 @@ export async function completeOnboarding(
     page.locator('text=Sample board created successfully!'),
   ).toBeVisible({ timeout: 20000 });
 
-  // Step 4: Go to dashboard
-  await page.locator('button:has-text("Go to Dashboard")').click();
-  await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+  // Step 4: Go to board (onboarding lands on board page, not dashboard)
+  await page.locator('button:has-text("Go to your board"), button:has-text("Go to Dashboard")').first().click();
+  // User lands on board page after onboarding; wait for navigation to complete
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
 }
 
 /**
@@ -171,23 +172,14 @@ export async function signUpAndOnboard(
 }
 
 /**
- * Navigate from dashboard to the first board. Reusable shortcut for tests.
+ * Navigate to the first board via sidebar project links.
  */
 export async function navigateToFirstBoard(page: Page): Promise<void> {
-  await expect(page.locator('text=Your Workspaces')).toBeVisible({
-    timeout: 15000,
-  });
-  await page.locator('a:has-text("Open Workspace")').first().click();
-  await page.waitForURL(/\/workspace\//, { timeout: 15000 });
-
-  await expect(page.locator('h2:has-text("Boards")')).toBeVisible({
-    timeout: 15000,
-  });
-  const boardCard = page.locator('a[href*="/board/"]').first();
-  await expect(boardCard).toBeVisible({ timeout: 10000 });
-  await boardCard.click();
-
-  await expect(page).toHaveURL(/\/workspace\/.*\/board\//, { timeout: 15000 });
+  await page.waitForLoadState('networkidle').catch(() => {});
+  const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+  await expect(projectLink).toBeVisible({ timeout: 15000 });
+  await projectLink.click();
+  await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
   await page.waitForLoadState('domcontentloaded');
   await page.locator('button:has-text("New Task")').waitFor({ timeout: 15000 });
 }

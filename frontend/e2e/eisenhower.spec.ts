@@ -1,9 +1,18 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndOnboard } from './helpers/auth';
+import { signUpAndOnboard, signInTestUser } from './helpers/auth';
+
+let testEmail: string;
 
 test.describe('Eisenhower Matrix', () => {
+  test.beforeAll(async ({ browser }) => {
+    test.setTimeout(120000);
+    const page = await browser.newPage();
+    testEmail = await signUpAndOnboard(page, 'Eisenhower WS');
+    await page.close();
+  });
+
   test.beforeEach(async ({ page }) => {
-    await signUpAndOnboard(page, 'Eisenhower WS');
+    await signInTestUser(page, testEmail);
   });
 
   test('page loads successfully', async ({ page }) => {

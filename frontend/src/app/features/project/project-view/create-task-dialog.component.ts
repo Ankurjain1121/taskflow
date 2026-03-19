@@ -7,6 +7,7 @@ import {
   model,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -15,6 +16,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
+import { Checkbox } from 'primeng/checkbox';
 import { Dialog } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { Textarea } from 'primeng/textarea';
@@ -24,6 +26,7 @@ import { InputNumber } from 'primeng/inputnumber';
 import { MultiSelect } from 'primeng/multiselect';
 
 import { TaskPriority } from '../../../core/services/task.service';
+import { RecurrencePattern } from '../../../core/services/recurring.service';
 import {
   TaskTemplateService,
   TaskTemplate,
@@ -35,9 +38,6 @@ export interface CreateTaskDialogData {
   columnId: string;
   columnName: string;
   members: { id: string; name: string; avatar_url?: string }[];
-  labels: { id: string; name: string; color: string }[];
-  milestones: { id: string; name: string; color: string }[];
-  groups: { id: string; name: string; color: string }[];
 }
 
 export interface CreateTaskDialogResult {
@@ -47,10 +47,11 @@ export interface CreateTaskDialogResult {
   due_date?: string;
   start_date?: string;
   estimated_hours?: number;
-  group_id?: string;
-  milestone_id?: string;
   assignee_ids?: string[];
-  label_ids?: string[];
+  is_recurring?: boolean;
+  recurrence_pattern?: RecurrencePattern;
+  watcher_ids?: string[];
+  reporting_person_id?: string;
 }
 
 @Component({
@@ -70,6 +71,7 @@ export interface CreateTaskDialogResult {
     InputNumber,
     MultiSelect,
     ToggleSwitch,
+    Checkbox,
   ],
   template: `
     <p-dialog
@@ -242,6 +244,32 @@ export interface CreateTaskDialogResult {
           </div>
         </div>
 
+        <!-- Recurring Task -->
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center gap-3">
+            <p-checkbox
+              inputId="isRecurring"
+              formControlName="isRecurring"
+              [binary]="true"
+            />
+            <label for="isRecurring" class="text-sm font-medium text-[var(--foreground)]"
+              >Recurring task</label
+            >
+          </div>
+          @if (isRecurringChecked()) {
+            <div class="pl-8">
+              <p-select
+                formControlName="recurrencePattern"
+                [options]="recurrenceOptions"
+                optionLabel="label"
+                optionValue="value"
+                class="w-full"
+                styleClass="w-full"
+              />
+            </div>
+          }
+        </div>
+
         <!-- Estimated Hours -->
         <div class="flex flex-col gap-1">
           <label
@@ -301,102 +329,57 @@ export interface CreateTaskDialogResult {
           </div>
         }
 
-        <!-- Labels -->
-        @if (labels().length > 0) {
+        <!-- Reporting To -->
+        @if (members().length > 0) {
           <div class="flex flex-col gap-1">
             <label
-              for="taskLabels"
+              for="reportingTo"
               class="text-sm font-medium text-[var(--foreground)]"
-              >Labels</label
+              >Reporting To</label
             >
-            <p-multiSelect
-              inputId="taskLabels"
-              formControlName="labelIds"
-              [options]="labels()"
+            <p-select
+              inputId="reportingTo"
+              formControlName="reportingPersonId"
+              [options]="members()"
               optionLabel="name"
               optionValue="id"
-              placeholder="Select labels"
+              placeholder="Select reporting person"
+              class="w-full"
+              styleClass="w-full"
+              [showClear]="true"
+            />
+          </div>
+        }
+
+        <!-- Watchers -->
+        @if (members().length > 0) {
+          <div class="flex flex-col gap-1">
+            <label
+              for="watchers"
+              class="text-sm font-medium text-[var(--foreground)]"
+              >Watchers</label
+            >
+            <p-multiSelect
+              inputId="watchers"
+              formControlName="watcherIds"
+              [options]="members()"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="Who should watch this task?"
               styleClass="w-full"
               [showClear]="true"
             >
-              <ng-template #item let-label>
+              <ng-template #item let-member>
                 <div class="flex items-center gap-2">
-                  <span
-                    class="w-3 h-3 rounded-full inline-block"
-                    [style.background-color]="label.color"
-                  ></span>
-                  {{ label.name }}
+                  <div
+                    class="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium"
+                  >
+                    {{ member.name.charAt(0).toUpperCase() }}
+                  </div>
+                  {{ member.name }}
                 </div>
               </ng-template>
             </p-multiSelect>
-          </div>
-        }
-
-        <!-- Milestone -->
-        @if (milestones().length > 0) {
-          <div class="flex flex-col gap-1">
-            <label
-              for="milestone"
-              class="text-sm font-medium text-[var(--foreground)]"
-              >Milestone</label
-            >
-            <p-select
-              inputId="milestone"
-              formControlName="milestoneId"
-              [options]="milestoneOptions()"
-              optionLabel="name"
-              optionValue="id"
-              placeholder="Select milestone"
-              class="w-full"
-              styleClass="w-full"
-              [showClear]="true"
-            >
-              <ng-template #item let-ms>
-                <div class="flex items-center gap-2">
-                  @if (ms.color) {
-                    <span
-                      class="w-3 h-3 rounded-full inline-block"
-                      [style.background-color]="ms.color"
-                    ></span>
-                  }
-                  {{ ms.name }}
-                </div>
-              </ng-template>
-            </p-select>
-          </div>
-        }
-
-        <!-- Task Group -->
-        @if (groups().length > 1) {
-          <div class="flex flex-col gap-1">
-            <label
-              for="taskGroup"
-              class="text-sm font-medium text-[var(--foreground)]"
-              >Group</label
-            >
-            <p-select
-              inputId="taskGroup"
-              formControlName="groupId"
-              [options]="groupOptions()"
-              optionLabel="name"
-              optionValue="id"
-              placeholder="Select group"
-              class="w-full"
-              styleClass="w-full"
-              [showClear]="true"
-            >
-              <ng-template #item let-group>
-                <div class="flex items-center gap-2">
-                  @if (group.color) {
-                    <span
-                      class="w-3 h-3 rounded-full inline-block"
-                      [style.background-color]="group.color"
-                    ></span>
-                  }
-                  {{ group.name }}
-                </div>
-              </ng-template>
-            </p-select>
           </div>
         }
       </form>
@@ -430,9 +413,6 @@ export class CreateTaskDialogComponent {
   columnId = input<string>('');
   columnName = input<string>('');
   members = input<{ id: string; name: string; avatar_url?: string }[]>([]);
-  labels = input<{ id: string; name: string; color: string }[]>([]);
-  milestones = input<{ id: string; name: string; color: string }[]>([]);
-  groups = input<{ id: string; name: string; color: string }[]>([]);
   boardId = input<string>('');
 
   /** Emits result when dialog closes with a value */
@@ -452,6 +432,14 @@ export class CreateTaskDialogComponent {
     { value: 'urgent', label: 'Urgent', color: PRIORITY_COLORS['urgent'] },
   ];
 
+  recurrenceOptions = [
+    { value: 'daily', label: 'Daily' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'biweekly', label: 'Biweekly' },
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'yearly', label: 'Yearly' },
+  ];
+
   form = this.fb.nonNullable.group({
     title: ['', [Validators.required, Validators.maxLength(200)]],
     description: [''],
@@ -463,13 +451,16 @@ export class CreateTaskDialogComponent {
       [Validators.min(0), Validators.max(9999)],
     ],
     assigneeIds: [[] as string[]],
-    labelIds: [[] as string[]],
-    milestoneId: ['' as string],
-    groupId: ['' as string],
+    isRecurring: [false],
+    recurrencePattern: ['weekly' as RecurrencePattern],
+    watcherIds: [[] as string[]],
+    reportingPersonId: ['' as string],
   });
 
-  milestoneOptions = signal<{ id: string; name: string; color: string }[]>([]);
-  groupOptions = signal<{ id: string; name: string; color: string }[]>([]);
+  isRecurringChecked = toSignal(
+    this.form.controls.isRecurring.valueChanges,
+    { initialValue: false }
+  );
 
   onDialogShow(): void {
     this.form.reset({
@@ -480,12 +471,11 @@ export class CreateTaskDialogComponent {
       dueDate: null,
       estimatedHours: null,
       assigneeIds: [],
-      labelIds: [],
-      milestoneId: '',
-      groupId: '',
+      isRecurring: false,
+      recurrencePattern: 'weekly',
+      watcherIds: [],
+      reportingPersonId: '',
     });
-    this.milestoneOptions.set(this.milestones());
-    this.groupOptions.set(this.groups());
     this.useTemplate = false;
     this.selectedTemplateId = '';
   }
@@ -523,16 +513,17 @@ export class CreateTaskDialogComponent {
       result.assignee_ids = values.assigneeIds;
     }
 
-    if (values.labelIds?.length) {
-      result.label_ids = values.labelIds;
+    if (values.isRecurring) {
+      result.is_recurring = true;
+      result.recurrence_pattern = values.recurrencePattern;
     }
 
-    if (values.milestoneId) {
-      result.milestone_id = values.milestoneId;
+    if (values.watcherIds?.length) {
+      result.watcher_ids = values.watcherIds;
     }
 
-    if (values.groupId) {
-      result.group_id = values.groupId;
+    if (values.reportingPersonId) {
+      result.reporting_person_id = values.reportingPersonId;
     }
 
     this.visible.set(false);

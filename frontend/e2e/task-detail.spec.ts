@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndOnboard } from './helpers/auth';
+import { signUpAndOnboard, signInTestUser } from './helpers/auth';
 import { navigateToFirstBoard, createTaskViaUI } from './helpers/data-factory';
 
 /**
@@ -13,9 +13,19 @@ import { navigateToFirstBoard, createTaskViaUI } from './helpers/data-factory';
  * - Verify other detail panel sections (subtasks, comments, due date)
  */
 
+let testEmail: string;
+
 test.describe('Task Detail Journey', () => {
+  test.setTimeout(120000);
+
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    testEmail = await signUpAndOnboard(page, 'Task Detail Journey WS');
+    await page.close();
+  });
+
   test.beforeEach(async ({ page }) => {
-    await signUpAndOnboard(page, 'Task Detail Journey WS');
+    await signInTestUser(page, testEmail);
     await navigateToFirstBoard(page);
   });
 

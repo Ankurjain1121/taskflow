@@ -21,9 +21,9 @@ async function navigateToEisenhower(page: Page) {
   if (await eisenhowerLink.isVisible({ timeout: 5000 }).catch(() => false)) {
     await eisenhowerLink.click();
   } else {
-    // Try navigating to a workspace first, then to Eisenhower
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await page.waitForURL(/\/workspace\//, { timeout: 15000 });
+    // Try navigating to a project first, then to Eisenhower
+    await page.locator('app-sidebar-projects a.project-item').first().click();
+    await page.waitForURL(/\/project\//, { timeout: 15000 });
 
     const eisLink = page
       .locator('a:has-text("Eisenhower"), a[href*="eisenhower"]')

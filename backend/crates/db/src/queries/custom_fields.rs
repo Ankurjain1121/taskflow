@@ -410,13 +410,14 @@ mod tests {
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
+            reporting_person_id: None,
         };
         let task = tasks::create_task(pool, board_id, input, tenant_id, user_id)
             .await
             .expect("create_task for custom field tests");
         (tenant_id, user_id, board_id, task.id)
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_create_custom_field() {
         let pool = test_pool().await;
@@ -444,7 +445,7 @@ mod tests {
         assert_eq!(field.created_by_id, user_id);
         assert_eq!(field.position, 1);
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_list_board_custom_fields() {
         let pool = test_pool().await;
@@ -486,7 +487,7 @@ mod tests {
         assert!(names.contains(&"Field One"));
         assert!(names.contains(&"Field Two"));
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_set_and_get_task_custom_field_values() {
         let pool = test_pool().await;
@@ -537,7 +538,7 @@ mod tests {
             Some("Important note")
         );
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_delete_custom_field() {
         let pool = test_pool().await;
@@ -569,7 +570,7 @@ mod tests {
             "deleted field should not appear in list"
         );
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_create_custom_field_not_board_member() {
         let pool = test_pool().await;

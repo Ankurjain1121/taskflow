@@ -30,6 +30,7 @@ import { DependencyService } from '../../../core/services/dependency.service';
 import { WebSocketService } from '../../../core/services/websocket.service';
 import { GanttTask, GanttDependency } from '../gantt-view/gantt-view.component';
 import { TaskFilters } from '../project-toolbar/project-toolbar.component';
+import { type ColorByMode, COLOR_BY_MODES } from '../../../shared/utils/task-colors';
 import { CreateTaskDialogResult } from './create-task-dialog.component';
 import { CreateColumnDialogResult } from './create-column-dialog.component';
 import { GroupByMode, SwimlaneGroup, SwimlaneState } from './swimlane.types';
@@ -147,6 +148,14 @@ export class ProjectStateService {
         /* ignore */
       }
       return DEFAULT_CARD_FIELDS;
+    })(),
+  );
+  readonly colorBy = signal<ColorByMode>(
+    (() => {
+      const stored = localStorage.getItem('taskflow_color_by');
+      return COLOR_BY_MODES.includes(stored as ColorByMode)
+        ? (stored as ColorByMode)
+        : 'priority';
     })(),
   );
 
@@ -567,6 +576,11 @@ export class ProjectStateService {
   setCardDensity(density: 'compact' | 'normal' | 'expanded'): void {
     this.cardDensity.set(density);
     localStorage.setItem('taskflow_card_density', density);
+  }
+
+  setColorBy(mode: ColorByMode): void {
+    this.colorBy.set(mode);
+    localStorage.setItem('taskflow_color_by', mode);
   }
 
   // === Card Fields ===

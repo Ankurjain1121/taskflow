@@ -588,13 +588,14 @@ mod tests {
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
+            reporting_person_id: None,
         };
         let task = tasks::create_task(pool, board_id, input, tenant_id, user_id)
             .await
             .expect("create task for recurring");
         (tenant_id, user_id, board_id, task.id)
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_create_recurring_config() {
         let pool = test_pool().await;
@@ -626,7 +627,7 @@ mod tests {
         assert_eq!(config.created_by_id, user_id);
         assert_eq!(config.creation_mode, "on_schedule");
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_get_config_for_task() {
         let pool = test_pool().await;
@@ -658,7 +659,7 @@ mod tests {
         assert_eq!(fetched.pattern, RecurrencePattern::Weekly);
         assert_eq!(fetched.creation_mode, "on_completion");
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_update_recurring_config() {
         let pool = test_pool().await;
@@ -705,7 +706,7 @@ mod tests {
         assert!(updated.skip_weekends);
         assert_eq!(updated.day_of_month, Some(15));
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_delete_recurring_config() {
         let pool = test_pool().await;
@@ -736,7 +737,7 @@ mod tests {
         let result = get_config_for_task(&pool, task_id, user_id).await;
         assert!(result.is_err(), "config should be deleted");
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_create_recurring_instance() {
         let pool = test_pool().await;
@@ -770,7 +771,7 @@ mod tests {
                    due_date, start_date, estimated_hours, project_id, status_id,
                    task_list_id, position, milestone_id, task_number, eisenhower_urgency,
                    eisenhower_importance, tenant_id, created_by_id, deleted_at,
-                   created_at, updated_at, version, parent_task_id, depth
+                   created_at, updated_at, version, parent_task_id, depth, reporting_person_id
             FROM tasks WHERE id = $1
             "#,
         )

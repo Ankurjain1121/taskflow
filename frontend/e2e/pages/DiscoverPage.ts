@@ -30,7 +30,7 @@ export class DiscoverPage {
     this.loadingSkeletons = page.locator(
       'app-discover-workspaces .skeleton',
     );
-    this.errorMessage = page.locator('app-discover-workspaces .bg-red-50');
+    this.errorMessage = page.locator('app-discover-workspaces .pi-exclamation-circle ~ span');
   }
 
   async goto() {

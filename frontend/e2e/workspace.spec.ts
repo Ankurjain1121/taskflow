@@ -1,17 +1,29 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndOnboard } from './helpers/auth';
+import { signUpAndOnboard, signInTestUser } from './helpers/auth';
 import { WorkspacePage } from './pages/WorkspacePage';
 
 test.describe('Workspace Page', () => {
+  let testEmail: string;
+
+  test.beforeAll(async ({ browser }, testInfo) => {
+    testInfo.setTimeout(120_000);
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    testEmail = await signUpAndOnboard(page, 'Workspace Test WS');
+    await page.close();
+    await context.close();
+  });
+
   test.beforeEach(async ({ page }) => {
-    await signUpAndOnboard(page, 'Workspace Test WS');
+    await signInTestUser(page, testEmail);
   });
 
   test('workspace page loads with name in header', async ({ page }) => {
-    // Navigate from dashboard to workspace
-    await expect(page.locator('text=Your Workspaces')).toBeVisible({ timeout: 15000 });
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await expect(page).toHaveURL(/\/workspace\//, { timeout: 15000 });
+    // Navigate from sidebar to workspace/project
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
+    await projectLink.click();
+    await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
 
     const ws = new WorkspacePage(page);
     await ws.expectLoaded();
@@ -24,18 +36,20 @@ test.describe('Workspace Page', () => {
   });
 
   test('boards section heading is visible', async ({ page }) => {
-    await expect(page.locator('text=Your Workspaces')).toBeVisible({ timeout: 15000 });
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await expect(page).toHaveURL(/\/workspace\//, { timeout: 15000 });
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
+    await projectLink.click();
+    await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
 
     const ws = new WorkspacePage(page);
     await expect(ws.boardsHeading).toBeVisible({ timeout: 15000 });
   });
 
   test('sample board card visible after onboarding', async ({ page }) => {
-    await expect(page.locator('text=Your Workspaces')).toBeVisible({ timeout: 15000 });
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await expect(page).toHaveURL(/\/workspace\//, { timeout: 15000 });
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
+    await projectLink.click();
+    await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
 
     const ws = new WorkspacePage(page);
     await ws.expectLoaded();
@@ -46,9 +60,10 @@ test.describe('Workspace Page', () => {
   });
 
   test('create new board via Create Board button', async ({ page }) => {
-    await expect(page.locator('text=Your Workspaces')).toBeVisible({ timeout: 15000 });
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await expect(page).toHaveURL(/\/workspace\//, { timeout: 15000 });
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
+    await projectLink.click();
+    await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
 
     const ws = new WorkspacePage(page);
     await ws.expectLoaded();
@@ -77,9 +92,10 @@ test.describe('Workspace Page', () => {
   });
 
   test('second board appears in grid after creation', async ({ page }) => {
-    await expect(page.locator('text=Your Workspaces')).toBeVisible({ timeout: 15000 });
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await expect(page).toHaveURL(/\/workspace\//, { timeout: 15000 });
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
+    await projectLink.click();
+    await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
 
     const ws = new WorkspacePage(page);
     await ws.expectLoaded();
@@ -97,9 +113,10 @@ test.describe('Workspace Page', () => {
   });
 
   test('third board created successfully', async ({ page }) => {
-    await expect(page.locator('text=Your Workspaces')).toBeVisible({ timeout: 15000 });
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await expect(page).toHaveURL(/\/workspace\//, { timeout: 15000 });
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
+    await projectLink.click();
+    await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
 
     const ws = new WorkspacePage(page);
     await ws.expectLoaded();
@@ -119,9 +136,10 @@ test.describe('Workspace Page', () => {
   });
 
   test('board card shows board name text', async ({ page }) => {
-    await expect(page.locator('text=Your Workspaces')).toBeVisible({ timeout: 15000 });
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await expect(page).toHaveURL(/\/workspace\//, { timeout: 15000 });
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
+    await projectLink.click();
+    await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
 
     const ws = new WorkspacePage(page);
     await ws.expectLoaded();
@@ -133,9 +151,10 @@ test.describe('Workspace Page', () => {
   });
 
   test('click board card navigates to board page', async ({ page }) => {
-    await expect(page.locator('text=Your Workspaces')).toBeVisible({ timeout: 15000 });
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await expect(page).toHaveURL(/\/workspace\//, { timeout: 15000 });
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
+    await projectLink.click();
+    await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
 
     const ws = new WorkspacePage(page);
     await ws.expectLoaded();
@@ -146,9 +165,10 @@ test.describe('Workspace Page', () => {
   });
 
   test('workspace settings link is visible', async ({ page }) => {
-    await expect(page.locator('text=Your Workspaces')).toBeVisible({ timeout: 15000 });
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await expect(page).toHaveURL(/\/workspace\//, { timeout: 15000 });
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
+    await projectLink.click();
+    await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
 
     const ws = new WorkspacePage(page);
     await ws.expectLoaded();
@@ -157,9 +177,10 @@ test.describe('Workspace Page', () => {
   });
 
   test('team link is visible in workspace', async ({ page }) => {
-    await expect(page.locator('text=Your Workspaces')).toBeVisible({ timeout: 15000 });
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await expect(page).toHaveURL(/\/workspace\//, { timeout: 15000 });
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
+    await projectLink.click();
+    await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
 
     const ws = new WorkspacePage(page);
     await ws.expectLoaded();

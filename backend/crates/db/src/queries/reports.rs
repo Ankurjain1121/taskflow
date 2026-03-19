@@ -324,7 +324,7 @@ mod tests {
         let first_col_id = bwc.task_lists[0].id;
         (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_get_board_report_empty_board() {
         let pool = test_pool().await;
@@ -350,7 +350,7 @@ mod tests {
         // Overdue analysis should have 4 buckets with 0 counts
         assert_eq!(report.overdue_analysis.len(), 4);
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_get_board_report_with_tasks() {
         let pool = test_pool().await;
@@ -370,6 +370,7 @@ mod tests {
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
+            reporting_person_id: None,
         };
         tasks::create_task(&pool, board_id, input1, tenant_id, user_id)
             .await
@@ -388,6 +389,7 @@ mod tests {
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
+            reporting_person_id: None,
         };
         tasks::create_task(&pool, board_id, input2, tenant_id, user_id)
             .await
@@ -415,7 +417,7 @@ mod tests {
         assert!(priorities.contains(&"high"));
         assert!(priorities.contains(&"medium"));
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_get_board_report_not_board_member() {
         let pool = test_pool().await;

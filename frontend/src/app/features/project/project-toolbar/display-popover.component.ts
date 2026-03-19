@@ -14,6 +14,7 @@ import { CardFieldsPopoverComponent, CARD_FIELD_OPTIONS } from './card-fields-po
 import { ViewMode } from './project-toolbar.component';
 import { GroupByMode } from '../project-view/swimlane.types';
 import { CardFields } from '../project-view/project-state.service';
+import { type ColorByMode } from '../../../shared/utils/task-colors';
 
 interface ViewOption {
   value: ViewMode;
@@ -36,6 +37,13 @@ const GROUP_BY_OPTIONS: { value: GroupByMode; label: string }[] = [
   { value: 'assignee', label: 'Assignee' },
   { value: 'priority', label: 'Priority' },
   { value: 'label', label: 'Label' },
+];
+
+const COLOR_BY_OPTIONS: { value: ColorByMode; label: string; icon: string }[] = [
+  { value: 'priority', label: 'Priority', icon: 'pi pi-flag' },
+  { value: 'project', label: 'Project', icon: 'pi pi-folder' },
+  { value: 'assignee', label: 'Assignee', icon: 'pi pi-user' },
+  { value: 'label', label: 'Label', icon: 'pi pi-tag' },
 ];
 
 const DENSITY_OPTIONS: { value: 'compact' | 'normal' | 'expanded'; label: string; icon: string }[] = [
@@ -139,6 +147,26 @@ const DENSITY_OPTIONS: { value: 'compact' | 'normal' | 'expanded'; label: string
             </div>
           </div>
 
+          <!-- COLOR BY section -->
+          <div class="border-t border-[var(--border)] pt-3">
+            <div class="section-label">Color By</div>
+            <div class="flex flex-wrap gap-1.5">
+              @for (c of colorByOptions; track c.value) {
+                <button
+                  (click)="onColorBySelect(c.value)"
+                  [class]="
+                    colorBy() === c.value
+                      ? 'density-pill density-pill--active'
+                      : 'density-pill'
+                  "
+                >
+                  <i [class]="c.icon" class="text-xs"></i>
+                  {{ c.label }}
+                </button>
+              }
+            </div>
+          </div>
+
           <!-- GROUP BY section -->
           <div class="border-t border-[var(--border)] pt-3">
             <div class="section-label">Group By</div>
@@ -224,11 +252,13 @@ export class DisplayPopoverComponent {
   viewMode = input.required<ViewMode>();
   density = input<'compact' | 'normal' | 'expanded'>('normal');
   groupBy = input<GroupByMode>('none');
+  colorBy = input<ColorByMode>('priority');
   cardFields = input.required<CardFields>();
 
   viewModeChanged = output<ViewMode>();
   densityChanged = output<'compact' | 'normal' | 'expanded'>();
   groupByChanged = output<GroupByMode>();
+  colorByChanged = output<ColorByMode>();
   cardFieldChanged = output<{ key: keyof CardFields; value: boolean }>();
   cardFieldsReset = output<void>();
 
@@ -237,6 +267,7 @@ export class DisplayPopoverComponent {
   readonly viewOptions = VIEW_OPTIONS;
   readonly densityOptions = DENSITY_OPTIONS;
   readonly groupByOptions = GROUP_BY_OPTIONS;
+  readonly colorByOptions = COLOR_BY_OPTIONS;
   readonly cardFieldOptions = CARD_FIELD_OPTIONS;
 
   readonly currentViewIcon = computed(() => {
@@ -252,6 +283,7 @@ export class DisplayPopoverComponent {
   readonly hasNonDefaultSettings = computed(() => {
     if (this.density() !== 'normal') return true;
     if (this.groupBy() !== 'none') return true;
+    if (this.colorBy() !== 'priority') return true;
     const fields = this.cardFields();
     const defaults: (keyof CardFields)[] = [
       'showPriority', 'showDueDate', 'showAssignees', 'showLabels',
@@ -264,6 +296,10 @@ export class DisplayPopoverComponent {
   onViewSelect(mode: ViewMode): void {
     this.viewModeChanged.emit(mode);
     this.displayPopover().hide();
+  }
+
+  onColorBySelect(mode: ColorByMode): void {
+    this.colorByChanged.emit(mode);
   }
 
   onCardFieldToggle(key: keyof CardFields, value: boolean): void {

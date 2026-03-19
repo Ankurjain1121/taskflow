@@ -9,9 +9,12 @@ use taskflow_db::queries::auth;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
+use crate::middleware::store_csrf_token;
 use crate::state::AppState;
 
-use super::auth::UserResponse;
+use super::validation::{validate_optional_string, MAX_BIO_LEN, MAX_NAME_LEN};
+
+use super::auth::{AuthResponse, UserResponse, SESSION_TTL_SECS};
 
 // ============================================================================
 // Request DTOs
@@ -34,27 +37,36 @@ pub struct UpdateProfileRequest {
 /// GET /api/auth/me
 ///
 /// Get the current authenticated user's profile.
+/// Also generates a fresh CSRF token so the frontend can make mutations
+/// after a page refresh (where the in-memory CSRF token is lost).
 pub async fn me_handler(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-) -> Result<Json<UserResponse>> {
+) -> Result<Json<AuthResponse>> {
     let user = auth::get_user_by_id(&state.db, auth.0.user_id)
         .await?
         .ok_or_else(|| AppError::NotFound("User not found".into()))?;
 
-    Ok(Json(UserResponse {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        tenant_id: user.tenant_id,
-        avatar_url: user.avatar_url,
-        phone_number: user.phone_number,
-        job_title: user.job_title,
-        department: user.department,
-        bio: user.bio,
-        onboarding_completed: user.onboarding_completed,
-        last_login_at: user.last_login_at,
+    let csrf_token = store_csrf_token(&state, user.id, SESSION_TTL_SECS)
+        .await
+        .map_err(|e| AppError::InternalError(format!("Failed to create CSRF token: {}", e)))?;
+
+    Ok(Json(AuthResponse {
+        csrf_token,
+        user: UserResponse {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            tenant_id: user.tenant_id,
+            avatar_url: user.avatar_url,
+            phone_number: user.phone_number,
+            job_title: user.job_title,
+            department: user.department,
+            bio: user.bio,
+            onboarding_completed: user.onboarding_completed,
+            last_login_at: user.last_login_at,
+        },
     }))
 }
 
@@ -71,8 +83,10 @@ pub async fn update_profile_handler(
     // Validate name if provided
     if let Some(ref name) = payload.name {
         let name = name.trim();
-        if name.is_empty() || name.len() > 100 {
-            return Err(AppError::BadRequest("Name must be 1-100 characters".into()));
+        if name.is_empty() || name.len() > MAX_NAME_LEN {
+            return Err(AppError::BadRequest(format!(
+                "Name must be 1-{MAX_NAME_LEN} characters"
+            )));
         }
     }
 
@@ -90,31 +104,13 @@ pub async fn update_profile_handler(
     }
 
     // Validate job_title if provided
-    if let Some(ref title) = payload.job_title {
-        if title.len() > 100 {
-            return Err(AppError::BadRequest(
-                "Job title must be 100 characters or less".into(),
-            ));
-        }
-    }
+    validate_optional_string("Job title", payload.job_title.as_deref(), MAX_NAME_LEN)?;
 
     // Validate department if provided
-    if let Some(ref dept) = payload.department {
-        if dept.len() > 100 {
-            return Err(AppError::BadRequest(
-                "Department must be 100 characters or less".into(),
-            ));
-        }
-    }
+    validate_optional_string("Department", payload.department.as_deref(), MAX_NAME_LEN)?;
 
     // Validate bio if provided
-    if let Some(ref bio) = payload.bio {
-        if bio.len() > 500 {
-            return Err(AppError::BadRequest(
-                "Bio must be 500 characters or less".into(),
-            ));
-        }
-    }
+    validate_optional_string("Bio", payload.bio.as_deref(), MAX_BIO_LEN)?;
 
     // Validate avatar_url if provided (must be from MinIO or null)
     if let Some(ref url) = payload.avatar_url {

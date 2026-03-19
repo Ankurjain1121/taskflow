@@ -182,7 +182,11 @@ describe('StepSampleBoardComponent', () => {
 
       component.goToDashboard();
 
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/dashboard']);
+      expect(mockRouter.navigate).toHaveBeenCalledWith([
+        '/workspace',
+        'ws-test',
+        'dashboard',
+      ]);
     });
 
     it('should set error on failure with server message', () => {

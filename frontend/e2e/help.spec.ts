@@ -1,10 +1,21 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndOnboard } from './helpers/auth';
+import { signUpAndOnboard, signInTestUser } from './helpers/auth';
 import { HelpPage } from './pages/HelpPage';
 
 test.describe('Help Page', () => {
+  let testEmail: string;
+
+  test.beforeAll(async ({ browser }, testInfo) => {
+    testInfo.setTimeout(120_000);
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    testEmail = await signUpAndOnboard(page, 'Help Test WS');
+    await page.close();
+    await context.close();
+  });
+
   test.beforeEach(async ({ page }) => {
-    await signUpAndOnboard(page, 'Help Test WS');
+    await signInTestUser(page, testEmail);
   });
 
   test('page loads with Help heading', async ({ page }) => {

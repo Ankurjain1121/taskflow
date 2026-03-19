@@ -27,6 +27,9 @@ use crate::state::AppState;
 
 use super::common::MessageResponse;
 use super::helpers::project_types::*;
+use super::validation::{
+    validate_optional_string, validate_required_string, MAX_NAME_LEN, MAX_PROJECT_DESCRIPTION_LEN,
+};
 
 // ============================================================================
 // Route Handlers
@@ -190,10 +193,15 @@ async fn create_project(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
+    // Validate string lengths
+    validate_required_string("Project name", &payload.name, MAX_NAME_LEN)?;
+    validate_optional_string(
+        "Description",
+        payload.description.as_deref(),
+        MAX_PROJECT_DESCRIPTION_LEN,
+    )?;
+
     let name = payload.name.trim();
-    if name.is_empty() {
-        return Err(AppError::BadRequest("Project name is required".into()));
-    }
 
     let board = projects::create_board(
         &state.db,
@@ -261,12 +269,17 @@ async fn update_project(
         }
     }
 
-    let name = payload.name.as_deref().map(|n| n.trim());
-    if let Some(n) = name {
-        if n.is_empty() {
-            return Err(AppError::BadRequest("Project name is required".into()));
-        }
+    // Validate string lengths
+    if let Some(ref n) = payload.name {
+        validate_required_string("Project name", n, MAX_NAME_LEN)?;
     }
+    validate_optional_string(
+        "Description",
+        payload.description.as_deref(),
+        MAX_PROJECT_DESCRIPTION_LEN,
+    )?;
+
+    let name = payload.name.as_deref().map(|n| n.trim());
 
     let bg_color = payload.background_color.as_ref().map(|c| c.as_deref());
     let board = projects::update_board(
@@ -518,10 +531,9 @@ async fn duplicate_project(
         ));
     }
 
+    validate_required_string("Project name", &payload.name, MAX_NAME_LEN)?;
+
     let name = payload.name.trim();
-    if name.is_empty() {
-        return Err(AppError::BadRequest("Project name is required".into()));
-    }
 
     let include_tasks = payload.include_tasks.unwrap_or(false);
 

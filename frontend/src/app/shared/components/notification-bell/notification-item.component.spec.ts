@@ -86,7 +86,7 @@ describe('NotificationItemComponent', () => {
   it('should return fallback bg class for unknown event type', () => {
     fixture.componentRef.setInput('notification', makeNotification({ event_type: 'unknown' as any }));
     const bg = component.getIconBgClass();
-    expect(bg).toContain('bg-gray-100');
+    expect(bg).toContain('bg-[var(--muted)]');
   });
 
   it('should return "Just now" for recent notification', () => {

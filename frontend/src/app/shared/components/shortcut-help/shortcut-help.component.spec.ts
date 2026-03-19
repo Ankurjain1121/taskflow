@@ -63,6 +63,7 @@ describe('ShortcutHelpComponent', () => {
     it('should become visible when help is requested', () => {
       helpRequestedSignal.set(1);
       TestBed.flushEffects();
+      fixture.detectChanges();
 
       expect(component.visible()).toBe(true);
     });
@@ -89,6 +90,7 @@ describe('ShortcutHelpComponent', () => {
 
       helpRequestedSignal.set(1);
       TestBed.flushEffects();
+      fixture.detectChanges();
 
       expect(component.filteredCategories()).toHaveLength(2);
       expect(component.filteredCategories()[0].name).toBe('Navigation');

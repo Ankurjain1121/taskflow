@@ -4,6 +4,7 @@ use super::common::*;
 // BOARD ROUTES — HAPPY PATH
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_boards_for_workspace() {
     let (app, state) = test_app().await;
@@ -24,6 +25,7 @@ async fn test_list_boards_for_workspace() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_board() {
     let (app, state) = test_app().await;
@@ -58,6 +60,7 @@ async fn test_create_board() {
     assert!(json.get("columns").is_some(), "Board should have columns");
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_board_by_id() {
     let (app, state) = test_app().await;
@@ -84,6 +87,7 @@ async fn test_get_board_by_id() {
     assert_eq!(json["id"], board_id.to_string());
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_update_board() {
     let (app, state) = test_app().await;
@@ -118,6 +122,7 @@ async fn test_update_board() {
     assert_eq!(json["name"], "Renamed Board");
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_delete_board() {
     let (app, state) = test_app().await;
@@ -139,6 +144,7 @@ async fn test_delete_board() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_board_full() {
     let (app, state) = test_app().await;
@@ -167,6 +173,7 @@ async fn test_get_board_full() {
     assert!(json.get("members").is_some(), "Should have 'members'");
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_board_members() {
     let (app, state) = test_app().await;
@@ -197,6 +204,7 @@ async fn test_list_board_members() {
     );
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_board_templates_list() {
     let (app, state) = test_app().await;
@@ -227,6 +235,7 @@ async fn test_board_templates_list() {
 // BOARD ROUTES — ERROR SCENARIOS
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_board_empty_name_returns_400() {
     let (app, state) = test_app().await;
@@ -249,6 +258,7 @@ async fn test_create_board_empty_name_returns_400() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_board_nonexistent_returns_404() {
     let (app, state) = test_app().await;
@@ -269,6 +279,7 @@ async fn test_get_board_nonexistent_returns_404() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_board_invalid_workspace_returns_error() {
     let (app, state) = test_app().await;
@@ -298,6 +309,7 @@ async fn test_create_board_invalid_workspace_returns_error() {
     );
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_board_missing_body_returns_400() {
     let (app, state) = test_app().await;
@@ -320,6 +332,7 @@ async fn test_create_board_missing_body_returns_400() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_board_invalid_json_returns_400() {
     let (app, state) = test_app().await;
@@ -342,6 +355,7 @@ async fn test_create_board_invalid_json_returns_400() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_update_board_nonexistent_returns_404() {
     let (app, state) = test_app().await;
@@ -364,6 +378,7 @@ async fn test_update_board_nonexistent_returns_404() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_delete_board_nonexistent_returns_404() {
     let (app, state) = test_app().await;
@@ -385,6 +400,7 @@ async fn test_delete_board_nonexistent_returns_404() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_board_full_nonexistent_returns_404() {
     let (app, state) = test_app().await;
@@ -405,6 +421,7 @@ async fn test_get_board_full_nonexistent_returns_404() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_board_members_nonexistent_board() {
     let (app, state) = test_app().await;
@@ -434,6 +451,7 @@ async fn test_list_board_members_nonexistent_board() {
 // BOARD SHARE ROUTES
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_board_shares() {
     let (app, state) = test_app().await;
@@ -458,6 +476,7 @@ async fn test_list_board_shares() {
 // REPORTS, WEBHOOKS, AUTOMATIONS
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_reports_board_auth_required() {
     let (app, _state) = test_app().await;
@@ -475,6 +494,7 @@ async fn test_reports_board_auth_required() {
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_reports_board_returns_data() {
     let (app, state) = test_app().await;
@@ -495,6 +515,7 @@ async fn test_reports_board_returns_data() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_webhooks() {
     let (app, state) = test_app().await;
@@ -515,6 +536,7 @@ async fn test_list_webhooks() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_automations() {
     let (app, state) = test_app().await;
@@ -539,6 +561,7 @@ async fn test_list_automations() {
 // MILESTONE ROUTES
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_milestones() {
     let (app, state) = test_app().await;
@@ -559,6 +582,7 @@ async fn test_list_milestones() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_milestone() {
     let (app, state) = test_app().await;
@@ -590,6 +614,7 @@ async fn test_create_milestone() {
 // CUSTOM FIELDS
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_custom_fields() {
     let (app, state) = test_app().await;
@@ -614,6 +639,7 @@ async fn test_list_custom_fields() {
 // TASK GROUPS
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_task_groups() {
     let (app, state) = test_app().await;

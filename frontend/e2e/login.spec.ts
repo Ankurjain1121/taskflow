@@ -79,17 +79,11 @@ test.describe('Login Journey', () => {
     const sidebar = page.locator('app-sidebar, nav, aside').first();
     await expect(sidebar).toBeVisible({ timeout: 10000 });
 
-    // Workspace name should appear in the sidebar
-    const workspaceItem = page.locator('app-workspace-item').first();
-    await expect(workspaceItem).toBeVisible({ timeout: 10000 });
-
-    // The workspace header button should show the workspace name
-    const workspaceHeader = workspaceItem.locator(
-      'button.workspace-header-btn',
-    );
-    await expect(workspaceHeader).toBeVisible({ timeout: 5000 });
-    const headerText = await workspaceHeader.textContent();
-    expect(headerText?.trim().length).toBeGreaterThan(0);
+    // Project items should appear in the sidebar
+    const projectItem = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectItem).toBeVisible({ timeout: 10000 });
+    const projectText = await projectItem.textContent();
+    expect(projectText?.trim().length).toBeGreaterThan(0);
   });
 
   test('invalid credentials show error message', async ({ page }) => {

@@ -1,9 +1,20 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndOnboard, TEST_NAME } from './helpers/auth';
+import { signUpAndOnboard, signInTestUser, TEST_NAME } from './helpers/auth';
 
 test.describe('Team Page', () => {
+  let testEmail: string;
+
+  test.beforeAll(async ({ browser }, testInfo) => {
+    testInfo.setTimeout(120_000);
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    testEmail = await signUpAndOnboard(page, 'Team Page WS');
+    await page.close();
+    await context.close();
+  });
+
   test.beforeEach(async ({ page }) => {
-    await signUpAndOnboard(page, 'Team Page WS');
+    await signInTestUser(page, testEmail);
   });
 
   test('page loads with Team heading', async ({ page }) => {

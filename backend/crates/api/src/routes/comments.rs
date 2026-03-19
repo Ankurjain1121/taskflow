@@ -32,6 +32,7 @@ use taskflow_services::BroadcastService;
 
 use super::common::verify_project_membership;
 use super::task_helpers::sanitize_html;
+use super::validation::{validate_required_string, MAX_DESCRIPTION_LEN};
 
 /// Regex for extracting @mentions in format @[username](userId)
 static MENTION_REGEX: Lazy<Regex> =
@@ -101,6 +102,9 @@ async fn create_comment_handler(
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     verify_project_membership(&state.db, project_id, tenant.user_id).await?;
+
+    // Validate comment length
+    validate_required_string("Comment", &body.content, MAX_DESCRIPTION_LEN)?;
 
     // Sanitize and extract mentioned user IDs from content
     let sanitized_content = sanitize_html(&body.content);
@@ -341,6 +345,9 @@ async fn update_comment_handler(
 
     verify_project_membership(&state.db, project_id, tenant.user_id).await?;
 
+    // Validate comment length
+    validate_required_string("Comment", &body.content, MAX_DESCRIPTION_LEN)?;
+
     // Sanitize and extract mentioned user IDs from updated content
     let sanitized_content = sanitize_html(&body.content);
     let mentioned_user_ids = extract_mentioned_user_ids(&sanitized_content);
@@ -442,5 +449,14 @@ mod tests {
             ids[0],
             Uuid::parse_str("550e8400-e29b-41d4-a716-446655440001").unwrap()
         );
+    }
+
+    /// Verify the MENTION_REGEX Lazy static compiles successfully.
+    /// This documents that the .unwrap() in the Lazy::new is safe
+    /// because the regex pattern is a compile-time constant.
+    #[test]
+    fn mention_regex_compiles() {
+        assert!(MENTION_REGEX.is_match("@[User](550e8400-e29b-41d4-a716-446655440000)"));
+        assert!(!MENTION_REGEX.is_match("plain text"));
     }
 }

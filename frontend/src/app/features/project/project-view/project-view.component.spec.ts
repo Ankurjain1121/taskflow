@@ -24,6 +24,9 @@ import { AuthService } from '../../../core/services/auth.service';
 import { DependencyService } from '../../../core/services/dependency.service';
 import { MilestoneService } from '../../../core/services/milestone.service';
 import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
+import { PresenceService } from '../../../core/services/presence.service';
+import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
+import { FeatureHintsService } from '../../../core/services/feature-hints.service';
 import { TaskMoveEvent } from '../kanban-column/kanban-column.component';
 import { TaskFilters } from '../project-toolbar/project-toolbar.component';
 
@@ -81,6 +84,8 @@ function createMockProjectService() {
     getBoardFull: vi.fn(),
     createColumn: vi.fn(),
     listColumns: vi.fn(),
+    setActiveProject: vi.fn(),
+    activeProject: signal(null),
   };
 }
 
@@ -138,6 +143,14 @@ function createMockKeyboardShortcutsService() {
     unregisterByCategory: vi.fn(),
     helpRequested: signal(0),
   };
+}
+
+/** Helper: equivalent of getFilteredTasksForColumn now on kanban sub-component */
+function getFilteredTasksForColumn(
+  component: ProjectViewComponent,
+  columnId: string,
+): unknown[] {
+  return component.state.filteredBoardState()[columnId] || [];
 }
 
 describe('ProjectViewComponent', () => {
@@ -275,6 +288,21 @@ describe('ProjectViewComponent', () => {
           useValue: createMockKeyboardShortcutsService(),
         },
         {
+          provide: PresenceService,
+          useValue: { joinBoard: vi.fn(), leaveBoard: vi.fn() },
+        },
+        {
+          provide: WorkspaceContextService,
+          useValue: { activeWorkspaceId: vi.fn().mockReturnValue(null) },
+        },
+        {
+          provide: FeatureHintsService,
+          useValue: {
+            incrementBoardVisit: vi.fn(),
+            hasSeenSpotlight: vi.fn().mockReturnValue(true),
+          },
+        },
+        {
           provide: ActivatedRoute,
           useValue: {
             params: routeParams$.asObservable(),
@@ -347,7 +375,7 @@ describe('ProjectViewComponent', () => {
     });
 
     it('should return all tasks when no filters are active', () => {
-      const filtered = component.getFilteredTasksForColumn('col-1');
+      const filtered = getFilteredTasksForColumn(component,'col-1');
       expect(filtered).toHaveLength(1);
       expect(filtered[0].id).toBe('task-1');
     });
@@ -358,8 +386,8 @@ describe('ProjectViewComponent', () => {
         search: 'task one',
       });
 
-      expect(component.getFilteredTasksForColumn('col-1')).toHaveLength(1);
-      expect(component.getFilteredTasksForColumn('col-2')).toHaveLength(0);
+      expect(getFilteredTasksForColumn(component,'col-1')).toHaveLength(1);
+      expect(getFilteredTasksForColumn(component,'col-2')).toHaveLength(0);
     });
 
     it('should filter by priority', () => {
@@ -368,8 +396,8 @@ describe('ProjectViewComponent', () => {
         priorities: ['high'],
       });
 
-      expect(component.getFilteredTasksForColumn('col-1')).toHaveLength(0);
-      expect(component.getFilteredTasksForColumn('col-2')).toHaveLength(1);
+      expect(getFilteredTasksForColumn(component,'col-1')).toHaveLength(0);
+      expect(getFilteredTasksForColumn(component,'col-2')).toHaveLength(1);
     });
 
     it('should filter by assignee IDs', () => {
@@ -379,9 +407,9 @@ describe('ProjectViewComponent', () => {
       });
 
       // task-1 has user-1 as assignee
-      expect(component.getFilteredTasksForColumn('col-1')).toHaveLength(1);
+      expect(getFilteredTasksForColumn(component,'col-1')).toHaveLength(1);
       // task-2 has no assignees
-      expect(component.getFilteredTasksForColumn('col-2')).toHaveLength(0);
+      expect(getFilteredTasksForColumn(component,'col-2')).toHaveLength(0);
     });
 
     it('should filter by due date range', () => {
@@ -392,9 +420,9 @@ describe('ProjectViewComponent', () => {
       });
 
       // task-1 has no due_date, so excluded
-      expect(component.getFilteredTasksForColumn('col-1')).toHaveLength(0);
+      expect(getFilteredTasksForColumn(component,'col-1')).toHaveLength(0);
       // task-2 has due_date 2026-03-01, within range
-      expect(component.getFilteredTasksForColumn('col-2')).toHaveLength(1);
+      expect(getFilteredTasksForColumn(component,'col-2')).toHaveLength(1);
     });
 
     it('should exclude tasks with no due_date when due date filter is active', () => {
@@ -404,7 +432,7 @@ describe('ProjectViewComponent', () => {
         dueDateEnd: null,
       });
 
-      expect(component.getFilteredTasksForColumn('col-1')).toHaveLength(0);
+      expect(getFilteredTasksForColumn(component,'col-1')).toHaveLength(0);
     });
 
     it('should filter by label IDs', () => {
@@ -414,9 +442,9 @@ describe('ProjectViewComponent', () => {
       });
 
       // task-1 has label-1
-      expect(component.getFilteredTasksForColumn('col-1')).toHaveLength(1);
+      expect(getFilteredTasksForColumn(component,'col-1')).toHaveLength(1);
       // task-2 has no labels
-      expect(component.getFilteredTasksForColumn('col-2')).toHaveLength(0);
+      expect(getFilteredTasksForColumn(component,'col-2')).toHaveLength(0);
     });
 
     it('should combine multiple filters (AND logic)', () => {
@@ -427,9 +455,9 @@ describe('ProjectViewComponent', () => {
       });
 
       // task-1: medium priority, title matches -> included
-      expect(component.getFilteredTasksForColumn('col-1')).toHaveLength(1);
+      expect(getFilteredTasksForColumn(component,'col-1')).toHaveLength(1);
       // task-2: high priority -> excluded
-      expect(component.getFilteredTasksForColumn('col-2')).toHaveLength(0);
+      expect(getFilteredTasksForColumn(component,'col-2')).toHaveLength(0);
     });
   });
 
@@ -754,7 +782,7 @@ describe('ProjectViewComponent', () => {
     });
 
     it('should return empty array for non-existent column', () => {
-      const filtered = component.getFilteredTasksForColumn('nonexistent');
+      const filtered = getFilteredTasksForColumn(component,'nonexistent');
       expect(filtered).toHaveLength(0);
     });
 
@@ -765,8 +793,8 @@ describe('ProjectViewComponent', () => {
         search: 'nonexistent description',
       });
 
-      expect(component.getFilteredTasksForColumn('col-1')).toHaveLength(0);
-      expect(component.getFilteredTasksForColumn('col-2')).toHaveLength(0);
+      expect(getFilteredTasksForColumn(component,'col-1')).toHaveLength(0);
+      expect(getFilteredTasksForColumn(component,'col-2')).toHaveLength(0);
     });
 
     it('should handle empty assigneeIds filter', () => {
@@ -776,8 +804,8 @@ describe('ProjectViewComponent', () => {
       });
 
       // Empty array means no filter
-      expect(component.getFilteredTasksForColumn('col-1')).toHaveLength(1);
-      expect(component.getFilteredTasksForColumn('col-2')).toHaveLength(1);
+      expect(getFilteredTasksForColumn(component,'col-1')).toHaveLength(1);
+      expect(getFilteredTasksForColumn(component,'col-2')).toHaveLength(1);
     });
 
     it('should handle empty priorities filter', () => {
@@ -787,8 +815,8 @@ describe('ProjectViewComponent', () => {
       });
 
       // Empty array means no filter
-      expect(component.getFilteredTasksForColumn('col-1')).toHaveLength(1);
-      expect(component.getFilteredTasksForColumn('col-2')).toHaveLength(1);
+      expect(getFilteredTasksForColumn(component,'col-1')).toHaveLength(1);
+      expect(getFilteredTasksForColumn(component,'col-2')).toHaveLength(1);
     });
   });
 
@@ -907,10 +935,11 @@ describe('ProjectViewComponent', () => {
 
       mockTaskService.moveTask.mockReturnValue(of(makeTask()));
 
-      component.onListStatusChanged({
-        taskId: 'task-1',
-        statusId: 'col-2',
-      });
+      component.listEdit.onStatusChanged(
+        { taskId: 'task-1', statusId: 'col-2' },
+        'board-1',
+        component.destroy$,
+      );
 
       const updated = component.state.flatTasks().find(
         (t) => t.id === 'task-1',

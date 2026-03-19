@@ -409,6 +409,7 @@ export class SubtaskListComponent implements OnInit, OnChanges {
   }
 
   getInitials(name: string): string {
+    if (!name) return '?';
     return name
       .split(' ')
       .map(n => n.charAt(0))
