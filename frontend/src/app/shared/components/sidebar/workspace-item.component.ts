@@ -191,23 +191,14 @@ import {
                 <span>Portfolio</span>
               </a>
               <a
-                [routerLink]="['/workspace', workspace().id, 'team']"
+                [routerLink]="['/workspace', workspace().id, 'manage']"
                 (click)="workspaceMenuOpen.set(false)"
                 class="flex items-center gap-2.5 px-3 py-1.5 text-xs hover:bg-[var(--sidebar-surface-hover)] cursor-pointer"
                 style="color: var(--sidebar-text-secondary)"
               >
                 <i class="pi pi-users text-xs"></i>
-                <span>Team Overview</span>
+                <span>Manage Workspace</span>
               </a>
-              <div style="border-top: 1px solid var(--sidebar-border); margin: 2px 0"></div>
-              <button
-                (click)="openSettings($event); workspaceMenuOpen.set(false)"
-                class="flex items-center gap-2.5 px-3 py-1.5 text-xs w-full text-left hover:bg-[var(--sidebar-surface-hover)]"
-                style="color: var(--sidebar-text-secondary)"
-              >
-                <i class="pi pi-cog text-xs"></i>
-                <span>Settings</span>
-              </button>
             </div>
           }
         </div>
