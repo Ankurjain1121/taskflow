@@ -40,7 +40,7 @@ async fn list_sessions(
 ) -> Result<Json<Vec<SessionInfo>>> {
     let rows = sqlx::query_as::<_, SessionRow>(
         r#"
-        SELECT id, ip_address, user_agent, device_name, last_active_at, created_at
+        SELECT id, ip_address, user_agent, device_name, COALESCE(last_active_at, created_at) AS last_active_at, created_at
         FROM refresh_tokens
         WHERE user_id = $1
           AND revoked_at IS NULL
