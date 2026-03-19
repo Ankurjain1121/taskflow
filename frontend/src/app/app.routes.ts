@@ -125,11 +125,16 @@ export const routes: Routes = [
           import('./features/help/help.component').then((m) => m.HelpComponent),
       },
       {
-        path: 'team-page',
+        path: 'manage',
         loadComponent: () =>
-          import('./features/team/team-page.component').then(
-            (m) => m.TeamPageComponent,
+          import('./features/manage/manage.component').then(
+            (m) => m.ManageComponent,
           ),
+      },
+      {
+        path: 'team-page',
+        redirectTo: 'manage',
+        pathMatch: 'full' as const,
       },
       // Project routes
       {
@@ -173,10 +178,8 @@ export const routes: Routes = [
       },
       {
         path: 'team',
-        loadComponent: () =>
-          import('./features/team/team-overview/team-overview.component').then(
-            (m) => m.TeamOverviewComponent,
-          ),
+        redirectTo: 'manage',
+        pathMatch: 'full' as const,
       },
       {
         path: 'settings',
@@ -208,7 +211,7 @@ export const routes: Routes = [
   { path: 'eisenhower', canActivate: [workspaceRedirectGuard('eisenhower')], children: [] },
   { path: 'favorites', canActivate: [workspaceRedirectGuard('favorites')], children: [] },
   { path: 'archive', canActivate: [workspaceRedirectGuard('archive')], children: [] },
-  { path: 'team', canActivate: [workspaceRedirectGuard('team-page')], children: [] },
+  { path: 'team', canActivate: [workspaceRedirectGuard('manage')], children: [] },
   { path: 'help', canActivate: [workspaceRedirectGuard('help')], children: [] },
 
   {

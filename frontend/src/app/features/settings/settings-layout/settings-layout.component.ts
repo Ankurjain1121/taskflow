@@ -1,10 +1,11 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, computed } from '@angular/core';
 import {
   RouterModule,
   RouterOutlet,
   RouterLink,
   RouterLinkActive,
 } from '@angular/router';
+import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
 
 @Component({
   selector: 'app-settings-layout',
@@ -29,6 +30,14 @@ import {
             </li>
           }
         </ul>
+        @if (manageLink()) {
+          <div class="manage-link-section">
+            <a [routerLink]="manageLink()" class="manage-link">
+              <i class="pi pi-arrow-right"></i>
+              <span>Manage Workspace</span>
+            </a>
+          </div>
+        }
       </nav>
       <main class="settings-content">
         <router-outlet />
@@ -60,10 +69,35 @@ import {
 
       .sidebar-title {
         font-size: 1.25rem;
-        font-weight: 600;
+        font-weight: 700;
         color: var(--foreground);
         padding: 0 20px;
         margin: 0 0 16px;
+      }
+
+      .manage-link-section {
+        margin-top: auto;
+        padding: 16px 20px;
+        border-top: 1px solid var(--border);
+      }
+
+      .manage-link {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--primary);
+        text-decoration: none;
+        transition: opacity 0.15s;
+      }
+
+      .manage-link:hover {
+        opacity: 0.8;
+      }
+
+      .manage-link i {
+        font-size: 0.75rem;
       }
 
       .nav-list {
@@ -159,6 +193,13 @@ import {
   ],
 })
 export class SettingsLayoutComponent {
+  private ctx = inject(WorkspaceContextService);
+
+  manageLink = computed(() => {
+    const wsId = this.ctx.activeWorkspaceId();
+    return wsId ? `/workspace/${wsId}/manage` : null;
+  });
+
   navItems = [
     { path: 'profile', label: 'Profile', icon: 'pi pi-user' },
     { path: 'security', label: 'Security', icon: 'pi pi-shield' },
