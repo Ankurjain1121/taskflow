@@ -9,17 +9,20 @@ import { WorkspaceContextService } from '../services/workspace-context.service';
  *   { path: 'dashboard', canActivate: [workspaceRedirectGuard('dashboard')], children: [] }
  *
  * If the user has an active workspace, redirects to /workspace/:wsId/:targetPath.
- * If no workspace is available, redirects to /discover.
+ * If no workspace is available after initialization, redirects to /discover.
  */
 export const workspaceRedirectGuard = (targetPath: string): CanActivateFn => {
-  return () => {
+  return async () => {
     const router = inject(Router);
     const wsContext = inject(WorkspaceContextService);
+
+    // Wait for workspace context to finish loading before deciding
+    await wsContext.whenReady();
+
     const wsId = wsContext.activeWorkspaceId();
     if (wsId) {
       return router.createUrlTree(['/workspace', wsId, targetPath]);
     }
-    // No workspace yet — go to discover page
     return router.createUrlTree(['/discover']);
   };
 };

@@ -43,6 +43,7 @@ export class WorkspaceContextService {
   readonly activeWorkspaceId = signal<string | null>(null);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+  readonly initialized = signal(false);
 
   // --- Project cache: wsId -> Board[] ---
   private readonly projectCache = new Map<string, Board[]>();
@@ -104,7 +105,22 @@ export class WorkspaceContextService {
       this.setActive(resolved);
     } catch {
       this.error.set('Failed to load workspaces');
+    } finally {
+      this.initialized.set(true);
     }
+  }
+
+  /** Returns a promise that resolves when init() completes. */
+  whenReady(): Promise<void> {
+    if (this.initialized()) return Promise.resolve();
+    return new Promise((resolve) => {
+      const check = setInterval(() => {
+        if (this.initialized()) {
+          clearInterval(check);
+          resolve();
+        }
+      }, 50);
+    });
   }
 
   /** Switch active workspace and navigate. */
