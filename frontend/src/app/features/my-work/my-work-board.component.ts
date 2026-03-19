@@ -14,6 +14,7 @@ import {
   transferArrayItem,
   moveItemInArray,
 } from '@angular/cdk/drag-drop';
+import { Router } from '@angular/router';
 import {
   MyWorkBoardService,
   PersonalBoardItem,
@@ -81,6 +82,7 @@ interface ColumnConfig {
                     [task]="toCard(item)"
                     [variant]="'board'"
                     [class.board-task-landed]="landedTaskId() === item.task_id"
+                    (clicked)="onTaskClick($event)"
                   />
                 </div>
               } @empty {
@@ -111,6 +113,7 @@ interface ColumnConfig {
 })
 export class MyWorkBoardComponent implements OnInit {
   private boardService = inject(MyWorkBoardService);
+  private router = inject(Router);
 
   readonly loading = signal(false);
   readonly board = signal<PersonalBoardResponse | null>(null);
@@ -138,6 +141,10 @@ export class MyWorkBoardComponent implements OnInit {
 
   ngOnInit() {
     this.loadBoard();
+  }
+
+  onTaskClick(taskId: string): void {
+    this.router.navigate(['/task', taskId]);
   }
 
   toCard(item: PersonalBoardItem): TaskCardData {

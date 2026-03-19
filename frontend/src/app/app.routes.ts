@@ -92,8 +92,11 @@ export const routes: Routes = [
       },
       {
         path: 'eisenhower',
-        redirectTo: 'my-work',
-        pathMatch: 'full',
+        loadComponent: () =>
+          import('./features/my-work/my-work-shell.component').then(
+            (m) => m.MyWorkShellComponent,
+          ),
+        data: { defaultTab: 'matrix' },
       },
       {
         path: 'all-tasks',

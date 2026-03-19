@@ -303,7 +303,7 @@ export class SubtaskListComponent implements OnInit, OnChanges {
   }
 
   navigateToChild(child: Task): void {
-    this.router.navigate(['/tasks', child.id]);
+    this.router.navigate(['/task', child.id]);
   }
 
   getPriorityDotColor(priority: string): string {

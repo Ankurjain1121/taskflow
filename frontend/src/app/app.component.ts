@@ -29,6 +29,8 @@ import { TopNavComponent } from './shared/components/top-nav/top-nav.component';
 import { WorkspaceSettingsDialogComponent } from './features/workspace/workspace-settings/workspace-settings-dialog.component';
 import { TimerWidgetComponent } from './shared/components/timer-widget/timer-widget.component';
 import { ViewSwitcherComponent, ViewOption } from './shared/components/view-switcher/view-switcher.component';
+import { ShortcutHelpComponent } from './shared/components/shortcut-help/shortcut-help.component';
+import { QuickCreateTaskDialogComponent } from './shared/components/quick-create-task/quick-create-task-dialog.component';
 
 const routeTransition = trigger('routeAnimations', [
   transition('* <=> *', [
@@ -66,6 +68,8 @@ const routeTransition = trigger('routeAnimations', [
     CommandPaletteComponent,
     WorkspaceSettingsDialogComponent,
     ViewSwitcherComponent,
+    ShortcutHelpComponent,
+    QuickCreateTaskDialogComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.component.html',
@@ -77,6 +81,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   searchOpen = signal(false);
   viewSwitcherOpen = signal(false);
+  quickCreateOpen = signal(false);
   showSidebar = signal(false);
 
   sidebarCollapsed = signal(
@@ -183,7 +188,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onQuickCreate(): void {
-    // Will be connected to task creation dialog in a later feature
+    this.quickCreateOpen.set(true);
   }
 
   closeViewSwitcher(): void {

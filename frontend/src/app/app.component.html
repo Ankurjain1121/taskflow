@@ -68,6 +68,11 @@
 <!-- Undo Toast (for undo service) -->
 <p-toast key="undo" position="bottom-center" />
 
+<!-- Keyboard Shortcuts Help (global) -->
+@defer (on idle) {
+  <app-shortcut-help />
+}
+
 <!-- View Switcher (deferred until idle) -->
 @defer (on idle) {
   <app-view-switcher
@@ -75,6 +80,11 @@
     (closed)="closeViewSwitcher()"
     (viewSelected)="onViewSelected($event)"
   />
+}
+
+<!-- Quick Create Task Dialog (global, deferred to idle) -->
+@defer (on idle) {
+  <app-quick-create-task-dialog [(visible)]="quickCreateOpen" />
 }
 
 <!-- Workspace Settings Dialog (global, deferred to idle) -->
