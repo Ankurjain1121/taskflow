@@ -7,6 +7,9 @@
 pub mod helpers {
     use std::sync::Arc;
 
+    use std::time::Duration;
+
+    use axum::extract::DefaultBodyLimit;
     use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
     use axum::http::Method;
     use axum::middleware::from_fn_with_state;
@@ -14,6 +17,7 @@ pub mod helpers {
     use dashmap::DashMap;
     use sqlx::PgPool;
     use tower_http::cors::{AllowOrigin, CorsLayer};
+    use tower_http::timeout::TimeoutLayer;
     use uuid::Uuid;
 
     use taskflow_auth::jwt::{issue_tokens, JwtKeys};
@@ -24,9 +28,13 @@ pub mod helpers {
     use crate::routes;
     use crate::state::AppState;
 
-    /// Database URL for tests (same as DB integration tests).
-    const TEST_DB_URL: &str =
-        "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow";
+    /// Database URL for tests — loaded from .env or environment.
+    fn test_db_url() -> String {
+        let _ = dotenvy::from_path("../../.env");
+        let _ = dotenvy::dotenv();
+        std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow".to_string())
+    }
 
     /// A dummy argon2 hash used for test user passwords.
     pub const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
@@ -34,7 +42,7 @@ pub mod helpers {
     /// Build a test `Config` with sensible defaults that do NOT read env vars.
     pub fn test_config() -> Config {
         Config {
-            app_database_url: TEST_DB_URL.to_string(),
+            app_database_url: test_db_url(),
             host: "127.0.0.1".to_string(),
             port: 0,
             db_max_connections: 20,
@@ -70,7 +78,7 @@ pub mod helpers {
 
     /// Connect to the test database pool.
     pub async fn test_pool() -> PgPool {
-        PgPool::connect(TEST_DB_URL)
+        PgPool::connect(&test_db_url())
             .await
             .expect("Failed to connect to test database")
     }
@@ -362,8 +370,22 @@ pub mod helpers {
             .nest("/api", routes::project_template_router(state.clone()))
             .nest("/api", routes::automation_router(state.clone()))
             .nest("/api", routes::task_template_router(state.clone()))
-            .nest("/api", routes::export::export_router(state.clone()))
-            .nest("/api", routes::import::import_router(state.clone()))
+            .nest(
+                "/api",
+                routes::export::export_router(state.clone()).layer(TimeoutLayer::with_status_code(
+                    axum::http::StatusCode::REQUEST_TIMEOUT,
+                    Duration::from_secs(120),
+                )),
+            )
+            .nest(
+                "/api",
+                routes::import::import_router(state.clone())
+                    .layer(DefaultBodyLimit::max(50 * 1024 * 1024))
+                    .layer(TimeoutLayer::with_status_code(
+                        axum::http::StatusCode::REQUEST_TIMEOUT,
+                        Duration::from_secs(120),
+                    )),
+            )
             .nest("/api", routes::project_share_router(state.clone()))
             .nest("/api", routes::shared_project_public_router())
             .nest("/api", routes::webhook_router(state.clone()))
@@ -379,6 +401,11 @@ pub mod helpers {
                 routes::board_positions_router(state.clone()),
             )
             .nest("/api/positions", routes::positions_router(state.clone()))
+            .layer(DefaultBodyLimit::max(10 * 1024 * 1024))
+            .layer(TimeoutLayer::with_status_code(
+                axum::http::StatusCode::REQUEST_TIMEOUT,
+                Duration::from_secs(30),
+            ))
             .layer(cors)
             .with_state(state)
     }

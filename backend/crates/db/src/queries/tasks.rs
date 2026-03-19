@@ -40,6 +40,7 @@ pub struct CreateTaskInput {
     pub assignee_ids: Option<Vec<Uuid>>,
     pub label_ids: Option<Vec<Uuid>>,
     pub parent_task_id: Option<Uuid>,
+    pub reporting_person_id: Option<Uuid>,
 }
 
 /// Input for updating an existing task
@@ -152,7 +153,7 @@ pub async fn list_tasks_by_board(
             t.estimated_hours, t.project_id, t.task_list_id, t.status_id, t.position,
             t.milestone_id, t.task_number, t.eisenhower_urgency, t.eisenhower_importance,
             t.tenant_id, t.created_by_id, t.deleted_at, t.created_at, t.updated_at,
-            t.version, t.parent_task_id, t.depth
+            t.version, t.parent_task_id, t.depth, t.reporting_person_id
         FROM tasks t
         LEFT JOIN task_lists tl ON tl.id = t.task_list_id
         WHERE t.project_id = $1 AND t.deleted_at IS NULL AND t.parent_task_id IS NULL
@@ -206,7 +207,7 @@ pub async fn get_task_by_id(
             estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth
+            version, parent_task_id, depth, reporting_person_id
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -352,9 +353,9 @@ pub async fn create_task(
         .await?
         .ok_or_else(|| TaskQueryError::Other("Parent task not found".to_string()))?;
         let child_depth = parent_depth + 1;
-        if child_depth > 2 {
+        if child_depth > 5 {
             return Err(TaskQueryError::Other(
-                "Maximum nesting depth of 2 exceeded".to_string(),
+                "Maximum subtask depth of 5 levels exceeded".to_string(),
             ));
         }
         (Some(pid), child_depth)
@@ -367,16 +368,17 @@ pub async fn create_task(
         r#"
         INSERT INTO tasks (id, title, description, priority, due_date, start_date,
                           estimated_hours, project_id, status_id, task_list_id, position,
-                          milestone_id, task_number, tenant_id, created_by_id, parent_task_id, depth)
+                          milestone_id, task_number, tenant_id, created_by_id, parent_task_id, depth,
+                          reporting_person_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
                 COALESCE((SELECT MAX(task_number) FROM tasks WHERE project_id = $8), 0) + 1,
-                $13, $14, $15, $16)
+                $13, $14, $15, $16, $17)
         RETURNING
             id, title, description, priority, due_date, start_date,
             estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth
+            version, parent_task_id, depth, reporting_person_id
         "#,
     )
     .bind(task_id)
@@ -395,6 +397,7 @@ pub async fn create_task(
     .bind(created_by_id)
     .bind(parent_task_id)
     .bind(depth)
+    .bind(input.reporting_person_id)
     .fetch_one(pool)
     .await?;
 
@@ -464,7 +467,7 @@ pub async fn update_task(
             estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth
+            version, parent_task_id, depth, reporting_person_id
         "#,
     )
     .bind(task_id)
@@ -496,7 +499,7 @@ pub async fn update_task(
                            estimated_hours, project_id, task_list_id, status_id, position,
                            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
                            tenant_id, created_by_id, deleted_at, created_at, updated_at,
-                           version, parent_task_id, depth
+                           version, parent_task_id, depth, reporting_person_id
                     FROM tasks WHERE id = $1 AND deleted_at IS NULL
                     "#,
                 )
@@ -529,7 +532,7 @@ pub async fn update_task_status(
             estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth
+            version, parent_task_id, depth, reporting_person_id
         "#,
     )
     .bind(task_id)
@@ -557,7 +560,7 @@ pub async fn update_task_list(
             estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth
+            version, parent_task_id, depth, reporting_person_id
         "#,
     )
     .bind(task_id)
@@ -610,7 +613,7 @@ pub async fn move_task(
             estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth
+            version, parent_task_id, depth, reporting_person_id
         "#,
     )
     .bind(task_id)
@@ -637,7 +640,7 @@ pub async fn duplicate_task(
             estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth
+            version, parent_task_id, depth, reporting_person_id
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -681,7 +684,7 @@ pub async fn duplicate_task(
             estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth
+            version, parent_task_id, depth, reporting_person_id
         "#,
     )
     .bind(new_id)
@@ -796,7 +799,7 @@ pub async fn move_task_to_project(
             estimated_hours, project_id, task_list_id, status_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth
+            version, parent_task_id, depth, reporting_person_id
         "#,
     )
     .bind(task_id)
@@ -869,7 +872,7 @@ pub async fn list_child_tasks(
            estimated_hours, project_id, task_list_id, status_id, position,
            milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
            tenant_id, created_by_id, deleted_at,
-           created_at, updated_at, version, parent_task_id, depth
+           created_at, updated_at, version, parent_task_id, depth, reporting_person_id
         FROM tasks
         WHERE parent_task_id = $1 AND deleted_at IS NULL
         ORDER BY position ASC"#,
@@ -891,7 +894,7 @@ pub async fn get_task_row(pool: &PgPool, task_id: Uuid) -> Result<Option<Task>, 
             project_id, status_id, task_list_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at, created_at, updated_at,
-            version, parent_task_id, depth
+            version, parent_task_id, depth, reporting_person_id
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,

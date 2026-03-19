@@ -12,6 +12,10 @@ use uuid::Uuid;
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
+use crate::routes::validation::{
+    validate_optional_string, validate_required_string, MAX_DESCRIPTION_LEN, MAX_NAME_LEN,
+    MAX_SHORT_NAME_LEN,
+};
 use crate::state::AppState;
 use taskflow_db::models::{Subtask, SubtaskWithAssignee, Task};
 use taskflow_db::queries::get_task_project_id;
@@ -118,9 +122,7 @@ async fn create_subtask_handler(
     // Verify board membership through task
     verify_task_board_membership(&state, task_id, tenant.user_id).await?;
 
-    if body.title.trim().is_empty() {
-        return Err(AppError::BadRequest("Title cannot be empty".into()));
-    }
+    validate_required_string("Title", &body.title, MAX_SHORT_NAME_LEN)?;
 
     let subtask = create_subtask(
         &state.db,
@@ -151,9 +153,7 @@ async fn update_subtask_handler(
     verify_subtask_board_membership(&state, subtask_id, tenant.user_id).await?;
 
     if let Some(ref title) = body.title {
-        if title.trim().is_empty() {
-            return Err(AppError::BadRequest("Title cannot be empty".into()));
-        }
+        validate_required_string("Title", title, MAX_SHORT_NAME_LEN)?;
     }
 
     let assigned_to = if body.clear_assigned_to.unwrap_or(false) {
@@ -349,9 +349,12 @@ async fn create_child_task_handler(
     // Verify board membership
     verify_task_board_membership(&state, task_id, tenant.user_id).await?;
 
-    if body.title.trim().is_empty() {
-        return Err(AppError::BadRequest("Title cannot be empty".into()));
-    }
+    validate_required_string("Title", &body.title, MAX_NAME_LEN)?;
+    validate_optional_string(
+        "Description",
+        body.description.as_deref(),
+        MAX_DESCRIPTION_LEN,
+    )?;
 
     // Get parent task to inherit project_id, status_id, task_list_id, and validate depth
     let parent = sqlx::query_as::<_, Task>(
@@ -360,7 +363,7 @@ async fn create_child_task_handler(
                estimated_hours, project_id, status_id, task_list_id, position,
                milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
                tenant_id, created_by_id, deleted_at,
-               created_at, updated_at, version, parent_task_id, depth
+               created_at, updated_at, version, parent_task_id, depth, reporting_person_id
         FROM tasks
         WHERE id = $1 AND deleted_at IS NULL
         "#,
@@ -371,9 +374,9 @@ async fn create_child_task_handler(
     .ok_or_else(|| AppError::NotFound("Parent task not found".into()))?;
 
     let child_depth = parent.depth + 1;
-    if child_depth > 2 {
+    if child_depth > crate::routes::validation::MAX_SUBTASK_DEPTH {
         return Err(AppError::BadRequest(
-            "Maximum nesting depth (2) exceeded".into(),
+            "Maximum subtask depth of 5 levels exceeded".into(),
         ));
     }
 
@@ -407,7 +410,7 @@ async fn create_child_task_handler(
             estimated_hours, project_id, status_id, task_list_id, position,
             milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
             tenant_id, created_by_id, deleted_at,
-            created_at, updated_at, version, parent_task_id, depth
+            created_at, updated_at, version, parent_task_id, depth, reporting_person_id
         "#,
     )
     .bind(&body.title)

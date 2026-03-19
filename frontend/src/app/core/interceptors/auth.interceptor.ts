@@ -44,7 +44,8 @@ export const authInterceptor: HttpInterceptorFn = (
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401 && !req.url.includes('/auth/')) {
+      const isOnAuthPage = router.url.startsWith('/auth') || router.url.startsWith('/onboarding');
+      if (error.status === 401 && !req.url.includes('/auth/') && !isOnAuthPage) {
         return authService.refresh().pipe(
           switchMap(() => {
             const freshCsrf = authService.csrfToken();

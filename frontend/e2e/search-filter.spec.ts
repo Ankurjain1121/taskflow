@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { signUpAndOnboard } from './helpers/auth';
+import { signUpAndOnboard, signInTestUser } from './helpers/auth';
 import { navigateToFirstBoard, createTaskViaUI } from './helpers/data-factory';
 
 /**
@@ -13,12 +13,16 @@ import { navigateToFirstBoard, createTaskViaUI } from './helpers/data-factory';
  * - Quick filter bar interaction
  */
 
-/** Helper: navigate to board and create seed tasks */
+let testEmail: string;
+
+/** Helper: sign in and navigate to board, then create seed tasks */
 async function setupBoardWithTasks(
   page: Page,
   tasks: string[],
 ): Promise<void> {
-  await signUpAndOnboard(page, `Filter WS ${Date.now()}`);
+  await signInTestUser(page, testEmail);
+  await page.goto('/dashboard');
+  await page.waitForLoadState('networkidle').catch(() => {});
   await navigateToFirstBoard(page);
 
   for (const title of tasks) {
@@ -27,8 +31,17 @@ async function setupBoardWithTasks(
 }
 
 test.describe('Search & Filtering', () => {
+  test.beforeAll(async ({ browser }) => {
+    test.setTimeout(120000);
+    const page = await browser.newPage();
+    testEmail = await signUpAndOnboard(page, 'Search Filter WS');
+    await page.close();
+  });
+
   test('search input is visible on board toolbar', async ({ page }) => {
-    await signUpAndOnboard(page, 'Search UI WS');
+    await signInTestUser(page, testEmail);
+    await page.goto('/dashboard');
+    await page.waitForLoadState('networkidle').catch(() => {});
     await navigateToFirstBoard(page);
 
     // The search input should be present in the toolbar
@@ -115,7 +128,9 @@ test.describe('Search & Filtering', () => {
   });
 
   test('keyboard shortcut F focuses search input', async ({ page }) => {
-    await signUpAndOnboard(page, 'Shortcut WS');
+    await signInTestUser(page, testEmail);
+    await page.goto('/dashboard');
+    await page.waitForLoadState('networkidle').catch(() => {});
     await navigateToFirstBoard(page);
 
     // Press F to focus search (board shortcut)
@@ -129,7 +144,9 @@ test.describe('Search & Filtering', () => {
   test('view mode buttons are visible (Kanban, List, Calendar)', async ({
     page,
   }) => {
-    await signUpAndOnboard(page, 'View Mode WS');
+    await signInTestUser(page, testEmail);
+    await page.goto('/dashboard');
+    await page.waitForLoadState('networkidle').catch(() => {});
     await navigateToFirstBoard(page);
 
     // View mode buttons are icon buttons with title attributes
@@ -142,7 +159,9 @@ test.describe('Search & Filtering', () => {
   });
 
   test('New Task button opens create task dialog', async ({ page }) => {
-    await signUpAndOnboard(page, 'NewTask Btn WS');
+    await signInTestUser(page, testEmail);
+    await page.goto('/dashboard');
+    await page.waitForLoadState('networkidle').catch(() => {});
     await navigateToFirstBoard(page);
 
     const newTaskBtn = page.locator('button:has-text("New Task")');

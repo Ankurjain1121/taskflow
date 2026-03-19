@@ -25,6 +25,9 @@ use super::task_helpers::{
     broadcast_workspace_task_update, get_workspace_id_for_board, sanitize_html, CreateTaskRequest,
     ListTasksResponse, UpdateTaskRequest,
 };
+use super::validation::{
+    validate_optional_string, validate_required_string, MAX_DESCRIPTION_LEN, MAX_NAME_LEN,
+};
 
 /// GET /api/boards/:board_id/tasks
 /// List all tasks for a board, grouped by column
@@ -89,6 +92,14 @@ pub async fn create_task_handler(
     // Verify board membership first
     verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
+    // Validate string lengths
+    validate_required_string("Title", &body.title, MAX_NAME_LEN)?;
+    validate_optional_string(
+        "Description",
+        body.description.as_deref(),
+        MAX_DESCRIPTION_LEN,
+    )?;
+
     let input = CreateTaskInput {
         title: body.title,
         description: body.description.map(|d| sanitize_html(&d)),
@@ -102,6 +113,7 @@ pub async fn create_task_handler(
         assignee_ids: body.assignee_ids.clone(),
         label_ids: body.label_ids,
         parent_task_id: body.parent_task_id,
+        reporting_person_id: body.reporting_person_id,
     };
 
     let task = create_task(&state.db, board_id, input, tenant.tenant_id, tenant.user_id)
@@ -193,6 +205,16 @@ pub async fn update_task_handler(
 
     // Verify board membership
     verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+
+    // Validate string lengths
+    if let Some(ref title) = body.title {
+        validate_required_string("Title", title, MAX_NAME_LEN)?;
+    }
+    validate_optional_string(
+        "Description",
+        body.description.as_deref(),
+        MAX_DESCRIPTION_LEN,
+    )?;
 
     let priority_changed = body.priority.is_some();
     let due_date_changed = body.due_date.is_some() || body.clear_due_date.unwrap_or(false);

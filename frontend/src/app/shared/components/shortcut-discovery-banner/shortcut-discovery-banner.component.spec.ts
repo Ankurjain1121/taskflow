@@ -105,6 +105,7 @@ describe('ShortcutDiscoveryBannerComponent', () => {
 
       helpRequestedSignal.set(1);
       TestBed.flushEffects();
+      fixture.detectChanges();
 
       expect(component.visible()).toBe(false);
     });

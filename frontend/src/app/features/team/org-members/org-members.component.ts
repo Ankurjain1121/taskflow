@@ -389,6 +389,7 @@ export class OrgMembersComponent {
   }
 
   getInitials(name: string): string {
+    if (!name) return '?';
     return name
       .split(' ')
       .map((p) => p[0])

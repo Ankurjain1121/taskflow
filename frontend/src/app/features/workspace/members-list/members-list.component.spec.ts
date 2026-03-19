@@ -194,10 +194,10 @@ describe('MembersListComponent', () => {
   });
 
   it('should get role badge classes', () => {
-    expect(component.getRoleBadgeClass('owner')).toContain('purple');
-    expect(component.getRoleBadgeClass('admin')).toContain('blue');
-    expect(component.getRoleBadgeClass('member')).toContain('gray');
-    expect(component.getRoleBadgeClass('unknown')).toContain('gray');
+    expect(component.getRoleBadgeClass('owner')).toContain('7c3aed');
+    expect(component.getRoleBadgeClass('admin')).toContain('status-blue');
+    expect(component.getRoleBadgeClass('member')).toContain('muted');
+    expect(component.getRoleBadgeClass('unknown')).toContain('muted');
   });
 
   it('should get status labels', () => {
@@ -208,10 +208,10 @@ describe('MembersListComponent', () => {
   });
 
   it('should get status badge classes', () => {
-    expect(component.getStatusBadgeClass('pending')).toContain('yellow');
-    expect(component.getStatusBadgeClass('accepted')).toContain('green');
-    expect(component.getStatusBadgeClass('expired')).toContain('red');
-    expect(component.getStatusBadgeClass('unknown')).toContain('gray');
+    expect(component.getStatusBadgeClass('pending')).toContain('status-amber');
+    expect(component.getStatusBadgeClass('accepted')).toContain('status-green');
+    expect(component.getStatusBadgeClass('expired')).toContain('status-red');
+    expect(component.getStatusBadgeClass('unknown')).toContain('muted');
   });
 
   it('should format date', () => {

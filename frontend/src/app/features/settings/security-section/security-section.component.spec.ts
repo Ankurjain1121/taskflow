@@ -4,12 +4,14 @@ import { of, throwError } from 'rxjs';
 import { SecuritySectionComponent } from './security-section.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { SessionService } from '../../../core/services/session.service';
+import { TwoFactorService } from '../../../core/services/two-factor.service';
 
 describe('SecuritySectionComponent', () => {
   let component: SecuritySectionComponent;
   let fixture: ComponentFixture<SecuritySectionComponent>;
   let mockAuthService: any;
   let mockSessionService: any;
+  let mockTwoFactorService: any;
 
   beforeEach(async () => {
     mockAuthService = {
@@ -41,11 +43,19 @@ describe('SecuritySectionComponent', () => {
       revokeAllOtherSessions: vi.fn().mockReturnValue(of({ revoked_count: 1 })),
     };
 
+    mockTwoFactorService = {
+      getStatus: vi.fn().mockReturnValue(of({ enabled: false })),
+      setup: vi.fn().mockReturnValue(of({ secret: 'SECRET', otpauth_uri: 'otpauth://...' })),
+      verify: vi.fn().mockReturnValue(of({ recovery_codes: ['code1', 'code2'] })),
+      disable: vi.fn().mockReturnValue(of({ message: 'ok' })),
+    };
+
     await TestBed.configureTestingModule({
       imports: [SecuritySectionComponent],
       providers: [
         { provide: AuthService, useValue: mockAuthService },
         { provide: SessionService, useValue: mockSessionService },
+        { provide: TwoFactorService, useValue: mockTwoFactorService },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();

@@ -68,7 +68,9 @@ import { TaskCardTitleEditComponent } from './task-card-title-edit.component';
       (contextmenu)="onRightClick($event)"
       class="task-card rounded-lg border border-[var(--border)] cursor-grab group relative overflow-hidden"
       [attr.data-task-id]="task().id"
-      [style.border-top]="'3px solid ' + getBorderColor()"
+      [style.border-top]="stripeColor() ? 'none' : '3px solid ' + getBorderColor()"
+      [style.border-left]="stripeColor() ? '4px solid ' + stripeColor() : 'none'"
+      [attr.aria-label]="stripeColor() ? 'Task: ' + task().title : null"
       [class.task-card--urgent]="task().priority === 'urgent'"
       [class.task-card--high]="task().priority === 'high'"
       [class.task-card--medium]="task().priority === 'medium'"
@@ -981,7 +983,13 @@ import { TaskCardTitleEditComponent } from './task-card-title-edit.component';
         background: var(--card, #ffffff);
         box-shadow: 0 1px 0
           color-mix(in srgb, var(--foreground) 12%, transparent);
-        transition: background 0.15s ease;
+        transition: background 0.15s ease, border-color 200ms ease, border-left-color 200ms ease;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .task-card {
+          transition: none;
+        }
       }
 
       .task-card:hover {
@@ -1074,6 +1082,7 @@ export class TaskCardComponent {
   density = input<'compact' | 'normal' | 'expanded'>('normal');
   lockedBy = input<TaskLockInfo | null>(null);
   cardFields = input<CardFields>(DEFAULT_CARD_FIELDS);
+  stripeColor = input<string | null>(null);
 
   readonly daysInColumn = computed(() => {
     // column_entered_at was removed in schema refactor; always return 0

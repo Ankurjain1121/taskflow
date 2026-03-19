@@ -110,9 +110,10 @@ describe('MemberDetailComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  describe('ngOnInit', () => {
-    it('should load member and workload data', () => {
-      component.ngOnInit();
+  describe('data loading', () => {
+    it('should load member and workload data on init', () => {
+      // Effect triggers via toSignal; flush it with detectChanges
+      fixture.detectChanges();
       expect(component.workspaceId).toBe('ws-1');
       expect(component.userId).toBe('u-1');
       expect(component.member()).toBeTruthy();
@@ -131,7 +132,7 @@ describe('MemberDetailComponent', () => {
         updated_at: '2025-01-01',
         members: [],
       }));
-      component.ngOnInit();
+      fixture.detectChanges();
       expect(component.member()).toBeNull();
     });
 
@@ -139,7 +140,10 @@ describe('MemberDetailComponent', () => {
       mockWorkspaceService.get.mockReturnValue(
         throwError(() => new Error('fail')),
       );
-      component.ngOnInit();
+      mockTeamService.getTeamWorkload.mockReturnValue(
+        throwError(() => new Error('fail')),
+      );
+      fixture.detectChanges();
       expect(component.loading()).toBe(false);
     });
   });

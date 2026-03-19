@@ -19,6 +19,9 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 use super::common::MessageResponse;
+use super::validation::{
+    validate_optional_string, validate_required_string, MAX_NAME_LEN, MAX_PROJECT_DESCRIPTION_LEN,
+};
 
 // ============================================================================
 // Request/Response DTOs
@@ -125,10 +128,14 @@ async fn create_team(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
+    validate_required_string("Team name", &payload.name, MAX_NAME_LEN)?;
+    validate_optional_string(
+        "Description",
+        payload.description.as_deref(),
+        MAX_PROJECT_DESCRIPTION_LEN,
+    )?;
+
     let name = payload.name.trim();
-    if name.is_empty() {
-        return Err(AppError::BadRequest("Team name is required".into()));
-    }
 
     let color = payload.color.as_deref().unwrap_or("#6366F1");
     if color.len() != 7
@@ -243,10 +250,14 @@ async fn update_team(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
+    validate_required_string("Team name", &payload.name, MAX_NAME_LEN)?;
+    validate_optional_string(
+        "Description",
+        payload.description.as_deref(),
+        MAX_PROJECT_DESCRIPTION_LEN,
+    )?;
+
     let name = payload.name.trim();
-    if name.is_empty() {
-        return Err(AppError::BadRequest("Team name is required".into()));
-    }
 
     let color = payload.color.as_deref().unwrap_or(&team.color);
     if color.len() != 7

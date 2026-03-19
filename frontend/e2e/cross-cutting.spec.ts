@@ -1,9 +1,20 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndOnboard } from './helpers/auth';
+import { signUpAndOnboard, signInTestUser } from './helpers/auth';
 
 test.describe('Cross-Cutting Features', () => {
+  let testEmail: string;
+
+  test.beforeAll(async ({ browser }, testInfo) => {
+    testInfo.setTimeout(120_000);
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    testEmail = await signUpAndOnboard(page, 'Cross-Cut WS');
+    await page.close();
+    await context.close();
+  });
+
   test.beforeEach(async ({ page }) => {
-    await signUpAndOnboard(page, 'Cross-Cut WS');
+    await signInTestUser(page, testEmail);
   });
 
   test('sidebar shows Home nav item', async ({ page }) => {
@@ -17,9 +28,9 @@ test.describe('Cross-Cutting Features', () => {
   });
 
   test('sidebar shows workspace section', async ({ page }) => {
-    // The sidebar should show workspaces - look for a workspace link in the sidebar
-    const workspaceLink = page.locator('a[href*="/workspace/"]').first();
-    await expect(workspaceLink).toBeVisible({ timeout: 15000 });
+    // The sidebar should show projects - look for a project link in the sidebar
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
   });
 
   test('sidebar Favorites link navigates to /favorites', async ({ page }) => {
@@ -57,8 +68,9 @@ test.describe('Cross-Cutting Features', () => {
   test('sign out from sidebar removes session and redirects to sign-in', async ({
     page,
   }) => {
-    // The sign out button is in the user section at the bottom of the sidebar
-    const signOutButton = page.locator('button[title="Sign out"]');
+    // Open profile popup first, then click Sign Out
+    await page.locator('app-sidebar-footer button .pi-chevron-up').first().click();
+    const signOutButton = page.locator('button:has-text("Sign Out")');
     await expect(signOutButton).toBeVisible({ timeout: 10000 });
 
     await signOutButton.click();
@@ -71,7 +83,8 @@ test.describe('Cross-Cutting Features', () => {
     page,
   }) => {
     // Sign out first
-    const signOutButton = page.locator('button[title="Sign out"]');
+    await page.locator('app-sidebar-footer button .pi-chevron-up').first().click();
+    const signOutButton = page.locator('button:has-text("Sign Out")');
     await expect(signOutButton).toBeVisible({ timeout: 10000 });
     await signOutButton.click();
 
@@ -90,7 +103,7 @@ test.describe('Cross-Cutting Features', () => {
     // The wildcard route redirects to /dashboard - wait for Angular router
     await page.waitForLoadState('domcontentloaded');
 
-    // Wait for the redirect to complete (Angular router handles ** → /dashboard)
+    // Wait for the redirect to complete (Angular router handles ** -> /dashboard)
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
   });
 

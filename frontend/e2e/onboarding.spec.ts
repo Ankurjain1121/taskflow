@@ -166,15 +166,15 @@ test.describe('Onboarding Flow', () => {
       ),
     ).toBeVisible({ timeout: 10000 });
 
-    // The sidebar or workspace section should contain our workspace name
+    // The sidebar should contain our workspace name or project items
     const sidebarOrContent = page.locator('text=Sidebar Check WS');
     const workspaceVisible = await sidebarOrContent
       .isVisible({ timeout: 5000 })
       .catch(() => false);
 
-    // Also check via the workspaces heading area
-    const workspacesSection = page.locator('text=Your Workspaces');
-    await expect(workspacesSection).toBeVisible({ timeout: 10000 });
+    // Also check via the sidebar projects section
+    const projectItem = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectItem).toBeVisible({ timeout: 10000 });
   });
 });
 
@@ -210,25 +210,11 @@ test.describe('Onboarding - Already Onboarded', () => {
   }) => {
     await signUpAndOnboard(page, 'Default Columns WS');
 
-    // Navigate to workspace
-    await expect(page.locator('text=Your Workspaces')).toBeVisible({
-      timeout: 15000,
-    });
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await expect(page).toHaveURL(/\/workspace\//, { timeout: 15000 });
-
-    // Navigate to the sample board
-    await page.waitForLoadState('domcontentloaded');
-    await expect(page.locator('h2:has-text("Boards")')).toBeVisible({
-      timeout: 20000,
-    });
-    const boardCard = page.locator('a[href*="/board/"]').first();
-    await expect(boardCard).toBeVisible({ timeout: 10000 });
-    await boardCard.click();
-
-    await expect(page).toHaveURL(/\/workspace\/.*\/board\//, {
-      timeout: 15000,
-    });
+    // Navigate to project via sidebar
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
+    await projectLink.click();
+    await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
     await page.waitForLoadState('domcontentloaded');
 
     // Verify board columns exist - the sample board creates 4 columns

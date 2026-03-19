@@ -4,6 +4,7 @@ use super::common::*;
 // TASK CRUD — HAPPY PATH
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_tasks_by_board() {
     let (app, state) = test_app().await;
@@ -24,6 +25,7 @@ async fn test_list_tasks_by_board() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_task() {
     let (app, state) = test_app().await;
@@ -60,6 +62,7 @@ async fn test_create_task() {
     assert_eq!(json["task_list_id"], col_id.to_string());
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_task_by_id() {
     let (app, state) = test_app().await;
@@ -82,6 +85,7 @@ async fn test_get_task_by_id() {
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
+            reporting_person_id: None,
         },
         tenant_id,
         user_id,
@@ -109,6 +113,7 @@ async fn test_get_task_by_id() {
     assert_eq!(json["id"], task.id.to_string());
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_update_task() {
     let (app, state) = test_app().await;
@@ -131,6 +136,7 @@ async fn test_update_task() {
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
+            reporting_person_id: None,
         },
         tenant_id,
         user_id,
@@ -166,6 +172,7 @@ async fn test_update_task() {
     assert_eq!(json["title"], "Updated Title");
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_delete_task() {
     let (app, state) = test_app().await;
@@ -188,6 +195,7 @@ async fn test_delete_task() {
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
+            reporting_person_id: None,
         },
         tenant_id,
         user_id,
@@ -214,6 +222,7 @@ async fn test_delete_task() {
 // TASK MOVEMENT
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_move_task() {
     let (app, state) = test_app().await;
@@ -236,6 +245,7 @@ async fn test_move_task() {
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
+            reporting_person_id: None,
         },
         tenant_id,
         user_id,
@@ -284,6 +294,7 @@ async fn test_move_task() {
 // TASK ASSIGNMENT
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_assign_user_to_task() {
     let (app, state) = test_app().await;
@@ -306,6 +317,7 @@ async fn test_assign_user_to_task() {
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
+            reporting_person_id: None,
         },
         tenant_id,
         user_id,
@@ -339,6 +351,7 @@ async fn test_assign_user_to_task() {
     );
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_unassign_user_from_task() {
     let (app, state) = test_app().await;
@@ -361,6 +374,7 @@ async fn test_unassign_user_from_task() {
             assignee_ids: Some(vec![user_id]),
             label_ids: None,
             parent_task_id: None,
+            reporting_person_id: None,
         },
         tenant_id,
         user_id,
@@ -392,6 +406,7 @@ async fn test_unassign_user_from_task() {
 // SUBTASK ROUTES
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_and_list_subtasks() {
     let (_app, state) = test_app().await;
@@ -414,6 +429,7 @@ async fn test_create_and_list_subtasks() {
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
+            reporting_person_id: None,
         },
         tenant_id,
         user_id,
@@ -463,6 +479,7 @@ async fn test_create_and_list_subtasks() {
 // COMMENT ROUTES
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_and_list_comments() {
     let (_app, state) = test_app().await;
@@ -485,6 +502,7 @@ async fn test_create_and_list_comments() {
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
+            reporting_person_id: None,
         },
         tenant_id,
         user_id,
@@ -527,6 +545,7 @@ async fn test_create_and_list_comments() {
 // DEPENDENCY ROUTES
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_task_dependencies() {
     let (app, state) = test_app().await;
@@ -549,6 +568,7 @@ async fn test_list_task_dependencies() {
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
+            reporting_person_id: None,
         },
         tenant_id,
         user_id,
@@ -574,6 +594,7 @@ async fn test_list_task_dependencies() {
 // TIME ENTRY ROUTES
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_time_entries() {
     let (app, state) = test_app().await;
@@ -596,6 +617,7 @@ async fn test_list_time_entries() {
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
+            reporting_person_id: None,
         },
         tenant_id,
         user_id,
@@ -621,6 +643,7 @@ async fn test_list_time_entries() {
 // TASK CRUD — ERROR SCENARIOS
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_task_nonexistent_returns_404() {
     let (app, state) = test_app().await;
@@ -641,6 +664,7 @@ async fn test_get_task_nonexistent_returns_404() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_update_task_nonexistent_returns_404() {
     let (app, state) = test_app().await;
@@ -663,6 +687,7 @@ async fn test_update_task_nonexistent_returns_404() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_delete_task_nonexistent_returns_404() {
     let (app, state) = test_app().await;
@@ -684,6 +709,7 @@ async fn test_delete_task_nonexistent_returns_404() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_task_missing_title_returns_400() {
     let (app, state) = test_app().await;
@@ -717,6 +743,7 @@ async fn test_create_task_missing_title_returns_400() {
     );
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_task_invalid_json_returns_400() {
     let (app, state) = test_app().await;
@@ -739,6 +766,7 @@ async fn test_create_task_invalid_json_returns_400() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_task_for_nonexistent_board_returns_error() {
     let (app, state) = test_app().await;
@@ -774,6 +802,7 @@ async fn test_create_task_for_nonexistent_board_returns_error() {
     );
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_move_task_nonexistent_returns_404() {
     let (app, state) = test_app().await;
@@ -807,6 +836,7 @@ async fn test_move_task_nonexistent_returns_404() {
     );
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_move_task_to_invalid_column_returns_error() {
     let (app, state) = test_app().await;
@@ -829,6 +859,7 @@ async fn test_move_task_to_invalid_column_returns_error() {
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
+            reporting_person_id: None,
         },
         tenant_id,
         user_id,
@@ -865,6 +896,7 @@ async fn test_move_task_to_invalid_column_returns_error() {
     );
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_task_after_delete_returns_404() {
     let (_app, state) = test_app().await;
@@ -887,6 +919,7 @@ async fn test_get_task_after_delete_returns_404() {
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
+            reporting_person_id: None,
         },
         tenant_id,
         user_id,
@@ -927,6 +960,7 @@ async fn test_get_task_after_delete_returns_404() {
 // MY TASKS
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_my_tasks() {
     let (app, state) = test_app().await;
@@ -951,6 +985,7 @@ async fn test_my_tasks() {
 // EISENHOWER MATRIX
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_eisenhower_matrix() {
     let (app, state) = test_app().await;

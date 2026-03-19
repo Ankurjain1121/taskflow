@@ -143,4 +143,5 @@ pub use workspace_export::workspace_export_router;
 pub use workspace_job_roles::workspace_job_roles_router;
 pub use workspace_labels::workspace_labels_router;
 pub use workspace_tasks::workspace_tasks_router;
+pub mod validation;
 pub use workspace_trash::workspace_trash_router;

@@ -299,9 +299,9 @@ test.describe('Authentication - Sign In', () => {
       ),
     ).toBeVisible({ timeout: 10000 });
 
-    // The sidebar has a sign-out icon button with title="Sign out"
-    const signOutBtn = page.locator('button[title="Sign out"]');
-    await signOutBtn.click({ timeout: 5000 });
+    // Open the profile popup in the sidebar footer, then click Sign Out
+    await page.locator('app-sidebar-footer button:has(.pi-chevron-up)').first().click({ timeout: 5000 });
+    await page.locator('button:has-text("Sign Out")').click({ timeout: 5000 });
 
     // Should redirect to sign-in
     await expect(page).toHaveURL(/\/auth\/sign-in/, { timeout: 15000 });

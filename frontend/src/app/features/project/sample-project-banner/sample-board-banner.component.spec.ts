@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { SampleProjectBannerComponent } from './sample-board-banner.component';
 import { ProjectService } from '../../../core/services/project.service';
+import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
 
 // Minimal stub component for catch-all route, suppressing NG04002 console noise.
 @Component({ standalone: true, template: '' })
@@ -54,6 +55,10 @@ describe('SampleProjectBannerComponent', () => {
     deleteBoard: vi.fn(),
   };
 
+  const mockWsContext = {
+    activeWorkspaceId: vi.fn().mockReturnValue(null),
+  };
+
   const BOARD_ID = 'board-42';
   const STORAGE_KEY = `tf_sample_banner_dismissed_${BOARD_ID}`;
 
@@ -68,7 +73,10 @@ describe('SampleProjectBannerComponent', () => {
           { path: '**', component: StubRouteComponent },
         ]),
       ],
-      providers: [{ provide: ProjectService, useValue: mockProjectService }],
+      providers: [
+        { provide: ProjectService, useValue: mockProjectService },
+        { provide: WorkspaceContextService, useValue: mockWsContext },
+      ],
     }).compileComponents();
 
     router = TestBed.inject(Router);

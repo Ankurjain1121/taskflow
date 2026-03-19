@@ -72,7 +72,11 @@ describe('StepWelcomeComponent', () => {
     it('should navigate to dashboard on success', () => {
       mockOnboardingService.completeOnboarding.mockReturnValue(of(undefined));
       component.exploreExisting();
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/dashboard']);
+      expect(mockRouter.navigate).toHaveBeenCalledWith([
+        '/workspace',
+        'ws-1',
+        'dashboard',
+      ]);
       expect(component.isLoading).toBe(false);
     });
 

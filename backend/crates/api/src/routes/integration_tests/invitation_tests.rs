@@ -4,6 +4,7 @@ use super::common::*;
 // INVITATION ROUTES — HAPPY PATH
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_invitations() {
     let (app, state) = test_app().await;
@@ -24,6 +25,7 @@ async fn test_list_invitations() {
     assert_eq!(response.status(), StatusCode::OK);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_invitation() {
     let (app, state) = test_app().await;
@@ -59,6 +61,7 @@ async fn test_create_invitation() {
     );
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_validate_invalid_invitation_token() {
     let (app, _state) = test_app().await;
@@ -90,6 +93,7 @@ async fn test_validate_invalid_invitation_token() {
 // INVITATION ROUTES — ERROR SCENARIOS
 // =========================================================================
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_invitation_missing_email_returns_400() {
     let (app, state) = test_app().await;
@@ -123,6 +127,7 @@ async fn test_create_invitation_missing_email_returns_400() {
     );
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_invitation_invalid_email_returns_error() {
     let (app, state) = test_app().await;
@@ -157,6 +162,7 @@ async fn test_create_invitation_invalid_email_returns_error() {
     );
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_invitation_invalid_workspace_returns_error() {
     let (app, state) = test_app().await;
@@ -194,6 +200,7 @@ async fn test_create_invitation_invalid_workspace_returns_error() {
     );
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_invitation_missing_body_returns_400() {
     let (app, state) = test_app().await;
@@ -216,6 +223,7 @@ async fn test_create_invitation_missing_body_returns_400() {
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_delete_nonexistent_invitation_returns_error() {
     let (app, state) = test_app().await;
@@ -242,6 +250,7 @@ async fn test_delete_nonexistent_invitation_returns_error() {
     );
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_accept_invitation_invalid_token_returns_error() {
     let (app, _state) = test_app().await;

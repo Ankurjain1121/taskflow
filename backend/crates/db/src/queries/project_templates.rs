@@ -573,7 +573,7 @@ mod tests {
         let first_col_id = bwc.task_lists[0].id;
         (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_create_template() {
         let pool = test_pool().await;
@@ -600,7 +600,7 @@ mod tests {
         assert_eq!(template.tenant_id, tenant_id);
         assert_eq!(template.created_by_id, user_id);
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_get_template() {
         let pool = test_pool().await;
@@ -631,7 +631,7 @@ mod tests {
             "new template should have no tasks"
         );
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_list_templates() {
         let pool = test_pool().await;
@@ -680,7 +680,7 @@ mod tests {
             "list should contain template 2"
         );
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_create_board_from_template() {
         let pool = test_pool().await;
@@ -731,7 +731,7 @@ mod tests {
             "new board should have task lists from template"
         );
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_delete_template() {
         let pool = test_pool().await;

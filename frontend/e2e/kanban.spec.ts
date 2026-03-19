@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndOnboard } from './helpers/auth';
+import { signUpAndOnboard, signInTestUser } from './helpers/auth';
 import { navigateToFirstBoard, createTaskViaUI } from './helpers/data-factory';
 
 /**
@@ -13,9 +13,19 @@ import { navigateToFirstBoard, createTaskViaUI } from './helpers/data-factory';
  * - Click task card and verify detail panel opens
  */
 
+let testEmail: string;
+
 test.describe('Kanban Board Journey', () => {
+  test.setTimeout(120000);
+
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    testEmail = await signUpAndOnboard(page, 'Kanban Journey WS');
+    await page.close();
+  });
+
   test.beforeEach(async ({ page }) => {
-    await signUpAndOnboard(page, 'Kanban Journey WS');
+    await signInTestUser(page, testEmail);
     await navigateToFirstBoard(page);
   });
 

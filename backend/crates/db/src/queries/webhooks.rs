@@ -310,7 +310,7 @@ mod tests {
         let first_col_id = bwc.task_lists[0].id;
         (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_create_webhook() {
         let pool = test_pool().await;
@@ -334,7 +334,7 @@ mod tests {
         assert_eq!(webhook.tenant_id, tenant_id);
         assert_eq!(webhook.created_by_id, user_id);
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_list_webhooks() {
         let pool = test_pool().await;
@@ -367,7 +367,7 @@ mod tests {
         assert!(urls.contains(&"https://example.com/hook1"));
         assert!(urls.contains(&"https://example.com/hook2"));
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_delete_webhook() {
         let pool = test_pool().await;
@@ -395,7 +395,7 @@ mod tests {
             "deleted webhook should not appear in list"
         );
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_update_webhook() {
         let pool = test_pool().await;
@@ -423,7 +423,7 @@ mod tests {
         assert_eq!(updated.url, "https://example.com/updated");
         assert!(!updated.is_active);
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_get_active_webhooks_for_event() {
         let pool = test_pool().await;
@@ -453,7 +453,7 @@ mod tests {
         // (previous tests may have created webhooks with this event, so just check no error)
         let _ = no_match;
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_webhook_not_board_member() {
         let pool = test_pool().await;

@@ -13,16 +13,13 @@ import {
 } from './helpers/data-factory';
 
 // ---------------------------------------------------------------------------
-// Helper: sign up, onboard, navigate to workspace, return workspace ID
+// Helper: sign up, onboard, get workspace ID from sidebar project link
 // ---------------------------------------------------------------------------
 async function setupAndGetWorkspaceId(
   page: import('@playwright/test').Page,
   wsName: string,
 ): Promise<string> {
   await signUpAndOnboard(page, wsName);
-  await expect(page.locator('text=Your Workspaces')).toBeVisible({
-    timeout: 15000,
-  });
   return await getFirstWorkspaceId(page);
 }
 
@@ -41,9 +38,6 @@ test.describe('F1/F3: Workspace Member Roles', () => {
     const context = await browser.newContext();
     const page = await context.newPage();
     await signUpAndOnboard(page, 'MemberRoles WS');
-    await expect(page.locator('text=Your Workspaces')).toBeVisible({
-      timeout: 15000,
-    });
     workspaceId = await getFirstWorkspaceId(page);
 
     // Save storage state (cookies + localStorage) for reuse
@@ -218,9 +212,6 @@ test.describe('F4: Teams/Groups', () => {
     const context = await browser.newContext();
     const page = await context.newPage();
     await signUpAndOnboard(page, 'Teams WS');
-    await expect(page.locator('text=Your Workspaces')).toBeVisible({
-      timeout: 15000,
-    });
     f4WorkspaceId = await getFirstWorkspaceId(page);
 
     const resultsDir = path.join(__dirname, '..', 'e2e-artifacts');
@@ -529,9 +520,6 @@ test.describe('F6: Team Overview & Workload', () => {
     const context = await browser.newContext();
     const page = await context.newPage();
     await signUpAndOnboard(page, 'TeamOverview WS');
-    await expect(page.locator('text=Your Workspaces')).toBeVisible({
-      timeout: 15000,
-    });
     f6WorkspaceId = await getFirstWorkspaceId(page);
 
     const resultsDir = path.join(__dirname, '..', 'e2e-artifacts');
@@ -581,16 +569,9 @@ test.describe('F6: Team Overview & Workload', () => {
     const context = await browser.newContext({ storageState: f6StoragePath });
     const page = await context.newPage();
 
-    // Navigate to dashboard first so sidebar is visible
-    await page.goto('/dashboard');
+    // Navigate to workspace team overview directly
+    await page.goto(`/workspace/${f6WorkspaceId}/team`);
     await page.waitForLoadState('domcontentloaded');
-
-    // The workspace item has a "Team Overview" link
-    const teamOverviewLink = page
-      .locator('app-workspace-item a:has-text("Team Overview")')
-      .first();
-    await expect(teamOverviewLink).toBeVisible({ timeout: 15000 });
-    await teamOverviewLink.click();
 
     await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+\/team/, {
       timeout: 15000,
@@ -666,16 +647,15 @@ test.describe('F7: Board Member Management', () => {
     const page = await context.newPage();
     await signUpAndOnboard(page, 'BoardMembers WS');
 
-    // Extract workspace + board IDs from sidebar board link (more reliable
-    // than navigateToFirstBoard which depends on workspace detail page).
-    const boardLink = page
-      .locator('app-workspace-item a[href*="/board/"]')
+    // Extract workspace + board IDs from sidebar project link
+    const projectLink = page
+      .locator('app-sidebar-projects a.project-item')
       .first();
-    await expect(boardLink).toBeVisible({ timeout: 15000 });
-    const href = await boardLink.getAttribute('href');
-    if (!href) throw new Error('Board link has no href');
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
+    const href = await projectLink.getAttribute('href');
+    if (!href) throw new Error('Project link has no href');
     const wsMatch = href.match(/\/workspace\/([a-f0-9-]+)/);
-    const boardMatch = href.match(/\/board\/([a-f0-9-]+)/);
+    const boardMatch = href.match(/\/(?:board|project)\/([a-f0-9-]+)/);
     if (!wsMatch || !boardMatch) {
       throw new Error(`Could not parse IDs from href: ${href}`);
     }
@@ -874,8 +854,8 @@ test.describe('Sidebar Navigation', () => {
     const page = await context.newPage();
     await signUpAndOnboard(page, 'Sidebar WS');
 
-    // Wait for sidebar workspace items to load (ensures sample board exists)
-    await expect(page.locator('app-workspace-item').first()).toBeVisible({
+    // Wait for sidebar project items to load (ensures sample board exists)
+    await expect(page.locator('app-sidebar-projects .project-item').first()).toBeVisible({
       timeout: 15000,
     });
 
@@ -888,7 +868,7 @@ test.describe('Sidebar Navigation', () => {
     await context.close();
   });
 
-  test('sidebar shows Team Overview and Settings under workspace', async ({
+  test('sidebar shows project items', async ({
     browser,
   }) => {
     const context = await browser.newContext({
@@ -897,20 +877,9 @@ test.describe('Sidebar Navigation', () => {
     const page = await context.newPage();
     await page.goto('/dashboard');
 
-    // Wait for the sidebar to load workspace items
-    const workspaceItem = page.locator('app-workspace-item').first();
-    await expect(workspaceItem).toBeVisible({ timeout: 15000 });
-
-    // Workspace should auto-expand, showing quick links
-    const teamOverviewLink = workspaceItem
-      .locator('a:has-text("Team Overview")')
-      .first();
-    const settingsLink = workspaceItem
-      .locator('a:has-text("Settings")')
-      .first();
-
-    await expect(teamOverviewLink).toBeVisible({ timeout: 10000 });
-    await expect(settingsLink).toBeVisible({ timeout: 5000 });
+    // Wait for the sidebar to load project items
+    const projectItem = page.locator('app-sidebar-projects .project-item').first();
+    await expect(projectItem).toBeVisible({ timeout: 15000 });
 
     await page.screenshot({
       path: 'e2e-artifacts/sidebar-workspace-links.png',
@@ -942,7 +911,7 @@ test.describe('Sidebar Navigation', () => {
     await context.close();
   });
 
-  test('sidebar Team Overview link navigates to correct page', async ({
+  test('sidebar project link navigates to project page', async ({
     browser,
   }) => {
     const context = await browser.newContext({
@@ -951,35 +920,13 @@ test.describe('Sidebar Navigation', () => {
     const page = await context.newPage();
     await page.goto('/dashboard');
 
-    const teamOverviewLink = page
-      .locator('app-workspace-item a:has-text("Team Overview")')
+    const projectLink = page
+      .locator('app-sidebar-projects a.project-item')
       .first();
-    await expect(teamOverviewLink).toBeVisible({ timeout: 15000 });
-    await teamOverviewLink.click();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
+    await projectLink.click();
 
-    await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+\/team/, {
-      timeout: 15000,
-    });
-    await page.close();
-    await context.close();
-  });
-
-  test('sidebar Settings link navigates to workspace settings', async ({
-    browser,
-  }) => {
-    const context = await browser.newContext({
-      storageState: sidebarStoragePath,
-    });
-    const page = await context.newPage();
-    await page.goto('/dashboard');
-
-    const settingsLink = page
-      .locator('app-workspace-item a:has-text("Settings")')
-      .first();
-    await expect(settingsLink).toBeVisible({ timeout: 15000 });
-    await settingsLink.click();
-
-    await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+\/settings/, {
+    await expect(page).toHaveURL(/\/project\//, {
       timeout: 15000,
     });
     await page.close();
@@ -1002,60 +949,22 @@ test.describe('Sidebar Navigation', () => {
     await context.close();
   });
 
-  test('sidebar workspace item shows boards list', async ({ browser }) => {
+  test('sidebar shows project list with links', async ({ browser }) => {
     const context = await browser.newContext({
       storageState: sidebarStoragePath,
     });
     const page = await context.newPage();
     await page.goto('/dashboard');
 
-    const workspaceItem = page.locator('app-workspace-item').first();
-    await expect(workspaceItem).toBeVisible({ timeout: 15000 });
+    const projectItems = page.locator('app-sidebar-projects a.project-item');
+    await expect(projectItems.first()).toBeVisible({ timeout: 15000 });
 
-    // Since the workspace auto-expands, board links should be visible
-    const boardLinks = workspaceItem.locator('a[href*="/board/"]');
-    await expect(boardLinks.first()).toBeVisible({ timeout: 10000 });
-
-    const boardCount = await boardLinks.count();
-    expect(boardCount).toBeGreaterThanOrEqual(1);
+    const count = await projectItems.count();
+    expect(count).toBeGreaterThanOrEqual(1);
 
     await page.screenshot({
       path: 'e2e-artifacts/sidebar-boards-list.png',
     });
-    await page.close();
-    await context.close();
-  });
-
-  test('sidebar workspace collapse/expand toggles boards visibility', async ({
-    browser,
-  }) => {
-    const context = await browser.newContext({
-      storageState: sidebarStoragePath,
-    });
-    const page = await context.newPage();
-    await page.goto('/dashboard');
-
-    const workspaceItem = page.locator('app-workspace-item').first();
-    await expect(workspaceItem).toBeVisible({ timeout: 15000 });
-
-    // Board links should be visible (auto-expanded)
-    const boardLinks = workspaceItem.locator('a[href*="/board/"]');
-    await expect(boardLinks.first()).toBeVisible({ timeout: 10000 });
-
-    // Click workspace header to collapse
-    const workspaceHeader = workspaceItem.locator(
-      'button.workspace-header-btn',
-    );
-    await workspaceHeader.click();
-
-    // Board links should be hidden
-    await expect(boardLinks.first()).toBeHidden({ timeout: 5000 });
-
-    // Click again to expand
-    await workspaceHeader.click();
-
-    // Board links should be visible again
-    await expect(boardLinks.first()).toBeVisible({ timeout: 10000 });
     await page.close();
     await context.close();
   });

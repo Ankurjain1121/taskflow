@@ -20,6 +20,7 @@ import { ScrollingModule } from '@angular/cdk/scrolling';
 import { Column } from '../../../core/services/project.service';
 import { Task } from '../../../core/services/task.service';
 import { CardFields } from '../project-view/project-state.service';
+import { type ColorByMode, resolveCardColor, type ColorableTask } from '../../../shared/utils/task-colors';
 import { PresenceService } from '../../../core/services/presence.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { OnboardingChecklistService } from '../../../core/services/onboarding-checklist.service';
@@ -222,6 +223,7 @@ export interface TaskMoveEvent {
               <app-task-card
                 [task]="task"
                 [density]="density()"
+                [stripeColor]="getStripeColor(task)"
                 [isBlocked]="false"
                 [isCelebrating]="celebratingTaskId() === task.id"
                 [isFocused]="focusedTaskId() === task.id"
@@ -264,6 +266,7 @@ export interface TaskMoveEvent {
               <app-task-card
                 [task]="task"
                 [density]="density()"
+                [stripeColor]="getStripeColor(task)"
                 [isBlocked]="false"
                 [isCelebrating]="celebratingTaskId() === task.id"
                 [isFocused]="focusedTaskId() === task.id"
@@ -390,6 +393,7 @@ export class KanbanColumnComponent {
   celebratingTaskId = input<string | null>(null);
   focusedTaskId = input<string | null>(null);
   density = input<'compact' | 'normal' | 'expanded'>('normal');
+  colorBy = input<ColorByMode>('priority');
 
   selectedTaskIds = input<string[]>([]);
   allColumns = input<Column[]>([]);
@@ -492,6 +496,17 @@ export class KanbanColumnComponent {
 
   trackByTaskId(_index: number, task: Task): string {
     return task.id;
+  }
+
+  getStripeColor(task: Task): string | null {
+    if (this.colorBy() === 'priority') return null; // priority uses top-border (default)
+    const colorable: ColorableTask = {
+      priority: task.priority,
+      labels: (task.labels ?? []).map((l) => ({ name: l.name, color: l.color })),
+      assignees: (task.assignees ?? []).map((a) => ({ id: a.id, name: a.display_name })),
+      project_color: null,
+    };
+    return resolveCardColor(colorable, this.colorBy());
   }
 
   readonly wipStatusClass = computed(() => {

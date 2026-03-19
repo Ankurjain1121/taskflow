@@ -1,4 +1,4 @@
-import { Page, APIRequestContext } from '@playwright/test';
+import { Page, APIRequestContext, expect } from '@playwright/test';
 
 /**
  * API-based test data creation helpers.
@@ -11,51 +11,42 @@ import { Page, APIRequestContext } from '@playwright/test';
 
 const API_BASE = '/api';
 
-/** Navigate to workspace and return the workspace ID from the URL */
+/** Navigate to project via sidebar and return the workspace ID from the URL */
 export async function getFirstWorkspaceId(page: Page): Promise<string> {
-  await page.locator('a:has-text("Open Workspace")').first().click();
-  await page.waitForURL(/\/workspace\//, { timeout: 15000 });
+  const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+  await projectLink.waitFor({ timeout: 15000 });
+  await projectLink.click();
+  await page.waitForURL(/\/project\//, { timeout: 15000 });
   const url = page.url();
-  const match = url.match(/\/workspace\/([a-f0-9-]+)/);
+  const match = url.match(/\/project\/([a-f0-9-]+)/);
   if (!match)
     throw new Error(`Could not extract workspace ID from URL: ${url}`);
   return match[1];
 }
 
-/** Navigate to workspace, then to the first board, return { workspaceId, boardId } */
+/** Navigate to first project via sidebar, return { workspaceId, boardId } */
 export async function navigateToFirstBoard(
   page: Page,
 ): Promise<{ workspaceId: string; boardId: string }> {
-  // From dashboard, click Open Workspace
-  await page.locator('text=Your Workspaces').waitFor({ timeout: 15000 });
-  const openLink = page.locator('a:has-text("Open Workspace")').first();
-  await openLink.waitFor({ timeout: 10000 });
-  await openLink.click();
-
-  await page.waitForURL(/\/workspace\//, { timeout: 15000 });
-  const wsUrl = page.url();
-  const wsMatch = wsUrl.match(/\/workspace\/([a-f0-9-]+)/);
-  if (!wsMatch)
-    throw new Error(`Could not extract workspace ID from URL: ${wsUrl}`);
-
-  // Wait for boards to appear
-  await page.locator('h2:has-text("Boards")').waitFor({ timeout: 15000 });
-  const boardCard = page.locator('a[href*="/board/"]').first();
-  await boardCard.waitFor({ timeout: 10000 });
-  await boardCard.click();
-
-  await page.waitForURL(/\/workspace\/.*\/board\//, { timeout: 15000 });
-  const boardUrl = page.url();
-  const boardMatch = boardUrl.match(/\/board\/([a-f0-9-]+)/);
-  if (!boardMatch)
-    throw new Error(`Could not extract board ID from URL: ${boardUrl}`);
+  // Navigate via sidebar project link
+  await page.waitForLoadState('networkidle').catch(() => {});
+  const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+  await projectLink.waitFor({ timeout: 15000 });
+  await projectLink.click();
+  await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
 
   await page.waitForLoadState('domcontentloaded');
 
   // Wait for board content to load (New Task button visible)
   await page.locator('button:has-text("New Task")').waitFor({ timeout: 15000 });
 
-  return { workspaceId: wsMatch[1], boardId: boardMatch[1] };
+  const projectUrl = page.url();
+  const projectMatch = projectUrl.match(/\/project\/([a-f0-9-]+)/);
+  if (!projectMatch)
+    throw new Error(`Could not extract project ID from URL: ${projectUrl}`);
+  const boardMatch = projectUrl.match(/\/board\/([a-f0-9-]+)/);
+
+  return { workspaceId: projectMatch[1], boardId: boardMatch ? boardMatch[1] : projectMatch[1] };
 }
 
 /** Create a task via the board UI (click New Task, fill dialog, submit) */

@@ -13,21 +13,7 @@ import {
   WorkspaceLabel,
 } from '../../../core/services/workspace.service';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
-
-const PRESET_COLORS = [
-  '#ef4444',
-  '#f97316',
-  '#f59e0b',
-  '#84cc16',
-  '#22c55e',
-  '#14b8a6',
-  '#06b6d4',
-  '#3b82f6',
-  '#6366f1',
-  '#8b5cf6',
-  '#a855f7',
-  '#ec4899',
-];
+import { LABEL_PRESET_COLORS } from '../../../shared/utils/task-colors';
 
 @Component({
   selector: 'app-workspace-labels',
@@ -199,10 +185,10 @@ export class WorkspaceLabelsComponent implements OnInit {
   editingId = signal<string | null>(null);
   errorMessage = signal<string | null>(null);
 
-  presetColors = PRESET_COLORS;
+  presetColors = LABEL_PRESET_COLORS;
 
   newName = '';
-  newColor = PRESET_COLORS[5];
+  newColor = LABEL_PRESET_COLORS[0];
   editName = '';
   editColor = '';
 

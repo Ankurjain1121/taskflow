@@ -124,3 +124,20 @@ Rename feature files to match the project terminology:
 - All related files in `features/board/`
 
 **Why:** Consistency with backend naming. Deferred from the board→project rename to limit import path churn in a single PR.
+
+---
+
+## TODO-012: Split styles.css into modular files
+**Priority:** P3 (Low) | **Depends on:** Nothing
+
+Split `frontend/src/styles.css` (1,644 lines, 2x over 800-line project max) into 4 focused files:
+- `tokens.css` (~200 lines): CSS custom properties, :root, html.dark, accent overrides
+- `utilities.css` (~300 lines): animations, glass morphism, focus rings, scrollbars
+- `components.css` (~400 lines): skeleton loaders, chips, toasts, PrimeNG component fixes
+- `primeng-overrides.css` (~400 lines): PrimeNG dark mode fixes, dialog/dropdown/calendar overrides
+
+Import all via `@import` in a thin `styles.css` entry point. Tailwind CSS 4 handles import ordering.
+
+**Why:** File organization rule violation. Monolith mixes tokens, utilities, component styles, animations, and vendor overrides. Makes it hard to find/modify specific token groups.
+
+**Where to start:** `frontend/src/styles.css`. Pure refactor, no behavior change. Verify with `ng build --configuration=production`.

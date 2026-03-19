@@ -57,37 +57,22 @@ test.describe('Sidebar & Dashboard Overhaul', () => {
     const dashboard = new DashboardPage(page);
     await dashboard.expectLoaded();
 
-    // The sidebar contains app-workspace-item components.
-    // After onboarding, the first workspace auto-expands (expanded = true on init).
-    const workspaceItem = page.locator('app-workspace-item').first();
-    await expect(workspaceItem).toBeVisible({ timeout: 10000 });
+    // The sidebar contains project items under app-sidebar-projects.
+    const projectItem = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectItem).toBeVisible({ timeout: 10000 });
 
-    // The workspace header button shows the workspace name
-    const workspaceHeader = workspaceItem.locator(
-      'button.workspace-header-btn',
-    );
-    await expect(workspaceHeader).toBeVisible({ timeout: 5000 });
-    const headerText = await workspaceHeader.textContent();
-    expect(headerText?.trim().length).toBeGreaterThan(0);
+    const projectText = await projectItem.textContent();
+    expect(projectText?.trim().length).toBeGreaterThan(0);
 
-    // Since the workspace auto-expands on init, boards should already be
-    // visible. The sample board created during onboarding should appear.
-    const boardLinks = workspaceItem.locator('a[href*="/board/"]');
-    await expect(boardLinks.first()).toBeVisible({ timeout: 10000 });
+    // The sample board created during onboarding should appear as a project link.
+    const projectLinks = page.locator('app-sidebar-projects a.project-item');
+    await expect(projectLinks.first()).toBeVisible({ timeout: 10000 });
 
-    const boardCount = await boardLinks.count();
-    expect(boardCount).toBeGreaterThanOrEqual(1);
+    const projectCount = await projectLinks.count();
+    expect(projectCount).toBeGreaterThanOrEqual(1);
 
-    // Collapse the workspace by clicking the header button
-    await workspaceHeader.click();
-
-    // Board links should now be hidden (the @if (expanded()) block is gone)
-    await expect(boardLinks.first()).toBeHidden({ timeout: 5000 });
-
-    // Re-expand by clicking again
-    await workspaceHeader.click();
-
-    // Boards should be visible again
-    await expect(boardLinks.first()).toBeVisible({ timeout: 10000 });
+    // Clicking a project link should navigate to the project page
+    await projectLinks.first().click();
+    await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
   });
 });

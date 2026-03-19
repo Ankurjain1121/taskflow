@@ -265,6 +265,7 @@ export class WorkloadDashboardComponent implements OnInit {
   }
 
   getInitials(name: string): string {
+    if (!name) return '?';
     return name
       .split(' ')
       .map((n) => n.charAt(0))

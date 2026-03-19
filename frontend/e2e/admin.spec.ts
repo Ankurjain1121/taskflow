@@ -1,10 +1,20 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndOnboard } from './helpers/auth';
+import { signUpAndOnboard, signInTestUser } from './helpers/auth';
 
 test.describe('Admin Pages', () => {
+  let testEmail: string;
+
+  test.beforeAll(async ({ browser }, testInfo) => {
+    testInfo.setTimeout(120_000);
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    testEmail = await signUpAndOnboard(page, 'Admin WS');
+    await page.close();
+    await context.close();
+  });
+
   test.beforeEach(async ({ page }) => {
-    // The first user after onboarding is typically admin
-    await signUpAndOnboard(page, 'Admin WS');
+    await signInTestUser(page, testEmail);
   });
 
   test('admin users page loads with heading', async ({ page }) => {

@@ -75,6 +75,22 @@ import { SidebarFooterComponent } from './sidebar-footer.component';
            [class.w-14]="collapsed()"
            [class.sidebar-open]="isMobileOpen()">
 
+      <!-- Zone 0: Logo -->
+      <a
+        [routerLink]="dashboardRoute()"
+        class="flex items-center gap-2 px-3 py-3 transition-opacity hover:opacity-80"
+        [class.justify-center]="collapsed()"
+        aria-label="TaskFlow – Go to dashboard"
+      >
+        <svg class="w-6 h-6 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="3" width="20" height="18" rx="3" stroke="var(--primary)" stroke-width="2"/>
+          <path d="M7 12l3 3 7-7" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        @if (!collapsed()) {
+          <span class="text-base font-bold tracking-tight" style="color: var(--foreground)">TaskFlow</span>
+        }
+      </a>
+
       <!-- Zone 1: Workspace Switcher -->
       <app-workspace-switcher
         [collapsed]="collapsed()"

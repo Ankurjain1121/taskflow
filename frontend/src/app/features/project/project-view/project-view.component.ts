@@ -162,11 +162,13 @@ import { MessageService } from 'primeng/api';
         [viewMode]="viewMode()"
         [density]="state.cardDensity()"
         [groupBy]="state.groupBy()"
+        [colorBy]="state.colorBy()"
         [cardFields]="state.cardFields()"
         (filtersChanged)="state.filters.set($event)"
         (viewModeChanged)="onViewModeChanged($event)"
         (densityChanged)="state.setCardDensity($event)"
         (groupByChanged)="state.setGroupBy($event, boardId)"
+        (colorByChanged)="state.setColorBy($event)"
         (cardFieldChanged)="state.updateCardField($event.key, $event.value)"
         (cardFieldsReset)="state.resetCardFields()"
       ></app-project-toolbar>
@@ -207,6 +209,7 @@ import { MessageService } from 'primeng/api';
               [groups]="state.boardGroups()"
               [loading]="state.listLoading()"
               [columns]="state.columns()"
+              [colorBy]="state.colorBy()"
               [projectId]="boardId"
               (taskClicked)="state.selectedTaskId.set($event)"
               (titleChanged)="listEdit.onTitleChanged($event, boardId, destroy$)"
@@ -345,6 +348,7 @@ import { MessageService } from 'primeng/api';
           [boardPrefix]="state.board()?.prefix ?? null"
           [collapsedColumnIds]="state.collapsedColumnIds()"
           [density]="state.cardDensity()"
+          [colorBy]="state.colorBy()"
           [cardFields]="state.cardFields()"
           (taskMoved)="dragDrop.onTaskMoved($event)"
           (taskClicked)="state.selectedTaskId.set($event.id)"
@@ -421,9 +425,6 @@ import { MessageService } from 'primeng/api';
         [columnId]="createTaskDialogColumnId"
         [columnName]="createTaskDialogColumnName"
         [members]="createTaskDialogMembers"
-        [labels]="createTaskDialogLabels"
-        [milestones]="createTaskDialogMilestones"
-        [groups]="createTaskDialogGroups"
         (created)="onCreateTaskResult($event)"
       />
 
@@ -503,10 +504,6 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
   createTaskDialogColumnName = '';
   createTaskDialogMembers: { id: string; name: string; avatar_url?: string }[] =
     [];
-  createTaskDialogLabels: { id: string; name: string; color: string }[] = [];
-  createTaskDialogMilestones: { id: string; name: string; color: string }[] =
-    [];
-  createTaskDialogGroups: { id: string; name: string; color: string }[] = [];
 
   showCreateColumnDialog = false;
   showCreateGroupDialog = false;
@@ -551,12 +548,8 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
         );
       });
 
-    // Feature hints: track board visits and trigger spotlight
+    // Feature hints: track board visits
     this.hintsService.incrementBoardVisit();
-    if (!this.hintsService.hasSeenSpotlight()) {
-      // Delay to let the board render first
-      setTimeout(() => this.spotlightActive.set(true), 500);
-    }
 
     this.shortcutsService.setViewModeGetter(() => this.viewMode());
     this.shortcutsService.registerShortcuts({
@@ -640,21 +633,6 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
       id: m.user_id,
       name: m.name || m.email || 'Unknown',
       avatar_url: m.avatar_url ?? undefined,
-    }));
-    this.createTaskDialogLabels = this.state.allLabels().map((l) => ({
-      id: l.id,
-      name: l.name,
-      color: l.color,
-    }));
-    this.createTaskDialogMilestones = this.state.boardMilestones().map((m) => ({
-      id: m.id,
-      name: m.name,
-      color: m.color,
-    }));
-    this.createTaskDialogGroups = this.state.boardGroups().map((g) => ({
-      id: g.group.id,
-      name: g.group.name,
-      color: g.group.color,
     }));
     this.showCreateTaskDialog = true;
   }

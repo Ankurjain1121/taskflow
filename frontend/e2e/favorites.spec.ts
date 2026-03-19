@@ -1,14 +1,25 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndOnboard } from './helpers/auth';
+import { signUpAndOnboard, signInTestUser } from './helpers/auth';
 import {
   navigateToFirstBoard,
   addFavoriteViaAPI,
 } from './helpers/data-factory';
 import { FavoritesPage } from './pages/FavoritesPage';
 
+let testEmail: string;
+
 test.describe('Favorites Page', () => {
+  test.beforeAll(async ({ browser }) => {
+    test.setTimeout(120000);
+    const page = await browser.newPage();
+    testEmail = await signUpAndOnboard(page, 'Favorites WS');
+    await page.close();
+  });
+
   test.beforeEach(async ({ page }) => {
-    await signUpAndOnboard(page, 'Favorites WS');
+    await signInTestUser(page, testEmail);
+    await page.goto('/dashboard');
+    await page.waitForLoadState('networkidle').catch(() => {});
   });
 
   test('page loads with Favorites heading', async ({ page }) => {
@@ -93,12 +104,12 @@ test.describe('Favorites Page', () => {
     await favoritesPage.expectLoaded();
 
     // Click the favorite link
-    const favoriteLink = page.locator(`a[href*="/board/${boardId}"]`).first();
+    const favoriteLink = page.locator(`a[href*="/project/"]`).first();
     await expect(favoriteLink).toBeVisible({ timeout: 10000 });
     await favoriteLink.click();
 
-    // Should navigate to board page
-    await expect(page).toHaveURL(/\/board\//, { timeout: 15000 });
+    // Should navigate to project/board page
+    await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
   });
 
   test('unfavorite button exists on favorite item', async ({ page }) => {

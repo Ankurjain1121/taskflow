@@ -51,6 +51,8 @@ describe('ReportsViewComponent', () => {
 
     mockReportsService = {
       getBoardReport: vi.fn().mockReturnValue(of(mockReport)),
+      getBurndownChart: vi.fn().mockReturnValue(of([])),
+      exportBurndownCsv: vi.fn().mockReturnValue(of(new Blob())),
     };
 
     await TestBed.configureTestingModule({

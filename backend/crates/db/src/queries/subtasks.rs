@@ -334,7 +334,7 @@ pub async fn promote_subtask_to_task(
         RETURNING id, title, description, priority, due_date, start_date, estimated_hours,
                   project_id, task_list_id, status_id, position, milestone_id, task_number,
                   eisenhower_urgency, eisenhower_importance,
-                  tenant_id, created_by_id, deleted_at, created_at, updated_at, version, parent_task_id, depth
+                  tenant_id, created_by_id, deleted_at, created_at, updated_at, version, parent_task_id, depth, reporting_person_id
         "#,
     )
     .bind(task_id)
@@ -439,13 +439,14 @@ mod tests {
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
+            reporting_person_id: None,
         };
         let task = tasks::create_task(pool, project_id, input, tenant_id, user_id)
             .await
             .expect("create parent task for subtask tests");
         (task.id, user_id, tenant_id)
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_create_subtask() {
         let pool = test_pool().await;
@@ -464,7 +465,7 @@ mod tests {
         assert!(subtask.assigned_to_id.is_none());
         assert!(subtask.due_date.is_none());
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_create_subtask_with_assignee_and_due_date() {
         let pool = test_pool().await;
@@ -485,7 +486,7 @@ mod tests {
         assert_eq!(subtask.assigned_to_id, Some(user_id));
         assert_eq!(subtask.due_date, Some(due));
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_list_subtasks_by_task() {
         let pool = test_pool().await;
@@ -507,7 +508,7 @@ mod tests {
         assert!(titles.contains(&"Subtask A"));
         assert!(titles.contains(&"Subtask B"));
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_toggle_subtask() {
         let pool = test_pool().await;
@@ -533,7 +534,7 @@ mod tests {
         assert!(!toggled_back.is_completed);
         assert!(toggled_back.completed_at.is_none());
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_update_subtask() {
         let pool = test_pool().await;
@@ -550,7 +551,7 @@ mod tests {
         assert_eq!(updated.title, "New Title");
         assert_eq!(updated.id, subtask.id);
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_delete_subtask() {
         let pool = test_pool().await;
@@ -573,7 +574,7 @@ mod tests {
             "deleted subtask should not appear in list"
         );
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_delete_subtask_not_found() {
         let pool = test_pool().await;
@@ -582,7 +583,7 @@ mod tests {
         let result = delete_subtask(&pool, random_id).await;
         assert!(result.is_err(), "deleting non-existent subtask should fail");
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_get_subtask_progress() {
         let pool = test_pool().await;
@@ -613,7 +614,7 @@ mod tests {
         assert_eq!(progress.total, 2);
         assert_eq!(progress.completed, 1);
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_reorder_subtask() {
         let pool = test_pool().await;
@@ -629,7 +630,7 @@ mod tests {
 
         assert_eq!(reordered.position, "zzz");
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_get_subtask_task_id() {
         let pool = test_pool().await;

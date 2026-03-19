@@ -12,6 +12,7 @@ import { Column } from '../../../core/services/project.service';
 import { KanbanColumnComponent } from '../kanban-column/kanban-column.component';
 import { TaskMoveEvent } from '../kanban-column/kanban-column.component';
 import { CardFields } from './project-state.service';
+import { type ColorByMode } from '../../../shared/utils/task-colors';
 
 @Component({
   selector: 'app-project-kanban-board',
@@ -52,6 +53,7 @@ import { CardFields } from './project-state.service';
             [boardPrefix]="boardPrefix()"
             [isCollapsed]="collapsedColumnIds().has(column.id)"
             [density]="density()"
+            [colorBy]="colorBy()"
             [cardFields]="cardFields()"
             (taskMoved)="taskMoved.emit($event)"
             (taskClicked)="taskClicked.emit($event)"
@@ -112,6 +114,7 @@ export class ProjectKanbanBoardComponent {
   readonly boardPrefix = input.required<string | null>();
   readonly collapsedColumnIds = input.required<Set<string>>();
   readonly density = input.required<'compact' | 'normal' | 'expanded'>();
+  readonly colorBy = input<ColorByMode>('priority');
   readonly cardFields = input.required<CardFields>();
 
   // Outputs - task events

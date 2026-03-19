@@ -663,6 +663,7 @@ export class TaskDetailActivityComponent implements OnInit {
   }
 
   getInitials(name: string): string {
+    if (!name) return '?';
     return name
       .split(' ')
       .map((n) => n.charAt(0))

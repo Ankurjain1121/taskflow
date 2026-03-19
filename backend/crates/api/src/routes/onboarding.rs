@@ -28,6 +28,10 @@ use crate::extractors::AuthUserExtractor;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
+use super::validation::{
+    validate_optional_string, validate_required_string, MAX_NAME_LEN, MAX_PROJECT_DESCRIPTION_LEN,
+};
+
 // ============================================================================
 // Request/Response DTOs
 // ============================================================================
@@ -170,15 +174,12 @@ async fn create_workspace(
     Json(payload): Json<CreateWorkspaceRequest>,
 ) -> Result<Json<CreateWorkspaceResponse>> {
     // Validate input
-    if payload.name.trim().is_empty() {
-        return Err(AppError::BadRequest("Workspace name is required".into()));
-    }
-
-    if payload.name.len() > 255 {
-        return Err(AppError::BadRequest(
-            "Workspace name is too long (max 255 characters)".into(),
-        ));
-    }
+    validate_required_string("Workspace name", &payload.name, MAX_NAME_LEN)?;
+    validate_optional_string(
+        "Description",
+        payload.description.as_deref(),
+        MAX_PROJECT_DESCRIPTION_LEN,
+    )?;
 
     // Create the workspace (this also adds the user as a member)
     let workspace = workspaces::create_workspace(
@@ -453,6 +454,15 @@ mod email_validation_tests {
         let too_long = format!("{}@example.com", very_long_local);
         assert!(too_long.len() > 254);
         assert!(!is_valid_email(&too_long));
+    }
+
+    /// Verify the EMAIL_REGEX Lazy static compiles successfully.
+    /// This documents that the .unwrap() in Lazy::new is safe
+    /// because the regex pattern is a compile-time constant.
+    #[test]
+    fn email_regex_compiles() {
+        assert!(EMAIL_REGEX.is_match("user@example.com"));
+        assert!(!EMAIL_REGEX.is_match("not-an-email"));
     }
 
     // Edge cases

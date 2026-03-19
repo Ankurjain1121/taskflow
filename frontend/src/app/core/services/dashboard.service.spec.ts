@@ -395,6 +395,43 @@ describe('DashboardService', () => {
     });
   });
 
+  describe('cache TTL (2 minutes)', () => {
+    it('should serve cached data within 120 seconds', () => {
+      // First call populates cache
+      service.getStats().subscribe();
+      const req1 = httpMock.expectOne('/api/dashboard/stats');
+      req1.flush(MOCK_STATS);
+
+      // Advance time by 119 seconds (still within TTL)
+      const cacheMap = (service as any).cache as Map<string, any>;
+      const entry = cacheMap.get('stats:');
+      expect(entry).toBeTruthy();
+      // Manually set timestamp to 119 seconds ago
+      entry.timestamp = Date.now() - 119_000;
+
+      // Should still use cache
+      service.getStats().subscribe();
+      httpMock.expectNone('/api/dashboard/stats');
+    });
+
+    it('should refetch after 120 seconds', () => {
+      // First call populates cache
+      service.getStats().subscribe();
+      const req1 = httpMock.expectOne('/api/dashboard/stats');
+      req1.flush(MOCK_STATS);
+
+      // Expire the cache entry (set timestamp to 121 seconds ago)
+      const cacheMap = (service as any).cache as Map<string, any>;
+      const entry = cacheMap.get('stats:');
+      entry.timestamp = Date.now() - 121_000;
+
+      // Should make a new request
+      service.getStats().subscribe();
+      const req2 = httpMock.expectOne('/api/dashboard/stats');
+      req2.flush(MOCK_STATS);
+    });
+  });
+
   describe('workspace-scoped caching', () => {
     it('should cache stats separately per workspace', () => {
       // Fetch for ws-1

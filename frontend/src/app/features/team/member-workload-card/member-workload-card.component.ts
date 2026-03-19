@@ -146,6 +146,7 @@ export class MemberWorkloadCardComponent {
   workspaceId = input.required<string>();
 
   getInitials(name: string): string {
+    if (!name) return '?';
     return name
       .split(' ')
       .map((n) => n.charAt(0))

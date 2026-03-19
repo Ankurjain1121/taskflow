@@ -40,7 +40,7 @@ const MOCK_ADMIN_USER: AdminUser = {
   email: 'admin@example.com',
   display_name: 'Admin User',
   avatar_url: null,
-  role: 'admin',
+  role: 'Admin',
   workspace_count: 3,
   created_at: '2026-01-01T00:00:00Z',
   last_active_at: '2026-01-15T00:00:00Z',
@@ -136,7 +136,7 @@ describe('AdminService', () => {
 
       const req = httpMock.expectOne('/api/admin/audit-log/actions');
       expect(req.request.method).toBe('GET');
-      req.flush(actions);
+      req.flush({ actions });
     });
   });
 
@@ -170,7 +170,7 @@ describe('AdminService', () => {
       service.updateUserRole('user-1', 'manager').subscribe();
 
       const req = httpMock.expectOne('/api/admin/users/user-1/role');
-      expect(req.request.method).toBe('PATCH');
+      expect(req.request.method).toBe('PUT');
       expect(req.request.body).toEqual({ role: 'manager' });
       req.flush(null);
     });

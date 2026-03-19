@@ -1,0 +1,1 @@
+ALTER TABLE tasks ADD COLUMN reporting_person_id UUID REFERENCES users(id) ON DELETE SET NULL;

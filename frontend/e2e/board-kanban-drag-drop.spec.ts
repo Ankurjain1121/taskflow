@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndOnboard, navigateToFirstBoard, createTaskViaUI } from './helpers/auth';
+import { signUpAndOnboard, signInTestUser } from './helpers/auth';
+import { createTaskViaUI } from './helpers/data-factory';
 
 /**
  * E2E Tests: Kanban Board Drag-Drop Operations
@@ -12,13 +13,26 @@ import { signUpAndOnboard, navigateToFirstBoard, createTaskViaUI } from './helpe
  * - Persistence after page reload
  */
 
-test.describe('Kanban Board - Drag & Drop', () => {
-  test.beforeEach(async ({ page }) => {
-    // Sign up and create new workspace
-    await signUpAndOnboard(page, `DnD Test WS ${Date.now()}`);
+let testEmail: string;
 
-    // Navigate to first board (or create one)
-    await navigateToFirstBoard(page);
+test.describe('Kanban Board - Drag & Drop', () => {
+  test.setTimeout(120000);
+
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    testEmail = await signUpAndOnboard(page, `DnD Test WS ${Date.now()}`);
+    await page.close();
+  });
+
+  test.beforeEach(async ({ page }) => {
+    await signInTestUser(page, testEmail);
+
+    // Navigate to first board via sidebar
+    await page.waitForLoadState('networkidle').catch(() => {});
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
+    await projectLink.click();
+    await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
 
     // Wait for kanban view to load
     await page.waitForSelector('app-kanban-column', { timeout: 10000 });
@@ -32,7 +46,7 @@ test.describe('Kanban Board - Drag & Drop', () => {
     const taskCard = page.locator('text=Move Me Task').first();
     await expect(taskCard).toBeVisible();
 
-    // ACTION: Drag task from Todo → In Progress column
+    // ACTION: Drag task from Todo -> In Progress column
     const todoColumn = page.locator('h3:has-text("To Do")').first();
     const inProgressColumn = page.locator('h3:has-text("In Progress")').first();
 

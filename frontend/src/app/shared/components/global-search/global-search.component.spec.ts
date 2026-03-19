@@ -16,6 +16,7 @@ import {
 } from '../../../core/services/search.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
+import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
 
 const EMPTY_RESULTS: SearchResults = {
   tasks: [],
@@ -67,6 +68,7 @@ describe('GlobalSearchComponent', () => {
     setTheme: ReturnType<typeof vi.fn>;
   };
   let mockShortcutsService: { helpRequested: ReturnType<typeof signal<number>> };
+  let mockWsContextService: { activeWorkspaceId: ReturnType<typeof signal<string | null>> };
 
   beforeEach(async () => {
     mockSearchService = {
@@ -84,6 +86,10 @@ describe('GlobalSearchComponent', () => {
 
     mockShortcutsService = {
       helpRequested: signal(0),
+    };
+
+    mockWsContextService = {
+      activeWorkspaceId: signal<string | null>('ws-1'),
     };
 
     // localStorage is mocked globally in test-setup.ts
@@ -113,6 +119,7 @@ describe('GlobalSearchComponent', () => {
         { provide: Router, useValue: mockRouter },
         { provide: ThemeService, useValue: mockThemeService },
         { provide: KeyboardShortcutsService, useValue: mockShortcutsService },
+        { provide: WorkspaceContextService, useValue: mockWsContextService },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();

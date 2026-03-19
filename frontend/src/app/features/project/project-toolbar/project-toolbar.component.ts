@@ -27,6 +27,7 @@ import {
 import { AuthService } from '../../../core/services/auth.service';
 import { GroupByMode } from '../project-view/swimlane.types';
 import { CardFields } from '../project-view/project-state.service';
+import { type ColorByMode } from '../../../shared/utils/task-colors';
 import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
@@ -184,10 +185,12 @@ const DEFAULT_FILTERS: TaskFilters = {
           [viewMode]="viewMode()"
           [density]="density()"
           [groupBy]="groupBy()"
+          [colorBy]="colorBy()"
           [cardFields]="cardFields()"
           (viewModeChanged)="viewModeChanged.emit($event)"
           (densityChanged)="densityChanged.emit($event)"
           (groupByChanged)="groupByChanged.emit($event)"
+          (colorByChanged)="colorByChanged.emit($event)"
           (cardFieldChanged)="cardFieldChanged.emit($event)"
           (cardFieldsReset)="cardFieldsReset.emit()"
         />
@@ -373,6 +376,7 @@ export class ProjectToolbarComponent implements OnInit, OnDestroy {
   viewMode = input<ViewMode>('kanban');
   density = input<'compact' | 'normal' | 'expanded'>('normal');
   groupBy = input<GroupByMode>('none');
+  colorBy = input<ColorByMode>('priority');
   cardFields = input<CardFields>({
     showPriority: true,
     showDueDate: true,
@@ -390,6 +394,7 @@ export class ProjectToolbarComponent implements OnInit, OnDestroy {
   viewModeChanged = output<ViewMode>();
   densityChanged = output<'compact' | 'normal' | 'expanded'>();
   groupByChanged = output<GroupByMode>();
+  colorByChanged = output<ColorByMode>();
   cardFieldChanged = output<{ key: keyof CardFields; value: boolean }>();
   cardFieldsReset = output<void>();
 
@@ -516,6 +521,7 @@ export class ProjectToolbarComponent implements OnInit, OnDestroy {
   }
 
   getInitials(name: string): string {
+    if (!name) return '?';
     return name
       .split(' ')
       .map((n) => n.charAt(0))

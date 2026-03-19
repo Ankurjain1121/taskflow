@@ -30,6 +30,7 @@ pub struct Task {
     pub version: i32,
     pub parent_task_id: Option<Uuid>,
     pub depth: i16,
+    pub reporting_person_id: Option<Uuid>,
 }
 
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
@@ -104,6 +105,7 @@ mod tests {
             version: 1,
             parent_task_id: None,
             depth: 0,
+            reporting_person_id: None,
         }
     }
 

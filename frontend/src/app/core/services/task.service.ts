@@ -140,6 +140,7 @@ export interface CreateTaskRequest {
   assignee_ids?: string[];
   label_ids?: string[];
   parent_task_id?: string;
+  reporting_person_id?: string;
 }
 
 export interface CreateChildTaskRequest {

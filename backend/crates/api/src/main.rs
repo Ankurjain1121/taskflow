@@ -11,12 +11,14 @@ pub mod ws;
 
 use std::time::Duration;
 
+use axum::extract::DefaultBodyLimit;
 use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
 use axum::http::Method;
 use axum::middleware::{from_fn, from_fn_with_state};
 use axum::{routing::get, Router};
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::{AllowOrigin, CorsLayer};
+use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 
 use crate::config::Config;
@@ -386,12 +388,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest(
             "/api",
             routes::export::export_router(state.clone())
+                .layer(TimeoutLayer::with_status_code(
+                    axum::http::StatusCode::REQUEST_TIMEOUT,
+                    Duration::from_secs(120),
+                ))
                 .layer(from_fn(rate_limit_middleware))
                 .layer(rate_limit_layer(state.redis.clone(), 10, 60)),
         )
         .nest(
             "/api",
             routes::import::import_router(state.clone())
+                .layer(DefaultBodyLimit::max(50 * 1024 * 1024))
+                .layer(TimeoutLayer::with_status_code(
+                    axum::http::StatusCode::REQUEST_TIMEOUT,
+                    Duration::from_secs(120),
+                ))
                 .layer(from_fn(rate_limit_middleware))
                 .layer(rate_limit_layer(state.redis.clone(), 10, 60)),
         )
@@ -428,6 +439,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(from_fn(request_id_middleware))
         .layer(sentry_tower::NewSentryLayer::new_from_top())
         .layer(sentry_tower::SentryHttpLayer::new().enable_transaction())
+        .layer(DefaultBodyLimit::max(10 * 1024 * 1024))
+        .layer(TimeoutLayer::with_status_code(
+            axum::http::StatusCode::REQUEST_TIMEOUT,
+            Duration::from_secs(30),
+        ))
         .layer(CompressionLayer::new())
         .layer(cors)
         .with_state(state.clone());
@@ -604,4 +620,137 @@ async fn shutdown_signal() {
         .await
         .expect("Failed to listen for ctrl+c");
     tracing::info!("Shutdown signal received");
+}
+
+#[cfg(test)]
+mod middleware_hardening_tests {
+    use axum::body::Body;
+    use axum::extract::DefaultBodyLimit;
+    use axum::http::{Request, StatusCode};
+    use axum::{routing::post, Router};
+    use tower::ServiceExt;
+    use tower_http::timeout::TimeoutLayer;
+
+    use std::time::Duration;
+
+    /// Echo handler that reads the full body.
+    async fn echo_handler(body: axum::body::Bytes) -> axum::body::Bytes {
+        body
+    }
+
+    /// Slow handler that sleeps longer than the default timeout.
+    async fn slow_handler() -> &'static str {
+        tokio::time::sleep(Duration::from_secs(5)).await;
+        "done"
+    }
+
+    #[tokio::test]
+    async fn body_under_10mb_is_accepted() {
+        let app = Router::new()
+            .route("/test", post(echo_handler))
+            .layer(DefaultBodyLimit::max(10 * 1024 * 1024));
+
+        let body = vec![0u8; 1024]; // 1 KB
+        let req = Request::builder()
+            .method("POST")
+            .uri("/test")
+            .body(Body::from(body))
+            .unwrap();
+
+        let response = app.oneshot(req).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn body_over_10mb_is_rejected() {
+        let app = Router::new()
+            .route("/test", post(echo_handler))
+            .layer(DefaultBodyLimit::max(10 * 1024 * 1024));
+
+        let body = vec![0u8; 11 * 1024 * 1024]; // 11 MB
+        let req = Request::builder()
+            .method("POST")
+            .uri("/test")
+            .body(Body::from(body))
+            .unwrap();
+
+        let response = app.oneshot(req).await.unwrap();
+        assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    }
+
+    #[tokio::test]
+    async fn import_route_accepts_up_to_50mb() {
+        let app = Router::new()
+            .route("/import", post(echo_handler))
+            .layer(DefaultBodyLimit::max(50 * 1024 * 1024));
+
+        // 15 MB should be accepted (under 50MB override)
+        let body = vec![0u8; 15 * 1024 * 1024];
+        let req = Request::builder()
+            .method("POST")
+            .uri("/import")
+            .body(Body::from(body))
+            .unwrap();
+
+        let response = app.oneshot(req).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn import_route_rejects_over_50mb() {
+        let app = Router::new()
+            .route("/import", post(echo_handler))
+            .layer(DefaultBodyLimit::max(50 * 1024 * 1024));
+
+        let body = vec![0u8; 51 * 1024 * 1024]; // 51 MB
+        let req = Request::builder()
+            .method("POST")
+            .uri("/import")
+            .body(Body::from(body))
+            .unwrap();
+
+        let response = app.oneshot(req).await.unwrap();
+        assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    }
+
+    #[tokio::test]
+    async fn timeout_layer_returns_408_on_slow_handler() {
+        let app =
+            Router::new()
+                .route("/slow", post(slow_handler))
+                .layer(TimeoutLayer::with_status_code(
+                    StatusCode::REQUEST_TIMEOUT,
+                    Duration::from_millis(100),
+                )); // 100ms timeout
+
+        let req = Request::builder()
+            .method("POST")
+            .uri("/slow")
+            .body(Body::empty())
+            .unwrap();
+
+        let response = app.oneshot(req).await.unwrap();
+        // tower::timeout returns 408 Request Timeout via Axum's IntoResponse impl
+        assert_eq!(response.status(), StatusCode::REQUEST_TIMEOUT);
+    }
+
+    #[tokio::test]
+    async fn timeout_layer_allows_fast_handler() {
+        let app =
+            Router::new()
+                .route("/fast", post(echo_handler))
+                .layer(TimeoutLayer::with_status_code(
+                    StatusCode::REQUEST_TIMEOUT,
+                    Duration::from_secs(30),
+                ));
+
+        let req = Request::builder()
+            .method("POST")
+            .uri("/fast")
+            .body(Body::from("hello"))
+            .unwrap();
+
+        let response = app.oneshot(req).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+    }
 }

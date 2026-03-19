@@ -292,13 +292,13 @@ mod tests {
         let event1 = create_test_event();
         let _ = handler.add_event(event1);
 
-        let time1 = handler.time_since_last_flush();
         std::thread::sleep(Duration::from_millis(50));
+        let time_before_flush = handler.time_since_last_flush();
 
         let _ = handler.flush();
-        let time2 = handler.time_since_last_flush();
+        let time_after_flush = handler.time_since_last_flush();
 
-        assert!(time2 < time1); // Timer reset after flush
+        assert!(time_after_flush < time_before_flush); // Timer reset after flush
     }
 
     #[test]

@@ -1,37 +1,19 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndOnboard } from './helpers/auth';
+import { signUpAndOnboard, signInTestUser } from './helpers/auth';
+
+let testEmail: string;
 
 /**
- * Helper: Navigate from dashboard to the first board.
- * Returns the page (same reference) after landing on the board view.
+ * Helper: Navigate to first board via sidebar project link.
  */
 async function navigateToBoard(
   page: import('@playwright/test').Page,
 ): Promise<void> {
-  await expect(page.locator('text=Your Workspaces')).toBeVisible({
-    timeout: 15000,
-  });
-  await page.locator('a:has-text("Open Workspace")').first().click();
-  await page.waitForURL(/\/workspace\//, { timeout: 15000 });
-
-  // Wait up to 20s for boards heading; if the workspace fails to load, click Retry
-  const boardsHeading = page.locator('h2:has-text("Boards")');
-  const loadError = page.locator('button:has-text("Retry")');
-  try {
-    await boardsHeading.waitFor({ timeout: 8000 });
-  } catch {
-    // Workspace page failed to load — click Retry and wait again
-    if (await loadError.isVisible()) {
-      await loadError.click();
-    }
-    await expect(boardsHeading).toBeVisible({ timeout: 15000 });
-  }
-
-  const boardCard = page.locator('a[href*="/board/"]').first();
-  await expect(boardCard).toBeVisible({ timeout: 10000 });
-  await boardCard.click();
-
-  await expect(page).toHaveURL(/\/workspace\/.*\/board\//, { timeout: 15000 });
+  await page.waitForLoadState('networkidle').catch(() => {});
+  const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+  await expect(projectLink).toBeVisible({ timeout: 15000 });
+  await projectLink.click();
+  await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
   await page.waitForLoadState('domcontentloaded');
 
   // Wait for board content to load (board name heading or New Task button)
@@ -79,39 +61,27 @@ async function createTaskViaDialog(
 }
 
 test.describe('Board Management', () => {
-  test.beforeEach(async ({ page }) => {
-    // Sign up and onboard so we have a workspace with a sample board
-    await signUpAndOnboard(page, 'Board Test WS');
+  test.setTimeout(120000);
+
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    testEmail = await signUpAndOnboard(page, 'Board Test WS');
+    await page.close();
   });
 
-  test('can navigate to a board via workspace page', async ({ page }) => {
-    // Dashboard should show workspace(s)
-    await expect(page.locator('text=Your Workspaces')).toBeVisible({
-      timeout: 15000,
-    });
+  test.beforeEach(async ({ page }) => {
+    await signInTestUser(page, testEmail);
+  });
 
-    // Click "Open Workspace" to go to the workspace page
-    const openLink = page.locator('a:has-text("Open Workspace")').first();
-    await expect(openLink).toBeVisible({ timeout: 10000 });
-    await openLink.click();
+  test('can navigate to a board via sidebar project link', async ({ page }) => {
+    // Sidebar should show project(s)
+    await page.waitForLoadState('networkidle').catch(() => {});
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
+    await projectLink.click();
 
-    // Verify we are on the workspace page
-    await expect(page).toHaveURL(/\/workspace\//, { timeout: 15000 });
-
-    // Wait for workspace page to load (spinner gone, "Boards" heading visible)
-    await expect(page.locator('h2:has-text("Boards")')).toBeVisible({
-      timeout: 15000,
-    });
-
-    // The sample board created during onboarding should appear as a link
-    const boardCard = page.locator('a[href*="/board/"]').first();
-    await expect(boardCard).toBeVisible({ timeout: 10000 });
-    await boardCard.click();
-
-    // Verify we are on a board page
-    await expect(page).toHaveURL(/\/workspace\/.*\/board\//, {
-      timeout: 15000,
-    });
+    // Verify we are on a project page
+    await expect(page).toHaveURL(/\/project\//, { timeout: 15000 });
 
     // The board view should show a board name header (not "Loading...")
     const heading = page.locator('h1').first();
@@ -119,22 +89,8 @@ test.describe('Board Management', () => {
   });
 
   test('board view loads with board name', async ({ page }) => {
-    // Navigate: Dashboard -> Workspace -> Board
-    await expect(page.locator('text=Your Workspaces')).toBeVisible({
-      timeout: 15000,
-    });
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await expect(page.locator('h2:has-text("Boards")')).toBeVisible({
-      timeout: 15000,
-    });
-
-    const boardCard = page.locator('a[href*="/board/"]').first();
-    await expect(boardCard).toBeVisible({ timeout: 10000 });
-    await boardCard.click();
-
-    await expect(page).toHaveURL(/\/workspace\/.*\/board\//, {
-      timeout: 15000,
-    });
+    // Navigate via sidebar
+    await navigateToBoard(page);
 
     // Wait for the board to fully load
     await page.waitForLoadState('domcontentloaded');
@@ -145,24 +101,13 @@ test.describe('Board Management', () => {
     await expect(boardHeading).not.toHaveText('Loading...');
   });
 
-  test('workspace page is accessible and shows boards heading', async ({
+  test('sidebar shows project links', async ({
     page,
   }) => {
-    // Click "Open Workspace" link
-    await expect(page.locator('text=Your Workspaces')).toBeVisible({
-      timeout: 15000,
-    });
-    const openLink = page.locator('a:has-text("Open Workspace")').first();
-    await expect(openLink).toBeVisible({ timeout: 10000 });
-    await openLink.click();
-
-    // Verify we navigated to a workspace page
-    await expect(page).toHaveURL(/\/workspace\//, { timeout: 15000 });
-
-    // Verify the "Boards" section heading appears
-    await expect(page.locator('h2:has-text("Boards")')).toBeVisible({
-      timeout: 15000,
-    });
+    await page.waitForLoadState('networkidle').catch(() => {});
+    // The sidebar should show project items
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
   });
 
   // Default columns visible - verify via column name headings

@@ -366,7 +366,7 @@ mod tests {
             .expect("create_board");
         (tenant_id, user_id, ws_id, pwt.project.id)
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_create_share_link() {
         let pool = test_pool().await;
@@ -392,7 +392,7 @@ mod tests {
         assert_eq!(share.tenant_id, tenant_id);
         assert_eq!(share.created_by_id, user_id);
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_access_shared_board() {
         let pool = test_pool().await;
@@ -417,7 +417,7 @@ mod tests {
         assert_eq!(access.board_name, "BoardShare Board");
         assert!(!access.columns.is_empty(), "should have columns");
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_access_shared_board_with_password() {
         let pool = test_pool().await;
@@ -448,7 +448,7 @@ mod tests {
         let result = access_shared_board(&pool, &share.share_token, None).await;
         assert!(result.is_err(), "no password should fail");
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_toggle_share() {
         let pool = test_pool().await;
@@ -488,7 +488,7 @@ mod tests {
             .expect("accessing reactivated share should succeed");
         assert_eq!(access.board_id, board_id);
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_delete_share() {
         let pool = test_pool().await;
@@ -513,7 +513,7 @@ mod tests {
         let result = access_shared_board(&pool, &share.share_token, None).await;
         assert!(result.is_err(), "accessing deleted share should fail");
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_list_board_shares() {
         let pool = test_pool().await;
@@ -558,7 +558,7 @@ mod tests {
         assert!(names.contains(&Some("Share A")), "should contain share A");
         assert!(names.contains(&Some("Share B")), "should contain share B");
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_expired_share_access() {
         let pool = test_pool().await;

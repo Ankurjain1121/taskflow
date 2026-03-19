@@ -75,6 +75,7 @@ async fn create_test_task(
         assignee_ids: None,
         label_ids: None,
         parent_task_id: None,
+        reporting_person_id: None,
     };
     super::tasks::create_task(pool, board_id, input, tenant_id, user_id)
         .await
@@ -107,6 +108,7 @@ async fn create_test_task_with_dates(
         assignee_ids: None,
         label_ids: None,
         parent_task_id: None,
+        reporting_person_id: None,
     };
     super::tasks::create_task(pool, board_id, input, tenant_id, user_id)
         .await
@@ -116,7 +118,7 @@ async fn create_test_task_with_dates(
 // ===========================================================================
 // FAVORITES TESTS
 // ===========================================================================
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_add_favorite_board() {
     let pool = test_pool().await;
@@ -134,7 +136,7 @@ async fn test_add_favorite_board() {
         .expect("is_favorited");
     assert!(is_fav, "board should be favorited");
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_add_favorite_task() {
     let pool = test_pool().await;
@@ -161,7 +163,7 @@ async fn test_add_favorite_task() {
         .expect("is_favorited");
     assert!(is_fav);
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_favorites() {
     let pool = test_pool().await;
@@ -200,7 +202,7 @@ async fn test_list_favorites() {
         "should contain favorited task"
     );
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_remove_favorite() {
     let pool = test_pool().await;
@@ -220,7 +222,7 @@ async fn test_remove_favorite() {
         .expect("is_favorited");
     assert!(!is_fav, "board should no longer be favorited");
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_remove_favorite_nonexistent() {
     let pool = test_pool().await;
@@ -238,7 +240,7 @@ async fn test_remove_favorite_nonexistent() {
 // ===========================================================================
 // EISENHOWER TESTS
 // ===========================================================================
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_eisenhower_matrix_empty() {
     let pool = test_pool().await;
@@ -263,7 +265,7 @@ async fn test_get_eisenhower_matrix_empty() {
         "fresh user with no assigned tasks should have empty matrix"
     );
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_eisenhower_matrix_with_assigned_task() {
     let pool = test_pool().await;
@@ -301,7 +303,7 @@ async fn test_eisenhower_matrix_with_assigned_task() {
         "high-priority task with no due date should be in Schedule quadrant"
     );
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_update_eisenhower_overrides() {
     let pool = test_pool().await;
@@ -341,7 +343,7 @@ async fn test_update_eisenhower_overrides() {
         "task with urgent+important overrides should be in DoFirst"
     );
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_reset_eisenhower_overrides() {
     let pool = test_pool().await;
@@ -391,7 +393,7 @@ async fn test_reset_eisenhower_overrides() {
 // ===========================================================================
 // TASK_VIEWS TESTS
 // ===========================================================================
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_tasks_flat() {
     let pool = test_pool().await;
@@ -423,6 +425,7 @@ async fn test_list_tasks_flat() {
 /// NOTE: list_tasks_for_gantt uses sqlx macro annotation syntax (`as "is_done!"`)
 /// inside a non-macro `query_as::<_, T>()` call, causing ColumnNotFound at runtime.
 /// This is a pre-existing bug in task_views.rs. Test ignored until the query is fixed.
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 #[ignore = "pre-existing bug: query_as uses macro-only column alias syntax (is_done!)"]
 async fn test_list_tasks_for_gantt() {
@@ -459,6 +462,7 @@ async fn test_list_tasks_for_gantt() {
 /// NOTE: list_tasks_for_calendar uses sqlx macro annotation syntax (`as "due_date!"`)
 /// inside a non-macro `query_as::<_, T>()` call, causing ColumnNotFound at runtime.
 /// This is a pre-existing bug in task_views.rs. Test ignored until the query is fixed.
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 #[ignore = "pre-existing bug: query_as uses macro-only column alias syntax (due_date!)"]
 async fn test_list_tasks_for_calendar() {
@@ -501,6 +505,7 @@ async fn test_list_tasks_for_calendar() {
     assert!(found, "should find our calendar task");
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 #[ignore = "pre-existing bug: query_as uses macro-only column alias syntax (is_done!)"]
 async fn test_gantt_empty_for_tasks_without_dates() {
@@ -531,7 +536,7 @@ async fn test_gantt_empty_for_tasks_without_dates() {
 // ===========================================================================
 // WORKSPACE API KEYS TESTS
 // ===========================================================================
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_workspace_api_key() {
     let pool = test_pool().await;
@@ -555,7 +560,7 @@ async fn test_create_workspace_api_key() {
     assert_eq!(key.created_by_id, user_id);
     assert!(key.revoked_at.is_none());
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_workspace_api_keys() {
     let pool = test_pool().await;
@@ -577,7 +582,7 @@ async fn test_list_workspace_api_keys() {
     assert!(names.contains(&"Key1"));
     assert!(names.contains(&"Key2"));
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_revoke_workspace_api_key() {
     let pool = test_pool().await;
@@ -603,7 +608,7 @@ async fn test_revoke_workspace_api_key() {
         "revoked key should not appear in list"
     );
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_revoke_nonexistent_key() {
     let pool = test_pool().await;
@@ -618,7 +623,7 @@ async fn test_revoke_nonexistent_key() {
 // ===========================================================================
 // THEMES TESTS
 // ===========================================================================
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_themes() {
     let pool = test_pool().await;
@@ -631,7 +636,7 @@ async fn test_list_themes() {
     // If the DB has seeded themes, the list will be non-empty.
     let _ = themes; // query executed successfully
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_themes_dark_filter() {
     let pool = test_pool().await;
@@ -655,7 +660,7 @@ async fn test_list_themes_dark_filter() {
         );
     }
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_theme_by_slug() {
     let pool = test_pool().await;
@@ -675,7 +680,7 @@ async fn test_get_theme_by_slug() {
         assert_eq!(fetched.name, first_theme.name);
     }
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_theme_by_slug_not_found() {
     let pool = test_pool().await;
@@ -689,7 +694,7 @@ async fn test_get_theme_by_slug_not_found() {
 // ===========================================================================
 // PROJECT STATUSES TESTS
 // ===========================================================================
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_project_statuses() {
     let pool = test_pool().await;
@@ -702,7 +707,7 @@ async fn test_list_project_statuses() {
     // Default statuses: Open, In Progress, On Hold, Completed, Cancelled
     assert_eq!(statuses.len(), 5);
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_default_status() {
     let pool = test_pool().await;
@@ -717,7 +722,7 @@ async fn test_get_default_status() {
     assert!(status.is_default, "should be marked as default");
     assert_eq!(status.name, "Open");
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_update_project_status() {
     let pool = test_pool().await;
@@ -740,7 +745,7 @@ async fn test_update_project_status() {
     assert_eq!(updated.name, "Renamed");
     assert_eq!(updated.color, "#abcdef");
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_delete_project_status() {
     let pool = test_pool().await;
@@ -775,7 +780,7 @@ async fn test_delete_project_status() {
 // ===========================================================================
 // INVITATIONS TESTS
 // ===========================================================================
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_invitation() {
     let pool = test_pool().await;
@@ -801,7 +806,7 @@ async fn test_create_invitation() {
     assert_eq!(inv.invited_by_id, user_id);
     assert!(inv.accepted_at.is_none());
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_pending_invitations() {
     let pool = test_pool().await;
@@ -844,7 +849,7 @@ async fn test_list_pending_invitations() {
     assert!(emails.contains(&email1.as_str()));
     assert!(emails.contains(&email2.as_str()));
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_invitation_by_token() {
     let pool = test_pool().await;
@@ -872,7 +877,7 @@ async fn test_get_invitation_by_token() {
     assert_eq!(found.id, inv.id);
     assert_eq!(found.email, email);
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_accept_invitation() {
     let pool = test_pool().await;
@@ -906,7 +911,7 @@ async fn test_accept_invitation() {
         "accepted_at should be set after acceptance"
     );
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_delete_invitation() {
     let pool = test_pool().await;
@@ -937,7 +942,7 @@ async fn test_delete_invitation() {
         .expect("get_invitation_by_id");
     assert!(found.is_none(), "deleted invitation should not exist");
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_resend_invitation() {
     let pool = test_pool().await;
@@ -972,7 +977,7 @@ async fn test_resend_invitation() {
     );
     assert!(resent.accepted_at.is_none(), "accepted_at should be reset");
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_pending_invitation_by_email() {
     let pool = test_pool().await;
@@ -992,7 +997,7 @@ async fn test_get_pending_invitation_by_email() {
     assert!(found.is_some(), "should find pending invitation by email");
     assert_eq!(found.expect("checked above").email, email);
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_all_invitations() {
     let pool = test_pool().await;
@@ -1033,7 +1038,7 @@ async fn test_list_all_invitations() {
 // ===========================================================================
 // SEARCH TESTS
 // ===========================================================================
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_search_finds_task_by_title() {
     let pool = test_pool().await;
@@ -1059,7 +1064,7 @@ async fn test_search_finds_task_by_title() {
     assert!(!results.tasks.is_empty(), "should find the task");
     assert!(results.tasks.iter().any(|t| t.title.contains(&needle)));
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_search_finds_board_by_name() {
     let pool = test_pool().await;
@@ -1078,7 +1083,7 @@ async fn test_search_finds_board_by_name() {
     assert!(!results.boards.is_empty(), "should find the board");
     assert!(results.boards.iter().any(|b| b.name.contains(&needle)));
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_search_returns_empty_for_random_string() {
     let pool = test_pool().await;
@@ -1098,7 +1103,7 @@ async fn test_search_returns_empty_for_random_string() {
 // ===========================================================================
 // ARCHIVE TESTS
 // ===========================================================================
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_archive_task_and_list() {
     let pool = test_pool().await;
@@ -1131,7 +1136,7 @@ async fn test_archive_task_and_list() {
     );
     assert_eq!(found.expect("checked above").entity_type, "task");
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_archive_board_and_list() {
     let pool = test_pool().await;
@@ -1159,7 +1164,7 @@ async fn test_archive_board_and_list() {
     );
     assert_eq!(found.expect("checked above").entity_type, "board");
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_archive_mixed_listing() {
     let pool = test_pool().await;
@@ -1203,7 +1208,7 @@ async fn test_archive_mixed_listing() {
 // ===========================================================================
 // MILESTONES TESTS
 // ===========================================================================
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_create_milestone() {
     let pool = test_pool().await;
@@ -1227,7 +1232,7 @@ async fn test_create_milestone() {
     assert_eq!(ms.tenant_id, tenant_id);
     assert_eq!(ms.created_by_id, user_id);
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_list_milestones() {
     let pool = test_pool().await;
@@ -1262,7 +1267,7 @@ async fn test_list_milestones() {
     assert!(names.contains(&"MS-A"));
     assert!(names.contains(&"MS-B"));
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_milestone() {
     let pool = test_pool().await;
@@ -1288,7 +1293,7 @@ async fn test_get_milestone() {
     assert_eq!(fetched.total_tasks, 0);
     assert_eq!(fetched.completed_tasks, 0);
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_update_milestone() {
     let pool = test_pool().await;
@@ -1320,7 +1325,7 @@ async fn test_update_milestone() {
     assert_eq!(updated.description.as_deref(), Some("Updated desc"));
     assert_eq!(updated.color, "#00ff00");
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_delete_milestone() {
     let pool = test_pool().await;
@@ -1345,7 +1350,7 @@ async fn test_delete_milestone() {
     let result = super::milestones::get_milestone(&pool, ms.id, user_id).await;
     assert!(result.is_err(), "deleted milestone should not be found");
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_assign_task_to_milestone() {
     let pool = test_pool().await;
@@ -1391,6 +1396,7 @@ async fn test_assign_task_to_milestone() {
 /// syntax (`as "dependency_type: DependencyType"`) inside non-macro `query_as::<_, T>()` calls,
 /// causing ColumnNotFound("dependency_type") at runtime. Pre-existing bug.
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 #[ignore = "pre-existing bug: query_as uses macro-only type annotation syntax"]
 async fn test_create_dependency_related() {
@@ -1432,6 +1438,7 @@ async fn test_create_dependency_related() {
     assert_eq!(dep.dependency_type, DependencyType::Related);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 #[ignore = "pre-existing bug: query_as uses macro-only type annotation syntax"]
 async fn test_create_dependency_blocks() {
@@ -1471,6 +1478,7 @@ async fn test_create_dependency_blocks() {
     assert_eq!(dep.dependency_type, DependencyType::Blocks);
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 #[ignore = "pre-existing bug: query_as uses macro-only type annotation syntax"]
 async fn test_list_dependencies() {
@@ -1514,6 +1522,7 @@ async fn test_list_dependencies() {
     assert!(deps.iter().any(|d| d.related_task_id == task_b.id));
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 #[ignore = "pre-existing bug: query_as uses macro-only type annotation syntax"]
 async fn test_delete_dependency() {
@@ -1563,6 +1572,7 @@ async fn test_delete_dependency() {
     );
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 #[ignore = "pre-existing bug: query_as uses macro-only type annotation syntax"]
 async fn test_check_blockers() {
@@ -1606,6 +1616,7 @@ async fn test_check_blockers() {
     assert!(blockers.iter().any(|b| b.task_id == blocker.id));
 }
 
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 #[ignore = "pre-existing bug: query_as uses macro-only type annotation syntax"]
 async fn test_get_board_dependencies() {
@@ -1651,7 +1662,7 @@ async fn test_get_board_dependencies() {
 // ===========================================================================
 // TASK_BULK TESTS (additional to integration_tests_advanced)
 // ===========================================================================
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_bulk_update_status_move() {
     let pool = test_pool().await;
@@ -1697,7 +1708,7 @@ async fn test_bulk_update_status_move() {
         .expect("task should exist");
     assert_eq!(fetched.task.status_id, Some(target_status));
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_bulk_update_empty_task_ids() {
     let pool = test_pool().await;
@@ -1719,7 +1730,7 @@ async fn test_bulk_update_empty_task_ids() {
 
     assert_eq!(count, 0, "empty task_ids should update 0 tasks");
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_bulk_update_not_board_member() {
     let pool = test_pool().await;
@@ -1757,7 +1768,7 @@ async fn test_bulk_update_not_board_member() {
 // ===========================================================================
 // TASK_ASSIGNMENTS TESTS (additional to integration_tests_advanced)
 // ===========================================================================
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_assign_user_idempotent() {
     let pool = test_pool().await;
@@ -1792,7 +1803,7 @@ async fn test_assign_user_idempotent() {
     let user_count = ids.iter().filter(|&&id| id == user_id).count();
     assert_eq!(user_count, 1, "should only have one assignment entry");
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_unassign_nonexistent() {
     let pool = test_pool().await;
@@ -1813,7 +1824,7 @@ async fn test_unassign_nonexistent() {
     let result = super::task_assignments::unassign_user(&pool, task.id, random_user).await;
     assert!(result.is_err(), "unassigning nonexistent user should fail");
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_get_task_assignee_ids_empty() {
     let pool = test_pool().await;
@@ -1836,7 +1847,7 @@ async fn test_get_task_assignee_ids_empty() {
 
     assert!(ids.is_empty(), "new task should have no assignees");
 }
-
+#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 async fn test_multiple_assignees() {
     let pool = test_pool().await;

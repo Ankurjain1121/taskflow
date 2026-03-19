@@ -25,6 +25,9 @@ use crate::services::cache;
 use crate::state::AppState;
 
 use super::common::MessageResponse;
+use super::validation::{
+    validate_optional_string, validate_required_string, MAX_NAME_LEN, MAX_PROJECT_DESCRIPTION_LEN,
+};
 
 /// Fire MemberJoined trigger for all boards in a workspace
 fn fire_member_joined_trigger(
@@ -259,10 +262,15 @@ async fn create_workspace(
     auth: AuthUserExtractor,
     Json(payload): Json<CreateWorkspaceRequest>,
 ) -> Result<Json<WorkspaceResponse>> {
+    // Validate string lengths
+    validate_required_string("Workspace name", &payload.name, MAX_NAME_LEN)?;
+    validate_optional_string(
+        "Description",
+        payload.description.as_deref(),
+        MAX_PROJECT_DESCRIPTION_LEN,
+    )?;
+
     let name = payload.name.trim();
-    if name.is_empty() {
-        return Err(AppError::BadRequest("Workspace name is required".into()));
-    }
 
     let workspace = workspaces::create_workspace(
         &state.db,
@@ -301,10 +309,15 @@ async fn update_workspace(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
+    // Validate string lengths
+    validate_required_string("Workspace name", &payload.name, MAX_NAME_LEN)?;
+    validate_optional_string(
+        "Description",
+        payload.description.as_deref(),
+        MAX_PROJECT_DESCRIPTION_LEN,
+    )?;
+
     let name = payload.name.trim();
-    if name.is_empty() {
-        return Err(AppError::BadRequest("Workspace name is required".into()));
-    }
 
     let workspace =
         workspaces::update_workspace(&state.db, id, name, payload.description.as_deref())

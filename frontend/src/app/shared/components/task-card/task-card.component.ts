@@ -15,7 +15,12 @@ import { TaskCardData, TaskCardVariant } from './task-card-data';
   imports: [CardComponent, BadgeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <app-card [variant]="'nav'" (click)="clicked.emit(task().id)">
+    <app-card
+      [variant]="'nav'"
+      (click)="clicked.emit(task().id)"
+      [style.border-left]="stripeColor() ? '4px solid ' + stripeColor() : 'none'"
+      [style.transition]="'border-color 200ms ease'"
+    >
       <div [class]="wrapperClasses()">
         <!-- Project context row (non-compact) -->
         @if (variant() !== 'compact' && task().project_name) {
@@ -118,6 +123,7 @@ import { TaskCardData, TaskCardVariant } from './task-card-data';
 export class UnifiedTaskCardComponent {
   readonly task = input.required<TaskCardData>();
   readonly variant = input<TaskCardVariant>('kanban');
+  readonly stripeColor = input<string | null>(null);
 
   readonly clicked = output<string>();
   readonly completed = output<string>();

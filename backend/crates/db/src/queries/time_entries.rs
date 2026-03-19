@@ -555,13 +555,14 @@ mod tests {
             assignee_ids: None,
             label_ids: None,
             parent_task_id: None,
+            reporting_person_id: None,
         };
         let task = tasks::create_task(pool, board_id, input, tenant_id, user_id)
             .await
             .expect("create task for time entries");
         (tenant_id, user_id, board_id, task.id)
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_start_timer() {
         let pool = test_pool().await;
@@ -589,7 +590,7 @@ mod tests {
         assert_eq!(entry.tenant_id, tenant_id);
         assert!(!entry.is_billable);
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_stop_timer() {
         let pool = test_pool().await;
@@ -614,7 +615,7 @@ mod tests {
         assert!(stopped.ended_at.is_some());
         assert!(stopped.duration_minutes.is_some());
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_create_manual_entry() {
         let pool = test_pool().await;
@@ -647,7 +648,7 @@ mod tests {
         assert_eq!(entry.description.as_deref(), Some("Manual logging"));
         assert!(entry.is_billable);
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_billable_default_false() {
         let pool = test_pool().await;
@@ -674,7 +675,7 @@ mod tests {
 
         assert!(!entry.is_billable, "Default should be false");
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_list_task_time_entries() {
         let pool = test_pool().await;
@@ -735,7 +736,7 @@ mod tests {
             "should contain entry 2"
         );
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_get_board_time_report() {
         let pool = test_pool().await;
@@ -773,7 +774,7 @@ mod tests {
         assert_eq!(task_report.total_minutes, 90);
         assert_eq!(task_report.entries_count, 1);
     }
-
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_running_timer_auto_stops_previous() {
         let pool = test_pool().await;

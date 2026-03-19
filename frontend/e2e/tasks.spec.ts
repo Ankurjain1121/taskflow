@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { signUpAndOnboard } from './helpers/auth';
+import { signUpAndOnboard, signInTestUser } from './helpers/auth';
 import { navigateToFirstBoard, createTaskViaUI } from './helpers/data-factory';
 
 /**
@@ -13,6 +13,8 @@ import { navigateToFirstBoard, createTaskViaUI } from './helpers/data-factory';
  * - Delete task
  * - Create multiple tasks and verify order
  */
+
+let testEmail: string;
 
 /** Helper: open task detail panel by clicking on task card */
 async function openTaskDetail(page: Page, taskTitle: string): Promise<void> {
@@ -30,8 +32,16 @@ async function closeTaskDetail(page: Page): Promise<void> {
 }
 
 test.describe('Task Management - CRUD Operations', () => {
+  test.setTimeout(120000);
+
+  test.beforeAll(async ({ browser }) => {
+    const page = await browser.newPage();
+    testEmail = await signUpAndOnboard(page, 'Task CRUD WS');
+    await page.close();
+  });
+
   test.beforeEach(async ({ page }) => {
-    await signUpAndOnboard(page, 'Task CRUD WS');
+    await signInTestUser(page, testEmail);
     await navigateToFirstBoard(page);
   });
 

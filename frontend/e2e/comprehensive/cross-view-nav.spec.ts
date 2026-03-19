@@ -28,18 +28,11 @@ test.describe('Cross-View Navigation', () => {
     // Start at dashboard
     await expect(page).toHaveURL(/\/dashboard/);
 
-    // Navigate to a workspace/board
-    const openWsLink = page.locator('a:has-text("Open Workspace")').first();
-    await expect(openWsLink).toBeVisible({ timeout: 15000 });
-    await openWsLink.click();
-    await page.waitForURL(/\/workspace\//, { timeout: 15000 });
-
-    // Click a board
-    const boardLink = page.locator('a[href*="/board/"]').first();
-    if (await boardLink.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await boardLink.click();
-      await page.waitForURL(/\/board\//, { timeout: 15000 });
-    }
+    // Navigate to a project via sidebar
+    const projectLink = page.locator('app-sidebar-projects a.project-item').first();
+    await expect(projectLink).toBeVisible({ timeout: 15000 });
+    await projectLink.click();
+    await page.waitForURL(/\/project\//, { timeout: 15000 });
 
     // Navigate to My Tasks
     const myTasksLink = page
@@ -61,47 +54,34 @@ test.describe('Cross-View Navigation', () => {
   });
 
   test('browser back button returns to previous view', async ({ page }) => {
-    // Navigate to workspace
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await page.waitForURL(/\/workspace\//, { timeout: 15000 });
+    // Navigate to project
+    await page.locator('app-sidebar-projects a.project-item').first().click();
+    await page.waitForURL(/\/project\//, { timeout: 15000 });
 
-    const wsUrl = page.url();
+    const projectUrl = page.url();
 
-    // Navigate to board
-    const boardLink = page.locator('a[href*="/board/"]').first();
-    if (await boardLink.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await boardLink.click();
-      await page.waitForURL(/\/board\//, { timeout: 15000 });
+    // Go back
+    await page.goBack();
+    await page.waitForTimeout(2000);
 
-      // Go back
-      await page.goBack();
-      await page.waitForTimeout(2000);
-
-      // Should be back at workspace
-      expect(page.url()).toContain('/workspace/');
-    }
+    // Should be back at dashboard
+    expect(page.url()).toContain('/dashboard');
   });
 
   test('browser forward button after back works correctly', async ({
     page,
   }) => {
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await page.waitForURL(/\/workspace\//, { timeout: 15000 });
+    await page.locator('app-sidebar-projects a.project-item').first().click();
+    await page.waitForURL(/\/project\//, { timeout: 15000 });
+    const projectUrl = page.url();
 
-    const boardLink = page.locator('a[href*="/board/"]').first();
-    if (await boardLink.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await boardLink.click();
-      await page.waitForURL(/\/board\//, { timeout: 15000 });
-      const boardUrl = page.url();
+    // Back then forward
+    await page.goBack();
+    await page.waitForTimeout(1000);
+    await page.goForward();
+    await page.waitForTimeout(1000);
 
-      // Back then forward
-      await page.goBack();
-      await page.waitForTimeout(1000);
-      await page.goForward();
-      await page.waitForTimeout(1000);
-
-      expect(page.url()).toContain('/board/');
-    }
+    expect(page.url()).toContain('/project/');
   });
 
   test('deep link to specific board loads correctly', async ({ page }) => {
@@ -185,13 +165,13 @@ test.describe('Cross-View Navigation', () => {
     }
   });
 
-  test('switching workspace preserves current view type', async ({ page }) => {
-    // Navigate to first workspace
-    await page.locator('a:has-text("Open Workspace")').first().click();
-    await page.waitForURL(/\/workspace\//, { timeout: 15000 });
+  test('switching project preserves current view type', async ({ page }) => {
+    // Navigate to first project
+    await page.locator('app-sidebar-projects a.project-item').first().click();
+    await page.waitForURL(/\/project\//, { timeout: 15000 });
 
-    // Verify URL has workspace pattern
-    expect(page.url()).toMatch(/\/workspace\//);
+    // Verify URL has project pattern
+    expect(page.url()).toMatch(/\/project\//);
   });
 
   test('rapid navigation does not cause loading state stuck', async ({
@@ -202,7 +182,7 @@ test.describe('Cross-View Navigation', () => {
       await page.goto('/dashboard');
       await page.waitForTimeout(500);
 
-      const wsLink = page.locator('a:has-text("Open Workspace")').first();
+      const wsLink = page.locator('app-sidebar-projects a.project-item').first();
       if (await wsLink.isVisible({ timeout: 3000 }).catch(() => false)) {
         await wsLink.click();
         await page.waitForTimeout(500);
@@ -325,7 +305,7 @@ test.describe('Cross-View Navigation', () => {
     await page.goto(`/workspace/${wsAlpha.id}`);
     await page.waitForURL(/\/workspace\//, { timeout: 15000 });
 
-    const boardLink = page.locator('a[href*="/board/"]').first();
+    const boardLink = page.locator('a[href*="/project/"]').first();
     if (await boardLink.isVisible({ timeout: 10000 }).catch(() => false)) {
       await boardLink.click();
       await page.waitForURL(/\/board\//, { timeout: 15000 });

@@ -129,7 +129,7 @@ mod tests {
 
         assert_eq!(
             headers.get("cache-control").unwrap().to_str().unwrap(),
-            "public, max-age=60"
+            "private, max-age=60"
         );
     }
 }

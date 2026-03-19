@@ -39,6 +39,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         height: 48px;
         background: var(--card);
         border-bottom: 1px solid var(--border);
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
         z-index: 40;
       }
 

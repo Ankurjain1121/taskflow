@@ -1,6 +1,8 @@
 /// Create a test database connection pool from DATABASE_URL environment variable.
-/// Panics if DATABASE_URL is not set — never use hardcoded credentials.
+/// Loads .env file automatically so tests work without manual env setup.
 pub async fn test_pool() -> sqlx::PgPool {
+    let _ = dotenvy::from_path("../../.env");
+    let _ = dotenvy::dotenv();
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests");
     sqlx::PgPool::connect(&database_url)
         .await
