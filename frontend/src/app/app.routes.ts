@@ -140,6 +140,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'project/:projectId/task/:taskId',
+        loadComponent: () =>
+          import('./features/task-detail/task-detail-page.component').then(
+            (m) => m.TaskDetailPageComponent,
+          ),
+      },
+      {
         path: 'project/:projectId/settings',
         loadComponent: () =>
           import('./features/project/project-settings/project-settings.component').then(

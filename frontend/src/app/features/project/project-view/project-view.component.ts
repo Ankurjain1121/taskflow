@@ -35,7 +35,6 @@ import {
   ProjectToolbarComponent,
   ViewMode,
 } from '../project-toolbar/project-toolbar.component';
-import { TaskDetailComponent } from '../task-detail/task-detail.component';
 import { ListViewComponent } from '../list-view/list-view.component';
 import { CalendarViewComponent } from '../calendar-view/calendar-view.component';
 import { GanttViewComponent } from '../gantt-view/gantt-view.component';
@@ -83,7 +82,6 @@ import { MessageService } from 'primeng/api';
     CreateTaskGroupDialogComponent,
     ProjectKanbanBoardComponent,
     ProjectToolbarComponent,
-    TaskDetailComponent,
     ListViewComponent,
     CalendarViewComponent,
     GanttViewComponent,
@@ -211,7 +209,7 @@ import { MessageService } from 'primeng/api';
               [columns]="state.columns()"
               [colorBy]="state.colorBy()"
               [projectId]="boardId"
-              (taskClicked)="state.selectedTaskId.set($event)"
+              (taskClicked)="navigateToTask($event)"
               (titleChanged)="listEdit.onTitleChanged($event, boardId, destroy$)"
               (priorityChanged)="listEdit.onPriorityChanged($event, boardId, destroy$)"
               (statusChanged)="listEdit.onStatusChanged($event, boardId, destroy$)"
@@ -232,7 +230,7 @@ import { MessageService } from 'primeng/api';
           @defer (when viewMode() === 'calendar') {
             <app-calendar-view
               [boardId]="boardId"
-              (taskClicked)="state.selectedTaskId.set($event)"
+              (taskClicked)="navigateToTask($event)"
             ></app-calendar-view>
           } @placeholder {
             <div
@@ -249,7 +247,7 @@ import { MessageService } from 'primeng/api';
             <app-gantt-view
               [tasks]="state.ganttTasks()"
               [dependencies]="state.boardDependencies()"
-              (taskClicked)="state.selectedTaskId.set($event)"
+              (taskClicked)="navigateToTask($event)"
             ></app-gantt-view>
           } @placeholder {
             <div
@@ -316,7 +314,7 @@ import { MessageService } from 'primeng/api';
             [groupBy]="state.groupBy()"
             [collapsedSwimlaneIds]="state.collapsedSwimlaneIds()"
             (taskMoved)="dragDrop.onSwimlaneTaskMoved($event)"
-            (taskClicked)="state.selectedTaskId.set($event.id)"
+            (taskClicked)="navigateToTask($event.id)"
             (addTaskClicked)="onAddTaskToColumn($event)"
             (selectionToggled)="onSelectionToggled($event)"
             (priorityChanged)="
@@ -351,7 +349,7 @@ import { MessageService } from 'primeng/api';
           [colorBy]="state.colorBy()"
           [cardFields]="state.cardFields()"
           (taskMoved)="dragDrop.onTaskMoved($event)"
-          (taskClicked)="state.selectedTaskId.set($event.id)"
+          (taskClicked)="navigateToTask($event.id)"
           (addTaskClicked)="onAddTaskToColumn($event)"
           (selectionToggled)="onSelectionToggled($event)"
           (priorityChanged)="
@@ -379,16 +377,7 @@ import { MessageService } from 'primeng/api';
         />
       }
 
-      <!-- Task Detail Panel -->
-      @if (state.selectedTaskId()) {
-        <app-task-detail
-          [taskId]="state.selectedTaskId()!"
-          [workspaceId]="workspaceId"
-          [boardId]="boardId"
-          (closed)="state.selectedTaskId.set(null)"
-          (taskUpdated)="state.updateTaskInState($event)"
-        ></app-task-detail>
-      }
+      <!-- Task Detail: navigates to full-page view -->
 
       <!-- Bulk Actions Bar -->
       @if (state.selectedTaskIds().length > 0) {
@@ -642,6 +631,17 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
   }
 
   // === Create Column Dialog ===
+
+  navigateToTask(taskId: string): void {
+    this.router.navigate([
+      '/workspace',
+      this.workspaceId,
+      'project',
+      this.boardId,
+      'task',
+      taskId,
+    ]);
+  }
 
   onAddColumn(): void {
     this.showCreateColumnDialog = true;

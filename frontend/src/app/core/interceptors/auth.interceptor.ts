@@ -45,7 +45,12 @@ export const authInterceptor: HttpInterceptorFn = (
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
       const isOnAuthPage = router.url.startsWith('/auth') || router.url.startsWith('/onboarding');
-      if (error.status === 401 && !req.url.includes('/auth/') && !isOnAuthPage) {
+      // Retry on 401 (expired JWT) or 403 (expired CSRF token)
+      const shouldRetry =
+        (error.status === 401 || error.status === 403) &&
+        !req.url.includes('/auth/') &&
+        !isOnAuthPage;
+      if (shouldRetry) {
         return authService.refresh().pipe(
           switchMap(() => {
             const freshCsrf = authService.csrfToken();
@@ -58,10 +63,12 @@ export const authInterceptor: HttpInterceptorFn = (
             return next(retryReq);
           }),
           catchError((refreshError) => {
-            authService.signOut('expired');
-            router.navigate(['/auth/sign-in'], {
-              queryParams: { returnUrl: router.url },
-            });
+            if (error.status === 401) {
+              authService.signOut('expired');
+              router.navigate(['/auth/sign-in'], {
+                queryParams: { returnUrl: router.url },
+              });
+            }
             return throwError(() => refreshError);
           }),
         );

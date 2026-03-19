@@ -5,7 +5,9 @@ import {
   inject,
   Injector,
   OnInit,
+  OnDestroy,
   ChangeDetectionStrategy,
+  HostListener,
   afterNextRender,
   effect,
 } from '@angular/core';
@@ -130,6 +132,7 @@ import { Toast } from 'primeng/toast';
         >
           <i class="pi pi-arrow-left text-xs"></i>
           Back
+          <kbd class="ml-1.5 px-1.5 py-0.5 text-[0.625rem] font-mono rounded" style="background: var(--border); color: var(--muted-foreground)">Esc</kbd>
         </button>
 
         @if (board() && workspace()) {
@@ -397,7 +400,7 @@ import { Toast } from 'primeng/toast';
     }
   `,
 })
-export class TaskDetailPageComponent implements OnInit {
+export class TaskDetailPageComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private location = inject(Location);
@@ -435,8 +438,20 @@ export class TaskDetailPageComponent implements OnInit {
     });
   }
 
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscapeKey(event: KeyboardEvent): void {
+    // Don't navigate back if user is editing a field
+    if (this.editingField()) return;
+    event.preventDefault();
+    this.goBack();
+  }
+
   ngOnInit(): void {
     // Task loading is handled by the effect reacting to taskId changes
+  }
+
+  ngOnDestroy(): void {
+    // Cleanup handled by Angular's effect/signal system
   }
 
   goBack(): void {
