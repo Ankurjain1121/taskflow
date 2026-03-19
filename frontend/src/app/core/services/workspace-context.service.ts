@@ -90,8 +90,16 @@ export class WorkspaceContextService {
       });
   }
 
-  /** Load all workspaces and resolve initial active workspace. */
+  private _initPromise: Promise<void> | null = null;
+
+  /** Load all workspaces and resolve initial active workspace. Idempotent. */
   async init(urlWorkspaceId?: string): Promise<void> {
+    if (this._initPromise) return this._initPromise;
+    this._initPromise = this._doInit(urlWorkspaceId);
+    return this._initPromise;
+  }
+
+  private async _doInit(urlWorkspaceId?: string): Promise<void> {
     try {
       const list = await firstValueFrom(this.workspaceService.list());
       this.workspaces.set(list);
