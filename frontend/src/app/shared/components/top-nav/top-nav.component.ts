@@ -38,9 +38,18 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
       .top-nav {
         height: 48px;
         background: var(--card);
-        border-bottom: 1px solid var(--border);
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+        border-bottom: 1px solid color-mix(in srgb, var(--primary) 15%, var(--border));
+        box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
         z-index: 40;
+      }
+
+      .create-btn {
+        background: var(--primary);
+        color: var(--primary-foreground);
+        transition: opacity 0.15s ease, transform 0.1s ease;
+      }
+      .create-btn:hover {
+        opacity: 0.9;
       }
 
       .nav-icon-btn {
@@ -96,13 +105,14 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         </button>
 
         <button
-          class="nav-icon-btn p-2 rounded-md"
+          class="create-btn flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium"
           (click)="quickCreate.emit()"
-          pTooltip="Create task"
+          pTooltip="Create task (C)"
           tooltipPosition="bottom"
           aria-label="Create task"
         >
-          <i class="pi pi-plus" aria-hidden="true"></i>
+          <i class="pi pi-plus text-[11px]" aria-hidden="true"></i>
+          <span class="hidden sm:inline">Task</span>
         </button>
 
         <app-notification-bell (click)="goToInbox()" />
