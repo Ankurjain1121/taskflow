@@ -12,6 +12,7 @@ import {
   ChecklistItem,
 } from '../../../core/services/onboarding-checklist.service';
 import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
+import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
 
 @Component({
   selector: 'app-onboarding-checklist',
@@ -212,6 +213,7 @@ export class OnboardingChecklistComponent {
   readonly checklist = inject(OnboardingChecklistService);
   private router = inject(Router);
   private shortcutsService = inject(KeyboardShortcutsService);
+  private wsContext = inject(WorkspaceContextService);
 
   showSkipConfirm = signal(false);
 
@@ -225,6 +227,21 @@ export class OnboardingChecklistComponent {
   onCtaClick(item: ChecklistItem): void {
     if (item.ctaAction === 'open_shortcuts') {
       this.shortcutsService.helpRequested.update((n) => n + 1);
+      return;
+    }
+    if (item.ctaAction === 'go_to_board') {
+      const wsId = this.wsContext.activeWorkspaceId();
+      const projects = this.wsContext.getOrderedProjects();
+      if (wsId && projects.length > 0) {
+        this.router.navigate(['/workspace', wsId, 'project', projects[0].id]);
+      }
+      return;
+    }
+    if (item.ctaAction === 'invite_team') {
+      const wsId = this.wsContext.activeWorkspaceId();
+      if (wsId) {
+        this.router.navigate(['/workspace', wsId, 'team-page'], { queryParams: { tab: 'invite' } });
+      }
       return;
     }
     if (item.ctaRoute) {

@@ -13,6 +13,7 @@ import {
   CdkDragDrop,
   transferArrayItem,
 } from '@angular/cdk/drag-drop';
+import { Router } from '@angular/router';
 import {
   EisenhowerService,
   EisenhowerTask,
@@ -88,6 +89,7 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
                     [task]="toCard(task)"
                     [variant]="'board'"
                     [class.matrix-task-landed]="landedTaskId() === task.id"
+                    (clicked)="onTaskClick($event)"
                   />
                 </div>
               } @empty {
@@ -118,6 +120,7 @@ const QUADRANT_MAP: Record<EisenhowerQuadrant, { urgency: boolean; importance: b
 })
 export class MyWorkMatrixComponent implements OnInit {
   private eisenhowerService = inject(EisenhowerService);
+  private router = inject(Router);
 
   readonly loading = signal(false);
   readonly matrix = signal<EisenhowerMatrixResponse | null>(null);
@@ -167,6 +170,10 @@ export class MyWorkMatrixComponent implements OnInit {
       eliminate: 'var(--muted)',
     };
     return map[key];
+  }
+
+  onTaskClick(taskId: string): void {
+    this.router.navigate(['/task', taskId]);
   }
 
   toCard(task: EisenhowerTask): TaskCardData {

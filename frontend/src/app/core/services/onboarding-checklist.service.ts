@@ -34,7 +34,7 @@ function defaultItems(): ChecklistItem[] {
       completed: false,
       icon: 'pi-plus',
       ctaLabel: 'Go to Board',
-      ctaRoute: '/dashboard',
+      ctaAction: 'go_to_board',
     },
     {
       id: 'set_due_date',
@@ -52,7 +52,7 @@ function defaultItems(): ChecklistItem[] {
       completed: false,
       icon: 'pi-arrows-h',
       ctaLabel: 'Go to Board',
-      ctaRoute: '/dashboard',
+      ctaAction: 'go_to_board',
     },
     {
       id: 'explore_shortcuts',
@@ -70,7 +70,7 @@ function defaultItems(): ChecklistItem[] {
       completed: false,
       icon: 'pi-user-plus',
       ctaLabel: 'Invite Team',
-      ctaRoute: '/team',
+      ctaAction: 'invite_team',
     },
   ];
 }

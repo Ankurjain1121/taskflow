@@ -299,6 +299,12 @@ export class WorkspaceComponent implements OnInit {
       next: (members) => {
         this.members.set(members);
         this.loading.set(false);
+
+        // Auto-open create project dialog if navigated with ?newProject=true
+        const newProject = this.route.snapshot.queryParamMap.get('newProject');
+        if (newProject === 'true') {
+          this.openCreateProjectDialog();
+        }
       },
       error: () => {
         this.loading.set(false);

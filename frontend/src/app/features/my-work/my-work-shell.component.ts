@@ -7,6 +7,7 @@ import {
   ChangeDetectionStrategy,
   effect,
 } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { MyTasksService, MyTasksSummary } from '../../core/services/my-tasks.service';
 import { MyWorkTimelineComponent } from './my-work-timeline.component';
@@ -97,6 +98,7 @@ const TAB_STORAGE_KEY = 'taskflow_mywork_tab';
 })
 export class MyWorkShellComponent implements OnInit {
   private myTasksService = inject(MyTasksService);
+  private route = inject(ActivatedRoute);
 
   readonly tabs: { key: MyWorkTab; label: string }[] = [
     { key: 'timeline', label: 'Timeline' },
@@ -136,6 +138,14 @@ export class MyWorkShellComponent implements OnInit {
   }
 
   private loadSavedTab(): MyWorkTab {
+    // Check route data for default tab (e.g. from /eisenhower redirect)
+    const routeData = this.route?.snapshot?.data;
+    if (routeData?.['defaultTab']) {
+      const tab = routeData['defaultTab'];
+      if (tab === 'timeline' || tab === 'matrix' || tab === 'board') {
+        return tab;
+      }
+    }
     try {
       const saved = localStorage.getItem(TAB_STORAGE_KEY);
       if (saved === 'timeline' || saved === 'matrix' || saved === 'board') {

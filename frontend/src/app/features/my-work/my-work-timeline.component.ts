@@ -7,7 +7,7 @@ import {
   OnDestroy,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 import { MyTasksService, MyTask, MyTasksSummary } from '../../core/services/my-tasks.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -78,7 +78,7 @@ interface GroupConfig {
               @if (!collapsed().has(group.key)) {
                 <div class="px-5 pb-4 space-y-2 pt-2">
                   @for (card of toCards(groupedTasks()[group.key]); track card.id) {
-                    <app-unified-task-card [task]="card" [variant]="'timeline'" />
+                    <app-unified-task-card [task]="card" [variant]="'timeline'" (clicked)="onTaskClick($event)" />
                   }
                 </div>
               }
@@ -108,6 +108,7 @@ export class MyWorkTimelineComponent implements OnInit, OnDestroy {
   private myTasksService = inject(MyTasksService);
   private authService = inject(AuthService);
   private wsService = inject(WebSocketService);
+  private router = inject(Router);
   private destroy$ = new Subject<void>();
 
   readonly loading = signal(true);
@@ -144,6 +145,10 @@ export class MyWorkTimelineComponent implements OnInit, OnDestroy {
       next.add(key);
     }
     this.collapsed.set(next);
+  }
+
+  onTaskClick(taskId: string): void {
+    this.router.navigate(['/task', taskId]);
   }
 
   toCards(tasks: MyTask[]): TaskCardData[] {
