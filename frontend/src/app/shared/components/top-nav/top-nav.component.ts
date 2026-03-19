@@ -115,7 +115,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
           <span class="hidden sm:inline">Task</span>
         </button>
 
-        <app-notification-bell (click)="goToInbox()" />
+        <app-notification-bell aria-label="Notifications" (click)="goToInbox()" />
 
         <!-- User Avatar Dropdown -->
         <button
