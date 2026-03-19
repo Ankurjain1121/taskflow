@@ -22,6 +22,7 @@ import { ToastModule } from 'primeng/toast';
 import { ThemeService } from './core/services/theme.service';
 import { KeyboardShortcutsService } from './core/services/keyboard-shortcuts.service';
 import { WorkspaceContextService } from './core/services/workspace-context.service';
+import { SwUpdateService } from './core/services/sw-update.service';
 import { CommandPaletteComponent } from './shared/components/command-palette/command-palette.component';
 import { ToastContainerComponent } from './shared/components/toast/toast.component';
 import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
@@ -100,8 +101,10 @@ export class AppComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private keyboardShortcuts = inject(KeyboardShortcutsService);
   private wsContext = inject(WorkspaceContextService);
+  private swUpdateService = inject(SwUpdateService);
 
   ngOnInit(): void {
+    this.swUpdateService.init();
     this.registerGlobalShortcuts();
 
     // Workspace context init is deferred to NavigationEnd so that route guards
@@ -189,6 +192,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
   onQuickCreate(): void {
     this.quickCreateOpen.set(true);
+  }
+
+  onSwUpdateAction(): void {
+    this.swUpdateService.reload();
   }
 
   closeViewSwitcher(): void {

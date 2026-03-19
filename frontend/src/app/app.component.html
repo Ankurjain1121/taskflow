@@ -68,6 +68,9 @@
 <!-- Undo Toast (for undo service) -->
 <p-toast key="undo" position="bottom-center" />
 
+<!-- Service Worker Update Toast -->
+<p-toast key="sw-update" position="bottom-right" (onClose)="onSwUpdateAction()" />
+
 <!-- Keyboard Shortcuts Help (global) -->
 @defer (on idle) {
   <app-shortcut-help />
