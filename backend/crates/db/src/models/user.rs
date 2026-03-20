@@ -52,6 +52,7 @@ pub struct RefreshToken {
     pub user_agent: Option<String>,
     pub device_name: Option<String>,
     pub last_active_at: Option<DateTime<Utc>>,
+    pub persistent: bool,
     pub created_at: DateTime<Utc>,
 }
 
@@ -163,6 +164,7 @@ mod tests {
             user_agent: Some("TestAgent/1.0".to_string()),
             device_name: Some("Test Device".to_string()),
             last_active_at: Some(now),
+            persistent: false,
             created_at: now,
         };
         let json = serde_json::to_string(&token).unwrap();
