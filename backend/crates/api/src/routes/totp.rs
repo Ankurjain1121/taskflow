@@ -383,20 +383,36 @@ pub async fn challenge_handler(
     headers: HeaderMap,
     Json(payload): Json<ChallengeRequest>,
 ) -> Result<Response> {
-    // Resolve temp token from Redis
+    // Resolve temp token from Redis (stores JSON with user_id + persistent flag)
     let temp_key = format!("2fa_temp:{}", payload.temp_token);
-    let user_id_str: Option<String> = redis::cmd("GET")
+    let temp_value_str: Option<String> = redis::cmd("GET")
         .arg(&temp_key)
         .query_async(&mut state.redis.clone())
         .await
         .unwrap_or(None);
 
-    let user_id_str = user_id_str
+    let temp_value_str = temp_value_str
         .ok_or_else(|| AppError::Unauthorized("Invalid or expired temporary token".into()))?;
 
-    let user_id: Uuid = user_id_str
-        .parse()
-        .map_err(|_| AppError::InternalError("Invalid user ID in temp token".into()))?;
+    // Parse JSON; fall back to legacy plain user_id string for backward compatibility
+    let (user_id, persistent): (Uuid, bool) =
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&temp_value_str) {
+            let uid = val
+                .get("user_id")
+                .and_then(|v| v.as_str())
+                .and_then(|s| s.parse::<Uuid>().ok())
+                .ok_or_else(|| {
+                    AppError::InternalError("Invalid user_id in temp token JSON".into())
+                })?;
+            let persist = val.get("persistent").and_then(|v| v.as_bool()).unwrap_or(true);
+            (uid, persist)
+        } else {
+            // Legacy format: plain UUID string
+            let uid = temp_value_str
+                .parse::<Uuid>()
+                .map_err(|_| AppError::InternalError("Invalid user ID in temp token".into()))?;
+            (uid, true)
+        };
 
     // Rate limit check
     check_totp_rate_limit(&mut state.redis.clone(), user_id).await?;
@@ -495,6 +511,7 @@ pub async fn challenge_handler(
         refresh_expiry,
         ip_address.as_deref(),
         user_agent_val.as_deref(),
+        persistent,
     )
     .await?;
 
@@ -526,6 +543,7 @@ pub async fn challenge_handler(
         state.config.jwt_access_expiry_secs,
         state.config.jwt_refresh_expiry_secs,
         &state.config.app_url,
+        persistent,
     )?;
 
     let response_body = super::auth::AuthResponse {
