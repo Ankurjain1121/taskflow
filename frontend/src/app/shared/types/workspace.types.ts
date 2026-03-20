@@ -7,4 +7,5 @@ export interface WorkspaceMemberInfo {
   department: string | null;
   role: 'admin' | 'manager' | 'member' | 'viewer';
   joined_at: string;
+  is_org_admin: boolean;
 }

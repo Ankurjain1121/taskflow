@@ -42,7 +42,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         height: 56px;
         background: var(--sidebar-bg);
         border-bottom: 2px solid var(--primary);
-        z-index: 40;
+        z-index: 50;
       }
 
       .create-btn {

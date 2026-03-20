@@ -553,6 +553,7 @@ export class MemberDetailComponent implements OnInit {
           this.member.set({
             ...match,
             role: match.role.toLowerCase() as WorkspaceMemberInfo['role'],
+            is_org_admin: false,
           });
         }
 

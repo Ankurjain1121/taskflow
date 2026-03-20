@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { Tabs } from 'primeng/tabs';
 import { TabList } from 'primeng/tabs';
 import { TabPanels } from 'primeng/tabs';
@@ -52,6 +52,7 @@ const ALL_TABS: TabDef[] = [
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule,
     Tabs,
     TabList,
     TabPanels,
@@ -170,7 +171,13 @@ const ALL_TABS: TabDef[] = [
                 <div class="py-4 space-y-6">
                   <!-- Members -->
                   <section>
-                    <h2 class="text-lg font-semibold text-[var(--foreground)] mb-3">Members</h2>
+                    <div class="flex items-center justify-between mb-3">
+                      <h2 class="text-lg font-semibold text-[var(--foreground)]">Members</h2>
+                      <a [routerLink]="['/', 'workspace', workspaceId, 'people']"
+                         class="text-sm font-medium text-[var(--primary)] hover:underline flex items-center gap-1">
+                        View all people <i class="pi pi-arrow-right text-xs"></i>
+                      </a>
+                    </div>
                     @if (members().length === 0) {
                       <div class="text-center py-8 rounded-xl border border-dashed border-[var(--border)]">
                         <i class="pi pi-user-plus text-3xl text-[var(--muted-foreground)] mb-2"></i>
@@ -334,6 +341,7 @@ export class ManageComponent implements OnInit {
     avatar_url: string | null;
     role: string;
     joined_at: string;
+    is_org_admin?: boolean;
   }>>([]);
   teams = signal<Array<{ id: string; name: string; color: string; workspace_id: string }>>([]);
   errorMessage = signal<string | null>(null);
@@ -379,6 +387,7 @@ export class ManageComponent implements OnInit {
       joined_at: m.joined_at || new Date().toISOString(),
       job_title: null,
       department: null,
+      is_org_admin: m.is_org_admin ?? false,
     })),
   );
 
@@ -447,6 +456,7 @@ export class ManageComponent implements OnInit {
           avatar_url: string | null;
           role: string;
           joined_at: string;
+          is_org_admin?: boolean;
         }>;
         this.members.set(embeddedMembers);
         this.loading.set(false);

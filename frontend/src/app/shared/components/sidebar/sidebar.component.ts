@@ -95,22 +95,6 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
            [class.w-14]="collapsed()"
            [class.sidebar-open]="isMobileOpen()">
 
-      <!-- Collapse toggle -->
-      <div class="flex items-center px-2 py-2"
-           [class.justify-end]="!collapsed()"
-           [class.justify-center]="collapsed()">
-        <button
-          (click)="toggleCollapse.emit()"
-          class="hidden md:flex items-center justify-center w-7 h-7 rounded-md hover:bg-[var(--sidebar-surface-hover)] transition-colors"
-          style="color: var(--sidebar-text-secondary)"
-          [title]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
-        >
-          <i class="pi text-xs"
-             [class.pi-angle-double-right]="collapsed()"
-             [class.pi-angle-double-left]="!collapsed()"></i>
-        </button>
-      </div>
-
       <!-- Projects + Views (scrollable) -->
       <div class="flex-1 overflow-y-auto sidebar-scrollbar px-2 py-2">
         @if (!collapsed()) {
@@ -145,6 +129,25 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         <app-sidebar-views
           [collapsed]="collapsed()"
           (navClick)="onNavClick()" />
+      </div>
+
+      <!-- Collapse toggle (bottom) -->
+      <div class="flex-shrink-0 px-2 py-1"
+           [class.justify-end]="!collapsed()"
+           [class.justify-center]="collapsed()">
+        <button
+          (click)="toggleCollapse.emit()"
+          class="hidden md:flex items-center justify-center w-full h-7 rounded-md hover:bg-[var(--sidebar-surface-hover)] transition-colors"
+          style="color: var(--sidebar-text-secondary)"
+          [title]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+        >
+          <i class="pi text-xs"
+             [class.pi-angle-double-right]="collapsed()"
+             [class.pi-angle-double-left]="!collapsed()"></i>
+          @if (!collapsed()) {
+            <span class="text-xs ml-2" style="color: var(--sidebar-text-muted)">Collapse</span>
+          }
+        </button>
       </div>
 
       <!-- Zone 4: Footer -->
