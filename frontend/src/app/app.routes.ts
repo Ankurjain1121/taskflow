@@ -177,6 +177,13 @@ export const routes: Routes = [
           ).then((m) => m.PortfolioDashboardComponent),
       },
       {
+        path: 'reports',
+        loadComponent: () =>
+          import('./features/reports/reports.component').then(
+            (m) => m.ReportsComponent,
+          ),
+      },
+      {
         path: 'team',
         redirectTo: 'manage',
         pathMatch: 'full' as const,

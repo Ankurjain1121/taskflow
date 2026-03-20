@@ -67,8 +67,9 @@ import { Board } from '../../../core/services/project.service';
         50% { opacity: 0.5; }
       }
       .menu-overlay {
-        background: var(--surface-overlay);
+        background: var(--sidebar-bg);
         border: 1px solid var(--sidebar-border);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
       }
       .menu-item:hover { background: var(--sidebar-surface-hover); }
       .cdk-drag-preview {

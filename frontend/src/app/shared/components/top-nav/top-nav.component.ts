@@ -5,7 +5,7 @@ import {
   output,
   ChangeDetectionStrategy,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { TooltipModule } from 'primeng/tooltip';
 import { AvatarModule } from 'primeng/avatar';
 import { MenuModule } from 'primeng/menu';
@@ -13,6 +13,7 @@ import { MenuItem } from 'primeng/api';
 import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component';
 import { NotificationBellComponent } from '../notification-bell/notification-bell.component';
 import { SaveStatusIndicatorComponent } from '../save-status-indicator/save-status-indicator.component';
+import { WorkspaceSwitcherComponent } from '../sidebar/workspace-switcher.component';
 import { AuthService } from '../../../core/services/auth.service';
 import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
 import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
@@ -22,12 +23,14 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    RouterModule,
     TooltipModule,
     AvatarModule,
     MenuModule,
     BreadcrumbsComponent,
     NotificationBellComponent,
     SaveStatusIndicatorComponent,
+    WorkspaceSwitcherComponent,
   ],
   styles: [
     `
@@ -36,10 +39,9 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
       }
 
       .top-nav {
-        height: 48px;
-        background: var(--card);
-        border-bottom: 1px solid color-mix(in srgb, var(--primary) 15%, var(--border));
-        box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+        height: 56px;
+        background: var(--sidebar-bg);
+        border-bottom: 2px solid var(--primary);
         z-index: 40;
       }
 
@@ -63,14 +65,36 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         background: var(--muted);
       }
 
+      .nav-link {
+        color: var(--muted-foreground);
+        transition: color 0.15s ease;
+      }
+      .nav-link:hover {
+        color: var(--foreground);
+      }
+      .nav-link-active {
+        color: var(--primary);
+        font-weight: 600;
+      }
+
+      .search-pill {
+        background: var(--muted);
+        color: var(--muted-foreground);
+        transition: background-color 0.15s ease;
+        cursor: pointer;
+      }
+      .search-pill:hover {
+        background: var(--border);
+      }
     `,
   ],
   template: `
     <nav
       class="top-nav fixed top-0 left-0 right-0 flex items-center px-4 gap-3"
     >
-      <!-- Left: Mobile hamburger + Breadcrumbs -->
-      <div class="flex items-center gap-2 flex-1 min-w-0">
+      <!-- Left: hamburger (mobile), Logo, WS Switcher, Nav links -->
+      <div class="flex items-center gap-3 min-w-0">
+        <!-- Mobile hamburger -->
         <button
           class="nav-icon-btn lg:hidden p-2.5 rounded-md"
           (click)="menuToggle.emit()"
@@ -78,26 +102,62 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         >
           <i class="pi pi-bars text-lg"></i>
         </button>
-        <app-breadcrumbs class="min-w-0" />
+
+        <!-- Logo -->
+        <a
+          [routerLink]="dashboardRoute()"
+          class="hidden md:flex items-center gap-2 flex-shrink-0"
+          aria-label="TaskFlow – Go to dashboard"
+        >
+          <svg class="w-6 h-6 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="3" width="20" height="18" rx="3" stroke="var(--primary)" stroke-width="2"/>
+            <path d="M7 12l3 3 7-7" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="text-base font-bold tracking-tight hidden lg:inline" style="color: var(--foreground)">TaskFlow</span>
+        </a>
+
+        <!-- Workspace Switcher (topbar mode) -->
+        <div class="hidden md:block">
+          <app-workspace-switcher [collapsed]="false" layout="topbar" />
+        </div>
+
+        <!-- Nav Links -->
+        <div class="hidden md:flex items-center gap-1">
+          <a
+            [routerLink]="myWorkRoute()"
+            routerLinkActive="nav-link-active"
+            class="nav-link text-sm px-2.5 py-1.5 rounded-md"
+          >My Work</a>
+          <a
+            [routerLink]="reportsRoute()"
+            routerLinkActive="nav-link-active"
+            class="nav-link text-sm px-2.5 py-1.5 rounded-md"
+          >Reports</a>
+        </div>
       </div>
 
-      <!-- Right: Save status + Search + Quick create + Notifications + User -->
+      <!-- Center: Breadcrumbs + Search -->
+      <div class="flex-1 flex items-center justify-center gap-3 min-w-0">
+        <app-breadcrumbs class="min-w-0 hidden sm:block" />
+      </div>
+
+      <!-- Right: Save status + Search pill + Quick create + Notifications + User -->
       <div class="flex items-center gap-1.5">
         <app-save-status-indicator />
 
+        <!-- Search pill -->
         <button
-          class="nav-icon-btn hidden sm:flex items-center gap-1.5 px-2 py-1.5 rounded-md text-sm"
+          class="search-pill hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-sm"
           (click)="searchOpen.emit()"
-          pTooltip="Search"
-          tooltipPosition="bottom"
           aria-label="Search"
         >
-          <i class="pi pi-search" style="font-size: 0.85rem" aria-hidden="true"></i>
+          <i class="pi pi-search text-xs" aria-hidden="true"></i>
+          <span class="hidden lg:inline">Search...</span>
           <kbd
-            class="text-[10px] opacity-60 px-1 py-0.5 rounded border"
+            class="text-[10px] px-1 py-0.5 rounded border hidden lg:inline"
             style="
               border-color: var(--border);
-              background: var(--muted);
+              background: var(--background);
               font-family: inherit;
               color: var(--muted-foreground);
             "
@@ -146,6 +206,15 @@ export class TopNavComponent {
   readonly quickCreate = output<void>();
 
   private readonly currentUser = this.authService.currentUser;
+
+  private readonly wsBase = computed(() => {
+    const wsId = this.wsContext.activeWorkspaceId();
+    return wsId ? `/workspace/${wsId}` : '';
+  });
+
+  readonly dashboardRoute = computed(() => `${this.wsBase()}/dashboard`);
+  readonly myWorkRoute = computed(() => `${this.wsBase()}/my-work`);
+  readonly reportsRoute = computed(() => `${this.wsBase()}/reports`);
 
   readonly userInitials = computed(() => {
     const name = this.currentUser()?.name;

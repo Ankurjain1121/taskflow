@@ -111,20 +111,18 @@ pub async fn sign_in_handler(
         ));
     }
 
-    // Check brute-force lockout
+    // Check brute-force lockout (fail-open: if Redis is down, allow the attempt)
     let lockout_key = format!("login_attempts:{}", payload.email.to_lowercase());
-    let attempts: Option<i64> = redis::cmd("GET")
+    let attempts: i64 = redis::cmd("GET")
         .arg(&lockout_key)
         .query_async(&mut state.redis.clone())
         .await
-        .unwrap_or(None);
+        .unwrap_or(0);
 
-    if let Some(count) = attempts {
-        if count >= MAX_LOGIN_ATTEMPTS {
-            return Err(AppError::TooManyRequests(
-                "Too many failed login attempts. Please try again in 15 minutes.".into(),
-            ));
-        }
+    if attempts >= MAX_LOGIN_ATTEMPTS {
+        return Err(AppError::TooManyRequests(
+            "Too many failed login attempts. Please try again in 15 minutes.".into(),
+        ));
     }
 
     // Fetch user by email
@@ -137,27 +135,36 @@ pub async fn sign_in_handler(
         .map_err(|_| AppError::InternalError("Password verification failed".into()))?;
 
     if !password_valid {
-        // Increment failed login attempts with lockout TTL
-        let _: () = redis::cmd("INCR")
-            .arg(&lockout_key)
-            .query_async(&mut state.redis.clone())
-            .await
-            .unwrap_or(());
-        let _: () = redis::cmd("EXPIRE")
-            .arg(&lockout_key)
+        // Atomic INCR + EXPIRE via Lua script (prevents race where EXPIRE never fires)
+        let script = redis::Script::new(
+            r#"
+            local count = redis.call('INCR', KEYS[1])
+            redis.call('EXPIRE', KEYS[1], ARGV[1])
+            return count
+            "#,
+        );
+        let attempt_count: i64 = script
+            .key(&lockout_key)
             .arg(LOGIN_LOCKOUT_SECS)
-            .query_async(&mut state.redis.clone())
+            .invoke_async(&mut state.redis.clone())
             .await
-            .unwrap_or(());
+            .unwrap_or(0);
+        tracing::warn!(
+            email = %payload.email,
+            attempt = attempt_count,
+            "Failed login attempt"
+        );
         return Err(AppError::Unauthorized("Invalid email or password".into()));
     }
 
     // Clear failed login attempts on successful login
-    let _: () = redis::cmd("DEL")
+    if let Err(e) = redis::cmd("DEL")
         .arg(&lockout_key)
-        .query_async(&mut state.redis.clone())
+        .query_async::<()>(&mut state.redis.clone())
         .await
-        .unwrap_or(());
+    {
+        tracing::error!(email = %payload.email, error = %e, "Failed to clear login counter");
+    }
 
     // Check if user has 2FA enabled
     let has_2fa: bool = sqlx::query_scalar(

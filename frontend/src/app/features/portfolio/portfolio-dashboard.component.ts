@@ -243,7 +243,7 @@ import {
                   }
                   <span class="flex items-center gap-1">
                     <i class="pi pi-users text-[10px]"></i>
-                    {{ project.member_count }} members
+                    {{ project.member_count }} {{ project.member_count === 1 ? 'member' : 'members' }}
                   </span>
                 </div>
 

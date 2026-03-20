@@ -50,7 +50,7 @@ export interface Breadcrumb {
             >
           }
           @if (!last) {
-            <span style="color: var(--muted-foreground); opacity: 0.5">/</span>
+            <span style="color: var(--border)">/</span>
           }
         }
       </nav>
@@ -156,6 +156,8 @@ export class BreadcrumbsComponent implements OnInit, OnDestroy {
         this.breadcrumbs.set(crumbs);
         this.resolveProjectName(boardId);
         return; // label updated asynchronously via resolveProjectName
+      } else if (segments[2] === 'reports') {
+        crumbs.push({ label: 'Reports', url: null });
       } else if (segments[2] === 'team') {
         crumbs.push({ label: 'Team', url: null });
       } else if (segments[2] === 'settings') {

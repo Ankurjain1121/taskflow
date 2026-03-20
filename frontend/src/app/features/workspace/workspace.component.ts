@@ -24,6 +24,7 @@ import {
   CreateProjectDialogResult,
 } from '../../shared/components/dialogs/create-project-dialog.component';
 import { WorkspaceSettingsDialogService } from '../../core/services/workspace-settings-dialog.service';
+import { WorkspaceContextService } from '../../core/services/workspace-context.service';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 
 @Component({
@@ -237,6 +238,7 @@ export class WorkspaceComponent implements OnInit {
   private workspaceService = inject(WorkspaceService);
   private projectService = inject(ProjectService);
   private settingsDialog = inject(WorkspaceSettingsDialogService);
+  private ctx = inject(WorkspaceContextService);
 
   private paramMap = toSignal(this.route.paramMap);
   workspaceId = signal<string>('');
@@ -328,6 +330,9 @@ export class WorkspaceComponent implements OnInit {
         template: result.template,
       })
       .subscribe({
+        next: () => {
+          this.ctx.invalidateProjects(this.workspaceId());
+        },
         error: () => {
           // Error handling - board creation failed
         },
