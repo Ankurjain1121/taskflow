@@ -6,17 +6,17 @@ import {
 } from '../../../shared/utils/task-colors';
 
 const BORDER_COLORS: Record<string, string> = {
-  urgent: '#ef4444',
-  high: '#f97316',
-  medium: '#eab308',
-  low: '#3b82f6',
+  urgent: '#E8445A',
+  high: '#F5A623',
+  medium: '#2D5BE3',
+  low: '#0FA882',
 };
 
 const AVATAR_GRADIENTS = [
-  'linear-gradient(135deg, #6366f1, #8b5cf6)',
-  'linear-gradient(135deg, #3b82f6, #06b6d4)',
-  'linear-gradient(135deg, #f59e0b, #ef4444)',
-  'linear-gradient(135deg, #10b981, #14b8a6)',
+  'linear-gradient(135deg, #2D5BE3, #4B74F0)',
+  'linear-gradient(135deg, #0FA882, #14b8a6)',
+  'linear-gradient(135deg, #F5A623, #E8445A)',
+  'linear-gradient(135deg, #5C6B8A, #2D5BE3)',
 ];
 
 export function getBorderColor(priority: string): string {

@@ -206,6 +206,7 @@ import { MessageService } from 'primeng/api';
               [tasks]="state.flatTasks()"
               [groups]="state.boardGroups()"
               [loading]="state.listLoading()"
+              [hasActiveFilters]="state.hasActiveFilters()"
               [columns]="state.columns()"
               [colorBy]="state.colorBy()"
               [projectId]="boardId"
@@ -628,6 +629,9 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
 
   onCreateTaskResult(result: CreateTaskDialogResult): void {
     this.state.createTask(this.boardId, this.createTaskDialogColumnId, result);
+    if (this.viewMode() === 'list') {
+      this.state.loadFlatTasks(this.boardId, this.destroy$);
+    }
   }
 
   // === Create Column Dialog ===

@@ -172,6 +172,19 @@ export class ProjectStateService {
     );
   });
 
+  readonly hasActiveFilters = computed(() => {
+    const f = this.filters();
+    return !!(
+      f.search ||
+      f.priorities.length > 0 ||
+      f.assigneeIds.length > 0 ||
+      f.labelIds.length > 0 ||
+      f.dueDateStart ||
+      f.dueDateEnd ||
+      f.overdue
+    );
+  });
+
   readonly filteredBoardState = computed(() => {
     const state = this.boardState();
     const f = this.filters();

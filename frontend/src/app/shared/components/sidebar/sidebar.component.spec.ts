@@ -1,52 +1,21 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
+import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { SidebarComponent } from './sidebar.component';
-import { NotificationService } from '../../../core/services/notification.service';
-import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
 
 describe('SidebarComponent', () => {
   let component: SidebarComponent;
   let fixture: ComponentFixture<SidebarComponent>;
-  let mockNotificationService: any;
-  let mockWsContextService: any;
 
   beforeEach(async () => {
-    mockNotificationService = {
-      unreadCount: signal(0),
-    };
-
-    mockWsContextService = {
-      activeWorkspaceId: signal<string | null>('ws-1'),
-      activeWorkspace: signal(null),
-      getWorkspaceColor: vi.fn().mockReturnValue('#6366f1'),
-      workspaces: signal([]),
-      loading: signal(false),
-      setActiveWorkspace: vi.fn(),
-      switchWorkspace: vi.fn(),
-      loadWorkspaces: vi.fn(),
-      projects: signal([]),
-      projectsLoading: signal(false),
-      loadProjects: vi.fn(),
-      getProjectColor: vi.fn().mockReturnValue('#6366f1'),
-      getOrderedProjects: vi.fn().mockReturnValue([]),
-      saveProjectOrder: vi.fn(),
-      projectOrder: signal([]),
-      setProjectOrder: vi.fn(),
-      favoriteProjects: signal([]),
-      recentProjects: signal([]),
-    };
-
     await TestBed.configureTestingModule({
       imports: [SidebarComponent],
       providers: [
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: NotificationService, useValue: mockNotificationService },
-        { provide: WorkspaceContextService, useValue: mockWsContextService },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
@@ -65,29 +34,53 @@ describe('SidebarComponent', () => {
     expect(spy).toHaveBeenCalled();
   });
 
-  it('should compute dashboardRoute from workspace context', () => {
-    expect(component.dashboardRoute()).toBe('/workspace/ws-1/dashboard');
+  it('should NOT render a logo zone', () => {
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('svg')).toBeNull();
+    expect(el.textContent).not.toContain('TaskFlow');
   });
 
-  it('should compute myWorkRoute from workspace context', () => {
-    expect(component.myWorkRoute()).toBe('/workspace/ws-1/my-work');
+  it('should NOT render workspace-switcher component', () => {
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('app-workspace-switcher')).toBeNull();
   });
 
-  it('should compute inboxRoute from workspace context', () => {
-    expect(component.inboxRoute()).toBe('/workspace/ws-1/inbox');
+  it('should NOT render Home nav item', () => {
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).not.toContain('Home');
   });
 
-  it('should compute routes with empty base when no workspace', () => {
-    mockWsContextService.activeWorkspaceId.set(null);
-    expect(component.dashboardRoute()).toBe('/dashboard');
-    expect(component.myWorkRoute()).toBe('/my-work');
-    expect(component.inboxRoute()).toBe('/inbox');
+  it('should NOT render My Work nav item', () => {
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).not.toContain('My Work');
   });
 
-  it('should expose unreadCount from notification service', () => {
-    expect(component.unreadCount()).toBe(0);
-    mockNotificationService.unreadCount.set(5);
-    expect(component.unreadCount()).toBe(5);
+  it('should NOT render Inbox nav item', () => {
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).not.toContain('Inbox');
+  });
+
+  it('should render sidebar-projects component', () => {
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('app-sidebar-projects')).toBeTruthy();
+  });
+
+  it('should render sidebar-views component', () => {
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('app-sidebar-views')).toBeTruthy();
+  });
+
+  it('should render sidebar-footer component', () => {
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('app-sidebar-footer')).toBeTruthy();
   });
 
   it('should emit sidebarClose on navClick when mobile is open', () => {

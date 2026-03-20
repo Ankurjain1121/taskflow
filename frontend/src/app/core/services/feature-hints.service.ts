@@ -75,6 +75,21 @@ export class FeatureHintsService {
     next.add(hintId);
     this.dismissedHints.set(next);
     this.activeHint.set(null);
+
+    // Persist immediately — the reactive effect may not fire if loaded is still false
+    const userId = this.authService.currentUser()?.id;
+    if (userId) {
+      try {
+        const data: HintStorageData = {
+          dismissed: Array.from(next),
+          spotlightCompleted: this.hasSeenSpotlight(),
+          boardVisitCount: this.boardVisitCount(),
+        };
+        localStorage.setItem(`${STORAGE_PREFIX}${userId}`, JSON.stringify(data));
+      } catch {
+        // localStorage full — silently ignore
+      }
+    }
   }
 
   showHint(hintId: string): void {

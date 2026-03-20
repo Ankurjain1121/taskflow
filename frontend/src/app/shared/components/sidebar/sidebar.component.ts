@@ -1,22 +1,19 @@
 import {
   Component,
   ChangeDetectionStrategy,
+  computed,
   inject,
   input,
   output,
   signal,
-  computed,
   ElementRef,
 } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { TooltipModule } from 'primeng/tooltip';
-import { NotificationService } from '../../../core/services/notification.service';
-import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
-import { SidebarNavItemComponent } from './sidebar-nav-item.component';
-import { WorkspaceSwitcherComponent } from './workspace-switcher.component';
 import { SidebarProjectsComponent } from './sidebar-projects.component';
 import { SidebarViewsComponent } from './sidebar-views.component';
 import { SidebarFooterComponent } from './sidebar-footer.component';
+import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -24,8 +21,6 @@ import { SidebarFooterComponent } from './sidebar-footer.component';
   imports: [
     RouterModule,
     TooltipModule,
-    SidebarNavItemComponent,
-    WorkspaceSwitcherComponent,
     SidebarProjectsComponent,
     SidebarViewsComponent,
     SidebarFooterComponent,
@@ -63,6 +58,31 @@ import { SidebarFooterComponent } from './sidebar-footer.component';
         outline-offset: -2px;
         border-radius: 0.375rem;
       }
+      .home-item {
+        transition: background var(--duration-fast) var(--ease-standard);
+        position: relative;
+      }
+      .home-item:hover { background: var(--sidebar-surface-hover); }
+      .home-item.active {
+        background: var(--sidebar-surface-active);
+        color: var(--sidebar-text-primary);
+      }
+      .home-item.active .nav-indicator { opacity: 1; }
+      .nav-indicator {
+        position: absolute; left: 0; top: 50%;
+        transform: translateY(-50%);
+        width: 3px; height: 16px;
+        border-radius: 0 3px 3px 0;
+        background: var(--primary); opacity: 0;
+        transition: opacity var(--duration-fast) var(--ease-standard);
+      }
+      .collapsed-home-btn {
+        display: flex; align-items: center; justify-content: center;
+        width: 100%; padding: 0.5rem 0;
+        border-radius: 0.375rem;
+        transition: background var(--duration-fast) var(--ease-standard);
+      }
+      .collapsed-home-btn:hover { background: var(--sidebar-surface-hover); }
     `,
   ],
   template: `
@@ -75,47 +95,47 @@ import { SidebarFooterComponent } from './sidebar-footer.component';
            [class.w-14]="collapsed()"
            [class.sidebar-open]="isMobileOpen()">
 
-      <!-- Zone 0: Logo -->
-      <a
-        [routerLink]="dashboardRoute()"
-        class="flex items-center gap-2 px-3 py-3 transition-opacity hover:opacity-80"
-        [class.justify-center]="collapsed()"
-        aria-label="TaskFlow – Go to dashboard"
-      >
-        <svg class="w-6 h-6 shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="2" y="3" width="20" height="18" rx="3" stroke="var(--primary)" stroke-width="2"/>
-          <path d="M7 12l3 3 7-7" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        @if (!collapsed()) {
-          <span class="text-base font-bold tracking-tight" style="color: var(--foreground)">TaskFlow</span>
-        }
-      </a>
-
-      <!-- Zone 1: Workspace Switcher -->
-      <app-workspace-switcher
-        [collapsed]="collapsed()"
-        (toggleCollapse)="toggleCollapse.emit()" />
-
-      <!-- Zone 2: Primary Nav -->
-      <div class="px-2 py-2 space-y-0.5">
-        <app-sidebar-nav-item
-          icon="pi-home" label="Home" [route]="dashboardRoute()"
-          [collapsed]="collapsed()" [exactMatch]="true"
-          (navClick)="onNavClick()" />
-        <app-sidebar-nav-item
-          icon="pi-clipboard" label="My Work" [route]="myWorkRoute()"
-          [collapsed]="collapsed()"
-          (navClick)="onNavClick()" />
-        <app-sidebar-nav-item
-          icon="pi-inbox" label="Inbox" [route]="inboxRoute()"
-          [collapsed]="collapsed()" [badge]="unreadCount()"
-          (navClick)="onNavClick()" />
+      <!-- Collapse toggle -->
+      <div class="flex items-center px-2 py-2"
+           [class.justify-end]="!collapsed()"
+           [class.justify-center]="collapsed()">
+        <button
+          (click)="toggleCollapse.emit()"
+          class="hidden md:flex items-center justify-center w-7 h-7 rounded-md hover:bg-[var(--sidebar-surface-hover)] transition-colors"
+          style="color: var(--sidebar-text-secondary)"
+          [title]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+        >
+          <i class="pi text-xs"
+             [class.pi-angle-double-right]="collapsed()"
+             [class.pi-angle-double-left]="!collapsed()"></i>
+        </button>
       </div>
 
-      <div class="divider mx-2"></div>
-
-      <!-- Zone 3: Projects + Views (scrollable) -->
+      <!-- Projects + Views (scrollable) -->
       <div class="flex-1 overflow-y-auto sidebar-scrollbar px-2 py-2">
+        @if (!collapsed()) {
+          <a [routerLink]="dashboardRoute()"
+             routerLinkActive="active"
+             [routerLinkActiveOptions]="{ exact: true }"
+             (click)="onNavClick()"
+             class="home-item flex items-center gap-3 px-3 py-2 rounded-md text-sm mb-2">
+            <span class="nav-indicator"></span>
+            <i class="pi pi-home text-sm flex-shrink-0"
+               style="color: var(--sidebar-text-muted)"></i>
+            <span style="color: var(--sidebar-text-secondary)">Home</span>
+          </a>
+        } @else {
+          <a [routerLink]="dashboardRoute()"
+             routerLinkActive="active"
+             [routerLinkActiveOptions]="{ exact: true }"
+             (click)="onNavClick()"
+             class="collapsed-home-btn mb-1"
+             pTooltip="Home" tooltipPosition="right">
+            <i class="pi pi-home text-sm"
+               style="color: var(--sidebar-text-muted)"></i>
+          </a>
+        }
+
         <app-sidebar-projects
           [collapsed]="collapsed()"
           (navClick)="onNavClick()" />
@@ -141,20 +161,13 @@ export class SidebarComponent {
   sidebarClose = output<void>();
   searchOpen = output<void>();
 
-  private readonly notificationService = inject(NotificationService);
-  private readonly wsContext = inject(WorkspaceContextService);
   private readonly elementRef = inject(ElementRef);
-  readonly unreadCount = this.notificationService.unreadCount;
-  readonly focusIndex = signal(-1);
-
-  private readonly wsBase = computed(() => {
-    const wsId = this.wsContext.activeWorkspaceId();
-    return wsId ? `/workspace/${wsId}` : '';
+  private readonly ctx = inject(WorkspaceContextService);
+  readonly dashboardRoute = computed(() => {
+    const wsId = this.ctx.activeWorkspaceId();
+    return wsId ? `/workspace/${wsId}/dashboard` : '/dashboard';
   });
-
-  readonly dashboardRoute = computed(() => `${this.wsBase()}/dashboard`);
-  readonly myWorkRoute = computed(() => `${this.wsBase()}/my-work`);
-  readonly inboxRoute = computed(() => `${this.wsBase()}/inbox`);
+  readonly focusIndex = signal(-1);
 
   onNavClick(): void {
     if (this.isMobileOpen()) {

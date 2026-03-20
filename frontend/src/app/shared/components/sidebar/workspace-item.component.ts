@@ -179,7 +179,7 @@ import {
             ></div>
             <div
               class="absolute right-0 top-full mt-1 w-44 rounded-lg shadow-lg border py-1 z-20"
-              style="background: var(--surface-overlay); border-color: var(--sidebar-border)"
+              style="background: var(--sidebar-bg); border-color: var(--sidebar-border); box-shadow: 0 8px 24px rgba(0,0,0,0.4)"
             >
               <a
                 [routerLink]="['/workspace', workspace().id, 'portfolio']"
@@ -285,7 +285,7 @@ import {
                 @if (activeMenuBoardId() === board.id) {
                   <div
                     class="absolute right-0 top-full mt-0.5 w-40 rounded-md shadow-lg border py-1 z-20"
-                    style="background: var(--surface-overlay); border-color: var(--sidebar-border)"
+                    style="background: var(--sidebar-bg); border-color: var(--sidebar-border); box-shadow: 0 8px 24px rgba(0,0,0,0.4)"
                   >
                     <a
                       [routerLink]="[

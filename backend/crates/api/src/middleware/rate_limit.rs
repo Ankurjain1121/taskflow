@@ -34,7 +34,7 @@ impl RateLimiter {
             .unwrap_or_default()
             .as_secs();
         let window_ts = now_secs / self.window_secs;
-        let key = format!("ratelimit:{}:{}", ip, window_ts);
+        let key = format!("ratelimit:{}:{}:{}", self.max_requests, ip, window_ts);
 
         let mut conn = self.redis.clone();
 

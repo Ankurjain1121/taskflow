@@ -76,13 +76,13 @@ export const PRIORITY_COLORS_HEX: Record<
   { bg: string; border: string; text: string }
 > = {
   urgent: {
-    bg: '#ef4444',
-    border: '#dc2626',
+    bg: '#E8445A',
+    border: '#C93545',
     text: '#ffffff',
   },
   high: {
-    bg: '#f97316',
-    border: '#ea580c',
+    bg: '#F5A623',
+    border: '#D4900E',
     text: '#ffffff',
   },
   medium: {
@@ -105,13 +105,13 @@ export const PRIORITY_COLORS_HEX_DARK: Record<
   { bg: string; border: string; text: string }
 > = {
   urgent: {
-    bg: '#f87171',
-    border: '#ef4444',
+    bg: '#F0526A',
+    border: '#E8445A',
     text: '#ffffff',
   },
   high: {
-    bg: '#fb923c',
-    border: '#f97316',
+    bg: '#F7B731',
+    border: '#F5A623',
     text: '#ffffff',
   },
   medium: {
@@ -209,8 +209,8 @@ export function getColumnHeaderColor(index: number, isDark?: boolean): string {
 
 /** Priority flag hex colors for SVG rendering */
 export const PRIORITY_FLAG_COLORS: Record<string, string> = {
-  urgent: '#ef4444',
-  high: '#f97316',
+  urgent: '#E8445A',
+  high: '#F5A623',
   medium: '#facc15',
   low: '#60a5fa',
 };

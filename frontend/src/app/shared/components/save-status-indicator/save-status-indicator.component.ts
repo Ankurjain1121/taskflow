@@ -20,19 +20,19 @@ import { SaveStatusService } from '../../../core/services/save-status.service';
         padding: 0.25rem 0.5rem;
         border-radius: 0.375rem;
         transition: opacity 0.2s ease;
-        color: var(--muted-foreground);
+        color: rgba(255, 255, 255, 0.5);
       }
 
       .saving {
-        color: var(--primary);
+        color: rgba(255, 255, 255, 0.7);
       }
 
       .saved {
-        color: var(--success, #22c55e);
+        color: #0FA882;
       }
 
       .error {
-        color: var(--destructive, #ef4444);
+        color: #E8445A;
       }
 
       @keyframes spin {

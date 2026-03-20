@@ -198,10 +198,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             axum::routing::post(routes::auth_password::forgot_password_handler),
         )
         .route(
-            "/auth/refresh",
-            axum::routing::post(routes::auth::refresh_handler),
-        )
-        .route(
             "/auth/reset-password",
             axum::routing::post(routes::auth_password::reset_password_handler),
         )
@@ -220,8 +216,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(from_fn(rate_limit_middleware))
         .layer(rate_limit_layer(state.redis.clone(), 5, 60)); // 5 requests per 60 seconds per IP
 
-    // Build public routes (not rate-limited)
+    // Build public routes (not rate-limited by auth limiter — still covered by global 200/60s)
     let public_routes = Router::new()
+        .route(
+            "/auth/refresh",
+            axum::routing::post(routes::auth::refresh_handler),
+        )
         .route(
             "/auth/logout",
             axum::routing::post(routes::auth::logout_handler),

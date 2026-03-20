@@ -7,8 +7,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
     <link
@@ -24,7 +26,7 @@
           (mode === 'system' &&
             window.matchMedia('(prefers-color-scheme: dark)').matches);
         if (isDark) document.documentElement.classList.add('dark');
-        document.documentElement.setAttribute('data-sidebar-style', 'dark');
+        document.documentElement.setAttribute('data-sidebar-style', 'light');
         var accent = localStorage.getItem('taskflow-accent') || 'indigo';
         if (accent !== 'indigo')
           document.documentElement.setAttribute('data-accent', accent);

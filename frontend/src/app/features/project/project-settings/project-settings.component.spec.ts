@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { CUSTOM_ELEMENTS_SCHEMA, signal } from '@angular/core';
+import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute, provideRouter } from '@angular/router';
@@ -20,23 +20,6 @@ describe('ProjectSettingsComponent', () => {
     created_at: '2026-01-01',
     updated_at: '2026-01-01',
   };
-
-  const mockMembers = [
-    {
-      user_id: 'u-1',
-      name: 'Alice',
-      email: 'alice@test.com',
-      role: 'editor',
-      avatar_url: null,
-    },
-    {
-      user_id: 'u-2',
-      name: 'Bob',
-      email: 'bob@test.com',
-      role: 'viewer',
-      avatar_url: 'https://example.com/bob.jpg',
-    },
-  ];
 
   let paramsSubject: Subject<any>;
   let queryParamsSubject: Subject<any>;
@@ -67,19 +50,7 @@ describe('ProjectSettingsComponent', () => {
         .fn()
         .mockReturnValue(of({ ...mockBoard, name: 'Updated Board' })),
       deleteBoard: vi.fn().mockReturnValue(of(void 0)),
-      getProjectMembers: vi.fn().mockReturnValue(of(mockMembers)),
-      inviteProjectMember: vi.fn().mockReturnValue(
-        of({
-          user_id: 'u-3',
-          name: 'Charlie',
-          email: 'charlie@test.com',
-          role: 'viewer',
-        }),
-      ),
-      updateProjectMemberRole: vi
-        .fn()
-        .mockReturnValue(of({ user_id: 'u-2', name: 'Bob', role: 'editor' })),
-      removeProjectMember: vi.fn().mockReturnValue(of(void 0)),
+      getProjectMembers: vi.fn().mockReturnValue(of([])),
     };
 
     await TestBed.configureTestingModule({
@@ -113,7 +84,7 @@ describe('ProjectSettingsComponent', () => {
   });
 
   describe('constructor effect / loadBoard', () => {
-    it('should load board and members on route params change', () => {
+    it('should load board on route params change', () => {
       paramsSubject.next({ workspaceId: 'ws-1', projectId: 'board-1' });
       fixture.detectChanges();
 
@@ -122,14 +93,6 @@ describe('ProjectSettingsComponent', () => {
       expect(mockProjectService.getBoard).toHaveBeenCalledWith('board-1');
       expect(component.board()?.name).toBe('Test Board');
       expect(component.loading()).toBe(false);
-    });
-
-    it('should load board members after board', () => {
-      paramsSubject.next({ workspaceId: 'ws-1', projectId: 'board-1' });
-      fixture.detectChanges();
-
-      expect(mockProjectService.getProjectMembers).toHaveBeenCalledWith('board-1');
-      expect(component.members().length).toBe(2);
     });
 
     it('should handle board load error', () => {
@@ -164,24 +127,28 @@ describe('ProjectSettingsComponent', () => {
 
   describe('onTabChange', () => {
     it('should update active tab', () => {
-      component.onTabChange(3);
-      expect(component.activeTab()).toBe(3);
+      component.onTabChange(1);
+      expect(component.activeTab()).toBe(1);
     });
   });
 
   describe('tab query param', () => {
-    it('should set activeTab from query param', () => {
-      queryParamsSubject.next({ tab: '5' });
+    it('should set activeTab from query param (valid: 0-2)', () => {
+      queryParamsSubject.next({ tab: '2' });
       fixture.detectChanges();
-
-      expect(component.activeTab()).toBe(5);
+      expect(component.activeTab()).toBe(2);
     });
 
-    it('should ignore invalid tab values', () => {
+    it('should ignore tab values > 2 (old tab indices)', () => {
+      queryParamsSubject.next({ tab: '5' });
+      fixture.detectChanges();
+      // Should remain at default (0)
+      expect(component.activeTab()).toBe(0);
+    });
+
+    it('should ignore tab value 99 (out of range)', () => {
       queryParamsSubject.next({ tab: '99' });
       fixture.detectChanges();
-
-      // Should remain at default (0)
       expect(component.activeTab()).toBe(0);
     });
   });

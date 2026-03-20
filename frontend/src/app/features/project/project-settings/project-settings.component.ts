@@ -6,7 +6,6 @@ import {
   OnInit,
   effect,
   ChangeDetectionStrategy,
-  viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
@@ -14,21 +13,13 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import {
   ProjectService,
   Board,
-  ProjectMember,
 } from '../../../core/services/project.service';
 import { MessageService } from 'primeng/api';
 import { Toast } from 'primeng/toast';
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
 import { ColumnManagerComponent } from '../column-manager/column-manager.component';
 import { AutomationRulesComponent } from '../automations/automation-rules.component';
-import { AutomationTemplatesComponent } from '../automation-templates/automation-templates.component';
-import { CustomFieldsManagerComponent } from '../custom-fields/custom-fields-manager.component';
-import { MilestoneListComponent } from '../milestone-list/milestone-list.component';
-import { ProjectGeneralSettingsComponent } from './project-general-settings.component';
-import { ProjectMembersSettingsComponent } from './project-members-settings.component';
-import { ProjectWorkflowSettingsComponent } from './project-workflow-settings.component';
 import { ProjectAdvancedSettingsComponent } from './project-advanced-settings.component';
-import { ProjectIntegrationsSettingsComponent } from './project-integrations-settings.component';
 
 @Component({
   selector: 'app-project-settings',
@@ -44,14 +35,7 @@ import { ProjectIntegrationsSettingsComponent } from './project-integrations-set
     TabPanel,
     ColumnManagerComponent,
     AutomationRulesComponent,
-    AutomationTemplatesComponent,
-    CustomFieldsManagerComponent,
-    MilestoneListComponent,
-    ProjectGeneralSettingsComponent,
-    ProjectMembersSettingsComponent,
-    ProjectWorkflowSettingsComponent,
     ProjectAdvancedSettingsComponent,
-    ProjectIntegrationsSettingsComponent,
   ],
   providers: [MessageService],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -68,10 +52,16 @@ import { ProjectIntegrationsSettingsComponent } from './project-integrations-set
             >
           </nav>
           <h1 class="text-3xl font-bold text-[var(--foreground)]">
-            Project Settings
+            Board Setup
           </h1>
           <p class="mt-2 text-[var(--muted-foreground)]">
-            Configure your project's settings, columns, members, and integrations
+            Configure your board's columns and rules.
+          </p>
+          <p class="mt-1 text-sm text-[var(--muted-foreground)]">
+            Members, labels &amp; roles are workspace-wide.
+            <a [routerLink]="['/workspace', workspaceId, 'manage']"
+               class="hover:underline"
+               style="color: var(--primary)">Go to Manage &rarr;</a>
           </p>
         </div>
 
@@ -109,48 +99,20 @@ import { ProjectIntegrationsSettingsComponent } from './project-integrations-set
 
           <p-tabs [value]="activeTab()" (valueChange)="onTabChange($event)">
             <p-tablist>
-              <p-tab [value]="0">General</p-tab>
-              <p-tab [value]="1">Columns</p-tab>
-              <p-tab [value]="2">Members</p-tab>
-              <p-tab [value]="3">Automations</p-tab>
-              <p-tab [value]="4">Templates</p-tab>
-              <p-tab [value]="5">Custom Fields</p-tab>
-              <p-tab [value]="6">Milestones</p-tab>
-              <p-tab [value]="7">Integrations</p-tab>
-              <p-tab [value]="8">Advanced</p-tab>
-              <p-tab [value]="9">Workflow</p-tab>
+              <p-tab [value]="0">Columns</p-tab>
+              <p-tab [value]="1">Automations</p-tab>
+              <p-tab [value]="2">Advanced</p-tab>
             </p-tablist>
             <p-tabpanels>
-              <!-- Tab 0: General -->
+              <!-- Tab 0: Columns -->
               <p-tabpanel [value]="0">
-                <app-project-general-settings
-                  [board]="board()"
-                  [boardId]="boardId"
-                  (boardUpdated)="onBoardUpdated($event)"
-                  (errorOccurred)="showError($event)"
-                />
-              </p-tabpanel>
-
-              <!-- Tab 1: Columns -->
-              <p-tabpanel [value]="1">
                 <div class="py-6">
                   <app-column-manager [boardId]="boardId"></app-column-manager>
                 </div>
               </p-tabpanel>
 
-              <!-- Tab 2: Members -->
-              <p-tabpanel [value]="2">
-                <app-project-members-settings
-                  [boardId]="boardId"
-                  [boardName]="board()?.name || ''"
-                  [members]="members()"
-                  (membersChanged)="members.set($event)"
-                  (errorOccurred)="showError($event)"
-                />
-              </p-tabpanel>
-
-              <!-- Tab 3: Automations -->
-              <p-tabpanel [value]="3">
+              <!-- Tab 1: Automations -->
+              <p-tabpanel [value]="1">
                 <div class="py-6">
                   @defer {
                     <app-automation-rules [boardId]="boardId" />
@@ -160,62 +122,13 @@ import { ProjectIntegrationsSettingsComponent } from './project-integrations-set
                 </div>
               </p-tabpanel>
 
-              <!-- Tab 4: Templates -->
-              <p-tabpanel [value]="4">
-                <div class="py-6">
-                  @defer {
-                    <app-automation-templates [workspaceId]="workspaceId" />
-                  } @placeholder {
-                    <ng-container *ngTemplateOutlet="spinnerTpl" />
-                  }
-                </div>
-              </p-tabpanel>
-
-              <!-- Tab 5: Custom Fields -->
-              <p-tabpanel [value]="5">
-                <div class="py-6">
-                  @defer {
-                    <app-custom-fields-manager [boardId]="boardId" />
-                  } @placeholder {
-                    <ng-container *ngTemplateOutlet="spinnerTpl" />
-                  }
-                </div>
-              </p-tabpanel>
-
-              <!-- Tab 6: Milestones -->
-              <p-tabpanel [value]="6">
-                <div class="py-6">
-                  @defer {
-                    <app-milestone-list [boardId]="boardId" />
-                  } @placeholder {
-                    <ng-container *ngTemplateOutlet="spinnerTpl" />
-                  }
-                </div>
-              </p-tabpanel>
-
-              <!-- Tab 7: Integrations -->
-              <p-tabpanel [value]="7">
-                <app-project-integrations-settings
-                  [boardId]="boardId"
-                  [boardName]="board()?.name || ''"
-                />
-              </p-tabpanel>
-
-              <!-- Tab 8: Advanced -->
-              <p-tabpanel [value]="8">
+              <!-- Tab 2: Advanced -->
+              <p-tabpanel [value]="2">
                 <app-project-advanced-settings
                   [board]="board()"
                   [boardId]="boardId"
                   [workspaceId]="workspaceId"
                   (errorOccurred)="showError($event)"
-                />
-              </p-tabpanel>
-
-              <!-- Tab 9: Workflow -->
-              <p-tabpanel [value]="9">
-                <app-project-workflow-settings
-                  #workflowSettings
-                  [boardId]="boardId"
                 />
               </p-tabpanel>
             </p-tabpanels>
@@ -259,8 +172,6 @@ export class ProjectSettingsComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private projectService = inject(ProjectService);
 
-  private workflowSettings = viewChild<ProjectWorkflowSettingsComponent>('workflowSettings');
-
   private params = toSignal(this.route.params);
   private queryParams = toSignal(this.route.queryParams);
 
@@ -269,7 +180,6 @@ export class ProjectSettingsComponent implements OnInit {
 
   loading = signal(true);
   board = signal<Board | null>(null);
-  members = signal<ProjectMember[]>([]);
   errorMessage = signal<string | null>(null);
   activeTab = signal(0);
 
@@ -290,7 +200,7 @@ export class ProjectSettingsComponent implements OnInit {
         const tabParam = qp['tab'];
         if (tabParam !== undefined && tabParam !== null) {
           const tabIndex = parseInt(tabParam, 10);
-          if (!isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 9) {
+          if (!isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 2) {
             this.activeTab.set(tabIndex);
           }
         }
@@ -305,9 +215,6 @@ export class ProjectSettingsComponent implements OnInit {
   onTabChange(tabValue: unknown): void {
     const value = tabValue as number;
     this.activeTab.set(value);
-    if (value === 9) {
-      this.workflowSettings()?.loadWorkflow();
-    }
   }
 
   onBoardUpdated(updated: Board): void {
@@ -325,7 +232,6 @@ export class ProjectSettingsComponent implements OnInit {
     this.projectService.getBoard(this.boardId).subscribe({
       next: (board) => {
         this.board.set(board);
-        this.loadProjectMembers();
         this.loading.set(false);
       },
       error: () => {
@@ -334,14 +240,4 @@ export class ProjectSettingsComponent implements OnInit {
     });
   }
 
-  private loadProjectMembers(): void {
-    this.projectService.getProjectMembers(this.boardId).subscribe({
-      next: (members) => {
-        this.members.set(members);
-      },
-      error: () => {
-        // Error handling - failed to load members
-      },
-    });
-  }
 }

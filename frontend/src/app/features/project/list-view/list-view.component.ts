@@ -315,11 +315,19 @@ interface ColumnInput {
           <ng-template #emptymessage>
             <tr>
               <td colspan="6">
-                <app-empty-state
-                  variant="column-filtered"
-                  title="No tasks match your filters"
-                  description="Try adjusting your filters or clear them to see all tasks."
-                />
+                @if (hasActiveFilters()) {
+                  <app-empty-state
+                    variant="column-filtered"
+                    title="No tasks match your filters"
+                    description="Try adjusting your filters or clear them to see all tasks."
+                  />
+                } @else {
+                  <app-empty-state
+                    variant="board"
+                    title="No tasks yet"
+                    description="Create your first task to get started."
+                  />
+                }
               </td>
             </tr>
           </ng-template>
@@ -384,11 +392,19 @@ interface ColumnInput {
           <ng-template #emptymessage>
             <tr>
               <td colspan="6">
-                <app-empty-state
-                  variant="column-filtered"
-                  title="No tasks match your filters"
-                  description="Try adjusting your filters or clear them to see all tasks."
-                />
+                @if (hasActiveFilters()) {
+                  <app-empty-state
+                    variant="column-filtered"
+                    title="No tasks match your filters"
+                    description="Try adjusting your filters or clear them to see all tasks."
+                  />
+                } @else {
+                  <app-empty-state
+                    variant="board"
+                    title="No tasks yet"
+                    description="Create your first task to get started."
+                  />
+                }
               </td>
             </tr>
           </ng-template>
@@ -474,6 +490,7 @@ export class ListViewComponent {
   columns = input<ColumnInput[]>([]);
   projectId = input<string>('');
   colorBy = input<ColorByMode>('priority');
+  hasActiveFilters = input<boolean>(false);
 
   getRowStripe(task: TaskListItem): string | null {
     if (this.colorBy() === 'priority') return null;
