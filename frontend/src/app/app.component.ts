@@ -213,8 +213,8 @@ export class AppComponent implements OnInit, OnDestroy {
   getSidebarClasses(): string {
     if (this.isMobile()) {
       return this.mobileOpen()
-        ? 'sidebar-wrapper fixed left-0 translate-x-0'
-        : 'sidebar-wrapper fixed left-0 -translate-x-full';
+        ? 'sidebar-wrapper fixed left-0 top-14 bottom-0 translate-x-0'
+        : 'sidebar-wrapper fixed left-0 top-14 bottom-0 -translate-x-full';
     }
     return 'relative';
   }

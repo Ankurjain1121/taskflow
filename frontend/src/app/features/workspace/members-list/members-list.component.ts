@@ -16,6 +16,7 @@ import {
   InvitationWithStatus,
 } from '../../../core/services/workspace.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { TooltipModule } from 'primeng/tooltip';
 import {
   InviteMemberDialogComponent,
   InviteMemberDialogResult,
@@ -27,12 +28,13 @@ export interface MemberWithDetails extends WorkspaceMember {
   avatar_url?: string | null;
   job_title?: string | null;
   department?: string | null;
+  is_org_admin?: boolean;
 }
 
 @Component({
   selector: 'app-members-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, InviteMemberDialogComponent],
+  imports: [CommonModule, FormsModule, TooltipModule, InviteMemberDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Error banner -->
@@ -172,28 +174,36 @@ export interface MemberWithDetails extends WorkspaceMember {
 
                 <!-- Role -->
                 <td class="px-6 py-4 whitespace-nowrap">
-                  @if (isAdmin() && !isOwner(member) && !isSelf(member)) {
-                    <select
-                      [value]="member.role"
-                      (change)="onRoleChange(member, $any($event.target).value)"
-                      [disabled]="updatingMember() === member.user_id"
-                      class="text-xs font-medium rounded-full px-2.5 py-1 border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
-                    >
-                      <option value="admin">Admin</option>
-                      <option value="manager">Manager</option>
-                      <option value="member">Member</option>
-                      <option value="viewer">Viewer</option>
-                    </select>
-                  } @else {
-                    <span
-                      [class]="
-                        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' +
-                        getRoleBadgeClass(member.role)
-                      "
-                    >
-                      {{ getRoleLabel(member.role) }}
-                    </span>
-                  }
+                  <div class="flex items-center gap-2">
+                    @if (isAdmin() && !isOwner(member) && !isSelf(member) && !member.is_org_admin) {
+                      <select
+                        [value]="member.role"
+                        (change)="onRoleChange(member, $any($event.target).value)"
+                        [disabled]="updatingMember() === member.user_id"
+                        class="text-xs font-medium rounded-full px-2.5 py-1 border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                      >
+                        <option value="admin">Admin</option>
+                        <option value="manager">Manager</option>
+                        <option value="member">Member</option>
+                        <option value="viewer">Viewer</option>
+                      </select>
+                    } @else {
+                      <span
+                        [class]="
+                          'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' +
+                          getRoleBadgeClass(member.role)
+                        "
+                      >
+                        {{ getRoleLabel(member.role) }}
+                      </span>
+                    }
+                    @if (member.is_org_admin) {
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                            pTooltip="Has automatic access to all workspaces" tooltipPosition="top">
+                        <i class="pi pi-shield text-[10px]"></i> Org Admin
+                      </span>
+                    }
+                  </div>
                 </td>
 
                 <!-- Joined Date -->
@@ -208,7 +218,7 @@ export interface MemberWithDetails extends WorkspaceMember {
                   <td
                     class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
                   >
-                    @if (!isOwner(member) && !isSelf(member)) {
+                    @if (!isOwner(member) && !isSelf(member) && !member.is_org_admin) {
                       <button
                         (click)="onRemoveMember(member)"
                         [disabled]="updatingMember() === member.user_id"

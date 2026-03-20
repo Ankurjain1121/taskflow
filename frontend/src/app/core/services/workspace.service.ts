@@ -183,6 +183,28 @@ export class WorkspaceService {
     );
   }
 
+  getWorkspaceMatrix(userId: string): Observable<WorkspaceMatrixEntry[]> {
+    return this.http.get<WorkspaceMatrixEntry[]>(
+      `/api/tenant/members/${userId}/workspace-matrix`,
+    );
+  }
+
+  toggleWorkspaceMembership(
+    workspaceId: string,
+    userId: string,
+    add: boolean,
+  ): Observable<unknown> {
+    if (add) {
+      return this.http.post<unknown>(
+        `${this.apiUrl}/${workspaceId}/members`,
+        { user_id: userId },
+      );
+    }
+    return this.http.delete<unknown>(
+      `${this.apiUrl}/${workspaceId}/members/${userId}`,
+    );
+  }
+
   // ---- Labels ----
 
   listLabels(workspaceId: string): Observable<WorkspaceLabel[]> {
@@ -387,6 +409,15 @@ export interface TenantMember {
   role: string;
   workspace_count: number;
   created_at: string;
+  is_org_admin: boolean;
+}
+
+export interface WorkspaceMatrixEntry {
+  workspace_id: string;
+  workspace_name: string;
+  is_member: boolean;
+  role: string | null;
+  is_org_admin: boolean;
 }
 
 export interface UserWorkspaceMembership {

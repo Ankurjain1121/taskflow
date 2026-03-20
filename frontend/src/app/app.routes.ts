@@ -132,6 +132,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'people',
+        loadComponent: () =>
+          import('./features/people/people-hub.component').then(
+            (m) => m.PeopleHubComponent,
+          ),
+      },
+      {
         path: 'team-page',
         redirectTo: 'manage',
         pathMatch: 'full' as const,

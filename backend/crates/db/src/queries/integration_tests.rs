@@ -293,7 +293,7 @@ async fn test_list_workspaces_for_user() {
         .await
         .unwrap();
 
-    let list = workspaces::list_workspaces_for_user(&pool, user_id, tenant_id)
+    let list = workspaces::list_workspaces_for_user(&pool, user_id, tenant_id, false)
         .await
         .expect("list_workspaces_for_user");
 
@@ -343,7 +343,7 @@ async fn test_soft_delete_workspace() {
     assert!(deleted);
 
     // Should no longer appear in list
-    let list = workspaces::list_workspaces_for_user(&pool, user_id, tenant_id)
+    let list = workspaces::list_workspaces_for_user(&pool, user_id, tenant_id, false)
         .await
         .unwrap();
     assert!(!list.iter().any(|w| w.id == ws_id));

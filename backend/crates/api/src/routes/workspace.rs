@@ -140,6 +140,7 @@ pub struct MemberInfo {
     pub department: Option<String>,
     pub role: WorkspaceMemberRole,
     pub joined_at: chrono::DateTime<chrono::Utc>,
+    pub is_org_admin: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -177,8 +178,10 @@ async fn list_workspaces(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
 ) -> Result<Json<Vec<WorkspaceResponse>>> {
+    let is_admin = auth.0.role == taskflow_db::models::UserRole::Admin;
     let workspaces =
-        workspaces::list_workspaces_for_user(&state.db, auth.0.user_id, auth.0.tenant_id).await?;
+        workspaces::list_workspaces_for_user(&state.db, auth.0.user_id, auth.0.tenant_id, is_admin)
+            .await?;
 
     let response: Vec<WorkspaceResponse> = workspaces
         .into_iter()
@@ -244,6 +247,7 @@ async fn get_workspace(
                 department: m.department,
                 role: m.role,
                 joined_at: m.joined_at,
+                is_org_admin: m.is_org_admin,
             })
             .collect(),
     };
@@ -401,6 +405,7 @@ async fn list_members(
             department: m.department,
             role: m.role,
             joined_at: m.joined_at,
+            is_org_admin: m.is_org_admin,
         })
         .collect();
 
@@ -423,7 +428,9 @@ async fn search_members(
     }
 
     let limit = query.limit.clamp(1, 50);
-    let users = workspaces::search_workspace_members(&state.db, id, &query.q, limit).await?;
+    let users =
+        workspaces::search_workspace_members(&state.db, id, auth.0.tenant_id, &query.q, limit)
+            .await?;
 
     let results: Vec<UserSearchResult> = users
         .into_iter()
@@ -596,6 +603,7 @@ async fn update_member_role(
         department: member_info.department,
         role: member_info.role,
         joined_at: member_info.joined_at,
+        is_org_admin: member_info.is_org_admin,
     }))
 }
 

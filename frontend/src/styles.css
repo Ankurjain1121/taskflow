@@ -100,7 +100,7 @@
   --widget-hover-border: color-mix(in srgb, var(--primary) 28%, transparent);
 
   /* Layout tokens */
-  --nav-height: 48px;
+  --nav-height: 56px;
   --sidebar-width: 16rem;
   --sidebar-width-collapsed: 3.5rem;
 

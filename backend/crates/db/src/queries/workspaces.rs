@@ -7,28 +7,47 @@ use crate::models::{
     UserPublic, Workspace, WorkspaceMember, WorkspaceMemberRole, WorkspaceVisibility,
 };
 
-/// List workspaces for a user (by membership)
+/// List workspaces for a user (by membership).
+///
+/// Global Admins see ALL workspaces in their tenant (implicit membership).
 pub async fn list_workspaces_for_user(
     pool: &PgPool,
     user_id: Uuid,
     tenant_id: Uuid,
+    is_global_admin: bool,
 ) -> Result<Vec<Workspace>, sqlx::Error> {
-    sqlx::query_as::<_, Workspace>(
-        r#"
-        SELECT w.id, w.name, w.description, w.logo_url, w.visibility,
-               w.tenant_id, w.created_by_id, w.deleted_at, w.created_at, w.updated_at
-        FROM workspaces w
-        INNER JOIN workspace_members wm ON w.id = wm.workspace_id
-        WHERE wm.user_id = $1
-          AND w.tenant_id = $2
-          AND w.deleted_at IS NULL
-        ORDER BY w.created_at DESC
-        "#,
-    )
-    .bind(user_id)
-    .bind(tenant_id)
-    .fetch_all(pool)
-    .await
+    if is_global_admin {
+        sqlx::query_as::<_, Workspace>(
+            r#"
+            SELECT id, name, description, logo_url, visibility,
+                   tenant_id, created_by_id, deleted_at, created_at, updated_at
+            FROM workspaces
+            WHERE tenant_id = $1
+              AND deleted_at IS NULL
+            ORDER BY created_at DESC
+            "#,
+        )
+        .bind(tenant_id)
+        .fetch_all(pool)
+        .await
+    } else {
+        sqlx::query_as::<_, Workspace>(
+            r#"
+            SELECT w.id, w.name, w.description, w.logo_url, w.visibility,
+                   w.tenant_id, w.created_by_id, w.deleted_at, w.created_at, w.updated_at
+            FROM workspaces w
+            INNER JOIN workspace_members wm ON w.id = wm.workspace_id
+            WHERE wm.user_id = $1
+              AND w.tenant_id = $2
+              AND w.deleted_at IS NULL
+            ORDER BY w.created_at DESC
+            "#,
+        )
+        .bind(user_id)
+        .bind(tenant_id)
+        .fetch_all(pool)
+        .await
+    }
 }
 
 /// Workspace with members for detailed view
@@ -49,6 +68,7 @@ pub struct WorkspaceMemberInfo {
     pub department: Option<String>,
     pub role: WorkspaceMemberRole,
     pub joined_at: chrono::DateTime<chrono::Utc>,
+    pub is_org_admin: bool,
 }
 
 /// Get a workspace by ID with its members
@@ -76,15 +96,37 @@ pub async fn get_workspace_by_id(
         Some(ws) => {
             let members = sqlx::query_as::<_, WorkspaceMemberInfo>(
                 r#"
-                SELECT wm.user_id, u.name, u.email, u.avatar_url, u.job_title, u.department, wm.role, wm.joined_at
-                FROM workspace_members wm
-                INNER JOIN users u ON wm.user_id = u.id
-                WHERE wm.workspace_id = $1
-                  AND u.deleted_at IS NULL
-                ORDER BY wm.joined_at ASC
+                SELECT user_id, name, email, avatar_url, job_title, department, role, joined_at, is_org_admin
+                FROM (
+                    -- Explicit workspace members
+                    SELECT wm.user_id, u.name, u.email, u.avatar_url, u.job_title, u.department,
+                           wm.role, wm.joined_at,
+                           (u.role = 'admin') AS is_org_admin
+                    FROM workspace_members wm
+                    INNER JOIN users u ON wm.user_id = u.id
+                    WHERE wm.workspace_id = $1
+                      AND u.deleted_at IS NULL
+
+                    UNION ALL
+
+                    -- Global admins who are NOT explicit members (implicit access)
+                    SELECT u.id AS user_id, u.name, u.email, u.avatar_url, u.job_title, u.department,
+                           'admin'::workspace_member_role AS role, u.created_at AS joined_at,
+                           TRUE AS is_org_admin
+                    FROM users u
+                    WHERE u.role = 'admin'
+                      AND u.deleted_at IS NULL
+                      AND u.tenant_id = $2
+                      AND NOT EXISTS (
+                          SELECT 1 FROM workspace_members wm2
+                          WHERE wm2.workspace_id = $1 AND wm2.user_id = u.id
+                      )
+                ) combined
+                ORDER BY is_org_admin DESC, joined_at ASC
                 "#,
             )
             .bind(id)
+            .bind(ws.tenant_id)
             .fetch_all(pool)
             .await?;
 
@@ -205,10 +247,13 @@ pub async fn soft_delete_workspace(pool: &PgPool, id: Uuid) -> Result<bool, sqlx
     Ok(result.rows_affected() > 0)
 }
 
-/// Search workspace members by name or email (ILIKE)
+/// Search workspace members by name or email (ILIKE).
+///
+/// Includes global admins who have implicit access to all workspaces.
 pub async fn search_workspace_members(
     pool: &PgPool,
     workspace_id: Uuid,
+    tenant_id: Uuid,
     query: &str,
     limit: i64,
 ) -> Result<Vec<UserPublic>, sqlx::Error> {
@@ -219,18 +264,21 @@ pub async fn search_workspace_members(
     let pattern = format!("%{}%", escaped);
     sqlx::query_as::<_, UserPublic>(
         r#"
-        SELECT u.id, u.email, u.name, u.avatar_url, u.job_title, u.department,
+        SELECT DISTINCT u.id, u.email, u.name, u.avatar_url, u.job_title, u.department,
                u.role, u.tenant_id, u.onboarding_completed, u.created_at
         FROM users u
-        INNER JOIN workspace_members wm ON u.id = wm.user_id
-        WHERE wm.workspace_id = $1
-          AND u.deleted_at IS NULL
-          AND (u.name ILIKE $2 OR u.email ILIKE $2)
+        WHERE u.deleted_at IS NULL
+          AND (u.name ILIKE $3 OR u.email ILIKE $3)
+          AND (
+              EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = $1 AND wm.user_id = u.id)
+              OR (u.role = 'admin' AND u.tenant_id = $2)
+          )
         ORDER BY u.name ASC
-        LIMIT $3
+        LIMIT $4
         "#,
     )
     .bind(workspace_id)
+    .bind(tenant_id)
     .bind(pattern)
     .bind(limit)
     .fetch_all(pool)
@@ -298,7 +346,10 @@ pub async fn remove_workspace_member(
     Ok(result.rows_affected() > 0)
 }
 
-/// Check if a user is a member of a workspace
+/// Check if a user is a member of a workspace.
+///
+/// Global Admins are treated as implicit members of every workspace,
+/// so this also returns `true` when the user's global role is `admin`.
 pub async fn is_workspace_member(
     pool: &PgPool,
     workspace_id: Uuid,
@@ -309,6 +360,9 @@ pub async fn is_workspace_member(
         SELECT EXISTS(
             SELECT 1 FROM workspace_members
             WHERE workspace_id = $1 AND user_id = $2
+            UNION ALL
+            SELECT 1 FROM users
+            WHERE id = $2 AND role = 'admin' AND deleted_at IS NULL
         )
         "#,
     )
@@ -521,6 +575,55 @@ pub async fn bulk_add_workspace_members(
 
     tx.commit().await?;
     Ok(added)
+}
+
+/// Workspace matrix entry: workspace with membership status for a given user
+#[derive(sqlx::FromRow, serde::Serialize, Clone, Debug)]
+pub struct WorkspaceMatrixEntry {
+    pub workspace_id: Uuid,
+    pub workspace_name: String,
+    pub is_member: bool,
+    pub role: Option<WorkspaceMemberRole>,
+    pub is_org_admin: bool,
+}
+
+/// Get the workspace matrix for a specific user within a tenant.
+///
+/// Returns all workspaces with whether the user is a member of each.
+pub async fn get_user_workspace_matrix(
+    pool: &PgPool,
+    user_id: Uuid,
+    tenant_id: Uuid,
+) -> Result<Vec<WorkspaceMatrixEntry>, sqlx::Error> {
+    // Check if user is a global admin
+    let user_role: Option<(crate::models::UserRole,)> = sqlx::query_as(
+        "SELECT role FROM users WHERE id = $1 AND deleted_at IS NULL",
+    )
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await?;
+
+    let is_admin = matches!(user_role, Some((crate::models::UserRole::Admin,)));
+
+    sqlx::query_as::<_, WorkspaceMatrixEntry>(
+        r#"
+        SELECT w.id AS workspace_id,
+               w.name AS workspace_name,
+               (wm.user_id IS NOT NULL OR $3) AS is_member,
+               wm.role,
+               $3 AS is_org_admin
+        FROM workspaces w
+        LEFT JOIN workspace_members wm ON w.id = wm.workspace_id AND wm.user_id = $1
+        WHERE w.tenant_id = $2
+          AND w.deleted_at IS NULL
+        ORDER BY w.name ASC
+        "#,
+    )
+    .bind(user_id)
+    .bind(tenant_id)
+    .bind(is_admin)
+    .fetch_all(pool)
+    .await
 }
 
 /// Get workspace visibility
