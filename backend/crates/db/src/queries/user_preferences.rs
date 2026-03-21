@@ -11,7 +11,7 @@ const VALID_SIDEBAR_DENSITIES: &[&str] = &["compact", "comfortable"];
 const VALID_DIGEST_FREQUENCIES: &[&str] = &["realtime", "hourly", "daily"];
 const VALID_COLOR_MODES: &[&str] = &["light", "dark", "system"];
 const VALID_ACCENT_COLORS: &[&str] = &[
-    "indigo", "blue", "green", "orange", "rose", "violet", "amber", "slate",
+    "indigo", "blue", "green", "orange", "rose", "violet", "amber", "slate", "earth",
 ];
 
 /// Validate preference values server-side

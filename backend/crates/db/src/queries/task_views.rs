@@ -72,11 +72,13 @@ pub struct CalendarTask {
     pub id: Uuid,
     pub title: String,
     pub priority: TaskPriority,
-    pub due_date: DateTime<Utc>,
+    /// Always present because we filter WHERE due_date IS NOT NULL
+    pub due_date: Option<DateTime<Utc>>,
     pub start_date: Option<DateTime<Utc>>,
     pub status_id: Uuid,
     pub column_name: String,
-    pub is_done: bool,
+    /// Computed from project_statuses.type = 'done'
+    pub is_done: Option<bool>,
     pub milestone_id: Option<Uuid>,
 }
 
@@ -96,11 +98,11 @@ pub async fn list_tasks_for_calendar(
         r#"
         SELECT
             t.id, t.title, t.priority,
-            t.due_date as "due_date!",
+            t.due_date,
             t.start_date,
             t.status_id,
             ps.name as column_name,
-            (ps.type = 'done') as "is_done!",
+            (ps.type = 'done') as is_done,
             t.milestone_id
         FROM tasks t
         JOIN project_statuses ps ON ps.id = t.status_id
@@ -132,7 +134,7 @@ pub struct GanttTask {
     pub due_date: Option<DateTime<Utc>>,
     pub status_id: Uuid,
     pub column_name: String,
-    pub is_done: bool,
+    pub is_done: Option<bool>,
     pub milestone_id: Option<Uuid>,
 }
 
@@ -154,7 +156,7 @@ pub async fn list_tasks_for_gantt(
             t.due_date,
             t.status_id,
             ps.name as column_name,
-            (ps.type = 'done') as "is_done!",
+            (ps.type = 'done') as is_done,
             t.milestone_id
         FROM tasks t
         JOIN project_statuses ps ON ps.id = t.status_id
