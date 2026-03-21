@@ -12,6 +12,7 @@ import { RouterModule } from '@angular/router';
 import { TooltipModule } from 'primeng/tooltip';
 import { SidebarProjectsComponent } from './sidebar-projects.component';
 import { SidebarViewsComponent } from './sidebar-views.component';
+import { SidebarAllProjectsComponent } from './sidebar-all-projects.component';
 import { SidebarFooterComponent } from './sidebar-footer.component';
 import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
 
@@ -22,6 +23,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
     RouterModule,
     TooltipModule,
     SidebarProjectsComponent,
+    SidebarAllProjectsComponent,
     SidebarViewsComponent,
     SidebarFooterComponent,
   ],
@@ -121,6 +123,12 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         }
 
         <app-sidebar-projects
+          [collapsed]="collapsed()"
+          (navClick)="onNavClick()" />
+
+        <div class="divider my-2 mx-1"></div>
+
+        <app-sidebar-all-projects
           [collapsed]="collapsed()"
           (navClick)="onNavClick()" />
 
