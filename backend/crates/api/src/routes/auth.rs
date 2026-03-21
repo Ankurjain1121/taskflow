@@ -43,6 +43,8 @@ const LOGIN_LOCKOUT_SECS: i64 = 900;
 pub struct SignInRequest {
     pub email: String,
     pub password: String,
+    /// When false, cookies are session-only (no Max-Age). Defaults to true.
+    pub remember_me: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -175,13 +177,20 @@ pub async fn sign_in_handler(
     .await
     .unwrap_or(false);
 
+    let persistent = payload.remember_me.unwrap_or(true);
+
     if has_2fa {
         // Issue a short-lived temp token instead of the real JWT
         let temp_token = Uuid::new_v4().to_string();
         let temp_key = format!("2fa_temp:{}", temp_token);
+        // Store user_id and remember_me preference as JSON
+        let temp_value = serde_json::json!({
+            "user_id": user.id.to_string(),
+            "persistent": persistent,
+        });
         redis::cmd("SET")
             .arg(&temp_key)
-            .arg(user.id.to_string())
+            .arg(temp_value.to_string())
             .arg("EX")
             .arg(300i64) // 5 minutes
             .query_async::<()>(&mut state.redis.clone())
@@ -234,6 +243,7 @@ pub async fn sign_in_handler(
         refresh_expiry,
         ip_address.as_deref(),
         user_agent_val.as_deref(),
+        persistent,
     )
     .await?;
 
@@ -261,6 +271,7 @@ pub async fn sign_in_handler(
         state.config.jwt_access_expiry_secs,
         state.config.jwt_refresh_expiry_secs,
         &state.config.app_url,
+        persistent,
     )?;
 
     let response_body = AuthResponse {
@@ -361,6 +372,7 @@ pub async fn sign_up_handler(
         refresh_expiry,
         ip_address.as_deref(),
         user_agent_val.as_deref(),
+        true, // sign-up always uses persistent cookies
     )
     .await?;
 
@@ -388,6 +400,7 @@ pub async fn sign_up_handler(
         state.config.jwt_access_expiry_secs,
         state.config.jwt_refresh_expiry_secs,
         &state.config.app_url,
+        true, // sign-up always uses persistent cookies
     )?;
 
     let response_body = AuthResponse {
@@ -492,6 +505,9 @@ pub async fn refresh_handler(
         state.config.jwt_refresh_expiry_secs,
     )?;
 
+    // Preserve remember-me preference from the original sign-in
+    let persistent = stored_token.persistent;
+
     let token_hash = hash_token(&tokens.refresh_token);
     auth::create_refresh_token(
         &state.db,
@@ -501,6 +517,7 @@ pub async fn refresh_handler(
         refresh_expiry,
         ip_address.as_deref(),
         user_agent_val.as_deref(),
+        persistent,
     )
     .await?;
 
@@ -517,6 +534,7 @@ pub async fn refresh_handler(
         state.config.jwt_access_expiry_secs,
         state.config.jwt_refresh_expiry_secs,
         &state.config.app_url,
+        persistent,
     )?;
 
     let response_body = AuthResponse {
@@ -671,14 +689,17 @@ pub(crate) fn extract_cookie(headers: &HeaderMap, name: &str) -> Option<String> 
 }
 
 /// Build Set-Cookie headers for access and refresh tokens.
-/// Sets HttpOnly, SameSite=Lax. Secure flag is based on whether APP_URL uses https.
-/// Domain attribute is omitted so cookies scope to the exact host that set them.
+///
+/// When `persistent` is true, cookies include `Max-Age` (survive browser restart).
+/// When false, `Max-Age` is omitted — the browser treats them as session cookies
+/// that are deleted when the browser closes.
 pub(crate) fn build_auth_cookie_headers(
     access_token: &str,
     refresh_token: &str,
     access_expiry_secs: i64,
     refresh_expiry_secs: i64,
     app_url: &str,
+    persistent: bool,
 ) -> Result<HeaderMap> {
     let secure_flag = if app_url.starts_with("https://") {
         "; Secure"
@@ -686,13 +707,24 @@ pub(crate) fn build_auth_cookie_headers(
         ""
     };
 
+    let access_max_age = if persistent {
+        format!("; Max-Age={}", access_expiry_secs)
+    } else {
+        String::new()
+    };
+    let refresh_max_age = if persistent {
+        format!("; Max-Age={}", refresh_expiry_secs)
+    } else {
+        String::new()
+    };
+
     let access_cookie = format!(
-        "access_token={}; HttpOnly; SameSite=Lax; Path=/; Max-Age={}{}",
-        access_token, access_expiry_secs, secure_flag
+        "access_token={}; HttpOnly; SameSite=Lax; Path=/{}{}",
+        access_token, access_max_age, secure_flag
     );
     let refresh_cookie = format!(
-        "refresh_token={}; HttpOnly; SameSite=Lax; Path=/; Max-Age={}{}",
-        refresh_token, refresh_expiry_secs, secure_flag
+        "refresh_token={}; HttpOnly; SameSite=Lax; Path=/{}{}",
+        refresh_token, refresh_max_age, secure_flag
     );
 
     let mut headers = HeaderMap::new();

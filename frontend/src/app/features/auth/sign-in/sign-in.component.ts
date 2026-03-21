@@ -19,6 +19,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
 import { ProgressSpinner } from 'primeng/progressspinner';
 import { PasswordModule } from 'primeng/password';
+import { CheckboxModule } from 'primeng/checkbox';
 import { finalize } from 'rxjs';
 import {
   AuthService,
@@ -39,6 +40,7 @@ import { TwoFactorService } from '../../../core/services/two-factor.service';
     ProgressSpinner,
     PasswordModule,
     FormsModule,
+    CheckboxModule,
   ],
   template: `
     <div class="auth-wrapper">
@@ -159,7 +161,11 @@ import { TwoFactorService } from '../../../core/services/two-factor.service';
                   }
                 </div>
 
-                <div class="flex justify-end mb-5 -mt-1">
+                <div class="flex items-center justify-between mb-5 -mt-1">
+                  <label class="flex items-center gap-2 cursor-pointer text-sm text-[var(--muted-foreground)]">
+                    <p-checkbox formControlName="rememberMe" [binary]="true" />
+                    Remember me
+                  </label>
                   <a
                     routerLink="/auth/forgot-password"
                     class="text-sm text-primary hover:text-primary transition-colors font-medium"
@@ -618,6 +624,7 @@ export class SignInComponent {
   signInForm: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
+    rememberMe: [true],
   });
 
   isLoading = false;
@@ -658,10 +665,10 @@ export class SignInComponent {
     this.isLoading = true;
     this.errorMessage = '';
 
-    const { email, password } = this.signInForm.value;
+    const { email, password, rememberMe } = this.signInForm.value;
 
     this.authService
-      .signIn(email, password)
+      .signIn(email, password, rememberMe ?? true)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => {
