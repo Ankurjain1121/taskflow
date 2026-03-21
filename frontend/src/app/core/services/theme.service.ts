@@ -15,28 +15,11 @@ import { catchError } from 'rxjs/operators';
 import { COLOR_PALETTES } from '../constants/color-palettes';
 import { UserPreferencesService } from './user-preferences.service';
 import { AuthService } from './auth.service';
-import { AccentColor, ColorMode } from '../../shared/types/theme.types';
+import { ColorMode } from '../../shared/types/theme.types';
 
 const THEME_KEY = 'taskflow-theme';
-const ACCENT_KEY = 'taskflow-accent';
 
 export type Theme = 'light' | 'dark' | 'system';
-export type { AccentColor } from '../../shared/types/theme.types';
-
-export const ACCENT_PRESETS: {
-  value: AccentColor;
-  label: string;
-  color: string;
-}[] = [
-  { value: 'blue',   label: 'Blue',   color: '#3b82f6' },
-  { value: 'indigo', label: 'Indigo', color: '#6366f1' },
-  { value: 'green',  label: 'Green',  color: '#22c55e' },
-  { value: 'orange', label: 'Orange', color: '#f97316' },
-  { value: 'rose',   label: 'Rose',   color: '#f43f5e' },
-  { value: 'violet', label: 'Violet', color: '#8b5cf6' },
-  { value: 'amber',  label: 'Amber',  color: '#f59e0b' },
-  { value: 'slate',  label: 'Slate',  color: '#64748b' },
-];
 
 @Injectable({
   providedIn: 'root',
@@ -50,9 +33,6 @@ export class ThemeService implements OnDestroy {
 
   readonly theme = signal<Theme>(
     this.loadFromStorage(THEME_KEY, 'system') as Theme,
-  );
-  readonly accent = signal<AccentColor>(
-    this.loadFromStorage(ACCENT_KEY, 'blue') as AccentColor,
   );
 
   private readonly systemPrefersDark = signal<boolean>(
@@ -82,32 +62,27 @@ export class ThemeService implements OnDestroy {
     // Single effect: apply dark class, data-accent, personality attrs, PrimeNG theme
     effect(() => {
       const resolved = this.resolvedTheme();
-      const accent = this.accent();
       const root = this.document.documentElement;
 
       root.classList.toggle('dark', resolved === 'dark');
 
-      if (accent === 'indigo') {
-        root.removeAttribute('data-accent');
-      } else {
-        root.setAttribute('data-accent', accent);
-      }
+      // Hardcoded to 'earth' — extensible hook for future themes
+      root.setAttribute('data-accent', 'earth');
 
       root.setAttribute('data-sidebar-style', 'light');
       root.setAttribute('data-card-style', 'raised');
       root.setAttribute('data-border-radius', 'medium');
       root.setAttribute('data-bg-pattern', 'none');
 
-      this.updatePrimeNG(accent, resolved === 'dark');
+      this.updatePrimeNG(resolved === 'dark');
     });
 
     // Debounced server save effect (only when authenticated)
     effect(() => {
       const theme = this.theme();
-      const accent = this.accent();
       // Only save if authenticated and prefs have been loaded
       if (this.authService.isAuthenticated() && this._prefsLoaded) {
-        this.debouncedSave({ color_mode: theme, accent_color: accent });
+        this.debouncedSave({ color_mode: theme, accent_color: 'earth' });
       }
     });
 
@@ -127,27 +102,22 @@ export class ThemeService implements OnDestroy {
     this.saveToStorage(THEME_KEY, t);
   }
 
-  setAccent(a: AccentColor): void {
-    this.accent.set(a);
-    this.saveToStorage(ACCENT_KEY, a);
-  }
-
   setColorMode(mode: ColorMode): void {
     this.setTheme(mode as Theme);
   }
 
   // ========== Private Methods ==========
 
-  private updatePrimeNG(accent: AccentColor, isDark: boolean): void {
-    const ramp    = COLOR_PALETTES[accent];
+  private updatePrimeNG(isDark: boolean): void {
+    const ramp    = COLOR_PALETTES['earth'];
     const scheme  = isDark ? 'dark' : 'light';
-    const base    = isDark ? '#181b34' : '#f6f7fb';
-    const s1      = isDark ? '#30324e' : '#ffffff';
-    const s2      = isDark ? '#3a3c58' : '#f8f9fb';
-    const fg      = isDark ? '#f8fafc' : '#0f172a';
-    const border  = isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0';
-    const mutedFg = isDark ? '#94a3b8' : '#64748b';
-    const primary = ramp['500'] ?? '#6366f1';
+    const base    = isDark ? '#1C1A17' : '#EDE9DD';
+    const s1      = isDark ? '#262320' : '#ffffff';
+    const s2      = isDark ? '#302D29' : '#F5F2EC';
+    const fg      = isDark ? '#E8E4DB' : '#2E2E2E';
+    const border  = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(46,46,46,0.08)';
+    const mutedFg = isDark ? '#8A8580' : '#9F9F9F';
+    const primary = ramp['500'] ?? '#BF7B54';
     const hi      = ramp['400'] ?? primary;
     const hlPct   = isDark ? '10%' : '8%';
     const hlFPct  = isDark ? '15%' : '12%';
@@ -220,10 +190,7 @@ export class ThemeService implements OnDestroy {
           this.theme.set(prefs.color_mode as Theme);
           this.saveToStorage(THEME_KEY, prefs.color_mode);
         }
-        if (prefs.accent_color) {
-          this.accent.set(prefs.accent_color as AccentColor);
-          this.saveToStorage(ACCENT_KEY, prefs.accent_color);
-        }
+        // accent_color from server is ignored — hardcoded to 'earth'
       },
       error: () => {},
     });
@@ -248,9 +215,6 @@ export class ThemeService implements OnDestroy {
     window.addEventListener('storage', (e) => {
       if (e.key === THEME_KEY && e.newValue) {
         this.theme.set(e.newValue as Theme);
-      }
-      if (e.key === ACCENT_KEY && e.newValue) {
-        this.accent.set(e.newValue as AccentColor);
       }
     });
   }

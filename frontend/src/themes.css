@@ -40,7 +40,7 @@
    ============================================ */
 
 :root {
-  --radius: 1rem;
+  --radius: 1.25rem;
 }
 
 /* Small radius */
@@ -50,7 +50,7 @@
 
 /* Medium radius (default) */
 [data-border-radius="medium"] {
-  --radius: 1rem;
+  --radius: 1.25rem;
 }
 
 /* Large radius */
@@ -69,14 +69,14 @@ html:not(.dark) [data-sidebar-style="dark"] .sidebar-root {
 
 /* When sidebar style is 'dark' in light mode, still use dark styling */
 html:not(.dark) [data-sidebar-style="dark"] .sidebar-root {
-  background: #1e1e2e !important;
+  background: #2A2723 !important;
   --sidebar-text-primary: rgba(255, 255, 255, 0.95);
   --sidebar-text-secondary: rgba(255, 255, 255, 0.7);
   --sidebar-text-muted: rgba(255, 255, 255, 0.5);
   --sidebar-border: rgba(255, 255, 255, 0.1);
   --sidebar-surface: rgba(255, 255, 255, 0.03);
   --sidebar-surface-hover: rgba(255, 255, 255, 0.08);
-  --sidebar-surface-active: rgba(99, 102, 241, 0.15);
+  --sidebar-surface-active: rgba(191, 123, 84, 0.15);
 }
 
 /* ============================================
