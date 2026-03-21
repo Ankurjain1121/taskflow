@@ -1,12 +1,30 @@
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
-    Argon2,
+    Algorithm, Argon2, Params, Version,
 };
 
-/// Hash a password using Argon2id
+/// Argon2id parameters per OWASP Password Storage Cheat Sheet 2025
+/// Option 1: m=47104 (46 MiB), t=1, p=1
+const ARGON2_MEMORY_COST: u32 = 47_104; // 46 MiB
+const ARGON2_TIME_COST: u32 = 1;
+const ARGON2_PARALLELISM: u32 = 1;
+
+fn argon2_instance() -> Argon2<'static> {
+    let params = Params::new(
+        ARGON2_MEMORY_COST,
+        ARGON2_TIME_COST,
+        ARGON2_PARALLELISM,
+        None, // default output length (32 bytes)
+    )
+    .expect("Invalid Argon2 parameters");
+
+    Argon2::new(Algorithm::Argon2id, Version::V0x13, params)
+}
+
+/// Hash a password using Argon2id with OWASP-recommended parameters
 pub fn hash_password(password: &str) -> Result<String, argon2::password_hash::Error> {
     let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
+    let argon2 = argon2_instance();
     let hash = argon2.hash_password(password.as_bytes(), &salt)?;
     Ok(hash.to_string())
 }
@@ -14,7 +32,7 @@ pub fn hash_password(password: &str) -> Result<String, argon2::password_hash::Er
 /// Verify a password against a stored hash
 pub fn verify_password(password: &str, hash: &str) -> Result<bool, argon2::password_hash::Error> {
     let parsed_hash = PasswordHash::new(hash)?;
-    Ok(Argon2::default()
+    Ok(argon2_instance()
         .verify_password(password.as_bytes(), &parsed_hash)
         .is_ok())
 }
