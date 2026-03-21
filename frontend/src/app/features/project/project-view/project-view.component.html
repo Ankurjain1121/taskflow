@@ -1,0 +1,330 @@
+    <div
+      class="project-root flex flex-col transition-colors duration-300"
+      [style.background]="
+        state.board()?.background_color || 'var(--background)'
+      "
+    >
+      <!-- Header -->
+      <app-project-view-header
+        [boardName]="state.board()?.name || ''"
+        [boardDescription]="state.board()?.description ?? null"
+        [workspaceId]="workspaceId"
+        [boardId]="boardId"
+        [menuItems]="columnDialogs()?.moreMenuItems ?? []"
+        (createTask)="onCreateTask()"
+        (createGroup)="onCreateGroup()"
+      />
+
+      <!-- Sample Board Banner -->
+      @if (state.board()?.is_sample) {
+        <app-sample-project-banner
+          [boardId]="boardId"
+          [workspaceId]="workspaceId"
+          (deleted)="navigateToDashboard()"
+        />
+      }
+
+      <!-- Toolbar -->
+      <app-project-toolbar
+        [boardId]="boardId"
+        [assignees]="state.allAssignees()"
+        [labels]="state.allLabels()"
+        [viewMode]="viewMode()"
+        [density]="state.cardDensity()"
+        [groupBy]="state.groupBy()"
+        [colorBy]="state.colorBy()"
+        [cardFields]="state.cardFields()"
+        (filtersChanged)="state.filters.set($event)"
+        (viewModeChanged)="onViewModeChanged($event)"
+        (densityChanged)="state.setCardDensity($event)"
+        (groupByChanged)="state.setGroupBy($event, boardId)"
+        (colorByChanged)="state.setColorBy($event)"
+        (cardFieldChanged)="state.updateCardField($event.key, $event.value)"
+        (cardFieldsReset)="state.resetCardFields()"
+      ></app-project-toolbar>
+
+      <!-- Shortcut Discovery Banner (first-visit only) -->
+      <app-shortcut-discovery-banner />
+
+      <!-- Task Group Headers (kanban/other views only, not list view) -->
+      @if (state.boardGroups().length > 1 && (viewMode() === 'kanban')) {
+        <div
+          class="px-4 py-2 bg-[var(--card)] border-b border-[var(--border)] space-y-1"
+        >
+          @for (group of state.boardGroups(); track group.group.id) {
+            <app-task-group-header
+              [groupData]="group"
+              (nameChange)="
+                state.updateGroupName(boardId, group.group.id, $event)
+              "
+              (colorChange)="
+                state.updateGroupColor(boardId, group.group.id, $event)
+              "
+              (toggleCollapse)="state.toggleGroupCollapse(group)"
+              (delete)="state.deleteGroup(boardId, group.group.id)"
+            />
+          }
+        </div>
+      }
+
+      <!-- Board Content -->
+      @if (state.loading()) {
+        <app-project-loading-skeleton />
+      } @else if (viewMode() === 'list') {
+        <!-- List View -->
+        <div class="flex-1 overflow-y-auto">
+          @defer (when viewMode() === 'list') {
+            <app-list-view
+              [tasks]="state.flatTasks()"
+              [groups]="state.boardGroups()"
+              [loading]="state.listLoading()"
+              [hasActiveFilters]="state.hasActiveFilters()"
+              [columns]="state.columns()"
+              [colorBy]="state.colorBy()"
+              [projectId]="boardId"
+              (taskClicked)="navigateToTask($event)"
+              (titleChanged)="listEdit.onTitleChanged($event, boardId, destroy$)"
+              (priorityChanged)="listEdit.onPriorityChanged($event, boardId, destroy$)"
+              (statusChanged)="listEdit.onStatusChanged($event, boardId, destroy$)"
+              (dueDateChanged)="listEdit.onDueDateChanged($event, boardId, destroy$)"
+              (groupToggled)="state.toggleGroupCollapse($event)"
+            ></app-list-view>
+          } @placeholder {
+            <div
+              class="flex-1 flex items-center justify-center py-12 text-[var(--muted-foreground)]"
+            >
+              <i class="pi pi-spin pi-spinner text-xl"></i>
+            </div>
+          }
+        </div>
+      } @else if (viewMode() === 'calendar') {
+        <!-- Calendar View -->
+        <div class="flex-1 overflow-hidden">
+          @defer (when viewMode() === 'calendar') {
+            <app-calendar-view
+              [boardId]="boardId"
+              (taskClicked)="navigateToTask($event)"
+            ></app-calendar-view>
+          } @placeholder {
+            <div
+              class="flex-1 flex items-center justify-center py-12 text-[var(--muted-foreground)]"
+            >
+              <i class="pi pi-spin pi-spinner text-xl"></i>
+            </div>
+          }
+        </div>
+      } @else if (viewMode() === 'gantt') {
+        <!-- Gantt Chart View -->
+        <div class="flex-1 overflow-hidden">
+          @defer (when viewMode() === 'gantt') {
+            <app-gantt-view
+              [tasks]="state.ganttTasks()"
+              [dependencies]="state.boardDependencies()"
+              (taskClicked)="navigateToTask($event)"
+            ></app-gantt-view>
+          } @placeholder {
+            <div
+              class="flex-1 flex items-center justify-center py-12 text-[var(--muted-foreground)]"
+            >
+              <i class="pi pi-spin pi-spinner text-xl"></i>
+            </div>
+          }
+        </div>
+      } @else if (viewMode() === 'reports') {
+        <!-- Reports View -->
+        <div class="flex-1 overflow-y-auto">
+          @defer (when viewMode() === 'reports') {
+            <app-reports-view [boardId]="boardId"></app-reports-view>
+          } @placeholder {
+            <div
+              class="flex-1 flex items-center justify-center py-12 text-[var(--muted-foreground)]"
+            >
+              <i class="pi pi-spin pi-spinner text-xl"></i>
+            </div>
+          }
+        </div>
+      } @else if (viewMode() === 'time-report') {
+        <!-- Time Report View -->
+        <div class="flex-1 overflow-y-auto">
+          @defer (when viewMode() === 'time-report') {
+            <app-time-report [boardId]="boardId"></app-time-report>
+          } @placeholder {
+            <div
+              class="flex-1 flex items-center justify-center py-12 text-[var(--muted-foreground)]"
+            >
+              <i class="pi pi-spin pi-spinner text-xl"></i>
+            </div>
+          }
+        </div>
+      } @else if (viewMode() === 'activity') {
+        <!-- Activity Feed View -->
+        <div class="flex-1 overflow-y-auto">
+          @defer (when viewMode() === 'activity') {
+            <app-activity-feed [boardId]="boardId"></app-activity-feed>
+          } @placeholder {
+            <div
+              class="flex-1 flex items-center justify-center py-12 text-[var(--muted-foreground)]"
+            >
+              <i class="pi pi-spin pi-spinner text-xl"></i>
+            </div>
+          }
+        </div>
+      } @else if (viewMode() === 'kanban' && state.groupBy() !== 'none') {
+        <!-- Swimlane View (kanban with grouping) -->
+        <div class="flex-1 overflow-auto">
+          <app-swimlane-container
+            [swimlaneGroups]="state.swimlaneGroups()"
+            [swimlaneState]="state.swimlaneState()"
+            [columns]="state.columns()"
+            [boardPrefix]="state.board()?.prefix ?? null"
+            [density]="state.cardDensity()"
+            [cardFields]="state.cardFields()"
+            [celebratingTaskId]="state.celebratingTaskId()"
+            [focusedTaskId]="state.focusedTaskId()"
+            [selectedTaskIds]="state.selectedTaskIds()"
+            [allColumns]="state.columns()"
+            [statusTransitions]="state.statusTransitions()"
+            [groupBy]="state.groupBy()"
+            [collapsedSwimlaneIds]="state.collapsedSwimlaneIds()"
+            (taskMoved)="dragDrop.onSwimlaneTaskMoved($event)"
+            (taskClicked)="navigateToTask($event.id)"
+            (addTaskClicked)="onAddTaskToColumn($event)"
+            (selectionToggled)="onSelectionToggled($event)"
+            (priorityChanged)="
+              state.optimisticUpdateTask($event.taskId, {
+                priority: $any($event.priority),
+              })
+            "
+            (titleChanged)="
+              state.optimisticUpdateTask($event.taskId, { title: $event.title })
+            "
+            (columnMoveRequested)="cardOps.onCardColumnMove($event, destroy$)"
+            (duplicateRequested)="cardOps.onCardDuplicate($event, destroy$)"
+            (deleteRequested)="state.deleteTask($event)"
+            (swimlaneToggled)="state.toggleSwimlaneCollapse($event)"
+          />
+        </div>
+      } @else if (viewMode() === 'kanban') {
+        <!-- Kanban Board -->
+        <app-project-kanban-board
+          [columns]="state.columns()"
+          [filteredBoardState]="state.filteredBoardState()"
+          [dragSimulationActive]="state.dragSimulationActive()"
+          [dragSimulationCurrentColumnId]="state.dragSimulationCurrentColumnId()"
+          [celebratingTaskId]="state.celebratingTaskId()"
+          [focusedTaskId]="state.focusedTaskId()"
+          [selectedTaskIds]="state.selectedTaskIds()"
+          [connectedColumnIds]="state.connectedColumnIds()"
+          [statusTransitions]="state.statusTransitions()"
+          [boardPrefix]="state.board()?.prefix ?? null"
+          [collapsedColumnIds]="state.collapsedColumnIds()"
+          [density]="state.cardDensity()"
+          [colorBy]="state.colorBy()"
+          [cardFields]="state.cardFields()"
+          (taskMoved)="dragDrop.onTaskMoved($event)"
+          (taskClicked)="navigateToTask($event.id)"
+          (addTaskClicked)="onAddTaskToColumn($event)"
+          (selectionToggled)="onSelectionToggled($event)"
+          (priorityChanged)="
+            state.optimisticUpdateTask($event.taskId, {
+              priority: $any($event.priority),
+            })
+          "
+          (titleChanged)="
+            state.optimisticUpdateTask($event.taskId, {
+              title: $event.title,
+            })
+          "
+          (columnMoveRequested)="cardOps.onCardColumnMove($event, destroy$)"
+          (moveToProjectRequested)="cardOps.openMoveToProjectDialog($event)"
+          (duplicateRequested)="cardOps.onCardDuplicate($event, destroy$)"
+          (deleteRequested)="state.deleteTask($event)"
+          (quickTaskCreated)="onQuickTaskCreated($event)"
+          (collapseToggled)="state.toggleColumnCollapse(boardId, $event)"
+          (renameRequested)="columnDialogs()?.openRenameDialog($event)"
+          (wipLimitRequested)="columnDialogs()?.openWipLimitDialog($event)"
+          (columnDeleteRequested)="columnDialogs()?.confirmDeleteColumn($event)"
+          (iconChangeRequested)="columnDialogs()?.openIconPicker($event)"
+          (columnDrop)="onColumnDrop($event)"
+          (addColumn)="onAddColumn()"
+        />
+      }
+
+      <!-- Task Detail: navigates to full-page view -->
+
+      <!-- Bulk Actions Bar -->
+      @if (state.selectedTaskIds().length > 0) {
+        <app-bulk-actions-bar
+          [selectedCount]="state.selectedTaskIds().length"
+          [atLimit]="state.selectionAtLimit()"
+          [columns]="state.columns()"
+          [milestones]="state.boardMilestones()"
+          [groups]="state.boardGroups()"
+          (bulkAction)="bulkOps.onBulkAction($event)"
+          (cancelSelection)="state.clearSelection()"
+          (exportCsv)="bulkOps.onExportSelectedCsv()"
+        ></app-bulk-actions-bar>
+      }
+
+      <!-- Bulk Preview Dialog -->
+      <app-bulk-preview-dialog
+        [visible]="bulkOps.showBulkPreview()"
+        [data]="bulkOps.bulkPreviewData()"
+        (confirmed)="onBulkPreviewConfirmed()"
+        (cancelled)="bulkOps.onBulkPreviewCancelled()"
+      />
+
+      <!-- Undo Toast -->
+      <app-undo-toast />
+
+      <!-- Keyboard Shortcuts Help -->
+      <app-shortcut-help></app-shortcut-help>
+
+      <!-- Inline Create Task Dialog -->
+      <app-create-task-dialog
+        [(visible)]="showCreateTaskDialog"
+        [boardId]="boardId"
+        [columnId]="createTaskDialogColumnId"
+        [columnName]="createTaskDialogColumnName"
+        [members]="createTaskDialogMembers"
+        (created)="onCreateTaskResult($event)"
+      />
+
+      <!-- Inline Create Column Dialog -->
+      <app-create-column-dialog
+        [(visible)]="showCreateColumnDialog"
+        (created)="onCreateColumnResult($event)"
+      />
+
+      <!-- Inline Create Group Dialog -->
+      <app-create-task-group-dialog
+        [(visible)]="showCreateGroupDialog"
+        (created)="onCreateGroupResult($event)"
+      />
+
+      <!-- Move to Project Dialog -->
+      <app-move-to-project-dialog
+        [visible]="cardOps.moveToProjectDialogVisible()"
+        [taskId]="cardOps.moveToProjectTaskId()"
+        [currentProjectId]="boardId"
+        (confirmed)="cardOps.onMoveToProject($event, destroy$)"
+        (cancelled)="cardOps.closeMoveToProjectDialog()"
+      />
+
+      <!-- Column Dialogs (rename, WIP, icon, duplicate, import/export, confirm) -->
+      <app-project-column-dialogs
+        [boardId]="boardId"
+        [workspaceId]="workspaceId"
+        [boardName]="state.board()?.name || ''"
+        [destroy$]="destroy$"
+        (columnUpdated)="onColumnUpdated($event)"
+        (boardDuplicated)="onBoardDuplicated($event)"
+      />
+
+      <!-- Overlays: Quick-edit, Spotlight, Hints, Error Snackbar -->
+      <app-project-view-overlays
+        [spotlightSteps]="spotlightSteps"
+        [spotlightActive]="spotlightActive()"
+        (spotlightDone)="spotlightActive.set(false)"
+      />
+    </div>

@@ -1,0 +1,66 @@
+      .line-clamp-1 {
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      :host ::ng-deep .p-datatable .p-datatable-thead > tr > th {
+        background: var(--background);
+        color: var(--muted-foreground);
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid var(--border);
+      }
+
+      :host ::ng-deep .p-datatable .p-datatable-tbody > tr {
+        transition: background-color 150ms ease;
+      }
+
+      :host
+        ::ng-deep
+        .p-datatable
+        .p-datatable-tbody
+        > tr:not(.p-rowgroup-header):nth-child(even) {
+        background: color-mix(in srgb, var(--background) 95%, var(--primary));
+      }
+
+      :host
+        ::ng-deep
+        .p-datatable
+        .p-datatable-tbody
+        > tr:not(.p-rowgroup-header):hover {
+        background: color-mix(
+          in srgb,
+          var(--background) 90%,
+          var(--primary)
+        ) !important;
+      }
+
+      :host ::ng-deep .p-select {
+        min-width: 100%;
+      }
+
+      :host ::ng-deep .p-datepicker {
+        min-width: 100%;
+      }
+
+      :host
+        ::ng-deep
+        .p-datatable
+        .p-datatable-tbody
+        > tr.p-rowgroup-header {
+        background: transparent !important;
+      }
+
+      :host
+        ::ng-deep
+        .p-datatable
+        .p-datatable-tbody
+        > tr.p-rowgroup-header
+        > td {
+        padding: 0 !important;
+        border: none !important;
+      }

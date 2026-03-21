@@ -54,10 +54,7 @@ mod tests {
     #[tokio::test]
     async fn should_set_x_content_type_options() {
         let app = test_app();
-        let req = Request::builder()
-            .uri("/test")
-            .body(Body::empty())
-            .unwrap();
+        let req = Request::builder().uri("/test").body(Body::empty()).unwrap();
         let resp = app.oneshot(req).await.unwrap();
         assert_eq!(
             resp.headers().get("x-content-type-options").unwrap(),
@@ -68,10 +65,7 @@ mod tests {
     #[tokio::test]
     async fn should_set_x_frame_options() {
         let app = test_app();
-        let req = Request::builder()
-            .uri("/test")
-            .body(Body::empty())
-            .unwrap();
+        let req = Request::builder().uri("/test").body(Body::empty()).unwrap();
         let resp = app.oneshot(req).await.unwrap();
         assert_eq!(resp.headers().get("x-frame-options").unwrap(), "DENY");
     }
@@ -79,10 +73,7 @@ mod tests {
     #[tokio::test]
     async fn should_set_referrer_policy() {
         let app = test_app();
-        let req = Request::builder()
-            .uri("/test")
-            .body(Body::empty())
-            .unwrap();
+        let req = Request::builder().uri("/test").body(Body::empty()).unwrap();
         let resp = app.oneshot(req).await.unwrap();
         assert_eq!(
             resp.headers().get("referrer-policy").unwrap(),
@@ -93,10 +84,7 @@ mod tests {
     #[tokio::test]
     async fn should_set_x_xss_protection() {
         let app = test_app();
-        let req = Request::builder()
-            .uri("/test")
-            .body(Body::empty())
-            .unwrap();
+        let req = Request::builder().uri("/test").body(Body::empty()).unwrap();
         let resp = app.oneshot(req).await.unwrap();
         assert_eq!(resp.headers().get("x-xss-protection").unwrap(), "0");
     }
@@ -104,10 +92,7 @@ mod tests {
     #[tokio::test]
     async fn should_set_content_security_policy() {
         let app = test_app();
-        let req = Request::builder()
-            .uri("/test")
-            .body(Body::empty())
-            .unwrap();
+        let req = Request::builder().uri("/test").body(Body::empty()).unwrap();
         let resp = app.oneshot(req).await.unwrap();
         let csp = resp
             .headers()
@@ -125,10 +110,7 @@ mod tests {
     #[tokio::test]
     async fn should_set_strict_transport_security() {
         let app = test_app();
-        let req = Request::builder()
-            .uri("/test")
-            .body(Body::empty())
-            .unwrap();
+        let req = Request::builder().uri("/test").body(Body::empty()).unwrap();
         let resp = app.oneshot(req).await.unwrap();
         assert_eq!(
             resp.headers().get("strict-transport-security").unwrap(),

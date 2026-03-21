@@ -1,0 +1,96 @@
+      .line-clamp-1 {
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .task-card {
+        background: var(--card, #ffffff);
+        box-shadow: 0 1px 0
+          color-mix(in srgb, var(--foreground) 12%, transparent);
+        transition: background 0.15s ease, border-color 200ms ease, border-left-color 200ms ease;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .task-card {
+          transition: none;
+        }
+      }
+
+      .task-card:hover {
+        background: var(--muted);
+      }
+
+      /* CDK drag-drop transitions */
+      :host {
+        display: block;
+      }
+
+      :host.cdk-drag-animating {
+        transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+      }
+
+      .cdk-drop-list-dragging .task-card {
+        transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+      }
+
+      /* Ensure PrimeNG menu items are not visually disabled */
+      :host ::ng-deep .p-menu .p-menuitem:not(.p-disabled) {
+        opacity: 1;
+        pointer-events: auto;
+        cursor: pointer;
+      }
+
+      .task-card--urgent {
+        background: linear-gradient(
+          135deg,
+          rgba(239, 68, 68, 0.03) 0%,
+          var(--card, #ffffff) 60%
+        );
+      }
+
+      .task-card--high {
+        background: linear-gradient(
+          135deg,
+          rgba(249, 115, 22, 0.03) 0%,
+          var(--card, #ffffff) 60%
+        );
+      }
+
+      .task-card--medium {
+        background: linear-gradient(
+          135deg,
+          rgba(234, 179, 8, 0.02) 0%,
+          var(--card, #ffffff) 60%
+        );
+      }
+
+      .task-card--low {
+        background: linear-gradient(
+          135deg,
+          rgba(59, 130, 246, 0.02) 0%,
+          var(--card, #ffffff) 60%
+        );
+      }
+
+      .assignee-avatar {
+        transition: transform 0.15s ease;
+      }
+
+      .task-card:hover .assignee-avatar {
+        transform: translateX(0);
+      }
+
+      .drag-preview {
+        background: color-mix(in srgb, var(--card) 92%, transparent);
+        backdrop-filter: blur(12px) saturate(180%);
+        -webkit-backdrop-filter: blur(12px) saturate(180%);
+      }

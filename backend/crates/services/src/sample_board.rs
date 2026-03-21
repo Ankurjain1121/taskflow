@@ -3,8 +3,6 @@
 //! Creates a use-case-specific sample board with columns, tasks, subtasks,
 //! labels, and due dates to help new users see TaskFlow in action.
 
-#![allow(unused_imports, dead_code)]
-
 use sqlx::PgPool;
 use uuid::Uuid;
 

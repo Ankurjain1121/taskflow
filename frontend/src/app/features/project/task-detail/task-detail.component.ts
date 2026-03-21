@@ -21,7 +21,6 @@ import {
   TaskListItem,
   Assignee,
   Label,
-  ConflictError,
 } from '../../../core/services/task.service';
 import {
   WorkspaceService,
@@ -40,7 +39,6 @@ import {
 import {
   CustomFieldService,
   TaskCustomFieldValueWithField,
-  SetFieldValue,
 } from '../../../core/services/custom-field.service';
 import {
   RecurringService,
@@ -81,6 +79,21 @@ import { TaskDetailDescriptionComponent } from './task-detail-description.compon
 import { SubtaskListComponent } from '../subtask-list/subtask-list.component';
 import { TaskDetailActivityComponent } from './task-detail-activity.component';
 import { TaskDetailFieldsComponent } from './task-detail-fields.component';
+import {
+  isConflictError,
+  buildConflictResubmitRequest,
+  groupDependencies,
+  filterDependencyResults,
+  formatElapsedTime,
+  buildUpdateRequest,
+  buildCustomFieldValues,
+  computeManualTimeEntry,
+  checkLockByOther,
+  addAssigneeToTask,
+  removeAssigneeFromTask,
+  addLabelToTask,
+  removeLabelFromTask,
+} from './task-detail-conflict.helper';
 
 @Component({
   selector: 'app-task-detail',
@@ -109,215 +122,7 @@ import { TaskDetailFieldsComponent } from './task-detail-fields.component';
   ],
   providers: [ConfirmationService, MessageService],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <p-drawer
-      [(visible)]="drawerVisible"
-      position="right"
-      [style]="{ width: '520px' }"
-      [modal]="true"
-      (onHide)="onClose()"
-    >
-      <ng-template #header>
-        <div class="flex items-center gap-2 w-full">
-          <span class="text-sm text-gray-500">Task Detail</span>
-          @if (task()) {
-            <button
-              (click)="showSaveTemplateDialog.set(true)"
-              class="ml-auto p-1.5 rounded-md hover:bg-[var(--muted)] transition-colors"
-              title="Save as Template"
-            >
-              <i class="pi pi-copy text-sm text-[var(--muted-foreground)]"></i>
-            </button>
-          }
-        </div>
-      </ng-template>
-
-      @if (loading()) {
-        <div class="p-6 space-y-6 animate-fade-in">
-          <div class="space-y-3">
-            <div class="skeleton skeleton-heading w-3/4"></div>
-            <div class="skeleton skeleton-text w-1/2"></div>
-          </div>
-          <div class="flex gap-2">
-            <div class="skeleton w-16 h-6 rounded-full"></div>
-            <div class="skeleton w-20 h-6 rounded-full"></div>
-            <div class="skeleton w-16 h-6 rounded-full"></div>
-          </div>
-          <div class="skeleton w-full h-24 rounded-lg"></div>
-        </div>
-      } @else if (task()) {
-        <div class="flex-1 overflow-y-auto">
-          @if (lockedByOther()) {
-            <div
-              class="mx-2 mt-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-sm text-amber-800"
-            >
-              <i class="pi pi-lock text-amber-500"></i>
-              <span class="font-medium">{{ lockedByOther()!.user_name }}</span>
-              <span>is editing this task</span>
-            </div>
-          }
-          <div class="px-2 py-4 space-y-4">
-            <!-- Header: title, column badge, created date -->
-            <app-task-detail-header
-              [task]="task()"
-              [column]="column()"
-              [parentTitle]="parentTaskTitle()"
-              (titleChanged)="onTitleSave($event)"
-            />
-
-            <!-- Metadata: priority, due date, assignees, labels, milestone -->
-            <app-task-detail-metadata
-              [task]="task()"
-              [milestones]="milestones()"
-              [selectedMilestone]="selectedMilestone()"
-              [searchResults]="memberSearchResults()"
-              [availableLabels]="availableLabels()"
-              (priorityChanged)="onPriorityChange($event)"
-              (dueDateChanged)="onDueDateChange($event)"
-              (assigneeSearchChanged)="onAssigneeSearchChange($event)"
-              (assignRequested)="onAssign($event)"
-              (unassignRequested)="onUnassign($event)"
-              (labelAdded)="onAddLabel($event)"
-              (labelRemoved)="onRemoveLabel($event)"
-              (milestoneChanged)="onMilestoneChange($event)"
-            />
-
-            <!-- Tabbed content area -->
-            <p-tabs value="0">
-              <p-tablist>
-                <p-tab value="0">
-                  <i class="pi pi-align-left mr-1"></i> Description
-                </p-tab>
-                <p-tab value="1">
-                  <i class="pi pi-check-square mr-1"></i> Subtasks
-                </p-tab>
-                <p-tab value="2">
-                  <i class="pi pi-comments mr-1"></i> Activity
-                </p-tab>
-                <p-tab value="3">
-                  <i class="pi pi-cog mr-1"></i> Details
-                </p-tab>
-              </p-tablist>
-              <p-tabpanels>
-                <p-tabpanel value="0">
-                  <app-task-detail-description
-                    [description]="task()!.description"
-                    (descriptionChanged)="onDescriptionSave($event)"
-                  />
-                </p-tabpanel>
-                <p-tabpanel value="1">
-                  <app-subtask-list [taskId]="taskId()" />
-                </p-tabpanel>
-                <p-tabpanel value="2">
-                  <app-task-detail-activity [taskId]="taskId()" />
-                </p-tabpanel>
-                <p-tabpanel value="3">
-                  <app-task-detail-fields
-                    [taskId]="taskId()"
-                    [dependencies]="dependencies()"
-                    [blockingDeps]="blockingDeps()"
-                    [blockedByDeps]="blockedByDeps()"
-                    [relatedDeps]="relatedDeps()"
-                    [depSearchResults]="depSearchResults()"
-                    [customFields]="customFields()"
-                    [recurringConfig]="recurringConfig()"
-                    [timeEntries]="timeEntries()"
-                    [runningTimer]="runningTimerForTask()"
-                    [elapsedTime]="elapsedTime()"
-                    (dependencyAdded)="onAddDependency($event)"
-                    (dependencyRemoved)="onRemoveDependency($event)"
-                    (depSearchChanged)="onDepSearchChange($event)"
-                    (customFieldChanged)="onCustomFieldChanged($event)"
-                    (customFieldSaveRequested)="saveCustomFields()"
-                    (recurringSaved)="onSaveRecurring($event)"
-                    (recurringRemoved)="onRemoveRecurring()"
-                    (timerStarted)="onStartTimer()"
-                    (timerStopped)="onStopTimer()"
-                    (timeEntryLogged)="onSubmitLogTime($event)"
-                    (timeEntryDeleted)="onDeleteTimeEntry($event)"
-                  />
-                </p-tabpanel>
-              </p-tabpanels>
-            </p-tabs>
-
-            <!-- Footer: delete -->
-            <div class="border-t border-gray-200 pt-4">
-              <div class="flex items-center justify-end">
-                <p-button
-                  label="Delete"
-                  icon="pi pi-trash"
-                  severity="danger"
-                  [text]="true"
-                  (onClick)="onDelete()"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      }
-    </p-drawer>
-    <app-conflict-dialog
-      [visible]="showConflictDialog()"
-      [yourChanges]="conflictYourChanges()"
-      [serverVersion]="conflictServerVersion()"
-      [originalTask]="conflictOriginalTask()"
-      (resolved)="onConflictResolved($event)"
-      (accepted)="onConflictAccepted()"
-      (cancelled)="onConflictCancelled()"
-    />
-    <p-confirmDialog />
-    <!-- Save as Template Dialog -->
-    <p-dialog
-      header="Save as Template"
-      [(visible)]="showSaveTemplateDialog"
-      [modal]="true"
-      [style]="{ width: '420px' }"
-    >
-      <div class="flex flex-col gap-4">
-        <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium text-[var(--foreground)]"
-            >Template Name</label
-          >
-          <input
-            pInputText
-            [(ngModel)]="templateName"
-            placeholder="Enter template name"
-            class="w-full"
-          />
-        </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium text-[var(--foreground)]"
-            >Scope</label
-          >
-          <p-select
-            [(ngModel)]="templateScope"
-            [options]="scopeOptions"
-            optionLabel="label"
-            optionValue="value"
-            class="w-full"
-            styleClass="w-full"
-          />
-        </div>
-      </div>
-      <ng-template #footer>
-        <div class="flex justify-end gap-2">
-          <button
-            class="px-4 py-2 text-sm text-[var(--muted-foreground)] hover:bg-[var(--muted)] rounded-md"
-            (click)="showSaveTemplateDialog.set(false)"
-          >
-            Cancel
-          </button>
-          <button
-            class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md disabled:opacity-50"
-            [disabled]="!templateName.trim() || savingTemplate()"
-            (click)="onSaveAsTemplate()"
-          >
-            Save
-          </button>
-        </div>
-      </ng-template>
-    </p-dialog>
-  `,
+  templateUrl: './task-detail.component.html',
 })
 export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   private taskService = inject(TaskService);
@@ -463,13 +268,9 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   onAssigneeSearchChange(query: string): void {
-    if (!query || query.length < 2) {
-      this.memberSearchResults.set([]);
-      return;
-    }
+    if (!query || query.length < 2) { this.memberSearchResults.set([]); return; }
     this.workspaceService.searchMembers(this.workspaceId(), query).subscribe({
-      next: (results) => this.memberSearchResults.set(results),
-      error: () => this.memberSearchResults.set([]),
+      next: (results) => this.memberSearchResults.set(results), error: () => this.memberSearchResults.set([]),
     });
   }
 
@@ -477,33 +278,12 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     const task = this.task();
     if (!task) return;
 
-    const snapshot = task;
-    const newAssignee: Assignee = {
-      id: member.id,
-      display_name: member.name || 'Unknown',
-      avatar_url: member.avatar_url,
-    };
-    const optimisticTask = {
-      ...task,
-      assignees: [...(task.assignees || []), newAssignee],
-    };
+    const optimisticTask = addAssigneeToTask(task, member);
     this.task.set(optimisticTask);
     this.taskUpdated.emit(optimisticTask);
 
     this.taskService.assignUser(task.id, member.id).subscribe({
-      next: () => {
-        /* already applied */
-      },
-      error: () => {
-        this.task.set(snapshot);
-        this.taskUpdated.emit(snapshot);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Update failed',
-          detail: 'Could not assign member.',
-          life: 4000,
-        });
-      },
+      error: () => this.rollbackWithError(task, 'Could not assign member.'),
     });
   }
 
@@ -511,28 +291,12 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     const task = this.task();
     if (!task) return;
 
-    const snapshot = task;
-    const optimisticTask = {
-      ...task,
-      assignees: (task.assignees || []).filter((a) => a.id !== assignee.id),
-    };
+    const optimisticTask = removeAssigneeFromTask(task, assignee.id);
     this.task.set(optimisticTask);
     this.taskUpdated.emit(optimisticTask);
 
     this.taskService.unassignUser(task.id, assignee.id).subscribe({
-      next: () => {
-        /* already applied */
-      },
-      error: () => {
-        this.task.set(snapshot);
-        this.taskUpdated.emit(snapshot);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Update failed',
-          detail: 'Could not unassign member.',
-          life: 4000,
-        });
-      },
+      error: () => this.rollbackWithError(task, 'Could not unassign member.'),
     });
   }
 
@@ -543,24 +307,12 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     const label = this.availableLabels().find((l) => l.id === labelId);
     if (!label) return;
 
-    // Optimistically add the label
-    const newLabel: Label = {
-      id: label.id,
-      workspace_id: label.workspace_id ?? '',
-      name: label.name,
-      color: label.color,
-      created_at: label.created_at ?? '',
-    };
-    const optimisticTask = {
-      ...task,
-      labels: [...(task.labels || []), newLabel],
-    };
+    const optimisticTask = addLabelToTask(task, label);
     this.task.set(optimisticTask);
     this.taskUpdated.emit(optimisticTask);
 
     this.taskService.addLabel(task.id, labelId).subscribe({
       error: () => {
-        // Rollback on failure
         this.task.set(task);
         this.taskUpdated.emit(task);
       },
@@ -571,28 +323,12 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     const task = this.task();
     if (!task) return;
 
-    const snapshot = task;
-    const optimisticTask = {
-      ...task,
-      labels: (task.labels || []).filter((l) => l.id !== labelId),
-    };
+    const optimisticTask = removeLabelFromTask(task, labelId);
     this.task.set(optimisticTask);
     this.taskUpdated.emit(optimisticTask);
 
     this.taskService.removeLabel(task.id, labelId).subscribe({
-      next: () => {
-        /* already applied */
-      },
-      error: () => {
-        this.task.set(snapshot);
-        this.taskUpdated.emit(snapshot);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Update failed',
-          detail: 'Could not remove label.',
-          life: 4000,
-        });
-      },
+      error: () => this.rollbackWithError(task, 'Could not remove label.'),
     });
   }
 
@@ -600,40 +336,31 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     const task = this.task();
     if (!task) return;
 
-    if (milestoneId) {
-      const snapshot = task;
-      const previousMilestone = this.selectedMilestone();
-      const optimisticTask = { ...task, milestone_id: milestoneId };
-      const ms = this.milestones().find((m) => m.id === milestoneId) || null;
-      this.task.set(optimisticTask);
-      this.taskUpdated.emit(optimisticTask);
-      this.selectedMilestone.set(ms);
-
-      this.milestoneService.assignTask(task.id, milestoneId).subscribe({
-        next: () => {
-          /* already applied */
-        },
-        error: () => {
-          this.task.set(snapshot);
-          this.taskUpdated.emit(snapshot);
-          this.selectedMilestone.set(previousMilestone);
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Update failed',
-            detail: 'Could not assign milestone.',
-            life: 4000,
-          });
-        },
-      });
-    } else {
+    if (!milestoneId) {
       this.onClearMilestone();
+      return;
     }
+
+    const previousMilestone = this.selectedMilestone();
+    const optimisticTask = { ...task, milestone_id: milestoneId };
+    const ms = this.milestones().find((m) => m.id === milestoneId) || null;
+    this.task.set(optimisticTask);
+    this.taskUpdated.emit(optimisticTask);
+    this.selectedMilestone.set(ms);
+
+    this.milestoneService.assignTask(task.id, milestoneId).subscribe({
+      error: () => {
+        this.task.set(task);
+        this.taskUpdated.emit(task);
+        this.selectedMilestone.set(previousMilestone);
+        this.showError('Could not assign milestone.');
+      },
+    });
   }
 
   onDelete(): void {
     const task = this.task();
     if (!task) return;
-
     this.confirmationService.confirm({
       message: `Are you sure you want to delete "${task.title}"? This action cannot be undone.`,
       header: 'Delete Task',
@@ -641,12 +368,8 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
       acceptButtonStyleClass: 'p-button-danger p-button-sm',
       rejectButtonStyleClass: 'p-button-text p-button-sm',
       accept: () => {
-        this.closed.emit(); // close drawer immediately
-        this.taskService.deleteTask(task.id).subscribe({
-          error: () => {
-            // Task will be restored by WebSocket or next board load
-          },
-        });
+        this.closed.emit();
+        this.taskService.deleteTask(task.id).subscribe({ error: () => {} });
       },
     });
   }
@@ -656,32 +379,18 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     if (!task || !this.templateName.trim()) return;
 
     this.savingTemplate.set(true);
-    const req: SaveAsTemplateRequest = {
-      name: this.templateName.trim(),
-      scope: this.templateScope,
-    };
-
+    const req: SaveAsTemplateRequest = { name: this.templateName.trim(), scope: this.templateScope };
     this.taskTemplateService.saveTaskAsTemplate(task.id, req).subscribe({
       next: () => {
         this.savingTemplate.set(false);
         this.showSaveTemplateDialog.set(false);
         this.templateName = '';
         this.templateScope = 'personal';
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Template Saved',
-          detail: 'Task saved as template successfully.',
-          life: 3000,
-        });
+        this.messageService.add({ severity: 'success', summary: 'Template Saved', detail: 'Task saved as template successfully.', life: 3000 });
       },
       error: () => {
         this.savingTemplate.set(false);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to save task as template.',
-          life: 3000,
-        });
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to save task as template.', life: 3000 });
       },
     });
   }
@@ -758,49 +467,32 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   // ── Recurring handlers ─────────────────────────────────────
 
   onSaveRecurring(event: {
-    pattern: RecurrencePattern;
-    intervalDays: number | null;
-    maxOccurrences: number | null;
+    pattern: RecurrencePattern; intervalDays: number | null; maxOccurrences: number | null;
   }): void {
     const config = this.recurringConfig();
     const req: CreateRecurringRequest = {
       pattern: event.pattern,
-      interval_days:
-        event.pattern === 'custom'
-          ? event.intervalDays || undefined
-          : undefined,
+      interval_days: event.pattern === 'custom' ? event.intervalDays || undefined : undefined,
       max_occurrences: event.maxOccurrences || undefined,
     };
-
-    if (config) {
-      this.recurringService.updateConfig(config.id, req).subscribe({
-        next: (updated) => this.recurringConfig.set(updated),
-        error: () => {},
-      });
-    } else {
-      this.recurringService.createConfig(this.taskId(), req).subscribe({
-        next: (created) => this.recurringConfig.set(created),
-        error: () => {},
-      });
-    }
+    const obs = config
+      ? this.recurringService.updateConfig(config.id, req)
+      : this.recurringService.createConfig(this.taskId(), req);
+    obs.subscribe({ next: (result) => this.recurringConfig.set(result), error: () => {} });
   }
 
   onRemoveRecurring(): void {
     const config = this.recurringConfig();
     if (!config) return;
-
     this.confirmationService.confirm({
       message: 'Remove recurring schedule from this task?',
       header: 'Remove Recurring Schedule',
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger p-button-sm',
       rejectButtonStyleClass: 'p-button-text p-button-sm',
-      accept: () => {
-        this.recurringService.deleteConfig(config.id).subscribe({
-          next: () => this.recurringConfig.set(null),
-          error: () => {},
-        });
-      },
+      accept: () => this.recurringService.deleteConfig(config.id).subscribe({
+        next: () => this.recurringConfig.set(null), error: () => {},
+      }),
     });
   }
 
@@ -812,24 +504,19 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
         this.runningTimerForTask.set(entry);
         this.timeEntries.update((entries) => [entry, ...entries]);
         this.startElapsedTimer(entry.started_at);
-      },
-      error: () => {},
+      }, error: () => {},
     });
   }
 
   onStopTimer(): void {
     const running = this.runningTimerForTask();
     if (!running) return;
-
     this.timeTrackingService.stopTimer(running.id).subscribe({
-      next: (stoppedEntry) => {
+      next: (stopped) => {
         this.runningTimerForTask.set(null);
         this.clearTimerInterval();
-        this.timeEntries.update((entries) =>
-          entries.map((e) => (e.id === stoppedEntry.id ? stoppedEntry : e)),
-        );
-      },
-      error: () => {},
+        this.timeEntries.update((entries) => entries.map((e) => (e.id === stopped.id ? stopped : e)));
+      }, error: () => {},
     });
   }
 
@@ -839,21 +526,11 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     description: string;
     date: string;
   }): void {
-    const totalMinutes = event.hours * 60 + event.minutes;
-    if (totalMinutes <= 0) return;
-
-    const startedAt = new Date(event.date + 'T09:00:00Z').toISOString();
-    const endedAt = new Date(
-      new Date(startedAt).getTime() + totalMinutes * 60000,
-    ).toISOString();
+    const payload = computeManualTimeEntry(event);
+    if (!payload) return;
 
     this.timeTrackingService
-      .createManualEntry(this.taskId(), {
-        description: event.description || undefined,
-        started_at: startedAt,
-        ended_at: endedAt,
-        duration_minutes: totalMinutes,
-      })
+      .createManualEntry(this.taskId(), payload)
       .subscribe({
         next: (entry) => {
           this.timeEntries.update((entries) => [entry, ...entries]);
@@ -865,15 +542,9 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   onDeleteTimeEntry(entryId: string): void {
     this.timeTrackingService.deleteEntry(entryId).subscribe({
       next: () => {
-        this.timeEntries.update((entries) =>
-          entries.filter((e) => e.id !== entryId),
-        );
-        if (this.runningTimerForTask()?.id === entryId) {
-          this.runningTimerForTask.set(null);
-          this.clearTimerInterval();
-        }
-      },
-      error: () => {},
+        this.timeEntries.update((entries) => entries.filter((e) => e.id !== entryId));
+        if (this.runningTimerForTask()?.id === entryId) { this.runningTimerForTask.set(null); this.clearTimerInterval(); }
+      }, error: () => {},
     });
   }
 
@@ -912,47 +583,34 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
 
   private loadDependencies(): void {
     this.dependencyService.listDependencies(this.taskId()).subscribe({
-      next: (deps) => {
-        this.dependencies.set(deps);
-        this.updateDepGroups();
-      },
-      error: () => {},
+      next: (deps) => { this.dependencies.set(deps); this.updateDepGroups(); }, error: () => {},
     });
   }
 
   private loadMilestones(task: Task): void {
     const bid = this.boardId();
     if (!bid) return;
-
     this.milestoneService.list(bid).subscribe({
       next: (milestones) => {
         this.milestones.set(milestones);
-        if (task.milestone_id) {
-          const selected =
-            milestones.find((m) => m.id === task.milestone_id) || null;
-          this.selectedMilestone.set(selected);
-        } else {
-          this.selectedMilestone.set(null);
-        }
+        this.selectedMilestone.set(
+          task.milestone_id ? milestones.find((m) => m.id === task.milestone_id) || null : null,
+        );
       },
       error: () => {},
     });
   }
 
   private loadCustomFields(): void {
-    const bid = this.boardId();
-    if (!bid) return;
-
+    if (!this.boardId()) return;
     this.customFieldService.getTaskValues(this.taskId()).subscribe({
-      next: (values) => this.customFields.set(values),
-      error: () => {},
+      next: (values) => this.customFields.set(values), error: () => {},
     });
   }
 
   private loadRecurringConfig(): void {
     this.recurringService.getConfig(this.taskId()).subscribe({
-      next: (config) => this.recurringConfig.set(config),
-      error: () => this.recurringConfig.set(null),
+      next: (config) => this.recurringConfig.set(config), error: () => this.recurringConfig.set(null),
     });
   }
 
@@ -961,13 +619,8 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
       next: (entries) => {
         this.timeEntries.set(entries);
         const running = entries.find((e) => e.is_running);
-        if (running) {
-          this.runningTimerForTask.set(running);
-          this.startElapsedTimer(running.started_at);
-        } else {
-          this.runningTimerForTask.set(null);
-          this.clearTimerInterval();
-        }
+        if (running) { this.runningTimerForTask.set(running); this.startElapsedTimer(running.started_at); }
+        else { this.runningTimerForTask.set(null); this.clearTimerInterval(); }
       },
       error: () => {},
     });
@@ -983,9 +636,7 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     this.taskUpdated.emit(optimisticTask);
 
     // Include version for OCC if available
-    const request = task.version
-      ? { ...updates, version: task.version }
-      : updates;
+    const request = buildUpdateRequest(task, updates);
 
     this.saveStatus.markSaving();
     this.taskService.updateTask(task.id, request).subscribe({
@@ -1002,7 +653,7 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
           this.conflictNotification.unregisterEdit(this.taskId(), editField);
         }
         // Handle 409 Conflict
-        if (this.isConflictError(error)) {
+        if (isConflictError(error)) {
           this.saveStatus.markSaved(); // Not a true error
           this.conflictOriginalTask.set(task);
           this.conflictYourChanges.set(updates);
@@ -1018,127 +669,72 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     });
   }
 
-  private isConflictError(error: unknown): error is ConflictError {
-    return (
-      typeof error === 'object' &&
-      error !== null &&
-      'status' in error &&
-      (error as ConflictError).status === 409
-    );
-  }
-
   onConflictResolved(resolution: ConflictResolution): void {
     this.showConflictDialog.set(false);
-    if (resolution.action === 'keep_mine' && resolution.yourChanges) {
-      // Re-submit with server's version
-      const task = this.task();
-      if (!task) return;
-      const request = {
-        ...resolution.yourChanges,
-        version: resolution.serverVersion,
-      };
-      this.saveStatus.markSaving();
-      this.taskService.updateTask(task.id, request).subscribe({
-        next: (serverTask) => {
-          this.saveStatus.markSaved();
-          this.task.set(serverTask);
-          this.taskUpdated.emit(serverTask);
-        },
-        error: () => {
-          this.saveStatus.markError();
-        },
-      });
-    }
+    const request = buildConflictResubmitRequest(resolution);
+    if (!request) return;
+    const task = this.task();
+    if (!task) return;
+    this.saveStatus.markSaving();
+    this.taskService.updateTask(task.id, request).subscribe({
+      next: (serverTask) => { this.saveStatus.markSaved(); this.task.set(serverTask); this.taskUpdated.emit(serverTask); },
+      error: () => this.saveStatus.markError(),
+    });
   }
 
   onConflictAccepted(): void {
     this.showConflictDialog.set(false);
-    // Reload task from server (accept their version)
     this.loadTask();
   }
 
   onConflictCancelled(): void {
     this.showConflictDialog.set(false);
-    // Rollback to original
     const original = this.conflictOriginalTask();
-    if (original) {
-      this.task.set(original);
-      this.taskUpdated.emit(original);
-    }
+    if (original) { this.task.set(original); this.taskUpdated.emit(original); }
   }
 
   private onClearMilestone(): void {
     const task = this.task();
     if (!task) return;
 
-    const snapshot = task;
     const previousMilestone = this.selectedMilestone();
-    const optimisticTask = { ...task, milestone_id: null };
-    this.task.set(optimisticTask);
-    this.taskUpdated.emit(optimisticTask);
+    this.task.set({ ...task, milestone_id: null });
+    this.taskUpdated.emit({ ...task, milestone_id: null });
     this.selectedMilestone.set(null);
 
     this.milestoneService.unassignTask(task.id).subscribe({
-      next: () => {
-        /* already applied */
-      },
       error: () => {
-        this.task.set(snapshot);
-        this.taskUpdated.emit(snapshot);
+        this.task.set(task);
+        this.taskUpdated.emit(task);
         this.selectedMilestone.set(previousMilestone);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Update failed',
-          detail: 'Could not remove milestone.',
-          life: 4000,
-        });
+        this.showError('Could not remove milestone.');
       },
     });
   }
 
   private updateDepGroups(): void {
-    const deps = this.dependencies();
-    const taskId = this.taskId();
-
-    this.blockingDeps.set(
-      deps.filter(
-        (d) => d.dependency_type === 'blocks' && d.source_task_id === taskId,
-      ),
-    );
-    this.blockedByDeps.set(
-      deps.filter(
-        (d) => d.dependency_type === 'blocks' && d.target_task_id === taskId,
-      ),
-    );
-    this.relatedDeps.set(deps.filter((d) => d.dependency_type === 'related'));
+    const groups = groupDependencies(this.dependencies(), this.taskId());
+    this.blockingDeps.set(groups.blocking);
+    this.blockedByDeps.set(groups.blockedBy);
+    this.relatedDeps.set(groups.related);
   }
 
   private filterDepResults(query: string): void {
-    const currentTaskId = this.taskId();
-    const existingDepTaskIds = new Set(
-      this.dependencies().map((d) => d.related_task_id),
+    this.depSearchResults.set(
+      filterDependencyResults(
+        this.boardTasks(),
+        this.taskId(),
+        this.dependencies(),
+        query,
+      ),
     );
-    const filtered = this.boardTasks().filter(
-      (t) =>
-        t.id !== currentTaskId &&
-        !existingDepTaskIds.has(t.id) &&
-        t.title.toLowerCase().includes(query.toLowerCase()),
-    );
-    this.depSearchResults.set(filtered.slice(0, 10));
   }
 
   private doSaveCustomFields(): void {
     const fields = this.customFields();
     if (fields.length === 0) return;
 
-    const values: SetFieldValue[] = fields.map((f) => ({
-      field_id: f.field_id,
-      value_text: f.value_text,
-      value_number: f.value_number,
-      value_date: f.value_date,
-      value_bool: f.value_bool,
-    }));
-
+    const values = buildCustomFieldValues(fields);
     this.customFieldService.setTaskValues(this.taskId(), values).subscribe({
       error: () => {},
     });
@@ -1146,19 +742,10 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
 
   private startElapsedTimer(startedAt: string): void {
     this.clearTimerInterval();
-    const updateElapsed = (): void => {
-      const start = new Date(startedAt).getTime();
-      const now = Date.now();
-      const diffSec = Math.floor((now - start) / 1000);
-      const hours = Math.floor(diffSec / 3600);
-      const mins = Math.floor((diffSec % 3600) / 60);
-      const secs = diffSec % 60;
-      this.elapsedTime.set(
-        `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`,
-      );
-    };
-    updateElapsed();
-    this.timerInterval = setInterval(updateElapsed, 1000);
+    this.elapsedTime.set(formatElapsedTime(startedAt));
+    this.timerInterval = setInterval(() => {
+      this.elapsedTime.set(formatElapsedTime(startedAt));
+    }, 1000);
   }
 
   private clearTimerInterval(): void {
@@ -1172,14 +759,13 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   private startLockCheck(): void {
     this.stopLockCheck();
     const check = (): void => {
-      const locks = this.presenceService.taskLocks();
-      const lock = locks.get(this.taskId());
-      const currentUserId = this.authService.currentUser()?.id;
-      if (lock && lock.user_id !== currentUserId) {
-        this.lockedByOther.set(lock);
-      } else {
-        this.lockedByOther.set(null);
-      }
+      this.lockedByOther.set(
+        checkLockByOther(
+          this.presenceService.taskLocks(),
+          this.taskId(),
+          this.authService.currentUser()?.id,
+        ),
+      );
     };
     check();
     this.lockCheckInterval = setInterval(check, 2000);
@@ -1190,5 +776,22 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
       clearInterval(this.lockCheckInterval);
       this.lockCheckInterval = null;
     }
+  }
+
+  /** Rollback task state and show an error toast. */
+  private rollbackWithError(snapshot: Task, detail: string): void {
+    this.task.set(snapshot);
+    this.taskUpdated.emit(snapshot);
+    this.showError(detail);
+  }
+
+  /** Show an error toast with standard formatting. */
+  private showError(detail: string): void {
+    this.messageService.add({
+      severity: 'error',
+      summary: 'Update failed',
+      detail,
+      life: 4000,
+    });
   }
 }

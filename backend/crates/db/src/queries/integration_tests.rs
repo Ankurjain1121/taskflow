@@ -9,51 +9,7 @@ use uuid::Uuid;
 
 use crate::models::{BoardMemberRole, TaskPriority, UserRole};
 use crate::queries::{auth, comments, projects, tasks, workspaces};
-
-/// Connect to the real test database.
-async fn test_pool() -> PgPool {
-    PgPool::connect(
-        "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow",
-    )
-    .await
-    .expect("Failed to connect to test database")
-}
-
-/// Unique email that won't collide across test runs.
-fn unique_email() -> String {
-    format!("inttest-{}@example.com", Uuid::new_v4())
-}
-
-const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
-
-// ---------------------------------------------------------------------------
-// Helper: create a user+tenant and return (tenant_id, user_id)
-// ---------------------------------------------------------------------------
-async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
-    let user = auth::create_user_with_tenant(pool, &unique_email(), "IntTest User", FAKE_HASH)
-        .await
-        .expect("create_user_with_tenant");
-    (user.tenant_id, user.id)
-}
-
-/// Helper: create user + workspace, return (tenant_id, user_id, workspace_id)
-async fn setup_user_and_workspace(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
-    let (tenant_id, user_id) = setup_user(pool).await;
-    let ws = workspaces::create_workspace(pool, "IntTest WS", None, tenant_id, user_id)
-        .await
-        .expect("create_workspace");
-    (tenant_id, user_id, ws.id)
-}
-
-/// Helper: create user + workspace + project, return (tenant_id, user_id, workspace_id, project_id, default_task_list_id)
-async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
-    let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-    let bwc = projects::create_board(pool, "IntTest Board", None, ws_id, tenant_id, user_id)
-        .await
-        .expect("create_board");
-    let first_list_id = bwc.task_lists[0].id;
-    (tenant_id, user_id, ws_id, bwc.project.id, first_list_id)
-}
+use super::test_helpers::{test_pool, unique_email, setup_user, setup_user_and_workspace, setup_full, FAKE_HASH};
 
 // ===========================================================================
 // AUTH TESTS
@@ -619,7 +575,8 @@ async fn test_remove_board_member() {
 // ===========================================================================
 
 /// Helper: create a task inside a board for comment testing.
-async fn create_test_task(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
+/// Returns (task_id, user_id, tenant_id) -- different from the shared create_test_task.
+async fn create_comment_test_task(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
     let (tenant_id, user_id, _, board_id, col_id) = setup_full(pool).await;
 
     let input = tasks::CreateTaskInput {
@@ -648,7 +605,7 @@ async fn create_test_task(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
 #[tokio::test]
 async fn test_create_comment() {
     let pool = test_pool().await;
-    let (task_id, user_id, _) = create_test_task(&pool).await;
+    let (task_id, user_id, _) = create_comment_test_task(&pool).await;
 
     let comment = comments::create_comment(
         &pool,
@@ -670,7 +627,7 @@ async fn test_create_comment() {
 #[tokio::test]
 async fn test_list_comments_by_task() {
     let pool = test_pool().await;
-    let (task_id, user_id, _) = create_test_task(&pool).await;
+    let (task_id, user_id, _) = create_comment_test_task(&pool).await;
 
     comments::create_comment(&pool, task_id, user_id, "Comment 1", None, &[])
         .await

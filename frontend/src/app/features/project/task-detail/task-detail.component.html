@@ -1,0 +1,207 @@
+    <p-drawer
+      [(visible)]="drawerVisible"
+      position="right"
+      [style]="{ width: '520px' }"
+      [modal]="true"
+      (onHide)="onClose()"
+    >
+      <ng-template #header>
+        <div class="flex items-center gap-2 w-full">
+          <span class="text-sm text-gray-500">Task Detail</span>
+          @if (task()) {
+            <button
+              (click)="showSaveTemplateDialog.set(true)"
+              class="ml-auto p-1.5 rounded-md hover:bg-[var(--muted)] transition-colors"
+              title="Save as Template"
+            >
+              <i class="pi pi-copy text-sm text-[var(--muted-foreground)]"></i>
+            </button>
+          }
+        </div>
+      </ng-template>
+
+      @if (loading()) {
+        <div class="p-6 space-y-6 animate-fade-in">
+          <div class="space-y-3">
+            <div class="skeleton skeleton-heading w-3/4"></div>
+            <div class="skeleton skeleton-text w-1/2"></div>
+          </div>
+          <div class="flex gap-2">
+            <div class="skeleton w-16 h-6 rounded-full"></div>
+            <div class="skeleton w-20 h-6 rounded-full"></div>
+            <div class="skeleton w-16 h-6 rounded-full"></div>
+          </div>
+          <div class="skeleton w-full h-24 rounded-lg"></div>
+        </div>
+      } @else if (task()) {
+        <div class="flex-1 overflow-y-auto">
+          @if (lockedByOther()) {
+            <div
+              class="mx-2 mt-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-sm text-amber-800"
+            >
+              <i class="pi pi-lock text-amber-500"></i>
+              <span class="font-medium">{{ lockedByOther()!.user_name }}</span>
+              <span>is editing this task</span>
+            </div>
+          }
+          <div class="px-2 py-4 space-y-4">
+            <!-- Header: title, column badge, created date -->
+            <app-task-detail-header
+              [task]="task()"
+              [column]="column()"
+              [parentTitle]="parentTaskTitle()"
+              (titleChanged)="onTitleSave($event)"
+            />
+
+            <!-- Metadata: priority, due date, assignees, labels, milestone -->
+            <app-task-detail-metadata
+              [task]="task()"
+              [milestones]="milestones()"
+              [selectedMilestone]="selectedMilestone()"
+              [searchResults]="memberSearchResults()"
+              [availableLabels]="availableLabels()"
+              (priorityChanged)="onPriorityChange($event)"
+              (dueDateChanged)="onDueDateChange($event)"
+              (assigneeSearchChanged)="onAssigneeSearchChange($event)"
+              (assignRequested)="onAssign($event)"
+              (unassignRequested)="onUnassign($event)"
+              (labelAdded)="onAddLabel($event)"
+              (labelRemoved)="onRemoveLabel($event)"
+              (milestoneChanged)="onMilestoneChange($event)"
+            />
+
+            <!-- Tabbed content area -->
+            <p-tabs value="0">
+              <p-tablist>
+                <p-tab value="0">
+                  <i class="pi pi-align-left mr-1"></i> Description
+                </p-tab>
+                <p-tab value="1">
+                  <i class="pi pi-check-square mr-1"></i> Subtasks
+                </p-tab>
+                <p-tab value="2">
+                  <i class="pi pi-comments mr-1"></i> Activity
+                </p-tab>
+                <p-tab value="3">
+                  <i class="pi pi-cog mr-1"></i> Details
+                </p-tab>
+              </p-tablist>
+              <p-tabpanels>
+                <p-tabpanel value="0">
+                  <app-task-detail-description
+                    [description]="task()!.description"
+                    (descriptionChanged)="onDescriptionSave($event)"
+                  />
+                </p-tabpanel>
+                <p-tabpanel value="1">
+                  <app-subtask-list [taskId]="taskId()" />
+                </p-tabpanel>
+                <p-tabpanel value="2">
+                  <app-task-detail-activity [taskId]="taskId()" />
+                </p-tabpanel>
+                <p-tabpanel value="3">
+                  <app-task-detail-fields
+                    [taskId]="taskId()"
+                    [dependencies]="dependencies()"
+                    [blockingDeps]="blockingDeps()"
+                    [blockedByDeps]="blockedByDeps()"
+                    [relatedDeps]="relatedDeps()"
+                    [depSearchResults]="depSearchResults()"
+                    [customFields]="customFields()"
+                    [recurringConfig]="recurringConfig()"
+                    [timeEntries]="timeEntries()"
+                    [runningTimer]="runningTimerForTask()"
+                    [elapsedTime]="elapsedTime()"
+                    (dependencyAdded)="onAddDependency($event)"
+                    (dependencyRemoved)="onRemoveDependency($event)"
+                    (depSearchChanged)="onDepSearchChange($event)"
+                    (customFieldChanged)="onCustomFieldChanged($event)"
+                    (customFieldSaveRequested)="saveCustomFields()"
+                    (recurringSaved)="onSaveRecurring($event)"
+                    (recurringRemoved)="onRemoveRecurring()"
+                    (timerStarted)="onStartTimer()"
+                    (timerStopped)="onStopTimer()"
+                    (timeEntryLogged)="onSubmitLogTime($event)"
+                    (timeEntryDeleted)="onDeleteTimeEntry($event)"
+                  />
+                </p-tabpanel>
+              </p-tabpanels>
+            </p-tabs>
+
+            <!-- Footer: delete -->
+            <div class="border-t border-gray-200 pt-4">
+              <div class="flex items-center justify-end">
+                <p-button
+                  label="Delete"
+                  icon="pi pi-trash"
+                  severity="danger"
+                  [text]="true"
+                  (onClick)="onDelete()"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </p-drawer>
+    <app-conflict-dialog
+      [visible]="showConflictDialog()"
+      [yourChanges]="conflictYourChanges()"
+      [serverVersion]="conflictServerVersion()"
+      [originalTask]="conflictOriginalTask()"
+      (resolved)="onConflictResolved($event)"
+      (accepted)="onConflictAccepted()"
+      (cancelled)="onConflictCancelled()"
+    />
+    <p-confirmDialog />
+    <!-- Save as Template Dialog -->
+    <p-dialog
+      header="Save as Template"
+      [(visible)]="showSaveTemplateDialog"
+      [modal]="true"
+      [style]="{ width: '420px' }"
+    >
+      <div class="flex flex-col gap-4">
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium text-[var(--foreground)]"
+            >Template Name</label
+          >
+          <input
+            pInputText
+            [(ngModel)]="templateName"
+            placeholder="Enter template name"
+            class="w-full"
+          />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium text-[var(--foreground)]"
+            >Scope</label
+          >
+          <p-select
+            [(ngModel)]="templateScope"
+            [options]="scopeOptions"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full"
+            styleClass="w-full"
+          />
+        </div>
+      </div>
+      <ng-template #footer>
+        <div class="flex justify-end gap-2">
+          <button
+            class="px-4 py-2 text-sm text-[var(--muted-foreground)] hover:bg-[var(--muted)] rounded-md"
+            (click)="showSaveTemplateDialog.set(false)"
+          >
+            Cancel
+          </button>
+          <button
+            class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md disabled:opacity-50"
+            [disabled]="!templateName.trim() || savingTemplate()"
+            (click)="onSaveAsTemplate()"
+          >
+            Save
+          </button>
+        </div>
+      </ng-template>
+    </p-dialog>

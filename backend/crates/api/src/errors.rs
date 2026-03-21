@@ -63,26 +63,18 @@ impl IntoResponse for AppError {
                 });
                 return (StatusCode::CONFLICT, axum::Json(body)).into_response();
             }
-            AppError::PreconditionFailed(msg) => (
-                StatusCode::PRECONDITION_FAILED,
-                "PRECONDITION_FAILED",
-                msg,
-            ),
-            AppError::ValidationError(msg) => (
-                StatusCode::UNPROCESSABLE_ENTITY,
-                "VALIDATION_ERROR",
-                msg,
-            ),
-            AppError::TooManyRequests(msg) => (
-                StatusCode::TOO_MANY_REQUESTS,
-                "TOO_MANY_REQUESTS",
-                msg,
-            ),
-            AppError::ServiceUnavailable(msg) => (
-                StatusCode::SERVICE_UNAVAILABLE,
-                "SERVICE_UNAVAILABLE",
-                msg,
-            ),
+            AppError::PreconditionFailed(msg) => {
+                (StatusCode::PRECONDITION_FAILED, "PRECONDITION_FAILED", msg)
+            }
+            AppError::ValidationError(msg) => {
+                (StatusCode::UNPROCESSABLE_ENTITY, "VALIDATION_ERROR", msg)
+            }
+            AppError::TooManyRequests(msg) => {
+                (StatusCode::TOO_MANY_REQUESTS, "TOO_MANY_REQUESTS", msg)
+            }
+            AppError::ServiceUnavailable(msg) => {
+                (StatusCode::SERVICE_UNAVAILABLE, "SERVICE_UNAVAILABLE", msg)
+            }
             AppError::InternalError(msg) => {
                 tracing::error!("Internal error: {}", msg);
                 (

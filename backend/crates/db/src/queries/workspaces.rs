@@ -596,12 +596,11 @@ pub async fn get_user_workspace_matrix(
     tenant_id: Uuid,
 ) -> Result<Vec<WorkspaceMatrixEntry>, sqlx::Error> {
     // Check if user is a global admin
-    let user_role: Option<(crate::models::UserRole,)> = sqlx::query_as(
-        "SELECT role FROM users WHERE id = $1 AND deleted_at IS NULL",
-    )
-    .bind(user_id)
-    .fetch_optional(pool)
-    .await?;
+    let user_role: Option<(crate::models::UserRole,)> =
+        sqlx::query_as("SELECT role FROM users WHERE id = $1 AND deleted_at IS NULL")
+            .bind(user_id)
+            .fetch_optional(pool)
+            .await?;
 
     let is_admin = matches!(user_role, Some((crate::models::UserRole::Admin,)));
 
