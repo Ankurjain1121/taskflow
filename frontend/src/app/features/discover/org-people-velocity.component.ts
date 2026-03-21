@@ -31,7 +31,7 @@ import { VelocityPoint } from '../../core/services/dashboard.service';
                 <div class="flex-1 h-2 rounded-full" style="background: var(--muted)">
                   <div class="h-2 rounded-full transition-all"
                        [style.width.%]="getBarWidth(member.active_tasks)"
-                       [style.background]="member.active_tasks >= 10 ? '#ef4444' : 'var(--primary)'">
+                       [style.background]="member.active_tasks >= 10 ? '#B81414' : 'var(--primary)'">
                   </div>
                 </div>
                 <span class="text-xs font-medium shrink-0"

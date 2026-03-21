@@ -162,11 +162,8 @@ fn extract_token_from_cookie(headers: &axum::http::HeaderMap) -> Option<String> 
     let cookie_header = headers.get(COOKIE)?.to_str().ok()?;
     for part in cookie_header.split(';') {
         let part = part.trim();
-        if let Some(value) = part.strip_prefix("access_token") {
-            let value = value.trim_start();
-            if let Some(value) = value.strip_prefix('=') {
-                return Some(value.trim().to_string());
-            }
+        if let Some(value) = part.strip_prefix("access_token=") {
+            return Some(value.trim().to_string());
         }
     }
     None
@@ -313,21 +310,6 @@ mod tests {
     }
 
     #[test]
-    fn test_extract_cookie_with_spaces_around_equals() {
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            COOKIE,
-            "access_token = jwt-spaced"
-                .parse()
-                .expect("valid header value"),
-        );
-        let token = extract_token_from_cookie(&headers);
-        // The implementation trims between "access_token" and "=",
-        // and also trims the value after "=" to handle whitespace
-        assert_eq!(token, Some("jwt-spaced".to_string()));
-    }
-
-    #[test]
     fn test_extract_cookie_similar_name_no_match() {
         let mut headers = HeaderMap::new();
         headers.insert(
@@ -336,11 +318,23 @@ mod tests {
                 .parse()
                 .expect("valid header value"),
         );
-        // "access_token_v2" starts with "access_token" but then has "_v2" before "="
-        // The middleware strips "access_token" prefix, trims, and checks for "=".
-        // "access_token_v2=wrong" -> strip "access_token" -> "_v2=wrong" -> trim -> "_v2=wrong" -> no "=" prefix
+        // "access_token_v2" should NOT match "access_token=" prefix
         let token = extract_token_from_cookie(&headers);
         assert_eq!(token, None);
+    }
+
+    #[test]
+    fn test_extract_cookie_similar_name_with_real_token() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            COOKIE,
+            "access_token_v2=xyz; access_token=real"
+                .parse()
+                .expect("valid header value"),
+        );
+        // Should skip access_token_v2 and find the real access_token
+        let token = extract_token_from_cookie(&headers);
+        assert_eq!(token, Some("real".to_string()));
     }
 
     // --- AuthUser struct tests ---

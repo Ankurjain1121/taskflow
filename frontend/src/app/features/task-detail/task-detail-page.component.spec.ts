@@ -276,45 +276,9 @@ describe('TaskDetailPageComponent', () => {
     });
   });
 
-  // --- Inline Editing ---
+  // --- Title/Description Save (via header component events) ---
 
-  describe('inline editing', () => {
-    beforeEach(() => {
-      routeParams$.next({ taskId: 'task-1' });
-      fixture.detectChanges();
-    });
-
-    it('startEditing should set editingField', () => {
-      component.startEditing('title');
-      expect(component.editingField()).toBe('title');
-    });
-
-    it('stopEditing should clear editingField', () => {
-      component.startEditing('title');
-      component.stopEditing();
-      expect(component.editingField()).toBeNull();
-    });
-
-    it('cancelEditing should revert title and clear editingField', () => {
-      component.editTitle.set('Changed Title');
-      component.cancelEditing('title');
-
-      expect(component.editTitle()).toBe('Test Task');
-      expect(component.editingField()).toBeNull();
-    });
-
-    it('cancelEditing should revert description and clear editingField', () => {
-      component.editDescription.set('Changed Desc');
-      component.cancelEditing('description');
-
-      expect(component.editDescription()).toBe('A description');
-      expect(component.editingField()).toBeNull();
-    });
-  });
-
-  // --- Save title ---
-
-  describe('saveTitle', () => {
+  describe('onTitleSaved', () => {
     beforeEach(() => {
       routeParams$.next({ taskId: 'task-1' });
       fixture.detectChanges();
@@ -324,17 +288,11 @@ describe('TaskDetailPageComponent', () => {
       const updatedTask = { ...task, title: 'New Title' };
       mockTaskService.updateTask.mockReturnValue(of(updatedTask));
 
-      component.editTitle.set('New Title');
-      component.saveTitle();
+      component.onTitleSaved('New Title');
 
       expect(mockTaskService.updateTask).toHaveBeenCalledWith('task-1', {
         title: 'New Title',
       });
-    });
-
-    it('should not call updateTask if title unchanged', () => {
-      component.saveTitle();
-      expect(mockTaskService.updateTask).not.toHaveBeenCalled();
     });
 
     it('should revert on API error', () => {
@@ -342,16 +300,13 @@ describe('TaskDetailPageComponent', () => {
         throwError(() => new Error('fail')),
       );
 
-      component.editTitle.set('Bad Title');
-      component.saveTitle();
+      component.onTitleSaved('Bad Title');
 
       expect(component.editTitle()).toBe('Test Task');
     });
   });
 
-  // --- Save description ---
-
-  describe('saveDescription', () => {
+  describe('onDescriptionSaved', () => {
     beforeEach(() => {
       routeParams$.next({ taskId: 'task-1' });
       fixture.detectChanges();
@@ -361,17 +316,22 @@ describe('TaskDetailPageComponent', () => {
       const updatedTask = { ...task, description: 'Updated Desc' };
       mockTaskService.updateTask.mockReturnValue(of(updatedTask));
 
-      component.editDescription.set('Updated Desc');
-      component.saveDescription();
+      component.onDescriptionSaved('Updated Desc');
 
       expect(mockTaskService.updateTask).toHaveBeenCalledWith('task-1', {
         description: 'Updated Desc',
       });
     });
 
-    it('should not call updateTask if description unchanged', () => {
-      component.saveDescription();
-      expect(mockTaskService.updateTask).not.toHaveBeenCalled();
+    it('should call updateTask with null when description cleared', () => {
+      const updatedTask = { ...task, description: null };
+      mockTaskService.updateTask.mockReturnValue(of(updatedTask));
+
+      component.onDescriptionSaved('');
+
+      expect(mockTaskService.updateTask).toHaveBeenCalledWith('task-1', {
+        description: null,
+      });
     });
   });
 

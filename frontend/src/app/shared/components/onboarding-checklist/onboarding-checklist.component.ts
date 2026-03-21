@@ -240,7 +240,7 @@ export class OnboardingChecklistComponent {
     if (item.ctaAction === 'invite_team') {
       const wsId = this.wsContext.activeWorkspaceId();
       if (wsId) {
-        this.router.navigate(['/workspace', wsId, 'team-page'], { queryParams: { tab: 'invite' } });
+        this.router.navigate(['/workspace', wsId, 'manage'], { queryParams: { tab: 'invite' } });
       }
       return;
     }

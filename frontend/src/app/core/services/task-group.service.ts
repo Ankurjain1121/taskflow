@@ -39,6 +39,15 @@ export interface UpdateTaskGroupRequest {
   collapsed?: boolean;
 }
 
+/** Raw shape from GET /groups/stats — backend may use "list" or "group" key */
+interface TaskGroupStatsRaw {
+  list?: TaskGroup;
+  group?: TaskGroup;
+  task_count: number;
+  completed_count: number;
+  estimated_hours: number | null;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -55,14 +64,11 @@ export class TaskGroupService {
 
   listGroupsWithStats(projectId: string): Observable<TaskGroupWithStats[]> {
     return this.http
-      .get<
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        any[]
-      >(`${this.API_URL}/projects/${projectId}/groups/stats`)
+      .get<TaskGroupStatsRaw[]>(`${this.API_URL}/projects/${projectId}/groups/stats`)
       .pipe(
         map((items) =>
           items.map((item) => ({
-            group: item.list ?? item.group,
+            group: (item.list ?? item.group) as TaskGroup,
             task_count: item.task_count,
             completed_count: item.completed_count,
             estimated_hours: item.estimated_hours,

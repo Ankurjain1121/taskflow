@@ -19,7 +19,7 @@ export interface CacheEntry<T> {
   providedIn: 'root',
 })
 export class CacheService {
-  private cache = new Map<string, CacheEntry<any>>();
+  private cache = new Map<string, CacheEntry<unknown>>();
   private defaultTtl = 60000; // 60 seconds
 
   /**

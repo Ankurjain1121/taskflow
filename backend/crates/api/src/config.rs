@@ -47,10 +47,10 @@ impl Config {
             host: env::var("HOST").unwrap_or_else(|_| "0.0.0.0".into()),
             port: env::var("PORT").unwrap_or_else(|_| "8080".into()).parse()?,
             db_max_connections: env::var("DB_MAX_CONNECTIONS")
-                .unwrap_or_else(|_| "20".into())
+                .unwrap_or_else(|_| "80".into())
                 .parse()?,
             db_min_connections: env::var("DB_MIN_CONNECTIONS")
-                .unwrap_or_else(|_| "5".into())
+                .unwrap_or_else(|_| "20".into())
                 .parse()?,
             jwt_secret: {
                 let secret = env::var("JWT_SECRET")
@@ -140,8 +140,8 @@ mod tests {
             app_database_url: "postgresql://test:test@localhost/testdb".into(),
             host: "0.0.0.0".into(),
             port: 8080,
-            db_max_connections: 20,
-            db_min_connections: 5,
+            db_max_connections: 80,
+            db_min_connections: 20,
             jwt_secret: "actual-secret-that-is-long-enough-for-validation-check".into(),
             jwt_refresh_secret: "actual-refresh-secret-long-enough-for-validation".into(),
             jwt_access_expiry_secs: 900,

@@ -217,7 +217,7 @@ export class ProjectMembersSettingsComponent {
     // Optimistic: insert temp member
     const tempMember: ProjectMember = {
       user_id: crypto.randomUUID(),
-      board_id: this.boardId(),
+      project_id: this.boardId(),
       role: result.role,
       name: result.email,
       email: result.email,

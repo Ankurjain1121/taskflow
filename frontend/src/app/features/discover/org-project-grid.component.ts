@@ -84,9 +84,9 @@ import { PortfolioProject } from '../../core/services/portfolio.service';
       display: flex; align-items: center; justify-content: center;
       font-size: 10px; font-weight: 700;
     }
-    .health-green { background: #dcfce7; color: #16a34a; }
-    .health-amber { background: #fef3c7; color: #d97706; }
-    .health-red { background: #fee2e2; color: #dc2626; }
+    .health-green { background: rgba(94, 140, 74, 0.12); color: #5E8C4A; }
+    .health-amber { background: rgba(212, 168, 83, 0.12); color: #D4A853; }
+    .health-red { background: rgba(184, 20, 20, 0.12); color: #B81414; }
     .health-gray { background: var(--muted); color: var(--muted-foreground); }
   `],
 })
@@ -100,10 +100,10 @@ export class OrgProjectGridComponent {
 
   getHealthColor(health: string): string {
     switch (health) {
-      case 'on_track': return '#22c55e';
-      case 'at_risk': return '#f59e0b';
-      case 'behind': return '#ef4444';
-      default: return '#6b7280';
+      case 'on_track': return '#5E8C4A';
+      case 'at_risk': return '#D4A853';
+      case 'behind': return '#B81414';
+      default: return '#9F9F9F';
     }
   }
 

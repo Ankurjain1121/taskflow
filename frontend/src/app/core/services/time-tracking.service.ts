@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface TimeEntry {
@@ -140,9 +140,14 @@ export class TimeTrackingService {
       billable_only?: boolean;
     },
   ): Observable<TimesheetReport> {
+    let httpParams = new HttpParams();
+    if (params?.start_date) httpParams = httpParams.set('start_date', params.start_date);
+    if (params?.end_date) httpParams = httpParams.set('end_date', params.end_date);
+    if (params?.user_id) httpParams = httpParams.set('user_id', params.user_id);
+    if (params?.billable_only != null) httpParams = httpParams.set('billable_only', String(params.billable_only));
     return this.http.get<TimesheetReport>(
       `${this.apiUrl}/projects/${projectId}/timesheet-report`,
-      { params: params as any },
+      { params: httpParams },
     );
   }
 }

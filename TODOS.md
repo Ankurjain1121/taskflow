@@ -127,12 +127,10 @@ Rename feature files to match the project terminology:
 
 ---
 
-## TODO-013: Clean up old team-page code after Command Center ships
-**Priority:** Low | **Depends on:** Command Center deployed and stable for 1+ week
+## TODO-013: ~~Clean up old team-page code after Command Center ships~~ RESOLVED
+**Status:** Done
 
-Remove old `team-page.component.ts` (941 lines) and its 12 child components in `features/team/` after the Command Center at `/workspace/:id/manage` is confirmed working. The redirects from `/team-page` → `/manage` handle backward compat.
-
-**Why:** Dead code creates maintenance burden and confusion about which component is the 'real' team management page. The Command Center imports workspace sub-components directly — anything left in `features/team/` that isn't imported elsewhere is dead.
+Removed `team-page.component.ts` (941 LOC) and 10 child component directories only referenced by it: `org-members/`, `workspaces-panel/`, `tasks-due-panel/`, `workspace-roles/`, `team-overview/`, `member-workload-card/`, `overload-banner/`, `workload-dashboard/`, `create-workspace-dialog/`, `add-to-workspace-dialog/`. Kept `workload-balance/` and `member-detail/` (active routes). Updated onboarding-checklist to navigate to `/manage` instead of `/team-page`.
 
 **Where to start:** After Command Center is live for 1+ week, `grep -r "team-page\|TeamPage" frontend/src/` to find remaining references. Remove `features/team/` directory and clean up any remaining imports.
 
