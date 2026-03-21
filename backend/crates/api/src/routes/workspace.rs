@@ -9,6 +9,7 @@ use axum::{
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
+use sqlx;
 use uuid::Uuid;
 
 use taskflow_auth::rbac::can_manage_workspace;
@@ -115,6 +116,8 @@ pub struct WorkspaceResponse {
     pub created_by_id: Uuid,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub project_count: Option<i64>,
+    pub member_count: Option<i64>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -183,17 +186,46 @@ async fn list_workspaces(
         workspaces::list_workspaces_for_user(&state.db, auth.0.user_id, auth.0.tenant_id, is_admin)
             .await?;
 
+    let ws_ids: Vec<Uuid> = workspaces.iter().map(|w| w.id).collect();
+
+    let project_counts: Vec<(Uuid, i64)> = sqlx::query_as(
+        "SELECT workspace_id, COUNT(*) FROM projects WHERE workspace_id = ANY($1) AND deleted_at IS NULL GROUP BY workspace_id",
+    )
+    .bind(&ws_ids)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    let member_counts: Vec<(Uuid, i64)> = sqlx::query_as(
+        "SELECT workspace_id, COUNT(*) FROM workspace_members WHERE workspace_id = ANY($1) GROUP BY workspace_id",
+    )
+    .bind(&ws_ids)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    let project_map: std::collections::HashMap<Uuid, i64> =
+        project_counts.into_iter().collect();
+    let member_map: std::collections::HashMap<Uuid, i64> =
+        member_counts.into_iter().collect();
+
     let response: Vec<WorkspaceResponse> = workspaces
         .into_iter()
-        .map(|w| WorkspaceResponse {
-            id: w.id,
-            name: w.name,
-            description: w.description,
-            visibility: w.visibility,
-            tenant_id: w.tenant_id,
-            created_by_id: w.created_by_id,
-            created_at: w.created_at,
-            updated_at: w.updated_at,
+        .map(|w| {
+            let project_count = project_map.get(&w.id).copied();
+            let member_count = member_map.get(&w.id).copied();
+            WorkspaceResponse {
+                id: w.id,
+                name: w.name,
+                description: w.description,
+                visibility: w.visibility,
+                tenant_id: w.tenant_id,
+                created_by_id: w.created_by_id,
+                created_at: w.created_at,
+                updated_at: w.updated_at,
+                project_count,
+                member_count,
+            }
         })
         .collect();
 
@@ -294,6 +326,8 @@ async fn create_workspace(
         created_by_id: workspace.created_by_id,
         created_at: workspace.created_at,
         updated_at: workspace.updated_at,
+        project_count: None,
+        member_count: None,
     }))
 }
 
@@ -346,6 +380,8 @@ async fn update_workspace(
         created_by_id: workspace.created_by_id,
         created_at: workspace.created_at,
         updated_at: workspace.updated_at,
+        project_count: None,
+        member_count: None,
     }))
 }
 
@@ -628,6 +664,8 @@ async fn discover_workspaces(
             created_by_id: w.created_by_id,
             created_at: w.created_at,
             updated_at: w.updated_at,
+            project_count: None,
+            member_count: None,
         })
         .collect();
 

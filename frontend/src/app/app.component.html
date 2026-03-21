@@ -68,8 +68,21 @@
 <!-- Undo Toast (for undo service) -->
 <p-toast key="undo" position="bottom-center" />
 
-<!-- Service Worker Update Toast -->
-<p-toast key="sw-update" position="bottom-right" (onClose)="onSwUpdateAction()" />
+<!-- Service Worker Update Toast (fallback if auto-reload fails) -->
+<p-toast key="sw-update" position="bottom-right">
+  <ng-template let-message pTemplate="message">
+    <div class="flex items-center gap-3 w-full cursor-pointer" (click)="onSwUpdateAction()">
+      <i class="pi pi-refresh text-lg"></i>
+      <div class="flex-1">
+        <div class="font-semibold text-sm">{{ message.summary }}</div>
+        <div class="text-sm opacity-80">{{ message.detail }}</div>
+      </div>
+      <button class="px-3 py-1.5 rounded-md text-sm font-medium bg-[var(--primary)] text-white hover:opacity-90 transition-opacity">
+        Reload
+      </button>
+    </div>
+  </ng-template>
+</p-toast>
 
 <!-- Keyboard Shortcuts Help (global) -->
 @defer (on idle) {

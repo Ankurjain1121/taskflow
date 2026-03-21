@@ -231,8 +231,8 @@ export const routes: Routes = [
   {
     path: 'discover',
     loadComponent: () =>
-      import('./features/workspace/discover/discover-workspaces.component').then(
-        (m) => m.DiscoverWorkspacesComponent,
+      import('./features/discover/org-command-center.component').then(
+        (m) => m.OrgCommandCenterComponent,
       ),
     canActivate: [authGuard],
   },

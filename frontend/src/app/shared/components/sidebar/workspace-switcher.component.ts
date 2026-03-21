@@ -15,7 +15,8 @@ import {
   CreateWorkspaceDialogComponent,
   CreateWorkspaceDialogResult,
 } from '../dialogs/create-workspace-dialog.component';
-import { WorkspaceService } from '../../../core/services/workspace.service';
+import { WorkspaceService, Workspace } from '../../../core/services/workspace.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-workspace-switcher',
@@ -54,7 +55,7 @@ import { WorkspaceService } from '../../../core/services/workspace.service';
                 [style.background]="activeWsColor()">
             {{ activeWsInitial() }}
           </span>
-          <span class="text-sm font-semibold truncate max-w-[120px]"
+          <span class="text-base font-bold truncate max-w-[120px]"
                 style="color: var(--foreground)">
             {{ ctx.activeWorkspace()?.name || 'Workspace' }}
           </span>
@@ -77,9 +78,23 @@ import { WorkspaceService } from '../../../core/services/workspace.service';
                       [style.background]="ctx.getWorkspaceColor(ws.name)">
                   {{ ws.name.charAt(0).toUpperCase() }}
                 </span>
-                <span class="truncate">{{ ws.name }}</span>
-                @if (ws.id === ctx.activeWorkspaceId()) {
-                  <i class="pi pi-check text-xs ml-auto text-primary"></i>
+                <div class="flex flex-col min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5">
+                    <span class="truncate">{{ ws.name }}</span>
+                    @if (ws.id === ctx.activeWorkspaceId()) {
+                      <i class="pi pi-check text-xs text-primary"></i>
+                    }
+                  </div>
+                  <span class="text-[10px]" style="color: var(--muted-foreground)">
+                    {{ ws.project_count ?? 0 }} projects · {{ ws.member_count ?? 0 }} members
+                  </span>
+                </div>
+                @if (isOwnerOrAdmin(ws)) {
+                  <a [routerLink]="['/workspace', ws.id, 'manage']"
+                     (click)="dropdownOpen.set(false); $event.stopPropagation()"
+                     class="text-[10px] text-primary hover:brightness-90 ml-auto">
+                    Manage →
+                  </a>
                 }
               </button>
             }
@@ -179,6 +194,7 @@ export class WorkspaceSwitcherComponent implements AfterViewChecked {
 
   readonly ctx = inject(WorkspaceContextService);
   private readonly workspaceService = inject(WorkspaceService);
+  private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly elementRef = inject(ElementRef);
 
@@ -204,6 +220,11 @@ export class WorkspaceSwitcherComponent implements AfterViewChecked {
       const firstOption = el.querySelector<HTMLElement>('[role="option"]');
       (activeOption ?? firstOption)?.focus();
     }
+  }
+
+  isOwnerOrAdmin(ws: Workspace): boolean {
+    const currentUserId = this.authService.currentUser()?.id;
+    return !!currentUserId && ws.created_by_id === currentUserId;
   }
 
   toggleDropdown(): void {

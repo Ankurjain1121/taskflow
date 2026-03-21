@@ -12,6 +12,8 @@ export interface Workspace {
   created_by_id: string;
   created_at: string;
   updated_at: string;
+  project_count?: number;
+  member_count?: number;
 }
 
 export interface CreateWorkspaceRequest {
