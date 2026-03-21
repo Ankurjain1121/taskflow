@@ -176,13 +176,6 @@ const ALL_TABS: TabDef[] = [
                 <div class="py-4 space-y-6">
                   <!-- Members -->
                   <section>
-                    <div class="flex items-center justify-between mb-3">
-                      <h2 class="text-lg font-semibold text-[var(--foreground)]">Members</h2>
-                      <a [routerLink]="['/', 'workspace', workspaceId, 'people']"
-                         class="text-sm font-medium text-[var(--primary)] hover:underline flex items-center gap-1">
-                        View all people <i class="pi pi-arrow-right text-xs"></i>
-                      </a>
-                    </div>
                     @if (members().length === 0) {
                       <div class="text-center py-8 rounded-xl border border-dashed border-[var(--border)]">
                         <i class="pi pi-user-plus text-3xl text-[var(--muted-foreground)] mb-2"></i>
