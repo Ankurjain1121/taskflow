@@ -332,7 +332,13 @@ import { Toast } from 'primeng/toast';
 
             <!-- Subtasks -->
             <div class="main-card p-5">
-              <app-subtask-list [taskId]="taskId()" [boardColumns]="columns()" (childrenLoaded)="childrenCount.set($event)" />
+              <app-subtask-list
+                [taskId]="taskId()"
+                [boardColumns]="columns()"
+                [projectId]="board()?.id || ''"
+                [workspaceId]="workspace()?.id || ''"
+                (childrenLoaded)="childrenCount.set($event)"
+              />
             </div>
 
             <!-- Comments / Activity Tabs -->

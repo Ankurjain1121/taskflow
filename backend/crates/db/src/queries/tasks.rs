@@ -862,6 +862,15 @@ pub async fn move_subtasks_to_project(
     Ok(subtask_ids)
 }
 
+/// Child task with assignees and labels (enriched for subtask list UI)
+#[derive(Debug, Serialize)]
+pub struct ChildTaskWithDetails {
+    #[serde(flatten)]
+    pub task: Task,
+    pub assignees: Vec<AssigneeInfo>,
+    pub labels: Vec<Label>,
+}
+
 /// List child tasks for a parent task
 pub async fn list_child_tasks(
     pool: &PgPool,
@@ -881,6 +890,103 @@ pub async fn list_child_tasks(
     .fetch_all(pool)
     .await?;
     Ok(children)
+}
+
+/// List child tasks with assignees and labels (enriched for subtask list UI)
+pub async fn list_child_tasks_with_details(
+    pool: &PgPool,
+    parent_task_id: Uuid,
+) -> Result<Vec<ChildTaskWithDetails>, TaskQueryError> {
+    // 1. Fetch child tasks
+    let children = list_child_tasks(pool, parent_task_id).await?;
+    if children.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let child_ids: Vec<Uuid> = children.iter().map(|c| c.id).collect();
+
+    // 2. Batch fetch assignees for all children
+    let assignee_rows = sqlx::query_as::<_, ChildAssigneeRow>(
+        r#"
+        SELECT ta.task_id, ta.user_id, u.name, u.avatar_url, ta.assigned_at
+        FROM task_assignees ta
+        JOIN users u ON u.id = ta.user_id
+        WHERE ta.task_id = ANY($1)
+        "#,
+    )
+    .bind(&child_ids)
+    .fetch_all(pool)
+    .await?;
+
+    // 3. Batch fetch labels for all children
+    let label_rows = sqlx::query_as::<_, ChildLabelRow>(
+        r#"
+        SELECT tl.task_id, l.id, l.name, l.color, l.project_id
+        FROM task_labels tl
+        JOIN labels l ON l.id = tl.label_id
+        WHERE tl.task_id = ANY($1)
+        "#,
+    )
+    .bind(&child_ids)
+    .fetch_all(pool)
+    .await?;
+
+    // 4. Group by task_id
+    let mut assignee_map: HashMap<Uuid, Vec<AssigneeInfo>> = HashMap::new();
+    for row in assignee_rows {
+        assignee_map.entry(row.task_id).or_default().push(AssigneeInfo {
+            user_id: row.user_id,
+            name: row.name,
+            avatar_url: row.avatar_url,
+            assigned_at: row.assigned_at,
+        });
+    }
+
+    let mut label_map: HashMap<Uuid, Vec<Label>> = HashMap::new();
+    for row in label_rows {
+        label_map.entry(row.task_id).or_default().push(Label {
+            id: row.id,
+            name: row.name,
+            color: row.color,
+            project_id: row.project_id,
+        });
+    }
+
+    // 5. Assemble enriched children
+    let enriched = children
+        .into_iter()
+        .map(|task| {
+            let assignees = assignee_map.remove(&task.id).unwrap_or_default();
+            let labels = label_map.remove(&task.id).unwrap_or_default();
+            ChildTaskWithDetails {
+                task,
+                assignees,
+                labels,
+            }
+        })
+        .collect();
+
+    Ok(enriched)
+}
+
+/// Internal row for batch assignee fetch
+#[derive(Debug, sqlx::FromRow)]
+struct ChildAssigneeRow {
+    task_id: Uuid,
+    user_id: Uuid,
+    name: String,
+    avatar_url: Option<String>,
+    assigned_at: DateTime<Utc>,
+}
+
+/// Internal row for batch label fetch
+#[derive(Debug, sqlx::FromRow)]
+struct ChildLabelRow {
+    task_id: Uuid,
+    id: Uuid,
+    name: String,
+    color: String,
+    project_id: Uuid,
 }
 
 /// Fetch a full Task row by ID (non-deleted).
