@@ -253,7 +253,7 @@ async fn execute_set_milestone(
     Ok(())
 }
 
-/// CreateSubtask action: adds a subtask to the task
+/// CreateSubtask action: creates a child task under the trigger task
 async fn execute_create_subtask(
     pool: &PgPool,
     config: &serde_json::Value,
@@ -266,24 +266,48 @@ async fn execute_create_subtask(
             AutomationExecutorError::ActionFailed("CreateSubtask: missing title".into())
         })?;
 
-    // Get next position
-    let max_pos = sqlx::query_scalar::<_, Option<i32>>(
-        "SELECT MAX(position) FROM subtasks WHERE task_id = $1",
+    // Get parent task to inherit project_id, status_id, task_list_id
+    let parent = sqlx::query_as::<_, (Uuid, Option<Uuid>, Option<Uuid>, Uuid, i16)>(
+        r#"SELECT project_id, status_id, task_list_id, tenant_id, depth
+           FROM tasks WHERE id = $1 AND deleted_at IS NULL"#,
     )
     .bind(context.task_id)
-    .fetch_one(pool)
+    .fetch_optional(pool)
+    .await?
+    .ok_or_else(|| {
+        AutomationExecutorError::ActionFailed("CreateSubtask: parent task not found".into())
+    })?;
+
+    // Get next position
+    let last_pos = sqlx::query_scalar::<_, String>(
+        "SELECT position FROM tasks WHERE parent_task_id = $1 AND deleted_at IS NULL ORDER BY position DESC LIMIT 1",
+    )
+    .bind(context.task_id)
+    .fetch_optional(pool)
     .await?;
+
+    let position = match last_pos {
+        Some(p) => format!("{}0", p),
+        None => "a".to_string(),
+    };
 
     sqlx::query(
         r#"
-        INSERT INTO subtasks (id, task_id, title, is_completed, position, created_at, updated_at)
-        VALUES ($1, $2, $3, false, $4, NOW(), NOW())
+        INSERT INTO tasks (id, title, priority, project_id, status_id, task_list_id,
+                          position, tenant_id, created_by_id, parent_task_id, depth)
+        VALUES ($1, $2, 'medium'::task_priority, $3, $4, $5, $6, $7, $8, $9, $10)
         "#,
     )
     .bind(Uuid::new_v4())
-    .bind(context.task_id)
     .bind(title)
-    .bind(max_pos.unwrap_or(0) + 1)
+    .bind(parent.0) // project_id
+    .bind(parent.1) // status_id
+    .bind(parent.2) // task_list_id
+    .bind(&position)
+    .bind(parent.3) // tenant_id
+    .bind(context.user_id)
+    .bind(context.task_id)
+    .bind(parent.4 + 1) // depth
     .execute(pool)
     .await?;
 

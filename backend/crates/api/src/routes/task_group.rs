@@ -39,9 +39,9 @@ async fn verify_board_access(pool: &sqlx::PgPool, board_id: Uuid, user_id: Uuid)
     let exists: Option<bool> = sqlx::query_scalar::<_, bool>(
         r#"
         SELECT EXISTS(
-            SELECT 1 FROM boards b
-            JOIN board_members bm ON b.id = bm.board_id
-            WHERE b.id = $1 AND bm.user_id = $2 AND b.deleted_at IS NULL
+            SELECT 1 FROM projects p
+            JOIN project_members pm ON p.id = pm.project_id
+            WHERE p.id = $1 AND pm.user_id = $2 AND p.deleted_at IS NULL
         )
         "#,
     )
@@ -58,10 +58,10 @@ async fn verify_group_access(pool: &sqlx::PgPool, group_id: Uuid, user_id: Uuid)
     let exists: Option<bool> = sqlx::query_scalar::<_, bool>(
         r#"
         SELECT EXISTS(
-            SELECT 1 FROM task_groups tg
-            JOIN boards b ON tg.board_id = b.id
-            JOIN board_members bm ON b.id = bm.board_id
-            WHERE tg.id = $1 AND bm.user_id = $2 AND tg.deleted_at IS NULL
+            SELECT 1 FROM task_lists tl
+            JOIN projects p ON tl.project_id = p.id
+            JOIN project_members pm ON p.id = pm.project_id
+            WHERE tl.id = $1 AND pm.user_id = $2 AND tl.deleted_at IS NULL
         )
         "#,
     )

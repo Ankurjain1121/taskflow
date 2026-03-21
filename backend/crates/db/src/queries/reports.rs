@@ -155,8 +155,8 @@ async fn get_burndown(
         joined AS (
             SELECT
                 s.day,
-                COALESCE(SUM(dc.cnt) OVER (ORDER BY s.day), 0)
-                - COALESCE(SUM(dd.cnt) OVER (ORDER BY s.day), 0) AS remaining
+                (COALESCE(SUM(dc.cnt) OVER (ORDER BY s.day), 0)
+                - COALESCE(SUM(dd.cnt) OVER (ORDER BY s.day), 0))::bigint AS remaining
             FROM series s
             LEFT JOIN daily_created dc ON dc.day = s.day
             LEFT JOIN daily_done dd ON dd.day = s.day

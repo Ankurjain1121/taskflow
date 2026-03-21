@@ -133,27 +133,40 @@ The UI should evoke all four pillars simultaneously:
 4. **Energy & speed** — fast, responsive, keyboard-friendly
 
 ### Aesthetic Direction
-- **References:** Linear (speed, keyboard-first, minimal chrome) + Monday.com (vibrancy, visual status, colorful boards)
+- **References:** Linear (speed, keyboard-first, minimal chrome) + Monday.com (vibrancy, visual status, colorful boards) + **TickTick** (clean, polished UI) + **Trello** (beautiful, approachable boards)
 - **Anti-references:** Jira (cluttered, slow, overwhelming), generic Bootstrap dashboards
-- **Theme:** Light/dark with system detection. 8 interchangeable accent colors for personalization.
-- **Primary color:** Open to change from indigo — explore alternatives. Red is reserved for errors/destructive actions only, never as brand color.
-- **Typography:** Figtree — geometric, friendly, modern. Consistent weight hierarchy (400 body, 600 labels, 700 headings).
+- **Focus:** Visual polish and aesthetics are the priority. Layout and functionality are settled — invest effort in making existing views look beautiful.
+- **Theme:** Light/dark with system detection. 8 interchangeable accent colors (blue, indigo, green, orange, rose, violet, amber, slate). Card style variants (flat/raised/bordered), configurable border radius, sidebar style options.
+- **Color palette:** "Midnight Ink" — blue primary (`#2D5BE3` light / `#4B74F0` dark) with warm parchment neutrals (`#F4F2EE` light bg). **Still being explored** — direction is right but not finalized. Red is reserved for errors/destructive actions only.
+- **Typography:** Currently Syne (display) + DM Sans (body) — **still being explored**, may change before launch.
+- **Motion:** Animations and micro-interactions are welcome and encouraged. User prefers aesthetic richness. Transition tokens defined: `--ease-out-expo`, `--ease-bounce`, `--duration-fast` (150ms), `--duration-normal` (200ms). Still respect `prefers-reduced-motion` for accessibility.
 
 ### Design Principles
 1. **Clarity over decoration** — Every pixel earns its place. No ornamental elements that don't aid comprehension. White space is a feature.
 2. **Progressive density** — Show summary by default, reveal detail on demand. Dashboards are scannable; detail views are comprehensive.
 3. **Color with purpose** — Color encodes meaning (priority, status, progress), not just aesthetics. The palette is vibrant but systematic.
-4. **Responsive delight** — Micro-interactions (transitions, hover states, completion celebrations) make the tool feel alive without slowing anyone down. Respect `prefers-reduced-motion`.
+4. **Responsive delight** — Micro-interactions (transitions, hover states, completion celebrations) make the tool feel alive. Lean into motion — animations add personality and polish.
 5. **Accessible by default** — WCAG AA compliance. Visible focus states, sufficient contrast, keyboard navigable, screen-reader friendly. Never rely on color alone to convey information.
+6. **Polish over novelty** — Prioritize making existing views beautiful over adding new features. A well-crafted existing screen beats a rough new one.
+
+### Design Token Architecture
+| Layer | Description |
+|-------|-------------|
+| **Semantic tokens** (`styles.css :root` / `html.dark`) | Light/dark mode colors, shadows, layout, transitions |
+| **Structural variants** (`themes.css`) | Card style, border radius, sidebar style — applied via `data-*` attributes |
+| **Accent ramps** (`color-palettes.ts`) | Full 50–950 shade scales for 8 accents, synced to PrimeNG via `definePreset()` |
+| **Status colors** (`task-colors.ts`) | Priority, status, label, and column colors — Tailwind classes with dark mode |
+| **Theme service** (`theme.service.ts`) | Orchestrates mode/accent/preferences, persists to DB, cross-tab sync |
 
 ### Key Design Files
 | File | Purpose |
 |------|---------|
-| `frontend/src/styles.css` | Master design tokens |
-| `frontend/src/themes.css` | Theme variants (card style, radius, sidebar) |
-| `frontend/src/app/core/services/theme.service.ts` | Theme logic + PrimeNG bridge |
-| `frontend/src/app/core/constants/color-palettes.ts` | 8 accent color ramps |
-| `frontend/src/app/shared/utils/task-colors.ts` | Priority, status, column colors |
+| `frontend/src/styles.css` | Master design tokens (semantic colors, shadows, layout, transitions) |
+| `frontend/src/themes.css` | Structural variants (card style, radius, sidebar) via `data-*` attributes |
+| `frontend/src/app/core/services/theme.service.ts` | Theme orchestration + PrimeNG bridge + DB persistence |
+| `frontend/src/app/core/constants/color-palettes.ts` | 8 accent color ramps (50–950 shades) |
+| `frontend/src/app/shared/utils/task-colors.ts` | Priority, status, label, column color mappings |
+| `frontend/src/app/shared/types/theme.types.ts` | AccentColor and ColorMode type definitions |
 
 ---
 

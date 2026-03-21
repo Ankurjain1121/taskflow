@@ -106,8 +106,8 @@ async fn fetch_burndown_data(
         )
         SELECT
             s.day AS date,
-            COALESCE(SUM(dc.cnt) OVER (ORDER BY s.day), 0) AS total_created,
-            COALESCE(SUM(dd.cnt) OVER (ORDER BY s.day), 0) AS total_completed
+            COALESCE(SUM(dc.cnt) OVER (ORDER BY s.day), 0)::bigint AS total_created,
+            COALESCE(SUM(dd.cnt) OVER (ORDER BY s.day), 0)::bigint AS total_completed
         FROM series s
         LEFT JOIN daily_created dc ON dc.day = s.day
         LEFT JOIN daily_done dd ON dd.day = s.day

@@ -68,7 +68,7 @@ pub async fn list_dependencies(
             td.id,
             td.source_task_id,
             td.target_task_id,
-            td.dependency_type as "dependency_type: DependencyType",
+            td.dependency_type,
             CASE
                 WHEN td.source_task_id = $1 THEN td.target_task_id
                 ELSE td.source_task_id
@@ -181,7 +181,7 @@ pub async fn create_dependency(
             td.id,
             td.source_task_id,
             td.target_task_id,
-            td.dependency_type as "dependency_type: DependencyType",
+            td.dependency_type,
             CASE
                 WHEN td.source_task_id = $2 THEN td.target_task_id
                 ELSE td.source_task_id
@@ -276,7 +276,7 @@ pub async fn get_board_dependencies(
             td.id,
             td.source_task_id,
             td.target_task_id,
-            td.dependency_type as "dependency_type: DependencyType",
+            td.dependency_type,
             td.target_task_id as related_task_id,
             target_t.title as related_task_title,
             target_t.priority::text as related_task_priority,
