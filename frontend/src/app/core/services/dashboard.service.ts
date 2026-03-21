@@ -206,10 +206,15 @@ export class DashboardService {
 
   // --- Phase J Metrics Endpoints ---
 
-  getWorkspaceDashboard(workspaceId: string): Observable<WorkspaceDashboard> {
-    return this.getCached(`ws-dashboard:${workspaceId}`, () =>
+  getWorkspaceDashboard(workspaceId: string, period?: string): Observable<WorkspaceDashboard> {
+    const extra: Record<string, string> = {};
+    if (period && period !== 'all') {
+      extra['period'] = period;
+    }
+    return this.getCached(`ws-dashboard:${workspaceId}:${period ?? 'all'}`, () =>
       this.http.get<WorkspaceDashboard>(
         `/api/workspaces/${workspaceId}/metrics/workspace`,
+        { params: this.buildParams(undefined, extra) },
       ),
     );
   }
@@ -288,6 +293,17 @@ export interface OnTimeMetric {
   on_time_count: number;
 }
 
+export interface OnTimePrevious {
+  on_time_pct: number;
+  total_completed: number;
+  period_label: string;
+}
+
+export interface OverdueAging {
+  critical: number;
+  recent: number;
+}
+
 export interface TeamDashboard {
   team_id: string;
   team_name: string;
@@ -303,6 +319,8 @@ export interface WorkspaceDashboard {
   velocity: VelocityPoint[];
   workload_balance: WorkloadBalanceEntry[];
   on_time: OnTimeMetric;
+  on_time_previous?: OnTimePrevious;
+  overdue_aging: OverdueAging;
 }
 
 export interface PersonalDashboard {
