@@ -103,10 +103,7 @@ pub fn build_router(state: AppState, config: &Config) -> Router {
             "/invitations",
             axum::routing::post(crate::routes::invitation::create_handler),
         )
-        .route(
-            "/invitations",
-            get(crate::routes::invitation::list_handler),
-        )
+        .route("/invitations", get(crate::routes::invitation::list_handler))
         .route(
             "/invitations/bulk",
             axum::routing::post(crate::routes::invitation::bulk_create_handler),

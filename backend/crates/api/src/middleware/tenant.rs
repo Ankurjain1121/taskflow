@@ -204,11 +204,9 @@ mod tests {
     #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_with_tenant_tx_executes_and_commits() {
-        let pool = PgPool::connect(
-            &load_db_url(),
-        )
-        .await
-        .expect("test db connection");
+        let pool = PgPool::connect(&load_db_url())
+            .await
+            .expect("test db connection");
 
         let tenant_id = Uuid::new_v4();
 
@@ -234,11 +232,9 @@ mod tests {
     #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_set_tenant_context_helper() {
-        let pool = PgPool::connect(
-            &load_db_url(),
-        )
-        .await
-        .expect("test db connection");
+        let pool = PgPool::connect(&load_db_url())
+            .await
+            .expect("test db connection");
 
         let tenant_id = Uuid::new_v4();
         let mut tx = pool.begin().await.expect("begin transaction");
@@ -257,11 +253,9 @@ mod tests {
     #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_tenant_context_is_transaction_scoped() {
-        let pool = PgPool::connect(
-            &load_db_url(),
-        )
-        .await
-        .expect("test db connection");
+        let pool = PgPool::connect(&load_db_url())
+            .await
+            .expect("test db connection");
 
         let tenant_a = Uuid::new_v4();
         let tenant_b = Uuid::new_v4();

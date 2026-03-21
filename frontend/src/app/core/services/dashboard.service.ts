@@ -5,7 +5,7 @@ import {
   FocusTask,
   ProjectPulse,
   StreakData,
-} from '../../features/dashboard/dashboard.types';
+} from '../../shared/types/dashboard.types';
 
 export interface DashboardStats {
   total_tasks: number;

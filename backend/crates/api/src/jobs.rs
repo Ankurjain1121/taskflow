@@ -72,9 +72,7 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
     {
         tracing::info!("Email worker skipped: RESEND_API_KEY set but email worker requires POSTAL_API_KEY (emails sent inline via dispatcher)");
     } else {
-        tracing::warn!(
-            "Email worker disabled: neither RESEND_API_KEY nor POSTAL_API_KEY is set"
-        );
+        tracing::warn!("Email worker disabled: neither RESEND_API_KEY nor POSTAL_API_KEY is set");
     }
 
     // Spawn background job: daily digest (every 24 hours)

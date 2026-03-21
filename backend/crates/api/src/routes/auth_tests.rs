@@ -97,9 +97,15 @@ fn test_build_auth_cookie_headers_http() {
 
 #[test]
 fn test_build_auth_cookie_headers_https() {
-    let headers =
-        build_auth_cookie_headers("tok", "ref", 3600, 86400, "https://taskflow.example.com", true)
-            .expect("should build cookie headers");
+    let headers = build_auth_cookie_headers(
+        "tok",
+        "ref",
+        3600,
+        86400,
+        "https://taskflow.example.com",
+        true,
+    )
+    .expect("should build cookie headers");
     let cookies: Vec<String> = headers
         .get_all(SET_COOKIE)
         .iter()

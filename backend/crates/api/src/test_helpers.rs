@@ -32,8 +32,7 @@ pub mod helpers {
     fn test_db_url() -> String {
         let _ = dotenvy::from_path("../../.env");
         let _ = dotenvy::dotenv();
-        std::env::var("DATABASE_URL")
-            .expect("DATABASE_URL must be set for tests (check .env file)")
+        std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for tests (check .env file)")
     }
 
     /// A dummy argon2 hash used for test user passwords.

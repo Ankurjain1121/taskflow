@@ -11,25 +11,19 @@ use axum::{
     routing::post,
     Json, Router,
 };
-use chrono::{Duration, Utc};
+use chrono::Utc;
 use data_encoding::BASE32;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
-use taskflow_auth::jwt::issue_tokens;
-use taskflow_db::models::UserRole;
-
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
-use crate::middleware::store_csrf_token;
 use crate::state::AppState;
 
-use super::auth::{build_auth_cookie_headers, hash_token};
+use super::auth_session::{build_auth_session, extract_session_metadata, SessionParams};
 use super::common::MessageResponse;
-
-const SESSION_TTL_SECS: usize = 30 * 60;
 
 /// Max TOTP verification attempts before rate limiting (5 per 5 minutes)
 const MAX_TOTP_ATTEMPTS: i64 = 5;
@@ -395,24 +389,26 @@ pub async fn challenge_handler(
         .ok_or_else(|| AppError::Unauthorized("Invalid or expired temporary token".into()))?;
 
     // Parse JSON; fall back to legacy plain user_id string for backward compatibility
-    let (user_id, persistent): (Uuid, bool) =
-        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&temp_value_str) {
-            let uid = val
-                .get("user_id")
-                .and_then(|v| v.as_str())
-                .and_then(|s| s.parse::<Uuid>().ok())
-                .ok_or_else(|| {
-                    AppError::InternalError("Invalid user_id in temp token JSON".into())
-                })?;
-            let persist = val.get("persistent").and_then(|v| v.as_bool()).unwrap_or(true);
-            (uid, persist)
-        } else {
-            // Legacy format: plain UUID string
-            let uid = temp_value_str
-                .parse::<Uuid>()
-                .map_err(|_| AppError::InternalError("Invalid user ID in temp token".into()))?;
-            (uid, true)
-        };
+    let (user_id, persistent): (Uuid, bool) = if let Ok(val) =
+        serde_json::from_str::<serde_json::Value>(&temp_value_str)
+    {
+        let uid = val
+            .get("user_id")
+            .and_then(|v| v.as_str())
+            .and_then(|s| s.parse::<Uuid>().ok())
+            .ok_or_else(|| AppError::InternalError("Invalid user_id in temp token JSON".into()))?;
+        let persist = val
+            .get("persistent")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true);
+        (uid, persist)
+    } else {
+        // Legacy format: plain UUID string
+        let uid = temp_value_str
+            .parse::<Uuid>()
+            .map_err(|_| AppError::InternalError("Invalid user ID in temp token".into()))?;
+        (uid, true)
+    };
 
     // Rate limit check
     check_totp_rate_limit(&mut state.redis.clone(), user_id).await?;
@@ -463,109 +459,35 @@ pub async fn challenge_handler(
         .await
         .unwrap_or(());
 
-    // Fetch full user for JWT issuance
-    let user = sqlx::query_as::<_, (Uuid, Uuid, String, String, String)>(
-        "SELECT id, tenant_id, name, email, role FROM users WHERE id = $1",
-    )
-    .bind(user_id)
-    .fetch_one(&state.db)
-    .await?;
-
-    let role: UserRole = match user.4.as_str() {
-        "Admin" => UserRole::Admin,
-        "Manager" => UserRole::Manager,
-        _ => UserRole::Member,
-    };
-
-    // Issue JWT tokens
-    let refresh_expiry = Utc::now() + Duration::seconds(state.config.jwt_refresh_expiry_secs);
-    let token_id = Uuid::new_v4();
-
-    let tokens = issue_tokens(
-        user.0,
-        user.1,
-        role,
-        token_id,
-        &state.jwt_keys,
-        state.config.jwt_access_expiry_secs,
-        state.config.jwt_refresh_expiry_secs,
-    )?;
-
-    let token_hash = hash_token(&tokens.refresh_token);
-
-    // Extract session metadata from headers
-    let ip_address = headers
-        .get("x-forwarded-for")
-        .and_then(|v| v.to_str().ok())
-        .map(|v| v.split(',').next().unwrap_or(v).trim().to_string());
-    let user_agent_val = headers
-        .get("user-agent")
-        .and_then(|v| v.to_str().ok())
-        .map(|s| s.to_string());
-
-    taskflow_db::queries::auth::create_refresh_token(
-        &state.db,
-        token_id,
-        user.0,
-        &token_hash,
-        refresh_expiry,
-        ip_address.as_deref(),
-        user_agent_val.as_deref(),
-        persistent,
-    )
-    .await?;
-
-    // Create session in Redis
-    let session_key = format!("session:{}:{}", user.0, token_id);
-    redis::cmd("SET")
-        .arg(&session_key)
-        .arg("1")
-        .arg("EX")
-        .arg(SESSION_TTL_SECS)
-        .query_async::<()>(&mut state.redis.clone())
-        .await
-        .map_err(|e| AppError::InternalError(format!("Failed to create session: {e}")))?;
-
-    // Generate CSRF token
-    let csrf_token = store_csrf_token(&state, user.0, SESSION_TTL_SECS)
-        .await
-        .map_err(|e| AppError::InternalError(format!("Failed to create CSRF token: {e}")))?;
-
-    // Get full user data for response
-    let full_user = taskflow_db::queries::auth::get_user_by_id(&state.db, user.0)
+    // Get full user data for session
+    let full_user = taskflow_db::queries::auth::get_user_by_id(&state.db, user_id)
         .await?
         .ok_or_else(|| AppError::InternalError("User not found after 2FA".into()))?;
 
-    // Set HttpOnly cookies
-    let cookie_headers = build_auth_cookie_headers(
-        &tokens.access_token,
-        &tokens.refresh_token,
-        state.config.jwt_access_expiry_secs,
-        state.config.jwt_refresh_expiry_secs,
-        &state.config.app_url,
+    let (ip_address, user_agent) = extract_session_metadata(&headers);
+
+    let session = build_auth_session(SessionParams {
+        user_id: full_user.id,
+        tenant_id: full_user.tenant_id,
+        role: full_user.role,
+        name: full_user.name,
+        email: full_user.email,
+        avatar_url: full_user.avatar_url,
+        phone_number: full_user.phone_number,
+        job_title: full_user.job_title,
+        department: full_user.department,
+        bio: full_user.bio,
+        onboarding_completed: full_user.onboarding_completed,
+        last_login_at: Some(Utc::now()),
+        ip_address,
+        user_agent,
         persistent,
-    )?;
+        state: &state,
+    })
+    .await?;
 
-    let response_body = super::auth::AuthResponse {
-        csrf_token,
-        user: super::auth::UserResponse {
-            id: full_user.id,
-            name: full_user.name,
-            email: full_user.email,
-            role: full_user.role,
-            tenant_id: full_user.tenant_id,
-            avatar_url: full_user.avatar_url,
-            phone_number: full_user.phone_number,
-            job_title: full_user.job_title,
-            department: full_user.department,
-            bio: full_user.bio,
-            onboarding_completed: full_user.onboarding_completed,
-            last_login_at: Some(Utc::now()),
-        },
-    };
-
-    let mut response = Json(response_body).into_response();
-    response.headers_mut().extend(cookie_headers);
+    let mut response = Json(session.auth_response).into_response();
+    response.headers_mut().extend(session.cookie_headers);
     Ok(response)
 }
 

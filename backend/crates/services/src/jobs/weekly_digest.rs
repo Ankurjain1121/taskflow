@@ -29,11 +29,7 @@ pub struct WeeklyDigestResult {
 
 /// User stats for the weekly digest
 #[derive(Debug)]
-#[allow(dead_code)]
 struct UserDigestStats {
-    user_id: Uuid,
-    email: String,
-    name: String,
     tasks_completed: i64,
     tasks_created: i64,
     tasks_overdue: i64,
@@ -267,16 +263,7 @@ async fn get_user_stats(
     .fetch_one(pool)
     .await?;
 
-    // Get user info
-    let user: (String, String) = sqlx::query_as(r#"SELECT email, name FROM users WHERE id = $1"#)
-        .bind(user_id)
-        .fetch_one(pool)
-        .await?;
-
     Ok(UserDigestStats {
-        user_id,
-        email: user.0,
-        name: user.1,
         tasks_completed,
         tasks_created,
         tasks_overdue,

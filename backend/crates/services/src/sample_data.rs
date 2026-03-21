@@ -3,7 +3,7 @@
 //! Contains all template definitions (columns, tasks, labels) for each use-case
 //! (software, marketing, personal, design).
 
-#![allow(dead_code)]
+// This module is only used by sample_board tests; gated via #[cfg(test)] in lib.rs.
 
 // ============================================================================
 // Template data structures

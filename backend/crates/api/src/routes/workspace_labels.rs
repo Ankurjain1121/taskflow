@@ -212,13 +212,14 @@ async fn delete_label(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
-    let result =
-        sqlx::query("DELETE FROM labels WHERE id = $1 AND workspace_id = $2 AND project_id IS NULL")
-            .bind(label_id)
-            .bind(workspace_id)
-            .execute(&state.db)
-            .await
-            .map_err(AppError::from)?;
+    let result = sqlx::query(
+        "DELETE FROM labels WHERE id = $1 AND workspace_id = $2 AND project_id IS NULL",
+    )
+    .bind(label_id)
+    .bind(workspace_id)
+    .execute(&state.db)
+    .await
+    .map_err(AppError::from)?;
 
     if result.rows_affected() == 0 {
         return Err(AppError::NotFound("Label not found".into()));

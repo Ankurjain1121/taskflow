@@ -10,6 +10,7 @@ pub mod bulk_operations;
 pub mod comments;
 pub mod custom_fields;
 pub mod dashboard;
+pub mod dashboard_charts;
 pub mod dependencies;
 pub mod eisenhower;
 pub mod favorites;
@@ -43,6 +44,7 @@ pub mod task_templates;
 pub mod task_views;
 pub mod task_watchers;
 pub mod tasks;
+pub mod tasks_helpers;
 pub mod team_overview;
 pub mod teams;
 pub mod themes;
@@ -61,6 +63,16 @@ mod integration_tests;
 mod integration_tests_advanced;
 #[cfg(test)]
 mod integration_tests_extra;
+#[cfg(test)]
+mod integration_tests_favorites;
+#[cfg(test)]
+mod integration_tests_tasks;
+#[cfg(test)]
+mod integration_tests_views;
+#[cfg(test)]
+mod integration_tests_workspace;
+#[cfg(test)]
+mod test_helpers;
 
 // ── Explicit re-exports ────────────────────────────────────────────────────
 
@@ -205,7 +217,6 @@ pub use recurring::{
 
 // recurring_generation
 pub use recurring_generation::{create_recurring_instance, get_due_configs};
-
 
 // task_assignments
 pub use task_assignments::{assign_user, get_task_assignee_ids, unassign_user};

@@ -792,9 +792,4 @@ mod tests {
         assert_eq!(updated_config.occurrences_created, 1);
         assert!(updated_config.last_run_at.is_some());
     }
-
-    #[allow(dead_code)]
-    async fn _uses_get_due_configs(pool: &PgPool) {
-        let _ = get_due_configs(pool).await;
-    }
 }

@@ -7,7 +7,8 @@ pub mod notifications;
 pub mod novu;
 pub mod presence;
 pub mod sample_board;
-pub mod sample_data;
+#[cfg(test)]
+pub(crate) mod sample_data;
 pub mod trash_bin;
 
 pub use audit::{get_action_for_route, record_audit_event, AuditError, ROUTE_ACTION_MAP};

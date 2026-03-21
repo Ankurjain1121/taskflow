@@ -9,23 +9,23 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use chrono::{Duration, Utc};
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
-use taskflow_auth::jwt::{issue_tokens, verify_refresh_token};
+use taskflow_auth::jwt::verify_refresh_token;
 use taskflow_auth::password::verify_password;
 use taskflow_db::models::UserRole;
 use taskflow_db::queries::auth;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
-use crate::middleware::store_csrf_token;
 use crate::state::AppState;
 
 use super::auth_password;
 use super::auth_profile;
+use super::auth_session::{build_auth_session, extract_session_metadata, SessionParams};
 use super::common::MessageResponse;
 
 pub(crate) const SESSION_TTL_SECS: usize = 30 * 60;
@@ -210,90 +210,30 @@ pub async fn sign_in_handler(
         .execute(&state.db)
         .await?;
 
-    // Extract session metadata from headers
-    let ip_address = headers
-        .get("x-forwarded-for")
-        .and_then(|v| v.to_str().ok())
-        .map(|v| v.split(',').next().unwrap_or(v).trim().to_string());
-    let user_agent_val = headers
-        .get("user-agent")
-        .and_then(|v| v.to_str().ok())
-        .map(|s| s.to_string());
+    let (ip_address, user_agent) = extract_session_metadata(&headers);
 
-    // Generate token ID first, issue JWT with it, hash, then INSERT — no "pending" race
-    let refresh_expiry = Utc::now() + Duration::seconds(state.config.jwt_refresh_expiry_secs);
-    let token_id = Uuid::new_v4();
-
-    let tokens = issue_tokens(
-        user.id,
-        user.tenant_id,
-        user.role,
-        token_id,
-        &state.jwt_keys,
-        state.config.jwt_access_expiry_secs,
-        state.config.jwt_refresh_expiry_secs,
-    )?;
-
-    let token_hash = hash_token(&tokens.refresh_token);
-    auth::create_refresh_token(
-        &state.db,
-        token_id,
-        user.id,
-        &token_hash,
-        refresh_expiry,
-        ip_address.as_deref(),
-        user_agent_val.as_deref(),
+    let session = build_auth_session(SessionParams {
+        user_id: user.id,
+        tenant_id: user.tenant_id,
+        role: user.role,
+        name: user.name,
+        email: user.email,
+        avatar_url: user.avatar_url,
+        phone_number: user.phone_number,
+        job_title: user.job_title,
+        department: user.department,
+        bio: user.bio,
+        onboarding_completed: user.onboarding_completed,
+        last_login_at: Some(Utc::now()),
+        ip_address,
+        user_agent,
         persistent,
-    )
+        state: &state,
+    })
     .await?;
 
-    // Create session in Redis (30 minutes idle timeout)
-    let session_key = format!("session:{}:{}", user.id, token_id);
-
-    redis::cmd("SET")
-        .arg(&session_key)
-        .arg("1")
-        .arg("EX")
-        .arg(SESSION_TTL_SECS)
-        .query_async::<()>(&mut state.redis.clone())
-        .await
-        .map_err(|e| AppError::InternalError(format!("Failed to create session: {}", e)))?;
-
-    // Generate and store CSRF token
-    let csrf_token = store_csrf_token(&state, user.id, SESSION_TTL_SECS)
-        .await
-        .map_err(|e| AppError::InternalError(format!("Failed to create CSRF token: {}", e)))?;
-
-    // Set HttpOnly cookies
-    let cookie_headers = build_auth_cookie_headers(
-        &tokens.access_token,
-        &tokens.refresh_token,
-        state.config.jwt_access_expiry_secs,
-        state.config.jwt_refresh_expiry_secs,
-        &state.config.app_url,
-        persistent,
-    )?;
-
-    let response_body = AuthResponse {
-        csrf_token,
-        user: UserResponse {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            tenant_id: user.tenant_id,
-            avatar_url: user.avatar_url,
-            phone_number: user.phone_number,
-            job_title: user.job_title,
-            department: user.department,
-            bio: user.bio,
-            onboarding_completed: user.onboarding_completed,
-            last_login_at: Some(Utc::now()),
-        },
-    };
-
-    let mut response = Json(response_body).into_response();
-    response.headers_mut().extend(cookie_headers);
+    let mut response = Json(session.auth_response).into_response();
+    response.headers_mut().extend(session.cookie_headers);
     Ok(response)
 }
 
@@ -339,90 +279,30 @@ pub async fn sign_up_handler(
         auth::create_user_with_tenant(&state.db, &payload.email, &payload.name, &password_hash)
             .await?;
 
-    // Extract session metadata from headers
-    let ip_address = headers
-        .get("x-forwarded-for")
-        .and_then(|v| v.to_str().ok())
-        .map(|v| v.split(',').next().unwrap_or(v).trim().to_string());
-    let user_agent_val = headers
-        .get("user-agent")
-        .and_then(|v| v.to_str().ok())
-        .map(|s| s.to_string());
+    let (ip_address, user_agent) = extract_session_metadata(&headers);
 
-    // Generate token ID first, issue JWT, hash, then INSERT — no "pending" race
-    let refresh_expiry = Utc::now() + Duration::seconds(state.config.jwt_refresh_expiry_secs);
-    let token_id = Uuid::new_v4();
-
-    let tokens = issue_tokens(
-        user.id,
-        user.tenant_id,
-        user.role,
-        token_id,
-        &state.jwt_keys,
-        state.config.jwt_access_expiry_secs,
-        state.config.jwt_refresh_expiry_secs,
-    )?;
-
-    let token_hash = hash_token(&tokens.refresh_token);
-    auth::create_refresh_token(
-        &state.db,
-        token_id,
-        user.id,
-        &token_hash,
-        refresh_expiry,
-        ip_address.as_deref(),
-        user_agent_val.as_deref(),
-        true, // sign-up always uses persistent cookies
-    )
+    let session = build_auth_session(SessionParams {
+        user_id: user.id,
+        tenant_id: user.tenant_id,
+        role: user.role,
+        name: user.name,
+        email: user.email,
+        avatar_url: user.avatar_url,
+        phone_number: user.phone_number,
+        job_title: user.job_title,
+        department: user.department,
+        bio: user.bio,
+        onboarding_completed: user.onboarding_completed,
+        last_login_at: user.last_login_at,
+        ip_address,
+        user_agent,
+        persistent: true, // sign-up always uses persistent cookies
+        state: &state,
+    })
     .await?;
 
-    // Create session in Redis (30 minutes idle timeout)
-    let session_key = format!("session:{}:{}", user.id, token_id);
-
-    redis::cmd("SET")
-        .arg(&session_key)
-        .arg("1")
-        .arg("EX")
-        .arg(SESSION_TTL_SECS)
-        .query_async::<()>(&mut state.redis.clone())
-        .await
-        .map_err(|e| AppError::InternalError(format!("Failed to create session: {}", e)))?;
-
-    // Generate and store CSRF token
-    let csrf_token = store_csrf_token(&state, user.id, SESSION_TTL_SECS)
-        .await
-        .map_err(|e| AppError::InternalError(format!("Failed to create CSRF token: {}", e)))?;
-
-    // Set HttpOnly cookies
-    let cookie_headers = build_auth_cookie_headers(
-        &tokens.access_token,
-        &tokens.refresh_token,
-        state.config.jwt_access_expiry_secs,
-        state.config.jwt_refresh_expiry_secs,
-        &state.config.app_url,
-        true, // sign-up always uses persistent cookies
-    )?;
-
-    let response_body = AuthResponse {
-        csrf_token,
-        user: UserResponse {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            tenant_id: user.tenant_id,
-            avatar_url: user.avatar_url,
-            phone_number: user.phone_number,
-            job_title: user.job_title,
-            department: user.department,
-            bio: user.bio,
-            onboarding_completed: user.onboarding_completed,
-            last_login_at: user.last_login_at,
-        },
-    };
-
-    let mut response = Json(response_body).into_response();
-    response.headers_mut().extend(cookie_headers);
+    let mut response = Json(session.auth_response).into_response();
+    response.headers_mut().extend(session.cookie_headers);
     Ok(response)
 }
 
@@ -481,82 +361,33 @@ pub async fn refresh_handler(
     // Revoke the old refresh token
     auth::revoke_refresh_token(&state.db, claims.token_id).await?;
 
-    // Extract session metadata from headers
-    let ip_address = headers
-        .get("x-forwarded-for")
-        .and_then(|v| v.to_str().ok())
-        .map(|v| v.split(',').next().unwrap_or(v).trim().to_string());
-    let user_agent_val = headers
-        .get("user-agent")
-        .and_then(|v| v.to_str().ok())
-        .map(|s| s.to_string());
-
-    // Generate token ID first, issue JWT, hash, then INSERT — no "pending" race
-    let refresh_expiry = Utc::now() + Duration::seconds(state.config.jwt_refresh_expiry_secs);
-    let new_token_id = Uuid::new_v4();
-
-    let tokens = issue_tokens(
-        user.id,
-        user.tenant_id,
-        user.role,
-        new_token_id,
-        &state.jwt_keys,
-        state.config.jwt_access_expiry_secs,
-        state.config.jwt_refresh_expiry_secs,
-    )?;
-
     // Preserve remember-me preference from the original sign-in
     let persistent = stored_token.persistent;
 
-    let token_hash = hash_token(&tokens.refresh_token);
-    auth::create_refresh_token(
-        &state.db,
-        new_token_id,
-        user.id,
-        &token_hash,
-        refresh_expiry,
-        ip_address.as_deref(),
-        user_agent_val.as_deref(),
+    let (ip_address, user_agent) = extract_session_metadata(&headers);
+
+    let session = build_auth_session(SessionParams {
+        user_id: user.id,
+        tenant_id: user.tenant_id,
+        role: user.role,
+        name: user.name,
+        email: user.email,
+        avatar_url: user.avatar_url,
+        phone_number: user.phone_number,
+        job_title: user.job_title,
+        department: user.department,
+        bio: user.bio,
+        onboarding_completed: user.onboarding_completed,
+        last_login_at: user.last_login_at,
+        ip_address,
+        user_agent,
         persistent,
-    )
+        state: &state,
+    })
     .await?;
 
-    // Generate a new CSRF token
-
-    let csrf_token = store_csrf_token(&state, user.id, SESSION_TTL_SECS)
-        .await
-        .map_err(|e| AppError::InternalError(format!("Failed to create CSRF token: {}", e)))?;
-
-    // Set HttpOnly cookies
-    let cookie_headers = build_auth_cookie_headers(
-        &tokens.access_token,
-        &tokens.refresh_token,
-        state.config.jwt_access_expiry_secs,
-        state.config.jwt_refresh_expiry_secs,
-        &state.config.app_url,
-        persistent,
-    )?;
-
-    let response_body = AuthResponse {
-        csrf_token,
-        user: UserResponse {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            tenant_id: user.tenant_id,
-            avatar_url: user.avatar_url,
-            phone_number: user.phone_number,
-            job_title: user.job_title,
-            department: user.department,
-            bio: user.bio,
-            onboarding_completed: user.onboarding_completed,
-            last_login_at: user.last_login_at,
-        },
-    };
-
-    let mut response = Json(response_body).into_response();
-    response.headers_mut().extend(cookie_headers);
+    let mut response = Json(session.auth_response).into_response();
+    response.headers_mut().extend(session.cookie_headers);
     Ok(response)
 }
 
