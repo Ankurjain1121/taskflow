@@ -14,8 +14,8 @@
 #     OR psql available on the host (port 5432)
 #
 # Login credentials after seed:
-#   alice@acme.com / Password123!  (admin)
-#   bob@acme.com   / Password123!  (member)
+#   alice@acme.com / Admin@123  (admin)
+#   bob@acme.com   / Admin@123  (member)
 #   ... (all 20 users share the same password)
 # =============================================================================
 
@@ -105,10 +105,10 @@ fi
 log_info "Database connection OK."
 
 # =============================================================================
-# Generate Argon2id hash for 'Password123!'
+# Generate Argon2id hash for 'Admin@123'
 # Argon2::default() params: m=19456, t=2, p=1 (matches Rust auth crate)
 # =============================================================================
-log_step "Generating Argon2id password hash for 'Password123!'..."
+log_step "Generating Argon2id password hash for 'Admin@123'..."
 
 PASS_HASH=""
 
@@ -118,7 +118,7 @@ if command -v python3 &>/dev/null; then
 try:
     from argon2 import PasswordHasher
     ph = PasswordHasher(memory_cost=19456, time_cost=2, parallelism=1)
-    print(ph.hash('Password123!'))
+    print(ph.hash('Admin@123'))
 except ImportError:
     pass
 PYEOF
@@ -133,7 +133,7 @@ if [ -z "$PASS_HASH" ] && command -v pip3 &>/dev/null; then
 try:
     from argon2 import PasswordHasher
     ph = PasswordHasher(memory_cost=19456, time_cost=2, parallelism=1)
-    print(ph.hash('Password123!'))
+    print(ph.hash('Admin@123'))
 except ImportError:
     pass
 PYEOF
@@ -143,7 +143,7 @@ fi
 # Strategy 3: Use argon2 CLI if available
 if [ -z "$PASS_HASH" ] && command -v argon2 &>/dev/null; then
     log_warn "Using argon2 CLI as fallback..."
-    PASS_HASH=$(printf 'Password123!' | argon2 "seedsalt1234567" -id -m 14 -t 2 -p 1 -l 32 -e 2>/dev/null) || true
+    PASS_HASH=$(printf 'Admin@123' | argon2 "seedsalt1234567" -id -m 14 -t 2 -p 1 -l 32 -e 2>/dev/null) || true
 fi
 
 # Strategy 4: Query existing user hash from database (reuse from any existing user)
@@ -152,7 +152,7 @@ if [ -z "$PASS_HASH" ]; then
     PASS_HASH=$(psql_cmd -tAc "SELECT password_hash FROM users LIMIT 1" 2>/dev/null || true)
     PASS_HASH="${PASS_HASH%$'\n'}"  # trim newline
     if [ -n "$PASS_HASH" ]; then
-        log_warn "Reusing existing hash — seed users will share that hash (password may differ from Password123!)"
+        log_warn "Reusing existing hash — seed users will share that hash (password may differ from Admin@123)"
     fi
 fi
 
@@ -322,9 +322,9 @@ if [ "$ERRORS" -eq 0 ]; then
     echo ""
     echo -e "${GREEN}  Login credentials:${NC}"
     echo "    URL:      http://taskflow.paraslace.in  (or http://localhost)"
-    echo "    Admin:    alice@acme.com  / Password123!"
-    echo "    Member:   bob@acme.com   / Password123!"
-    echo "    (all 20 accounts use Password123!)"
+    echo "    Admin:    alice@acme.com  / Admin@123"
+    echo "    Member:   bob@acme.com   / Admin@123"
+    echo "    (all 20 accounts use Admin@123)"
     echo ""
 else
     log_error "$ERRORS check(s) failed. Review the output above."

@@ -122,6 +122,29 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
           </a>
         }
 
+        @if (!collapsed()) {
+          <a routerLink="/discover"
+             routerLinkActive="active"
+             [routerLinkActiveOptions]="{ exact: true }"
+             (click)="onNavClick()"
+             class="home-item flex items-center gap-3 px-3 py-2 rounded-md text-sm mb-2">
+            <span class="nav-indicator"></span>
+            <i class="pi pi-compass text-sm flex-shrink-0"
+               style="color: var(--sidebar-text-muted)"></i>
+            <span style="color: var(--sidebar-text-secondary)">Discover</span>
+          </a>
+        } @else {
+          <a routerLink="/discover"
+             routerLinkActive="active"
+             [routerLinkActiveOptions]="{ exact: true }"
+             (click)="onNavClick()"
+             class="collapsed-home-btn mb-1"
+             pTooltip="Discover" tooltipPosition="right">
+            <i class="pi pi-compass text-sm"
+               style="color: var(--sidebar-text-muted)"></i>
+          </a>
+        }
+
         <app-sidebar-projects
           [collapsed]="collapsed()"
           (navClick)="onNavClick()" />
