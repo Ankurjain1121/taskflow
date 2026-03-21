@@ -17,20 +17,25 @@ export class SwUpdateService {
       return;
     }
 
-    // Listen for new version ready
+    // When a new version is ready, activate it and reload immediately
     this.swUpdate.versionUpdates
       .pipe(
         filter((evt): evt is VersionReadyEvent => evt.type === 'VERSION_READY'),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe(() => {
-        this.messageService.add({
-          severity: 'info',
-          summary: 'Update Available',
-          detail: 'A new version is available. Click to update.',
-          sticky: true,
-          key: 'sw-update',
-          data: { action: 'reload' },
+        this.swUpdate.activateUpdate().then(() => {
+          document.location.reload();
+        }).catch(() => {
+          // If auto-activate fails, show a toast as fallback
+          this.messageService.add({
+            severity: 'info',
+            summary: 'Update Available',
+            detail: 'A new version is ready. Click Reload to update.',
+            sticky: true,
+            key: 'sw-update',
+            data: { action: 'reload' },
+          });
         });
       });
 

@@ -437,6 +437,7 @@ pub async fn accept_handler(
         refresh_expiry,
         None,
         None,
+        true, // invitation accept always uses persistent cookies
     )
     .await?;
 

@@ -35,6 +35,7 @@ pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<Option<User>
 }
 
 /// Create a new refresh token record with pre-generated ID and optional metadata
+#[allow(clippy::too_many_arguments)]
 pub async fn create_refresh_token(
     pool: &PgPool,
     id: Uuid,
@@ -43,11 +44,12 @@ pub async fn create_refresh_token(
     expires_at: DateTime<Utc>,
     ip_address: Option<&str>,
     user_agent: Option<&str>,
+    persistent: bool,
 ) -> Result<Uuid, sqlx::Error> {
     sqlx::query(
         r#"
-        INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, ip_address, user_agent, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, ip_address, user_agent, persistent, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
         "#,
     )
     .bind(id)
@@ -56,6 +58,7 @@ pub async fn create_refresh_token(
     .bind(expires_at)
     .bind(ip_address)
     .bind(user_agent)
+    .bind(persistent)
     .execute(pool)
     .await?;
 
@@ -71,7 +74,7 @@ pub async fn get_refresh_token(
         r#"
         SELECT id, user_id, token_hash, expires_at, revoked_at,
                ip_address, user_agent, device_name, last_active_at,
-               created_at
+               persistent, created_at
         FROM refresh_tokens
         WHERE id = $1
         "#,

@@ -50,6 +50,7 @@ export function isTwoFactorRequired(
 export interface SignInRequest {
   email: string;
   password: string;
+  remember_me?: boolean;
 }
 
 export interface SignUpRequest {
@@ -98,7 +99,7 @@ export class AuthService {
           this.handleAuthSuccess(response);
           return true;
         }),
-        catchError(() =>
+        catchError((meError) =>
           // /me failed — try refreshing the token
           this.http
             .post<TokenResponse>(
@@ -111,8 +112,17 @@ export class AuthService {
                 this.handleAuthSuccess(response);
                 return true;
               }),
-              catchError(() => {
-                this.clearLocalState();
+              catchError((refreshError) => {
+                // Only clear session if the server explicitly rejected us (4xx).
+                // Network errors (status 0) and server errors (5xx) mean the
+                // backend is unreachable (e.g. during a deploy or restart) —
+                // keep the session flag so the next page load can retry.
+                const meStatus = meError?.status ?? 0;
+                const refreshStatus = refreshError?.status ?? 0;
+                const isClientError = (s: number) => s >= 400 && s < 500;
+                if (isClientError(meStatus) || isClientError(refreshStatus)) {
+                  this.clearLocalState();
+                }
                 return of(false);
               }),
             ),
@@ -120,9 +130,17 @@ export class AuthService {
       );
   }
 
-  signIn(email: string, password: string): Observable<SignInResponse> {
+  signIn(
+    email: string,
+    password: string,
+    rememberMe: boolean = true,
+  ): Observable<SignInResponse> {
     return this.http
-      .post<SignInResponse>(`${this.apiUrl}/sign-in`, { email, password })
+      .post<SignInResponse>(`${this.apiUrl}/sign-in`, {
+        email,
+        password,
+        remember_me: rememberMe,
+      })
       .pipe(
         tap((response) => {
           if (!isTwoFactorRequired(response)) {
