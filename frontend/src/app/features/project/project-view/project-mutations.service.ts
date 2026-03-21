@@ -336,7 +336,7 @@ export class ProjectMutationsService {
     const now = new Date().toISOString();
     const tempColumn: Column = {
       id: tempId,
-      board_id: boardId,
+      project_id: boardId,
       name: columnData.name,
       position: 'zzzzzz',
       color: columnData.color ?? '',

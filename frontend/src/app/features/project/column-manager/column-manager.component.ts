@@ -547,7 +547,7 @@ export class ColumnManagerComponent implements OnInit {
     const tempId = crypto.randomUUID();
     const tempColumn: Column = {
       id: tempId,
-      board_id: this.boardId(),
+      project_id: this.boardId(),
       name: this.newColumnName.trim(),
       position,
       color: this.newColumnColor(),

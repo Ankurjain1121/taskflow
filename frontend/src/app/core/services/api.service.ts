@@ -15,7 +15,7 @@ import { finalize, shareReplay } from 'rxjs/operators';
 export class ApiService {
   private http = inject(HttpClient);
   private baseUrl = '/api';
-  private pendingGetRequests = new Map<string, Observable<any>>();
+  private pendingGetRequests = new Map<string, Observable<unknown>>();
 
   /**
    * GET request with automatic deduplication.

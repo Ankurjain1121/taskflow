@@ -3,21 +3,16 @@ import {
   signal,
   computed,
   inject,
-  Injector,
-  OnInit,
-  OnDestroy,
   ChangeDetectionStrategy,
   HostListener,
-  afterNextRender,
   effect,
+  ViewChild,
 } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { forkJoin, switchMap, of, catchError, EMPTY } from 'rxjs';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { InputTextModule } from 'primeng/inputtext';
-import { Textarea } from 'primeng/textarea';
 import { ButtonModule } from 'primeng/button';
 import { Tooltip } from 'primeng/tooltip';
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
@@ -41,6 +36,7 @@ import { SubtaskListComponent } from '../project/subtask-list/subtask-list.compo
 import { CommentListComponent } from '../tasks/components/comment-list/comment-list.component';
 import { ActivityTimelineComponent } from '../tasks/components/activity-timeline/activity-timeline.component';
 import { TaskDetailSidebarComponent } from './task-detail-sidebar.component';
+import { TaskDetailHeaderComponent } from './task-detail-header.component';
 import { RecentItemsService } from '../../core/services/recent-items.service';
 import { WorkspaceContextService } from '../../core/services/workspace-context.service';
 import { MessageService } from 'primeng/api';
@@ -53,8 +49,6 @@ import { Toast } from 'primeng/toast';
     CommonModule,
     RouterModule,
     FormsModule,
-    InputTextModule,
-    Textarea,
     ButtonModule,
     Tooltip,
     Tabs,
@@ -66,6 +60,7 @@ import { Toast } from 'primeng/toast';
     CommentListComponent,
     ActivityTimelineComponent,
     TaskDetailSidebarComponent,
+    TaskDetailHeaderComponent,
     Toast,
   ],
   providers: [MessageService],
@@ -85,28 +80,10 @@ import { Toast } from 'primeng/toast';
       .breadcrumb-link:hover {
         color: var(--primary);
       }
-      .field-label {
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: var(--muted-foreground);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 0.25rem;
-      }
       .main-card {
         background: var(--card);
         border: 1px solid var(--border);
         border-radius: 0.75rem;
-      }
-      .field-editable {
-        cursor: pointer;
-        padding: 0.25rem 0.5rem;
-        margin: 0 -0.5rem;
-        border-radius: 0.375rem;
-        transition: background 0.15s;
-      }
-      .field-editable:hover {
-        background: var(--surface-hover, rgba(0, 0, 0, 0.04));
       }
     `,
   ],
@@ -260,74 +237,12 @@ import { Toast } from 'primeng/toast';
 
             <!-- Title + Description Card -->
             <div class="main-card">
-              <div class="p-5 pb-4">
-                <!-- Title: Read/Edit -->
-                @if (editingField() === 'title') {
-                  <div data-edit-field="title">
-                    <input
-                      pInputText
-                      type="text"
-                      [ngModel]="editTitle()"
-                      (ngModelChange)="editTitle.set($event)"
-                      (blur)="saveTitle(); stopEditing()"
-                      (keydown.escape)="cancelEditing('title')"
-                      (keydown.enter)="$any($event.target).blur()"
-                      class="w-full text-xl font-bold border-0 p-0"
-                      style="
-                        background: transparent;
-                        color: var(--foreground);
-                      "
-                      placeholder="Task title"
-                    />
-                  </div>
-                } @else {
-                  <h1
-                    (click)="startEditing('title')"
-                    class="text-xl font-bold field-editable m-0"
-                    style="color: var(--foreground)"
-                  >
-                    {{ editTitle() || 'Untitled' }}
-                  </h1>
-                }
-              </div>
-
-              <!-- Description: Read/Edit -->
-              <div class="px-5 pb-5">
-                <label class="field-label">Description</label>
-                @if (editingField() === 'description') {
-                  <div data-edit-field="description">
-                    <textarea
-                      pTextarea
-                      [ngModel]="editDescription()"
-                      (ngModelChange)="editDescription.set($event)"
-                      (blur)="saveDescription(); stopEditing()"
-                      (keydown.escape)="cancelEditing('description')"
-                      rows="4"
-                      class="w-full mt-1"
-                      placeholder="Add a description..."
-                      [autoResize]="true"
-                    ></textarea>
-                  </div>
-                } @else {
-                  <div
-                    (click)="startEditing('description')"
-                    class="field-editable mt-1 text-sm whitespace-pre-wrap"
-                    style="color: var(--foreground); min-height: 2rem;"
-                  >
-                    @if (editDescription()) {
-                      {{ editDescription() }}
-                    } @else {
-                      <span
-                        style="
-                          color: var(--muted-foreground);
-                          font-style: italic;
-                        "
-                        >Click to add a description...</span
-                      >
-                    }
-                  </div>
-                }
-              </div>
+              <app-task-detail-header
+                [title]="editTitle()"
+                [description]="editDescription()"
+                (titleSaved)="onTitleSaved($event)"
+                (descriptionSaved)="onDescriptionSaved($event)"
+              />
             </div>
 
             <!-- Subtasks -->
@@ -406,11 +321,13 @@ import { Toast } from 'primeng/toast';
     }
   `,
 })
-export class TaskDetailPageComponent implements OnInit, OnDestroy {
+export class TaskDetailPageComponent {
+  @ViewChild(TaskDetailHeaderComponent)
+  private headerComponent?: TaskDetailHeaderComponent;
+
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private location = inject(Location);
-  private injector = inject(Injector);
   private taskService = inject(TaskService);
   private projectService = inject(ProjectService);
   private workspaceService = inject(WorkspaceService);
@@ -433,7 +350,6 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
 
   editTitle = signal('');
   editDescription = signal('');
-  editingField = signal<string | null>(null);
 
   constructor() {
     effect(() => {
@@ -446,18 +362,9 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
 
   @HostListener('document:keydown.escape', ['$event'])
   onEscapeKey(event: KeyboardEvent): void {
-    // Don't navigate back if user is editing a field
-    if (this.editingField()) return;
+    if (this.headerComponent?.isEditing) return;
     event.preventDefault();
     this.goBack();
-  }
-
-  ngOnInit(): void {
-    // Task loading is handled by the effect reacting to taskId changes
-  }
-
-  ngOnDestroy(): void {
-    // Cleanup handled by Angular's effect/signal system
   }
 
   goBack(): void {
@@ -473,7 +380,7 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  // --- Data Loading ---
+  // --- Data Loading (Item 13: nested subscribe replaced with switchMap/pipe) ---
 
   private loadTask(taskId: string): void {
     this.loading.set(true);
@@ -505,40 +412,49 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Loads board, columns, and workspace in a flat RxJS pipeline
+   * instead of nesting .subscribe() calls.
+   */
   private loadBoardContext(boardId: string): void {
     forkJoin({
       board: this.projectService.getBoard(boardId),
       columns: this.projectService.listColumns(boardId),
-    }).subscribe({
-      next: ({ board, columns }) => {
-        this.board.set(board);
-        this.columns.set(columns);
+    })
+      .pipe(
+        switchMap(({ board, columns }) => {
+          this.board.set(board);
+          this.columns.set(columns);
 
-        this.workspaceService.get(board.workspace_id).subscribe({
-          next: (ws) => {
-            this.workspace.set(ws);
-            // Record task view for recent items
-            const t = this.task();
-            if (t) {
-              this.recentItemsService.recordTaskView({
-                id: t.id,
-                title: t.title,
-                boardName: board.name,
-                workspaceId: board.workspace_id,
-                workspaceName: ws.name,
-                boardId: board.id,
-              });
-            }
-          },
-          error: () => {
-            // Non-critical
-          },
-        });
-      },
-      error: () => {
-        // Non-critical
-      },
-    });
+          return this.workspaceService.get(board.workspace_id).pipe(
+            switchMap((ws) => {
+              this.workspace.set(ws);
+              // Record task view for recent items
+              const t = this.task();
+              if (t) {
+                this.recentItemsService.recordTaskView({
+                  id: t.id,
+                  title: t.title,
+                  boardName: board.name,
+                  workspaceId: board.workspace_id,
+                  workspaceName: ws.name,
+                  boardId: board.id,
+                });
+              }
+              return of(undefined);
+            }),
+            catchError(() => {
+              // Non-critical: workspace load failure
+              return EMPTY;
+            }),
+          );
+        }),
+        catchError(() => {
+          // Non-critical: board context load failure
+          return EMPTY;
+        }),
+      )
+      .subscribe();
   }
 
   private loadParentTask(task: Task): void {
@@ -552,53 +468,20 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  // --- Inline Editing ---
+  // --- Title / Description save handlers ---
 
-  startEditing(field: string): void {
-    this.editingField.set(field);
-    afterNextRender(
-      () => {
-        const wrapper = document.querySelector(`[data-edit-field="${field}"]`);
-        if (!wrapper) return;
-
-        if (field === 'title' || field === 'description') {
-          const input = wrapper.querySelector('input, textarea') as HTMLElement;
-          input?.focus();
-        }
-      },
-      { injector: this.injector },
-    );
+  onTitleSaved(title: string): void {
+    this.editTitle.set(title);
+    this.updateTask({ title });
   }
 
-  stopEditing(): void {
-    this.editingField.set(null);
+  onDescriptionSaved(desc: string): void {
+    this.editDescription.set(desc);
+    const description = desc || null;
+    this.updateTask({ description });
   }
 
-  cancelEditing(field: string): void {
-    const t = this.task();
-    if (t) {
-      if (field === 'title') this.editTitle.set(t.title);
-      if (field === 'description')
-        this.editDescription.set(t.description ?? '');
-    }
-    this.editingField.set(null);
-  }
-
-  // --- Saving ---
-
-  saveTitle(): void {
-    const t = this.task();
-    if (!t || this.editTitle() === t.title) return;
-    this.updateTask({ title: this.editTitle() });
-  }
-
-  saveDescription(): void {
-    const t = this.task();
-    if (!t) return;
-    const newDesc = this.editDescription() || null;
-    if (newDesc === (t.description ?? null)) return;
-    this.updateTask({ description: newDesc });
-  }
+  // --- Field updates ---
 
   onPriorityChange(priority: TaskPriority): void {
     this.updateTask({ priority } as UpdateTaskRequest);
@@ -621,7 +504,6 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
     const t = this.task();
     if (!t) return;
 
-    // Apply optimistically
     const optimistic = { ...t, ...updates } as Task;
     this.task.set(optimistic);
 
@@ -638,7 +520,6 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
           this.editDescription.set(updated.description ?? '');
       },
       error: () => {
-        // Rollback
         this.task.set(t);
         this.editTitle.set(t.title);
         this.editDescription.set(t.description ?? '');
@@ -834,7 +715,6 @@ export class TaskDetailPageComponent implements OnInit, OnDestroy {
     if (!t) return;
     if (!confirm('Are you sure you want to delete this task?')) return;
 
-    // Navigate back immediately, delete in background
     this.goBack();
     this.taskService.deleteTask(t.id).subscribe();
   }

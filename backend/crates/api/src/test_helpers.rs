@@ -33,7 +33,7 @@ pub mod helpers {
         let _ = dotenvy::from_path("../../.env");
         let _ = dotenvy::dotenv();
         std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgresql://taskflow:REDACTED_PG_PASSWORD@localhost:5433/taskflow".to_string())
+            .expect("DATABASE_URL must be set for tests (check .env file)")
     }
 
     /// A dummy argon2 hash used for test user passwords.

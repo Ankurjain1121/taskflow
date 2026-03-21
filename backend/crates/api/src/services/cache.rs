@@ -73,17 +73,28 @@ pub fn workspace_members_key(workspace_id: &uuid::Uuid) -> String {
 pub async fn cache_del_prefix(redis: &redis::aio::ConnectionManager, prefix: &str) {
     let mut conn = redis.clone();
     let pattern = format!("{}*", prefix);
-    // Use SCAN to find matching keys, then DEL them
-    let keys: Vec<String> = redis::cmd("KEYS")
-        .arg(&pattern)
-        .query_async(&mut conn)
-        .await
-        .unwrap_or_default();
-    if !keys.is_empty() {
-        let mut conn2 = redis.clone();
-        for key in &keys {
-            let _: std::result::Result<(), _> = redis::AsyncCommands::del(&mut conn2, key).await;
+    let mut cursor: u64 = 0;
+    loop {
+        let (next_cursor, keys): (u64, Vec<String>) = redis::cmd("SCAN")
+            .arg(cursor)
+            .arg("MATCH")
+            .arg(&pattern)
+            .arg("COUNT")
+            .arg(100)
+            .query_async(&mut conn)
+            .await
+            .unwrap_or((0, vec![]));
+        if !keys.is_empty() {
+            let mut del_conn = redis.clone();
+            for key in &keys {
+                let _: std::result::Result<(), _> =
+                    redis::AsyncCommands::del(&mut del_conn, key).await;
+            }
         }
+        if next_cursor == 0 {
+            break;
+        }
+        cursor = next_cursor;
     }
 }
 

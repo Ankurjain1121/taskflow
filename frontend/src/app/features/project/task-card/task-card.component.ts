@@ -1084,10 +1084,7 @@ export class TaskCardComponent {
   cardFields = input<CardFields>(DEFAULT_CARD_FIELDS);
   stripeColor = input<string | null>(null);
 
-  readonly daysInColumn = computed(() => {
-    // column_entered_at was removed in schema refactor; always return 0
-    return 0;
-  });
+  readonly daysInColumn = computed(() => 0);
 
   readonly dotsArray = computed(() =>
     Array(Math.min(this.daysInColumn(), 7)).fill(0),

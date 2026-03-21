@@ -16,8 +16,8 @@ services:
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY must be set in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY must be set in .env}
       MINIO_API_CORS_ALLOW_ORIGIN: "${APP_URL:-http://localhost:4200}"
     volumes:
       - minio-data:/data
@@ -50,8 +50,8 @@ services:
     container_name: taskflow-minio-setup
     entrypoint: /bin/sh -c "until mc alias set myminio http://minio:9000 $${MINIO_ACCESS_KEY} $${MINIO_SECRET_KEY}; do sleep 2; done; mc mb myminio/$${MINIO_BUCKET} --ignore-existing; mc anonymous set none myminio/$${MINIO_BUCKET};"
     environment:
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY must be set in .env}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY must be set in .env}
       MINIO_BUCKET: ${MINIO_BUCKET:-task-attachments}
     depends_on:
       minio:
@@ -71,8 +71,8 @@ services:
     environment:
       DATABASE_URL: postgresql://taskflow_app:${POSTGRES_PASSWORD:-REDACTED_PG_PASSWORD}@10.0.2.1:5432/${POSTGRES_DB:-taskflow}
       APP_DATABASE_URL: postgresql://taskflow_app:${POSTGRES_PASSWORD:-REDACTED_PG_PASSWORD}@10.0.2.1:5432/${POSTGRES_DB:-taskflow}
-      DB_MAX_CONNECTIONS: ${DB_MAX_CONNECTIONS:-30}
-      DB_MIN_CONNECTIONS: ${DB_MIN_CONNECTIONS:-5}
+      DB_MAX_CONNECTIONS: ${DB_MAX_CONNECTIONS:-80}
+      DB_MIN_CONNECTIONS: ${DB_MIN_CONNECTIONS:-20}
       HOST: 0.0.0.0
       PORT: 8080
       RUST_LOG: ${RUST_LOG:-info,sqlx=warn}
@@ -83,8 +83,8 @@ services:
       REDIS_URL: redis://10.0.2.1:6379/0
       MINIO_ENDPOINT: http://minio:9000
       MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-http://localhost:9000}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY must be set in .env}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY must be set in .env}
       MINIO_BUCKET: ${MINIO_BUCKET:-task-attachments}
       NOVU_API_URL: ""
       NOVU_API_KEY: ""

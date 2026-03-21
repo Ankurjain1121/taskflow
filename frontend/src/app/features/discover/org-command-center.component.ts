@@ -122,9 +122,9 @@ export class OrgCommandCenterComponent {
 
   readonly healthColor = computed(() => {
     const s = this.healthScore();
-    if (s >= 80) return '#22c55e';
-    if (s >= 60) return '#f59e0b';
-    return '#ef4444';
+    if (s >= 80) return '#5E8C4A';
+    if (s >= 60) return '#D4A853';
+    return '#B81414';
   });
 
   readonly totalProjects = computed(() =>
@@ -139,6 +139,11 @@ export class OrgCommandCenterComponent {
   );
 
   readonly totalMembers = computed(() => {
+    // Prefer workload data (actual unique members with tasks) over workspace member_count
+    // to stay consistent with the health score's workloadBalance calculation
+    const workloadMembers = this.allWorkloads().length;
+    if (workloadMembers > 0) return workloadMembers;
+    // Fallback: sum workspace member counts
     const ws = this.ctx.workspaces();
     return ws.reduce((sum, w) => sum + (w.member_count ?? 0), 0);
   });
@@ -203,14 +208,18 @@ export class OrgCommandCenterComponent {
         const allVelocity = dashboards.flatMap((d) => d.velocity);
         this.velocityData.set(allVelocity);
 
-        // Weighted on-time percentage
-        const totalCompleted = dashboards.reduce((s, d) => s + d.on_time.total_completed, 0);
+        // Weighted on-time percentage (guard against missing on_time)
+        const totalCompleted = dashboards.reduce(
+          (s, d) => s + (d.on_time?.total_completed ?? 0),
+          0,
+        );
         const weightedOnTime =
           totalCompleted === 0
             ? 100
             : Math.round(
                 dashboards.reduce(
-                  (s, d) => s + d.on_time.on_time_pct * d.on_time.total_completed,
+                  (s, d) =>
+                    s + (d.on_time?.on_time_pct ?? 100) * (d.on_time?.total_completed ?? 0),
                   0,
                 ) / totalCompleted,
               );
@@ -231,25 +240,37 @@ export class OrgCommandCenterComponent {
     const totalTasks = projects.reduce((s, p) => s + p.total_tasks, 0);
     const totalOverdue = projects.reduce((s, p) => s + p.overdue_tasks, 0);
 
+    // On-time rate: if no tasks completed, treat as neutral (100%)
     const onTimeRate = this.onTimePct() / 100;
     const overdueRatio = totalTasks === 0 ? 0 : totalOverdue / totalTasks;
 
+    // Workload balance: fraction of members NOT overloaded
     const workloads = this.allWorkloads();
     const overloaded = workloads.filter((m) => m.active_tasks >= 10).length;
     const totalMembers = workloads.length || 1;
     const workloadBalance = 1 - overloaded / totalMembers;
 
+    // Velocity trend: ratio of last vs previous period
+    // Neutral (steady or no data) = 1.0 = full marks
+    // Declining (0.5) = 0, improving (1.5+) = 1.0
     const vel = this.velocityData();
-    let velocityTrend = 0.5;
+    let velocityFactor = 1.0; // default: full marks when no data
     if (vel.length >= 2) {
       const last = vel[vel.length - 1]?.tasks_completed ?? 0;
-      const prev = vel[vel.length - 2]?.tasks_completed ?? 1;
-      velocityTrend = prev === 0 ? 0.5 : Math.min(1.5, Math.max(0.5, last / prev));
+      const prev = vel[vel.length - 2]?.tasks_completed ?? 0;
+      if (prev > 0) {
+        const ratio = Math.min(1.5, Math.max(0.5, last / prev));
+        // Map [0.5, 1.5] → [0, 1] where 1.0 (steady) = 0.5
+        // Then bias so steady gets 0.8 (not penalized for maintaining pace)
+        velocityFactor = ratio >= 1.0
+          ? 0.8 + (ratio - 1.0) * 0.4   // 1.0→0.8, 1.5→1.0
+          : (ratio - 0.5) * 1.6;         // 0.5→0.0, 1.0→0.8
+      }
     }
-    const normalizedVelocity = (velocityTrend - 0.5) / 1.0;
 
+    // Weighted score: on-time 40%, overdue 30%, workload 20%, velocity 10%
     const score =
-      onTimeRate * 40 + (1 - overdueRatio) * 30 + workloadBalance * 20 + normalizedVelocity * 10;
+      onTimeRate * 40 + (1 - overdueRatio) * 30 + workloadBalance * 20 + velocityFactor * 10;
     return Math.round(Math.min(100, Math.max(0, score)));
   }
 }
