@@ -11,7 +11,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject } from 'rxjs';
+import { Subject, forkJoin } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -19,17 +19,27 @@ import { Router } from '@angular/router';
 import { generateKeyBetween } from 'fractional-indexing';
 import {
   CdkDropList,
-  CdkDrag,
   CdkDragDrop,
-  CdkDragHandle,
   moveItemInArray,
 } from '@angular/cdk/drag-drop';
 import {
   TaskService,
   Task,
+  TaskPriority,
   ChildTaskListResponse,
 } from '../../../core/services/task.service';
-import { Column } from '../../../core/services/project.service';
+import {
+  Column,
+  ProjectMember,
+  ProjectService,
+} from '../../../core/services/project.service';
+import {
+  WorkspaceService,
+  WorkspaceLabel,
+} from '../../../core/services/workspace.service';
+import { SubtaskRowComponent } from './subtask-row.component';
+import { MessageService } from 'primeng/api';
+import { Toast } from 'primeng/toast';
 
 @Component({
   selector: 'app-subtask-list',
@@ -38,11 +48,13 @@ import { Column } from '../../../core/services/project.service';
     CommonModule,
     FormsModule,
     CdkDropList,
-    CdkDrag,
-    CdkDragHandle,
+    SubtaskRowComponent,
+    Toast,
   ],
+  providers: [MessageService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <p-toast />
     <div class="space-y-3">
       <!-- Header with progress -->
       <div class="flex items-center justify-between">
@@ -115,112 +127,68 @@ import { Column } from '../../../core/services/project.service';
           </svg>
         </div>
       } @else {
-        <!-- Child task items with drag-drop -->
-        <div
-          cdkDropList
-          (cdkDropListDropped)="onReorder($event)"
-          class="space-y-1"
-        >
-          @for (child of children(); track child.id) {
-            <div
-              cdkDrag
-              class="group flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[var(--muted)] transition-colors cursor-pointer"
-            >
-              <!-- Drag placeholder -->
-              <div
-                class="border-2 border-dashed border-[var(--border)] rounded-md px-2 py-1.5"
-                *cdkDragPlaceholder
-              ></div>
+        <!-- Empty state -->
+        @if (children().length === 0) {
+          <div class="text-center py-4">
+            <p class="text-sm text-[var(--muted-foreground)]">
+              No subtasks yet. Break this task into smaller pieces to track progress.
+            </p>
+          </div>
+        }
 
-              <!-- Drag handle -->
-              <div
-                cdkDragHandle
-                class="opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-opacity"
-              >
-                <svg
-                  class="w-3.5 h-3.5"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <circle cx="9" cy="6" r="1.5" />
-                  <circle cx="15" cy="6" r="1.5" />
-                  <circle cx="9" cy="12" r="1.5" />
-                  <circle cx="15" cy="12" r="1.5" />
-                  <circle cx="9" cy="18" r="1.5" />
-                  <circle cx="15" cy="18" r="1.5" />
-                </svg>
-              </div>
-
-              <!-- Priority dot -->
-              <span class="w-2 h-2 rounded-full shrink-0" [style.background]="getPriorityDotColor(child.priority)"></span>
-
-              <!-- Checkbox for complete/uncomplete -->
-              <input
-                type="checkbox"
-                [checked]="isChildDone(child)"
-                (change)="onToggleComplete(child)"
-                class="h-4 w-4 rounded border-[var(--border)] text-primary focus:ring-ring cursor-pointer"
-              />
-
-              <!-- Title (click to navigate) -->
-              <span
-                (click)="navigateToChild(child)"
-                class="flex-1 text-sm hover:text-primary truncate"
-                [class.line-through]="isChildDone(child)"
-                [style.color]="isChildDone(child) ? 'var(--muted-foreground)' : 'var(--foreground)'"
-              >
-                {{ child.title }}
-              </span>
-
-              <!-- Assignee avatars -->
-              @for (a of child.assignees || []; track a.id) {
-                <span
-                  class="shrink-0 w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] font-medium flex items-center justify-center"
-                  [title]="a.display_name"
-                >
-                  {{ getInitials(a.display_name) }}
-                </span>
-              }
-
-              <!-- Due date -->
-              @if (child.due_date && !isChildDone(child)) {
-                <span
-                  class="shrink-0 text-xs whitespace-nowrap"
-                  [class]="getDueDateClass(child.due_date)"
-                >
-                  {{ formatDueDate(child.due_date) }}
-                </span>
-              }
-
-              <!-- Delete button -->
-              <button
-                (click)="onDelete(child); $event.stopPropagation()"
-                class="opacity-0 group-hover:opacity-100 p-1 text-[var(--muted-foreground)] hover:text-red-500 transition-all"
-                title="Delete subtask"
-              >
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          }
-        </div>
-
-        <!-- Add new subtask input -->
-        <div class="flex items-center gap-2 px-2 py-1.5">
-          <svg
-            class="w-4 h-4 text-[var(--muted-foreground)]"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <!-- Child task rows with drag-drop -->
+        @if (children().length > 0) {
+          <div
+            cdkDropList
+            (cdkDropListDropped)="onReorder($event)"
+            class="space-y-0.5"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
+            @for (child of children(); track child.id) {
+              <app-subtask-row
+                [child]="child"
+                [boardColumns]="boardColumns()"
+                [projectMembers]="projectMembers()"
+                [workspaceLabels]="workspaceLabels()"
+                (statusChanged)="onStatusChanged($event)"
+                (priorityChanged)="onPriorityChanged($event)"
+                (titleChanged)="onTitleChanged($event)"
+                (assigneesChanged)="onAssigneesChanged($event)"
+                (labelsChanged)="onLabelsChanged($event)"
+                (dueDateChanged)="onDueDateChanged($event)"
+                (deleted)="onDeleted($event)"
+                (navigate)="onNavigate($event)"
+              />
+            }
+          </div>
+        }
+
+        <!-- Enhanced add subtask form -->
+        <div class="flex items-center gap-2 px-2 py-1.5 border-t border-[var(--border)] mt-1">
+          <!-- Status selector for new subtask -->
+          <select
+            [ngModel]="newStatusId()"
+            (ngModelChange)="newStatusId.set($event)"
+            class="text-xs px-1.5 py-1 rounded-md bg-[var(--secondary)] border border-[var(--border)] text-[var(--foreground)] cursor-pointer"
+          >
+            @for (col of boardColumns(); track col.id) {
+              <option [value]="col.id">{{ col.name }}</option>
+            }
+          </select>
+
+          <!-- Priority selector for new subtask -->
+          <select
+            [ngModel]="newPriority()"
+            (ngModelChange)="newPriority.set($event)"
+            class="text-xs px-1.5 py-1 rounded-md bg-[var(--secondary)] border border-[var(--border)] text-[var(--foreground)] cursor-pointer"
+          >
+            <option value="none">No priority</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+          </select>
+
+          <!-- Title input -->
           <input
             type="text"
             [ngModel]="newSubtaskTitle()"
@@ -229,6 +197,18 @@ import { Column } from '../../../core/services/project.service';
             placeholder="Add a subtask..."
             class="flex-1 text-sm border-0 focus:ring-0 px-0 py-0 bg-transparent text-[var(--foreground)] placeholder-[var(--muted-foreground)]"
           />
+
+          <!-- Add button -->
+          <button
+            (click)="onAdd()"
+            [disabled]="!newSubtaskTitle().trim()"
+            class="text-xs px-2.5 py-1 rounded-md font-medium transition-colors"
+            [class]="newSubtaskTitle().trim()
+              ? 'bg-primary text-[var(--primary-foreground)] hover:opacity-90'
+              : 'bg-[var(--muted)] text-[var(--muted-foreground)] cursor-not-allowed'"
+          >
+            + Add
+          </button>
         </div>
       }
     </div>
@@ -236,9 +216,6 @@ import { Column } from '../../../core/services/project.service';
   styles: [
     `
       @reference "tailwindcss";
-      .cdk-drag-preview {
-        @apply shadow-md rounded-md bg-[var(--card)] px-2 py-1.5;
-      }
       .cdk-drag-animating {
         transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
       }
@@ -250,19 +227,28 @@ import { Column } from '../../../core/services/project.service';
 })
 export class SubtaskListComponent implements OnInit, OnChanges {
   private taskService = inject(TaskService);
+  private projectService = inject(ProjectService);
+  private workspaceService = inject(WorkspaceService);
+  private messageService = inject(MessageService);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
   private taskId$ = new Subject<string>();
 
   taskId = input.required<string>();
   boardColumns = input<Column[]>([]);
+  projectId = input<string>('');
+  workspaceId = input<string>('');
   childrenLoaded = output<number>();
 
   loading = signal(true);
   children = signal<Task[]>([]);
   progress = signal<{ completed: number; total: number }>({ completed: 0, total: 0 });
   newSubtaskTitle = signal('');
+  newStatusId = signal('');
+  newPriority = signal<string>('none');
   errorMessage = signal<string | null>(null);
+  projectMembers = signal<ProjectMember[]>([]);
+  workspaceLabels = signal<WorkspaceLabel[]>([]);
 
   ngOnInit(): void {
     this.taskId$.pipe(
@@ -281,11 +267,27 @@ export class SubtaskListComponent implements OnInit, OnChanges {
       },
     });
     this.taskId$.next(this.taskId());
+
+    // Set default status for new subtask (first non-done column)
+    this.initDefaultStatus();
+
+    // Load project members and workspace labels
+    this.loadProjectMembers();
+    this.loadWorkspaceLabels();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['taskId'] && !changes['taskId'].firstChange) {
       this.taskId$.next(this.taskId());
+    }
+    if (changes['projectId'] && !changes['projectId'].firstChange) {
+      this.loadProjectMembers();
+    }
+    if (changes['workspaceId'] && !changes['workspaceId'].firstChange) {
+      this.loadWorkspaceLabels();
+    }
+    if (changes['boardColumns']) {
+      this.initDefaultStatus();
     }
   }
 
@@ -295,51 +297,136 @@ export class SubtaskListComponent implements OnInit, OnChanges {
     return Math.round((p.completed / p.total) * 100);
   }
 
-  isChildDone(child: Task): boolean {
-    const cols = this.boardColumns();
-    if (!cols?.length) return false;
-    const col = cols.find(c => c.id === (child.status_id ?? child.column_id));
-    return col?.status_mapping?.done === true;
+  // --- Event handlers for SubtaskRowComponent ---
+
+  onStatusChanged(event: { childId: string; statusId: string }): void {
+    const snapshot = this.children();
+    const child = snapshot.find(c => c.id === event.childId);
+    if (!child) return;
+    this.children.update(list =>
+      list.map(c => c.id === event.childId ? { ...c, status_id: event.statusId } : c),
+    );
+    this.taskService.moveTask(event.childId, { status_id: event.statusId, position: child.position }).subscribe({
+      next: () => this.loadChildren(),
+      error: () => {
+        this.children.set(snapshot);
+        this.showToast('Failed to update status');
+      },
+    });
   }
 
-  navigateToChild(child: Task): void {
-    this.router.navigate(['/task', child.id]);
+  onPriorityChanged(event: { childId: string; priority: TaskPriority | null }): void {
+    const priority = event.priority ?? ('none' as TaskPriority);
+    const snapshot = this.children();
+    this.children.update(list =>
+      list.map(c => c.id === event.childId ? { ...c, priority } : c),
+    );
+    this.taskService.updateTask(event.childId, { priority } as Record<string, unknown>).subscribe({
+      error: () => {
+        this.children.set(snapshot);
+        this.showToast('Failed to update priority');
+      },
+    });
   }
 
-  getPriorityDotColor(priority: string): string {
-    switch (priority) {
-      case 'urgent': return '#ef4444';
-      case 'high': return '#f97316';
-      case 'medium': return '#eab308';
-      case 'low': return '#6b7280';
-      default: return '#6b7280';
-    }
+  onTitleChanged(event: { childId: string; title: string }): void {
+    const snapshot = this.children();
+    this.children.update(list =>
+      list.map(c => c.id === event.childId ? { ...c, title: event.title } : c),
+    );
+    this.taskService.updateTask(event.childId, { title: event.title }).subscribe({
+      error: () => {
+        this.children.set(snapshot);
+        this.showToast('Failed to update title');
+      },
+    });
   }
 
-  onToggleComplete(child: Task): void {
-    const done = this.isChildDone(child);
+  onAssigneesChanged(event: { childId: string; assigneeIds: string[] }): void {
+    const child = this.children().find(c => c.id === event.childId);
+    if (!child) return;
+
+    const currentIds = new Set((child.assignees ?? []).map(a => a.id));
+    const newIds = new Set(event.assigneeIds);
+
+    // Find additions and removals
+    const toAdd = event.assigneeIds.filter(id => !currentIds.has(id));
+    const toRemove = [...currentIds].filter(id => !newIds.has(id));
+
+    const ops = [
+      ...toAdd.map(id => this.taskService.assignUser(event.childId, id)),
+      ...toRemove.map(id => this.taskService.unassignUser(event.childId, id)),
+    ];
+
+    if (ops.length === 0) return;
+
+    forkJoin(ops).subscribe({
+      next: () => this.loadChildren(),
+      error: () => this.showToast('Failed to update assignees'),
+    });
+  }
+
+  onLabelsChanged(event: { childId: string; labelIds: string[] }): void {
+    const child = this.children().find(c => c.id === event.childId);
+    if (!child) return;
+
+    const currentIds = new Set((child.labels ?? []).map(l => l.id));
+    const newIds = new Set(event.labelIds);
+
+    const toAdd = event.labelIds.filter(id => !currentIds.has(id));
+    const toRemove = [...currentIds].filter(id => !newIds.has(id));
+
+    const ops = [
+      ...toAdd.map(id => this.taskService.addLabel(event.childId, id)),
+      ...toRemove.map(id => this.taskService.removeLabel(event.childId, id)),
+    ];
+
+    if (ops.length === 0) return;
+
+    forkJoin(ops).subscribe({
+      next: () => this.loadChildren(),
+      error: () => this.showToast('Failed to update labels'),
+    });
+  }
+
+  onDueDateChanged(event: { childId: string; dueDate: string | null }): void {
+    const snapshot = this.children();
+    this.children.update(list =>
+      list.map(c => c.id === event.childId ? { ...c, due_date: event.dueDate } : c),
+    );
+    const updates = event.dueDate
+      ? { due_date: event.dueDate }
+      : { clear_due_date: true };
+    this.taskService.updateTask(event.childId, updates).subscribe({
+      error: () => {
+        this.children.set(snapshot);
+        this.showToast('Failed to update due date');
+      },
+    });
+  }
+
+  onDeleted(childId: string): void {
     const snapshot = this.children();
     const snapshotProgress = this.progress();
 
-    if (done) {
-      this.taskService.uncompleteTask(child.id).subscribe({
-        next: () => this.loadChildren(),
-        error: () => {
-          this.children.set(snapshot);
-          this.progress.set(snapshotProgress);
-          this.showError('Failed to update task');
-        },
-      });
-    } else {
-      this.taskService.completeTask(child.id).subscribe({
-        next: () => this.loadChildren(),
-        error: () => {
-          this.children.set(snapshot);
-          this.progress.set(snapshotProgress);
-          this.showError('Failed to update task');
-        },
-      });
-    }
+    this.children.update(list => list.filter(c => c.id !== childId));
+    this.progress.update(p => ({
+      completed: p.completed,
+      total: p.total - 1,
+    }));
+
+    this.taskService.deleteTask(childId).subscribe({
+      next: () => this.loadChildren(),
+      error: () => {
+        this.children.set(snapshot);
+        this.progress.set(snapshotProgress);
+        this.showToast('Failed to delete subtask');
+      },
+    });
+  }
+
+  onNavigate(childId: string): void {
+    this.router.navigate(['/task', childId]);
   }
 
   onAdd(): void {
@@ -349,31 +436,15 @@ export class SubtaskListComponent implements OnInit, OnChanges {
     const savedTitle = title;
     this.newSubtaskTitle.set('');
 
-    this.taskService.createChild(this.taskId(), { title }).subscribe({
+    this.taskService.createChild(this.taskId(), {
+      title,
+      status_id: this.newStatusId() || undefined,
+      priority: this.newPriority() as TaskPriority || undefined,
+    }).subscribe({
       next: () => this.loadChildren(),
       error: () => {
         this.newSubtaskTitle.set(savedTitle);
         this.showError('Failed to add subtask');
-      },
-    });
-  }
-
-  onDelete(child: Task): void {
-    if (!confirm('Delete this subtask?')) return;
-    const snapshot = this.children();
-    const snapshotProgress = this.progress();
-
-    this.children.update(list => list.filter(c => c.id !== child.id));
-    this.progress.update(p => ({
-      completed: this.isChildDone(child) ? p.completed - 1 : p.completed,
-      total: p.total - 1,
-    }));
-
-    this.taskService.deleteTask(child.id).subscribe({
-      error: () => {
-        this.children.set(snapshot);
-        this.progress.set(snapshotProgress);
-        this.showError('Failed to delete subtask');
       },
     });
   }
@@ -385,7 +456,6 @@ export class SubtaskListComponent implements OnInit, OnChanges {
     moveItemInArray(items, event.previousIndex, event.currentIndex);
     this.children.set(items);
 
-    // Calculate new position between neighbors
     const moved = items[event.currentIndex];
     const prev = event.currentIndex > 0 ? items[event.currentIndex - 1] : null;
     const next = event.currentIndex < items.length - 1 ? items[event.currentIndex + 1] : null;
@@ -396,7 +466,6 @@ export class SubtaskListComponent implements OnInit, OnChanges {
       const nextPos = next?.position ?? null;
       newPosition = generateKeyBetween(prevPos, nextPos);
     } catch {
-      // Fallback to string concatenation if positions are malformed
       newPosition = prev ? prev.position + 'a' : 'a0';
     }
 
@@ -408,51 +477,45 @@ export class SubtaskListComponent implements OnInit, OnChanges {
     });
   }
 
-  getInitials(name: string): string {
-    if (!name) return '?';
-    return name
-      .split(' ')
-      .map(n => n.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+  private initDefaultStatus(): void {
+    const cols = this.boardColumns();
+    if (cols.length > 0 && !this.newStatusId()) {
+      // Pick first non-done column, or first column
+      const nonDone = cols.find(c => c.status_mapping?.done !== true);
+      this.newStatusId.set(nonDone?.id ?? cols[0].id);
+    }
   }
 
-  formatDueDate(dateStr: string): string {
-    const date = new Date(dateStr);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const dateOnly = new Date(date);
-    dateOnly.setHours(0, 0, 0, 0);
-    const diffTime = dateOnly.getTime() - today.getTime();
-    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) return 'Overdue';
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Tomorrow';
-    return date.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
+  private loadProjectMembers(): void {
+    const pid = this.projectId();
+    if (!pid) return;
+    this.projectService.getProjectMembers(pid).subscribe({
+      next: (members) => this.projectMembers.set(members),
+      error: () => this.showToast('Failed to load project members'),
     });
   }
 
-  getDueDateClass(dateStr: string): string {
-    const date = new Date(dateStr);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const dateOnly = new Date(date);
-    dateOnly.setHours(0, 0, 0, 0);
-    const diffTime = dateOnly.getTime() - today.getTime();
-    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) return 'text-red-600 dark:text-red-400 font-medium';
-    if (diffDays === 0) return 'text-amber-600 dark:text-amber-400 font-medium';
-    return 'text-[var(--muted-foreground)]';
+  private loadWorkspaceLabels(): void {
+    const wsId = this.workspaceId();
+    if (!wsId) return;
+    this.workspaceService.listLabels(wsId).subscribe({
+      next: (labels) => this.workspaceLabels.set(labels),
+      error: () => this.showToast('Failed to load labels'),
+    });
   }
 
   private showError(message: string): void {
     this.errorMessage.set(message);
     setTimeout(() => this.errorMessage.set(null), 5000);
+  }
+
+  private showToast(detail: string): void {
+    this.messageService.add({
+      severity: 'error',
+      summary: 'Error',
+      detail,
+      life: 4000,
+    });
   }
 
   private loadChildrenForId(taskId: string) {

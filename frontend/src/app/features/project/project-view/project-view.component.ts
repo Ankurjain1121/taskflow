@@ -175,7 +175,7 @@ import { MessageService } from 'primeng/api';
       <app-shortcut-discovery-banner />
 
       <!-- Task Group Headers (kanban/other views only, not list view) -->
-      @if (state.boardGroups().length > 1 && viewMode() !== 'list') {
+      @if (state.boardGroups().length > 1 && (viewMode() === 'kanban')) {
         <div
           class="px-4 py-2 bg-[var(--card)] border-b border-[var(--border)] space-y-1"
         >
@@ -523,9 +523,11 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
       this.presenceService.joinBoard(this.boardId);
       this.columnDialogs()?.buildMoreMenuItems();
 
-      // Load flat tasks if starting in list view
+      // Load view-specific data on init
       if (this.viewMode() === 'list') {
         this.state.loadFlatTasks(this.boardId, this.destroy$);
+      } else if (this.viewMode() === 'gantt') {
+        this.state.loadGanttData(this.boardId);
       }
     });
 
