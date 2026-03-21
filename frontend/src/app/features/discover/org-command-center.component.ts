@@ -18,6 +18,8 @@ import {
   WorkspaceDashboard,
   VelocityPoint,
   DashboardActivityEntry,
+  OnTimePrevious,
+  OverdueAging,
 } from '../../core/services/dashboard.service';
 import { TeamService, MemberWorkload } from '../../core/services/team.service';
 import { Workspace } from '../../core/services/workspace.service';
@@ -39,9 +41,22 @@ import { OrgActivityFeedComponent } from './org-activity-feed.component';
   template: `
     <div class="min-h-screen" style="background: var(--background)">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        <h1 class="text-2xl font-bold" style="color: var(--foreground)">
-          Organization Overview
-        </h1>
+        <div class="flex items-center justify-between mb-2">
+          <h1 class="text-2xl font-bold" style="color: var(--foreground)">
+            Organization Overview
+          </h1>
+          <div class="flex gap-0.5 p-0.5 rounded-lg" style="background: var(--muted)">
+            @for (p of periods; track p.value) {
+              <button (click)="setPeriod(p.value)"
+                      class="px-3 py-1 text-xs font-medium rounded-md transition-all"
+                      [style.background]="selectedPeriod() === p.value ? 'var(--card)' : 'transparent'"
+                      [style.color]="selectedPeriod() === p.value ? 'var(--foreground)' : 'var(--muted-foreground)'"
+                      [style.box-shadow]="selectedPeriod() === p.value ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'">
+                {{ p.label }}
+              </button>
+            }
+          </div>
+        </div>
 
         @if (loading()) {
           <!-- Skeleton -->
@@ -67,6 +82,10 @@ import { OrgActivityFeedComponent } from './org-activity-feed.component';
             [onTimePct]="onTimePct()"
             [totalOverdue]="totalOverdue()"
             [totalMembers]="totalMembers()"
+            [totalCompleted]="totalCompleted()"
+            [onTimePrevious]="onTimePrevious()"
+            [overdueAging]="overdueAging()"
+            [onTimeCount]="onTimeCount()"
           />
 
           <!-- Act 2: Project Grid -->
@@ -102,13 +121,25 @@ export class OrgCommandCenterComponent {
 
   readonly skeletonItems = [1, 2, 3, 4];
 
+  readonly periods = [
+    { value: 'week', label: 'This Week' },
+    { value: 'month', label: 'This Month' },
+    { value: 'quarter', label: 'This Quarter' },
+    { value: 'all', label: 'All Time' },
+  ];
+  readonly selectedPeriod = signal('month');
+
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
 
   readonly allProjects = signal<{ workspace: Workspace; projects: PortfolioProject[] }[]>([]);
   readonly allWorkloads = signal<MemberWorkload[]>([]);
   readonly velocityData = signal<VelocityPoint[]>([]);
-  readonly onTimePct = signal(100);
+  readonly onTimePct = signal(0);
+  readonly totalCompleted = signal(0);
+  readonly onTimeCount = signal(0);
+  readonly onTimePrevious = signal<{ pct: number; label: string } | null>(null);
+  readonly overdueAging = signal<OverdueAging>({ critical: 0, recent: 0 });
   readonly activity = signal<DashboardActivityEntry[]>([]);
 
   readonly healthScore = computed(() => this.computeHealthScore());
@@ -151,12 +182,18 @@ export class OrgCommandCenterComponent {
   constructor() {
     effect(() => {
       const workspaces = this.ctx.workspaces();
+      const period = this.selectedPeriod();
       if (workspaces.length === 0) return;
-      this.loadOrgData(workspaces);
+      this.loadOrgData(workspaces, period);
     });
   }
 
-  private loadOrgData(workspaces: Workspace[]): void {
+  setPeriod(value: string): void {
+    this.selectedPeriod.set(value);
+    this.dashboardService.invalidateCache();
+  }
+
+  private loadOrgData(workspaces: Workspace[], period: string): void {
     this.loading.set(true);
     this.error.set(null);
 
@@ -166,7 +203,8 @@ export class OrgCommandCenterComponent {
       cycle_time: [],
       velocity: [],
       workload_balance: [],
-      on_time: { on_time_pct: 100, total_completed: 0, on_time_count: 0 },
+      on_time: { on_time_pct: 0, total_completed: 0, on_time_count: 0 },
+      overdue_aging: { critical: 0, recent: 0 },
     };
 
     const portfolioCalls = workspaces.map((ws) =>
@@ -175,7 +213,7 @@ export class OrgCommandCenterComponent {
 
     const dashboardCalls = workspaces.map((ws) =>
       this.dashboardService
-        .getWorkspaceDashboard(ws.id)
+        .getWorkspaceDashboard(ws.id, period)
         .pipe(catchError(() => of(defaultDashboard))),
     );
 
@@ -208,27 +246,68 @@ export class OrgCommandCenterComponent {
         const allVelocity = dashboards.flatMap((d) => d.velocity);
         this.velocityData.set(allVelocity);
 
-        // Weighted on-time percentage (guard against missing on_time)
+        // Weighted on-time percentage — 0% when no completions, not 100%
         const totalCompleted = dashboards.reduce(
           (s, d) => s + (d.on_time?.total_completed ?? 0),
           0,
         );
+        this.totalCompleted.set(totalCompleted);
+
+        const totalOnTimeCount = dashboards.reduce(
+          (s, d) => s + (d.on_time?.on_time_count ?? 0),
+          0,
+        );
+        this.onTimeCount.set(totalOnTimeCount);
+
         const weightedOnTime =
           totalCompleted === 0
-            ? 100
+            ? 0
             : Math.round(
                 dashboards.reduce(
                   (s, d) =>
-                    s + (d.on_time?.on_time_pct ?? 100) * (d.on_time?.total_completed ?? 0),
+                    s + (d.on_time?.on_time_pct ?? 0) * (d.on_time?.total_completed ?? 0),
                   0,
                 ) / totalCompleted,
               );
         this.onTimePct.set(weightedOnTime);
 
+        // Aggregate previous period comparison
+        const prevCompleted = dashboards.reduce(
+          (s, d) => s + (d.on_time_previous?.total_completed ?? 0),
+          0,
+        );
+        if (prevCompleted > 0) {
+          const prevPct = Math.round(
+            dashboards.reduce(
+              (s, d) =>
+                s +
+                (d.on_time_previous?.on_time_pct ?? 0) *
+                  (d.on_time_previous?.total_completed ?? 0),
+              0,
+            ) / prevCompleted,
+          );
+          const label =
+            dashboards.find((d) => d.on_time_previous?.period_label)?.on_time_previous
+              ?.period_label ?? '';
+          this.onTimePrevious.set({ pct: prevPct, label });
+        } else {
+          this.onTimePrevious.set(null);
+        }
+
+        // Aggregate overdue aging
+        const aging = dashboards.reduce(
+          (acc, d) => ({
+            critical: acc.critical + (d.overdue_aging?.critical ?? 0),
+            recent: acc.recent + (d.overdue_aging?.recent ?? 0),
+          }),
+          { critical: 0, recent: 0 },
+        );
+        this.overdueAging.set(aging);
+
         this.activity.set(recentActivity);
         this.loading.set(false);
       },
-      error: (err) => {
+      error: () => {
         this.error.set('Failed to load organization data');
         this.loading.set(false);
       },
@@ -236,12 +315,13 @@ export class OrgCommandCenterComponent {
   }
 
   private computeHealthScore(): number {
+    const totalCompletedCount = this.totalCompleted();
     const projects = this.allProjects().flatMap((g) => g.projects);
     const totalTasks = projects.reduce((s, p) => s + p.total_tasks, 0);
     const totalOverdue = projects.reduce((s, p) => s + p.overdue_tasks, 0);
 
-    // On-time rate: if no tasks completed, treat as neutral (100%)
-    const onTimeRate = this.onTimePct() / 100;
+    // On-time rate: neutral (0.5) when no completions, not perfect (1.0)
+    const onTimeRate = totalCompletedCount === 0 ? 0.5 : this.onTimePct() / 100;
     const overdueRatio = totalTasks === 0 ? 0 : totalOverdue / totalTasks;
 
     // Workload balance: fraction of members NOT overloaded
@@ -250,21 +330,17 @@ export class OrgCommandCenterComponent {
     const totalMembers = workloads.length || 1;
     const workloadBalance = 1 - overloaded / totalMembers;
 
-    // Velocity trend: ratio of last vs previous period
-    // Neutral (steady or no data) = 1.0 = full marks
-    // Declining (0.5) = 0, improving (1.5+) = 1.0
+    // Velocity trend: neutral (0.5) when no data, not perfect (1.0)
     const vel = this.velocityData();
-    let velocityFactor = 1.0; // default: full marks when no data
+    let velocityFactor = 0.5;
     if (vel.length >= 2) {
       const last = vel[vel.length - 1]?.tasks_completed ?? 0;
       const prev = vel[vel.length - 2]?.tasks_completed ?? 0;
       if (prev > 0) {
         const ratio = Math.min(1.5, Math.max(0.5, last / prev));
-        // Map [0.5, 1.5] → [0, 1] where 1.0 (steady) = 0.5
-        // Then bias so steady gets 0.8 (not penalized for maintaining pace)
         velocityFactor = ratio >= 1.0
-          ? 0.8 + (ratio - 1.0) * 0.4   // 1.0→0.8, 1.5→1.0
-          : (ratio - 0.5) * 1.6;         // 0.5→0.0, 1.0→0.8
+          ? 0.8 + (ratio - 1.0) * 0.4
+          : (ratio - 0.5) * 1.6;
       }
     }
 

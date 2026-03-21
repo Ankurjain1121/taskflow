@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, input } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, computed } from '@angular/core';
 
 @Component({
   selector: 'app-org-health-hero',
@@ -42,13 +42,40 @@ import { Component, ChangeDetectionStrategy, input } from '@angular/core';
           <div class="stat-value">{{ totalProjects() }}</div>
           <div class="stat-label">Projects</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ onTimePct() }}%</div>
-          <div class="stat-label">On-Time</div>
+        <div class="stat-card" [attr.title]="onTimeTooltip()">
+          @if (totalCompleted() > 0) {
+            <div class="stat-value">{{ onTimePct() }}%</div>
+          } @else {
+            <div class="stat-value" style="color: var(--muted-foreground)">&mdash;</div>
+          }
+          <div class="stat-label">
+            On-Time
+            @if (totalCompleted() > 0) {
+              <span class="text-[10px] opacity-60">({{ totalCompleted() }})</span>
+            }
+          </div>
+          @if (onTimePrevious(); as prev) {
+            <div class="text-[10px] mt-0.5"
+                 [style.color]="onTimePct() >= prev.pct ? '#5E8C4A' : '#B81414'">
+              {{ onTimePct() >= prev.pct ? '\u2191' : '\u2193' }}
+              {{ absDiff(onTimePct(), prev.pct) }}% vs {{ prev.label }}
+            </div>
+          }
         </div>
         <div class="stat-card">
           <div class="stat-value" [class.text-red-500]="totalOverdue() > 0">{{ totalOverdue() }}</div>
           <div class="stat-label">Overdue</div>
+          @if (totalOverdue() > 0) {
+            <div class="text-[10px] mt-0.5" style="color: var(--muted-foreground)">
+              @if (overdueAging().critical > 0) {
+                <span class="text-red-500">{{ overdueAging().critical }} critical</span>
+                @if (overdueAging().recent > 0) { · }
+              }
+              @if (overdueAging().recent > 0) {
+                {{ overdueAging().recent }} recent
+              }
+            </div>
+          }
         </div>
         <div class="stat-card">
           <div class="stat-value">{{ totalMembers() }}</div>
@@ -66,4 +93,20 @@ export class OrgHealthHeroComponent {
   readonly onTimePct = input.required<number>();
   readonly totalOverdue = input.required<number>();
   readonly totalMembers = input.required<number>();
+  readonly totalCompleted = input<number>(0);
+  readonly onTimePrevious = input<{ pct: number; label: string } | null>(null);
+  readonly overdueAging = input<{ critical: number; recent: number }>({ critical: 0, recent: 0 });
+  readonly onTimeCount = input<number>(0);
+
+  readonly onTimeTooltip = computed(() => {
+    const total = this.totalCompleted();
+    if (total === 0) return 'No tasks with due dates completed in this period';
+    const onTime = this.onTimeCount();
+    const late = total - onTime;
+    return `On time: ${onTime} | Late: ${late} | Total: ${total}`;
+  });
+
+  absDiff(a: number, b: number): number {
+    return Math.abs(a - b);
+  }
 }

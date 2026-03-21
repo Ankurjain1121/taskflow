@@ -4,12 +4,14 @@
 //! Results are cached in Redis with a 120-second TTL.
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::HeaderMap,
     middleware::from_fn_with_state,
     routing::{get, post},
     Json, Router,
 };
+use chrono::{Datelike, Duration, NaiveDate, Utc};
+use serde::Deserialize;
 use sqlx;
 use uuid::Uuid;
 
@@ -23,9 +25,85 @@ use taskflow_db::queries::metrics::{
     refresh_metrics, PersonalDashboard, ResourceUtilizationRow, TeamDashboard, WorkspaceDashboard,
 };
 
-/// Cache key for workspace metrics
-fn workspace_metrics_key(workspace_id: &Uuid) -> String {
-    format!("cache:metrics:ws:{}", workspace_id)
+#[derive(Deserialize)]
+struct MetricsPeriodQuery {
+    period: Option<String>,
+}
+
+/// Compute calendar boundaries for a period type.
+/// Returns (current_start, prev_start, prev_label).
+fn period_boundaries(
+    period: &str,
+) -> (
+    Option<chrono::DateTime<Utc>>,
+    Option<chrono::DateTime<Utc>>,
+    Option<String>,
+) {
+    let now = Utc::now();
+    match period {
+        "week" => {
+            let weekday = now.weekday().num_days_from_monday() as i64;
+            let this_monday = (now - Duration::days(weekday))
+                .date_naive()
+                .and_hms_opt(0, 0, 0)
+                .expect("valid time")
+                .and_utc();
+            let prev_monday = this_monday - Duration::days(7);
+            (
+                Some(this_monday),
+                Some(prev_monday),
+                Some("last week".into()),
+            )
+        }
+        "month" => {
+            let this_start = NaiveDate::from_ymd_opt(now.year(), now.month(), 1)
+                .expect("valid date")
+                .and_hms_opt(0, 0, 0)
+                .expect("valid time")
+                .and_utc();
+            let prev_month = if now.month() == 1 {
+                NaiveDate::from_ymd_opt(now.year() - 1, 12, 1)
+            } else {
+                NaiveDate::from_ymd_opt(now.year(), now.month() - 1, 1)
+            }
+            .expect("valid date")
+            .and_hms_opt(0, 0, 0)
+            .expect("valid time")
+            .and_utc();
+            let label = prev_month.format("%b").to_string();
+            (Some(this_start), Some(prev_month), Some(label))
+        }
+        "quarter" => {
+            let q_month = ((now.month() - 1) / 3) * 3 + 1;
+            let this_start = NaiveDate::from_ymd_opt(now.year(), q_month, 1)
+                .expect("valid date")
+                .and_hms_opt(0, 0, 0)
+                .expect("valid time")
+                .and_utc();
+            let (prev_year, prev_q_month) = if q_month == 1 {
+                (now.year() - 1, 10)
+            } else {
+                (now.year(), q_month - 3)
+            };
+            let prev_start = NaiveDate::from_ymd_opt(prev_year, prev_q_month, 1)
+                .expect("valid date")
+                .and_hms_opt(0, 0, 0)
+                .expect("valid time")
+                .and_utc();
+            let q_num = (prev_q_month - 1) / 3 + 1;
+            (
+                Some(this_start),
+                Some(prev_start),
+                Some(format!("Q{}", q_num)),
+            )
+        }
+        _ => (None, None, None), // "all" or unknown → no filter
+    }
+}
+
+/// Cache key for workspace metrics (includes period)
+fn workspace_metrics_key(workspace_id: &Uuid, period: &str) -> String {
+    format!("cache:metrics:ws:{}:{}", workspace_id, period)
 }
 
 /// Cache key for team metrics
@@ -40,14 +118,16 @@ fn personal_metrics_key(user_id: &Uuid) -> String {
 
 const METRICS_CACHE_TTL: u64 = 120;
 
-/// GET /api/workspaces/{workspace_id}/metrics/workspace
+/// GET /api/workspaces/{workspace_id}/metrics/workspace?period=month
 ///
 /// Fetch workspace-level metrics dashboard with cycle time, velocity,
 /// on-time %, and workload distribution. Cached for 120 seconds.
+/// Period can be: week, month, quarter, all (default: all).
 async fn get_workspace_metrics_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(workspace_id): Path<Uuid>,
+    Query(query): Query<MetricsPeriodQuery>,
 ) -> Result<Json<WorkspaceDashboard>> {
     // Verify user is a member of this workspace
     let is_member: bool = sqlx::query_scalar::<_, bool>(
@@ -63,14 +143,23 @@ async fn get_workspace_metrics_handler(
         return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
-    let cache_key = workspace_metrics_key(&workspace_id);
+    let period = query.period.as_deref().unwrap_or("all");
+    let (current_start, prev_start, period_label) = period_boundaries(period);
+
+    let cache_key = workspace_metrics_key(&workspace_id, period);
     if let Some(cached) = cache::cache_get::<WorkspaceDashboard>(&state.redis, &cache_key).await {
         return Ok(Json(cached));
     }
 
-    let dashboard = get_workspace_dashboard(&state.db, workspace_id)
-        .await
-        .map_err(|e| AppError::InternalError(format!("Workspace metrics failed: {}", e)))?;
+    let dashboard = get_workspace_dashboard(
+        &state.db,
+        workspace_id,
+        current_start,
+        prev_start,
+        period_label,
+    )
+    .await
+    .map_err(|e| AppError::InternalError(format!("Workspace metrics failed: {}", e)))?;
 
     cache::cache_set(&state.redis, &cache_key, &dashboard, METRICS_CACHE_TTL).await;
 
@@ -261,8 +350,12 @@ mod tests {
     fn test_cache_key_formats() {
         let id = Uuid::nil();
         assert_eq!(
-            workspace_metrics_key(&id),
-            "cache:metrics:ws:00000000-0000-0000-0000-000000000000"
+            workspace_metrics_key(&id, "month"),
+            "cache:metrics:ws:00000000-0000-0000-0000-000000000000:month"
+        );
+        assert_eq!(
+            workspace_metrics_key(&id, "all"),
+            "cache:metrics:ws:00000000-0000-0000-0000-000000000000:all"
         );
         assert_eq!(
             team_metrics_key(&id),
@@ -272,6 +365,25 @@ mod tests {
             personal_metrics_key(&id),
             "cache:metrics:user:00000000-0000-0000-0000-000000000000"
         );
+    }
+
+    #[test]
+    fn test_period_boundaries_month() {
+        let (current, prev, label) = period_boundaries("month");
+        assert!(current.is_some());
+        assert!(prev.is_some());
+        assert!(label.is_some());
+        // Current start should be day 1 of current month
+        let cs = current.expect("current start");
+        assert_eq!(cs.day(), 1);
+    }
+
+    #[test]
+    fn test_period_boundaries_all() {
+        let (current, prev, label) = period_boundaries("all");
+        assert!(current.is_none());
+        assert!(prev.is_none());
+        assert!(label.is_none());
     }
 
     #[test]
