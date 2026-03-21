@@ -25,6 +25,7 @@ import { TeamGroupsService } from '../../core/services/team-groups.service';
 import { AuthService } from '../../core/services/auth.service';
 import { MembersListComponent, MemberWithDetails } from '../workspace/members-list/members-list.component';
 import { TeamsListComponent } from '../workspace/teams/teams-list.component';
+import { TeamDetailDialogComponent } from '../workspace/teams/team-detail-dialog.component';
 import { WorkspaceRolesTabComponent } from '../workspace/workspace-settings/workspace-roles-tab.component';
 import { WorkspaceGeneralTabComponent } from '../workspace/workspace-settings/workspace-general-tab.component';
 import { WorkspaceLabelsComponent } from '../workspace/labels/workspace-labels.component';
@@ -32,6 +33,8 @@ import { WorkspaceApiKeysTabComponent } from '../workspace/workspace-settings/wo
 import { WorkspaceAdvancedTabComponent } from '../workspace/workspace-settings/workspace-advanced-tab.component';
 import { AuditLogComponent } from '../workspace/audit-log/audit-log.component';
 import { TrashComponent } from '../workspace/trash/trash.component';
+import { InviteMemberDialogComponent } from '../../shared/components/dialogs/invite-member-dialog.component';
+import { TeamGroupDetail } from '../../core/services/team-groups.service';
 
 interface TabDef {
   label: string;
@@ -68,6 +71,8 @@ const ALL_TABS: TabDef[] = [
     WorkspaceAdvancedTabComponent,
     AuditLogComponent,
     TrashComponent,
+    TeamDetailDialogComponent,
+    InviteMemberDialogComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -141,13 +146,13 @@ const ALL_TABS: TabDef[] = [
           <div class="flex flex-wrap gap-3">
             <button
               class="inline-flex items-center gap-2 rounded-lg bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--primary)]"
-              (click)="showInviteDialog = true">
+              (click)="showInviteDialog.set(true)">
               <i class="pi pi-user-plus text-sm"></i>
               Invite Member
             </button>
             <button
               class="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm hover:bg-[var(--muted)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--primary)]"
-              (click)="showCreateTeamDialog = true">
+              (click)="showCreateTeamDialog.set(true)">
               <i class="pi pi-plus text-sm"></i>
               Create Team
             </button>
@@ -184,7 +189,7 @@ const ALL_TABS: TabDef[] = [
                         <p class="text-[var(--muted-foreground)]">Invite your first team member</p>
                         <button
                           class="mt-3 text-sm font-semibold text-[var(--primary)] hover:underline"
-                          (click)="showInviteDialog = true">
+                          (click)="showInviteDialog.set(true)">
                           + Invite Member
                         </button>
                       </div>
@@ -208,7 +213,7 @@ const ALL_TABS: TabDef[] = [
                         <p class="text-[var(--muted-foreground)]">Organize into teams</p>
                         <button
                           class="mt-3 text-sm font-semibold text-[var(--primary)] hover:underline"
-                          (click)="showCreateTeamDialog = true">
+                          (click)="showCreateTeamDialog.set(true)">
                           + Create your first team
                         </button>
                       </div>
@@ -252,7 +257,6 @@ const ALL_TABS: TabDef[] = [
 
                   <!-- Labels -->
                   <section>
-                    <h2 class="text-lg font-semibold text-[var(--foreground)] mb-3">Labels</h2>
                     @defer {
                       <app-workspace-labels [workspaceId]="workspaceId" />
                     } @placeholder {
@@ -270,20 +274,40 @@ const ALL_TABS: TabDef[] = [
                     }
                   </section>
 
-                  <!-- Danger Zone -->
+                  <!-- Advanced -->
                   <section>
-                    <div class="rounded-xl border-2 border-red-200 dark:border-red-800 p-4">
-                      <h2 class="text-lg font-semibold text-red-700 dark:text-red-300 mb-3">Danger Zone</h2>
-                      @defer {
-                        <app-workspace-advanced-tab
-                          [workspace]="workspace()"
-                          [workspaceId]="workspaceId"
-                        />
-                      } @placeholder {
-                        <div class="h-16 bg-[var(--muted)] rounded-xl animate-pulse"></div>
-                      }
-                    </div>
+                    @defer {
+                      <app-workspace-advanced-tab
+                        [workspace]="workspace()"
+                        [workspaceId]="workspaceId"
+                      />
+                    } @placeholder {
+                      <div class="h-16 bg-[var(--muted)] rounded-xl animate-pulse"></div>
+                    }
                   </section>
+
+                  <!-- Danger Zone -->
+                  @if (isAdmin()) {
+                    <section>
+                      <div class="rounded-xl border-2 border-red-200 dark:border-red-800 p-5">
+                        <h2 class="text-lg font-semibold text-red-700 dark:text-red-300 mb-4">Danger Zone</h2>
+                        <div class="flex items-center justify-between">
+                          <div>
+                            <h3 class="text-sm font-medium text-[var(--foreground)]">Delete Workspace</h3>
+                            <p class="text-sm text-[var(--muted-foreground)]">
+                              Permanently delete this workspace and all its data. This action cannot be undone.
+                            </p>
+                          </div>
+                          <button
+                            (click)="onDeleteWorkspace()"
+                            class="inline-flex items-center px-4 py-2 border border-red-300 dark:border-red-700 text-sm font-medium rounded-md text-red-700 dark:text-red-300 bg-[var(--card)] hover:bg-red-50 dark:hover:bg-red-950 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                          >
+                            Delete Workspace
+                          </button>
+                        </div>
+                      </div>
+                    </section>
+                  }
                 </div>
               </p-tabpanel>
 
@@ -291,7 +315,6 @@ const ALL_TABS: TabDef[] = [
               <p-tabpanel [value]="3">
                 <div class="py-4 space-y-6">
                   <section>
-                    <h2 class="text-lg font-semibold text-[var(--foreground)] mb-3">Audit Log</h2>
                     @if (members().length === 0 && !loading()) {
                       <div class="text-center py-8 rounded-xl border border-dashed border-[var(--border)]">
                         <i class="pi pi-clock text-3xl text-[var(--muted-foreground)] mb-2"></i>
@@ -307,7 +330,6 @@ const ALL_TABS: TabDef[] = [
                   </section>
 
                   <section>
-                    <h2 class="text-lg font-semibold text-[var(--foreground)] mb-3">Trash</h2>
                     @defer {
                       <app-trash [workspaceId]="workspaceId" />
                     } @placeholder {
@@ -319,6 +341,20 @@ const ALL_TABS: TabDef[] = [
             </p-tabpanels>
           </p-tabs>
         }
+        <!-- Dialogs -->
+        <app-team-detail-dialog
+          [(visible)]="showCreateTeamDialog"
+          [workspaceId]="workspaceId"
+          (saved)="onTeamSaved($event)"
+        />
+
+        <app-invite-member-dialog
+          [(visible)]="showInviteDialog"
+          [workspaceId]="workspaceId"
+          [workspaceName]="workspace()?.name ?? 'this workspace'"
+          [boards]="[]"
+          (created)="onMemberInvited()"
+        />
       </div>
     </div>
   `,
@@ -346,8 +382,8 @@ export class ManageComponent implements OnInit {
   teams = signal<Array<{ id: string; name: string; color: string; workspace_id: string }>>([]);
   errorMessage = signal<string | null>(null);
   activeTab = signal(0);
-  showInviteDialog = false;
-  showCreateTeamDialog = false;
+  showInviteDialog = signal(false);
+  showCreateTeamDialog = signal(false);
 
   // Computed: hero stats
   memberCount = computed(() => this.members().length);
@@ -424,6 +460,31 @@ export class ManageComponent implements OnInit {
     this.members.update((members) =>
       members.filter((m) => m.user_id !== userId),
     );
+  }
+
+  onDeleteWorkspace(): void {
+    if (!confirm('Are you sure you want to permanently delete this workspace? This action cannot be undone.')) {
+      return;
+    }
+    this.workspaceService.delete(this.workspaceId).subscribe({
+      next: () => {
+        window.location.href = '/';
+      },
+      error: () => {
+        this.showError('Failed to delete workspace. Please try again.');
+      },
+    });
+  }
+
+  onTeamSaved(_team: TeamGroupDetail): void {
+    // Refresh team count
+    this.teamGroupsService.listTeams(this.workspaceId).subscribe({
+      next: (teams) => this.teams.set(teams as Array<{ id: string; name: string; color: string; workspace_id: string }>),
+    });
+  }
+
+  onMemberInvited(): void {
+    this.loadData();
   }
 
   showError(message: string): void {

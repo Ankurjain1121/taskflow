@@ -4,6 +4,7 @@ import {
   output,
   signal,
   inject,
+  effect,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -185,42 +186,6 @@ import { UploadService } from '../../../core/services/upload.service';
         </form>
       </div>
 
-      <!-- Danger Zone -->
-      @if (isAdmin()) {
-        <div class="widget-card border-2 border-[var(--status-red-border)]">
-          <div
-            class="px-6 py-4 border-b border-[var(--status-red-border)] bg-[var(--status-red-bg)]"
-          >
-            <h3 class="text-sm font-medium text-[var(--status-red-text)]">
-              Danger Zone
-            </h3>
-          </div>
-          <div class="px-6 py-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <h4 class="text-sm font-medium text-[var(--foreground)]">
-                  Delete Workspace
-                </h4>
-                <p class="text-sm text-[var(--muted-foreground)]">
-                  Permanently delete this workspace and all its data. This
-                  action cannot be undone.
-                </p>
-              </div>
-              <button
-                (click)="onDeleteWorkspace()"
-                [disabled]="deleting()"
-                class="inline-flex items-center px-4 py-2 border border-[var(--status-red-border)] text-sm font-medium rounded-md text-[var(--status-red-text)] bg-[var(--card)] hover:bg-[var(--status-red-bg)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-              >
-                @if (deleting()) {
-                  Deleting...
-                } @else {
-                  Delete Workspace
-                }
-              </button>
-            </div>
-          </div>
-        </div>
-      }
     </div>
   `,
 })
@@ -247,6 +212,15 @@ export class WorkspaceGeneralTabComponent {
     description: [''],
     visibility: ['closed'],
   });
+
+  constructor() {
+    effect(() => {
+      const ws = this.workspace();
+      if (ws) {
+        this.patchForm(ws);
+      }
+    });
+  }
 
   patchForm(workspace: Workspace): void {
     this.form.patchValue({
