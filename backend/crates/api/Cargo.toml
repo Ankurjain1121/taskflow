@@ -3,6 +3,9 @@ name = "taskflow-api"
 version.workspace = true
 edition.workspace = true
 
+[lints]
+workspace = true
+
 [[bin]]
 name = "taskflow-api"
 path = "src/main.rs"
@@ -43,7 +46,7 @@ regex.workspace = true
 once_cell.workspace = true
 
 # HTML sanitization
-ammonia = "4"
+ammonia = "4.1.2"
 
 # Error tracking
 sentry.workspace = true

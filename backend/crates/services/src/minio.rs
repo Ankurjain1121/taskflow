@@ -7,10 +7,8 @@ use aws_sdk_s3::config::{Credentials, Region};
 use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::Client;
 use std::time::Duration;
-use thiserror::Error;
-
 /// Errors that can occur during MinIO operations
-#[derive(Debug, Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum MinioError {
     #[error("S3 error: {0}")]
     S3Error(String),

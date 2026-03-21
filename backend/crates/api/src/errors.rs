@@ -47,13 +47,13 @@ pub enum AppError {
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        let (status, code, message) = match &self {
-            AppError::NotFound(msg) => (StatusCode::NOT_FOUND, "NOT_FOUND", msg.clone()),
-            AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, "BAD_REQUEST", msg.clone()),
-            AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, "UNAUTHORIZED", msg.clone()),
-            AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, "FORBIDDEN", msg.clone()),
-            AppError::Conflict(msg) => (StatusCode::CONFLICT, "CONFLICT", msg.clone()),
-            AppError::VersionConflict(ref current_task) => {
+        let (status, code, message) = match self {
+            AppError::NotFound(msg) => (StatusCode::NOT_FOUND, "NOT_FOUND", msg),
+            AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, "BAD_REQUEST", msg),
+            AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, "UNAUTHORIZED", msg),
+            AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, "FORBIDDEN", msg),
+            AppError::Conflict(msg) => (StatusCode::CONFLICT, "CONFLICT", msg),
+            AppError::VersionConflict(current_task) => {
                 let body = json!({
                     "error": {
                         "code": "VERSION_CONFLICT",
@@ -66,22 +66,22 @@ impl IntoResponse for AppError {
             AppError::PreconditionFailed(msg) => (
                 StatusCode::PRECONDITION_FAILED,
                 "PRECONDITION_FAILED",
-                msg.clone(),
+                msg,
             ),
             AppError::ValidationError(msg) => (
                 StatusCode::UNPROCESSABLE_ENTITY,
                 "VALIDATION_ERROR",
-                msg.clone(),
+                msg,
             ),
             AppError::TooManyRequests(msg) => (
                 StatusCode::TOO_MANY_REQUESTS,
                 "TOO_MANY_REQUESTS",
-                msg.clone(),
+                msg,
             ),
             AppError::ServiceUnavailable(msg) => (
                 StatusCode::SERVICE_UNAVAILABLE,
                 "SERVICE_UNAVAILABLE",
-                msg.clone(),
+                msg,
             ),
             AppError::InternalError(msg) => {
                 tracing::error!("Internal error: {}", msg);
