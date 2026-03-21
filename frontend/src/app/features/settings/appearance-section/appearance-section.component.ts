@@ -15,8 +15,6 @@ import { MessageService } from 'primeng/api';
 import {
   ThemeService,
   Theme,
-  AccentColor,
-  ACCENT_PRESETS,
 } from '../../../core/services/theme.service';
 import { UserPreferencesService } from '../../../core/services/user-preferences.service';
 
@@ -64,7 +62,7 @@ interface BoardViewOption {
         Choose your preferred theme
       </p>
 
-      <!-- Section A: Color Mode -->
+      <!-- Color Mode -->
       <div class="flex gap-3">
         @for (option of themeOptions; track option.value) {
           <button
@@ -98,37 +96,6 @@ interface BoardViewOption {
             >
           </button>
         }
-      </div>
-
-      <!-- Section B: Theme Gallery -->
-      <!-- Section B: Accent Color -->
-      <div class="mt-4 pt-4" style="border-top: 1px solid var(--border)">
-        <p class="text-sm font-medium mb-3" style="color: var(--foreground)">
-          Accent Color
-        </p>
-        <div class="flex gap-3 flex-wrap">
-          @for (a of accentPresets; track a.value) {
-            <button
-              (click)="setAccent(a.value)"
-              class="w-8 h-8 rounded-full border-2 transition-all flex items-center justify-center"
-              [style.background]="a.color"
-              [style.border-color]="
-                currentAccent() === a.value
-                  ? 'var(--foreground)'
-                  : 'transparent'
-              "
-              [style.transform]="
-                currentAccent() === a.value ? 'scale(1.15)' : 'scale(1)'
-              "
-              [pTooltip]="a.label"
-              tooltipPosition="bottom"
-            >
-              @if (currentAccent() === a.value) {
-                <i class="pi pi-check text-white text-xs"></i>
-              }
-            </button>
-          }
-        </div>
       </div>
     </div>
 
@@ -268,9 +235,7 @@ export class AppearanceSectionComponent implements OnInit {
   private readonly messageService = inject(MessageService);
 
   currentTheme = this.themeService.theme;
-  currentAccent = this.themeService.accent;
   isDark = this.themeService.isDark;
-  accentPresets = ACCENT_PRESETS;
 
   isSaving = signal(false);
 
@@ -321,10 +286,6 @@ export class AppearanceSectionComponent implements OnInit {
 
   setTheme(theme: Theme): void {
     this.themeService.setTheme(theme);
-  }
-
-  setAccent(accent: AccentColor): void {
-    this.themeService.setAccent(accent);
   }
 
   savePreferences(): void {

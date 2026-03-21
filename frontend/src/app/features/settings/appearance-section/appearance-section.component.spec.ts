@@ -5,10 +5,7 @@ import { of, throwError } from 'rxjs';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { AppearanceSectionComponent } from './appearance-section.component';
-import {
-  ThemeService,
-  ACCENT_PRESETS,
-} from '../../../core/services/theme.service';
+import { ThemeService } from '../../../core/services/theme.service';
 import { UserPreferencesService } from '../../../core/services/user-preferences.service';
 
 describe('AppearanceSectionComponent', () => {
@@ -17,12 +14,10 @@ describe('AppearanceSectionComponent', () => {
 
   const mockThemeService = {
     theme: signal('light' as const),
-    accent: signal('indigo' as const),
     isDark: signal(false),
     allThemes: signal([]),
     activeTheme: signal(null),
     setTheme: vi.fn(),
-    setAccent: vi.fn(),
     setThemeSlug: vi.fn(),
   };
 
@@ -80,10 +75,6 @@ describe('AppearanceSectionComponent', () => {
       expect(values).toContain('system');
     });
 
-    it('should have accent presets from ThemeService', () => {
-      expect(component.accentPresets).toBe(ACCENT_PRESETS);
-    });
-
     it('should have timezone options', () => {
       expect(component.timezoneOptions.length).toBeGreaterThan(0);
     });
@@ -124,20 +115,6 @@ describe('AppearanceSectionComponent', () => {
     it('should delegate to ThemeService', () => {
       component.setTheme('dark');
       expect(mockThemeService.setTheme).toHaveBeenCalledWith('dark');
-    });
-  });
-
-  describe('setTheme (theme slug)', () => {
-    it('should delegate to ThemeService.setTheme', () => {
-      component.setTheme('dark');
-      expect(mockThemeService.setTheme).toHaveBeenCalledWith('dark');
-    });
-  });
-
-  describe('setAccent', () => {
-    it('should delegate to ThemeService', () => {
-      component.setAccent('rose');
-      expect(mockThemeService.setAccent).toHaveBeenCalledWith('rose');
     });
   });
 

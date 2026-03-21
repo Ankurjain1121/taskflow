@@ -1,11 +1,4 @@
-export type AccentColor =
-  | 'indigo'
-  | 'blue'
-  | 'green'
-  | 'orange'
-  | 'rose'
-  | 'violet'
-  | 'amber'
-  | 'slate';
+// Extensible: add future themes like 'ocean' | 'forest' | 'midnight'
+export type AccentColor = 'earth';
 
 export type ColorMode = 'light' | 'dark' | 'system';

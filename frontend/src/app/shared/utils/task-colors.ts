@@ -14,57 +14,51 @@ export const COLOR_BY_MODES: readonly ColorByMode[] = [
   'label',
 ] as const;
 
-/** 12 preset colors for the label color picker (accessible, no near-white/black) */
+/** 6 earth-tone preset colors for the label color picker */
 export const LABEL_PRESET_COLORS: readonly string[] = [
-  '#3b82f6', // blue
-  '#6366f1', // indigo
-  '#22c55e', // green
-  '#f97316', // orange
-  '#f43f5e', // rose
-  '#8b5cf6', // violet
-  '#f59e0b', // amber
-  '#64748b', // slate
-  '#14b8a6', // teal
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#84cc16', // lime
+  '#B81414', // red (urgent)
+  '#BF7B54', // burnt orange (high)
+  '#D4A853', // warm gold (medium)
+  '#9C9561', // olive (low)
+  '#9F9F9F', // warm gray (none)
+  '#5E8C4A', // sage green (done)
 ] as const;
 
 // =============================================================================
-// Priority colors (Tailwind classes)
+// Priority colors (CSS custom property based)
 // =============================================================================
 
 /**
  * SINGLE SOURCE OF TRUTH for task priority colors
- * Uses Tailwind CSS classes for consistent styling
+ * Uses CSS custom property references for earth-tone palette
  */
 export const PRIORITY_COLORS: Record<
   TaskPriority,
   { bg: string; text: string; border: string; dot: string }
 > = {
   urgent: {
-    bg: 'bg-red-50 dark:bg-red-950',
-    text: 'text-red-700 dark:text-red-300',
-    border: 'border-red-200 dark:border-red-800',
-    dot: 'bg-red-500',
+    bg: 'bg-[rgba(184,20,20,0.08)] dark:bg-[rgba(212,32,32,0.12)]',
+    text: 'text-[#B81414] dark:text-[#D42020]',
+    border: 'border-[rgba(184,20,20,0.2)] dark:border-[rgba(212,32,32,0.3)]',
+    dot: 'bg-[#B81414]',
   },
   high: {
-    bg: 'bg-orange-50 dark:bg-orange-950',
-    text: 'text-orange-700 dark:text-orange-300',
-    border: 'border-orange-200 dark:border-orange-800',
-    dot: 'bg-orange-500',
+    bg: 'bg-[rgba(191,123,84,0.08)] dark:bg-[rgba(212,148,94,0.12)]',
+    text: 'text-[#BF7B54] dark:text-[#D4945E]',
+    border: 'border-[rgba(191,123,84,0.2)] dark:border-[rgba(212,148,94,0.3)]',
+    dot: 'bg-[#BF7B54]',
   },
   medium: {
-    bg: 'bg-amber-50 dark:bg-amber-950',
-    text: 'text-amber-700 dark:text-amber-300',
-    border: 'border-amber-200 dark:border-amber-800',
-    dot: 'bg-amber-500',
+    bg: 'bg-[rgba(212,168,83,0.08)] dark:bg-[rgba(224,188,106,0.12)]',
+    text: 'text-[#D4A853] dark:text-[#E0BC6A]',
+    border: 'border-[rgba(212,168,83,0.2)] dark:border-[rgba(224,188,106,0.3)]',
+    dot: 'bg-[#D4A853]',
   },
   low: {
-    bg: 'bg-blue-50 dark:bg-blue-950',
-    text: 'text-blue-700 dark:text-blue-300',
-    border: 'border-blue-200 dark:border-blue-800',
-    dot: 'bg-blue-500',
+    bg: 'bg-[rgba(156,149,97,0.08)] dark:bg-[rgba(181,174,120,0.12)]',
+    text: 'text-[#9C9561] dark:text-[#B5AE78]',
+    border: 'border-[rgba(156,149,97,0.2)] dark:border-[rgba(181,174,120,0.3)]',
+    dot: 'bg-[#9C9561]',
   },
 };
 
@@ -76,23 +70,23 @@ export const PRIORITY_COLORS_HEX: Record<
   { bg: string; border: string; text: string }
 > = {
   urgent: {
-    bg: '#E8445A',
-    border: '#C93545',
+    bg: '#B81414',
+    border: '#961010',
     text: '#ffffff',
   },
   high: {
-    bg: '#F5A623',
-    border: '#D4900E',
+    bg: '#BF7B54',
+    border: '#A66843',
     text: '#ffffff',
   },
   medium: {
-    bg: '#facc15',
-    border: '#eab308',
-    text: '#713f12',
+    bg: '#D4A853',
+    border: '#BF9742',
+    text: '#3D2414',
   },
   low: {
-    bg: '#60a5fa',
-    border: '#3b82f6',
+    bg: '#9C9561',
+    border: '#8A844F',
     text: '#ffffff',
   },
 };
@@ -105,23 +99,23 @@ export const PRIORITY_COLORS_HEX_DARK: Record<
   { bg: string; border: string; text: string }
 > = {
   urgent: {
-    bg: '#F0526A',
-    border: '#E8445A',
+    bg: '#D42020',
+    border: '#B81414',
     text: '#ffffff',
   },
   high: {
-    bg: '#F7B731',
-    border: '#F5A623',
+    bg: '#D4945E',
+    border: '#BF7B54',
     text: '#ffffff',
   },
   medium: {
-    bg: '#fcd34d',
-    border: '#fbbf24',
-    text: '#422006',
+    bg: '#E0BC6A',
+    border: '#D4A853',
+    text: '#3D2414',
   },
   low: {
-    bg: '#93c5fd',
-    border: '#60a5fa',
+    bg: '#B5AE78',
+    border: '#9C9561',
     text: '#ffffff',
   },
 };
@@ -141,34 +135,27 @@ export function getPriorityColorHex(
   const normalizedPriority = priority.toLowerCase() as TaskPriority;
   const map = isDark ? PRIORITY_COLORS_HEX_DARK : PRIORITY_COLORS_HEX;
   const fallback = isDark
-    ? { bg: '#6b7280', border: '#4b5563', text: '#ffffff' }
-    : { bg: '#9ca3af', border: '#6b7280', text: '#ffffff' };
+    ? { bg: '#8A8580', border: '#6B6560', text: '#ffffff' }
+    : { bg: '#9F9F9F', border: '#8A8580', text: '#ffffff' };
   return map[normalizedPriority] || fallback;
 }
 
 /**
- * Bright colors for column headers (Monday.com style)
+ * Earth-tone colors for column headers
  */
 export const COLUMN_HEADER_COLORS: string[] = [
-  'var(--primary)', // primary
-  '#3b82f6', // blue
-  '#22c55e', // green
-  '#f59e0b', // amber
-  '#ef4444', // red
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-  '#14b8a6', // teal
-  '#0086C0', // monday blue
-  '#00C875', // monday green
-  '#FDAB3D', // monday orange
-  '#E2445C', // monday red
-  '#A25DDC', // monday purple
-  '#579BFC', // monday sky
-  '#FF158A', // monday pink
-  '#CAB641', // monday olive
-  '#9AADBD', // monday blue-gray
-  '#7F5347', // monday brown
-  '#175A63', // monday teal-dark
+  'var(--primary)', // burnt orange primary
+  '#5E8C4A',       // sage green
+  '#D4A853',       // warm gold
+  '#B81414',       // red
+  '#9C9561',       // olive
+  '#996F49',       // nougat
+  '#7AAF60',       // light sage
+  '#E0BC6A',       // light gold
+  '#D4945E',       // light burnt orange
+  '#8A844F',       // dark olive
+  '#A66843',       // dark burnt orange
+  '#5A361F',       // dark brown
 ];
 
 /**
@@ -176,24 +163,17 @@ export const COLUMN_HEADER_COLORS: string[] = [
  */
 export const COLUMN_HEADER_COLORS_DARK: string[] = [
   'var(--primary)', // primary (auto-adapts)
-  '#60a5fa', // blue-400
-  '#4ade80', // green-400
-  '#fbbf24', // amber-400
-  '#f87171', // red-400
-  '#a78bfa', // violet-400
-  '#f472b6', // pink-400
-  '#2dd4bf', // teal-400
-  '#38bdf8', // sky-400
-  '#34d399', // emerald-400
-  '#fdba74', // orange-300
-  '#fb7185', // rose-400
-  '#c084fc', // purple-400
-  '#7dd3fc', // sky-300
-  '#fb923c', // orange-400
-  '#d9f99d', // lime-200
-  '#bae6fd', // sky-200
-  '#a78bfa', // violet-400
-  '#2dd4bf', // teal-400
+  '#7AAF60',       // sage green light
+  '#E0BC6A',       // warm gold light
+  '#D42020',       // red light
+  '#B5AE78',       // olive light
+  '#BF7B54',       // burnt orange
+  '#A5D48F',       // bright sage
+  '#F0D080',       // bright gold
+  '#E8AD70',       // bright burnt orange
+  '#C5BD80',       // bright olive
+  '#D4945E',       // medium burnt orange
+  '#8B5535',       // medium brown
 ];
 
 /**
@@ -209,10 +189,10 @@ export function getColumnHeaderColor(index: number, isDark?: boolean): string {
 
 /** Priority flag hex colors for SVG rendering */
 export const PRIORITY_FLAG_COLORS: Record<string, string> = {
-  urgent: '#E8445A',
-  high: '#F5A623',
-  medium: '#facc15',
-  low: '#60a5fa',
+  urgent: '#B81414',
+  high: '#BF7B54',
+  medium: '#D4A853',
+  low: '#9C9561',
 };
 
 /**
@@ -249,10 +229,10 @@ export function getPriorityColor(priority: string): {
   const normalizedPriority = priority.toLowerCase() as TaskPriority;
   return (
     PRIORITY_COLORS[normalizedPriority] || {
-      bg: 'bg-gray-400',
-      text: 'text-white',
-      border: 'border-gray-500',
-      dot: 'bg-gray-300',
+      bg: 'bg-[rgba(159,159,159,0.08)]',
+      text: 'text-[#9F9F9F]',
+      border: 'border-[rgba(159,159,159,0.2)]',
+      dot: 'bg-[#9F9F9F]',
     }
   );
 }
