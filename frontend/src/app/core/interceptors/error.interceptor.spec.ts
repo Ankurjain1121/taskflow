@@ -247,6 +247,93 @@ describe('errorInterceptor', () => {
     });
   });
 
+  describe('extractErrorMessage coverage', () => {
+    it('should extract backend envelope message: { error: { code, message } }', () => {
+      const req = new HttpRequest('GET', '/api/tasks/1');
+      const error = new HttpErrorResponse({
+        status: 400,
+        error: { error: { code: 'NOT_FOUND', message: 'Task not found' } },
+      });
+      const next: HttpHandlerFn = () => throwError(() => error);
+
+      runInterceptor(req, next).subscribe({ error: () => {} });
+
+      expect(mockMessageService.add).toHaveBeenCalledWith(
+        expect.objectContaining({ detail: 'Task not found' }),
+      );
+    });
+
+    it('should extract flat message: { message: "..." }', () => {
+      const req = new HttpRequest('POST', '/api/tasks');
+      const error = new HttpErrorResponse({
+        status: 400,
+        error: { message: 'Validation failed' },
+      });
+      const next: HttpHandlerFn = () => throwError(() => error);
+
+      runInterceptor(req, next).subscribe({ error: () => {} });
+
+      expect(mockMessageService.add).toHaveBeenCalledWith(
+        expect.objectContaining({ detail: 'Validation failed' }),
+      );
+    });
+
+    it('should extract string error: { error: "Something broke" }', () => {
+      const req = new HttpRequest('POST', '/api/tasks');
+      const error = new HttpErrorResponse({
+        status: 400,
+        error: { error: 'Something broke' },
+      });
+      const next: HttpHandlerFn = () => throwError(() => error);
+
+      runInterceptor(req, next).subscribe({ error: () => {} });
+
+      expect(mockMessageService.add).toHaveBeenCalledWith(
+        expect.objectContaining({ detail: 'Something broke' }),
+      );
+    });
+
+    it('should return default message for unknown body shape: { foo: "bar" }', () => {
+      const req = new HttpRequest('POST', '/api/tasks');
+      const error = new HttpErrorResponse({
+        status: 400,
+        error: { foo: 'bar' },
+      });
+      const next: HttpHandlerFn = () => throwError(() => error);
+
+      runInterceptor(req, next).subscribe({ error: () => {} });
+
+      // Body has no recognized fields, so extractErrorMessage falls through
+      // to HttpErrorResponse.message which contains "Http failure response..."
+      expect(mockMessageService.add).toHaveBeenCalledWith(
+        expect.objectContaining({
+          detail: expect.stringContaining('Http failure response'),
+        }),
+      );
+    });
+  });
+
+  describe('auth endpoint skipping', () => {
+    it('should skip error handling for auth endpoint errors', () => {
+      const req = new HttpRequest('POST', '/api/auth/login');
+      const error = new HttpErrorResponse({
+        status: 400,
+        error: { message: 'Invalid credentials' },
+      });
+      const next: HttpHandlerFn = () => throwError(() => error);
+
+      let caughtError: HttpErrorResponse | undefined;
+      runInterceptor(req, next).subscribe({
+        error: (err) => {
+          caughtError = err;
+        },
+      });
+
+      expect(caughtError).toBe(error);
+      expect(mockMessageService.add).not.toHaveBeenCalled();
+    });
+  });
+
   describe('error propagation', () => {
     it('should always re-throw the error after showing toast', () => {
       const req = new HttpRequest('GET', '/api/tasks');

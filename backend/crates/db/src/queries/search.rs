@@ -56,6 +56,15 @@ pub struct SearchFilters {
     pub board_id: Option<Uuid>,
 }
 
+/// Escape LIKE metacharacters (`%`, `_`, `\`) so that user input is treated
+/// as literal text inside an `ILIKE` / `LIKE` pattern.
+fn escape_like(input: &str) -> String {
+    input
+        .replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_")
+}
+
 pub async fn search_all(
     pool: &PgPool,
     tenant_id: Uuid,
@@ -64,11 +73,7 @@ pub async fn search_all(
     limit: i64,
     filters: &SearchFilters,
 ) -> Result<SearchResults, sqlx::Error> {
-    // Escape LIKE metacharacters to prevent injection via %, _, or \
-    let escaped = query
-        .replace('\\', "\\\\")
-        .replace('%', "\\%")
-        .replace('_', "\\_");
+    let escaped = escape_like(query);
     let like_query = format!("%{}%", escaped);
 
     // Search tasks using full-text search with ILIKE fallback (board membership enforced)
@@ -178,4 +183,54 @@ pub async fn search_all(
         comments,
         counts,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_escape_like_percent() {
+        assert_eq!(escape_like("100%"), r"100\%");
+    }
+
+    #[test]
+    fn test_escape_like_underscore() {
+        assert_eq!(escape_like("some_thing"), r"some\_thing");
+    }
+
+    #[test]
+    fn test_escape_like_backslash() {
+        assert_eq!(escape_like(r"path\to"), r"path\\to");
+    }
+
+    #[test]
+    fn test_escape_like_all_metacharacters() {
+        // All three metacharacters in one string
+        assert_eq!(escape_like(r"50%_\done"), r"50\%\_\\done");
+    }
+
+    #[test]
+    fn test_escape_like_no_metacharacters() {
+        assert_eq!(escape_like("normal query"), "normal query");
+    }
+
+    #[test]
+    fn test_escape_like_empty_string() {
+        assert_eq!(escape_like(""), "");
+    }
+
+    #[test]
+    fn test_escape_like_unicode() {
+        // Unicode characters should pass through unescaped
+        assert_eq!(escape_like("hello world"), "hello world");
+    }
+
+    #[test]
+    fn test_escape_like_order_matters() {
+        // Backslash must be escaped FIRST, otherwise the escaping of % and _
+        // would produce double-escaped backslashes.
+        // Input: `\%` -> should become `\\%` (escaped backslash, then escaped percent) = `\\\%`
+        assert_eq!(escape_like(r"\%"), r"\\\%");
+    }
 }

@@ -101,6 +101,8 @@ pub async fn create_task(
     tenant_id: Uuid,
     created_by_id: Uuid,
 ) -> Result<Task, TaskQueryError> {
+    let mut tx = pool.begin().await?;
+
     // Resolve status_id: use provided or look up default
     let status_id = match input.status_id {
         Some(sid) => Some(sid),
@@ -113,7 +115,7 @@ pub async fn create_task(
                 "#,
             )
             .bind(project_id)
-            .fetch_optional(pool)
+            .fetch_optional(&mut *tx)
             .await?
         }
     };
@@ -130,7 +132,7 @@ pub async fn create_task(
                 "#,
             )
             .bind(project_id)
-            .fetch_optional(pool)
+            .fetch_optional(&mut *tx)
             .await?
         }
     };
@@ -146,7 +148,7 @@ pub async fn create_task(
         "#,
     )
     .bind(project_id)
-    .fetch_optional(pool)
+    .fetch_optional(&mut *tx)
     .await?;
 
     let position = generate_key_between(last_position.as_deref(), None);
@@ -159,7 +161,7 @@ pub async fn create_task(
             "SELECT depth FROM tasks WHERE id = $1 AND deleted_at IS NULL",
         )
         .bind(pid)
-        .fetch_optional(pool)
+        .fetch_optional(&mut *tx)
         .await?
         .ok_or_else(|| TaskQueryError::Other("Parent task not found".to_string()))?;
         let child_depth = parent_depth + 1;
@@ -210,7 +212,7 @@ pub async fn create_task(
     .bind(parent_task_id)
     .bind(depth)
     .bind(input.reporting_person_id)
-    .fetch_one(pool)
+    .fetch_one(&mut *tx)
     .await?;
 
     // Insert assignees if provided — batch insert
@@ -225,7 +227,7 @@ pub async fn create_task(
             )
             .bind(task_id)
             .bind(assignee_ids)
-            .execute(pool)
+            .execute(&mut *tx)
             .await?;
         }
     }
@@ -242,10 +244,12 @@ pub async fn create_task(
             )
             .bind(task_id)
             .bind(label_ids)
-            .execute(pool)
+            .execute(&mut *tx)
             .await?;
         }
     }
+
+    tx.commit().await?;
 
     Ok(task)
 }
