@@ -60,8 +60,8 @@ describe('task-colors (extended)', () => {
 
     it('returns gray fallback for unknown priority', () => {
       const result = getPriorityColorHex('unknown');
-      expect(result.bg).toBe('#9ca3af');
-      expect(result.border).toBe('#6b7280');
+      expect(result.bg).toBe('#9F9F9F');
+      expect(result.border).toBe('#8A8580');
       expect(result.text).toBe('#ffffff');
     });
   });
@@ -232,7 +232,7 @@ describe('Phase 4.5: Color System Integration', () => {
   describe('getPriorityColorHex with isDark parameter', () => {
     it('returns light hex when isDark is false', () => {
       const result = getPriorityColorHex('urgent', false);
-      expect(result.bg).toBe('#ef4444');
+      expect(result.bg).toBe('#E8445A');
     });
 
     it('returns dark hex when isDark is true', () => {
@@ -242,13 +242,13 @@ describe('Phase 4.5: Color System Integration', () => {
 
     it('defaults to light mode when isDark is omitted', () => {
       const result = getPriorityColorHex('urgent');
-      expect(result.bg).toBe('#ef4444');
+      expect(result.bg).toBe('#E8445A');
     });
 
     it('returns dark gray fallback for unknown priority in dark mode', () => {
       const result = getPriorityColorHex('invalid', true);
-      expect(result.bg).toBe('#6b7280');
-      expect(result.border).toBe('#4b5563');
+      expect(result.bg).toBe('#8A8580');
+      expect(result.border).toBe('#6B6560');
       expect(result.text).toBe('#ffffff');
     });
   });
@@ -316,8 +316,8 @@ describe('Phase 4.5: Color System Integration', () => {
 
   // --- LABEL_PRESET_COLORS ---
   describe('LABEL_PRESET_COLORS', () => {
-    it('should have 12 preset colors', () => {
-      expect(LABEL_PRESET_COLORS).toHaveLength(12);
+    it('should have 10 preset colors', () => {
+      expect(LABEL_PRESET_COLORS).toHaveLength(10);
     });
 
     it('all values should be valid hex colors', () => {
@@ -357,12 +357,12 @@ describe('Phase 4.5: Color System Integration', () => {
     describe('colorBy = priority', () => {
       it('returns priority flag color for urgent', () => {
         const result = resolveCardColor(makeTask({ priority: 'urgent' }), 'priority');
-        expect(result).toBe('#ef4444');
+        expect(result).toBe('#E8445A');
       });
 
       it('returns priority flag color for low', () => {
         const result = resolveCardColor(makeTask({ priority: 'low' }), 'priority');
-        expect(result).toBe('#60a5fa');
+        expect(result).toBe('#0FA882');
       });
 
       it('returns null for empty priority', () => {
@@ -372,7 +372,7 @@ describe('Phase 4.5: Color System Integration', () => {
 
       it('is case insensitive', () => {
         const result = resolveCardColor(makeTask({ priority: 'HIGH' }), 'priority');
-        expect(result).toBe('#f97316');
+        expect(result).toBe('#F5A623');
       });
     });
 
