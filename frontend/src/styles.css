@@ -1498,39 +1498,21 @@ small.p-error,
 }
 
 /* ============================================
-   Midnight Ink — Component Overrides
+   Component Style Overrides (theme-aware)
    ============================================ */
 
-/* Top nav: ink-black background */
-.top-nav {
-  background: #0D0F14 !important;
-  border-bottom: 1px solid rgba(45, 91, 227, 0.25) !important;
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.2) !important;
-}
-
-.top-nav .nav-icon-btn {
-  color: rgba(255, 255, 255, 0.5) !important;
-}
-.top-nav .nav-icon-btn:hover {
-  color: #ffffff !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-}
-
-.top-nav kbd {
-  background: rgba(255, 255, 255, 0.06) !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
-  color: rgba(255, 255, 255, 0.4) !important;
-}
+/* Top nav: uses theme's sidebar-bg via component CSS */
+/* (no hardcoded colors — inherits from var(--sidebar-bg) set by ThemeService) */
 
 /* Sidebar: subtle right border shadow */
 .sidebar-root {
   box-shadow: 1px 0 0 var(--sidebar-border);
 }
 
-/* Sidebar active items: white card on light sidebar */
+/* Sidebar active items: themed card background */
 .view-item.active,
 .footer-item.active {
-  background: #FFFFFF !important;
-  border: 1px solid var(--sidebar-border) !important;
+  background: var(--card);
+  border: 1px solid var(--sidebar-border);
   border-radius: 7px;
 }
