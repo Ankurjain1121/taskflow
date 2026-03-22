@@ -30,11 +30,33 @@ pub struct RateLimiter {
 
 impl RateLimiter {
     pub fn new(redis: redis::aio::ConnectionManager, max_requests: u32, window_secs: u64) -> Self {
+        let fallback = Arc::new(DashMap::new());
+
+        // Spawn background cleanup task for stale in-memory fallback entries
+        {
+            let fallback = fallback.clone();
+            let window_secs = window_secs;
+            tokio::spawn(async move {
+                let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
+                // Skip the first immediate tick
+                interval.tick().await;
+                loop {
+                    interval.tick().await;
+                    let now_secs = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs();
+                    let current_window = now_secs / window_secs;
+                    fallback.retain(|_key, (_count, window_ts)| *window_ts >= current_window);
+                }
+            });
+        }
+
         Self {
             redis,
             max_requests,
             window_secs,
-            fallback: Arc::new(DashMap::new()),
+            fallback,
         }
     }
 
@@ -261,6 +283,166 @@ pub fn user_rate_limit_layer(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Build a test-only struct that mirrors the fallback fields of
+    /// `RateLimiter` without needing a Redis connection.
+    struct FallbackLimiter {
+        max_requests: u32,
+        window_secs: u64,
+        fallback: Arc<DashMap<String, FallbackEntry>>,
+    }
+
+    impl FallbackLimiter {
+        fn new(max_requests: u32, window_secs: u64) -> Self {
+            Self {
+                max_requests,
+                window_secs,
+                fallback: Arc::new(DashMap::new()),
+            }
+        }
+
+        /// Mirrors `RateLimiter::check_fallback` exactly.
+        fn check_fallback(
+            &self,
+            ip: &str,
+            window_ts: u64,
+            now_secs: u64,
+        ) -> std::result::Result<(), u64> {
+            let fallback_key = format!("{}:{}", self.max_requests, ip);
+
+            let count = {
+                let mut entry = self.fallback.entry(fallback_key).or_insert((0, window_ts));
+                let (ref mut count, ref mut stored_window) = *entry;
+
+                if *stored_window != window_ts {
+                    *count = 0;
+                    *stored_window = window_ts;
+                }
+
+                *count += 1;
+                *count
+            };
+
+            if count > self.max_requests as u64 {
+                let window_end = (window_ts + 1) * self.window_secs;
+                let retry_after = window_end.saturating_sub(now_secs).max(1);
+                return Err(retry_after);
+            }
+
+            Ok(())
+        }
+
+        /// Mirrors `RateLimiter::cleanup_stale_entries`.
+        fn cleanup_stale_entries(&self) {
+            let now_secs = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+            let current_window = now_secs / self.window_secs;
+
+            self.fallback
+                .retain(|_key, (_count, window_ts)| *window_ts >= current_window);
+        }
+    }
+
+    // ── DashMap fallback rate-limiter tests ──────────────────────────
+
+    #[test]
+    fn test_fallback_allows_under_limit() {
+        let limiter = FallbackLimiter::new(5, 60);
+        let window_ts = 100;
+        let now_secs = 6000;
+
+        for i in 0..5 {
+            let result = limiter.check_fallback("192.168.1.1", window_ts, now_secs);
+            assert!(
+                result.is_ok(),
+                "Request {} should be allowed under the limit",
+                i + 1
+            );
+        }
+    }
+
+    #[test]
+    fn test_fallback_blocks_over_limit() {
+        let max = 3u32;
+        let limiter = FallbackLimiter::new(max, 60);
+        let window_ts = 200;
+        let now_secs = 12_000;
+
+        // First `max` requests succeed
+        for _ in 0..max {
+            assert!(limiter
+                .check_fallback("10.0.0.1", window_ts, now_secs)
+                .is_ok());
+        }
+
+        // The (max+1)th request should be rate-limited
+        let result = limiter.check_fallback("10.0.0.1", window_ts, now_secs);
+        assert!(result.is_err(), "Should be rate-limited after max requests");
+
+        // Verify retry_after is reasonable (time remaining in window)
+        let retry_after = result.unwrap_err();
+        assert!(retry_after >= 1, "retry_after should be at least 1");
+    }
+
+    #[test]
+    fn test_fallback_resets_on_new_window() {
+        let max = 2u32;
+        let limiter = FallbackLimiter::new(max, 60);
+        let window_ts_1 = 300;
+        let now_secs_1 = 18_000;
+
+        // Fill up the limit in window 1
+        for _ in 0..max {
+            assert!(limiter
+                .check_fallback("10.0.0.2", window_ts_1, now_secs_1)
+                .is_ok());
+        }
+        assert!(limiter
+            .check_fallback("10.0.0.2", window_ts_1, now_secs_1)
+            .is_err());
+
+        // Advance to window 2 — counter should reset
+        let window_ts_2 = 301;
+        let now_secs_2 = 18_060;
+        let result = limiter.check_fallback("10.0.0.2", window_ts_2, now_secs_2);
+        assert!(
+            result.is_ok(),
+            "Counter should reset when the window advances"
+        );
+    }
+
+    #[test]
+    fn test_cleanup_removes_stale_entries() {
+        let limiter = FallbackLimiter::new(10, 60);
+
+        // Manually insert a stale entry with an old window_ts
+        limiter
+            .fallback
+            .insert("10:old-ip".to_string(), (5, 1)); // window_ts = 1 (ancient)
+
+        // Insert a current entry (current_window = now_secs / 60)
+        let now_secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let current_window = now_secs / 60;
+        limiter
+            .fallback
+            .insert("10:current-ip".to_string(), (3, current_window));
+
+        assert_eq!(limiter.fallback.len(), 2);
+
+        limiter.cleanup_stale_entries();
+
+        // Stale entry should be removed, current entry should remain
+        assert_eq!(limiter.fallback.len(), 1);
+        assert!(limiter.fallback.contains_key("10:current-ip"));
+        assert!(!limiter.fallback.contains_key("10:old-ip"));
+    }
+
+    // ── IP extraction tests ─────────────────────────────────────────
 
     #[test]
     fn test_extract_ip_forwarded_for_first_entry() {

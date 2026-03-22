@@ -21,15 +21,15 @@ pub struct BulkUpdateInput {
 /// Bulk update multiple tasks at once
 pub async fn bulk_update_tasks(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     user_id: Uuid,
     input: BulkUpdateInput,
 ) -> std::result::Result<u64, TaskQueryError> {
-    // Verify board membership
+    // Verify project membership
     let is_member = sqlx::query_scalar::<_, bool>(
         "SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)",
     )
-    .bind(board_id)
+    .bind(project_id)
     .bind(user_id)
     .fetch_one(pool)
     .await?;
@@ -55,10 +55,10 @@ pub async fn bulk_update_tasks(
         )
         .bind(status_id)
         .bind(&input.task_ids)
-        .bind(board_id)
+        .bind(project_id)
         .execute(&mut *tx)
         .await?;
-        updated = result.rows_affected();
+        updated = updated.max(result.rows_affected());
     }
 
     // Update priority if specified
@@ -71,10 +71,10 @@ pub async fn bulk_update_tasks(
         )
         .bind(priority)
         .bind(&input.task_ids)
-        .bind(board_id)
+        .bind(project_id)
         .execute(&mut *tx)
         .await?;
-        updated = result.rows_affected();
+        updated = updated.max(result.rows_affected());
     }
 
     // Update milestone if specified
@@ -86,10 +86,10 @@ pub async fn bulk_update_tasks(
             "#,
         )
         .bind(&input.task_ids)
-        .bind(board_id)
+        .bind(project_id)
         .execute(&mut *tx)
         .await?;
-        updated = result.rows_affected();
+        updated = updated.max(result.rows_affected());
     } else if let Some(milestone_id) = input.milestone_id {
         let result = sqlx::query(
             r#"
@@ -99,10 +99,10 @@ pub async fn bulk_update_tasks(
         )
         .bind(milestone_id)
         .bind(&input.task_ids)
-        .bind(board_id)
+        .bind(project_id)
         .execute(&mut *tx)
         .await?;
-        updated = result.rows_affected();
+        updated = updated.max(result.rows_affected());
     }
 
     // Update task_list if specified
@@ -114,10 +114,10 @@ pub async fn bulk_update_tasks(
             "#,
         )
         .bind(&input.task_ids)
-        .bind(board_id)
+        .bind(project_id)
         .execute(&mut *tx)
         .await?;
-        updated = result.rows_affected();
+        updated = updated.max(result.rows_affected());
     } else if let Some(task_list_id) = input.task_list_id {
         let result = sqlx::query(
             r#"
@@ -127,10 +127,10 @@ pub async fn bulk_update_tasks(
         )
         .bind(task_list_id)
         .bind(&input.task_ids)
-        .bind(board_id)
+        .bind(project_id)
         .execute(&mut *tx)
         .await?;
-        updated = result.rows_affected();
+        updated = updated.max(result.rows_affected());
     }
 
     tx.commit().await?;
@@ -141,14 +141,14 @@ pub async fn bulk_update_tasks(
 /// Bulk delete (soft) multiple tasks
 pub async fn bulk_delete_tasks(
     pool: &PgPool,
-    board_id: Uuid,
+    project_id: Uuid,
     user_id: Uuid,
     task_ids: &[Uuid],
 ) -> std::result::Result<u64, TaskQueryError> {
     let is_member = sqlx::query_scalar::<_, bool>(
         "SELECT EXISTS(SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2)",
     )
-    .bind(board_id)
+    .bind(project_id)
     .bind(user_id)
     .fetch_one(pool)
     .await?;
@@ -164,7 +164,7 @@ pub async fn bulk_delete_tasks(
         "#,
     )
     .bind(task_ids)
-    .bind(board_id)
+    .bind(project_id)
     .execute(pool)
     .await?;
 

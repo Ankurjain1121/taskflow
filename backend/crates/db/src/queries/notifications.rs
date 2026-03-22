@@ -281,4 +281,100 @@ mod tests {
         assert!(json.contains("\"nextCursor\":\"cursor123\""));
         assert!(json.contains("\"unreadCount\":5"));
     }
+
+    #[test]
+    fn test_notification_query_error_display() {
+        let db_err = NotificationQueryError::NotFound;
+        assert_eq!(db_err.to_string(), "Notification not found");
+
+        let unauth = NotificationQueryError::Unauthorized;
+        assert_eq!(unauth.to_string(), "Unauthorized");
+    }
+
+    // ── Integration test: bounded DELETE ─────────────────────────────
+    //
+    // `delete_old_notifications` uses a sub-select with LIMIT to cap the
+    // number of rows deleted per call:
+    //
+    //     DELETE FROM notifications
+    //     WHERE id IN (
+    //         SELECT id FROM notifications
+    //         WHERE created_at < NOW() - $1 * interval '1 day'
+    //         LIMIT $2             <-- batch_limit
+    //     )
+    //
+    // A full integration test would:
+    //   1. Call `setup_user` from `test_helpers` to get a user_id.
+    //   2. Insert N old notifications (created_at = NOW() - 100 days).
+    //   3. Insert M recent notifications (created_at = NOW()).
+    //   4. Call `delete_old_notifications(pool, 30, batch_limit=2)`.
+    //   5. Assert exactly 2 rows deleted (not all N).
+    //   6. Call again, assert 2 more deleted, etc.
+    //   7. Assert recent notifications are untouched.
+    //
+    // This test requires a live Postgres connection (see `test_helpers::test_pool`)
+    // and is gated behind `#[ignore]` to avoid running in CI without a DB.
+    // Run with: `cargo test -p taskflow-db -- --ignored test_delete_old_notifications_respects_batch_limit`
+    #[tokio::test]
+    #[ignore = "requires live Postgres (run with --ignored)"]
+    async fn test_delete_old_notifications_respects_batch_limit() {
+        let pool = crate::queries::test_helpers::test_pool().await;
+        let (_tenant_id, user_id) = crate::queries::test_helpers::setup_user(&pool).await;
+
+        // Insert 5 old notifications (90 days ago)
+        for i in 0..5 {
+            sqlx::query!(
+                r#"
+                INSERT INTO notifications (id, recipient_id, event_type, title, body, is_read, created_at)
+                VALUES ($1, $2, 'test', $3, 'body', false, NOW() - interval '90 days')
+                "#,
+                Uuid::new_v4(),
+                user_id,
+                format!("Old notification {}", i),
+            )
+            .execute(&pool)
+            .await
+            .expect("insert old notification");
+        }
+
+        // Insert 2 recent notifications
+        for i in 0..2 {
+            sqlx::query!(
+                r#"
+                INSERT INTO notifications (id, recipient_id, event_type, title, body, is_read, created_at)
+                VALUES ($1, $2, 'test', $3, 'body', false, NOW())
+                "#,
+                Uuid::new_v4(),
+                user_id,
+                format!("Recent notification {}", i),
+            )
+            .execute(&pool)
+            .await
+            .expect("insert recent notification");
+        }
+
+        // Delete with batch_limit=2, days_to_keep=30
+        let deleted = delete_old_notifications(&pool, 30, 2)
+            .await
+            .expect("delete_old_notifications");
+        assert_eq!(deleted, 2, "Should delete exactly batch_limit rows");
+
+        // Delete again — should get 2 more
+        let deleted2 = delete_old_notifications(&pool, 30, 2)
+            .await
+            .expect("delete_old_notifications second call");
+        assert_eq!(deleted2, 2, "Second batch should delete 2 more");
+
+        // Delete again — only 1 old notification remains
+        let deleted3 = delete_old_notifications(&pool, 30, 2)
+            .await
+            .expect("delete_old_notifications third call");
+        assert_eq!(deleted3, 1, "Third batch should delete the remaining 1");
+
+        // Delete again — nothing left to delete
+        let deleted4 = delete_old_notifications(&pool, 30, 2)
+            .await
+            .expect("delete_old_notifications fourth call");
+        assert_eq!(deleted4, 0, "No more old notifications to delete");
+    }
 }
