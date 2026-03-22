@@ -46,12 +46,12 @@
 
 /* CSS Custom Properties for Theme System — Warm Earth */
 :root {
-  --background: #EDE9DD;
+  --background: #E8E4DB;
   --foreground: #2E2E2E;
-  --card: #FFFFFF;
+  --card: #EDE9DD;
   --card-foreground: #2E2E2E;
-  --border: rgba(46, 46, 46, 0.08);
-  --input: rgba(46, 46, 46, 0.1);
+  --border: rgba(159, 159, 159, 0.25);
+  --input: rgba(159, 159, 159, 0.15);
   --muted: #E8E4DB;
   --muted-foreground: #9F9F9F;
   --accent: rgba(191, 123, 84, 0.06);
@@ -70,15 +70,18 @@
   --ring: #BF7B54;
   --radius: 1.25rem;
 
-  /* Sidebar tokens — Warm Earth */
-  --sidebar-bg: #F5F2EC;
-  --sidebar-surface: rgba(191, 123, 84, 0.03);
-  --sidebar-surface-hover: rgba(191, 123, 84, 0.06);
-  --sidebar-surface-active: rgba(191, 123, 84, 0.1);
-  --sidebar-border: rgba(46, 46, 46, 0.06);
-  --sidebar-text-primary: #2E2E2E;
-  --sidebar-text-secondary: #5A5550;
-  --sidebar-text-muted: #9F9F9F;
+  /* Topbar token */
+  --topbar-bg: #D4A088;
+
+  /* Sidebar tokens — Warm Earth (C3 = warm brown) */
+  --sidebar-bg: #BF7B54;
+  --sidebar-surface: rgba(0, 0, 0, 0.04);
+  --sidebar-surface-hover: rgba(0, 0, 0, 0.08);
+  --sidebar-surface-active: rgba(0, 0, 0, 0.12);
+  --sidebar-border: rgba(0, 0, 0, 0.08);
+  --sidebar-text-primary: #1a0e05;
+  --sidebar-text-secondary: #2E1A0E;
+  --sidebar-text-muted: #5A3D2A;
 
   /* Elevation tokens */
   --shadow-glow:
@@ -110,7 +113,7 @@
   --font-body: 'DM Sans', system-ui, sans-serif;
 
   /* Surface overlay */
-  --surface-overlay: rgba(255, 255, 255, 0.96);
+  --surface-overlay: rgba(237, 233, 221, 0.96);
 }
 
 html.dark {
@@ -145,6 +148,9 @@ html.dark {
   --sidebar-text-primary: rgba(255, 255, 255, 0.95);
   --sidebar-text-secondary: rgba(200, 198, 192, 0.85);
   --sidebar-text-muted: rgba(150, 148, 142, 0.6);
+
+  /* Topbar token */
+  --topbar-bg: #211F1C;
 
   --shadow-glow:
     0 0 0 1px rgba(212, 148, 94, 0.15),
@@ -683,9 +689,10 @@ html.dark .glass-subtle {
    Widget Card (shared dashboard card)
    ============================================ */
 .widget-card {
-  background-color: var(--card);
+  background-color: color-mix(in srgb, var(--card) 55%, var(--background));
   color: var(--card-foreground);
   border: 1px solid var(--border);
+  border-left: 3px solid color-mix(in srgb, var(--primary) 30%, transparent);
   border-radius: var(--radius);
   transition:
     border-color var(--duration-normal) var(--ease-standard),
@@ -694,7 +701,9 @@ html.dark .glass-subtle {
 }
 .widget-card:hover {
   border-color: var(--widget-hover-border);
-  box-shadow: var(--shadow-glow);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent),
+    0 8px 24px color-mix(in srgb, var(--primary) 8%, transparent);
   transform: translateY(-4px);
 }
 
@@ -706,8 +715,9 @@ html.dark .glass-subtle {
   overflow: hidden;
   border-radius: var(--radius);
   padding: 1.25rem;
-  border: 1px solid var(--border);
-  background: var(--card);
+  border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+  background: linear-gradient(135deg, var(--card) 0%, color-mix(in srgb, var(--primary) 5%, var(--card)) 100%);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--foreground) 5%, transparent);
   transition: all var(--duration-normal) var(--ease-standard);
 }
 .stat-card:hover {
@@ -797,6 +807,16 @@ html.dark .glass-subtle {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--muted-foreground);
+}
+.widget-title::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  margin-right: 8px;
+  vertical-align: middle;
 }
 
 /* ============================================
@@ -905,7 +925,11 @@ html.dark .glass-subtle {
     opacity: 1 !important;
     transform: none !important;
   }
-  .widget-card:hover {
+  .widget-card:hover,
+  .stat-card:hover {
+    transform: none;
+  }
+  .stat-card:hover .stat-card-icon {
     transform: none;
   }
 }
@@ -1504,9 +1528,13 @@ small.p-error,
 /* Top nav: uses theme's sidebar-bg via component CSS */
 /* (no hardcoded colors — inherits from var(--sidebar-bg) set by ThemeService) */
 
-/* Sidebar: subtle right border shadow */
+/* Sidebar: floating style with rounded corners and shadow */
 .sidebar-root {
-  box-shadow: 1px 0 0 var(--sidebar-border);
+  margin: 8px 0 8px 8px;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  height: calc(100vh - var(--nav-height) - 16px);
 }
 
 /* Sidebar active items: themed card background */

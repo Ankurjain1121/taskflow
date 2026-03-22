@@ -95,10 +95,10 @@ import { PRIORITY_COLORS_HEX } from '../../../shared/utils/task-colors';
   styles: [`
     .focus-task-card {
       background: var(--card);
-      border: 1px solid var(--border);
+      border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
       border-left: 3px solid var(--muted-foreground);
       border-radius: var(--radius);
-      box-shadow: var(--shadow-xs);
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--foreground) 6%, transparent);
       transition: box-shadow var(--duration-normal) var(--ease-standard),
                   transform var(--duration-normal) var(--ease-standard),
                   border-color var(--duration-normal) var(--ease-standard);

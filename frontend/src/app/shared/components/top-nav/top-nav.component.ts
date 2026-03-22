@@ -40,7 +40,12 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
 
       .top-nav {
         height: 56px;
-        background: var(--sidebar-bg);
+        background: linear-gradient(90deg,
+          color-mix(in srgb, var(--sidebar-bg) 40%, var(--topbar-bg)) 0%,
+          color-mix(in srgb, var(--topbar-bg) 85%, transparent) 15%,
+          color-mix(in srgb, var(--topbar-bg) 85%, transparent) 100%);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
         border-bottom: 2px solid var(--primary);
         z-index: 50;
       }
