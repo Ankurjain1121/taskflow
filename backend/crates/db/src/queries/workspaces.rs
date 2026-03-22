@@ -436,6 +436,7 @@ pub async fn list_open_workspaces(
               WHERE wm.workspace_id = w.id AND wm.user_id = $2
           )
         ORDER BY w.name ASC
+        LIMIT 100
         "#,
     )
     .bind(tenant_id)
@@ -503,6 +504,7 @@ pub async fn list_tenant_members(
         GROUP BY u.id, u.name, u.email, u.avatar_url,
                  u.job_title, u.department, u.role, u.created_at
         ORDER BY u.name ASC
+        LIMIT 500
         "#,
     )
     .bind(tenant_id)
@@ -554,27 +556,20 @@ pub async fn bulk_add_workspace_members(
         return Ok(0);
     }
 
-    let mut tx = pool.begin().await?;
-    let mut added: u64 = 0;
+    let result = sqlx::query(
+        r#"
+        INSERT INTO workspace_members (workspace_id, user_id, role)
+        SELECT $1, uid, 'member'::workspace_member_role
+        FROM unnest($2::uuid[]) AS uid
+        ON CONFLICT (workspace_id, user_id) DO NOTHING
+        "#,
+    )
+    .bind(workspace_id)
+    .bind(user_ids)
+    .execute(pool)
+    .await?;
 
-    for &uid in user_ids {
-        let result = sqlx::query(
-            r#"
-            INSERT INTO workspace_members (workspace_id, user_id, role)
-            VALUES ($1, $2, 'member')
-            ON CONFLICT (workspace_id, user_id) DO NOTHING
-            "#,
-        )
-        .bind(workspace_id)
-        .bind(uid)
-        .execute(&mut *tx)
-        .await?;
-
-        added += result.rows_affected();
-    }
-
-    tx.commit().await?;
-    Ok(added)
+    Ok(result.rows_affected())
 }
 
 /// Workspace matrix entry: workspace with membership status for a given user

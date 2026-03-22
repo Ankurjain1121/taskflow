@@ -49,11 +49,11 @@ async fn test_archive_board_and_list() {
     let pool = test_pool().await;
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
-    let bwc = super::projects::create_board(&pool, "ArchiveBoard", None, ws_id, tenant_id, user_id)
+    let bwc = super::projects::create_project(&pool, "ArchiveBoard", None, ws_id, tenant_id, user_id)
         .await
         .expect("create_board");
 
-    super::projects::soft_delete_board(&pool, bwc.project.id)
+    super::projects::soft_delete_project(&pool, bwc.project.id)
         .await
         .expect("soft_delete_board");
 
@@ -77,7 +77,7 @@ async fn test_archive_mixed_listing() {
     let pool = test_pool().await;
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
-    let bwc = super::projects::create_board(&pool, "MixBoard", None, ws_id, tenant_id, user_id)
+    let bwc = super::projects::create_project(&pool, "MixBoard", None, ws_id, tenant_id, user_id)
         .await
         .expect("create_board");
     let col_id = bwc.statuses[0].id;
@@ -97,7 +97,7 @@ async fn test_archive_mixed_listing() {
     super::tasks::soft_delete_task(&pool, task.id)
         .await
         .expect("soft_delete_task");
-    super::projects::soft_delete_board(&pool, bwc.project.id)
+    super::projects::soft_delete_project(&pool, bwc.project.id)
         .await
         .expect("soft_delete_board");
 

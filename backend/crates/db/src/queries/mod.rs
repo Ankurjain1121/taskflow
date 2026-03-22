@@ -119,17 +119,12 @@ pub use project_shares::{
 
 // projects
 pub use projects::{
-    add_board_member, add_project_member, create_board, create_project, duplicate_board,
-    duplicate_project, get_board_by_id, get_board_internal, get_board_member_role,
-    get_project_by_id, get_project_internal, get_project_member_role, is_board_member,
-    is_project_member, list_board_members, list_board_task_assignees, list_board_task_labels,
-    list_board_tasks_with_badges, list_boards_by_workspace, list_project_members,
+    add_project_member, create_project, duplicate_project, get_project_by_id,
+    get_project_internal, get_project_member_role, is_project_member, list_project_members,
     list_project_task_assignees, list_project_task_labels, list_project_tasks_with_badges,
-    list_projects_by_workspace, remove_board_member, remove_project_member, soft_delete_board,
-    soft_delete_project, update_board, update_board_member_role, update_project,
-    update_project_member_role, BoardMemberWithUser, BoardTaskAssignee, BoardTaskLabel,
-    BoardWithColumns, PaginatedTasks, ProjectMemberWithUser, ProjectWithTaskLists,
-    TaskWithBadgesRow,
+    list_projects_by_workspace, remove_project_member, soft_delete_project, update_project,
+    update_project_member_role, BoardTaskAssignee, BoardTaskLabel, PaginatedTasks,
+    ProjectMemberWithUser, ProjectWithTaskLists, TaskWithBadgesRow,
 };
 
 // comments

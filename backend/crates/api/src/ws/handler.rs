@@ -12,7 +12,7 @@ use std::collections::{HashMap, HashSet};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::errors::{AppError, Result};
 use crate::state::AppState;
@@ -20,7 +20,7 @@ use crate::ws::batch_handler::{BatchHandler, BatchMessage};
 use crate::ws::messages::{ClientMessage, ServerMessage, WsQuery};
 use taskflow_auth::jwt::verify_access_token;
 use taskflow_db::models::WsBoardEvent;
-use taskflow_db::queries::projects::is_board_member;
+use taskflow_db::queries::projects::is_project_member;
 use taskflow_services::{BroadcastService, PresenceService};
 
 /// WebSocket upgrade handler
@@ -126,14 +126,21 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
     let mut subscribed_channels: HashMap<String, tokio::task::JoinHandle<()>> = HashMap::new();
     let mut presence_boards: HashSet<Uuid> = HashSet::new();
 
+    // Server-side ping/pong: track whether a pong was received
+    let pong_received = std::sync::Arc::new(AtomicBool::new(true));
+    let pong_received_sender = pong_received.clone();
+
     // Task to send messages from the channel to WebSocket
     // Batches WsBoardEvent messages to reduce frame count
+    // Also sends periodic WebSocket pings every 30s to detect ghost connections
     let send_task = tokio::spawn(async move {
         let mut batch_handler = BatchHandler::new();
         let mut last_flush = std::time::Instant::now();
+        let mut ping_interval = tokio::time::interval(std::time::Duration::from_secs(30));
+        // Skip the first immediate tick
+        ping_interval.tick().await;
 
         loop {
-            // Use a select to handle both message receipt and periodic flushing
             tokio::select! {
                 msg = rx.recv() => {
                     match msg {
@@ -178,6 +185,19 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                         }
                     }
                     last_flush = std::time::Instant::now();
+                }
+                _ = ping_interval.tick() => {
+                    // Check if we received a pong for the previous ping
+                    if !pong_received_sender.swap(false, Ordering::Relaxed) {
+                        // No pong received since last ping — ghost connection
+                        tracing::warn!("No pong received within 30s, closing ghost connection");
+                        let _ = ws_sender.send(Message::Close(None)).await;
+                        break;
+                    }
+                    // Send a WebSocket-level ping
+                    if ws_sender.send(Message::Ping(vec![].into())).await.is_err() {
+                        break;
+                    }
                 }
             }
         }
@@ -448,7 +468,8 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                 tracing::trace!("Received ping: {:?}", data);
             }
             Message::Pong(_) => {
-                // Ignore pong responses
+                // Mark that we received a pong (server-side ping keepalive)
+                pong_received.store(true, Ordering::Relaxed);
             }
             Message::Close(_) => {
                 tracing::info!(user_id = %user_id, "WebSocket closed by client");
@@ -617,7 +638,7 @@ async fn validate_channel_access(
     match channel_type {
         "project" | "board" => {
             // Verify user is a member of the project
-            is_board_member(pool, channel_id, user_id).await
+            is_project_member(pool, channel_id, user_id).await
         }
         "user" => {
             // Users can only subscribe to their own channel

@@ -532,7 +532,7 @@ mod tests {
 
     async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
         let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-        let bwc = projects::create_board(pool, "TimeEntry Board", None, ws_id, tenant_id, user_id)
+        let bwc = projects::create_project(pool, "TimeEntry Board", None, ws_id, tenant_id, user_id)
             .await
             .expect("create_board");
         let first_list_id = bwc.task_lists[0].id;

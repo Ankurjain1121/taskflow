@@ -75,26 +75,6 @@ pub async fn create_project(
     })
 }
 
-// Alias for backward compat
-pub async fn create_board(
-    pool: &PgPool,
-    name: &str,
-    description: Option<&str>,
-    workspace_id: Uuid,
-    tenant_id: Uuid,
-    created_by_id: Uuid,
-) -> Result<ProjectWithTaskLists, sqlx::Error> {
-    create_project(
-        pool,
-        name,
-        description,
-        workspace_id,
-        tenant_id,
-        created_by_id,
-    )
-    .await
-}
-
 /// Update project name, description, and background color
 pub async fn update_project(
     pool: &PgPool,
@@ -145,16 +125,6 @@ pub async fn update_project(
     }
 }
 
-pub async fn update_board(
-    pool: &PgPool,
-    id: Uuid,
-    name: Option<&str>,
-    description: Option<&str>,
-    background_color: Option<Option<&str>>,
-) -> Result<Option<Project>, sqlx::Error> {
-    update_project(pool, id, name, description, background_color).await
-}
-
 /// Soft-delete a project
 pub async fn soft_delete_project(pool: &PgPool, id: Uuid) -> Result<bool, sqlx::Error> {
     let result = sqlx::query(
@@ -170,10 +140,6 @@ pub async fn soft_delete_project(pool: &PgPool, id: Uuid) -> Result<bool, sqlx::
     .await?;
 
     Ok(result.rows_affected() > 0)
-}
-
-pub async fn soft_delete_board(pool: &PgPool, id: Uuid) -> Result<bool, sqlx::Error> {
-    soft_delete_project(pool, id).await
 }
 
 /// Add a user to a project
@@ -196,15 +162,6 @@ pub async fn add_project_member(
     .bind(role)
     .fetch_one(pool)
     .await
-}
-
-pub async fn add_board_member(
-    pool: &PgPool,
-    board_id: Uuid,
-    user_id: Uuid,
-    role: BoardMemberRole,
-) -> Result<ProjectMember, sqlx::Error> {
-    add_project_member(pool, board_id, user_id, role).await
 }
 
 /// Update a project member's role
@@ -230,15 +187,6 @@ pub async fn update_project_member_role(
     Ok(result.rows_affected() > 0)
 }
 
-pub async fn update_board_member_role(
-    pool: &PgPool,
-    board_id: Uuid,
-    user_id: Uuid,
-    role: BoardMemberRole,
-) -> Result<bool, sqlx::Error> {
-    update_project_member_role(pool, board_id, user_id, role).await
-}
-
 /// Remove a user from a project
 pub async fn remove_project_member(
     pool: &PgPool,
@@ -257,14 +205,6 @@ pub async fn remove_project_member(
     .await?;
 
     Ok(result.rows_affected() > 0)
-}
-
-pub async fn remove_board_member(
-    pool: &PgPool,
-    board_id: Uuid,
-    user_id: Uuid,
-) -> Result<bool, sqlx::Error> {
-    remove_project_member(pool, board_id, user_id).await
 }
 
 /// Duplicate a project with its statuses, task lists and optionally its tasks.
@@ -369,12 +309,3 @@ pub async fn duplicate_project(
     })
 }
 
-pub async fn duplicate_board(
-    pool: &PgPool,
-    source_id: Uuid,
-    new_name: &str,
-    include_tasks: bool,
-    user_id: Uuid,
-) -> Result<ProjectWithTaskLists, sqlx::Error> {
-    duplicate_project(pool, source_id, new_name, include_tasks, user_id).await
-}

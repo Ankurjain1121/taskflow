@@ -21,8 +21,13 @@ fn argon2_instance() -> Argon2<'static> {
     Argon2::new(Algorithm::Argon2id, Version::V0x13, params)
 }
 
-/// Hash a password using Argon2id with OWASP-recommended parameters
+/// Hash a password using Argon2id with OWASP-recommended parameters.
+///
+/// Returns an error if the password is empty (defense-in-depth).
 pub fn hash_password(password: &str) -> Result<String, argon2::password_hash::Error> {
+    if password.is_empty() {
+        return Err(argon2::password_hash::Error::Password);
+    }
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = argon2_instance();
     let hash = argon2.hash_password(password.as_bytes(), &salt)?;
@@ -50,14 +55,12 @@ mod tests {
     }
 
     #[test]
-    fn test_empty_password() {
+    fn test_empty_password_rejected() {
         let result = hash_password("");
         assert!(
-            result.is_ok(),
-            "Argon2 should allow hashing an empty password"
+            result.is_err(),
+            "Empty password should be rejected"
         );
-        let hash = result.unwrap();
-        assert!(verify_password("", &hash).unwrap());
     }
 
     #[test]

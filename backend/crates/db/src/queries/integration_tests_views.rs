@@ -384,7 +384,7 @@ async fn test_search_finds_board_by_name() {
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
     let needle = format!("Zephyr{}", Uuid::new_v4().as_simple());
-    let _board = super::projects::create_board(&pool, &needle, None, ws_id, tenant_id, user_id)
+    let _board = super::projects::create_project(&pool, &needle, None, ws_id, tenant_id, user_id)
         .await
         .expect("create_board");
 
