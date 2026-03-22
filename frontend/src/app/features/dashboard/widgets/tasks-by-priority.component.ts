@@ -18,6 +18,7 @@ import {
   DashboardService,
   TasksByPriority,
 } from '../../../core/services/dashboard.service';
+import { PRIORITY_COLORS_HEX } from '../../../shared/utils/task-colors';
 
 @Component({
   selector: 'app-tasks-by-priority',
@@ -127,18 +128,9 @@ export class TasksByPriorityComponent implements OnInit {
   }
 
   getPriorityColor(priority: string): string {
-    switch (priority.toLowerCase()) {
-      case 'urgent':
-        return '#ef4444';
-      case 'high':
-        return '#f97316';
-      case 'medium':
-        return '#3b82f6';
-      case 'low':
-        return '#9ca3af';
-      default:
-        return '#9ca3af';
-    }
+    const key = priority.toLowerCase();
+    const entry = PRIORITY_COLORS_HEX[key as keyof typeof PRIORITY_COLORS_HEX];
+    return entry ? entry.bg : '#9ca3af';
   }
 
   async loadData() {
@@ -159,7 +151,11 @@ export class TasksByPriorityComponent implements OnInit {
     return (
       getComputedStyle(document.documentElement)
         .getPropertyValue('--card')
-        .trim() || '#1e293b'
+        .trim() ||
+      getComputedStyle(document.documentElement)
+        .getPropertyValue('--foreground')
+        .trim() ||
+      '#1e293b'
     );
   }
 }

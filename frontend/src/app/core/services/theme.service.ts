@@ -18,7 +18,6 @@ import {
   LIGHT_THEMES,
   DARK_THEMES,
   LEGACY_THEME_MAP,
-  ThemePalette,
 } from '../constants/color-palettes';
 import { UserPreferencesService } from './user-preferences.service';
 import { AuthService } from './auth.service';
@@ -104,16 +103,6 @@ export class ThemeService implements OnDestroy {
       } else {
         root.removeAttribute('data-dark-theme');
       }
-
-      // Apply fonts from the active palette
-      const palette = isDark
-        ? DARK_THEME_PALETTES[dt]
-        : THEME_PALETTES[lt];
-      root.style.setProperty('--font-display', palette.fontDisplay);
-      root.style.setProperty('--font-body', palette.fontBody);
-
-      // Apply sidebar CSS custom properties from palette
-      this.applySidebarTokens(root, palette);
 
       // Structural attributes
       root.setAttribute('data-sidebar-style', 'light');
@@ -279,18 +268,6 @@ export class ThemeService implements OnDestroy {
         cssLayer: { name: 'primeng', order: 'theme, base, primeng' },
       },
     });
-  }
-
-  private applySidebarTokens(root: HTMLElement, palette: ThemePalette): void {
-    const { sidebar } = palette;
-    root.style.setProperty('--sidebar-bg', sidebar.bg);
-    root.style.setProperty('--sidebar-surface', sidebar.surface);
-    root.style.setProperty('--sidebar-surface-hover', sidebar.surfaceHover);
-    root.style.setProperty('--sidebar-surface-active', sidebar.surfaceActive);
-    root.style.setProperty('--sidebar-border', sidebar.border);
-    root.style.setProperty('--sidebar-text-primary', sidebar.textPrimary);
-    root.style.setProperty('--sidebar-text-secondary', sidebar.textSecondary);
-    root.style.setProperty('--sidebar-text-muted', sidebar.textMuted);
   }
 
   private addTransitionClass(): void {

@@ -162,7 +162,11 @@ export class TasksByStatusComponent implements OnInit {
     return (
       getComputedStyle(document.documentElement)
         .getPropertyValue('--card')
-        .trim() || '#1e293b'
+        .trim() ||
+      getComputedStyle(document.documentElement)
+        .getPropertyValue('--foreground')
+        .trim() ||
+      '#1e293b'
     );
   }
 }
