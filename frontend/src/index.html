@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Nunito:wght@400;600;700&family=Nunito+Sans:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&family=Poppins:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Source+Sans+3:wght@400;600&family=Outfit:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link
@@ -18,7 +18,7 @@
       rel="stylesheet"
     />
     <script>
-      // Apply theme and accent before first paint to prevent flash
+      // Apply theme before first paint to prevent FOUC
       (function () {
         var mode = localStorage.getItem('taskflow-theme') || 'system';
         var isDark =
@@ -27,9 +27,16 @@
             window.matchMedia('(prefers-color-scheme: dark)').matches);
         if (isDark) document.documentElement.classList.add('dark');
         document.documentElement.setAttribute('data-sidebar-style', 'light');
-        var accent = localStorage.getItem('taskflow-accent') || 'indigo';
-        if (accent !== 'indigo')
-          document.documentElement.setAttribute('data-accent', accent);
+
+        // Light theme
+        var lightTheme = localStorage.getItem('taskflow-light-theme') || 'warm-earth';
+        if (lightTheme !== 'warm-earth')
+          document.documentElement.setAttribute('data-theme', lightTheme);
+
+        // Dark theme (only set attribute when dark mode active)
+        var darkTheme = localStorage.getItem('taskflow-dark-theme') || 'warm-earth-dark';
+        if (isDark && darkTheme !== 'warm-earth-dark')
+          document.documentElement.setAttribute('data-dark-theme', darkTheme);
       })();
     </script>
   </head>

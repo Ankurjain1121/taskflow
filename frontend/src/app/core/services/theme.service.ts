@@ -12,12 +12,21 @@ import Aura from '@primeng/themes/aura';
 import { definePreset } from '@primeng/themes';
 import { EMPTY } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { COLOR_PALETTES } from '../constants/color-palettes';
+import {
+  THEME_PALETTES,
+  DARK_THEME_PALETTES,
+  LIGHT_THEMES,
+  DARK_THEMES,
+  LEGACY_THEME_MAP,
+  ThemePalette,
+} from '../constants/color-palettes';
 import { UserPreferencesService } from './user-preferences.service';
 import { AuthService } from './auth.service';
-import { ColorMode } from '../../shared/types/theme.types';
+import { ColorMode, LightTheme, DarkTheme } from '../../shared/types/theme.types';
 
 const THEME_KEY = 'taskflow-theme';
+const LIGHT_THEME_KEY = 'taskflow-light-theme';
+const DARK_THEME_KEY = 'taskflow-dark-theme';
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -31,8 +40,18 @@ export class ThemeService implements OnDestroy {
   private readonly authService = inject(AuthService);
   private _prefsLoaded = false;
 
+  // ========== Public Signals ==========
+
   readonly theme = signal<Theme>(
     this.loadFromStorage(THEME_KEY, 'system') as Theme,
+  );
+
+  readonly lightTheme = signal<LightTheme>(
+    this.loadFromStorage(LIGHT_THEME_KEY, 'warm-earth') as LightTheme,
+  );
+
+  readonly darkTheme = signal<DarkTheme>(
+    this.loadFromStorage(DARK_THEME_KEY, 'warm-earth-dark') as DarkTheme,
   );
 
   private readonly systemPrefersDark = signal<boolean>(
@@ -50,39 +69,72 @@ export class ThemeService implements OnDestroy {
 
   readonly isDark = computed(() => this.resolvedTheme() === 'dark');
 
+  // ========== Private State ==========
+
+  private readonly _previewing = signal(false);
+  private _lastPrimeNGIdentity = '';
   private _saveTimer: ReturnType<typeof setTimeout> | null = null;
   private _pendingSave: Record<string, string> | null = null;
   private mediaQuery: MediaQueryList | null = null;
   private mediaQueryListener: ((e: MediaQueryListEvent) => void) | null = null;
+  private _storageListener: ((e: StorageEvent) => void) | null = null;
 
   constructor() {
     this.setupSystemPreferenceListener();
     this.setupCrossTabSync();
 
-    // Single effect: apply dark class, data-accent, personality attrs, PrimeNG theme
+    // Main effect: apply theme attributes, fonts, sidebar colors, PrimeNG
     effect(() => {
       const resolved = this.resolvedTheme();
+      const lt = this.lightTheme();
+      const dt = this.darkTheme();
       const root = this.document.documentElement;
+      const isDark = resolved === 'dark';
 
-      root.classList.toggle('dark', resolved === 'dark');
+      root.classList.toggle('dark', isDark);
 
-      // Hardcoded to 'earth' — extensible hook for future themes
-      root.setAttribute('data-accent', 'earth');
+      // Set data-theme from lightTheme (always present for CSS cascade)
+      if (!this._previewing()) {
+        root.setAttribute('data-theme', lt);
+      }
 
+      // Set data-dark-theme only when dark mode is active
+      if (isDark) {
+        root.setAttribute('data-dark-theme', dt);
+      } else {
+        root.removeAttribute('data-dark-theme');
+      }
+
+      // Apply fonts from the active palette
+      const palette = isDark
+        ? DARK_THEME_PALETTES[dt]
+        : THEME_PALETTES[lt];
+      root.style.setProperty('--font-display', palette.fontDisplay);
+      root.style.setProperty('--font-body', palette.fontBody);
+
+      // Apply sidebar CSS custom properties from palette
+      this.applySidebarTokens(root, palette);
+
+      // Structural attributes
       root.setAttribute('data-sidebar-style', 'light');
       root.setAttribute('data-card-style', 'raised');
       root.setAttribute('data-border-radius', 'medium');
       root.setAttribute('data-bg-pattern', 'none');
 
-      this.updatePrimeNG(resolved === 'dark');
+      this.updatePrimeNG(isDark);
     });
 
     // Debounced server save effect (only when authenticated)
     effect(() => {
-      const theme = this.theme();
-      // Only save if authenticated and prefs have been loaded
+      const mode = this.theme();
+      const lt = this.lightTheme();
+      const dt = this.darkTheme();
       if (this.authService.isAuthenticated() && this._prefsLoaded) {
-        this.debouncedSave({ color_mode: theme, accent_color: 'earth' });
+        this.debouncedSave({
+          color_mode: mode,
+          accent_color: lt,
+          dark_theme: dt,
+        });
       }
     });
 
@@ -106,21 +158,67 @@ export class ThemeService implements OnDestroy {
     this.setTheme(mode as Theme);
   }
 
+  setLightTheme(t: LightTheme): void {
+    this.addTransitionClass();
+    this.lightTheme.set(t);
+    this.saveToStorage(LIGHT_THEME_KEY, t);
+  }
+
+  setDarkTheme(t: DarkTheme): void {
+    this.addTransitionClass();
+    this.darkTheme.set(t);
+    this.saveToStorage(DARK_THEME_KEY, t);
+  }
+
+  /** CSS-only preview: sets data-theme without saving or syncing PrimeNG */
+  previewTheme(t: LightTheme): void {
+    this._previewing.set(true);
+    this.document.documentElement.setAttribute('data-theme', t);
+  }
+
+  /** CSS-only preview for dark themes: sets data-dark-theme without saving */
+  previewDarkTheme(t: DarkTheme): void {
+    this._previewing.set(true);
+    this.document.documentElement.setAttribute('data-dark-theme', t);
+  }
+
+  /** Revert a CSS-only preview to the committed theme values */
+  revertPreview(): void {
+    if (this._previewing()) {
+      this._previewing.set(false);
+      this.document.documentElement.setAttribute('data-theme', this.lightTheme());
+      if (this.isDark()) {
+        this.document.documentElement.setAttribute('data-dark-theme', this.darkTheme());
+      } else {
+        this.document.documentElement.removeAttribute('data-dark-theme');
+      }
+    }
+  }
+
   // ========== Private Methods ==========
 
   private updatePrimeNG(isDark: boolean): void {
-    const ramp    = COLOR_PALETTES['earth'];
-    const scheme  = isDark ? 'dark' : 'light';
-    const base    = isDark ? '#1C1A17' : '#EDE9DD';
-    const s1      = isDark ? '#262320' : '#ffffff';
-    const s2      = isDark ? '#302D29' : '#F5F2EC';
-    const fg      = isDark ? '#E8E4DB' : '#2E2E2E';
-    const border  = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(46,46,46,0.08)';
-    const mutedFg = isDark ? '#8A8580' : '#9F9F9F';
+    const lt = this.lightTheme();
+    const dt = this.darkTheme();
+    const identity = isDark ? `${dt}:dark` : `${lt}:light`;
+
+    // Skip if already applied
+    if (identity === this._lastPrimeNGIdentity) {
+      return;
+    }
+    this._lastPrimeNGIdentity = identity;
+
+    const palette = isDark
+      ? DARK_THEME_PALETTES[dt]
+      : THEME_PALETTES[lt];
+
+    const { base, s1, s2, fg, border, mutedFg } = palette.surface;
+    const { ramp } = palette;
+    const scheme = isDark ? 'dark' : 'light';
     const primary = ramp['500'] ?? '#BF7B54';
-    const hi      = ramp['400'] ?? primary;
-    const hlPct   = isDark ? '10%' : '8%';
-    const hlFPct  = isDark ? '15%' : '12%';
+    const hi = ramp['400'] ?? primary;
+    const hlPct = isDark ? '10%' : '8%';
+    const hlFPct = isDark ? '15%' : '12%';
 
     this.primeng.theme.set({
       preset: definePreset(Aura, {
@@ -183,6 +281,26 @@ export class ThemeService implements OnDestroy {
     });
   }
 
+  private applySidebarTokens(root: HTMLElement, palette: ThemePalette): void {
+    const { sidebar } = palette;
+    root.style.setProperty('--sidebar-bg', sidebar.bg);
+    root.style.setProperty('--sidebar-surface', sidebar.surface);
+    root.style.setProperty('--sidebar-surface-hover', sidebar.surfaceHover);
+    root.style.setProperty('--sidebar-surface-active', sidebar.surfaceActive);
+    root.style.setProperty('--sidebar-border', sidebar.border);
+    root.style.setProperty('--sidebar-text-primary', sidebar.textPrimary);
+    root.style.setProperty('--sidebar-text-secondary', sidebar.textSecondary);
+    root.style.setProperty('--sidebar-text-muted', sidebar.textMuted);
+  }
+
+  private addTransitionClass(): void {
+    const root = this.document.documentElement;
+    root.classList.add('theme-transitioning');
+    setTimeout(() => {
+      root.classList.remove('theme-transitioning');
+    }, 200);
+  }
+
   private loadUserPreferences(): void {
     this.userPrefsService.getPreferences().subscribe({
       next: (prefs) => {
@@ -190,7 +308,29 @@ export class ThemeService implements OnDestroy {
           this.theme.set(prefs.color_mode as Theme);
           this.saveToStorage(THEME_KEY, prefs.color_mode);
         }
-        // accent_color from server is ignored — hardcoded to 'earth'
+
+        // Restore light theme
+        if (prefs.accent_color) {
+          const raw = prefs.accent_color;
+          if ((LIGHT_THEMES as readonly string[]).includes(raw)) {
+            this.lightTheme.set(raw as LightTheme);
+            this.saveToStorage(LIGHT_THEME_KEY, raw);
+          } else if (LEGACY_THEME_MAP[raw]) {
+            this.lightTheme.set(LEGACY_THEME_MAP[raw]);
+            this.saveToStorage(LIGHT_THEME_KEY, LEGACY_THEME_MAP[raw]);
+          }
+          // else keep default 'warm-earth'
+        }
+
+        // Restore dark theme
+        if (prefs.dark_theme) {
+          const raw = prefs.dark_theme;
+          if ((DARK_THEMES as readonly string[]).includes(raw)) {
+            this.darkTheme.set(raw as DarkTheme);
+            this.saveToStorage(DARK_THEME_KEY, raw);
+          }
+          // else keep default 'warm-earth-dark'
+        }
       },
       error: () => {},
     });
@@ -212,11 +352,26 @@ export class ThemeService implements OnDestroy {
 
   private setupCrossTabSync(): void {
     if (typeof window === 'undefined') return;
-    window.addEventListener('storage', (e) => {
+    this._storageListener = (e: StorageEvent) => {
       if (e.key === THEME_KEY && e.newValue) {
         this.theme.set(e.newValue as Theme);
       }
-    });
+      if (e.key === LIGHT_THEME_KEY && e.newValue) {
+        this.lightTheme.set(e.newValue as LightTheme);
+        // Only sync PrimeNG if light mode is active
+        if (!this.isDark()) {
+          this.updatePrimeNG(false);
+        }
+      }
+      if (e.key === DARK_THEME_KEY && e.newValue) {
+        this.darkTheme.set(e.newValue as DarkTheme);
+        // Only sync PrimeNG if dark mode is active
+        if (this.isDark()) {
+          this.updatePrimeNG(true);
+        }
+      }
+    };
+    window.addEventListener('storage', this._storageListener);
   }
 
   private loadFromStorage(key: string, fallback: string): string {
@@ -233,6 +388,9 @@ export class ThemeService implements OnDestroy {
   ngOnDestroy(): void {
     if (this.mediaQuery && this.mediaQueryListener) {
       this.mediaQuery.removeEventListener('change', this.mediaQueryListener);
+    }
+    if (this._storageListener && typeof window !== 'undefined') {
+      window.removeEventListener('storage', this._storageListener);
     }
     if (this._saveTimer) {
       clearTimeout(this._saveTimer);

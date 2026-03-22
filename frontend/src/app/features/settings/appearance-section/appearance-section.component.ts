@@ -1,6 +1,7 @@
 import {
   Component,
   OnInit,
+  OnDestroy,
   inject,
   signal,
   ChangeDetectionStrategy,
@@ -17,6 +18,8 @@ import {
   Theme,
 } from '../../../core/services/theme.service';
 import { UserPreferencesService } from '../../../core/services/user-preferences.service';
+import { THEME_PALETTES, DARK_THEME_PALETTES } from '../../../core/constants/color-palettes';
+import { LightTheme, DarkTheme } from '../../../shared/types/theme.types';
 
 interface TimezoneOption {
   label: string;
@@ -94,6 +97,108 @@ interface BoardViewOption {
               "
               >{{ option.label }}</span
             >
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Light Theme Picker -->
+    <div
+      class="rounded-lg border shadow-sm p-6 mb-6"
+      style="background: var(--card); border-color: var(--border)"
+    >
+      <h2 class="text-xl font-semibold mb-1" style="color: var(--foreground)">
+        Light Theme
+      </h2>
+      <p class="text-sm mb-4" style="color: var(--muted-foreground)">
+        Choose your preferred light theme
+      </p>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3" role="radiogroup" aria-label="Light theme selection">
+        @for (theme of lightThemes; track theme.id) {
+          <button
+            class="flex flex-col items-center gap-2 cursor-pointer group"
+            role="radio"
+            [attr.aria-checked]="currentLightTheme() === theme.id"
+            [attr.aria-label]="theme.name"
+            (click)="selectLightTheme(theme.id)"
+            (mouseenter)="previewLightTheme(theme.id)"
+            (mouseleave)="revertPreview()"
+          >
+            <div
+              class="relative w-full h-20 rounded-lg overflow-hidden border-2 transition-all"
+              [style.border-color]="currentLightTheme() === theme.id ? 'var(--primary)' : 'var(--border)'"
+              [class.shadow-md]="currentLightTheme() === theme.id"
+            >
+              <div class="h-1/3" [style.background]="theme.preview.bg"></div>
+              <div class="h-1/3" [style.background]="theme.preview.primary"></div>
+              <div class="h-1/3" [style.background]="theme.preview.fg"></div>
+              @if (currentLightTheme() === theme.id) {
+                <div
+                  class="absolute bottom-1 right-1 w-4 h-4 rounded-full flex items-center justify-center"
+                  [style.background]="theme.preview.primary"
+                >
+                  <i class="pi pi-check text-white" style="font-size: 10px"></i>
+                </div>
+              }
+            </div>
+            <span
+              class="text-xs font-medium"
+              [style.color]="currentLightTheme() === theme.id ? 'var(--foreground)' : 'var(--muted-foreground)'"
+            >
+              {{ theme.name }}
+            </span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Dark Theme Picker -->
+    <div
+      class="rounded-lg border shadow-sm p-6 mb-6"
+      style="background: var(--card); border-color: var(--border)"
+    >
+      <h2 class="text-xl font-semibold mb-1" style="color: var(--foreground)">
+        Dark Theme
+      </h2>
+      <p class="text-sm mb-4" style="color: var(--muted-foreground)">
+        Choose your preferred dark theme
+      </p>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3" role="radiogroup" aria-label="Dark theme selection">
+        @for (theme of darkThemes; track theme.id) {
+          <button
+            class="flex flex-col items-center gap-2 cursor-pointer group"
+            role="radio"
+            [attr.aria-checked]="currentDarkTheme() === theme.id"
+            [attr.aria-label]="theme.name"
+            (click)="selectDarkTheme(theme.id)"
+            (mouseenter)="previewDarkTheme(theme.id)"
+            (mouseleave)="revertPreview()"
+          >
+            <div
+              class="relative w-full h-20 rounded-lg overflow-hidden border-2 transition-all"
+              [style.border-color]="currentDarkTheme() === theme.id ? 'var(--primary)' : 'var(--border)'"
+              [class.shadow-md]="currentDarkTheme() === theme.id"
+            >
+              <div class="h-1/3" [style.background]="theme.preview.bg"></div>
+              <div class="h-1/3" [style.background]="theme.preview.primary"></div>
+              <div class="h-1/3" [style.background]="theme.preview.fg"></div>
+              @if (currentDarkTheme() === theme.id) {
+                <div
+                  class="absolute bottom-1 right-1 w-4 h-4 rounded-full flex items-center justify-center"
+                  [style.background]="theme.preview.primary"
+                >
+                  <i class="pi pi-check text-white" style="font-size: 10px"></i>
+                </div>
+              }
+            </div>
+            <span
+              class="text-xs font-medium"
+              [style.color]="currentDarkTheme() === theme.id ? 'var(--foreground)' : 'var(--muted-foreground)'"
+            >
+              {{ theme.name }}
+            </span>
           </button>
         }
       </div>
@@ -229,7 +334,7 @@ interface BoardViewOption {
     `,
   ],
 })
-export class AppearanceSectionComponent implements OnInit {
+export class AppearanceSectionComponent implements OnInit, OnDestroy {
   private readonly themeService = inject(ThemeService);
   private readonly userPreferencesService = inject(UserPreferencesService);
   private readonly messageService = inject(MessageService);
@@ -238,6 +343,24 @@ export class AppearanceSectionComponent implements OnInit {
   isDark = this.themeService.isDark;
 
   isSaving = signal(false);
+
+  // Theme picker data
+  lightThemes = Object.entries(THEME_PALETTES).map(([id, palette]) => ({
+    id: id as LightTheme,
+    name: palette.name,
+    preview: palette.preview,
+  }));
+
+  darkThemes = Object.entries(DARK_THEME_PALETTES).map(([id, palette]) => ({
+    id: id as DarkTheme,
+    name: palette.name,
+    preview: palette.preview,
+  }));
+
+  currentLightTheme = this.themeService.lightTheme;
+  currentDarkTheme = this.themeService.darkTheme;
+
+  private previewDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   themeOptions: { value: Theme; label: string; icon: string }[] = [
     { value: 'light', label: 'Light', icon: 'pi pi-sun' },
@@ -288,6 +411,40 @@ export class AppearanceSectionComponent implements OnInit {
     this.themeService.setTheme(theme);
   }
 
+  selectLightTheme(id: LightTheme): void {
+    this.clearPreviewDebounce();
+    this.themeService.setLightTheme(id);
+  }
+
+  selectDarkTheme(id: DarkTheme): void {
+    this.clearPreviewDebounce();
+    this.themeService.setDarkTheme(id);
+  }
+
+  previewLightTheme(id: LightTheme): void {
+    this.clearPreviewDebounce();
+    this.previewDebounceTimer = setTimeout(() => {
+      this.themeService.previewTheme(id);
+    }, 150);
+  }
+
+  previewDarkTheme(id: DarkTheme): void {
+    this.clearPreviewDebounce();
+    this.previewDebounceTimer = setTimeout(() => {
+      this.themeService.previewDarkTheme(id);
+    }, 150);
+  }
+
+  revertPreview(): void {
+    this.clearPreviewDebounce();
+    this.themeService.revertPreview();
+  }
+
+  ngOnDestroy(): void {
+    this.clearPreviewDebounce();
+    this.themeService.revertPreview();
+  }
+
   savePreferences(): void {
     this.isSaving.set(true);
     this.userPreferencesService
@@ -316,6 +473,13 @@ export class AppearanceSectionComponent implements OnInit {
           this.isSaving.set(false);
         },
       });
+  }
+
+  private clearPreviewDebounce(): void {
+    if (this.previewDebounceTimer) {
+      clearTimeout(this.previewDebounceTimer);
+      this.previewDebounceTimer = null;
+    }
   }
 
   private loadPreferences(): void {

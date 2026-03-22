@@ -30,24 +30,20 @@ describe('task-colors', () => {
       }
     });
 
-    it('urgent should use red color classes', () => {
-      expect(PRIORITY_COLORS['urgent'].bg).toContain('red');
-      expect(PRIORITY_COLORS['urgent'].dot).toContain('red');
+    it('urgent should use red-toned hex classes', () => {
+      expect(PRIORITY_COLORS['urgent'].dot).toContain('#E8445A');
     });
 
-    it('high should use orange color classes', () => {
-      expect(PRIORITY_COLORS['high'].bg).toContain('orange');
-      expect(PRIORITY_COLORS['high'].dot).toContain('orange');
+    it('high should use orange-toned hex classes', () => {
+      expect(PRIORITY_COLORS['high'].dot).toContain('#F5A623');
     });
 
-    it('medium should use amber color classes', () => {
-      expect(PRIORITY_COLORS['medium'].bg).toContain('amber');
-      expect(PRIORITY_COLORS['medium'].dot).toContain('amber');
+    it('medium should use blue-toned hex classes', () => {
+      expect(PRIORITY_COLORS['medium'].dot).toContain('#2D5BE3');
     });
 
-    it('low should use blue color classes', () => {
-      expect(PRIORITY_COLORS['low'].bg).toContain('blue');
-      expect(PRIORITY_COLORS['low'].dot).toContain('blue');
+    it('low should use green-toned hex classes', () => {
+      expect(PRIORITY_COLORS['low'].dot).toContain('#0FA882');
     });
   });
 
@@ -61,15 +57,15 @@ describe('task-colors', () => {
 
     it('returns gray fallback for unknown priority', () => {
       const result = getPriorityColor('unknown');
-      expect(result.bg).toBe('bg-gray-400');
-      expect(result.text).toBe('text-white');
-      expect(result.border).toBe('border-gray-500');
-      expect(result.dot).toBe('bg-gray-300');
+      expect(result.bg).toContain('159,159,159');
+      expect(result.text).toContain('#9F9F9F');
+      expect(result.border).toContain('159,159,159');
+      expect(result.dot).toContain('#9F9F9F');
     });
 
     it('returns gray fallback for empty string', () => {
       const result = getPriorityColor('');
-      expect(result.bg).toBe('bg-gray-400');
+      expect(result.bg).toContain('159,159,159');
     });
   });
 
@@ -105,8 +101,8 @@ describe('task-colors', () => {
 
     it('returns gray fallback for unknown priority', () => {
       const result = getPriorityColorHex('invalid');
-      expect(result.bg).toBe('#9ca3af');
-      expect(result.border).toBe('#6b7280');
+      expect(result.bg).toBe('#9F9F9F');
+      expect(result.border).toBe('#8A8580');
       expect(result.text).toBe('#ffffff');
     });
 

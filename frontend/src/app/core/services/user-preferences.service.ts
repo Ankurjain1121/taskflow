@@ -13,17 +13,16 @@ export interface UserPreferences {
   quiet_hours_start: string | null;
   quiet_hours_end: string | null;
   digest_frequency: string;
-  // New theme fields
-  light_theme_slug?: string;
-  dark_theme_slug?: string;
+  // Theme fields (match backend JSON field names)
   accent_color?: string;
   color_mode?: string;
+  dark_theme?: string;
 }
 
 export type ThemePreferenceUpdate = Partial<
   Pick<
     UserPreferences,
-    'light_theme_slug' | 'dark_theme_slug' | 'accent_color' | 'color_mode'
+    'accent_color' | 'color_mode' | 'dark_theme'
   >
 >;
 
