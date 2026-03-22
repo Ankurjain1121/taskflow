@@ -59,7 +59,7 @@ html.dark {
    Light theme overrides (warm-earth is :root default — not repeated here)
    ============================================================================= */
 
-[data-theme="white-heaven"] {
+html[data-theme="white-heaven"] {
   --background: #fefefe;
   --foreground: #3a3a4a;
   --card: #ffffff;
@@ -97,7 +97,7 @@ html.dark {
   --surface-overlay: rgba(255,255,255,0.96);
 }
 
-[data-theme="sea-foam"] {
+html[data-theme="sea-foam"] {
   --background: #c9dce1;
   --foreground: #42514f;
   --card: #d6e6ea;
@@ -135,7 +135,7 @@ html.dark {
   --surface-overlay: rgba(201,220,225,0.96);
 }
 
-[data-theme="storm-cloud"] {
+html[data-theme="storm-cloud"] {
   --background: #e8e9e9;
   --foreground: #3a4242;
   --card: #f0f0f1;
@@ -173,7 +173,7 @@ html.dark {
   --surface-overlay: rgba(232,233,233,0.96);
 }
 
-[data-theme="morning-sky"] {
+html[data-theme="morning-sky"] {
   --background: #c6eeea;
   --foreground: #343330;
   --card: #d4f4f1;
@@ -211,7 +211,7 @@ html.dark {
   --surface-overlay: rgba(198,238,234,0.96);
 }
 
-[data-theme="misty-forest"] {
+html[data-theme="misty-forest"] {
   --background: #dae8dc;
   --foreground: #101712;
   --card: #e6f0e8;
@@ -249,7 +249,7 @@ html.dark {
   --surface-overlay: rgba(218,232,220,0.96);
 }
 
-[data-theme="modern-dental"] {
+html[data-theme="modern-dental"] {
   --background: #e4ebef;
   --foreground: #151513;
   --card: #edf2f5;
