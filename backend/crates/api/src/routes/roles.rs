@@ -288,7 +288,7 @@ async fn update_project_visibility(
     }
 
     // Check project membership and role
-    let role = projects::get_board_member_role(&state.db, project_id, auth.0.user_id).await?;
+    let role = projects::get_project_member_role(&state.db, project_id, auth.0.user_id).await?;
 
     let has_permission = match role {
         Some(BoardMemberRole::Owner | BoardMemberRole::Editor) => true,
@@ -303,7 +303,7 @@ async fn update_project_visibility(
     if !has_permission {
         // As fallback, check workspace-level can_manage_project_settings capability
         // Get the project's workspace_id
-        let board = projects::get_board_internal(&state.db, project_id)
+        let board = projects::get_project_internal(&state.db, project_id)
             .await?
             .ok_or_else(|| AppError::NotFound("Project not found".into()))?;
 

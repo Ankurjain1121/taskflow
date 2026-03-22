@@ -78,7 +78,7 @@ async fn list_positions(
     auth: AuthUserExtractor,
     Path(board_id): Path<Uuid>,
 ) -> Result<Json<Vec<PositionWithHolders>>> {
-    let is_member = projects::is_board_member(&state.db, board_id, auth.0.user_id).await?;
+    let is_member = projects::is_project_member(&state.db, board_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a project member".into()));
     }
@@ -94,7 +94,7 @@ async fn create_position(
     Path(board_id): Path<Uuid>,
     Json(payload): Json<taskflow_db::models::CreatePositionRequest>,
 ) -> Result<Json<PositionWithHolders>> {
-    let is_member = projects::is_board_member(&state.db, board_id, auth.0.user_id).await?;
+    let is_member = projects::is_project_member(&state.db, board_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a project member".into()));
     }
@@ -140,7 +140,7 @@ async fn get_position(
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
     let is_member =
-        projects::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
+        projects::is_project_member(&state.db, position.project_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a project member".into()));
     }
@@ -161,7 +161,7 @@ async fn update_position(
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
     let is_member =
-        projects::is_board_member(&state.db, existing.project_id, auth.0.user_id).await?;
+        projects::is_project_member(&state.db, existing.project_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a project member".into()));
     }
@@ -208,7 +208,7 @@ async fn delete_position(
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
     let is_member =
-        projects::is_board_member(&state.db, existing.project_id, auth.0.user_id).await?;
+        projects::is_project_member(&state.db, existing.project_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a project member".into()));
     }
@@ -236,14 +236,14 @@ async fn add_holder(
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
     let is_member =
-        projects::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
+        projects::is_project_member(&state.db, position.project_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     // Verify the target user is also a board member
     let is_target_member =
-        projects::is_board_member(&state.db, position.project_id, payload.user_id).await?;
+        projects::is_project_member(&state.db, position.project_id, payload.user_id).await?;
     if !is_target_member {
         return Err(AppError::BadRequest(
             "User must be a board member first".into(),
@@ -268,7 +268,7 @@ async fn remove_holder(
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
     let is_member =
-        projects::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
+        projects::is_project_member(&state.db, position.project_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a project member".into()));
     }
@@ -295,7 +295,7 @@ async fn list_position_recurring_tasks(
         .ok_or_else(|| AppError::NotFound("Position not found".into()))?;
 
     let is_member =
-        projects::is_board_member(&state.db, position.project_id, auth.0.user_id).await?;
+        projects::is_project_member(&state.db, position.project_id, auth.0.user_id).await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a project member".into()));
     }

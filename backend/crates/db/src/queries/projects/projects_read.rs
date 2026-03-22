@@ -6,7 +6,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::models::{
-    BoardMemberRole, Project, ProjectMember, ProjectStatus, TaskList, TaskPriority,
+    BoardMemberRole, Project, ProjectStatus, TaskList, TaskPriority,
 };
 
 /// Project with task lists and statuses for detailed view
@@ -17,9 +17,6 @@ pub struct ProjectWithTaskLists {
     pub task_lists: Vec<TaskList>,
     pub statuses: Vec<ProjectStatus>,
 }
-
-// Keep old name for backward compat within crate
-pub type BoardWithColumns = ProjectWithTaskLists;
 
 /// Project member with user info
 #[derive(sqlx::FromRow, serde::Serialize, Clone, Debug)]
@@ -33,8 +30,6 @@ pub struct ProjectMemberWithUser {
     pub email: String,
     pub avatar_url: Option<String>,
 }
-
-pub type BoardMemberWithUser = ProjectMemberWithUser;
 
 /// A task row enriched with badge counts for the project full response
 #[derive(Debug, Serialize, sqlx::FromRow)]
@@ -90,15 +85,15 @@ pub async fn list_projects_by_workspace(
 ) -> Result<Vec<Project>, sqlx::Error> {
     sqlx::query_as::<_, Project>(
         r#"
-        SELECT b.id, b.name, b.description, b.slack_webhook_url, b.prefix,
-               b.workspace_id, b.tenant_id, b.created_by_id,
-               b.background_color, b.is_sample, b.deleted_at, b.created_at, b.updated_at
-        FROM projects b
-        INNER JOIN project_members bm ON b.id = bm.project_id
-        WHERE b.workspace_id = $1
-          AND bm.user_id = $2
-          AND b.deleted_at IS NULL
-        ORDER BY b.created_at DESC
+        SELECT p.id, p.name, p.description, p.slack_webhook_url, p.prefix,
+               p.workspace_id, p.tenant_id, p.created_by_id,
+               p.background_color, p.is_sample, p.deleted_at, p.created_at, p.updated_at
+        FROM projects p
+        INNER JOIN project_members pm ON p.id = pm.project_id
+        WHERE p.workspace_id = $1
+          AND pm.user_id = $2
+          AND p.deleted_at IS NULL
+        ORDER BY p.created_at DESC
         LIMIT 200
         "#,
     )
@@ -106,15 +101,6 @@ pub async fn list_projects_by_workspace(
     .bind(user_id)
     .fetch_all(pool)
     .await
-}
-
-// Alias for backward compat
-pub async fn list_boards_by_workspace(
-    pool: &PgPool,
-    workspace_id: Uuid,
-    user_id: Uuid,
-) -> Result<Vec<Project>, sqlx::Error> {
-    list_projects_by_workspace(pool, workspace_id, user_id).await
 }
 
 /// Get a project by ID with its task lists and statuses (verify membership)
@@ -125,14 +111,14 @@ pub async fn get_project_by_id(
 ) -> Result<Option<ProjectWithTaskLists>, sqlx::Error> {
     let project = sqlx::query_as::<_, Project>(
         r#"
-        SELECT b.id, b.name, b.description, b.slack_webhook_url, b.prefix,
-               b.workspace_id, b.tenant_id, b.created_by_id,
-               b.background_color, b.is_sample, b.deleted_at, b.created_at, b.updated_at
-        FROM projects b
-        INNER JOIN project_members bm ON b.id = bm.project_id
-        WHERE b.id = $1
-          AND bm.user_id = $2
-          AND b.deleted_at IS NULL
+        SELECT p.id, p.name, p.description, p.slack_webhook_url, p.prefix,
+               p.workspace_id, p.tenant_id, p.created_by_id,
+               p.background_color, p.is_sample, p.deleted_at, p.created_at, p.updated_at
+        FROM projects p
+        INNER JOIN project_members pm ON p.id = pm.project_id
+        WHERE p.id = $1
+          AND pm.user_id = $2
+          AND p.deleted_at IS NULL
         "#,
     )
     .bind(id)
@@ -178,15 +164,6 @@ pub async fn get_project_by_id(
     }
 }
 
-// Alias for backward compat
-pub async fn get_board_by_id(
-    pool: &PgPool,
-    id: Uuid,
-    user_id: Uuid,
-) -> Result<Option<ProjectWithTaskLists>, sqlx::Error> {
-    get_project_by_id(pool, id, user_id).await
-}
-
 /// List all members of a project with user info
 pub async fn list_project_members(
     pool: &PgPool,
@@ -194,25 +171,18 @@ pub async fn list_project_members(
 ) -> Result<Vec<ProjectMemberWithUser>, sqlx::Error> {
     sqlx::query_as::<_, ProjectMemberWithUser>(
         r#"
-        SELECT bm.id, bm.project_id, bm.user_id, bm.role,
-               bm.joined_at, u.name, u.email, u.avatar_url
-        FROM project_members bm
-        INNER JOIN users u ON bm.user_id = u.id
-        WHERE bm.project_id = $1
+        SELECT pm.id, pm.project_id, pm.user_id, pm.role,
+               pm.joined_at, u.name, u.email, u.avatar_url
+        FROM project_members pm
+        INNER JOIN users u ON pm.user_id = u.id
+        WHERE pm.project_id = $1
           AND u.deleted_at IS NULL
-        ORDER BY bm.joined_at ASC
+        ORDER BY pm.joined_at ASC
         "#,
     )
     .bind(project_id)
     .fetch_all(pool)
     .await
-}
-
-pub async fn list_board_members(
-    pool: &PgPool,
-    board_id: Uuid,
-) -> Result<Vec<ProjectMemberWithUser>, sqlx::Error> {
-    list_project_members(pool, board_id).await
 }
 
 /// Check if a user is a member of a project
@@ -237,14 +207,6 @@ pub async fn is_project_member(
     Ok(result)
 }
 
-pub async fn is_board_member(
-    pool: &PgPool,
-    board_id: Uuid,
-    user_id: Uuid,
-) -> Result<bool, sqlx::Error> {
-    is_project_member(pool, board_id, user_id).await
-}
-
 /// Get project member role
 pub async fn get_project_member_role(
     pool: &PgPool,
@@ -264,14 +226,6 @@ pub async fn get_project_member_role(
     .await
 }
 
-pub async fn get_board_member_role(
-    pool: &PgPool,
-    board_id: Uuid,
-    user_id: Uuid,
-) -> Result<Option<BoardMemberRole>, sqlx::Error> {
-    get_project_member_role(pool, board_id, user_id).await
-}
-
 /// Get project without membership check (for internal use)
 pub async fn get_project_internal(pool: &PgPool, id: Uuid) -> Result<Option<Project>, sqlx::Error> {
     sqlx::query_as::<_, Project>(
@@ -287,10 +241,6 @@ pub async fn get_project_internal(pool: &PgPool, id: Uuid) -> Result<Option<Proj
     .bind(id)
     .fetch_optional(pool)
     .await
-}
-
-pub async fn get_board_internal(pool: &PgPool, id: Uuid) -> Result<Option<Project>, sqlx::Error> {
-    get_project_internal(pool, id).await
 }
 
 /// Fetch tasks for a project with badge counts (subtasks, timers, comments).
@@ -403,16 +353,6 @@ pub async fn list_project_tasks_with_badges(
     Ok(PaginatedTasks { tasks, total_count })
 }
 
-pub async fn list_board_tasks_with_badges(
-    pool: &PgPool,
-    board_id: Uuid,
-    user_id: Uuid,
-    limit: Option<i64>,
-    offset: Option<i64>,
-) -> Result<PaginatedTasks, sqlx::Error> {
-    list_project_tasks_with_badges(pool, board_id, user_id, limit, offset).await
-}
-
 /// Fetch assignees for tasks in a project (capped at 5000 rows)
 pub async fn list_project_task_assignees(
     pool: &PgPool,
@@ -437,13 +377,6 @@ pub async fn list_project_task_assignees(
     .bind(project_id)
     .fetch_all(pool)
     .await
-}
-
-pub async fn list_board_task_assignees(
-    pool: &PgPool,
-    board_id: Uuid,
-) -> Result<Vec<BoardTaskAssignee>, sqlx::Error> {
-    list_project_task_assignees(pool, board_id).await
 }
 
 /// Fetch labels for tasks in a project (capped at 5000 rows)
@@ -471,9 +404,3 @@ pub async fn list_project_task_labels(
     .await
 }
 
-pub async fn list_board_task_labels(
-    pool: &PgPool,
-    board_id: Uuid,
-) -> Result<Vec<BoardTaskLabel>, sqlx::Error> {
-    list_project_task_labels(pool, board_id).await
-}

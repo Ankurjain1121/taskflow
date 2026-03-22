@@ -9,6 +9,7 @@ use std::env;
 
 use crate::errors::{AppError, Result};
 use crate::state::AppState;
+use taskflow_db::queries::metrics::refresh_metrics;
 use taskflow_db::queries::recurring_generation::{create_recurring_instance, get_due_configs};
 use taskflow_services::broadcast::BroadcastService;
 use taskflow_services::jobs::{
@@ -244,6 +245,35 @@ async fn execute_automations_handler(
     Ok(Json(result))
 }
 
+/// Result of refreshing metrics materialized views
+#[derive(Serialize)]
+pub struct MetricsRefreshResult {
+    pub refreshed: bool,
+    pub message: String,
+}
+
+/// POST /api/cron/refresh-metrics
+///
+/// Refreshes all metrics materialized views (cycle time, velocity, workload).
+/// Should be triggered every 15-30 minutes.
+///
+/// Requires X-Cron-Secret header for authentication.
+async fn refresh_metrics_handler(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Json<MetricsRefreshResult>> {
+    validate_cron_secret(&headers)?;
+
+    refresh_metrics(&state.db)
+        .await
+        .map_err(|e| AppError::InternalError(format!("Metrics refresh failed: {}", e)))?;
+
+    Ok(Json(MetricsRefreshResult {
+        refreshed: true,
+        message: "All metrics materialized views refreshed".to_string(),
+    }))
+}
+
 /// Response for health check
 #[derive(Serialize)]
 struct CronHealthResponse {
@@ -265,6 +295,7 @@ async fn cron_health(headers: HeaderMap) -> Result<Json<CronHealthResponse>> {
             "/api/cron/trash-cleanup",
             "/api/cron/recurring-tasks",
             "/api/cron/execute-automations",
+            "/api/cron/refresh-metrics",
         ],
     }))
 }
@@ -284,4 +315,5 @@ pub fn cron_router() -> Router<AppState> {
             "/cron/execute-automations",
             post(execute_automations_handler),
         )
+        .route("/cron/refresh-metrics", post(refresh_metrics_handler))
 }

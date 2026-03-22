@@ -413,7 +413,7 @@ async fn test_create_board() {
     let pool = test_pool().await;
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
-    let bwc = projects::create_board(
+    let bwc = projects::create_project(
         &pool,
         "Board Create",
         Some("desc"),
@@ -433,7 +433,7 @@ async fn test_create_board() {
     assert_eq!(bwc.statuses.len(), 5);
 
     // Creator should be a board member
-    let is_member = projects::is_board_member(&pool, bwc.project.id, user_id)
+    let is_member = projects::is_project_member(&pool, bwc.project.id, user_id)
         .await
         .unwrap();
     assert!(is_member);
@@ -444,14 +444,14 @@ async fn test_list_boards_by_workspace() {
     let pool = test_pool().await;
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
-    projects::create_board(&pool, "List Board 1", None, ws_id, tenant_id, user_id)
+    projects::create_project(&pool, "List Board 1", None, ws_id, tenant_id, user_id)
         .await
         .unwrap();
-    projects::create_board(&pool, "List Board 2", None, ws_id, tenant_id, user_id)
+    projects::create_project(&pool, "List Board 2", None, ws_id, tenant_id, user_id)
         .await
         .unwrap();
 
-    let list = projects::list_boards_by_workspace(&pool, ws_id, user_id)
+    let list = projects::list_projects_by_workspace(&pool, ws_id, user_id)
         .await
         .unwrap();
     assert!(list.len() >= 2);
@@ -465,11 +465,11 @@ async fn test_get_board_by_id() {
     let pool = test_pool().await;
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
-    let bwc = projects::create_board(&pool, "Get Board", None, ws_id, tenant_id, user_id)
+    let bwc = projects::create_project(&pool, "Get Board", None, ws_id, tenant_id, user_id)
         .await
         .unwrap();
 
-    let fetched = projects::get_board_by_id(&pool, bwc.project.id, user_id)
+    let fetched = projects::get_project_by_id(&pool, bwc.project.id, user_id)
         .await
         .unwrap()
         .expect("should find board");
@@ -483,13 +483,13 @@ async fn test_get_board_by_id_non_member() {
     let pool = test_pool().await;
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
-    let bwc = projects::create_board(&pool, "NonMember Board", None, ws_id, tenant_id, user_id)
+    let bwc = projects::create_project(&pool, "NonMember Board", None, ws_id, tenant_id, user_id)
         .await
         .unwrap();
 
     // A random user who is NOT a member should get None
     let random_user = Uuid::new_v4();
-    let result = projects::get_board_by_id(&pool, bwc.project.id, random_user)
+    let result = projects::get_project_by_id(&pool, bwc.project.id, random_user)
         .await
         .unwrap();
     assert!(result.is_none());
@@ -500,17 +500,17 @@ async fn test_soft_delete_board() {
     let pool = test_pool().await;
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
-    let bwc = projects::create_board(&pool, "Delete Board", None, ws_id, tenant_id, user_id)
+    let bwc = projects::create_project(&pool, "Delete Board", None, ws_id, tenant_id, user_id)
         .await
         .unwrap();
 
-    let deleted = projects::soft_delete_board(&pool, bwc.project.id)
+    let deleted = projects::soft_delete_project(&pool, bwc.project.id)
         .await
         .unwrap();
     assert!(deleted);
 
     // Should not appear in list
-    let list = projects::list_boards_by_workspace(&pool, ws_id, user_id)
+    let list = projects::list_projects_by_workspace(&pool, ws_id, user_id)
         .await
         .unwrap();
     assert!(!list.iter().any(|b| b.id == bwc.project.id));
@@ -521,7 +521,7 @@ async fn test_add_board_member() {
     let pool = test_pool().await;
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
-    let bwc = projects::create_board(&pool, "AddMember Board", None, ws_id, tenant_id, user_id)
+    let bwc = projects::create_project(&pool, "AddMember Board", None, ws_id, tenant_id, user_id)
         .await
         .unwrap();
 
@@ -538,7 +538,7 @@ async fn test_add_board_member() {
     .unwrap();
 
     let member =
-        projects::add_board_member(&pool, bwc.project.id, user2.id, BoardMemberRole::Viewer)
+        projects::add_project_member(&pool, bwc.project.id, user2.id, BoardMemberRole::Viewer)
             .await
             .unwrap();
 
@@ -546,7 +546,7 @@ async fn test_add_board_member() {
     assert_eq!(member.user_id, user2.id);
     assert_eq!(member.role, BoardMemberRole::Viewer);
 
-    let is_member = projects::is_board_member(&pool, bwc.project.id, user2.id)
+    let is_member = projects::is_project_member(&pool, bwc.project.id, user2.id)
         .await
         .unwrap();
     assert!(is_member);
@@ -557,7 +557,7 @@ async fn test_remove_board_member() {
     let pool = test_pool().await;
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
-    let bwc = projects::create_board(&pool, "RemoveMember Board", None, ws_id, tenant_id, user_id)
+    let bwc = projects::create_project(&pool, "RemoveMember Board", None, ws_id, tenant_id, user_id)
         .await
         .unwrap();
 
@@ -573,16 +573,16 @@ async fn test_remove_board_member() {
     .await
     .unwrap();
 
-    projects::add_board_member(&pool, bwc.project.id, user2.id, BoardMemberRole::Editor)
+    projects::add_project_member(&pool, bwc.project.id, user2.id, BoardMemberRole::Editor)
         .await
         .unwrap();
 
-    let removed = projects::remove_board_member(&pool, bwc.project.id, user2.id)
+    let removed = projects::remove_project_member(&pool, bwc.project.id, user2.id)
         .await
         .unwrap();
     assert!(removed);
 
-    let still_member = projects::is_board_member(&pool, bwc.project.id, user2.id)
+    let still_member = projects::is_project_member(&pool, bwc.project.id, user2.id)
         .await
         .unwrap();
     assert!(!still_member);

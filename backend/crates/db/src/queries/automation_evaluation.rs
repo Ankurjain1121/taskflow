@@ -321,7 +321,7 @@ mod tests {
         let ws = workspaces::create_workspace(pool, "AutoEval WS", None, tenant_id, user_id)
             .await
             .expect("create_workspace");
-        let bwc = projects::create_board(pool, "AutoEval Board", None, ws.id, tenant_id, user_id)
+        let bwc = projects::create_project(pool, "AutoEval Board", None, ws.id, tenant_id, user_id)
             .await
             .expect("create_board");
         let first_col_id = bwc.task_lists[0].id;
