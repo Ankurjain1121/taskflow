@@ -187,6 +187,10 @@ export class ThemeService implements OnDestroy {
   // ========== Private Methods ==========
 
   private updatePrimeNG(isDark: boolean): void {
+    if (!this.primeng?.theme) {
+      return;
+    }
+
     const lt = this.lightTheme();
     const dt = this.darkTheme();
     const identity = isDark ? `${dt}:dark` : `${lt}:light`;
