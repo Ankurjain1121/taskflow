@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        DELETE FROM notifications\n        WHERE id IN (\n            SELECT id FROM notifications\n            WHERE created_at < NOW() - $1 * interval '1 day'\n            LIMIT $2\n        )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Float8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d08d338ed33f73c7085288d08a466ef44c127a7460346ee04b8601cd1697f282"
+}
