@@ -530,7 +530,7 @@ pub async fn delete_config(
 mod tests {
     use super::*;
     use crate::models::TaskPriority;
-    use crate::queries::recurring_generation::{create_recurring_instance, get_due_configs};
+    use crate::queries::recurring_generation::create_recurring_instance;
     use crate::queries::{auth, projects, tasks, workspaces};
     use sqlx::PgPool;
 

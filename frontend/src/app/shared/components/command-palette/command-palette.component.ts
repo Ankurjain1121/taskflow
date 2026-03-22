@@ -19,13 +19,6 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject, Subscription } from 'rxjs';
 import {
-  debounceTime,
-  distinctUntilChanged,
-  switchMap,
-  tap,
-  finalize,
-} from 'rxjs/operators';
-import {
   SearchService,
   SearchResults,
   TaskSearchResult,
@@ -34,24 +27,25 @@ import {
 } from '../../../core/services/search.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
-import { buildThemeActions } from './theme-commands';
 import {
   RecentItemsService,
   RecentItem,
 } from '../../../core/services/recent-items.service';
 import { WorkspaceContextService } from '../../../core/services/workspace-context.service';
+import { CommandAction, SELECTED_BG } from './command-palette.types';
+import { buildCommandActions } from './command-definitions';
+import { createSearchPipeline } from './command-palette-search';
+import {
+  handleInputKeydown,
+  selectCurrentItem,
+  navigateToTask as navToTask,
+  navigateToBoard as navToBoard,
+  navigateToComment as navToComment,
+  onRecentItemClick as handleRecentClick,
+} from './command-palette-navigation';
 
-export interface CommandAction {
-  id: string;
-  icon: string;
-  label: string;
-  shortcut?: string;
-  action: () => void;
-}
-
-const RECENT_SEARCHES_KEY = 'taskflow_recent_searches';
-const MAX_RECENT_SEARCHES = 5;
-const SELECTED_BG = 'rgba(99,102,241,0.1)';
+// Re-export for backward compatibility (any external consumers)
+export type { CommandAction } from './command-palette.types';
 
 @Component({
   selector: 'app-command-palette',
@@ -493,7 +487,6 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
 
   recentItems = computed(() => this.recentItemsService.getForPalette());
 
-  // Computed offsets for search result keyboard nav
   boardOffset = computed(() => {
     const r = this.results();
     return r ? r.tasks.length : 0;
@@ -504,85 +497,12 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
     return r ? r.tasks.length + r.boards.length : 0;
   });
 
-  actions: CommandAction[] = [
-    {
-      id: 'new-task',
-      icon: 'plus',
-      label: 'Create New Task',
-      shortcut: 'N',
-      action: () =>
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'n' })),
-    },
-    {
-      id: 'dashboard',
-      icon: 'home',
-      label: 'Go to Dashboard',
-      shortcut: 'G D',
-      action: () => this.navigateToWsRoute('dashboard'),
-    },
-    {
-      id: 'my-tasks',
-      icon: 'check-square',
-      label: 'Go to My Work',
-      shortcut: 'G M',
-      action: () => this.navigateToWsRoute('my-work'),
-    },
-    {
-      id: 'eisenhower',
-      icon: 'th-large',
-      label: 'Go to Eisenhower Matrix',
-      shortcut: 'G E',
-      action: () => this.navigateToWsRoute('eisenhower'),
-    },
-    {
-      id: 'dark-mode',
-      icon: 'moon',
-      label: 'Toggle Dark Mode',
-      shortcut: 'Ctrl+Shift+D',
-      action: () => {
-        const current = this.themeService.resolvedTheme();
-        this.themeService.setTheme(current === 'dark' ? 'light' : 'dark');
-      },
-    },
-    {
-      id: 'shortcuts',
-      icon: 'key',
-      label: 'Show Keyboard Shortcuts',
-      shortcut: '?',
-      action: () => this.shortcutsService.helpRequested.update((n) => n + 1),
-    },
-    {
-      id: 'settings',
-      icon: 'cog',
-      label: 'Go to Settings',
-      action: () => this.router.navigate(['/settings']),
-    },
-    {
-      id: 'profile',
-      icon: 'user',
-      label: 'Go to Profile',
-      action: () => this.router.navigate(['/settings/profile']),
-    },
-    {
-      id: 'toggle-sidebar',
-      icon: 'bars',
-      label: 'Toggle Sidebar',
-      shortcut: 'Ctrl+B',
-      action: () =>
-        document.dispatchEvent(
-          new KeyboardEvent('keydown', { key: 'b', ctrlKey: true }),
-        ),
-    },
-    {
-      id: 'clear-filters',
-      icon: 'filter-slash',
-      label: 'Clear Project Filters',
-      shortcut: 'C',
-      action: () =>
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'c' })),
-    },
-    ...buildThemeActions(this.themeService),
-  ];
+  actions: CommandAction[] = buildCommandActions({
+    router: inject(Router),
+    themeService: this.themeService,
+    shortcutsService: this.shortcutsService,
+    wsContext: this.wsContext,
+  });
 
   quickActions = computed(() => this.actions.slice(0, 6));
 
@@ -639,35 +559,14 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
       { injector: this.injector },
     );
 
-    this.searchSubscription = this.searchSubject
-      .pipe(
-        debounceTime(200),
-        distinctUntilChanged(),
-        tap((q) => {
-          if (q.trim()) {
-            this.loading.set(true);
-          }
-        }),
-        switchMap((q) => {
-          if (!q.trim()) {
-            this.results.set(null);
-            this.hasSearched.set(false);
-            this.loading.set(false);
-            return [];
-          }
-          return this.searchService.search(q).pipe(
-            tap((searchResults) => {
-              this.results.set(searchResults);
-              this.hasSearched.set(true);
-              this.loading.set(false);
-              this.selectedIndex.set(0);
-              this.saveRecentSearch(q);
-            }),
-            finalize(() => this.loading.set(false)),
-          );
-        }),
-      )
-      .subscribe();
+    this.searchSubscription = createSearchPipeline({
+      searchSubject: this.searchSubject,
+      searchService: this.searchService,
+      results: this.results,
+      hasSearched: this.hasSearched,
+      loading: this.loading,
+      selectedIndex: this.selectedIndex,
+    });
   }
 
   ngOnDestroy(): void {
@@ -683,25 +582,13 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
   }
 
   onInputKeydown(event: KeyboardEvent): void {
-    const total = this.totalItems();
-    if (total === 0) return;
-
-    switch (event.key) {
-      case 'ArrowDown':
-        event.preventDefault();
-        this.selectedIndex.update((i) => (i + 1) % total);
-        this.scrollSelectedIntoView();
-        break;
-      case 'ArrowUp':
-        event.preventDefault();
-        this.selectedIndex.update((i) => (i - 1 + total) % total);
-        this.scrollSelectedIntoView();
-        break;
-      case 'Enter':
-        event.preventDefault();
-        this.selectCurrentItem();
-        break;
-    }
+    handleInputKeydown(
+      event,
+      this.totalItems(),
+      this.selectedIndex,
+      this.resultsList,
+      () => this.selectCurrentItem(),
+    );
   }
 
   onKeydown(event: KeyboardEvent): void {
@@ -732,127 +619,35 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
   }
 
   onRecentItemClick(item: RecentItem): void {
-    if (item.entityType === 'board') {
-      this.router.navigate(['/workspace', item.workspaceId, 'project', item.id]);
-    } else if (item.entityType === 'task' && item.boardId) {
-      this.router.navigate(
-        ['/workspace', item.workspaceId, 'project', item.boardId],
-        { queryParams: { task: item.id } },
-      );
-    }
-    this.close();
+    handleRecentClick(item, this.router, () => this.close());
   }
 
   navigateToTask(task: TaskSearchResult): void {
-    this.recentItemsService.recordTaskView({
-      id: task.id,
-      title: task.title,
-      boardName: task.board_name,
-      workspaceId: task.workspace_id,
-      workspaceName: task.workspace_name,
-      boardId: task.board_id,
-    });
-    this.router.navigate(
-      ['/workspace', task.workspace_id, 'project', task.board_id],
-      { queryParams: { task: task.id } },
-    );
-    this.close();
+    navToTask(task, this.router, this.recentItemsService, () => this.close());
   }
 
   navigateToBoard(board: BoardSearchResult): void {
-    this.recentItemsService.recordBoardView({
-      id: board.id,
-      name: board.name,
-      workspaceId: board.workspace_id,
-      workspaceName: board.workspace_name,
-    });
-    this.router.navigate(['/workspace', board.workspace_id, 'project', board.id]);
-    this.close();
+    navToBoard(board, this.router, this.recentItemsService, () => this.close());
   }
 
   navigateToComment(comment: CommentSearchResult): void {
-    this.router.navigate(
-      ['/workspace', comment.workspace_id, 'project', comment.board_id],
-      { queryParams: { task: comment.task_id } },
-    );
-    this.close();
+    navToComment(comment, this.router, () => this.close());
   }
 
   private selectCurrentItem(): void {
-    const idx = this.selectedIndex();
-
-    if (this.isCommandMode()) {
-      const acts = this.filteredActions();
-      if (idx >= 0 && idx < acts.length) {
-        this.executeAction(acts[idx]);
-      }
-      return;
-    }
-
-    if (!this.query()) {
-      const recents = this.recentItems();
-      if (idx < recents.length) {
-        this.onRecentItemClick(recents[idx]);
-        return;
-      }
-      const actionIdx = idx - recents.length;
-      const quickActs = this.quickActions();
-      if (actionIdx >= 0 && actionIdx < quickActs.length) {
-        this.executeAction(quickActs[actionIdx]);
-      }
-      return;
-    }
-
-    const r = this.results();
-    if (!r) return;
-
-    const taskLen = r.tasks.length;
-    const boardLen = r.boards.length;
-
-    if (idx < taskLen) {
-      this.navigateToTask(r.tasks[idx]);
-    } else if (idx < taskLen + boardLen) {
-      this.navigateToBoard(r.boards[idx - taskLen]);
-    } else {
-      const commentIdx = idx - taskLen - boardLen;
-      if (commentIdx < r.comments.length) {
-        this.navigateToComment(r.comments[commentIdx]);
-      }
-    }
-  }
-
-  private scrollSelectedIntoView(): void {
-    requestAnimationFrame(() => {
-      const container = this.resultsList?.nativeElement;
-      if (!container) return;
-      const item = container.querySelector(
-        `[data-item-index="${this.selectedIndex()}"]`,
-      ) as HTMLElement | null;
-      item?.scrollIntoView({ block: 'nearest' });
+    selectCurrentItem({
+      selectedIndex: this.selectedIndex,
+      isCommandMode: this.isCommandMode,
+      query: this.query,
+      filteredActions: this.filteredActions,
+      recentItems: this.recentItems,
+      quickActions: this.quickActions,
+      results: this.results,
+      executeAction: (a) => this.executeAction(a),
+      onRecentItemClick: (item) => this.onRecentItemClick(item),
+      navigateToTask: (task) => this.navigateToTask(task),
+      navigateToBoard: (board) => this.navigateToBoard(board),
+      navigateToComment: (comment) => this.navigateToComment(comment),
     });
-  }
-
-  private navigateToWsRoute(path: string): void {
-    const wsId = this.wsContext.activeWorkspaceId();
-    if (wsId) {
-      this.router.navigate(['/workspace', wsId, path]);
-    } else {
-      this.router.navigate(['/' + path]);
-    }
-    this.close();
-  }
-
-  private saveRecentSearch(searchQuery: string): void {
-    const trimmed = searchQuery.trim();
-    if (!trimmed) return;
-    try {
-      const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
-      const current: string[] = stored ? JSON.parse(stored) : [];
-      const filtered = current.filter((s) => s !== trimmed);
-      const updated = [trimmed, ...filtered].slice(0, MAX_RECENT_SEARCHES);
-      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
-    } catch {
-      // Ignore
-    }
   }
 }

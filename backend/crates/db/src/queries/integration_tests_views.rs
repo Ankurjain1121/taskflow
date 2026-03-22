@@ -243,7 +243,6 @@ async fn test_list_tasks_flat() {
 /// NOTE: list_tasks_for_gantt uses sqlx macro annotation syntax (`as "is_done!"`)
 /// inside a non-macro `query_as::<_, T>()` call, causing ColumnNotFound at runtime.
 /// This is a pre-existing bug in task_views.rs. Test ignored until the query is fixed.
-#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 #[ignore = "pre-existing bug: query_as uses macro-only column alias syntax (is_done!)"]
 async fn test_list_tasks_for_gantt() {
@@ -280,7 +279,6 @@ async fn test_list_tasks_for_gantt() {
 /// NOTE: list_tasks_for_calendar uses sqlx macro annotation syntax (`as "due_date!"`)
 /// inside a non-macro `query_as::<_, T>()` call, causing ColumnNotFound at runtime.
 /// This is a pre-existing bug in task_views.rs. Test ignored until the query is fixed.
-#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 #[ignore = "pre-existing bug: query_as uses macro-only column alias syntax (due_date!)"]
 async fn test_list_tasks_for_calendar() {
@@ -323,7 +321,6 @@ async fn test_list_tasks_for_calendar() {
     assert!(found, "should find our calendar task");
 }
 
-#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 #[ignore = "pre-existing bug: query_as uses macro-only column alias syntax (is_done!)"]
 async fn test_gantt_empty_for_tasks_without_dates() {

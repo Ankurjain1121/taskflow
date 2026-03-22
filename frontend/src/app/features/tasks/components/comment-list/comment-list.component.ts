@@ -51,6 +51,11 @@ export class RenderMentionsPipe implements PipeTransform {
       mentionRegex,
       '<span style="color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, transparent);" class="font-medium px-1 rounded">@$1</span>',
     );
+    // SAFETY: bypassSecurityTrustHtml is safe here because:
+    // 1. All user content is HTML-escaped via escapeHtml() BEFORE regex processing (line 46)
+    // 2. The mention regex only captures from the already-escaped string
+    // 3. The $2 capture (user ID) is restricted to [a-f0-9-]+ so it cannot inject HTML
+    // 4. The only unescaped HTML is the <span> wrapper we construct with safe static attributes
     return this.sanitizer.bypassSecurityTrustHtml(rendered);
   }
 

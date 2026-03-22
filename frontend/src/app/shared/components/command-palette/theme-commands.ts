@@ -1,7 +1,7 @@
 import { THEME_PALETTES, DARK_THEME_PALETTES } from '../../../core/constants/color-palettes';
 import { LightTheme, DarkTheme } from '../../../shared/types/theme.types';
 import { ThemeService } from '../../../core/services/theme.service';
-import { CommandAction } from './command-palette.component';
+import { CommandAction } from './command-palette.types';
 
 /**
  * Builds command palette actions for switching light and dark themes.

@@ -9,6 +9,7 @@
 // Template data structures
 // ============================================================================
 
+#[allow(dead_code)] // Fields used when sample_board generation is implemented
 pub(super) struct TemplateConfig {
     pub board_name: &'static str,
     pub board_description: &'static str,
@@ -17,12 +18,14 @@ pub(super) struct TemplateConfig {
     pub labels: &'static [LabelDef],
 }
 
+#[allow(dead_code)] // Fields used when sample_board generation is implemented
 pub(super) struct ColumnDef {
     pub name: &'static str,
     pub color: &'static str,
     pub is_done: bool,
 }
 
+#[allow(dead_code)] // Fields used when sample_board generation is implemented
 pub(super) struct TaskDef {
     pub title: &'static str,
     pub column_index: usize,
@@ -32,6 +35,7 @@ pub(super) struct TaskDef {
     pub label_index: usize,
 }
 
+#[allow(dead_code)] // Fields used when sample_board generation is implemented
 pub(super) struct LabelDef {
     pub name: &'static str,
     pub color: &'static str,

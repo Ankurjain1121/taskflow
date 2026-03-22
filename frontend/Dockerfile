@@ -27,7 +27,7 @@ RUN npm run build -- --configuration=production
 # -----------------------------------------------------------------------------
 # Stage 2: Runner (nginx)
 # -----------------------------------------------------------------------------
-FROM nginx:alpine AS runner
+FROM nginxinc/nginx-unprivileged:alpine AS runner
 
 # Copy built assets from builder stage
 # Angular 17+ outputs to dist/<project>/browser
@@ -36,8 +36,8 @@ COPY --from=builder /app/dist/frontend/browser /usr/share/nginx/html
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 80
-EXPOSE 80
+# Expose port 8080 (unprivileged nginx listens on 8080, not 80)
+EXPOSE 8080
 
-# nginx runs as PID 1 by default
+# nginx runs as non-root user 'nginx' (UID 101)
 CMD ["nginx", "-g", "daemon off;"]
