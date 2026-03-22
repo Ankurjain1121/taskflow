@@ -469,20 +469,33 @@ pub async fn sign_out_all_handler(
 ) -> Result<Json<MessageResponse>> {
     let user_id = auth.0.user_id;
 
-    // Find and delete all session keys for this user
+    // Find and delete all session keys for this user using SCAN (non-blocking)
     let pattern = format!("session:{}:*", user_id);
-    let keys: Vec<String> = redis::cmd("KEYS")
-        .arg(&pattern)
-        .query_async(&mut state.redis.clone())
-        .await
-        .unwrap_or_default();
-
-    if !keys.is_empty() {
-        let _: () = redis::cmd("DEL")
-            .arg(&keys)
-            .query_async(&mut state.redis.clone())
+    let mut cursor: u64 = 0;
+    let mut conn = state.redis.clone();
+    loop {
+        let (next_cursor, keys): (u64, Vec<String>) = redis::cmd("SCAN")
+            .arg(cursor)
+            .arg("MATCH")
+            .arg(&pattern)
+            .arg("COUNT")
+            .arg(100)
+            .query_async(&mut conn)
             .await
-            .unwrap_or(());
+            .unwrap_or((0, Vec::new()));
+
+        if !keys.is_empty() {
+            let _: () = redis::cmd("DEL")
+                .arg(&keys)
+                .query_async(&mut conn)
+                .await
+                .unwrap_or(());
+        }
+
+        cursor = next_cursor;
+        if cursor == 0 {
+            break;
+        }
     }
 
     // Revoke all refresh tokens for this user

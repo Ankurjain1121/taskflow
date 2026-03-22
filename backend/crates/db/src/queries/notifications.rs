@@ -203,17 +203,26 @@ pub async fn mark_all_read(pool: &PgPool, user_id: Uuid) -> Result<i64, Notifica
     Ok(result.rows_affected() as i64)
 }
 
-/// Delete old notifications (for cleanup job)
+/// Delete old notifications in bounded batches (for cleanup job).
+///
+/// Deletes up to `batch_limit` rows per call. Returns the count of deleted rows
+/// so the caller can loop until `0` is returned.
 pub async fn delete_old_notifications(
     pool: &PgPool,
     days_to_keep: i64,
+    batch_limit: i64,
 ) -> Result<i64, NotificationQueryError> {
     let result = sqlx::query!(
         r#"
         DELETE FROM notifications
-        WHERE created_at < NOW() - $1 * interval '1 day'
+        WHERE id IN (
+            SELECT id FROM notifications
+            WHERE created_at < NOW() - $1 * interval '1 day'
+            LIMIT $2
+        )
         "#,
-        days_to_keep as f64
+        days_to_keep as f64,
+        batch_limit
     )
     .execute(pool)
     .await?;

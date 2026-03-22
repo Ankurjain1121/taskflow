@@ -1,10 +1,10 @@
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::models::automation::{
-    AutomationAction, AutomationActionType, AutomationLog, AutomationRule, AutomationTrigger,
+    AutomationAction, AutomationActionType, AutomationRule, AutomationTrigger,
 };
 
 // Re-export evaluation helpers so consumers don't need import changes
@@ -394,7 +394,6 @@ pub async fn delete_rule(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::queries::automation_evaluation::log_automation;
     use crate::queries::{auth, projects, workspaces};
     use crate::test_helpers::test_pool;
 

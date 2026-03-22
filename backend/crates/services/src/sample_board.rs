@@ -11,6 +11,8 @@ use uuid::Uuid;
 pub enum SampleBoardError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
+    #[error("Not implemented: {0}")]
+    NotImplemented(String),
 }
 
 // ============================================================================
@@ -42,7 +44,9 @@ pub async fn generate_sample_board(
 ) -> Result<Uuid, SampleBoardError> {
     // TODO: Rewrite for new schema (project_statuses, task_lists, status_id).
     // board_columns and column_id were dropped in migration 20260316000001.
-    Err(SampleBoardError::Database(sqlx::Error::RowNotFound))
+    Err(SampleBoardError::NotImplemented(
+        "Sample board generation needs migration to new schema (project_statuses, task_lists, status_id)".to_string(),
+    ))
 }
 
 #[cfg(test)]
@@ -52,16 +56,16 @@ mod tests {
 
     #[test]
     fn test_sample_board_error_display() {
-        let err = SampleBoardError::Database(sqlx::Error::RowNotFound);
+        let err = SampleBoardError::NotImplemented("test".to_string());
         let msg = format!("{}", err);
-        assert!(msg.contains("Database error"), "got: {}", msg);
+        assert!(msg.contains("Not implemented"), "got: {}", msg);
     }
 
     #[test]
     fn test_sample_board_error_debug() {
-        let err = SampleBoardError::Database(sqlx::Error::RowNotFound);
+        let err = SampleBoardError::NotImplemented("test".to_string());
         let debug = format!("{:?}", err);
-        assert!(debug.contains("Database"), "got: {}", debug);
+        assert!(debug.contains("NotImplemented"), "got: {}", debug);
     }
 
     #[test]

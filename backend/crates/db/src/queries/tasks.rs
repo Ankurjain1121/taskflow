@@ -173,7 +173,9 @@ pub async fn create_task(
         (None, 0i16)
     };
 
-    // Insert the task with auto-assigned task_number
+    // Insert the task with auto-assigned task_number.
+    // Lock the project row (FOR UPDATE) to serialize task_number generation
+    // and prevent race conditions from concurrent inserts.
     let task = sqlx::query_as::<_, Task>(
         r#"
         INSERT INTO tasks (id, title, description, priority, due_date, start_date,
@@ -181,7 +183,7 @@ pub async fn create_task(
                           milestone_id, task_number, tenant_id, created_by_id, parent_task_id, depth,
                           reporting_person_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-                COALESCE((SELECT MAX(task_number) FROM tasks WHERE project_id = $8), 0) + 1,
+                COALESCE((SELECT MAX(task_number) FROM tasks WHERE project_id = (SELECT id FROM projects WHERE id = $8 FOR UPDATE)), 0) + 1,
                 $13, $14, $15, $16, $17)
         RETURNING
             id, title, description, priority, due_date, start_date,
@@ -479,7 +481,8 @@ pub async fn duplicate_task(
     let new_id = Uuid::new_v4();
     let new_title = format!("Copy of {}", source.title);
 
-    // Insert the duplicate task with auto-assigned task_number
+    // Insert the duplicate task with auto-assigned task_number.
+    // Lock the project row (FOR UPDATE) to serialize task_number generation.
     let task = sqlx::query_as::<_, Task>(
         r#"
         INSERT INTO tasks (id, title, description, priority, due_date, start_date,
@@ -487,7 +490,7 @@ pub async fn duplicate_task(
                           milestone_id, task_number, eisenhower_urgency, eisenhower_importance,
                           tenant_id, created_by_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-                COALESCE((SELECT MAX(task_number) FROM tasks WHERE project_id = $8), 0) + 1,
+                COALESCE((SELECT MAX(task_number) FROM tasks WHERE project_id = (SELECT id FROM projects WHERE id = $8 FOR UPDATE)), 0) + 1,
                 $13, $14, $15, $16)
         RETURNING
             id, title, description, priority, due_date, start_date,

@@ -64,7 +64,12 @@ pub async fn search_all(
     limit: i64,
     filters: &SearchFilters,
 ) -> Result<SearchResults, sqlx::Error> {
-    let like_query = format!("%{}%", query);
+    // Escape LIKE metacharacters to prevent injection via %, _, or \
+    let escaped = query
+        .replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_");
+    let like_query = format!("%{}%", escaped);
 
     // Search tasks using full-text search with ILIKE fallback (board membership enforced)
     // Optional filters use the ($N::text IS NULL OR ...) pattern for conditional filtering

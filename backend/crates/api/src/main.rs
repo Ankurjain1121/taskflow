@@ -63,7 +63,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = AppState::new(config.clone()).await?;
 
     // Build router
-    let app = router::build_router(state.clone(), &config);
+    let app = router::build_router(state.clone(), &config)?;
 
     // Spawn background jobs
     jobs::spawn_background_jobs(&state, &config).await;

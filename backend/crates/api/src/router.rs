@@ -43,12 +43,20 @@ use crate::routes::{metrics_cron_router, metrics_router, portfolio_router, prome
 use crate::state::AppState;
 use crate::ws::ws_handler;
 
-pub fn build_router(state: AppState, config: &Config) -> Router {
+pub fn build_router(
+    state: AppState,
+    config: &Config,
+) -> Result<Router, Box<dyn std::error::Error>> {
     // Build CORS layer with configured origin
-    let allowed_origin = config
-        .app_url
-        .parse::<axum::http::HeaderValue>()
-        .expect("APP_URL must be a valid header value");
+    let allowed_origin = config.app_url.parse::<axum::http::HeaderValue>().map_err(
+        |e| -> Box<dyn std::error::Error> {
+            format!(
+                "APP_URL '{}' is not a valid header value: {}",
+                config.app_url, e
+            )
+            .into()
+        },
+    )?;
     let cors = CorsLayer::new()
         .allow_origin(AllowOrigin::exact(allowed_origin))
         .allow_methods([
@@ -183,7 +191,7 @@ pub fn build_router(state: AppState, config: &Config) -> Router {
         .route("/ws", get(ws_handler));
 
     // Build router
-    Router::new()
+    Ok(Router::new()
         // Health check routes (no auth required)
         .route("/api/health", get(health_handler))
         .route("/api/health/live", get(liveness_handler))
@@ -397,5 +405,5 @@ pub fn build_router(state: AppState, config: &Config) -> Router {
         ))
         .layer(CompressionLayer::new())
         .layer(cors)
-        .with_state(state)
+        .with_state(state))
 }

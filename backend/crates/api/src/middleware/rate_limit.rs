@@ -1,6 +1,10 @@
 //! IP-based rate limiting middleware
 //!
 //! Uses Redis INCR + EXPIRE for distributed, fixed-window rate limiting.
+//! Falls back to an in-memory DashMap when Redis is unavailable, preventing
+//! unlimited brute-force during Redis outages.
+
+use std::sync::Arc;
 
 use axum::{
     body::Body,
@@ -8,13 +12,20 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use dashmap::DashMap;
 
-/// Rate limiter configuration (no in-process state — all state is in Redis)
+/// In-memory fallback counter entry: (count, window_ts).
+/// When the window_ts changes, the count resets.
+type FallbackEntry = (u64, u64);
+
+/// Rate limiter with Redis primary and in-memory fallback.
 #[derive(Clone)]
 pub struct RateLimiter {
     redis: redis::aio::ConnectionManager,
     max_requests: u32,
     window_secs: u64,
+    /// In-memory fallback counters used when Redis is unreachable.
+    fallback: Arc<DashMap<String, FallbackEntry>>,
 }
 
 impl RateLimiter {
@@ -23,10 +34,12 @@ impl RateLimiter {
             redis,
             max_requests,
             window_secs,
+            fallback: Arc::new(DashMap::new()),
         }
     }
 
-    /// Check if the IP is allowed using Redis INCR + EXPIRE (fixed window).
+    /// Check if the key is allowed using Redis INCR + EXPIRE (fixed window).
+    /// Falls back to in-memory counters when Redis is down.
     /// Returns Ok(()) if under the limit, or Err(retry_after_secs) if rate limited.
     async fn check_and_record(&self, ip: &str) -> std::result::Result<(), u64> {
         let now_secs = std::time::SystemTime::now()
@@ -42,9 +55,12 @@ impl RateLimiter {
         let count: i64 = match redis::cmd("INCR").arg(&key).query_async(&mut conn).await {
             Ok(c) => c,
             Err(e) => {
-                // If Redis is down, fail open (allow the request)
-                tracing::warn!("Rate limiter Redis INCR failed: {}", e);
-                return Ok(());
+                // Redis is down — use in-memory fallback instead of failing open
+                tracing::warn!(
+                    "Rate limiter Redis INCR failed, using in-memory fallback: {}",
+                    e
+                );
+                return self.check_fallback(ip, window_ts, now_secs);
             }
         };
 
@@ -65,6 +81,52 @@ impl RateLimiter {
         }
 
         Ok(())
+    }
+
+    /// In-memory fallback rate check using DashMap.
+    /// Uses the same fixed-window algorithm as the Redis path.
+    fn check_fallback(
+        &self,
+        ip: &str,
+        window_ts: u64,
+        now_secs: u64,
+    ) -> std::result::Result<(), u64> {
+        let fallback_key = format!("{}:{}", self.max_requests, ip);
+
+        let count = {
+            let mut entry = self.fallback.entry(fallback_key).or_insert((0, window_ts));
+            let (ref mut count, ref mut stored_window) = *entry;
+
+            // Reset counter if the window has advanced
+            if *stored_window != window_ts {
+                *count = 0;
+                *stored_window = window_ts;
+            }
+
+            *count += 1;
+            *count
+        };
+
+        if count > self.max_requests as u64 {
+            let window_end = (window_ts + 1) * self.window_secs;
+            let retry_after = window_end.saturating_sub(now_secs).max(1);
+            return Err(retry_after);
+        }
+
+        Ok(())
+    }
+
+    /// Periodically clean up stale entries from the in-memory fallback map.
+    /// Call this from a background task to prevent unbounded memory growth.
+    pub fn cleanup_stale_entries(&self) {
+        let now_secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let current_window = now_secs / self.window_secs;
+
+        self.fallback
+            .retain(|_key, (_count, window_ts)| *window_ts >= current_window);
     }
 }
 

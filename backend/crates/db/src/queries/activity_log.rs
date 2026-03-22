@@ -162,8 +162,8 @@ pub async fn list_activity_by_task(
 ///
 /// Returns activity for:
 /// - Tasks belonging to the project (entity_type = 'task', entity_id IN project tasks)
-/// - The board/project itself (entity_type = 'board', entity_id = board_id)
-/// - Columns in the project (entity_type = 'column')
+/// - The project itself (entity_type = 'board', entity_id = project_id)
+/// - Statuses in the project (entity_type = 'column')
 ///
 /// # Arguments
 /// * `pool` - Database connection pool
@@ -197,11 +197,11 @@ pub async fn list_activity_by_project(
         JOIN users u ON u.id = al.user_id
         WHERE (
             (al.entity_type = 'task' AND al.entity_id IN (
-                SELECT id FROM tasks WHERE board_id = $1 AND deleted_at IS NULL
+                SELECT id FROM tasks WHERE project_id = $1 AND deleted_at IS NULL
             ))
             OR (al.entity_type = 'board' AND al.entity_id = $1)
             OR (al.entity_type = 'column' AND al.entity_id IN (
-                SELECT id FROM board_columns WHERE board_id = $1
+                SELECT id FROM project_statuses WHERE project_id = $1
             ))
         )
     "#;

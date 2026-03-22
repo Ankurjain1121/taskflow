@@ -6,9 +6,8 @@ use uuid::Uuid;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenvy::dotenv().ok();
 
-    let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-        "postgresql://taskflow_app:taskflow_secure_2026@localhost:5432/taskflow".into()
-    });
+    let database_url = std::env::var("DATABASE_URL")
+        .expect("DATABASE_URL must be set (e.g. postgresql://user:pass@host:5432/db)");
 
     println!("Connecting to database...");
     let pool = PgPool::connect(&database_url).await?;
@@ -31,7 +30,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 2. Create admin user
     let admin_id = Uuid::new_v4();
-    let password_hash = hash_password("Admin@123").expect("Failed to hash password");
+    let seed_password =
+        std::env::var("SEED_ADMIN_PASSWORD").expect("SEED_ADMIN_PASSWORD must be set");
+    let password_hash = hash_password(&seed_password).expect("Failed to hash password");
 
     sqlx::query(
         "INSERT INTO users (id, email, name, password_hash, role, tenant_id) \
@@ -110,7 +111,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  Created trial subscription (30 days)");
 
     println!("\nSeed completed successfully!");
-    println!("  Login: admin1@paraslace.in / Admin@123");
+    println!("  Login: admin1@paraslace.in (password from SEED_ADMIN_PASSWORD env var)");
 
     Ok(())
 }

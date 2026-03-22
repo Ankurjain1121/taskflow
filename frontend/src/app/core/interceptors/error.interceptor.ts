@@ -73,6 +73,13 @@ export const errorInterceptor: HttpInterceptorFn = (
 function extractErrorMessage(error: HttpErrorResponse): string {
   if (typeof error.error === 'object' && error.error !== null) {
     const body = error.error as Record<string, unknown>;
+    // Backend envelope: { "error": { "code": "...", "message": "..." } }
+    if (typeof body['error'] === 'object' && body['error'] !== null) {
+      const inner = body['error'] as Record<string, unknown>;
+      if (typeof inner['message'] === 'string') {
+        return inner['message'];
+      }
+    }
     if (typeof body['message'] === 'string') {
       return body['message'];
     }
