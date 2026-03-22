@@ -303,7 +303,6 @@ async fn test_assign_task_to_milestone() {
 /// syntax (`as "dependency_type: DependencyType"`) inside non-macro `query_as::<_, T>()` calls,
 /// causing ColumnNotFound("dependency_type") at runtime. Pre-existing bug.
 
-#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 #[ignore = "pre-existing bug: query_as uses macro-only type annotation syntax"]
 async fn test_create_dependency_related() {
@@ -345,7 +344,6 @@ async fn test_create_dependency_related() {
     assert_eq!(dep.dependency_type, DependencyType::Related);
 }
 
-#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 #[ignore = "pre-existing bug: query_as uses macro-only type annotation syntax"]
 async fn test_create_dependency_blocks() {
@@ -385,7 +383,6 @@ async fn test_create_dependency_blocks() {
     assert_eq!(dep.dependency_type, DependencyType::Blocks);
 }
 
-#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 #[ignore = "pre-existing bug: query_as uses macro-only type annotation syntax"]
 async fn test_list_dependencies() {
@@ -429,7 +426,6 @@ async fn test_list_dependencies() {
     assert!(deps.iter().any(|d| d.related_task_id == task_b.id));
 }
 
-#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 #[ignore = "pre-existing bug: query_as uses macro-only type annotation syntax"]
 async fn test_delete_dependency() {
@@ -479,7 +475,6 @@ async fn test_delete_dependency() {
     );
 }
 
-#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 #[ignore = "pre-existing bug: query_as uses macro-only type annotation syntax"]
 async fn test_check_blockers() {
@@ -523,7 +518,6 @@ async fn test_check_blockers() {
     assert!(blockers.iter().any(|b| b.task_id == blocker.id));
 }
 
-#[ignore = "integration test - run with: cargo test -- --ignored"]
 #[tokio::test]
 #[ignore = "pre-existing bug: query_as uses macro-only type annotation syntax"]
 async fn test_get_board_dependencies() {

@@ -114,6 +114,7 @@ pub async fn create_test_task_with_dates(
 }
 
 /// Insert a notification directly via SQL (for testing)
+#[allow(dead_code)] // Available for future integration tests
 pub async fn insert_test_notification(
     pool: &PgPool,
     recipient_id: Uuid,

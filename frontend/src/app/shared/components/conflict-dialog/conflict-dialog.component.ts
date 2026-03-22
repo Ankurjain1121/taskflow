@@ -152,6 +152,10 @@ export class ConflictDialogComponent {
       if (def.key === 'description') {
         const originalVal = String(original[def.key] ?? '');
         const segments = computeWordDiff(originalVal, yourVal);
+        // SAFETY: bypassSecurityTrustHtml is safe here because renderDiffHtml()
+        // (in word-diff.ts) calls escapeHtml() on every text segment before wrapping
+        // in <span> tags. The input (task description fields) is fully escaped before
+        // being inserted into the diff HTML output.
         diffHtml = this.sanitizer.bypassSecurityTrustHtml(
           renderDiffHtml(segments),
         );

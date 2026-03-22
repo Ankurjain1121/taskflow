@@ -66,7 +66,9 @@
     "@tiptap/extension-strike": "3.19.0",
     "@tiptap/extension-text": "3.19.0",
     "@tiptap/extension-underline": "3.19.0",
-    "@tiptap/starter-kit": "3.19.0"
+    "@tiptap/starter-kit": "3.19.0",
+    "tar": ">=7.5.11",
+    "serialize-javascript": ">=7.0.3"
   },
   "devDependencies": {
     "@analogjs/vite-plugin-angular": "^1.22.5",
