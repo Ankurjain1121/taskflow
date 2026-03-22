@@ -48,7 +48,6 @@ import {
           0 2px 4px -2px rgba(0, 0, 0, 0.05);
       }
       .stat-card {
-        background: var(--card);
         border: 1px solid var(--border);
         border-radius: 0.75rem;
       }
