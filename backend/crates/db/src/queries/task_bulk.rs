@@ -42,6 +42,7 @@ pub async fn bulk_update_tasks(
         return Ok(0);
     }
 
+    let mut tx = pool.begin().await?;
     let mut updated: u64 = 0;
 
     // Update status if specified
@@ -55,7 +56,7 @@ pub async fn bulk_update_tasks(
         .bind(status_id)
         .bind(&input.task_ids)
         .bind(board_id)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
         updated = result.rows_affected();
     }
@@ -71,7 +72,7 @@ pub async fn bulk_update_tasks(
         .bind(priority)
         .bind(&input.task_ids)
         .bind(board_id)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
         updated = result.rows_affected();
     }
@@ -86,7 +87,7 @@ pub async fn bulk_update_tasks(
         )
         .bind(&input.task_ids)
         .bind(board_id)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
         updated = result.rows_affected();
     } else if let Some(milestone_id) = input.milestone_id {
@@ -99,7 +100,7 @@ pub async fn bulk_update_tasks(
         .bind(milestone_id)
         .bind(&input.task_ids)
         .bind(board_id)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
         updated = result.rows_affected();
     }
@@ -114,7 +115,7 @@ pub async fn bulk_update_tasks(
         )
         .bind(&input.task_ids)
         .bind(board_id)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
         updated = result.rows_affected();
     } else if let Some(task_list_id) = input.task_list_id {
@@ -127,10 +128,12 @@ pub async fn bulk_update_tasks(
         .bind(task_list_id)
         .bind(&input.task_ids)
         .bind(board_id)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
         updated = result.rows_affected();
     }
+
+    tx.commit().await?;
 
     Ok(updated)
 }

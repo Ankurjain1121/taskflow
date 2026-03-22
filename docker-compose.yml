@@ -69,8 +69,8 @@ services:
     container_name: taskflow-backend
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://taskflow_app:${POSTGRES_PASSWORD:-REDACTED_PG_PASSWORD}@10.0.2.1:5432/${POSTGRES_DB:-taskflow}
-      APP_DATABASE_URL: postgresql://taskflow_app:${POSTGRES_PASSWORD:-REDACTED_PG_PASSWORD}@10.0.2.1:5432/${POSTGRES_DB:-taskflow}
+      DATABASE_URL: postgresql://taskflow_app:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@10.0.2.1:5432/${POSTGRES_DB:-taskflow}
+      APP_DATABASE_URL: postgresql://taskflow_app:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@10.0.2.1:5432/${POSTGRES_DB:-taskflow}
       DB_MAX_CONNECTIONS: ${DB_MAX_CONNECTIONS:-80}
       DB_MIN_CONNECTIONS: ${DB_MIN_CONNECTIONS:-20}
       HOST: 0.0.0.0

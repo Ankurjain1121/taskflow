@@ -4,12 +4,14 @@ import {
   output,
   signal,
   inject,
+  DestroyRef,
   OnInit,
   OnChanges,
   OnDestroy,
   SimpleChanges,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { Drawer } from 'primeng/drawer';
 import { ButtonModule } from 'primeng/button';
@@ -125,6 +127,7 @@ import {
   templateUrl: './task-detail.component.html',
 })
 export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
+  private destroyRef = inject(DestroyRef);
   private taskService = inject(TaskService);
   private workspaceService = inject(WorkspaceService);
   private projectService = inject(ProjectService);
@@ -269,9 +272,12 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
 
   onAssigneeSearchChange(query: string): void {
     if (!query || query.length < 2) { this.memberSearchResults.set([]); return; }
-    this.workspaceService.searchMembers(this.workspaceId(), query).subscribe({
-      next: (results) => this.memberSearchResults.set(results), error: () => this.memberSearchResults.set([]),
-    });
+    this.workspaceService.searchMembers(this.workspaceId(), query)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (results) => this.memberSearchResults.set(results),
+        error: () => this.memberSearchResults.set([]),
+      });
   }
 
   onAssign(member: MemberSearchResult): void {
@@ -282,9 +288,11 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     this.task.set(optimisticTask);
     this.taskUpdated.emit(optimisticTask);
 
-    this.taskService.assignUser(task.id, member.id).subscribe({
-      error: () => this.rollbackWithError(task, 'Could not assign member.'),
-    });
+    this.taskService.assignUser(task.id, member.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => this.rollbackWithError(task, 'Could not assign member.'),
+      });
   }
 
   onUnassign(assignee: Assignee): void {
@@ -295,9 +303,11 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     this.task.set(optimisticTask);
     this.taskUpdated.emit(optimisticTask);
 
-    this.taskService.unassignUser(task.id, assignee.id).subscribe({
-      error: () => this.rollbackWithError(task, 'Could not unassign member.'),
-    });
+    this.taskService.unassignUser(task.id, assignee.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => this.rollbackWithError(task, 'Could not unassign member.'),
+      });
   }
 
   onAddLabel(labelId: string): void {
@@ -311,12 +321,11 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     this.task.set(optimisticTask);
     this.taskUpdated.emit(optimisticTask);
 
-    this.taskService.addLabel(task.id, labelId).subscribe({
-      error: () => {
-        this.task.set(task);
-        this.taskUpdated.emit(task);
-      },
-    });
+    this.taskService.addLabel(task.id, labelId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => this.rollbackWithError(task, 'Could not add label.'),
+      });
   }
 
   onRemoveLabel(labelId: string): void {
@@ -327,9 +336,11 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     this.task.set(optimisticTask);
     this.taskUpdated.emit(optimisticTask);
 
-    this.taskService.removeLabel(task.id, labelId).subscribe({
-      error: () => this.rollbackWithError(task, 'Could not remove label.'),
-    });
+    this.taskService.removeLabel(task.id, labelId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => this.rollbackWithError(task, 'Could not remove label.'),
+      });
   }
 
   onMilestoneChange(milestoneId: string): void {
@@ -348,14 +359,16 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     this.taskUpdated.emit(optimisticTask);
     this.selectedMilestone.set(ms);
 
-    this.milestoneService.assignTask(task.id, milestoneId).subscribe({
-      error: () => {
-        this.task.set(task);
-        this.taskUpdated.emit(task);
-        this.selectedMilestone.set(previousMilestone);
-        this.showError('Could not assign milestone.');
-      },
-    });
+    this.milestoneService.assignTask(task.id, milestoneId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => {
+          this.task.set(task);
+          this.taskUpdated.emit(task);
+          this.selectedMilestone.set(previousMilestone);
+          this.showError('Could not assign milestone.');
+        },
+      });
   }
 
   onDelete(): void {
@@ -369,7 +382,11 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
       rejectButtonStyleClass: 'p-button-text p-button-sm',
       accept: () => {
         this.closed.emit();
-        this.taskService.deleteTask(task.id).subscribe({ error: () => {} });
+        this.taskService.deleteTask(task.id)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            error: () => this.showError('Could not delete task.'),
+          });
       },
     });
   }
@@ -380,7 +397,9 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
 
     this.savingTemplate.set(true);
     const req: SaveAsTemplateRequest = { name: this.templateName.trim(), scope: this.templateScope };
-    this.taskTemplateService.saveTaskAsTemplate(task.id, req).subscribe({
+    this.taskTemplateService.saveTaskAsTemplate(task.id, req)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: () => {
         this.savingTemplate.set(false);
         this.showSaveTemplateDialog.set(false);
@@ -404,13 +423,15 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     }
     // Lazy-load board tasks if needed
     if (this.boardTasks().length === 0 && this.boardId()) {
-      this.taskService.listFlat(this.boardId()).subscribe({
-        next: (tasks) => {
-          this.boardTasks.set(tasks);
-          this.filterDepResults(query);
-        },
-        error: () => {},
-      });
+      this.taskService.listFlat(this.boardId())
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (tasks) => {
+            this.boardTasks.set(tasks);
+            this.filterDepResults(query);
+          },
+          error: () => this.showError('Could not load board tasks.'),
+        });
     } else {
       this.filterDepResults(query);
     }
@@ -422,23 +443,26 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   }): void {
     this.dependencyService
       .createDependency(this.taskId(), event.targetTaskId, event.depType)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (dep) => {
           this.dependencies.update((deps) => [dep, ...deps]);
           this.updateDepGroups();
         },
-        error: () => {},
+        error: () => this.showError('Could not add dependency.'),
       });
   }
 
   onRemoveDependency(depId: string): void {
-    this.dependencyService.deleteDependency(depId).subscribe({
-      next: () => {
-        this.dependencies.update((deps) => deps.filter((d) => d.id !== depId));
-        this.updateDepGroups();
-      },
-      error: () => {},
-    });
+    this.dependencyService.deleteDependency(depId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.dependencies.update((deps) => deps.filter((d) => d.id !== depId));
+          this.updateDepGroups();
+        },
+        error: () => this.showError('Could not remove dependency.'),
+      });
   }
 
   // ── Custom field handlers ──────────────────────────────────
@@ -478,7 +502,10 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     const obs = config
       ? this.recurringService.updateConfig(config.id, req)
       : this.recurringService.createConfig(this.taskId(), req);
-    obs.subscribe({ next: (result) => this.recurringConfig.set(result), error: () => {} });
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (result) => this.recurringConfig.set(result),
+      error: () => this.showError('Could not save recurring schedule.'),
+    });
   }
 
   onRemoveRecurring(): void {
@@ -490,34 +517,43 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger p-button-sm',
       rejectButtonStyleClass: 'p-button-text p-button-sm',
-      accept: () => this.recurringService.deleteConfig(config.id).subscribe({
-        next: () => this.recurringConfig.set(null), error: () => {},
-      }),
+      accept: () => this.recurringService.deleteConfig(config.id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => this.recurringConfig.set(null),
+          error: () => this.showError('Could not remove recurring schedule.'),
+        }),
     });
   }
 
   // ── Time tracking handlers ─────────────────────────────────
 
   onStartTimer(): void {
-    this.timeTrackingService.startTimer(this.taskId()).subscribe({
-      next: (entry) => {
-        this.runningTimerForTask.set(entry);
-        this.timeEntries.update((entries) => [entry, ...entries]);
-        this.startElapsedTimer(entry.started_at);
-      }, error: () => {},
-    });
+    this.timeTrackingService.startTimer(this.taskId())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (entry) => {
+          this.runningTimerForTask.set(entry);
+          this.timeEntries.update((entries) => [entry, ...entries]);
+          this.startElapsedTimer(entry.started_at);
+        },
+        error: () => this.showError('Could not start timer.'),
+      });
   }
 
   onStopTimer(): void {
     const running = this.runningTimerForTask();
     if (!running) return;
-    this.timeTrackingService.stopTimer(running.id).subscribe({
-      next: (stopped) => {
-        this.runningTimerForTask.set(null);
-        this.clearTimerInterval();
-        this.timeEntries.update((entries) => entries.map((e) => (e.id === stopped.id ? stopped : e)));
-      }, error: () => {},
-    });
+    this.timeTrackingService.stopTimer(running.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (stopped) => {
+          this.runningTimerForTask.set(null);
+          this.clearTimerInterval();
+          this.timeEntries.update((entries) => entries.map((e) => (e.id === stopped.id ? stopped : e)));
+        },
+        error: () => this.showError('Could not stop timer.'),
+      });
   }
 
   onSubmitLogTime(event: {
@@ -531,21 +567,25 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
 
     this.timeTrackingService
       .createManualEntry(this.taskId(), payload)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (entry) => {
           this.timeEntries.update((entries) => [entry, ...entries]);
         },
-        error: () => {},
+        error: () => this.showError('Could not log time entry.'),
       });
   }
 
   onDeleteTimeEntry(entryId: string): void {
-    this.timeTrackingService.deleteEntry(entryId).subscribe({
-      next: () => {
-        this.timeEntries.update((entries) => entries.filter((e) => e.id !== entryId));
-        if (this.runningTimerForTask()?.id === entryId) { this.runningTimerForTask.set(null); this.clearTimerInterval(); }
-      }, error: () => {},
-    });
+    this.timeTrackingService.deleteEntry(entryId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.timeEntries.update((entries) => entries.filter((e) => e.id !== entryId));
+          if (this.runningTimerForTask()?.id === entryId) { this.runningTimerForTask.set(null); this.clearTimerInterval(); }
+        },
+        error: () => this.showError('Could not delete time entry.'),
+      });
   }
 
   // ── Private methods ────────────────────────────────────────
@@ -553,77 +593,95 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
   private loadTask(): void {
     this.loading.set(true);
 
-    this.taskService.getTask(this.taskId()).subscribe({
-      next: (task) => {
-        this.task.set(task);
-        this.loadDependencies();
-        this.loadMilestones(task);
-        this.loadCustomFields();
-        this.loadRecurringConfig();
-        this.loadTimeEntries();
-        this.loadParentTitle(task);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.loading.set(false);
-      },
-    });
+    this.taskService.getTask(this.taskId())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (task) => {
+          this.task.set(task);
+          this.loadDependencies();
+          this.loadMilestones(task);
+          this.loadCustomFields();
+          this.loadRecurringConfig();
+          this.loadTimeEntries();
+          this.loadParentTitle(task);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.loading.set(false);
+          this.showError('Could not load task.');
+        },
+      });
   }
 
   private loadParentTitle(task: Task): void {
     if (task.parent_task_id) {
-      this.taskService.getTask(task.parent_task_id).subscribe({
-        next: (parent) => this.parentTaskTitle.set(parent.title),
-        error: () => this.parentTaskTitle.set(null),
-      });
+      this.taskService.getTask(task.parent_task_id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (parent) => this.parentTaskTitle.set(parent.title),
+          error: () => this.parentTaskTitle.set(null),
+        });
     } else {
       this.parentTaskTitle.set(null);
     }
   }
 
   private loadDependencies(): void {
-    this.dependencyService.listDependencies(this.taskId()).subscribe({
-      next: (deps) => { this.dependencies.set(deps); this.updateDepGroups(); }, error: () => {},
-    });
+    this.dependencyService.listDependencies(this.taskId())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (deps) => { this.dependencies.set(deps); this.updateDepGroups(); },
+        error: () => this.showError('Could not load dependencies.'),
+      });
   }
 
   private loadMilestones(task: Task): void {
     const bid = this.boardId();
     if (!bid) return;
-    this.milestoneService.list(bid).subscribe({
-      next: (milestones) => {
-        this.milestones.set(milestones);
-        this.selectedMilestone.set(
-          task.milestone_id ? milestones.find((m) => m.id === task.milestone_id) || null : null,
-        );
-      },
-      error: () => {},
-    });
+    this.milestoneService.list(bid)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (milestones) => {
+          this.milestones.set(milestones);
+          this.selectedMilestone.set(
+            task.milestone_id ? milestones.find((m) => m.id === task.milestone_id) || null : null,
+          );
+        },
+        error: () => this.showError('Could not load milestones.'),
+      });
   }
 
   private loadCustomFields(): void {
     if (!this.boardId()) return;
-    this.customFieldService.getTaskValues(this.taskId()).subscribe({
-      next: (values) => this.customFields.set(values), error: () => {},
-    });
+    this.customFieldService.getTaskValues(this.taskId())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (values) => this.customFields.set(values),
+        error: () => this.showError('Could not load custom fields.'),
+      });
   }
 
   private loadRecurringConfig(): void {
-    this.recurringService.getConfig(this.taskId()).subscribe({
-      next: (config) => this.recurringConfig.set(config), error: () => this.recurringConfig.set(null),
-    });
+    this.recurringService.getConfig(this.taskId())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (config) => this.recurringConfig.set(config),
+        error: () => this.recurringConfig.set(null),
+      });
   }
 
   private loadTimeEntries(): void {
-    this.timeTrackingService.listEntries(this.taskId()).subscribe({
-      next: (entries) => {
-        this.timeEntries.set(entries);
-        const running = entries.find((e) => e.is_running);
-        if (running) { this.runningTimerForTask.set(running); this.startElapsedTimer(running.started_at); }
-        else { this.runningTimerForTask.set(null); this.clearTimerInterval(); }
-      },
-      error: () => {},
-    });
+    this.timeTrackingService.listEntries(this.taskId())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (entries) => {
+          this.timeEntries.set(entries);
+          const running = entries.find((e) => e.is_running);
+          if (running) { this.runningTimerForTask.set(running); this.startElapsedTimer(running.started_at); }
+          else { this.runningTimerForTask.set(null); this.clearTimerInterval(); }
+        },
+        error: () => this.showError('Could not load time entries.'),
+      });
   }
 
   private updateTask(updates: Partial<Task>, editField?: string): void {
@@ -639,34 +697,36 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     const request = buildUpdateRequest(task, updates);
 
     this.saveStatus.markSaving();
-    this.taskService.updateTask(task.id, request).subscribe({
-      next: (serverTask) => {
-        this.saveStatus.markSaved();
-        this.task.set(serverTask);
-        this.taskUpdated.emit(serverTask);
-        if (editField) {
-          this.conflictNotification.unregisterEdit(this.taskId(), editField);
-        }
-      },
-      error: (error) => {
-        if (editField) {
-          this.conflictNotification.unregisterEdit(this.taskId(), editField);
-        }
-        // Handle 409 Conflict
-        if (isConflictError(error)) {
-          this.saveStatus.markSaved(); // Not a true error
-          this.conflictOriginalTask.set(task);
-          this.conflictYourChanges.set(updates);
-          this.conflictServerVersion.set(error.serverTask);
-          this.showConflictDialog.set(true);
-          return;
-        }
-        this.saveStatus.markError();
-        // Rollback
-        this.task.set(task);
-        this.taskUpdated.emit(task);
-      },
-    });
+    this.taskService.updateTask(task.id, request)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (serverTask) => {
+          this.saveStatus.markSaved();
+          this.task.set(serverTask);
+          this.taskUpdated.emit(serverTask);
+          if (editField) {
+            this.conflictNotification.unregisterEdit(this.taskId(), editField);
+          }
+        },
+        error: (error) => {
+          if (editField) {
+            this.conflictNotification.unregisterEdit(this.taskId(), editField);
+          }
+          // Handle 409 Conflict
+          if (isConflictError(error)) {
+            this.saveStatus.markSaved(); // Not a true error
+            this.conflictOriginalTask.set(task);
+            this.conflictYourChanges.set(updates);
+            this.conflictServerVersion.set(error.serverTask);
+            this.showConflictDialog.set(true);
+            return;
+          }
+          this.saveStatus.markError();
+          // Rollback
+          this.task.set(task);
+          this.taskUpdated.emit(task);
+        },
+      });
   }
 
   onConflictResolved(resolution: ConflictResolution): void {
@@ -676,10 +736,12 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     const task = this.task();
     if (!task) return;
     this.saveStatus.markSaving();
-    this.taskService.updateTask(task.id, request).subscribe({
-      next: (serverTask) => { this.saveStatus.markSaved(); this.task.set(serverTask); this.taskUpdated.emit(serverTask); },
-      error: () => this.saveStatus.markError(),
-    });
+    this.taskService.updateTask(task.id, request)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (serverTask) => { this.saveStatus.markSaved(); this.task.set(serverTask); this.taskUpdated.emit(serverTask); },
+        error: () => this.saveStatus.markError(),
+      });
   }
 
   onConflictAccepted(): void {
@@ -702,14 +764,16 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     this.taskUpdated.emit({ ...task, milestone_id: null });
     this.selectedMilestone.set(null);
 
-    this.milestoneService.unassignTask(task.id).subscribe({
-      error: () => {
-        this.task.set(task);
-        this.taskUpdated.emit(task);
-        this.selectedMilestone.set(previousMilestone);
-        this.showError('Could not remove milestone.');
-      },
-    });
+    this.milestoneService.unassignTask(task.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => {
+          this.task.set(task);
+          this.taskUpdated.emit(task);
+          this.selectedMilestone.set(previousMilestone);
+          this.showError('Could not remove milestone.');
+        },
+      });
   }
 
   private updateDepGroups(): void {
@@ -735,9 +799,11 @@ export class TaskDetailComponent implements OnInit, OnChanges, OnDestroy {
     if (fields.length === 0) return;
 
     const values = buildCustomFieldValues(fields);
-    this.customFieldService.setTaskValues(this.taskId(), values).subscribe({
-      error: () => {},
-    });
+    this.customFieldService.setTaskValues(this.taskId(), values)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => this.showError('Could not save custom fields.'),
+      });
   }
 
   private startElapsedTimer(startedAt: string): void {

@@ -32,6 +32,7 @@ pub struct Config {
     pub waha_api_key: String,
     pub app_url: String,
     pub ws_max_connections: usize,
+    pub cron_secret: String,
 }
 
 impl Config {
@@ -109,6 +110,14 @@ impl Config {
             ws_max_connections: env::var("WS_MAX_CONNECTIONS")
                 .unwrap_or_else(|_| "500".into())
                 .parse()?,
+            cron_secret: {
+                let secret = env::var("CRON_SECRET")
+                    .map_err(|_| "CRON_SECRET environment variable must be set")?;
+                if secret.is_empty() {
+                    return Err("CRON_SECRET must not be empty. Set a strong secret for cron endpoint authentication.".into());
+                }
+                secret
+            },
         })
     }
 }
@@ -127,6 +136,7 @@ impl fmt::Debug for Config {
             .field("novu_api_key", &"[REDACTED]")
             .field("lago_api_key", &"[REDACTED]")
             .field("waha_api_key", &"[REDACTED]")
+            .field("cron_secret", &"[REDACTED]")
             .finish()
     }
 }
@@ -166,6 +176,7 @@ mod tests {
             waha_api_key: "actual-waha-key".into(),
             app_url: "http://localhost:4200".into(),
             ws_max_connections: 500,
+            cron_secret: "actual-cron-secret-for-testing".into(),
         }
     }
 
@@ -260,12 +271,12 @@ mod tests {
         let config = make_test_config();
         let debug_str = format!("{:?}", config);
 
-        // Count occurrences of [REDACTED] - should be 7 (jwt_secret, jwt_refresh_secret,
-        // minio_access_key, minio_secret_key, postal_api_key, novu_api_key, lago_api_key, waha_api_key)
+        // Count occurrences of [REDACTED] - should be 9 (jwt_secret, jwt_refresh_secret,
+        // minio_access_key, minio_secret_key, postal_api_key, novu_api_key, lago_api_key, waha_api_key, cron_secret)
         let redacted_count = debug_str.matches("[REDACTED]").count();
         assert_eq!(
-            redacted_count, 8,
-            "Expected 8 [REDACTED] occurrences, got {}. Debug: {}",
+            redacted_count, 9,
+            "Expected 9 [REDACTED] occurrences, got {}. Debug: {}",
             redacted_count, debug_str
         );
     }
