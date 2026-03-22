@@ -9,9 +9,9 @@ use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::models::{Label, Task};
-use super::tasks::{AssigneeInfo, TaskQueryError, TaskWithDetails};
 use super::membership::verify_project_membership;
+use super::tasks::{AssigneeInfo, TaskQueryError, TaskWithDetails};
+use crate::models::{Label, Task};
 
 /// Validate that a status transition is allowed by the blueprint.
 /// Returns Ok(()) if the transition is allowed, Err if blocked.

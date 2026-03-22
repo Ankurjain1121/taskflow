@@ -299,8 +299,8 @@ pub async fn get_scheduled_trigger_tasks(
 mod tests {
     use super::*;
     use crate::models::automation::{AutomationActionType, AutomationTrigger};
-    use crate::queries::{auth, projects, workspaces};
     use crate::queries::automations::{CreateActionInput, CreateRuleInput};
+    use crate::queries::{auth, projects, workspaces};
     use crate::test_helpers::test_pool;
 
     const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fake_salt$fake_hash_for_test";
@@ -310,10 +310,9 @@ mod tests {
     }
 
     async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
-        let user =
-            auth::create_user_with_tenant(pool, &unique_email(), "AutoEval User", FAKE_HASH)
-                .await
-                .expect("create_user_with_tenant");
+        let user = auth::create_user_with_tenant(pool, &unique_email(), "AutoEval User", FAKE_HASH)
+            .await
+            .expect("create_user_with_tenant");
         (user.tenant_id, user.id)
     }
 
@@ -345,9 +344,10 @@ mod tests {
             }],
         };
 
-        let created = crate::queries::automations::create_rule(&pool, board_id, input, user_id, tenant_id)
-            .await
-            .expect("create_rule");
+        let created =
+            crate::queries::automations::create_rule(&pool, board_id, input, user_id, tenant_id)
+                .await
+                .expect("create_rule");
 
         // Log an execution
         let log_entry = log_automation(

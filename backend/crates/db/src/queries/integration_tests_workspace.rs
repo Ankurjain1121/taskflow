@@ -4,8 +4,8 @@
 use chrono::{Duration, Utc};
 use uuid::Uuid;
 
-use crate::models::*;
 use super::test_helpers::*;
+use crate::models::*;
 
 // ===========================================================================
 // WORKSPACE API KEYS TESTS
@@ -236,7 +236,11 @@ async fn test_delete_project_status() {
         .expect("list before delete");
 
     // Delete the new status, replacing tasks with the default
-    let default_id = statuses.iter().find(|s| s.is_default).expect("should have default").id;
+    let default_id = statuses
+        .iter()
+        .find(|s| s.is_default)
+        .expect("should have default")
+        .id;
     super::project_statuses::delete_project_status(&pool, new_status.id, default_id)
         .await
         .expect("delete_project_status");
