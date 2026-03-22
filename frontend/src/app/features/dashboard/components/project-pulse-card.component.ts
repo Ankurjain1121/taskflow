@@ -72,9 +72,9 @@ import { ProjectPulse } from '../dashboard.types';
   styles: [`
     .pulse-card {
       background: var(--card);
-      border: 1px solid var(--border);
+      border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
       border-radius: var(--radius);
-      box-shadow: var(--shadow-xs);
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--foreground) 6%, transparent);
       display: flex;
       flex-direction: column;
       min-height: 120px;

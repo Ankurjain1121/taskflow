@@ -18,8 +18,31 @@ const VALID_ACCENT_COLORS: &[&str] = &[
     "morning-sky",
     "misty-forest",
     "modern-dental",
+    "cosmic",
+    "mindful",
+    "purple-scale",
+    "pastel-rose",
+    "french-blues",
+    "sunset-website",
 ];
-const VALID_DARK_THEMES: &[&str] = &["warm-earth-dark", "purple-night"];
+const VALID_DARK_THEMES: &[&str] = &[
+    "warm-earth-dark",
+    "purple-night",
+    "cherry-blossom",
+    "sunset-dusk",
+    "purple-haze",
+    "ocean-deep",
+    "luna",
+    "coffee",
+    "moon",
+    "wine",
+    "gold-crimson",
+    "pink-gray",
+    "yellow-dark",
+    "forest-night",
+    "bloodstone",
+    "red-noir",
+];
 
 /// Validate preference values server-side
 pub fn validate_preferences(

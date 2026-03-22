@@ -5,8 +5,30 @@ export type LightTheme =
   | 'storm-cloud'
   | 'morning-sky'
   | 'misty-forest'
-  | 'modern-dental';
+  | 'modern-dental'
+  | 'cosmic'
+  | 'mindful'
+  | 'purple-scale'
+  | 'pastel-rose'
+  | 'french-blues'
+  | 'sunset-website';
 
-export type DarkTheme = 'warm-earth-dark' | 'purple-night';
+export type DarkTheme =
+  | 'warm-earth-dark'
+  | 'purple-night'
+  | 'cherry-blossom'
+  | 'sunset-dusk'
+  | 'purple-haze'
+  | 'ocean-deep'
+  | 'luna'
+  | 'coffee'
+  | 'moon'
+  | 'wine'
+  | 'gold-crimson'
+  | 'pink-gray'
+  | 'yellow-dark'
+  | 'forest-night'
+  | 'bloodstone'
+  | 'red-noir';
 
 export type ColorMode = 'light' | 'dark' | 'system';

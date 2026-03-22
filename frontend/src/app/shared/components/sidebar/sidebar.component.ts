@@ -35,7 +35,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         height: 100%;
       }
       .sidebar-root {
-        background: var(--sidebar-bg);
+        background: linear-gradient(180deg, var(--sidebar-bg) 0%, color-mix(in srgb, var(--sidebar-bg) 85%, black) 100%);
       }
       .sidebar-scrollbar::-webkit-scrollbar {
         width: 4px;
@@ -76,6 +76,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         width: 3px; height: 16px;
         border-radius: 0 3px 3px 0;
         background: var(--primary); opacity: 0;
+        box-shadow: 0 0 8px color-mix(in srgb, var(--primary) 40%, transparent);
         transition: opacity var(--duration-fast) var(--ease-standard);
       }
       .collapsed-home-btn {
