@@ -8,6 +8,7 @@ import {
 import { Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { FocusTask } from '../dashboard.types';
+import { PRIORITY_COLORS_HEX } from '../../../shared/utils/task-colors';
 
 @Component({
   selector: 'app-focus-task-card',
@@ -144,16 +145,9 @@ export class FocusTaskCardComponent {
   }
 
   priorityBorderColor(): string {
-    switch (this.task().priority) {
-      case 'urgent':
-        return '#ef4444';
-      case 'high':
-        return '#f97316';
-      case 'medium':
-        return '#3b82f6';
-      default:
-        return '#9ca3af';
-    }
+    const key = this.task().priority?.toLowerCase();
+    const entry = PRIORITY_COLORS_HEX[key as keyof typeof PRIORITY_COLORS_HEX];
+    return entry ? entry.bg : '#9ca3af';
   }
 
   priorityClass(): string {

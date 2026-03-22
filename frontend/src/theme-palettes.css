@@ -63,11 +63,13 @@ html.dark {
 html[data-theme="white-heaven"] {
   /* Color 1: #fefefe — page background */
   --background: #fefefe;
-  /* Color 2: #e8e7ec — cards, muted surfaces, sidebar */
-  --card: #e8e7ec;
+  /* Color 2: #e8e7ec — muted surfaces, sidebar */
+  --card: #f3f2f6;
   --card-foreground: #868698;
   --muted: #e8e7ec;
   --sidebar-bg: #e8e7ec;
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
   /* Color 3: #d5d7de — borders, input backgrounds, secondary surfaces */
   --border: rgba(213,215,222,0.5);
   --input: rgba(213,215,222,0.6);
@@ -107,11 +109,13 @@ html[data-theme="white-heaven"] {
 html[data-theme="sea-foam"] {
   /* Color 1: #c9dce1 — page background */
   --background: #c9dce1;
-  /* Color 2: #b1c4c4 — cards, muted surfaces, sidebar */
-  --card: #b1c4c4;
+  /* Color 2: #b1c4c4 — muted surfaces, sidebar */
+  --card: #bdd0d3;
   --card-foreground: #42514f;
   --muted: #b1c4c4;
   --sidebar-bg: #b1c4c4;
+  --font-display: 'Nunito', system-ui, sans-serif;
+  --font-body: 'Nunito Sans', system-ui, sans-serif;
   /* Color 3: #77adab — primary accent, ring, buttons */
   --primary: #77adab;
   --primary-foreground: #ffffff;
@@ -150,10 +154,12 @@ html[data-theme="sea-foam"] {
 /* Storm Cloud: #e8e9e9, #cecfd1, #9ea1a4, #818283, #5b6161, #3a4242 */
 html[data-theme="storm-cloud"] {
   --background: #e8e9e9;
-  --card: #cecfd1;
+  --card: #dbdcde;
   --card-foreground: #3a4242;
   --muted: #cecfd1;
   --sidebar-bg: #cecfd1;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Work Sans', system-ui, sans-serif;
   --primary: #9ea1a4;
   --primary-foreground: #ffffff;
   --ring: #9ea1a4;
@@ -187,10 +193,12 @@ html[data-theme="storm-cloud"] {
 /* Morning Sky: #c6eeea, #f1dafa, #facc92, #9d978b, #343330, #000000 */
 html[data-theme="morning-sky"] {
   --background: #c6eeea;
-  --card: #f1dafa;
+  --card: #ddf5f2;
   --card-foreground: #343330;
   --muted: #f1dafa;
   --sidebar-bg: #f1dafa;
+  --font-display: 'Poppins', system-ui, sans-serif;
+  --font-body: 'Poppins', system-ui, sans-serif;
   --primary: #facc92;
   --primary-foreground: #343330;
   --ring: #facc92;
@@ -224,10 +232,12 @@ html[data-theme="morning-sky"] {
 /* Misty Forest: #dae8dc, #a8bdae, #708173, #48574b, #2a3326, #101712 */
 html[data-theme="misty-forest"] {
   --background: #dae8dc;
-  --card: #a8bdae;
+  --card: #c4d5c7;
   --card-foreground: #101712;
   --muted: #a8bdae;
   --sidebar-bg: #a8bdae;
+  --font-display: 'Lora', system-ui, serif;
+  --font-body: 'Source Sans 3', system-ui, sans-serif;
   --primary: #708173;
   --primary-foreground: #ffffff;
   --ring: #708173;
@@ -261,10 +271,12 @@ html[data-theme="misty-forest"] {
 /* Modern Dental: #e4ebef, #c7d6df, #a4b2bb, #898c8f, #575553, #151513 */
 html[data-theme="modern-dental"] {
   --background: #e4ebef;
-  --card: #c7d6df;
+  --card: #d6e0e7;
   --card-foreground: #151513;
   --muted: #c7d6df;
   --sidebar-bg: #c7d6df;
+  --font-display: 'Outfit', system-ui, sans-serif;
+  --font-body: 'Outfit', system-ui, sans-serif;
   --primary: #a4b2bb;
   --primary-foreground: #ffffff;
   --ring: #a4b2bb;

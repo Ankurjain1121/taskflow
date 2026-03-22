@@ -109,20 +109,20 @@ describe('TasksByPriorityComponent', () => {
   });
 
   describe('getPriorityColor', () => {
-    it('should return red for urgent', () => {
-      expect(component.getPriorityColor('urgent')).toBe('#ef4444');
+    it('should return Trello red for urgent', () => {
+      expect(component.getPriorityColor('urgent')).toBe('#E8445A');
     });
 
-    it('should return orange for high', () => {
-      expect(component.getPriorityColor('high')).toBe('#f97316');
+    it('should return Trello amber for high', () => {
+      expect(component.getPriorityColor('high')).toBe('#F5A623');
     });
 
-    it('should return blue for medium', () => {
-      expect(component.getPriorityColor('medium')).toBe('#3b82f6');
+    it('should return Trello blue for medium', () => {
+      expect(component.getPriorityColor('medium')).toBe('#2D5BE3');
     });
 
-    it('should return gray for low', () => {
-      expect(component.getPriorityColor('low')).toBe('#9ca3af');
+    it('should return Trello green for low', () => {
+      expect(component.getPriorityColor('low')).toBe('#0FA882');
     });
 
     it('should return gray for unknown', () => {
@@ -130,10 +130,10 @@ describe('TasksByPriorityComponent', () => {
     });
 
     it('should handle case-insensitive priority matching', () => {
-      expect(component.getPriorityColor('URGENT')).toBe('#ef4444');
-      expect(component.getPriorityColor('Urgent')).toBe('#ef4444');
-      expect(component.getPriorityColor('HIGH')).toBe('#f97316');
-      expect(component.getPriorityColor('High')).toBe('#f97316');
+      expect(component.getPriorityColor('URGENT')).toBe('#E8445A');
+      expect(component.getPriorityColor('Urgent')).toBe('#E8445A');
+      expect(component.getPriorityColor('HIGH')).toBe('#F5A623');
+      expect(component.getPriorityColor('High')).toBe('#F5A623');
     });
   });
 
