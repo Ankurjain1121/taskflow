@@ -126,13 +126,13 @@ interface BoardViewOption {
             (mouseleave)="revertPreview()"
           >
             <div
-              class="relative w-full h-20 rounded-lg overflow-hidden border-2 transition-all"
+              class="relative w-full h-20 rounded-lg overflow-hidden border-2 transition-all flex flex-col"
               [style.border-color]="currentLightTheme() === theme.id ? 'var(--primary)' : 'var(--border)'"
               [class.shadow-md]="currentLightTheme() === theme.id"
             >
-              <div class="h-1/3" [style.background]="theme.preview.bg"></div>
-              <div class="h-1/3" [style.background]="theme.preview.primary"></div>
-              <div class="h-1/3" [style.background]="theme.preview.fg"></div>
+              @for (color of theme.palette6; track $index) {
+                <div style="flex: 1" [style.background]="color"></div>
+              }
               @if (currentLightTheme() === theme.id) {
                 <div
                   class="absolute bottom-1 right-1 w-4 h-4 rounded-full flex items-center justify-center"
@@ -177,13 +177,13 @@ interface BoardViewOption {
             (mouseleave)="revertPreview()"
           >
             <div
-              class="relative w-full h-20 rounded-lg overflow-hidden border-2 transition-all"
+              class="relative w-full h-20 rounded-lg overflow-hidden border-2 transition-all flex flex-col"
               [style.border-color]="currentDarkTheme() === theme.id ? 'var(--primary)' : 'var(--border)'"
               [class.shadow-md]="currentDarkTheme() === theme.id"
             >
-              <div class="h-1/3" [style.background]="theme.preview.bg"></div>
-              <div class="h-1/3" [style.background]="theme.preview.primary"></div>
-              <div class="h-1/3" [style.background]="theme.preview.fg"></div>
+              @for (color of theme.palette6; track $index) {
+                <div style="flex: 1" [style.background]="color"></div>
+              }
               @if (currentDarkTheme() === theme.id) {
                 <div
                   class="absolute bottom-1 right-1 w-4 h-4 rounded-full flex items-center justify-center"
@@ -349,12 +349,14 @@ export class AppearanceSectionComponent implements OnInit, OnDestroy {
     id: id as LightTheme,
     name: palette.name,
     preview: palette.preview,
+    palette6: palette.palette6,
   }));
 
   darkThemes = Object.entries(DARK_THEME_PALETTES).map(([id, palette]) => ({
     id: id as DarkTheme,
     name: palette.name,
     preview: palette.preview,
+    palette6: palette.palette6,
   }));
 
   currentLightTheme = this.themeService.lightTheme;
