@@ -11,8 +11,15 @@ const VALID_SIDEBAR_DENSITIES: &[&str] = &["compact", "comfortable"];
 const VALID_DIGEST_FREQUENCIES: &[&str] = &["realtime", "hourly", "daily"];
 const VALID_COLOR_MODES: &[&str] = &["light", "dark", "system"];
 const VALID_ACCENT_COLORS: &[&str] = &[
-    "indigo", "blue", "green", "orange", "rose", "violet", "amber", "slate", "earth",
+    "white-heaven",
+    "sea-foam",
+    "warm-earth",
+    "storm-cloud",
+    "morning-sky",
+    "misty-forest",
+    "modern-dental",
 ];
+const VALID_DARK_THEMES: &[&str] = &["warm-earth-dark", "purple-night"];
 
 /// Validate preference values server-side
 pub fn validate_preferences(
@@ -48,6 +55,7 @@ pub fn validate_preferences(
 pub fn validate_theme_preferences(
     color_mode: Option<&str>,
     accent_color: Option<&str>,
+    dark_theme: Option<&str>,
 ) -> Result<(), String> {
     if let Some(mode) = color_mode {
         if !VALID_COLOR_MODES.contains(&mode) {
@@ -59,20 +67,25 @@ pub fn validate_theme_preferences(
             return Err(format!("Invalid accent_color: {}", accent));
         }
     }
+    if let Some(dark) = dark_theme {
+        if !VALID_DARK_THEMES.contains(&dark) {
+            return Err(format!("Invalid dark_theme: {}", dark));
+        }
+    }
     Ok(())
 }
 
 /// Get preferences for a user, returning defaults if none exist
 pub async fn get_by_user_id(pool: &PgPool, user_id: Uuid) -> Result<UserPreferences, sqlx::Error> {
     let prefs = sqlx::query_as::<_, UserPreferences>(
-        r#"
+        r"
         SELECT id, user_id, timezone, date_format, default_project_view,
                sidebar_density, locale, quiet_hours_start, quiet_hours_end,
                digest_frequency, created_at, updated_at,
-               accent_color, color_mode
+               accent_color, color_mode, dark_theme
         FROM user_preferences
         WHERE user_id = $1
-        "#,
+        ",
     )
     .bind(user_id)
     .fetch_optional(pool)
@@ -96,8 +109,9 @@ pub async fn get_by_user_id(pool: &PgPool, user_id: Uuid) -> Result<UserPreferen
                 digest_frequency: "realtime".to_string(),
                 created_at: now,
                 updated_at: now,
-                accent_color: Some("indigo".to_string()),
+                accent_color: Some("warm-earth".to_string()),
                 color_mode: Some("system".to_string()),
+                dark_theme: Some("warm-earth-dark".to_string()),
             })
         }
     }
@@ -118,16 +132,17 @@ pub async fn upsert(
     digest_frequency: &str,
     accent_color: Option<&str>,
     color_mode: Option<&str>,
+    dark_theme: Option<&str>,
 ) -> Result<UserPreferences, sqlx::Error> {
     sqlx::query_as::<_, UserPreferences>(
-        r#"
+        r"
         INSERT INTO user_preferences (
             id, user_id, timezone, date_format, default_project_view,
             sidebar_density, locale, quiet_hours_start, quiet_hours_end,
             digest_frequency, created_at, updated_at,
-            accent_color, color_mode
+            accent_color, color_mode, dark_theme
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW(), $11, $12)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW(), $11, $12, $13)
         ON CONFLICT (user_id) DO UPDATE SET
             timezone = EXCLUDED.timezone,
             date_format = EXCLUDED.date_format,
@@ -139,12 +154,13 @@ pub async fn upsert(
             digest_frequency = EXCLUDED.digest_frequency,
             accent_color = COALESCE(EXCLUDED.accent_color, (SELECT accent_color FROM user_preferences WHERE user_id = $2)),
             color_mode = COALESCE(EXCLUDED.color_mode, (SELECT color_mode FROM user_preferences WHERE user_id = $2)),
+            dark_theme = COALESCE(EXCLUDED.dark_theme, (SELECT dark_theme FROM user_preferences WHERE user_id = $2)),
             updated_at = NOW()
         RETURNING id, user_id, timezone, date_format, default_project_view,
                   sidebar_density, locale, quiet_hours_start, quiet_hours_end,
                   digest_frequency, created_at, updated_at,
-                  accent_color, color_mode
-        "#,
+                  accent_color, color_mode, dark_theme
+        ",
     )
     .bind(Uuid::new_v4())
     .bind(user_id)
@@ -156,8 +172,9 @@ pub async fn upsert(
     .bind(quiet_hours_start)
     .bind(quiet_hours_end)
     .bind(digest_frequency)
-    .bind(accent_color.unwrap_or("indigo"))
+    .bind(accent_color.unwrap_or("warm-earth"))
     .bind(color_mode.unwrap_or("system"))
+    .bind(dark_theme.unwrap_or("warm-earth-dark"))
     .fetch_one(pool)
     .await
 }
@@ -201,7 +218,8 @@ mod tests {
         assert!(prefs.quiet_hours_start.is_none());
         assert!(prefs.quiet_hours_end.is_none());
         assert_eq!(prefs.color_mode.as_deref(), Some("system"));
-        assert_eq!(prefs.accent_color.as_deref(), Some("indigo"));
+        assert_eq!(prefs.accent_color.as_deref(), Some("warm-earth"));
+        assert_eq!(prefs.dark_theme.as_deref(), Some("warm-earth-dark"));
     }
     #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
@@ -220,8 +238,9 @@ mod tests {
             None,
             None,
             "daily",
-            Some("blue"),
+            Some("sea-foam"),
             Some("dark"),
+            Some("purple-night"),
         )
         .await
         .expect("upsert preferences");
@@ -233,8 +252,9 @@ mod tests {
         assert_eq!(prefs.sidebar_density, "compact");
         assert_eq!(prefs.locale, "en-US");
         assert_eq!(prefs.digest_frequency, "daily");
-        assert_eq!(prefs.accent_color.as_deref(), Some("blue"));
+        assert_eq!(prefs.accent_color.as_deref(), Some("sea-foam"));
         assert_eq!(prefs.color_mode.as_deref(), Some("dark"));
+        assert_eq!(prefs.dark_theme.as_deref(), Some("purple-night"));
     }
     #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
@@ -254,8 +274,9 @@ mod tests {
             None,
             None,
             "realtime",
-            Some("indigo"),
+            Some("warm-earth"),
             Some("system"),
+            Some("warm-earth-dark"),
         )
         .await
         .expect("first upsert");
@@ -272,8 +293,9 @@ mod tests {
             Some(NaiveTime::from_hms_opt(22, 0, 0).expect("valid time")),
             Some(NaiveTime::from_hms_opt(8, 0, 0).expect("valid time")),
             "hourly",
-            Some("green"),
+            Some("morning-sky"),
             Some("light"),
+            Some("purple-night"),
         )
         .await
         .expect("second upsert");
@@ -286,15 +308,17 @@ mod tests {
         assert_eq!(updated.digest_frequency, "hourly");
         assert!(updated.quiet_hours_start.is_some());
         assert!(updated.quiet_hours_end.is_some());
-        assert_eq!(updated.accent_color.as_deref(), Some("green"));
+        assert_eq!(updated.accent_color.as_deref(), Some("morning-sky"));
         assert_eq!(updated.color_mode.as_deref(), Some("light"));
+        assert_eq!(updated.dark_theme.as_deref(), Some("purple-night"));
 
         // Verify by reading back
         let fetched = get_by_user_id(&pool, user_id)
             .await
             .expect("get after update");
         assert_eq!(fetched.timezone, "Europe/London");
-        assert_eq!(fetched.accent_color.as_deref(), Some("green"));
+        assert_eq!(fetched.accent_color.as_deref(), Some("morning-sky"));
+        assert_eq!(fetched.dark_theme.as_deref(), Some("purple-night"));
     }
     #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
@@ -330,19 +354,35 @@ mod tests {
     #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_validate_theme_preferences_valid() {
-        let result = validate_theme_preferences(Some("dark"), Some("blue"));
+        let result =
+            validate_theme_preferences(Some("dark"), Some("warm-earth"), Some("warm-earth-dark"));
         assert!(result.is_ok());
     }
     #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_validate_theme_preferences_invalid_color_mode() {
-        let result = validate_theme_preferences(Some("neon"), Some("blue"));
+        let result =
+            validate_theme_preferences(Some("neon"), Some("warm-earth"), Some("warm-earth-dark"));
         assert!(result.is_err());
     }
     #[ignore = "integration test - run with: cargo test -- --ignored"]
     #[tokio::test]
     async fn test_validate_theme_preferences_invalid_accent() {
-        let result = validate_theme_preferences(Some("dark"), Some("rainbow"));
+        let result =
+            validate_theme_preferences(Some("dark"), Some("rainbow"), Some("warm-earth-dark"));
         assert!(result.is_err());
+    }
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
+    #[tokio::test]
+    async fn test_validate_theme_preferences_invalid_dark_theme() {
+        let result =
+            validate_theme_preferences(Some("dark"), Some("warm-earth"), Some("invalid-dark"));
+        assert!(result.is_err());
+    }
+    #[ignore = "integration test - run with: cargo test -- --ignored"]
+    #[tokio::test]
+    async fn test_validate_theme_preferences_none_values() {
+        let result = validate_theme_preferences(None, None, None);
+        assert!(result.is_ok());
     }
 }

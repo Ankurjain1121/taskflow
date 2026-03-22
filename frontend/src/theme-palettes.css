@@ -1,0 +1,330 @@
+/* =============================================================================
+   Theme Palettes — data-viz colors + per-theme overrides
+   =============================================================================
+   warm-earth is the :root default in styles.css; only non-default themes here.
+   ============================================================================= */
+
+/* --- Data visualization colors (theme-independent) --- */
+:root {
+  --status-red-bg: rgba(232, 68, 90, 0.08);
+  --status-red-border: rgba(232, 68, 90, 0.2);
+  --status-red-text: #E8445A;
+  --status-green-bg: rgba(97, 189, 79, 0.08);
+  --status-green-border: rgba(97, 189, 79, 0.2);
+  --status-green-text: #3D9E3A;
+  --status-blue-bg: rgba(45, 91, 227, 0.08);
+  --status-blue-border: rgba(45, 91, 227, 0.2);
+  --status-blue-text: #2D5BE3;
+  --status-amber-bg: rgba(245, 166, 35, 0.08);
+  --status-amber-border: rgba(245, 166, 35, 0.2);
+  --status-amber-text: #F5A623;
+
+  --chart-1: var(--primary);
+  --chart-2: #61BD4F;
+  --chart-3: #F5A623;
+  --chart-4: #E8445A;
+  --chart-5: #0079BF;
+
+  --chip-overdue: #E8445A;
+  --chip-due-soon: #F5A623;
+  --chip-completed: #61BD4F;
+}
+
+html.dark {
+  --status-red-bg: rgba(244, 112, 127, 0.12);
+  --status-red-border: rgba(244, 112, 127, 0.3);
+  --status-red-text: #F4707F;
+  --status-green-bg: rgba(125, 216, 104, 0.12);
+  --status-green-border: rgba(125, 216, 104, 0.3);
+  --status-green-text: #7DD868;
+  --status-blue-bg: rgba(91, 130, 240, 0.12);
+  --status-blue-border: rgba(91, 130, 240, 0.3);
+  --status-blue-text: #5B82F0;
+  --status-amber-bg: rgba(245, 192, 96, 0.12);
+  --status-amber-border: rgba(245, 192, 96, 0.3);
+  --status-amber-text: #F5C060;
+
+  --chart-1: var(--primary);
+  --chart-2: #7DD868;
+  --chart-3: #F5C060;
+  --chart-4: #F4707F;
+  --chart-5: #4DA8DA;
+
+  --chip-overdue: #F4707F;
+  --chip-due-soon: #F5C060;
+  --chip-completed: #7DD868;
+}
+
+/* =============================================================================
+   Light theme overrides (warm-earth is :root default — not repeated here)
+   ============================================================================= */
+
+[data-theme="white-heaven"] {
+  --background: #fefefe;
+  --foreground: #3a3a4a;
+  --card: #ffffff;
+  --card-foreground: #3a3a4a;
+  --border: rgba(134,134,152,0.1);
+  --input: rgba(134,134,152,0.12);
+  --muted: #f0eff3;
+  --muted-foreground: #868698;
+  --accent: rgba(134,134,152,0.06);
+  --accent-foreground: #868698;
+  --accent-warm: #a8a6b2;
+  --accent-warm-light: rgba(168,166,178,0.1);
+  --accent-warm-foreground: #767481;
+  --success: #61BD4F;
+  --success-light: rgba(97,189,79,0.1);
+  --destructive: #E8445A;
+  --destructive-foreground: #ffffff;
+  --primary: #868698;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(134,134,152,0.08);
+  --secondary-foreground: #767481;
+  --ring: #868698;
+  --sidebar-bg: #f0eff3;
+  --sidebar-surface: rgba(134,134,152,0.04);
+  --sidebar-surface-hover: rgba(134,134,152,0.08);
+  --sidebar-surface-active: rgba(134,134,152,0.12);
+  --sidebar-border: rgba(134,134,152,0.08);
+  --sidebar-text-primary: #3a3a4a;
+  --sidebar-text-secondary: #6a6a7a;
+  --sidebar-text-muted: #868698;
+  --shadow-glow: 0 0 0 1px rgba(134,134,152,0.12), 0 8px 32px rgba(134,134,152,0.1);
+  --widget-hover-border: rgba(134,134,152,0.28);
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --surface-overlay: rgba(255,255,255,0.96);
+}
+
+[data-theme="sea-foam"] {
+  --background: #c9dce1;
+  --foreground: #42514f;
+  --card: #d6e6ea;
+  --card-foreground: #42514f;
+  --border: rgba(66,81,79,0.1);
+  --input: rgba(66,81,79,0.12);
+  --muted: #bdd3d5;
+  --muted-foreground: #6a7e7c;
+  --accent: rgba(119,173,171,0.08);
+  --accent-foreground: #77adab;
+  --accent-warm: #5f9694;
+  --accent-warm-light: rgba(95,150,148,0.1);
+  --accent-warm-foreground: #4d7c7a;
+  --success: #61BD4F;
+  --success-light: rgba(97,189,79,0.1);
+  --destructive: #E8445A;
+  --destructive-foreground: #ffffff;
+  --primary: #77adab;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(119,173,171,0.1);
+  --secondary-foreground: #4d7c7a;
+  --ring: #77adab;
+  --sidebar-bg: #bdd3d5;
+  --sidebar-surface: rgba(119,173,171,0.06);
+  --sidebar-surface-hover: rgba(119,173,171,0.1);
+  --sidebar-surface-active: rgba(119,173,171,0.16);
+  --sidebar-border: rgba(66,81,79,0.08);
+  --sidebar-text-primary: #42514f;
+  --sidebar-text-secondary: #5a6e6c;
+  --sidebar-text-muted: #6a7e7c;
+  --shadow-glow: 0 0 0 1px rgba(119,173,171,0.12), 0 8px 32px rgba(119,173,171,0.1);
+  --widget-hover-border: rgba(119,173,171,0.28);
+  --font-display: 'Nunito', system-ui, sans-serif;
+  --font-body: 'Nunito Sans', system-ui, sans-serif;
+  --surface-overlay: rgba(201,220,225,0.96);
+}
+
+[data-theme="storm-cloud"] {
+  --background: #e8e9e9;
+  --foreground: #3a4242;
+  --card: #f0f0f1;
+  --card-foreground: #3a4242;
+  --border: rgba(58,66,66,0.1);
+  --input: rgba(58,66,66,0.12);
+  --muted: #dddee0;
+  --muted-foreground: #7a8282;
+  --accent: rgba(158,161,164,0.06);
+  --accent-foreground: #9ea1a4;
+  --accent-warm: #818283;
+  --accent-warm-light: rgba(129,130,131,0.1);
+  --accent-warm-foreground: #6b6c6e;
+  --success: #61BD4F;
+  --success-light: rgba(97,189,79,0.1);
+  --destructive: #E8445A;
+  --destructive-foreground: #ffffff;
+  --primary: #9ea1a4;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(158,161,164,0.08);
+  --secondary-foreground: #6b6c6e;
+  --ring: #9ea1a4;
+  --sidebar-bg: #dddee0;
+  --sidebar-surface: rgba(158,161,164,0.05);
+  --sidebar-surface-hover: rgba(158,161,164,0.1);
+  --sidebar-surface-active: rgba(158,161,164,0.16);
+  --sidebar-border: rgba(58,66,66,0.08);
+  --sidebar-text-primary: #3a4242;
+  --sidebar-text-secondary: #5a6262;
+  --sidebar-text-muted: #7a8282;
+  --shadow-glow: 0 0 0 1px rgba(158,161,164,0.12), 0 8px 32px rgba(158,161,164,0.1);
+  --widget-hover-border: rgba(158,161,164,0.28);
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Work Sans', system-ui, sans-serif;
+  --surface-overlay: rgba(232,233,233,0.96);
+}
+
+[data-theme="morning-sky"] {
+  --background: #c6eeea;
+  --foreground: #343330;
+  --card: #d4f4f1;
+  --card-foreground: #343330;
+  --border: rgba(52,51,48,0.1);
+  --input: rgba(52,51,48,0.12);
+  --muted: #b8e6e2;
+  --muted-foreground: #6a6960;
+  --accent: rgba(250,204,146,0.1);
+  --accent-foreground: #e5b46e;
+  --accent-warm: #facc92;
+  --accent-warm-light: rgba(250,204,146,0.12);
+  --accent-warm-foreground: #c49650;
+  --success: #61BD4F;
+  --success-light: rgba(97,189,79,0.1);
+  --destructive: #E8445A;
+  --destructive-foreground: #ffffff;
+  --primary: #facc92;
+  --primary-foreground: #3a2b17;
+  --secondary: rgba(250,204,146,0.12);
+  --secondary-foreground: #9f7640;
+  --ring: #facc92;
+  --sidebar-bg: #b8e6e2;
+  --sidebar-surface: rgba(250,204,146,0.08);
+  --sidebar-surface-hover: rgba(250,204,146,0.14);
+  --sidebar-surface-active: rgba(250,204,146,0.22);
+  --sidebar-border: rgba(52,51,48,0.08);
+  --sidebar-text-primary: #343330;
+  --sidebar-text-secondary: #525048;
+  --sidebar-text-muted: #6a6960;
+  --shadow-glow: 0 0 0 1px rgba(250,204,146,0.15), 0 8px 32px rgba(250,204,146,0.12);
+  --widget-hover-border: rgba(250,204,146,0.3);
+  --font-display: 'Poppins', system-ui, sans-serif;
+  --font-body: 'Poppins', system-ui, sans-serif;
+  --surface-overlay: rgba(198,238,234,0.96);
+}
+
+[data-theme="misty-forest"] {
+  --background: #dae8dc;
+  --foreground: #101712;
+  --card: #e6f0e8;
+  --card-foreground: #101712;
+  --border: rgba(16,23,18,0.1);
+  --input: rgba(16,23,18,0.12);
+  --muted: #cdddd0;
+  --muted-foreground: #5a6e5c;
+  --accent: rgba(112,129,115,0.08);
+  --accent-foreground: #708173;
+  --accent-warm: #5c6b5e;
+  --accent-warm-light: rgba(92,107,94,0.1);
+  --accent-warm-foreground: #4a574c;
+  --success: #61BD4F;
+  --success-light: rgba(97,189,79,0.1);
+  --destructive: #E8445A;
+  --destructive-foreground: #ffffff;
+  --primary: #708173;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(112,129,115,0.08);
+  --secondary-foreground: #4a574c;
+  --ring: #708173;
+  --sidebar-bg: #cdddd0;
+  --sidebar-surface: rgba(112,129,115,0.05);
+  --sidebar-surface-hover: rgba(112,129,115,0.1);
+  --sidebar-surface-active: rgba(112,129,115,0.16);
+  --sidebar-border: rgba(16,23,18,0.08);
+  --sidebar-text-primary: #101712;
+  --sidebar-text-secondary: #3a4a3c;
+  --sidebar-text-muted: #5a6e5c;
+  --shadow-glow: 0 0 0 1px rgba(112,129,115,0.12), 0 8px 32px rgba(112,129,115,0.1);
+  --widget-hover-border: rgba(112,129,115,0.28);
+  --font-display: 'Lora', system-ui, serif;
+  --font-body: 'Source Sans 3', system-ui, sans-serif;
+  --surface-overlay: rgba(218,232,220,0.96);
+}
+
+[data-theme="modern-dental"] {
+  --background: #e4ebef;
+  --foreground: #151513;
+  --card: #edf2f5;
+  --card-foreground: #151513;
+  --border: rgba(21,21,19,0.1);
+  --input: rgba(21,21,19,0.12);
+  --muted: #d8e2e8;
+  --muted-foreground: #6a7880;
+  --accent: rgba(164,178,187,0.08);
+  --accent-foreground: #a4b2bb;
+  --accent-warm: #8a9aa5;
+  --accent-warm-light: rgba(138,154,165,0.1);
+  --accent-warm-foreground: #72838e;
+  --success: #61BD4F;
+  --success-light: rgba(97,189,79,0.1);
+  --destructive: #E8445A;
+  --destructive-foreground: #ffffff;
+  --primary: #a4b2bb;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(164,178,187,0.08);
+  --secondary-foreground: #72838e;
+  --ring: #a4b2bb;
+  --sidebar-bg: #d8e2e8;
+  --sidebar-surface: rgba(164,178,187,0.06);
+  --sidebar-surface-hover: rgba(164,178,187,0.1);
+  --sidebar-surface-active: rgba(164,178,187,0.16);
+  --sidebar-border: rgba(21,21,19,0.08);
+  --sidebar-text-primary: #151513;
+  --sidebar-text-secondary: #3a4448;
+  --sidebar-text-muted: #6a7880;
+  --shadow-glow: 0 0 0 1px rgba(164,178,187,0.12), 0 8px 32px rgba(164,178,187,0.1);
+  --widget-hover-border: rgba(164,178,187,0.28);
+  --font-display: 'Outfit', system-ui, sans-serif;
+  --font-body: 'Outfit', system-ui, sans-serif;
+  --surface-overlay: rgba(228,235,239,0.96);
+}
+
+/* =============================================================================
+   Dark theme overrides (warm-earth-dark is html.dark default — not repeated)
+   ============================================================================= */
+
+html.dark[data-dark-theme="purple-night"] {
+  --background: #171821;
+  --foreground: #E8E4DB;
+  --card: #1e1f2b;
+  --card-foreground: #E8E4DB;
+  --border: rgba(255,255,255,0.08);
+  --input: rgba(255,255,255,0.1);
+  --muted: #1a1b26;
+  --muted-foreground: #7a7890;
+  --accent: rgba(168,135,206,0.1);
+  --accent-foreground: #a887ce;
+  --accent-warm: #bb9dd8;
+  --accent-warm-light: rgba(187,157,216,0.1);
+  --accent-warm-foreground: #bb9dd8;
+  --success: #7DD868;
+  --success-light: rgba(125,216,104,0.1);
+  --destructive: #F4707F;
+  --destructive-foreground: #ffffff;
+  --primary: #a887ce;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(168,135,206,0.12);
+  --secondary-foreground: #a887ce;
+  --ring: #a887ce;
+  --sidebar-bg: #1e1f2b;
+  --sidebar-surface: rgba(168,135,206,0.04);
+  --sidebar-surface-hover: rgba(168,135,206,0.1);
+  --sidebar-surface-active: rgba(168,135,206,0.18);
+  --sidebar-border: rgba(255,255,255,0.07);
+  --sidebar-text-primary: rgba(255,255,255,0.95);
+  --sidebar-text-secondary: rgba(200,196,210,0.85);
+  --sidebar-text-muted: rgba(150,145,170,0.6);
+  --shadow-glow: 0 0 0 1px rgba(168,135,206,0.15), 0 8px 32px rgba(168,135,206,0.12);
+  --widget-hover-border: rgba(168,135,206,0.3);
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --surface-overlay: rgba(23,24,33,0.96);
+}

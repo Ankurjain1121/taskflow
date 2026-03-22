@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "primeicons/primeicons.css";
 @import "./themes.css";
+@import "./theme-palettes.css";
 
 @source "../";
 
@@ -79,20 +80,6 @@
   --sidebar-text-secondary: #5A5550;
   --sidebar-text-muted: #9F9F9F;
 
-  /* Status color tokens */
-  --status-red-bg: rgba(184, 20, 20, 0.08);
-  --status-red-border: rgba(184, 20, 20, 0.2);
-  --status-red-text: #B81414;
-  --status-green-bg: rgba(94, 140, 74, 0.08);
-  --status-green-border: rgba(94, 140, 74, 0.2);
-  --status-green-text: #5E8C4A;
-  --status-blue-bg: rgba(191, 123, 84, 0.08);
-  --status-blue-border: rgba(191, 123, 84, 0.2);
-  --status-blue-text: #BF7B54;
-  --status-amber-bg: rgba(212, 168, 83, 0.08);
-  --status-amber-border: rgba(212, 168, 83, 0.2);
-  --status-amber-text: #D4A853;
-
   /* Elevation tokens */
   --shadow-glow:
     0 0 0 1px rgba(191, 123, 84, 0.12),
@@ -117,18 +104,6 @@
   --shadow-md: 0 8px 24px rgba(46, 46, 46, 0.08), 0 4px 8px rgba(46, 46, 46, 0.05);
   --shadow-lg: 0 20px 56px rgba(46, 46, 46, 0.1), 0 8px 16px rgba(46, 46, 46, 0.06);
   --shadow-xl: 0 28px 72px rgba(46, 46, 46, 0.12), 0 12px 24px rgba(46, 46, 46, 0.08);
-
-  /* Chart tokens */
-  --chart-1: #BF7B54;
-  --chart-2: #5E8C4A;
-  --chart-3: #D4A853;
-  --chart-4: #B81414;
-  --chart-5: #9C9561;
-
-  /* Due date chip tokens */
-  --chip-overdue: #B81414;
-  --chip-due-soon: #D4A853;
-  --chip-completed: #5E8C4A;
 
   /* Font tokens */
   --font-display: 'Syne', system-ui, sans-serif;
@@ -176,31 +151,6 @@ html.dark {
     0 8px 32px rgba(212, 148, 94, 0.12);
   --widget-hover-border: rgba(212, 148, 94, 0.3);
 
-  --status-red-bg: rgba(212, 32, 32, 0.12);
-  --status-red-border: rgba(212, 32, 32, 0.3);
-  --status-red-text: #F4A3AE;
-  --status-green-bg: rgba(122, 175, 96, 0.12);
-  --status-green-border: rgba(122, 175, 96, 0.3);
-  --status-green-text: #A5D48F;
-  --status-blue-bg: rgba(212, 148, 94, 0.12);
-  --status-blue-border: rgba(212, 148, 94, 0.3);
-  --status-blue-text: #D4945E;
-  --status-amber-bg: rgba(224, 188, 106, 0.12);
-  --status-amber-border: rgba(224, 188, 106, 0.3);
-  --status-amber-text: #E0BC6A;
-
-  /* Chart tokens */
-  --chart-1: #D4945E;
-  --chart-2: #7AAF60;
-  --chart-3: #E0BC6A;
-  --chart-4: #D42020;
-  --chart-5: #B5AE78;
-
-  /* Due date chip tokens */
-  --chip-overdue: #D42020;
-  --chip-due-soon: #E0BC6A;
-  --chip-completed: #7AAF60;
-
   /* Surface overlay */
   --surface-overlay: rgba(28, 26, 23, 0.96);
 }
@@ -217,27 +167,6 @@ html.dark {
   --surface-1: var(--card);
   --surface-2: #2A2723;
   --surface-3: #302D29;
-}
-
-/* ============================================
-   Accent Color Override — Warm Earth (default)
-   Applied via [data-accent="earth"] on <html>.
-   Extensible: add new [data-accent="ocean"] etc. blocks for future themes.
-   ============================================ */
-
-[data-accent="earth"] {
-  --primary: #BF7B54;
-  --primary-foreground: #ffffff;
-  --ring: #BF7B54;
-  --chart-1: #BF7B54;
-  --chart-5: #9C9561;
-}
-html.dark[data-accent="earth"] {
-  --primary: #D4945E;
-  --primary-foreground: #ffffff;
-  --ring: #D4945E;
-  --chart-1: #D4945E;
-  --chart-5: #B5AE78;
 }
 
 /* Dark scrollbar */

@@ -34,6 +34,7 @@ import {
 } from '../../../core/services/search.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { KeyboardShortcutsService } from '../../../core/services/keyboard-shortcuts.service';
+import { buildThemeActions } from './theme-commands';
 import {
   RecentItemsService,
   RecentItem,
@@ -580,6 +581,7 @@ export class CommandPaletteComponent implements OnInit, OnDestroy {
       action: () =>
         document.dispatchEvent(new KeyboardEvent('keydown', { key: 'c' })),
     },
+    ...buildThemeActions(this.themeService),
   ];
 
   quickActions = computed(() => this.actions.slice(0, 6));

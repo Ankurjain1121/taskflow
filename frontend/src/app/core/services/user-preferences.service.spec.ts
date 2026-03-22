@@ -19,9 +19,8 @@ const MOCK_PREFS: UserPreferences = {
   quiet_hours_start: '22:00',
   quiet_hours_end: '08:00',
   digest_frequency: 'daily',
-  light_theme_slug: 'ocean-breeze',
-  dark_theme_slug: 'midnight',
-  accent_color: 'indigo',
+  accent_color: 'warm-earth',
+  dark_theme: 'warm-earth-dark',
   color_mode: 'system',
 };
 
@@ -79,8 +78,8 @@ describe('UserPreferencesService', () => {
   describe('updateThemePreferences()', () => {
     it('should PUT /api/users/me/preferences with theme prefs', () => {
       const themeUpdate: ThemePreferenceUpdate = {
-        light_theme_slug: 'sunrise',
-        accent_color: 'blue',
+        accent_color: 'sea-foam',
+        dark_theme: 'purple-night',
       };
 
       service.updateThemePreferences(themeUpdate).subscribe((result) => {

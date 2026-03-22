@@ -14,81 +14,79 @@ export const COLOR_BY_MODES: readonly ColorByMode[] = [
   'label',
 ] as const;
 
-/** 6 earth-tone preset colors for the label color picker */
+/** Trello-style bright label preset colors for the label color picker */
 export const LABEL_PRESET_COLORS: readonly string[] = [
-  '#B81414', // red (urgent)
-  '#BF7B54', // burnt orange (high)
-  '#D4A853', // warm gold (medium)
-  '#9C9561', // olive (low)
-  '#9F9F9F', // warm gray (none)
-  '#5E8C4A', // sage green (done)
+  '#E8445A', // red
+  '#F5A623', // orange
+  '#61BD4F', // green
+  '#0079BF', // blue
+  '#C377E0', // purple
+  '#00C2E0', // sky
+  '#FF78CB', // pink
+  '#51E898', // lime
+  '#344563', // dark navy
+  '#B3BAC5', // gray
 ] as const;
 
 // =============================================================================
-// Priority colors (CSS custom property based)
+// Priority colors — SINGLE SOURCE OF TRUTH
 // =============================================================================
 
 /**
- * SINGLE SOURCE OF TRUTH for task priority colors
- * Uses CSS custom property references for earth-tone palette
+ * Base hex values for each priority level.
+ * All other priority color maps are derived from this.
+ */
+const PRIORITY_BASE = {
+  urgent: { hex: '#E8445A', darkHex: '#F4707F' },
+  high:   { hex: '#F5A623', darkHex: '#F5C060' },
+  medium: { hex: '#2D5BE3', darkHex: '#5B82F0' },
+  low:    { hex: '#0FA882', darkHex: '#3DC9A5' },
+} as const;
+
+/**
+ * Tailwind CSS class maps for priority colors (light + dark mode)
  */
 export const PRIORITY_COLORS: Record<
   TaskPriority,
   { bg: string; text: string; border: string; dot: string }
 > = {
   urgent: {
-    bg: 'bg-[rgba(184,20,20,0.08)] dark:bg-[rgba(212,32,32,0.12)]',
-    text: 'text-[#B81414] dark:text-[#D42020]',
-    border: 'border-[rgba(184,20,20,0.2)] dark:border-[rgba(212,32,32,0.3)]',
-    dot: 'bg-[#B81414]',
+    bg: `bg-[rgba(232,68,90,0.08)] dark:bg-[rgba(244,112,127,0.12)]`,
+    text: `text-[${PRIORITY_BASE.urgent.hex}] dark:text-[${PRIORITY_BASE.urgent.darkHex}]`,
+    border: `border-[rgba(232,68,90,0.2)] dark:border-[rgba(244,112,127,0.3)]`,
+    dot: `bg-[${PRIORITY_BASE.urgent.hex}]`,
   },
   high: {
-    bg: 'bg-[rgba(191,123,84,0.08)] dark:bg-[rgba(212,148,94,0.12)]',
-    text: 'text-[#BF7B54] dark:text-[#D4945E]',
-    border: 'border-[rgba(191,123,84,0.2)] dark:border-[rgba(212,148,94,0.3)]',
-    dot: 'bg-[#BF7B54]',
+    bg: `bg-[rgba(245,166,35,0.08)] dark:bg-[rgba(245,192,96,0.12)]`,
+    text: `text-[${PRIORITY_BASE.high.hex}] dark:text-[${PRIORITY_BASE.high.darkHex}]`,
+    border: `border-[rgba(245,166,35,0.2)] dark:border-[rgba(245,192,96,0.3)]`,
+    dot: `bg-[${PRIORITY_BASE.high.hex}]`,
   },
   medium: {
-    bg: 'bg-[rgba(212,168,83,0.08)] dark:bg-[rgba(224,188,106,0.12)]',
-    text: 'text-[#D4A853] dark:text-[#E0BC6A]',
-    border: 'border-[rgba(212,168,83,0.2)] dark:border-[rgba(224,188,106,0.3)]',
-    dot: 'bg-[#D4A853]',
+    bg: `bg-[rgba(45,91,227,0.08)] dark:bg-[rgba(91,130,240,0.12)]`,
+    text: `text-[${PRIORITY_BASE.medium.hex}] dark:text-[${PRIORITY_BASE.medium.darkHex}]`,
+    border: `border-[rgba(45,91,227,0.2)] dark:border-[rgba(91,130,240,0.3)]`,
+    dot: `bg-[${PRIORITY_BASE.medium.hex}]`,
   },
   low: {
-    bg: 'bg-[rgba(156,149,97,0.08)] dark:bg-[rgba(181,174,120,0.12)]',
-    text: 'text-[#9C9561] dark:text-[#B5AE78]',
-    border: 'border-[rgba(156,149,97,0.2)] dark:border-[rgba(181,174,120,0.3)]',
-    dot: 'bg-[#9C9561]',
+    bg: `bg-[rgba(15,168,130,0.08)] dark:bg-[rgba(61,201,165,0.12)]`,
+    text: `text-[${PRIORITY_BASE.low.hex}] dark:text-[${PRIORITY_BASE.low.darkHex}]`,
+    border: `border-[rgba(15,168,130,0.2)] dark:border-[rgba(61,201,165,0.3)]`,
+    dot: `bg-[${PRIORITY_BASE.low.hex}]`,
   },
 };
 
 /**
- * Priority colors with hex values for use in non-Tailwind contexts
+ * Priority colors with hex values for use in non-Tailwind contexts (light mode)
  */
 export const PRIORITY_COLORS_HEX: Record<
   TaskPriority,
   { bg: string; border: string; text: string }
 > = {
-  urgent: {
-    bg: '#B81414',
-    border: '#961010',
-    text: '#ffffff',
-  },
-  high: {
-    bg: '#BF7B54',
-    border: '#A66843',
-    text: '#ffffff',
-  },
-  medium: {
-    bg: '#D4A853',
-    border: '#BF9742',
-    text: '#3D2414',
-  },
-  low: {
-    bg: '#9C9561',
-    border: '#8A844F',
-    text: '#ffffff',
-  },
+  urgent: { bg: PRIORITY_BASE.urgent.hex, border: '#C4293F', text: '#ffffff' },
+  high:   { bg: PRIORITY_BASE.high.hex,   border: '#D48E15', text: '#ffffff' },
+  medium: { bg: PRIORITY_BASE.medium.hex,  border: '#1E45C0', text: '#ffffff' },
+  low:    { bg: PRIORITY_BASE.low.hex,     border: '#0B8A6A', text: '#ffffff' },
 };
 
 /**
@@ -98,27 +96,96 @@ export const PRIORITY_COLORS_HEX_DARK: Record<
   TaskPriority,
   { bg: string; border: string; text: string }
 > = {
-  urgent: {
-    bg: '#D42020',
-    border: '#B81414',
-    text: '#ffffff',
+  urgent: { bg: PRIORITY_BASE.urgent.darkHex, border: PRIORITY_BASE.urgent.hex, text: '#ffffff' },
+  high:   { bg: PRIORITY_BASE.high.darkHex,   border: PRIORITY_BASE.high.hex,   text: '#ffffff' },
+  medium: { bg: PRIORITY_BASE.medium.darkHex,  border: PRIORITY_BASE.medium.hex,  text: '#ffffff' },
+  low:    { bg: PRIORITY_BASE.low.darkHex,     border: PRIORITY_BASE.low.hex,     text: '#ffffff' },
+};
+
+/** Priority flag hex colors for SVG rendering */
+export const PRIORITY_FLAG_COLORS: Record<string, string> = {
+  urgent: PRIORITY_BASE.urgent.hex,
+  high:   PRIORITY_BASE.high.hex,
+  medium: PRIORITY_BASE.medium.hex,
+  low:    PRIORITY_BASE.low.hex,
+};
+
+/** Card border colors derived from PRIORITY_BASE */
+const BORDER_COLORS: Record<string, string> = {
+  urgent: PRIORITY_BASE.urgent.hex,
+  high:   PRIORITY_BASE.high.hex,
+  medium: PRIORITY_BASE.medium.hex,
+  low:    PRIORITY_BASE.low.hex,
+};
+
+// =============================================================================
+// Column header colors
+// =============================================================================
+
+/** Column colors with light and dark mode variants */
+export const COLUMN_COLORS: readonly { light: string; dark: string }[] = [
+  { light: 'var(--primary)', dark: 'var(--primary)' },
+  { light: '#0079BF',        dark: '#4DA8DA' },
+  { light: '#61BD4F',        dark: '#7DD868' },
+  { light: '#E8445A',        dark: '#F4707F' },
+  { light: '#F5A623',        dark: '#F5C060' },
+  { light: '#C377E0',        dark: '#D49EF0' },
+  { light: '#00C2E0',        dark: '#3DD8F0' },
+  { light: '#0FA882',        dark: '#3DC9A5' },
+  { light: '#2D5BE3',        dark: '#5B82F0' },
+  { light: '#FF78CB',        dark: '#FF9EDB' },
+  { light: '#344563',        dark: '#6B7D9A' },
+  { light: '#B3BAC5',        dark: '#D0D5DD' },
+] as const;
+
+/**
+ * @deprecated Use COLUMN_COLORS instead. Kept for backward compatibility.
+ */
+export const COLUMN_HEADER_COLORS: string[] = COLUMN_COLORS.map((c) => c.light);
+
+/**
+ * @deprecated Use COLUMN_COLORS instead. Kept for backward compatibility.
+ */
+export const COLUMN_HEADER_COLORS_DARK: string[] = COLUMN_COLORS.map((c) => c.dark);
+
+/**
+ * Get a column header color by index, theme-aware
+ * @param index - column index (wraps around)
+ * @param isDark - when true, returns dark-mode colors
+ */
+export function getColumnHeaderColor(index: number, isDark?: boolean): string {
+  const safeIndex =
+    ((index % COLUMN_COLORS.length) + COLUMN_COLORS.length) % COLUMN_COLORS.length;
+  const entry = COLUMN_COLORS[safeIndex];
+  return isDark ? entry.dark : entry.light;
+}
+
+// =============================================================================
+// Column status indicator colors
+// =============================================================================
+
+export const COLUMN_STATUS_COLORS = {
+  default: {
+    bg: 'bg-[var(--secondary)]',
+    text: 'text-[var(--muted-foreground)]',
   },
-  high: {
-    bg: '#D4945E',
-    border: '#BF7B54',
-    text: '#ffffff',
+  done: {
+    bg: 'bg-[var(--status-green-bg)]',
+    text: 'text-[var(--status-green-text)]',
   },
-  medium: {
-    bg: '#E0BC6A',
-    border: '#D4A853',
-    text: '#3D2414',
+  inProgress: {
+    bg: 'bg-[var(--status-blue-bg)]',
+    text: 'text-[var(--status-blue-text)]',
   },
-  low: {
-    bg: '#B5AE78',
-    border: '#9C9561',
-    text: '#ffffff',
+  blocked: {
+    bg: 'bg-[var(--status-red-bg)]',
+    text: 'text-[var(--status-red-text)]',
   },
 };
+
+// =============================================================================
+// Public utility functions (signatures unchanged)
+// =============================================================================
 
 /**
  * Get priority hex color values by priority string
@@ -139,83 +206,6 @@ export function getPriorityColorHex(
     : { bg: '#9F9F9F', border: '#8A8580', text: '#ffffff' };
   return map[normalizedPriority] || fallback;
 }
-
-/**
- * Earth-tone colors for column headers
- */
-export const COLUMN_HEADER_COLORS: string[] = [
-  'var(--primary)', // burnt orange primary
-  '#5E8C4A',       // sage green
-  '#D4A853',       // warm gold
-  '#B81414',       // red
-  '#9C9561',       // olive
-  '#996F49',       // nougat
-  '#7AAF60',       // light sage
-  '#E0BC6A',       // light gold
-  '#D4945E',       // light burnt orange
-  '#8A844F',       // dark olive
-  '#A66843',       // dark burnt orange
-  '#5A361F',       // dark brown
-];
-
-/**
- * Column header colors for dark mode (lighter/brighter for contrast)
- */
-export const COLUMN_HEADER_COLORS_DARK: string[] = [
-  'var(--primary)', // primary (auto-adapts)
-  '#7AAF60',       // sage green light
-  '#E0BC6A',       // warm gold light
-  '#D42020',       // red light
-  '#B5AE78',       // olive light
-  '#BF7B54',       // burnt orange
-  '#A5D48F',       // bright sage
-  '#F0D080',       // bright gold
-  '#E8AD70',       // bright burnt orange
-  '#C5BD80',       // bright olive
-  '#D4945E',       // medium burnt orange
-  '#8B5535',       // medium brown
-];
-
-/**
- * Get a column header color by index, theme-aware
- * @param index - column index (wraps around)
- * @param isDark - when true, returns dark-mode colors
- */
-export function getColumnHeaderColor(index: number, isDark?: boolean): string {
-  const colors = isDark ? COLUMN_HEADER_COLORS_DARK : COLUMN_HEADER_COLORS;
-  const safeIndex = ((index % colors.length) + colors.length) % colors.length;
-  return colors[safeIndex];
-}
-
-/** Priority flag hex colors for SVG rendering */
-export const PRIORITY_FLAG_COLORS: Record<string, string> = {
-  urgent: '#B81414',
-  high: '#BF7B54',
-  medium: '#D4A853',
-  low: '#9C9561',
-};
-
-/**
- * Column status indicator colors
- */
-export const COLUMN_STATUS_COLORS = {
-  default: {
-    bg: 'bg-[var(--secondary)]',
-    text: 'text-[var(--muted-foreground)]',
-  },
-  done: {
-    bg: 'bg-[var(--status-green-bg)]',
-    text: 'text-[var(--status-green-text)]',
-  },
-  inProgress: {
-    bg: 'bg-[var(--status-blue-bg)]',
-    text: 'text-[var(--status-blue-text)]',
-  },
-  blocked: {
-    bg: 'bg-[var(--status-red-bg)]',
-    text: 'text-[var(--status-red-text)]',
-  },
-};
 
 /**
  * Get priority color classes by priority value
@@ -339,7 +329,6 @@ export function resolveCardColor(
       const sorted = [...task.labels].sort((a, b) =>
         a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
       );
-      // Find first label with a color
       const withColor = sorted.find((l) => l.color != null);
       return withColor?.color ?? null;
     }
@@ -356,21 +345,13 @@ export function resolveCardColor(
     }
 
     default: {
-      // Unknown mode — fall back to priority
       const fallbackP = task.priority.toLowerCase();
       return PRIORITY_FLAG_COLORS[fallbackP] ?? null;
     }
   }
 }
 
-// --- Card-specific color utilities (merged from task-card-colors.utils.ts) ---
-
-const BORDER_COLORS: Record<string, string> = {
-  urgent: '#E8445A',
-  high: '#F5A623',
-  medium: '#2D5BE3',
-  low: '#0FA882',
-};
+// --- Card-specific color utilities ---
 
 const AVATAR_GRADIENTS = [
   'linear-gradient(135deg, #2D5BE3, #4B74F0)',

@@ -19,6 +19,7 @@ pub struct UserPreferences {
     pub updated_at: DateTime<Utc>,
     pub accent_color: Option<String>,
     pub color_mode: Option<String>,
+    pub dark_theme: Option<String>,
 }
 
 #[cfg(test)]
@@ -40,8 +41,9 @@ mod tests {
             digest_frequency: "daily".to_string(),
             created_at: now,
             updated_at: now,
-            accent_color: Some("indigo".to_string()),
+            accent_color: Some("warm-earth".to_string()),
             color_mode: Some("dark".to_string()),
+            dark_theme: Some("warm-earth-dark".to_string()),
         }
     }
 
@@ -56,8 +58,9 @@ mod tests {
         assert_eq!(deserialized.default_project_view, "kanban");
         assert_eq!(deserialized.locale, "en-US");
         assert_eq!(deserialized.digest_frequency, "daily");
-        assert_eq!(deserialized.accent_color, Some("indigo".to_string()));
+        assert_eq!(deserialized.accent_color, Some("warm-earth".to_string()));
         assert_eq!(deserialized.color_mode, Some("dark".to_string()));
+        assert_eq!(deserialized.dark_theme, Some("warm-earth-dark".to_string()));
     }
 
     #[test]
@@ -87,6 +90,7 @@ mod tests {
             updated_at: now,
             accent_color: None,
             color_mode: None,
+            dark_theme: None,
         };
         let json = serde_json::to_string(&prefs).unwrap();
         let deserialized: UserPreferences = serde_json::from_str(&json).unwrap();
@@ -94,6 +98,7 @@ mod tests {
         assert!(deserialized.quiet_hours_end.is_none());
         assert!(deserialized.accent_color.is_none());
         assert!(deserialized.color_mode.is_none());
+        assert!(deserialized.dark_theme.is_none());
     }
 
     #[test]
@@ -103,6 +108,7 @@ mod tests {
         assert_eq!(cloned.id, prefs.id);
         assert_eq!(cloned.timezone, prefs.timezone);
         assert_eq!(cloned.accent_color, prefs.accent_color);
+        assert_eq!(cloned.dark_theme, prefs.dark_theme);
     }
 
     #[test]
@@ -117,5 +123,6 @@ mod tests {
         assert!(parsed.get("digest_frequency").is_some());
         assert!(parsed.get("accent_color").is_some());
         assert!(parsed.get("color_mode").is_some());
+        assert!(parsed.get("dark_theme").is_some());
     }
 }

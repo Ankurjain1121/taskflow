@@ -37,6 +37,8 @@ pub struct UpdatePreferencesRequest {
     pub accent_color: Option<String>,
     #[serde(default)]
     pub color_mode: Option<String>,
+    #[serde(default)]
+    pub dark_theme: Option<String>,
 }
 
 /// GET /api/users/me/preferences
@@ -80,6 +82,7 @@ async fn update_preferences(
 
     let accent_color = body.accent_color.or(existing.accent_color);
     let color_mode = body.color_mode.or(existing.color_mode);
+    let dark_theme = body.dark_theme.or(existing.dark_theme);
 
     // Server-side enum validation
     user_prefs::validate_preferences(
@@ -92,8 +95,12 @@ async fn update_preferences(
     .map_err(AppError::BadRequest)?;
 
     // Validate theme preferences
-    user_prefs::validate_theme_preferences(color_mode.as_deref(), accent_color.as_deref())
-        .map_err(AppError::BadRequest)?;
+    user_prefs::validate_theme_preferences(
+        color_mode.as_deref(),
+        accent_color.as_deref(),
+        dark_theme.as_deref(),
+    )
+    .map_err(AppError::BadRequest)?;
 
     // Parse quiet hours — prefer body value, fall back to existing
     let quiet_start = match body.quiet_hours_start {
@@ -129,6 +136,7 @@ async fn update_preferences(
         &digest_frequency,
         accent_color.as_deref(),
         color_mode.as_deref(),
+        dark_theme.as_deref(),
     )
     .await?;
 
