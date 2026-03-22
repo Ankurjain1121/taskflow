@@ -103,7 +103,7 @@ pub mod task_movement;
 pub mod task_template;
 pub mod task_views;
 pub use invitation::invitation_router;
-pub use metrics::{metrics_cron_router, metrics_router};
+pub use metrics::metrics_router;
 pub use milestone::milestone_router;
 pub use my_tasks::my_tasks_router;
 pub use notification::notification_router;

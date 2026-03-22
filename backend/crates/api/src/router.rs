@@ -39,7 +39,7 @@ use crate::routes::{
     workspace_roles_router, workspace_router, workspace_tasks_router, workspace_teams_router,
     workspace_trash_router,
 };
-use crate::routes::{metrics_cron_router, metrics_router, portfolio_router, prometheus_router};
+use crate::routes::{metrics_router, portfolio_router, prometheus_router};
 use crate::state::AppState;
 use crate::ws::ws_handler;
 
@@ -287,7 +287,6 @@ pub fn build_router(
         .nest("/api", notification_preferences_router(state.clone()))
         // Cron routes (no auth middleware - uses X-Cron-Secret)
         .nest("/api", cron_router())
-        .nest("/api", metrics_cron_router())
         // Prometheus scrape endpoint (uses X-Cron-Secret)
         .nest("/api", prometheus_router())
         // Metrics routes (auth required)
