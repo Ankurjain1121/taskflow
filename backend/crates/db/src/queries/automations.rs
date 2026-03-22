@@ -391,7 +391,6 @@ pub async fn delete_rule(
     Ok(())
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

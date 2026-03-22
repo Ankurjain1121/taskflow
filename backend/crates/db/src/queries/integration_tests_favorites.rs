@@ -3,8 +3,8 @@
 
 use uuid::Uuid;
 
-use crate::models::*;
 use super::test_helpers::*;
+use crate::models::*;
 
 // ===========================================================================
 // FAVORITES TESTS

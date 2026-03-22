@@ -7,9 +7,11 @@ use chrono::{Duration, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use super::test_helpers::{
+    setup_full, setup_user, setup_user_and_workspace, test_pool, unique_email, FAKE_HASH,
+};
 use crate::models::{BoardMemberRole, TaskPriority, UserRole};
 use crate::queries::{auth, comments, projects, tasks, workspaces};
-use super::test_helpers::{test_pool, unique_email, setup_user, setup_user_and_workspace, setup_full, FAKE_HASH};
 
 // ===========================================================================
 // AUTH TESTS
@@ -135,14 +137,30 @@ async fn test_revoke_all_user_tokens() {
     let (_, user_id) = setup_user(&pool).await;
 
     let expires = Utc::now() + Duration::hours(24);
-    let id1 =
-        auth::create_refresh_token(&pool, Uuid::new_v4(), user_id, "all-1", expires, None, None, false)
-            .await
-            .unwrap();
-    let id2 =
-        auth::create_refresh_token(&pool, Uuid::new_v4(), user_id, "all-2", expires, None, None, false)
-            .await
-            .unwrap();
+    let id1 = auth::create_refresh_token(
+        &pool,
+        Uuid::new_v4(),
+        user_id,
+        "all-1",
+        expires,
+        None,
+        None,
+        false,
+    )
+    .await
+    .unwrap();
+    let id2 = auth::create_refresh_token(
+        &pool,
+        Uuid::new_v4(),
+        user_id,
+        "all-2",
+        expires,
+        None,
+        None,
+        false,
+    )
+    .await
+    .unwrap();
 
     auth::revoke_all_user_tokens(&pool, user_id).await.unwrap();
 
