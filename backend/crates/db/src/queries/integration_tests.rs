@@ -27,7 +27,7 @@ async fn test_create_user_with_tenant() {
 
     assert_eq!(user.email, email);
     assert_eq!(user.name, "Create Test");
-    assert_eq!(user.role, UserRole::Admin);
+    assert_eq!(user.role, UserRole::SuperAdmin);
     assert!(!user.onboarding_completed);
     assert!(user.deleted_at.is_none());
 }

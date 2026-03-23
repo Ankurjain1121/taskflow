@@ -5,6 +5,7 @@ use ts_rs::TS;
 #[sqlx(type_name = "user_role", rename_all = "snake_case")]
 #[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
 pub enum UserRole {
+    SuperAdmin,
     Admin,
     Manager,
     Member,
@@ -106,7 +107,12 @@ mod tests {
 
     #[test]
     fn test_user_role_serde() {
-        for variant in [UserRole::Admin, UserRole::Manager, UserRole::Member] {
+        for variant in [
+            UserRole::SuperAdmin,
+            UserRole::Admin,
+            UserRole::Manager,
+            UserRole::Member,
+        ] {
             let json = serde_json::to_string(&variant).unwrap();
             let deserialized: UserRole = serde_json::from_str(&json).unwrap();
             assert_eq!(variant, deserialized);
@@ -208,9 +214,11 @@ mod tests {
 
     #[test]
     fn test_user_role_equality() {
+        assert_eq!(UserRole::SuperAdmin, UserRole::SuperAdmin);
         assert_eq!(UserRole::Admin, UserRole::Admin);
         assert_eq!(UserRole::Manager, UserRole::Manager);
         assert_eq!(UserRole::Member, UserRole::Member);
+        assert_ne!(UserRole::SuperAdmin, UserRole::Admin);
         assert_ne!(UserRole::Admin, UserRole::Member);
         assert_ne!(UserRole::Admin, UserRole::Manager);
         assert_ne!(UserRole::Manager, UserRole::Member);
@@ -248,7 +256,7 @@ mod tests {
 
     #[test]
     fn test_user_role_invalid_value_rejected() {
-        let result: std::result::Result<UserRole, _> = serde_json::from_str("\"superadmin\"");
+        let result: std::result::Result<UserRole, _> = serde_json::from_str("\"superduper\"");
         assert!(result.is_err(), "Invalid role should be rejected");
     }
 

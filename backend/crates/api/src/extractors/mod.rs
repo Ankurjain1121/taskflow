@@ -1,3 +1,5 @@
 pub mod auth;
 
-pub use auth::{AdminUser, AuthUserExtractor, ManagerOrAdmin, OptionalAuthUser, TenantContext};
+pub use auth::{
+    AdminUser, AuthUserExtractor, ManagerOrAdmin, OptionalAuthUser, SuperAdminOnly, TenantContext,
+};

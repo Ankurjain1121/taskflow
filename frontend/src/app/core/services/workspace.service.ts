@@ -29,7 +29,7 @@ export interface UpdateWorkspaceRequest {
 export interface WorkspaceMember {
   user_id: string;
   workspace_id: string;
-  role: 'owner' | 'admin' | 'manager' | 'member';
+  role: 'owner' | 'super_admin' | 'admin' | 'manager' | 'member';
   joined_at: string;
 }
 

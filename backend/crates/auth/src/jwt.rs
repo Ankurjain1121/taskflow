@@ -299,7 +299,12 @@ mod tests {
     fn test_claims_contain_correct_role() {
         let keys = JwtKeys::from_config("test-secret", "test-refresh-secret", None, None).unwrap();
 
-        for role in [UserRole::Admin, UserRole::Manager, UserRole::Member] {
+        for role in [
+            UserRole::SuperAdmin,
+            UserRole::Admin,
+            UserRole::Manager,
+            UserRole::Member,
+        ] {
             let pair = issue_tokens(
                 Uuid::new_v4(),
                 Uuid::new_v4(),

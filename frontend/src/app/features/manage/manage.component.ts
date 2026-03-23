@@ -23,6 +23,7 @@ import {
 } from '../../core/services/workspace.service';
 import { TeamGroupsService } from '../../core/services/team-groups.service';
 import { AuthService } from '../../core/services/auth.service';
+import { PermissionService } from '../../core/services/permission.service';
 import { MembersListComponent, MemberWithDetails } from '../workspace/members-list/members-list.component';
 import { TeamsListComponent } from '../workspace/teams/teams-list.component';
 import { TeamDetailDialogComponent } from '../workspace/teams/team-detail-dialog.component';
@@ -279,8 +280,8 @@ const ALL_TABS: TabDef[] = [
                     }
                   </section>
 
-                  <!-- Danger Zone -->
-                  @if (isAdmin()) {
+                  <!-- Danger Zone (Super Admin only) -->
+                  @if (permissionService.isSuperAdmin()) {
                     <section>
                       <div class="rounded-xl border-2 border-red-200 dark:border-red-800 p-5">
                         <h2 class="text-lg font-semibold text-red-700 dark:text-red-300 mb-4">Danger Zone</h2>
@@ -358,6 +359,7 @@ export class ManageComponent implements OnInit {
   private workspaceService = inject(WorkspaceService);
   private teamGroupsService = inject(TeamGroupsService);
   private authService = inject(AuthService);
+  readonly permissionService = inject(PermissionService);
 
   workspaceId = '';
 

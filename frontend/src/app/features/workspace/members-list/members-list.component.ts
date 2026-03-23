@@ -21,6 +21,7 @@ import {
   InviteMemberDialogComponent,
   InviteMemberDialogResult,
 } from '../../../shared/components/dialogs/invite-member-dialog.component';
+import { RoleBadgeComponent } from '../../../shared/components/role-badge/role-badge.component';
 
 export interface MemberWithDetails extends WorkspaceMember {
   display_name?: string;
@@ -34,7 +35,7 @@ export interface MemberWithDetails extends WorkspaceMember {
 @Component({
   selector: 'app-members-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, TooltipModule, InviteMemberDialogComponent],
+  imports: [CommonModule, FormsModule, TooltipModule, InviteMemberDialogComponent, RoleBadgeComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Error banner -->
@@ -188,14 +189,7 @@ export interface MemberWithDetails extends WorkspaceMember {
                         <option value="viewer">Viewer</option>
                       </select>
                     } @else {
-                      <span
-                        [class]="
-                          'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' +
-                          getRoleBadgeClass(member.role)
-                        "
-                      >
-                        {{ getRoleLabel(member.role) }}
-                      </span>
+                      <app-role-badge [role]="member.role" />
                     }
                     @if (member.is_org_admin) {
                       <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
@@ -493,6 +487,7 @@ export class MembersListComponent implements OnInit {
 
   getRoleLabel(role: string): string {
     const labels: Record<string, string> = {
+      super_admin: 'Super Admin',
       owner: 'Owner',
       admin: 'Admin',
       manager: 'Manager',
@@ -504,6 +499,7 @@ export class MembersListComponent implements OnInit {
 
   getRoleBadgeClass(role: string): string {
     const classes: Record<string, string> = {
+      super_admin: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
       owner: 'bg-[color-mix(in_srgb,#7c3aed_12%,transparent)] text-[#7c3aed]',
       admin: 'bg-[var(--status-blue-bg)] text-[var(--status-blue-text)]',
       manager: 'bg-primary/10 text-primary',

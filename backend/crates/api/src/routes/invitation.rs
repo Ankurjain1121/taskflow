@@ -166,6 +166,13 @@ pub async fn create_handler(
     auth: AuthUserExtractor,
     Json(payload): Json<CreateInvitationRequest>,
 ) -> Result<Json<InvitationResponse>> {
+    // Reject SuperAdmin role in invitations
+    if payload.role == UserRole::SuperAdmin {
+        return Err(AppError::BadRequest(
+            "Cannot invite as SuperAdmin. Use the transfer endpoint instead.".into(),
+        ));
+    }
+
     // Verify the user is a member of the target workspace
     let is_member =
         workspaces::is_workspace_member(&state.db, payload.workspace_id, auth.0.user_id).await?;
@@ -490,6 +497,13 @@ pub async fn bulk_create_handler(
     auth: AuthUserExtractor,
     Json(payload): Json<BulkCreateInvitationRequest>,
 ) -> Result<Json<BulkCreateInvitationResponse>> {
+    // Reject SuperAdmin role in bulk invitations
+    if payload.role == UserRole::SuperAdmin {
+        return Err(AppError::BadRequest(
+            "Cannot invite as SuperAdmin. Use the transfer endpoint instead.".into(),
+        ));
+    }
+
     // Verify the user is a member of the target workspace
     let is_member =
         workspaces::is_workspace_member(&state.db, payload.workspace_id, auth.0.user_id).await?;

@@ -15,18 +15,17 @@ import {
 import { StepWorkspaceComponent } from './step-workspace/step-workspace.component';
 import { StepInviteComponent } from './step-invite/step-invite.component';
 import { StepWelcomeComponent } from './step-welcome/step-welcome.component';
-import { StepSampleBoardComponent } from './step-sample-board/step-sample-board.component';
 import { StepUseCaseComponent } from './step-use-case/step-use-case.component';
 
 type OnboardingFlow = 'full' | 'abbreviated';
 
 interface FullFlowStep {
-  id: 'workspace' | 'invite' | 'use-case' | 'sample-board';
+  id: 'workspace' | 'invite' | 'use-case';
   label: string;
 }
 
 interface AbbreviatedFlowStep {
-  id: 'welcome' | 'sample-board';
+  id: 'welcome';
   label: string;
 }
 
@@ -39,7 +38,6 @@ interface AbbreviatedFlowStep {
     StepWorkspaceComponent,
     StepInviteComponent,
     StepWelcomeComponent,
-    StepSampleBoardComponent,
     StepUseCaseComponent,
   ],
   template: `
@@ -132,12 +130,6 @@ interface AbbreviatedFlowStep {
                   (skipped)="onUseCaseSkipped()"
                 />
               }
-              @case ('sample-board') {
-                <app-step-sample-board
-                  [workspaceId]="workspaceId()!"
-                  [useCase]="useCase()"
-                />
-              }
             }
           }
 
@@ -149,12 +141,6 @@ interface AbbreviatedFlowStep {
                   [workspaceName]="invitationContext()!.workspace_name"
                   [workspaceId]="invitationContext()!.workspace_id"
                   [boardIds]="invitationContext()!.board_ids"
-                  (goToSampleBoard)="goToSampleBoardStep()"
-                />
-              }
-              @case ('sample-board') {
-                <app-step-sample-board
-                  [workspaceId]="invitationContext()!.workspace_id"
                 />
               }
             }
@@ -195,18 +181,15 @@ export class OnboardingComponent implements OnInit {
   currentStepIndex = signal(0);
   workspaceId = signal<string | null>(null);
   invitationContext = signal<InvitationContext | null>(null);
-  useCase = signal<string>('software');
 
   private fullFlowSteps: FullFlowStep[] = [
     { id: 'workspace', label: 'Create Workspace' },
     { id: 'invite', label: 'Invite Team' },
     { id: 'use-case', label: 'Use Case' },
-    { id: 'sample-board', label: 'Sample Board' },
   ];
 
   private abbreviatedFlowSteps: AbbreviatedFlowStep[] = [
     { id: 'welcome', label: 'Welcome' },
-    { id: 'sample-board', label: 'Sample Board' },
   ];
 
   currentSteps = computed(() => {
@@ -294,17 +277,25 @@ export class OnboardingComponent implements OnInit {
     this.currentStepIndex.set(2); // Move to use-case step
   }
 
-  onUseCaseSelected(useCase: string): void {
-    this.useCase.set(useCase);
-    this.currentStepIndex.set(3); // Move to sample board step
+  onUseCaseSelected(_useCase: string): void {
+    this.completeAndRedirect();
   }
 
   onUseCaseSkipped(): void {
-    this.currentStepIndex.set(3); // Move to sample board step (keeps default 'software')
+    this.completeAndRedirect();
   }
 
-  goToSampleBoardStep(): void {
-    this.currentStepIndex.set(1); // Move to sample board in abbreviated flow
+  private completeAndRedirect(): void {
+    this.onboardingService.completeOnboarding().subscribe({
+      next: () => {
+        this.router.navigate(['/dashboard']);
+      },
+      error: () => {
+        // Even if the API call fails, redirect to dashboard
+        // The user can retry from there
+        this.router.navigate(['/dashboard']);
+      },
+    });
   }
 
   goBack(): void {

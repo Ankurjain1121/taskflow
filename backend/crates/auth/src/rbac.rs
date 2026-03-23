@@ -56,8 +56,8 @@ pub fn permissions_for_role(role: &UserRole) -> HashSet<Permission> {
     let mut perms = HashSet::new();
 
     match role {
-        UserRole::Admin => {
-            // Admin has ALL permissions
+        UserRole::SuperAdmin | UserRole::Admin => {
+            // SuperAdmin and Admin have ALL permissions
             perms.insert(Permission::WorkspaceCreate);
             perms.insert(Permission::WorkspaceDelete);
             perms.insert(Permission::WorkspaceManageMembers);
@@ -125,7 +125,7 @@ pub fn require_permission(role: &UserRole, permission: &Permission) -> Result<()
 ///
 /// Returns true if the user is a global Admin, or if they are a workspace Owner/Admin.
 pub fn can_manage_workspace(global_role: &UserRole, ws_role: Option<&WorkspaceMemberRole>) -> bool {
-    matches!(global_role, UserRole::Admin)
+    matches!(global_role, UserRole::SuperAdmin | UserRole::Admin)
         || matches!(
             ws_role,
             Some(WorkspaceMemberRole::Owner | WorkspaceMemberRole::Admin)
@@ -135,12 +135,14 @@ pub fn can_manage_workspace(global_role: &UserRole, ws_role: Option<&WorkspaceMe
 /// Check if a user has at least the specified role level
 pub fn has_role_level(actual: &UserRole, required: &UserRole) -> bool {
     match (actual, required) {
-        // Admin is the highest level
+        // SuperAdmin is the highest level
+        (UserRole::SuperAdmin, _) => true,
+        // Admin is second highest
+        (UserRole::Admin, UserRole::SuperAdmin) => false,
         (UserRole::Admin, _) => true,
         // Manager is mid-level
-        (UserRole::Manager, UserRole::Manager) => true,
-        (UserRole::Manager, UserRole::Member) => true,
-        (UserRole::Manager, UserRole::Admin) => false,
+        (UserRole::Manager, UserRole::Manager | UserRole::Member) => true,
+        (UserRole::Manager, _) => false,
         // Member is lowest level
         (UserRole::Member, UserRole::Member) => true,
         (UserRole::Member, _) => false,
@@ -162,6 +164,16 @@ pub fn require_role_level(actual: &UserRole, required: &UserRole) -> Result<(), 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_super_admin_has_all_permissions() {
+        let super_admin_perms = permissions_for_role(&UserRole::SuperAdmin);
+        assert!(super_admin_perms.contains(&Permission::AdminAccess));
+        assert!(super_admin_perms.contains(&Permission::AdminManageUsers));
+        assert!(super_admin_perms.contains(&Permission::AdminViewAuditLog));
+        assert!(super_admin_perms.contains(&Permission::WorkspaceDelete));
+        assert!(super_admin_perms.contains(&Permission::TaskView));
+    }
 
     #[test]
     fn test_admin_has_all_permissions() {
@@ -218,17 +230,26 @@ mod tests {
 
     #[test]
     fn test_role_levels() {
-        // Admin >= everything
+        // SuperAdmin >= everything
+        assert!(has_role_level(&UserRole::SuperAdmin, &UserRole::SuperAdmin));
+        assert!(has_role_level(&UserRole::SuperAdmin, &UserRole::Admin));
+        assert!(has_role_level(&UserRole::SuperAdmin, &UserRole::Manager));
+        assert!(has_role_level(&UserRole::SuperAdmin, &UserRole::Member));
+
+        // Admin >= everything except SuperAdmin
+        assert!(!has_role_level(&UserRole::Admin, &UserRole::SuperAdmin));
         assert!(has_role_level(&UserRole::Admin, &UserRole::Admin));
         assert!(has_role_level(&UserRole::Admin, &UserRole::Manager));
         assert!(has_role_level(&UserRole::Admin, &UserRole::Member));
 
         // Manager >= Manager, Member
+        assert!(!has_role_level(&UserRole::Manager, &UserRole::SuperAdmin));
         assert!(!has_role_level(&UserRole::Manager, &UserRole::Admin));
         assert!(has_role_level(&UserRole::Manager, &UserRole::Manager));
         assert!(has_role_level(&UserRole::Manager, &UserRole::Member));
 
         // Member >= Member only
+        assert!(!has_role_level(&UserRole::Member, &UserRole::SuperAdmin));
         assert!(!has_role_level(&UserRole::Member, &UserRole::Admin));
         assert!(!has_role_level(&UserRole::Member, &UserRole::Manager));
         assert!(has_role_level(&UserRole::Member, &UserRole::Member));
@@ -286,10 +307,16 @@ mod tests {
 
     #[test]
     fn test_permission_count_per_role() {
+        let super_admin_perms = permissions_for_role(&UserRole::SuperAdmin);
         let admin_perms = permissions_for_role(&UserRole::Admin);
         let manager_perms = permissions_for_role(&UserRole::Manager);
         let member_perms = permissions_for_role(&UserRole::Member);
 
+        assert_eq!(
+            super_admin_perms.len(),
+            17,
+            "SuperAdmin should have 17 permissions"
+        );
         assert_eq!(admin_perms.len(), 17, "Admin should have 17 permissions");
         assert_eq!(
             manager_perms.len(),
@@ -302,6 +329,16 @@ mod tests {
     // ========================================================================
     // can_manage_workspace tests
     // ========================================================================
+
+    #[test]
+    fn test_can_manage_workspace_global_super_admin() {
+        // Global super_admin can manage any workspace regardless of workspace role
+        assert!(can_manage_workspace(&UserRole::SuperAdmin, None));
+        assert!(can_manage_workspace(
+            &UserRole::SuperAdmin,
+            Some(&WorkspaceMemberRole::Member)
+        ));
+    }
 
     #[test]
     fn test_can_manage_workspace_global_admin() {
@@ -372,6 +409,19 @@ mod tests {
     // ========================================================================
 
     #[test]
+    fn test_super_admin_permissions_superset_of_admin() {
+        let super_admin_perms = permissions_for_role(&UserRole::SuperAdmin);
+        let admin_perms = permissions_for_role(&UserRole::Admin);
+        for perm in &admin_perms {
+            assert!(
+                super_admin_perms.contains(perm),
+                "SuperAdmin should have all Admin permissions, missing {:?}",
+                perm
+            );
+        }
+    }
+
+    #[test]
     fn test_admin_permissions_superset_of_manager() {
         let admin_perms = permissions_for_role(&UserRole::Admin);
         let manager_perms = permissions_for_role(&UserRole::Manager);
@@ -432,6 +482,8 @@ mod tests {
 
     #[test]
     fn test_require_role_level_succeeds() {
+        assert!(require_role_level(&UserRole::SuperAdmin, &UserRole::SuperAdmin).is_ok());
+        assert!(require_role_level(&UserRole::SuperAdmin, &UserRole::Admin).is_ok());
         assert!(require_role_level(&UserRole::Admin, &UserRole::Admin).is_ok());
         assert!(require_role_level(&UserRole::Admin, &UserRole::Member).is_ok());
         assert!(require_role_level(&UserRole::Manager, &UserRole::Member).is_ok());

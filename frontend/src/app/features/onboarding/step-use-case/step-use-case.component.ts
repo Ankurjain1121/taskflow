@@ -25,7 +25,7 @@ interface UseCase {
           What will you use TaskFlow for?
         </h2>
         <p class="text-[var(--muted-foreground)] dark:text-gray-400">
-          We'll set up a sample board to get you started.
+          This helps us tailor your experience.
         </p>
       </div>
 

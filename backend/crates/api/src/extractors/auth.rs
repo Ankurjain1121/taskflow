@@ -73,9 +73,51 @@ where
     }
 }
 
-/// Extractor that requires Admin role
+/// Extractor that requires SuperAdmin role only
 ///
-/// Extracts the `AuthUser` and verifies they have Admin role.
+/// Extracts the `AuthUser` and verifies they have SuperAdmin role.
+/// Returns 401 if not authenticated, 403 if not a super admin.
+#[derive(Debug, Clone)]
+pub struct SuperAdminOnly(pub AuthUser);
+
+impl<S> FromRequestParts<S> for SuperAdminOnly
+where
+    S: Send + Sync,
+{
+    type Rejection = Response;
+
+    fn from_request_parts(
+        parts: &mut Parts,
+        _state: &S,
+    ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
+        let result = (|| {
+            let auth_user = parts.extensions.get::<AuthUser>().cloned().ok_or_else(|| {
+                (
+                    StatusCode::UNAUTHORIZED,
+                    Json(ExtractorErrorResponse::unauthorized()),
+                )
+                    .into_response()
+            })?;
+
+            if auth_user.role != UserRole::SuperAdmin {
+                return Err((
+                    StatusCode::FORBIDDEN,
+                    Json(ExtractorErrorResponse::forbidden(
+                        "Super Admin access required",
+                    )),
+                )
+                    .into_response());
+            }
+
+            Ok(SuperAdminOnly(auth_user))
+        })();
+        std::future::ready(result)
+    }
+}
+
+/// Extractor that requires Admin role (or higher)
+///
+/// Extracts the `AuthUser` and verifies they have Admin or SuperAdmin role.
 /// Returns 401 if not authenticated, 403 if not an admin.
 #[derive(Debug, Clone)]
 pub struct AdminUser(pub AuthUser);
@@ -99,15 +141,14 @@ where
                     .into_response()
             })?;
 
-            if auth_user.role != UserRole::Admin {
-                return Err((
+            match auth_user.role {
+                UserRole::SuperAdmin | UserRole::Admin => Ok(AdminUser(auth_user)),
+                _ => Err((
                     StatusCode::FORBIDDEN,
                     Json(ExtractorErrorResponse::forbidden("Admin access required")),
                 )
-                    .into_response());
+                    .into_response()),
             }
-
-            Ok(AdminUser(auth_user))
         })();
         std::future::ready(result)
     }
@@ -140,7 +181,9 @@ where
             })?;
 
             match auth_user.role {
-                UserRole::Admin | UserRole::Manager => Ok(ManagerOrAdmin(auth_user)),
+                UserRole::SuperAdmin | UserRole::Admin | UserRole::Manager => {
+                    Ok(ManagerOrAdmin(auth_user))
+                }
                 UserRole::Member => Err((
                     StatusCode::FORBIDDEN,
                     Json(ExtractorErrorResponse::forbidden(

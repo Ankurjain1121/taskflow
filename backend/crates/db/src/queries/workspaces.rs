@@ -597,7 +597,10 @@ pub async fn get_user_workspace_matrix(
             .fetch_optional(pool)
             .await?;
 
-    let is_admin = matches!(user_role, Some((crate::models::UserRole::Admin,)));
+    let is_admin = matches!(
+        user_role,
+        Some((crate::models::UserRole::SuperAdmin,)) | Some((crate::models::UserRole::Admin,))
+    );
 
     sqlx::query_as::<_, WorkspaceMatrixEntry>(
         r#"
