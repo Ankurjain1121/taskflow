@@ -145,11 +145,11 @@ pub async fn create_user_with_tenant(
         .execute(&mut *tx)
         .await?;
 
-    // Create user as admin of the new tenant
+    // Create user as super_admin of the new tenant
     let user = sqlx::query_as::<_, User>(
         r#"
         INSERT INTO users (id, email, name, password_hash, role, tenant_id, onboarding_completed, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, 'admin', $5, false, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, 'super_admin', $5, false, NOW(), NOW())
         RETURNING id, email, name, password_hash, avatar_url, phone_number, job_title, department, bio, role,
                   tenant_id, onboarding_completed, last_login_at, deleted_at, created_at, updated_at
         "#,

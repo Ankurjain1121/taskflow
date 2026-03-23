@@ -17,7 +17,7 @@ use taskflow_db::models::{WorkspaceMemberRole, WorkspaceVisibility};
 use taskflow_db::queries::workspaces;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
+use crate::extractors::{AuthUserExtractor, ManagerOrAdmin, SuperAdminOnly};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
@@ -141,7 +141,10 @@ async fn list_workspaces(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
 ) -> Result<Json<Vec<WorkspaceResponse>>> {
-    let is_admin = auth.0.role == taskflow_db::models::UserRole::Admin;
+    let is_admin = matches!(
+        auth.0.role,
+        taskflow_db::models::UserRole::SuperAdmin | taskflow_db::models::UserRole::Admin
+    );
     let workspaces =
         workspaces::list_workspaces_for_user(&state.db, auth.0.user_id, auth.0.tenant_id, is_admin)
             .await?;
@@ -346,10 +349,10 @@ async fn update_workspace(
 /// DELETE /api/workspaces/:id
 ///
 /// Soft-delete a workspace.
-/// Requires Manager or Admin role.
+/// Requires SuperAdmin role.
 async fn delete_workspace(
     State(state): State<AppState>,
-    auth: ManagerOrAdmin,
+    auth: SuperAdminOnly,
     Path(id): Path<Uuid>,
 ) -> Result<Json<MessageResponse>> {
     // Check membership

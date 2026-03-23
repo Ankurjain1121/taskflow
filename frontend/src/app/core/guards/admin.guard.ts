@@ -12,8 +12,8 @@ export const adminGuard: CanActivateFn = (): boolean | UrlTree => {
     return router.createUrlTree(['/auth/sign-in']);
   }
 
-  // Check if user has admin role
-  if (user.role === 'Admin') {
+  // Check if user has admin role or above
+  if (user.role === 'SuperAdmin' || user.role === 'Admin') {
     return true;
   }
 

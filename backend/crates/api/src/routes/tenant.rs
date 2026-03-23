@@ -43,7 +43,7 @@ async fn get_member_workspaces(
     Path(user_id): Path<Uuid>,
 ) -> Result<Json<Vec<workspaces::UserWorkspaceMembership>>> {
     // Only allow users to query their own workspaces, or admins to query anyone's
-    if user_id != auth.0.user_id && auth.0.role != UserRole::Admin {
+    if user_id != auth.0.user_id && !matches!(auth.0.role, UserRole::SuperAdmin | UserRole::Admin) {
         return Err(AppError::Forbidden(
             "You can only view your own workspace memberships".into(),
         ));
@@ -64,7 +64,7 @@ async fn get_workspace_matrix(
     Path(user_id): Path<Uuid>,
 ) -> Result<Json<Vec<workspaces::WorkspaceMatrixEntry>>> {
     // Only allow users to query their own matrix, or admins to query anyone's
-    if user_id != auth.0.user_id && auth.0.role != UserRole::Admin {
+    if user_id != auth.0.user_id && !matches!(auth.0.role, UserRole::SuperAdmin | UserRole::Admin) {
         return Err(AppError::Forbidden(
             "You can only view your own workspace memberships".into(),
         ));

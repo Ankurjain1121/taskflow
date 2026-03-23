@@ -148,7 +148,7 @@ pub async fn delete_account_handler(
     .fetch_one(&state.db)
     .await?;
 
-    if admin_count <= 1 && user.role == UserRole::Admin {
+    if admin_count <= 1 && matches!(user.role, UserRole::SuperAdmin | UserRole::Admin) {
         return Err(AppError::BadRequest(
             "Cannot delete account: you are the last admin of this organization".into(),
         ));

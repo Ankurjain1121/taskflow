@@ -37,14 +37,21 @@ export const errorInterceptor: HttpInterceptorFn = (
             life: 5000,
           });
           break;
-        case 403:
+        case 403: {
+          const msg403 = extractErrorMessage(error);
+          const isSuperAdminRequired =
+            msg403.toLowerCase().includes('super admin') ||
+            msg403.toLowerCase().includes('superadmin');
           messageService.add({
             severity: 'error',
             summary: 'Access Denied',
-            detail: "You don't have permission to perform this action.",
+            detail: isSuperAdminRequired
+              ? 'This action requires Super Admin access. Contact your workspace owner.'
+              : "You don't have permission to perform this action.",
             life: 5000,
           });
           break;
+        }
         case 404:
           messageService.add({
             severity: 'warn',

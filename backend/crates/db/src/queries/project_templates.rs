@@ -185,7 +185,8 @@ pub async fn delete_template(
 
     // Only the creator or an admin of the same tenant can delete
     if template.created_by_id != user_id
-        && (template.tenant_id != tenant_id || user_role != UserRole::Admin)
+        && (template.tenant_id != tenant_id
+            || !matches!(user_role, UserRole::SuperAdmin | UserRole::Admin))
     {
         return Err(ProjectTemplateQueryError::Forbidden);
     }

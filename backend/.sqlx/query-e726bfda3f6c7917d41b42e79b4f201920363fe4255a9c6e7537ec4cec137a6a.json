@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT COUNT(*) as \"count!\"\n            FROM users\n            WHERE tenant_id = $1 AND role = 'admin' AND deleted_at IS NULL\n            ",
+  "query": "\n            SELECT COUNT(*) as \"count!\"\n            FROM users\n            WHERE tenant_id = $1 AND role IN ('super_admin', 'admin') AND deleted_at IS NULL\n            ",
   "describe": {
     "columns": [
       {
@@ -18,5 +18,5 @@
       null
     ]
   },
-  "hash": "a226e2cf4780afef5e3f9521fbd66121905cfcfe439c8997000b5a6fa6b84775"
+  "hash": "e726bfda3f6c7917d41b42e79b4f201920363fe4255a9c6e7537ec4cec137a6a"
 }

@@ -401,12 +401,14 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
   selectedRole: string | null = null;
 
   roleOptions = [
+    { label: 'Super Admin', value: 'SuperAdmin' },
     { label: 'Admin', value: 'Admin' },
     { label: 'Manager', value: 'Manager' },
     { label: 'Member', value: 'Member' },
   ];
 
   roleChangeOptions = [
+    { label: 'Super Admin', value: 'SuperAdmin' },
     { label: 'Admin', value: 'Admin' },
     { label: 'Manager', value: 'Manager' },
     { label: 'Member', value: 'Member' },
@@ -414,7 +416,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
 
   // Computed stats
   adminCount = computed(
-    () => this.users().filter((u) => u.role === 'Admin').length,
+    () => this.users().filter((u) => u.role === 'Admin' || u.role === 'SuperAdmin').length,
   );
   managerCount = computed(
     () => this.users().filter((u) => u.role === 'Manager').length,
@@ -476,11 +478,17 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
 
   onRoleChange(user: AdminUser, newRole: string): void {
     if (user.role === newRole) return;
-    this.updateUserRole(user, newRole as 'Admin' | 'Manager' | 'Member');
+    this.updateUserRole(user, newRole as 'SuperAdmin' | 'Admin' | 'Manager' | 'Member');
   }
 
   getUserMenuItems(user: AdminUser): MenuItem[] {
     return [
+      {
+        label: 'Make Super Admin',
+        icon: 'pi pi-star',
+        disabled: user.role === 'SuperAdmin',
+        command: () => this.onChangeRole(user, 'SuperAdmin'),
+      },
       {
         label: 'Make Admin',
         icon: 'pi pi-shield',
@@ -514,14 +522,14 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
     this.sharedUserMenu.toggle(event);
   }
 
-  onChangeRole(user: AdminUser, newRole: 'Admin' | 'Manager' | 'Member'): void {
+  onChangeRole(user: AdminUser, newRole: 'SuperAdmin' | 'Admin' | 'Manager' | 'Member'): void {
     if (user.role === newRole) return;
     this.updateUserRole(user, newRole);
   }
 
   private updateUserRole(
     user: AdminUser,
-    newRole: 'Admin' | 'Manager' | 'Member',
+    newRole: 'SuperAdmin' | 'Admin' | 'Manager' | 'Member',
   ): void {
     this.updatingUser.set(user.id);
 
@@ -594,6 +602,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
       'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
 
     const roleColors: Record<string, string> = {
+      SuperAdmin: 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300',
       Admin: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300',
       Manager: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
       Member: 'bg-[var(--secondary)] text-[var(--card-foreground)]',

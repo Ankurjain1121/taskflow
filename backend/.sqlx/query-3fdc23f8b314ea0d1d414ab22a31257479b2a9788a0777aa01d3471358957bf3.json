@@ -10,6 +10,7 @@
             "name": "user_role",
             "kind": {
               "Enum": [
+                "super_admin",
                 "admin",
                 "manager",
                 "member"

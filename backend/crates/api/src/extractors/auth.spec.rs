@@ -7,7 +7,8 @@ mod tests {
     use uuid::Uuid;
 
     use crate::extractors::auth::{
-        AdminUser, AuthUserExtractor, ManagerOrAdmin, OptionalAuthUser, TenantContext,
+        AdminUser, AuthUserExtractor, ManagerOrAdmin, OptionalAuthUser, SuperAdminOnly,
+        TenantContext,
     };
     use crate::middleware::auth::AuthUser;
     use taskflow_db::models::UserRole;
@@ -69,12 +70,76 @@ mod tests {
     }
 
     // ========================================================================
+    // SuperAdminOnly extractor tests
+    // ========================================================================
+
+    mod super_admin_only_extractor {
+        use super::*;
+
+        #[tokio::test]
+        async fn should_pass_with_super_admin_role() {
+            let mut parts = create_mock_parts();
+            let auth_user = make_auth_user(UserRole::SuperAdmin);
+            let expected_id = auth_user.user_id;
+            parts.extensions.insert(auth_user);
+
+            let result = SuperAdminOnly::from_request_parts(&mut parts, &()).await;
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap().0.user_id, expected_id);
+        }
+
+        #[tokio::test]
+        async fn should_fail_with_admin_role() {
+            let mut parts = create_mock_parts();
+            parts.extensions.insert(make_auth_user(UserRole::Admin));
+
+            let result = SuperAdminOnly::from_request_parts(&mut parts, &()).await;
+            assert!(result.is_err());
+            let status = rejection_status(result.unwrap_err());
+            assert_eq!(status, StatusCode::FORBIDDEN);
+        }
+
+        #[tokio::test]
+        async fn should_fail_with_member_role() {
+            let mut parts = create_mock_parts();
+            parts.extensions.insert(make_auth_user(UserRole::Member));
+
+            let result = SuperAdminOnly::from_request_parts(&mut parts, &()).await;
+            assert!(result.is_err());
+            let status = rejection_status(result.unwrap_err());
+            assert_eq!(status, StatusCode::FORBIDDEN);
+        }
+
+        #[tokio::test]
+        async fn should_return_401_when_no_auth_user() {
+            let mut parts = create_mock_parts();
+
+            let result = SuperAdminOnly::from_request_parts(&mut parts, &()).await;
+            assert!(result.is_err());
+            let status = rejection_status(result.unwrap_err());
+            assert_eq!(status, StatusCode::UNAUTHORIZED);
+        }
+    }
+
+    // ========================================================================
     // AdminUser extractor tests
-    // CRITICAL: Admin role enforcement
+    // CRITICAL: Admin role enforcement (also accepts SuperAdmin)
     // ========================================================================
 
     mod admin_user_extractor {
         use super::*;
+
+        #[tokio::test]
+        async fn should_pass_with_super_admin_role() {
+            let mut parts = create_mock_parts();
+            let auth_user = make_auth_user(UserRole::SuperAdmin);
+            let expected_id = auth_user.user_id;
+            parts.extensions.insert(auth_user);
+
+            let result = AdminUser::from_request_parts(&mut parts, &()).await;
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap().0.user_id, expected_id);
+        }
 
         #[tokio::test]
         async fn should_pass_with_admin_role() {
@@ -129,6 +194,18 @@ mod tests {
 
     mod manager_or_admin_extractor {
         use super::*;
+
+        #[tokio::test]
+        async fn should_pass_with_super_admin_role() {
+            let mut parts = create_mock_parts();
+            let auth_user = make_auth_user(UserRole::SuperAdmin);
+            let expected_id = auth_user.user_id;
+            parts.extensions.insert(auth_user);
+
+            let result = ManagerOrAdmin::from_request_parts(&mut parts, &()).await;
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap().0.user_id, expected_id);
+        }
 
         #[tokio::test]
         async fn should_pass_with_admin_role() {
@@ -236,7 +313,12 @@ mod tests {
 
         #[tokio::test]
         async fn should_preserve_role_in_context() {
-            for role in [UserRole::Admin, UserRole::Manager, UserRole::Member] {
+            for role in [
+                UserRole::SuperAdmin,
+                UserRole::Admin,
+                UserRole::Manager,
+                UserRole::Member,
+            ] {
                 let mut parts = create_mock_parts();
                 parts.extensions.insert(make_auth_user(role));
 

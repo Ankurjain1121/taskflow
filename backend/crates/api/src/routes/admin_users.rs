@@ -14,10 +14,12 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
-use crate::extractors::AdminUser;
+use crate::extractors::{AdminUser, SuperAdminOnly};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskflow_db::models::UserRole;
+
+use axum::routing::post;
 
 /// Query parameters for user listing
 #[derive(Debug, Deserialize)]
@@ -84,6 +86,7 @@ async fn list_users(
             .role
             .as_ref()
             .and_then(|r| match r.to_lowercase().as_str() {
+                "super_admin" => Some(UserRole::SuperAdmin),
                 "admin" => Some(UserRole::Admin),
                 "manager" => Some(UserRole::Manager),
                 "member" => Some(UserRole::Member),
@@ -213,12 +216,14 @@ async fn update_user_role(
         target_user.ok_or_else(|| AppError::NotFound("User not found".into()))?;
 
     // If demoting from admin, check if this is the last admin
-    if current_role == UserRole::Admin && body.role != UserRole::Admin {
+    if matches!(current_role, UserRole::SuperAdmin | UserRole::Admin)
+        && !matches!(body.role, UserRole::SuperAdmin | UserRole::Admin)
+    {
         let admin_count: i64 = sqlx::query_scalar!(
             r#"
             SELECT COUNT(*) as "count!"
             FROM users
-            WHERE tenant_id = $1 AND role = 'admin' AND deleted_at IS NULL
+            WHERE tenant_id = $1 AND role IN ('super_admin', 'admin') AND deleted_at IS NULL
             "#,
             tenant_id
         )
@@ -293,13 +298,13 @@ async fn delete_user(
 
     let (_, user_role) = target_user.ok_or_else(|| AppError::NotFound("User not found".into()))?;
 
-    // If deleting an admin, check if this is the last admin
-    if user_role == UserRole::Admin {
+    // If deleting an admin/super_admin, check if this is the last admin
+    if matches!(user_role, UserRole::SuperAdmin | UserRole::Admin) {
         let admin_count: i64 = sqlx::query_scalar!(
             r#"
             SELECT COUNT(*) as "count!"
             FROM users
-            WHERE tenant_id = $1 AND role = 'admin' AND deleted_at IS NULL
+            WHERE tenant_id = $1 AND role IN ('super_admin', 'admin') AND deleted_at IS NULL
             "#,
             tenant_id
         )
@@ -365,12 +370,101 @@ async fn delete_user(
     }))
 }
 
+/// Request body for transferring the SuperAdmin role
+#[derive(Debug, Deserialize)]
+pub struct TransferSuperAdminRequest {
+    pub target_user_id: Uuid,
+}
+
+/// POST /api/admin/transfer-super-admin
+///
+/// Transfer the SuperAdmin role to another user in the same tenant.
+/// The current SuperAdmin is demoted to Admin.
+/// Requires SuperAdmin role.
+async fn transfer_super_admin(
+    State(state): State<AppState>,
+    super_admin: SuperAdminOnly,
+    Json(body): Json<TransferSuperAdminRequest>,
+) -> Result<Json<UserOperationResponse>> {
+    let tenant_id = super_admin.0.tenant_id;
+    let current_user_id = super_admin.0.user_id;
+
+    // Cannot transfer to self
+    if body.target_user_id == current_user_id {
+        return Err(AppError::BadRequest(
+            "Cannot transfer SuperAdmin role to yourself".into(),
+        ));
+    }
+
+    // Verify target user exists and belongs to same tenant
+    let target_exists: bool = sqlx::query_scalar(
+        r#"
+        SELECT EXISTS(
+            SELECT 1 FROM users
+            WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL
+        )
+        "#,
+    )
+    .bind(body.target_user_id)
+    .bind(tenant_id)
+    .fetch_one(&state.db)
+    .await?;
+
+    if !target_exists {
+        return Err(AppError::NotFound(
+            "Target user not found in this tenant".into(),
+        ));
+    }
+
+    // Perform the transfer in a transaction
+    let mut tx = state.db.begin().await?;
+
+    // Demote current SuperAdmin to Admin
+    sqlx::query(
+        r#"
+        UPDATE users SET role = 'admin', updated_at = NOW()
+        WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL
+        "#,
+    )
+    .bind(current_user_id)
+    .bind(tenant_id)
+    .execute(&mut *tx)
+    .await?;
+
+    // Promote target user to SuperAdmin
+    sqlx::query(
+        r#"
+        UPDATE users SET role = 'super_admin', updated_at = NOW()
+        WHERE id = $1 AND tenant_id = $2 AND deleted_at IS NULL
+        "#,
+    )
+    .bind(body.target_user_id)
+    .bind(tenant_id)
+    .execute(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
+
+    tracing::info!(
+        from_user_id = %current_user_id,
+        to_user_id = %body.target_user_id,
+        tenant_id = %tenant_id,
+        "SuperAdmin role transferred"
+    );
+
+    Ok(Json(UserOperationResponse {
+        success: true,
+        message: "SuperAdmin role transferred successfully".into(),
+    }))
+}
+
 /// Create the admin users router
 pub fn admin_users_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/admin/users", get(list_users))
         .route("/admin/users/{id}/role", put(update_user_role))
         .route("/admin/users/{id}", delete(delete_user))
+        .route("/admin/transfer-super-admin", post(transfer_super_admin))
         .layer(from_fn_with_state(state.clone(), csrf_middleware))
         .layer(from_fn_with_state(state.clone(), auth_middleware))
 }

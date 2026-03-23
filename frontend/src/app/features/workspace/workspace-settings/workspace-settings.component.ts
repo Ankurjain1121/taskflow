@@ -23,6 +23,7 @@ import {
 } from '../../../core/services/workspace.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { PermissionService } from '../../../core/services/permission.service';
 import {
   MembersListComponent,
   MemberWithDetails,
@@ -185,6 +186,7 @@ export class WorkspaceSettingsComponent implements OnInit {
   private workspaceService = inject(WorkspaceService);
   private projectService = inject(ProjectService);
   private authService = inject(AuthService);
+  readonly permissionService = inject(PermissionService);
 
   @ViewChild(WorkspaceGeneralTabComponent)
   generalTab?: WorkspaceGeneralTabComponent;
