@@ -5,7 +5,7 @@ import {
   signal,
   computed,
   inject,
-  OnInit,
+  effect,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -176,7 +176,7 @@ export interface MemberWithDetails extends WorkspaceMember {
                 <!-- Role -->
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="flex items-center gap-2">
-                    @if (isAdmin() && !isOwner(member) && !isSelf(member) && !member.is_org_admin) {
+                    @if (isAdmin() && !isOwner(member) && !isSelf(member) && (!member.is_org_admin || isSuperAdmin())) {
                       <select
                         [value]="member.role"
                         (change)="onRoleChange(member, $any($event.target).value)"
@@ -212,7 +212,7 @@ export interface MemberWithDetails extends WorkspaceMember {
                   <td
                     class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
                   >
-                    @if (!isOwner(member) && !isSelf(member) && !member.is_org_admin) {
+                    @if (!isOwner(member) && !isSelf(member) && (!member.is_org_admin || isSuperAdmin())) {
                       <button
                         (click)="onRemoveMember(member)"
                         [disabled]="updatingMember() === member.user_id"
@@ -402,7 +402,7 @@ export interface MemberWithDetails extends WorkspaceMember {
     />
   `,
 })
-export class MembersListComponent implements OnInit {
+export class MembersListComponent {
   private workspaceService = inject(WorkspaceService);
   private authService = inject(AuthService);
 
@@ -436,8 +436,13 @@ export class MembersListComponent implements OnInit {
     );
   });
 
-  ngOnInit(): void {
-    this.loadInvitations();
+  constructor() {
+    effect(() => {
+      const wsId = this.workspaceId();
+      if (wsId) {
+        this.loadInvitations();
+      }
+    });
   }
 
   pendingAndExpiredInvitations = computed(() =>
@@ -462,8 +467,14 @@ export class MembersListComponent implements OnInit {
   isAdmin = computed(() => {
     const user = this.authService.currentUser();
     if (!user) return false;
+    if (user.role === 'SuperAdmin') return true;
     const member = this.members().find((m) => m.user_id === user.id);
     return member?.role === 'owner' || member?.role === 'admin';
+  });
+
+  isSuperAdmin = computed(() => {
+    const user = this.authService.currentUser();
+    return user?.role === 'SuperAdmin';
   });
 
   isOwner(member: MemberWithDetails): boolean {

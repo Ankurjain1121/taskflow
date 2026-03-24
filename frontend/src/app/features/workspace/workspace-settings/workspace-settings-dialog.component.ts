@@ -146,6 +146,7 @@ export class WorkspaceSettingsDialogComponent {
   isAdmin = computed(() => {
     const user = this.authService.currentUser();
     if (!user) return false;
+    if (user.role === 'SuperAdmin') return true;
     const member = this.members().find((m) => m.user_id === user.id);
     return member?.role === 'owner' || member?.role === 'admin';
   });
