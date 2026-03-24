@@ -250,7 +250,14 @@ pub async fn sign_up_handler(
     if payload.name.trim().is_empty() {
         return Err(AppError::BadRequest("Name is required".into()));
     }
-    if payload.email.trim().is_empty() || !payload.email.contains('@') {
+    let email = payload.email.trim();
+    if email.is_empty()
+        || !email.contains('@')
+        || email.starts_with('@')
+        || email.ends_with('@')
+        || email.contains("..")
+        || !email.contains('.')
+    {
         return Err(AppError::BadRequest("Valid email is required".into()));
     }
     if !is_password_strong(&payload.password) {

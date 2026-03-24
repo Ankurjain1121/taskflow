@@ -69,6 +69,8 @@ pub struct WorkspaceMemberInfo {
     pub role: WorkspaceMemberRole,
     pub joined_at: chrono::DateTime<chrono::Utc>,
     pub is_org_admin: bool,
+    pub phone_number: Option<String>,
+    pub last_login_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 /// Get a workspace by ID with its members
@@ -96,12 +98,13 @@ pub async fn get_workspace_by_id(
         Some(ws) => {
             let members = sqlx::query_as::<_, WorkspaceMemberInfo>(
                 r#"
-                SELECT user_id, name, email, avatar_url, job_title, department, role, joined_at, is_org_admin
+                SELECT user_id, name, email, avatar_url, job_title, department, role, joined_at, is_org_admin, phone_number, last_login_at
                 FROM (
                     -- Explicit workspace members
                     SELECT wm.user_id, u.name, u.email, u.avatar_url, u.job_title, u.department,
                            wm.role, wm.joined_at,
-                           (u.role = 'admin') AS is_org_admin
+                           (u.role = 'super_admin') AS is_org_admin,
+                           u.phone_number, u.last_login_at
                     FROM workspace_members wm
                     INNER JOIN users u ON wm.user_id = u.id
                     WHERE wm.workspace_id = $1
@@ -112,9 +115,10 @@ pub async fn get_workspace_by_id(
                     -- Global admins who are NOT explicit members (implicit access)
                     SELECT u.id AS user_id, u.name, u.email, u.avatar_url, u.job_title, u.department,
                            'admin'::workspace_member_role AS role, u.created_at AS joined_at,
-                           TRUE AS is_org_admin
+                           (u.role = 'super_admin') AS is_org_admin,
+                           u.phone_number, u.last_login_at
                     FROM users u
-                    WHERE u.role = 'admin'
+                    WHERE u.role IN ('admin', 'super_admin')
                       AND u.deleted_at IS NULL
                       AND u.tenant_id = $2
                       AND NOT EXISTS (

@@ -48,14 +48,22 @@ pub async fn ws_handler(
     // Try cookie first (browser automatically sends cookies with WS upgrade)
     if let Some(token) = extract_cookie_token(&headers) {
         if let Ok(claims) = verify_access_token(&token, &state.jwt_keys) {
-            tracing::info!(
-                user_id = %claims.sub,
-                "WebSocket connection upgrade requested (token from cookie)"
-            );
+            // Validate session is still active in Redis
+            let token_id = claims.token_id.unwrap_or_default();
+            let session_key = format!("session:{}:{}", claims.sub, token_id);
+            if crate::middleware::auth::check_and_refresh_session(&state, &session_key)
+                .await
+                .is_ok()
+            {
+                tracing::info!(
+                    user_id = %claims.sub,
+                    "WebSocket connection upgrade requested (token from cookie)"
+                );
 
-            return Ok(ws.on_upgrade(move |socket| {
-                handle_socket(socket, state, Some((claims.sub, claims.tenant_id)))
-            }));
+                return Ok(ws.on_upgrade(move |socket| {
+                    handle_socket(socket, state, Some((claims.sub, claims.tenant_id)))
+                }));
+            }
         }
     }
 
@@ -566,6 +574,21 @@ async fn wait_for_auth(
                         ClientMessage::Auth { payload } => {
                             match verify_access_token(&payload.token, &state.jwt_keys) {
                                 Ok(claims) => {
+                                    // Validate session is still active
+                                    let token_id = claims.token_id.unwrap_or_default();
+                                    let session_key = format!("session:{}:{}", claims.sub, token_id);
+                                    if crate::middleware::auth::check_and_refresh_session(state, &session_key)
+                                        .await
+                                        .is_err()
+                                    {
+                                        let error_msg = ServerMessage::Error {
+                                            message: "Session expired".into(),
+                                        };
+                                        let _ = tx
+                                            .send(serde_json::to_string(&error_msg).unwrap_or_default())
+                                            .await;
+                                        return None;
+                                    }
                                     let response = ServerMessage::Authenticated;
                                     let _ = tx
                                         .send(serde_json::to_string(&response).unwrap_or_default())

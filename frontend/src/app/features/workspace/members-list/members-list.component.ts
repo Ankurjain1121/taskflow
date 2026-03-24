@@ -22,6 +22,7 @@ import {
   InviteMemberDialogResult,
 } from '../../../shared/components/dialogs/invite-member-dialog.component';
 import { RoleBadgeComponent } from '../../../shared/components/role-badge/role-badge.component';
+import { MemberProfileDialogComponent } from './member-profile-dialog.component';
 
 export interface MemberWithDetails extends WorkspaceMember {
   display_name?: string;
@@ -30,12 +31,14 @@ export interface MemberWithDetails extends WorkspaceMember {
   job_title?: string | null;
   department?: string | null;
   is_org_admin?: boolean;
+  phone_number?: string | null;
+  last_login_at?: string | null;
 }
 
 @Component({
   selector: 'app-members-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, TooltipModule, InviteMemberDialogComponent, RoleBadgeComponent],
+  imports: [CommonModule, FormsModule, TooltipModule, InviteMemberDialogComponent, RoleBadgeComponent, MemberProfileDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- Error banner -->
@@ -143,7 +146,8 @@ export interface MemberWithDetails extends WorkspaceMember {
                     </div>
                     <div>
                       <p
-                        class="text-sm font-medium text-[var(--card-foreground)]"
+                        class="text-sm font-medium text-[var(--card-foreground)] cursor-pointer hover:underline"
+                        (click)="openProfile(member)"
                       >
                         {{ member.display_name || 'Unknown' }}
                       </p>
@@ -192,8 +196,8 @@ export interface MemberWithDetails extends WorkspaceMember {
                     }
                     @if (member.is_org_admin) {
                       <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-                            pTooltip="Has automatic access to all workspaces" tooltipPosition="top">
-                        <i class="pi pi-shield text-[10px]"></i> Org Admin
+                            pTooltip="Has full platform access" tooltipPosition="top">
+                        <i class="pi pi-shield text-[10px]"></i> Super Admin
                       </span>
                     }
                   </div>
@@ -399,6 +403,21 @@ export interface MemberWithDetails extends WorkspaceMember {
       [boards]="boards()"
       (created)="onInviteResult($event)"
     />
+
+    <!-- Member Profile Dialog -->
+    @if (selectedMember()) {
+      <app-member-profile-dialog
+        [(visible)]="showProfileDialog"
+        [member]="selectedMember()"
+        [isAdmin]="isAdmin()"
+        [isSuperAdmin]="isSuperAdmin()"
+        [isSelf]="isSelf(selectedMember()!)"
+        [isOwner]="isOwner(selectedMember()!)"
+        [workspaceId]="workspaceId()"
+        (roleChanged)="onRoleChange(selectedMember()!, $event.role)"
+        (memberRemoved)="onProfileRemoveMember($event)"
+      />
+    }
   `,
 })
 export class MembersListComponent {
@@ -422,6 +441,8 @@ export class MembersListComponent {
   loadingInvitations = signal(false);
   actionInProgress = signal<string | null>(null);
   showInviteDialog = signal(false);
+  showProfileDialog = signal(false);
+  selectedMember = signal<MemberWithDetails | null>(null);
   searchQuery = signal('');
   errorMessage = signal<string | null>(null);
 
@@ -543,6 +564,20 @@ export class MembersListComponent {
       day: 'numeric',
       year: 'numeric',
     });
+  }
+
+  openProfile(member: MemberWithDetails): void {
+    this.selectedMember.set(member);
+    this.showProfileDialog.set(true);
+  }
+
+  onProfileRemoveMember(userId: string): void {
+    const member = this.members().find((m) => m.user_id === userId);
+    if (member) {
+      this.showProfileDialog.set(false);
+      this.selectedMember.set(null);
+      this.onRemoveMember(member);
+    }
   }
 
   onInviteMember(): void {

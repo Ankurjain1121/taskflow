@@ -68,7 +68,7 @@ pub async fn get_dashboard_stats(
             )::bigint AS due_today,
             (SELECT COUNT(DISTINCT al.entity_id)::bigint
              FROM activity_log al
-             INNER JOIN tasks t2 ON t2.id = al.entity_id AND t2.deleted_at IS NULL
+             INNER JOIN tasks t2 ON t2.id = al.entity_id AND t2.deleted_at IS NULL AND t2.parent_task_id IS NULL
              INNER JOIN task_assignees ta2 ON ta2.task_id = t2.id AND ta2.user_id = $1
              INNER JOIN project_statuses bc2 ON bc2.id = t2.status_id
              WHERE al.action = 'moved' AND al.entity_type = 'task'
@@ -83,6 +83,7 @@ pub async fn get_dashboard_stats(
         INNER JOIN project_statuses bc ON bc.id = t.status_id
         INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
         WHERE ta.user_id = $1 AND t.deleted_at IS NULL
+          AND t.parent_task_id IS NULL
           AND ($4::uuid IS NULL OR b.workspace_id = $4)
         "#,
     )
@@ -180,6 +181,7 @@ pub async fn get_overdue_tasks(
         INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
+          AND t.parent_task_id IS NULL
           AND t.due_date IS NOT NULL
           AND t.due_date < $2
           AND bc.type != 'done'
@@ -235,6 +237,7 @@ pub async fn get_upcoming_deadlines(
         INNER JOIN project_members bm ON bm.project_id = t.project_id AND bm.user_id = $1
         WHERE ta.user_id = $1
           AND t.deleted_at IS NULL
+          AND t.parent_task_id IS NULL
           AND t.due_date IS NOT NULL
           AND t.due_date >= $2
           AND t.due_date <= $3

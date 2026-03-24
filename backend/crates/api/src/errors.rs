@@ -115,7 +115,9 @@ impl From<TaskQueryError> for AppError {
             TaskQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
-            TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
+            TaskQueryError::VersionConflict(task) => {
+                AppError::VersionConflict(serde_json::to_value(&*task).unwrap_or_default())
+            }
             TaskQueryError::Other(msg) => AppError::BadRequest(msg),
         }
     }

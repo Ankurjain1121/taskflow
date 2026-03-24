@@ -26,6 +26,17 @@ export const errorInterceptor: HttpInterceptorFn = (
         return throwError(() => error);
       }
 
+      // Network error (offline, DNS failure, CORS block, etc.)
+      if (error.status === 0) {
+        messageService.add({
+          severity: 'error',
+          summary: 'Network Error',
+          detail: 'Unable to reach the server. Check your connection.',
+          life: 8000,
+        });
+        return throwError(() => error);
+      }
+
       const detail = extractErrorMessage(error);
 
       switch (error.status) {

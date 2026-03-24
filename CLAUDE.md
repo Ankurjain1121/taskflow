@@ -136,10 +136,10 @@ The UI should evoke all four pillars simultaneously:
 - **References:** Linear (speed, keyboard-first, minimal chrome) + Monday.com (vibrancy, visual status, colorful boards) + **TickTick** (clean, polished UI) + **Trello** (beautiful, approachable boards)
 - **Anti-references:** Jira (cluttered, slow, overwhelming), generic Bootstrap dashboards
 - **Focus:** Visual polish and aesthetics are the priority. Layout and functionality are settled — invest effort in making existing views look beautiful.
-- **Theme:** Light/dark with system detection. 8 interchangeable accent colors (blue, indigo, green, orange, rose, violet, amber, slate). Card style variants (flat/raised/bordered), configurable border radius, sidebar style options.
-- **Color palette:** "Midnight Ink" — blue primary (`#2D5BE3` light / `#4B74F0` dark) with warm parchment neutrals (`#F4F2EE` light bg). **Still being explored** — direction is right but not finalized. Red is reserved for errors/destructive actions only.
-- **Typography:** Currently Syne (display) + DM Sans (body) — **still being explored**, may change before launch.
-- **Motion:** Animations and micro-interactions are welcome and encouraged. User prefers aesthetic richness. Transition tokens defined: `--ease-out-expo`, `--ease-bounce`, `--duration-fast` (150ms), `--duration-normal` (200ms). Still respect `prefers-reduced-motion` for accessibility.
+- **Theme system:** 29 complete themes — **13 light** (White Heaven, Sea Foam, Warm Earth, Storm Cloud, Morning Sky, Misty Forest, Modern Dental, Cosmic, Mindful, Purple Scale, Pastel Rose, French Blues, Sunset Website) + **16 dark** (Warm Earth Dark, Purple Night, Cherry Blossom, Sunset Dusk, Purple Haze, Ocean Deep, Luna, Coffee, Moon, Wine, Gold Crimson, Pink Gray, Yellow Dark, Forest Night, Bloodstone, Red Noir). Light/dark with system detection. Card style variants (flat/raised/bordered), configurable border radius.
+- **Default theme:** "Warm Earth" — terracotta/brown primary (`#BF7B54` light / `#D4945E` dark) with warm parchment neutrals (`#E8E4DB` light bg / `#1C1A17` dark bg). Red reserved for errors/destructive actions only.
+- **Typography:** Per-theme font pairs — each theme defines its own `fontDisplay` + `fontBody`. Examples: Warm Earth uses Syne + DM Sans, White Heaven uses Inter, Sea Foam uses Nunito + Nunito Sans, Misty Forest uses Lora + Source Sans 3, Cosmic uses Playfair Display + Lato, Mindful uses Merriweather + Open Sans.
+- **Motion:** Animations and micro-interactions are welcome and encouraged. User prefers aesthetic richness. Transition tokens defined: `--ease-out-expo`, `--ease-bounce`, `--ease-standard`, `--duration-fast` (150ms), `--duration-normal` (300ms). Still respect `prefers-reduced-motion` for accessibility.
 
 ### Design Principles
 1. **Clarity over decoration** — Every pixel earns its place. No ornamental elements that don't aid comprehension. White space is a feature.
@@ -152,21 +152,23 @@ The UI should evoke all four pillars simultaneously:
 ### Design Token Architecture
 | Layer | Description |
 |-------|-------------|
-| **Semantic tokens** (`styles.css :root` / `html.dark`) | Light/dark mode colors, shadows, layout, transitions |
-| **Structural variants** (`themes.css`) | Card style, border radius, sidebar style — applied via `data-*` attributes |
-| **Accent ramps** (`color-palettes.ts`) | Full 50–950 shade scales for 8 accents, synced to PrimeNG via `definePreset()` |
-| **Status colors** (`task-colors.ts`) | Priority, status, label, and column colors — Tailwind classes with dark mode |
-| **Theme service** (`theme.service.ts`) | Orchestrates mode/accent/preferences, persists to DB, cross-tab sync |
+| **Semantic tokens** (`styles.css :root` / `html.dark`) | Default Warm Earth light/dark colors, shadows, layout, transitions, font tokens |
+| **Theme palettes** (`theme-palettes.css`) | CSS `[data-theme]` / `[data-dark-theme]` selectors with full variable overrides per theme |
+| **Structural variants** (`themes.css`) | Card style, border radius — applied via `data-*` attributes (colors applied via JS) |
+| **Palette definitions** (`color-palettes.ts`) | `THEME_PALETTES` (light) + `DARK_THEME_PALETTES` (dark) — 50–950 ramp, surface, sidebar, fonts per theme |
+| **Status colors** (`task-colors.ts`) | Priority, status, label, and column colors — color-by-X modes (priority/project/assignee/label) |
+| **Theme service** (`theme.service.ts`) | Signal-based orchestration: `lightTheme`/`darkTheme`/`theme` signals, PrimeNG preset sync, DB persistence, cross-tab sync, CSS-only preview mode |
 
 ### Key Design Files
 | File | Purpose |
 |------|---------|
-| `frontend/src/styles.css` | Master design tokens (semantic colors, shadows, layout, transitions) |
-| `frontend/src/themes.css` | Structural variants (card style, radius, sidebar) via `data-*` attributes |
-| `frontend/src/app/core/services/theme.service.ts` | Theme orchestration + PrimeNG bridge + DB persistence |
-| `frontend/src/app/core/constants/color-palettes.ts` | 8 accent color ramps (50–950 shades) |
-| `frontend/src/app/shared/utils/task-colors.ts` | Priority, status, label, column color mappings |
-| `frontend/src/app/shared/types/theme.types.ts` | AccentColor and ColorMode type definitions |
+| `frontend/src/styles.css` | Master design tokens + Tailwind theme bridge (`@theme inline`) |
+| `frontend/src/theme-palettes.css` | Per-theme CSS variable overrides via `[data-theme]`/`[data-dark-theme]` selectors |
+| `frontend/src/themes.css` | Structural-only variants (card style, radius) — no color values |
+| `frontend/src/app/core/services/theme.service.ts` | Theme orchestration: signals, `data-theme`/`data-dark-theme` attributes, PrimeNG bridge, DB persistence, cross-tab sync |
+| `frontend/src/app/core/constants/color-palettes.ts` | 13 light + 16 dark `ThemePalette` objects (ramp, surface, sidebar, fonts, preview swatches) |
+| `frontend/src/app/shared/utils/task-colors.ts` | Priority, status, label, column color mappings + color-by-X feature types |
+| `frontend/src/app/shared/types/theme.types.ts` | `LightTheme` (13 variants), `DarkTheme` (16 variants), `ColorMode` type definitions |
 
 ---
 

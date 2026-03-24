@@ -8,6 +8,7 @@ use axum::{
     Json,
 };
 use serde::Deserialize;
+use crate::services::cache;
 use serde_json::json;
 use uuid::Uuid;
 
@@ -73,6 +74,8 @@ pub async fn assign_user_handler(
     }
 
     assign_user(&state.db, task_id, body.user_id).await?;
+
+    cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
 
     // Broadcast the task updated event
     let broadcast_service = BroadcastService::new(state.redis.clone());
@@ -227,6 +230,8 @@ pub async fn unassign_user_handler(
     verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     unassign_user(&state.db, task_id, user_id).await?;
+
+    cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
 
     // Broadcast the task updated event
     let broadcast_service = BroadcastService::new(state.redis.clone());

@@ -104,6 +104,8 @@ pub struct MemberInfo {
     pub role: WorkspaceMemberRole,
     pub joined_at: chrono::DateTime<chrono::Utc>,
     pub is_org_admin: bool,
+    pub phone_number: Option<String>,
+    pub last_login_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[derive(Debug, Serialize)]
@@ -241,6 +243,8 @@ async fn get_workspace(
                 role: m.role,
                 joined_at: m.joined_at,
                 is_org_admin: m.is_org_admin,
+                phone_number: m.phone_number,
+                last_login_at: m.last_login_at,
             })
             .collect(),
     };
@@ -403,6 +407,8 @@ async fn list_members(
             role: m.role,
             joined_at: m.joined_at,
             is_org_admin: m.is_org_admin,
+            phone_number: m.phone_number,
+            last_login_at: m.last_login_at,
         })
         .collect();
 
@@ -601,6 +607,8 @@ async fn update_member_role(
         role: member_info.role,
         joined_at: member_info.joined_at,
         is_org_admin: member_info.is_org_admin,
+        phone_number: member_info.phone_number,
+        last_login_at: member_info.last_login_at,
     }))
 }
 

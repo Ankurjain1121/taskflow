@@ -357,7 +357,16 @@ export class ThemeService implements OnDestroy {
 
   private loadFromStorage(key: string, fallback: string): string {
     if (typeof localStorage === 'undefined') return fallback;
-    return localStorage.getItem(key) || fallback;
+    const value = localStorage.getItem(key);
+    if (!value) return fallback;
+    // Validate theme values against known arrays
+    if (key === LIGHT_THEME_KEY) {
+      return (LIGHT_THEMES as readonly string[]).includes(value) ? value : fallback;
+    }
+    if (key === DARK_THEME_KEY) {
+      return (DARK_THEMES as readonly string[]).includes(value) ? value : fallback;
+    }
+    return value;
   }
 
   private saveToStorage(key: string, value: string): void {
