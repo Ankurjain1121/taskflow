@@ -194,6 +194,7 @@ const ALL_TABS: TabDef[] = [
                         [workspaceName]="workspace()?.name ?? 'this workspace'"
                         [boards]="[]"
                         (memberRemoved)="onMemberRemoved($event)"
+                        (memberRoleChanged)="onMemberRoleChanged($event)"
                       />
                     }
                   </section>
@@ -455,6 +456,14 @@ export class ManageComponent implements OnInit {
   onMemberRemoved(userId: string): void {
     this.members.update((members) =>
       members.filter((m) => m.user_id !== userId),
+    );
+  }
+
+  onMemberRoleChanged(event: { userId: string; role: string }): void {
+    this.members.update((members) =>
+      members.map((m) =>
+        m.user_id === event.userId ? { ...m, role: event.role } : m,
+      ),
     );
   }
 

@@ -658,6 +658,10 @@ export class MembersListComponent {
       )
       .subscribe({
         next: () => {
+          // Update selectedMember so dialog sees the new role
+          this.selectedMember.update((m) =>
+            m?.user_id === member.user_id ? { ...m, role: newRole as MemberWithDetails['role'] } : m,
+          );
           this.profileDialog()?.markSaved();
         },
         error: () => {
