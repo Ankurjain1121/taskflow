@@ -101,6 +101,7 @@ export class SidebarViewsComponent {
     const base = `/workspace/${wsId}`;
     return [
       { icon: 'pi-chart-bar', label: 'Portfolio', path: `${base}/portfolio` },
+      { icon: 'pi-chart-line', label: 'Reports', path: `${base}/reports` },
       { icon: 'pi-users', label: 'Manage', path: `${base}/manage` },
       { icon: 'pi-user', label: 'People', path: `${base}/people` },
       { icon: 'pi-th-large', label: 'Eisenhower', path: `${base}/eisenhower` },
