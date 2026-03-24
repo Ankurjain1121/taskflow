@@ -8,6 +8,7 @@ use axum::{
     Json, Router,
 };
 use serde::Serialize;
+use crate::services::cache;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
@@ -115,6 +116,8 @@ async fn add_label(
     .await
     .map_err(AppError::from)?;
 
+    cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
+
     Ok(Json(
         serde_json::json!({ "message": "Label added to task" }),
     ))
@@ -146,6 +149,8 @@ async fn remove_label(
     if result.rows_affected() == 0 {
         return Err(AppError::NotFound("Label not assigned to this task".into()));
     }
+
+    cache::cache_del(&state.redis, &cache::project_tasks_key(&board_id)).await;
 
     Ok(Json(
         serde_json::json!({ "message": "Label removed from task" }),

@@ -1,4 +1,19 @@
 #!/bin/bash
+# ====================================================================
+# DEPRECATED — This script references Caddy and internal Docker DB/Redis
+# which no longer match the current setup (nginx + host DB/Redis).
+#
+# Current deploy: docker compose build && docker compose up -d
+# ====================================================================
+echo "WARNING: This script is DEPRECATED. Use 'docker compose build && docker compose up -d' instead."
+echo "         See CLAUDE.md for current deploy instructions."
+echo ""
+read -p "Continue anyway? (y/N) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    exit 1
+fi
+
 # =============================================================================
 # TaskBolt - VPS Deployment Script
 # =============================================================================

@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import {
   Observable,
@@ -13,6 +13,7 @@ import {
   finalize,
 } from 'rxjs';
 import { Router } from '@angular/router';
+import { CacheService } from './cache.service';
 
 export interface User {
   id: string;
@@ -66,6 +67,7 @@ const AUTH_FLAG_KEY = 'taskbolt_auth';
   providedIn: 'root',
 })
 export class AuthService {
+  private readonly cacheService = inject(CacheService);
   private readonly apiUrl = '/api/auth';
   private _currentUser = signal<User | null>(null);
   private _csrfToken = signal<string | null>(null);
@@ -273,6 +275,7 @@ export class AuthService {
   }
 
   private clearLocalState(): void {
+    this.cacheService.clear();
     localStorage.removeItem(AUTH_FLAG_KEY);
     // Also clean up legacy key if present from older versions
     localStorage.removeItem('taskbolt_user');

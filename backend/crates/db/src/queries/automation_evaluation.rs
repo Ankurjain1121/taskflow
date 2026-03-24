@@ -250,6 +250,7 @@ pub async fn get_scheduled_trigger_tasks(
         WHERE t.due_date < NOW()
           AND t.due_date > NOW() - INTERVAL '1 day'
           AND t.deleted_at IS NULL
+          AND t.parent_task_id IS NULL
           AND EXISTS (
               SELECT 1 FROM automation_rules ar
               WHERE ar.project_id = t.project_id
@@ -277,6 +278,7 @@ pub async fn get_scheduled_trigger_tasks(
         WHERE t.due_date > NOW()
           AND t.due_date <= NOW() + INTERVAL '24 hours'
           AND t.deleted_at IS NULL
+          AND t.parent_task_id IS NULL
           AND EXISTS (
               SELECT 1 FROM automation_rules ar
               WHERE ar.project_id = t.project_id

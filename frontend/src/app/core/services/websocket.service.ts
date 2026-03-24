@@ -48,7 +48,9 @@ export class WebSocketService implements OnDestroy {
     this.socketSubscription = this.socket$
       .pipe(
         retry({
-          delay: () => timer(3000),
+          count: 10,
+          delay: (_error, retryCount) => timer(Math.min(1000 * Math.pow(2, retryCount - 1), 60000)),
+          resetOnSuccess: true,
         }),
         share(),
       )

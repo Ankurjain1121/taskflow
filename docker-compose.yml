@@ -11,7 +11,7 @@ volumes:
 
 services:
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-09-07T18-42-37Z
     container_name: taskbolt-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
@@ -90,9 +90,9 @@ services:
       NOVU_API_KEY: ""
       LAGO_API_URL: ""
       LAGO_API_KEY: ""
-      WAHA_API_URL: "http://10.10.10.1:3001"
-      WAHA_API_KEY: "waha-internal-key-2024-secure"
-      WAHA_SESSION_NAME: "tenant-ed0e2bd5-0ee1-4eca-838e-c854d38e4426-1"
+      WAHA_API_URL: ${WAHA_API_URL:-}
+      WAHA_API_KEY: ${WAHA_API_KEY:-}
+      WAHA_SESSION_NAME: ${WAHA_SESSION_NAME:-}
       WAHA_ENABLED: "true"
       CRON_SECRET: ${CRON_SECRET:-}
       APP_URL: ${APP_URL:-http://localhost:4200}
@@ -110,7 +110,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 512M
+          memory: 1024M
         reservations:
           memory: 128M
     logging:

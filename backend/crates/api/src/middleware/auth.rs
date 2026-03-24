@@ -177,7 +177,7 @@ fn extract_token_from_auth_header(headers: &axum::http::HeaderMap) -> Option<Str
 
 /// Check if session exists in Redis and refresh its TTL (idle timeout enforcement)
 /// Returns Ok(()) if session is valid, Err if session is expired or not found
-async fn check_and_refresh_session(state: &AppState, session_key: &str) -> Result<(), String> {
+pub(crate) async fn check_and_refresh_session(state: &AppState, session_key: &str) -> Result<(), String> {
     // Check if session exists
     let mut redis_conn = state.redis.clone();
     let exists: bool = redis::cmd("EXISTS")

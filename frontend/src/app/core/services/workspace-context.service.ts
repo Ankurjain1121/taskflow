@@ -20,6 +20,7 @@ import { firstValueFrom, Subject, switchMap, retry, catchError, of } from 'rxjs'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WorkspaceService, Workspace } from './workspace.service';
 import { ProjectService, Board } from './project.service';
+import { CacheService } from './cache.service';
 
 const LS_ACTIVE_WS = 'taskbolt_active_ws';
 const LS_PROJECT_COLORS = 'taskbolt_project_colors';
@@ -37,6 +38,7 @@ export class WorkspaceContextService {
   private readonly router = inject(Router);
   private readonly workspaceService = inject(WorkspaceService);
   private readonly projectService = inject(ProjectService);
+  private readonly cacheService = inject(CacheService);
 
   // --- Core state ---
   readonly workspaces = signal<Workspace[]>([]);
@@ -121,13 +123,18 @@ export class WorkspaceContextService {
   /** Returns a promise that resolves when init() completes. */
   whenReady(): Promise<void> {
     if (this.initialized()) return Promise.resolve();
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const check = setInterval(() => {
         if (this.initialized()) {
           clearInterval(check);
+          clearTimeout(timeout);
           resolve();
         }
       }, 50);
+      const timeout = setTimeout(() => {
+        clearInterval(check);
+        reject(new Error('WorkspaceContextService.whenReady() timed out after 30s'));
+      }, 30000);
     });
   }
 
@@ -213,6 +220,7 @@ export class WorkspaceContextService {
   // --- Private helpers ---
 
   private setActive(wsId: string): void {
+    this.cacheService.clear();
     this.activeWorkspaceId.set(wsId);
     this.persistWsId(wsId);
     this.switchSubject.next(wsId);

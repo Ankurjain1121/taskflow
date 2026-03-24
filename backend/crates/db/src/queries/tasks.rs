@@ -392,9 +392,16 @@ pub async fn update_task_list(
 pub async fn soft_delete_task(pool: &PgPool, task_id: Uuid) -> Result<(), TaskQueryError> {
     let rows_affected = sqlx::query(
         r#"
+        WITH RECURSIVE task_tree AS (
+            SELECT id FROM tasks WHERE id = $1 AND deleted_at IS NULL
+            UNION ALL
+            SELECT t.id FROM tasks t
+            INNER JOIN task_tree tt ON t.parent_task_id = tt.id
+            WHERE t.deleted_at IS NULL
+        )
         UPDATE tasks
         SET deleted_at = NOW(), updated_at = NOW()
-        WHERE (id = $1 OR parent_task_id = $1) AND deleted_at IS NULL
+        WHERE id IN (SELECT id FROM task_tree)
         "#,
     )
     .bind(task_id)
