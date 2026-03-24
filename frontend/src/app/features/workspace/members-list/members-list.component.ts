@@ -6,6 +6,7 @@ import {
   computed,
   inject,
   effect,
+  viewChild,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -180,20 +181,7 @@ export interface MemberWithDetails extends WorkspaceMember {
                 <!-- Role -->
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="flex items-center gap-2">
-                    @if (isAdmin() && !isOwner(member) && !isSelf(member) && (!member.is_org_admin || isSuperAdmin())) {
-                      <select
-                        [value]="member.role"
-                        (change)="onRoleChange(member, $any($event.target).value)"
-                        [disabled]="updatingMember() === member.user_id"
-                        class="text-xs font-medium rounded-full px-2.5 py-1 border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
-                      >
-                        <option value="admin">Admin</option>
-                        <option value="member">Member</option>
-                        <option value="viewer">Viewer</option>
-                      </select>
-                    } @else {
-                      <app-role-badge [role]="member.role" />
-                    }
+                    <app-role-badge [role]="member.role" />
                     @if (member.is_org_admin) {
                       <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
                             pTooltip="Has full platform access" tooltipPosition="top">
@@ -407,6 +395,7 @@ export interface MemberWithDetails extends WorkspaceMember {
     <!-- Member Profile Dialog -->
     @if (selectedMember()) {
       <app-member-profile-dialog
+        #profileDialog
         [(visible)]="showProfileDialog"
         [member]="selectedMember()"
         [isAdmin]="isAdmin()"
@@ -435,6 +424,8 @@ export class MembersListComponent {
     emails: string[];
     role: 'admin' | 'manager' | 'member';
   }>();
+
+  private readonly profileDialog = viewChild<MemberProfileDialogComponent>('profileDialog');
 
   updatingMember = signal<string | null>(null);
   allInvitations = signal<InvitationWithStatus[]>([]);
@@ -666,12 +657,16 @@ export class MembersListComponent {
         newRole as 'admin' | 'member' | 'viewer',
       )
       .subscribe({
+        next: () => {
+          this.profileDialog()?.markSaved();
+        },
         error: () => {
           // Rollback: emit original role
           this.memberRoleChanged.emit({
             userId: member.user_id,
             role: originalRole,
           });
+          this.profileDialog()?.markSaved();
           this.showError('Failed to update member role');
         },
       });
