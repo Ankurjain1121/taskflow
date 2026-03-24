@@ -14,7 +14,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::reports::ReportQueryError;
+use taskbolt_db::queries::reports::ReportQueryError;
 
 #[derive(Debug, Serialize)]
 pub struct BurndownDataPoint {

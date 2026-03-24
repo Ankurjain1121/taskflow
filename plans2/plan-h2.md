@@ -9,11 +9,11 @@
 
 ## Requirements
 
-**H2 means:** When a new user signs up, they are asked a single use-case question ("What are you building?") and receive a pre-seeded sample board with 8-10 realistic demo tasks tailored to their answer. The sample board showcases TaskFlow's features (labels, priorities, due dates, subtasks, assignees) so the user immediately sees the product in action. A prominent "Delete this sample board" CTA is always visible.
+**H2 means:** When a new user signs up, they are asked a single use-case question ("What are you building?") and receive a pre-seeded sample board with 8-10 realistic demo tasks tailored to their answer. The sample board showcases TaskBolt's features (labels, priorities, due dates, subtasks, assignees) so the user immediately sees the product in action. A prominent "Delete this sample board" CTA is always visible.
 
 ### Sub-features IN SCOPE
 
-1. **Use-case selection step** — Single question during onboarding: "What will you use TaskFlow for?" with 4 use-case cards (Software Dev, Marketing, Personal Tasks, Design & Creative)
+1. **Use-case selection step** — Single question during onboarding: "What will you use TaskBolt for?" with 4 use-case cards (Software Dev, Marketing, Personal Tasks, Design & Creative)
 2. **Use-case-driven sample board generation** — Backend creates a board with columns, 8-10 tasks, labels, subtasks, and due dates specific to the selected use-case
 3. **Realistic demo data per use-case** — Each use-case gets different column names, task titles, labels, and priorities that feel like a real project
 4. **"Delete this sample board" CTA** — Visible banner on the generated board with a one-click delete action
@@ -45,7 +45,7 @@
 
 ### Single Most Important Gap
 
-TaskFlow currently generates a **generic "Getting Started" board** with 6 vague tasks like "Explore the Kanban board" and "Try dragging tasks between columns." These feel like tutorial instructions, not real work. **The gap is personalization** — users don't see themselves in the sample data. Asana's use-case question gives users a board that looks like their actual project from day one, cutting time-to-value by 40%.
+TaskBolt currently generates a **generic "Getting Started" board** with 6 vague tasks like "Explore the Kanban board" and "Try dragging tasks between columns." These feel like tutorial instructions, not real work. **The gap is personalization** — users don't see themselves in the sample data. Asana's use-case question gives users a board that looks like their actual project from day one, cutting time-to-value by 40%.
 
 ---
 
@@ -195,7 +195,7 @@ Update all board queries that return Board structs to include `is_sample` in SEL
 ```html
 <div class="space-y-6">
   <div class="text-center mb-8">
-    <h2>What will you use TaskFlow for?</h2>
+    <h2>What will you use TaskBolt for?</h2>
     <p>We'll set up a sample board to get you started.</p>
   </div>
 
@@ -253,7 +253,7 @@ Update all board queries that return Board structs to include `is_sample` in SEL
     <div class="flex items-center gap-2">
       <svg class="w-4 h-4 text-amber-600"><!-- info icon --></svg>
       <span class="text-sm text-amber-800 dark:text-amber-300">
-        This is a sample board to help you explore TaskFlow.
+        This is a sample board to help you explore TaskBolt.
       </span>
     </div>
     <div class="flex items-center gap-3">
@@ -432,7 +432,7 @@ sampleColumnsMap: Record<string, SampleColumn[]> = {
 
 ## Success Criteria Checklist
 
-- [ ] **Use-case step visible:** During onboarding full flow, a "What will you use TaskFlow for?" screen appears with 4 cards (Software, Marketing, Personal, Design) between the invite step and sample board step
+- [ ] **Use-case step visible:** During onboarding full flow, a "What will you use TaskBolt for?" screen appears with 4 cards (Software, Marketing, Personal, Design) between the invite step and sample board step
 - [ ] **Selection highlight:** Clicking a use-case card highlights it with a blue border; the Continue button is disabled until a card is selected
 - [ ] **Skip works:** "Skip" link bypasses use-case selection and creates the default generic board
 - [ ] **Preview matches selection:** The sample board preview in step 4 shows column names and task counts matching the selected use-case
@@ -444,7 +444,7 @@ sampleColumnsMap: Record<string, SampleColumn[]> = {
 - [ ] **Due dates present:** At least 3 tasks per template have due dates within the next 7 days
 - [ ] **Labels present:** Each template creates 3 use-case-specific labels, attached to relevant tasks
 - [ ] **Navigate to board:** After sample board generation, clicking the CTA navigates to `/workspace/:wid/board/:bid` (the actual board, not the dashboard)
-- [ ] **Sample banner visible:** The generated board shows an amber banner at the top: "This is a sample board to help you explore TaskFlow."
+- [ ] **Sample banner visible:** The generated board shows an amber banner at the top: "This is a sample board to help you explore TaskBolt."
 - [ ] **Delete works:** Clicking "Delete this board" on the banner deletes the board and navigates to dashboard
 - [ ] **Banner dismissible:** Clicking "X" on the banner hides it; persistence in localStorage
 - [ ] **is_sample flag:** Board created with `is_sample = true` in database

@@ -557,9 +557,10 @@ async fn test_remove_board_member() {
     let pool = test_pool().await;
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(&pool).await;
 
-    let bwc = projects::create_project(&pool, "RemoveMember Board", None, ws_id, tenant_id, user_id)
-        .await
-        .unwrap();
+    let bwc =
+        projects::create_project(&pool, "RemoveMember Board", None, ws_id, tenant_id, user_id)
+            .await
+            .unwrap();
 
     let email2 = unique_email();
     let user2 = auth::create_user(

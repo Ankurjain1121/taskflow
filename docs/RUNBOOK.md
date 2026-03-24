@@ -1,4 +1,4 @@
-# TaskFlow Operations Runbook
+# TaskBolt Operations Runbook
 
 > Auto-generated from source-of-truth: scripts/, docker-compose.yml, .env.example, codemaps/
 > Last updated: 2026-03-16
@@ -7,7 +7,7 @@
 
 ### VPS Info
 
-- **App path**: `/home/ankur/taskflow` (NEVER use `/root/taskflow` -- deprecated)
+- **App path**: `/home/ankur/taskflow` (NEVER use `/root/taskbolt` -- deprecated)
 - **Domain**: taskflow.paraslace.in
 - **Reverse proxy**: nginx (NOT Caddy)
 - **SSL**: Certbot (Let's Encrypt)
@@ -72,10 +72,10 @@ docker compose --profile whatsapp up -d
 
 | Service | Type | Details |
 |---------|------|---------|
-| backend | Docker | taskflow-backend:8080 (Rust/Axum) |
-| frontend | Docker | taskflow-frontend:80 (Angular/Nginx) |
-| minio | Docker | taskflow-minio:9000/9001 (S3 storage) |
-| PostgreSQL 16 | Host | 10.0.2.1:5432, user: taskflow_app |
+| backend | Docker | taskbolt-backend:8080 (Rust/Axum) |
+| frontend | Docker | taskbolt-frontend:80 (Angular/Nginx) |
+| minio | Docker | taskbolt-minio:9000/9001 (S3 storage) |
+| PostgreSQL 16 | Host | 10.0.2.1:5432, user: taskbolt_app |
 | Redis 7 | Host | 10.0.2.1:6379 |
 
 Network: Docker bridge 10.0.2.0/24 (gateway 10.0.2.1) for host service access.
@@ -178,28 +178,28 @@ cd backend && sqlx migrate run --source crates/db/src/migrations
 
 ```bash
 # Host PostgreSQL (not Docker)
-psql -h 10.0.2.1 -U taskflow_app -d taskflow
+psql -h 10.0.2.1 -U taskbolt_app -d taskbolt
 
 # Or via localhost
-sudo -u postgres psql -d taskflow
+sudo -u postgres psql -d taskbolt
 ```
 
 ### Backup Database
 
 ```bash
-pg_dump -h 10.0.2.1 -U taskflow_app taskflow > backup_$(date +%Y%m%d).sql
+pg_dump -h 10.0.2.1 -U taskbolt_app taskbolt > backup_$(date +%Y%m%d).sql
 ```
 
 ### Restore Database
 
 ```bash
-psql -h 10.0.2.1 -U taskflow_app -d taskflow < backup.sql
+psql -h 10.0.2.1 -U taskbolt_app -d taskbolt < backup.sql
 ```
 
 ### Refresh Materialized Views
 
 ```bash
-psql -h 10.0.2.1 -U taskflow_app -d taskflow -c "SELECT refresh_metrics_views();"
+psql -h 10.0.2.1 -U taskbolt_app -d taskbolt -c "SELECT refresh_metrics_views();"
 ```
 
 ### Key Tables Reference
@@ -321,7 +321,7 @@ docker compose restart backend
 docker compose stop backend
 
 # Restore database
-psql -h 10.0.2.1 -U taskflow_app -d taskflow < backup.sql
+psql -h 10.0.2.1 -U taskbolt_app -d taskbolt < backup.sql
 
 # Restart
 docker compose start backend

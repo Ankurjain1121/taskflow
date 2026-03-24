@@ -5,7 +5,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use taskflow_db::models::{BoardMemberRole, TaskPriority};
+use taskbolt_db::models::{BoardMemberRole, TaskPriority};
 
 // ============================================================================
 // Request/Response DTOs

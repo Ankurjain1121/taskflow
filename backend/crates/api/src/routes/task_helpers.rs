@@ -3,9 +3,9 @@ use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::Result;
-use taskflow_db::models::TaskPriority;
-use taskflow_services::broadcast::events;
-use taskflow_services::BroadcastService;
+use taskbolt_db::models::TaskPriority;
+use taskbolt_services::broadcast::events;
+use taskbolt_services::BroadcastService;
 
 /// Sanitize HTML content from rich text editor.
 /// Allows safe formatting tags, removes scripts and dangerous attributes.
@@ -47,7 +47,7 @@ pub fn sanitize_html(input: &str) -> String {
 /// Response for listing tasks by project
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct ListTasksResponse {
-    pub tasks: std::collections::HashMap<Uuid, Vec<taskflow_db::models::Task>>,
+    pub tasks: std::collections::HashMap<Uuid, Vec<taskbolt_db::models::Task>>,
 }
 
 /// Request body for creating a task
@@ -474,7 +474,7 @@ mod tests {
     fn test_list_tasks_response_serialize_with_data() {
         let status_id = Uuid::new_v4();
         let now = chrono::Utc::now();
-        let task = taskflow_db::models::Task {
+        let task = taskbolt_db::models::Task {
             id: Uuid::new_v4(),
             title: "Test Task".to_string(),
             description: None,

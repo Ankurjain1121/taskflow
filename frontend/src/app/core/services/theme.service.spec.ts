@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // We test the ThemeService logic by testing the key behaviors directly,
 // since the full Angular DI (TestBed) requires zone.js setup.
 
-const THEME_STORAGE_KEY = 'taskflow-theme';
+const THEME_STORAGE_KEY = 'taskbolt-theme';
 
 describe('ThemeService - storage logic', () => {
   beforeEach(() => {

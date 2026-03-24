@@ -80,7 +80,7 @@ fn generate_totp_secret() -> String {
 
 /// Build an otpauth:// URI for QR code generation.
 fn build_otpauth_uri(secret_base32: &str, email: &str) -> String {
-    let issuer = "TaskFlow";
+    let issuer = "TaskBolt";
     format!(
         "otpauth://totp/{issuer}:{email}?secret={secret_base32}&issuer={issuer}&algorithm=SHA1&digits=6&period=30"
     )
@@ -460,7 +460,7 @@ pub async fn challenge_handler(
         .unwrap_or(());
 
     // Get full user data for session
-    let full_user = taskflow_db::queries::auth::get_user_by_id(&state.db, user_id)
+    let full_user = taskbolt_db::queries::auth::get_user_by_id(&state.db, user_id)
         .await?
         .ok_or_else(|| AppError::InternalError("User not found after 2FA".into()))?;
 

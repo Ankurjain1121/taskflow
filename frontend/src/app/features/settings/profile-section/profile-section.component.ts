@@ -189,6 +189,9 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
               >Use E.164 format (e.g. +1234567890)</small
             >
           }
+          <small class="text-xs" style="color: var(--muted-foreground)">
+            E.164 format (e.g., +919876543210). Required for WhatsApp notifications.
+          </small>
         </div>
 
         <!-- Job Title -->
@@ -405,6 +408,7 @@ export class ProfileSectionComponent implements OnInit {
     const user = this.authService.currentUser();
     if (user) {
       this.name = user.name;
+      this.phoneNumber = user.phone_number ?? '';
       this.avatarUrl = user.avatar_url ?? '';
       this.avatarPreview.set(user.avatar_url ?? null);
       this.jobTitle = user.job_title ?? '';

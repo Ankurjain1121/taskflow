@@ -9,16 +9,16 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::services::cache;
 use crate::state::AppState;
-use taskflow_db::models::automation::AutomationTrigger;
-use taskflow_db::models::{Task, TaskBroadcast, WsBoardEvent};
-use taskflow_db::queries::{
+use taskbolt_db::models::automation::AutomationTrigger;
+use taskbolt_db::models::{Task, TaskBroadcast, WsBoardEvent};
+use taskbolt_db::queries::{
     create_task, duplicate_task, find_done_status, find_non_done_status, get_task_assignee_ids,
     get_task_board_id, get_task_by_id, get_task_row, get_user_display_name, list_tasks_by_board,
     soft_delete_task, update_task, CreateTaskInput, TaskQueryError, TaskWithDetails,
     UpdateTaskInput,
 };
-use taskflow_services::broadcast::events;
-use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
+use taskbolt_services::broadcast::events;
+use taskbolt_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
 
 use super::common::verify_project_membership;
 use super::task_helpers::{
@@ -141,7 +141,7 @@ pub async fn create_task_handler(
             status_id: task.status_id,
             position: task.position.clone(),
             assignee_ids: assignee_ids.clone(),
-            watcher_ids: taskflow_db::queries::get_task_watcher_ids(&state.db, task.id)
+            watcher_ids: taskbolt_db::queries::get_task_watcher_ids(&state.db, task.id)
                 .await
                 .unwrap_or_default(),
             updated_at: task.updated_at,
@@ -303,7 +303,7 @@ pub async fn update_task_handler(
             status_id: task.status_id,
             position: task.position.clone(),
             assignee_ids: assignee_ids.clone(),
-            watcher_ids: taskflow_db::queries::get_task_watcher_ids(&state.db, task.id)
+            watcher_ids: taskbolt_db::queries::get_task_watcher_ids(&state.db, task.id)
                 .await
                 .unwrap_or_default(),
             updated_at: task.updated_at,
@@ -334,7 +334,7 @@ pub async fn update_task_handler(
 
     // Reset reminders when due_date changes
     if due_date_changed {
-        if let Err(e) = taskflow_db::queries::reset_reminders_for_task(&state.db, task_id).await {
+        if let Err(e) = taskbolt_db::queries::reset_reminders_for_task(&state.db, task_id).await {
             tracing::error!(task_id = %task_id, error = %e, "Failed to reset reminders after due_date change");
         }
     }
@@ -447,7 +447,7 @@ pub async fn complete_task_handler(
         .ok_or_else(|| AppError::BadRequest("No done status found on project".into()))?;
 
     let task =
-        taskflow_db::queries::move_task(&state.db, task_id, done_status_id, "a0".to_string())
+        taskbolt_db::queries::move_task(&state.db, task_id, done_status_id, "a0".to_string())
             .await
             .map_err(|e| match e {
                 TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
@@ -482,7 +482,7 @@ pub async fn uncomplete_task_handler(
     let status_id = status_id
         .ok_or_else(|| AppError::BadRequest("No non-done status found on project".into()))?;
 
-    let task = taskflow_db::queries::move_task(&state.db, task_id, status_id, "a0".to_string())
+    let task = taskbolt_db::queries::move_task(&state.db, task_id, status_id, "a0".to_string())
         .await
         .map_err(|e| match e {
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
@@ -536,7 +536,7 @@ pub async fn duplicate_task_handler(
             status_id: task.status_id,
             position: task.position.clone(),
             assignee_ids: assignee_ids.clone(),
-            watcher_ids: taskflow_db::queries::get_task_watcher_ids(&state.db, task.id)
+            watcher_ids: taskbolt_db::queries::get_task_watcher_ids(&state.db, task.id)
                 .await
                 .unwrap_or_default(),
             updated_at: task.updated_at,

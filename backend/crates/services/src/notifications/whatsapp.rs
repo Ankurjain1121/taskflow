@@ -202,7 +202,7 @@ pub async fn send_whatsapp_notification(
 }
 
 /// Get an emoji for the event type
-fn get_event_emoji(event_type: &str) -> &'static str {
+pub fn get_event_emoji(event_type: &str) -> &'static str {
     match event_type {
         "task-assigned" => "\u{1F4E5}",      // inbox_tray
         "task-due-soon" => "\u{23F0}",       // alarm_clock

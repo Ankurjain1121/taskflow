@@ -13,7 +13,7 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
         tracing::info!("Recurring task scheduler started (interval: 10 min)");
         loop {
             interval.tick().await;
-            match taskflow_db::queries::recurring_generation::get_due_configs(&recurring_pool).await
+            match taskbolt_db::queries::recurring_generation::get_due_configs(&recurring_pool).await
             {
                 Ok(configs) => {
                     if configs.is_empty() {
@@ -24,7 +24,7 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
                     let mut created = 0usize;
                     let mut errors = 0usize;
                     for config in &configs {
-                        match taskflow_db::queries::recurring_generation::create_recurring_instance(
+                        match taskbolt_db::queries::recurring_generation::create_recurring_instance(
                             &recurring_pool,
                             config,
                         )
@@ -53,7 +53,7 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
     // Only starts if Postal is configured. Resend-only setups skip the worker
     // (the dispatcher enqueues jobs; a future worker upgrade will use the trait).
     if !config.postal_api_key.is_empty() {
-        let postal = taskflow_services::PostalClient::new(
+        let postal = taskbolt_services::PostalClient::new(
             config.postal_api_url.clone(),
             config.postal_api_key.clone(),
             config.postal_from_address.clone(),
@@ -61,7 +61,7 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
         );
         let worker_redis = state.redis.clone();
         tracing::info!("Email worker started (provider: Postal)");
-        tokio::spawn(taskflow_services::jobs::email_worker::run_email_worker(
+        tokio::spawn(taskbolt_services::jobs::email_worker::run_email_worker(
             worker_redis,
             postal,
         ));
@@ -90,13 +90,13 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
                     tracing::debug!("Daily digest skipped: no email provider configured");
                     continue;
                 }
-                let postal = taskflow_services::PostalClient::new(
+                let postal = taskbolt_services::PostalClient::new(
                     digest_config.postal_api_url.clone(),
                     digest_config.postal_api_key.clone(),
                     digest_config.postal_from_address.clone(),
                     digest_config.postal_from_name.clone(),
                 );
-                match taskflow_services::jobs::daily_digest::send_daily_digests(
+                match taskbolt_services::jobs::daily_digest::send_daily_digests(
                     &digest_pool,
                     &postal,
                     &digest_config.app_url,
@@ -130,13 +130,13 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
                     tracing::debug!("Weekly digest skipped: no email provider configured");
                     continue;
                 }
-                let postal = taskflow_services::PostalClient::new(
+                let postal = taskbolt_services::PostalClient::new(
                     digest_config.postal_api_url.clone(),
                     digest_config.postal_api_key.clone(),
                     digest_config.postal_from_address.clone(),
                     digest_config.postal_from_name.clone(),
                 );
-                match taskflow_services::send_weekly_digests(
+                match taskbolt_services::send_weekly_digests(
                     &digest_pool,
                     &postal,
                     &digest_config.app_url,
@@ -153,5 +153,90 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
                 }
             }
         });
+    }
+
+    // Spawn background job: daily WhatsApp digest (8 AM IST = 02:30 UTC)
+    if let Some(waha_client) = &state.waha_client {
+        // Daily WhatsApp digest
+        {
+            let wa_pool = state.db.clone();
+            let wa_client = waha_client.clone();
+            let wa_app_url = config.app_url.clone();
+            tokio::spawn(async move {
+                // Calculate delay until next 02:30 UTC
+                let now = chrono::Utc::now();
+                let today_0230 = now
+                    .date_naive()
+                    .and_hms_opt(2, 30, 0)
+                    .expect("valid time")
+                    .and_utc();
+                let next_run = if now < today_0230 {
+                    today_0230
+                } else {
+                    today_0230 + chrono::Duration::days(1)
+                };
+                let delay = (next_run - now).to_std().unwrap_or(Duration::from_secs(60));
+                tracing::info!(
+                    next_run = %next_run,
+                    delay_secs = delay.as_secs(),
+                    "WhatsApp daily digest scheduled (8 AM IST)"
+                );
+                tokio::time::sleep(delay).await;
+
+                let mut interval = tokio::time::interval(Duration::from_secs(86400));
+                interval.tick().await;
+                loop {
+                    interval.tick().await;
+                    match taskbolt_services::jobs::whatsapp_digest::send_daily_whatsapp_digests(
+                        &wa_pool,
+                        &wa_client,
+                        &wa_app_url,
+                    )
+                    .await
+                    {
+                        Ok(r) => tracing::info!(
+                            users = r.users_processed,
+                            sent = r.messages_sent,
+                            errs = r.errors,
+                            "WhatsApp daily digest completed"
+                        ),
+                        Err(e) => tracing::error!(error = %e, "WhatsApp daily digest failed"),
+                    }
+                }
+            });
+        }
+
+        // Weekly WhatsApp summary (Mondays at 02:30 UTC)
+        {
+            let wa_pool = state.db.clone();
+            let wa_client = waha_client.clone();
+            let wa_app_url = config.app_url.clone();
+            tokio::spawn(async move {
+                tokio::time::sleep(Duration::from_secs(20)).await;
+                let mut interval = tokio::time::interval(Duration::from_secs(604800));
+                interval.tick().await;
+                tracing::info!("WhatsApp weekly summary scheduler started (interval: 7d)");
+                loop {
+                    interval.tick().await;
+                    match taskbolt_services::jobs::whatsapp_digest::send_weekly_whatsapp_summaries(
+                        &wa_pool,
+                        &wa_client,
+                        &wa_app_url,
+                    )
+                    .await
+                    {
+                        Ok(r) => tracing::info!(
+                            users = r.users_processed,
+                            sent = r.messages_sent,
+                            errs = r.errors,
+                            "WhatsApp weekly summary completed"
+                        ),
+                        Err(e) => tracing::error!(error = %e, "WhatsApp weekly summary failed"),
+                    }
+                }
+            });
+        }
+    } else {
+        tracing::info!("WhatsApp digest jobs skipped: WAHA client not configured");
     }
 }

@@ -13,8 +13,8 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::get_task_project_id;
-use taskflow_db::queries::time_entries::{
+use taskbolt_db::queries::get_task_project_id;
+use taskbolt_db::queries::time_entries::{
     create_manual_entry, delete_entry, get_board_time_report, get_running_timer,
     get_timesheet_report, list_task_time_entries, start_timer, stop_timer, update_entry,
     ManualEntryInput, StartTimerInput, TimeEntryQueryError, UpdateEntryInput,
@@ -76,7 +76,7 @@ async fn list_entries_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-) -> Result<Json<Vec<taskflow_db::models::TimeEntry>>> {
+) -> Result<Json<Vec<taskbolt_db::models::TimeEntry>>> {
     let entries = list_task_time_entries(&state.db, task_id, tenant.user_id)
         .await
         .map_err(map_time_entry_error)?;
@@ -90,7 +90,7 @@ async fn start_timer_handler(
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
     Json(body): Json<StartTimerRequest>,
-) -> Result<Json<taskflow_db::models::TimeEntry>> {
+) -> Result<Json<taskbolt_db::models::TimeEntry>> {
     let board_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
@@ -116,7 +116,7 @@ async fn stop_timer_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(id): Path<Uuid>,
-) -> Result<Json<taskflow_db::models::TimeEntry>> {
+) -> Result<Json<taskbolt_db::models::TimeEntry>> {
     let entry = stop_timer(&state.db, id, tenant.user_id)
         .await
         .map_err(map_time_entry_error)?;
@@ -130,7 +130,7 @@ async fn create_manual_entry_handler(
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
     Json(body): Json<CreateManualEntryRequest>,
-) -> Result<Json<taskflow_db::models::TimeEntry>> {
+) -> Result<Json<taskbolt_db::models::TimeEntry>> {
     let board_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
@@ -160,7 +160,7 @@ async fn update_entry_handler(
     tenant: TenantContext,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateEntryRequest>,
-) -> Result<Json<taskflow_db::models::TimeEntry>> {
+) -> Result<Json<taskbolt_db::models::TimeEntry>> {
     let input = UpdateEntryInput {
         description: body.description,
         started_at: body.started_at,
@@ -194,7 +194,7 @@ async fn board_time_report_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
-) -> Result<Json<Vec<taskflow_db::queries::time_entries::TaskTimeReport>>> {
+) -> Result<Json<Vec<taskbolt_db::queries::time_entries::TaskTimeReport>>> {
     let report = get_board_time_report(&state.db, board_id, tenant.user_id)
         .await
         .map_err(map_time_entry_error)?;
@@ -208,7 +208,7 @@ async fn timesheet_report_handler(
     tenant: TenantContext,
     Path(project_id): Path<Uuid>,
     Query(params): Query<TimesheetReportQuery>,
-) -> Result<Json<taskflow_db::queries::time_entries::TimesheetReport>> {
+) -> Result<Json<taskbolt_db::queries::time_entries::TimesheetReport>> {
     let report = get_timesheet_report(
         &state.db,
         project_id,
@@ -228,7 +228,7 @@ async fn timesheet_report_handler(
 async fn get_running_timer_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-) -> Result<Json<Option<taskflow_db::queries::time_entries::TimeEntryWithTask>>> {
+) -> Result<Json<Option<taskbolt_db::queries::time_entries::TimeEntryWithTask>>> {
     let entry = get_running_timer(&state.db, tenant.user_id)
         .await
         .map_err(map_time_entry_error)?;

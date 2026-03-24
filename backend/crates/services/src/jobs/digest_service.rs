@@ -39,8 +39,8 @@ impl DigestPeriod {
     /// Email subject line
     pub fn email_subject(&self) -> &'static str {
         match self {
-            DigestPeriod::Daily => "[TaskFlow] Your Daily Summary",
-            DigestPeriod::Weekly => "[TaskFlow] Your Weekly Summary",
+            DigestPeriod::Daily => "[TaskBolt] Your Daily Summary",
+            DigestPeriod::Weekly => "[TaskBolt] Your Weekly Summary",
         }
     }
 
@@ -341,11 +341,11 @@ mod tests {
     fn test_digest_period_email_subject() {
         assert_eq!(
             DigestPeriod::Daily.email_subject(),
-            "[TaskFlow] Your Daily Summary"
+            "[TaskBolt] Your Daily Summary"
         );
         assert_eq!(
             DigestPeriod::Weekly.email_subject(),
-            "[TaskFlow] Your Weekly Summary"
+            "[TaskBolt] Your Weekly Summary"
         );
     }
 

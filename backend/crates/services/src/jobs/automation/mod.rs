@@ -21,8 +21,8 @@ use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use taskflow_db::models::automation::AutomationTrigger;
-use taskflow_db::queries::automation_evaluation::{get_active_rules_for_trigger, log_automation};
+use taskbolt_db::models::automation::AutomationTrigger;
+use taskbolt_db::queries::automation_evaluation::{get_active_rules_for_trigger, log_automation};
 
 use actions::execute_action;
 use safety::{
@@ -43,7 +43,7 @@ pub enum AutomationExecutorError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
     #[error("Query error: {0}")]
-    Query(#[from] taskflow_db::queries::automations::AutomationQueryError),
+    Query(#[from] taskbolt_db::queries::automations::AutomationQueryError),
     #[error("Action failed: {0}")]
     ActionFailed(String),
     #[error("Depth limit exceeded: depth {0} > max {1}")]
@@ -289,7 +289,7 @@ pub async fn execute_scheduled_automations(
     pool: &PgPool,
     redis: &mut redis::aio::ConnectionManager,
 ) -> Result<ScheduledAutomationResult, AutomationExecutorError> {
-    use taskflow_db::queries::automation_evaluation::get_scheduled_trigger_tasks;
+    use taskbolt_db::queries::automation_evaluation::get_scheduled_trigger_tasks;
 
     let tasks = get_scheduled_trigger_tasks(pool).await?;
 

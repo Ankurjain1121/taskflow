@@ -14,8 +14,8 @@ pub mod slack;
 pub mod whatsapp;
 
 pub use email::{
-    build_email_provider, generate_weekly_digest_html, AnyEmailProvider, EmailError, PostalClient,
-    ResendClient,
+    build_email_provider, generate_invitation_html, generate_weekly_digest_html, AnyEmailProvider,
+    EmailError, PostalClient, ResendClient,
 };
 pub use events::NotificationEvent;
 pub use service::{NotificationService, NotificationServiceError};

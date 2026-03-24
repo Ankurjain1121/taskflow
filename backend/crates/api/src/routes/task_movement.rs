@@ -9,15 +9,18 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::services::cache;
 use crate::state::AppState;
-use taskflow_db::models::automation::AutomationTrigger;
-use taskflow_db::models::{Task, TaskBroadcast, WsBoardEvent};
-use taskflow_db::queries::{
+use taskbolt_db::models::automation::AutomationTrigger;
+use taskbolt_db::models::{Task, TaskBroadcast, WsBoardEvent};
+use taskbolt_db::queries::{
     get_task_assignee_ids, get_task_board_id, get_task_status_id, get_task_watcher_ids,
     get_user_display_name, is_done_status, move_subtasks_to_project, move_task,
     move_task_to_project, strip_task_labels_for_project, validate_transition,
 };
-use taskflow_services::notifications::NotificationService;
-use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
+use taskbolt_services::notifications::dispatcher::notify;
+use taskbolt_services::notifications::NotificationService;
+use taskbolt_services::{
+    spawn_automation_evaluation, BroadcastService, NotifyContext, TriggerContext,
+};
 
 use super::common::verify_project_membership;
 use super::task_helpers::{
@@ -56,8 +59,8 @@ pub async fn move_task_handler(
         validate_transition(&state.db, from_status_id, body.status_id)
             .await
             .map_err(|e| match e {
-                taskflow_db::queries::TaskQueryError::Other(msg) => AppError::ValidationError(msg),
-                taskflow_db::queries::TaskQueryError::NotFound => {
+                taskbolt_db::queries::TaskQueryError::Other(msg) => AppError::ValidationError(msg),
+                taskbolt_db::queries::TaskQueryError::NotFound => {
                     AppError::NotFound("Source status not found".into())
                 }
                 other => AppError::from(other),
@@ -143,6 +146,7 @@ pub async fn move_task_handler(
         // Send TaskCompleted notifications to assignees (fire-and-forget, skip completer)
         let db = state.db.clone();
         let redis = state.redis.clone();
+        let waha_client = state.waha_client.clone();
         let app_url = state.config.app_url.clone();
         let completer_id = tenant.user_id;
         let task_title = task.title.clone();
@@ -156,28 +160,41 @@ pub async fn move_task_handler(
             let assignees = get_task_assignee_ids(&db, task_id)
                 .await
                 .unwrap_or_default();
-            let notification_svc =
-                NotificationService::new(db.clone(), BroadcastService::new(redis), None, app_url);
+            let notification_svc = NotificationService::new(
+                db.clone(),
+                BroadcastService::new(redis.clone()),
+                None,
+                app_url.clone(),
+            );
             let title = format!("{} completed a task", completer_name);
             let body = format!("\"{}\" has been marked as done", task_title);
             let link = format!("/task/{}", task_id);
 
+            let notify_ctx = NotifyContext {
+                pool: &db,
+                redis: &redis,
+                notification_svc: &notification_svc,
+                app_url: &app_url,
+                slack_webhook_url: None, // TODO: get from workspace settings
+                waha_client: waha_client.as_ref(),
+            };
+
             for assignee_id in assignees {
                 if assignee_id != completer_id {
-                    if let Err(e) = notification_svc
-                        .create_notification(
-                            assignee_id,
-                            taskflow_services::NotificationEvent::TaskCompleted,
-                            &title,
-                            &body,
-                            Some(&link),
-                        )
-                        .await
+                    if let Err(e) = notify(
+                        &notify_ctx,
+                        taskbolt_services::NotificationEvent::TaskCompleted,
+                        assignee_id,
+                        &title,
+                        &body,
+                        Some(&link),
+                    )
+                    .await
                     {
                         tracing::error!(
                             assignee_id = %assignee_id,
                             error = %e,
-                            "Failed to create TaskCompleted notification"
+                            "Failed to dispatch TaskCompleted notification"
                         );
                     }
                 }

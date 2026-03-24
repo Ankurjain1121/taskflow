@@ -11,7 +11,7 @@
 
 ### What H1 Means
 
-Transform every blank/empty view in TaskFlow from a dead-end into a teaching moment. Empty states should (1) explain why the screen is blank, (2) guide the user to the single most useful next action, and (3) optionally teach a shortcut or feature they may not know about.
+Transform every blank/empty view in TaskBolt from a dead-end into a teaching moment. Empty states should (1) explain why the screen is blank, (2) guide the user to the single most useful next action, and (3) optionally teach a shortcut or feature they may not know about.
 
 **Winner pattern (from comp.md):** Notion's double-duty empty state that doubles as a demo checklist (educational + functional), combined with Airtable's philosophy of eliminating blank states entirely via pre-populated content. Both approaches cut time-to-value by 40%+.
 
@@ -52,7 +52,7 @@ Transform every blank/empty view in TaskFlow from a dead-end into a teaching mom
 
 ### Most Important Gap
 
-TaskFlow has ~15 empty states scattered across the app using inconsistent ad-hoc inline HTML. The existing `EmptyStateComponent` (7 variants) is defined in `shared/components/empty-state/` but is **not used anywhere in production code** -- only referenced in its own spec file. Every real empty state is hand-written inline markup with inconsistent styling, copy, and behavior.
+TaskBolt has ~15 empty states scattered across the app using inconsistent ad-hoc inline HTML. The existing `EmptyStateComponent` (7 variants) is defined in `shared/components/empty-state/` but is **not used anywhere in production code** -- only referenced in its own spec file. Every real empty state is hand-written inline markup with inconsistent styling, copy, and behavior.
 
 ---
 
@@ -248,7 +248,7 @@ export const EMPTY_STATE_CONFIGS: Record<EmptyStateVariant, EmptyStateConfig> = 
     icon: 'pi pi-key',
     colorScheme: 'warning',
     defaultTitle: 'No API keys yet',
-    defaultDescription: 'Generate an API key to integrate TaskFlow with other tools.',
+    defaultDescription: 'Generate an API key to integrate TaskBolt with other tools.',
     defaultCtaLabel: 'Generate Key',
   },
   teams: {
@@ -650,7 +650,7 @@ Each file below replaces inline ad-hoc empty state HTML with `<app-empty-state>`
 | milestones | No milestones yet | Create milestones to track major project checkpoints and deadlines. | Create Milestone | -- |
 | time-tracking | No time tracked | Start a timer on any task to track how long work takes. | -- | -- |
 | custom-fields | No custom fields yet | Add extra data to your tasks -- effort estimates, URLs, dropdowns, and more. | Create Field | -- |
-| api-keys | No API keys yet | Generate an API key to integrate TaskFlow with other tools. | Generate Key | -- |
+| api-keys | No API keys yet | Generate an API key to integrate TaskBolt with other tools. | Generate Key | -- |
 | teams | No teams yet | Organize workspace members into teams for better collaboration. | Create Team | -- |
 | labels | No labels yet | Create labels to categorize and filter your tasks. | Create Label | -- |
 | generic | Nothing here yet | (empty) | -- | -- |

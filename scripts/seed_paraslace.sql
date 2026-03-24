@@ -1,5 +1,5 @@
 -- =============================================================================
--- TaskFlow Seed: Paraslace tenant (admin1@paraslace.in)
+-- TaskBolt Seed: Paraslace tenant (admin1@paraslace.in)
 -- 19 new users + 4 projects + 500 tasks for testing
 -- =============================================================================
 -- Usage: psql -f scripts/seed_paraslace.sql

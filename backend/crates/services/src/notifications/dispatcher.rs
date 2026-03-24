@@ -5,14 +5,17 @@
 //! - In-app (always, via DB insert + WebSocket broadcast)
 //! - Email (via email queue)
 //! - Slack (if enabled + webhook configured)
+//! - WhatsApp (if enabled + phone number set + not in quiet hours)
 
+use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::jobs::email_queue::{enqueue_email, EmailJob};
 use crate::notifications::events::NotificationEvent;
 use crate::notifications::service::{NotificationService, NotificationServiceError};
-use taskflow_db::queries::notification_preferences::{
+use crate::notifications::whatsapp::WahaClient;
+use taskbolt_db::queries::notification_preferences::{
     should_notify, NotificationChannel, NotificationPreferenceError,
 };
 
@@ -27,39 +30,34 @@ pub enum DispatchError {
     EmailQueue(#[from] crate::jobs::email_queue::EmailQueueError),
 }
 
+/// Bundles all infrastructure dependencies the dispatcher needs.
+/// Avoids passing 10+ positional arguments to notify().
+pub struct NotifyContext<'a> {
+    pub pool: &'a PgPool,
+    pub redis: &'a redis::aio::ConnectionManager,
+    pub notification_svc: &'a NotificationService,
+    pub app_url: &'a str,
+    pub slack_webhook_url: Option<&'a str>,
+    pub waha_client: Option<&'a WahaClient>,
+}
+
 /// Result of a dispatch operation — reports which channels were used.
 #[derive(Debug, Default)]
 pub struct DispatchResult {
     pub in_app: bool,
     pub email_enqueued: bool,
     pub slack_sent: bool,
+    pub whatsapp_sent: bool,
 }
 
 /// Dispatch a notification to all channels the user has enabled.
-///
-/// # Arguments
-/// * `pool`               - Database connection pool
-/// * `redis`              - Redis connection (for email queue)
-/// * `notification_svc`   - The in-app notification service (DB + WebSocket)
-/// * `event`              - The notification event type
-/// * `recipient_id`       - Target user
-/// * `title`              - Short title (shown in-app and email subject)
-/// * `body`               - Longer body text
-/// * `link_url`           - Optional deep-link into the app
-/// * `app_url`            - Base app URL for building full links in emails
-/// * `slack_webhook_url`  - Optional Slack webhook (from project/workspace settings)
-#[allow(clippy::too_many_arguments)]
 pub async fn notify(
-    pool: &PgPool,
-    redis: &redis::aio::ConnectionManager,
-    notification_svc: &NotificationService,
+    ctx: &NotifyContext<'_>,
     event: NotificationEvent,
     recipient_id: Uuid,
     title: &str,
     body: &str,
     link_url: Option<&str>,
-    app_url: &str,
-    slack_webhook_url: Option<&str>,
 ) -> Result<DispatchResult, DispatchError> {
     let event_name = event.name();
     let mut result = DispatchResult::default();
@@ -67,12 +65,18 @@ pub async fn notify(
     // -----------------------------------------------------------------------
     // 1. In-app notification (always created)
     // -----------------------------------------------------------------------
-    let in_app_enabled = should_notify(pool, recipient_id, event_name, NotificationChannel::InApp)
-        .await
-        .unwrap_or(true); // default to true on error
+    let in_app_enabled = should_notify(
+        ctx.pool,
+        recipient_id,
+        event_name,
+        NotificationChannel::InApp,
+    )
+    .await
+    .unwrap_or(true);
 
     if in_app_enabled {
-        match notification_svc
+        match ctx
+            .notification_svc
             .create_notification(recipient_id, event, title, body, link_url)
             .await
         {
@@ -93,16 +97,20 @@ pub async fn notify(
     // -----------------------------------------------------------------------
     // 2. Email notification (enqueue for background worker)
     // -----------------------------------------------------------------------
-    let email_enabled = should_notify(pool, recipient_id, event_name, NotificationChannel::Email)
-        .await
-        .unwrap_or(true);
+    let email_enabled = should_notify(
+        ctx.pool,
+        recipient_id,
+        event_name,
+        NotificationChannel::Email,
+    )
+    .await
+    .unwrap_or(true);
 
     if email_enabled {
-        // Look up the user's email address
         let user_email: Option<String> =
             sqlx::query_scalar(r#"SELECT email FROM users WHERE id = $1 AND deleted_at IS NULL"#)
                 .bind(recipient_id)
-                .fetch_optional(pool)
+                .fetch_optional(ctx.pool)
                 .await
                 .ok()
                 .flatten();
@@ -112,12 +120,11 @@ pub async fn notify(
                 if u.starts_with("http") {
                     u.to_string()
                 } else {
-                    format!("{}{}", app_url, u)
+                    format!("{}{}", ctx.app_url, u)
                 }
             });
-            let subject = format!("[TaskFlow] {}", title);
+            let subject = format!("[TaskBolt] {}", title);
 
-            // Build simple HTML body (same template as PostalClient::send_notification_email)
             let link_html = full_link
                 .as_deref()
                 .map(|url| {
@@ -142,12 +149,13 @@ pub async fn notify(
         <a href="{app_url}/settings/notifications" style="color: #6366f1;">Manage preferences</a>
     </p>
 </body>
-</html>"#
+</html>"#,
+                app_url = ctx.app_url
             );
 
             let job = EmailJob::new(email, subject, html_body, event_name.to_string());
 
-            match enqueue_email(redis, &job).await {
+            match enqueue_email(ctx.redis, &job).await {
                 Ok(()) => {
                     result.email_enqueued = true;
                 }
@@ -166,11 +174,15 @@ pub async fn notify(
     // -----------------------------------------------------------------------
     // 3. Slack notification
     // -----------------------------------------------------------------------
-    if let Some(webhook_url) = slack_webhook_url {
-        let slack_enabled =
-            should_notify(pool, recipient_id, event_name, NotificationChannel::Slack)
-                .await
-                .unwrap_or(false);
+    if let Some(webhook_url) = ctx.slack_webhook_url {
+        let slack_enabled = should_notify(
+            ctx.pool,
+            recipient_id,
+            event_name,
+            NotificationChannel::Slack,
+        )
+        .await
+        .unwrap_or(false);
 
         if slack_enabled {
             match crate::notifications::slack::send_slack_notification(
@@ -197,6 +209,106 @@ pub async fn notify(
         }
     }
 
+    // -----------------------------------------------------------------------
+    // 4. WhatsApp notification
+    // -----------------------------------------------------------------------
+    if let Some(waha_client) = ctx.waha_client {
+        let wa_enabled = should_notify(
+            ctx.pool,
+            recipient_id,
+            event_name,
+            NotificationChannel::WhatsApp,
+        )
+        .await
+        .unwrap_or(false);
+
+        if wa_enabled {
+            // Check quiet hours
+            let in_quiet_hours =
+                match taskbolt_db::queries::user_prefs::get_quiet_hours(ctx.pool, recipient_id)
+                    .await
+                {
+                    Ok(Some((start, end))) => {
+                        // Use IST (UTC+5:30) for quiet hours check
+                        let ist_offset = chrono::FixedOffset::east_opt(5 * 3600 + 30 * 60)
+                            .expect("valid offset");
+                        let now_ist = Utc::now().with_timezone(&ist_offset).time();
+                        taskbolt_db::queries::is_in_quiet_hours(now_ist, start, end)
+                    }
+                    _ => false,
+                };
+
+            if in_quiet_hours {
+                tracing::debug!(
+                    recipient_id = %recipient_id,
+                    event = event_name,
+                    "Skipping WhatsApp notification: quiet hours active"
+                );
+            } else {
+                // Look up user's phone number
+                let phone: Option<String> = sqlx::query_scalar(
+                    r#"SELECT phone_number FROM users WHERE id = $1 AND deleted_at IS NULL"#,
+                )
+                .bind(recipient_id)
+                .fetch_optional(ctx.pool)
+                .await
+                .ok()
+                .flatten();
+
+                if let Some(phone_number) = phone {
+                    // Format WhatsApp message
+                    let emoji = crate::notifications::whatsapp::get_event_emoji(event_name);
+                    let mut message = format!("{} *{}*\n\n{}", emoji, title, body);
+                    if let Some(url) = link_url {
+                        let full_url = if url.starts_with("http") {
+                            url.to_string()
+                        } else {
+                            format!("{}{}", ctx.app_url, url)
+                        };
+                        message.push_str(&format!("\n\nView details: {}", full_url));
+                    }
+
+                    match waha_client.send_message(&phone_number, &message).await {
+                        Ok(()) => {
+                            result.whatsapp_sent = true;
+                            // Log successful delivery
+                            let _ = taskbolt_db::queries::log_delivery(
+                                ctx.pool,
+                                None, // notification_id not easily available here
+                                recipient_id,
+                                "whatsapp",
+                                "sent",
+                                None,
+                                None,
+                            )
+                            .await;
+                        }
+                        Err(e) => {
+                            tracing::error!(
+                                recipient_id = %recipient_id,
+                                event = event_name,
+                                phone = %phone_number,
+                                error = %e,
+                                "Failed to send WhatsApp notification"
+                            );
+                            // Log failed delivery
+                            let _ = taskbolt_db::queries::log_delivery(
+                                ctx.pool,
+                                None,
+                                recipient_id,
+                                "whatsapp",
+                                "failed",
+                                None,
+                                Some(&e.to_string()),
+                            )
+                            .await;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     Ok(result)
 }
 
@@ -210,6 +322,7 @@ mod tests {
         assert!(!result.in_app);
         assert!(!result.email_enqueued);
         assert!(!result.slack_sent);
+        assert!(!result.whatsapp_sent);
     }
 
     #[test]

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 @Component({
-  selector: 'app-taskflow-logo',
+  selector: 'app-taskbolt-logo',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
@@ -25,11 +25,11 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
       />
     </svg>
     @if (showText()) {
-      <span class="text-base font-bold tracking-tight" style="color: var(--foreground)">TaskFlow</span>
+      <span class="text-base font-bold tracking-tight" style="color: var(--foreground)">TaskBolt</span>
     }
   `,
 })
-export class TaskflowLogoComponent {
+export class TaskboltLogoComponent {
   readonly showText = input(true);
   readonly size = input<'sm' | 'md'>('md');
 }

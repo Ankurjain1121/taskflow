@@ -1,5 +1,5 @@
 [package]
-name = "taskflow-api"
+name = "taskbolt-api"
 version.workspace = true
 edition.workspace = true
 
@@ -7,7 +7,7 @@ edition.workspace = true
 workspace = true
 
 [[bin]]
-name = "taskflow-api"
+name = "taskbolt-api"
 path = "src/main.rs"
 
 [[bin]]
@@ -57,9 +57,9 @@ metrics.workspace = true
 metrics-exporter-prometheus.workspace = true
 
 # Local crates
-taskflow-db = { path = "../db" }
-taskflow-auth = { path = "../auth" }
-taskflow-services = { path = "../services" }
+taskbolt-db = { path = "../db" }
+taskbolt-auth = { path = "../auth" }
+taskbolt-services = { path = "../services" }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full", "test-util"] }

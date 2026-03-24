@@ -9,7 +9,7 @@ use uuid::Uuid;
 use super::safety::{resolve_column_by_name, resolve_label_by_name};
 use super::{AutomationExecutorError, TriggerContext};
 
-use taskflow_db::models::automation::AutomationActionType;
+use taskbolt_db::models::automation::AutomationActionType;
 
 /// Execute a single automation action
 pub(crate) async fn execute_action(
@@ -485,7 +485,7 @@ async fn execute_assign_to_role_members(
             AutomationExecutorError::ActionFailed("AssignToRoleMembers: missing role_id".into())
         })?;
 
-    let member_ids = taskflow_db::queries::get_members_with_role(pool, role_id).await?;
+    let member_ids = taskbolt_db::queries::get_members_with_role(pool, role_id).await?;
 
     for member_id in member_ids {
         sqlx::query(

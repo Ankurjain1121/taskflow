@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use crate::middleware::auth::AuthUser;
 use crate::state::AppState;
-use taskflow_services::audit::{record_audit_event, ROUTE_ACTION_MAP};
+use taskbolt_services::audit::{record_audit_event, ROUTE_ACTION_MAP};
 
 /// Extension to mark a route with its identifier for audit logging
 #[derive(Debug, Clone)]
@@ -555,11 +555,11 @@ mod tests {
     #[test]
     fn test_extract_user_agent_present() {
         let req = Request::builder()
-            .header("User-Agent", "Mozilla/5.0 (Linux; TaskFlow/1.0)")
+            .header("User-Agent", "Mozilla/5.0 (Linux; TaskBolt/1.0)")
             .body(Body::empty())
             .expect("build request");
         let ua = extract_user_agent(&req);
-        assert_eq!(ua, Some("Mozilla/5.0 (Linux; TaskFlow/1.0)".to_string()));
+        assert_eq!(ua, Some("Mozilla/5.0 (Linux; TaskBolt/1.0)".to_string()));
     }
 
     #[test]

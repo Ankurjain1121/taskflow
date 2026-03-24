@@ -16,7 +16,7 @@ import { MyWorkBoardComponent } from './my-work-board.component';
 
 type MyWorkTab = 'timeline' | 'matrix' | 'board';
 
-const TAB_STORAGE_KEY = 'taskflow_mywork_tab';
+const TAB_STORAGE_KEY = 'taskbolt_mywork_tab';
 
 @Component({
   selector: 'app-my-work-shell',

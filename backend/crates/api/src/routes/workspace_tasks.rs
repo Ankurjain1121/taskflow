@@ -14,8 +14,8 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::workspace_tasks::{self, PaginatedWorkspaceTasks, WorkspaceTaskFilters};
-use taskflow_db::queries::workspaces;
+use taskbolt_db::queries::workspace_tasks::{self, PaginatedWorkspaceTasks, WorkspaceTaskFilters};
+use taskbolt_db::queries::workspaces;
 
 /// GET /api/workspace/:ws_id/tasks
 ///

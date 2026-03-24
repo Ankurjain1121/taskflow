@@ -10,7 +10,7 @@
 
 ### What F3 Means
 
-When multiple users edit the same task simultaneously, TaskFlow must:
+When multiple users edit the same task simultaneously, TaskBolt must:
 
 1. **Detect** that another user changed a field you are also viewing/editing.
 2. **Notify** the current user with a clear, non-blocking message ("Priority changed by Alice 3s ago").
@@ -49,7 +49,7 @@ When multiple users edit the same task simultaneously, TaskFlow must:
 
 ### Key Gap
 
-TaskFlow currently has **zero conflict detection**. The WebSocket broadcasts include only the updated task data (title, priority, column_id, position) but no information about *which fields changed* or *who made the change* (beyond a UUID). When two users edit the same task, the last HTTP response wins silently -- no notification, no version check, no field-level diff.
+TaskBolt currently has **zero conflict detection**. The WebSocket broadcasts include only the updated task data (title, priority, column_id, position) but no information about *which fields changed* or *who made the change* (beyond a UUID). When two users edit the same task, the last HTTP response wins silently -- no notification, no version check, no field-level diff.
 
 ### Pragmatic Target
 

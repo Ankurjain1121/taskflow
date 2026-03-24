@@ -1,5 +1,5 @@
 #!/bin/bash
-# Monitor memory usage of all TaskFlow Docker containers
+# Monitor memory usage of all TaskBolt Docker containers
 # Usage: ./scripts/monitor-memory.sh
 # Warns if any container exceeds 80% of its memory limit
 
@@ -7,12 +7,12 @@ set -euo pipefail
 
 WARN_THRESHOLD=80
 
-echo "=== TaskFlow Container Memory Usage ==="
+echo "=== TaskBolt Container Memory Usage ==="
 echo "Timestamp: $(date -Iseconds)"
 echo ""
 
 docker stats --no-stream --format "table {{.Name}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.PIDs}}" \
-  --filter "name=taskflow-" 2>/dev/null || {
+  --filter "name=taskbolt-" 2>/dev/null || {
     echo "ERROR: Could not read docker stats. Are containers running?"
     exit 1
   }
@@ -34,7 +34,7 @@ while IFS= read -r line; do
     echo "WARNING: $name is at ${pct}% memory usage (threshold: ${WARN_THRESHOLD}%)"
     ALERTS=$((ALERTS + 1))
   fi
-done < <(docker stats --no-stream --format "{{.Name}} {{.MemPerc}}" --filter "name=taskflow-" 2>/dev/null)
+done < <(docker stats --no-stream --format "{{.Name}} {{.MemPerc}}" --filter "name=taskbolt-" 2>/dev/null)
 
 if [ "$ALERTS" -eq 0 ]; then
   echo "All containers within memory limits."

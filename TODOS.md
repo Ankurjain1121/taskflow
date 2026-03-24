@@ -150,3 +150,22 @@ Import all via `@import` in a thin `styles.css` entry point. Tailwind CSS 4 hand
 **Why:** File organization rule violation. Monolith mixes tokens, utilities, component styles, animations, and vendor overrides. Makes it hard to find/modify specific token groups.
 
 **Where to start:** `frontend/src/styles.css`. Pure refactor, no behavior change. Verify with `ng build --configuration=production`.
+
+---
+
+## TODO-014: Phone number OTP verification before public launch
+**Priority:** Medium (security) | **Depends on:** WhatsApp notification feature (shipped)
+
+Before opening TaskBolt to public users, add phone number verification via WhatsApp OTP. Currently anyone can enter any phone number and WhatsApp notifications go to it. This is acceptable for dev stage with a known small team, but a mistyped number could send notifications to strangers.
+
+**Implementation:**
+1. Generate 6-digit OTP, store in Redis with 5-min TTL keyed by `phone-otp:{user_id}`
+2. Send OTP via WAHA: "Your TaskBolt verification code is: 123456"
+3. Add `POST /api/users/me/verify-phone` endpoint that checks OTP
+4. Add `phone_verified: bool` column to users table
+5. Frontend: verification dialog after phone number save
+6. Dispatcher: only send WhatsApp if `phone_verified = true`
+
+**Why:** Prevents notification misdelivery to wrong numbers. Defense-in-depth for PII (phone numbers).
+
+**Where to start:** `backend/crates/api/src/routes/profile.rs` for the verification endpoint, `backend/crates/services/src/notifications/whatsapp.rs` for sending OTP.

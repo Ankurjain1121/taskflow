@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Comprehensive Smoke Test for TaskFlow API
+# Comprehensive Smoke Test for TaskBolt API
 # Usage: ./scripts/smoke-test-comprehensive.sh [BASE_URL]
 # Default: https://taskflow.paraslace.in
 
 BASE_URL="${1:-https://taskflow.paraslace.in}"
 API="${BASE_URL}/api"
-COOKIE_JAR="/tmp/taskflow-smoke-cookies.txt"
-COOKIE_JAR2="/tmp/taskflow-smoke-cookies2.txt"
+COOKIE_JAR="/tmp/taskbolt-smoke-cookies.txt"
+COOKIE_JAR2="/tmp/taskbolt-smoke-cookies2.txt"
 PASS=0
 FAIL=0
 TOTAL=25
@@ -61,7 +61,7 @@ assert_body_contains() {
   fi
 }
 
-bold "TaskFlow Comprehensive Smoke Test"
+bold "TaskBolt Comprehensive Smoke Test"
 echo "Base URL: $BASE_URL"
 echo "Run ID: $RUN_ID"
 echo ""

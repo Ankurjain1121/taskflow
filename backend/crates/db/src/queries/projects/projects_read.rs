@@ -5,9 +5,7 @@ use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::{
-    BoardMemberRole, Project, ProjectStatus, TaskList, TaskPriority,
-};
+use crate::models::{BoardMemberRole, Project, ProjectStatus, TaskList, TaskPriority};
 
 /// Project with task lists and statuses for detailed view
 #[derive(serde::Serialize, Clone, Debug)]
@@ -403,4 +401,3 @@ pub async fn list_project_task_labels(
     .fetch_all(pool)
     .await
 }
-

@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-const SEED_DATA_PATH = '/tmp/taskflow-seed-data.json';
+const SEED_DATA_PATH = '/tmp/taskbolt-seed-data.json';
 
 export interface SeedUser {
   email: string;

@@ -26,18 +26,18 @@ Wait for the container to be healthy:
 ```bash
 # Poll until healthy (max 60s)
 for i in $(seq 1 12); do
-  STATUS=$(docker inspect --format='{{.State.Health.Status}}' taskflow-frontend 2>/dev/null || echo "no-health")
+  STATUS=$(docker inspect --format='{{.State.Health.Status}}' taskbolt-frontend 2>/dev/null || echo "no-health")
   if [ "$STATUS" = "healthy" ] || [ "$STATUS" = "no-health" ]; then break; fi
   sleep 5
 done
-docker ps --filter name=taskflow-frontend --format '{{.Status}}'
+docker ps --filter name=taskbolt-frontend --format '{{.Status}}'
 ```
 
 ## Verify Bundle Hash
 
 ```bash
 # Get the main.js hash from the container
-CONTAINER_HASH=$(docker exec taskflow-frontend ls /usr/share/nginx/html/ 2>/dev/null | grep -o 'main-[A-Za-z0-9]*\.js' || docker exec taskflow-frontend ls /app/dist/frontend/browser/ 2>/dev/null | grep -o 'main-[A-Za-z0-9]*\.js')
+CONTAINER_HASH=$(docker exec taskbolt-frontend ls /usr/share/nginx/html/ 2>/dev/null | grep -o 'main-[A-Za-z0-9]*\.js' || docker exec taskbolt-frontend ls /app/dist/frontend/browser/ 2>/dev/null | grep -o 'main-[A-Za-z0-9]*\.js')
 echo "Container bundle: $CONTAINER_HASH"
 
 # Get the main.js hash from the live site

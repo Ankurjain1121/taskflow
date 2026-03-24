@@ -1,6 +1,6 @@
 # HTTP Caching Implementation
 
-This document describes the HTTP caching strategy for TaskFlow API.
+This document describes the HTTP caching strategy for TaskBolt API.
 
 ## Overview
 
@@ -173,10 +173,10 @@ Run the test suite:
 
 ```bash
 # Unit tests
-cargo test -p taskflow-api --lib services::http_cache
+cargo test -p taskbolt-api --lib services::http_cache
 
 # Middleware routing tests
-cargo test -p taskflow-api --lib middleware::cache_headers
+cargo test -p taskbolt-api --lib middleware::cache_headers
 ```
 
 ## References

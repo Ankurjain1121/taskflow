@@ -540,4 +540,4 @@ The existing `clearFilters()` method clears **all** filters (advanced + quick). 
 - [Angular 19 Standalone Components](https://dev.to/mohamedlaminef/whats-new-in-angular-19-standalone-components-signals-and-more-44hf) — Standalone component patterns
 - [Asana "Clear all" button positioning feedback](https://forum.asana.com/t/move-the-position-of-the-clear-all-button-in-quick-filters/513736) — "Clear all" UX discussion
 - [Jira Clear all filters (iOS)](https://support.atlassian.com/jira-cloud-ios/docs/clear-all-board-filters/) — Jira clear-all behavior reference
-- TaskFlow codebase: `board-toolbar.component.ts`, `board-state.service.ts`, `board-shortcuts.service.ts`, `shared/utils/task-colors.ts`
+- TaskBolt codebase: `board-toolbar.component.ts`, `board-state.service.ts`, `board-shortcuts.service.ts`, `shared/utils/task-colors.ts`

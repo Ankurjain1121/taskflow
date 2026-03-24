@@ -6,7 +6,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_services::{MinioConfig, MinioService};
+use taskbolt_services::{MinioConfig, MinioService};
 
 const MAX_AVATAR_SIZE: i64 = 5_242_880; // 5MB
 const ALLOWED_IMAGE_MIMES: &[&str] = &["image/jpeg", "image/png", "image/webp"];
@@ -117,7 +117,7 @@ async fn upload_workspace_logo(
 
     // Verify workspace membership
     let is_member =
-        taskflow_db::queries::is_workspace_member(&state.db, body.workspace_id, manager.0.user_id)
+        taskbolt_db::queries::is_workspace_member(&state.db, body.workspace_id, manager.0.user_id)
             .await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a workspace member".into()));
@@ -151,7 +151,7 @@ async fn confirm_workspace_logo(
 
     // Verify workspace membership
     let is_member =
-        taskflow_db::queries::is_workspace_member(&state.db, body.workspace_id, manager.0.user_id)
+        taskbolt_db::queries::is_workspace_member(&state.db, body.workspace_id, manager.0.user_id)
             .await?;
     if !is_member {
         return Err(AppError::Forbidden("Not a workspace member".into()));

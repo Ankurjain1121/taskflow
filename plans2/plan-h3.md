@@ -7,7 +7,7 @@
 
 ## Requirements
 
-**H3 — Onboarding Checklist** provides a dismissible side-panel checklist that guides new users through 5 high-impact first actions in TaskFlow. It appears automatically for users who have not yet completed key setup tasks, shows a progress bar, and can be dismissed and re-opened at any time.
+**H3 — Onboarding Checklist** provides a dismissible side-panel checklist that guides new users through 5 high-impact first actions in TaskBolt. It appears automatically for users who have not yet completed key setup tasks, shows a progress bar, and can be dismissed and re-opened at any time.
 
 ### Sub-Features IN SCOPE
 
@@ -50,7 +50,7 @@
 
 ### Most Important Gap
 
-TaskFlow has zero onboarding guidance after the initial signup wizard. New users land on the dashboard with no direction on what to do next. The checklist bridges the gap between "account created" and "productive user."
+TaskBolt has zero onboarding guidance after the initial signup wizard. New users land on the dashboard with no direction on what to do next. The checklist bridges the gap between "account created" and "productive user."
 
 ---
 
@@ -382,7 +382,7 @@ constructor() {
 - [ ] Panel is full-width on mobile (< 640px)
 - [ ] Panel has smooth slide-in animation on first render
 - [ ] Progress bar has smooth width transition on item completion
-- [ ] Design matches existing TaskFlow card style (var(--card), var(--border), etc.)
+- [ ] Design matches existing TaskBolt card style (var(--card), var(--border), etc.)
 - [ ] Dark mode works correctly (all colors use CSS variables)
 - [ ] Panel does not overlap sidebar or top nav
 

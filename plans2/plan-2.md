@@ -2,9 +2,9 @@
 
 ## Context
 
-Competitor research against the top 10 PM SaaS tools revealed TaskFlow's biggest performance gap is the **frontend data layer** — not the server. Competitors like Linear, Notion, and Todoist feel instant because users never see server latency (optimistic UI, client caching, delta sync). TaskFlow's Rust backend is faster than most competitors' servers, but every user action still waits for a network round-trip.
+Competitor research against the top 10 PM SaaS tools revealed TaskBolt's biggest performance gap is the **frontend data layer** — not the server. Competitors like Linear, Notion, and Todoist feel instant because users never see server latency (optimistic UI, client caching, delta sync). TaskBolt's Rust backend is faster than most competitors' servers, but every user action still waits for a network round-trip.
 
-**Goal**: Make TaskFlow feel as responsive as Linear/Notion by implementing the highest-impact patterns from competitor research, prioritized by effort-to-reward ratio.
+**Goal**: Make TaskBolt feel as responsive as Linear/Notion by implementing the highest-impact patterns from competitor research, prioritized by effort-to-reward ratio.
 
 ---
 

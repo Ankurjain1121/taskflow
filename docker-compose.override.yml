@@ -1,5 +1,5 @@
 # =============================================================================
-# TaskFlow - Docker Compose Override (Development)
+# TaskBolt - Docker Compose Override (Development)
 # =============================================================================
 # This file is automatically loaded with docker-compose.yml
 # Provides development-specific overrides:

@@ -1,4 +1,4 @@
-# TaskFlow Workspace Competitive Gap Analysis & Implementation Plan
+# TaskBolt Workspace Competitive Gap Analysis & Implementation Plan
 
 ## Context
 
@@ -25,7 +25,7 @@ Comprehensive competitive analysis against top 10 PM tools (Asana, Monday.com, J
 
 ---
 
-## TaskFlow Current State (What Works)
+## TaskBolt Current State (What Works)
 
 - Multi-workspace support with instant switching (signal-based, no reload)
 - 5 role tiers: Owner, Admin, Manager, Member, Viewer
@@ -48,9 +48,9 @@ Comprehensive competitive analysis against top 10 PM tools (Asana, Monday.com, J
 
 ---
 
-## HEAD-TO-HEAD: TaskFlow vs Competitors
+## HEAD-TO-HEAD: TaskBolt vs Competitors
 
-| Feature | All 10 Competitors | TaskFlow |
+| Feature | All 10 Competitors | TaskBolt |
 |---|---|---|
 | Guest/External access | Yes (all 10) | MISSING |
 | Workspace templates | Yes (9/10) | MISSING |

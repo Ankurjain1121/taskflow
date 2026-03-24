@@ -12,9 +12,9 @@ use serde::{Deserialize, Serialize};
 use sqlx;
 use uuid::Uuid;
 
-use taskflow_auth::rbac::can_manage_workspace;
-use taskflow_db::models::{WorkspaceMemberRole, WorkspaceVisibility};
-use taskflow_db::queries::workspaces;
+use taskbolt_auth::rbac::can_manage_workspace;
+use taskbolt_db::models::{WorkspaceMemberRole, WorkspaceVisibility};
+use taskbolt_db::queries::workspaces;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::{AuthUserExtractor, ManagerOrAdmin, SuperAdminOnly};
@@ -143,7 +143,7 @@ async fn list_workspaces(
 ) -> Result<Json<Vec<WorkspaceResponse>>> {
     let is_admin = matches!(
         auth.0.role,
-        taskflow_db::models::UserRole::SuperAdmin | taskflow_db::models::UserRole::Admin
+        taskbolt_db::models::UserRole::SuperAdmin | taskbolt_db::models::UserRole::Admin
     );
     let workspaces =
         workspaces::list_workspaces_for_user(&state.db, auth.0.user_id, auth.0.tenant_id, is_admin)

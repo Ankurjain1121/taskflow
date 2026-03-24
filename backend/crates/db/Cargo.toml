@@ -1,5 +1,5 @@
 [package]
-name = "taskflow-db"
+name = "taskbolt-db"
 version.workspace = true
 edition.workspace = true
 

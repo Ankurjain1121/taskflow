@@ -11,8 +11,8 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::models::task_template::TaskTemplate;
-use taskflow_db::queries::task_templates::{
+use taskbolt_db::models::task_template::TaskTemplate;
+use taskbolt_db::queries::task_templates::{
     create_task_from_template, create_task_template, delete_task_template, get_task_template,
     list_task_templates, save_task_as_template, update_task_template, CreateTaskTemplateInput,
     TaskTemplateQueryError, TaskTemplateWithDetails, UpdateTaskTemplateInput,

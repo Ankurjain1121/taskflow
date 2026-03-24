@@ -17,10 +17,10 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
-use taskflow_db::queries::portfolio::{
+use taskbolt_db::queries::portfolio::{
     get_portfolio_milestones, get_portfolio_projects, PortfolioResponse,
 };
-use taskflow_db::queries::workspaces::is_workspace_member;
+use taskbolt_db::queries::workspaces::is_workspace_member;
 
 const PORTFOLIO_CACHE_TTL: u64 = 60;
 

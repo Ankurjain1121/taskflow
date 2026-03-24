@@ -30,7 +30,7 @@ mod tests {
         assert_eq!(DigestPeriod::Daily.preference_key(), "daily-digest");
         assert_eq!(
             DigestPeriod::Daily.email_subject(),
-            "[TaskFlow] Your Daily Summary"
+            "[TaskBolt] Your Daily Summary"
         );
     }
 }

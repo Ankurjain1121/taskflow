@@ -1,5 +1,5 @@
 use sqlx::PgPool;
-use taskflow_auth::password::hash_password;
+use taskbolt_auth::password::hash_password;
 use uuid::Uuid;
 
 #[tokio::main]

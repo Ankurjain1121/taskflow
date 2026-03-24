@@ -8,7 +8,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::batch_my_tasks::{
+use taskbolt_db::queries::batch_my_tasks::{
     self, BatchMyTasksError, BatchMyTasksInput, BatchMyTasksResult,
 };
 

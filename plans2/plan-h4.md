@@ -8,7 +8,7 @@
 
 ## Requirements
 
-H4 implements a non-blocking contextual help system that teaches users about TaskFlow features through in-context hints rather than forced modal tours. The approach follows the Asana pattern (3x higher completion rate than linear Shepherd-style tours).
+H4 implements a non-blocking contextual help system that teaches users about TaskBolt features through in-context hints rather than forced modal tours. The approach follows the Asana pattern (3x higher completion rate than linear Shepherd-style tours).
 
 ### Sub-features IN SCOPE
 
@@ -41,7 +41,7 @@ H4 implements a non-blocking contextual help system that teaches users about Tas
 
 ### Most Important Gap
 
-TaskFlow currently has only basic PrimeNG `pTooltip` on a few toolbar buttons. There is:
+TaskBolt currently has only basic PrimeNG `pTooltip` on a few toolbar buttons. There is:
 - No first-run contextual overlay/spotlight
 - No "Did you know?" contextual hints for underused features
 - No `?` help icons on advanced features

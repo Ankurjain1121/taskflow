@@ -14,16 +14,19 @@ use uuid::Uuid;
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::state::AppState;
-use taskflow_db::models::automation::AutomationTrigger;
-use taskflow_db::models::{TaskBroadcast, WsBoardEvent};
-use taskflow_db::queries::{
+use taskbolt_db::models::automation::AutomationTrigger;
+use taskbolt_db::models::{TaskBroadcast, WsBoardEvent};
+use taskbolt_db::queries::{
     add_watcher, assign_user, get_task_assignee_ids, get_task_board_id, get_task_row,
     get_user_display_name, list_reminders_for_task, remove_reminder, remove_watcher, set_reminder,
     unassign_user, ReminderInfo,
 };
-use taskflow_services::broadcast::events;
-use taskflow_services::notifications::NotificationService;
-use taskflow_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
+use taskbolt_services::broadcast::events;
+use taskbolt_services::notifications::dispatcher::notify;
+use taskbolt_services::notifications::NotificationService;
+use taskbolt_services::{
+    spawn_automation_evaluation, BroadcastService, NotifyContext, TriggerContext,
+};
 
 use super::common::verify_project_membership;
 use super::task_helpers::{
@@ -63,7 +66,7 @@ pub async fn assign_user_handler(
     verify_project_membership(&state.db, board_id, tenant.user_id).await?;
 
     // Verify the assignee is also a project member
-    if !taskflow_db::queries::verify_project_membership(&state.db, board_id, body.user_id).await? {
+    if !taskbolt_db::queries::verify_project_membership(&state.db, board_id, body.user_id).await? {
         return Err(AppError::BadRequest(
             "User to assign is not a project member".into(),
         ));
@@ -87,7 +90,7 @@ pub async fn assign_user_handler(
             status_id: task.status_id,
             position: task.position,
             assignee_ids: assignee_ids.clone(),
-            watcher_ids: taskflow_db::queries::get_task_watcher_ids(&state.db, task_id)
+            watcher_ids: taskbolt_db::queries::get_task_watcher_ids(&state.db, task_id)
                 .await
                 .unwrap_or_default(),
             updated_at: task.updated_at,
@@ -153,6 +156,7 @@ pub async fn assign_user_handler(
     if body.user_id != tenant.user_id {
         let db = state.db.clone();
         let redis = state.redis.clone();
+        let waha_client = state.waha_client.clone();
         let app_url = state.config.app_url.clone();
         let assignee_id = body.user_id;
         let assigner_id = tenant.user_id;
@@ -171,22 +175,35 @@ pub async fn assign_user_handler(
                     .flatten()
                     .unwrap_or_else(|| "a task".to_string());
 
-            let notification_svc =
-                NotificationService::new(db.clone(), BroadcastService::new(redis), None, app_url);
+            let notification_svc = NotificationService::new(
+                db.clone(),
+                BroadcastService::new(redis.clone()),
+                None,
+                app_url.clone(),
+            );
             let title = format!("{} assigned you to a task", assigner_name);
             let body = format!("\"{}\"", task_title);
             let link = format!("/task/{}", task_id);
-            if let Err(e) = notification_svc
-                .create_notification(
-                    assignee_id,
-                    taskflow_services::NotificationEvent::TaskAssigned,
-                    &title,
-                    &body,
-                    Some(&link),
-                )
-                .await
+
+            let notify_ctx = NotifyContext {
+                pool: &db,
+                redis: &redis,
+                notification_svc: &notification_svc,
+                app_url: &app_url,
+                slack_webhook_url: None, // TODO: get from workspace settings
+                waha_client: waha_client.as_ref(),
+            };
+            if let Err(e) = notify(
+                &notify_ctx,
+                taskbolt_services::NotificationEvent::TaskAssigned,
+                assignee_id,
+                &title,
+                &body,
+                Some(&link),
+            )
+            .await
             {
-                tracing::error!(error = %e, "Failed to create TaskAssigned notification");
+                tracing::error!(error = %e, "Failed to dispatch TaskAssigned notification");
             }
         });
     }
@@ -227,7 +244,7 @@ pub async fn unassign_user_handler(
             status_id: task.status_id,
             position: task.position,
             assignee_ids: assignee_ids.clone(),
-            watcher_ids: taskflow_db::queries::get_task_watcher_ids(&state.db, task_id)
+            watcher_ids: taskbolt_db::queries::get_task_watcher_ids(&state.db, task_id)
                 .await
                 .unwrap_or_default(),
             updated_at: task.updated_at,

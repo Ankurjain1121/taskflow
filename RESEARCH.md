@@ -1,4 +1,4 @@
-# RESEARCH: TaskFlow Kanban Board B1-B8 Improvements
+# RESEARCH: TaskBolt Kanban Board B1-B8 Improvements
 Generated: 2026-03-02
 Stack: Angular 19 + TypeScript 5.7 + Tailwind CSS 4 + PrimeNG 19 | Rust/Axum backend
 
@@ -18,7 +18,7 @@ Stack: Angular 19 + TypeScript 5.7 + Tailwind CSS 4 + PrimeNG 19 | Rust/Axum bac
 | Optimistic update + rollback pattern | EXISTS | `board-state.service.ts:256` |
 | `filteredBoardState` computed signal | EXISTS | `board-state.service.ts` |
 
-**Key insight: TaskFlow's kanban is already ~60% done. B1-B8 is polish + gaps, not a rebuild.**
+**Key insight: TaskBolt's kanban is already ~60% done. B1-B8 is polish + gaps, not a rebuild.**
 
 ---
 
@@ -70,7 +70,7 @@ No new dev dependencies needed.
 | Monday | Column values as colored cells, avatar, status bubble | Column-value matrix style |
 | Plane | Priority icon, title, state icon, assignee, due date | Open-source Linear clone |
 
-**Winner pattern:** Priority + title (full width) + assignee avatar (right) + due date chip (color-coded) + label chips (truncated) + subtask progress bar (bottom). TaskFlow task-card already matches this. Gap: no "expanded" mode showing description preview.
+**Winner pattern:** Priority + title (full width) + assignee avatar (right) + due date chip (color-coded) + label chips (truncated) + subtask progress bar (bottom). TaskBolt task-card already matches this. Gap: no "expanded" mode showing description preview.
 
 ### B2: Column Pagination
 
@@ -87,7 +87,7 @@ No new dev dependencies needed.
 | Plane | Load more button |
 | Notion | "Load N more" link |
 
-**Winner pattern:** Show 20 → "Show N more" button → count in header badge. TaskFlow kanban-column already has this. Gap: count badge in column header missing, server-side pagination for very large boards not implemented.
+**Winner pattern:** Show 20 → "Show N more" button → count in header badge. TaskBolt kanban-column already has this. Gap: count badge in column header missing, server-side pagination for very large boards not implemented.
 
 ### B3: Quick Filter Bar
 
@@ -104,7 +104,7 @@ No new dev dependencies needed.
 | Plane | Module/cycle/label/assignee filters as chips |
 | Notion | Filter by property |
 
-**Winner pattern:** Horizontal pill buttons for 4-6 preset quick filters. Active = filled/teal color. Multi-select = AND logic. X to clear individual filter. "Clear all" link when any active. Asana/Jira pattern. Gap in TaskFlow: Overdue filter missing, "Clear all" missing, active chip style missing.
+**Winner pattern:** Horizontal pill buttons for 4-6 preset quick filters. Active = filled/teal color. Multi-select = AND logic. X to clear individual filter. "Clear all" link when any active. Asana/Jira pattern. Gap in TaskBolt: Overdue filter missing, "Clear all" missing, active chip style missing.
 
 ### B4: Card Density Toggle
 
@@ -121,7 +121,7 @@ No new dev dependencies needed.
 | Monday | Row height toggle (table view, not kanban) |
 | Plane | None |
 
-**Winner pattern:** 3-option toggle (compact/comfortable/expanded) in board toolbar. Persist in localStorage. Linear/ClickUp pattern. TaskFlow already has compact/normal in task-card — needs expanded mode + persistence + toolbar toggle UI.
+**Winner pattern:** 3-option toggle (compact/comfortable/expanded) in board toolbar. Persist in localStorage. Linear/ClickUp pattern. TaskBolt already has compact/normal in task-card — needs expanded mode + persistence + toolbar toggle UI.
 
 ### B5: Column Customization
 
@@ -138,7 +138,7 @@ No new dev dependencies needed.
 | Plane | State color + icon |
 | Notion | None |
 
-**Winner pattern:** Color swatch picker on column header (click/hover to reveal). WIP limit shown as badge "n/limit" in header, turns red when exceeded. TaskFlow already has `color` field in DB and WIP tracking — gap: icon field missing from DB + column icon picker UI missing.
+**Winner pattern:** Color swatch picker on column header (click/hover to reveal). WIP limit shown as badge "n/limit" in header, turns red when exceeded. TaskBolt already has `color` field in DB and WIP tracking — gap: icon field missing from DB + column icon picker UI missing.
 
 ### B6: Swimlanes
 
@@ -189,7 +189,7 @@ No new dev dependencies needed.
 | Plane | Hover → edit popover |
 | Notion | Click to edit |
 
-**Winner pattern:** (1) Title: single-click → inline text edit. (2) Other fields (assignee, due date, priority): hover → small popover with field picker. No new libraries — use Angular CDK Overlay for popovers. TaskFlow already has context menu + title inline edit — gap: date picker popover, assignee picker popover, priority picker on hover.
+**Winner pattern:** (1) Title: single-click → inline text edit. (2) Other fields (assignee, due date, priority): hover → small popover with field picker. No new libraries — use Angular CDK Overlay for popovers. TaskBolt already has context menu + title inline edit — gap: date picker popover, assignee picker popover, priority picker on hover.
 
 ---
 
@@ -387,7 +387,7 @@ import { TemplatePortal } from '@angular/cdk/portal';
 - Angular Signals: https://angular.dev/guide/signals
 - PrimeNG ColorPicker: https://primeng.org/colorpicker
 
-### TaskFlow Codebase (key files analyzed)
+### TaskBolt Codebase (key files analyzed)
 - `frontend/src/app/features/board/task-card/task-card.component.ts` (858 lines)
 - `frontend/src/app/features/board/kanban-column/kanban-column.component.ts` (520 lines)
 - `frontend/src/app/features/board/board-toolbar/board-toolbar.component.ts` (638 lines)

@@ -8,9 +8,9 @@ use axum::http::HeaderMap;
 use chrono::{Duration, Utc};
 use uuid::Uuid;
 
-use taskflow_auth::jwt::issue_tokens;
-use taskflow_db::models::UserRole;
-use taskflow_db::queries::auth;
+use taskbolt_auth::jwt::issue_tokens;
+use taskbolt_db::models::UserRole;
+use taskbolt_db::queries::auth;
 
 use crate::errors::{AppError, Result};
 use crate::middleware::store_csrf_token;

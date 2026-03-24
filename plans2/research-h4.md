@@ -1,7 +1,7 @@
 # Research H4: Product Tours / Contextual Tooltips
 
 > Generated: 2026-03-02 | Stack: Angular 19 + CDK + Tailwind CSS 4 + PrimeNG 19
-> Context: TaskFlow project management SaaS — non-tech-savvy target audience
+> Context: TaskBolt project management SaaS — non-tech-savvy target audience
 
 ---
 
@@ -69,7 +69,7 @@
 - Top 1% tours: no forced walkthroughs, event-based triggering, max 5 steps
 - Contextual guidance users are 123% more likely to complete tours
 
-**Recommended for TaskFlow:** Non-blocking contextual hints + optional (user-skippable) 3-step spotlight on first run.
+**Recommended for TaskBolt:** Non-blocking contextual hints + optional (user-skippable) 3-step spotlight on first run.
 
 ---
 
@@ -79,7 +79,7 @@
 
 | Approach | How It Works | Performance | Flexibility | Recommended? |
 |----------|-------------|-------------|-------------|-------------|
-| **SVG Mask** | Full-screen SVG with `<mask>`: white rect covers all, black rect creates cutout. Applied via `mask="url(#id)"` | Good -- GPU-composited; minimal repaints. Single SVG element | Rounded corners via `rx`; smooth transitions; arbitrary shapes possible | **YES -- Best for TaskFlow** |
+| **SVG Mask** | Full-screen SVG with `<mask>`: white rect covers all, black rect creates cutout. Applied via `mask="url(#id)"` | Good -- GPU-composited; minimal repaints. Single SVG element | Rounded corners via `rx`; smooth transitions; arbitrary shapes possible | **YES -- Best for TaskBolt** |
 | **CSS box-shadow** | Element gets `box-shadow: 0 0 0 9999px rgba(0,0,0,0.6)` to cover viewport | **Poor** -- massive box-shadow causes heavy paint; Firefox: 2fps on fixed elements; smartphones unusable | Simple to implement; limited to element shape only | NO -- performance bottleneck |
 | **Canvas** | Draw semi-transparent rect on canvas, clear a region for spotlight | Good render perf; GPU-accelerated | Requires manual coordinate math; no DOM event passthrough; accessibility issues | NO -- accessibility/complexity tradeoff |
 | **CSS clip-path** | `clip-path: polygon(...)` on overlay div to create cutout | Good -- GPU-composited | Complex polygon math for rounded rects; no `rx` equivalent | NO -- math complexity for rounded cutouts |
@@ -130,7 +130,7 @@
 | **Onborda** | Latest | Small | MIT | Next.js only (not Angular compatible) | Framer Motion | Framer Motion | React/Next.js only |
 | **TourGuide.js** | Latest | Small | MIT | Framework-agnostic | Zero | CSS-based | Promise-driven steps |
 
-### Analysis for TaskFlow (Angular 19)
+### Analysis for TaskBolt (Angular 19)
 
 **Driver.js:**
 - Pros: Smallest bundle (5KB), MIT license, zero deps, TypeScript-native, works in Angular without wrapper
@@ -150,14 +150,14 @@
 ### Recommendation: Custom Implementation (No External Library)
 
 **Rationale:**
-1. **TaskFlow already has `@angular/cdk` (Overlay, Portal, A11y)** -- this provides everything needed for positioning
+1. **TaskBolt already has `@angular/cdk` (Overlay, Portal, A11y)** -- this provides everything needed for positioning
 2. **SVG mask approach is superior** to box-shadow (which Driver.js uses) for performance
 3. **Signal-based architecture** in plan-h4.md integrates cleanly with Angular 19 patterns
 4. **No licensing concerns** -- CDK is MIT
 5. **Full control** over UX, animations, accessibility
 6. **Bundle cost: ~0 KB additional** (CDK already in bundle)
 7. The plan calls for max 3-step spotlight + contextual hints -- too simple to justify a library dependency
-8. Libraries are designed for complex multi-page tours; TaskFlow needs lightweight contextual hints
+8. Libraries are designed for complex multi-page tours; TaskBolt needs lightweight contextual hints
 
 **Use CDK Overlay for hint positioning + custom SVG mask for spotlight. No new npm dependencies.**
 
@@ -199,7 +199,7 @@ const portal = new ComponentPortal(ContextualHintComponent);
 const componentRef = overlayRef.attach(portal);
 ```
 
-### Key CDK Overlay Patterns for TaskFlow
+### Key CDK Overlay Patterns for TaskBolt
 
 **1. Scroll strategy:** Use `reposition()` for hints (repositions as user scrolls). Use `block()` for spotlight overlay (prevents scrolling during tour).
 
@@ -282,7 +282,7 @@ positionStrategy.positionChanges.subscribe(change => {
 | **Demo data** | Pre-seeded Welcome Board with sample tasks | Product-in-action on day 1 (Trello pattern) |
 | **Checklist as content** | Empty state IS a checklist: "1. Create task, 2. Assign it, 3. Set a deadline" | 40%+ activation rates (SaaS Factor) |
 
-### TaskFlow Empty State Recommendations
+### TaskBolt Empty State Recommendations
 
 **Kanban column (empty):**
 > "No tasks in [Column Name] yet.
@@ -299,7 +299,7 @@ positionStrategy.positionChanges.subscribe(change => {
 > Try removing some filters or press **C** to clear all."
 
 **Dashboard (no boards):**
-> "Welcome to TaskFlow! Create your first board to get started."
+> "Welcome to TaskBolt! Create your first board to get started."
 > [+ Create Board] button
 
 ---

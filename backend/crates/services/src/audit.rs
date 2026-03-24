@@ -8,7 +8,7 @@ use sqlx::PgPool;
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use taskflow_db::models::ActivityAction;
+use taskbolt_db::models::ActivityAction;
 
 /// Maps route identifiers to activity actions
 pub static ROUTE_ACTION_MAP: Lazy<HashMap<&'static str, ActivityAction>> = Lazy::new(|| {

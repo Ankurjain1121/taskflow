@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>TaskFlow</title>
+    <title>TaskBolt</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
@@ -20,7 +20,7 @@
     <script>
       // Apply theme before first paint to prevent FOUC
       (function () {
-        var mode = localStorage.getItem('taskflow-theme') || 'system';
+        var mode = localStorage.getItem('taskbolt-theme') || 'system';
         var isDark =
           mode === 'dark' ||
           (mode === 'system' &&
@@ -29,12 +29,12 @@
         document.documentElement.setAttribute('data-sidebar-style', 'light');
 
         // Light theme
-        var lightTheme = localStorage.getItem('taskflow-light-theme') || 'warm-earth';
+        var lightTheme = localStorage.getItem('taskbolt-light-theme') || 'warm-earth';
         if (lightTheme !== 'warm-earth')
           document.documentElement.setAttribute('data-theme', lightTheme);
 
         // Dark theme (only set attribute when dark mode active)
-        var darkTheme = localStorage.getItem('taskflow-dark-theme') || 'warm-earth-dark';
+        var darkTheme = localStorage.getItem('taskbolt-dark-theme') || 'warm-earth-dark';
         if (isDark && darkTheme !== 'warm-earth-dark')
           document.documentElement.setAttribute('data-dark-theme', darkTheme);
       })();

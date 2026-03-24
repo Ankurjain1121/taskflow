@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# TaskFlow - VPS Deployment Script
+# TaskBolt - VPS Deployment Script
 # =============================================================================
 # Usage: ./scripts/deploy-vps.sh
 #
@@ -13,7 +13,7 @@
 set -e
 
 echo "=============================================="
-echo "  TaskFlow VPS Deployment"
+echo "  TaskBolt VPS Deployment"
 echo "=============================================="
 
 # Run pre-deploy checks first (skip with --skip-checks)
@@ -44,9 +44,9 @@ fi
 source .env
 
 # Check required variables
-if [ "$DOMAIN" = "taskflow.yourdomain.com" ] || [ -z "$DOMAIN" ]; then
+if [ "$DOMAIN" = "taskbolt.yourdomain.com" ] || [ -z "$DOMAIN" ]; then
     echo "ERROR: DOMAIN not set in .env!"
-    echo "Set your actual domain: DOMAIN=taskflow.yourdomain.com"
+    echo "Set your actual domain: DOMAIN=taskbolt.yourdomain.com"
     exit 1
 fi
 
@@ -64,7 +64,7 @@ echo ""
 
 # Create Docker network if not exists
 echo "Creating Docker network..."
-docker network create taskflow-network 2>/dev/null || true
+docker network create taskbolt-network 2>/dev/null || true
 
 # Pull latest images
 echo "Pulling latest images..."

@@ -11,7 +11,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use taskflow_db::queries::{teams, workspaces};
+use taskbolt_db::queries::{teams, workspaces};
 
 use crate::errors::{AppError, Result};
 use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};

@@ -13,10 +13,10 @@ use axum::{
 };
 use uuid::Uuid;
 
-use taskflow_db::models::BoardMemberRole;
-use taskflow_db::queries::{projects, workspaces};
+use taskbolt_db::models::BoardMemberRole;
+use taskbolt_db::queries::{projects, workspaces};
 
-use taskflow_services::board_templates;
+use taskbolt_services::board_templates;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
@@ -489,7 +489,8 @@ async fn update_project_member_role(
         return Err(AppError::BadRequest("Cannot change your own role".into()));
     }
 
-    let updated = projects::update_project_member_role(&state.db, id, user_id, payload.role).await?;
+    let updated =
+        projects::update_project_member_role(&state.db, id, user_id, payload.role).await?;
 
     if !updated {
         return Err(AppError::NotFound("Project member not found".into()));
@@ -750,7 +751,7 @@ async fn get_project_overview(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Path(id): Path<Uuid>,
-) -> Result<Json<taskflow_db::queries::project_overview::ProjectOverview>> {
+) -> Result<Json<taskbolt_db::queries::project_overview::ProjectOverview>> {
     // Verify project membership
     let is_member = projects::is_project_member(&state.db, id, auth.0.user_id).await?;
     if !is_member {
@@ -758,7 +759,7 @@ async fn get_project_overview(
     }
 
     let overview =
-        taskflow_db::queries::project_overview::get_project_overview(&state.db, id).await?;
+        taskbolt_db::queries::project_overview::get_project_overview(&state.db, id).await?;
 
     Ok(Json(overview))
 }

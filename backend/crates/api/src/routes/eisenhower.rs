@@ -15,11 +15,11 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::eisenhower::{
+use taskbolt_db::queries::eisenhower::{
     get_eisenhower_matrix, reset_eisenhower_overrides, update_eisenhower_overrides,
     EisenhowerFilters, EisenhowerMatrixResponse,
 };
-use taskflow_db::queries::get_task_project_id;
+use taskbolt_db::queries::get_task_project_id;
 
 /// Query parameters for filtering the Eisenhower Matrix
 #[derive(Debug, Deserialize)]

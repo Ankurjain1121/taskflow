@@ -12,12 +12,14 @@ use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use taskflow_auth::jwt::issue_tokens;
-use taskflow_auth::password::hash_password;
-use taskflow_db::models::automation::AutomationTrigger;
-use taskflow_db::models::{Invitation, UserRole};
-use taskflow_db::queries::{auth, invitations, workspaces};
-use taskflow_services::{spawn_automation_evaluation, TriggerContext};
+use taskbolt_auth::jwt::issue_tokens;
+use taskbolt_auth::password::hash_password;
+use taskbolt_db::models::automation::AutomationTrigger;
+use taskbolt_db::models::{Invitation, UserRole};
+use taskbolt_db::queries::{auth, invitations, workspaces};
+use taskbolt_services::{
+    generate_invitation_html, spawn_automation_evaluation, ResendClient, TriggerContext,
+};
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
@@ -76,7 +78,7 @@ pub struct ListInvitationsQuery {
     pub workspace_id: Uuid,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct InvitationResponse {
     pub id: Uuid,
     pub email: String,
@@ -154,6 +156,56 @@ impl From<Invitation> for InvitationResponse {
 }
 
 // ============================================================================
+// Email Helper
+// ============================================================================
+
+/// Send invitation email(s) in the background via Resend.
+/// Failures are logged but do not fail the invitation creation.
+fn spawn_invitation_emails(
+    invitations: Vec<InvitationResponse>,
+    inviter_name: String,
+    workspace_name: String,
+    message: Option<String>,
+    app_url: String,
+) {
+    tokio::spawn(async move {
+        let client = match ResendClient::from_env() {
+            Some(c) => c,
+            None => {
+                tracing::warn!("Invitation emails skipped: RESEND_API_KEY not set");
+                return;
+            }
+        };
+
+        for inv in &invitations {
+            let role_label = format!("{:?}", inv.role).to_lowercase();
+            let accept_url = format!("{}/auth/accept-invite?token={}", app_url, inv.token);
+            let html = generate_invitation_html(
+                &inviter_name,
+                &workspace_name,
+                &role_label,
+                message.as_deref(),
+                &accept_url,
+                &app_url,
+            );
+            let subject = format!(
+                "{} invited you to join {} on TaskBolt",
+                inviter_name, workspace_name
+            );
+            if let Err(e) = client.send_email(&inv.email, &subject, &html).await {
+                tracing::error!(
+                    email = %inv.email,
+                    error = %e,
+                    "Failed to send invitation email"
+                );
+            } else {
+                tracing::info!(email = %inv.email, "Invitation email sent");
+            }
+        }
+    });
+}
+
+// ============================================================================
 // Route Handlers
 // ============================================================================
 
@@ -192,6 +244,16 @@ pub async fn create_handler(
         ));
     }
 
+    // Check if a pending invitation already exists
+    if invitations::get_pending_invitation_by_email(&state.db, &payload.email, payload.workspace_id)
+        .await?
+        .is_some()
+    {
+        return Err(AppError::Conflict(
+            "A pending invitation already exists for this email".into(),
+        ));
+    }
+
     // Set expiry to 7 days from now
     let expires_at = Utc::now() + Duration::days(7);
 
@@ -215,7 +277,25 @@ pub async fn create_handler(
     )
     .await?;
 
-    Ok(Json(invitation.into()))
+    // Send invitation email
+    let inv_response: InvitationResponse = invitation.into();
+    let inviter = auth::get_user_by_id(&state.db, auth.0.user_id).await?;
+    let workspace =
+        workspaces::get_workspace_by_id(&state.db, payload.workspace_id, auth.0.tenant_id).await?;
+    let inviter_name = inviter.map(|u| u.name).unwrap_or_else(|| "A teammate".into());
+    let workspace_name = workspace
+        .map(|w| w.workspace.name)
+        .unwrap_or_else(|| "your workspace".into());
+
+    spawn_invitation_emails(
+        vec![inv_response.clone()],
+        inviter_name,
+        workspace_name,
+        payload.message,
+        state.config.app_url.clone(),
+    );
+
+    Ok(Json(inv_response))
 }
 
 /// GET /api/invitations/validate/:token
@@ -321,10 +401,10 @@ pub async fn accept_handler(
         .or(invitation.job_title.as_deref());
 
     // Create the user within the transaction
-    let user = sqlx::query_as::<_, taskflow_db::models::User>(
+    let user = sqlx::query_as::<_, taskbolt_db::models::User>(
         r#"
         INSERT INTO users (id, email, name, password_hash, job_title, department, bio, role, tenant_id, onboarding_completed, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, NOW(), NOW())
         RETURNING id, email, name, password_hash, avatar_url, phone_number, job_title, department, bio, role,
                   tenant_id, onboarding_completed, last_login_at, deleted_at, created_at, updated_at
         "#,
@@ -611,6 +691,26 @@ pub async fn bulk_create_handler(
         }
     }
 
+    // Send invitation emails for successfully created invitations
+    if !created.is_empty() {
+        let inviter = auth::get_user_by_id(&state.db, auth.0.user_id).await?;
+        let workspace =
+            workspaces::get_workspace_by_id(&state.db, payload.workspace_id, auth.0.tenant_id)
+                .await?;
+        let inviter_name = inviter.map(|u| u.name).unwrap_or_else(|| "A teammate".into());
+        let workspace_name = workspace
+            .map(|w| w.workspace.name)
+            .unwrap_or_else(|| "your workspace".into());
+
+        spawn_invitation_emails(
+            created.clone(),
+            inviter_name,
+            workspace_name,
+            payload.message,
+            state.config.app_url.clone(),
+        );
+    }
+
     Ok(Json(BulkCreateInvitationResponse { created, errors }))
 }
 
@@ -717,7 +817,25 @@ pub async fn resend_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Invitation not found".into()))?;
 
-    Ok(Json(invitation.into()))
+    // Re-send the invitation email
+    let inv_response: InvitationResponse = invitation.into();
+    let inviter = auth::get_user_by_id(&state.db, auth.0.user_id).await?;
+    let workspace =
+        workspaces::get_workspace_by_id(&state.db, inv.workspace_id, auth.0.tenant_id).await?;
+    let inviter_name = inviter.map(|u| u.name).unwrap_or_else(|| "A teammate".into());
+    let workspace_name = workspace
+        .map(|w| w.workspace.name)
+        .unwrap_or_else(|| "your workspace".into());
+
+    spawn_invitation_emails(
+        vec![inv_response.clone()],
+        inviter_name,
+        workspace_name,
+        inv.message,
+        state.config.app_url.clone(),
+    );
+
+    Ok(Json(inv_response))
 }
 
 // ============================================================================

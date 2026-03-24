@@ -202,6 +202,41 @@ pub async fn upsert(
     .await
 }
 
+/// Get a user's quiet hours settings.
+/// Returns (start, end) as NaiveTime if quiet hours are configured, None otherwise.
+pub async fn get_quiet_hours(
+    pool: &PgPool,
+    user_id: Uuid,
+) -> Result<Option<(chrono::NaiveTime, chrono::NaiveTime)>, sqlx::Error> {
+    let row: Option<(Option<chrono::NaiveTime>, Option<chrono::NaiveTime>)> = sqlx::query_as(
+        r#"SELECT quiet_hours_start, quiet_hours_end FROM user_preferences WHERE user_id = $1"#,
+    )
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row.and_then(|(start, end)| match (start, end) {
+        (Some(s), Some(e)) => Some((s, e)),
+        _ => None,
+    }))
+}
+
+/// Check if the given time falls within quiet hours.
+/// Handles the midnight-crossing case (e.g., 22:00 to 08:00).
+pub fn is_in_quiet_hours(
+    current_time: chrono::NaiveTime,
+    start: chrono::NaiveTime,
+    end: chrono::NaiveTime,
+) -> bool {
+    if start <= end {
+        // Same-day range (e.g., 09:00 to 17:00)
+        current_time >= start && current_time <= end
+    } else {
+        // Midnight-crossing range (e.g., 22:00 to 08:00)
+        current_time >= start || current_time <= end
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

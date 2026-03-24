@@ -16,8 +16,8 @@ use crate::errors::{AppError, Result};
 use crate::extractors::ManagerOrAdmin;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::is_workspace_member;
-use taskflow_db::queries::team_overview::{
+use taskbolt_db::queries::is_workspace_member;
+use taskbolt_db::queries::team_overview::{
     get_member_active_tasks, get_overloaded_members, get_workload, reassign_tasks, MemberTask,
     MemberWorkload, OverloadedMember,
 };

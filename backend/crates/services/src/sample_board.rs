@@ -1,7 +1,7 @@
 //! Sample board generation service
 //!
 //! Creates a use-case-specific sample board with columns, tasks, subtasks,
-//! labels, and due dates to help new users see TaskFlow in action.
+//! labels, and due dates to help new users see TaskBolt in action.
 
 use sqlx::PgPool;
 use uuid::Uuid;

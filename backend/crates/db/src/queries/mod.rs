@@ -19,6 +19,7 @@ pub mod membership;
 pub mod metrics;
 pub mod milestones;
 pub mod my_tasks;
+pub mod notification_deliveries;
 pub mod notification_preferences;
 pub mod notifications;
 pub mod personal_board;
@@ -119,12 +120,12 @@ pub use project_shares::{
 
 // projects
 pub use projects::{
-    add_project_member, create_project, duplicate_project, get_project_by_id,
-    get_project_internal, get_project_member_role, is_project_member, list_project_members,
-    list_project_task_assignees, list_project_task_labels, list_project_tasks_with_badges,
-    list_projects_by_workspace, remove_project_member, soft_delete_project, update_project,
-    update_project_member_role, BoardTaskAssignee, BoardTaskLabel, PaginatedTasks,
-    ProjectMemberWithUser, ProjectWithTaskLists, TaskWithBadgesRow,
+    add_project_member, create_project, duplicate_project, get_project_by_id, get_project_internal,
+    get_project_member_role, is_project_member, list_project_members, list_project_task_assignees,
+    list_project_task_labels, list_project_tasks_with_badges, list_projects_by_workspace,
+    remove_project_member, soft_delete_project, update_project, update_project_member_role,
+    BoardTaskAssignee, BoardTaskLabel, PaginatedTasks, ProjectMemberWithUser, ProjectWithTaskLists,
+    TaskWithBadgesRow,
 };
 
 // comments
@@ -169,6 +170,9 @@ pub use my_tasks::{
     list_my_tasks, my_tasks_summary, MyTaskItem, MyTasksSortBy, MyTasksSummary, PaginatedMyTasks,
     SortOrder,
 };
+
+// notification_deliveries
+pub use notification_deliveries::log_delivery;
 
 // notification_preferences
 pub use notification_preferences::{
@@ -380,6 +384,9 @@ pub use metrics::{
     CycleTimePoint, PersonalDashboard, TeamDashboard, VelocityPoint, WorkloadRow,
     WorkspaceDashboard,
 };
+
+// user_preferences
+pub use user_preferences::{get_quiet_hours, is_in_quiet_hours};
 
 // Re-export with module paths for clarity (avoid name collisions)
 pub use user_preferences as user_prefs;

@@ -11,7 +11,7 @@
 
 ### What H5 Means
 
-H5 is about making TaskFlow's keyboard shortcuts **discoverable** to all users, especially
+H5 is about making TaskBolt's keyboard shortcuts **discoverable** to all users, especially
 non-tech-savvy ones. The existing `ShortcutHelpComponent` is a solid foundation but lacks
 two critical elements:
 
@@ -57,12 +57,12 @@ two critical elements:
 > `Cmd+K` also shows keyboard shortcut for each result.
 > Lazy-load obscure shortcuts.
 
-**The single most important gap TaskFlow has vs best-in-class:**
+**The single most important gap TaskBolt has vs best-in-class:**
 
 The `ShortcutHelpComponent` already exists and is solid (categories, search, recently-used
 tracking). But Figma's key differentiator is that **the shortcut modal is visually connected
 to the UI** — users discover shortcuts by using the product, not by going to a separate help
-page. TaskFlow has no visual signal connecting toolbar interactions to keyboard shortcuts.
+page. TaskBolt has no visual signal connecting toolbar interactions to keyboard shortcuts.
 A non-tech-savvy user hovering "Clear filters (C)" in the toolbar tooltip would see it, but
 the `(C)` is invisible unless they hover — and they have no reason to try.
 

@@ -2,7 +2,7 @@
 
 ## Context
 
-TaskFlow has a basic checklist system (single-level, title + checkbox + position + progress). This roadmap closes gaps against 20+ competitors and targets the Indian market. Research covered Trello, Asana, Jira, Monday, Linear, ClickUp, Notion, Todoist, Height, MS Planner, GitHub Issues, Wrike, Smartsheet, Basecamp, Shortcut, Plane.so, Taskade, Slack Lists, Zoho Projects, Kissflow, ProofHub, Orangescrum, nTask, MeisterTask, Freedcamp.
+TaskBolt has a basic checklist system (single-level, title + checkbox + position + progress). This roadmap closes gaps against 20+ competitors and targets the Indian market. Research covered Trello, Asana, Jira, Monday, Linear, ClickUp, Notion, Todoist, Height, MS Planner, GitHub Issues, Wrike, Smartsheet, Basecamp, Shortcut, Plane.so, Taskade, Slack Lists, Zoho Projects, Kissflow, ProofHub, Orangescrum, nTask, MeisterTask, Freedcamp.
 
 **Key discovery**: Feature 4 (subtask progress on kanban cards) is **already implemented** — both backend (`list_board_tasks_with_badges`) and frontend (`task-card.component.ts`) already show subtask progress. The `KeyboardShortcutsService`, WhatsApp notification stubs, Gantt view, and task templates also already exist.
 

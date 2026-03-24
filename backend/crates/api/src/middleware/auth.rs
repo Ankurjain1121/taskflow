@@ -17,8 +17,8 @@ use axum::{
 use serde::Serialize;
 use uuid::Uuid;
 
-use taskflow_auth::jwt::verify_access_token;
-use taskflow_db::models::UserRole;
+use taskbolt_auth::jwt::verify_access_token;
+use taskbolt_db::models::UserRole;
 
 use crate::state::AppState;
 

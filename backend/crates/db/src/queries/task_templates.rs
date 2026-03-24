@@ -573,7 +573,7 @@ mod tests {
 
     async fn test_pool() -> PgPool {
         PgPool::connect(
-            "postgresql://taskflow:REDACTED_PG_PASSWORD@localhost:5433/taskflow",
+            "postgresql://taskbolt:REDACTED_PG_PASSWORD@localhost:5433/taskbolt",
         )
         .await
         .expect("Failed to connect to test database")

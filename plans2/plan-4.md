@@ -1,4 +1,4 @@
-# TaskFlow Competitive Gap Analysis + Implementation Plan
+# TaskBolt Competitive Gap Analysis + Implementation Plan
 
 ## Context
 Comprehensive competitive analysis against 10 industry leaders (Asana, Monday.com, ClickUp, Jira, Trello, Linear, Notion, Todoist, Basecamp, Wrike) identified 50 feature gaps across macro and micro levels. This plan addresses the 18 actionable gaps in Tier 1 (Must-Have) and Tier 2 (Should-Have), organized into 5 independently deployable phases.
@@ -7,7 +7,7 @@ Comprehensive competitive analysis against 10 industry leaders (Asana, Monday.co
 
 ---
 
-## TaskFlow Competitive Strengths (Keep & Leverage)
+## TaskBolt Competitive Strengths (Keep & Leverage)
 - Eisenhower Matrix (unique — no competitor has this natively)
 - Position-based recurring task assignment with fallback chain (unique)
 - 20+ themes with accent colors (ahead of most competitors)
@@ -57,7 +57,7 @@ Every kanban tool supports collapsing columns. Pure frontend (localStorage persi
 - `frontend/src/app/features/board/board-view/board-state.service.ts` — add `collapsedColumnIds`, persist to localStorage
 
 ### 1.4 Inline Quick Task Creation — Medium
-Competitors: Linear press `C`, Asana press `Enter` in list, ClickUp press `T`. TaskFlow requires opening a modal.
+Competitors: Linear press `C`, Asana press `Enter` in list, ClickUp press `T`. TaskBolt requires opening a modal.
 
 **Frontend:**
 - `frontend/src/app/features/board/kanban-column/kanban-column.component.ts` — replace "Add task" button with inline text input + Enter to create (title only, default medium priority). Keep modal as "More options" fallback
@@ -69,7 +69,7 @@ Competitors: Linear press `C`, Asana press `Enter` in list, ClickUp press `T`. T
 ## Phase 2: Rich Content & Undo (Week 3-4)
 
 ### 2.1 Rich Text Editor — High (CRITICAL — #1 UX gap)
-TaskFlow: plain text only. Every competitor: rich text with bold, italic, lists, code blocks, embedded images.
+TaskBolt: plain text only. Every competitor: rich text with bold, italic, lists, code blocks, embedded images.
 
 **Approach:** TipTap (ProseMirror-based, Angular-compatible, headless). Store HTML in existing `description` TEXT column. Sanitize with `ammonia` crate on backend.
 
@@ -140,7 +140,7 @@ Users recreate the same filters every session. Every competitor has saved views.
 - `frontend/src/app/features/board/board-toolbar/board-toolbar.component.ts` — add "Save View" button + "Load View" dropdown
 
 ### 3.2 Swimlane Grouping — Medium
-Competitors group kanban by assignee, priority, label. TaskFlow has only static task groups.
+Competitors group kanban by assignee, priority, label. TaskBolt has only static task groups.
 
 **Frontend only** (client-side grouping):
 - `frontend/src/app/features/board/board-toolbar/board-toolbar.component.ts` — add "Group by" dropdown
@@ -204,7 +204,7 @@ Non-tech users don't know what to automate. Monday has "Recipes", ClickUp has 10
 - `frontend/src/app/features/board/automations/automation-rules.component.ts` — add "Start from Template" button
 
 ### 4.4 Natural Language Date Input — Medium
-Todoist: "every third Thursday #Work p1". TaskFlow: strict date picker only.
+Todoist: "every third Thursday #Work p1". TaskBolt: strict date picker only.
 
 **Frontend:**
 - Add `chrono-node` package (~15KB)

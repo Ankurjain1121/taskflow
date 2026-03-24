@@ -542,7 +542,7 @@ mod tests {
 
     async fn test_pool() -> PgPool {
         PgPool::connect(
-            "postgresql://taskflow:REDACTED_PG_PASSWORD@localhost:5433/taskflow",
+            "postgresql://taskbolt:REDACTED_PG_PASSWORD@localhost:5433/taskbolt",
         )
         .await
         .expect("Failed to connect to test database")
@@ -566,9 +566,10 @@ mod tests {
 
     async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
         let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-        let bwc = projects::create_project(pool, "Recurring Board", None, ws_id, tenant_id, user_id)
-            .await
-            .expect("create_board");
+        let bwc =
+            projects::create_project(pool, "Recurring Board", None, ws_id, tenant_id, user_id)
+                .await
+                .expect("create_board");
         let first_col_id = bwc.task_lists[0].id;
         (tenant_id, user_id, ws_id, bwc.project.id, first_col_id)
     }

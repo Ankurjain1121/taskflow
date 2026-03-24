@@ -12,10 +12,10 @@ use crate::extractors::ManagerOrAdmin;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
-use taskflow_db::models::automation_template::{
+use taskbolt_db::models::automation_template::{
     ApplyTemplateRequest, AutomationTemplate, ToggleTemplateRequest,
 };
-use taskflow_db::queries::{automation_templates, is_workspace_member};
+use taskbolt_db::queries::{automation_templates, is_workspace_member};
 
 /// Query params for list endpoint
 #[derive(Debug, Deserialize)]

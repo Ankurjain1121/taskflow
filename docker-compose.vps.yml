@@ -1,5 +1,5 @@
 # =============================================================================
-# TaskFlow - VPS Production Deployment with Caddy
+# TaskBolt - VPS Production Deployment with Caddy
 # =============================================================================
 # Usage:
 #   docker compose -f docker-compose.yml -f docker-compose.vps.yml up -d
@@ -16,7 +16,7 @@ services:
   # ===========================================================================
   caddy:
     image: caddy:2-alpine
-    container_name: taskflow-caddy
+    container_name: taskbolt-caddy
     restart: unless-stopped
     ports:
       - "80:80"
@@ -27,9 +27,9 @@ services:
       - caddy-data:/data
       - caddy-config:/config
     environment:
-      DOMAIN: ${DOMAIN:-taskflow.localhost}
+      DOMAIN: ${DOMAIN:-taskbolt.localhost}
     networks:
-      - taskflow-network
+      - taskbolt-network
     depends_on:
       frontend:
         condition: service_healthy
@@ -49,8 +49,8 @@ services:
     ports: !override []
     environment:
       # Database
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-taskflow}
-      APP_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-taskflow}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-taskbolt}
+      APP_DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-taskbolt}
       # Server
       HOST: 0.0.0.0
       PORT: 8080

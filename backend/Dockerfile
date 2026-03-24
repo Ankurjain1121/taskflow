@@ -48,7 +48,7 @@ COPY . .
 # Set SQLX_OFFLINE=true to skip compile-time query verification
 # This trusts that the queries are correct without needing a database connection
 ENV SQLX_OFFLINE=true
-RUN cargo build --release --bin taskflow-api
+RUN cargo build --release --bin taskbolt-api
 
 # Stage 4: Runner - Minimal runtime image
 FROM ubuntu:24.04 AS runner
@@ -64,7 +64,7 @@ RUN apt-get update && apt-get install -y \
 RUN useradd --system --no-create-home --shell /usr/sbin/nologin app
 
 # Copy compiled binary
-COPY --from=builder /app/target/release/taskflow-api /usr/local/bin/taskflow-api
+COPY --from=builder /app/target/release/taskbolt-api /usr/local/bin/taskbolt-api
 
 # Copy entrypoint and init scripts
 COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh

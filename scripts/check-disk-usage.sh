@@ -1,5 +1,5 @@
 #!/bin/bash
-# Check disk usage of Docker volumes for TaskFlow
+# Check disk usage of Docker volumes for TaskBolt
 # Usage: ./scripts/check-disk-usage.sh
 # Warns if MinIO data volume exceeds 5GB
 
@@ -7,11 +7,11 @@ set -euo pipefail
 
 WARN_THRESHOLD_GB=5
 
-echo "=== TaskFlow Docker Volume Disk Usage ==="
+echo "=== TaskBolt Docker Volume Disk Usage ==="
 echo "Timestamp: $(date -Iseconds)"
 echo ""
 
-docker system df -v 2>/dev/null | grep -E "VOLUME|taskflow" || {
+docker system df -v 2>/dev/null | grep -E "VOLUME|taskbolt" || {
   echo "ERROR: Could not read docker volume info."
   exit 1
 }
@@ -19,7 +19,7 @@ docker system df -v 2>/dev/null | grep -E "VOLUME|taskflow" || {
 echo ""
 
 # Check minio-data volume size
-MINIO_SIZE=$(docker system df -v 2>/dev/null | grep "taskflow_minio-data" | awk '{print $NF}' | head -1)
+MINIO_SIZE=$(docker system df -v 2>/dev/null | grep "taskbolt_minio-data" | awk '{print $NF}' | head -1)
 if [ -n "$MINIO_SIZE" ]; then
   echo "MinIO data volume: $MINIO_SIZE"
 

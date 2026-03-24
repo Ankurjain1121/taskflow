@@ -38,7 +38,7 @@ describe('SidebarComponent', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('svg')).toBeNull();
-    expect(el.textContent).not.toContain('TaskFlow');
+    expect(el.textContent).not.toContain('TaskBolt');
   });
 
   it('should NOT render workspace-switcher component', () => {

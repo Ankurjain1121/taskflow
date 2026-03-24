@@ -43,7 +43,7 @@ export interface CommandAction {
   action: () => void;
 }
 
-const RECENT_SEARCHES_KEY = 'taskflow_recent_searches';
+const RECENT_SEARCHES_KEY = 'taskbolt_recent_searches';
 const MAX_RECENT_SEARCHES = 5;
 
 @Component({

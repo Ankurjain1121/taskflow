@@ -9,7 +9,7 @@ import {
 import { FocusTaskCardComponent } from './focus-task-card.component';
 import { FocusTask, SnoozedTasksMap } from '../dashboard.types';
 
-const SNOOZE_STORAGE_KEY = 'taskflow_snoozed_tasks';
+const SNOOZE_STORAGE_KEY = 'taskbolt_snoozed_tasks';
 
 @Component({
   selector: 'app-focus-board',

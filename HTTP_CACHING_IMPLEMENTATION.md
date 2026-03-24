@@ -1,6 +1,6 @@
 # HTTP Caching Implementation Guide
 
-This guide explains how to add HTTP caching (Cache-Control headers and ETags) to TaskFlow API endpoints.
+This guide explains how to add HTTP caching (Cache-Control headers and ETags) to TaskBolt API endpoints.
 
 ## Quick Start
 

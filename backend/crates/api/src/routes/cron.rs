@@ -9,16 +9,16 @@ use std::env;
 
 use crate::errors::{AppError, Result};
 use crate::state::AppState;
-use taskflow_db::queries::metrics::refresh_metrics;
-use taskflow_db::queries::recurring_generation::{create_recurring_instance, get_due_configs};
-use taskflow_services::broadcast::BroadcastService;
-use taskflow_services::jobs::{
+use taskbolt_db::queries::metrics::refresh_metrics;
+use taskbolt_db::queries::recurring_generation::{create_recurring_instance, get_due_configs};
+use taskbolt_services::broadcast::BroadcastService;
+use taskbolt_services::jobs::{
     cleanup_expired_trash, execute_scheduled_automations, scan_deadlines, send_weekly_digests,
     DeadlineScanResult, ScheduledAutomationResult, TrashCleanupResult, WeeklyDigestResult,
 };
-use taskflow_services::minio::{MinioConfig, MinioService};
-use taskflow_services::notifications::{NotificationService, PostalClient};
-use taskflow_services::novu::NovuClient;
+use taskbolt_services::minio::{MinioConfig, MinioService};
+use taskbolt_services::notifications::{NotificationService, PostalClient};
+use taskbolt_services::novu::NovuClient;
 
 /// Validate the X-Cron-Secret header
 fn validate_cron_secret(headers: &HeaderMap) -> Result<()> {
@@ -76,7 +76,7 @@ async fn deadline_scan_handler(
                     url,
                     key,
                     from,
-                    from_name.unwrap_or_else(|| "TaskFlow".to_string()),
+                    from_name.unwrap_or_else(|| "TaskBolt".to_string()),
                 ))
             }
             _ => None,
@@ -131,8 +131,8 @@ async fn weekly_digest_handler(
         env::var("POSTAL_API_URL").unwrap_or_else(|_| "http://localhost:5000".to_string());
     let postal_api_key = env::var("POSTAL_API_KEY").unwrap_or_else(|_| "".to_string());
     let postal_from_address =
-        env::var("POSTAL_FROM_ADDRESS").unwrap_or_else(|_| "noreply@taskflow.local".to_string());
-    let postal_from_name = env::var("POSTAL_FROM_NAME").unwrap_or_else(|_| "TaskFlow".to_string());
+        env::var("POSTAL_FROM_ADDRESS").unwrap_or_else(|_| "noreply@taskbolt.local".to_string());
+    let postal_from_name = env::var("POSTAL_FROM_NAME").unwrap_or_else(|_| "TaskBolt".to_string());
 
     let postal = PostalClient::new(
         postal_api_url,

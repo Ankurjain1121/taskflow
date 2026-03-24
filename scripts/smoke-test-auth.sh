@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# TaskFlow - Auth Smoke Test
+# TaskBolt - Auth Smoke Test
 # =============================================================================
 # Verifies the full auth lifecycle after deploy.
 # Usage: ./scripts/smoke-test-auth.sh https://taskflow.paraslace.in

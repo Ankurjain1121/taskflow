@@ -11,7 +11,7 @@ mod tests {
         TenantContext,
     };
     use crate::middleware::auth::AuthUser;
-    use taskflow_db::models::UserRole;
+    use taskbolt_db::models::UserRole;
 
     /// Helper: create mock HTTP request Parts
     fn create_mock_parts() -> Parts {

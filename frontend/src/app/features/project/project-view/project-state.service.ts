@@ -131,9 +131,9 @@ export class ProjectStateService {
   readonly dragSimulationCurrentColumnId = signal<string | null>(null);
   readonly cardDensity = signal<'compact' | 'normal' | 'expanded'>(
     ['compact', 'normal', 'expanded'].includes(
-      localStorage.getItem('taskflow_card_density') ?? '',
+      localStorage.getItem('taskbolt_card_density') ?? '',
     )
-      ? (localStorage.getItem('taskflow_card_density') as
+      ? (localStorage.getItem('taskbolt_card_density') as
           | 'compact'
           | 'normal'
           | 'expanded')
@@ -142,7 +142,7 @@ export class ProjectStateService {
   readonly cardFields = signal<CardFields>(
     (() => {
       try {
-        const stored = localStorage.getItem('taskflow_card_fields');
+        const stored = localStorage.getItem('taskbolt_card_fields');
         if (stored) return { ...DEFAULT_CARD_FIELDS, ...JSON.parse(stored) };
       } catch {
         /* ignore */
@@ -152,7 +152,7 @@ export class ProjectStateService {
   );
   readonly colorBy = signal<ColorByMode>(
     (() => {
-      const stored = localStorage.getItem('taskflow_color_by');
+      const stored = localStorage.getItem('taskbolt_color_by');
       return COLOR_BY_MODES.includes(stored as ColorByMode)
         ? (stored as ColorByMode)
         : 'priority';
@@ -553,7 +553,7 @@ export class ProjectStateService {
   loadCollapsedColumns(boardId: string): void {
     try {
       const stored = localStorage.getItem(
-        `taskflow_collapsed_columns_${boardId}`,
+        `taskbolt_collapsed_columns_${boardId}`,
       );
       if (stored) {
         this.collapsedColumnIds.set(new Set(JSON.parse(stored)));
@@ -575,7 +575,7 @@ export class ProjectStateService {
     }
     this.collapsedColumnIds.set(updated);
     localStorage.setItem(
-      `taskflow_collapsed_columns_${boardId}`,
+      `taskbolt_collapsed_columns_${boardId}`,
       JSON.stringify([...updated]),
     );
   }
@@ -588,12 +588,12 @@ export class ProjectStateService {
 
   setCardDensity(density: 'compact' | 'normal' | 'expanded'): void {
     this.cardDensity.set(density);
-    localStorage.setItem('taskflow_card_density', density);
+    localStorage.setItem('taskbolt_card_density', density);
   }
 
   setColorBy(mode: ColorByMode): void {
     this.colorBy.set(mode);
-    localStorage.setItem('taskflow_color_by', mode);
+    localStorage.setItem('taskbolt_color_by', mode);
   }
 
   // === Card Fields ===
@@ -601,7 +601,7 @@ export class ProjectStateService {
   updateCardField(key: keyof CardFields, value: boolean): void {
     this.cardFields.update((f) => {
       const next = { ...f, [key]: value };
-      localStorage.setItem('taskflow_card_fields', JSON.stringify(next));
+      localStorage.setItem('taskbolt_card_fields', JSON.stringify(next));
       return next;
     });
   }
@@ -609,7 +609,7 @@ export class ProjectStateService {
   resetCardFields(): void {
     this.cardFields.set({ ...DEFAULT_CARD_FIELDS });
     localStorage.setItem(
-      'taskflow_card_fields',
+      'taskbolt_card_fields',
       JSON.stringify(DEFAULT_CARD_FIELDS),
     );
   }

@@ -66,9 +66,9 @@ F2 builds on the optimistic update foundation laid by E2. Where E2 focused on en
 
 > **Google Docs + Notion hybrid:** immediate client-side optimistic move → server confirms → rollback with undo-style notification if rejected. No blocking locks. Show "Saving..." / "Saved" indicators.
 
-### Most Important Gap TaskFlow Has vs Best-in-Class
+### Most Important Gap TaskBolt Has vs Best-in-Class
 
-**No save status indicator.** Every competitor (Google Docs, Notion, ClickUp, Linear) shows a persistent "Saving..." → "Saved" indicator that gives users confidence their work is being persisted. TaskFlow currently has zero visibility into save state — changes either silently succeed or pop an error toast. The user has no way to know if their edits have been saved, which creates anxiety especially when closing the browser or navigating away. This is the single most impactful gap to close.
+**No save status indicator.** Every competitor (Google Docs, Notion, ClickUp, Linear) shows a persistent "Saving..." → "Saved" indicator that gives users confidence their work is being persisted. TaskBolt currently has zero visibility into save state — changes either silently succeed or pop an error toast. The user has no way to know if their edits have been saved, which creates anxiety especially when closing the browser or navigating away. This is the single most impactful gap to close.
 
 ---
 

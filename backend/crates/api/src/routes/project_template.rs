@@ -11,7 +11,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::project_templates::{
+use taskbolt_db::queries::project_templates::{
     create_board_from_template, create_template, delete_template, get_template, list_templates,
     save_board_as_template, CreateBoardFromTemplateInput, CreateTemplateFromBoardInput,
     CreateTemplateInput, ProjectTemplateQueryError,
@@ -38,7 +38,7 @@ fn map_error(e: ProjectTemplateQueryError) -> AppError {
 async fn list_templates_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
-) -> Result<Json<Vec<taskflow_db::models::ProjectTemplate>>> {
+) -> Result<Json<Vec<taskbolt_db::models::ProjectTemplate>>> {
     let templates = list_templates(&state.db, tenant.tenant_id)
         .await
         .map_err(map_error)?;
@@ -52,7 +52,7 @@ async fn create_template_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Json(body): Json<CreateTemplateInput>,
-) -> Result<Json<taskflow_db::models::ProjectTemplate>> {
+) -> Result<Json<taskbolt_db::models::ProjectTemplate>> {
     let template = create_template(&state.db, body, tenant.user_id, tenant.tenant_id)
         .await
         .map_err(map_error)?;
@@ -66,7 +66,7 @@ async fn get_template_handler(
     State(state): State<AppState>,
     _tenant: TenantContext,
     Path(template_id): Path<Uuid>,
-) -> Result<Json<taskflow_db::queries::project_templates::TemplateWithDetails>> {
+) -> Result<Json<taskbolt_db::queries::project_templates::TemplateWithDetails>> {
     let details = get_template(&state.db, template_id)
         .await
         .map_err(map_error)?;
@@ -123,7 +123,7 @@ async fn save_board_as_template_handler(
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
     Json(body): Json<CreateTemplateFromBoardInput>,
-) -> Result<Json<taskflow_db::models::ProjectTemplate>> {
+) -> Result<Json<taskbolt_db::models::ProjectTemplate>> {
     let template =
         save_board_as_template(&state.db, board_id, body, tenant.user_id, tenant.tenant_id)
             .await

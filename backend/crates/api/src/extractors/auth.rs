@@ -13,7 +13,7 @@ use serde::Serialize;
 use std::future::Future;
 use uuid::Uuid;
 
-use taskflow_db::models::UserRole;
+use taskbolt_db::models::UserRole;
 
 use crate::middleware::auth::AuthUser;
 

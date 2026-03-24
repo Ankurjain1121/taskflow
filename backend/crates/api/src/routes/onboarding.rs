@@ -19,9 +19,9 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use taskflow_db::models::UserRole;
-use taskflow_db::queries::{auth, invitations, workspaces};
-use taskflow_services::sample_board::generate_sample_board;
+use taskbolt_db::models::UserRole;
+use taskbolt_db::queries::{auth, invitations, workspaces};
+use taskbolt_services::sample_board::generate_sample_board;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;

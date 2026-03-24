@@ -29,7 +29,7 @@ describe('SidebarRecentComponent', () => {
     });
 
     // Clear localStorage before each test
-    localStorage.removeItem('taskflow_recent_boards');
+    localStorage.removeItem('taskbolt_recent_boards');
 
     mockProjectService = {
       getBoard: vi.fn().mockReturnValue(of({ id: 'b-1', name: 'My Board' })),
@@ -49,7 +49,7 @@ describe('SidebarRecentComponent', () => {
   });
 
   afterEach(() => {
-    localStorage.removeItem('taskflow_recent_boards');
+    localStorage.removeItem('taskbolt_recent_boards');
   });
 
   it('should create', () => {
@@ -65,7 +65,7 @@ describe('SidebarRecentComponent', () => {
         visitedAt: Date.now(),
       },
     ];
-    localStorage.setItem('taskflow_recent_boards', JSON.stringify(stored));
+    localStorage.setItem('taskbolt_recent_boards', JSON.stringify(stored));
 
     component.ngOnInit();
     expect(component.recentItems().length).toBe(1);
@@ -73,7 +73,7 @@ describe('SidebarRecentComponent', () => {
   });
 
   it('should handle corrupted localStorage data', () => {
-    localStorage.setItem('taskflow_recent_boards', '{invalid json}');
+    localStorage.setItem('taskbolt_recent_boards', '{invalid json}');
     component.ngOnInit();
     expect(component.recentItems().length).toBe(0);
   });
@@ -97,7 +97,7 @@ describe('SidebarRecentComponent', () => {
       visitedAt: Date.now(),
     };
     localStorage.setItem(
-      'taskflow_recent_boards',
+      'taskbolt_recent_boards',
       JSON.stringify([oldEntry, recentEntry]),
     );
 
@@ -116,7 +116,7 @@ describe('SidebarRecentComponent', () => {
 
     expect(component.recentItems().length).toBe(1);
     const stored = JSON.parse(
-      localStorage.getItem('taskflow_recent_boards') || '[]',
+      localStorage.getItem('taskbolt_recent_boards') || '[]',
     );
     expect(stored.length).toBe(1);
   });

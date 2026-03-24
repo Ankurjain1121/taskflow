@@ -1,7 +1,7 @@
 # Performance Optimization: Close the Gap with Linear/Notion
 
 ## Objective
-Make TaskFlow feel as responsive as Linear/Notion by implementing highest-impact frontend and backend performance patterns, prioritized by effort-to-reward ratio.
+Make TaskBolt feel as responsive as Linear/Notion by implementing highest-impact frontend and backend performance patterns, prioritized by effort-to-reward ratio.
 
 ## Key Decisions
 - Frontend data layer is the biggest gap, not the server

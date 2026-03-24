@@ -49,7 +49,7 @@ Linear, ClickUp, Jira, Height and Notion all implement this pattern. The key des
 
 ### Most Important Gap vs Best-in-Class
 
-TaskFlow currently has **no swimlane / group-by capability at all**. The single most important gap is that the board is always flat — there is no way to group tasks by assignee or priority, which is a core workflow feature in every major competitor. This limits team visibility when boards have multiple assignees.
+TaskBolt currently has **no swimlane / group-by capability at all**. The single most important gap is that the board is always flat — there is no way to group tasks by assignee or priority, which is a core workflow feature in every major competitor. This limits team visibility when boards have multiple assignees.
 
 ---
 
@@ -846,4 +846,4 @@ Alternative: use `_` as separator: `cell_{columnId}_{groupKey}` — avoids UUID 
 - [Angular CDK: Multi-Direction Movement](https://dev.to/ngmaterialdev/angular-cdk-drag-drop-multi-direction-movement-54l5)
 - RESEARCH.md — B6 Swimlanes competitor analysis (Linear, ClickUp, Jira, Asana, Height, Shortcut, Monday, Plane, Trello, Notion)
 - comp.md — Winner pattern: "Group by" dropdown → CDK drop list group → drag across rows = reassign property
-- TaskFlow codebase: `board-state.service.ts`, `board-view.component.ts`, `board-drag-drop.handler.ts`, `task_movement.rs`, `task_helpers.rs`
+- TaskBolt codebase: `board-state.service.ts`, `board-view.component.ts`, `board-drag-drop.handler.ts`, `task_movement.rs`, `task_helpers.rs`

@@ -176,7 +176,7 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
 
       // Restore viewMode from query params or localStorage
       const qp = this.route.snapshot.queryParams;
-      const savedView = qp['view'] || localStorage.getItem(`taskflow_view_${this.boardId}`);
+      const savedView = qp['view'] || localStorage.getItem(`taskbolt_view_${this.boardId}`);
       if (savedView && ['kanban', 'list', 'calendar', 'gantt', 'reports', 'time-report', 'activity'].includes(savedView)) {
         this.viewMode.set(savedView as ViewMode);
       }
@@ -256,7 +256,7 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
     this.viewMode.set(mode);
 
     // Persist viewMode to localStorage and URL
-    localStorage.setItem(`taskflow_view_${this.boardId}`, mode);
+    localStorage.setItem(`taskbolt_view_${this.boardId}`, mode);
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { view: mode },

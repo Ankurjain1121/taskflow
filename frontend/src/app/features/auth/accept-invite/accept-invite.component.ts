@@ -75,7 +75,7 @@ type PageState =
                 />
               </svg>
             </div>
-            <h1 class="brand-title">TaskFlow</h1>
+            <h1 class="brand-title">TaskBolt</h1>
             <p class="brand-tagline">
               You've been invited to collaborate.<br />Set up your account to
               get started.

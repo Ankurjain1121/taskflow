@@ -19,7 +19,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
-use taskflow_db::queries::metrics::{
+use taskbolt_db::queries::metrics::{
     get_personal_dashboard, get_resource_utilization, get_team_dashboard, get_workspace_dashboard,
     PersonalDashboard, ResourceUtilizationRow, TeamDashboard, WorkspaceDashboard,
 };
@@ -334,5 +334,4 @@ mod tests {
     fn test_metrics_cache_ttl() {
         assert_eq!(METRICS_CACHE_TTL, 120);
     }
-
 }

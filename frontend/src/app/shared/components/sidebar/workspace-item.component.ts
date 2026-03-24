@@ -369,7 +369,7 @@ export class WorkspaceItemComponent implements OnInit {
 
   ngOnInit(): void {
     const saved = localStorage.getItem(
-      `taskflow_ws_expanded_${this.workspace().id}`,
+      `taskbolt_ws_expanded_${this.workspace().id}`,
     );
     this.expanded.set(saved !== null ? saved === 'true' : true);
     this.loadBoards();
@@ -383,7 +383,7 @@ export class WorkspaceItemComponent implements OnInit {
   toggleExpanded(): void {
     this.expanded.update((v) => !v);
     localStorage.setItem(
-      `taskflow_ws_expanded_${this.workspace().id}`,
+      `taskbolt_ws_expanded_${this.workspace().id}`,
       String(this.expanded()),
     );
     if (this.expanded() && this.boards().length === 0) {

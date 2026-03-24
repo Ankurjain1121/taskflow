@@ -15,8 +15,8 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::models::NotificationPreference;
-use taskflow_db::queries::notification_preferences::{
+use taskbolt_db::models::NotificationPreference;
+use taskbolt_db::queries::notification_preferences::{
     list_by_user, reset_all, upsert, NotificationPreferenceError,
 };
 

@@ -5,7 +5,7 @@ import {
 } from '@angular/common/http/testing';
 import { RecentItemsService } from './recent-items.service';
 
-const STORAGE_KEY = 'taskflow_recent_items';
+const STORAGE_KEY = 'taskbolt_recent_items';
 
 describe('RecentItemsService', () => {
   let service: RecentItemsService;

@@ -1,4 +1,4 @@
-use taskflow_auth::password::hash_password;
+use taskbolt_auth::password::hash_password;
 
 fn main() {
     let password = std::env::args()

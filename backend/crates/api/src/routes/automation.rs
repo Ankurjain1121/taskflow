@@ -12,8 +12,8 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::models::automation::{AutomationActionType, AutomationLog, AutomationTrigger};
-use taskflow_db::queries::automations::{
+use taskbolt_db::models::automation::{AutomationActionType, AutomationLog, AutomationTrigger};
+use taskbolt_db::queries::automations::{
     create_rule, delete_rule, get_rule, get_rule_logs, list_rules, update_rule,
     AutomationQueryError, AutomationRuleWithActions, CreateActionInput, CreateRuleInput,
     UpdateRuleInput,

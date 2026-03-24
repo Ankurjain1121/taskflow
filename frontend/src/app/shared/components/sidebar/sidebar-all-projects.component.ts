@@ -20,7 +20,7 @@ interface WorkspaceWithProjects {
   error: boolean;
 }
 
-const LS_KEY = 'taskflow_all_projects_collapsed';
+const LS_KEY = 'taskbolt_all_projects_collapsed';
 
 @Component({
   selector: 'app-sidebar-all-projects',

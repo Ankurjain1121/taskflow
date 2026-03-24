@@ -12,11 +12,11 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use taskflow_db::models::WorkspaceJobRole;
-use taskflow_db::queries::workspace_job_roles::{
+use taskbolt_db::models::WorkspaceJobRole;
+use taskbolt_db::queries::workspace_job_roles::{
     self, CreateJobRoleInput, MemberJobRoleInfo, MemberRoleBatch, UpdateJobRoleInput,
 };
-use taskflow_db::queries::workspaces;
+use taskbolt_db::queries::workspaces;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;

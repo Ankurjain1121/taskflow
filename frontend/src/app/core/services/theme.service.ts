@@ -23,9 +23,9 @@ import { UserPreferencesService } from './user-preferences.service';
 import { AuthService } from './auth.service';
 import { ColorMode, LightTheme, DarkTheme } from '../../shared/types/theme.types';
 
-const THEME_KEY = 'taskflow-theme';
-const LIGHT_THEME_KEY = 'taskflow-light-theme';
-const DARK_THEME_KEY = 'taskflow-dark-theme';
+const THEME_KEY = 'taskbolt-theme';
+const LIGHT_THEME_KEY = 'taskbolt-light-theme';
+const DARK_THEME_KEY = 'taskbolt-dark-theme';
 
 export type Theme = 'light' | 'dark' | 'system';
 

@@ -1,4 +1,4 @@
-# TaskFlow Audit Findings
+# TaskBolt Audit Findings
 
 **Date:** 2026-02-18
 **Audited by:** 5-agent parallel audit

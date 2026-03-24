@@ -18,10 +18,10 @@ use crate::errors::{AppError, Result};
 use crate::state::AppState;
 use crate::ws::batch_handler::{BatchHandler, BatchMessage};
 use crate::ws::messages::{ClientMessage, ServerMessage, WsQuery};
-use taskflow_auth::jwt::verify_access_token;
-use taskflow_db::models::WsBoardEvent;
-use taskflow_db::queries::projects::is_project_member;
-use taskflow_services::{BroadcastService, PresenceService};
+use taskbolt_auth::jwt::verify_access_token;
+use taskbolt_db::models::WsBoardEvent;
+use taskbolt_db::queries::projects::is_project_member;
+use taskbolt_services::{BroadcastService, PresenceService};
 
 /// WebSocket upgrade handler
 /// GET /api/ws or GET /api/ws?token=<jwt>
@@ -416,7 +416,7 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                                 // Broadcast lock acquired to all board channels
                                 // We need the task's board_id to broadcast
                                 if let Ok(Some(board_id)) =
-                                    taskflow_db::queries::get_task_project_id(&state.db, task_id)
+                                    taskbolt_db::queries::get_task_project_id(&state.db, task_id)
                                         .await
                                 {
                                     let event = WsBoardEvent::TaskLocked {
@@ -454,7 +454,7 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                             }
                             // Broadcast unlock
                             if let Ok(Some(board_id)) =
-                                taskflow_db::queries::get_task_project_id(&state.db, task_id).await
+                                taskbolt_db::queries::get_task_project_id(&state.db, task_id).await
                             {
                                 let event = WsBoardEvent::TaskUnlocked { task_id, user_id };
                                 if let Err(e) =

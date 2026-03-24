@@ -314,7 +314,7 @@ mod tests {
     //
     // This test requires a live Postgres connection (see `test_helpers::test_pool`)
     // and is gated behind `#[ignore]` to avoid running in CI without a DB.
-    // Run with: `cargo test -p taskflow-db -- --ignored test_delete_old_notifications_respects_batch_limit`
+    // Run with: `cargo test -p taskbolt-db -- --ignored test_delete_old_notifications_respects_batch_limit`
     #[tokio::test]
     #[ignore = "requires live Postgres (run with --ignored)"]
     async fn test_delete_old_notifications_respects_batch_limit() {

@@ -43,9 +43,9 @@ B8 is **Card Quick-Edit**: the ability to edit a task's key fields (title, assig
 
 > **(1) Title: single-click → inline text edit. (2) Other fields (assignee, due date, priority): hover → small CDK Overlay popover. Gap: date picker popover, assignee picker popover, priority picker on hover.**
 
-The single most important gap TaskFlow has vs best-in-class:
+The single most important gap TaskBolt has vs best-in-class:
 
-**TaskFlow already has inline title edit and priority cycling.** The missing piece is the **field-level popover system**: when you hover a due date chip, assignee avatar, or label pill on a card, a small anchored popover opens with a mini-editor for that specific field. This is the core Linear/Asana/Height UX that TaskFlow lacks.
+**TaskBolt already has inline title edit and priority cycling.** The missing piece is the **field-level popover system**: when you hover a due date chip, assignee avatar, or label pill on a card, a small anchored popover opens with a mini-editor for that specific field. This is the core Linear/Asana/Height UX that TaskBolt lacks.
 
 ---
 
@@ -136,7 +136,7 @@ export interface UpdateTaskRequest {
 
 ### Core Concept
 
-Rather than one monolithic "quick-edit popover" component (Trello style, opens the whole card as a panel), TaskFlow uses **field-level popovers**: each editable field on the card has its own small, focused popover. This matches Linear/Height's approach and is more modular.
+Rather than one monolithic "quick-edit popover" component (Trello style, opens the whole card as a panel), TaskBolt uses **field-level popovers**: each editable field on the card has its own small, focused popover. This matches Linear/Height's approach and is more modular.
 
 **Trigger mechanism: hover edit buttons on card fields** (not right-click, not a separate pencil icon for the whole card — each field is independently clickable).
 

@@ -1,6 +1,6 @@
 #!/bin/sh
 # =============================================================================
-# TaskFlow - Git Hooks Setup
+# TaskBolt - Git Hooks Setup
 # =============================================================================
 # Run once after cloning to enable pre-commit hooks.
 # Usage: ./scripts/setup-hooks.sh

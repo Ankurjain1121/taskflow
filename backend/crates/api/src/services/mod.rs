@@ -1,6 +1,6 @@
 //! API Services
 //!
-//! Business logic services for the TaskFlow API.
+//! Business logic services for the TaskBolt API.
 
 pub mod activity_log;
 pub mod app_metrics;

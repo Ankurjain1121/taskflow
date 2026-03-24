@@ -10,10 +10,10 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// Redis key for the main email queue
-pub const QUEUE_KEY: &str = "taskflow:email:queue";
+pub const QUEUE_KEY: &str = "taskbolt:email:queue";
 
 /// Redis key for the dead-letter queue (jobs that exceeded max retries)
-pub const DLQ_KEY: &str = "taskflow:email:dlq";
+pub const DLQ_KEY: &str = "taskbolt:email:dlq";
 
 /// Maximum number of retry attempts before moving to the DLQ
 pub const MAX_RETRIES: u8 = 3;
@@ -199,8 +199,8 @@ mod tests {
 
     #[test]
     fn test_queue_keys_are_namespaced() {
-        assert!(QUEUE_KEY.starts_with("taskflow:"));
-        assert!(DLQ_KEY.starts_with("taskflow:"));
+        assert!(QUEUE_KEY.starts_with("taskbolt:"));
+        assert!(DLQ_KEY.starts_with("taskbolt:"));
     }
 
     #[test]

@@ -1,4 +1,4 @@
-# Contributing to TaskFlow
+# Contributing to TaskBolt
 
 > Auto-generated from source-of-truth: package.json, Cargo.toml, .env.example, scripts/, codemaps/
 > Last updated: 2026-03-16
@@ -17,7 +17,7 @@
 
 ```bash
 # 1. Clone and enter project
-git clone <repo-url> && cd taskflow
+git clone <repo-url> && cd taskbolt
 
 # 2. Copy environment config
 cp .env.example .env
@@ -35,7 +35,7 @@ open http://localhost:4200
 ## Project Structure
 
 ```
-taskflow/
+taskbolt/
 ├── backend/                Rust API server (Axum 0.8)
 │   └── crates/
 │       ├── api/            HTTP routes (~150 endpoints), middleware (8), WebSocket
@@ -94,7 +94,7 @@ taskflow/
 | `cargo fmt --all -- --check` | Check formatting |
 | `cargo test` | Run all unit/integration tests |
 | `cargo build --release` | Production build |
-| `cargo run --bin taskflow-api` | Run API server locally |
+| `cargo run --bin taskbolt-api` | Run API server locally |
 
 Note: Backend builds require `SQLX_OFFLINE=true` when no database is available.
 
@@ -136,7 +136,7 @@ Note: Backend builds require `SQLX_OFFLINE=true` when no database is available.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `POSTGRES_USER` | `postgres` | PostgreSQL user |
-| `POSTGRES_DB` | `taskflow` | Primary database |
+| `POSTGRES_DB` | `taskbolt` | Primary database |
 | `DATABASE_URL` | (constructed) | Full connection string |
 
 ### Redis
@@ -276,7 +276,7 @@ Emergency bypass: `git commit --no-verify`
 ```bash
 cargo test                          # All tests
 cargo test -- test_name             # Specific test
-cargo test --package taskflow-db    # Specific crate
+cargo test --package taskbolt-db    # Specific crate
 ```
 
 ### Frontend (Angular)

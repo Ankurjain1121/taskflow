@@ -60,7 +60,7 @@ export interface SignUpRequest {
 }
 
 /** Only non-sensitive flags are persisted — full user comes from /auth/me */
-const AUTH_FLAG_KEY = 'taskflow_auth';
+const AUTH_FLAG_KEY = 'taskbolt_auth';
 
 @Injectable({
   providedIn: 'root',
@@ -275,7 +275,7 @@ export class AuthService {
   private clearLocalState(): void {
     localStorage.removeItem(AUTH_FLAG_KEY);
     // Also clean up legacy key if present from older versions
-    localStorage.removeItem('taskflow_user');
+    localStorage.removeItem('taskbolt_user');
     this._currentUser.set(null);
     this._csrfToken.set(null);
     this._refreshInFlight$ = null;

@@ -2,7 +2,7 @@
 
 ## Overview
 
-E3 targets measurable reductions in initial bundle size and time-to-interactive for TaskFlow's Angular 19 frontend. The app already uses route-level lazy loading for every route. The remaining wins are: (1) eliminating eagerly-loaded PrimeNG modules that live in the initial chunk, (2) adding `@defer` blocks for below-fold and tab-switched heavy components in board-view, and (3) correcting the preloading strategy so route prefetch happens intelligently rather than eagerly preloading every lazy chunk.
+E3 targets measurable reductions in initial bundle size and time-to-interactive for TaskBolt's Angular 19 frontend. The app already uses route-level lazy loading for every route. The remaining wins are: (1) eliminating eagerly-loaded PrimeNG modules that live in the initial chunk, (2) adding `@defer` blocks for below-fold and tab-switched heavy components in board-view, and (3) correcting the preloading strategy so route prefetch happens intelligently rather than eagerly preloading every lazy chunk.
 
 ---
 

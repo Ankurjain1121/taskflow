@@ -1,5 +1,5 @@
 [package]
-name = "taskflow-services"
+name = "taskbolt-services"
 version.workspace = true
 edition.workspace = true
 
@@ -20,7 +20,7 @@ tokio.workspace = true
 aws-sdk-s3.workspace = true
 once_cell.workspace = true
 
-taskflow-db = { path = "../db" }
+taskbolt-db = { path = "../db" }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full", "test-util"] }

@@ -29,7 +29,7 @@ interface SampleColumn {
           Sample Board Preview
         </h2>
         <p class="text-[var(--muted-foreground)] dark:text-gray-400">
-          Generate a sample board with pre-made tasks to explore TaskFlow's
+          Generate a sample board with pre-made tasks to explore TaskBolt's
           features.
         </p>
       </div>

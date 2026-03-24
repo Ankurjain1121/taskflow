@@ -13,7 +13,7 @@ use crate::extractors::ManagerOrAdmin;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
-use taskflow_db::queries::{api_keys, is_workspace_member};
+use taskbolt_db::queries::{api_keys, is_workspace_member};
 
 #[derive(Debug, Deserialize)]
 pub struct CreateApiKeyRequest {

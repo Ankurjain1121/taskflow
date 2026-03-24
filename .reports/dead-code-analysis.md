@@ -1,4 +1,4 @@
-# TaskFlow Dead Code Analysis Report
+# TaskBolt Dead Code Analysis Report
 
 **Date:** 2026-03-03
 **Tools Used:** knip, depcheck, ts-prune

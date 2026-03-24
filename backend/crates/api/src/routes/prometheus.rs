@@ -60,7 +60,7 @@ async fn prometheus_handler(
     let queue_depth: f64 = {
         let mut conn = state.redis.clone();
         redis::cmd("LLEN")
-            .arg("taskflow:email:queue")
+            .arg("taskbolt:email:queue")
             .query_async::<i64>(&mut conn)
             .await
             .unwrap_or(0) as f64
