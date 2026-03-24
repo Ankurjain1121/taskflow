@@ -45,7 +45,7 @@ export interface AdminUser {
   email: string;
   display_name: string;
   avatar_url: string | null;
-  role: 'SuperAdmin' | 'Admin' | 'Manager' | 'Member';
+  role: 'super_admin' | 'admin' | 'manager' | 'member';
   workspace_count: number;
   created_at: string;
   last_active_at: string | null;
@@ -148,7 +148,7 @@ export class AdminService {
 
   updateUserRole(
     userId: string,
-    role: 'SuperAdmin' | 'Admin' | 'Manager' | 'Member',
+    role: 'super_admin' | 'admin' | 'manager' | 'member',
   ): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/users/${userId}/role`, {
       role,

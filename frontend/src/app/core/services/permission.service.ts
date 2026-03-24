@@ -9,10 +9,10 @@ import { AuthService, User } from './auth.service';
  * `hasRole('Admin')` returns true for SuperAdmin too.
  */
 const ROLE_HIERARCHY: Record<string, number> = {
-  SuperAdmin: 4,
-  Admin: 3,
-  Manager: 2,
-  Member: 1,
+  super_admin: 4,
+  admin: 3,
+  manager: 2,
+  member: 1,
 };
 
 @Injectable({
@@ -37,13 +37,13 @@ export class PermissionService {
   }
 
   /** Reactive computed: true when the current user is SuperAdmin. */
-  readonly isSuperAdmin = computed(() => this.roleLevel() >= ROLE_HIERARCHY['SuperAdmin']);
+  readonly isSuperAdmin = computed(() => this.roleLevel() >= ROLE_HIERARCHY['super_admin']);
 
   /** Reactive computed: true when the current user is Admin or above. */
-  readonly isAdminOrAbove = computed(() => this.roleLevel() >= ROLE_HIERARCHY['Admin']);
+  readonly isAdminOrAbove = computed(() => this.roleLevel() >= ROLE_HIERARCHY['admin']);
 
   /** Reactive computed: true when the current user is Manager or above. */
-  readonly isManagerOrAbove = computed(() => this.roleLevel() >= ROLE_HIERARCHY['Manager']);
+  readonly isManagerOrAbove = computed(() => this.roleLevel() >= ROLE_HIERARCHY['manager']);
 
   /** Get the role string for the current user (or null). */
   readonly currentRole = computed(() => {
