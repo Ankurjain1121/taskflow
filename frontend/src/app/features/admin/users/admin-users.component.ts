@@ -401,28 +401,28 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
   selectedRole: string | null = null;
 
   roleOptions = [
-    { label: 'Super Admin', value: 'SuperAdmin' },
-    { label: 'Admin', value: 'Admin' },
-    { label: 'Manager', value: 'Manager' },
-    { label: 'Member', value: 'Member' },
+    { label: 'Super Admin', value: 'super_admin' },
+    { label: 'Admin', value: 'admin' },
+    { label: 'Manager', value: 'manager' },
+    { label: 'Member', value: 'member' },
   ];
 
   roleChangeOptions = [
-    { label: 'Super Admin', value: 'SuperAdmin' },
-    { label: 'Admin', value: 'Admin' },
-    { label: 'Manager', value: 'Manager' },
-    { label: 'Member', value: 'Member' },
+    { label: 'Super Admin', value: 'super_admin' },
+    { label: 'Admin', value: 'admin' },
+    { label: 'Manager', value: 'manager' },
+    { label: 'Member', value: 'member' },
   ];
 
   // Computed stats
   adminCount = computed(
-    () => this.users().filter((u) => u.role === 'Admin' || u.role === 'SuperAdmin').length,
+    () => this.users().filter((u) => u.role === 'admin' || u.role === 'super_admin').length,
   );
   managerCount = computed(
-    () => this.users().filter((u) => u.role === 'Manager').length,
+    () => this.users().filter((u) => u.role === 'manager').length,
   );
   memberCount = computed(
-    () => this.users().filter((u) => u.role === 'Member').length,
+    () => this.users().filter((u) => u.role === 'member').length,
   );
 
   // Shared popup menu
@@ -478,7 +478,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
 
   onRoleChange(user: AdminUser, newRole: string): void {
     if (user.role === newRole) return;
-    this.updateUserRole(user, newRole as 'SuperAdmin' | 'Admin' | 'Manager' | 'Member');
+    this.updateUserRole(user, newRole as 'super_admin' | 'admin' | 'manager' | 'member');
   }
 
   getUserMenuItems(user: AdminUser): MenuItem[] {
@@ -486,26 +486,26 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
       {
         label: 'Make Super Admin',
         icon: 'pi pi-star',
-        disabled: user.role === 'SuperAdmin',
-        command: () => this.onChangeRole(user, 'SuperAdmin'),
+        disabled: user.role === 'super_admin',
+        command: () => this.onChangeRole(user, 'super_admin'),
       },
       {
         label: 'Make Admin',
         icon: 'pi pi-shield',
-        disabled: user.role === 'Admin',
-        command: () => this.onChangeRole(user, 'Admin'),
+        disabled: user.role === 'admin',
+        command: () => this.onChangeRole(user, 'admin'),
       },
       {
         label: 'Make Manager',
         icon: 'pi pi-users',
-        disabled: user.role === 'Manager',
-        command: () => this.onChangeRole(user, 'Manager'),
+        disabled: user.role === 'manager',
+        command: () => this.onChangeRole(user, 'manager'),
       },
       {
         label: 'Make Member',
         icon: 'pi pi-user',
-        disabled: user.role === 'Member',
-        command: () => this.onChangeRole(user, 'Member'),
+        disabled: user.role === 'member',
+        command: () => this.onChangeRole(user, 'member'),
       },
       { separator: true },
       {
@@ -522,14 +522,14 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
     this.sharedUserMenu.toggle(event);
   }
 
-  onChangeRole(user: AdminUser, newRole: 'SuperAdmin' | 'Admin' | 'Manager' | 'Member'): void {
+  onChangeRole(user: AdminUser, newRole: 'super_admin' | 'admin' | 'manager' | 'member'): void {
     if (user.role === newRole) return;
     this.updateUserRole(user, newRole);
   }
 
   private updateUserRole(
     user: AdminUser,
-    newRole: 'SuperAdmin' | 'Admin' | 'Manager' | 'Member',
+    newRole: 'super_admin' | 'admin' | 'manager' | 'member',
   ): void {
     this.updatingUser.set(user.id);
 

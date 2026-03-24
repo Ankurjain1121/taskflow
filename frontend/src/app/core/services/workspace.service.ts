@@ -91,7 +91,7 @@ export class WorkspaceService {
   updateMemberRole(
     workspaceId: string,
     userId: string,
-    role: 'admin' | 'manager' | 'member',
+    role: 'admin' | 'member' | 'viewer',
   ): Observable<void> {
     return this.http.patch<void>(
       `${this.apiUrl}/${workspaceId}/members/${userId}`,

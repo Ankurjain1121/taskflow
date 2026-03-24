@@ -184,7 +184,6 @@ export interface MemberWithDetails extends WorkspaceMember {
                         class="text-xs font-medium rounded-full px-2.5 py-1 border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
                       >
                         <option value="admin">Admin</option>
-                        <option value="manager">Manager</option>
                         <option value="member">Member</option>
                         <option value="viewer">Viewer</option>
                       </select>
@@ -467,14 +466,14 @@ export class MembersListComponent {
   isAdmin = computed(() => {
     const user = this.authService.currentUser();
     if (!user) return false;
-    if (user.role === 'SuperAdmin') return true;
+    if (user.role === 'super_admin') return true;
     const member = this.members().find((m) => m.user_id === user.id);
     return member?.role === 'owner' || member?.role === 'admin';
   });
 
   isSuperAdmin = computed(() => {
     const user = this.authService.currentUser();
-    return user?.role === 'SuperAdmin';
+    return user?.role === 'super_admin';
   });
 
   isOwner(member: MemberWithDetails): boolean {
@@ -629,7 +628,7 @@ export class MembersListComponent {
       .updateMemberRole(
         this.workspaceId(),
         member.user_id,
-        newRole as 'admin' | 'manager' | 'member',
+        newRole as 'admin' | 'member' | 'viewer',
       )
       .subscribe({
         error: () => {

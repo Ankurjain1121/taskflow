@@ -237,7 +237,8 @@ export class ArchiveComponent implements OnInit {
   }
 
   isAdmin(): boolean {
-    return this.authService.currentUser()?.role === 'Admin';
+    const role = this.authService.currentUser()?.role;
+    return role === 'admin' || role === 'super_admin';
   }
 
   setFilter(filter: string | null): void {

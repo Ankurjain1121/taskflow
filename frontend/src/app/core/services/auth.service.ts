@@ -23,7 +23,7 @@ export interface User {
   job_title: string | null;
   department: string | null;
   bio: string | null;
-  role: 'SuperAdmin' | 'Admin' | 'Manager' | 'Member'; // Backend uses capitalized role names
+  role: 'super_admin' | 'admin' | 'manager' | 'member';
   tenant_id: string;
   onboarding_completed: boolean;
   last_login_at: string | null;

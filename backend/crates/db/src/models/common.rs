@@ -14,6 +14,7 @@ pub enum UserRole {
 
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, TS)]
 #[sqlx(type_name = "workspace_member_role", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 #[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
 pub enum WorkspaceMemberRole {
     Owner,
