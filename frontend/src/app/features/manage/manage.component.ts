@@ -394,6 +394,7 @@ export class ManageComponent implements OnInit {
   isAdmin = computed(() => {
     const user = this.authService.currentUser();
     if (!user) return false;
+    if (user.role === 'SuperAdmin') return true;
     const member = this.members().find((m) => m.user_id === user.id);
     if (!member) return false;
     const role = member.role.toLowerCase();

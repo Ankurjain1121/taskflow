@@ -1159,6 +1159,14 @@ html.dark .glass-subtle {
   padding: 1.25rem 1.5rem;
   border-radius: 1rem 1rem 0 0;
 }
+.p-dialog .p-dialog-header-actions button {
+  color: var(--muted-foreground);
+  transition: color 150ms ease, background-color 150ms ease;
+}
+.p-dialog .p-dialog-header-actions button:hover {
+  color: var(--foreground);
+  background-color: var(--muted);
+}
 /* Warm card hover state */
 .p-card {
   border-radius: 1rem;
