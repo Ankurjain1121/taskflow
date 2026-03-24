@@ -17,72 +17,48 @@ const SNOOZE_STORAGE_KEY = 'taskbolt_snoozed_tasks';
   imports: [FocusTaskCardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="widget-card overflow-hidden">
-      <!-- Header -->
-      <div
-        class="px-5 py-3.5 flex items-center justify-between"
-        style="border-bottom: 1px solid var(--border)"
-      >
-        <h2 class="widget-title flex items-center gap-2">
-          <i class="pi pi-bolt text-primary text-sm"></i>
-          Focus Board
-          @if (visibleTasks().length > 0) {
-            <span
-              class="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold"
-              style="background: var(--primary); color: var(--primary-foreground)"
-            >
-              {{ visibleTasks().length }}
-            </span>
-          }
-        </h2>
-      </div>
-
-      <!-- Task cards grid -->
-      <div class="p-5">
-        @if (visibleTasks().length > 0) {
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            @for (task of visibleTasks().slice(0, 5); track task.id; let i = $index) {
-              <div
-                class="animate-fade-in-up"
-                [style.animation-delay]="i * 0.06 + 's'"
-              >
-                <app-focus-task-card
-                  [task]="task"
-                  [selected]="selectedIndex() === i"
-                  (completed)="onTaskCompleted($event)"
-                  (snoozed)="onTaskSnoozed($event)"
-                />
-              </div>
-            }
-          </div>
-        } @else {
-          <!-- Empty state -->
-          <div class="flex flex-col items-center justify-center py-8 gap-3">
-            <svg
-              width="48"
-              height="48"
-              viewBox="0 0 48 48"
-              fill="none"
-              style="color: var(--muted-foreground)"
-              aria-hidden="true"
-            >
-              <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="1.5" opacity="0.3" />
-              <path
-                d="M16 24l5 5 11-11"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                opacity="0.5"
-              />
-            </svg>
-            <p class="text-sm font-medium" style="color: var(--muted-foreground)">
-              All clear! No urgent tasks right now.
-            </p>
+    @if (visibleTasks().length > 0) {
+      <div class="space-y-2">
+        @for (task of visibleTasks().slice(0, 5); track task.id; let i = $index) {
+          <div
+            class="animate-fade-in-up"
+            [style.animation-delay]="i * 0.04 + 's'"
+          >
+            <app-focus-task-card
+              [task]="task"
+              [selected]="selectedIndex() === i"
+              (completed)="onTaskCompleted($event)"
+              (snoozed)="onTaskSnoozed($event)"
+            />
           </div>
         }
       </div>
-    </div>
+    } @else {
+      <!-- Empty state -->
+      <div class="flex flex-col items-center justify-center py-8 gap-3">
+        <svg
+          width="48"
+          height="48"
+          viewBox="0 0 48 48"
+          fill="none"
+          style="color: var(--muted-foreground)"
+          aria-hidden="true"
+        >
+          <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="1.5" opacity="0.3" />
+          <path
+            d="M16 24l5 5 11-11"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            opacity="0.5"
+          />
+        </svg>
+        <p class="text-sm font-medium" style="color: var(--muted-foreground)">
+          All clear! No urgent tasks right now.
+        </p>
+      </div>
+    }
   `,
 })
 export class FocusBoardComponent {

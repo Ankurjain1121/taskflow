@@ -14,21 +14,21 @@ import { Router, RouterLink } from '@angular/router';
 import { SelectModule } from 'primeng/select';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
-import { DashboardService, DashboardStats } from '../../core/services/dashboard.service';
+import {
+  DashboardService,
+  DashboardStats,
+  UpcomingDeadline,
+} from '../../core/services/dashboard.service';
 import { WorkspaceStateService } from '../../core/services/workspace-state.service';
 import { Workspace } from '../../core/services/workspace.service';
 import { TaskService } from '../../core/services/task.service';
 import { OnboardingChecklistComponent } from '../../shared/components/onboarding-checklist/onboarding-checklist.component';
 import { OnboardingChecklistService } from '../../core/services/onboarding-checklist.service';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
-import { CountUpDirective } from '../../shared/directives/count-up.directive';
-import { SmartGreetingComponent } from './components/smart-greeting.component';
-import { StreakCounterComponent } from './components/streak-counter.component';
+import { StatusLineComponent } from './components/smart-greeting.component';
 import { FocusBoardComponent } from './components/focus-board.component';
-import { DashboardAct2Component } from './components/dashboard-act2.component';
-import { DashboardAct3Component } from './components/dashboard-act3.component';
 import { FocusModeComponent } from './components/focus-mode.component';
-import { FocusTask, StreakData } from './dashboard.types';
+import { FocusTask, ProjectPulse } from './dashboard.types';
 
 interface WorkspaceOption {
   label: string;
@@ -45,23 +45,17 @@ interface WorkspaceOption {
     SelectModule,
     EmptyStateComponent,
     OnboardingChecklistComponent,
-    CountUpDirective,
-    SmartGreetingComponent,
-    StreakCounterComponent,
+    StatusLineComponent,
     FocusBoardComponent,
-    DashboardAct2Component,
-    DashboardAct3Component,
     FocusModeComponent,
   ],
   template: `
     <div class="min-h-screen" style="background: var(--background)">
-      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <!-- Act 1: Header + Focus Board -->
-        <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
-          <div class="flex items-center gap-4">
-            <app-smart-greeting [stats]="stats()" [userName]="userName()" />
-            <app-streak-counter [streak]="streak()" />
-          </div>
+      <main class="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between flex-wrap gap-4 mb-8">
+          <app-status-line [stats]="stats()" />
 
           <div class="flex items-center gap-3">
             @if (workspaceOptions().length > 1) {
@@ -99,83 +93,97 @@ interface WorkspaceOption {
 
         @if (loading()) {
           <!-- Skeleton -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            @for (i of [1, 2, 3, 4]; track i) {
-              <div class="widget-card p-5">
-                <div class="flex items-center justify-between">
-                  <div class="space-y-3 flex-1">
-                    <div class="skeleton skeleton-text w-20"></div>
-                    <div class="skeleton skeleton-heading w-16"></div>
-                  </div>
-                  <div class="skeleton w-9 h-9 rounded-lg"></div>
-                </div>
-              </div>
+          <div class="space-y-3 mb-8">
+            @for (i of [1, 2, 3]; track i) {
+              <div class="h-14 rounded-lg skeleton"></div>
             }
           </div>
         } @else {
-          <!-- Stat Cards — number IS the design -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <a routerLink="/my-tasks" class="animate-fade-in-up stagger-1 stat-card cursor-pointer group">
-              <p class="stat-card-label">Total Tasks</p>
-              <p class="stat-card-value animate-count-up" [appCountUp]="stats()?.total_tasks || 0"></p>
-            </a>
-            <a routerLink="/my-tasks" [queryParams]="{ sort_by: 'due_date', sort_order: 'asc' }" class="animate-fade-in-up stagger-2 stat-card cursor-pointer group" [class.stat-card--danger-active]="(stats()?.overdue || 0) > 0">
-              <p class="stat-card-label">Overdue</p>
-              <p class="stat-card-value animate-count-up" [style.color]="(stats()?.overdue || 0) > 0 ? 'var(--destructive)' : 'var(--foreground)'" [appCountUp]="stats()?.overdue || 0"></p>
-            </a>
-            <a routerLink="/my-tasks" [queryParams]="{ sort_by: 'due_date' }" class="animate-fade-in-up stagger-3 stat-card cursor-pointer group">
-              <p class="stat-card-label">Due Today</p>
-              <p class="stat-card-value animate-count-up" [appCountUp]="stats()?.due_today || 0"></p>
-            </a>
-            <div class="animate-fade-in-up stagger-4 stat-card">
-              <p class="stat-card-label">Completed This Week</p>
-              <p class="stat-card-value animate-count-up" style="color: var(--success)" [appCountUp]="stats()?.completed_this_week || 0"></p>
-            </div>
-          </div>
-
-          <!-- Focus Board -->
-          <div class="mb-8 animate-fade-in-up stagger-5">
+          <!-- Focus section -->
+          <section class="mb-8">
+            <h2
+              class="text-xs font-semibold uppercase tracking-wider mb-3"
+              style="color: var(--muted-foreground)"
+            >
+              Focus
+            </h2>
             <app-focus-board
               [tasks]="focusTasks()"
               [selectedIndex]="focusSelectedIndex()"
               (taskCompleted)="onFocusTaskCompleted($event)"
               (taskSnoozed)="onFocusTaskSnoozed($event)"
             />
-          </div>
+          </section>
 
-          <!-- Scroll indicator between Act 1 and Act 2 -->
-          @if (!hasScrolledPastAct1()) {
-            <div class="flex justify-center mb-6 scroll-indicator">
-              <div class="flex flex-col items-center gap-1">
-                <span class="text-[11px] font-medium" style="color: var(--muted-foreground)">Scroll for more</span>
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" class="scroll-chevron" aria-hidden="true">
-                  <path d="M5 8l5 5 5-5" stroke="var(--muted-foreground)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+          <!-- Coming Up section -->
+          @if (upcomingDeadlines().length > 0) {
+            <section class="mb-8 animate-fade-in-up">
+              <h2
+                class="text-xs font-semibold uppercase tracking-wider mb-3"
+                style="color: var(--muted-foreground)"
+              >
+                Coming Up
+              </h2>
+              <div class="space-y-1">
+                @for (item of upcomingDeadlines().slice(0, 5); track item.id) {
+                  <a
+                    [routerLink]="['/task', item.id]"
+                    class="flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors hover:bg-[var(--muted)]"
+                    style="color: var(--foreground)"
+                  >
+                    <span
+                      class="w-2 h-2 rounded-full flex-shrink-0"
+                      [style.background]="getUrgencyColor(item.days_until_due)"
+                    ></span>
+                    <span class="text-sm truncate flex-1">{{ item.title }}</span>
+                    <span
+                      class="text-xs flex-shrink-0"
+                      style="color: var(--muted-foreground)"
+                    >
+                      {{ getRelativeDate(item.days_until_due) }}
+                    </span>
+                  </a>
+                }
               </div>
-            </div>
+            </section>
           }
 
-          <!-- Act 2: Project Pulse + Analytics -->
-          @defer (on viewport) {
-            <app-dashboard-act2
-              [workspaceId]="activeWorkspaceId()"
-              [overdueCount]="stats()?.overdue || 0"
-              class="block mb-8 animate-fade-in-up"
-            />
-          } @placeholder {
-            <div class="h-[400px]"></div>
+          <!-- Projects section -->
+          @if (projectPulse().length > 0) {
+            <section class="mb-8 animate-fade-in-up">
+              <h2
+                class="text-xs font-semibold uppercase tracking-wider mb-3"
+                style="color: var(--muted-foreground)"
+              >
+                Projects
+              </h2>
+              <div class="flex flex-wrap gap-3">
+                @for (project of projectPulse(); track project.project_id) {
+                  <a
+                    [routerLink]="['/project', project.project_id, 'board']"
+                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors bg-[var(--muted)] hover:bg-[var(--card)]"
+                    style="color: var(--foreground)"
+                  >
+                    <span
+                      class="w-2 h-2 rounded-full flex-shrink-0"
+                      [style.background]="getHealthColor(project.health)"
+                    ></span>
+                    <span class="font-medium">{{ project.project_name }}</span>
+                    @if (project.overdue_tasks > 0) {
+                      <span
+                        class="text-xs font-semibold"
+                        style="color: var(--destructive)"
+                      >
+                        {{ project.overdue_tasks }}
+                      </span>
+                    }
+                  </a>
+                }
+              </div>
+            </section>
           }
 
-          <!-- Act 3: Metrics -->
-          @defer (on viewport) {
-            <div class="mb-8 animate-fade-in-up">
-              <app-dashboard-act3 [workspaceId]="activeWorkspaceId()" />
-            </div>
-          } @placeholder {
-            <div class="h-[300px]"></div>
-          }
-
-          <!-- Empty workspace prompt (no workspaces at all) -->
+          <!-- Empty workspace prompt -->
           @if (workspaces().length === 0) {
             <app-empty-state variant="workspace" (ctaClicked)="navigateToOnboarding()" />
           }
@@ -205,14 +213,13 @@ export class DashboardComponent implements OnInit {
 
   workspaces = signal<Workspace[]>([]);
   loading = signal(true);
-  userName = signal<string | null>(null);
   stats = signal<DashboardStats | null>(null);
   focusTasks = signal<FocusTask[]>([]);
-  streak = signal<StreakData | null>(null);
+  upcomingDeadlines = signal<UpcomingDeadline[]>([]);
+  projectPulse = signal<ProjectPulse[]>([]);
   selectedWorkspaceId = signal<string | null>(null);
   focusModeOpen = signal(false);
   focusSelectedIndex = signal(-1);
-  hasScrolledPastAct1 = signal(false);
 
   workspaceOptions = computed<WorkspaceOption[]>(() => {
     const ws = this.workspaces();
@@ -224,13 +231,6 @@ export class DashboardComponent implements OnInit {
   });
 
   activeWorkspaceId = computed(() => this.selectedWorkspaceId() ?? undefined);
-
-  @HostListener('window:scroll')
-  onScroll(): void {
-    if (!this.hasScrolledPastAct1() && window.scrollY > 400) {
-      this.hasScrolledPastAct1.set(true);
-    }
-  }
 
   @HostListener('document:keydown', ['$event'])
   onKeydown(event: KeyboardEvent): void {
@@ -255,11 +255,6 @@ export class DashboardComponent implements OnInit {
           this.onFocusTaskCompleted(tasks[idx].id);
         }
         break;
-      case 's':
-        if (idx >= 0 && idx < tasks.length) {
-          // Snooze handled by focus board
-        }
-        break;
       case 'f':
         this.toggleFocusMode();
         break;
@@ -273,11 +268,9 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
-    this.userName.set(user.name?.split(' ')[0] || null);
     this.dashboardService.invalidateCache();
     this.loadWorkspaces();
     this.checklistService.initialize();
-    this.loadStreak();
 
     effect(
       () => {
@@ -292,8 +285,11 @@ export class DashboardComponent implements OnInit {
               this.selectedWorkspaceId.set(saved);
             }
           }
-          this.loadStats(this.selectedWorkspaceId() ?? undefined);
-          this.loadFocusTasks(this.selectedWorkspaceId() ?? undefined);
+          const wsId = this.selectedWorkspaceId() ?? undefined;
+          this.loadStats(wsId);
+          this.loadFocusTasks(wsId);
+          this.loadUpcomingDeadlines(wsId);
+          this.loadProjectPulse(wsId);
         });
       },
       { injector: this.injector },
@@ -303,8 +299,11 @@ export class DashboardComponent implements OnInit {
   onWorkspaceChange(value: string | null): void {
     this.selectedWorkspaceId.set(value);
     this.workspaceState.selectWorkspace(value);
-    this.loadStats(value ?? undefined);
-    this.loadFocusTasks(value ?? undefined);
+    const wsId = value ?? undefined;
+    this.loadStats(wsId);
+    this.loadFocusTasks(wsId);
+    this.loadUpcomingDeadlines(wsId);
+    this.loadProjectPulse(wsId);
   }
 
   onFocusTaskCompleted(taskId: string): void {
@@ -331,6 +330,26 @@ export class DashboardComponent implements OnInit {
     this.router.navigate(['/onboarding']);
   }
 
+  getUrgencyColor(daysUntilDue: number): string {
+    if (daysUntilDue <= 1) return 'var(--destructive)';
+    if (daysUntilDue <= 3) return 'var(--status-amber-text)';
+    return 'var(--muted-foreground)';
+  }
+
+  getRelativeDate(daysUntilDue: number): string {
+    if (daysUntilDue === 0) return 'Today';
+    if (daysUntilDue === 1) return 'Tomorrow';
+    return `In ${daysUntilDue}d`;
+  }
+
+  getHealthColor(health: 'green' | 'amber' | 'red'): string {
+    switch (health) {
+      case 'green': return '#22c55e';
+      case 'amber': return '#f59e0b';
+      case 'red': return '#ef4444';
+    }
+  }
+
   private loadWorkspaces(): void {
     this.workspaceState.loadWorkspaces();
   }
@@ -349,10 +368,17 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  private loadStreak(): void {
-    this.dashboardService.getStreak().subscribe({
-      next: (data) => this.streak.set(data),
-      error: () => this.streak.set(null),
+  private loadUpcomingDeadlines(workspaceId?: string): void {
+    this.dashboardService.getUpcomingDeadlines(5, workspaceId).subscribe({
+      next: (deadlines) => this.upcomingDeadlines.set(deadlines),
+      error: () => this.upcomingDeadlines.set([]),
+    });
+  }
+
+  private loadProjectPulse(workspaceId?: string): void {
+    this.dashboardService.getProjectPulse(workspaceId).subscribe({
+      next: (projects) => this.projectPulse.set(projects),
+      error: () => this.projectPulse.set([]),
     });
   }
 

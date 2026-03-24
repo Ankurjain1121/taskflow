@@ -13,11 +13,30 @@ import {
   PortfolioService,
   PortfolioProject,
 } from '../../core/services/portfolio.service';
+import { WorkspaceStateService } from '../../core/services/workspace-state.service';
+import { CompletionTrendComponent } from '../dashboard/widgets/completion-trend.component';
+import { TasksByStatusComponent } from '../dashboard/widgets/tasks-by-status.component';
+import { TasksByPriorityComponent } from '../dashboard/widgets/tasks-by-priority.component';
+import { UpcomingDeadlinesComponent } from '../dashboard/widgets/upcoming-deadlines.component';
+import { TeamWorkloadComponent } from '../dashboard/widgets/team-workload.component';
+import { OverdueTasksTableComponent } from '../dashboard/widgets/overdue-tasks-table.component';
+import { DashboardAct3Component } from '../dashboard/components/dashboard-act3.component';
 
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, RouterLink, SkeletonModule],
+  imports: [
+    CommonModule,
+    RouterLink,
+    SkeletonModule,
+    CompletionTrendComponent,
+    TasksByStatusComponent,
+    TasksByPriorityComponent,
+    UpcomingDeadlinesComponent,
+    TeamWorkloadComponent,
+    OverdueTasksTableComponent,
+    DashboardAct3Component,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [
     `
@@ -220,7 +239,7 @@ import {
         </div>
 
         <!-- Project Rows Table -->
-        <div class="project-table">
+        <div class="project-table mb-8">
           <!-- Table header -->
           <div
             class="grid grid-cols-12 gap-4 px-5 py-3 text-xs font-medium uppercase tracking-wider"
@@ -282,6 +301,45 @@ import {
             </div>
           }
         </div>
+
+        <!-- Analytics section -->
+        @defer (on viewport) {
+          <section class="mb-8">
+            <h2
+              class="text-lg font-semibold mb-4"
+              style="color: var(--foreground)"
+            >
+              Analytics
+            </h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <app-completion-trend
+                class="lg:col-span-2"
+                [workspaceId]="workspaceId"
+              />
+              <app-tasks-by-status [workspaceId]="workspaceId" />
+              <app-tasks-by-priority [workspaceId]="workspaceId" />
+              <app-upcoming-deadlines [workspaceId]="workspaceId" />
+              <app-team-workload [workspaceId]="workspaceId" />
+              @if (totalOverdueTasks() > 5) {
+                <app-overdue-tasks-table
+                  class="lg:col-span-2"
+                  [workspaceId]="workspaceId"
+                />
+              }
+            </div>
+          </section>
+        } @placeholder {
+          <div class="h-[400px]"></div>
+        }
+
+        <!-- Metrics section -->
+        @defer (on viewport) {
+          <section class="mb-8">
+            <app-dashboard-act3 [workspaceId]="workspaceId" />
+          </section>
+        } @placeholder {
+          <div class="h-[300px]"></div>
+        }
       }
     </div>
   `,
@@ -289,8 +347,9 @@ import {
 export class ReportsComponent implements OnInit {
   private readonly portfolioService = inject(PortfolioService);
   private readonly route = inject(ActivatedRoute);
+  private readonly workspaceState = inject(WorkspaceStateService);
 
-  workspaceId = '';
+  workspaceId: string | undefined;
 
   loading = signal(true);
   error = signal(false);
@@ -332,7 +391,10 @@ export class ReportsComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.workspaceId = this.route.snapshot.paramMap.get('workspaceId') ?? '';
+    this.workspaceId =
+      this.route.snapshot.paramMap.get('workspaceId') ??
+      this.workspaceState.currentWorkspaceId() ??
+      undefined;
     this.loadData();
   }
 
@@ -340,7 +402,7 @@ export class ReportsComponent implements OnInit {
     this.loading.set(true);
     this.error.set(false);
 
-    this.portfolioService.getPortfolio(this.workspaceId).subscribe({
+    this.portfolioService.getPortfolio(this.workspaceId ?? '').subscribe({
       next: ({ projects }) => {
         this.projects.set(projects);
         this.loading.set(false);
