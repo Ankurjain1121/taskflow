@@ -66,7 +66,8 @@ pub async fn create_project(
 
     // Seed default statuses then list them (outside transaction since we committed)
     crate::queries::project_statuses::seed_default_statuses(pool, project.id, tenant_id).await?;
-    let statuses = crate::queries::project_statuses::list_project_statuses(pool, project.id).await?;
+    let statuses =
+        crate::queries::project_statuses::list_project_statuses(pool, project.id).await?;
 
     Ok(ProjectWithTaskLists {
         project,
@@ -300,7 +301,8 @@ pub async fn duplicate_project(
 
     tx.commit().await?;
 
-    let statuses = crate::queries::project_statuses::list_project_statuses(pool, new_project.id).await?;
+    let statuses =
+        crate::queries::project_statuses::list_project_statuses(pool, new_project.id).await?;
 
     Ok(ProjectWithTaskLists {
         project: new_project,
@@ -308,4 +310,3 @@ pub async fn duplicate_project(
         statuses,
     })
 }
-

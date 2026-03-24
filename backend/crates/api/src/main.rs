@@ -57,7 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         tracing_subscriber::fmt().with_env_filter(env_filter).init();
     }
 
-    tracing::info!("Starting TaskFlow API on {}:{}", config.host, config.port);
+    tracing::info!("Starting TaskBolt API on {}:{}", config.host, config.port);
 
     // Build app state
     let state = AppState::new(config.clone()).await?;

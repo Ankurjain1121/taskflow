@@ -11,8 +11,8 @@ use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
 use crate::state::AppState;
-use taskflow_services::minio::{MinioConfig, MinioService};
-use taskflow_services::trash_bin::{
+use taskbolt_services::minio::{MinioConfig, MinioService};
+use taskbolt_services::trash_bin::{
     permanently_delete, restore_from_trash, TrashEntityType, TRASH_RETENTION_DAYS,
 };
 

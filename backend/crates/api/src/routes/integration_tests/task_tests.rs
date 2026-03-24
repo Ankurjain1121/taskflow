@@ -69,10 +69,10 @@ async fn test_get_task_by_id() {
     let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
-    let task = taskflow_db::queries::create_task(
+    let task = taskbolt_db::queries::create_task(
         &state.db,
         board_id,
-        taskflow_db::queries::CreateTaskInput {
+        taskbolt_db::queries::CreateTaskInput {
             title: "Get Me".to_string(),
             description: None,
             priority: TaskPriority::Low,
@@ -120,10 +120,10 @@ async fn test_update_task() {
     let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
-    let task = taskflow_db::queries::create_task(
+    let task = taskbolt_db::queries::create_task(
         &state.db,
         board_id,
-        taskflow_db::queries::CreateTaskInput {
+        taskbolt_db::queries::CreateTaskInput {
             title: "Original Title".to_string(),
             description: None,
             priority: TaskPriority::Low,
@@ -179,10 +179,10 @@ async fn test_delete_task() {
     let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
-    let task = taskflow_db::queries::create_task(
+    let task = taskbolt_db::queries::create_task(
         &state.db,
         board_id,
-        taskflow_db::queries::CreateTaskInput {
+        taskbolt_db::queries::CreateTaskInput {
             title: "Delete Me".to_string(),
             description: None,
             priority: TaskPriority::Low,
@@ -229,10 +229,10 @@ async fn test_move_task() {
     let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
-    let task = taskflow_db::queries::create_task(
+    let task = taskbolt_db::queries::create_task(
         &state.db,
         board_id,
-        taskflow_db::queries::CreateTaskInput {
+        taskbolt_db::queries::CreateTaskInput {
             title: "Move Me".to_string(),
             description: None,
             priority: TaskPriority::Medium,
@@ -254,7 +254,7 @@ async fn test_move_task() {
     .expect("create task");
 
     let statuses =
-        taskflow_db::queries::project_statuses::list_project_statuses(&state.db, board_id)
+        taskbolt_db::queries::project_statuses::list_project_statuses(&state.db, board_id)
             .await
             .expect("list statuses");
     let target_status = statuses
@@ -301,10 +301,10 @@ async fn test_assign_user_to_task() {
     let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
-    let task = taskflow_db::queries::create_task(
+    let task = taskbolt_db::queries::create_task(
         &state.db,
         board_id,
-        taskflow_db::queries::CreateTaskInput {
+        taskbolt_db::queries::CreateTaskInput {
             title: "Assign Me".to_string(),
             description: None,
             priority: TaskPriority::Medium,
@@ -358,10 +358,10 @@ async fn test_unassign_user_from_task() {
     let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
-    let task = taskflow_db::queries::create_task(
+    let task = taskbolt_db::queries::create_task(
         &state.db,
         board_id,
-        taskflow_db::queries::CreateTaskInput {
+        taskbolt_db::queries::CreateTaskInput {
             title: "Unassign Me".to_string(),
             description: None,
             priority: TaskPriority::Medium,
@@ -413,10 +413,10 @@ async fn test_create_and_list_subtasks() {
     let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
-    let task = taskflow_db::queries::create_task(
+    let task = taskbolt_db::queries::create_task(
         &state.db,
         board_id,
-        taskflow_db::queries::CreateTaskInput {
+        taskbolt_db::queries::CreateTaskInput {
             title: "Parent Task".to_string(),
             description: None,
             priority: TaskPriority::Medium,
@@ -486,10 +486,10 @@ async fn test_create_and_list_comments() {
     let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
-    let task = taskflow_db::queries::create_task(
+    let task = taskbolt_db::queries::create_task(
         &state.db,
         board_id,
-        taskflow_db::queries::CreateTaskInput {
+        taskbolt_db::queries::CreateTaskInput {
             title: "Comment Task".to_string(),
             description: None,
             priority: TaskPriority::Medium,
@@ -552,10 +552,10 @@ async fn test_list_task_dependencies() {
     let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
-    let task = taskflow_db::queries::create_task(
+    let task = taskbolt_db::queries::create_task(
         &state.db,
         board_id,
-        taskflow_db::queries::CreateTaskInput {
+        taskbolt_db::queries::CreateTaskInput {
             title: "Dep Task".to_string(),
             description: None,
             priority: TaskPriority::Medium,
@@ -601,10 +601,10 @@ async fn test_list_time_entries() {
     let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
-    let task = taskflow_db::queries::create_task(
+    let task = taskbolt_db::queries::create_task(
         &state.db,
         board_id,
-        taskflow_db::queries::CreateTaskInput {
+        taskbolt_db::queries::CreateTaskInput {
             title: "Time Entry Task".to_string(),
             description: None,
             priority: TaskPriority::Medium,
@@ -843,10 +843,10 @@ async fn test_move_task_to_invalid_column_returns_error() {
     let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
-    let task = taskflow_db::queries::create_task(
+    let task = taskbolt_db::queries::create_task(
         &state.db,
         board_id,
-        taskflow_db::queries::CreateTaskInput {
+        taskbolt_db::queries::CreateTaskInput {
             title: "Move To Bad Col".to_string(),
             description: None,
             priority: TaskPriority::Medium,
@@ -903,10 +903,10 @@ async fn test_get_task_after_delete_returns_404() {
     let (tenant_id, user_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
     let token = test_jwt_token(&state, user_id, tenant_id);
 
-    let task = taskflow_db::queries::create_task(
+    let task = taskbolt_db::queries::create_task(
         &state.db,
         board_id,
-        taskflow_db::queries::CreateTaskInput {
+        taskbolt_db::queries::CreateTaskInput {
             title: "Will Be Deleted".to_string(),
             description: None,
             priority: TaskPriority::Low,

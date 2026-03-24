@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::errors::Result;
 use crate::extractors::TenantContext;
 use crate::state::AppState;
-use taskflow_db::queries::{
+use taskbolt_db::queries::{
     list_tasks_flat, list_tasks_for_calendar, list_tasks_for_gantt, CalendarTask, GanttTask,
     TaskListItem,
 };

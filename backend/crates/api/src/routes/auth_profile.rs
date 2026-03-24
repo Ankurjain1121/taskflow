@@ -5,7 +5,7 @@
 use axum::{extract::State, Json};
 use serde::Deserialize;
 
-use taskflow_db::queries::auth;
+use taskbolt_db::queries::auth;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;

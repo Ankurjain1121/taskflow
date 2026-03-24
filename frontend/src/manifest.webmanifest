@@ -1,6 +1,6 @@
 {
-  "name": "TaskFlow",
-  "short_name": "TaskFlow",
+  "name": "TaskBolt",
+  "short_name": "TaskBolt",
   "description": "Project management with kanban boards, task tracking, and team collaboration",
   "start_url": "/",
   "display": "standalone",

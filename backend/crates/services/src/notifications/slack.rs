@@ -99,7 +99,7 @@ pub async fn send_slack_notification(
                     "type": "button",
                     "text": {
                         "type": "plain_text",
-                        "text": "View in TaskFlow",
+                        "text": "View in TaskBolt",
                         "emoji": true
                     },
                     "url": url,

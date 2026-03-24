@@ -18,7 +18,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::models::WorkspaceMemberRole;
+use taskbolt_db::models::WorkspaceMemberRole;
 
 // ============================================================================
 // DTOs
@@ -125,7 +125,7 @@ async fn export_workspace(
     Path(workspace_id): Path<Uuid>,
     Query(query): Query<ExportQuery>,
 ) -> Result<Response> {
-    let is_member = taskflow_db::queries::workspaces::is_workspace_member(
+    let is_member = taskbolt_db::queries::workspaces::is_workspace_member(
         &state.db,
         workspace_id,
         auth.0.user_id,
@@ -136,7 +136,7 @@ async fn export_workspace(
     }
 
     // Determine if this user can see member emails (Owner/Admin only)
-    let user_role = taskflow_db::queries::workspaces::get_workspace_member_role(
+    let user_role = taskbolt_db::queries::workspaces::get_workspace_member_role(
         &state.db,
         workspace_id,
         auth.0.user_id,

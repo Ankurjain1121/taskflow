@@ -60,7 +60,7 @@ describe('AuthService', () => {
     });
 
     it('should start with null currentUser even when session flag is set', () => {
-      localStorage.setItem('taskflow_auth', '1');
+      localStorage.setItem('taskbolt_auth', '1');
 
       // Re-create service to trigger constructor
       TestBed.resetTestingModule();
@@ -97,7 +97,7 @@ describe('AuthService', () => {
 
       expect(service.currentUser()).toEqual(MOCK_USER);
       expect(service.isAuthenticated()).toBe(true);
-      expect(localStorage.getItem('taskflow_auth')).toBe('1');
+      expect(localStorage.getItem('taskbolt_auth')).toBe('1');
     });
 
     it('should propagate error on failure', () => {
@@ -116,7 +116,7 @@ describe('AuthService', () => {
 
   describe('signOut()', () => {
     it('should clear user from signal and localStorage', () => {
-      localStorage.setItem('taskflow_auth', '1');
+      localStorage.setItem('taskbolt_auth', '1');
 
       service.signOut();
 
@@ -126,7 +126,7 @@ describe('AuthService', () => {
 
       expect(service.currentUser()).toBeNull();
       expect(service.isAuthenticated()).toBe(false);
-      expect(localStorage.getItem('taskflow_auth')).toBeNull();
+      expect(localStorage.getItem('taskbolt_auth')).toBeNull();
     });
 
     it('should navigate to /auth/sign-in', () => {
@@ -292,7 +292,7 @@ describe('AuthService', () => {
       const req = httpMock.expectOne('/api/auth/me');
       req.flush({ ...MOCK_USER, name: 'Updated Name' });
 
-      expect(localStorage.getItem('taskflow_auth')).toBe('1');
+      expect(localStorage.getItem('taskbolt_auth')).toBe('1');
     });
   });
 
@@ -345,7 +345,7 @@ describe('AuthService', () => {
     });
 
     it('should call /api/auth/me when user is stored', () => {
-      localStorage.setItem('taskflow_auth', '1');
+      localStorage.setItem('taskbolt_auth', '1');
 
       // Re-create to pick up stored user
       TestBed.resetTestingModule();
@@ -365,7 +365,7 @@ describe('AuthService', () => {
     });
 
     it('should update user on successful /me call', () => {
-      localStorage.setItem('taskflow_auth', '1');
+      localStorage.setItem('taskbolt_auth', '1');
 
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
@@ -388,7 +388,7 @@ describe('AuthService', () => {
     });
 
     it('should try refresh when /me fails, and succeed', () => {
-      localStorage.setItem('taskflow_auth', '1');
+      localStorage.setItem('taskbolt_auth', '1');
 
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
@@ -414,7 +414,7 @@ describe('AuthService', () => {
     });
 
     it('should clear state when both /me and refresh fail', () => {
-      localStorage.setItem('taskflow_auth', '1');
+      localStorage.setItem('taskbolt_auth', '1');
 
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({

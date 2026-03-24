@@ -380,7 +380,7 @@ Tracks recently viewed items (tasks + boards) in both localStorage and server AP
 ```typescript
 @Injectable({ providedIn: 'root' })
 export class RecentItemsService {
-  private readonly STORAGE_KEY = 'taskflow_recent_items';
+  private readonly STORAGE_KEY = 'taskbolt_recent_items';
   private readonly MAX_ITEMS = 10;
 
   recentItems = signal<RecentItem[]>([]);

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# TaskFlow Seed Runner
+# TaskBolt Seed Runner
 # =============================================================================
 # Creates 20 employees, 5 teams, 4 projects, and 500 tasks in Acme Corp tenant.
 #
@@ -76,7 +76,7 @@ else
     PGHOST="${POSTGRES_HOST:-localhost}"
     PGPORT="${POSTGRES_PORT:-5432}"
     PGUSER="${POSTGRES_USER:-postgres}"
-    PGDB="${POSTGRES_DB:-taskflow}"
+    PGDB="${POSTGRES_DB:-taskbolt}"
 fi
 
 export PGPASSWORD
@@ -277,7 +277,7 @@ IFS='|' read -r v_tenants v_users v_workspaces v_teams v_projects v_tasks \
 
 echo ""
 echo "============================================================"
-echo "  TaskFlow Seed Verification"
+echo "  TaskBolt Seed Verification"
 echo "============================================================"
 printf "  %-20s %s\n" "Tenants:"      "$v_tenants  (expected: 1)"
 printf "  %-20s %s\n" "Users:"        "$v_users  (expected: 20)"

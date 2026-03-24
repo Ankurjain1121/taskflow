@@ -15,10 +15,10 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::saved_views::{
+use taskbolt_db::queries::saved_views::{
     self, CreateSavedViewInput, SavedView, SavedViewError, UpdateSavedViewInput,
 };
-use taskflow_db::queries::workspaces;
+use taskbolt_db::queries::workspaces;
 
 /// GET /api/workspace/:ws_id/saved-views
 async fn list_saved_views_handler(

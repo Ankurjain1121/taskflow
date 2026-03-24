@@ -12,8 +12,8 @@ export interface RecentItem {
   visitedAt: number;
 }
 
-const STORAGE_KEY = 'taskflow_recent_items';
-const BOARDS_STORAGE_KEY = 'taskflow_recent_boards'; // shared with sidebar-recent
+const STORAGE_KEY = 'taskbolt_recent_items';
+const BOARDS_STORAGE_KEY = 'taskbolt_recent_boards'; // shared with sidebar-recent
 const MAX_ITEMS = 10;
 const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 

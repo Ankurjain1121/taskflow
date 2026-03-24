@@ -15,10 +15,10 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::activity_log::{
+use taskbolt_db::queries::activity_log::{
     list_activity_by_project, list_activity_by_task, PaginatedActivityLog,
 };
-use taskflow_db::queries::get_task_project_id;
+use taskbolt_db::queries::get_task_project_id;
 
 use super::common::verify_project_membership;
 

@@ -39,7 +39,7 @@ interface ShortcutGroup {
           <p
             class="text-[var(--muted-foreground)] dark:text-gray-400 mt-1 text-sm"
           >
-            Learn how to use TaskFlow effectively
+            Learn how to use TaskBolt effectively
           </p>
         </div>
       </header>

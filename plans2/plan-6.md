@@ -2,7 +2,7 @@
 
 ## Context
 
-Competitive research against Trello, Asana, Monday.com, Jira, ClickUp, Notion, Linear, Basecamp, Shortcut, and Todoist revealed that TaskFlow has a strong foundation (6 views, automations, time tracking, recurring tasks, WebSocket, templates, webhooks) but is missing critical collaboration features and dozens of polish micro-interactions that make competitors production-ready. This plan addresses the highest-impact gaps in priority order.
+Competitive research against Trello, Asana, Monday.com, Jira, ClickUp, Notion, Linear, Basecamp, Shortcut, and Todoist revealed that TaskBolt has a strong foundation (6 views, automations, time tracking, recurring tasks, WebSocket, templates, webhooks) but is missing critical collaboration features and dozens of polish micro-interactions that make competitors production-ready. This plan addresses the highest-impact gaps in priority order.
 
 **Key finding:** Several features are 90%+ built with backend/infrastructure complete but missing the final UI wiring. These are quick wins.
 

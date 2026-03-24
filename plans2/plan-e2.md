@@ -75,7 +75,7 @@ Optimistic updates is a UX pattern where the UI reflects the user's intended cha
 3. **Server confirmation** — silently reconcile server response into local state (replace temp ID, fix server-corrected fields).
 4. **Rollback on error** — restore pre-action state exactly, show a dismissible error toast with a clear message ("Couldn't move task — check your connection and try again").
 
-### Most Important Gap TaskFlow Has vs Best-in-Class
+### Most Important Gap TaskBolt Has vs Best-in-Class
 
 **Board task-detail drawer (side panel) does NOT apply optimistic updates for assignee add/remove, label remove, and milestone changes.**
 

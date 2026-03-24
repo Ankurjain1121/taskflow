@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
-use taskflow_db::models::WsBoardEvent;
+use taskbolt_db::models::WsBoardEvent;
 
 /// Batched message sent to clients
 ///
@@ -118,7 +118,7 @@ impl Default for BatchHandler {
 mod tests {
     use super::*;
     use chrono::Utc;
-    use taskflow_db::models::{TaskBroadcast, TaskPriority};
+    use taskbolt_db::models::{TaskBroadcast, TaskPriority};
     use uuid::Uuid;
 
     fn create_test_event() -> WsBoardEvent {

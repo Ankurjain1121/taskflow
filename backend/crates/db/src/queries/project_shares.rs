@@ -361,9 +361,10 @@ mod tests {
 
     async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
         let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-        let pwt = projects::create_project(pool, "BoardShare Board", None, ws_id, tenant_id, user_id)
-            .await
-            .expect("create_board");
+        let pwt =
+            projects::create_project(pool, "BoardShare Board", None, ws_id, tenant_id, user_id)
+                .await
+                .expect("create_board");
         (tenant_id, user_id, ws_id, pwt.project.id)
     }
     #[ignore = "integration test - run with: cargo test -- --ignored"]

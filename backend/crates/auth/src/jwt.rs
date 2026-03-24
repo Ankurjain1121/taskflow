@@ -3,10 +3,10 @@ use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use taskflow_db::models::UserRole;
+use taskbolt_db::models::UserRole;
 
-const JWT_ISSUER: &str = "taskflow";
-const JWT_AUDIENCE: &str = "taskflow-api";
+const JWT_ISSUER: &str = "taskbolt";
+const JWT_AUDIENCE: &str = "taskbolt-api";
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
@@ -173,14 +173,14 @@ mod tests {
         assert_eq!(claims.sub, user_id);
         assert_eq!(claims.tenant_id, tenant_id);
         assert_eq!(claims.role, UserRole::Member);
-        assert_eq!(claims.iss, "taskflow");
-        assert_eq!(claims.aud, "taskflow-api");
+        assert_eq!(claims.iss, "taskbolt");
+        assert_eq!(claims.aud, "taskbolt-api");
 
         let refresh = verify_refresh_token(&pair.refresh_token, &keys).unwrap();
         assert_eq!(refresh.sub, user_id);
         assert_eq!(refresh.token_id, token_id);
-        assert_eq!(refresh.iss, "taskflow");
-        assert_eq!(refresh.aud, "taskflow-api");
+        assert_eq!(refresh.iss, "taskbolt");
+        assert_eq!(refresh.aud, "taskbolt-api");
     }
 
     #[test]
@@ -264,8 +264,8 @@ mod tests {
             refresh_claims.token_id, token_id,
             "Refresh token token_id should match"
         );
-        assert_eq!(refresh_claims.iss, "taskflow");
-        assert_eq!(refresh_claims.aud, "taskflow-api");
+        assert_eq!(refresh_claims.iss, "taskbolt");
+        assert_eq!(refresh_claims.aud, "taskbolt-api");
     }
 
     #[test]
@@ -281,7 +281,7 @@ mod tests {
             token_id: None,
             iat: now.timestamp(),
             exp: (now + Duration::seconds(900)).timestamp(),
-            iss: "taskflow".to_string(),
+            iss: "taskbolt".to_string(),
             aud: "wrong-audience".to_string(),
         };
 
@@ -442,8 +442,8 @@ mod tests {
 
     #[test]
     fn test_jwt_constants() {
-        assert_eq!(JWT_ISSUER, "taskflow");
-        assert_eq!(JWT_AUDIENCE, "taskflow-api");
+        assert_eq!(JWT_ISSUER, "taskbolt");
+        assert_eq!(JWT_AUDIENCE, "taskbolt-api");
     }
 
     #[test]

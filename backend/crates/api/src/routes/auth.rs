@@ -14,10 +14,10 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
-use taskflow_auth::jwt::verify_refresh_token;
-use taskflow_auth::password::verify_password;
-use taskflow_db::models::UserRole;
-use taskflow_db::queries::auth;
+use taskbolt_auth::jwt::verify_refresh_token;
+use taskbolt_auth::password::verify_password;
+use taskbolt_db::models::UserRole;
+use taskbolt_db::queries::auth;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
@@ -271,7 +271,7 @@ pub async fn sign_up_handler(
     }
 
     // Hash password
-    let password_hash = taskflow_auth::password::hash_password(&payload.password)
+    let password_hash = taskbolt_auth::password::hash_password(&payload.password)
         .map_err(|_| AppError::InternalError("Failed to hash password".into()))?;
 
     // Create user with tenant

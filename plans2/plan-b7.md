@@ -10,7 +10,7 @@ Stack: Angular 19, TypeScript 5.7, Tailwind CSS 4, PrimeNG 19
 
 ### What B7 Means
 
-B7 is the completion and significant expansion of keyboard shortcut coverage for the TaskFlow Kanban board. It builds on the existing `KeyboardShortcutsService` + `BoardShortcutsService` + `ShortcutHelpComponent` foundation, which already handles a subset of shortcuts, and fills the gaps identified in the competitor benchmark.
+B7 is the completion and significant expansion of keyboard shortcut coverage for the TaskBolt Kanban board. It builds on the existing `KeyboardShortcutsService` + `BoardShortcutsService` + `ShortcutHelpComponent` foundation, which already handles a subset of shortcuts, and fills the gaps identified in the competitor benchmark.
 
 ### Sub-Features IN SCOPE
 
@@ -46,7 +46,7 @@ B7 is the completion and significant expansion of keyboard shortcut coverage for
 
 ### Detailed Competitor Comparison
 
-| Shortcut | Linear | Jira | Trello | Asana | TaskFlow (current) |
+| Shortcut | Linear | Jira | Trello | Asana | TaskBolt (current) |
 |----------|--------|------|--------|-------|--------------------|
 | Create task | `c` | `c` | `n` | Tab+Q | `n` |
 | Open focused | Enter/`o` | Enter/`o` | Enter | Enter | Enter |

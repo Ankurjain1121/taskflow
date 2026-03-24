@@ -12,9 +12,9 @@ use crate::errors::{AppError, Result};
 use crate::extractors::{AdminUser, TenantContext};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::archive::{list_archive, PaginatedArchive};
-use taskflow_services::minio::{MinioConfig, MinioService};
-use taskflow_services::trash_bin::{permanently_delete, restore_from_trash, TrashEntityType};
+use taskbolt_db::queries::archive::{list_archive, PaginatedArchive};
+use taskbolt_services::minio::{MinioConfig, MinioService};
+use taskbolt_services::trash_bin::{permanently_delete, restore_from_trash, TrashEntityType};
 
 /// Query parameters for archive listing
 #[derive(Debug, Deserialize)]

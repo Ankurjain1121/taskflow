@@ -8,7 +8,7 @@ use crate::models::*;
 
 async fn test_pool() -> PgPool {
     PgPool::connect(
-        "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow",
+        "postgresql://taskbolt:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskbolt",
     )
     .await
     .expect("Failed to connect to test database")

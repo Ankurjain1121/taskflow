@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# TaskFlow - Pre-Deploy Check Script
+# TaskBolt - Pre-Deploy Check Script
 # =============================================================================
 # Run this BEFORE every deploy to catch errors locally.
 # Usage: ./scripts/pre-deploy-check.sh
@@ -56,7 +56,7 @@ cd "$PROJECT_ROOT"
 
 echo ""
 echo -e "${BLUE}=============================================${NC}"
-echo -e "${BLUE}  TaskFlow Pre-Deploy Checks${NC}"
+echo -e "${BLUE}  TaskBolt Pre-Deploy Checks${NC}"
 echo -e "${BLUE}=============================================${NC}"
 echo -e "  Project: $PROJECT_ROOT"
 echo -e "  Time:    $(date)"

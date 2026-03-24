@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# TaskFlow - Quick Check (No Docker Build)
+# TaskBolt - Quick Check (No Docker Build)
 # =============================================================================
 # Faster version: only cargo check + clippy + frontend build
 # Use this during development. Use pre-deploy-check.sh before deploying.
@@ -37,7 +37,7 @@ case "${1:-}" in
 esac
 
 echo ""
-echo -e "${BLUE}  TaskFlow Quick Check${NC}"
+echo -e "${BLUE}  TaskBolt Quick Check${NC}"
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
 # =========================================================================

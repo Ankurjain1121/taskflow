@@ -96,14 +96,14 @@ export class SidebarFavoritesComponent implements OnInit {
   favorites = signal<FavoriteItem[]>([]);
   sectionExpanded = signal(
     typeof localStorage !== 'undefined'
-      ? localStorage.getItem('taskflow_fav_expanded') !== 'false'
+      ? localStorage.getItem('taskbolt_fav_expanded') !== 'false'
       : true,
   );
 
   toggleSection(): void {
     this.sectionExpanded.update((v) => !v);
     localStorage.setItem(
-      'taskflow_fav_expanded',
+      'taskbolt_fav_expanded',
       String(this.sectionExpanded()),
     );
   }

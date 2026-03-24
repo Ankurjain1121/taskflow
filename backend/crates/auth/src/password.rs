@@ -57,10 +57,7 @@ mod tests {
     #[test]
     fn test_empty_password_rejected() {
         let result = hash_password("");
-        assert!(
-            result.is_err(),
-            "Empty password should be rejected"
-        );
+        assert!(result.is_err(), "Empty password should be rejected");
     }
 
     #[test]

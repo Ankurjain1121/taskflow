@@ -14,9 +14,9 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
 use super::common::verify_project_membership;
-use taskflow_db::models::Milestone;
-use taskflow_db::queries::get_task_project_id;
-use taskflow_db::queries::milestones::{
+use taskbolt_db::models::Milestone;
+use taskbolt_db::queries::get_task_project_id;
+use taskbolt_db::queries::milestones::{
     assign_task_to_milestone, create_milestone, delete_milestone, get_milestone,
     get_milestone_board_id, list_milestones, unassign_task_from_milestone, update_milestone,
     CreateMilestoneInput, MilestoneQueryError, MilestoneWithProgress, UpdateMilestoneInput,

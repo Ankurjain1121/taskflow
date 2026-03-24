@@ -102,7 +102,7 @@ fn test_build_auth_cookie_headers_https() {
         "ref",
         3600,
         86400,
-        "https://taskflow.example.com",
+        "https://taskbolt.example.com",
         true,
     )
     .expect("should build cookie headers");

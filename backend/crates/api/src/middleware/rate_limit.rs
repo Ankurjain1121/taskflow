@@ -418,9 +418,7 @@ mod tests {
         let limiter = FallbackLimiter::new(10, 60);
 
         // Manually insert a stale entry with an old window_ts
-        limiter
-            .fallback
-            .insert("10:old-ip".to_string(), (5, 1)); // window_ts = 1 (ancient)
+        limiter.fallback.insert("10:old-ip".to_string(), (5, 1)); // window_ts = 1 (ancient)
 
         // Insert a current entry (current_window = now_secs / 60)
         let now_secs = std::time::SystemTime::now()

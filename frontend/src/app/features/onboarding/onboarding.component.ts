@@ -93,7 +93,7 @@ interface AbbreviatedFlowStep {
           <h1
             class="text-lg font-semibold text-[var(--card-foreground)] dark:text-white"
           >
-            TaskFlow
+            TaskBolt
           </h1>
         </div>
 

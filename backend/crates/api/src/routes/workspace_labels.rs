@@ -58,7 +58,7 @@ async fn list_labels(
     Path(workspace_id): Path<Uuid>,
 ) -> Result<Json<Vec<LabelResponse>>> {
     // Verify workspace membership
-    let is_member = taskflow_db::queries::workspaces::is_workspace_member(
+    let is_member = taskbolt_db::queries::workspaces::is_workspace_member(
         &state.db,
         workspace_id,
         auth.0.user_id,
@@ -94,7 +94,7 @@ async fn create_label(
     Json(payload): Json<CreateLabelRequest>,
 ) -> Result<Json<LabelResponse>> {
     // Verify workspace membership
-    let is_member = taskflow_db::queries::workspaces::is_workspace_member(
+    let is_member = taskbolt_db::queries::workspaces::is_workspace_member(
         &state.db,
         workspace_id,
         auth.0.user_id,
@@ -147,7 +147,7 @@ async fn update_label_handler(
     Json(payload): Json<UpdateLabelRequest>,
 ) -> Result<Json<LabelResponse>> {
     // Verify workspace membership
-    let is_member = taskflow_db::queries::workspaces::is_workspace_member(
+    let is_member = taskbolt_db::queries::workspaces::is_workspace_member(
         &state.db,
         workspace_id,
         auth.0.user_id,
@@ -202,7 +202,7 @@ async fn delete_label(
     Path((workspace_id, label_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<serde_json::Value>> {
     // Verify workspace membership
-    let is_member = taskflow_db::queries::workspaces::is_workspace_member(
+    let is_member = taskbolt_db::queries::workspaces::is_workspace_member(
         &state.db,
         workspace_id,
         auth.0.user_id,

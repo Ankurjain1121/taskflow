@@ -7,8 +7,8 @@ use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use taskflow_db::models::ActivityAction;
-use taskflow_db::queries::activity_log::{insert_activity_log, ActivityLogWithActor};
+use taskbolt_db::models::ActivityAction;
+use taskbolt_db::queries::activity_log::{insert_activity_log, ActivityLogWithActor};
 
 /// Error type for activity log service operations
 #[derive(Debug, thiserror::Error)]

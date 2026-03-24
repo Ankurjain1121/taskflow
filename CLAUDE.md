@@ -1,4 +1,4 @@
-# TaskFlow
+# TaskBolt
 
 Multi-tenant project management SaaS with kanban boards, task tracking, team collaboration, automations, and real-time updates via WebSockets.
 
@@ -81,7 +81,7 @@ Use `admin1@paraslace.in` for all testing and browser verification.
 
 **This IS the VPS.** App path: `/home/ankur/projects/taskflow` | **Domain:** taskflow.paraslace.in
 
-> **IMPORTANT:** `/root/taskflow` is DEPRECATED. Do NOT use it. All work happens in `/home/ankur/projects/taskflow`.
+> **IMPORTANT:** `/root/taskbolt` is DEPRECATED. Do NOT use it. All work happens in `/home/ankur/projects/taskflow`.
 
 ```bash
 # Deploy (from /home/ankur/projects/taskflow):
@@ -120,7 +120,7 @@ Bypass: `git commit --no-verify` (use sparingly).
 ## Design Context
 
 ### Users
-TaskFlow serves all segments: internal teams, SMB customers, enterprise organizations, and agencies/freelancers. Users are project managers, team leads, developers, and individual contributors who need to track work, collaborate, and stay on top of deadlines. They use TaskFlow throughout their workday — it's an always-open tool, so it must feel effortless and never fatiguing.
+TaskBolt serves all segments: internal teams, SMB customers, enterprise organizations, and agencies/freelancers. Users are project managers, team leads, developers, and individual contributors who need to track work, collaborate, and stay on top of deadlines. They use TaskBolt throughout their workday — it's an always-open tool, so it must feel effortless and never fatiguing.
 
 ### Brand Personality
 **Friendly, approachable, modern** — like Asana meets Monday.com. Warm and inviting without being childish. Professional enough for enterprise, but never cold or corporate. The interface should feel like a helpful teammate, not a bureaucratic tool.

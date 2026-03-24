@@ -1,7 +1,7 @@
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde_json::json;
-use taskflow_db::queries::{CommentQueryError, TaskQueryError};
+use taskbolt_db::queries::{CommentQueryError, TaskQueryError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {

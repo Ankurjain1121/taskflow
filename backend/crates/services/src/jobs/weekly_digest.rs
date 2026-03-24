@@ -136,7 +136,7 @@ pub async fn send_weekly_digests(
             );
 
             match postal
-                .send_email(&email, "[TaskFlow] Your Weekly Summary", &html)
+                .send_email(&email, "[TaskBolt] Your Weekly Summary", &html)
                 .await
             {
                 Ok(_) => {
@@ -381,8 +381,8 @@ mod tests {
 
     #[test]
     fn test_email_subject_format() {
-        let subject = "[TaskFlow] Your Weekly Summary";
-        assert!(subject.starts_with("[TaskFlow]"));
+        let subject = "[TaskBolt] Your Weekly Summary";
+        assert!(subject.starts_with("[TaskBolt]"));
         assert!(subject.contains("Weekly"));
     }
 }

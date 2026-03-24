@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# TaskFlow Docker Entrypoint
+# TaskBolt Docker Entrypoint
 # =============================================================================
 # This script:
 # 1. Runs database initialization (if not skipped)
@@ -24,7 +24,7 @@ log_info() {
 # Main
 # =============================================================================
 main() {
-    log_info "TaskFlow API starting..."
+    log_info "TaskBolt API starting..."
 
     # Run initialization unless skipped
     if [ "${SKIP_INIT}" != "true" ]; then
@@ -39,8 +39,8 @@ main() {
     fi
 
     # Start the API server
-    log_info "Starting TaskFlow API server..."
-    exec /usr/local/bin/taskflow-api "$@"
+    log_info "Starting TaskBolt API server..."
+    exec /usr/local/bin/taskbolt-api "$@"
 }
 
 # Run main function with all arguments

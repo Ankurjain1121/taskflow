@@ -18,13 +18,13 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
-use taskflow_db::models::ActivityAction;
-use taskflow_db::queries::attachments::{
+use taskbolt_db::models::ActivityAction;
+use taskbolt_db::queries::attachments::{
     can_delete_attachment, create_attachment, delete_attachment, get_attachment_by_id,
     get_attachment_with_uploader, list_by_task, verify_task_board_membership,
     AttachmentWithUploader,
 };
-use taskflow_services::{MinioConfig, MinioService};
+use taskbolt_services::{MinioConfig, MinioService};
 
 /// Maximum file size allowed (10MB)
 const MAX_FILE_SIZE: i64 = 10_485_760;
@@ -313,7 +313,7 @@ async fn delete_attachment_handler(
     let deleted = delete_attachment(&state.db, attachment_id)
         .await
         .map_err(|e| match e {
-            taskflow_db::queries::attachments::AttachmentQueryError::NotFound => {
+            taskbolt_db::queries::attachments::AttachmentQueryError::NotFound => {
                 AppError::NotFound("Attachment not found".into())
             }
             _ => AppError::InternalError(format!("Failed to delete attachment: {}", e)),

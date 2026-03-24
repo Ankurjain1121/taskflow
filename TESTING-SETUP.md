@@ -1,4 +1,4 @@
-# TaskFlow Testing Infrastructure Setup Summary
+# TaskBolt Testing Infrastructure Setup Summary
 
 **Date:** 2026-03-03
 **Status:** ✅ Infrastructure set up, tests NOT run
@@ -8,7 +8,7 @@
 
 ## Overview
 
-This document summarizes the comprehensive testing audit and setup that was completed for TaskFlow. The project already has excellent testing infrastructure in place (Vitest, Playwright, Cargo test), but significant gaps exist in test coverage.
+This document summarizes the comprehensive testing audit and setup that was completed for TaskBolt. The project already has excellent testing infrastructure in place (Vitest, Playwright, Cargo test), but significant gaps exist in test coverage.
 
 ### Key Stats
 

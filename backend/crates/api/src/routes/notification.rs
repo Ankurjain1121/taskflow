@@ -18,7 +18,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::notifications::{
+use taskbolt_db::queries::notifications::{
     archive_notification, get_unread_count, list_notifications, mark_all_read, mark_read,
     NotificationListResponse, NotificationQueryError,
 };

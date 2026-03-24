@@ -82,8 +82,8 @@ impl ResendClient {
             .ok()
             .filter(|s| !s.is_empty())?;
         let from_address = std::env::var("RESEND_FROM_ADDRESS")
-            .unwrap_or_else(|_| "noreply@taskflow.local".into());
-        let from_name = std::env::var("RESEND_FROM_NAME").unwrap_or_else(|_| "TaskFlow".into());
+            .unwrap_or_else(|_| "noreply@taskbolt.local".into());
+        let from_name = std::env::var("RESEND_FROM_NAME").unwrap_or_else(|_| "TaskBolt".into());
 
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(30))
@@ -248,7 +248,7 @@ impl PostalClient {
         link_url: Option<&str>,
         app_url: &str,
     ) -> Result<(), EmailError> {
-        let subject = format!("[TaskFlow] {}", title);
+        let subject = format!("[TaskBolt] {}", title);
 
         let link_html = if let Some(url) = link_url {
             let full_url = if url.starts_with("http") {
@@ -278,7 +278,7 @@ impl PostalClient {
         {}
     </div>
     <p style="color: #9ca3af; font-size: 12px; text-align: center;">
-        This notification was sent from TaskFlow.
+        This notification was sent from TaskBolt.
         <a href="{}/settings/notifications" style="color: #6366f1;">Manage your notification preferences</a>
     </p>
 </body>
@@ -367,7 +367,7 @@ pub fn generate_weekly_digest_html(
         </div>
 
         <p style="text-align: center;">
-            <a href="{}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Open TaskFlow</a>
+            <a href="{}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Open TaskBolt</a>
         </p>
     </div>
     <p style="color: #9ca3af; font-size: 12px; text-align: center;">
@@ -385,6 +385,76 @@ pub fn generate_weekly_digest_html(
     )
 }
 
+/// Escape HTML special characters to prevent XSS in email templates.
+fn html_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#39;")
+}
+
+/// Generate HTML email for a workspace invitation
+pub fn generate_invitation_html(
+    inviter_name: &str,
+    workspace_name: &str,
+    role: &str,
+    message: Option<&str>,
+    accept_url: &str,
+    app_url: &str,
+) -> String {
+    let inviter_safe = html_escape(inviter_name);
+    let workspace_safe = html_escape(workspace_name);
+    let role_safe = html_escape(role);
+
+    let message_block = match message {
+        Some(msg) if !msg.is_empty() => format!(
+            r#"<div style="background: white; border-left: 3px solid #6366f1; border-radius: 4px; padding: 12px 16px; margin: 16px 0;">
+                <p style="color: #6b7280; font-size: 13px; margin: 0 0 4px 0; font-style: italic;">Message from {inviter}:</p>
+                <p style="color: #374151; font-size: 14px; margin: 0;">{msg}</p>
+            </div>"#,
+            inviter = inviter_safe,
+            msg = html_escape(msg),
+        ),
+        _ => String::new(),
+    };
+
+    format!(
+        r##"<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background-color: #f9fafb; border-radius: 8px; padding: 24px; margin-bottom: 20px;">
+        <h1 style="color: #111827; font-size: 24px; margin: 0 0 8px 0;">You're invited to join {workspace}</h1>
+        <p style="color: #4b5563; font-size: 16px; margin: 0 0 20px 0;">
+            <strong>{inviter}</strong> has invited you to join <strong>{workspace}</strong> as a <strong>{role}</strong> on TaskBolt.
+        </p>
+        {message_block}
+        <p style="text-align: center; margin: 24px 0 8px 0;">
+            <a href="{accept_url}" style="background-color: #4F46E5; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-size: 16px; font-weight: 600;">Accept Invitation</a>
+        </p>
+        <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 16px 0 0 0;">
+            This invitation expires in 7 days. If the button doesn't work, copy this link:<br>
+            <a href="{accept_url}" style="color: #6366f1; word-break: break-all;">{accept_url}</a>
+        </p>
+    </div>
+    <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+        Sent from <a href="{app_url}" style="color: #6366f1;">TaskBolt</a>
+    </p>
+</body>
+</html>"##,
+        workspace = workspace_safe,
+        inviter = inviter_safe,
+        role = role_safe,
+        message_block = message_block,
+        accept_url = accept_url,
+        app_url = app_url,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -395,7 +465,7 @@ mod tests {
             "https://postal.example.com".to_string(),
             "test-api-key".to_string(),
             "noreply@example.com".to_string(),
-            "TaskFlow".to_string(),
+            "TaskBolt".to_string(),
         );
         assert_eq!(client.api_url, "https://postal.example.com");
     }
@@ -413,7 +483,7 @@ mod tests {
             "https://postal.example.com/".to_string(),
             "test-key".to_string(),
             "noreply@example.com".to_string(),
-            "TaskFlow".to_string(),
+            "TaskBolt".to_string(),
         );
         assert_eq!(client.api_url, "https://postal.example.com");
     }

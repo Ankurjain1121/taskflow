@@ -65,7 +65,7 @@ interface PreferenceRow {
             Desktop Notifications
           </h2>
           <p class="text-sm" style="color: var(--muted-foreground)">
-            Get notified about assignments and mentions even when TaskFlow isn't
+            Get notified about assignments and mentions even when TaskBolt isn't
             your active tab.
           </p>
         </div>
@@ -166,16 +166,9 @@ interface PreferenceRow {
                 </span>
               </th>
               <th class="!font-semibold !text-center">
-                <span
-                  pTooltip="WhatsApp integration coming soon"
-                  tooltipPosition="top"
-                  class="cursor-help"
-                >
+                <span class="flex items-center justify-center gap-1">
+                  <i class="pi pi-whatsapp text-green-500 text-xs"></i>
                   WhatsApp
-                  <i
-                    class="pi pi-lock text-xs ml-1"
-                    style="color: var(--muted-foreground)"
-                  ></i>
                 </span>
               </th>
             </tr>
@@ -208,8 +201,9 @@ interface PreferenceRow {
               <td class="!text-center">
                 <p-toggleSwitch
                   [(ngModel)]="row.whatsapp"
-                  [disabled]="true"
-                  pTooltip="Coming soon"
+                  [disabled]="!hasPhoneNumber()"
+                  [pTooltip]="hasPhoneNumber() ? '' : 'Add your phone number in Profile to enable WhatsApp'"
+                  (onChange)="onToggleChange(row.eventType, 'whatsapp', $event.checked)"
                 />
               </td>
             </tr>
@@ -354,6 +348,7 @@ export class NotificationsSectionComponent implements OnInit {
   private readonly messageService = inject(MessageService);
   readonly pushService = inject(PushNotificationService);
 
+  hasPhoneNumber = signal(false);
   isLoading = signal(true);
   isSaving = signal(false);
   isSavingExtra = signal(false);
@@ -393,6 +388,7 @@ export class NotificationsSectionComponent implements OnInit {
   ngOnInit(): void {
     this.loadNotificationPreferences();
     this.loadExtraSettings();
+    this.checkPhoneNumber();
   }
 
   onToggleChange(
@@ -528,6 +524,17 @@ export class NotificationsSectionComponent implements OnInit {
           detail: 'Failed to load notification preferences',
         });
         this.isLoading.set(false);
+      },
+    });
+  }
+
+  private checkPhoneNumber(): void {
+    this.profileService.getProfile().subscribe({
+      next: (profile) => {
+        this.hasPhoneNumber.set(!!profile.phone_number);
+      },
+      error: () => {
+        this.hasPhoneNumber.set(false);
       },
     });
   }

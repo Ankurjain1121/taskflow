@@ -287,7 +287,7 @@ pub async fn scan_deadlines(
     }
 
     // --- Task Reminders (configurable per-user) ---
-    match taskflow_db::queries::get_pending_reminders(pool, now).await {
+    match taskbolt_db::queries::get_pending_reminders(pool, now).await {
         Ok(pending) => {
             result.reminder_count = pending.len();
             for reminder in pending {
@@ -313,7 +313,7 @@ pub async fn scan_deadlines(
                     Ok(_) => {
                         result.notifications_sent += 1;
                         if let Err(e) =
-                            taskflow_db::queries::mark_reminder_sent(pool, reminder.id).await
+                            taskbolt_db::queries::mark_reminder_sent(pool, reminder.id).await
                         {
                             tracing::error!(
                                 reminder_id = %reminder.id,
@@ -448,12 +448,12 @@ mod tests {
 
     #[test]
     fn test_deadline_scan_link_url_format() {
-        let app_url = "https://taskflow.example.com";
+        let app_url = "https://taskbolt.example.com";
         let project_id = Uuid::new_v4();
         let task_id = Uuid::new_v4();
         let link_url = format!("{}/projects/{}/tasks/{}", app_url, project_id, task_id);
 
-        assert!(link_url.starts_with("https://taskflow.example.com/projects/"));
+        assert!(link_url.starts_with("https://taskbolt.example.com/projects/"));
         assert!(link_url.contains("/tasks/"));
         assert!(link_url.contains(&project_id.to_string()));
         assert!(link_url.contains(&task_id.to_string()));

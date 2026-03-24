@@ -144,7 +144,7 @@ export const EMPTY_STATE_CONFIGS: Record<EmptyStateVariant, EmptyStateConfig> =
       colorScheme: 'warning',
       defaultTitle: 'No API keys yet',
       defaultDescription:
-        'Generate an API key to integrate TaskFlow with other tools.',
+        'Generate an API key to integrate TaskBolt with other tools.',
       defaultCtaLabel: 'Generate Key',
     },
     teams: {

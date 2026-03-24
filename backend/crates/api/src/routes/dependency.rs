@@ -11,12 +11,12 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::dependencies::{
+use taskbolt_db::queries::dependencies::{
     check_blockers, create_dependency, delete_dependency, get_board_dependencies,
     list_dependencies, BlockerInfo, CreateDependencyInput, DependencyQueryError,
     DependencyWithTask,
 };
-use taskflow_db::queries::get_task_project_id;
+use taskbolt_db::queries::get_task_project_id;
 
 /// Helper: verify board membership through task -> board chain
 async fn verify_task_board_membership(

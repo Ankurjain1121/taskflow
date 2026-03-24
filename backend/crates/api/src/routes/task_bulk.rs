@@ -11,8 +11,8 @@ use uuid::Uuid;
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::state::AppState;
-use taskflow_db::models::TaskPriority;
-use taskflow_db::queries::{bulk_delete_tasks, bulk_update_tasks, BulkUpdateInput, TaskQueryError};
+use taskbolt_db::models::TaskPriority;
+use taskbolt_db::queries::{bulk_delete_tasks, bulk_update_tasks, BulkUpdateInput, TaskQueryError};
 
 const MAX_BULK_TASK_IDS: usize = 200;
 

@@ -14,9 +14,9 @@ use crate::routes::validation::{
     validate_optional_string, validate_required_string, MAX_DESCRIPTION_LEN, MAX_NAME_LEN,
 };
 use crate::state::AppState;
-use taskflow_db::models::Task;
-use taskflow_db::queries::get_task_project_id;
-use taskflow_db::queries::tasks::ChildTaskWithDetails;
+use taskbolt_db::models::Task;
+use taskbolt_db::queries::get_task_project_id;
+use taskbolt_db::queries::tasks::ChildTaskWithDetails;
 
 /// Helper: verify board membership through task -> board chain
 async fn verify_task_board_membership(
@@ -56,20 +56,20 @@ async fn list_children_handler(
     // Verify board membership through task
     verify_task_board_membership(&state, task_id, tenant.user_id).await?;
 
-    let children = taskflow_db::queries::list_child_tasks_with_details(&state.db, task_id)
+    let children = taskbolt_db::queries::list_child_tasks_with_details(&state.db, task_id)
         .await
         .map_err(|e| match e {
-            taskflow_db::queries::TaskQueryError::NotProjectMember => {
+            taskbolt_db::queries::TaskQueryError::NotProjectMember => {
                 AppError::Forbidden("Not a project member".into())
             }
-            taskflow_db::queries::TaskQueryError::NotFound => {
+            taskbolt_db::queries::TaskQueryError::NotFound => {
                 AppError::NotFound("Task not found".into())
             }
-            taskflow_db::queries::TaskQueryError::Database(e) => AppError::SqlxError(e),
-            taskflow_db::queries::TaskQueryError::VersionConflict(_) => {
+            taskbolt_db::queries::TaskQueryError::Database(e) => AppError::SqlxError(e),
+            taskbolt_db::queries::TaskQueryError::VersionConflict(_) => {
                 AppError::Conflict("Version conflict".into())
             }
-            taskflow_db::queries::TaskQueryError::Other(msg) => AppError::InternalError(msg),
+            taskbolt_db::queries::TaskQueryError::Other(msg) => AppError::InternalError(msg),
         })?;
 
     // Count completed children (those with done statuses)

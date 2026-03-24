@@ -2,7 +2,7 @@
 
 ## Context
 
-The Eisenhower Matrix exists but has a critical bug (tasks don't reliably appear when assigned) and lacks interactivity compared to competitors. No top-10 PM tool has a native Eisenhower Matrix — TaskFlow already has one. The goal is to fix the bug and add polish/interactivity to make it best-in-class.
+The Eisenhower Matrix exists but has a critical bug (tasks don't reliably appear when assigned) and lacks interactivity compared to competitors. No top-10 PM tool has a native Eisenhower Matrix — TaskBolt already has one. The goal is to fix the bug and add polish/interactivity to make it best-in-class.
 
 **Competitive edge targets**: Drag-and-drop (Trello Power-Up), customizable rules (TickTick), daily focus view (Amazing Marvin), working delegation (Jira).
 

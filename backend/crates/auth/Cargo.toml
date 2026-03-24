@@ -1,5 +1,5 @@
 [package]
-name = "taskflow-auth"
+name = "taskbolt-auth"
 version.workspace = true
 edition.workspace = true
 
@@ -15,7 +15,7 @@ jsonwebtoken.workspace = true
 argon2.workspace = true
 password-hash.workspace = true
 
-taskflow-db = { path = "../db" }
+taskbolt-db = { path = "../db" }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full", "test-util"] }

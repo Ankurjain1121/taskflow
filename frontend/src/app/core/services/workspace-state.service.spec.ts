@@ -58,7 +58,7 @@ describe('WorkspaceStateService', () => {
     });
 
     it('should load workspace id from localStorage on construction', () => {
-      localStorage.setItem('taskflow_active_workspace', 'ws-stored');
+      localStorage.setItem('taskbolt_active_workspace', 'ws-stored');
 
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
@@ -79,7 +79,7 @@ describe('WorkspaceStateService', () => {
       service.selectWorkspace('ws-1');
 
       expect(service.currentWorkspaceId()).toBe('ws-1');
-      expect(localStorage.getItem('taskflow_active_workspace')).toBe('ws-1');
+      expect(localStorage.getItem('taskbolt_active_workspace')).toBe('ws-1');
     });
 
     it('should clear currentWorkspaceId and localStorage when null', () => {
@@ -87,7 +87,7 @@ describe('WorkspaceStateService', () => {
       service.selectWorkspace(null);
 
       expect(service.currentWorkspaceId()).toBeNull();
-      expect(localStorage.getItem('taskflow_active_workspace')).toBeNull();
+      expect(localStorage.getItem('taskbolt_active_workspace')).toBeNull();
     });
   });
 

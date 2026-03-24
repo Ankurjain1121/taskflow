@@ -7,10 +7,10 @@ use chrono::{Duration, Utc};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use taskflow_auth::password::verify_password;
-use taskflow_db::models::UserRole;
-use taskflow_db::queries::auth;
-use taskflow_services::notifications::PostalClient;
+use taskbolt_auth::password::verify_password;
+use taskbolt_db::models::UserRole;
+use taskbolt_db::queries::auth;
+use taskbolt_services::notifications::PostalClient;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
@@ -79,7 +79,7 @@ pub async fn change_password_handler(
     }
 
     // Hash new password
-    let new_hash = taskflow_auth::password::hash_password(&payload.new_password)
+    let new_hash = taskbolt_auth::password::hash_password(&payload.new_password)
         .map_err(|_| AppError::InternalError("Failed to hash password".into()))?;
 
     // Update password
@@ -217,7 +217,7 @@ pub async fn forgot_password_handler(
             "Password reset requested"
         );
 
-        let subject = "Reset your TaskFlow password";
+        let subject = "Reset your TaskBolt password";
         let html_body = format!(
             r#"<!DOCTYPE html>
 <html>
@@ -276,7 +276,7 @@ pub async fn reset_password_handler(
         .ok_or_else(|| AppError::BadRequest("Invalid or expired reset token".into()))?;
 
     // Hash new password
-    let password_hash = taskflow_auth::password::hash_password(&payload.new_password)
+    let password_hash = taskbolt_auth::password::hash_password(&payload.new_password)
         .map_err(|_| AppError::InternalError("Failed to hash password".into()))?;
 
     // Update password

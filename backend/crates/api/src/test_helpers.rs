@@ -20,8 +20,8 @@ pub mod helpers {
     use tower_http::timeout::TimeoutLayer;
     use uuid::Uuid;
 
-    use taskflow_auth::jwt::{issue_tokens, JwtKeys};
-    use taskflow_db::models::UserRole;
+    use taskbolt_auth::jwt::{issue_tokens, JwtKeys};
+    use taskbolt_db::models::UserRole;
 
     use crate::config::Config;
     use crate::middleware::auth_middleware;
@@ -63,13 +63,14 @@ pub mod helpers {
             postal_api_url: "http://localhost:5000".to_string(),
             postal_api_key: String::new(),
             postal_from_address: "noreply@test.local".to_string(),
-            postal_from_name: "TaskFlow".to_string(),
+            postal_from_name: "TaskBolt".to_string(),
             novu_api_url: "http://localhost:3000".to_string(),
             novu_api_key: String::new(),
             lago_api_url: "http://localhost:3000".to_string(),
             lago_api_key: String::new(),
             waha_api_url: "http://localhost:3000".to_string(),
             waha_api_key: String::new(),
+            waha_session_name: "default".to_string(),
             app_url: "http://localhost:4200".to_string(),
             ws_max_connections: 500,
             cron_secret: "test-cron-secret-for-testing".to_string(),
@@ -130,6 +131,7 @@ pub mod helpers {
             s3_client,
             ws_connection_count: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             prometheus_handle: None,
+            waha_client: None,
         }
     }
 
@@ -167,7 +169,7 @@ pub mod helpers {
     /// Create a test user with tenant. Returns (tenant_id, user_id).
     pub async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
         let email = unique_email();
-        let user = taskflow_db::queries::auth::create_user_with_tenant(
+        let user = taskbolt_db::queries::auth::create_user_with_tenant(
             pool,
             &email,
             "API IntTest User",
@@ -181,7 +183,7 @@ pub mod helpers {
     /// Create user + workspace. Returns (tenant_id, user_id, workspace_id).
     pub async fn setup_user_and_workspace(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
         let (tenant_id, user_id) = setup_user(pool).await;
-        let ws = taskflow_db::queries::workspaces::create_workspace(
+        let ws = taskbolt_db::queries::workspaces::create_workspace(
             pool,
             "API IntTest WS",
             None,
@@ -197,7 +199,7 @@ pub mod helpers {
     /// Returns (tenant_id, user_id, workspace_id, board_id, first_column_id).
     pub async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
         let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-        let bwc = taskflow_db::queries::projects::create_project(
+        let bwc = taskbolt_db::queries::projects::create_project(
             pool,
             "API IntTest Board",
             None,

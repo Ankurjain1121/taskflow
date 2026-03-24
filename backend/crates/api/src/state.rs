@@ -10,7 +10,8 @@ use uuid::Uuid;
 
 use crate::config::Config;
 use crate::ws::PubSubRelay;
-use taskflow_auth::jwt::JwtKeys;
+use taskbolt_auth::jwt::JwtKeys;
+use taskbolt_services::notifications::whatsapp::WahaClient;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -23,6 +24,7 @@ pub struct AppState {
     pub s3_client: aws_sdk_s3::Client,
     pub ws_connection_count: Arc<AtomicUsize>,
     pub prometheus_handle: Option<Arc<PrometheusHandle>>,
+    pub waha_client: Option<WahaClient>,
 }
 
 impl AppState {
@@ -91,6 +93,25 @@ impl AppState {
                 }
             };
 
+        // Initialize WhatsApp client if WAHA is configured
+        let waha_client = if taskbolt_services::notifications::whatsapp::is_whatsapp_enabled()
+            && !config.waha_api_url.is_empty()
+            && !config.waha_api_key.is_empty()
+        {
+            tracing::info!(
+                "WhatsApp client initialized (WAHA session: {})",
+                config.waha_session_name
+            );
+            Some(WahaClient::new(
+                config.waha_api_url.clone(),
+                config.waha_api_key.clone(),
+                Some(config.waha_session_name.clone()),
+            ))
+        } else {
+            tracing::info!("WhatsApp client disabled (WAHA_ENABLED not set or missing config)");
+            None
+        };
+
         Ok(Self {
             db,
             config: Arc::new(config),
@@ -101,6 +122,7 @@ impl AppState {
             s3_client,
             ws_connection_count: Arc::new(AtomicUsize::new(0)),
             prometheus_handle,
+            waha_client,
         })
     }
 

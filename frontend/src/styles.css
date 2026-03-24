@@ -1480,7 +1480,7 @@ small.p-error,
 
   /* Print header */
   body::before {
-    content: "TaskFlow Report — " attr(data-print-date);
+    content: "TaskBolt Report — " attr(data-print-date);
     display: block;
     font-size: 14pt;
     font-weight: 700;

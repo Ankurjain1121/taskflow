@@ -11,7 +11,7 @@
 
 ### What F1 Means
 
-F1 adds real-time presence awareness to TaskFlow boards. When multiple team members view the same board simultaneously, each user sees an **avatar stack** in the board header showing who else is currently viewing. When someone opens a task for editing, other users see a visual indicator ("Maya is editing...") on the task card and a banner in the task detail drawer, with editing controls disabled for non-holders.
+F1 adds real-time presence awareness to TaskBolt boards. When multiple team members view the same board simultaneously, each user sees an **avatar stack** in the board header showing who else is currently viewing. When someone opens a task for editing, other users see a visual indicator ("Maya is editing...") on the task card and a banner in the task detail drawer, with editing controls disabled for non-holders.
 
 ### Sub-features IN SCOPE
 
@@ -35,11 +35,11 @@ F1 adds real-time presence awareness to TaskFlow boards. When multiple team memb
 
 ### Winner Pattern (from comp.md)
 
-> Figma's avatar stack (max 5 + counter) in top bar + Jira's "editing" outline on the task card being edited. For TaskFlow (board-level): avatar stack showing who's on this board, highlight ring on card being dragged/edited by another user.
+> Figma's avatar stack (max 5 + counter) in top bar + Jira's "editing" outline on the task card being edited. For TaskBolt (board-level): avatar stack showing who's on this board, highlight ring on card being dragged/edited by another user.
 
 ### Most Important Gap
 
-TaskFlow currently has **zero presence awareness**. Users have no idea if anyone else is viewing the same board or editing the same task. The single most important gap is the lack of any visual indicator that other users are present — this makes the product feel single-player.
+TaskBolt currently has **zero presence awareness**. Users have no idea if anyone else is viewing the same board or editing the same task. The single most important gap is the lack of any visual indicator that other users are present — this makes the product feel single-player.
 
 ---
 

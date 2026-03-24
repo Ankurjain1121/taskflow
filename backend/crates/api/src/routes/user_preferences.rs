@@ -12,7 +12,7 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
 
-use taskflow_db::queries::user_prefs;
+use taskbolt_db::queries::user_prefs;
 
 #[derive(Debug, Deserialize)]
 pub struct UpdatePreferencesRequest {
@@ -45,11 +45,11 @@ pub struct UpdatePreferencesRequest {
 async fn get_preferences(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
-) -> Result<Json<taskflow_db::models::UserPreferences>> {
+) -> Result<Json<taskbolt_db::models::UserPreferences>> {
     // Check Redis cache first (5 minute TTL)
     let cache_key = cache::user_prefs_key(&auth.0.user_id);
     if let Some(cached) =
-        cache::cache_get::<taskflow_db::models::UserPreferences>(&state.redis, &cache_key).await
+        cache::cache_get::<taskbolt_db::models::UserPreferences>(&state.redis, &cache_key).await
     {
         return Ok(Json(cached));
     }
@@ -67,7 +67,7 @@ async fn update_preferences(
     State(state): State<AppState>,
     auth: AuthUserExtractor,
     Json(body): Json<UpdatePreferencesRequest>,
-) -> Result<Json<taskflow_db::models::UserPreferences>> {
+) -> Result<Json<taskbolt_db::models::UserPreferences>> {
     // Fetch existing prefs so partial updates merge correctly
     let existing = user_prefs::get_by_user_id(&state.db, auth.0.user_id).await?;
 

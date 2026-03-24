@@ -6,6 +6,6 @@ export interface CommandAction {
   action: () => void;
 }
 
-export const RECENT_SEARCHES_KEY = 'taskflow_recent_searches';
+export const RECENT_SEARCHES_KEY = 'taskbolt_recent_searches';
 export const MAX_RECENT_SEARCHES = 5;
 export const SELECTED_BG = 'rgba(99,102,241,0.1)';

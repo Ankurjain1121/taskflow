@@ -17,7 +17,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::{AdminUser, SuperAdminOnly};
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::models::UserRole;
+use taskbolt_db::models::UserRole;
 
 use axum::routing::post;
 

@@ -22,7 +22,7 @@ interface UseCase {
         <h2
           class="text-2xl font-bold text-[var(--card-foreground)] dark:text-white mb-2"
         >
-          What will you use TaskFlow for?
+          What will you use TaskBolt for?
         </h2>
         <p class="text-[var(--muted-foreground)] dark:text-gray-400">
           This helps us tailor your experience.

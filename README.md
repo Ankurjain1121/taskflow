@@ -1,4 +1,4 @@
-# TaskFlow - Multi-Tenant Task Management Platform
+# TaskBolt - Multi-Tenant Task Management Platform
 
 **A comprehensive, feature-rich project management SaaS built with Rust + Angular**
 
@@ -11,7 +11,7 @@
 
 ## 🚀 Features
 
-TaskFlow is a production-ready task management platform with 94% feature parity to enterprise PM tools like Jira and Asana.
+TaskBolt is a production-ready task management platform with 94% feature parity to enterprise PM tools like Jira and Asana.
 
 ### 📊 Core Task Management
 - **Board View (Kanban)** - Drag-and-drop task cards between columns
@@ -108,7 +108,7 @@ TaskFlow is a production-ready task management platform with 94% feature parity 
 ```bash
 # 1. Clone repository
 git clone <repository-url>
-cd taskflow
+cd taskbolt
 
 # 2. Start services with Docker Compose
 docker compose up -d
@@ -127,10 +127,10 @@ Create `.env` file in project root:
 
 ```env
 # Database
-POSTGRES_USER=taskflow
+POSTGRES_USER=taskbolt
 POSTGRES_PASSWORD=your_secure_password
-POSTGRES_DB=taskflow
-DATABASE_URL=postgresql://taskflow:your_secure_password@postgres:5432/taskflow
+POSTGRES_DB=taskbolt
+DATABASE_URL=postgresql://taskbolt:your_secure_password@postgres:5432/taskbolt
 
 # Backend
 RUST_LOG=info
@@ -159,8 +159,8 @@ ssh user@your-vps-ip
 
 # 2. Clone repository
 cd /root
-git clone <repository-url> taskflow
-cd taskflow
+git clone <repository-url> taskbolt
+cd taskbolt
 
 # 3. Create production .env file
 cp .env.example .env
@@ -184,7 +184,7 @@ docker compose logs -f
 
 ### Production Configuration
 
-**Nginx reverse proxy config (`/etc/nginx/sites-available/taskflow`):**
+**Nginx reverse proxy config (`/etc/nginx/sites-available/taskbolt`):**
 
 ```nginx
 server {
@@ -383,7 +383,7 @@ This project is licensed under the MIT License.
 ## 📞 Support
 
 For issues, questions, or feature requests:
-- GitHub Issues: [Create an issue](https://github.com/your-repo/taskflow/issues)
+- GitHub Issues: [Create an issue](https://github.com/your-repo/taskbolt/issues)
 - Email: support@paraslace.in
 
 ---

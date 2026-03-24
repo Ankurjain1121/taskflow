@@ -11,7 +11,7 @@ pub const FAKE_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$fakesalt$fakehash";
 /// Connect to the real test database.
 pub async fn test_pool() -> PgPool {
     PgPool::connect(
-        "postgresql://taskflow:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskflow",
+        "postgresql://taskbolt:189015388bb0f90c999ea6b975d7e494@localhost:5433/taskbolt",
     )
     .await
     .expect("Failed to connect to test database")
@@ -43,9 +43,10 @@ pub async fn setup_user_and_workspace(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
 /// Create user + workspace + project, return (tenant_id, user_id, workspace_id, project_id, default_task_list_id)
 pub async fn setup_full(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid) {
     let (tenant_id, user_id, ws_id) = setup_user_and_workspace(pool).await;
-    let bwc = super::projects::create_project(pool, "IntTest Board", None, ws_id, tenant_id, user_id)
-        .await
-        .expect("create_board");
+    let bwc =
+        super::projects::create_project(pool, "IntTest Board", None, ws_id, tenant_id, user_id)
+            .await
+            .expect("create_board");
     let first_list_id = bwc.task_lists[0].id;
     (tenant_id, user_id, ws_id, bwc.project.id, first_list_id)
 }

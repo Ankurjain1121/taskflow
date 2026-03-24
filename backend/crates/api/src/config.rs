@@ -30,6 +30,7 @@ pub struct Config {
     pub lago_api_key: String,
     pub waha_api_url: String,
     pub waha_api_key: String,
+    pub waha_session_name: String,
     pub app_url: String,
     pub ws_max_connections: usize,
     pub cron_secret: String,
@@ -42,7 +43,7 @@ impl Config {
         Ok(Self {
             app_database_url: env::var("APP_DATABASE_URL").unwrap_or_else(|_| {
                 env::var("DATABASE_URL").unwrap_or_else(|_| {
-                    "postgresql://postgres:postgres@localhost:5432/taskflow".into()
+                    "postgresql://postgres:postgres@localhost:5432/taskbolt".into()
                 })
             }),
             host: env::var("HOST").unwrap_or_else(|_| "0.0.0.0".into()),
@@ -95,8 +96,8 @@ impl Config {
                 .unwrap_or_else(|_| "http://localhost:5000".into()),
             postal_api_key: env::var("POSTAL_API_KEY").unwrap_or_default(),
             postal_from_address: env::var("POSTAL_FROM_ADDRESS")
-                .unwrap_or_else(|_| "noreply@taskflow.local".into()),
-            postal_from_name: env::var("POSTAL_FROM_NAME").unwrap_or_else(|_| "TaskFlow".into()),
+                .unwrap_or_else(|_| "noreply@taskbolt.local".into()),
+            postal_from_name: env::var("POSTAL_FROM_NAME").unwrap_or_else(|_| "TaskBolt".into()),
             novu_api_url: env::var("NOVU_API_URL")
                 .unwrap_or_else(|_| "http://localhost:3000".into()),
             novu_api_key: env::var("NOVU_API_KEY").unwrap_or_default(),
@@ -106,6 +107,7 @@ impl Config {
             waha_api_url: env::var("WAHA_API_URL")
                 .unwrap_or_else(|_| "http://localhost:3000".into()),
             waha_api_key: env::var("WAHA_API_KEY").unwrap_or_default(),
+            waha_session_name: env::var("WAHA_SESSION_NAME").unwrap_or_else(|_| "default".into()),
             app_url: env::var("APP_URL").unwrap_or_else(|_| "http://localhost:4200".into()),
             ws_max_connections: env::var("WS_MAX_CONNECTIONS")
                 .unwrap_or_else(|_| "500".into())
@@ -167,13 +169,14 @@ mod tests {
             postal_api_url: "http://localhost:5000".into(),
             postal_api_key: "actual-postal-key".into(),
             postal_from_address: "noreply@test.local".into(),
-            postal_from_name: "TaskFlow".into(),
+            postal_from_name: "TaskBolt".into(),
             novu_api_url: "http://localhost:3000".into(),
             novu_api_key: "actual-novu-key".into(),
             lago_api_url: "http://localhost:3000".into(),
             lago_api_key: "actual-lago-key".into(),
             waha_api_url: "http://localhost:3000".into(),
             waha_api_key: "actual-waha-key".into(),
+            waha_session_name: "default".into(),
             app_url: "http://localhost:4200".into(),
             ws_max_connections: 500,
             cron_secret: "actual-cron-secret-for-testing".into(),

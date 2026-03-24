@@ -20,15 +20,15 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::ActivityLogService;
 use crate::state::AppState;
-use taskflow_db::queries::comments::{
+use taskbolt_db::queries::comments::{
     create_comment, delete_comment, get_comment_author_id, get_comment_task_id,
     list_comments_by_task, update_comment, CommentWithAuthor,
 };
-use taskflow_db::queries::get_task_project_id;
-use taskflow_services::broadcast::events;
-use taskflow_services::notifications::dispatcher::notify;
-use taskflow_services::notifications::{NotificationEvent, NotificationService};
-use taskflow_services::BroadcastService;
+use taskbolt_db::queries::get_task_project_id;
+use taskbolt_services::broadcast::events;
+use taskbolt_services::notifications::dispatcher::notify;
+use taskbolt_services::notifications::{NotificationEvent, NotificationService};
+use taskbolt_services::{BroadcastService, NotifyContext};
 
 use super::common::verify_project_membership;
 use super::task_helpers::sanitize_html;
@@ -171,6 +171,7 @@ async fn create_comment_handler(
     if !mentioned_user_ids.is_empty() {
         let db = state.db.clone();
         let redis = state.redis.clone();
+        let waha_client = state.waha_client.clone();
         let author_id = tenant.user_id;
         let author_name = comment.author_name.clone();
         let app_url = state.config.app_url.clone();
@@ -206,21 +207,26 @@ async fn create_comment_handler(
             let notif_body = format!("in a comment on \"{}\"", task_title);
             let link_url = format!("/task/{}", task_id);
 
+            let notify_ctx = NotifyContext {
+                pool: &db,
+                redis: &redis,
+                notification_svc: &notification_svc,
+                app_url: &app_url,
+                slack_webhook_url: slack_webhook.as_deref(),
+                waha_client: waha_client.as_ref(),
+            };
+
             for user_id in mentioned_user_ids {
                 if user_id == author_id {
                     continue;
                 }
                 if let Err(e) = notify(
-                    &db,
-                    &redis,
-                    &notification_svc,
+                    &notify_ctx,
                     NotificationEvent::MentionInComment,
                     user_id,
                     &notif_title,
                     &notif_body,
                     Some(link_url.as_str()),
-                    &app_url,
-                    slack_webhook.as_deref(),
                 )
                 .await
                 {
@@ -238,13 +244,14 @@ async fn create_comment_handler(
     {
         let db = state.db.clone();
         let redis = state.redis.clone();
+        let waha_client = state.waha_client.clone();
         let author_id = tenant.user_id;
         let author_name = comment.author_name.clone();
         let app_url = state.config.app_url.clone();
         let mentioned = extract_mentioned_user_ids(&sanitized_content);
         tokio::spawn(async move {
             // Get task assignees
-            let assignee_ids = taskflow_db::queries::get_task_assignee_ids(&db, task_id)
+            let assignee_ids = taskbolt_db::queries::get_task_assignee_ids(&db, task_id)
                 .await
                 .unwrap_or_default();
 
@@ -282,22 +289,27 @@ async fn create_comment_handler(
             let notif_body = format!("on \"{}\"", task_title);
             let link_url = format!("/task/{}", task_id);
 
+            let notify_ctx = NotifyContext {
+                pool: &db,
+                redis: &redis,
+                notification_svc: &notification_svc,
+                app_url: &app_url,
+                slack_webhook_url: slack_webhook.as_deref(),
+                waha_client: waha_client.as_ref(),
+            };
+
             for assignee_id in assignee_ids {
                 // Skip the comment author and users already notified via @mention
                 if assignee_id == author_id || mentioned.contains(&assignee_id) {
                     continue;
                 }
                 if let Err(e) = notify(
-                    &db,
-                    &redis,
-                    &notification_svc,
+                    &notify_ctx,
                     NotificationEvent::TaskCommented,
                     assignee_id,
                     &notif_title,
                     &notif_body,
                     Some(link_url.as_str()),
-                    &app_url,
-                    slack_webhook.as_deref(),
                 )
                 .await
                 {

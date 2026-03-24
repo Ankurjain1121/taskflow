@@ -1,4 +1,4 @@
--- QA Hardening: critical and high-priority fixes from TaskFlow QA audit
+-- QA Hardening: critical and high-priority fixes from TaskBolt QA audit
 -- 1. Unique constraint on task_number per project (prevents duplicates)
 -- 2. Composite partial index for common task query pattern
 -- 3. Add updated_at column + trigger to workspace_members

@@ -25,16 +25,16 @@ Stack: Angular 19 + TypeScript 5.7 + Tailwind CSS 4 + PrimeNG 19
 
 ### Primary Winner: Monday.com + Loom Hybrid
 
-The optimal pattern for TaskFlow combines:
+The optimal pattern for TaskBolt combines:
 
 1. **Monday.com's event-driven auto-detection** — checklist items sync with actual product usage data, auto-completing when users perform actions elsewhere in the app
 2. **Loom's collapsible/restorable floating panel** — non-blocking, dismissible, always restorable via a small pill button
-3. **Loom's 4-step brevity** (extended to 5 for TaskFlow) — research shows >5 items causes completion rates to nosedive
+3. **Loom's 4-step brevity** (extended to 5 for TaskBolt) — research shows >5 items causes completion rates to nosedive
 
 ### Why NOT the others:
 - **Notion's embedded demo** — only works for doc-centric tools, not kanban boards
 - **Asana's 8-item list** — too long; 5 items is the sweet spot
-- **Linear's no-checklist** — TaskFlow targets non-tech users who need guidance
+- **Linear's no-checklist** — TaskBolt targets non-tech users who need guidance
 - **Trello's welcome board** — no progress tracking or explicit guidance
 - **ClickUp's staged system** — over-engineered for a simple activation flow
 
@@ -59,7 +59,7 @@ The optimal pattern for TaskFlow combines:
 1. **Zeigarnik Effect** — Humans remember incomplete tasks more than completed ones. Show progress bar with items already done to trigger completion drive.
 2. **Endowed Progress Effect** — Start the progress bar at 20% (1/5 pre-completed) by auto-detecting an already-completed item on first load. Users who feel they've already started are 2x more likely to finish.
 3. **Gamification via progress bar** — A visible progress bar increases completion by 20-30%. Use smooth width transitions for satisfying visual feedback.
-4. **4-6 items sweet spot** — Research universally shows 3-5 tasks hit the sweet spot. 5 items for TaskFlow is within optimal range.
+4. **4-6 items sweet spot** — Research universally shows 3-5 tasks hit the sweet spot. 5 items for TaskBolt is within optimal range.
 5. **Non-blocking, dismissible** — Checklist must never block UI. Collapsible + restorable is the gold standard (Loom pattern).
 
 ---
@@ -158,7 +158,7 @@ effect(() => {
 
 ### Libraries Considered (and why NOT to use them)
 
-| Library | Type | Why NOT for TaskFlow |
+| Library | Type | Why NOT for TaskBolt |
 |---------|------|---------------------|
 | OnboardJS | React-only headless onboarding engine | React-only; no Angular adapter; adds unnecessary dependency |
 | Shepherd.js | Step-by-step product tours | Tooltip-based tours, not checklist panels; that's H4, not H3 |
@@ -177,7 +177,7 @@ effect(() => {
 - Uses localStorage for persistence (built-in browser API)
 - All styling via Tailwind CSS (already installed) + CSS custom properties (already in use)
 
-This matches the existing TaskFlow pattern: custom components > third-party widgets.
+This matches the existing TaskBolt pattern: custom components > third-party widgets.
 
 ---
 
@@ -191,14 +191,14 @@ This matches the existing TaskFlow pattern: custom components > third-party widg
 - Sticky: cards persist until completed or explicitly dismissed
 - Includes "collaboration steps" — inviting teammates is always an early item (drives viral adoption)
 
-**What TaskFlow should copy:**
+**What TaskBolt should copy:**
 - Event-driven auto-detection for 3/5 items
 - Dashboard as the checklist home (not a separate page)
 - Invite teammate as a checklist item (viral loop)
 
-**What TaskFlow should improve:**
-- Monday.com uses separate action cards (no unified panel) — TaskFlow uses a unified panel with progress bar
-- Monday.com has no collapse/restore — TaskFlow adds Loom-style collapse
+**What TaskBolt should improve:**
+- Monday.com uses separate action cards (no unified panel) — TaskBolt uses a unified panel with progress bar
+- Monday.com has no collapse/restore — TaskBolt adds Loom-style collapse
 
 ### Loom (Secondary Reference)
 
@@ -209,7 +209,7 @@ This matches the existing TaskFlow pattern: custom components > third-party widg
 - Hybrid progress: steps-remaining bar + checkmark list
 - Each step connects to real product action (not abstract "learn about X")
 
-**What TaskFlow should copy:**
+**What TaskBolt should copy:**
 - Collapse to pill button with "(N/5)" count
 - Click pill to re-expand
 - Each item has CTA button linking to the actual feature
@@ -220,7 +220,7 @@ This matches the existing TaskFlow pattern: custom components > third-party widg
 - Progressive disclosure — steps unlock as user completes earlier ones
 - Sidebar placement keeps checklist always visible
 
-**What TaskFlow should note:**
+**What TaskBolt should note:**
 - Progressive unlocking is overkill for 5 items — all items visible from start is fine
 - Sidebar placement costs real estate — floating bottom-right is better
 

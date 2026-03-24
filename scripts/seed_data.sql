@@ -1,5 +1,5 @@
 -- =============================================================================
--- TaskFlow Seed Data: Acme Corp (20 employees, 500 tasks, 4 projects)
+-- TaskBolt Seed Data: Acme Corp (20 employees, 500 tasks, 4 projects)
 -- =============================================================================
 -- Usage: run_seed.sh injects the hash via:
 --   printf "SET session.pass_hash='%s';\n" "$HASH" | cat - seed_data.sql | psql

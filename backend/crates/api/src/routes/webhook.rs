@@ -12,7 +12,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::webhooks::{
+use taskbolt_db::queries::webhooks::{
     create_webhook, delete_webhook, get_webhook_deliveries, list_webhooks, update_webhook,
     CreateWebhookInput, UpdateWebhookInput, WebhookQueryError,
 };
@@ -32,7 +32,7 @@ async fn list_webhooks_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
-) -> Result<Json<Vec<taskflow_db::models::Webhook>>> {
+) -> Result<Json<Vec<taskbolt_db::models::Webhook>>> {
     let webhooks = list_webhooks(&state.db, board_id, tenant.user_id)
         .await
         .map_err(map_webhook_error)?;
@@ -46,7 +46,7 @@ async fn create_webhook_handler(
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
     Json(body): Json<CreateWebhookInput>,
-) -> Result<Json<taskflow_db::models::Webhook>> {
+) -> Result<Json<taskbolt_db::models::Webhook>> {
     let webhook = create_webhook(&state.db, board_id, body, tenant.user_id, tenant.tenant_id)
         .await
         .map_err(map_webhook_error)?;
@@ -60,7 +60,7 @@ async fn update_webhook_handler(
     tenant: TenantContext,
     Path(webhook_id): Path<Uuid>,
     Json(body): Json<UpdateWebhookInput>,
-) -> Result<Json<taskflow_db::models::Webhook>> {
+) -> Result<Json<taskbolt_db::models::Webhook>> {
     let webhook = update_webhook(&state.db, webhook_id, body, tenant.user_id)
         .await
         .map_err(map_webhook_error)?;
@@ -97,7 +97,7 @@ async fn get_deliveries_handler(
     tenant: TenantContext,
     Path(webhook_id): Path<Uuid>,
     Query(query): Query<DeliveriesQuery>,
-) -> Result<Json<Vec<taskflow_db::models::WebhookDelivery>>> {
+) -> Result<Json<Vec<taskbolt_db::models::WebhookDelivery>>> {
     let limit = query.limit.clamp(1, 100);
     let deliveries = get_webhook_deliveries(&state.db, webhook_id, tenant.user_id, limit)
         .await

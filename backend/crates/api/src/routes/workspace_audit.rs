@@ -52,7 +52,7 @@ async fn list_workspace_audit_log(
     Path(workspace_id): Path<Uuid>,
     Query(query): Query<AuditLogQuery>,
 ) -> Result<Json<PaginatedWorkspaceAudit>> {
-    let is_member = taskflow_db::queries::workspaces::is_workspace_member(
+    let is_member = taskbolt_db::queries::workspaces::is_workspace_member(
         &state.db,
         workspace_id,
         auth.0.user_id,
@@ -95,7 +95,7 @@ async fn list_workspace_audit_actions(
     auth: AuthUserExtractor,
     Path(workspace_id): Path<Uuid>,
 ) -> Result<Json<audit_queries::AuditActionsResponse>> {
-    let is_member = taskflow_db::queries::workspaces::is_workspace_member(
+    let is_member = taskbolt_db::queries::workspaces::is_workspace_member(
         &state.db,
         workspace_id,
         auth.0.user_id,

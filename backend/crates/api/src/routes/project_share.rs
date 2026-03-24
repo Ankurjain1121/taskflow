@@ -12,7 +12,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::project_shares::{
+use taskbolt_db::queries::project_shares::{
     access_shared_board, create_board_share, delete_board_share, list_board_shares,
     toggle_board_share, BoardShareQueryError, CreateBoardShareInput,
 };
@@ -35,7 +35,7 @@ async fn list_shares_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
-) -> Result<Json<Vec<taskflow_db::models::BoardShare>>> {
+) -> Result<Json<Vec<taskbolt_db::models::BoardShare>>> {
     let shares = list_board_shares(&state.db, board_id, tenant.user_id)
         .await
         .map_err(map_share_error)?;
@@ -49,7 +49,7 @@ async fn create_share_handler(
     tenant: TenantContext,
     Path(board_id): Path<Uuid>,
     Json(body): Json<CreateBoardShareInput>,
-) -> Result<Json<taskflow_db::models::BoardShare>> {
+) -> Result<Json<taskbolt_db::models::BoardShare>> {
     let share = create_board_share(&state.db, board_id, body, tenant.user_id, tenant.tenant_id)
         .await
         .map_err(map_share_error)?;
@@ -81,7 +81,7 @@ async fn toggle_share_handler(
     tenant: TenantContext,
     Path(share_id): Path<Uuid>,
     Json(body): Json<ToggleShareRequest>,
-) -> Result<Json<taskflow_db::models::BoardShare>> {
+) -> Result<Json<taskbolt_db::models::BoardShare>> {
     let share = toggle_board_share(&state.db, share_id, body.is_active, tenant.user_id)
         .await
         .map_err(map_share_error)?;
@@ -93,7 +93,7 @@ async fn toggle_share_handler(
 async fn access_shared_board_handler(
     State(state): State<AppState>,
     Path(token): Path<String>,
-) -> Result<Json<taskflow_db::queries::project_shares::SharedBoardAccess>> {
+) -> Result<Json<taskbolt_db::queries::project_shares::SharedBoardAccess>> {
     let access = access_shared_board(&state.db, &token, None)
         .await
         .map_err(map_share_error)?;
@@ -111,7 +111,7 @@ async fn access_shared_board_post_handler(
     State(state): State<AppState>,
     Path(token): Path<String>,
     Json(body): Json<AccessShareBody>,
-) -> Result<Json<taskflow_db::queries::project_shares::SharedBoardAccess>> {
+) -> Result<Json<taskbolt_db::queries::project_shares::SharedBoardAccess>> {
     let access = access_shared_board(&state.db, &token, body.password.as_deref())
         .await
         .map_err(map_share_error)?;

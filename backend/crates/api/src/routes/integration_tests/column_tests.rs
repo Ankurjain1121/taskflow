@@ -103,7 +103,7 @@ async fn test_delete_column_empty_succeeds() {
     let token = test_jwt_token(&state, user_id, tenant_id);
 
     // Add a new project status (replaces column)
-    let status = taskflow_db::queries::project_statuses::create_project_status(
+    let status = taskbolt_db::queries::project_statuses::create_project_status(
         &state.db,
         board_id,
         "Temp Status",
@@ -144,11 +144,11 @@ async fn test_rename_status_viewer_gets_403() {
 
     // Create a second user with Viewer role on this project
     let (viewer_tenant_id, viewer_id) = setup_user(&state.db).await;
-    taskflow_db::queries::projects::add_project_member(
+    taskbolt_db::queries::projects::add_project_member(
         &state.db,
         board_id,
         viewer_id,
-        taskflow_db::models::BoardMemberRole::Viewer,
+        taskbolt_db::models::BoardMemberRole::Viewer,
     )
     .await
     .expect("add viewer member");
@@ -177,7 +177,7 @@ async fn test_rename_status_viewer_gets_403() {
 
     // Verify no mutation occurred: status name should still be original
     let statuses =
-        taskflow_db::queries::project_statuses::list_project_statuses(&state.db, board_id)
+        taskbolt_db::queries::project_statuses::list_project_statuses(&state.db, board_id)
             .await
             .expect("list statuses");
     let target = statuses.iter().find(|s| s.id == col_id);
@@ -199,11 +199,11 @@ async fn test_update_status_type_viewer_gets_403() {
 
     // Create a viewer
     let (viewer_tenant_id, viewer_id) = setup_user(&state.db).await;
-    taskflow_db::queries::projects::add_project_member(
+    taskbolt_db::queries::projects::add_project_member(
         &state.db,
         board_id,
         viewer_id,
-        taskflow_db::models::BoardMemberRole::Viewer,
+        taskbolt_db::models::BoardMemberRole::Viewer,
     )
     .await
     .expect("add viewer member");
@@ -239,11 +239,11 @@ async fn test_update_status_color_viewer_gets_403() {
     let (_tenant_id, _owner_id, _ws_id, board_id, col_id) = setup_full(&state.db).await;
 
     let (viewer_tenant_id, viewer_id) = setup_user(&state.db).await;
-    taskflow_db::queries::projects::add_project_member(
+    taskbolt_db::queries::projects::add_project_member(
         &state.db,
         board_id,
         viewer_id,
-        taskflow_db::models::BoardMemberRole::Viewer,
+        taskbolt_db::models::BoardMemberRole::Viewer,
     )
     .await
     .expect("add viewer member");

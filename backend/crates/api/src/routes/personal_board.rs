@@ -14,7 +14,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::personal_board::{
+use taskbolt_db::queries::personal_board::{
     self, MovePersonalTaskInput, PersonalBoardError, PersonalBoardResponse,
 };
 

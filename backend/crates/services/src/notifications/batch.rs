@@ -42,7 +42,7 @@ pub struct BatchFlushResult {
 }
 
 /// Redis key prefix for notification batches
-const BATCH_KEY_PREFIX: &str = "taskflow:batch:";
+const BATCH_KEY_PREFIX: &str = "taskbolt:batch:";
 
 /// TTL for batch keys in seconds
 const BATCH_TTL_SECONDS: u64 = 60;
@@ -113,7 +113,7 @@ pub async fn flush_user_batch(
 
 /// Flush all pending batches across all users
 ///
-/// Uses SCAN to find all `taskflow:batch:*` keys, then flushes each.
+/// Uses SCAN to find all `taskbolt:batch:*` keys, then flushes each.
 pub async fn flush_all_pending(
     redis: &mut redis::aio::ConnectionManager,
 ) -> Result<HashMap<Uuid, Vec<NotificationPayload>>, BatchError> {
@@ -139,7 +139,7 @@ pub async fn flush_all_pending(
     let mut results = HashMap::new();
 
     for key in keys {
-        // Extract user_id from key: "taskflow:batch:{uuid}"
+        // Extract user_id from key: "taskbolt:batch:{uuid}"
         let user_id_str = key.trim_start_matches(BATCH_KEY_PREFIX);
         let user_id = match Uuid::parse_str(user_id_str) {
             Ok(id) => id,
@@ -227,7 +227,7 @@ fn generate_merged_email_html(payloads: &[NotificationPayload], app_url: &str) -
             {}
         </table>
         <p style="text-align: center; margin-top: 24px;">
-            <a href="{}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Open TaskFlow</a>
+            <a href="{}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Open TaskBolt</a>
         </p>
     </div>
     <p style="color: #9ca3af; font-size: 12px; text-align: center;">
@@ -283,7 +283,7 @@ pub async fn run_flush_cycle(
         let send_result = if payloads.len() == 1 {
             // Single notification — send as regular email
             let p = &payloads[0];
-            let subject = format!("[TaskFlow] {}", p.title);
+            let subject = format!("[TaskBolt] {}", p.title);
             let link_html = p
                 .link_url
                 .as_deref()
@@ -325,7 +325,7 @@ pub async fn run_flush_cycle(
             postal
                 .send_email(
                     &email,
-                    &format!("[TaskFlow] {} new notifications", payloads.len()),
+                    &format!("[TaskBolt] {} new notifications", payloads.len()),
                     &html,
                 )
                 .await
@@ -418,7 +418,7 @@ mod tests {
     fn test_batch_key_prefix() {
         let user_id = Uuid::new_v4();
         let key = format!("{}{}", BATCH_KEY_PREFIX, user_id);
-        assert!(key.starts_with("taskflow:batch:"));
+        assert!(key.starts_with("taskbolt:batch:"));
         assert!(key.contains(&user_id.to_string()));
     }
 

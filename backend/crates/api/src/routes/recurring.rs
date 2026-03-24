@@ -11,7 +11,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::recurring::{
+use taskbolt_db::queries::recurring::{
     create_config, delete_config, get_config_for_task, update_config, CreateRecurringInput,
     RecurringQueryError, UpdateRecurringInput,
 };
@@ -32,7 +32,7 @@ async fn get_config_handler(
     State(state): State<AppState>,
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
-) -> Result<Json<taskflow_db::models::RecurringTaskConfig>> {
+) -> Result<Json<taskbolt_db::models::RecurringTaskConfig>> {
     let config = get_config_for_task(&state.db, task_id, tenant.user_id)
         .await
         .map_err(map_recurring_error)?;
@@ -47,7 +47,7 @@ async fn create_config_handler(
     tenant: TenantContext,
     Path(task_id): Path<Uuid>,
     Json(body): Json<CreateRecurringInput>,
-) -> Result<Json<taskflow_db::models::RecurringTaskConfig>> {
+) -> Result<Json<taskbolt_db::models::RecurringTaskConfig>> {
     let config = create_config(&state.db, task_id, body, tenant.user_id, tenant.tenant_id)
         .await
         .map_err(map_recurring_error)?;
@@ -62,7 +62,7 @@ async fn update_config_handler(
     tenant: TenantContext,
     Path(config_id): Path<Uuid>,
     Json(body): Json<UpdateRecurringInput>,
-) -> Result<Json<taskflow_db::models::RecurringTaskConfig>> {
+) -> Result<Json<taskbolt_db::models::RecurringTaskConfig>> {
     let config = update_config(&state.db, config_id, body, tenant.user_id)
         .await
         .map_err(map_recurring_error)?;

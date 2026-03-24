@@ -36,7 +36,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
             />
           </svg>
           <span class="text-sm text-amber-800 dark:text-amber-300">
-            This is a sample project to help you explore TaskFlow.
+            This is a sample project to help you explore TaskBolt.
           </span>
         </div>
         <div class="flex items-center gap-3">

@@ -11,7 +11,7 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::favorites::{
+use taskbolt_db::queries::favorites::{
     add_favorite, is_favorited, list_favorites, remove_favorite, FavoriteItem,
 };
 

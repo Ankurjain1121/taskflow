@@ -1,4 +1,4 @@
-# TaskFlow Deployment Checklist
+# TaskBolt Deployment Checklist
 
 Reference this before every deploy. Each item is here because it burned us before.
 
@@ -63,11 +63,11 @@ Reference this before every deploy. Each item is here because it burned us befor
 
 ## 6. Docker Build
 
-- [ ] Backend image: `docker build -t taskflow-backend ./backend/`
-- [ ] Frontend image: `docker build -t taskflow-frontend ./frontend/`
+- [ ] Backend image: `docker build -t taskbolt-backend ./backend/`
+- [ ] Frontend image: `docker build -t taskbolt-frontend ./frontend/`
 - [ ] Docker base image is `ubuntu:24.04` (NOT `debian:bookworm-slim`) — GLIBC 2.39 required
 - [ ] Verify containers start cleanly: `docker compose -f docker-compose.yml up -d`
-- [ ] Check logs: `docker logs taskflow-backend --tail=30`
+- [ ] Check logs: `docker logs taskbolt-backend --tail=30`
 
 ---
 
@@ -107,15 +107,15 @@ Reference this before every deploy. Each item is here because it burned us befor
 ./scripts/pre-deploy-check.sh
 
 # Rebuild + restart backend
-docker build -t taskflow-backend ./backend/ && docker compose -f docker-compose.yml up -d backend
+docker build -t taskbolt-backend ./backend/ && docker compose -f docker-compose.yml up -d backend
 
 # Rebuild + restart frontend
-docker build -t taskflow-frontend ./frontend/ && docker compose -f docker-compose.yml up -d frontend
+docker build -t taskbolt-frontend ./frontend/ && docker compose -f docker-compose.yml up -d frontend
 
 # Restart everything
 docker compose -f docker-compose.yml up -d
 
 # Tail logs
-docker logs taskflow-backend -f
-docker logs taskflow-frontend -f
+docker logs taskbolt-backend -f
+docker logs taskbolt-frontend -f
 ```

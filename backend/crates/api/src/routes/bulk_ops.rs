@@ -16,7 +16,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
-use taskflow_db::queries::bulk_operations::{self, BulkAction, TaskSnapshot};
+use taskbolt_db::queries::bulk_operations::{self, BulkAction, TaskSnapshot};
 
 const MAX_BULK_TASK_IDS: usize = 200;
 
@@ -204,19 +204,19 @@ async fn delete_undo_snapshot(redis: &redis::aio::ConnectionManager, operation_i
 
 // ─── Error mapping ─────────────────────────────────────────────
 
-fn map_bulk_error(e: taskflow_db::queries::TaskQueryError) -> AppError {
+fn map_bulk_error(e: taskbolt_db::queries::TaskQueryError) -> AppError {
     match e {
-        taskflow_db::queries::TaskQueryError::NotProjectMember => {
+        taskbolt_db::queries::TaskQueryError::NotProjectMember => {
             AppError::Forbidden("Not a project member".into())
         }
-        taskflow_db::queries::TaskQueryError::Database(e) => AppError::SqlxError(e),
-        taskflow_db::queries::TaskQueryError::Other(msg) if msg.contains("limited to") => {
+        taskbolt_db::queries::TaskQueryError::Database(e) => AppError::SqlxError(e),
+        taskbolt_db::queries::TaskQueryError::Other(msg) if msg.contains("limited to") => {
             AppError::BadRequest(msg)
         }
-        taskflow_db::queries::TaskQueryError::Other(msg) if msg.contains("expired") => {
+        taskbolt_db::queries::TaskQueryError::Other(msg) if msg.contains("expired") => {
             AppError::NotFound(msg)
         }
-        taskflow_db::queries::TaskQueryError::Other(msg)
+        taskbolt_db::queries::TaskQueryError::Other(msg)
             if msg.contains("not found") || msg.contains("Not found") =>
         {
             AppError::NotFound(msg)

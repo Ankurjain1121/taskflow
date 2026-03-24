@@ -10,8 +10,8 @@ use axum::{
 };
 use uuid::Uuid;
 
-use taskflow_db::models::UserRole;
-use taskflow_db::queries::workspaces;
+use taskbolt_db::models::UserRole;
+use taskbolt_db::queries::workspaces;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;

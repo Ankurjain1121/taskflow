@@ -11,7 +11,7 @@ export class WorkspaceStateService {
 
   currentWorkspaceId = signal<string | null>(
     typeof localStorage !== 'undefined'
-      ? localStorage.getItem('taskflow_active_workspace')
+      ? localStorage.getItem('taskbolt_active_workspace')
       : null,
   );
   workspaces = signal<Workspace[]>([]);
@@ -20,9 +20,9 @@ export class WorkspaceStateService {
   selectWorkspace(id: string | null): void {
     this.currentWorkspaceId.set(id);
     if (id) {
-      localStorage.setItem('taskflow_active_workspace', id);
+      localStorage.setItem('taskbolt_active_workspace', id);
     } else {
-      localStorage.removeItem('taskflow_active_workspace');
+      localStorage.removeItem('taskbolt_active_workspace');
     }
   }
 

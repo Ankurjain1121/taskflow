@@ -11,8 +11,8 @@ use axum::{
 use serde::Deserialize;
 use uuid::Uuid;
 
-use taskflow_db::models::{PositionWithHolders, RecurringTaskConfig};
-use taskflow_db::queries::{positions, projects};
+use taskbolt_db::models::{PositionWithHolders, RecurringTaskConfig};
+use taskbolt_db::queries::{positions, projects};
 
 use crate::errors::{AppError, Result};
 use crate::extractors::{AuthUserExtractor, ManagerOrAdmin};
@@ -37,7 +37,7 @@ pub struct AddHolderRequest {
 /// Build a PositionWithHolders from a Position by fetching holders and recurring count.
 async fn build_position_with_holders(
     state: &AppState,
-    position: taskflow_db::models::Position,
+    position: taskbolt_db::models::Position,
 ) -> Result<PositionWithHolders> {
     let holders = positions::list_holders(&state.db, position.id).await?;
     let recurring_configs =
@@ -92,7 +92,7 @@ async fn create_position(
     State(state): State<AppState>,
     auth: ManagerOrAdmin,
     Path(board_id): Path<Uuid>,
-    Json(payload): Json<taskflow_db::models::CreatePositionRequest>,
+    Json(payload): Json<taskbolt_db::models::CreatePositionRequest>,
 ) -> Result<Json<PositionWithHolders>> {
     let is_member = projects::is_project_member(&state.db, board_id, auth.0.user_id).await?;
     if !is_member {
@@ -154,7 +154,7 @@ async fn update_position(
     State(state): State<AppState>,
     auth: ManagerOrAdmin,
     Path(id): Path<Uuid>,
-    Json(payload): Json<taskflow_db::models::UpdatePositionRequest>,
+    Json(payload): Json<taskbolt_db::models::UpdatePositionRequest>,
 ) -> Result<Json<PositionWithHolders>> {
     let existing = positions::get_position(&state.db, id)
         .await?

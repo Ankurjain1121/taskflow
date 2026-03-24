@@ -22,7 +22,7 @@ export interface RecentBoardEntry {
   visitedAt: number;
 }
 
-const STORAGE_KEY = 'taskflow_recent_boards';
+const STORAGE_KEY = 'taskbolt_recent_boards';
 const MAX_ITEMS = 5;
 const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
@@ -119,14 +119,14 @@ export class SidebarRecentComponent implements OnInit, OnDestroy {
   recentItems = signal<RecentBoardEntry[]>([]);
   sectionExpanded = signal(
     typeof localStorage !== 'undefined'
-      ? localStorage.getItem('taskflow_recent_expanded') !== 'false'
+      ? localStorage.getItem('taskbolt_recent_expanded') !== 'false'
       : true,
   );
 
   toggleSection(): void {
     this.sectionExpanded.update((v) => !v);
     localStorage.setItem(
-      'taskflow_recent_expanded',
+      'taskbolt_recent_expanded',
       String(this.sectionExpanded()),
     );
   }

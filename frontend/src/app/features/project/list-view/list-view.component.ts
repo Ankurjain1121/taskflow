@@ -102,7 +102,7 @@ export class ListViewComponent {
 
   private loadSortState(pid: string): void {
     try {
-      const stored = localStorage.getItem(`taskflow-sort-${pid}`);
+      const stored = localStorage.getItem(`taskbolt-sort-${pid}`);
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed.field) this.savedSortField.set(parsed.field);
@@ -120,7 +120,7 @@ export class ListViewComponent {
     if (pid) {
       try {
         localStorage.setItem(
-          `taskflow-sort-${pid}`,
+          `taskbolt-sort-${pid}`,
           JSON.stringify({ field: event.field, order: event.order }),
         );
       } catch {

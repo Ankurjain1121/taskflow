@@ -8,7 +8,7 @@
 ///
 /// # Examples
 /// ```
-/// use taskflow_db::utils::generate_key_between;
+/// use taskbolt_db::utils::generate_key_between;
 ///
 /// // First item (no neighbors)
 /// let first = generate_key_between(None, None);

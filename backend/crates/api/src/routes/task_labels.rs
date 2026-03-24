@@ -13,7 +13,7 @@ use uuid::Uuid;
 use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::state::AppState;
-use taskflow_db::queries::get_task_board_id;
+use taskbolt_db::queries::get_task_board_id;
 
 use super::common::verify_project_membership;
 

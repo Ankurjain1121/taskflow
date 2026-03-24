@@ -87,7 +87,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   sidebarCollapsed = signal(
     typeof localStorage !== 'undefined'
-      ? localStorage.getItem('taskflow_sidebar_collapsed') === 'true'
+      ? localStorage.getItem('taskbolt_sidebar_collapsed') === 'true'
       : false,
   );
 
@@ -176,7 +176,7 @@ export class AppComponent implements OnInit, OnDestroy {
     } else {
       this.sidebarCollapsed.update((v) => {
         const next = !v;
-        localStorage.setItem('taskflow_sidebar_collapsed', String(next));
+        localStorage.setItem('taskbolt_sidebar_collapsed', String(next));
         return next;
       });
     }

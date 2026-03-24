@@ -21,9 +21,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { WorkspaceService, Workspace } from './workspace.service';
 import { ProjectService, Board } from './project.service';
 
-const LS_ACTIVE_WS = 'taskflow_active_ws';
-const LS_PROJECT_COLORS = 'taskflow_project_colors';
-const LS_PROJECT_ORDER_PREFIX = 'taskflow_project_order_';
+const LS_ACTIVE_WS = 'taskbolt_active_ws';
+const LS_PROJECT_COLORS = 'taskbolt_project_colors';
+const LS_PROJECT_ORDER_PREFIX = 'taskbolt_project_order_';
 
 const ACCENT_COLORS = [
   '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e',

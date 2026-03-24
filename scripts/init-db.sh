@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# TaskFlow Database Initialization Script
+# TaskBolt Database Initialization Script
 # =============================================================================
 # This script:
 # 1. Waits for PostgreSQL to be ready
@@ -16,7 +16,7 @@ POSTGRES_HOST="${POSTGRES_HOST:-localhost}"
 POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 POSTGRES_USER="${POSTGRES_USER:-postgres}"
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-postgres}"
-POSTGRES_DB="${POSTGRES_DB:-taskflow}"
+POSTGRES_DB="${POSTGRES_DB:-taskbolt}"
 LAGO_DB="${LAGO_DB:-lago}"
 
 MINIO_ENDPOINT="${MINIO_ENDPOINT:-http://localhost:9000}"
@@ -86,10 +86,10 @@ create_lago_database() {
 }
 
 # =============================================================================
-# Check if TaskFlow DB is Empty
+# Check if TaskBolt DB is Empty
 # =============================================================================
 is_db_empty() {
-    log_info "Checking if TaskFlow database is empty..."
+    log_info "Checking if TaskBolt database is empty..."
 
     # Check if tenants table exists and has any rows
     local tenant_count=$(PGPASSWORD="${POSTGRES_PASSWORD}" psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -tAc "SELECT COUNT(*) FROM tenants" 2>/dev/null || echo "0")
@@ -179,7 +179,7 @@ run_seed() {
 # Main
 # =============================================================================
 main() {
-    log_info "Starting TaskFlow initialization..."
+    log_info "Starting TaskBolt initialization..."
 
     # Wait for PostgreSQL
     wait_for_postgres

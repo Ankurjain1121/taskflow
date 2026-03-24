@@ -11,8 +11,8 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::models::{CreateTaskGroupRequest, UpdateTaskGroupRequest};
-use taskflow_db::queries::{
+use taskbolt_db::models::{CreateTaskGroupRequest, UpdateTaskGroupRequest};
+use taskbolt_db::queries::{
     create_task_group, get_task_group_by_id, list_task_groups_by_board,
     list_task_groups_with_stats, soft_delete_task_group, toggle_task_group_collapse,
     update_task_group_color, update_task_group_name, update_task_group_position,

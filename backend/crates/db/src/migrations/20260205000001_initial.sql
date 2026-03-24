@@ -1,4 +1,4 @@
--- TaskFlow: Comprehensive Initial Migration
+-- TaskBolt: Comprehensive Initial Migration
 -- Creates all tables, enums, indexes, and constraints
 
 -- ============================================

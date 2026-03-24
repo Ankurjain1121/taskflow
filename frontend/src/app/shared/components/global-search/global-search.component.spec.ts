@@ -402,7 +402,7 @@ describe('GlobalSearchComponent', () => {
       const removeItemSpy = vi.spyOn(localStorage, 'removeItem').mockImplementation(() => {});
       component.clearRecentSearches();
       expect(removeItemSpy).toHaveBeenCalledWith(
-        'taskflow_recent_searches',
+        'taskbolt_recent_searches',
       );
     });
   });

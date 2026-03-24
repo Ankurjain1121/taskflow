@@ -17,7 +17,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
-use taskflow_db::queries::dashboard::{
+use taskbolt_db::queries::dashboard::{
     get_completion_trend, get_dashboard_stats, get_focus_tasks, get_overdue_tasks,
     get_project_pulse, get_recent_activity, get_tasks_by_priority, get_tasks_by_status,
     get_upcoming_deadlines, get_user_streak, CompletionTrendPoint, DashboardActivityEntry,

@@ -15,7 +15,7 @@ use crate::errors::Result;
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
-use taskflow_db::queries::my_tasks::{
+use taskbolt_db::queries::my_tasks::{
     list_my_tasks, my_tasks_summary, MyTasksSortBy, MyTasksSummary, PaginatedMyTasks, SortOrder,
 };
 

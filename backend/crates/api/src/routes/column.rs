@@ -11,9 +11,9 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use taskflow_db::models::BoardMemberRole;
-use taskflow_db::queries::{project_statuses, projects};
-use taskflow_db::utils::generate_key_between;
+use taskbolt_db::models::BoardMemberRole;
+use taskbolt_db::queries::{project_statuses, projects};
+use taskbolt_db::utils::generate_key_between;
 
 use crate::errors::{AppError, Result};
 use crate::extractors::AuthUserExtractor;
@@ -122,7 +122,7 @@ async fn get_project_id_for_status(state: &AppState, status_id: Uuid) -> Result<
         .ok_or_else(|| AppError::NotFound("Status not found".into()))
 }
 
-fn to_response(s: taskflow_db::models::ProjectStatus) -> StatusResponse {
+fn to_response(s: taskbolt_db::models::ProjectStatus) -> StatusResponse {
     StatusResponse {
         id: s.id,
         name: s.name,
@@ -243,7 +243,7 @@ async fn reorder_status(
     Path(id): Path<Uuid>,
     Json(payload): Json<ReorderStatusRequest>,
 ) -> Result<Json<StatusResponse>> {
-    let all_statuses_result = sqlx::query_as::<_, taskflow_db::models::ProjectStatus>(
+    let all_statuses_result = sqlx::query_as::<_, taskbolt_db::models::ProjectStatus>(
         r#"
         SELECT id, project_id, name, color,
                type as "status_type",
@@ -404,7 +404,7 @@ async fn delete_status(
     Json(payload): Json<DeleteStatusRequest>,
 ) -> Result<Json<MessageResponse>> {
     // Look up status to find project_id
-    let statuses = sqlx::query_as::<_, taskflow_db::models::ProjectStatus>(
+    let statuses = sqlx::query_as::<_, taskbolt_db::models::ProjectStatus>(
         r#"
         SELECT id, project_id, name, color,
                type as "status_type",

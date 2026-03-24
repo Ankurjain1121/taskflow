@@ -4192,7 +4192,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "taskflow-api"
+name = "taskbolt-api"
 version = "0.1.0"
 dependencies = [
  "ammonia",
@@ -4221,9 +4221,9 @@ dependencies = [
  "serde_json",
  "sha2",
  "sqlx",
- "taskflow-auth",
- "taskflow-db",
- "taskflow-services",
+ "taskbolt-auth",
+ "taskbolt-db",
+ "taskbolt-services",
  "thiserror 2.0.18",
  "tokio",
  "totp-lite",
@@ -4235,7 +4235,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "taskflow-auth"
+name = "taskbolt-auth"
 version = "0.1.0"
 dependencies = [
  "argon2",
@@ -4246,14 +4246,14 @@ dependencies = [
  "proptest",
  "rstest",
  "serde",
- "taskflow-db",
+ "taskbolt-db",
  "thiserror 2.0.18",
  "tokio",
  "uuid",
 ]
 
 [[package]]
-name = "taskflow-db"
+name = "taskbolt-db"
 version = "0.1.0"
 dependencies = [
  "chrono",
@@ -4274,7 +4274,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "taskflow-services"
+name = "taskbolt-services"
 version = "0.1.0"
 dependencies = [
  "aws-sdk-s3",
@@ -4288,7 +4288,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
- "taskflow-db",
+ "taskbolt-db",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
