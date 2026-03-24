@@ -3,6 +3,7 @@ use ts_rs::TS;
 
 #[derive(sqlx::Type, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, TS)]
 #[sqlx(type_name = "user_role", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 #[ts(export, export_to = "../../../frontend/src/app/shared/types/")]
 pub enum UserRole {
     SuperAdmin,
