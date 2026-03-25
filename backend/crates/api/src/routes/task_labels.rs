@@ -49,7 +49,7 @@ async fn get_labels(
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     // Verify project membership
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     let labels: Vec<TaskLabelResponse> = sqlx::query_as(
         r#"
@@ -82,7 +82,7 @@ async fn add_label(
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     // Verify project membership
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     // Verify the label exists and belongs to the same board (or workspace)
     let label_exists: bool = sqlx::query_scalar(
@@ -137,7 +137,7 @@ async fn remove_label(
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     // Verify project membership
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     let result = sqlx::query("DELETE FROM task_labels WHERE task_id = $1 AND label_id = $2")
         .bind(task_id)

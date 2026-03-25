@@ -56,7 +56,7 @@ async fn list_activity_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     // Parse cursor if provided
     let cursor = query.cursor.as_ref().and_then(|c| Uuid::parse_str(c).ok());
@@ -102,7 +102,7 @@ async fn list_project_activity_handler(
     Path(board_id): Path<Uuid>,
     Query(query): Query<ListProjectActivityQuery>,
 ) -> Result<Json<PaginatedActivityLog>> {
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     let cursor = query.cursor.as_ref().and_then(|c| Uuid::parse_str(c).ok());
     let limit = query.limit.clamp(1, 100);

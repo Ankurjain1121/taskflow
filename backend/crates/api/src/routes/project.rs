@@ -57,7 +57,7 @@ async fn list_projects(
     }
 
     let projects_list =
-        projects::list_projects_by_workspace(&state.db, workspace_id, auth.0.user_id).await?;
+        projects::list_projects_by_workspace(&state.db, workspace_id).await?;
 
     let response: Vec<ProjectResponse> = projects_list
         .into_iter()

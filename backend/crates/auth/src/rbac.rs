@@ -5,6 +5,7 @@
 use std::collections::HashSet;
 
 use taskbolt_db::models::{UserRole, WorkspaceMemberRole};
+use taskbolt_db::models::workspace_role::Capabilities;
 use thiserror::Error;
 
 /// All available permissions in the system
@@ -146,6 +147,28 @@ pub fn has_role_level(actual: &UserRole, required: &UserRole) -> bool {
         // Member is lowest level
         (UserRole::Member, UserRole::Member) => true,
         (UserRole::Member, _) => false,
+    }
+}
+
+/// Returns the capability set implied by an org-level user role.
+///
+/// SuperAdmin/Admin → full capabilities.
+/// Manager → everything except billing and role management.
+/// Member → create tasks, edit own tasks, export.
+pub fn capabilities_for_user_role(role: &UserRole) -> Capabilities {
+    match role {
+        UserRole::SuperAdmin | UserRole::Admin => Capabilities::full(),
+        UserRole::Manager => Capabilities {
+            can_manage_billing: false,
+            can_manage_roles: false,
+            ..Capabilities::full()
+        },
+        UserRole::Member => Capabilities {
+            can_create_tasks: true,
+            can_edit_own_tasks: true,
+            can_export: true,
+            ..Capabilities::default()
+        },
     }
 }
 
@@ -502,5 +525,59 @@ mod tests {
     #[test]
     fn test_member_cannot_assign_tasks() {
         assert!(!has_permission(&UserRole::Member, &Permission::TaskAssign));
+    }
+
+    // ========================================================================
+    // capabilities_for_user_role tests
+    // ========================================================================
+
+    #[test]
+    fn test_superadmin_all_caps() {
+        let caps = capabilities_for_user_role(&UserRole::SuperAdmin);
+        assert!(caps.can_view_all_tasks);
+        assert!(caps.can_create_tasks);
+        assert!(caps.can_edit_own_tasks);
+        assert!(caps.can_edit_all_tasks);
+        assert!(caps.can_delete_tasks);
+        assert!(caps.can_manage_members);
+        assert!(caps.can_manage_project_settings);
+        assert!(caps.can_manage_automations);
+        assert!(caps.can_export);
+        assert!(caps.can_manage_billing);
+        assert!(caps.can_invite_members);
+        assert!(caps.can_manage_roles);
+    }
+
+    #[test]
+    fn test_admin_all_caps() {
+        let caps = capabilities_for_user_role(&UserRole::Admin);
+        assert_eq!(caps, Capabilities::full());
+    }
+
+    #[test]
+    fn test_manager_no_billing_or_roles() {
+        let caps = capabilities_for_user_role(&UserRole::Manager);
+        assert!(caps.can_view_all_tasks);
+        assert!(caps.can_create_tasks);
+        assert!(!caps.can_manage_billing);
+        assert!(!caps.can_manage_roles);
+    }
+
+    #[test]
+    fn test_member_minimal_caps() {
+        let caps = capabilities_for_user_role(&UserRole::Member);
+        assert!(caps.can_create_tasks);
+        assert!(caps.can_edit_own_tasks);
+        assert!(caps.can_export);
+        // Should NOT have:
+        assert!(!caps.can_view_all_tasks);
+        assert!(!caps.can_edit_all_tasks);
+        assert!(!caps.can_delete_tasks);
+        assert!(!caps.can_manage_members);
+        assert!(!caps.can_manage_project_settings);
+        assert!(!caps.can_manage_automations);
+        assert!(!caps.can_manage_billing);
+        assert!(!caps.can_invite_members);
+        assert!(!caps.can_manage_roles);
     }
 }

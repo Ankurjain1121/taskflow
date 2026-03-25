@@ -17,6 +17,13 @@ pub enum AppError {
     #[error("Forbidden: {0}")]
     Forbidden(String),
 
+    #[error("Permission denied: {capability}")]
+    PermissionDenied {
+        capability: String,
+        denied_by: String,
+        role_name: String,
+    },
+
     #[error("Conflict: {0}")]
     Conflict(String),
 
@@ -52,6 +59,22 @@ impl IntoResponse for AppError {
             AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, "BAD_REQUEST", msg),
             AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, "UNAUTHORIZED", msg),
             AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, "FORBIDDEN", msg),
+            AppError::PermissionDenied {
+                capability,
+                denied_by,
+                role_name,
+            } => {
+                let body = json!({
+                    "error": {
+                        "code": "PERMISSION_DENIED",
+                        "message": format!("Your {} role ({}) doesn't include '{}'", denied_by, role_name, capability),
+                        "capability": capability,
+                        "denied_by": denied_by,
+                        "role_name": role_name,
+                    }
+                });
+                return (StatusCode::FORBIDDEN, axum::Json(body)).into_response();
+            }
             AppError::Conflict(msg) => (StatusCode::CONFLICT, "CONFLICT", msg),
             AppError::VersionConflict(current_task) => {
                 let body = json!({

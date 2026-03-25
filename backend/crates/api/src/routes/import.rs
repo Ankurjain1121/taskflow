@@ -17,7 +17,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
-use super::common::verify_project_membership;
+use super::common::{verify_project_membership, Capability, require_capability};
 
 const MAX_IMPORT_BATCH_SIZE: usize = 500;
 
@@ -188,7 +188,8 @@ async fn import_json_handler(
     Path(board_id): Path<Uuid>,
     Json(items): Json<Vec<ImportTaskItem>>,
 ) -> Result<Json<ImportResult>> {
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
+    require_capability(&state.db, tenant.user_id, &tenant.role, board_id, Capability::CreateTasks).await?;
 
     if items.len() > MAX_IMPORT_BATCH_SIZE {
         return Err(AppError::BadRequest(format!(
@@ -298,7 +299,8 @@ async fn import_csv_handler(
     Path(board_id): Path<Uuid>,
     Json(body): Json<ImportCsvBody>,
 ) -> Result<Json<ImportResult>> {
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
+    require_capability(&state.db, tenant.user_id, &tenant.role, board_id, Capability::CreateTasks).await?;
 
     let rows = parse_csv(&body.csv_text);
     if rows.is_empty() {
@@ -423,7 +425,8 @@ async fn import_trello_handler(
     Path(board_id): Path<Uuid>,
     Json(trello): Json<TrelloExport>,
 ) -> Result<Json<TrelloImportResult>> {
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
+    require_capability(&state.db, tenant.user_id, &tenant.role, board_id, Capability::CreateTasks).await?;
 
     // Build a map of Trello list_id -> list_name
     let trello_lists = trello.lists.unwrap_or_default();

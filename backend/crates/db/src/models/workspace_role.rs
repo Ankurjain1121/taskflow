@@ -61,6 +61,44 @@ pub struct WorkspaceRole {
     pub updated_at: DateTime<Utc>,
 }
 
+impl Capabilities {
+    /// Returns capabilities with all fields set to `true`.
+    pub fn full() -> Self {
+        Self {
+            can_view_all_tasks: true,
+            can_create_tasks: true,
+            can_edit_own_tasks: true,
+            can_edit_all_tasks: true,
+            can_delete_tasks: true,
+            can_manage_members: true,
+            can_manage_project_settings: true,
+            can_manage_automations: true,
+            can_export: true,
+            can_manage_billing: true,
+            can_invite_members: true,
+            can_manage_roles: true,
+        }
+    }
+
+    /// Returns the intersection of two capability sets (logical AND on each field).
+    pub fn intersect(&self, other: &Self) -> Self {
+        Self {
+            can_view_all_tasks: self.can_view_all_tasks && other.can_view_all_tasks,
+            can_create_tasks: self.can_create_tasks && other.can_create_tasks,
+            can_edit_own_tasks: self.can_edit_own_tasks && other.can_edit_own_tasks,
+            can_edit_all_tasks: self.can_edit_all_tasks && other.can_edit_all_tasks,
+            can_delete_tasks: self.can_delete_tasks && other.can_delete_tasks,
+            can_manage_members: self.can_manage_members && other.can_manage_members,
+            can_manage_project_settings: self.can_manage_project_settings && other.can_manage_project_settings,
+            can_manage_automations: self.can_manage_automations && other.can_manage_automations,
+            can_export: self.can_export && other.can_export,
+            can_manage_billing: self.can_manage_billing && other.can_manage_billing,
+            can_invite_members: self.can_invite_members && other.can_invite_members,
+            can_manage_roles: self.can_manage_roles && other.can_manage_roles,
+        }
+    }
+}
+
 impl WorkspaceRole {
     /// Parse the JSONB capabilities column into a typed `Capabilities` struct.
     pub fn parsed_capabilities(&self) -> Capabilities {
@@ -176,5 +214,52 @@ mod tests {
         assert_eq!(deserialized.id, role.id);
         assert_eq!(deserialized.name, role.name);
         assert_eq!(deserialized.position, role.position);
+    }
+
+    #[test]
+    fn test_capabilities_full() {
+        let caps = Capabilities::full();
+        assert!(caps.can_view_all_tasks);
+        assert!(caps.can_create_tasks);
+        assert!(caps.can_edit_own_tasks);
+        assert!(caps.can_edit_all_tasks);
+        assert!(caps.can_delete_tasks);
+        assert!(caps.can_manage_members);
+        assert!(caps.can_manage_project_settings);
+        assert!(caps.can_manage_automations);
+        assert!(caps.can_export);
+        assert!(caps.can_manage_billing);
+        assert!(caps.can_invite_members);
+        assert!(caps.can_manage_roles);
+    }
+
+    #[test]
+    fn test_intersect_all_true() {
+        let a = Capabilities::full();
+        let b = Capabilities::full();
+        assert_eq!(a.intersect(&b), Capabilities::full());
+    }
+
+    #[test]
+    fn test_intersect_mixed() {
+        let a = Capabilities::full();
+        let b = Capabilities {
+            can_manage_billing: false,
+            can_manage_roles: false,
+            ..Capabilities::full()
+        };
+        let result = a.intersect(&b);
+        assert!(result.can_view_all_tasks);
+        assert!(result.can_create_tasks);
+        assert!(!result.can_manage_billing);
+        assert!(!result.can_manage_roles);
+    }
+
+    #[test]
+    fn test_intersect_all_false() {
+        let a = Capabilities::default();
+        let b = Capabilities::full();
+        let result = a.intersect(&b);
+        assert_eq!(result, Capabilities::default());
     }
 }

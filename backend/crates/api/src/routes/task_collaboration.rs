@@ -64,7 +64,7 @@ pub async fn assign_user_handler(
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     // Verify board membership
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     // Verify the assignee is also a project member
     if !taskbolt_db::queries::verify_project_membership(&state.db, board_id, body.user_id).await? {
@@ -227,7 +227,7 @@ pub async fn unassign_user_handler(
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     // Verify board membership
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     unassign_user(&state.db, task_id, user_id).await?;
 
@@ -297,7 +297,7 @@ pub async fn add_watcher_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     add_watcher(&state.db, task_id, body.user_id).await?;
 
@@ -314,7 +314,7 @@ pub async fn remove_watcher_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     remove_watcher(&state.db, task_id, user_id).await?;
 
@@ -334,7 +334,7 @@ pub async fn set_reminder_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     let reminder = set_reminder(
         &state.db,
@@ -357,7 +357,7 @@ pub async fn list_reminders_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     let reminders = list_reminders_for_task(&state.db, task_id, tenant.user_id).await?;
 
@@ -374,7 +374,7 @@ pub async fn remove_reminder_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     remove_reminder(&state.db, reminder_id, tenant.user_id).await?;
 

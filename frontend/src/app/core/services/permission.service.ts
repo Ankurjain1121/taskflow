@@ -1,5 +1,21 @@
-import { Injectable, computed, inject } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { AuthService, User } from './auth.service';
+
+export interface Capabilities {
+  can_view_all_tasks: boolean;
+  can_create_tasks: boolean;
+  can_edit_own_tasks: boolean;
+  can_edit_all_tasks: boolean;
+  can_delete_tasks: boolean;
+  can_manage_members: boolean;
+  can_manage_project_settings: boolean;
+  can_manage_automations: boolean;
+  can_export: boolean;
+  can_manage_billing: boolean;
+  can_invite_members: boolean;
+  can_manage_roles: boolean;
+}
 
 /**
  * Role hierarchy (highest to lowest):
@@ -20,6 +36,7 @@ const ROLE_HIERARCHY: Record<string, number> = {
 })
 export class PermissionService {
   private readonly authService = inject(AuthService);
+  private readonly http = inject(HttpClient);
 
   /** Reactive: current user's role level (0 if not logged in). */
   private readonly roleLevel = computed(() => {
@@ -50,4 +67,28 @@ export class PermissionService {
     const user = this.authService.currentUser();
     return user?.role ?? null;
   });
+
+  /** Workspace capabilities loaded from the backend */
+  readonly workspaceCapabilities = signal<Capabilities | null>(null);
+
+  /** Load capabilities for the current workspace */
+  loadCapabilities(workspaceId: string): void {
+    this.http
+      .get<Capabilities>(`/api/workspaces/${workspaceId}/my-capabilities`)
+      .subscribe({
+        next: (caps) => this.workspaceCapabilities.set(caps),
+        error: () => this.workspaceCapabilities.set(null),
+      });
+  }
+
+  /** Check if the current user has a specific workspace capability */
+  hasCapability(cap: keyof Capabilities): boolean {
+    const caps = this.workspaceCapabilities();
+    return caps ? caps[cap] : false;
+  }
+
+  /** Clear loaded capabilities (on workspace switch) */
+  clearCapabilities(): void {
+    this.workspaceCapabilities.set(null);
+  }
 }

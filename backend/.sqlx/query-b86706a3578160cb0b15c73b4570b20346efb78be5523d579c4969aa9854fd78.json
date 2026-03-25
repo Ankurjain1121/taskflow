@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT wr.name\n            FROM workspace_members wm\n            JOIN workspace_roles wr ON wr.id = wm.role_id\n            WHERE wm.workspace_id = $1 AND wm.user_id = $2\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b86706a3578160cb0b15c73b4570b20346efb78be5523d579c4969aa9854fd78"
+}

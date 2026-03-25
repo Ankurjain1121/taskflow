@@ -16,6 +16,8 @@ use taskbolt_auth::rbac::can_manage_workspace;
 use taskbolt_db::models::{WorkspaceMemberRole, WorkspaceVisibility};
 use taskbolt_db::queries::workspaces;
 
+use super::common::resolve_effective_permissions;
+
 use crate::errors::{AppError, Result};
 use crate::extractors::{AuthUserExtractor, ManagerOrAdmin, SuperAdminOnly};
 use crate::middleware::{auth_middleware, csrf_middleware};
@@ -746,6 +748,36 @@ async fn bulk_add_members(
 // ============================================================================
 
 /// Build the workspace router
+/// GET /api/workspaces/:id/my-capabilities
+///
+/// Returns the effective capabilities for the current user in the given workspace.
+/// This is the intersection of the user's org-level role capabilities and their
+/// workspace role capabilities.
+async fn get_my_capabilities(
+    State(state): State<AppState>,
+    auth: AuthUserExtractor,
+    Path(workspace_id): Path<Uuid>,
+) -> Result<Json<taskbolt_db::models::workspace_role::Capabilities>> {
+    // Verify workspace membership
+    let is_member =
+        workspaces::is_workspace_member(&state.db, workspace_id, auth.0.user_id).await?;
+    if !is_member {
+        return Err(AppError::Forbidden(
+            "Not a member of this workspace".into(),
+        ));
+    }
+
+    let caps = resolve_effective_permissions(
+        &state.db,
+        auth.0.user_id,
+        &auth.0.role,
+        workspace_id,
+    )
+    .await?;
+
+    Ok(Json(caps))
+}
+
 pub fn workspace_router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(list_workspaces).post(create_workspace))
@@ -757,6 +789,7 @@ pub fn workspace_router(state: AppState) -> Router<AppState> {
                 .delete(delete_workspace),
         )
         .route("/{id}/join", post(join_workspace))
+        .route("/{id}/my-capabilities", get(get_my_capabilities))
         .route("/{id}/members/search", get(search_members))
         .route("/{id}/members/bulk", post(bulk_add_members))
         .route("/{id}/members", get(list_members).post(add_member))

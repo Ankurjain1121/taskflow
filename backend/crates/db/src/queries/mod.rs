@@ -47,7 +47,6 @@ pub mod task_watchers;
 pub mod tasks;
 pub mod tasks_helpers;
 pub mod team_overview;
-pub mod teams;
 pub mod themes;
 pub mod time_entries;
 pub mod user_preferences;
@@ -271,13 +270,6 @@ pub use tasks::{
 pub use team_overview::{
     get_member_active_tasks, get_overloaded_members, get_workload, reassign_tasks, MemberTask,
     MemberWorkload, OverloadedMember,
-};
-
-// teams
-pub use teams::{
-    add_team_member, create_team, delete_team, get_team_by_id, list_team_members,
-    list_teams_by_workspace, remove_team_member, update_team, TeamMemberWithUser,
-    TeamWithMemberCount,
 };
 
 // time_entries

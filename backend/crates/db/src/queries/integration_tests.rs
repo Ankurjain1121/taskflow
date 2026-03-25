@@ -451,7 +451,7 @@ async fn test_list_boards_by_workspace() {
         .await
         .unwrap();
 
-    let list = projects::list_projects_by_workspace(&pool, ws_id, user_id)
+    let list = projects::list_projects_by_workspace(&pool, ws_id)
         .await
         .unwrap();
     assert!(list.len() >= 2);
@@ -510,7 +510,7 @@ async fn test_soft_delete_board() {
     assert!(deleted);
 
     // Should not appear in list
-    let list = projects::list_projects_by_workspace(&pool, ws_id, user_id)
+    let list = projects::list_projects_by_workspace(&pool, ws_id)
         .await
         .unwrap();
     assert!(!list.iter().any(|b| b.id == bwc.project.id));
