@@ -14,7 +14,7 @@ use crate::routes::validation::{
     validate_optional_string, validate_required_string, MAX_DESCRIPTION_LEN, MAX_NAME_LEN,
 };
 use crate::state::AppState;
-use taskbolt_db::models::Task;
+use taskbolt_db::models::{Task, UserRole};
 use taskbolt_db::queries::get_task_project_id;
 use taskbolt_db::queries::tasks::ChildTaskWithDetails;
 
@@ -23,12 +23,13 @@ async fn verify_task_board_membership(
     state: &AppState,
     task_id: Uuid,
     user_id: Uuid,
+    role: &UserRole,
 ) -> Result<Uuid> {
     let board_id = get_task_project_id(&state.db, task_id)
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    super::common::verify_project_membership(&state.db, board_id, user_id).await?;
+    super::common::verify_project_membership(&state.db, board_id, user_id, role).await?;
 
     Ok(board_id)
 }
@@ -54,7 +55,7 @@ async fn list_children_handler(
     Path(task_id): Path<Uuid>,
 ) -> Result<Json<ChildTaskListResponse>> {
     // Verify board membership through task
-    verify_task_board_membership(&state, task_id, tenant.user_id).await?;
+    verify_task_board_membership(&state, task_id, tenant.user_id, &tenant.role).await?;
 
     let children = taskbolt_db::queries::list_child_tasks_with_details(&state.db, task_id)
         .await
@@ -115,7 +116,7 @@ async fn create_child_task_handler(
     Json(body): Json<CreateChildTaskRequest>,
 ) -> Result<Json<Task>> {
     // Verify board membership
-    verify_task_board_membership(&state, task_id, tenant.user_id).await?;
+    verify_task_board_membership(&state, task_id, tenant.user_id, &tenant.role).await?;
 
     validate_required_string("Title", &body.title, MAX_NAME_LEN)?;
     validate_optional_string(

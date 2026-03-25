@@ -49,18 +49,29 @@ export const errorInterceptor: HttpInterceptorFn = (
           });
           break;
         case 403: {
-          const msg403 = extractErrorMessage(error);
-          const isSuperAdminRequired =
-            msg403.toLowerCase().includes('super admin') ||
-            msg403.toLowerCase().includes('superadmin');
-          messageService.add({
-            severity: 'error',
-            summary: 'Access Denied',
-            detail: isSuperAdminRequired
-              ? 'This action requires Super Admin access. Contact your workspace owner.'
-              : "You don't have permission to perform this action.",
-            life: 5000,
-          });
+          const body = error.error as Record<string, unknown>;
+          const inner = typeof body?.['error'] === 'object' ? (body['error'] as Record<string, unknown>) : null;
+          if (inner?.['code'] === 'PERMISSION_DENIED') {
+            messageService.add({
+              severity: 'error',
+              summary: 'Permission Denied',
+              detail: (inner['message'] as string) || "You don't have permission to perform this action.",
+              life: 6000,
+            });
+          } else {
+            const msg403 = extractErrorMessage(error);
+            const isSuperAdminRequired =
+              msg403.toLowerCase().includes('super admin') ||
+              msg403.toLowerCase().includes('superadmin');
+            messageService.add({
+              severity: 'error',
+              summary: 'Access Denied',
+              detail: isSuperAdminRequired
+                ? 'This action requires Super Admin access. Contact your workspace owner.'
+                : "You don't have permission to perform this action.",
+              life: 5000,
+            });
+          }
           break;
         }
         case 404:

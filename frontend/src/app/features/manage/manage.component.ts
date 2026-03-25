@@ -21,12 +21,11 @@ import {
   Workspace,
   WorkspaceMember,
 } from '../../core/services/workspace.service';
-import { TeamGroupsService } from '../../core/services/team-groups.service';
+
 import { AuthService } from '../../core/services/auth.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { MembersListComponent, MemberWithDetails } from '../workspace/members-list/members-list.component';
-import { TeamsListComponent } from '../workspace/teams/teams-list.component';
-import { TeamDetailDialogComponent } from '../workspace/teams/team-detail-dialog.component';
+
 import { WorkspaceRolesTabComponent } from '../workspace/workspace-settings/workspace-roles-tab.component';
 import { WorkspaceGeneralTabComponent } from '../workspace/workspace-settings/workspace-general-tab.component';
 import { WorkspaceLabelsComponent } from '../workspace/labels/workspace-labels.component';
@@ -35,7 +34,7 @@ import { WorkspaceAdvancedTabComponent } from '../workspace/workspace-settings/w
 import { AuditLogComponent } from '../workspace/audit-log/audit-log.component';
 import { TrashComponent } from '../workspace/trash/trash.component';
 import { InviteMemberDialogComponent } from '../../shared/components/dialogs/invite-member-dialog.component';
-import { TeamGroupDetail } from '../../core/services/team-groups.service';
+
 
 interface TabDef {
   label: string;
@@ -64,7 +63,7 @@ const ALL_TABS: TabDef[] = [
     Tab,
     TooltipModule,
     MembersListComponent,
-    TeamsListComponent,
+
     WorkspaceRolesTabComponent,
     WorkspaceGeneralTabComponent,
     WorkspaceLabelsComponent,
@@ -72,7 +71,7 @@ const ALL_TABS: TabDef[] = [
     WorkspaceAdvancedTabComponent,
     AuditLogComponent,
     TrashComponent,
-    TeamDetailDialogComponent,
+
     InviteMemberDialogComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -133,7 +132,6 @@ const ALL_TABS: TabDef[] = [
             <!-- Stats line -->
             <p class="text-sm font-medium text-[var(--muted-foreground)] mb-4">
               {{ memberCount() }} {{ memberCount() === 1 ? 'member' : 'members' }}
-              &middot; {{ teamCount() }} {{ teamCount() === 1 ? 'team' : 'teams' }}
               @if (pendingInvites() > 0) {
                 &middot;
                 <span class="text-amber-600 dark:text-amber-400">
@@ -150,12 +148,6 @@ const ALL_TABS: TabDef[] = [
               (click)="showInviteDialog.set(true)">
               <i class="pi pi-user-plus text-sm"></i>
               Invite Member
-            </button>
-            <button
-              class="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--background)] px-4 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm hover:bg-[var(--muted)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--primary)]"
-              (click)="showCreateTeamDialog.set(true)">
-              <i class="pi pi-plus text-sm"></i>
-              Create Team
             </button>
           </div>
         </div>
@@ -199,23 +191,6 @@ const ALL_TABS: TabDef[] = [
                     }
                   </section>
 
-                  <!-- Teams -->
-                  <section>
-                    <h2 class="text-lg font-semibold text-[var(--foreground)] mb-3">Teams</h2>
-                    @if (teamCount() === 0) {
-                      <div class="text-center py-8 rounded-xl border border-dashed border-[var(--border)]">
-                        <i class="pi pi-users text-3xl text-[var(--muted-foreground)] mb-2"></i>
-                        <p class="text-[var(--muted-foreground)]">Organize into teams</p>
-                        <button
-                          class="mt-3 text-sm font-semibold text-[var(--primary)] hover:underline"
-                          (click)="showCreateTeamDialog.set(true)">
-                          + Create your first team
-                        </button>
-                      </div>
-                    } @else {
-                      <app-teams-list [workspaceId]="workspaceId" />
-                    }
-                  </section>
                 </div>
               </p-tabpanel>
 
@@ -337,12 +312,6 @@ const ALL_TABS: TabDef[] = [
           </p-tabs>
         }
         <!-- Dialogs -->
-        <app-team-detail-dialog
-          [(visible)]="showCreateTeamDialog"
-          [workspaceId]="workspaceId"
-          (saved)="onTeamSaved($event)"
-        />
-
         <app-invite-member-dialog
           [(visible)]="showInviteDialog"
           [workspaceId]="workspaceId"
@@ -358,7 +327,7 @@ export class ManageComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private destroyRef = inject(DestroyRef);
   private workspaceService = inject(WorkspaceService);
-  private teamGroupsService = inject(TeamGroupsService);
+
   private authService = inject(AuthService);
   readonly permissionService = inject(PermissionService);
 
@@ -375,15 +344,13 @@ export class ManageComponent implements OnInit {
     joined_at: string;
     is_org_admin?: boolean;
   }>>([]);
-  teams = signal<Array<{ id: string; name: string; color: string; workspace_id: string }>>([]);
+
   errorMessage = signal<string | null>(null);
   activeTab = signal(0);
   showInviteDialog = signal(false);
-  showCreateTeamDialog = signal(false);
 
   // Computed: hero stats
   memberCount = computed(() => this.members().length);
-  teamCount = computed(() => this.teams().length);
   pendingInvites = computed(() =>
     this.members().filter((m) => m.role === 'pending').length,
   );
@@ -481,13 +448,6 @@ export class ManageComponent implements OnInit {
     });
   }
 
-  onTeamSaved(_team: TeamGroupDetail): void {
-    // Refresh team count
-    this.teamGroupsService.listTeams(this.workspaceId).subscribe({
-      next: (teams) => this.teams.set(teams as Array<{ id: string; name: string; color: string; workspace_id: string }>),
-    });
-  }
-
   onMemberInvited(): void {
     this.loadData();
   }
@@ -526,11 +486,6 @@ export class ManageComponent implements OnInit {
         }>;
         this.members.set(embeddedMembers);
         this.loading.set(false);
-        // Load team count for hero stats (non-blocking)
-        this.teamGroupsService.listTeams(this.workspaceId).subscribe({
-          next: (teams) => this.teams.set(teams as Array<{ id: string; name: string; color: string; workspace_id: string }>),
-          error: () => { /* non-critical */ },
-        });
       },
       error: () => {
         this.loading.set(false);

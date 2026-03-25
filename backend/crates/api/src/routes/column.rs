@@ -21,7 +21,7 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::services::cache;
 use crate::state::AppState;
 
-use super::common::MessageResponse;
+use super::common::{MessageResponse, Capability, require_capability};
 use super::validation::{validate_required_string, MAX_SHORT_NAME_LEN};
 
 // ============================================================================
@@ -163,6 +163,7 @@ async fn create_status(
     Json(payload): Json<CreateStatusRequest>,
 ) -> Result<Json<StatusResponse>> {
     require_editor_access(&state, project_id, auth.0.user_id).await?;
+    require_capability(&state.db, auth.0.user_id, &auth.0.role, project_id, Capability::ManageProjectSettings).await?;
 
     validate_required_string("Status name", &payload.name, MAX_SHORT_NAME_LEN)?;
 
@@ -224,6 +225,7 @@ async fn rename_status(
     // Auth BEFORE write
     let project_id = get_project_id_for_status(&state, id).await?;
     require_editor_access(&state, project_id, auth.0.user_id).await?;
+    require_capability(&state.db, auth.0.user_id, &auth.0.role, project_id, Capability::ManageProjectSettings).await?;
 
     let status =
         project_statuses::update_project_status(&state.db, id, Some(&payload.name), None, None)
@@ -265,6 +267,7 @@ async fn reorder_status(
         .ok_or_else(|| AppError::NotFound("Status not found".into()))?;
 
     require_editor_access(&state, existing.project_id, auth.0.user_id).await?;
+    require_capability(&state.db, auth.0.user_id, &auth.0.role, existing.project_id, Capability::ManageProjectSettings).await?;
 
     let new_index = payload.new_index.max(0) as usize;
     let current_index = all_statuses_result
@@ -322,6 +325,7 @@ async fn update_status_type(
     // Auth BEFORE write
     let project_id = get_project_id_for_status(&state, id).await?;
     require_editor_access(&state, project_id, auth.0.user_id).await?;
+    require_capability(&state.db, auth.0.user_id, &auth.0.role, project_id, Capability::ManageProjectSettings).await?;
 
     let status = project_statuses::update_project_status(
         &state.db,
@@ -350,6 +354,7 @@ async fn update_color(
     // Auth BEFORE write
     let project_id = get_project_id_for_status(&state, id).await?;
     require_editor_access(&state, project_id, auth.0.user_id).await?;
+    require_capability(&state.db, auth.0.user_id, &auth.0.role, project_id, Capability::ManageProjectSettings).await?;
 
     let status =
         project_statuses::update_project_status(&state.db, id, None, Some(&payload.color), None)
@@ -388,6 +393,7 @@ async fn update_transitions(
 ) -> Result<Json<StatusResponse>> {
     let project_id = get_project_id_for_status(&state, id).await?;
     require_editor_access(&state, project_id, auth.0.user_id).await?;
+    require_capability(&state.db, auth.0.user_id, &auth.0.role, project_id, Capability::ManageProjectSettings).await?;
 
     let status = project_statuses::set_transitions(&state.db, id, payload.allowed.as_deref())
         .await
@@ -420,6 +426,7 @@ async fn delete_status(
     .ok_or_else(|| AppError::NotFound("Status not found".into()))?;
 
     require_editor_access(&state, statuses.project_id, auth.0.user_id).await?;
+    require_capability(&state.db, auth.0.user_id, &auth.0.role, statuses.project_id, Capability::ManageProjectSettings).await?;
 
     if statuses.is_default {
         return Err(AppError::BadRequest(

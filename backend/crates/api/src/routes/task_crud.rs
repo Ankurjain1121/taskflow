@@ -20,7 +20,7 @@ use taskbolt_db::queries::{
 use taskbolt_services::broadcast::events;
 use taskbolt_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
 
-use super::common::verify_project_membership;
+use super::common::{verify_project_membership, Capability, require_capability};
 use super::task_helpers::{
     broadcast_workspace_task_update, get_workspace_id_for_board, sanitize_html, CreateTaskRequest,
     ListTasksResponse, UpdateTaskRequest,
@@ -90,7 +90,8 @@ pub async fn create_task_handler(
     Json(body): Json<CreateTaskRequest>,
 ) -> Result<Json<Task>> {
     // Verify board membership first
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
+    require_capability(&state.db, tenant.user_id, &tenant.role, board_id, Capability::CreateTasks).await?;
 
     // Validate string lengths
     validate_required_string("Title", &body.title, MAX_NAME_LEN)?;
@@ -204,7 +205,7 @@ pub async fn update_task_handler(
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     // Verify board membership
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     // Validate string lengths
     if let Some(ref title) = body.title {
@@ -374,7 +375,8 @@ pub async fn delete_task_handler(
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     // Verify board membership
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
+    require_capability(&state.db, tenant.user_id, &tenant.role, board_id, Capability::DeleteTasks).await?;
 
     soft_delete_task(&state.db, task_id)
         .await
@@ -436,7 +438,7 @@ pub async fn complete_task_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     // Find the first "done" status for this project
     let done_status_id: Option<uuid::Uuid> = find_done_status(&state.db, board_id)
@@ -472,7 +474,7 @@ pub async fn uncomplete_task_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     // Find the first non-done status for this project
     let status_id: Option<uuid::Uuid> = find_non_done_status(&state.db, board_id)
@@ -509,7 +511,7 @@ pub async fn duplicate_task_handler(
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     // Verify board membership
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     let task = duplicate_task(&state.db, task_id, tenant.user_id)
         .await

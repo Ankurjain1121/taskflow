@@ -13,7 +13,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
-use super::common::verify_project_membership;
+use super::common::{verify_project_membership, Capability, require_capability};
 use taskbolt_db::models::Milestone;
 use taskbolt_db::queries::get_task_project_id;
 use taskbolt_db::queries::milestones::{
@@ -81,6 +81,9 @@ async fn create_milestone_handler(
         return Err(AppError::BadRequest("Name cannot be empty".into()));
     }
 
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
+    require_capability(&state.db, tenant.user_id, &tenant.role, board_id, Capability::ManageProjectSettings).await?;
+
     let input = CreateMilestoneInput {
         name: body.name,
         description: body.description,
@@ -122,7 +125,8 @@ async fn update_milestone_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Milestone not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
+    require_capability(&state.db, tenant.user_id, &tenant.role, board_id, Capability::ManageProjectSettings).await?;
 
     let input = UpdateMilestoneInput {
         name: body.name,
@@ -150,7 +154,8 @@ async fn delete_milestone_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Milestone not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
+    require_capability(&state.db, tenant.user_id, &tenant.role, board_id, Capability::ManageProjectSettings).await?;
 
     delete_milestone(&state.db, milestone_id)
         .await
@@ -172,7 +177,7 @@ async fn assign_milestone_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     assign_task_to_milestone(&state.db, task_id, body.milestone_id)
         .await
@@ -193,7 +198,7 @@ async fn unassign_milestone_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     unassign_task_from_milestone(&state.db, task_id)
         .await

@@ -7,7 +7,7 @@ import { of, throwError, BehaviorSubject } from 'rxjs';
 import { signal } from '@angular/core';
 import { ManageComponent } from './manage.component';
 import { WorkspaceService } from '../../core/services/workspace.service';
-import { TeamGroupsService } from '../../core/services/team-groups.service';
+
 import { AuthService } from '../../core/services/auth.service';
 import { MessageService } from 'primeng/api';
 
@@ -24,7 +24,7 @@ describe('ManageComponent', () => {
   let component: ManageComponent;
   let fixture: ComponentFixture<ManageComponent>;
   let mockWorkspaceService: Record<string, ReturnType<typeof vi.fn>>;
-  let mockTeamGroupsService: Record<string, ReturnType<typeof vi.fn>>;
+
   let mockAuthService: { currentUser: ReturnType<typeof signal> };
   let paramsSubject: BehaviorSubject<Record<string, string>>;
   let queryParamsSubject: BehaviorSubject<Record<string, string>>;
@@ -33,11 +33,6 @@ describe('ManageComponent', () => {
     { user_id: 'u-1', name: 'Alice', email: 'alice@test.com', avatar_url: null, role: 'owner', joined_at: '2026-01-01' },
     { user_id: 'u-2', name: 'Bob', email: 'bob@test.com', avatar_url: 'https://example.com/bob.jpg', role: 'member', joined_at: '2026-01-15' },
     { user_id: 'u-3', name: 'Carol', email: 'carol@test.com', avatar_url: null, role: 'manager', joined_at: '2026-02-01' },
-  ];
-
-  const mockTeams = [
-    { id: 't-1', name: 'Frontend', color: '#3B82F6', workspace_id: 'ws-1', member_count: 3, description: null, created_at: '' },
-    { id: 't-2', name: 'Backend', color: '#10B981', workspace_id: 'ws-1', member_count: 2, description: null, created_at: '' },
   ];
 
   const mockWorkspace = {
@@ -73,10 +68,6 @@ describe('ManageComponent', () => {
       listTrash: vi.fn().mockReturnValue(of({ items: [], total: 0 })),
     };
 
-    mockTeamGroupsService = {
-      listTeams: vi.fn().mockReturnValue(of(mockTeams)),
-    };
-
     mockAuthService = {
       currentUser: signal({
         id: 'u-1', name: 'Alice', email: 'alice@test.com', avatar_url: null,
@@ -90,7 +81,7 @@ describe('ManageComponent', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: WorkspaceService, useValue: mockWorkspaceService },
-        { provide: TeamGroupsService, useValue: mockTeamGroupsService },
+
         { provide: AuthService, useValue: mockAuthService },
         MessageService,
         {
@@ -117,10 +108,6 @@ describe('ManageComponent', () => {
   describe('Hero Section', () => {
     it('should display member count from loaded workspace', () => {
       expect(component.memberCount()).toBe(3);
-    });
-
-    it('should display team count from loaded teams', () => {
-      expect(component.teamCount()).toBe(2);
     });
 
     it('should set loading false after data loads', () => {

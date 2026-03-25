@@ -49,7 +49,7 @@ pub async fn move_task_handler(
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
     // Verify board membership
-    verify_project_membership(&state.db, board_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
 
     // Capture previous status_id for automation trigger + blueprint validation
     let previous_status_id = get_task_status_id(&state.db, task_id).await?;
@@ -226,8 +226,8 @@ pub async fn move_task_to_project_handler(
     }
 
     // 2. Verify user membership in BOTH source and target projects
-    verify_project_membership(&state.db, source_project_id, tenant.user_id).await?;
-    verify_project_membership(&state.db, body.target_project_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, source_project_id, tenant.user_id, &tenant.role).await?;
+    verify_project_membership(&state.db, body.target_project_id, tenant.user_id, &tenant.role).await?;
 
     // 3. Verify target_status_id belongs to target_project_id
     let status_exists = sqlx::query_scalar::<_, Uuid>(

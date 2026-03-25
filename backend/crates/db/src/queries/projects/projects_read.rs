@@ -75,11 +75,14 @@ pub struct PaginatedTasks {
     pub total_count: i64,
 }
 
-/// List projects in a workspace that the user has access to
+/// List all projects in a workspace.
+///
+/// Workspace membership is verified in the route handler — any workspace member
+/// can see project names. Access to project DATA (tasks, boards) is gated by
+/// `verify_project_membership()` which checks project_members + admin bypass.
 pub async fn list_projects_by_workspace(
     pool: &PgPool,
     workspace_id: Uuid,
-    user_id: Uuid,
 ) -> Result<Vec<Project>, sqlx::Error> {
     sqlx::query_as::<_, Project>(
         r#"
@@ -87,16 +90,13 @@ pub async fn list_projects_by_workspace(
                p.workspace_id, p.tenant_id, p.created_by_id,
                p.background_color, p.is_sample, p.deleted_at, p.created_at, p.updated_at
         FROM projects p
-        INNER JOIN project_members pm ON p.id = pm.project_id
         WHERE p.workspace_id = $1
-          AND pm.user_id = $2
           AND p.deleted_at IS NULL
         ORDER BY p.created_at DESC
         LIMIT 200
         "#,
     )
     .bind(workspace_id)
-    .bind(user_id)
     .fetch_all(pool)
     .await
 }

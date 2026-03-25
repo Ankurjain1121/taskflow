@@ -80,7 +80,7 @@ async fn list_comments_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, project_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, project_id, tenant.user_id, &tenant.role).await?;
 
     let comments = list_comments_by_task(&state.db, task_id).await?;
 
@@ -101,7 +101,7 @@ async fn create_comment_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, project_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, project_id, tenant.user_id, &tenant.role).await?;
 
     // Validate comment length
     validate_required_string("Comment", &body.content, MAX_DESCRIPTION_LEN)?;
@@ -355,7 +355,7 @@ async fn update_comment_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, project_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, project_id, tenant.user_id, &tenant.role).await?;
 
     // Validate comment length
     validate_required_string("Comment", &body.content, MAX_DESCRIPTION_LEN)?;
@@ -404,7 +404,7 @@ async fn delete_comment_handler(
         .await?
         .ok_or_else(|| AppError::NotFound("Task not found".into()))?;
 
-    verify_project_membership(&state.db, project_id, tenant.user_id).await?;
+    verify_project_membership(&state.db, project_id, tenant.user_id, &tenant.role).await?;
 
     // Delete the comment
     delete_comment(&state.db, comment_id).await?;

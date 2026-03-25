@@ -3,7 +3,7 @@ use serde_json::json;
 use uuid::Uuid;
 
 use crate::errors::Result;
-use taskbolt_db::models::TaskPriority;
+use taskbolt_db::models::{TaskPriority, UserRole};
 use taskbolt_services::broadcast::events;
 use taskbolt_services::BroadcastService;
 
@@ -130,8 +130,9 @@ pub async fn verify_project_member_bool(
     pool: &sqlx::PgPool,
     project_id: Uuid,
     user_id: Uuid,
+    role: &UserRole,
 ) -> Result<bool> {
-    super::common::verify_project_membership(pool, project_id, user_id)
+    super::common::verify_project_membership(pool, project_id, user_id, role)
         .await
         .map(|()| true)
         .or_else(|e| {
