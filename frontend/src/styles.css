@@ -53,7 +53,7 @@
   --border: rgba(159, 159, 159, 0.25);
   --input: rgba(159, 159, 159, 0.15);
   --muted: #E8E4DB;
-  --muted-foreground: #9F9F9F;
+  --muted-foreground: #6B6360;
   --accent: rgba(191, 123, 84, 0.06);
   --accent-foreground: #BF7B54;
   --accent-warm: #D4A853;
@@ -63,11 +63,11 @@
   --success-light: rgba(94, 140, 74, 0.1);
   --destructive: #B81414;
   --destructive-foreground: #ffffff;
-  --primary: #BF7B54;
+  --primary: #A0663E;
   --primary-foreground: #ffffff;
   --secondary: rgba(191, 123, 84, 0.08);
   --secondary-foreground: #996F49;
-  --ring: #BF7B54;
+  --ring: #A0663E;
   --radius: 1.25rem;
 
   /* Topbar token */
@@ -81,13 +81,13 @@
   --sidebar-border: rgba(0, 0, 0, 0.08);
   --sidebar-text-primary: #1a0e05;
   --sidebar-text-secondary: #2E1A0E;
-  --sidebar-text-muted: #5A3D2A;
+  --sidebar-text-muted: #4A3020;
 
   /* Elevation tokens */
   --shadow-glow:
-    0 0 0 1px rgba(191, 123, 84, 0.12),
-    0 8px 32px rgba(191, 123, 84, 0.1);
-  --widget-hover-border: rgba(191, 123, 84, 0.28);
+    0 0 0 1px rgba(165, 106, 66, 0.12),
+    0 8px 32px rgba(165, 106, 66, 0.1);
+  --widget-hover-border: rgba(165, 106, 66, 0.28);
 
   /* Layout tokens */
   --nav-height: 56px;
@@ -114,6 +114,21 @@
 
   /* Surface overlay */
   --surface-overlay: rgba(237, 233, 221, 0.96);
+
+  /* Sidebar gradient */
+  --sidebar-gradient: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--sidebar-bg) 92%, white) 0%,
+    var(--sidebar-bg) 40%,
+    color-mix(in srgb, var(--sidebar-bg) 85%, black) 100%
+  );
+
+  /* Topbar gradient */
+  --topbar-gradient: linear-gradient(
+    90deg,
+    var(--topbar-bg) 0%,
+    color-mix(in srgb, var(--topbar-bg) 90%, var(--primary)) 100%
+  );
 }
 
 html.dark {
@@ -124,7 +139,7 @@ html.dark {
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.1);
   --muted: #211F1C;
-  --muted-foreground: #8A8580;
+  --muted-foreground: #9A9590;
   --accent: rgba(212, 148, 94, 0.1);
   --accent-foreground: #D4945E;
   --accent-warm: #E0BC6A;
@@ -134,11 +149,11 @@ html.dark {
   --success-light: rgba(122, 175, 96, 0.1);
   --destructive: #D42020;
   --destructive-foreground: #ffffff;
-  --primary: #D4945E;
+  --primary: #996535;
   --primary-foreground: #ffffff;
   --secondary: rgba(212, 148, 94, 0.12);
   --secondary-foreground: #D4945E;
-  --ring: #D4945E;
+  --ring: #996535;
 
   --sidebar-bg: #1A1816;
   --sidebar-surface: rgba(255, 255, 255, 0.02);
@@ -147,18 +162,33 @@ html.dark {
   --sidebar-border: rgba(255, 255, 255, 0.07);
   --sidebar-text-primary: rgba(255, 255, 255, 0.95);
   --sidebar-text-secondary: rgba(200, 198, 192, 0.85);
-  --sidebar-text-muted: rgba(150, 148, 142, 0.6);
+  --sidebar-text-muted: rgba(150, 148, 142, 0.7);
 
   /* Topbar token */
   --topbar-bg: #211F1C;
 
   --shadow-glow:
-    0 0 0 1px rgba(212, 148, 94, 0.15),
-    0 8px 32px rgba(212, 148, 94, 0.12);
-  --widget-hover-border: rgba(212, 148, 94, 0.3);
+    0 0 0 1px rgba(153, 101, 53, 0.15),
+    0 8px 32px rgba(153, 101, 53, 0.12);
+  --widget-hover-border: rgba(153, 101, 53, 0.3);
 
   /* Surface overlay */
   --surface-overlay: rgba(28, 26, 23, 0.96);
+
+  /* Sidebar gradient */
+  --sidebar-gradient: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--sidebar-bg) 95%, white 5%) 0%,
+    var(--sidebar-bg) 40%,
+    color-mix(in srgb, var(--sidebar-bg) 90%, black) 100%
+  );
+
+  /* Topbar gradient */
+  --topbar-gradient: linear-gradient(
+    90deg,
+    var(--topbar-bg) 0%,
+    color-mix(in srgb, var(--topbar-bg) 90%, var(--primary)) 100%
+  );
 }
 
 /* Surface elevation tokens */
@@ -689,7 +719,12 @@ html.dark .glass-subtle {
    Widget Card (shared dashboard card)
    ============================================ */
 .widget-card {
-  background-color: color-mix(in srgb, var(--card) 55%, var(--background));
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--card) 97%, white) 0%,
+    color-mix(in srgb, var(--card) 55%, var(--background)) 50%,
+    color-mix(in srgb, var(--card) 94%, var(--primary)) 100%
+  );
   color: var(--card-foreground);
   border: 1px solid var(--border);
   border-left: 3px solid color-mix(in srgb, var(--primary) 30%, transparent);
@@ -716,7 +751,12 @@ html.dark .glass-subtle {
   border-radius: var(--radius);
   padding: 1.25rem;
   border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
-  background: linear-gradient(135deg, var(--card) 0%, color-mix(in srgb, var(--primary) 5%, var(--card)) 100%);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--card) 95%, white) 0%,
+    var(--card) 40%,
+    color-mix(in srgb, var(--card) 92%, var(--primary)) 100%
+  );
   box-shadow: 0 2px 8px color-mix(in srgb, var(--foreground) 5%, transparent);
   transition: all var(--duration-normal) var(--ease-standard);
 }
@@ -1246,11 +1286,31 @@ html.dark {
   --p-card-border-color: var(--border);
 }
 
-/* Card shadow follows theme */
+/* Card shadow follows theme — elevated multi-layer treatment */
 .p-card {
   background: var(--card);
   color: var(--card-foreground);
   border: 1px solid var(--border);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 4px 16px rgba(0, 0, 0, 0.06);
+  transition: box-shadow var(--duration-normal) var(--ease-standard);
+}
+.p-card:hover {
+  box-shadow: var(--shadow-glow);
+  background-image: radial-gradient(
+    ellipse at top left,
+    color-mix(in srgb, var(--primary) 6%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+/* Elevated popover treatment */
+.p-popover {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 4px 16px rgba(0, 0, 0, 0.06),
+    0 0 0 1px var(--border);
 }
 
 /* ============================================
@@ -1283,14 +1343,38 @@ html.dark {
   background-color: color-mix(in srgb, var(--primary) 30%, transparent);
 }
 
-/* Bolder PrimeNG button hover */
-.p-button:not(.p-button-text):not(.p-button-outlined):hover {
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--primary) 30%, transparent);
+/* Primary button lift + glow on hover, press on active */
+.p-button:not(.p-button-text):not(.p-button-outlined):not(.p-button-link) {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--primary) 85%, white) 0%,
+    var(--primary) 50%,
+    color-mix(in srgb, var(--primary) 90%, black) 100%
+  );
+  transition: all 0.2s var(--ease-out-expo);
+}
+.p-button:not(.p-button-text):not(.p-button-outlined):not(.p-button-link):hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    0 2px 4px color-mix(in srgb, var(--primary) 30%, transparent),
+    0 8px 24px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+.p-button:not(.p-button-text):not(.p-button-outlined):not(.p-button-link):active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
 }
 
-/* Bolder dialog entrance */
+/* Ghost/text button hover background */
+.p-button-text:hover:not(:disabled),
+.p-button-outlined:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+/* Auth-page-depth dialog shadow */
 .p-dialog {
-  box-shadow: var(--shadow-xl, var(--shadow-lg)) !important;
+  box-shadow:
+    0 32px 64px -16px rgba(0, 0, 0, 0.14),
+    0 16px 32px -8px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.04) !important;
 }
 
 /* ============================================
@@ -1411,6 +1495,42 @@ small.p-error,
   .p-drawer-content {
     transition: none !important;
   }
+}
+
+/* ============================================
+   View Entrance Animations
+   ============================================ */
+.view-enter {
+  animation: fadeInUp 0.4s var(--ease-out-expo) both;
+}
+
+/* Staggered children entrance */
+.view-enter-stagger > * {
+  animation: fadeInUp 0.35s var(--ease-out-expo) both;
+}
+.view-enter-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.view-enter-stagger > *:nth-child(2) { animation-delay: 50ms; }
+.view-enter-stagger > *:nth-child(3) { animation-delay: 100ms; }
+.view-enter-stagger > *:nth-child(4) { animation-delay: 150ms; }
+.view-enter-stagger > *:nth-child(5) { animation-delay: 200ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .view-enter,
+  .view-enter-stagger > * {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ============================================
+   Input Focus Glow (auth-page style)
+   ============================================ */
+.p-inputtext:focus,
+.p-textarea:focus,
+.p-select:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
+  border-color: var(--primary);
 }
 
 /* ============================================
@@ -1544,6 +1664,9 @@ small.p-error,
   overflow: hidden;
   height: calc(100vh - var(--nav-height) - 16px);
 }
+/* Sidebar metallic highlight — disabled (caused layout shift)
+.sidebar-root::before { ... }
+*/
 
 /* Sidebar active items: themed card background */
 .view-item.active,

@@ -55,7 +55,7 @@ interface WorkspaceOption {
   ],
   template: `
     <div class="min-h-screen" style="background: var(--background)">
-      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 view-enter">
         <!-- Act 1: Header + Focus Board -->
         <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
           <div class="flex items-center gap-4">
@@ -117,18 +117,22 @@ interface WorkspaceOption {
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <a routerLink="/my-tasks" class="animate-fade-in-up stagger-1 stat-card cursor-pointer group">
               <p class="stat-card-label">Total Tasks</p>
+              <div class="stat-card-icon" style="background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary)"><i class="pi pi-clipboard"></i></div>
               <p class="stat-card-value animate-count-up" [appCountUp]="stats()?.total_tasks || 0"></p>
             </a>
             <a routerLink="/my-tasks" [queryParams]="{ sort_by: 'due_date', sort_order: 'asc' }" class="animate-fade-in-up stagger-2 stat-card cursor-pointer group" [class.stat-card--danger-active]="(stats()?.overdue || 0) > 0">
               <p class="stat-card-label">Overdue</p>
+              <div class="stat-card-icon" style="background: color-mix(in srgb, var(--destructive) 12%, transparent); color: var(--destructive)"><i class="pi pi-exclamation-triangle"></i></div>
               <p class="stat-card-value animate-count-up" [style.color]="(stats()?.overdue || 0) > 0 ? 'var(--destructive)' : 'var(--foreground)'" [appCountUp]="stats()?.overdue || 0"></p>
             </a>
             <a routerLink="/my-tasks" [queryParams]="{ sort_by: 'due_date' }" class="animate-fade-in-up stagger-3 stat-card cursor-pointer group">
               <p class="stat-card-label">Due Today</p>
+              <div class="stat-card-icon" style="background: color-mix(in srgb, var(--status-amber-text, #9A6A08) 12%, transparent); color: var(--status-amber-text, #9A6A08)"><i class="pi pi-clock"></i></div>
               <p class="stat-card-value animate-count-up" [appCountUp]="stats()?.due_today || 0"></p>
             </a>
             <div class="animate-fade-in-up stagger-4 stat-card">
               <p class="stat-card-label">Completed This Week</p>
+              <div class="stat-card-icon" style="background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success)"><i class="pi pi-check-circle"></i></div>
               <p class="stat-card-value animate-count-up" style="color: var(--success)" [appCountUp]="stats()?.completed_this_week || 0"></p>
             </div>
           </div>

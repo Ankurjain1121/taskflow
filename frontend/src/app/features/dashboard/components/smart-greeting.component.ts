@@ -16,7 +16,7 @@ import { DashboardStats } from '../../../core/services/dashboard.service';
         class="text-2xl font-bold tracking-tight font-display"
         style="color: var(--foreground)"
       >
-        {{ greeting() }}
+        {{ greetingPrefix() }}@if (userName()) {, <span style="color: var(--primary)">{{ userName() }}</span>}@if (isQuestion()) {?}
       </h1>
       <p class="text-sm mt-1" style="color: var(--muted-foreground)">
         @if (overdue() > 0) {
@@ -42,14 +42,16 @@ export class SmartGreetingComponent {
   readonly overdue = computed(() => this.stats()?.overdue ?? 0);
   readonly dueToday = computed(() => this.stats()?.due_today ?? 0);
 
-  readonly greeting = computed(() => {
+  readonly greetingPrefix = computed(() => {
     const hour = new Date().getHours();
-    const name = this.userName();
-    const suffix = name ? `, ${name}` : '';
+    if (hour >= 5 && hour < 12) return 'Good morning';
+    if (hour >= 12 && hour < 17) return 'Good afternoon';
+    if (hour >= 17 && hour < 21) return 'Good evening';
+    return 'Burning the midnight oil';
+  });
 
-    if (hour >= 5 && hour < 12) return `Good morning${suffix}`;
-    if (hour >= 12 && hour < 17) return `Good afternoon${suffix}`;
-    if (hour >= 17 && hour < 21) return `Good evening${suffix}`;
-    return `Burning the midnight oil${suffix}?`;
+  readonly isQuestion = computed(() => {
+    const hour = new Date().getHours();
+    return hour < 5 || hour >= 21;
   });
 }

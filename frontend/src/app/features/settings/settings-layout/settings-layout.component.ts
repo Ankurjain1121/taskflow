@@ -39,7 +39,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
           </div>
         }
       </nav>
-      <main class="settings-content">
+      <main class="settings-content view-enter">
         <router-outlet />
       </main>
     </div>
