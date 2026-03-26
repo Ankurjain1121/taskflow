@@ -119,7 +119,9 @@ export interface TaskMoveEvent {
 
               <!-- Task Count -->
               <span
-                class="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--secondary)] text-[var(--foreground)]"
+                class="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium"
+                [style.background]="'color-mix(in srgb, ' + (column().color || 'var(--primary)') + ' 15%, transparent)'"
+                [style.color]="column().color || 'var(--primary)'"
               >
                 {{ tasks().length }}
               </span>

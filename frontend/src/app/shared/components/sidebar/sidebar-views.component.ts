@@ -34,6 +34,7 @@ interface ViewItem {
         color: var(--sidebar-text-primary);
       }
       .view-item.active .nav-indicator { opacity: 1; }
+      .view-item.active .pi { color: var(--primary) !important; }
       .nav-indicator {
         position: absolute; left: 0; top: 50%;
         transform: translateY(-50%);

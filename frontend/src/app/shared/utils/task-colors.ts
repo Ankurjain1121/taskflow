@@ -17,7 +17,7 @@ export const COLOR_BY_MODES: readonly ColorByMode[] = [
 /** Trello-style bright label preset colors for the label color picker */
 export const LABEL_PRESET_COLORS: readonly string[] = [
   '#E8445A', // red
-  '#F5A623', // orange
+  '#9A6A08', // orange
   '#61BD4F', // green
   '#0079BF', // blue
   '#C377E0', // purple
@@ -38,9 +38,9 @@ export const LABEL_PRESET_COLORS: readonly string[] = [
  */
 const PRIORITY_BASE = {
   urgent: { hex: '#E8445A', darkHex: '#F4707F' },
-  high:   { hex: '#F5A623', darkHex: '#F5C060' },
+  high:   { hex: '#9A6A08', darkHex: '#F5C060' },
   medium: { hex: '#2D5BE3', darkHex: '#5B82F0' },
-  low:    { hex: '#0FA882', darkHex: '#3DC9A5' },
+  low:    { hex: '#0C8A6B', darkHex: '#3DC9A5' },
 } as const;
 
 /**
@@ -128,10 +128,10 @@ export const COLUMN_COLORS: readonly { light: string; dark: string }[] = [
   { light: '#0079BF',        dark: '#4DA8DA' },
   { light: '#61BD4F',        dark: '#7DD868' },
   { light: '#E8445A',        dark: '#F4707F' },
-  { light: '#F5A623',        dark: '#F5C060' },
+  { light: '#9A6A08',        dark: '#F5C060' },
   { light: '#C377E0',        dark: '#D49EF0' },
   { light: '#00C2E0',        dark: '#3DD8F0' },
-  { light: '#0FA882',        dark: '#3DC9A5' },
+  { light: '#0C8A6B',        dark: '#3DC9A5' },
   { light: '#2D5BE3',        dark: '#5B82F0' },
   { light: '#FF78CB',        dark: '#FF9EDB' },
   { light: '#344563',        dark: '#6B7D9A' },
@@ -355,8 +355,8 @@ export function resolveCardColor(
 
 const AVATAR_GRADIENTS = [
   'linear-gradient(135deg, #2D5BE3, #4B74F0)',
-  'linear-gradient(135deg, #0FA882, #14b8a6)',
-  'linear-gradient(135deg, #F5A623, #E8445A)',
+  'linear-gradient(135deg, #0C8A6B, #14b8a6)',
+  'linear-gradient(135deg, #9A6A08, #C62828)',
   'linear-gradient(135deg, #5C6B8A, #2D5BE3)',
 ];
 

@@ -27,6 +27,7 @@ import { TooltipModule } from 'primeng/tooltip';
         color: var(--sidebar-text-primary);
       }
       .nav-item.active .nav-indicator { opacity: 1; }
+      .nav-item.active .sidebar-icon-color { color: var(--primary) !important; }
 
       .nav-indicator {
         position: absolute;

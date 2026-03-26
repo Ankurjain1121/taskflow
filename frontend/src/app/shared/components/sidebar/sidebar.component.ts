@@ -35,7 +35,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         height: 100%;
       }
       .sidebar-root {
-        background: linear-gradient(180deg, var(--sidebar-bg) 0%, color-mix(in srgb, var(--sidebar-bg) 85%, black) 100%);
+        background: var(--sidebar-gradient);
       }
       .sidebar-scrollbar::-webkit-scrollbar {
         width: 4px;
@@ -70,6 +70,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         color: var(--sidebar-text-primary);
       }
       .home-item.active .nav-indicator { opacity: 1; }
+      .home-item.active .pi { color: var(--primary) !important; }
       .nav-indicator {
         position: absolute; left: 0; top: 50%;
         transform: translateY(-50%);
