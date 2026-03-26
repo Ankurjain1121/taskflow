@@ -13,7 +13,7 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 
-use super::common::{verify_project_membership, Capability, require_capability};
+use super::common::{require_capability, verify_project_membership, Capability};
 use taskbolt_db::models::Milestone;
 use taskbolt_db::queries::get_task_project_id;
 use taskbolt_db::queries::milestones::{
@@ -82,7 +82,14 @@ async fn create_milestone_handler(
     }
 
     verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
-    require_capability(&state.db, tenant.user_id, &tenant.role, board_id, Capability::ManageProjectSettings).await?;
+    require_capability(
+        &state.db,
+        tenant.user_id,
+        &tenant.role,
+        board_id,
+        Capability::ManageProjectSettings,
+    )
+    .await?;
 
     let input = CreateMilestoneInput {
         name: body.name,
@@ -126,7 +133,14 @@ async fn update_milestone_handler(
         .ok_or_else(|| AppError::NotFound("Milestone not found".into()))?;
 
     verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
-    require_capability(&state.db, tenant.user_id, &tenant.role, board_id, Capability::ManageProjectSettings).await?;
+    require_capability(
+        &state.db,
+        tenant.user_id,
+        &tenant.role,
+        board_id,
+        Capability::ManageProjectSettings,
+    )
+    .await?;
 
     let input = UpdateMilestoneInput {
         name: body.name,
@@ -155,7 +169,14 @@ async fn delete_milestone_handler(
         .ok_or_else(|| AppError::NotFound("Milestone not found".into()))?;
 
     verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
-    require_capability(&state.db, tenant.user_id, &tenant.role, board_id, Capability::ManageProjectSettings).await?;
+    require_capability(
+        &state.db,
+        tenant.user_id,
+        &tenant.role,
+        board_id,
+        Capability::ManageProjectSettings,
+    )
+    .await?;
 
     delete_milestone(&state.db, milestone_id)
         .await

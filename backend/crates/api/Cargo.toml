@@ -41,9 +41,11 @@ data-encoding.workspace = true
 rand.workspace = true
 futures-util = "0.3"
 
+# Hex encoding
+hex.workspace = true
+
 # Regex
 regex.workspace = true
-once_cell.workspace = true
 
 # HTML sanitization
 ammonia = "4.1.2"

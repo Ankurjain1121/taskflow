@@ -20,7 +20,7 @@ use taskbolt_db::queries::{
 use taskbolt_services::broadcast::events;
 use taskbolt_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
 
-use super::common::{verify_project_membership, Capability, require_capability};
+use super::common::{require_capability, verify_project_membership, Capability};
 use super::task_helpers::{
     broadcast_workspace_task_update, get_workspace_id_for_board, sanitize_html, CreateTaskRequest,
     ListTasksResponse, UpdateTaskRequest,
@@ -91,7 +91,14 @@ pub async fn create_task_handler(
 ) -> Result<Json<Task>> {
     // Verify board membership first
     verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
-    require_capability(&state.db, tenant.user_id, &tenant.role, board_id, Capability::CreateTasks).await?;
+    require_capability(
+        &state.db,
+        tenant.user_id,
+        &tenant.role,
+        board_id,
+        Capability::CreateTasks,
+    )
+    .await?;
 
     // Validate string lengths
     validate_required_string("Title", &body.title, MAX_NAME_LEN)?;
@@ -376,7 +383,14 @@ pub async fn delete_task_handler(
 
     // Verify board membership
     verify_project_membership(&state.db, board_id, tenant.user_id, &tenant.role).await?;
-    require_capability(&state.db, tenant.user_id, &tenant.role, board_id, Capability::DeleteTasks).await?;
+    require_capability(
+        &state.db,
+        tenant.user_id,
+        &tenant.role,
+        board_id,
+        Capability::DeleteTasks,
+    )
+    .await?;
 
     soft_delete_task(&state.db, task_id)
         .await

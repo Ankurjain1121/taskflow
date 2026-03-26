@@ -16,6 +16,7 @@
 .env
 .env.local
 .env.*.local
+.env.production
 !.env.example
 
 # IDE
@@ -38,9 +39,6 @@ nul
 
 # Docker volumes
 docker-data/
-
-# Caddy backup (may contain secrets)
-Caddyfile.backup
 
 # Logs
 *.log

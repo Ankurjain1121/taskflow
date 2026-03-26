@@ -18,7 +18,6 @@ reqwest.workspace = true
 redis.workspace = true
 tokio.workspace = true
 aws-sdk-s3.workspace = true
-once_cell.workspace = true
 
 taskbolt-db = { path = "../db" }
 

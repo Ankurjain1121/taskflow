@@ -237,12 +237,22 @@ pub async fn forgot_password_handler(
             reset_url
         );
 
-        let postal = PostalClient::new(
+        let postal = match PostalClient::new(
             state.config.postal_api_url.clone(),
             state.config.postal_api_key.clone(),
             state.config.postal_from_address.clone(),
             state.config.postal_from_name.clone(),
-        );
+        ) {
+            Ok(p) => p,
+            Err(e) => {
+                tracing::error!(error = %e, "Failed to create Postal client for password reset");
+                return Ok(Json(MessageResponse {
+                    message:
+                        "If an account with that email exists, a password reset link has been sent."
+                            .into(),
+                }));
+            }
+        };
 
         if let Err(e) = postal.send_email(&payload.email, subject, &html_body).await {
             tracing::error!(error = %e, email = %payload.email, "Failed to send password reset email");

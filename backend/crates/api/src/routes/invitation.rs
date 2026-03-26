@@ -170,9 +170,13 @@ fn spawn_invitation_emails(
 ) {
     tokio::spawn(async move {
         let client = match ResendClient::from_env() {
-            Some(c) => c,
-            None => {
+            Ok(Some(c)) => c,
+            Ok(None) => {
                 tracing::warn!("Invitation emails skipped: RESEND_API_KEY not set");
+                return;
+            }
+            Err(e) => {
+                tracing::error!(error = %e, "Invitation emails skipped: failed to create Resend client");
                 return;
             }
         };
@@ -282,7 +286,9 @@ pub async fn create_handler(
     let inviter = auth::get_user_by_id(&state.db, auth.0.user_id).await?;
     let workspace =
         workspaces::get_workspace_by_id(&state.db, payload.workspace_id, auth.0.tenant_id).await?;
-    let inviter_name = inviter.map(|u| u.name).unwrap_or_else(|| "A teammate".into());
+    let inviter_name = inviter
+        .map(|u| u.name)
+        .unwrap_or_else(|| "A teammate".into());
     let workspace_name = workspace
         .map(|w| w.workspace.name)
         .unwrap_or_else(|| "your workspace".into());
@@ -697,7 +703,9 @@ pub async fn bulk_create_handler(
         let workspace =
             workspaces::get_workspace_by_id(&state.db, payload.workspace_id, auth.0.tenant_id)
                 .await?;
-        let inviter_name = inviter.map(|u| u.name).unwrap_or_else(|| "A teammate".into());
+        let inviter_name = inviter
+            .map(|u| u.name)
+            .unwrap_or_else(|| "A teammate".into());
         let workspace_name = workspace
             .map(|w| w.workspace.name)
             .unwrap_or_else(|| "your workspace".into());
@@ -822,7 +830,9 @@ pub async fn resend_handler(
     let inviter = auth::get_user_by_id(&state.db, auth.0.user_id).await?;
     let workspace =
         workspaces::get_workspace_by_id(&state.db, inv.workspace_id, auth.0.tenant_id).await?;
-    let inviter_name = inviter.map(|u| u.name).unwrap_or_else(|| "A teammate".into());
+    let inviter_name = inviter
+        .map(|u| u.name)
+        .unwrap_or_else(|| "A teammate".into());
     let workspace_name = workspace
         .map(|w| w.workspace.name)
         .unwrap_or_else(|| "your workspace".into());

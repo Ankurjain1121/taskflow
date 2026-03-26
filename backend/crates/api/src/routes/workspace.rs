@@ -762,18 +762,11 @@ async fn get_my_capabilities(
     let is_member =
         workspaces::is_workspace_member(&state.db, workspace_id, auth.0.user_id).await?;
     if !is_member {
-        return Err(AppError::Forbidden(
-            "Not a member of this workspace".into(),
-        ));
+        return Err(AppError::Forbidden("Not a member of this workspace".into()));
     }
 
-    let caps = resolve_effective_permissions(
-        &state.db,
-        auth.0.user_id,
-        &auth.0.role,
-        workspace_id,
-    )
-    .await?;
+    let caps = resolve_effective_permissions(&state.db, auth.0.user_id, &auth.0.role, workspace_id)
+        .await?;
 
     Ok(Json(caps))
 }

@@ -4,8 +4,8 @@
 
 use std::collections::HashSet;
 
-use taskbolt_db::models::{UserRole, WorkspaceMemberRole};
 use taskbolt_db::models::workspace_role::Capabilities;
+use taskbolt_db::models::{UserRole, WorkspaceMemberRole};
 use thiserror::Error;
 
 /// All available permissions in the system

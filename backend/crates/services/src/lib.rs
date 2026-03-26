@@ -23,11 +23,10 @@ pub use jobs::{
 pub use minio::{MinioConfig, MinioError, MinioService};
 pub use notifications::dispatcher::{notify, DispatchError, DispatchResult, NotifyContext};
 pub use notifications::{
-    build_email_provider, generate_invitation_html, generate_weekly_digest_html,
-    is_slack_enabled, is_whatsapp_enabled,
-    send_slack_notification, send_whatsapp_notification, AnyEmailProvider, EmailError,
-    NotificationEvent, NotificationService, NotificationServiceError, PostalClient, ResendClient,
-    SlackError, WhatsAppError,
+    build_email_provider, generate_invitation_html, generate_weekly_digest_html, is_slack_enabled,
+    is_whatsapp_enabled, send_slack_notification, send_whatsapp_notification, AnyEmailProvider,
+    EmailError, NotificationEvent, NotificationService, NotificationServiceError, PostalClient,
+    ResendClient, SlackError, WhatsAppError,
 };
 pub use novu::{NovuClient, NovuError};
 pub use presence::{PresenceError, PresenceService, TaskLockInfo};

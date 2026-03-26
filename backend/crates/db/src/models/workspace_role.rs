@@ -89,7 +89,8 @@ impl Capabilities {
             can_edit_all_tasks: self.can_edit_all_tasks && other.can_edit_all_tasks,
             can_delete_tasks: self.can_delete_tasks && other.can_delete_tasks,
             can_manage_members: self.can_manage_members && other.can_manage_members,
-            can_manage_project_settings: self.can_manage_project_settings && other.can_manage_project_settings,
+            can_manage_project_settings: self.can_manage_project_settings
+                && other.can_manage_project_settings,
             can_manage_automations: self.can_manage_automations && other.can_manage_automations,
             can_export: self.can_export && other.can_export,
             can_manage_billing: self.can_manage_billing && other.can_manage_billing,

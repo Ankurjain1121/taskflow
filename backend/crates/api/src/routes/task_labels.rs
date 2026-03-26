@@ -2,13 +2,13 @@
 //!
 //! Manage label assignments on individual tasks.
 
+use crate::services::cache;
 use axum::{
     extract::{Path, State},
     routing::{get, post},
     Json, Router,
 };
 use serde::Serialize;
-use crate::services::cache;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};

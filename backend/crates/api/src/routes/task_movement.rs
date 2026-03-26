@@ -227,7 +227,13 @@ pub async fn move_task_to_project_handler(
 
     // 2. Verify user membership in BOTH source and target projects
     verify_project_membership(&state.db, source_project_id, tenant.user_id, &tenant.role).await?;
-    verify_project_membership(&state.db, body.target_project_id, tenant.user_id, &tenant.role).await?;
+    verify_project_membership(
+        &state.db,
+        body.target_project_id,
+        tenant.user_id,
+        &tenant.role,
+    )
+    .await?;
 
     // 3. Verify target_status_id belongs to target_project_id
     let status_exists = sqlx::query_scalar::<_, Uuid>(

@@ -77,25 +77,29 @@ impl ResendClient {
     /// Create a new Resend client.
     ///
     /// Returns `None` if `RESEND_API_KEY` is empty or not set.
-    pub fn from_env() -> Option<Self> {
-        let api_key = std::env::var("RESEND_API_KEY")
+    /// Returns `Err` if the HTTP client cannot be initialized (e.g. TLS failure).
+    pub fn from_env() -> Result<Option<Self>, EmailError> {
+        let api_key = match std::env::var("RESEND_API_KEY")
             .ok()
-            .filter(|s| !s.is_empty())?;
+            .filter(|s| !s.is_empty())
+        {
+            Some(k) => k,
+            None => return Ok(None),
+        };
         let from_address = std::env::var("RESEND_FROM_ADDRESS")
             .unwrap_or_else(|_| "noreply@taskbolt.local".into());
         let from_name = std::env::var("RESEND_FROM_NAME").unwrap_or_else(|_| "TaskBolt".into());
 
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .expect("Failed to create HTTP client");
+            .build()?;
 
-        Some(Self {
+        Ok(Some(Self {
             client,
             api_key,
             from_address,
             from_name,
-        })
+        }))
     }
 }
 
@@ -171,19 +175,23 @@ impl PostalClient {
     /// * `api_key` - The Postal API key
     /// * `from_address` - The sender email address
     /// * `from_name` - The sender display name
-    pub fn new(api_url: String, api_key: String, from_address: String, from_name: String) -> Self {
+    pub fn new(
+        api_url: String,
+        api_key: String,
+        from_address: String,
+        from_name: String,
+    ) -> Result<Self, EmailError> {
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .expect("Failed to create HTTP client");
+            .build()?;
 
-        Self {
+        Ok(Self {
             client,
             api_url: api_url.trim_end_matches('/').to_string(),
             api_key,
             from_address,
             from_name,
-        }
+        })
     }
 
     /// Send an email via Postal
@@ -303,11 +311,11 @@ pub fn build_email_provider(
     config_postal_api_url: &str,
     config_postal_from_address: &str,
     config_postal_from_name: &str,
-) -> Option<AnyEmailProvider> {
+) -> Result<Option<AnyEmailProvider>, EmailError> {
     // Try Resend first
-    if let Some(resend) = ResendClient::from_env() {
+    if let Some(resend) = ResendClient::from_env()? {
         tracing::info!("Email provider: Resend (RESEND_API_KEY set)");
-        return Some(AnyEmailProvider::Resend(resend));
+        return Ok(Some(AnyEmailProvider::Resend(resend)));
     }
 
     // Fall back to Postal
@@ -318,12 +326,12 @@ pub fn build_email_provider(
             config_postal_api_key.to_string(),
             config_postal_from_address.to_string(),
             config_postal_from_name.to_string(),
-        );
-        return Some(AnyEmailProvider::Postal(postal));
+        )?;
+        return Ok(Some(AnyEmailProvider::Postal(postal)));
     }
 
     tracing::warn!("Email disabled: neither RESEND_API_KEY nor POSTAL_API_KEY is set");
-    None
+    Ok(None)
 }
 
 /// Generate HTML email for weekly digest
@@ -466,7 +474,8 @@ mod tests {
             "test-api-key".to_string(),
             "noreply@example.com".to_string(),
             "TaskBolt".to_string(),
-        );
+        )
+        .expect("Failed to create PostalClient");
         assert_eq!(client.api_url, "https://postal.example.com");
     }
 
@@ -484,7 +493,8 @@ mod tests {
             "test-key".to_string(),
             "noreply@example.com".to_string(),
             "TaskBolt".to_string(),
-        );
+        )
+        .expect("Failed to create PostalClient");
         assert_eq!(client.api_url, "https://postal.example.com");
     }
 

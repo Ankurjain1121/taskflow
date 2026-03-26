@@ -56,8 +56,7 @@ async fn list_projects(
         return Ok(Json(cached));
     }
 
-    let projects_list =
-        projects::list_projects_by_workspace(&state.db, workspace_id).await?;
+    let projects_list = projects::list_projects_by_workspace(&state.db, workspace_id).await?;
 
     let response: Vec<ProjectResponse> = projects_list
         .into_iter()
