@@ -79,14 +79,24 @@ import { Board } from '../../../core/services/project.service';
         opacity: 0.9;
       }
       .cdk-drag-placeholder { opacity: 0.3; }
+      .sidebar-label {
+        transition: opacity 200ms ease, max-width 200ms ease;
+        overflow: hidden;
+        white-space: nowrap;
+        opacity: 1;
+        max-width: 200px;
+      }
+      :host-context(.sidebar-collapsed) .sidebar-label {
+        opacity: 0;
+        max-width: 0;
+        pointer-events: none;
+      }
     `,
   ],
   template: `
-    @if (!collapsed()) {
-      <div class="section-label mt-1 mb-1.5">
-        <span>Projects</span>
-      </div>
-    }
+    <div class="section-label mt-1 mb-1.5 sidebar-label">
+      <span>Projects</span>
+    </div>
 
     @if (ctx.loading()) {
       <div class="px-3 space-y-2 py-1">

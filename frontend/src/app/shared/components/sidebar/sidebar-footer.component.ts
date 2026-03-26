@@ -40,40 +40,42 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         transition: background var(--duration-fast) var(--ease-standard);
       }
       .collapsed-icon-btn:hover { background: var(--sidebar-surface-hover); }
+      .sidebar-label {
+        transition: opacity 200ms ease, max-width 200ms ease;
+        overflow: hidden;
+        white-space: nowrap;
+        opacity: 1;
+        max-width: 200px;
+      }
+      :host-context(.sidebar-collapsed) .sidebar-label {
+        opacity: 0;
+        max-width: 0;
+        pointer-events: none;
+      }
     `,
   ],
   template: `
     <div class="flex-shrink-0 px-2 pb-2 relative">
       <div class="h-px mx-1 mb-2" style="background: var(--sidebar-border)"></div>
 
-      @if (!collapsed()) {
-        <!-- Manage -->
-        <a [routerLink]="manageRoute()" routerLinkActive="active"
-           class="footer-item flex items-center gap-3 px-3 py-2 rounded-md text-sm">
-          <span class="nav-indicator"></span>
-          <i class="pi pi-cog text-sm flex-shrink-0" style="color: var(--sidebar-text-muted)"></i>
-          <span style="color: var(--sidebar-text-secondary)">Manage</span>
-        </a>
-        <!-- Help -->
-        <a routerLink="/help" routerLinkActive="active"
-           class="footer-item flex items-center gap-3 px-3 py-2 rounded-md text-sm">
-          <span class="nav-indicator"></span>
-          <i class="pi pi-question-circle text-sm flex-shrink-0" style="color: var(--sidebar-text-muted)"></i>
-          <span style="color: var(--sidebar-text-secondary)">Help</span>
-        </a>
-      } @else {
-        <!-- Collapsed footer -->
-        <div class="space-y-0.5">
-          <a [routerLink]="manageRoute()" routerLinkActive="active"
-             class="collapsed-icon-btn" pTooltip="Manage" tooltipPosition="right">
-            <i class="pi pi-cog text-sm" style="color: var(--sidebar-text-muted)"></i>
-          </a>
-          <a routerLink="/help" routerLinkActive="active"
-             class="collapsed-icon-btn" pTooltip="Help" tooltipPosition="right">
-            <i class="pi pi-question-circle text-sm" style="color: var(--sidebar-text-muted)"></i>
-          </a>
-        </div>
-      }
+      <!-- Manage -->
+      <a [routerLink]="manageRoute()" routerLinkActive="active"
+         class="footer-item flex items-center gap-3 px-3 py-2 rounded-md text-sm"
+         [class.justify-center]="collapsed()"
+         [pTooltip]="collapsed() ? 'Manage' : ''" tooltipPosition="right">
+        <span class="nav-indicator"></span>
+        <i class="pi pi-cog text-sm flex-shrink-0" style="color: var(--sidebar-text-muted)"></i>
+        <span class="sidebar-label" style="color: var(--sidebar-text-secondary)">Manage</span>
+      </a>
+      <!-- Help -->
+      <a routerLink="/help" routerLinkActive="active"
+         class="footer-item flex items-center gap-3 px-3 py-2 rounded-md text-sm"
+         [class.justify-center]="collapsed()"
+         [pTooltip]="collapsed() ? 'Help' : ''" tooltipPosition="right">
+        <span class="nav-indicator"></span>
+        <i class="pi pi-question-circle text-sm flex-shrink-0" style="color: var(--sidebar-text-muted)"></i>
+        <span class="sidebar-label" style="color: var(--sidebar-text-secondary)">Help</span>
+      </a>
     </div>
   `,
 })

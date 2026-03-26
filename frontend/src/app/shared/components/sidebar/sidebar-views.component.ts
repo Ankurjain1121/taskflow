@@ -56,38 +56,37 @@ interface ViewItem {
         transition: background var(--duration-fast) var(--ease-standard);
       }
       .collapsed-icon-btn:hover { background: var(--sidebar-surface-hover); }
+      .sidebar-label {
+        transition: opacity 200ms ease, max-width 200ms ease;
+        overflow: hidden;
+        white-space: nowrap;
+        opacity: 1;
+        max-width: 200px;
+      }
+      :host-context(.sidebar-collapsed) .sidebar-label {
+        opacity: 0;
+        max-width: 0;
+        pointer-events: none;
+      }
     `,
   ],
   template: `
-    @if (!collapsed()) {
-      <div class="section-label mt-1 mb-1.5">Views</div>
-      <div class="space-y-0.5">
-        @for (view of views(); track view.label) {
-          <a [routerLink]="view.path"
-             routerLinkActive="active"
-             (click)="navClick.emit()"
-             class="view-item flex items-center gap-3 px-3 py-2 rounded-md text-sm">
-            <span class="nav-indicator"></span>
-            <i class="pi {{ view.icon }} text-sm flex-shrink-0"
-               style="color: var(--sidebar-text-muted)"></i>
-            <span style="color: var(--sidebar-text-secondary)">{{ view.label }}</span>
-          </a>
-        }
-      </div>
-    } @else {
-      <div class="space-y-0.5">
-        @for (view of views(); track view.label) {
-          <a [routerLink]="view.path"
-             routerLinkActive="active"
-             (click)="navClick.emit()"
-             class="collapsed-icon-btn"
-             [pTooltip]="view.label" tooltipPosition="right">
-            <i class="pi {{ view.icon }} text-sm"
-               style="color: var(--sidebar-text-muted)"></i>
-          </a>
-        }
-      </div>
-    }
+    <div class="section-label mt-1 mb-1.5 sidebar-label">Views</div>
+    <div class="space-y-0.5">
+      @for (view of views(); track view.label) {
+        <a [routerLink]="view.path"
+           routerLinkActive="active"
+           (click)="navClick.emit()"
+           class="view-item flex items-center gap-3 px-3 py-2 rounded-md text-sm"
+           [class.justify-center]="collapsed()"
+           [pTooltip]="collapsed() ? view.label : ''" tooltipPosition="right">
+          <span class="nav-indicator"></span>
+          <i class="pi {{ view.icon }} text-sm flex-shrink-0"
+             style="color: var(--sidebar-text-muted)"></i>
+          <span class="sidebar-label" style="color: var(--sidebar-text-secondary)">{{ view.label }}</span>
+        </a>
+      }
+    </div>
   `,
 })
 export class SidebarViewsComponent {
