@@ -1534,6 +1534,92 @@ small.p-error,
 }
 
 /* ============================================
+   Micro-Interaction Animations (animate pass)
+   ============================================ */
+
+/* Tab active indicator slide */
+.p-tabs .p-tablist-active-bar {
+  transition: transform var(--duration-normal) var(--ease-out-expo),
+              width var(--duration-normal) var(--ease-out-expo);
+}
+
+/* Sidebar icon color transition on active state */
+.sidebar-icon-color,
+.home-item .pi,
+.nav-item .pi {
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+/* Subtask completion transition */
+.line-through {
+  transition: color var(--duration-normal) var(--ease-standard),
+              opacity var(--duration-normal) var(--ease-standard);
+}
+
+/* Expand/collapse chevron rotation */
+.pi-chevron-right,
+.pi-chevron-down {
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+/* Column count change pulse */
+@keyframes countPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+.count-pulse {
+  animation: countPulse 0.3s var(--ease-out-expo);
+}
+
+/* Checkbox check draw animation */
+@keyframes checkDraw {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+.check-draw path,
+.check-draw polyline {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 0;
+  animation: checkDraw 0.25s var(--ease-out-expo) both;
+}
+
+/* Checkbox background transition */
+.p-checkbox .p-checkbox-box {
+  transition: background-color var(--duration-fast) var(--ease-standard),
+              border-color var(--duration-fast) var(--ease-standard);
+}
+
+/* Accordion panel easing override */
+.p-accordion .p-accordionpanel-content {
+  transition: max-height var(--duration-normal) var(--ease-out-expo),
+              padding var(--duration-normal) var(--ease-out-expo);
+}
+.p-accordion .p-accordionheader-toggle-icon {
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .count-pulse,
+  .check-draw path,
+  .check-draw polyline {
+    animation: none !important;
+  }
+  .p-tabs .p-tablist-active-bar,
+  .sidebar-icon-color,
+  .home-item .pi,
+  .nav-item .pi,
+  .line-through,
+  .pi-chevron-right,
+  .pi-chevron-down,
+  .p-checkbox .p-checkbox-box,
+  .p-accordion .p-accordionpanel-content,
+  .p-accordion .p-accordionheader-toggle-icon {
+    transition: none !important;
+  }
+}
+
+/* ============================================
    Print Styles — Client-Side PDF Export
    ============================================ */
 @media print {

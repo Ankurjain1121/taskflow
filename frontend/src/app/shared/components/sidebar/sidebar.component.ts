@@ -87,6 +87,21 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         transition: background var(--duration-fast) var(--ease-standard);
       }
       .collapsed-home-btn:hover { background: var(--sidebar-surface-hover); }
+      .sidebar-label {
+        transition: opacity 200ms ease, max-width 200ms ease;
+        overflow: hidden;
+        white-space: nowrap;
+        opacity: 1;
+        max-width: 200px;
+      }
+      .sidebar-collapsed .sidebar-label {
+        opacity: 0;
+        max-width: 0;
+        pointer-events: none;
+      }
+      .collapse-icon {
+        transition: transform 200ms ease;
+      }
     `,
   ],
   template: `
@@ -97,55 +112,36 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
            (keydown)="onSidebarKeydown($event)"
            [class.w-64]="!collapsed()"
            [class.w-14]="collapsed()"
+           [class.sidebar-collapsed]="collapsed()"
            [class.sidebar-open]="isMobileOpen()">
 
       <!-- Projects + Views (scrollable) -->
       <div class="flex-1 overflow-y-auto sidebar-scrollbar px-2 py-2">
-        @if (!collapsed()) {
-          <a [routerLink]="dashboardRoute()"
-             routerLinkActive="active"
-             [routerLinkActiveOptions]="{ exact: true }"
-             (click)="onNavClick()"
-             class="home-item flex items-center gap-3 px-3 py-2 rounded-md text-sm mb-2">
-            <span class="nav-indicator"></span>
-            <i class="pi pi-home text-sm flex-shrink-0"
-               style="color: var(--sidebar-text-muted)"></i>
-            <span style="color: var(--sidebar-text-secondary)">Home</span>
-          </a>
-        } @else {
-          <a [routerLink]="dashboardRoute()"
-             routerLinkActive="active"
-             [routerLinkActiveOptions]="{ exact: true }"
-             (click)="onNavClick()"
-             class="collapsed-home-btn mb-1"
-             pTooltip="Home" tooltipPosition="right">
-            <i class="pi pi-home text-sm"
-               style="color: var(--sidebar-text-muted)"></i>
-          </a>
-        }
+        <a [routerLink]="dashboardRoute()"
+           routerLinkActive="active"
+           [routerLinkActiveOptions]="{ exact: true }"
+           (click)="onNavClick()"
+           class="home-item flex items-center gap-3 px-3 py-2 rounded-md text-sm mb-2"
+           [class.justify-center]="collapsed()"
+           [pTooltip]="collapsed() ? 'Home' : ''" tooltipPosition="right">
+          <span class="nav-indicator"></span>
+          <i class="pi pi-home text-sm flex-shrink-0"
+             style="color: var(--sidebar-text-muted)"></i>
+          <span class="sidebar-label" style="color: var(--sidebar-text-secondary)">Home</span>
+        </a>
 
-        @if (!collapsed()) {
-          <a routerLink="/discover"
-             routerLinkActive="active"
-             [routerLinkActiveOptions]="{ exact: true }"
-             (click)="onNavClick()"
-             class="home-item flex items-center gap-3 px-3 py-2 rounded-md text-sm mb-2">
-            <span class="nav-indicator"></span>
-            <i class="pi pi-compass text-sm flex-shrink-0"
-               style="color: var(--sidebar-text-muted)"></i>
-            <span style="color: var(--sidebar-text-secondary)">Discover</span>
-          </a>
-        } @else {
-          <a routerLink="/discover"
-             routerLinkActive="active"
-             [routerLinkActiveOptions]="{ exact: true }"
-             (click)="onNavClick()"
-             class="collapsed-home-btn mb-1"
-             pTooltip="Discover" tooltipPosition="right">
-            <i class="pi pi-compass text-sm"
-               style="color: var(--sidebar-text-muted)"></i>
-          </a>
-        }
+        <a routerLink="/discover"
+           routerLinkActive="active"
+           [routerLinkActiveOptions]="{ exact: true }"
+           (click)="onNavClick()"
+           class="home-item flex items-center gap-3 px-3 py-2 rounded-md text-sm mb-2"
+           [class.justify-center]="collapsed()"
+           [pTooltip]="collapsed() ? 'Discover' : ''" tooltipPosition="right">
+          <span class="nav-indicator"></span>
+          <i class="pi pi-compass text-sm flex-shrink-0"
+             style="color: var(--sidebar-text-muted)"></i>
+          <span class="sidebar-label" style="color: var(--sidebar-text-secondary)">Discover</span>
+        </a>
 
         <app-sidebar-projects
           [collapsed]="collapsed()"
@@ -174,12 +170,9 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
           style="color: var(--sidebar-text-secondary)"
           [title]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
         >
-          <i class="pi text-xs"
-             [class.pi-angle-double-right]="collapsed()"
-             [class.pi-angle-double-left]="!collapsed()"></i>
-          @if (!collapsed()) {
-            <span class="text-xs ml-2" style="color: var(--sidebar-text-muted)">Collapse</span>
-          }
+          <i class="pi pi-angle-double-left text-xs collapse-icon"
+             [style.transform]="collapsed() ? 'rotate(180deg)' : 'rotate(0)'"></i>
+          <span class="sidebar-label text-xs ml-2" style="color: var(--sidebar-text-muted)">Collapse</span>
         </button>
       </div>
 
