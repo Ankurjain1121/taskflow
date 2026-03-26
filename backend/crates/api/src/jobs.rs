@@ -53,18 +53,24 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
     // Only starts if Postal is configured. Resend-only setups skip the worker
     // (the dispatcher enqueues jobs; a future worker upgrade will use the trait).
     if !config.postal_api_key.is_empty() {
-        let postal = taskbolt_services::PostalClient::new(
+        match taskbolt_services::PostalClient::new(
             config.postal_api_url.clone(),
             config.postal_api_key.clone(),
             config.postal_from_address.clone(),
             config.postal_from_name.clone(),
-        );
-        let worker_redis = state.redis.clone();
-        tracing::info!("Email worker started (provider: Postal)");
-        tokio::spawn(taskbolt_services::jobs::email_worker::run_email_worker(
-            worker_redis,
-            postal,
-        ));
+        ) {
+            Ok(postal) => {
+                let worker_redis = state.redis.clone();
+                tracing::info!("Email worker started (provider: Postal)");
+                tokio::spawn(taskbolt_services::jobs::email_worker::run_email_worker(
+                    worker_redis,
+                    postal,
+                ));
+            }
+            Err(e) => {
+                tracing::error!(error = %e, "Failed to create Postal client for email worker");
+            }
+        }
     } else if std::env::var("RESEND_API_KEY")
         .ok()
         .filter(|s| !s.is_empty())
@@ -90,12 +96,18 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
                     tracing::debug!("Daily digest skipped: no email provider configured");
                     continue;
                 }
-                let postal = taskbolt_services::PostalClient::new(
+                let postal = match taskbolt_services::PostalClient::new(
                     digest_config.postal_api_url.clone(),
                     digest_config.postal_api_key.clone(),
                     digest_config.postal_from_address.clone(),
                     digest_config.postal_from_name.clone(),
-                );
+                ) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        tracing::error!(error = %e, "Daily digest: failed to create Postal client");
+                        continue;
+                    }
+                };
                 match taskbolt_services::jobs::daily_digest::send_daily_digests(
                     &digest_pool,
                     &postal,
@@ -130,12 +142,18 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
                     tracing::debug!("Weekly digest skipped: no email provider configured");
                     continue;
                 }
-                let postal = taskbolt_services::PostalClient::new(
+                let postal = match taskbolt_services::PostalClient::new(
                     digest_config.postal_api_url.clone(),
                     digest_config.postal_api_key.clone(),
                     digest_config.postal_from_address.clone(),
                     digest_config.postal_from_name.clone(),
-                );
+                ) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        tracing::error!(error = %e, "Weekly digest: failed to create Postal client");
+                        continue;
+                    }
+                };
                 match taskbolt_services::send_weekly_digests(
                     &digest_pool,
                     &postal,

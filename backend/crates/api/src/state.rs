@@ -106,7 +106,7 @@ impl AppState {
                 config.waha_api_url.clone(),
                 config.waha_api_key.clone(),
                 Some(config.waha_session_name.clone()),
-            ))
+            )?)
         } else {
             tracing::info!("WhatsApp client disabled (WAHA_ENABLED not set or missing config)");
             None

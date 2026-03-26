@@ -9,10 +9,10 @@ use axum::{
     routing::{delete, get, post, put},
     Json, Router,
 };
-use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::sync::LazyLock;
 use uuid::Uuid;
 
 use crate::errors::{AppError, Result};
@@ -35,8 +35,8 @@ use super::task_helpers::sanitize_html;
 use super::validation::{validate_required_string, MAX_DESCRIPTION_LEN};
 
 /// Regex for extracting @mentions in format @[username](userId)
-static MENTION_REGEX: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"@\[([^\]]+)\]\(([a-f0-9-]+)\)").unwrap());
+static MENTION_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"@\[([^\]]+)\]\(([a-f0-9-]+)\)").unwrap());
 
 /// Response for listing comments
 #[derive(Serialize)]

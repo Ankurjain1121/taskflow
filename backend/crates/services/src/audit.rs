@@ -2,60 +2,61 @@
 //!
 //! Provides centralized audit event recording with route-to-action mapping.
 
-use once_cell::sync::Lazy;
 use serde_json::Value as JsonValue;
 use sqlx::PgPool;
 use std::collections::HashMap;
+use std::sync::LazyLock;
 use uuid::Uuid;
 
 use taskbolt_db::models::ActivityAction;
 
 /// Maps route identifiers to activity actions
-pub static ROUTE_ACTION_MAP: Lazy<HashMap<&'static str, ActivityAction>> = Lazy::new(|| {
-    let mut map = HashMap::new();
+pub static ROUTE_ACTION_MAP: LazyLock<HashMap<&'static str, ActivityAction>> =
+    LazyLock::new(|| {
+        let mut map = HashMap::new();
 
-    // Task actions
-    map.insert("tasks.create", ActivityAction::Created);
-    map.insert("tasks.update", ActivityAction::Updated);
-    map.insert("tasks.move", ActivityAction::Moved);
-    map.insert("tasks.assign", ActivityAction::Assigned);
-    map.insert("tasks.unassign", ActivityAction::Unassigned);
-    map.insert("tasks.delete", ActivityAction::Deleted);
+        // Task actions
+        map.insert("tasks.create", ActivityAction::Created);
+        map.insert("tasks.update", ActivityAction::Updated);
+        map.insert("tasks.move", ActivityAction::Moved);
+        map.insert("tasks.assign", ActivityAction::Assigned);
+        map.insert("tasks.unassign", ActivityAction::Unassigned);
+        map.insert("tasks.delete", ActivityAction::Deleted);
 
-    // Board actions
-    map.insert("boards.create", ActivityAction::Created);
-    map.insert("boards.update", ActivityAction::Updated);
-    map.insert("boards.delete", ActivityAction::Deleted);
+        // Board actions
+        map.insert("boards.create", ActivityAction::Created);
+        map.insert("boards.update", ActivityAction::Updated);
+        map.insert("boards.delete", ActivityAction::Deleted);
 
-    // Comment actions
-    map.insert("comments.create", ActivityAction::Commented);
-    map.insert("comments.update", ActivityAction::Updated);
-    map.insert("comments.delete", ActivityAction::Deleted);
+        // Comment actions
+        map.insert("comments.create", ActivityAction::Commented);
+        map.insert("comments.update", ActivityAction::Updated);
+        map.insert("comments.delete", ActivityAction::Deleted);
 
-    // Attachment actions
-    map.insert("attachments.upload", ActivityAction::Attached);
-    map.insert("attachments.delete", ActivityAction::Deleted);
+        // Attachment actions
+        map.insert("attachments.upload", ActivityAction::Attached);
+        map.insert("attachments.delete", ActivityAction::Deleted);
 
-    // Admin actions
-    map.insert("admin.update_role", ActivityAction::Updated);
-    map.insert("admin.delete_user", ActivityAction::Deleted);
+        // Admin actions
+        map.insert("admin.update_role", ActivityAction::Updated);
+        map.insert("admin.delete_user", ActivityAction::Deleted);
 
-    // Trash bin actions
-    map.insert("trash.restore", ActivityAction::Updated);
-    map.insert("trash.permanent_delete", ActivityAction::Deleted);
+        // Trash bin actions
+        map.insert("trash.restore", ActivityAction::Updated);
+        map.insert("trash.permanent_delete", ActivityAction::Deleted);
 
-    // Workspace actions
-    map.insert("workspaces.create", ActivityAction::Created);
-    map.insert("workspaces.update", ActivityAction::Updated);
-    map.insert("workspaces.delete", ActivityAction::Deleted);
+        // Workspace actions
+        map.insert("workspaces.create", ActivityAction::Created);
+        map.insert("workspaces.update", ActivityAction::Updated);
+        map.insert("workspaces.delete", ActivityAction::Deleted);
 
-    // Column actions
-    map.insert("columns.create", ActivityAction::Created);
-    map.insert("columns.update", ActivityAction::Updated);
-    map.insert("columns.delete", ActivityAction::Deleted);
+        // Column actions
+        map.insert("columns.create", ActivityAction::Created);
+        map.insert("columns.update", ActivityAction::Updated);
+        map.insert("columns.delete", ActivityAction::Deleted);
 
-    map
-});
+        map
+    });
 
 /// Error type for audit operations
 #[derive(Debug, thiserror::Error)]

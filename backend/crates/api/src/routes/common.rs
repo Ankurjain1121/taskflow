@@ -160,9 +160,7 @@ pub async fn resolve_effective_permissions(
     .await?;
 
     let ws_caps = match ws_caps_row {
-        Some(json_val) => {
-            serde_json::from_value::<Capabilities>(json_val).unwrap_or_default()
-        }
+        Some(json_val) => serde_json::from_value::<Capabilities>(json_val).unwrap_or_default(),
         None => {
             // No workspace role assigned yet — fall back to org caps only
             return Ok(org_caps);

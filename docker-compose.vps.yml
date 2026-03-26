@@ -1,50 +1,24 @@
 # =============================================================================
-# TaskBolt - VPS Production Deployment with Caddy
+# TaskBolt - VPS Production Deployment (Nginx reverse proxy on host)
 # =============================================================================
 # Usage:
 #   docker compose -f docker-compose.yml -f docker-compose.vps.yml up -d
 #
 # This overlay:
-#   - Adds Caddy for automatic HTTPS
-#   - Removes port exposures (Caddy handles all traffic)
+#   - Removes port exposures (Nginx on host handles all traffic)
 #   - Sets production-ready configurations
 # =============================================================================
 
 services:
   # ===========================================================================
-  # Caddy - Reverse Proxy with Automatic HTTPS
-  # ===========================================================================
-  caddy:
-    image: caddy:2-alpine
-    container_name: taskbolt-caddy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"  # HTTP/3
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    environment:
-      DOMAIN: ${DOMAIN:-taskbolt.localhost}
-    networks:
-      - taskbolt-network
-    depends_on:
-      frontend:
-        condition: service_healthy
-      backend:
-        condition: service_healthy
-
-  # ===========================================================================
   # Override Services - Remove Direct Port Exposures
   # ===========================================================================
 
-  # Frontend: Remove port 80 exposure (Caddy handles it)
+  # Frontend: Remove port 80 exposure (Nginx handles it)
   frontend:
     ports: !override []
 
-  # Backend: Remove port 8080 exposure (Caddy handles it)
+  # Backend: Remove port 8080 exposure (Nginx handles it)
   backend:
     ports: !override []
     environment:
@@ -69,22 +43,6 @@ services:
       # App
       APP_URL: https://taskflow.paraslace.in
 
-  # PostgreSQL: Remove port exposure (internal only)
-  postgres:
-    ports: !override []
-
-  # Redis: Remove port exposure (internal only)
-  redis:
-    ports: !override []
-
-  # MongoDB: Remove port exposure (internal only)
-  mongodb:
-    ports: !override []
-
-  # MinIO: Remove direct port exposures (Caddy handles it)
+  # MinIO: Remove direct port exposures (Nginx handles it)
   minio:
     ports: !override []
-
-volumes:
-  caddy-data:
-  caddy-config:

@@ -101,8 +101,8 @@ export const THEME_PALETTES: Record<LightTheme, ThemePalette> = {
       '950': '#172525',
     },
     surface: {
-      base: '#b1c4c4',
-      s1: '#c9dce1',
+      base: '#dce9e9',
+      s1: '#eaf3f3',
       s2: '#77adab',
       fg: '#42514f',
       border: 'rgba(66,81,79,0.2)',
@@ -121,8 +121,8 @@ export const THEME_PALETTES: Record<LightTheme, ThemePalette> = {
     fontDisplay: "'Nunito', system-ui, sans-serif",
     fontBody: "'Nunito Sans', system-ui, sans-serif",
     name: 'Sea Foam',
-    palette6: ['#c9dce1', '#b1c4c4', '#77adab', '#9b9e9c', '#6f7c7a', '#42514f'],
-    preview: { bg: '#c9dce1', primary: '#77adab', fg: '#42514f' },
+    palette6: ['#eaf3f3', '#dce9e9', '#77adab', '#9b9e9c', '#6f7c7a', '#42514f'],
+    preview: { bg: '#eaf3f3', primary: '#77adab', fg: '#42514f' },
   },
 
   'warm-earth': {
@@ -179,8 +179,8 @@ export const THEME_PALETTES: Record<LightTheme, ThemePalette> = {
       '950': '#1e1f1f',
     },
     surface: {
-      base: '#cecfd1',
-      s1: '#e8e9e9',
+      base: '#e5e6e8',
+      s1: '#f0f1f2',
       s2: '#dddee0',
       fg: '#3a4242',
       border: 'rgba(58,66,66,0.18)',
@@ -199,8 +199,8 @@ export const THEME_PALETTES: Record<LightTheme, ThemePalette> = {
     fontDisplay: "'Space Grotesk', system-ui, sans-serif",
     fontBody: "'Work Sans', system-ui, sans-serif",
     name: 'Storm Cloud',
-    palette6: ['#e8e9e9', '#cecfd1', '#9ea1a4', '#818283', '#5b6161', '#3a4242'],
-    preview: { bg: '#e8e9e9', primary: '#9ea1a4', fg: '#3a4242' },
+    palette6: ['#f0f1f2', '#e5e6e8', '#9ea1a4', '#818283', '#5b6161', '#3a4242'],
+    preview: { bg: '#f0f1f2', primary: '#9ea1a4', fg: '#3a4242' },
   },
 
   'morning-sky': {
@@ -257,8 +257,8 @@ export const THEME_PALETTES: Record<LightTheme, ThemePalette> = {
       '950': '#1c211c',
     },
     surface: {
-      base: '#a8bdae',
-      s1: '#dae8dc',
+      base: '#e5efe7',
+      s1: '#f0f7f1',
       s2: '#cdddd0',
       fg: '#101712',
       border: 'rgba(16,23,18,0.15)',
@@ -277,8 +277,8 @@ export const THEME_PALETTES: Record<LightTheme, ThemePalette> = {
     fontDisplay: "'Lora', system-ui, serif",
     fontBody: "'Source Sans 3', system-ui, sans-serif",
     name: 'Misty Forest',
-    palette6: ['#dae8dc', '#a8bdae', '#708173', '#48574b', '#2a3326', '#101712'],
-    preview: { bg: '#dae8dc', primary: '#708173', fg: '#101712' },
+    palette6: ['#f0f7f1', '#e5efe7', '#708173', '#48574b', '#2a3326', '#101712'],
+    preview: { bg: '#f0f7f1', primary: '#708173', fg: '#101712' },
   },
 
   'modern-dental': {
@@ -296,8 +296,8 @@ export const THEME_PALETTES: Record<LightTheme, ThemePalette> = {
       '950': '#21292e',
     },
     surface: {
-      base: '#c7d6df',
-      s1: '#e4ebef',
+      base: '#e4edf2',
+      s1: '#f0f5f8',
       s2: '#d8e2e8',
       fg: '#151513',
       border: 'rgba(21,21,19,0.15)',
@@ -316,8 +316,8 @@ export const THEME_PALETTES: Record<LightTheme, ThemePalette> = {
     fontDisplay: "'Outfit', system-ui, sans-serif",
     fontBody: "'Outfit', system-ui, sans-serif",
     name: 'Modern Dental',
-    palette6: ['#e4ebef', '#c7d6df', '#a4b2bb', '#898c8f', '#575553', '#151513'],
-    preview: { bg: '#e4ebef', primary: '#a4b2bb', fg: '#151513' },
+    palette6: ['#f0f5f8', '#e4edf2', '#a4b2bb', '#898c8f', '#575553', '#151513'],
+    preview: { bg: '#f0f5f8', primary: '#a4b2bb', fg: '#151513' },
   },
 
   'cosmic': {
@@ -530,8 +530,8 @@ export const THEME_PALETTES: Record<LightTheme, ThemePalette> = {
       '950': '#130c0a',
     },
     surface: {
-      base: '#efa3a0',
-      s1: '#ffdec7',
+      base: '#f8e0de',
+      s1: '#fff0ec',
       s2: '#e69896',
       fg: '#1e1310',
       border: 'rgba(30,19,16,0.15)',
@@ -550,8 +550,8 @@ export const THEME_PALETTES: Record<LightTheme, ThemePalette> = {
     fontDisplay: "'Cormorant', system-ui, serif",
     fontBody: "'Fira Sans', system-ui, sans-serif",
     name: 'Sunset Website',
-    palette6: ['#ffdec7', '#efa3a0', '#8b597b', '#493129', '#3a2520', '#1e1310'],
-    preview: { bg: '#ffdec7', primary: '#493129', fg: '#1e1310' },
+    palette6: ['#fff0ec', '#f8e0de', '#8b597b', '#493129', '#3a2520', '#1e1310'],
+    preview: { bg: '#fff0ec', primary: '#493129', fg: '#1e1310' },
   },
 };
 
@@ -653,7 +653,7 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
       '950': '#1B0C1A',
     },
     surface: {
-      base: '#1B0C1A',
+      base: '#1a1519',
       s1: '#2D222F',
       s2: '#382A3A',
       fg: '#FADCD5',
@@ -673,8 +673,8 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
     fontDisplay: "'Cormorant Garamond', system-ui, serif",
     fontBody: "'Proza Libre', system-ui, sans-serif",
     name: 'Cherry Blossom',
-    palette6: ['#1B0C1A', '#2D222F', '#4B2138', '#6D3C52', '#765D67', '#FADCD5'],
-    preview: { bg: '#1B0C1A', primary: '#6D3C52', fg: '#FADCD5' },
+    palette6: ['#1a1519', '#2D222F', '#4B2138', '#6D3C52', '#765D67', '#FADCD5'],
+    preview: { bg: '#1a1519', primary: '#6D3C52', fg: '#FADCD5' },
   },
 
   'sunset-dusk': {
@@ -692,7 +692,7 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
       '950': '#1D1A39',
     },
     surface: {
-      base: '#1D1A39',
+      base: '#1c1a24',
       s1: '#451952',
       s2: '#52205C',
       fg: '#E8BCB9',
@@ -712,8 +712,8 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
     fontDisplay: "'Josefin Sans', system-ui, sans-serif",
     fontBody: "'Josefin Sans', system-ui, sans-serif",
     name: 'Sunset Dusk',
-    palette6: ['#1D1A39', '#451952', '#662549', '#AE445A', '#F39F5A', '#E8BCB9'],
-    preview: { bg: '#1D1A39', primary: '#AE445A', fg: '#E8BCB9' },
+    palette6: ['#1c1a24', '#451952', '#662549', '#AE445A', '#F39F5A', '#E8BCB9'],
+    preview: { bg: '#1c1a24', primary: '#AE445A', fg: '#E8BCB9' },
   },
 
   'purple-haze': {
@@ -731,7 +731,7 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
       '950': '#190019',
     },
     surface: {
-      base: '#190019',
+      base: '#1a1219',
       s1: '#2B124C',
       s2: '#351858',
       fg: '#FBE4D8',
@@ -751,8 +751,8 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
     fontDisplay: "'Spectral', system-ui, serif",
     fontBody: "'Karla', system-ui, sans-serif",
     name: 'Purple Haze',
-    palette6: ['#190019', '#2B124C', '#522B5B', '#854F6C', '#DFB6B2', '#FBE4D8'],
-    preview: { bg: '#190019', primary: '#854F6C', fg: '#FBE4D8' },
+    palette6: ['#1a1219', '#2B124C', '#522B5B', '#854F6C', '#DFB6B2', '#FBE4D8'],
+    preview: { bg: '#1a1219', primary: '#854F6C', fg: '#FBE4D8' },
   },
 
   'ocean-deep': {
@@ -770,7 +770,7 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
       '950': '#021024',
     },
     surface: {
-      base: '#021024',
+      base: '#111820',
       s1: '#052659',
       s2: '#0A3068',
       fg: '#C1E8FF',
@@ -790,8 +790,8 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
     fontDisplay: "'Rubik', system-ui, sans-serif",
     fontBody: "'Rubik', system-ui, sans-serif",
     name: 'Ocean Deep',
-    palette6: ['#021024', '#052659', '#0D3B7A', '#5483B3', '#7DA0CA', '#C1E8FF'],
-    preview: { bg: '#021024', primary: '#5483B3', fg: '#C1E8FF' },
+    palette6: ['#111820', '#052659', '#0D3B7A', '#5483B3', '#7DA0CA', '#C1E8FF'],
+    preview: { bg: '#111820', primary: '#5483B3', fg: '#C1E8FF' },
   },
 
   'luna': {
@@ -809,7 +809,7 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
       '950': '#011C40',
     },
     surface: {
-      base: '#011C40',
+      base: '#101820',
       s1: '#023859',
       s2: '#084466',
       fg: '#D4F5FA',
@@ -829,8 +829,8 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
     fontDisplay: "'Space Mono', system-ui, monospace",
     fontBody: "'Work Sans', system-ui, sans-serif",
     name: 'Luna',
-    palette6: ['#011C40', '#023859', '#26658C', '#54ACBF', '#A7EBF2', '#D4F5FA'],
-    preview: { bg: '#011C40', primary: '#54ACBF', fg: '#D4F5FA' },
+    palette6: ['#101820', '#023859', '#26658C', '#54ACBF', '#A7EBF2', '#D4F5FA'],
+    preview: { bg: '#101820', primary: '#54ACBF', fg: '#D4F5FA' },
   },
 
   'coffee': {
@@ -848,7 +848,7 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
       '950': '#241310',
     },
     surface: {
-      base: '#2E0F14',
+      base: '#1e1416',
       s1: '#561C24',
       s2: '#632430',
       fg: '#E8D8C4',
@@ -868,8 +868,8 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
     fontDisplay: "'Bitter', system-ui, serif",
     fontBody: "'Nunito Sans', system-ui, sans-serif",
     name: 'Coffee',
-    palette6: ['#2E0F14', '#561C24', '#6D2932', '#8C4A3B', '#C7B7A3', '#E8D8C4'],
-    preview: { bg: '#2E0F14', primary: '#8C4A3B', fg: '#E8D8C4' },
+    palette6: ['#1e1416', '#561C24', '#6D2932', '#8C4A3B', '#C7B7A3', '#E8D8C4'],
+    preview: { bg: '#1e1416', primary: '#8C4A3B', fg: '#E8D8C4' },
   },
 
   'moon': {
@@ -887,7 +887,7 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
       '950': '#1c1c2e',
     },
     surface: {
-      base: '#210635',
+      base: '#1a1320',
       s1: '#420D4B',
       s2: '#4e1658',
       fg: '#F5D5E0',
@@ -907,8 +907,8 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
     fontDisplay: "'Lexend', system-ui, sans-serif",
     fontBody: "'Lexend', system-ui, sans-serif",
     name: 'Moon',
-    palette6: ['#210635', '#420D4B', '#7B337E', '#6667AB', '#B8A0C8', '#F5D5E0'],
-    preview: { bg: '#210635', primary: '#6667AB', fg: '#F5D5E0' },
+    palette6: ['#1a1320', '#420D4B', '#7B337E', '#6667AB', '#B8A0C8', '#F5D5E0'],
+    preview: { bg: '#1a1320', primary: '#6667AB', fg: '#F5D5E0' },
   },
 
   'wine': {
@@ -1082,7 +1082,7 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
       '950': '#081510',
     },
     surface: {
-      base: '#051F20',
+      base: '#121c1c',
       s1: '#0B2B26',
       s2: '#103530',
       fg: '#DAF1DE',
@@ -1102,8 +1102,8 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
     fontDisplay: "'IBM Plex Sans', system-ui, sans-serif",
     fontBody: "'IBM Plex Sans', system-ui, sans-serif",
     name: 'Forest Night',
-    palette6: ['#051F20', '#0B2B26', '#163832', '#235347', '#8EB69B', '#DAF1DE'],
-    preview: { bg: '#051F20', primary: '#235347', fg: '#DAF1DE' },
+    palette6: ['#121c1c', '#0B2B26', '#163832', '#235347', '#8EB69B', '#DAF1DE'],
+    preview: { bg: '#121c1c', primary: '#235347', fg: '#DAF1DE' },
   },
 
   'bloodstone': {
@@ -1121,7 +1121,7 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
       '950': '#2e170d',
     },
     surface: {
-      base: '#1A0A0E',
+      base: '#1a1214',
       s1: '#5D0D18',
       s2: '#6e1422',
       fg: '#E8C4A0',
@@ -1141,8 +1141,8 @@ export const DARK_THEME_PALETTES: Record<DarkTheme, ThemePalette> = {
     fontDisplay: "'Playfair Display', system-ui, serif",
     fontBody: "'Source Sans 3', system-ui, sans-serif",
     name: 'Bloodstone',
-    palette6: ['#1A0A0E', '#5D0D18', '#852E47', '#AA542B', '#C4906A', '#E8C4A0'],
-    preview: { bg: '#1A0A0E', primary: '#AA542B', fg: '#E8C4A0' },
+    palette6: ['#1a1214', '#5D0D18', '#852E47', '#AA542B', '#C4906A', '#E8C4A0'],
+    preview: { bg: '#1a1214', primary: '#AA542B', fg: '#E8C4A0' },
   },
 
   'red-noir': {

@@ -46,7 +46,7 @@ services:
       start_period: 10s
 
   minio-setup:
-    image: minio/mc:latest
+    image: minio/mc:RELEASE.2025-01-17T00-13-17Z
     container_name: taskbolt-minio-setup
     entrypoint: /bin/sh -c "until mc alias set myminio http://minio:9000 $${MINIO_ACCESS_KEY} $${MINIO_SECRET_KEY}; do sleep 2; done; mc mb myminio/$${MINIO_BUCKET} --ignore-existing; mc anonymous set none myminio/$${MINIO_BUCKET};"
     environment:

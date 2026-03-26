@@ -74,6 +74,14 @@ export const errorInterceptor: HttpInterceptorFn = (
           }
           break;
         }
+        case 422:
+          messageService.add({
+            severity: 'warn',
+            summary: 'Validation Error',
+            detail,
+            life: 5000,
+          });
+          break;
         case 404:
           messageService.add({
             severity: 'warn',

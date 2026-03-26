@@ -576,16 +576,23 @@ async fn wait_for_auth(
                                 Ok(claims) => {
                                     // Validate session is still active
                                     let token_id = claims.token_id.unwrap_or_default();
-                                    let session_key = format!("session:{}:{}", claims.sub, token_id);
-                                    if crate::middleware::auth::check_and_refresh_session(state, &session_key)
-                                        .await
-                                        .is_err()
+                                    let session_key =
+                                        format!("session:{}:{}", claims.sub, token_id);
+                                    if crate::middleware::auth::check_and_refresh_session(
+                                        state,
+                                        &session_key,
+                                    )
+                                    .await
+                                    .is_err()
                                     {
                                         let error_msg = ServerMessage::Error {
                                             message: "Session expired".into(),
                                         };
                                         let _ = tx
-                                            .send(serde_json::to_string(&error_msg).unwrap_or_default())
+                                            .send(
+                                                serde_json::to_string(&error_msg)
+                                                    .unwrap_or_default(),
+                                            )
                                             .await;
                                         return None;
                                     }

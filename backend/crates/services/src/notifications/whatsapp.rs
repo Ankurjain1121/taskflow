@@ -98,18 +98,22 @@ impl WahaClient {
     /// * `api_url` - The WAHA API URL (e.g., "http://localhost:3000")
     /// * `api_key` - The WAHA API key
     /// * `session_name` - The WAHA session name (default: "default")
-    pub fn new(api_url: String, api_key: String, session_name: Option<String>) -> Self {
+    pub fn new(
+        api_url: String,
+        api_key: String,
+        session_name: Option<String>,
+    ) -> Result<Self, WhatsAppError> {
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
-            .expect("Failed to create HTTP client");
+            .map_err(WhatsAppError::Request)?;
 
-        Self {
+        Ok(Self {
             client,
             api_url: api_url.trim_end_matches('/').to_string(),
             api_key,
             session_name: session_name.unwrap_or_else(|| "default".to_string()),
-        }
+        })
     }
 
     /// Send a WhatsApp text message
@@ -196,7 +200,7 @@ pub async fn send_whatsapp_notification(
         message.push_str(&format!("\n\nView details: {}", url));
     }
 
-    let client = WahaClient::new(waha_api_url.to_string(), waha_api_key.to_string(), None);
+    let client = WahaClient::new(waha_api_url.to_string(), waha_api_key.to_string(), None)?;
 
     client.send_message(phone_number, &message).await
 }
@@ -286,7 +290,8 @@ mod tests {
             "http://localhost:3000/".to_string(),
             "test-api-key".to_string(),
             None,
-        );
+        )
+        .expect("Failed to create WahaClient");
         // api_url should be trimmed of trailing slash
         assert_eq!(client.api_url, "http://localhost:3000");
         assert_eq!(client.session_name, "default");
@@ -298,7 +303,8 @@ mod tests {
             "http://localhost:3000".to_string(),
             "test-key".to_string(),
             Some("custom".to_string()),
-        );
+        )
+        .expect("Failed to create WahaClient");
         assert_eq!(client.session_name, "custom");
     }
 }

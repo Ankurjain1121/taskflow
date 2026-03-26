@@ -14,9 +14,9 @@ use axum::{
     Json, Router,
 };
 use chrono::{Duration, Utc};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use std::sync::LazyLock;
 use uuid::Uuid;
 
 use taskbolt_db::models::UserRole;
@@ -95,7 +95,7 @@ pub struct SuccessResponse {
 // ============================================================================
 
 /// Regex for RFC-compliant email validation
-static EMAIL_REGEX: Lazy<Regex> = Lazy::new(|| {
+static EMAIL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$",
     )

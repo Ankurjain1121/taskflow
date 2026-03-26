@@ -72,12 +72,18 @@ async fn deadline_scan_handler(
         let from_name = env::var("POSTAL_FROM_NAME").ok();
         match (api_url, api_key, from_address) {
             (Some(url), Some(key), Some(from)) if !url.is_empty() && !key.is_empty() => {
-                Some(PostalClient::new(
+                match PostalClient::new(
                     url,
                     key,
                     from,
                     from_name.unwrap_or_else(|| "TaskBolt".to_string()),
-                ))
+                ) {
+                    Ok(p) => Some(p),
+                    Err(e) => {
+                        tracing::error!(error = %e, "Failed to create Postal client for cron");
+                        None
+                    }
+                }
             }
             _ => None,
         }
@@ -139,7 +145,8 @@ async fn weekly_digest_handler(
         postal_api_key,
         postal_from_address,
         postal_from_name,
-    );
+    )
+    .map_err(|e| AppError::InternalError(format!("Failed to create Postal client: {}", e)))?;
 
     let app_url = state.config.app_url.clone();
 
