@@ -35,7 +35,117 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         height: 100%;
       }
       .sidebar-root {
-        background: var(--sidebar-gradient);
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--sidebar-bg) 88%, white) 0%,
+          var(--sidebar-bg) 30%,
+          color-mix(in srgb, var(--sidebar-bg) 92%, black) 70%,
+          color-mix(in srgb, var(--sidebar-bg) 80%, black) 100%
+        );
+        position: relative;
+        overflow: hidden;
+      }
+      /* Sidebar content above overlays */
+      .sidebar-root > :not(.sidebar-overlay) {
+        position: relative;
+        z-index: 1;
+      }
+      /* Shared overlay base */
+      .sidebar-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* --- A: Topographic — concentric rings + warm glow --- */
+      :host-context([data-bg-pattern="topographic"]) .sidebar-overlay {
+        background-image:
+          repeating-radial-gradient(circle at 80% 20%, transparent 0, transparent 30px, rgba(255,255,255,0.06) 31px, transparent 32px),
+          repeating-radial-gradient(circle at 20% 80%, transparent 0, transparent 50px, rgba(255,255,255,0.04) 51px, transparent 52px);
+        animation: topoSidebar 25s ease-in-out infinite;
+      }
+      :host-context([data-bg-pattern="topographic"]) .sidebar-root::before {
+        content: '';
+        position: absolute; top: -20%; right: -30%; width: 100%; height: 70%;
+        background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 55%);
+        pointer-events: none;
+      }
+      @keyframes topoSidebar {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.03) translateY(-2%); }
+      }
+
+      /* --- B: Constellation — scattered dots + diagonal lines --- */
+      :host-context([data-bg-pattern="constellation"]) .sidebar-overlay {
+        background-image:
+          radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0),
+          radial-gradient(circle at 1px 1px, rgba(255,255,255,0.08) 0.5px, transparent 0),
+          linear-gradient(135deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+        background-size: 60px 60px, 30px 30px, 40px 40px;
+        animation: constellationSidebar 35s linear infinite;
+      }
+      :host-context([data-bg-pattern="constellation"]) .sidebar-root::before {
+        content: '';
+        position: absolute; bottom: -10%; left: -20%; width: 80%; height: 60%;
+        background: radial-gradient(circle, rgba(0,0,0,0.08) 0%, transparent 55%);
+        pointer-events: none;
+      }
+      @keyframes constellationSidebar {
+        0% { background-position: 0 0, 10px 10px, 0 0; }
+        100% { background-position: 60px 60px, 70px 70px, 40px 40px; }
+      }
+
+      /* --- C: Aurora — sweeping diagonal color wash --- */
+      :host-context([data-bg-pattern="aurora"]) .sidebar-root {
+        background: linear-gradient(
+          155deg,
+          color-mix(in srgb, var(--sidebar-bg) 85%, white) 0%,
+          var(--sidebar-bg) 25%,
+          color-mix(in srgb, var(--sidebar-bg) 80%, black) 55%,
+          color-mix(in srgb, var(--sidebar-bg) 60%, black) 100%
+        );
+      }
+      :host-context([data-bg-pattern="aurora"]) .sidebar-overlay {
+        background: conic-gradient(
+          from 180deg at 50% 100%,
+          rgba(255,255,255,0.08),
+          transparent 40%,
+          rgba(255,255,255,0.05) 60%,
+          transparent
+        );
+        animation: auroraSidebar 20s ease-in-out infinite alternate;
+      }
+      :host-context([data-bg-pattern="aurora"]) .sidebar-root::before {
+        content: '';
+        position: absolute; top: -40%; right: -40%; width: 120%; height: 120%;
+        background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 50%);
+        pointer-events: none;
+      }
+      @keyframes auroraSidebar {
+        0% { opacity: 0.6; transform: translateY(0); }
+        100% { opacity: 1; transform: translateY(-5%); }
+      }
+
+      /* --- D: Blueprint — fine grid lines + scan pulse --- */
+      :host-context([data-bg-pattern="blueprint"]) .sidebar-overlay {
+        background-image:
+          linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px),
+          linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+        background-size: 80px 80px, 80px 80px, 16px 16px, 16px 16px;
+      }
+      :host-context([data-bg-pattern="blueprint"]) .sidebar-root::before {
+        content: '';
+        position: absolute; inset: 0;
+        background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.08) 100%);
+        pointer-events: none;
+        animation: blueprintPulse 6s ease-in-out infinite;
+      }
+      @keyframes blueprintPulse {
+        0%, 100% { opacity: 0.5; }
+        50% { opacity: 1; }
       }
       .sidebar-scrollbar::-webkit-scrollbar {
         width: 4px;
@@ -114,6 +224,9 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
            [class.w-14]="collapsed()"
            [class.sidebar-collapsed]="collapsed()"
            [class.sidebar-open]="isMobileOpen()">
+
+      <!-- Abstract background overlay (styled per theme group via :host-context) -->
+      <div class="sidebar-overlay"></div>
 
       <!-- Projects + Views (scrollable) -->
       <div class="flex-1 overflow-y-auto sidebar-scrollbar px-2 py-2">
