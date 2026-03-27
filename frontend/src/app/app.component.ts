@@ -23,6 +23,8 @@ import { ThemeService } from './core/services/theme.service';
 import { KeyboardShortcutsService } from './core/services/keyboard-shortcuts.service';
 import { WorkspaceContextService } from './core/services/workspace-context.service';
 import { SwUpdateService } from './core/services/sw-update.service';
+import { EasterEggService } from './core/services/easter-egg.service';
+import { initConsoleEasterEgg } from './core/initializers/console-easter-egg';
 import { CommandPaletteComponent } from './shared/components/command-palette/command-palette.component';
 import { ToastContainerComponent } from './shared/components/toast/toast.component';
 import { SidebarComponent } from './shared/components/sidebar/sidebar.component';
@@ -102,9 +104,12 @@ export class AppComponent implements OnInit, OnDestroy {
   private keyboardShortcuts = inject(KeyboardShortcutsService);
   private wsContext = inject(WorkspaceContextService);
   private swUpdateService = inject(SwUpdateService);
+  private easterEggService = inject(EasterEggService);
 
   ngOnInit(): void {
     this.swUpdateService.init();
+    this.easterEggService.init();
+    initConsoleEasterEgg();
     this.registerGlobalShortcuts();
 
     // Workspace context init is deferred to NavigationEnd so that route guards
@@ -139,6 +144,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.keyboardShortcuts.unregisterByCategory('Navigation');
+    this.easterEggService.destroy();
   }
 
   @HostListener('window:resize')
