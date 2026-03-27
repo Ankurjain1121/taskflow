@@ -55,7 +55,7 @@ interface WorkspaceOption {
     FocusModeComponent,
   ],
   template: `
-    <div class="min-h-screen" style="background: var(--background)">
+    <div class="min-h-screen" style="background-color: transparent">
       <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 view-enter">
         <!-- Act 1: Header + Focus Board -->
         <div class="flex items-center justify-between flex-wrap gap-4 mb-6">

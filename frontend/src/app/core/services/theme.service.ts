@@ -108,7 +108,17 @@ export class ThemeService implements OnDestroy {
       root.setAttribute('data-sidebar-style', 'light');
       root.setAttribute('data-card-style', 'raised');
       root.setAttribute('data-border-radius', 'medium');
-      root.setAttribute('data-bg-pattern', 'none');
+
+      // Background pattern style per theme group
+      const topoThemes = ['warm-earth', 'morning-sky', 'sunset-website', 'warm-earth-dark', 'coffee', 'bloodstone', 'gold-crimson'];
+      const constellationThemes = ['sea-foam', 'ocean-deep', 'luna', 'forest-night', 'misty-forest', 'modern-dental', 'pastel-rose'];
+      const auroraThemes = ['purple-night', 'cherry-blossom', 'sunset-dusk', 'purple-haze', 'wine', 'red-noir', 'pink-gray', 'purple-scale', 'moon'];
+      const activeTheme = isDark ? dt : lt;
+      const bgPattern = topoThemes.includes(activeTheme) ? 'topographic'
+        : constellationThemes.includes(activeTheme) ? 'constellation'
+        : auroraThemes.includes(activeTheme) ? 'aurora'
+        : 'blueprint';
+      root.setAttribute('data-bg-pattern', bgPattern);
 
       this.updatePrimeNG(isDark);
     });

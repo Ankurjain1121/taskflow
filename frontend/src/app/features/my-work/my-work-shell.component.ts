@@ -24,7 +24,7 @@ const TAB_STORAGE_KEY = 'taskbolt_mywork_tab';
   imports: [MyWorkTimelineComponent, MyWorkMatrixComponent, MyWorkBoardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen" style="background: var(--background)">
+    <div class="min-h-screen">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <!-- Summary bar -->
         @if (summary()) {

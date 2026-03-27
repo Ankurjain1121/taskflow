@@ -76,7 +76,7 @@ const ALL_TABS: TabDef[] = [
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-[var(--background)]">
+    <div class="min-h-screen">
       <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
         <!-- Error Banner -->
