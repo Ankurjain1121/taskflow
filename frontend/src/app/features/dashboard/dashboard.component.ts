@@ -29,6 +29,7 @@ import { DashboardAct2Component } from './components/dashboard-act2.component';
 import { DashboardAct3Component } from './components/dashboard-act3.component';
 import { FocusModeComponent } from './components/focus-mode.component';
 import { FocusTask, StreakData } from './dashboard.types';
+import { LOADING_MESSAGES, randomMessage } from '../../shared/utils/delight-messages';
 
 interface WorkspaceOption {
   label: string;
@@ -112,6 +113,9 @@ interface WorkspaceOption {
               </div>
             }
           </div>
+          <p class="text-center text-sm mt-4" style="color: var(--muted-foreground)">
+            {{ loadingMessage }}
+          </p>
         } @else {
           <!-- Stat Cards — number IS the design -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -217,6 +221,7 @@ export class DashboardComponent implements OnInit {
   focusModeOpen = signal(false);
   focusSelectedIndex = signal(-1);
   hasScrolledPastAct1 = signal(false);
+  loadingMessage = randomMessage(LOADING_MESSAGES);
 
   workspaceOptions = computed<WorkspaceOption[]>(() => {
     const ws = this.workspaces();

@@ -1620,6 +1620,27 @@ small.p-error,
 }
 
 /* ============================================
+   Party Mode — Konami code easter egg
+   ============================================ */
+@keyframes rainbowShift {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+html[data-party-mode] .top-nav {
+  animation: rainbowShift 3s linear infinite;
+}
+html[data-party-mode] .sidebar-root {
+  animation: rainbowShift 3s linear infinite;
+  animation-delay: 0.5s;
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-party-mode] .top-nav,
+  html[data-party-mode] .sidebar-root {
+    animation: none;
+  }
+}
+
+/* ============================================
    Print Styles — Client-Side PDF Export
    ============================================ */
 @media print {

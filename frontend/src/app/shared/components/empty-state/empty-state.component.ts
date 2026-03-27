@@ -11,6 +11,7 @@ import {
   EmptyStateConfig,
   EMPTY_STATE_CONFIGS,
 } from './empty-state-config';
+import { randomEmptyMessage } from '../../utils/delight-messages';
 
 @Component({
   selector: 'app-empty-state',
@@ -48,6 +49,16 @@ import {
           style="color: var(--muted-foreground)"
         >
           {{ resolvedDescription() }}
+        </p>
+      }
+
+      <!-- Randomized subtitle -->
+      @if (resolvedSubtitle() && size() !== 'compact') {
+        <p
+          class="text-xs mt-2 max-w-xs italic"
+          style="color: var(--muted-foreground); opacity: 0.75"
+        >
+          {{ resolvedSubtitle() }}
         </p>
       }
 
@@ -118,6 +129,10 @@ export class EmptyStateComponent {
 
   readonly resolvedCtaLabel = computed(
     () => this.ctaLabel() || this.config()?.defaultCtaLabel || '',
+  );
+
+  readonly resolvedSubtitle = computed(
+    () => this.subtitle() || randomEmptyMessage(this.variant()),
   );
 
   readonly resolvedShortcutHint = computed(
