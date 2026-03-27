@@ -91,7 +91,7 @@ export interface TaskMoveEvent {
         <!-- Column Header -->
         <div class="px-3 py-3 border-b border-[var(--border)] group">
           <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 min-w-0">
               <!-- Drag Handle -->
               <div
                 cdkDragHandle
@@ -113,7 +113,7 @@ export interface TaskMoveEvent {
               }
 
               <!-- Column Name -->
-              <h3 class="font-medium text-[var(--foreground)]">
+              <h3 class="font-medium text-[var(--foreground)] truncate min-w-0">
                 {{ column().name }}
               </h3>
 
@@ -324,7 +324,8 @@ export interface TaskMoveEvent {
               <div class="flex items-center gap-1">
                 <button
                   (click)="submitQuickTask()"
-                  class="flex-1 px-3 py-1.5 text-xs font-medium text-[var(--primary-foreground)] bg-[var(--primary)] rounded hover:opacity-90"
+                  [disabled]="quickSubmitting()"
+                  class="flex-1 px-3 py-1.5 text-xs font-medium text-[var(--primary-foreground)] bg-[var(--primary)] rounded hover:opacity-90 disabled:opacity-50"
                 >
                   Add
                 </button>
@@ -433,6 +434,7 @@ export class KanbanColumnComponent {
   duplicateRequested = output<string>();
   deleteRequested = output<string>();
   quickTaskCreated = output<{ columnId: string; title: string }>();
+  quickSubmitting = signal(false);
   collapseToggled = output<string>();
   renameRequested = output<string>();
   wipLimitRequested = output<string>();
@@ -600,10 +602,13 @@ export class KanbanColumnComponent {
   }
 
   submitQuickTask(): void {
+    if (this.quickSubmitting()) return;
     const title = this.quickTaskTitle.trim();
     if (!title) return;
+    this.quickSubmitting.set(true);
     this.quickTaskCreated.emit({ columnId: this.column().id, title });
     this.quickTaskTitle = '';
+    this.quickSubmitting.set(false);
   }
 
   onQuickTaskKeydown(event: KeyboardEvent): void {
