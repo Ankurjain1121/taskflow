@@ -16,7 +16,7 @@ import { DashboardStats } from '../../../core/services/dashboard.service';
         class="text-2xl font-bold tracking-tight font-display"
         style="color: var(--foreground)"
       >
-        {{ greetingPrefix() }}@if (userName()) {, <span style="color: var(--primary)">{{ userName() }}</span>}@if (isQuestion()) {?}
+        {{ greetingPrefix() }}@if (userName()) {, <span class="truncate inline-block max-w-[200px] align-bottom" style="color: var(--primary)">{{ userName() }}</span>}@if (isQuestion()) {?}
       </h1>
       <p class="text-sm mt-1" style="color: var(--muted-foreground)">
         @if (overdue() > 0) {

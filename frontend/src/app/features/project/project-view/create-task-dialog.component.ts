@@ -485,7 +485,8 @@ export class CreateTaskDialogComponent {
   }
 
   onSave(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid || this.saving()) return;
+    this.saving.set(true);
 
     const values = this.form.getRawValue();
     const result: CreateTaskDialogResult = {
@@ -528,6 +529,7 @@ export class CreateTaskDialogComponent {
 
     this.visible.set(false);
     this.created.emit(result);
+    this.saving.set(false);
   }
 
   onTemplateToggle(): void {

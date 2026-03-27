@@ -75,7 +75,7 @@ import { TooltipModule } from 'primeng/tooltip';
          class="nav-item flex items-center gap-3 px-3 py-2 rounded-md text-sm">
         <span class="nav-indicator"></span>
         <i class="pi {{icon()}} text-sm flex-shrink-0 sidebar-icon-color"></i>
-        <span class="sidebar-text" style="color: var(--sidebar-text-secondary)">{{label()}}</span>
+        <span class="sidebar-text truncate flex-1 min-w-0" style="color: var(--sidebar-text-secondary)">{{label()}}</span>
         @if (badge() > 0) {
           <span class="ml-auto min-w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
             {{ badge() > 99 ? '99+' : badge() }}

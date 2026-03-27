@@ -715,7 +715,11 @@ export class TaskDetailPageComponent {
     if (!t) return;
     if (!confirm('Are you sure you want to delete this task?')) return;
 
-    this.goBack();
-    this.taskService.deleteTask(t.id).subscribe();
+    this.taskService.deleteTask(t.id).subscribe({
+      next: () => this.goBack(),
+      error: () => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete task' });
+      },
+    });
   }
 }
