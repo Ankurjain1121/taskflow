@@ -312,6 +312,7 @@ interface TimelineDay {
                 optionLabel="label"
                 optionValue="value"
                 styleClass="w-full"
+                appendTo="body"
               >
                 <ng-template #selectedItem let-selected>
                   @if (selected) {
@@ -390,6 +391,7 @@ interface TimelineDay {
               optionLabel="label"
               optionValue="value"
               styleClass="w-full"
+              appendTo="body"
             />
           </div>
 
@@ -420,6 +422,7 @@ interface TimelineDay {
               optionLabel="label"
               optionValue="value"
               styleClass="w-full"
+              appendTo="body"
             />
           </div>
 
