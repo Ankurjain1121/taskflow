@@ -13,6 +13,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import {
   ProjectService,
   Board,
+  ProjectMember,
 } from '../../../core/services/project.service';
 import { MessageService } from 'primeng/api';
 import { Toast } from 'primeng/toast';
@@ -20,6 +21,7 @@ import { Tabs, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
 import { ColumnManagerComponent } from '../column-manager/column-manager.component';
 import { AutomationRulesComponent } from '../automations/automation-rules.component';
 import { ProjectAdvancedSettingsComponent } from './project-advanced-settings.component';
+import { ProjectMembersSettingsComponent } from './project-members-settings.component';
 
 @Component({
   selector: 'app-project-settings',
@@ -36,6 +38,7 @@ import { ProjectAdvancedSettingsComponent } from './project-advanced-settings.co
     ColumnManagerComponent,
     AutomationRulesComponent,
     ProjectAdvancedSettingsComponent,
+    ProjectMembersSettingsComponent,
   ],
   providers: [MessageService],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -58,7 +61,7 @@ import { ProjectAdvancedSettingsComponent } from './project-advanced-settings.co
             Configure your board's columns and rules.
           </p>
           <p class="mt-1 text-sm text-[var(--muted-foreground)]">
-            Members, labels &amp; roles are workspace-wide.
+            Labels &amp; roles are workspace-wide.
             <a [routerLink]="['/workspace', workspaceId, 'manage']"
                class="hover:underline"
                style="color: var(--primary)">Go to Manage &rarr;</a>
@@ -100,8 +103,9 @@ import { ProjectAdvancedSettingsComponent } from './project-advanced-settings.co
           <p-tabs [value]="activeTab()" (valueChange)="onTabChange($event)">
             <p-tablist>
               <p-tab [value]="0">Columns</p-tab>
-              <p-tab [value]="1">Automations</p-tab>
-              <p-tab [value]="2">Advanced</p-tab>
+              <p-tab [value]="1">Members</p-tab>
+              <p-tab [value]="2">Automations</p-tab>
+              <p-tab [value]="3">Advanced</p-tab>
             </p-tablist>
             <p-tabpanels>
               <!-- Tab 0: Columns -->
@@ -111,8 +115,21 @@ import { ProjectAdvancedSettingsComponent } from './project-advanced-settings.co
                 </div>
               </p-tabpanel>
 
-              <!-- Tab 1: Automations -->
+              <!-- Tab 1: Members -->
               <p-tabpanel [value]="1">
+                <div class="py-6">
+                  <app-project-members-settings
+                    [boardId]="boardId"
+                    [boardName]="board()?.name ?? ''"
+                    [members]="members()"
+                    (membersChanged)="members.set($event)"
+                    (errorOccurred)="showError($event)"
+                  />
+                </div>
+              </p-tabpanel>
+
+              <!-- Tab 2: Automations -->
+              <p-tabpanel [value]="2">
                 <div class="py-6">
                   @defer {
                     <app-automation-rules [boardId]="boardId" />
@@ -122,8 +139,8 @@ import { ProjectAdvancedSettingsComponent } from './project-advanced-settings.co
                 </div>
               </p-tabpanel>
 
-              <!-- Tab 2: Advanced -->
-              <p-tabpanel [value]="2">
+              <!-- Tab 3: Advanced -->
+              <p-tabpanel [value]="3">
                 <app-project-advanced-settings
                   [board]="board()"
                   [boardId]="boardId"
@@ -180,6 +197,7 @@ export class ProjectSettingsComponent implements OnInit {
 
   loading = signal(true);
   board = signal<Board | null>(null);
+  members = signal<ProjectMember[]>([]);
   errorMessage = signal<string | null>(null);
   activeTab = signal(0);
 
@@ -200,7 +218,7 @@ export class ProjectSettingsComponent implements OnInit {
         const tabParam = qp['tab'];
         if (tabParam !== undefined && tabParam !== null) {
           const tabIndex = parseInt(tabParam, 10);
-          if (!isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 2) {
+          if (!isNaN(tabIndex) && tabIndex >= 0 && tabIndex <= 3) {
             this.activeTab.set(tabIndex);
           }
         }
@@ -237,6 +255,11 @@ export class ProjectSettingsComponent implements OnInit {
       error: () => {
         this.loading.set(false);
       },
+    });
+
+    this.projectService.getProjectMembers(this.boardId).subscribe({
+      next: (members) => this.members.set(members),
+      error: () => this.members.set([]),
     });
   }
 

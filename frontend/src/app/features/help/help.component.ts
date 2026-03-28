@@ -85,12 +85,12 @@ interface ShortcutGroup {
                 <h3
                   class="font-medium text-[var(--card-foreground)] dark:text-white"
                 >
-                  Add a Board
+                  Add a Project
                 </h3>
                 <p
                   class="text-sm text-[var(--muted-foreground)] dark:text-gray-400 mt-1"
                 >
-                  Boards contain your tasks organized in columns. Use Kanban,
+                  Projects contain your tasks organized in columns. Use Kanban,
                   Scrum, or custom layouts.
                 </p>
               </div>
@@ -110,7 +110,7 @@ interface ShortcutGroup {
                 <p
                   class="text-sm text-[var(--muted-foreground)] dark:text-gray-400 mt-1"
                 >
-                  Add tasks to your board, set priorities, due dates, and assign
+                  Add tasks to your project, set priorities, due dates, and assign
                   team members.
                 </p>
               </div>
@@ -157,7 +157,7 @@ interface ShortcutGroup {
                 class="text-sm text-[var(--muted-foreground)] dark:text-gray-400 mb-3"
               >
                 Replay the guided tour that highlights key features when you
-                first open a board.
+                first open a project.
               </p>
               <button
                 (click)="restartFeatureTour()"
@@ -227,7 +227,7 @@ interface ShortcutGroup {
             >
               <p>
                 Keyboard shortcuts are registered as you navigate the app. Open
-                a board to see board-specific shortcuts here.
+                a project to see project-specific shortcuts here.
               </p>
               <p class="mt-2">
                 Press
@@ -408,7 +408,7 @@ export class HelpComponent implements OnInit {
       icon: '\u{1F310}',
       title: 'Client Portal',
       description:
-        'Share boards with external clients via secure read-only links.',
+        'Share projects with external clients via secure read-only links.',
     },
   ];
 
@@ -419,15 +419,15 @@ export class HelpComponent implements OnInit {
     },
     {
       q: 'Can I import tasks from other tools?',
-      a: 'Yes! Go to any board settings and use the Import/Export feature. We support CSV and JSON formats.',
+      a: 'Yes! Go to any project settings and use the Import/Export feature. We support CSV and JSON formats.',
     },
     {
       q: 'How do I set up notifications?',
       a: 'Go to Settings > Notifications to configure email and in-app notification preferences for different event types.',
     },
     {
-      q: 'What are board templates?',
-      a: 'Board templates let you create new boards with pre-defined columns and settings. Go to Board Templates from the sidebar to browse or create templates.',
+      q: 'What are project templates?',
+      a: 'Project templates let you create new projects with pre-defined columns and settings. Go to Project Templates from the sidebar to browse or create templates.',
     },
     {
       q: 'How do webhooks work?',

@@ -58,94 +58,80 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
         z-index: 0;
       }
 
-      /* --- A: Topographic — concentric rings + warm glow --- */
+      /* --- A: Topographic — faint concentric rings --- */
       :host-context([data-bg-pattern="topographic"]) .sidebar-overlay {
+        opacity: 0.35;
         background-image:
-          repeating-radial-gradient(circle at 80% 20%, transparent 0, transparent 30px, rgba(255,255,255,0.06) 31px, transparent 32px),
-          repeating-radial-gradient(circle at 20% 80%, transparent 0, transparent 50px, rgba(255,255,255,0.04) 51px, transparent 52px);
-        animation: topoSidebar 25s ease-in-out infinite;
+          repeating-radial-gradient(circle at 80% 20%, transparent 0, transparent 30px, rgba(255,255,255,0.05) 31px, transparent 32px),
+          repeating-radial-gradient(circle at 20% 80%, transparent 0, transparent 50px, rgba(255,255,255,0.03) 51px, transparent 52px);
       }
       :host-context([data-bg-pattern="topographic"]) .sidebar-root::before {
         content: '';
         position: absolute; top: -20%; right: -30%; width: 100%; height: 70%;
-        background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 55%);
+        background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 55%);
         pointer-events: none;
       }
-      @keyframes topoSidebar {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.03) translateY(-2%); }
-      }
 
-      /* --- B: Constellation — scattered dots + diagonal lines --- */
+      /* --- B: Constellation — sparse dots --- */
       :host-context([data-bg-pattern="constellation"]) .sidebar-overlay {
+        opacity: 0.3;
         background-image:
-          radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0),
-          radial-gradient(circle at 1px 1px, rgba(255,255,255,0.08) 0.5px, transparent 0),
-          linear-gradient(135deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-        background-size: 60px 60px, 30px 30px, 40px 40px;
-        animation: constellationSidebar 35s linear infinite;
+          radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 0.7px, transparent 0),
+          radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 0.4px, transparent 0);
+        background-size: 60px 60px, 30px 30px;
+        animation: constellationSidebar 50s linear infinite;
       }
       :host-context([data-bg-pattern="constellation"]) .sidebar-root::before {
         content: '';
         position: absolute; bottom: -10%; left: -20%; width: 80%; height: 60%;
-        background: radial-gradient(circle, rgba(0,0,0,0.08) 0%, transparent 55%);
+        background: radial-gradient(circle, rgba(0,0,0,0.06) 0%, transparent 55%);
         pointer-events: none;
       }
       @keyframes constellationSidebar {
-        0% { background-position: 0 0, 10px 10px, 0 0; }
-        100% { background-position: 60px 60px, 70px 70px, 40px 40px; }
+        0% { background-position: 0 0, 10px 10px; }
+        100% { background-position: 60px 60px, 70px 70px; }
       }
 
-      /* --- C: Aurora — sweeping diagonal color wash --- */
+      /* --- C: Aurora — subtle diagonal gradient + soft glow --- */
       :host-context([data-bg-pattern="aurora"]) .sidebar-root {
         background: linear-gradient(
           155deg,
-          color-mix(in srgb, var(--sidebar-bg) 85%, white) 0%,
-          var(--sidebar-bg) 25%,
-          color-mix(in srgb, var(--sidebar-bg) 80%, black) 55%,
-          color-mix(in srgb, var(--sidebar-bg) 60%, black) 100%
+          color-mix(in srgb, var(--sidebar-bg) 90%, white) 0%,
+          var(--sidebar-bg) 30%,
+          color-mix(in srgb, var(--sidebar-bg) 88%, black) 70%,
+          color-mix(in srgb, var(--sidebar-bg) 75%, black) 100%
         );
       }
       :host-context([data-bg-pattern="aurora"]) .sidebar-overlay {
+        opacity: 0.2;
         background: conic-gradient(
           from 180deg at 50% 100%,
-          rgba(255,255,255,0.08),
+          rgba(255,255,255,0.06),
           transparent 40%,
-          rgba(255,255,255,0.05) 60%,
+          rgba(255,255,255,0.04) 60%,
           transparent
         );
-        animation: auroraSidebar 20s ease-in-out infinite alternate;
       }
       :host-context([data-bg-pattern="aurora"]) .sidebar-root::before {
         content: '';
         position: absolute; top: -40%; right: -40%; width: 120%; height: 120%;
-        background: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 50%);
+        background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 50%);
         pointer-events: none;
       }
-      @keyframes auroraSidebar {
-        0% { opacity: 0.6; transform: translateY(0); }
-        100% { opacity: 1; transform: translateY(-5%); }
-      }
 
-      /* --- D: Blueprint — fine grid lines + scan pulse --- */
+      /* --- D: Blueprint — whisper-thin grid --- */
       :host-context([data-bg-pattern="blueprint"]) .sidebar-overlay {
+        opacity: 0.2;
         background-image:
-          linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px),
-          linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-        background-size: 80px 80px, 80px 80px, 16px 16px, 16px 16px;
+          linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+        background-size: 60px 60px;
       }
       :host-context([data-bg-pattern="blueprint"]) .sidebar-root::before {
         content: '';
         position: absolute; inset: 0;
-        background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.08) 100%);
+        background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.05) 100%);
         pointer-events: none;
-        animation: blueprintPulse 6s ease-in-out infinite;
-      }
-      @keyframes blueprintPulse {
-        0%, 100% { opacity: 0.5; }
-        50% { opacity: 1; }
       }
       .sidebar-scrollbar::-webkit-scrollbar {
         width: 4px;

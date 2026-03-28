@@ -40,9 +40,9 @@ pub async fn list_recent_items(
             ri.viewed_at
         FROM recent_items ri
         LEFT JOIN tasks t ON ri.entity_type = 'task' AND t.id = ri.entity_id AND t.deleted_at IS NULL
-        LEFT JOIN boards tb ON t.board_id = tb.id AND tb.deleted_at IS NULL
+        LEFT JOIN projects tb ON t.project_id = tb.id AND tb.deleted_at IS NULL
         LEFT JOIN workspaces w_t ON tb.workspace_id = w_t.id
-        LEFT JOIN boards b ON ri.entity_type = 'board' AND b.id = ri.entity_id AND b.deleted_at IS NULL
+        LEFT JOIN projects b ON ri.entity_type = 'board' AND b.id = ri.entity_id AND b.deleted_at IS NULL
         LEFT JOIN workspaces w_b ON b.workspace_id = w_b.id
         WHERE ri.user_id = $1
           AND ri.tenant_id = $2

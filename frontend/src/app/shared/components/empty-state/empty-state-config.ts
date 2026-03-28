@@ -30,12 +30,11 @@ export interface EmptyStateConfig {
 export const EMPTY_STATE_CONFIGS: Record<EmptyStateVariant, EmptyStateConfig> =
   {
     board: {
-      icon: 'pi pi-objects-column',
+      icon: 'pi pi-check-square',
       colorScheme: 'primary',
-      defaultTitle: 'Create your first board',
-      defaultDescription:
-        'Boards help you organize tasks into columns and track progress visually.',
-      defaultCtaLabel: 'Create Board',
+      defaultTitle: 'No tasks yet',
+      defaultDescription: 'Create your first task to get started.',
+      defaultCtaLabel: 'Create Task',
     },
     column: {
       icon: 'pi pi-inbox',
@@ -88,7 +87,7 @@ export const EMPTY_STATE_CONFIGS: Record<EmptyStateVariant, EmptyStateConfig> =
       colorScheme: 'warning',
       defaultTitle: 'No favorites yet',
       defaultDescription:
-        'Star tasks and boards to pin them here for quick access.',
+        'Star tasks and projects to pin them here for quick access.',
       defaultCtaLabel: '',
     },
     notifications: {

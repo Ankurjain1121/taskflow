@@ -45,8 +45,8 @@ pub async fn list_tasks(
     let tasks = list_tasks_by_board(&state.db, board_id, tenant.user_id)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a board member".into()),
-            TaskQueryError::NotFound => AppError::NotFound("Board not found".into()),
+            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
+            TaskQueryError::NotFound => AppError::NotFound("Project not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
             TaskQueryError::Other(msg) => AppError::InternalError(msg),
@@ -70,7 +70,7 @@ pub async fn get_task(
     let task = get_task_by_id(&state.db, task_id, tenant.user_id)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
@@ -127,7 +127,7 @@ pub async fn create_task_handler(
     let task = create_task(&state.db, board_id, input, tenant.tenant_id, tenant.user_id)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Column not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
@@ -251,7 +251,7 @@ pub async fn update_task_handler(
     let task = update_task(&state.db, task_id, input)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(current_task) => {
@@ -395,7 +395,7 @@ pub async fn delete_task_handler(
     soft_delete_task(&state.db, task_id)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),
@@ -530,7 +530,7 @@ pub async fn duplicate_task_handler(
     let task = duplicate_task(&state.db, task_id, tenant.user_id)
         .await
         .map_err(|e| match e {
-            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a board member".into()),
+            TaskQueryError::NotProjectMember => AppError::Forbidden("Not a project member".into()),
             TaskQueryError::NotFound => AppError::NotFound("Task not found".into()),
             TaskQueryError::Database(e) => AppError::SqlxError(e),
             TaskQueryError::VersionConflict(_) => AppError::Conflict("Version conflict".into()),

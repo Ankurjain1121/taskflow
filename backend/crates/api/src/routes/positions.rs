@@ -246,7 +246,7 @@ async fn add_holder(
         projects::is_project_member(&state.db, position.project_id, payload.user_id).await?;
     if !is_target_member {
         return Err(AppError::BadRequest(
-            "User must be a board member first".into(),
+            "User must be a project member first".into(),
         ));
     }
 

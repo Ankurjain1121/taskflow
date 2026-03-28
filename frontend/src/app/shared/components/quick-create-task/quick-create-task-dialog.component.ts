@@ -226,7 +226,7 @@ export class QuickCreateTaskDialogComponent {
     };
 
     if (values.dueDate) {
-      request.due_date = values.dueDate.toISOString().split('T')[0];
+      request.due_date = values.dueDate.toISOString();
     }
 
     this.taskService.createTask(values.projectId, request).subscribe({

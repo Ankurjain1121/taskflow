@@ -88,6 +88,7 @@
               (statusChanged)="listEdit.onStatusChanged($event, boardId, destroy$)"
               (dueDateChanged)="listEdit.onDueDateChanged($event, boardId, destroy$)"
               (groupToggled)="state.toggleGroupCollapse($event)"
+              (createTaskClicked)="onCreateTask()"
             ></app-list-view>
           } @placeholder {
             <div

@@ -95,7 +95,7 @@ async fn apply_template_handler(
     .bind(body.board_id)
     .fetch_optional(&state.db)
     .await?
-    .ok_or_else(|| AppError::NotFound("Board not found".into()))?;
+    .ok_or_else(|| AppError::NotFound("Project not found".into()))?;
 
     if board_workspace_id != workspace_id {
         return Err(AppError::Forbidden(
