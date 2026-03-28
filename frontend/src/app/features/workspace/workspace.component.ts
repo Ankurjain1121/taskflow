@@ -142,6 +142,9 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
           @if (boards().length === 0) {
             <app-empty-state
               variant="board"
+              title="Create your first project"
+              description="Projects help you organize tasks into columns and track progress visually."
+              ctaLabel="Create Project"
               (ctaClicked)="openCreateProjectDialog()"
             />
           } @else {

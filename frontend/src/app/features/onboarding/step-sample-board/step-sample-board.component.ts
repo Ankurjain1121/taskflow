@@ -26,10 +26,10 @@ interface SampleColumn {
         <h2
           class="text-2xl font-bold text-[var(--card-foreground)] dark:text-white mb-2"
         >
-          Sample Board Preview
+          Sample Project Preview
         </h2>
         <p class="text-[var(--muted-foreground)] dark:text-gray-400">
-          Generate a sample board with pre-made tasks to explore TaskBolt's
+          Generate a sample project with pre-made tasks to explore TaskBolt's
           features.
         </p>
       </div>

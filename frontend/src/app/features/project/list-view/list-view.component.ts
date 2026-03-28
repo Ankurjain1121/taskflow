@@ -83,6 +83,7 @@ export class ListViewComponent {
   statusChanged = output<{ taskId: string; statusId: string }>();
   dueDateChanged = output<{ taskId: string; dueDate: string | null }>();
   groupToggled = output<TaskGroupWithStats>();
+  createTaskClicked = output<void>();
 
   selectedTasks: TaskListItem[] = [];
 

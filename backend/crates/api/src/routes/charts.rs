@@ -54,12 +54,12 @@ async fn verify_membership(state: &AppState, board_id: Uuid, user_id: Uuid) -> R
         let rqe: ReportQueryError = e.into();
         match rqe {
             ReportQueryError::Database(e) => AppError::SqlxError(e),
-            ReportQueryError::NotBoardMember => AppError::Forbidden("Not a board member".into()),
+            ReportQueryError::NotBoardMember => AppError::Forbidden("Not a project member".into()),
         }
     })?;
 
     if !is_member {
-        return Err(AppError::Forbidden("Not a board member".into()));
+        return Err(AppError::Forbidden("Not a project member".into()));
     }
 
     Ok(())

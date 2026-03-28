@@ -70,7 +70,7 @@ pub async fn list_archive(
                 b.name as name,
                 b.deleted_at as deleted_at,
                 GREATEST(0, $1 - EXTRACT(DAY FROM (now() - b.deleted_at))::bigint) as days_remaining
-            FROM boards b
+            FROM projects b
             WHERE b.tenant_id = $2
               AND b.deleted_at IS NOT NULL
               AND ($3::timestamptz IS NULL OR b.deleted_at < $3)

@@ -354,6 +354,6 @@ export class TaskDetailMetadataComponent {
   }
 
   onDueDatePickerChange(date: Date | null): void {
-    this.dueDateChanged.emit(date ? date.toISOString().split('T')[0] : '');
+    this.dueDateChanged.emit(date ? date.toISOString() : '');
   }
 }

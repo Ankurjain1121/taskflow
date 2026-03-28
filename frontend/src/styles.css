@@ -1788,28 +1788,28 @@ html[data-party-mode] .sidebar-root {
    Set via data-bg-pattern="topographic|constellation|aurora|blueprint"
    ============================================ */
 
-/* Base: animated diagonal gradient shift (all themes) */
+/* Base: very subtle animated diagonal gradient shift (all themes) */
 .bg-mesh {
   background: linear-gradient(
     -45deg,
     var(--background),
-    color-mix(in srgb, var(--primary) 18%, var(--background)),
-    color-mix(in srgb, var(--success) 12%, var(--background)),
+    color-mix(in srgb, var(--primary) 8%, var(--background)),
+    color-mix(in srgb, var(--success) 5%, var(--background)),
     var(--background)
   );
   background-size: 400% 400%;
-  animation: bgShift 20s ease infinite;
+  animation: bgShift 30s ease infinite;
 }
 html.dark .bg-mesh {
   background: linear-gradient(
     -45deg,
     var(--background),
-    color-mix(in srgb, var(--primary) 12%, var(--background)),
-    color-mix(in srgb, var(--success) 8%, var(--background)),
+    color-mix(in srgb, var(--primary) 5%, var(--background)),
+    color-mix(in srgb, var(--success) 3%, var(--background)),
     var(--background)
   );
   background-size: 400% 400%;
-  animation: bgShift 20s ease infinite;
+  animation: bgShift 30s ease infinite;
 }
 @keyframes bgShift {
   0% { background-position: 0% 50%; }
@@ -1817,95 +1817,84 @@ html.dark .bg-mesh {
   100% { background-position: 0% 50%; }
 }
 
-/* --- Style A: Topographic (warm/earthy themes) --- */
+/* --- Style A: Topographic (warm/earthy) — faint concentric rings --- */
 [data-bg-pattern="topographic"] .bg-mesh::after {
   content: '';
   position: fixed;
   inset: 0;
+  opacity: 0.3;
   background-image:
-    repeating-radial-gradient(circle at 30% 40%, transparent 0px, transparent 40px, color-mix(in srgb, var(--primary) 6%, transparent) 41px, transparent 42px),
-    repeating-radial-gradient(circle at 70% 60%, transparent 0px, transparent 60px, color-mix(in srgb, var(--primary) 5%, transparent) 61px, transparent 62px),
-    repeating-radial-gradient(circle at 50% 20%, transparent 0px, transparent 80px, color-mix(in srgb, var(--primary) 4%, transparent) 81px, transparent 82px);
+    repeating-radial-gradient(circle at 30% 40%, transparent 0px, transparent 40px, color-mix(in srgb, var(--primary) 4%, transparent) 41px, transparent 42px),
+    repeating-radial-gradient(circle at 70% 60%, transparent 0px, transparent 60px, color-mix(in srgb, var(--primary) 3%, transparent) 61px, transparent 62px);
   pointer-events: none;
   z-index: 0;
-  animation: topoShift 30s linear infinite;
+  animation: topoShift 45s linear infinite;
 }
 @keyframes topoShift {
-  0% { transform: scale(1) rotate(0deg); }
-  50% { transform: scale(1.05) rotate(1deg); }
-  100% { transform: scale(1) rotate(0deg); }
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02) translateY(-1%); }
 }
 
-/* --- Style B: Constellation (cool/serene themes) --- */
+/* --- Style B: Constellation (cool/serene) — sparse dots drift --- */
 [data-bg-pattern="constellation"] .bg-mesh::after {
   content: '';
   position: fixed;
   inset: 0;
+  opacity: 0.35;
   background-image:
-    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--primary) 20%, transparent) 1px, transparent 0),
-    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--primary) 12%, transparent) 0.5px, transparent 0),
-    linear-gradient(135deg, color-mix(in srgb, var(--primary) 4%, transparent) 1px, transparent 1px),
-    linear-gradient(225deg, color-mix(in srgb, var(--primary) 4%, transparent) 1px, transparent 1px);
-  background-size: 80px 80px, 40px 40px, 60px 60px, 60px 60px;
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--primary) 10%, transparent) 0.8px, transparent 0),
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--primary) 6%, transparent) 0.4px, transparent 0);
+  background-size: 80px 80px, 40px 40px;
   pointer-events: none;
   z-index: 0;
-  animation: constellationDrift 40s linear infinite;
+  animation: constellationDrift 60s linear infinite;
 }
 @keyframes constellationDrift {
-  0% { background-position: 0 0, 20px 20px, 0 0, 0 0; }
-  100% { background-position: 80px 80px, 100px 100px, 60px 60px, -60px 60px; }
+  0% { background-position: 0 0, 20px 20px; }
+  100% { background-position: 80px 80px, 100px 100px; }
 }
 
-/* --- Style C: Aurora (bold/dramatic themes) --- */
+/* --- Style C: Aurora (bold/dramatic) — very soft rotating glow --- */
 [data-bg-pattern="aurora"] .bg-mesh::after {
   content: '';
   position: fixed;
   inset: -50%;
   width: 200%;
   height: 200%;
+  opacity: 0.25;
   background: conic-gradient(
     from 0deg at 50% 50%,
-    color-mix(in srgb, var(--primary) 10%, transparent),
-    color-mix(in srgb, var(--success) 6%, transparent),
-    color-mix(in srgb, var(--primary) 8%, transparent),
+    color-mix(in srgb, var(--primary) 6%, transparent),
+    color-mix(in srgb, var(--success) 4%, transparent),
     transparent,
-    color-mix(in srgb, var(--primary) 10%, transparent)
+    color-mix(in srgb, var(--primary) 5%, transparent)
   );
   pointer-events: none;
   z-index: 0;
-  animation: auroraRotate 45s linear infinite;
-  filter: blur(60px);
+  animation: auroraRotate 60s linear infinite;
+  filter: blur(80px);
 }
 @keyframes auroraRotate {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
-/* --- Style D: Blueprint (clean/minimal themes) --- */
+/* --- Style D: Blueprint (clean/minimal) — whisper-thin grid --- */
 [data-bg-pattern="blueprint"] .bg-mesh::after {
   content: '';
   position: fixed;
   inset: 0;
+  opacity: 0.2;
   background-image:
-    linear-gradient(color-mix(in srgb, var(--primary) 5%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--primary) 5%, transparent) 1px, transparent 1px),
     linear-gradient(color-mix(in srgb, var(--primary) 3%, transparent) 1px, transparent 1px),
     linear-gradient(90deg, color-mix(in srgb, var(--primary) 3%, transparent) 1px, transparent 1px);
-  background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+  background-size: 80px 80px;
   pointer-events: none;
   z-index: 0;
-  animation: blueprintScan 8s ease-in-out infinite;
-}
-@keyframes blueprintScan {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.7; }
 }
 
-/* Dark mode: reduce aurora and constellation intensity */
-html.dark [data-bg-pattern="aurora"] .bg-mesh::after { opacity: 0.6; }
-html.dark [data-bg-pattern="constellation"] .bg-mesh::after { opacity: 0.5; }
-html.dark [data-bg-pattern="topographic"] .bg-mesh::after { opacity: 0.4; }
-html.dark [data-bg-pattern="blueprint"] .bg-mesh::after { opacity: 0.5; }
+/* Dark mode: even more subdued */
+html.dark .bg-mesh::after { opacity: 0.15; }
 
 /* Reduced motion: disable all animations */
 @media (prefers-reduced-motion: reduce) {

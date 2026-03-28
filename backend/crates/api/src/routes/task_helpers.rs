@@ -50,11 +50,16 @@ pub struct ListTasksResponse {
     pub tasks: std::collections::HashMap<Uuid, Vec<taskbolt_db::models::Task>>,
 }
 
+fn default_priority() -> TaskPriority {
+    TaskPriority::Medium
+}
+
 /// Request body for creating a task
 #[derive(Deserialize)]
 pub struct CreateTaskRequest {
     pub title: String,
     pub description: Option<String>,
+    #[serde(default = "default_priority")]
     pub priority: TaskPriority,
     pub due_date: Option<chrono::DateTime<chrono::Utc>>,
     pub start_date: Option<chrono::DateTime<chrono::Utc>>,

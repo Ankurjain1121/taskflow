@@ -279,7 +279,7 @@ pub async fn get_team_dashboard(
             ROUND(AVG(ct.avg_cycle_days)::NUMERIC, 2)::FLOAT8 AS avg_cycle_days,
             SUM(ct.tasks_completed)::INTEGER AS tasks_completed
         FROM metrics_cycle_time_by_week ct
-        JOIN project_members bm ON bm.project_id = ct.board_id
+        JOIN project_members bm ON bm.project_id = ct.project_id
         JOIN team_members tm ON tm.user_id = bm.user_id AND tm.team_id = $1
         GROUP BY ct.week_start
         ORDER BY ct.week_start DESC
@@ -296,7 +296,7 @@ pub async fn get_team_dashboard(
             tv.week_start,
             SUM(tv.tasks_completed)::INTEGER AS tasks_completed
         FROM metrics_task_velocity tv
-        JOIN project_members bm ON bm.project_id = tv.board_id
+        JOIN project_members bm ON bm.project_id = tv.project_id
         JOIN team_members tm ON tm.user_id = bm.user_id AND tm.team_id = $1
         GROUP BY tv.week_start
         ORDER BY tv.week_start DESC
@@ -379,7 +379,7 @@ pub async fn get_personal_dashboard(
             ROUND(AVG(ct.avg_cycle_days)::NUMERIC, 2)::FLOAT8 AS avg_cycle_days,
             SUM(ct.tasks_completed)::INTEGER AS tasks_completed
         FROM metrics_cycle_time_by_week ct
-        JOIN project_members bm ON bm.project_id = ct.board_id AND bm.user_id = $1
+        JOIN project_members bm ON bm.project_id = ct.project_id AND bm.user_id = $1
         GROUP BY ct.week_start
         ORDER BY ct.week_start DESC
         LIMIT 12
@@ -395,7 +395,7 @@ pub async fn get_personal_dashboard(
             tv.week_start,
             SUM(tv.tasks_completed)::INTEGER AS tasks_completed
         FROM metrics_task_velocity tv
-        JOIN project_members bm ON bm.project_id = tv.board_id AND bm.user_id = $1
+        JOIN project_members bm ON bm.project_id = tv.project_id AND bm.user_id = $1
         GROUP BY tv.week_start
         ORDER BY tv.week_start DESC
         LIMIT 12

@@ -255,7 +255,7 @@ async fn export_json(db: &sqlx::PgPool, board_id: Uuid) -> Result<Response> {
     .fetch_optional(db)
     .await
     .map_err(AppError::from)?
-    .ok_or_else(|| AppError::NotFound("Board not found".into()))?;
+    .ok_or_else(|| AppError::NotFound("Project not found".into()))?;
 
     // Fetch columns
     let columns: Vec<ColumnRow> = sqlx::query_as(
