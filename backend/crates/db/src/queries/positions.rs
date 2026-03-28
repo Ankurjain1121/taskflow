@@ -284,7 +284,8 @@ pub async fn list_recurring_tasks_for_position(
                next_run_at, last_run_at, is_active, max_occurrences,
                occurrences_created, project_id, tenant_id, created_by_id,
                created_at, updated_at, end_date, skip_weekends,
-               days_of_week, day_of_month, creation_mode, position_id
+               days_of_week, day_of_month, creation_mode, position_id,
+               task_template
         FROM recurring_task_configs
         WHERE position_id = $1
         ORDER BY created_at ASC

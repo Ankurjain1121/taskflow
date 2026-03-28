@@ -8,7 +8,7 @@ use crate::models::common::RecurrencePattern;
 #[derive(FromRow, Serialize, Deserialize, Clone, Debug)]
 pub struct RecurringTaskConfig {
     pub id: Uuid,
-    pub task_id: Uuid,
+    pub task_id: Option<Uuid>,
     pub pattern: RecurrencePattern,
     pub cron_expression: Option<String>,
     pub interval_days: Option<i32>,
@@ -28,6 +28,45 @@ pub struct RecurringTaskConfig {
     pub day_of_month: Option<i32>,
     pub creation_mode: String,
     pub position_id: Option<Uuid>,
+    pub task_template: Option<serde_json::Value>,
+}
+
+/// Template data stored as JSONB in recurring_task_configs.task_template.
+/// The cron job deserializes this to create fresh tasks on schedule.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TaskTemplateData {
+    pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default = "default_priority")]
+    pub priority: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub estimated_hours: Option<f64>,
+    #[serde(default)]
+    pub assignee_ids: Vec<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reporting_person_id: Option<Uuid>,
+    #[serde(default)]
+    pub watcher_ids: Vec<Uuid>,
+    #[serde(default)]
+    pub label_ids: Vec<Uuid>,
+    #[serde(default)]
+    pub subtasks: Vec<TemplateSubtask>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub task_list_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status_id: Option<Uuid>,
+}
+
+fn default_priority() -> String {
+    "medium".to_string()
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TemplateSubtask {
+    pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub assigned_to_id: Option<Uuid>,
 }
 
 #[cfg(test)]
@@ -39,7 +78,7 @@ mod tests {
         let now = Utc::now();
         let config = RecurringTaskConfig {
             id: Uuid::new_v4(),
-            task_id: Uuid::new_v4(),
+            task_id: Some(Uuid::new_v4()),
             pattern: RecurrencePattern::Weekly,
             cron_expression: None,
             interval_days: Some(7),
@@ -59,6 +98,7 @@ mod tests {
             day_of_month: None,
             creation_mode: "auto".to_string(),
             position_id: None,
+            task_template: None,
         };
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: RecurringTaskConfig = serde_json::from_str(&json).unwrap();
@@ -75,7 +115,7 @@ mod tests {
         let now = Utc::now();
         let config = RecurringTaskConfig {
             id: Uuid::new_v4(),
-            task_id: Uuid::new_v4(),
+            task_id: Some(Uuid::new_v4()),
             pattern: RecurrencePattern::Custom,
             cron_expression: Some("0 9 * * MON".to_string()),
             interval_days: None,
@@ -95,6 +135,7 @@ mod tests {
             day_of_month: Some(15),
             creation_mode: "manual".to_string(),
             position_id: Some(Uuid::new_v4()),
+            task_template: None,
         };
         let json = serde_json::to_string(&config).unwrap();
         let deserialized: RecurringTaskConfig = serde_json::from_str(&json).unwrap();
@@ -113,7 +154,7 @@ mod tests {
         let now = Utc::now();
         let config = RecurringTaskConfig {
             id: Uuid::new_v4(),
-            task_id: Uuid::new_v4(),
+            task_id: Some(Uuid::new_v4()),
             pattern: RecurrencePattern::Daily,
             cron_expression: None,
             interval_days: Some(1),
@@ -133,6 +174,7 @@ mod tests {
             day_of_month: None,
             creation_mode: "auto".to_string(),
             position_id: None,
+            task_template: None,
         };
         let cloned = config.clone();
         assert_eq!(cloned.id, config.id);

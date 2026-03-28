@@ -11,9 +11,11 @@ use crate::errors::{AppError, Result};
 use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
+use taskbolt_db::models::TaskTemplateData;
 use taskbolt_db::queries::recurring::{
-    create_config, delete_config, get_config_for_task, list_configs_for_project, update_config,
-    CreateRecurringInput, RecurringConfigWithTask, RecurringQueryError, UpdateRecurringInput,
+    create_config, create_template_config, delete_config, get_config_for_task,
+    list_configs_for_project, update_config, CreateRecurringInput, CreateTemplateRecurringInput,
+    RecurringConfigWithTask, RecurringQueryError, UpdateRecurringInput,
 };
 
 /// Map RecurringQueryError to AppError
@@ -84,6 +86,67 @@ async fn update_config_handler(
     Ok(Json(config))
 }
 
+/// Request body for creating a template-based recurring config.
+#[derive(Debug, serde::Deserialize)]
+pub struct CreateTemplateRecurringRequest {
+    pub template: TaskTemplateData,
+    pub pattern: taskbolt_db::models::RecurrencePattern,
+    pub start_date: String,
+    pub day_of_month: Option<i32>,
+    pub creation_mode: Option<String>,
+    pub skip_weekends: Option<bool>,
+    pub days_of_week: Option<Vec<i32>>,
+    pub max_occurrences: Option<i32>,
+    pub end_date: Option<String>,
+}
+
+/// POST /api/projects/{project_id}/recurring
+/// Create a template-based recurring config (no source task needed)
+async fn create_template_config_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+    Path(project_id): Path<Uuid>,
+    Json(body): Json<CreateTemplateRecurringRequest>,
+) -> Result<Json<taskbolt_db::models::RecurringTaskConfig>> {
+    let start_date: chrono::DateTime<chrono::Utc> = body.start_date.parse().map_err(|_| {
+        AppError::BadRequest("Invalid start_date format (expected ISO 8601)".into())
+    })?;
+
+    let end_date = body
+        .end_date
+        .as_deref()
+        .map(|s| {
+            s.parse::<chrono::DateTime<chrono::Utc>>().map_err(|_| {
+                AppError::BadRequest("Invalid end_date format (expected ISO 8601)".into())
+            })
+        })
+        .transpose()?;
+
+    let input = CreateTemplateRecurringInput {
+        template: body.template,
+        pattern: body.pattern,
+        start_date,
+        day_of_month: body.day_of_month,
+        creation_mode: body.creation_mode,
+        skip_weekends: body.skip_weekends,
+        days_of_week: body.days_of_week,
+        max_occurrences: body.max_occurrences,
+        end_date,
+    };
+
+    let config = create_template_config(
+        &state.db,
+        project_id,
+        tenant.user_id,
+        tenant.tenant_id,
+        input,
+    )
+    .await
+    .map_err(map_recurring_error)?;
+
+    Ok(Json(config))
+}
+
 /// DELETE /api/recurring/{id}
 /// Delete recurring config
 async fn delete_config_handler(
@@ -102,7 +165,10 @@ async fn delete_config_handler(
 pub fn recurring_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Project-scoped recurring routes
-        .route("/projects/{board_id}/recurring", get(list_configs_handler))
+        .route(
+            "/projects/{board_id}/recurring",
+            get(list_configs_handler).post(create_template_config_handler),
+        )
         // Task-scoped recurring routes
         .route("/tasks/{task_id}/recurring", get(get_config_handler))
         .route("/tasks/{task_id}/recurring", post(create_config_handler))

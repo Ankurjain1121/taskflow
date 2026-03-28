@@ -14,9 +14,40 @@ export type RecurrencePattern =
 
 export type CreationMode = 'on_schedule' | 'on_completion';
 
+export interface TaskTemplateData {
+  title: string;
+  description?: string;
+  priority: string;
+  estimated_hours?: number;
+  assignee_ids: string[];
+  reporting_person_id?: string;
+  watcher_ids: string[];
+  label_ids: string[];
+  subtasks: TemplateSubtask[];
+  task_list_id?: string;
+  status_id?: string;
+}
+
+export interface TemplateSubtask {
+  title: string;
+  assigned_to_id?: string;
+}
+
+export interface CreateTemplateRecurringRequest {
+  template: TaskTemplateData;
+  pattern: RecurrencePattern;
+  start_date: string;
+  day_of_month?: number;
+  creation_mode?: CreationMode;
+  skip_weekends?: boolean;
+  days_of_week?: number[];
+  max_occurrences?: number;
+  end_date?: string;
+}
+
 export interface RecurringTaskConfig {
   id: string;
-  task_id: string;
+  task_id: string | null;
   pattern: RecurrencePattern;
   cron_expression: string | null;
   interval_days: number | null;
@@ -39,6 +70,7 @@ export interface RecurringTaskConfig {
 
 export interface RecurringConfigWithTask extends RecurringTaskConfig {
   task_title: string;
+  task_template: TaskTemplateData | null;
 }
 
 export interface CreateRecurringRequest {
@@ -95,6 +127,16 @@ export class RecurringService {
 
   deleteConfig(id: string): Observable<void> {
     return this.http.delete<void>(`/api/recurring/${id}`);
+  }
+
+  createTemplateConfig(
+    projectId: string,
+    req: CreateTemplateRecurringRequest,
+  ): Observable<RecurringTaskConfig> {
+    return this.http.post<RecurringTaskConfig>(
+      `/api/projects/${projectId}/recurring`,
+      req,
+    );
   }
 
   listByProject(
