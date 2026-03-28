@@ -12,9 +12,11 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { Dialog } from 'primeng/dialog';
 import { Select } from 'primeng/select';
+import { MultiSelect } from 'primeng/multiselect';
 import { DatePicker } from 'primeng/datepicker';
 import { InputNumber } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
+import { TextareaModule } from 'primeng/textarea';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { MessageService } from 'primeng/api';
 
@@ -29,6 +31,10 @@ import {
   TaskService,
   TaskPriority,
 } from '../../../core/services/task.service';
+import {
+  ProjectService,
+  ProjectMember,
+} from '../../../core/services/project.service';
 import { PRIORITY_COLORS } from '../../../shared/constants/priority-colors';
 
 interface TimelineDot {
@@ -57,9 +63,11 @@ interface TimelineDay {
     ButtonModule,
     Dialog,
     Select,
+    MultiSelect,
     DatePicker,
     InputNumber,
     InputTextModule,
+    TextareaModule,
     ToggleSwitch,
     DatePipe,
   ],
@@ -246,133 +254,248 @@ interface TimelineDay {
       header="Create Scheduled Task"
       [(visible)]="showCreateDialogVisible"
       [modal]="true"
-      [style]="{ width: '520px' }"
-      [breakpoints]="{ '599px': '95vw' }"
+      [style]="{ width: '720px' }"
+      [breakpoints]="{ '767px': '95vw' }"
       [contentStyle]="{ overflow: 'visible' }"
       [closable]="true"
       [draggable]="false"
     >
-      <div class="flex flex-col gap-4">
-        <!-- Title -->
-        <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium text-[var(--foreground)]"
-            >Title <span class="text-red-400">*</span></label
-          >
-          <input
-            pInputText
-            [(ngModel)]="newTitle"
-            placeholder="What needs to be done?"
-            class="w-full"
-          />
-        </div>
-
-        <!-- Priority -->
-        <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium text-[var(--foreground)]"
-            >Priority</label
-          >
-          <p-select
-            [(ngModel)]="newPriority"
-            [options]="priorities"
-            optionLabel="label"
-            optionValue="value"
-            styleClass="w-full"
-          >
-            <ng-template #selectedItem let-selected>
-              @if (selected) {
-                <div class="flex items-center gap-2">
-                  <span
-                    class="w-2 h-2 rounded-full inline-block"
-                    [style.background-color]="selected.color"
-                  ></span>
-                  {{ selected.label }}
-                </div>
-              }
-            </ng-template>
-            <ng-template #item let-priority>
-              <div class="flex items-center gap-2">
-                <span
-                  class="w-2 h-2 rounded-full inline-block"
-                  [style.background-color]="priority.color"
-                ></span>
-                {{ priority.label }}
-              </div>
-            </ng-template>
-          </p-select>
-        </div>
-
-        <!-- Dates -->
-        <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- LEFT COLUMN: Task Details -->
+        <div class="flex flex-col gap-4">
+          <!-- Title -->
           <div class="flex flex-col gap-1">
             <label class="text-sm font-medium text-[var(--foreground)]"
-              >Start Date</label
+              >Title <span class="text-red-400">*</span></label
             >
-            <p-datePicker
-              [(ngModel)]="newStartDate"
-              placeholder="Select date"
-              [showIcon]="true"
-              dateFormat="yy-mm-dd"
-              styleClass="w-full"
-              appendTo="body"
+            <input
+              pInputText
+              [(ngModel)]="newTitle"
+              placeholder="What needs to be done?"
+              class="w-full"
             />
           </div>
+
+          <!-- Description -->
           <div class="flex flex-col gap-1">
             <label class="text-sm font-medium text-[var(--foreground)]"
-              >Due Date</label
+              >Description</label
             >
-            <p-datePicker
-              [(ngModel)]="newDueDate"
-              placeholder="Select date"
-              [showIcon]="true"
-              dateFormat="yy-mm-dd"
+            <textarea
+              pTextarea
+              [(ngModel)]="newDescription"
+              placeholder="Add details..."
+              [rows]="3"
+              class="w-full"
+            ></textarea>
+          </div>
+
+          <!-- Priority + Estimated Hours -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium text-[var(--foreground)]"
+                >Priority</label
+              >
+              <p-select
+                [(ngModel)]="newPriority"
+                [options]="priorities"
+                optionLabel="label"
+                optionValue="value"
+                styleClass="w-full"
+              >
+                <ng-template #selectedItem let-selected>
+                  @if (selected) {
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="w-2 h-2 rounded-full inline-block"
+                        [style.background-color]="selected.color"
+                      ></span>
+                      {{ selected.label }}
+                    </div>
+                  }
+                </ng-template>
+                <ng-template #item let-priority>
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="w-2 h-2 rounded-full inline-block"
+                      [style.background-color]="priority.color"
+                    ></span>
+                    {{ priority.label }}
+                  </div>
+                </ng-template>
+              </p-select>
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium text-[var(--foreground)]"
+                >Est. Hours</label
+              >
+              <p-inputNumber
+                [(ngModel)]="newEstimatedHours"
+                [min]="0"
+                [maxFractionDigits]="1"
+                placeholder="e.g. 4"
+                styleClass="w-full"
+              />
+            </div>
+          </div>
+
+          <!-- Dates -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium text-[var(--foreground)]"
+                >Start Date</label
+              >
+              <p-datePicker
+                [(ngModel)]="newStartDate"
+                placeholder="Select date"
+                [showIcon]="true"
+                dateFormat="yy-mm-dd"
+                styleClass="w-full"
+                appendTo="body"
+              />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium text-[var(--foreground)]"
+                >Due Date</label
+              >
+              <p-datePicker
+                [(ngModel)]="newDueDate"
+                placeholder="Select date"
+                [showIcon]="true"
+                dateFormat="yy-mm-dd"
+                styleClass="w-full"
+                appendTo="body"
+              />
+            </div>
+          </div>
+
+          <!-- Recurrence Pattern -->
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-[var(--foreground)]"
+              >Recurrence Pattern</label
+            >
+            <p-select
+              [(ngModel)]="newPattern"
+              [options]="patternOptions"
+              optionLabel="label"
+              optionValue="value"
               styleClass="w-full"
-              appendTo="body"
+            />
+          </div>
+
+          <!-- Day of Month (conditional) -->
+          @if (newPattern === 'monthly') {
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium text-[var(--foreground)]"
+                >Day of Month</label
+              >
+              <p-inputNumber
+                [(ngModel)]="newDayOfMonth"
+                [min]="1"
+                [max]="31"
+                placeholder="e.g. 15"
+                styleClass="w-full"
+              />
+            </div>
+          }
+
+          <!-- Creation Mode -->
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-[var(--foreground)]"
+              >Creation Mode</label
+            >
+            <p-select
+              [(ngModel)]="newCreationMode"
+              [options]="creationModeOptions"
+              optionLabel="label"
+              optionValue="value"
+              styleClass="w-full"
             />
           </div>
         </div>
 
-        <!-- Recurrence Pattern -->
-        <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium text-[var(--foreground)]"
-            >Recurrence Pattern</label
-          >
-          <p-select
-            [(ngModel)]="newPattern"
-            [options]="patternOptions"
-            optionLabel="label"
-            optionValue="value"
-            styleClass="w-full"
-          />
-        </div>
+        <!-- RIGHT COLUMN: People -->
+        <div class="flex flex-col gap-4">
+          @if (members().length > 0) {
+            <!-- Assignees -->
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium text-[var(--foreground)]"
+                >Assignees</label
+              >
+              <p-multiSelect
+                [(ngModel)]="newAssigneeIds"
+                [options]="members()"
+                optionLabel="name"
+                optionValue="user_id"
+                placeholder="Select assignees"
+                styleClass="w-full"
+                [showClear]="true"
+                appendTo="body"
+              >
+                <ng-template #item let-member>
+                  <div class="flex items-center gap-2">
+                    <div
+                      class="w-6 h-6 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center text-xs font-medium"
+                    >
+                      {{ member.name.charAt(0).toUpperCase() }}
+                    </div>
+                    {{ member.name }}
+                  </div>
+                </ng-template>
+              </p-multiSelect>
+            </div>
 
-        <!-- Day of Month (conditional) -->
-        @if (newPattern === 'monthly') {
-          <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium text-[var(--foreground)]"
-              >Day of Month</label
-            >
-            <p-inputNumber
-              [(ngModel)]="newDayOfMonth"
-              [min]="1"
-              [max]="31"
-              placeholder="e.g. 15"
-              styleClass="w-full"
-            />
-          </div>
-        }
+            <!-- Reporting To -->
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium text-[var(--foreground)]"
+                >Reporting To</label
+              >
+              <p-select
+                [(ngModel)]="newReportingPersonId"
+                [options]="members()"
+                optionLabel="name"
+                optionValue="user_id"
+                placeholder="Select reporting person"
+                styleClass="w-full"
+                [showClear]="true"
+                appendTo="body"
+              />
+            </div>
 
-        <!-- Creation Mode -->
-        <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium text-[var(--foreground)]"
-            >Creation Mode</label
-          >
-          <p-select
-            [(ngModel)]="newCreationMode"
-            [options]="creationModeOptions"
-            optionLabel="label"
-            optionValue="value"
-            styleClass="w-full"
-          />
+            <!-- Watchers -->
+            <div class="flex flex-col gap-1">
+              <label class="text-sm font-medium text-[var(--foreground)]"
+                >Watchers</label
+              >
+              <p-multiSelect
+                [(ngModel)]="newWatcherIds"
+                [options]="members()"
+                optionLabel="name"
+                optionValue="user_id"
+                placeholder="Who should watch this task?"
+                styleClass="w-full"
+                [showClear]="true"
+                appendTo="body"
+              >
+                <ng-template #item let-member>
+                  <div class="flex items-center gap-2">
+                    <div
+                      class="w-6 h-6 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center text-xs font-medium"
+                    >
+                      {{ member.name.charAt(0).toUpperCase() }}
+                    </div>
+                    {{ member.name }}
+                  </div>
+                </ng-template>
+              </p-multiSelect>
+            </div>
+          } @else {
+            <div class="flex flex-col items-center justify-center py-8 text-center">
+              <i class="pi pi-users text-2xl text-[var(--muted-foreground)] opacity-40 mb-2"></i>
+              <p class="text-sm text-[var(--muted-foreground)]">No project members yet</p>
+              <p class="text-xs text-[var(--muted-foreground)] opacity-70 mt-1">Add members in project settings to assign tasks</p>
+            </div>
+          }
         </div>
       </div>
 
@@ -402,6 +525,7 @@ export class RecurringSchedulesTabComponent implements OnInit {
 
   private recurringService = inject(RecurringService);
   private taskService = inject(TaskService);
+  private projectService = inject(ProjectService);
   private messageService = inject(MessageService);
 
   configs = signal<RecurringConfigWithTask[]>([]);
@@ -409,15 +533,21 @@ export class RecurringSchedulesTabComponent implements OnInit {
   showCreateDialog = signal(false);
   saving = signal(false);
   timelineDays = signal<TimelineDay[]>([]);
+  members = signal<ProjectMember[]>([]);
 
   // Create dialog form state
   newTitle = '';
+  newDescription = '';
   newPriority: TaskPriority = 'medium';
+  newEstimatedHours: number | null = null;
   newStartDate: Date | null = null;
   newDueDate: Date | null = null;
   newPattern: RecurrencePattern = 'weekly';
   newCreationMode: CreationMode = 'on_schedule';
   newDayOfMonth: number | null = null;
+  newAssigneeIds: string[] = [];
+  newReportingPersonId: string | null = null;
+  newWatcherIds: string[] = [];
 
   priorities = [
     { value: 'low', label: 'Low', color: PRIORITY_COLORS['low'] },
@@ -469,6 +599,7 @@ export class RecurringSchedulesTabComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadConfigs();
+    this.loadMembers();
   }
 
   getPatternLabel(pattern: string): string {
@@ -540,13 +671,27 @@ export class RecurringSchedulesTabComponent implements OnInit {
 
     this.saving.set(true);
 
+    const createReq: Record<string, unknown> = {
+      title,
+      priority: this.newPriority,
+      start_date: this.newStartDate?.toISOString(),
+      due_date: this.newDueDate?.toISOString(),
+    };
+    if (this.newDescription.trim()) {
+      createReq['description'] = this.newDescription.trim();
+    }
+    if (this.newEstimatedHours != null && this.newEstimatedHours > 0) {
+      createReq['estimated_hours'] = this.newEstimatedHours;
+    }
+    if (this.newAssigneeIds.length > 0) {
+      createReq['assignee_ids'] = this.newAssigneeIds;
+    }
+    if (this.newReportingPersonId) {
+      createReq['reporting_person_id'] = this.newReportingPersonId;
+    }
+
     this.taskService
-      .createTask(this.projectId(), {
-        title,
-        priority: this.newPriority,
-        start_date: this.newStartDate?.toISOString(),
-        due_date: this.newDueDate?.toISOString(),
-      })
+      .createTask(this.projectId(), createReq as any)
       .subscribe({
         next: (task) => {
           const recurringReq: CreateRecurringRequest = {
@@ -555,6 +700,11 @@ export class RecurringSchedulesTabComponent implements OnInit {
           };
           if (this.newPattern === 'monthly' && this.newDayOfMonth != null) {
             recurringReq.day_of_month = this.newDayOfMonth;
+          }
+
+          // Add watchers in parallel (fire-and-forget)
+          for (const watcherId of this.newWatcherIds) {
+            this.taskService.addWatcher(task.id, watcherId).subscribe();
           }
 
           this.recurringService.createConfig(task.id, recurringReq).subscribe({
@@ -607,14 +757,26 @@ export class RecurringSchedulesTabComponent implements OnInit {
     });
   }
 
+  private loadMembers(): void {
+    this.projectService.getProjectMembers(this.projectId()).subscribe({
+      next: (data) => this.members.set(data),
+      error: () => this.members.set([]),
+    });
+  }
+
   private resetCreateForm(): void {
     this.newTitle = '';
+    this.newDescription = '';
     this.newPriority = 'medium';
+    this.newEstimatedHours = null;
     this.newStartDate = null;
     this.newDueDate = null;
     this.newPattern = 'weekly';
     this.newCreationMode = 'on_schedule';
     this.newDayOfMonth = null;
+    this.newAssigneeIds = [];
+    this.newReportingPersonId = null;
+    this.newWatcherIds = [];
   }
 
   private buildTimeline(): void {
