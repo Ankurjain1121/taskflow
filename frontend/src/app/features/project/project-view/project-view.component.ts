@@ -293,9 +293,6 @@ export class ProjectViewComponent implements OnInit, OnDestroy {
 
   onCreateTaskResult(result: CreateTaskDialogResult): void {
     this.state.createTask(this.boardId, this.createTaskDialogColumnId, result);
-    if (this.viewMode() === 'list') {
-      this.state.loadFlatTasks(this.boardId, this.destroy$);
-    }
   }
 
   // === Create Column Dialog ===

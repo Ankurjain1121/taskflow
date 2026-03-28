@@ -1,9 +1,36 @@
 use chrono::{DateTime, Datelike, Duration, Utc};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::models::{RecurrencePattern, RecurringTaskConfig};
+
+/// A recurring config with the associated task title, for list views.
+#[derive(Debug, sqlx::FromRow, Serialize)]
+pub struct RecurringConfigWithTask {
+    pub id: Uuid,
+    pub task_id: Uuid,
+    pub pattern: RecurrencePattern,
+    pub cron_expression: Option<String>,
+    pub interval_days: Option<i32>,
+    pub next_run_at: DateTime<Utc>,
+    pub last_run_at: Option<DateTime<Utc>>,
+    pub is_active: bool,
+    pub max_occurrences: Option<i32>,
+    pub occurrences_created: i32,
+    pub project_id: Uuid,
+    pub tenant_id: Uuid,
+    pub created_by_id: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub end_date: Option<DateTime<Utc>>,
+    pub skip_weekends: bool,
+    pub days_of_week: Vec<i32>,
+    pub day_of_month: Option<i32>,
+    pub creation_mode: String,
+    pub position_id: Option<Uuid>,
+    pub task_title: String,
+}
 
 /// Error type for recurring task query operations
 #[derive(Debug, thiserror::Error)]
@@ -209,6 +236,55 @@ fn skip_to_weekday(dt: DateTime<Utc>) -> DateTime<Utc> {
     }
 }
 
+/// List all recurring configs for a project, with task titles.
+/// Verifies board membership before returning.
+pub async fn list_configs_for_project(
+    pool: &PgPool,
+    project_id: Uuid,
+    user_id: Uuid,
+) -> Result<Vec<RecurringConfigWithTask>, RecurringQueryError> {
+    if !verify_project_membership(pool, project_id, user_id).await? {
+        return Err(RecurringQueryError::NotBoardMember);
+    }
+
+    let configs = sqlx::query_as::<_, RecurringConfigWithTask>(
+        r#"
+        SELECT
+            r.id,
+            r.task_id,
+            r.pattern,
+            r.cron_expression,
+            r.interval_days,
+            r.next_run_at,
+            r.last_run_at,
+            r.is_active,
+            r.max_occurrences,
+            r.occurrences_created,
+            r.project_id,
+            r.tenant_id,
+            r.created_by_id,
+            r.created_at,
+            r.updated_at,
+            r.end_date,
+            r.skip_weekends,
+            r.days_of_week,
+            r.day_of_month,
+            r.creation_mode,
+            r.position_id,
+            t.title as task_title
+        FROM recurring_task_configs r
+        JOIN tasks t ON t.id = r.task_id AND t.deleted_at IS NULL
+        WHERE r.project_id = $1
+        ORDER BY r.next_run_at ASC
+        "#,
+    )
+    .bind(project_id)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(configs)
+}
+
 /// Get the recurring config for a task.
 /// Verifies board membership through the task's board.
 pub async fn get_config_for_task(
@@ -284,8 +360,19 @@ pub async fn create_config(
         .creation_mode
         .clone()
         .unwrap_or_else(|| "on_schedule".to_string());
+
+    // Use the task's start_date (or due_date) as the base for next_run_at,
+    // so recurring tasks anchor to the task's schedule, not the creation timestamp.
+    let task_anchor: Option<DateTime<Utc>> = sqlx::query_scalar(
+        "SELECT COALESCE(start_date, due_date) FROM tasks WHERE id = $1",
+    )
+    .bind(task_id)
+    .fetch_one(pool)
+    .await?;
+    let base_time = task_anchor.unwrap_or(now);
+
     let calc = build_calc_config(&input.pattern, input.interval_days, skip_wk, &dow, dom);
-    let next_run = calculate_next_run(now, &calc);
+    let next_run = calculate_next_run(base_time, &calc);
 
     let config = sqlx::query_as::<_, RecurringTaskConfig>(
         r#"

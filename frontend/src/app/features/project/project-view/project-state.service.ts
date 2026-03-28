@@ -88,6 +88,11 @@ export class ProjectStateService {
       reloadGroups: (boardId) => this.reloadGroups(boardId),
       loadBoard: (boardId, destroy$) => this.loadBoard(boardId, destroy$),
     });
+
+    // Reload flat tasks list after a task is created on the server
+    this.mutations.taskCreated$.subscribe((boardId) => {
+      this.reloadFlatTasks(boardId);
+    });
   }
 
   // === Signals ===
@@ -429,6 +434,13 @@ export class ProjectStateService {
           this.showError('Failed to load task list');
         },
       });
+  }
+
+  /** Reload flat tasks without requiring a destroy$ subject (used by event-driven refresh). */
+  private reloadFlatTasks(boardId: string): void {
+    this.taskService.listFlat(boardId).subscribe({
+      next: (tasks) => this.flatTasks.set(tasks),
+    });
   }
 
   loadGanttData(boardId: string): void {

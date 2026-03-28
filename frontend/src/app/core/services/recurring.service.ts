@@ -37,6 +37,10 @@ export interface RecurringTaskConfig {
   creation_mode: CreationMode;
 }
 
+export interface RecurringConfigWithTask extends RecurringTaskConfig {
+  task_title: string;
+}
+
 export interface CreateRecurringRequest {
   pattern: RecurrencePattern;
   cron_expression?: string;
@@ -91,5 +95,13 @@ export class RecurringService {
 
   deleteConfig(id: string): Observable<void> {
     return this.http.delete<void>(`/api/recurring/${id}`);
+  }
+
+  listByProject(
+    projectId: string,
+  ): Observable<RecurringConfigWithTask[]> {
+    return this.http.get<RecurringConfigWithTask[]>(
+      `/api/projects/${projectId}/recurring`,
+    );
   }
 }

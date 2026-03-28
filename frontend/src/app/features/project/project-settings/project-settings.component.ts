@@ -19,7 +19,6 @@ import { MessageService } from 'primeng/api';
 import { Toast } from 'primeng/toast';
 import { Tabs, TabList, Tab, TabPanels, TabPanel } from 'primeng/tabs';
 import { ColumnManagerComponent } from '../column-manager/column-manager.component';
-import { AutomationRulesComponent } from '../automations/automation-rules.component';
 import { ProjectAdvancedSettingsComponent } from './project-advanced-settings.component';
 import { ProjectMembersSettingsComponent } from './project-members-settings.component';
 
@@ -36,7 +35,6 @@ import { ProjectMembersSettingsComponent } from './project-members-settings.comp
     TabPanels,
     TabPanel,
     ColumnManagerComponent,
-    AutomationRulesComponent,
     ProjectAdvancedSettingsComponent,
     ProjectMembersSettingsComponent,
   ],
@@ -128,14 +126,39 @@ import { ProjectMembersSettingsComponent } from './project-members-settings.comp
                 </div>
               </p-tabpanel>
 
-              <!-- Tab 2: Automations -->
+              <!-- Tab 2: Automations (moved) -->
               <p-tabpanel [value]="2">
                 <div class="py-6">
-                  @defer {
-                    <app-automation-rules [boardId]="boardId" />
-                  } @placeholder {
-                    <ng-container *ngTemplateOutlet="spinnerTpl" />
-                  }
+                  <div
+                    class="rounded-lg border border-[var(--border)] bg-[var(--card)] p-6 text-center"
+                  >
+                    <i
+                      class="pi pi-bolt text-3xl text-[var(--muted-foreground)] mb-3"
+                      aria-hidden="true"
+                    ></i>
+                    <h3
+                      class="text-lg font-semibold text-[var(--foreground)] mb-2"
+                    >
+                      Automations have moved
+                    </h3>
+                    <p class="text-[var(--muted-foreground)] mb-4">
+                      Automations now have their own dedicated page with
+                      recurring schedules, rules, and activity logs.
+                    </p>
+                    <a
+                      [routerLink]="[
+                        '/workspace',
+                        workspaceId,
+                        'project',
+                        boardId,
+                        'automations',
+                      ]"
+                      class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] bg-[var(--primary)] rounded-md hover:opacity-90"
+                    >
+                      <i class="pi pi-bolt" aria-hidden="true"></i>
+                      Go to Automations
+                    </a>
+                  </div>
                 </div>
               </p-tabpanel>
 

@@ -258,6 +258,7 @@ export class TaskService {
       .pipe(
         tap(() => {
           this.cache.invalidate(`tasks:.*`);
+          this.cache.invalidate(`flat-tasks:.*`);
           this.cache.invalidate(`project-full:${projectId}:.*`);
         }),
       );
@@ -441,6 +442,7 @@ export class TaskService {
       .pipe(
         tap(() => {
           this.cache.invalidate(`tasks:.*`);
+          this.cache.invalidate(`flat-tasks:.*`);
           this.cache.invalidate(`project-full:.*`);
         }),
       );
@@ -540,6 +542,7 @@ export class TaskService {
   private invalidateTaskAndProjectCaches(taskId: string): void {
     this.cache.invalidateKey(`task:${taskId}`);
     this.cache.invalidate(`tasks:.*`);
+    this.cache.invalidate(`flat-tasks:.*`);
     this.cache.invalidate(`project-full:.*`);
   }
 }

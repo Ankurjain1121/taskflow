@@ -42,6 +42,9 @@ export class ProjectMutationsService {
 
   private ctx!: MutationContext;
 
+  /** Emits the boardId after a task is successfully created on the server. */
+  readonly taskCreated$ = new Subject<string>();
+
   init(ctx: MutationContext): void {
     this.ctx = ctx;
   }
@@ -120,6 +123,8 @@ export class ProjectMutationsService {
                   ),
               });
           }
+
+          this.taskCreated$.next(boardId);
 
           // Post-create: add watchers
           if (taskData.watcher_ids?.length) {
