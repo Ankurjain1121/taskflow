@@ -9,7 +9,7 @@ use crate::models::{RecurrencePattern, RecurringTaskConfig};
 #[derive(Debug, sqlx::FromRow, Serialize)]
 pub struct RecurringConfigWithTask {
     pub id: Uuid,
-    pub task_id: Uuid,
+    pub task_id: Option<Uuid>,
     pub pattern: RecurrencePattern,
     pub cron_expression: Option<String>,
     pub interval_days: Option<i32>,
@@ -29,7 +29,8 @@ pub struct RecurringConfigWithTask {
     pub day_of_month: Option<i32>,
     pub creation_mode: String,
     pub position_id: Option<Uuid>,
-    pub task_title: String,
+    pub task_template: Option<serde_json::Value>,
+    pub task_title: Option<String>,
 }
 
 /// Error type for recurring task query operations
@@ -85,7 +86,7 @@ fn build_calc_config(
 ) -> RecurringTaskConfig {
     RecurringTaskConfig {
         id: Uuid::nil(),
-        task_id: Uuid::nil(),
+        task_id: None,
         pattern: pattern.clone(),
         cron_expression: None,
         interval_days,
@@ -105,6 +106,7 @@ fn build_calc_config(
         day_of_month,
         creation_mode: "on_schedule".to_string(),
         position_id: None,
+        task_template: None,
     }
 }
 
@@ -271,9 +273,10 @@ pub async fn list_configs_for_project(
             r.day_of_month,
             r.creation_mode,
             r.position_id,
-            t.title as task_title
+            r.task_template,
+            COALESCE(t.title, r.task_template->>'title') as task_title
         FROM recurring_task_configs r
-        JOIN tasks t ON t.id = r.task_id AND t.deleted_at IS NULL
+        LEFT JOIN tasks t ON t.id = r.task_id AND t.deleted_at IS NULL
         WHERE r.project_id = $1
         ORDER BY r.next_run_at ASC
         "#,
@@ -321,7 +324,8 @@ pub async fn get_config_for_task(
             days_of_week,
             day_of_month,
             creation_mode,
-            position_id
+            position_id,
+            task_template
         FROM recurring_task_configs
         WHERE task_id = $1
         "#,
@@ -363,12 +367,11 @@ pub async fn create_config(
 
     // Use the task's start_date (or due_date) as the base for next_run_at,
     // so recurring tasks anchor to the task's schedule, not the creation timestamp.
-    let task_anchor: Option<DateTime<Utc>> = sqlx::query_scalar(
-        "SELECT COALESCE(start_date, due_date) FROM tasks WHERE id = $1",
-    )
-    .bind(task_id)
-    .fetch_one(pool)
-    .await?;
+    let task_anchor: Option<DateTime<Utc>> =
+        sqlx::query_scalar("SELECT COALESCE(start_date, due_date) FROM tasks WHERE id = $1")
+            .bind(task_id)
+            .fetch_one(pool)
+            .await?;
     let base_time = task_anchor.unwrap_or(now);
 
     let calc = build_calc_config(&input.pattern, input.interval_days, skip_wk, &dow, dom);
@@ -405,7 +408,8 @@ pub async fn create_config(
             days_of_week,
             day_of_month,
             creation_mode,
-            position_id
+            position_id,
+            task_template
         "#,
     )
     .bind(id)
@@ -462,7 +466,8 @@ pub async fn update_config(
             days_of_week,
             day_of_month,
             creation_mode,
-            position_id
+            position_id,
+            task_template
         FROM recurring_task_configs
         WHERE id = $1
         "#,
@@ -535,7 +540,8 @@ pub async fn update_config(
             days_of_week,
             day_of_month,
             creation_mode,
-            position_id
+            position_id,
+            task_template
         "#,
     )
     .bind(config_id)
@@ -611,6 +617,92 @@ pub async fn delete_config(
     .await?;
 
     Ok(())
+}
+
+/// Input for creating a template-based recurring config (no source task).
+#[derive(Debug, Deserialize)]
+pub struct CreateTemplateRecurringInput {
+    pub template: crate::models::TaskTemplateData,
+    pub pattern: RecurrencePattern,
+    pub start_date: DateTime<Utc>,
+    pub day_of_month: Option<i32>,
+    pub creation_mode: Option<String>,
+    pub skip_weekends: Option<bool>,
+    pub days_of_week: Option<Vec<i32>>,
+    pub max_occurrences: Option<i32>,
+    pub end_date: Option<DateTime<Utc>>,
+}
+
+/// Create a template-based recurring config.
+/// No task is created upfront — the cron job creates fresh tasks from the template on schedule.
+pub async fn create_template_config(
+    pool: &PgPool,
+    project_id: Uuid,
+    user_id: Uuid,
+    tenant_id: Uuid,
+    input: CreateTemplateRecurringInput,
+) -> Result<RecurringTaskConfig, RecurringQueryError> {
+    // Verify project membership
+    if !verify_project_membership(pool, project_id, user_id).await? {
+        return Err(RecurringQueryError::NotBoardMember);
+    }
+
+    let id = Uuid::new_v4();
+    let now = Utc::now();
+    let skip_wk = input.skip_weekends.unwrap_or(false);
+    let dow = input.days_of_week.clone().unwrap_or_default();
+    let dom = input.day_of_month;
+    let creation_mode = input
+        .creation_mode
+        .clone()
+        .unwrap_or_else(|| "on_schedule".to_string());
+
+    let template_json = serde_json::to_value(&input.template)
+        .map_err(|e| RecurringQueryError::Database(sqlx::Error::Protocol(e.to_string())))?;
+
+    // Calculate next_run_at from start_date
+    let next_run_at = if skip_wk {
+        skip_to_weekday(input.start_date)
+    } else {
+        input.start_date
+    };
+
+    let config = sqlx::query_as::<_, RecurringTaskConfig>(
+        r#"
+        INSERT INTO recurring_task_configs (
+            id, task_id, task_template, pattern, cron_expression, interval_days,
+            next_run_at, is_active, max_occurrences, occurrences_created,
+            project_id, tenant_id, created_by_id,
+            end_date, skip_weekends, days_of_week, day_of_month, creation_mode,
+            created_at, updated_at
+        )
+        VALUES ($1, NULL, $2, $3, NULL, NULL, $4, true, $5, 0, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14)
+        RETURNING
+            id, task_id, pattern, cron_expression, interval_days,
+            next_run_at, last_run_at, is_active, max_occurrences, occurrences_created,
+            project_id, tenant_id, created_by_id, created_at, updated_at,
+            end_date, skip_weekends, days_of_week, day_of_month, creation_mode,
+            position_id, task_template
+        "#,
+    )
+    .bind(id)
+    .bind(&template_json)
+    .bind(&input.pattern)
+    .bind(next_run_at)
+    .bind(input.max_occurrences)
+    .bind(project_id)
+    .bind(tenant_id)
+    .bind(user_id)
+    .bind(input.end_date)
+    .bind(skip_wk)
+    .bind(&dow)
+    .bind(dom)
+    .bind(&creation_mode)
+    .bind(now)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(config)
 }
 
 #[cfg(test)]
@@ -706,7 +798,7 @@ mod tests {
             .await
             .expect("create_config should succeed");
 
-        assert_eq!(config.task_id, task_id);
+        assert_eq!(config.task_id, Some(task_id));
         assert_eq!(config.pattern, RecurrencePattern::Daily);
         assert!(config.is_active);
         assert_eq!(config.max_occurrences, Some(10));
@@ -743,7 +835,7 @@ mod tests {
             .expect("get_config_for_task should succeed");
 
         assert_eq!(fetched.id, created.id);
-        assert_eq!(fetched.task_id, task_id);
+        assert_eq!(fetched.task_id, Some(task_id));
         assert_eq!(fetched.pattern, RecurrencePattern::Weekly);
         assert_eq!(fetched.creation_mode, "on_completion");
     }

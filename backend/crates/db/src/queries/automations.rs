@@ -10,8 +10,8 @@ use crate::models::automation::{
 // Re-export evaluation helpers so consumers don't need import changes
 pub use super::automation_evaluation::*;
 
-use chrono::{DateTime, Utc as ChronoUtc};
 use super::automation_evaluation::{fold_rules_with_actions, RuleActionRow};
+use chrono::{DateTime, Utc as ChronoUtc};
 
 /// A unified activity entry for the automation activity feed.
 #[derive(Debug, sqlx::FromRow, Serialize)]

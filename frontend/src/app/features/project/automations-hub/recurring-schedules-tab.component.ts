@@ -25,12 +25,10 @@ import {
   RecurringConfigWithTask,
   RecurrencePattern,
   CreationMode,
-  CreateRecurringRequest,
+  TaskTemplateData,
+  CreateTemplateRecurringRequest,
 } from '../../../core/services/recurring.service';
-import {
-  TaskService,
-  TaskPriority,
-} from '../../../core/services/task.service';
+import { TaskPriority } from '../../../core/services/task.service';
 import {
   ProjectService,
   ProjectMember,
@@ -131,19 +129,26 @@ interface TimelineDay {
           >
             <!-- Header: task title + active badge -->
             <div class="flex items-center justify-between mb-3">
-              <a
-                [routerLink]="[
-                  '/workspace',
-                  workspaceId(),
-                  'project',
-                  projectId(),
-                  'task',
-                  config.task_id
-                ]"
-                class="text-sm font-medium text-[var(--foreground)] hover:text-[var(--primary)] transition-colors truncate mr-2"
-              >
-                {{ config.task_title }}
-              </a>
+              @if (config.task_id) {
+                <a
+                  [routerLink]="[
+                    '/workspace',
+                    workspaceId(),
+                    'project',
+                    projectId(),
+                    'task',
+                    config.task_id
+                  ]"
+                  class="text-sm font-medium text-[var(--foreground)] hover:text-[var(--primary)] transition-colors truncate mr-2"
+                >
+                  {{ config.task_title }}
+                </a>
+              } @else {
+                <span class="text-sm font-medium text-[var(--foreground)] truncate mr-2">
+                  {{ config.task_title }}
+                  <span class="text-xs text-[var(--muted-foreground)] ml-1">(template)</span>
+                </span>
+              }
               <span
                 class="shrink-0 text-xs px-2 py-0.5 rounded-full font-medium"
                 [class]="
@@ -179,6 +184,11 @@ interface TimelineDay {
                 <i class="pi pi-chart-bar mr-1"></i
                 >{{ config.occurrences_created }} created
               </div>
+              @if (config.task_template?.subtasks?.length) {
+                <div>
+                  <i class="pi pi-list mr-1"></i>{{ config.task_template!.subtasks.length }} subtasks
+                </div>
+              }
             </div>
             <!-- Actions -->
             <div
@@ -256,7 +266,7 @@ interface TimelineDay {
       [modal]="true"
       [style]="{ width: '720px' }"
       [breakpoints]="{ '767px': '95vw' }"
-      [contentStyle]="{ overflow: 'visible' }"
+      [contentStyle]="{ overflow: 'auto', 'max-height': '70vh' }"
       [closable]="true"
       [draggable]="false"
     >
@@ -412,6 +422,51 @@ interface TimelineDay {
               styleClass="w-full"
             />
           </div>
+
+          <!-- Subtasks -->
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium text-[var(--foreground)]">Subtasks</label>
+            @for (subtask of newSubtasks; track $index) {
+              <div class="flex items-center gap-2">
+                <input
+                  pInputText
+                  [(ngModel)]="subtask.title"
+                  placeholder="Subtask title"
+                  class="flex-1"
+                />
+                @if (members().length > 0) {
+                  <p-select
+                    [(ngModel)]="subtask.assigned_to_id"
+                    [options]="members()"
+                    optionLabel="name"
+                    optionValue="user_id"
+                    placeholder="Assign"
+                    [showClear]="true"
+                    styleClass="w-36"
+                    appendTo="body"
+                  />
+                }
+                <button
+                  pButton
+                  icon="pi pi-times"
+                  severity="danger"
+                  [text]="true"
+                  size="small"
+                  (click)="removeSubtask($index)"
+                ></button>
+              </div>
+            }
+            <button
+              pButton
+              label="Add Subtask"
+              icon="pi pi-plus"
+              [text]="true"
+              size="small"
+              severity="secondary"
+              (click)="addSubtask()"
+              class="self-start"
+            ></button>
+          </div>
         </div>
 
         <!-- RIGHT COLUMN: People -->
@@ -524,7 +579,6 @@ export class RecurringSchedulesTabComponent implements OnInit {
   workspaceId = input.required<string>();
 
   private recurringService = inject(RecurringService);
-  private taskService = inject(TaskService);
   private projectService = inject(ProjectService);
   private messageService = inject(MessageService);
 
@@ -548,6 +602,7 @@ export class RecurringSchedulesTabComponent implements OnInit {
   newAssigneeIds: string[] = [];
   newReportingPersonId: string | null = null;
   newWatcherIds: string[] = [];
+  newSubtasks: { title: string; assigned_to_id: string | null }[] = [];
 
   priorities = [
     { value: 'low', label: 'Low', color: PRIORITY_COLORS['low'] },
@@ -671,75 +726,68 @@ export class RecurringSchedulesTabComponent implements OnInit {
 
     this.saving.set(true);
 
-    const createReq: Record<string, unknown> = {
+    const template: TaskTemplateData = {
       title,
+      description: this.newDescription.trim() || undefined,
       priority: this.newPriority,
-      start_date: this.newStartDate?.toISOString(),
-      due_date: this.newDueDate?.toISOString(),
+      estimated_hours: this.newEstimatedHours ?? undefined,
+      assignee_ids: this.newAssigneeIds,
+      reporting_person_id: this.newReportingPersonId ?? undefined,
+      watcher_ids: this.newWatcherIds,
+      label_ids: [],
+      subtasks: this.newSubtasks
+        .filter((s) => s.title.trim())
+        .map((s) => ({
+          title: s.title.trim(),
+          assigned_to_id: s.assigned_to_id ?? undefined,
+        })),
     };
-    if (this.newDescription.trim()) {
-      createReq['description'] = this.newDescription.trim();
-    }
-    if (this.newEstimatedHours != null && this.newEstimatedHours > 0) {
-      createReq['estimated_hours'] = this.newEstimatedHours;
-    }
-    if (this.newAssigneeIds.length > 0) {
-      createReq['assignee_ids'] = this.newAssigneeIds;
-    }
-    if (this.newReportingPersonId) {
-      createReq['reporting_person_id'] = this.newReportingPersonId;
-    }
 
-    this.taskService
-      .createTask(this.projectId(), createReq as any)
-      .subscribe({
-        next: (task) => {
-          const recurringReq: CreateRecurringRequest = {
-            pattern: this.newPattern,
-            creation_mode: this.newCreationMode,
-          };
-          if (this.newPattern === 'monthly' && this.newDayOfMonth != null) {
-            recurringReq.day_of_month = this.newDayOfMonth;
-          }
+    const startDate = this.newStartDate
+      ? this.newStartDate.toISOString()
+      : new Date(Date.now() + 86400000).toISOString();
 
-          // Add watchers in parallel (fire-and-forget)
-          for (const watcherId of this.newWatcherIds) {
-            this.taskService.addWatcher(task.id, watcherId).subscribe();
-          }
+    const req: CreateTemplateRecurringRequest = {
+      template,
+      pattern: this.newPattern,
+      start_date: startDate,
+      creation_mode: this.newCreationMode,
+      day_of_month:
+        this.newPattern === 'monthly'
+          ? (this.newDayOfMonth ?? undefined)
+          : undefined,
+    };
 
-          this.recurringService.createConfig(task.id, recurringReq).subscribe({
-            next: () => {
-              this.saving.set(false);
-              this.showCreateDialog.set(false);
-              this.loadConfigs();
-              this.messageService.add({
-                severity: 'success',
-                summary: 'Created',
-                detail: `Scheduled task "${title}" created`,
-                life: 3000,
-              });
-            },
-            error: () => {
-              this.saving.set(false);
-              this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'Task created but failed to set recurring schedule',
-                life: 4000,
-              });
-            },
-          });
-        },
-        error: () => {
-          this.saving.set(false);
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'Failed to create task',
-            life: 4000,
-          });
-        },
-      });
+    this.recurringService.createTemplateConfig(this.projectId(), req).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.showCreateDialog.set(false);
+        this.loadConfigs();
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Created',
+          detail: `Scheduled task "${title}" created`,
+          life: 3000,
+        });
+      },
+      error: () => {
+        this.saving.set(false);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to create scheduled task',
+          life: 4000,
+        });
+      },
+    });
+  }
+
+  addSubtask(): void {
+    this.newSubtasks = [...this.newSubtasks, { title: '', assigned_to_id: null }];
+  }
+
+  removeSubtask(index: number): void {
+    this.newSubtasks = this.newSubtasks.filter((_, i) => i !== index);
   }
 
   private loadConfigs(): void {
@@ -777,6 +825,7 @@ export class RecurringSchedulesTabComponent implements OnInit {
     this.newAssigneeIds = [];
     this.newReportingPersonId = null;
     this.newWatcherIds = [];
+    this.newSubtasks = [];
   }
 
   private buildTimeline(): void {
