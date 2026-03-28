@@ -165,6 +165,13 @@ export const routes: Routes = [
             (m) => m.ProjectSettingsComponent,
           ),
       },
+      {
+        path: 'project/:projectId/automations',
+        loadComponent: () =>
+          import('./features/project/automations-hub/automations-hub.component').then(
+            (m) => m.AutomationsHubComponent,
+          ),
+      },
       // Redirects from old /board/ URLs for bookmarks
       {
         path: 'board/:boardId',

@@ -26,6 +26,21 @@ import { MenuItem } from 'primeng/api';
           }
         </div>
         <div class="flex items-center gap-3">
+          <!-- Automations Button -->
+          <a
+            [routerLink]="[
+              '/workspace',
+              workspaceId(),
+              'project',
+              boardId(),
+              'automations',
+            ]"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--foreground)] bg-[var(--card)] border border-[var(--border)] rounded-md hover:bg-[var(--muted)]"
+          >
+            <i class="pi pi-bolt w-4 h-4 text-sm" aria-hidden="true"></i>
+            Automations
+          </a>
+
           <!-- Settings Button -->
           <a
             [routerLink]="[

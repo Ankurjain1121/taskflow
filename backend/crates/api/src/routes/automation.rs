@@ -14,9 +14,9 @@ use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::models::automation::{AutomationActionType, AutomationLog, AutomationTrigger};
 use taskbolt_db::queries::automations::{
-    create_rule, delete_rule, get_rule, get_rule_logs, list_rules, update_rule,
-    AutomationQueryError, AutomationRuleWithActions, CreateActionInput, CreateRuleInput,
-    UpdateRuleInput,
+    create_rule, delete_rule, get_rule, get_rule_logs, list_project_activity, list_rules,
+    update_rule, AutomationActivityEntry, AutomationQueryError, AutomationRuleWithActions,
+    CreateActionInput, CreateRuleInput, UpdateRuleInput,
 };
 
 /// Map AutomationQueryError to AppError
@@ -73,6 +73,36 @@ pub struct LogsQuery {
 
 fn default_limit() -> i64 {
     50
+}
+
+/// Query params for activity endpoint
+#[derive(Debug, Deserialize)]
+pub struct ActivityQuery {
+    #[serde(default = "default_activity_limit")]
+    pub limit: i64,
+    #[serde(default)]
+    pub offset: i64,
+}
+
+fn default_activity_limit() -> i64 {
+    50
+}
+
+/// GET /api/projects/{board_id}/automation-activity
+/// List automation activity for a project
+async fn list_activity_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+    Path(board_id): Path<Uuid>,
+    Query(query): Query<ActivityQuery>,
+) -> Result<Json<Vec<AutomationActivityEntry>>> {
+    let limit = query.limit.clamp(1, 100);
+    let offset = query.offset.max(0);
+    let entries = list_project_activity(&state.db, board_id, tenant.user_id, limit, offset)
+        .await
+        .map_err(map_automation_error)?;
+
+    Ok(Json(entries))
 }
 
 /// GET /api/boards/{board_id}/automations
@@ -197,6 +227,10 @@ async fn get_rule_logs_handler(
 pub fn automation_router(state: AppState) -> Router<AppState> {
     Router::new()
         // Board-scoped automation routes
+        .route(
+            "/projects/{board_id}/automation-activity",
+            get(list_activity_handler),
+        )
         .route("/projects/{board_id}/automations", get(list_rules_handler))
         .route(
             "/projects/{board_id}/automations",

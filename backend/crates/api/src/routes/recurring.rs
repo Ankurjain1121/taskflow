@@ -12,8 +12,8 @@ use crate::extractors::TenantContext;
 use crate::middleware::{auth_middleware, csrf_middleware};
 use crate::state::AppState;
 use taskbolt_db::queries::recurring::{
-    create_config, delete_config, get_config_for_task, update_config, CreateRecurringInput,
-    RecurringQueryError, UpdateRecurringInput,
+    create_config, delete_config, get_config_for_task, list_configs_for_project, update_config,
+    CreateRecurringInput, RecurringConfigWithTask, RecurringQueryError, UpdateRecurringInput,
 };
 
 /// Map RecurringQueryError to AppError
@@ -24,6 +24,20 @@ fn map_recurring_error(e: RecurringQueryError) -> AppError {
         RecurringQueryError::NotBoardMember => AppError::Forbidden("Not a project member".into()),
         RecurringQueryError::Database(e) => AppError::SqlxError(e),
     }
+}
+
+/// GET /api/projects/{board_id}/recurring
+/// List all recurring configs for a project
+async fn list_configs_handler(
+    State(state): State<AppState>,
+    tenant: TenantContext,
+    Path(board_id): Path<Uuid>,
+) -> Result<Json<Vec<RecurringConfigWithTask>>> {
+    let configs = list_configs_for_project(&state.db, board_id, tenant.user_id)
+        .await
+        .map_err(map_recurring_error)?;
+
+    Ok(Json(configs))
 }
 
 /// GET /api/tasks/{task_id}/recurring
@@ -87,6 +101,8 @@ async fn delete_config_handler(
 /// Create the recurring router
 pub fn recurring_router(state: AppState) -> Router<AppState> {
     Router::new()
+        // Project-scoped recurring routes
+        .route("/projects/{board_id}/recurring", get(list_configs_handler))
         // Task-scoped recurring routes
         .route("/tasks/{task_id}/recurring", get(get_config_handler))
         .route("/tasks/{task_id}/recurring", post(create_config_handler))

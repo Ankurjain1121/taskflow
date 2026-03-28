@@ -113,6 +113,16 @@ export interface AutomationTemplate {
   updated_at: string;
 }
 
+export interface AutomationActivityEntry {
+  id: string;
+  entry_type: string;
+  name: string;
+  status: string;
+  triggered_at: string;
+  details: Record<string, unknown> | null;
+  task_id: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AutomationService {
   constructor(private http: HttpClient) {}
@@ -175,6 +185,17 @@ export class AutomationService {
     return this.http.patch<AutomationTemplate>(
       `/api/workspaces/${workspaceId}/automation-templates/${templateId}`,
       { enabled },
+    );
+  }
+
+  getProjectActivity(
+    projectId: string,
+    limit = 50,
+    offset = 0,
+  ): Observable<AutomationActivityEntry[]> {
+    return this.http.get<AutomationActivityEntry[]>(
+      `/api/projects/${projectId}/automation-activity`,
+      { params: { limit: limit.toString(), offset: offset.toString() } },
     );
   }
 

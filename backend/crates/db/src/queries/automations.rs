@@ -10,7 +10,20 @@ use crate::models::automation::{
 // Re-export evaluation helpers so consumers don't need import changes
 pub use super::automation_evaluation::*;
 
+use chrono::{DateTime, Utc as ChronoUtc};
 use super::automation_evaluation::{fold_rules_with_actions, RuleActionRow};
+
+/// A unified activity entry for the automation activity feed.
+#[derive(Debug, sqlx::FromRow, Serialize)]
+pub struct AutomationActivityEntry {
+    pub id: Uuid,
+    pub entry_type: String,
+    pub name: String,
+    pub status: String,
+    pub triggered_at: DateTime<ChronoUtc>,
+    pub details: Option<serde_json::Value>,
+    pub task_id: Option<Uuid>,
+}
 
 /// Error type for automation query operations
 #[derive(Debug, thiserror::Error)]
@@ -389,6 +402,45 @@ pub async fn delete_rule(
     }
 
     Ok(())
+}
+
+/// List automation activity entries for a project.
+/// Combines automation rule logs and recurring task events into a unified feed.
+pub async fn list_project_activity(
+    pool: &PgPool,
+    project_id: Uuid,
+    user_id: Uuid,
+    limit: i64,
+    offset: i64,
+) -> Result<Vec<AutomationActivityEntry>, AutomationQueryError> {
+    if !verify_project_membership(pool, project_id, user_id).await? {
+        return Err(AutomationQueryError::NotBoardMember);
+    }
+
+    let entries = sqlx::query_as::<_, AutomationActivityEntry>(
+        r#"
+        SELECT
+            al.id,
+            'automation' as entry_type,
+            ar.name,
+            al.status,
+            al.triggered_at,
+            al.details,
+            al.task_id
+        FROM automation_logs al
+        JOIN automation_rules ar ON ar.id = al.rule_id
+        WHERE ar.project_id = $1
+        ORDER BY al.triggered_at DESC
+        LIMIT $2 OFFSET $3
+        "#,
+    )
+    .bind(project_id)
+    .bind(limit)
+    .bind(offset)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(entries)
 }
 
 #[cfg(test)]
