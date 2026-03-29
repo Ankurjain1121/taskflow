@@ -18,7 +18,9 @@ use taskbolt_db::queries::{
     UpdateTaskInput,
 };
 use taskbolt_services::broadcast::events;
-use taskbolt_services::{spawn_automation_evaluation, BroadcastService, TriggerContext};
+use taskbolt_services::notifications::dispatcher::notify;
+use taskbolt_services::notifications::NotificationService;
+use taskbolt_services::{spawn_automation_evaluation, BroadcastService, NotifyContext, TriggerContext};
 
 use super::common::{require_capability, verify_project_membership, Capability};
 use super::task_helpers::{
@@ -194,6 +196,67 @@ pub async fn create_task_handler(
             member_user_id: None,
         },
     );
+
+    // Send TaskAssigned notifications to assignees added during creation (skip self)
+    let task_id = task.id;
+    let task_title = task.title.clone();
+    let creator_id = tenant.user_id;
+    let notifiable_assignees: Vec<Uuid> = assignee_ids
+        .iter()
+        .copied()
+        .filter(|uid| *uid != creator_id)
+        .collect();
+
+    if !notifiable_assignees.is_empty() {
+        let db = state.db.clone();
+        let redis = state.redis.clone();
+        let waha_client = state.waha_client.clone();
+        let app_url = state.config.app_url.clone();
+        tokio::spawn(async move {
+            let creator_name = get_user_display_name(&db, creator_id)
+                .await
+                .ok()
+                .flatten()
+                .unwrap_or_else(|| "Someone".to_string());
+            let title = format!("{} assigned you to a task", creator_name);
+            let body = format!("\"{}\"", task_title);
+            let link = format!("/task/{}", task_id);
+
+            let notification_svc = NotificationService::new(
+                db.clone(),
+                BroadcastService::new(redis.clone()),
+                None,
+                app_url.clone(),
+            );
+            let notify_ctx = NotifyContext {
+                pool: &db,
+                redis: &redis,
+                notification_svc: &notification_svc,
+                app_url: &app_url,
+                slack_webhook_url: None,
+                waha_client: waha_client.as_ref(),
+            };
+
+            for assignee_id in notifiable_assignees {
+                if let Err(e) = notify(
+                    &notify_ctx,
+                    taskbolt_services::NotificationEvent::TaskAssigned,
+                    assignee_id,
+                    &title,
+                    &body,
+                    Some(&link),
+                )
+                .await
+                {
+                    tracing::error!(
+                        error = %e,
+                        assignee = %assignee_id,
+                        "Failed to dispatch TaskAssigned notification on task creation"
+                    );
+                }
+            }
+        });
+    }
 
     Ok(Json(task))
 }
