@@ -77,6 +77,7 @@ const TAB_STORAGE_KEY = 'taskbolt_mywork_tab';
           <select
             [value]="activeTab()"
             (change)="onMobileTabChange($event)"
+            aria-label="Select view"
             class="w-full px-3 py-2 rounded-lg text-sm font-medium"
             style="background: var(--card); border: 1px solid var(--border); color: var(--foreground)"
           >
