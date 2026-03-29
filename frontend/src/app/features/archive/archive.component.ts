@@ -24,12 +24,12 @@ import { AuthService } from '../../core/services/auth.service';
       >
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <h1
-            class="text-2xl font-bold text-[var(--card-foreground)] dark:text-white"
+            class="text-2xl font-bold text-[var(--card-foreground)]"
           >
             Archive
           </h1>
           <p
-            class="text-[var(--muted-foreground)] dark:text-gray-400 mt-1 text-sm"
+            class="text-[var(--muted-foreground)] mt-1 text-sm"
           >
             Deleted items are kept for 30 days before permanent removal
           </p>
@@ -83,14 +83,14 @@ import { AuthService } from '../../core/services/auth.service';
           </div>
         } @else if (error()) {
           <div
-            class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-sm text-red-700 dark:text-red-400"
+            class="bg-[color-mix(in_srgb,var(--destructive)_10%,transparent)] border border-[color-mix(in_srgb,var(--destructive)_30%,transparent)] rounded-lg p-4 text-sm text-[var(--destructive)]"
           >
             {{ error() }}
           </div>
         } @else if (items().length === 0) {
           <div class="text-center py-16">
             <svg
-              class="mx-auto h-12 w-12 text-gray-400"
+              class="mx-auto h-12 w-12 text-[var(--muted-foreground)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -103,12 +103,12 @@ import { AuthService } from '../../core/services/auth.service';
               />
             </svg>
             <h3
-              class="mt-4 text-lg font-medium text-[var(--card-foreground)] dark:text-white"
+              class="mt-4 text-lg font-medium text-[var(--card-foreground)]"
             >
               Archive is empty
             </h3>
             <p
-              class="mt-2 text-sm text-[var(--muted-foreground)] dark:text-gray-400"
+              class="mt-2 text-sm text-[var(--muted-foreground)]"
             >
               Deleted tasks and boards will appear here.
             </p>
@@ -122,7 +122,7 @@ import { AuthService } from '../../core/services/auth.service';
                 <!-- Entity type icon -->
                 @if (item.entity_type === 'task') {
                   <svg
-                    class="w-5 h-5 text-gray-400 flex-shrink-0"
+                    class="w-5 h-5 text-[var(--muted-foreground)] flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -136,7 +136,7 @@ import { AuthService } from '../../core/services/auth.service';
                   </svg>
                 } @else {
                   <svg
-                    class="w-5 h-5 text-gray-400 flex-shrink-0"
+                    class="w-5 h-5 text-[var(--muted-foreground)] flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -152,17 +152,17 @@ import { AuthService } from '../../core/services/auth.service';
 
                 <div class="flex-1 min-w-0">
                   <p
-                    class="text-sm font-medium text-[var(--card-foreground)] dark:text-white truncate"
+                    class="text-sm font-medium text-[var(--card-foreground)] truncate"
                   >
                     {{ item.name }}
                   </p>
                   <p
-                    class="text-xs text-[var(--muted-foreground)] dark:text-gray-400"
+                    class="text-xs text-[var(--muted-foreground)]"
                   >
                     {{ item.entity_type | titlecase }} &middot; Deleted
                     {{ formatDate(item.deleted_at) }} &middot;
                     <span
-                      [class]="item.days_remaining <= 7 ? 'text-red-500' : ''"
+                      [class]="item.days_remaining <= 7 ? 'text-[var(--destructive)]' : ''"
                     >
                       {{ item.days_remaining }} days remaining
                     </span>
@@ -185,7 +185,7 @@ import { AuthService } from '../../core/services/auth.service';
                     <button
                       (click)="permanentlyDelete(item)"
                       [disabled]="deleting() === item.entity_id"
-                      class="text-xs font-medium px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50"
+                      class="text-xs font-medium px-3 py-1.5 rounded-lg bg-[color-mix(in_srgb,var(--destructive)_10%,transparent)] text-[var(--destructive)] hover:bg-[color-mix(in_srgb,var(--destructive)_15%,transparent)] transition-colors disabled:opacity-50"
                     >
                       @if (deleting() === item.entity_id) {
                         Deleting...

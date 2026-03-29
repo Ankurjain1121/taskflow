@@ -17,10 +17,10 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
     <div class="space-y-6">
       <div class="text-center mb-8">
         <div
-          class="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4"
+          class="w-16 h-16 bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] rounded-full flex items-center justify-center mx-auto mb-4"
         >
           <svg
-            class="w-8 h-8 text-blue-600 dark:text-blue-400"
+            class="w-8 h-8 text-[var(--primary)]"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -33,10 +33,10 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
             ></path>
           </svg>
         </div>
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+        <h2 class="text-2xl font-bold text-[var(--card-foreground)] mb-2">
           Welcome to {{ workspaceName() }}!
         </h2>
-        <p class="text-gray-600 dark:text-gray-400">
+        <p class="text-[var(--muted-foreground)]">
           You've been invited to join this workspace. How would you like to get
           started?
         </p>
@@ -48,19 +48,19 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
             type="button"
             (click)="exploreExisting()"
             [disabled]="isLoading"
-            class="p-6 border-2 rounded-xl hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left group"
+            class="p-6 border-2 rounded-xl hover:border-[var(--primary)] hover:bg-[color-mix(in_srgb,var(--primary)_5%,transparent)] transition-all text-left group"
             [ngClass]="
               selectedOption === 'explore'
-                ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20'
-                : 'border-gray-200 dark:border-gray-700'
+                ? 'border-[var(--primary)] bg-[color-mix(in_srgb,var(--primary)_10%,transparent)]'
+                : 'border-[var(--border)]'
             "
           >
             <div class="flex items-start">
               <div
-                class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center mr-4 flex-shrink-0"
+                class="w-12 h-12 bg-[color-mix(in_srgb,var(--success)_15%,transparent)] rounded-lg flex items-center justify-center mr-4 flex-shrink-0"
               >
                 <svg
-                  class="w-6 h-6 text-green-600 dark:text-green-400"
+                  class="w-6 h-6 text-[var(--success)]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -75,11 +75,11 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
               </div>
               <div>
                 <h3
-                  class="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                  class="font-semibold text-[var(--card-foreground)] group-hover:text-[var(--primary)]"
                 >
                   Explore an existing board
                 </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <p class="text-sm text-[var(--muted-foreground)] mt-1">
                   Jump right in and see what your team is working on.
                 </p>
               </div>
@@ -91,19 +91,19 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
           type="button"
           (click)="goToDashboard()"
           [disabled]="isLoading"
-          class="p-6 border-2 rounded-xl hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all text-left group"
+          class="p-6 border-2 rounded-xl hover:border-[var(--primary)] hover:bg-[color-mix(in_srgb,var(--primary)_5%,transparent)] transition-all text-left group"
           [ngClass]="
             selectedOption === 'dashboard'
-              ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20'
-              : 'border-gray-200 dark:border-gray-700'
+              ? 'border-[var(--primary)] bg-[color-mix(in_srgb,var(--primary)_10%,transparent)]'
+              : 'border-[var(--border)]'
           "
         >
           <div class="flex items-start">
             <div
-              class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mr-4 flex-shrink-0"
+              class="w-12 h-12 bg-[color-mix(in_srgb,var(--primary)_15%,transparent)] rounded-lg flex items-center justify-center mr-4 flex-shrink-0"
             >
               <svg
-                class="w-6 h-6 text-purple-600 dark:text-purple-400"
+                class="w-6 h-6 text-[var(--primary)]"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -118,11 +118,11 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
             </div>
             <div>
               <h3
-                class="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                class="font-semibold text-[var(--card-foreground)] group-hover:text-[var(--primary)]"
               >
                 Go to Dashboard
               </h3>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <p class="text-sm text-[var(--muted-foreground)] mt-1">
                 Start fresh and set up your workspace your way.
               </p>
             </div>
@@ -132,9 +132,9 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
 
       @if (error) {
         <div
-          class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+          class="p-4 bg-[color-mix(in_srgb,var(--destructive)_10%,transparent)] border border-[color-mix(in_srgb,var(--destructive)_30%,transparent)] rounded-lg"
         >
-          <p class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+          <p class="text-sm text-[var(--destructive)]">{{ error }}</p>
         </div>
       }
     </div>

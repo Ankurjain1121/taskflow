@@ -178,10 +178,10 @@ import {
         <!-- Error State -->
         @if (error()) {
           <div
-            class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3 mb-6"
+            class="bg-[color-mix(in_srgb,var(--destructive)_10%,transparent)] border border-[color-mix(in_srgb,var(--destructive)_30%,transparent)] rounded-lg p-4 flex items-center gap-3 mb-6"
           >
             <svg
-              class="w-5 h-5 text-red-600 dark:text-red-400"
+              class="w-5 h-5 text-[var(--destructive)]"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -192,10 +192,10 @@ import {
               />
             </svg>
             <div>
-              <p class="text-sm font-medium text-red-800 dark:text-red-300">{{ error() }}</p>
+              <p class="text-sm font-medium text-[var(--destructive)]">{{ error() }}</p>
               <button
                 (click)="loadAuditLog()"
-                class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 underline mt-1"
+                class="text-sm text-[var(--destructive)] hover:underline mt-1"
               >
                 Try again
               </button>
@@ -207,7 +207,7 @@ import {
         @if (!loading() && !error() && entries().length === 0) {
           <div class="bg-[var(--card)] rounded-lg shadow p-12 text-center">
             <svg
-              class="mx-auto h-12 w-12 text-gray-400"
+              class="mx-auto h-12 w-12 text-[var(--muted-foreground)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -326,7 +326,7 @@ import {
                           >
                             {{ formatEntityType(entry.entity_type) }}
                           </span>
-                          <span class="text-xs text-gray-400 font-mono">
+                          <span class="text-xs text-[var(--muted-foreground)] font-mono">
                             {{ entry.entity_id.slice(0, 8) }}...
                           </span>
                         </div>
@@ -362,7 +362,7 @@ import {
                             ></i>
                           </button>
                         } @else {
-                          <span class="text-gray-400 text-sm">-</span>
+                          <span class="text-[var(--muted-foreground)] text-sm">-</span>
                         }
                       </td>
                     </tr>
@@ -647,16 +647,16 @@ export class AuditLogComponent implements OnInit, OnDestroy {
       'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
 
     const actionColors: Record<string, string> = {
-      created: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300',
-      updated: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
-      deleted: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300',
-      restored: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300',
-      moved: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
+      created: 'bg-green-100 text-green-800',
+      updated: 'bg-blue-100 text-blue-800',
+      deleted: 'bg-red-100 text-red-800',
+      restored: 'bg-purple-100 text-purple-800',
+      moved: 'bg-yellow-100 text-yellow-800',
       assigned: 'bg-primary/10 text-primary',
       unassigned: 'bg-[var(--secondary)] text-[var(--muted-foreground)]',
-      commented: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-300',
-      login: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300',
-      logout: 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300',
+      commented: 'bg-cyan-100 text-cyan-800',
+      login: 'bg-emerald-100 text-emerald-800',
+      logout: 'bg-orange-100 text-orange-800',
     };
 
     return `${baseClasses} ${actionColors[action] || 'bg-[var(--secondary)] text-[var(--muted-foreground)]'}`;
@@ -667,13 +667,13 @@ export class AuditLogComponent implements OnInit, OnDestroy {
       'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium';
 
     const typeColors: Record<string, string> = {
-      task: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 ring-1 ring-blue-600/20',
-      board: 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 ring-1 ring-purple-600/20',
-      workspace: 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 ring-1 ring-green-600/20',
-      user: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 ring-1 ring-amber-600/20',
-      comment: 'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300 ring-1 ring-cyan-600/20',
+      task: 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20',
+      board: 'bg-purple-50 text-purple-700 ring-1 ring-purple-600/20',
+      workspace: 'bg-green-50 text-green-700 ring-1 ring-green-600/20',
+      user: 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20',
+      comment: 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-600/20',
     };
 
-    return `${baseClasses} ${typeColors[entityType] || 'bg-[var(--secondary)] text-[var(--foreground)] ring-1 ring-gray-600/20'}`;
+    return `${baseClasses} ${typeColors[entityType] || 'bg-[var(--secondary)] text-[var(--foreground)] ring-1 ring-[var(--border)]'}`;
   }
 }

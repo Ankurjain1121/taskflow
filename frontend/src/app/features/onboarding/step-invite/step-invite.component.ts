@@ -23,11 +23,11 @@ interface EmailEntry {
     <div class="space-y-6">
       <div class="text-center mb-8">
         <h2
-          class="text-2xl font-bold text-[var(--card-foreground)] dark:text-white mb-2"
+          class="text-2xl font-bold text-[var(--card-foreground)] mb-2"
         >
           Invite Your Team
         </h2>
-        <p class="text-[var(--muted-foreground)] dark:text-gray-400">
+        <p class="text-[var(--muted-foreground)]">
           Collaboration is better together. Add team members to get started.
         </p>
       </div>
@@ -45,17 +45,17 @@ interface EmailEntry {
                        bg-[var(--card)] text-[var(--card-foreground)]
                        focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent
                        placeholder-[var(--muted-foreground)]"
-                [class.border-red-500]="email.error"
+                [class.border-[var(--destructive)]]="email.error"
               />
               @if (email.error) {
-                <p class="mt-1 text-sm text-red-500">{{ email.error }}</p>
+                <p class="mt-1 text-sm text-[var(--destructive)]">{{ email.error }}</p>
               }
             </div>
             @if (emails.length > 1) {
               <button
                 type="button"
                 (click)="removeEmail(i)"
-                class="p-3 text-gray-400 hover:text-red-500 transition-colors"
+                class="p-3 text-[var(--muted-foreground)] hover:text-[var(--destructive)] transition-colors"
                 aria-label="Remove email"
               >
                 <svg
@@ -81,8 +81,8 @@ interface EmailEntry {
         <button
           type="button"
           (click)="addEmail()"
-          class="flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700
-                 dark:hover:text-blue-300 font-medium transition-colors"
+          class="flex items-center text-[var(--primary)] hover:opacity-80
+                 font-medium transition-colors"
         >
           <svg
             class="w-5 h-5 mr-1"
@@ -106,15 +106,15 @@ interface EmailEntry {
           type="button"
           (click)="sendInvites()"
           [disabled]="!hasValidEmails() || isLoading"
-          class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
-                 text-white font-medium rounded-lg transition-colors
-                 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-                 dark:focus:ring-offset-gray-900"
+          class="w-full py-3 px-4 bg-[var(--primary)] hover:brightness-90 disabled:opacity-50
+                 text-[var(--primary-foreground)] font-medium rounded-lg transition-colors
+                 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2
+                 focus:ring-offset-[var(--card)]"
         >
           @if (isLoading) {
             <span class="flex items-center justify-center">
               <svg
-                class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                class="animate-spin -ml-1 mr-2 h-4 w-4 text-[var(--primary-foreground)]"
                 fill="none"
                 viewBox="0 0 24 24"
               >
@@ -142,8 +142,8 @@ interface EmailEntry {
         <button
           type="button"
           (click)="skip()"
-          class="w-full py-3 px-4 text-[var(--muted-foreground)] dark:text-gray-400 hover:text-[var(--card-foreground)]
-                 dark:hover:text-white font-medium transition-colors"
+          class="w-full py-3 px-4 text-[var(--muted-foreground)] hover:text-[var(--card-foreground)]
+                 font-medium transition-colors"
         >
           Skip this step
         </button>
@@ -151,17 +151,17 @@ interface EmailEntry {
 
       @if (error) {
         <div
-          class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+          class="p-4 bg-[color-mix(in_srgb,var(--destructive)_10%,transparent)] border border-[color-mix(in_srgb,var(--destructive)_30%,transparent)] rounded-lg"
         >
-          <p class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+          <p class="text-sm text-[var(--destructive)]">{{ error }}</p>
         </div>
       }
 
       @if (successMessage) {
         <div
-          class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
+          class="p-4 bg-[color-mix(in_srgb,var(--success)_10%,transparent)] border border-[color-mix(in_srgb,var(--success)_30%,transparent)] rounded-lg"
         >
-          <p class="text-sm text-green-600 dark:text-green-400">
+          <p class="text-sm text-[var(--success)]">
             {{ successMessage }}
           </p>
         </div>

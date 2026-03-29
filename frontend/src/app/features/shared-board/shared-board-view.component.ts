@@ -44,7 +44,7 @@ import {
         <div
           class="w-96 bg-[var(--card)] rounded-lg shadow-sm border p-6 text-center"
         >
-          <i class="pi pi-lock text-6xl text-gray-400 mb-4 block"></i>
+          <i class="pi pi-lock text-6xl text-[var(--muted-foreground)] mb-4 block"></i>
           <h2 class="text-xl font-semibold mb-4">Password Required</h2>
           <p class="text-[var(--muted-foreground)] mb-4">
             This board is password protected.
@@ -65,7 +65,7 @@ import {
             />
           </div>
           @if (passwordError()) {
-            <p class="text-red-500 text-sm mb-2">{{ passwordError() }}</p>
+            <p class="text-[var(--destructive)] text-sm mb-2">{{ passwordError() }}</p>
           }
           <p-button
             label="Access Board"
@@ -82,7 +82,7 @@ import {
           class="w-96 bg-[var(--card)] rounded-lg shadow-sm border p-6 text-center"
         >
           <i
-            class="pi pi-exclamation-circle text-6xl text-red-400 mb-4 block"
+            class="pi pi-exclamation-circle text-6xl text-[var(--destructive)] mb-4 block"
           ></i>
           <h2 class="text-xl font-semibold mb-2">Unable to Access Project</h2>
           <p class="text-[var(--muted-foreground)]">{{ error() }}</p>
@@ -113,7 +113,7 @@ import {
                     ></div>
                   }
                   <h3 class="font-semibold text-sm">{{ column.name }}</h3>
-                  <span class="text-xs text-gray-400 ml-auto">
+                  <span class="text-xs text-[var(--muted-foreground)] ml-auto">
                     {{ getTasksForColumn(column.id).length }}
                   </span>
                 </div>
@@ -136,7 +136,7 @@ import {
                           [styleClass]="getPriorityClass(task.priority)"
                         />
                         @if (task.due_date) {
-                          <span class="text-xs text-gray-400">{{
+                          <span class="text-xs text-[var(--muted-foreground)]">{{
                             task.due_date | date: 'shortDate'
                           }}</span>
                         }

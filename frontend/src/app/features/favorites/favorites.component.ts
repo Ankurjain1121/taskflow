@@ -114,7 +114,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
                     </div>
                     <button
                       (click)="unfavorite(item)"
-                      class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all p-1"
+                      class="opacity-0 group-hover:opacity-100 text-[var(--muted-foreground)] hover:text-[var(--destructive)] transition-all p-1"
                       title="Remove from favorites"
                     >
                       <svg
@@ -146,7 +146,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
                     class="bg-[var(--card)] rounded-lg border border-[var(--border)] p-4 flex items-center gap-3 hover:border-primary/30 transition-colors group"
                   >
                     <svg
-                      class="w-5 h-5 text-emerald-500 flex-shrink-0"
+                      class="w-5 h-5 text-[var(--success)] flex-shrink-0"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -180,7 +180,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
                     </div>
                     <button
                       (click)="unfavorite(item)"
-                      class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all p-1"
+                      class="opacity-0 group-hover:opacity-100 text-[var(--muted-foreground)] hover:text-[var(--destructive)] transition-all p-1"
                       title="Remove from favorites"
                     >
                       <svg

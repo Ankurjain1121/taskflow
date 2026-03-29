@@ -17,11 +17,11 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
     <div class="space-y-6">
       <div class="text-center mb-8">
         <h2
-          class="text-2xl font-bold text-[var(--card-foreground)] dark:text-white mb-2"
+          class="text-2xl font-bold text-[var(--card-foreground)] mb-2"
         >
           Create Your Workspace
         </h2>
-        <p class="text-[var(--muted-foreground)] dark:text-gray-400">
+        <p class="text-[var(--muted-foreground)]">
           This is where your team's boards and tasks will live.
         </p>
       </div>
@@ -30,42 +30,42 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
         <div>
           <label
             for="name"
-            class="block text-sm font-medium text-[var(--foreground)] dark:text-gray-300 mb-1"
+            class="block text-sm font-medium text-[var(--foreground)] mb-1"
           >
-            Workspace Name <span class="text-red-500">*</span>
+            Workspace Name <span class="text-[var(--destructive)]">*</span>
           </label>
           <input
             type="text"
             id="name"
             formControlName="name"
             placeholder="e.g., Marketing Team, Product Development"
-            class="w-full px-4 py-3 border border-[var(--border)] dark:border-gray-600 rounded-lg
+            class="w-full px-4 py-3 border border-[var(--border)] rounded-lg
                    bg-[var(--card)] text-[var(--card-foreground)]
-                   focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                   placeholder-gray-400 dark:placeholder-gray-500"
+                   focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent
+                   placeholder-[var(--muted-foreground)]"
           />
           @if (form.get('name')?.invalid && form.get('name')?.touched) {
-            <p class="mt-1 text-sm text-red-500">Workspace name is required</p>
+            <p class="mt-1 text-sm text-[var(--destructive)]">Workspace name is required</p>
           }
         </div>
 
         <div>
           <label
             for="description"
-            class="block text-sm font-medium text-[var(--foreground)] dark:text-gray-300 mb-1"
+            class="block text-sm font-medium text-[var(--foreground)] mb-1"
           >
             Description
-            <span class="text-gray-400 dark:text-gray-500">(optional)</span>
+            <span class="text-[var(--muted-foreground)]">(optional)</span>
           </label>
           <textarea
             id="description"
             formControlName="description"
             rows="3"
             placeholder="Briefly describe what this workspace is for..."
-            class="w-full px-4 py-3 border border-[var(--border)] dark:border-gray-600 rounded-lg
+            class="w-full px-4 py-3 border border-[var(--border)] rounded-lg
                    bg-[var(--card)] text-[var(--card-foreground)]
-                   focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                   placeholder-gray-400 dark:placeholder-gray-500 resize-none"
+                   focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent
+                   placeholder-[var(--muted-foreground)] resize-none"
           ></textarea>
         </div>
 
@@ -73,15 +73,15 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
           <button
             type="submit"
             [disabled]="form.invalid || isLoading"
-            class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
-                   text-white font-medium rounded-lg transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-                   dark:focus:ring-offset-gray-900"
+            class="w-full py-3 px-4 bg-[var(--primary)] hover:brightness-90 disabled:opacity-50
+                   text-[var(--primary-foreground)] font-medium rounded-lg transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2
+                   focus:ring-offset-[var(--card)]"
           >
             @if (isLoading) {
               <span class="flex items-center justify-center">
                 <svg
-                  class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                  class="animate-spin -ml-1 mr-2 h-4 w-4 text-[var(--primary-foreground)]"
                   fill="none"
                   viewBox="0 0 24 24"
                 >
@@ -110,9 +110,9 @@ import { OnboardingService } from '../../../core/services/onboarding.service';
 
       @if (error) {
         <div
-          class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+          class="p-4 bg-[color-mix(in_srgb,var(--destructive)_10%,transparent)] border border-[color-mix(in_srgb,var(--destructive)_30%,transparent)] rounded-lg"
         >
-          <p class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+          <p class="text-sm text-[var(--destructive)]">{{ error }}</p>
         </div>
       }
     </div>

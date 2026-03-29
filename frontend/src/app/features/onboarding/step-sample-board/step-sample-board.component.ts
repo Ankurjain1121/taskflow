@@ -24,11 +24,11 @@ interface SampleColumn {
     <div class="space-y-6">
       <div class="text-center mb-8">
         <h2
-          class="text-2xl font-bold text-[var(--card-foreground)] dark:text-white mb-2"
+          class="text-2xl font-bold text-[var(--card-foreground)] mb-2"
         >
           Sample Project Preview
         </h2>
-        <p class="text-[var(--muted-foreground)] dark:text-gray-400">
+        <p class="text-[var(--muted-foreground)]">
           Generate a sample project with pre-made tasks to explore TaskBolt's
           features.
         </p>
@@ -40,11 +40,11 @@ interface SampleColumn {
       >
         <div class="flex items-center mb-4">
           <div
-            class="w-3 h-3 bg-blue-500 rounded-full mr-2"
+            class="w-3 h-3 bg-[var(--primary)] rounded-full mr-2"
             aria-hidden="true"
           ></div>
           <span
-            class="font-medium text-[var(--card-foreground)] dark:text-white"
+            class="font-medium text-[var(--card-foreground)]"
             >{{ previewBoardName() }}</span
           >
         </div>
@@ -61,7 +61,7 @@ interface SampleColumn {
                     [style.background-color]="column.color"
                   ></div>
                   <span
-                    class="text-sm font-medium text-[var(--foreground)] dark:text-gray-300"
+                    class="text-sm font-medium text-[var(--foreground)]"
                   >
                     {{ column.name }}
                   </span>
@@ -92,15 +92,15 @@ interface SampleColumn {
             type="button"
             (click)="generate()"
             [disabled]="isLoading()"
-            class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
-                   text-white font-medium rounded-lg transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-                   dark:focus:ring-offset-gray-900"
+            class="w-full py-3 px-4 bg-[var(--primary)] hover:brightness-90 disabled:opacity-50
+                   text-[var(--primary-foreground)] font-medium rounded-lg transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2
+                   focus:ring-offset-[var(--card)]"
           >
             @if (isLoading()) {
               <span class="flex items-center justify-center">
                 <svg
-                  class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                  class="animate-spin -ml-1 mr-2 h-4 w-4 text-[var(--primary-foreground)]"
                   fill="none"
                   viewBox="0 0 24 24"
                 >
@@ -141,11 +141,11 @@ interface SampleColumn {
           </button>
         } @else {
           <div
-            class="flex items-center justify-center p-4 bg-green-50 dark:bg-green-900/20
-                      border border-green-200 dark:border-green-800 rounded-lg mb-4"
+            class="flex items-center justify-center p-4 bg-[color-mix(in_srgb,var(--success)_10%,transparent)]
+                      border border-[color-mix(in_srgb,var(--success)_30%,transparent)] rounded-lg mb-4"
           >
             <svg
-              class="w-5 h-5 text-green-500 mr-2"
+              class="w-5 h-5 text-[var(--success)] mr-2"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -157,7 +157,7 @@ interface SampleColumn {
                 d="M5 13l4 4L19 7"
               ></path>
             </svg>
-            <span class="text-green-700 dark:text-green-400 font-medium">
+            <span class="text-[var(--success)] font-medium">
               Sample board created successfully!
             </span>
           </div>
@@ -166,15 +166,15 @@ interface SampleColumn {
             type="button"
             (click)="goToDashboard()"
             [disabled]="isNavigating()"
-            class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400
-                   text-white font-medium rounded-lg transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-                   dark:focus:ring-offset-gray-900"
+            class="w-full py-3 px-4 bg-[var(--primary)] hover:brightness-90 disabled:opacity-50
+                   text-[var(--primary-foreground)] font-medium rounded-lg transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2
+                   focus:ring-offset-[var(--card)]"
           >
             @if (isNavigating()) {
               <span class="flex items-center justify-center">
                 <svg
-                  class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                  class="animate-spin -ml-1 mr-2 h-4 w-4 text-[var(--primary-foreground)]"
                   fill="none"
                   viewBox="0 0 24 24"
                 >
@@ -203,9 +203,9 @@ interface SampleColumn {
 
       @if (error()) {
         <div
-          class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+          class="p-4 bg-[color-mix(in_srgb,var(--destructive)_10%,transparent)] border border-[color-mix(in_srgb,var(--destructive)_30%,transparent)] rounded-lg"
         >
-          <p class="text-sm text-red-600 dark:text-red-400">{{ error() }}</p>
+          <p class="text-sm text-[var(--destructive)]">{{ error() }}</p>
         </div>
       }
     </div>
