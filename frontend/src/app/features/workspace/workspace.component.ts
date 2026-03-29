@@ -44,7 +44,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
       <div class="max-w-7xl mx-auto">
         <!-- Loading State -->
         @if (loading()) {
-          <div class="flex items-center justify-center py-24">
+          <div class="flex items-center justify-center py-24" role="status" aria-live="polite">
             <p-progressSpinner
               [style]="{ width: '48px', height: '48px' }"
               strokeWidth="4"
@@ -52,7 +52,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
           </div>
         } @else if (error()) {
           <!-- Error State -->
-          <div class="text-center py-24">
+          <div class="text-center py-24" role="alert">
             <div class="text-red-500 text-lg mb-2">
               Failed to load workspace
             </div>
@@ -254,14 +254,14 @@ export class WorkspaceComponent implements OnInit {
   showCreateProjectDialog = signal(false);
 
   private boardAccentColors = [
-    '#6366f1',
-    '#3b82f6',
-    '#10b981',
-    '#f59e0b',
-    '#ef4444',
-    '#8b5cf6',
-    '#06b6d4',
-    '#ec4899',
+    'var(--chart-1)',
+    'var(--chart-2)',
+    'var(--chart-3)',
+    'var(--chart-4)',
+    'var(--chart-5)',
+    'var(--primary)',
+    'var(--info)',
+    'var(--success)',
   ];
 
   constructor() {

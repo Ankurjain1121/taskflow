@@ -70,7 +70,7 @@ interface BoardViewOption {
         @for (option of themeOptions; track option.value) {
           <button
             (click)="setTheme(option.value)"
-            class="flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all cursor-pointer flex-1"
+            class="flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all cursor-pointer flex-1 focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
             [style.border-color]="
               currentTheme() === option.value
                 ? 'var(--primary)'
@@ -117,7 +117,7 @@ interface BoardViewOption {
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3" role="radiogroup" aria-label="Light theme selection">
         @for (theme of lightThemes; track theme.id) {
           <button
-            class="flex flex-col items-center gap-2 cursor-pointer group"
+            class="flex flex-col items-center gap-2 cursor-pointer group focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 rounded-lg"
             role="radio"
             [attr.aria-checked]="currentLightTheme() === theme.id"
             [attr.aria-label]="theme.name"
@@ -168,7 +168,7 @@ interface BoardViewOption {
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3" role="radiogroup" aria-label="Dark theme selection">
         @for (theme of darkThemes; track theme.id) {
           <button
-            class="flex flex-col items-center gap-2 cursor-pointer group"
+            class="flex flex-col items-center gap-2 cursor-pointer group focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 rounded-lg"
             role="radio"
             [attr.aria-checked]="currentDarkTheme() === theme.id"
             [attr.aria-label]="theme.name"

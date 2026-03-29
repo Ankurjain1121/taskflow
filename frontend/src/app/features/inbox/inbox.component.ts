@@ -124,6 +124,7 @@ interface NotificationGroup {
           <button
             class="filter-pill px-3 py-1.5 rounded-full text-sm font-medium"
             [class.active]="activeFilter() === tab.key"
+            [attr.aria-pressed]="activeFilter() === tab.key"
             (click)="activeFilter.set(tab.key)"
           >
             {{ tab.label }}

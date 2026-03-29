@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Accounts Workspace — Task Entry Sheet</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    color: #3D3229;
+    background: #FAF7F2;
+    padding: 40px;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 3px solid #BF7B54;
+    background: linear-gradient(135deg, #FAF7F2, #F0EBE1);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #BF7B54;
+    margin-bottom: 4px;
+  }
+  .header .subtitle {
+    font-size: 12px;
+    color: #666;
+  }
+  .header .meta {
+    margin-top: 10px;
+    font-size: 10px;
+    color: #999;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+  }
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .dot-urgent { background: #EF4444; }
+  .dot-high { background: #F59E0B; }
+  .dot-medium { background: #3B82F6; }
+  .dot-low { background: #6B7280; }
+  .dot-open { background: #6B7280; }
+  .dot-progress { background: #3B82F6; }
+  .dot-hold { background: #F59E0B; }
+  .dot-done { background: #10B981; }
+  .dot-cancelled { background: #EF4444; }
+
+  .project-section {
+    margin-bottom: 28px;
+    page-break-inside: avoid;
+  }
+  .project-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .project-header .tag {
+    background: rgba(255,255,255,0.25);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+  }
+  .ph-a { background: linear-gradient(135deg, #8B6F5A, #A6836A); }
+  .ph-b { background: linear-gradient(135deg, #BF7B54, #D4945E); }
+  .ph-c { background: linear-gradient(135deg, #9B8574, #B09A88); }
+  .ph-d { background: linear-gradient(135deg, #7A8B6F, #92A685); }
+
+  .task-card {
+    border: 1px solid #D6CFBF;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .task-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 14px;
+    gap: 10px;
+    background: #F5F0E8;
+    border-bottom: 1px solid #E8E4DB;
+  }
+  .task-title {
+    font-weight: 600;
+    font-size: 12px;
+    flex: 1;
+  }
+  .task-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge-urgent { background: #FEE2E2; color: #DC2626; }
+  .badge-high { background: #FEF3C7; color: #D97706; }
+  .badge-medium { background: #DBEAFE; color: #2563EB; }
+  .badge-low { background: #E8E4DB; color: #6B7280; }
+  .badge-freq {
+    background: #F0FDF4;
+    color: #15803D;
+    border: 1px solid #BBF7D0;
+  }
+  .badge-assignee {
+    background: #EDE9FE;
+    color: #7C3AED;
+  }
+
+  .task-dates {
+    font-size: 10px;
+    color: #6B5D4F;
+    padding: 4px 14px 6px;
+    background: #F5F0E8;
+    border-bottom: 1px solid #E8E4DB;
+  }
+  .task-dates span { margin-right: 14px; }
+  .task-dates strong { color: #333; }
+
+  .subtask-list {
+    padding: 6px 14px 8px 30px;
+    background: #fff;
+  }
+  .subtask-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+    font-size: 11px;
+    color: #3D3229;
+  }
+  .subtask-num {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #E8E4DB;
+    color: #6B7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .subtask-assignee {
+    margin-left: auto;
+    font-size: 9px;
+    color: #9CA3AF;
+    font-style: italic;
+  }
+  .subtask-unassigned {
+    color: #D1D5DB;
+  }
+
+  .no-subtasks {
+    padding: 6px 14px;
+    color: #9CA3AF;
+    font-size: 10px;
+    font-style: italic;
+  }
+
+  .status-section {
+    margin-top: 20px;
+    padding: 14px 18px;
+    background: #F0EBE1;
+    border-radius: 8px;
+    border: 1px solid #D6CFBF;
+  }
+  .status-section h3 {
+    font-size: 12px;
+    margin-bottom: 8px;
+    color: #3D3229;
+  }
+  .status-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .status-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 500;
+    border: 1px solid #D6CFBF;
+    background: #fff;
+  }
+
+  .footer {
+    margin-top: 30px;
+    padding-top: 12px;
+    border-top: 1px solid #E5E7EB;
+    text-align: center;
+    font-size: 9px;
+    color: #9CA3AF;
+  }
+
+  .team-section {
+    margin-bottom: 24px;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+  .team-member {
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: #F0EBE1;
+    border: 1px solid #D6CFBF;
+    font-size: 10px;
+    text-align: center;
+  }
+  .team-member strong { display: block; font-size: 11px; color: #1a1a2e; }
+  .team-member span { color: #6B7280; }
+
+  @media print {
+    body { padding: 20px; }
+    .project-section { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Accounts Workspace</h1>
+  <div class="subtitle">Task Entry Sheet &mdash; Paraslace</div>
+  <div class="meta">Generated: March 2026 &bull; 4 Projects &bull; 12 Tasks &bull; 32 Subtasks</div>
+</div>
+
+<div class="team-section">
+  <div class="team-member"><strong>Ankur Jain</strong><span>Owner</span></div>
+  <div class="team-member"><strong>Rinkal</strong><span>Member</span></div>
+  <div class="team-member"><strong>Ananya</strong><span>Member</span></div>
+  <div class="team-member"><strong>Manorama</strong><span>Admin</span></div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><span class="dot dot-urgent"></span> Urgent</div>
+  <div class="legend-item"><span class="dot dot-high"></span> High</div>
+  <div class="legend-item"><span class="dot dot-medium"></span> Medium</div>
+  <div class="legend-item"><span class="dot dot-low"></span> Low</div>
+  <div style="width:1px; background:#E5E7EB; margin:0 4px;"></div>
+  <div class="legend-item"><span class="dot dot-open"></span> Open</div>
+  <div class="legend-item"><span class="dot dot-progress"></span> In Progress</div>
+  <div class="legend-item"><span class="dot dot-hold"></span> On Hold</div>
+  <div class="legend-item"><span class="dot dot-done"></span> Completed</div>
+  <div class="legend-item"><span class="dot dot-cancelled"></span> Cancelled</div>
+</div>
+
+<!-- PROJECT A: Final Accounts -->
+<div class="project-section">
+  <div class="project-header ph-a">
+    (a) Final Accounts
+    <span class="tag">Yearly</span>
+    <span class="tag">Rinkal</span>
+  </div>
+
+  <div class="task-card">
+    <div class="task-row">
+      <div class="task-title">Final Accounts Book Finalization Points</div>
+      <div class="task-meta">
+        <span class="badge badge-high">High</span>
+        <span class="badge badge-freq">Yearly</span>
+        <span class="badge badge-assignee">Rinkal</span>
+      </div>
+    </div>
+    <div class="task-dates">
+      <span><strong>Start:</strong> 1st March</span>
+      <span><strong>Due:</strong> 31st March</span>
+      <span><strong>Recurrence:</strong> Every financial year end</span>
+    </div>
+    <div class="subtask-list">
+      <div class="subtask-item"><span class="subtask-num">1</span> Unsecure Loan Interest Given or not <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">2</span> TDS Match with all challan <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">3</span> GST match with portal <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">4</span> Creditors Ledger match with party confirmation ledger <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">5</span> Credit Card statement match with 31.3 closing balance <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">6</span> Electricity bill match with original bills <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">7</span> Fixed Asset ledger match and depreciation entry <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">8</span> Loan &amp; Advance Ledger Match <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">9</span> Debtors Ledger match with party confirmation ledger <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">10</span> Whether expense needs to be recorded in books of accounts or not <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">11</span> Bank Balance match with 31.3 closing balance <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">12</span> Stock match with original stock <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">13</span> Secure Loan Statement match with 31.3 closing statement <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">14</span> Rent Amount match with rent agreement <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">15</span> If TDS receivable, entry after verifying in Form 26AS <span class="subtask-assignee">Rinkal</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- PROJECT B: GST -->
+<div class="project-section">
+  <div class="project-header ph-b">
+    (b) GST
+    <span class="tag">Monthly / Quarterly</span>
+    <span class="tag">Rinkal</span>
+  </div>
+
+  <div class="task-card">
+    <div class="task-row">
+      <div class="task-title">GSTR-1</div>
+      <div class="task-meta">
+        <span class="badge badge-urgent">Urgent</span>
+        <span class="badge badge-freq">Monthly</span>
+        <span class="badge badge-assignee">Rinkal</span>
+      </div>
+    </div>
+    <div class="task-dates">
+      <span><strong>Start:</strong> 1st</span>
+      <span><strong>Due:</strong> 5th</span>
+      <span><strong>Govt deadline:</strong> 11th</span>
+    </div>
+    <div class="subtask-list">
+      <div class="subtask-item"><span class="subtask-num">1</span> Collect data from software <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">2</span> Verify from physical printouts <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">3</span> Prepare data <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">4</span> Send to CA <span class="subtask-assignee subtask-unassigned">unassigned</span></div>
+    </div>
+  </div>
+
+  <div class="task-card">
+    <div class="task-row">
+      <div class="task-title">GSTR-2B</div>
+      <div class="task-meta">
+        <span class="badge badge-high">High</span>
+        <span class="badge badge-freq">Monthly</span>
+        <span class="badge badge-assignee">Rinkal</span>
+      </div>
+    </div>
+    <div class="task-dates">
+      <span><strong>Start:</strong> 14th</span>
+      <span><strong>Due:</strong> 16th</span>
+      <span><strong>Note:</strong> Govt auto-generates on 14th</span>
+    </div>
+    <div class="subtask-list">
+      <div class="subtask-item"><span class="subtask-num">1</span> Download GSTR-2B from portal <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">2</span> Reconcile with purchase records <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">3</span> Entry of missing invoices if not found in books <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">4</span> Final report to CA <span class="subtask-assignee subtask-unassigned">unassigned</span></div>
+    </div>
+  </div>
+
+  <div class="task-card">
+    <div class="task-row">
+      <div class="task-title">GSTR-3B</div>
+      <div class="task-meta">
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-freq">Monthly</span>
+        <span class="badge badge-assignee">Rinkal</span>
+      </div>
+    </div>
+    <div class="task-dates">
+      <span><strong>Start:</strong> 10th</span>
+      <span><strong>Due:</strong> 17th</span>
+      <span><strong>Govt deadline:</strong> 20th</span>
+    </div>
+    <div class="subtask-list">
+      <div class="subtask-item"><span class="subtask-num">1</span> Prepare liability summary <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">2</span> Pay GST liability <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">3</span> File GSTR-3B <span class="subtask-assignee">Rinkal</span></div>
+    </div>
+  </div>
+
+  <div class="task-card">
+    <div class="task-row">
+      <div class="task-title">TDS Payment</div>
+      <div class="task-meta">
+        <span class="badge badge-urgent">Urgent</span>
+        <span class="badge badge-freq">Monthly</span>
+        <span class="badge badge-assignee">Rinkal</span>
+      </div>
+    </div>
+    <div class="task-dates">
+      <span><strong>Start:</strong> 1st</span>
+      <span><strong>Due:</strong> 5th</span>
+      <span><strong>Govt deadline:</strong> 7th</span>
+    </div>
+    <div class="subtask-list">
+      <div class="subtask-item"><span class="subtask-num">1</span> Calculate TDS liability <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">2</span> Make payment on NSDL/TIN <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">3</span> Save challan/receipt <span class="subtask-assignee">Rinkal</span></div>
+    </div>
+  </div>
+
+  <div class="task-card">
+    <div class="task-row">
+      <div class="task-title">TDS Return</div>
+      <div class="task-meta">
+        <span class="badge badge-high">High</span>
+        <span class="badge badge-freq">Quarterly</span>
+        <span class="badge badge-assignee">Rinkal</span>
+      </div>
+    </div>
+    <div class="task-dates">
+      <span><strong>Start:</strong> 1st</span>
+      <span><strong>Due:</strong> 10th</span>
+      <span><strong>Govt deadline:</strong> 15th</span>
+      <span><strong>Months:</strong> Jul, Oct, Jan, Apr</span>
+    </div>
+    <div class="subtask-list">
+      <div class="subtask-item"><span class="subtask-num">1</span> Prepare list of deductees <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">2</span> Verify <span class="subtask-assignee">Rinkal</span></div>
+      <div class="subtask-item"><span class="subtask-num">3</span> Send to CA <span class="subtask-assignee subtask-unassigned">unassigned</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- PROJECT C: Tally Bills -->
+<div class="project-section">
+  <div class="project-header ph-c">
+    (c) Tally Bills
+    <span class="tag">Daily</span>
+    <span class="tag">Rinkal</span>
+  </div>
+
+  <div class="task-card">
+    <div class="task-row">
+      <div class="task-title">Make Bills</div>
+      <div class="task-meta">
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-freq">Daily</span>
+        <span class="badge badge-assignee">Rinkal</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task-card">
+    <div class="task-row">
+      <div class="task-title">Bilty Entry</div>
+      <div class="task-meta">
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-freq">Daily</span>
+        <span class="badge badge-assignee">Rinkal</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task-card">
+    <div class="task-row">
+      <div class="task-title">Final Party Bill Filling In File</div>
+      <div class="task-meta">
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-freq">Daily</span>
+        <span class="badge badge-assignee">Rinkal</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task-card">
+    <div class="task-row">
+      <div class="task-title">Bilty Attachment In File (with Tally bill)</div>
+      <div class="task-meta">
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-freq">Daily</span>
+        <span class="badge badge-assignee">Rinkal</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task-card">
+    <div class="task-row">
+      <div class="task-title">Daily Report (Cross Check) in evening</div>
+      <div class="task-meta">
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-freq">Daily</span>
+        <span class="badge badge-assignee">Rinkal</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROJECT D: Miracle -->
+<div class="project-section">
+  <div class="project-header ph-d">
+    (d) Miracle
+    <span class="tag">Daily</span>
+    <span class="tag">Mixed Team</span>
+  </div>
+
+  <div class="task-card">
+    <div class="task-row">
+      <div class="task-title">Bills Entry</div>
+      <div class="task-meta">
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-freq">Daily</span>
+        <span class="badge badge-assignee">Ananya</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task-card">
+    <div class="task-row">
+      <div class="task-title">Bilty Entry</div>
+      <div class="task-meta">
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-freq">Daily</span>
+        <span class="badge badge-assignee">Ananya</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task-card">
+    <div class="task-row">
+      <div class="task-title">Goods Return Entry</div>
+      <div class="task-meta">
+        <span class="badge badge-low">Low</span>
+        <span class="badge badge-freq">Sometimes</span>
+        <span class="badge badge-assignee">Ananya</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task-card">
+    <div class="task-row">
+      <div class="task-title">Daily Report (Cross Check) in evening</div>
+      <div class="task-meta">
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-freq">Daily</span>
+        <span class="badge badge-assignee">Ananya</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="task-card">
+    <div class="task-row">
+      <div class="task-title">Cash Book &mdash; Check Daily Operations (Receipt &amp; Payments) and entry in Miracle</div>
+      <div class="task-meta">
+        <span class="badge badge-medium">Medium</span>
+        <span class="badge badge-freq">Daily</span>
+        <span class="badge badge-assignee">Manorama</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Status Reference -->
+<div class="status-section">
+  <h3>Default Board Statuses (auto-created per project)</h3>
+  <div class="status-row">
+    <div class="status-chip"><span class="dot dot-open"></span> Open</div>
+    <div class="status-chip"><span class="dot dot-progress"></span> In Progress</div>
+    <div class="status-chip"><span class="dot dot-hold"></span> On Hold</div>
+    <div class="status-chip"><span class="dot dot-done"></span> Completed</div>
+    <div class="status-chip"><span class="dot dot-cancelled"></span> Cancelled</div>
+  </div>
+</div>
+
+<div class="footer">
+  TaskBolt &bull; Accounts Workspace &bull; Paraslace &bull; March 2026
+</div>
+
+</body>
+</html>

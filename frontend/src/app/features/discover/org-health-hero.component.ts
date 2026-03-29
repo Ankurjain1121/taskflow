@@ -63,12 +63,12 @@ import { Component, ChangeDetectionStrategy, input, computed } from '@angular/co
           }
         </div>
         <div class="stat-card">
-          <div class="stat-value" [class.text-red-500]="totalOverdue() > 0">{{ totalOverdue() }}</div>
+          <div class="stat-value" [class.text-[var(--destructive)]]="totalOverdue() > 0">{{ totalOverdue() }}</div>
           <div class="stat-label">Overdue</div>
           @if (totalOverdue() > 0) {
             <div class="text-[10px] mt-0.5" style="color: var(--muted-foreground)">
               @if (overdueAging().critical > 0) {
-                <span class="text-red-500">{{ overdueAging().critical }} critical</span>
+                <span class="text-[var(--destructive)]">{{ overdueAging().critical }} critical</span>
                 @if (overdueAging().recent > 0) { · }
               }
               @if (overdueAging().recent > 0) {

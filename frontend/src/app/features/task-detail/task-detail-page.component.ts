@@ -106,6 +106,7 @@ import { Toast } from 'primeng/toast';
             background: var(--muted);
           "
           pTooltip="Go back"
+          aria-label="Go back"
         >
           <i class="pi pi-arrow-left text-xs"></i>
           Back
@@ -196,10 +197,10 @@ import { Toast } from 'primeng/toast';
         </div>
       </div>
     } @else if (error()) {
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-16 text-center">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-16 text-center" role="alert">
         <i
           class="pi pi-exclamation-circle text-4xl mb-4"
-          style="color: var(--red-500)"
+          style="color: var(--destructive)"
         ></i>
         <h2 class="text-lg font-semibold mb-2" style="color: var(--foreground)">
           Task not found

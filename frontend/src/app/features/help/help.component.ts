@@ -141,7 +141,7 @@ interface ShortcutGroup {
                   (click)="restartChecklist()"
                   class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--primary)] border border-[var(--primary)]/40 rounded-lg hover:bg-[var(--primary)] hover:text-white transition-colors"
                 >
-                  <i class="pi pi-refresh text-xs"></i>
+                  <i class="pi pi-refresh text-xs" aria-hidden="true"></i>
                   Restart Getting Started Checklist
                 </button>
               </div>
@@ -163,7 +163,7 @@ interface ShortcutGroup {
                 (click)="restartFeatureTour()"
                 class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--primary)] border border-[var(--primary)]/40 rounded-lg hover:bg-[var(--primary)] hover:text-white transition-colors"
               >
-                <i class="pi pi-play text-xs"></i>
+                <i class="pi pi-play text-xs" aria-hidden="true"></i>
                 Restart Feature Tour
               </button>
             </div>
