@@ -68,6 +68,8 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
               <div
                 class="absolute inset-0 flex items-center justify-center"
                 style="background: rgba(0,0,0,0.5)"
+                role="status"
+                aria-live="polite"
               >
                 <i class="pi pi-spin pi-spinner text-white text-xl"></i>
               </div>
@@ -287,9 +289,9 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
     <!-- Danger Zone -->
     <div
       class="rounded-lg border-2 shadow-sm p-6 mt-6"
-      style="background: var(--card); border-color: #ef4444"
+      style="background: var(--card); border-color: var(--destructive)"
     >
-      <h2 class="text-xl font-semibold mb-1 text-red-500">Danger Zone</h2>
+      <h2 class="text-xl font-semibold mb-1" style="color: var(--destructive)">Danger Zone</h2>
       <p class="text-sm mb-4" style="color: var(--muted-foreground)">
         Permanently delete your account and all associated data. This action
         cannot be undone.
@@ -305,7 +307,7 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
       } @else {
         <div
           class="rounded-lg border p-4 space-y-3"
-          style="border-color: #ef4444; background: rgba(239,68,68,0.05)"
+          style="border-color: var(--destructive); background: color-mix(in srgb, var(--destructive) 5%, transparent)"
         >
           <p class="text-sm font-medium" style="color: var(--foreground)">
             Type <strong>DELETE</strong> and enter your password to confirm:

@@ -76,6 +76,7 @@ import {
 
       @if (loading()) {
         <!-- Loading skeleton -->
+        <div role="status" aria-live="polite">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           @for (i of [1, 2, 3, 4]; track i) {
             <div class="stat-card p-5">
@@ -93,6 +94,7 @@ import {
               <p-skeleton width="80%" height="0.75rem" />
             </div>
           }
+        </div>
         </div>
       } @else if (error()) {
         <div
@@ -132,7 +134,7 @@ import {
             <p class="text-xs font-medium uppercase tracking-wider" style="color: var(--muted-foreground)">
               Overdue
             </p>
-            <p class="text-2xl font-bold mt-1" [style.color]="totalOverdueTasks() > 0 ? '#ef4444' : 'var(--foreground)'">
+            <p class="text-2xl font-bold mt-1" [style.color]="totalOverdueTasks() > 0 ? 'var(--destructive)' : 'var(--foreground)'">
               {{ totalOverdueTasks() }}
             </p>
           </div>
@@ -165,7 +167,7 @@ import {
                   <div class="flex items-center gap-3 min-w-0">
                     <div
                       class="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-                      [style.background]="project.background_color || '#6366f1'"
+                      [style.background]="project.background_color || 'var(--primary)'"
                     >
                       {{ project.name.charAt(0).toUpperCase() }}
                     </div>
@@ -235,7 +237,7 @@ import {
                     {{ project.active_tasks }} active
                   </span>
                   @if (project.overdue_tasks > 0) {
-                    <span class="flex items-center gap-1 text-red-500">
+                    <span class="flex items-center gap-1 text-[var(--destructive)]">
                       <i class="pi pi-exclamation-circle text-[10px]"></i>
                       {{ project.overdue_tasks }} overdue
                     </span>
@@ -299,7 +301,7 @@ import {
                   <div class="col-span-3 flex items-center gap-2 min-w-0">
                     <span
                       class="w-2 h-2 rounded-full flex-shrink-0"
-                      [style.background]="milestone.project_color || '#6366f1'"
+                      [style.background]="milestone.project_color || 'var(--primary)'"
                     ></span>
                     <span class="text-xs truncate" style="color: var(--muted-foreground)">
                       {{ milestone.project_name }}
@@ -423,10 +425,10 @@ export class PortfolioDashboardComponent implements OnInit {
   }
 
   getProgressColor(pct: number): string {
-    if (pct >= 75) return '#22c55e';
-    if (pct >= 40) return '#3b82f6';
-    if (pct >= 10) return '#f59e0b';
-    return '#94a3b8';
+    if (pct >= 75) return 'var(--success)';
+    if (pct >= 40) return 'var(--info)';
+    if (pct >= 10) return 'var(--warning)';
+    return 'var(--muted-foreground)';
   }
 
   getMilestoneProgress(milestone: PortfolioMilestone): number {
@@ -441,7 +443,7 @@ export class PortfolioDashboardComponent implements OnInit {
     const due = new Date(dueDate);
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-    if (due < now) return 'text-red-500 font-medium';
+    if (due < now) return 'text-[var(--destructive)] font-medium';
     return 'text-[var(--muted-foreground)]';
   }
 

@@ -149,10 +149,10 @@ interface PreferenceRow {
         >
           <ng-template pTemplate="header">
             <tr>
-              <th class="!font-semibold">Event</th>
-              <th class="!font-semibold !text-center">In-App</th>
-              <th class="!font-semibold !text-center">Email</th>
-              <th class="!font-semibold !text-center">
+              <th scope="col" class="!font-semibold">Event</th>
+              <th scope="col" class="!font-semibold !text-center">In-App</th>
+              <th scope="col" class="!font-semibold !text-center">Email</th>
+              <th scope="col" class="!font-semibold !text-center">
                 <span
                   pTooltip="Slack integration coming soon"
                   tooltipPosition="top"
@@ -165,7 +165,7 @@ interface PreferenceRow {
                   ></i>
                 </span>
               </th>
-              <th class="!font-semibold !text-center">
+              <th scope="col" class="!font-semibold !text-center">
                 <span class="flex items-center justify-center gap-1">
                   <i class="pi pi-whatsapp text-green-500 text-xs"></i>
                   WhatsApp

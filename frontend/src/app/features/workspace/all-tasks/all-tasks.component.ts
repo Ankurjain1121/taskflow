@@ -70,6 +70,7 @@ interface AllTasksResponse {
             placeholder="Status"
             [showClear]="true"
             styleClass="text-xs"
+            aria-label="Filter by status"
           />
           <p-select
             [options]="priorityFilterOptions"
@@ -80,6 +81,7 @@ interface AllTasksResponse {
             placeholder="Priority"
             [showClear]="true"
             styleClass="text-xs"
+            aria-label="Filter by priority"
           />
           <p-select
             [options]="projectFilterOptions()"
@@ -90,6 +92,7 @@ interface AllTasksResponse {
             placeholder="Project"
             [showClear]="true"
             styleClass="text-xs"
+            aria-label="Filter by project"
           />
         </div>
       </div>

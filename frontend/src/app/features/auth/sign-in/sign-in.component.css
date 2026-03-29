@@ -245,6 +245,20 @@
         margin-right: 8px;
       }
 
+      /* ===== Reduced motion ===== */
+      @media (prefers-reduced-motion: reduce) {
+        .fade-in {
+          animation: none;
+        }
+
+        .submit-btn,
+        .submit-btn:hover:not([disabled]),
+        .submit-btn:active:not([disabled]) {
+          transition: none !important;
+          transform: none !important;
+        }
+      }
+
       /* ===== Responsive: stack on small screens ===== */
       @media (max-width: 768px) {
         .auth-container {
