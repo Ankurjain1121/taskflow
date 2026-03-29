@@ -46,9 +46,9 @@ interface AbbreviatedFlowStep {
     >
       <!-- Loading State -->
       @if (isLoading()) {
-        <div class="flex flex-col items-center">
+        <div class="flex flex-col items-center" role="status" aria-live="polite">
           <svg
-            class="animate-spin h-8 w-8 text-blue-600"
+            class="animate-spin h-8 w-8 text-[var(--primary)]"
             fill="none"
             viewBox="0 0 24 24"
           >
@@ -66,7 +66,7 @@ interface AbbreviatedFlowStep {
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             ></path>
           </svg>
-          <p class="mt-4 text-[var(--muted-foreground)] dark:text-gray-400">
+          <p class="mt-4 text-[var(--muted-foreground)]">
             Loading...
           </p>
         </div>
@@ -74,10 +74,10 @@ interface AbbreviatedFlowStep {
         <!-- Logo / Header -->
         <div class="mb-8 text-center">
           <div
-            class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3"
+            class="w-12 h-12 bg-[var(--primary)] rounded-xl flex items-center justify-center mx-auto mb-3"
           >
             <svg
-              class="w-7 h-7 text-white"
+              class="w-7 h-7 text-[var(--primary-foreground)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -91,7 +91,7 @@ interface AbbreviatedFlowStep {
             </svg>
           </div>
           <h1
-            class="text-lg font-semibold text-[var(--card-foreground)] dark:text-white"
+            class="text-lg font-semibold text-[var(--card-foreground)]"
           >
             TaskBolt
           </h1>
@@ -102,7 +102,7 @@ interface AbbreviatedFlowStep {
           @for (step of currentSteps(); track step.id; let i = $index) {
             <div
               class="w-2.5 h-2.5 rounded-full transition-colors"
-              [class.bg-blue-600]="i <= currentStepIndex()"
+              [class.bg-[var(--primary)]]="i <= currentStepIndex()"
               [class.bg-[var(--border)]]="i > currentStepIndex()"
             ></div>
           }
@@ -152,7 +152,8 @@ interface AbbreviatedFlowStep {
           <button
             type="button"
             (click)="goBack()"
-            class="mt-6 text-[var(--muted-foreground)] dark:text-gray-400 hover:text-[var(--card-foreground)] dark:hover:text-white
+            aria-label="Go back to previous step"
+            class="mt-6 text-[var(--muted-foreground)] hover:text-[var(--card-foreground)]
                    flex items-center transition-colors"
           >
             <svg

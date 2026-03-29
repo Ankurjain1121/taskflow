@@ -63,7 +63,7 @@ import { MenuItem } from 'primeng/api';
                 users().length
               }}</span>
               users
-              <span class="mx-2 text-gray-300">|</span>
+              <span class="mx-2 text-[var(--border)]">|</span>
               <span class="text-purple-600">{{ adminCount() }} admins</span>,
               <span class="text-blue-600">{{ managerCount() }} managers</span>,
               <span class="text-[var(--muted-foreground)]"
@@ -117,10 +117,10 @@ import { MenuItem } from 'primeng/api';
         <!-- Error State -->
         @if (error()) {
           <div
-            class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3 mb-6"
+            class="bg-[color-mix(in_srgb,var(--destructive)_10%,transparent)] border border-[color-mix(in_srgb,var(--destructive)_30%,transparent)] rounded-lg p-4 flex items-center gap-3 mb-6"
           >
             <svg
-              class="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0"
+              class="w-5 h-5 text-[var(--destructive)] flex-shrink-0"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -131,10 +131,10 @@ import { MenuItem } from 'primeng/api';
               />
             </svg>
             <div>
-              <p class="text-sm font-medium text-red-800 dark:text-red-300">{{ error() }}</p>
+              <p class="text-sm font-medium text-[var(--destructive)]">{{ error() }}</p>
               <button
                 (click)="loadUsers()"
-                class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 underline mt-1"
+                class="text-sm text-[var(--destructive)] hover:underline mt-1"
               >
                 Try again
               </button>
@@ -146,7 +146,7 @@ import { MenuItem } from 'primeng/api';
         @if (!loading() && !error() && users().length === 0) {
           <div class="bg-[var(--card)] rounded-lg shadow p-12 text-center">
             <svg
-              class="mx-auto h-12 w-12 text-gray-400"
+              class="mx-auto h-12 w-12 text-[var(--muted-foreground)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -232,7 +232,7 @@ import { MenuItem } from 'primeng/api';
                               {{ user.display_name }}
                               @if (!user.email_verified) {
                                 <span
-                                  class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300"
+                                  class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800"
                                 >
                                   Unverified
                                 </span>
@@ -299,7 +299,7 @@ import { MenuItem } from 'primeng/api';
                             {{ formatRelativeDate(user.last_active_at) }}
                           </span>
                         } @else {
-                          <span class="text-gray-400">Never</span>
+                          <span class="text-[var(--muted-foreground)]">Never</span>
                         }
                       </td>
 
@@ -340,7 +340,7 @@ import { MenuItem } from 'primeng/api';
     >
       <div class="flex items-start gap-3">
         <svg
-          class="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5"
+          class="w-6 h-6 text-[var(--destructive)] flex-shrink-0 mt-0.5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -602,9 +602,9 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
       'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
 
     const roleColors: Record<string, string> = {
-      SuperAdmin: 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300',
-      Admin: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300',
-      Manager: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
+      SuperAdmin: 'bg-amber-100 text-amber-800',
+      Admin: 'bg-purple-100 text-purple-800',
+      Manager: 'bg-blue-100 text-blue-800',
       Member: 'bg-[var(--secondary)] text-[var(--card-foreground)]',
     };
 

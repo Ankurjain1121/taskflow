@@ -20,11 +20,11 @@ interface UseCase {
     <div class="space-y-6">
       <div class="text-center mb-8">
         <h2
-          class="text-2xl font-bold text-[var(--card-foreground)] dark:text-white mb-2"
+          class="text-2xl font-bold text-[var(--card-foreground)] mb-2"
         >
           What will you use TaskBolt for?
         </h2>
-        <p class="text-[var(--muted-foreground)] dark:text-gray-400">
+        <p class="text-[var(--muted-foreground)]">
           This helps us tailor your experience.
         </p>
       </div>
@@ -36,18 +36,18 @@ interface UseCase {
             (click)="select(uc.id)"
             [class]="
               selectedUseCase() === uc.id
-                ? 'p-5 border-2 rounded-xl text-left transition-all cursor-pointer border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'p-5 border-2 rounded-xl text-left transition-all cursor-pointer border-gray-200 dark:border-gray-600 hover:border-blue-400'
+                ? 'p-5 border-2 rounded-xl text-left transition-all cursor-pointer border-[var(--primary)] bg-[color-mix(in_srgb,var(--primary)_10%,transparent)]'
+                : 'p-5 border-2 rounded-xl text-left transition-all cursor-pointer border-[var(--border)] hover:border-[var(--primary)]'
             "
           >
             <div class="text-3xl mb-3">{{ uc.icon }}</div>
             <h3
-              class="font-semibold text-[var(--card-foreground)] dark:text-white"
+              class="font-semibold text-[var(--card-foreground)]"
             >
               {{ uc.title }}
             </h3>
             <p
-              class="text-sm text-[var(--muted-foreground)] dark:text-gray-400 mt-1"
+              class="text-sm text-[var(--muted-foreground)] mt-1"
             >
               {{ uc.description }}
             </p>
@@ -59,10 +59,10 @@ interface UseCase {
         type="button"
         (click)="onContinue()"
         [disabled]="!selectedUseCase()"
-        class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed
-               text-white font-medium rounded-lg transition-colors
-               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-               dark:focus:ring-offset-gray-900"
+        class="w-full py-3 px-4 bg-[var(--primary)] hover:brightness-90 disabled:opacity-50 disabled:cursor-not-allowed
+               text-[var(--primary-foreground)] font-medium rounded-lg transition-colors
+               focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2
+               focus:ring-offset-[var(--card)]"
       >
         Continue
       </button>
@@ -71,8 +71,8 @@ interface UseCase {
         <button
           type="button"
           (click)="onSkip()"
-          class="text-sm text-[var(--muted-foreground)] dark:text-gray-400
-                 hover:text-[var(--card-foreground)] dark:hover:text-white transition-colors"
+          class="text-sm text-[var(--muted-foreground)]
+                 hover:text-[var(--card-foreground)] transition-colors"
         >
           Skip -- I'll start from scratch
         </button>

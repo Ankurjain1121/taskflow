@@ -43,7 +43,7 @@ export interface ConfirmDialogData {
       <div class="flex items-start gap-3">
         @if (data().isDestructive) {
           <svg
-            class="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5"
+            class="w-6 h-6 text-[var(--destructive)] flex-shrink-0 mt-0.5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -56,7 +56,7 @@ export interface ConfirmDialogData {
             />
           </svg>
         }
-        <p class="text-gray-600 dark:text-gray-400">{{ data().message }}</p>
+        <p class="text-[var(--muted-foreground)]">{{ data().message }}</p>
       </div>
       <ng-template pTemplate="footer">
         <p-button
