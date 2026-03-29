@@ -41,7 +41,7 @@ const WORKSPACE_VIEWS: ViewOption[] = [
   { id: 'eisenhower', label: 'Eisenhower Matrix', icon: 'pi-th-large', section: 'workspace' },
 ];
 
-const SELECTED_BG = 'rgba(99,102,241,0.1)';
+const SELECTED_BG = 'color-mix(in srgb, var(--primary) 10%, transparent)';
 
 @Component({
   selector: 'app-view-switcher',

@@ -28,11 +28,11 @@ import { SaveStatusService } from '../../../core/services/save-status.service';
       }
 
       .saved {
-        color: #0FA882;
+        color: var(--success, #0FA882);
       }
 
       .error {
-        color: #E8445A;
+        color: var(--destructive, #E8445A);
       }
 
       @keyframes spin {

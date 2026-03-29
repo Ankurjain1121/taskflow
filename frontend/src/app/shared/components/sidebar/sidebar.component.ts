@@ -146,6 +146,10 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
       .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
         background: rgba(100, 116, 139, 0.35);
       }
+      .sidebar-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(100, 116, 139, 0.2) transparent;
+      }
       .divider {
         height: 1px;
         background: var(--sidebar-border);
@@ -268,8 +272,9 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
           class="hidden md:flex items-center justify-center w-full h-7 rounded-md hover:bg-[var(--sidebar-surface-hover)] transition-colors"
           style="color: var(--sidebar-text-secondary)"
           [title]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+          [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
         >
-          <i class="pi pi-angle-double-left text-xs collapse-icon"
+          <i class="pi pi-angle-double-left text-xs collapse-icon" aria-hidden="true"
              [style.transform]="collapsed() ? 'rotate(180deg)' : 'rotate(0)'"></i>
           <span class="sidebar-label text-xs ml-2" style="color: var(--sidebar-text-muted)">Collapse</span>
         </button>

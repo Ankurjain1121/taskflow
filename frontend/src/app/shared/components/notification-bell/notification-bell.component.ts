@@ -83,9 +83,9 @@ const TAB_EVENT_TYPES: Record<
       <div (click)="$event.stopPropagation()">
         <!-- Header -->
         <div
-          class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700"
+          class="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]"
         >
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          <h3 class="text-lg font-semibold text-[var(--foreground)]">
             Notifications
           </h3>
           <div class="flex items-center gap-1">
@@ -119,7 +119,7 @@ const TAB_EVENT_TYPES: Record<
 
         <!-- Filter tabs -->
         <div
-          class="px-3 py-2 border-b border-gray-200 dark:border-gray-700 overflow-x-auto"
+          class="px-3 py-2 border-b border-[var(--border)] overflow-x-auto"
         >
           <p-selectButton
             [options]="tabOptions"
@@ -218,7 +218,7 @@ const TAB_EVENT_TYPES: Record<
                 filteredNotifications().length > 0
               ) {
                 <div
-                  class="text-center py-3 text-gray-400 dark:text-gray-500 text-sm"
+                  class="text-center py-3 text-[var(--muted-foreground)] text-sm"
                 >
                   No more notifications
                 </div>

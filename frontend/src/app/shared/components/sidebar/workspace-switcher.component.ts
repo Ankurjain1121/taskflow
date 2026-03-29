@@ -32,7 +32,7 @@ import { AuthService } from '../../../core/services/auth.service';
         justify-content: center;
         border-radius: 0.375rem;
         font-weight: 700;
-        color: #fff;
+        color: var(--primary-foreground, #fff);
         flex-shrink: 0;
       }
       .dropdown-overlay {
