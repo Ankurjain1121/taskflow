@@ -51,42 +51,42 @@ export const DEFAULT_PREFERENCES: Record<
     in_app: true,
     email: true,
     slack: false,
-    whatsapp: false,
+    whatsapp: true,
   },
   task_due_soon: {
     event_type: 'task_due_soon',
     in_app: true,
     email: true,
     slack: false,
-    whatsapp: false,
+    whatsapp: true,
   },
   task_overdue: {
     event_type: 'task_overdue',
     in_app: true,
     email: true,
     slack: false,
-    whatsapp: false,
+    whatsapp: true,
   },
   task_commented: {
     event_type: 'task_commented',
     in_app: true,
     email: false,
     slack: false,
-    whatsapp: false,
+    whatsapp: true,
   },
   task_completed: {
     event_type: 'task_completed',
     in_app: true,
     email: false,
     slack: false,
-    whatsapp: false,
+    whatsapp: true,
   },
   mention_in_comment: {
     event_type: 'mention_in_comment',
     in_app: true,
     email: true,
     slack: false,
-    whatsapp: false,
+    whatsapp: true,
   },
 };
 
@@ -215,7 +215,7 @@ export class ProfileService {
         in_app: true,
         email: true,
         slack: false,
-        whatsapp: false,
+        whatsapp: true,
       }
     );
   }

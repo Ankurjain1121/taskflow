@@ -201,10 +201,8 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
                 );
                 tokio::time::sleep(delay).await;
 
-                let mut interval = tokio::time::interval(Duration::from_secs(86400));
-                interval.tick().await;
+                // Run first digest immediately, then every 24h
                 loop {
-                    interval.tick().await;
                     match taskbolt_services::jobs::whatsapp_digest::send_daily_whatsapp_digests(
                         &wa_pool,
                         &wa_client,
@@ -220,6 +218,7 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
                         ),
                         Err(e) => tracing::error!(error = %e, "WhatsApp daily digest failed"),
                     }
+                    tokio::time::sleep(Duration::from_secs(86400)).await;
                 }
             });
         }
@@ -231,11 +230,9 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
             let wa_app_url = config.app_url.clone();
             tokio::spawn(async move {
                 tokio::time::sleep(Duration::from_secs(20)).await;
-                let mut interval = tokio::time::interval(Duration::from_secs(604800));
-                interval.tick().await;
                 tracing::info!("WhatsApp weekly summary scheduler started (interval: 7d)");
+                // Run first summary immediately, then every 7d
                 loop {
-                    interval.tick().await;
                     match taskbolt_services::jobs::whatsapp_digest::send_weekly_whatsapp_summaries(
                         &wa_pool,
                         &wa_client,
@@ -251,6 +248,7 @@ pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
                         ),
                         Err(e) => tracing::error!(error = %e, "WhatsApp weekly summary failed"),
                     }
+                    tokio::time::sleep(Duration::from_secs(604800)).await;
                 }
             });
         }

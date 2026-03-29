@@ -176,7 +176,7 @@ pub async fn should_notify(
             NotificationChannel::InApp => true,
             NotificationChannel::Email => true,
             NotificationChannel::Slack => false,
-            NotificationChannel::WhatsApp => false,
+            NotificationChannel::WhatsApp => true,
         },
     })
 }
