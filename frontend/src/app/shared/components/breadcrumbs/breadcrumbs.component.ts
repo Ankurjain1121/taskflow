@@ -35,7 +35,7 @@ export interface Breadcrumb {
         ) {
           @if (crumb.url && !last) {
             <a
-              class="truncate max-w-[160px] transition-colors cursor-pointer hover:underline"
+              class="truncate max-w-[160px] transition-colors cursor-pointer hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--primary)]"
               style="color: var(--muted-foreground)"
               (click)="navigate(crumb.url)"
               >{{ crumb.label }}</a
@@ -46,6 +46,7 @@ export interface Breadcrumb {
               [style.color]="
                 last ? 'var(--foreground)' : 'var(--muted-foreground)'
               "
+              [attr.aria-current]="last ? 'page' : null"
               >{{ crumb.label }}</span
             >
           }

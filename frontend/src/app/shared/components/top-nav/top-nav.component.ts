@@ -91,6 +91,13 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
       .search-pill:hover {
         background: var(--border);
       }
+
+      :host ::ng-deep button:focus-visible,
+      :host ::ng-deep a:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: -2px;
+        border-radius: 0.375rem;
+      }
     `,
   ],
   template: `
