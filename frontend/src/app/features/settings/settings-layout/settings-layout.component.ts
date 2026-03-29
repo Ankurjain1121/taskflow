@@ -171,6 +171,8 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
           overflow-x: auto;
           padding: 0 16px;
           gap: 4px;
+          scroll-snap-type: x mandatory;
+          -webkit-overflow-scrolling: touch;
         }
 
         .nav-link {
@@ -178,6 +180,7 @@ import { WorkspaceContextService } from '../../../core/services/workspace-contex
           border-bottom: 3px solid transparent;
           padding: 8px 14px;
           white-space: nowrap;
+          scroll-snap-align: start;
         }
 
         .nav-link.active {
