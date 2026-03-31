@@ -170,12 +170,23 @@ pub async fn move_task_handler(
             let body = format!("\"{}\" has been marked as done", task_title);
             let link = format!("/task/{}", task_id);
 
+            let slack_webhook: Option<String> = sqlx::query_scalar(
+                r#"SELECT p.slack_webhook_url FROM projects p
+                   JOIN tasks t ON t.project_id = p.id
+                   WHERE t.id = $1 AND t.deleted_at IS NULL"#,
+            )
+            .bind(task_id)
+            .fetch_optional(&db)
+            .await
+            .ok()
+            .flatten();
+
             let notify_ctx = NotifyContext {
                 pool: &db,
                 redis: &redis,
                 notification_svc: &notification_svc,
                 app_url: &app_url,
-                slack_webhook_url: None, // TODO: get from workspace settings
+                slack_webhook_url: slack_webhook.as_deref(),
                 waha_client: waha_client.as_ref(),
             };
 
