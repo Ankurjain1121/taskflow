@@ -157,6 +157,14 @@ pub fn build_router(
             "/auth/2fa/challenge",
             axum::routing::post(crate::routes::totp::challenge_handler),
         )
+        .route(
+            "/auth/phone/send-otp",
+            axum::routing::post(crate::routes::phone_otp::send_otp_handler),
+        )
+        .route(
+            "/auth/phone/verify-otp",
+            axum::routing::post(crate::routes::phone_otp::verify_otp_handler),
+        )
         .layer(from_fn(rate_limit_middleware))
         .layer(rate_limit_layer(state.redis.clone(), 20, 60)); // 20 requests per 60 seconds per IP
 

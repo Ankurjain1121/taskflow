@@ -11,6 +11,7 @@ pub mod auth;
 pub mod auth_password;
 pub mod auth_profile;
 pub mod auth_session;
+pub mod phone_otp;
 pub mod automation;
 pub mod automation_templates;
 pub mod batch_my_tasks;

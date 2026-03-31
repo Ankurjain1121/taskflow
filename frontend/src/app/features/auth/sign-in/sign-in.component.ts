@@ -55,7 +55,7 @@ export class SignInComponent {
   private destroyRef = inject(DestroyRef);
 
   signInForm: FormGroup = this.fb.group({
-    email: ['', [Validators.required, Validators.email]],
+    identifier: ['', [Validators.required]],
     password: ['', [Validators.required, Validators.minLength(8)]],
     rememberMe: [true],
   });
@@ -98,10 +98,10 @@ export class SignInComponent {
     this.isLoading = true;
     this.errorMessage = '';
 
-    const { email, password, rememberMe } = this.signInForm.value;
+    const { identifier, password, rememberMe } = this.signInForm.value;
 
     this.authService
-      .signIn(email, password, rememberMe ?? true)
+      .signIn(identifier, password, rememberMe ?? true)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => {
@@ -121,7 +121,7 @@ export class SignInComponent {
         },
         error: (error) => {
           if (error.status === 401) {
-            this.errorMessage = 'Invalid email or password';
+            this.errorMessage = 'Invalid credentials';
           } else if (error.status === 429) {
             this.errorMessage =
               'Too many attempts. Please wait a minute and try again.';

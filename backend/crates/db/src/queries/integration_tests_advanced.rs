@@ -23,6 +23,8 @@ async fn create_full_test_setup(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid, Uuid)
         &email,
         "Test Adv User",
         "$argon2id$v=19$m=19456,t=2,p=1$fakesalt$fakehash",
+        None,
+        false,
     )
     .await
     .expect("create user");

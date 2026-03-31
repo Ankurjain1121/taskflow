@@ -20,6 +20,7 @@ export interface User {
   email: string;
   name: string; // Backend sends 'name', not 'display_name'
   phone_number: string | null;
+  phone_verified: boolean;
   avatar_url: string | null;
   job_title: string | null;
   department: string | null;
@@ -49,7 +50,7 @@ export function isTwoFactorRequired(
 }
 
 export interface SignInRequest {
-  email: string;
+  identifier: string;
   password: string;
   remember_me?: boolean;
 }
@@ -58,6 +59,17 @@ export interface SignUpRequest {
   name: string;
   email: string;
   password: string;
+  phone_number?: string;
+}
+
+export interface SendOtpResponse {
+  message: string;
+  expires_in: number;
+}
+
+export interface VerifyOtpResponse {
+  message: string;
+  verified: boolean;
 }
 
 /** Only non-sensitive flags are persisted — full user comes from /auth/me */
@@ -133,13 +145,13 @@ export class AuthService {
   }
 
   signIn(
-    email: string,
+    identifier: string,
     password: string,
     rememberMe: boolean = true,
   ): Observable<SignInResponse> {
     return this.http
       .post<SignInResponse>(`${this.apiUrl}/sign-in`, {
-        email,
+        identifier,
         password,
         remember_me: rememberMe,
       })
@@ -153,6 +165,23 @@ export class AuthService {
           return throwError(() => error);
         }),
       );
+  }
+
+  sendPhoneOtp(phoneNumber: string): Observable<SendOtpResponse> {
+    return this.http.post<SendOtpResponse>(
+      `${this.apiUrl}/phone/send-otp`,
+      { phone_number: phoneNumber },
+    );
+  }
+
+  verifyPhoneOtp(
+    phoneNumber: string,
+    code: string,
+  ): Observable<VerifyOtpResponse> {
+    return this.http.post<VerifyOtpResponse>(
+      `${this.apiUrl}/phone/verify-otp`,
+      { phone_number: phoneNumber, code },
+    );
   }
 
   signUp(request: SignUpRequest): Observable<TokenResponse> {

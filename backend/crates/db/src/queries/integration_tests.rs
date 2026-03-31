@@ -21,7 +21,7 @@ use crate::queries::{auth, comments, projects, tasks, workspaces};
 async fn test_create_user_with_tenant() {
     let pool = test_pool().await;
     let email = unique_email();
-    let user = auth::create_user_with_tenant(&pool, &email, "Create Test", FAKE_HASH)
+    let user = auth::create_user_with_tenant(&pool, &email, "Create Test", FAKE_HASH, None, false)
         .await
         .expect("create_user_with_tenant");
 
@@ -36,7 +36,7 @@ async fn test_create_user_with_tenant() {
 async fn test_get_user_by_email() {
     let pool = test_pool().await;
     let email = unique_email();
-    let created = auth::create_user_with_tenant(&pool, &email, "ByEmail", FAKE_HASH)
+    let created = auth::create_user_with_tenant(&pool, &email, "ByEmail", FAKE_HASH, None, false)
         .await
         .unwrap();
 
@@ -194,7 +194,7 @@ async fn test_create_password_reset_token() {
 async fn test_update_user_password() {
     let pool = test_pool().await;
     let email = unique_email();
-    let user = auth::create_user_with_tenant(&pool, &email, "PwdUpdate", FAKE_HASH)
+    let user = auth::create_user_with_tenant(&pool, &email, "PwdUpdate", FAKE_HASH, None, false)
         .await
         .unwrap();
 

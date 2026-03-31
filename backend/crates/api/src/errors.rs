@@ -39,6 +39,9 @@ pub enum AppError {
     #[error("Too many requests: {0}")]
     TooManyRequests(String),
 
+    #[error("Gone: {0}")]
+    Gone(String),
+
     #[error("Service unavailable: {0}")]
     ServiceUnavailable(String),
 
@@ -95,6 +98,7 @@ impl IntoResponse for AppError {
             AppError::TooManyRequests(msg) => {
                 (StatusCode::TOO_MANY_REQUESTS, "TOO_MANY_REQUESTS", msg)
             }
+            AppError::Gone(msg) => (StatusCode::GONE, "GONE", msg),
             AppError::ServiceUnavailable(msg) => {
                 (StatusCode::SERVICE_UNAVAILABLE, "SERVICE_UNAVAILABLE", msg)
             }

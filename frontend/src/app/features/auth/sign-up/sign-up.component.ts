@@ -1,6 +1,7 @@
 import {
   Component,
   inject,
+  signal,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   DestroyRef,
@@ -23,6 +24,7 @@ import { PasswordModule } from 'primeng/password';
 import { ProgressBar } from 'primeng/progressbar';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
+import { OtpVerificationComponent } from '../../../shared/components/otp-verification/otp-verification.component';
 
 @Component({
   selector: 'app-sign-up',
@@ -37,6 +39,7 @@ import { AuthService } from '../../../core/services/auth.service';
     ProgressSpinner,
     PasswordModule,
     ProgressBar,
+    OtpVerificationComponent,
   ],
   templateUrl: './sign-up.component.html',
   styleUrl: './sign-up.component.css',
@@ -52,11 +55,16 @@ export class SignUpComponent {
     {
       name: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
+      phone_number: ['', [Validators.pattern(/^\+[1-9]\d{6,14}$/)]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required]],
     },
     { validators: this.passwordMatchValidator },
   );
+
+  /** Current step: 'form' (main form), 'otp' (phone verification) */
+  step = signal<'form' | 'otp'>('form');
+  phoneForOtp = signal('');
 
   isLoading = false;
   hidePassword = true;
@@ -137,13 +145,64 @@ export class SignUpComponent {
       return;
     }
 
+    const phoneNumber = this.signUpForm.value.phone_number?.trim();
+
+    // If phone provided, try to send OTP first
+    if (phoneNumber) {
+      this.isLoading = true;
+      this.errorMessage = '';
+
+      this.authService
+        .sendPhoneOtp(phoneNumber)
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          finalize(() => {
+            this.isLoading = false;
+            this.cdr.markForCheck();
+          }),
+        )
+        .subscribe({
+          next: () => {
+            this.phoneForOtp.set(phoneNumber);
+            this.step.set('otp');
+          },
+          error: (error) => {
+            // WAHA down — proceed without OTP verification
+            if (error.status === 503) {
+              this.doSignUp(false);
+            } else if (error.status === 429) {
+              this.errorMessage =
+                'Too many OTP requests. Please wait before trying again.';
+            } else {
+              this.errorMessage =
+                error.error?.error?.message ||
+                'Failed to send verification code.';
+            }
+          },
+        });
+    } else {
+      // No phone — skip OTP
+      this.doSignUp(false);
+    }
+  }
+
+  onOtpVerified(): void {
+    this.doSignUp(true);
+  }
+
+  onOtpBack(): void {
+    this.step.set('form');
+  }
+
+  private doSignUp(phoneVerified: boolean): void {
     this.isLoading = true;
     this.errorMessage = '';
 
-    const { name, email, password } = this.signUpForm.value;
+    const { name, email, password, phone_number } = this.signUpForm.value;
+    const phoneNumber = phone_number?.trim() || undefined;
 
     this.authService
-      .signUp({ name, email, password })
+      .signUp({ name, email, password, phone_number: phoneNumber })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => {
@@ -156,8 +215,11 @@ export class SignUpComponent {
           this.router.navigate(['/onboarding']);
         },
         error: (error) => {
+          this.step.set('form');
           if (error.status === 409) {
-            this.errorMessage = 'An account with this email already exists.';
+            this.errorMessage =
+              error.error?.error?.message ||
+              'An account with this email already exists.';
           } else if (error.status === 400) {
             this.errorMessage =
               error.error?.error?.message ||

@@ -66,6 +66,13 @@
         <!-- Right form panel -->
         <div class="form-panel">
           <div class="form-wrapper fade-in">
+            @if (step() === 'otp') {
+              <app-otp-verification
+                [phoneNumber]="phoneForOtp()"
+                (verified)="onOtpVerified()"
+                (back)="onOtpBack()"
+              />
+            } @else {
             <div class="form-header">
               <h2 class="form-title">Create your account</h2>
               <p class="form-subtitle">Get started with TaskBolt in seconds</p>
@@ -113,6 +120,27 @@
                   signUpForm.get('email')?.touched
                 ) {
                   <small id="signup-email-invalid-error" class="p-error">Please enter a valid email</small>
+                }
+              </div>
+
+              <div class="field-spacing">
+                <label for="phone_number" class="field-label">
+                  Phone Number
+                  <span class="text-xs text-[var(--muted-foreground)] font-normal ml-1">(optional)</span>
+                </label>
+                <input
+                  pInputText
+                  id="phone_number"
+                  type="tel"
+                  formControlName="phone_number"
+                  placeholder="+91 8750269626"
+                  class="w-full"
+                />
+                @if (
+                  signUpForm.get('phone_number')?.hasError('pattern') &&
+                  signUpForm.get('phone_number')?.touched
+                ) {
+                  <small class="p-error">Phone must be in E.164 format (e.g. +918750269626)</small>
                 }
               </div>
 
@@ -231,6 +259,7 @@
                 </a>
               </p>
             </div>
+            }
           </div>
         </div>
       </div>

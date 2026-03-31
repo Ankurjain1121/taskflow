@@ -474,6 +474,7 @@ pub async fn challenge_handler(
         email: full_user.email,
         avatar_url: full_user.avatar_url,
         phone_number: full_user.phone_number,
+        phone_verified: full_user.phone_verified,
         job_title: full_user.job_title,
         department: full_user.department,
         bio: full_user.bio,

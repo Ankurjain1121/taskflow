@@ -411,7 +411,7 @@ pub async fn accept_handler(
         r#"
         INSERT INTO users (id, email, name, password_hash, job_title, department, bio, role, tenant_id, onboarding_completed, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, NOW(), NOW())
-        RETURNING id, email, name, password_hash, avatar_url, phone_number, job_title, department, bio, role,
+        RETURNING id, email, name, password_hash, avatar_url, phone_number, phone_verified, job_title, department, bio, role,
                   tenant_id, onboarding_completed, last_login_at, deleted_at, created_at, updated_at
         "#,
     )
