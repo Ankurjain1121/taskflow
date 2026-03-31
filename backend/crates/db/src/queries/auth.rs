@@ -8,7 +8,7 @@ use crate::models::{RefreshToken, User};
 pub async fn get_user_by_email(pool: &PgPool, email: &str) -> Result<Option<User>, sqlx::Error> {
     sqlx::query_as::<_, User>(
         r#"
-        SELECT id, email, name, password_hash, avatar_url, phone_number, job_title, department, bio, role,
+        SELECT id, email, name, password_hash, avatar_url, phone_number, phone_verified, job_title, department, bio, role,
                tenant_id, onboarding_completed, last_login_at, deleted_at, created_at, updated_at
         FROM users
         WHERE email = $1 AND deleted_at IS NULL
@@ -23,7 +23,7 @@ pub async fn get_user_by_email(pool: &PgPool, email: &str) -> Result<Option<User
 pub async fn get_user_by_id(pool: &PgPool, user_id: Uuid) -> Result<Option<User>, sqlx::Error> {
     sqlx::query_as::<_, User>(
         r#"
-        SELECT id, email, name, password_hash, avatar_url, phone_number, job_title, department, bio, role,
+        SELECT id, email, name, password_hash, avatar_url, phone_number, phone_verified, job_title, department, bio, role,
                tenant_id, onboarding_completed, last_login_at, deleted_at, created_at, updated_at
         FROM users
         WHERE id = $1 AND deleted_at IS NULL
@@ -127,6 +127,8 @@ pub async fn create_user_with_tenant(
     email: &str,
     name: &str,
     password_hash: &str,
+    phone_number: Option<&str>,
+    phone_verified: bool,
 ) -> Result<User, sqlx::Error> {
     let tenant_id = Uuid::new_v4();
     let slug = format!(
@@ -148,9 +150,9 @@ pub async fn create_user_with_tenant(
     // Create user as super_admin of the new tenant
     let user = sqlx::query_as::<_, User>(
         r#"
-        INSERT INTO users (id, email, name, password_hash, role, tenant_id, onboarding_completed, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, 'super_admin', $5, false, NOW(), NOW())
-        RETURNING id, email, name, password_hash, avatar_url, phone_number, job_title, department, bio, role,
+        INSERT INTO users (id, email, name, password_hash, phone_number, phone_verified, role, tenant_id, onboarding_completed, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, 'super_admin', $7, false, NOW(), NOW())
+        RETURNING id, email, name, password_hash, avatar_url, phone_number, phone_verified, job_title, department, bio, role,
                   tenant_id, onboarding_completed, last_login_at, deleted_at, created_at, updated_at
         "#,
     )
@@ -158,6 +160,8 @@ pub async fn create_user_with_tenant(
     .bind(email)
     .bind(name)
     .bind(password_hash)
+    .bind(phone_number)
+    .bind(phone_verified)
     .bind(tenant_id)
     .fetch_one(&mut *tx)
     .await?;
@@ -191,7 +195,7 @@ pub async fn create_user(
         r#"
         INSERT INTO users (id, email, name, password_hash, role, tenant_id, onboarding_completed, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, false, NOW(), NOW())
-        RETURNING id, email, name, password_hash, avatar_url, phone_number, job_title, department, bio, role,
+        RETURNING id, email, name, password_hash, avatar_url, phone_number, phone_verified, job_title, department, bio, role,
                   tenant_id, onboarding_completed, last_login_at, deleted_at, created_at, updated_at
         "#,
     )
@@ -202,6 +206,21 @@ pub async fn create_user(
     .bind(role)
     .bind(tenant_id)
     .fetch_one(pool)
+    .await
+}
+
+/// Get a user by phone number
+pub async fn get_user_by_phone(pool: &PgPool, phone: &str) -> Result<Option<User>, sqlx::Error> {
+    sqlx::query_as::<_, User>(
+        r#"
+        SELECT id, email, name, password_hash, avatar_url, phone_number, phone_verified, job_title, department, bio, role,
+               tenant_id, onboarding_completed, last_login_at, deleted_at, created_at, updated_at
+        FROM users
+        WHERE phone_number = $1 AND deleted_at IS NULL
+        "#,
+    )
+    .bind(phone)
+    .fetch_optional(pool)
     .await
 }
 

@@ -33,7 +33,7 @@ pub fn is_whatsapp_enabled() -> bool {
 ///
 /// E.164 format: +[country code][number]
 /// Examples: +14155552671, +447911123456
-fn validate_e164_phone_number(phone: &str) -> Result<(), WhatsAppError> {
+pub fn validate_e164_phone_number(phone: &str) -> Result<(), WhatsAppError> {
     // Must start with +
     if !phone.starts_with('+') {
         return Err(WhatsAppError::InvalidPhoneNumber(

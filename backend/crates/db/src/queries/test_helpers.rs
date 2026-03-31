@@ -25,7 +25,7 @@ pub fn unique_email() -> String {
 /// Create user + tenant, return (tenant_id, user_id)
 pub async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
     let user =
-        super::auth::create_user_with_tenant(pool, &unique_email(), "IntTest User", FAKE_HASH)
+        super::auth::create_user_with_tenant(pool, &unique_email(), "IntTest User", FAKE_HASH, None, false)
             .await
             .expect("create_user_with_tenant");
     (user.tenant_id, user.id)

@@ -12,6 +12,7 @@ use crate::extractors::AuthUserExtractor;
 use crate::middleware::store_csrf_token;
 use crate::state::AppState;
 
+
 use super::validation::{validate_optional_string, MAX_BIO_LEN, MAX_NAME_LEN};
 
 use super::auth::{AuthResponse, UserResponse, SESSION_TTL_SECS};
@@ -61,6 +62,7 @@ pub async fn me_handler(
             tenant_id: user.tenant_id,
             avatar_url: user.avatar_url,
             phone_number: user.phone_number,
+            phone_verified: user.phone_verified,
             job_title: user.job_title,
             department: user.department,
             bio: user.bio,
@@ -121,6 +123,33 @@ pub async fn update_profile_handler(
         }
     }
 
+    // Check OTP verification for phone number change
+    let phone_verified = if let Some(ref phone) = payload.phone_number {
+        if !phone.is_empty() {
+            let otp_key = format!("otp_verified:{}", phone);
+            let verified: Option<String> = redis::cmd("GET")
+                .arg(&otp_key)
+                .query_async(&mut state.redis.clone())
+                .await
+                .unwrap_or(None);
+            if verified.is_some() {
+                let _: () = redis::cmd("DEL")
+                    .arg(&otp_key)
+                    .query_async(&mut state.redis.clone())
+                    .await
+                    .unwrap_or(());
+                Some(true)
+            } else {
+                Some(false)
+            }
+        } else {
+            // Clearing phone number — reset verified
+            Some(false)
+        }
+    } else {
+        None // phone not being updated
+    };
+
     // Build dynamic UPDATE
     sqlx::query(
         r#"
@@ -131,8 +160,9 @@ pub async fn update_profile_handler(
             job_title = COALESCE($4, job_title),
             department = COALESCE($5, department),
             bio = COALESCE($6, bio),
+            phone_verified = COALESCE($7, phone_verified),
             updated_at = NOW()
-        WHERE id = $7
+        WHERE id = $8
         "#,
     )
     .bind(payload.name.as_deref().map(|s| s.trim()))
@@ -141,6 +171,7 @@ pub async fn update_profile_handler(
     .bind(&payload.job_title)
     .bind(&payload.department)
     .bind(&payload.bio)
+    .bind(phone_verified)
     .bind(user_id)
     .execute(&state.db)
     .await?;
@@ -158,6 +189,7 @@ pub async fn update_profile_handler(
         tenant_id: user.tenant_id,
         avatar_url: user.avatar_url,
         phone_number: user.phone_number,
+        phone_verified: user.phone_verified,
         job_title: user.job_title,
         department: user.department,
         bio: user.bio,

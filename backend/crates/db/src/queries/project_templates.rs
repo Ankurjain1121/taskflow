@@ -552,7 +552,7 @@ mod tests {
     }
 
     async fn setup_user(pool: &PgPool) -> (Uuid, Uuid) {
-        let user = auth::create_user_with_tenant(pool, &unique_email(), "ProjTmpl User", FAKE_HASH)
+        let user = auth::create_user_with_tenant(pool, &unique_email(), "ProjTmpl User", FAKE_HASH, None, false)
             .await
             .expect("create_user_with_tenant");
         (user.tenant_id, user.id)

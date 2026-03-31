@@ -1,6 +1,7 @@
 import {
   Component,
   OnInit,
+  inject,
   signal,
   computed,
   ChangeDetectionStrategy,
@@ -12,20 +13,22 @@ import {
   OnboardingService,
   InvitationContext,
 } from '../../core/services/onboarding.service';
+import { AuthService } from '../../core/services/auth.service';
 import { StepWorkspaceComponent } from './step-workspace/step-workspace.component';
 import { StepInviteComponent } from './step-invite/step-invite.component';
 import { StepWelcomeComponent } from './step-welcome/step-welcome.component';
 import { StepUseCaseComponent } from './step-use-case/step-use-case.component';
+import { StepPhoneComponent } from './step-phone/step-phone.component';
 
 type OnboardingFlow = 'full' | 'abbreviated';
 
 interface FullFlowStep {
-  id: 'workspace' | 'invite' | 'use-case';
+  id: 'phone' | 'workspace' | 'invite' | 'use-case';
   label: string;
 }
 
 interface AbbreviatedFlowStep {
-  id: 'welcome';
+  id: 'phone' | 'welcome';
   label: string;
 }
 
@@ -39,6 +42,7 @@ interface AbbreviatedFlowStep {
     StepInviteComponent,
     StepWelcomeComponent,
     StepUseCaseComponent,
+    StepPhoneComponent,
   ],
   template: `
     <div
@@ -115,6 +119,9 @@ interface AbbreviatedFlowStep {
           <!-- Full Flow Steps -->
           @if (flow() === 'full') {
             @switch (currentFullStep()) {
+              @case ('phone') {
+                <app-step-phone (completed)="onPhoneComplete()" />
+              }
               @case ('workspace') {
                 <app-step-workspace (completed)="onWorkspaceCreated($event)" />
               }
@@ -136,6 +143,9 @@ interface AbbreviatedFlowStep {
           <!-- Abbreviated Flow Steps -->
           @if (flow() === 'abbreviated') {
             @switch (currentAbbreviatedStep()) {
+              @case ('phone') {
+                <app-step-phone (completed)="onPhoneComplete()" />
+              }
               @case ('welcome') {
                 <app-step-welcome
                   [workspaceName]="invitationContext()!.workspace_name"
@@ -177,39 +187,42 @@ interface AbbreviatedFlowStep {
   `,
 })
 export class OnboardingComponent implements OnInit {
+  private authService = inject(AuthService);
+
   isLoading = signal(true);
   flow = signal<OnboardingFlow>('full');
   currentStepIndex = signal(0);
   workspaceId = signal<string | null>(null);
   invitationContext = signal<InvitationContext | null>(null);
+  needsPhoneStep = signal(false);
 
-  private fullFlowSteps: FullFlowStep[] = [
+  private fullFlowSteps = signal<FullFlowStep[]>([
     { id: 'workspace', label: 'Create Workspace' },
     { id: 'invite', label: 'Invite Team' },
     { id: 'use-case', label: 'Use Case' },
-  ];
+  ]);
 
-  private abbreviatedFlowSteps: AbbreviatedFlowStep[] = [
+  private abbreviatedFlowSteps = signal<AbbreviatedFlowStep[]>([
     { id: 'welcome', label: 'Welcome' },
-  ];
+  ]);
 
   currentSteps = computed(() => {
     return this.flow() === 'full'
-      ? this.fullFlowSteps
-      : this.abbreviatedFlowSteps;
+      ? this.fullFlowSteps()
+      : this.abbreviatedFlowSteps();
   });
 
   currentFullStep = computed(() => {
-    return this.fullFlowSteps[this.currentStepIndex()]?.id || 'workspace';
+    return this.fullFlowSteps()[this.currentStepIndex()]?.id || 'workspace';
   });
 
   currentAbbreviatedStep = computed(() => {
-    return this.abbreviatedFlowSteps[this.currentStepIndex()]?.id || 'welcome';
+    return this.abbreviatedFlowSteps()[this.currentStepIndex()]?.id || 'welcome';
   });
 
   showBackButton = computed(() => {
-    // Show back button for step 2 of full flow (invite step)
-    return this.flow() === 'full' && this.currentStepIndex() === 1;
+    // Show back button when not on the first step
+    return this.currentStepIndex() > 0;
   });
 
   constructor(
@@ -225,13 +238,17 @@ export class OnboardingComponent implements OnInit {
   }
 
   private checkOnboardingStatus(): void {
-    this.http.get<{ onboarding_completed: boolean }>('/api/auth/me').subscribe({
+    this.http.get<{ onboarding_completed: boolean; user?: { phone_number?: string; phone_verified?: boolean } }>('/api/auth/me').subscribe({
       next: (response) => {
         if (response.onboarding_completed) {
-          // Already completed onboarding — redirect guard will resolve workspace
           this.router.navigate(['/dashboard']);
           return;
         }
+
+        // Check if user needs phone verification step
+        const user = this.authService.currentUser();
+        const needsPhone = !user?.phone_number || !user?.phone_verified;
+        this.needsPhoneStep.set(needsPhone);
 
         // Check for invitation token
         const token = this.route.snapshot.queryParamMap.get('token');
@@ -242,13 +259,20 @@ export class OnboardingComponent implements OnInit {
         }
       },
       error: () => {
-        // If we can't fetch user info, redirect to sign-in
         this.router.navigate(['/auth/sign-in']);
       },
     });
   }
 
   private initFullFlow(): void {
+    if (this.needsPhoneStep()) {
+      this.fullFlowSteps.set([
+        { id: 'phone', label: 'Verify Phone' },
+        { id: 'workspace', label: 'Create Workspace' },
+        { id: 'invite', label: 'Invite Team' },
+        { id: 'use-case', label: 'Use Case' },
+      ]);
+    }
     this.flow.set('full');
     this.currentStepIndex.set(0);
     this.isLoading.set(false);
@@ -258,15 +282,24 @@ export class OnboardingComponent implements OnInit {
     this.onboardingService.getInvitationContext(token).subscribe({
       next: (context) => {
         this.invitationContext.set(context);
+        if (this.needsPhoneStep()) {
+          this.abbreviatedFlowSteps.set([
+            { id: 'phone', label: 'Verify Phone' },
+            { id: 'welcome', label: 'Welcome' },
+          ]);
+        }
         this.flow.set('abbreviated');
         this.currentStepIndex.set(0);
         this.isLoading.set(false);
       },
       error: () => {
-        // If token is invalid, fall back to full flow
         this.initFullFlow();
       },
     });
+  }
+
+  onPhoneComplete(): void {
+    this.currentStepIndex.update((i) => i + 1);
   }
 
   onWorkspaceCreated(workspaceId: string): void {

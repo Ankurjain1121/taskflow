@@ -41,7 +41,8 @@ const LOGIN_LOCKOUT_SECS: i64 = 900;
 
 #[derive(Debug, Deserialize)]
 pub struct SignInRequest {
-    pub email: String,
+    /// Accepts email or E.164 phone number (e.g. "+918750269626")
+    pub identifier: String,
     pub password: String,
     /// When false, cookies are session-only (no Max-Age). Defaults to true.
     pub remember_me: Option<bool>,
@@ -52,6 +53,7 @@ pub struct SignUpRequest {
     pub name: String,
     pub email: String,
     pub password: String,
+    pub phone_number: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -74,6 +76,7 @@ pub struct UserResponse {
     pub tenant_id: Uuid,
     pub avatar_url: Option<String>,
     pub phone_number: Option<String>,
+    pub phone_verified: bool,
     pub job_title: Option<String>,
     pub department: Option<String>,
     pub bio: Option<String>,
@@ -107,14 +110,15 @@ pub async fn sign_in_handler(
     Json(payload): Json<SignInRequest>,
 ) -> Result<Response> {
     // Validate input
-    if payload.email.is_empty() || payload.password.is_empty() {
+    let identifier = payload.identifier.trim();
+    if identifier.is_empty() || payload.password.is_empty() {
         return Err(AppError::BadRequest(
-            "Email and password are required".into(),
+            "Email/phone and password are required".into(),
         ));
     }
 
     // Check brute-force lockout (fail-open: if Redis is down, allow the attempt)
-    let lockout_key = format!("login_attempts:{}", payload.email.to_lowercase());
+    let lockout_key = format!("login_attempts:{}", identifier.to_lowercase());
     let attempts: i64 = redis::cmd("GET")
         .arg(&lockout_key)
         .query_async(&mut state.redis.clone())
@@ -127,10 +131,14 @@ pub async fn sign_in_handler(
         ));
     }
 
-    // Fetch user by email
-    let user = auth::get_user_by_email(&state.db, &payload.email)
-        .await?
-        .ok_or_else(|| AppError::Unauthorized("Invalid email or password".into()))?;
+    // Fetch user by email or phone number
+    let is_phone = identifier.starts_with('+');
+    let user = if is_phone {
+        auth::get_user_by_phone(&state.db, identifier).await?
+    } else {
+        auth::get_user_by_email(&state.db, identifier).await?
+    }
+    .ok_or_else(|| AppError::Unauthorized("Invalid credentials".into()))?;
 
     // Verify password
     let password_valid = verify_password(&payload.password, &user.password_hash)
@@ -152,11 +160,11 @@ pub async fn sign_in_handler(
             .await
             .unwrap_or(0);
         tracing::warn!(
-            email = %payload.email,
+            identifier = %identifier,
             attempt = attempt_count,
             "Failed login attempt"
         );
-        return Err(AppError::Unauthorized("Invalid email or password".into()));
+        return Err(AppError::Unauthorized("Invalid credentials".into()));
     }
 
     // Clear failed login attempts on successful login
@@ -165,7 +173,7 @@ pub async fn sign_in_handler(
         .query_async::<()>(&mut state.redis.clone())
         .await
     {
-        tracing::error!(email = %payload.email, error = %e, "Failed to clear login counter");
+        tracing::error!(identifier = %identifier, error = %e, "Failed to clear login counter");
     }
 
     // Check if user has 2FA enabled
@@ -220,6 +228,7 @@ pub async fn sign_in_handler(
         email: user.email,
         avatar_url: user.avatar_url,
         phone_number: user.phone_number,
+        phone_verified: user.phone_verified,
         job_title: user.job_title,
         department: user.department,
         bio: user.bio,
@@ -267,6 +276,13 @@ pub async fn sign_up_handler(
         ));
     }
 
+    // Validate phone number if provided
+    let phone_number = payload.phone_number.as_deref().filter(|p| !p.is_empty());
+    if let Some(phone) = phone_number {
+        taskbolt_services::notifications::whatsapp::validate_e164_phone_number(phone)
+            .map_err(|e| AppError::BadRequest(e.to_string()))?;
+    }
+
     // Check if email already exists
     if auth::get_user_by_email(&state.db, &payload.email)
         .await?
@@ -277,14 +293,54 @@ pub async fn sign_up_handler(
         ));
     }
 
+    // Check if phone is already verified by another user
+    if let Some(phone) = phone_number {
+        if let Some(existing) = auth::get_user_by_phone(&state.db, phone).await? {
+            if existing.phone_verified {
+                return Err(AppError::Conflict(
+                    "This phone number is already registered".into(),
+                ));
+            }
+        }
+    }
+
     // Hash password
     let password_hash = taskbolt_auth::password::hash_password(&payload.password)
         .map_err(|_| AppError::InternalError("Failed to hash password".into()))?;
 
+    // Check if phone was OTP-verified via Redis
+    let phone_verified = if let Some(phone) = phone_number {
+        let otp_key = format!("otp_verified:{}", phone);
+        let verified: Option<String> = redis::cmd("GET")
+            .arg(&otp_key)
+            .query_async(&mut state.redis.clone())
+            .await
+            .unwrap_or(None);
+        if verified.is_some() {
+            // Consume the verification flag
+            let _: () = redis::cmd("DEL")
+                .arg(&otp_key)
+                .query_async(&mut state.redis.clone())
+                .await
+                .unwrap_or(());
+            true
+        } else {
+            false
+        }
+    } else {
+        false
+    };
+
     // Create user with tenant
-    let user =
-        auth::create_user_with_tenant(&state.db, &payload.email, &payload.name, &password_hash)
-            .await?;
+    let user = auth::create_user_with_tenant(
+        &state.db,
+        &payload.email,
+        &payload.name,
+        &password_hash,
+        phone_number,
+        phone_verified,
+    )
+    .await?;
 
     let (ip_address, user_agent) = extract_session_metadata(&headers);
 
@@ -296,6 +352,7 @@ pub async fn sign_up_handler(
         email: user.email,
         avatar_url: user.avatar_url,
         phone_number: user.phone_number,
+        phone_verified: user.phone_verified,
         job_title: user.job_title,
         department: user.department,
         bio: user.bio,
@@ -381,6 +438,7 @@ pub async fn refresh_handler(
         email: user.email,
         avatar_url: user.avatar_url,
         phone_number: user.phone_number,
+        phone_verified: user.phone_verified,
         job_title: user.job_title,
         department: user.department,
         bio: user.bio,

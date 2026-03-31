@@ -64,27 +64,21 @@
 
               <form [formGroup]="signInForm" (ngSubmit)="onSubmit()">
                 <div class="field-spacing">
-                  <label for="email" class="field-label">Email</label>
+                  <label for="identifier" class="field-label">Email or Phone Number</label>
                   <input
                     pInputText
-                    id="email"
-                    type="email"
-                    formControlName="email"
-                    placeholder="you@example.com"
+                    id="identifier"
+                    type="text"
+                    formControlName="identifier"
+                    placeholder="you@example.com or +918750269626"
                     class="w-full"
-                    [attr.aria-describedby]="signInForm.get('email')?.hasError('required') && signInForm.get('email')?.touched ? 'email-required-error' : signInForm.get('email')?.hasError('email') && signInForm.get('email')?.touched ? 'email-invalid-error' : null"
+                    [attr.aria-describedby]="signInForm.get('identifier')?.hasError('required') && signInForm.get('identifier')?.touched ? 'identifier-required-error' : null"
                   />
                   @if (
-                    signInForm.get('email')?.hasError('required') &&
-                    signInForm.get('email')?.touched
+                    signInForm.get('identifier')?.hasError('required') &&
+                    signInForm.get('identifier')?.touched
                   ) {
-                    <small id="email-required-error" class="p-error">Email is required</small>
-                  }
-                  @if (
-                    signInForm.get('email')?.hasError('email') &&
-                    signInForm.get('email')?.touched
-                  ) {
-                    <small id="email-invalid-error" class="p-error">Please enter a valid email</small>
+                    <small id="identifier-required-error" class="p-error">Email or phone number is required</small>
                   }
                 </div>
 

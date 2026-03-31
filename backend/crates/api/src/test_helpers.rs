@@ -174,6 +174,8 @@ pub mod helpers {
             &email,
             "API IntTest User",
             FAKE_HASH,
+            None,
+            false,
         )
         .await
         .expect("Failed to create test user");
