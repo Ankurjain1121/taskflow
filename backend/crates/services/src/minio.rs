@@ -50,6 +50,7 @@ pub struct MinioService {
 
 impl MinioService {
     /// Create a new MinioService with the given configuration
+    #[allow(clippy::unused_async)]
     pub async fn new(config: MinioConfig) -> Self {
         // Build internal client (uses Docker internal endpoint)
         let internal_creds = Credentials::new(

@@ -119,8 +119,8 @@ fn determine_quadrant(urgent: bool, important: bool) -> EisenhowerQuadrant {
 }
 
 /// Check if task is "done" based on column status type
-fn is_task_done(status_type: &Option<String>) -> bool {
-    status_type.as_deref() == Some("done")
+fn is_task_done(status_type: Option<&String>) -> bool {
+    status_type.map(String::as_str) == Some("done")
 }
 
 /// Filter parameters for the Eisenhower Matrix query
@@ -225,7 +225,7 @@ pub async fn get_eisenhower_matrix(
     let mut eliminate = Vec::new();
 
     for row in rows {
-        let is_done = is_task_done(&row.status_type);
+        let is_done = is_task_done(row.status_type.as_ref());
 
         // Get urgency: use manual override if set, otherwise auto-compute
         let urgent = row

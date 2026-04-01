@@ -51,15 +51,12 @@ pub async fn csrf_middleware(
     }
 
     // Get CSRF token from header
-    let csrf_token = match extract_csrf_token(req.headers()) {
-        Some(token) => token,
-        None => {
-            return (
-                StatusCode::FORBIDDEN,
-                Json(CsrfErrorResponse::invalid_token()),
-            )
-                .into_response();
-        }
+    let Some(csrf_token) = extract_csrf_token(req.headers()) else {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(CsrfErrorResponse::invalid_token()),
+        )
+            .into_response();
     };
 
     // Get user ID from extensions (set by auth middleware)

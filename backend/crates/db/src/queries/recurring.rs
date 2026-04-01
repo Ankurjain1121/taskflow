@@ -136,7 +136,7 @@ fn add_months(from: DateTime<Utc>, months: u32) -> DateTime<Utc> {
     let month = from.month();
     let day = from.day();
 
-    let total_months = (year * 12 + month as i32 - 1) + months as i32;
+    let total_months = (year * 12 + month.cast_signed() - 1) + months.cast_signed();
     let new_year = total_months / 12;
     let new_month = (total_months % 12) as u32 + 1;
 
@@ -154,7 +154,6 @@ fn add_months(from: DateTime<Utc>, months: u32) -> DateTime<Utc> {
 fn days_in_month(year: i32, month: u32) -> u32 {
     match month {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
-        4 | 6 | 9 | 11 => 30,
         2 => {
             if (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0) {
                 29
@@ -202,7 +201,7 @@ pub(super) fn calculate_next_run(
             if config.days_of_week.is_empty() {
                 return from + Duration::days(7);
             }
-            let current_dow = from.weekday().num_days_from_monday() as i32; // 0=Mon
+            let current_dow = from.weekday().num_days_from_monday().cast_signed(); // 0=Mon
                                                                             // Find next matching day this week or next week
             let mut best_offset = 7i64; // worst case: same day next week
             for &dow in &config.days_of_week {

@@ -7,6 +7,8 @@
 //! - Daily: 02:30 UTC (8:00 AM IST)
 //! - Weekly: 02:30 UTC on Mondays
 
+use std::fmt::Write as _;
+
 use chrono::{Duration, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -70,21 +72,21 @@ enum DigestType {
 }
 
 impl DigestType {
-    fn lookback_days(&self) -> i64 {
+    fn lookback_days(self) -> i64 {
         match self {
             DigestType::Daily => 1,
             DigestType::Weekly => 7,
         }
     }
 
-    fn preference_key(&self) -> &'static str {
+    fn preference_key(self) -> &'static str {
         match self {
             DigestType::Daily => "daily-digest",
             DigestType::Weekly => "weekly-digest",
         }
     }
 
-    fn label(&self) -> &'static str {
+    fn label(self) -> &'static str {
         match self {
             DigestType::Daily => "daily",
             DigestType::Weekly => "weekly",
@@ -92,6 +94,7 @@ impl DigestType {
     }
 }
 
+#[allow(clippy::type_complexity)]
 async fn send_whatsapp_digests(
     pool: &PgPool,
     waha_client: &WahaClient,
@@ -267,6 +270,7 @@ async fn send_whatsapp_digests(
 /// Batch query for user task summaries
 ///
 /// Returns: Vec<(user_id, due_today, overdue, pending, completed_period, created_period)>
+#[allow(clippy::type_complexity)]
 async fn fetch_task_summaries(
     pool: &PgPool,
     user_ids: &[Uuid],
@@ -396,35 +400,39 @@ fn format_daily_message(
     );
 
     if due_today > 0 {
-        msg.push_str(&format!(
+        let _ = write!(
+            msg,
             "\n\u{1F4CB} *Due today:* {} task{}\n",
             due_today,
             if due_today == 1 { "" } else { "s" }
-        ));
+        );
     }
 
     if overdue > 0 {
-        msg.push_str(&format!(
-            "\u{26A0}\u{FE0F} *Overdue:* {} task{}\n",
+        let _ = writeln!(
+            msg,
+            "\u{26A0}\u{FE0F} *Overdue:* {} task{}",
             overdue,
             if overdue == 1 { "" } else { "s" }
-        ));
+        );
     }
 
-    msg.push_str(&format!(
-        "\u{1F4CA} *Total pending:* {} task{}\n",
+    let _ = writeln!(
+        msg,
+        "\u{1F4CA} *Total pending:* {} task{}",
         pending,
         if pending == 1 { "" } else { "s" }
-    ));
+    );
 
     if completed_yesterday > 0 {
-        msg.push_str(&format!(
-            "\u{2705} *Completed yesterday:* {}\n",
+        let _ = writeln!(
+            msg,
+            "\u{2705} *Completed yesterday:* {}",
             completed_yesterday
-        ));
+        );
     }
 
-    msg.push_str(&format!("\nView your tasks: {}/my-tasks", app_url));
+    let _ = write!(msg, "\nView your tasks: {}/my-tasks", app_url);
     msg
 }
 
@@ -443,33 +451,37 @@ fn format_weekly_message(
         greeting, name
     );
 
-    msg.push_str(&format!(
-        "\n\u{2705} *Completed this week:* {}\n",
+    let _ = writeln!(
+        msg,
+        "\n\u{2705} *Completed this week:* {}",
         completed_week
-    ));
-    msg.push_str(&format!(
-        "\u{1F4DD} *Created this week:* {}\n",
+    );
+    let _ = writeln!(
+        msg,
+        "\u{1F4DD} *Created this week:* {}",
         created_week
-    ));
-    msg.push_str(&format!("\u{1F4CB} *Still pending:* {}\n", pending));
+    );
+    let _ = writeln!(msg, "\u{1F4CB} *Still pending:* {}", pending);
 
     if overdue > 0 {
-        msg.push_str(&format!(
-            "\u{26A0}\u{FE0F} *Overdue:* {} task{}\n",
+        let _ = writeln!(
+            msg,
+            "\u{26A0}\u{FE0F} *Overdue:* {} task{}",
             overdue,
             if overdue == 1 { "" } else { "s" }
-        ));
+        );
     }
 
     if due_today > 0 {
-        msg.push_str(&format!(
-            "\u{1F4C5} *Due today:* {} task{}\n",
+        let _ = writeln!(
+            msg,
+            "\u{1F4C5} *Due today:* {} task{}",
             due_today,
             if due_today == 1 { "" } else { "s" }
-        ));
+        );
     }
 
-    msg.push_str(&format!("\nView dashboard: {}/dashboard", app_url));
+    let _ = write!(msg, "\nView dashboard: {}/dashboard", app_url);
     msg
 }
 

@@ -79,12 +79,11 @@ impl ResendClient {
     /// Returns `None` if `RESEND_API_KEY` is empty or not set.
     /// Returns `Err` if the HTTP client cannot be initialized (e.g. TLS failure).
     pub fn from_env() -> Result<Option<Self>, EmailError> {
-        let api_key = match std::env::var("RESEND_API_KEY")
+        let Some(api_key) = std::env::var("RESEND_API_KEY")
             .ok()
             .filter(|s| !s.is_empty())
-        {
-            Some(k) => k,
-            None => return Ok(None),
+        else {
+            return Ok(None);
         };
         let from_address = std::env::var("RESEND_FROM_ADDRESS")
             .unwrap_or_else(|_| "noreply@taskbolt.local".into());
@@ -506,9 +505,9 @@ mod tests {
             "HTML should contain tasks_completed=12"
         );
         assert!(html.contains("34"), "HTML should contain tasks_created=34");
-        assert!(html.contains("5"), "HTML should contain tasks_overdue=5");
+        assert!(html.contains('5'), "HTML should contain tasks_overdue=5");
         assert!(
-            html.contains("7"),
+            html.contains('7'),
             "HTML should contain tasks_due_this_week=7"
         );
     }

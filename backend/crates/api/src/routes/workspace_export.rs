@@ -144,7 +144,7 @@ async fn export_workspace(
     .await?;
     let can_see_emails = matches!(
         user_role,
-        Some(WorkspaceMemberRole::Owner) | Some(WorkspaceMemberRole::Admin)
+        Some(WorkspaceMemberRole::Owner | WorkspaceMemberRole::Admin)
     );
 
     match query.format.as_str() {
@@ -327,8 +327,10 @@ async fn export_csv(
                 .unwrap_or_default();
             let created = task.created_at.format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
-            csv.push_str(&format!(
-                "{},{},{},{},{},{},{}\n",
+            use std::fmt::Write as _;
+            let _ = writeln!(
+                csv,
+                "{},{},{},{},{},{},{}",
                 csv_escape(&task.board_name),
                 csv_escape(&task.title),
                 csv_escape(task.description.as_deref().unwrap_or("")),
@@ -336,7 +338,7 @@ async fn export_csv(
                 csv_escape(&task.column_name),
                 csv_escape(&due),
                 csv_escape(&created),
-            ));
+            );
         }
     }
 

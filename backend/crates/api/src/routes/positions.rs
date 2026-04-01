@@ -42,7 +42,7 @@ async fn build_position_with_holders(
     let holders = positions::list_holders(&state.db, position.id).await?;
     let recurring_configs =
         positions::list_recurring_tasks_for_position(&state.db, position.id).await?;
-    let recurring_task_count = recurring_configs.len() as i64;
+    let recurring_task_count = i64::try_from(recurring_configs.len()).unwrap_or(i64::MAX);
 
     let fallback_position_name = if let Some(fid) = position.fallback_position_id {
         positions::get_position(&state.db, fid)

@@ -35,7 +35,6 @@ impl RateLimiter {
         // Spawn background cleanup task for stale in-memory fallback entries
         {
             let fallback = fallback.clone();
-            let window_secs = window_secs;
             tokio::spawn(async move {
                 let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
                 // Skip the first immediate tick

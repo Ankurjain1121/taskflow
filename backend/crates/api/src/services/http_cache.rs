@@ -49,8 +49,7 @@ pub fn check_if_none_match(headers: &HeaderMap, etag: &str) -> bool {
     headers
         .get("if-none-match")
         .and_then(|h| h.to_str().ok())
-        .map(|val| val.trim_matches('"') == etag || val == "*")
-        .unwrap_or(false)
+        .is_some_and(|val| val.trim_matches('"') == etag || val == "*")
 }
 
 /// Add cache control headers to a HeaderMap

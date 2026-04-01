@@ -132,8 +132,8 @@ fn is_retryable_error(err: &crate::notifications::email::EmailError) -> bool {
         crate::notifications::email::EmailError::Request(reqwest_err) => {
             reqwest_err.is_timeout() || reqwest_err.is_connect()
         }
-        crate::notifications::email::EmailError::Config(_) => false,
-        crate::notifications::email::EmailError::Api { .. } => false,
+        crate::notifications::email::EmailError::Config(_)
+        | crate::notifications::email::EmailError::Api { .. } => false,
     }
 }
 

@@ -53,6 +53,7 @@ pub async fn list_by_user(
 }
 
 /// Upsert a notification preference for a specific event type
+#[allow(clippy::fn_params_excessive_bools)]
 pub async fn upsert(
     pool: &PgPool,
     user_id: Uuid,
@@ -125,7 +126,7 @@ pub async fn reset_all(pool: &PgPool, user_id: Uuid) -> Result<i64, Notification
     .execute(pool)
     .await?;
 
-    Ok(result.rows_affected() as i64)
+    Ok(i64::try_from(result.rows_affected()).unwrap_or(0))
 }
 
 /// Get preference for a specific event type
@@ -173,10 +174,8 @@ pub async fn should_notify(
         },
         None => match channel {
             // Default preferences
-            NotificationChannel::InApp => true,
-            NotificationChannel::Email => true,
             NotificationChannel::Slack => false,
-            NotificationChannel::WhatsApp => true,
+            NotificationChannel::InApp | NotificationChannel::Email | NotificationChannel::WhatsApp => true,
         },
     })
 }

@@ -13,9 +13,8 @@ use super::TriggerContext;
 /// - `target_column_id`: for TaskMoved, only fire if moved TO this column
 /// - `priority`: for TaskPriorityChanged, only fire for this priority
 pub(crate) fn matches_trigger_config(config: &serde_json::Value, context: &TriggerContext) -> bool {
-    let obj = match config.as_object() {
-        Some(obj) => obj,
-        None => return true, // Empty/null config means always match
+    let Some(obj) = config.as_object() else {
+        return true; // Empty/null config means always match
     };
 
     // If empty object, match everything

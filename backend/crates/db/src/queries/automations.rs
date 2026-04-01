@@ -245,7 +245,7 @@ pub async fn create_rule(
         .bind(rule_id)
         .bind(&action_input.action_type)
         .bind(&action_input.action_config)
-        .bind(i as i32)
+        .bind(i32::try_from(i).unwrap_or(i32::MAX))
         .fetch_one(&mut *tx)
         .await?;
 
@@ -341,7 +341,7 @@ pub async fn update_rule(
             .bind(rule_id)
             .bind(&action_input.action_type)
             .bind(&action_input.action_config)
-            .bind(i as i32)
+            .bind(i32::try_from(i).unwrap_or(i32::MAX))
             .fetch_one(&mut *tx)
             .await?;
 

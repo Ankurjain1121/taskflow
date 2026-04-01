@@ -65,15 +65,12 @@ pub async fn auth_middleware(
     let token = extract_token_from_cookie(request.headers())
         .or_else(|| extract_token_from_auth_header(request.headers()));
 
-    let token = match token {
-        Some(t) => t,
-        None => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(AuthErrorResponse::unauthorized()),
-            )
-                .into_response();
-        }
+    let Some(token) = token else {
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(AuthErrorResponse::unauthorized()),
+        )
+            .into_response();
     };
 
     // Verify JWT token
@@ -93,7 +90,7 @@ pub async fn auth_middleware(
     let token_id = claims.token_id.unwrap_or_default();
     let session_key = format!("session:{}:{}", claims.sub, token_id);
     match check_and_refresh_session(&state, &session_key).await {
-        Ok(_) => {
+        Ok(()) => {
             // Session is valid, refresh TTL
         }
         Err(e) => {
@@ -172,7 +169,7 @@ fn extract_token_from_cookie(headers: &axum::http::HeaderMap) -> Option<String> 
 /// Extract the Bearer token from the Authorization header.
 fn extract_token_from_auth_header(headers: &axum::http::HeaderMap) -> Option<String> {
     let auth_header = headers.get(AUTHORIZATION)?.to_str().ok()?;
-    auth_header.strip_prefix("Bearer ").map(|t| t.to_string())
+    auth_header.strip_prefix("Bearer ").map(std::string::ToString::to_string)
 }
 
 /// Check if session exists in Redis and refresh its TTL (idle timeout enforcement)
@@ -251,7 +248,7 @@ mod tests {
             "Bearer ".parse().expect("valid header value"),
         );
         let token = extract_token_from_auth_header(&headers);
-        assert_eq!(token, Some("".to_string()));
+        assert_eq!(token, Some(String::new()));
     }
 
     #[test]

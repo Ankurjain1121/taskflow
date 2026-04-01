@@ -423,8 +423,8 @@ mod tests {
         let err = AutomationExecutorError::DepthLimitExceeded(4, 3);
         let msg = format!("{}", err);
         assert!(msg.contains("Depth limit exceeded"));
-        assert!(msg.contains("4"));
-        assert!(msg.contains("3"));
+        assert!(msg.contains('4'));
+        assert!(msg.contains('3'));
     }
 
     #[test]

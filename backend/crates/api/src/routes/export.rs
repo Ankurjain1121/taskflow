@@ -206,8 +206,10 @@ async fn export_csv(db: &sqlx::PgPool, board_id: Uuid) -> Result<Response> {
             .unwrap_or_default();
         let created = task.created_at.format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
-        csv.push_str(&format!(
-            "{},{},{},{},{},{},{}\n",
+        use std::fmt::Write as _;
+        let _ = writeln!(
+            csv,
+            "{},{},{},{},{},{},{}",
             csv_escape(&task.title),
             csv_escape(task.description.as_deref().unwrap_or("")),
             csv_escape(&task.priority),
@@ -215,7 +217,7 @@ async fn export_csv(db: &sqlx::PgPool, board_id: Uuid) -> Result<Response> {
             csv_escape(&due),
             csv_escape(&assignee_names),
             csv_escape(&created),
-        ));
+        );
     }
 
     // Get board name for the filename

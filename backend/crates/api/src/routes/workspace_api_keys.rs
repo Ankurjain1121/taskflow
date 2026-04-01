@@ -65,8 +65,7 @@ async fn create_api_key(
     all_bytes.extend_from_slice(uuid2.as_bytes());
     let hex_part: String = all_bytes[..20]
         .iter()
-        .map(|b| format!("{:02x}", b))
-        .collect();
+        .fold(String::new(), |mut s, b| { use std::fmt::Write as _; let _ = write!(s, "{b:02x}"); s });
     let full_key = format!("tf_{}", hex_part);
     let key_prefix = format!("tf_{}...", &hex_part[..8]);
 

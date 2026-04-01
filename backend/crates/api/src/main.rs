@@ -1,3 +1,4 @@
+#![allow(clippy::needless_raw_string_hashes)]
 mod config;
 mod errors;
 pub mod extractors;

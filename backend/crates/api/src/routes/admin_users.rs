@@ -160,8 +160,7 @@ async fn list_users(
             let workspace_count = workspace_counts
                 .iter()
                 .find(|(uid, _)| *uid == user.id)
-                .map(|(_, count)| *count)
-                .unwrap_or(0);
+                .map_or(0, |(_, count)| *count);
 
             let last_active_at = last_active
                 .iter()

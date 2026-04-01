@@ -124,6 +124,7 @@ impl Config {
     }
 }
 
+#[allow(clippy::missing_fields_in_debug)]
 impl fmt::Debug for Config {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Config")

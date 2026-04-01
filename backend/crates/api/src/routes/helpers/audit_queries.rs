@@ -98,8 +98,7 @@ pub async fn query_audit_log(
     let cursor_id = query.cursor.as_ref().and_then(|c| Uuid::parse_str(c).ok());
 
     let tenant_id = match scope {
-        AuditScope::Workspace { tenant_id, .. } => *tenant_id,
-        AuditScope::Tenant { tenant_id } => *tenant_id,
+        AuditScope::Workspace { tenant_id, .. } | AuditScope::Tenant { tenant_id } => *tenant_id,
     };
 
     let cursor_created_at: Option<DateTime<Utc>> = if let Some(cid) = cursor_id {

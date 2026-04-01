@@ -174,6 +174,6 @@ mod tests {
     fn test_task_group_alias() {
         // Verify type aliases work
         let list = make_task_list();
-        let _group: &TaskGroup = &list;
+        let _: &TaskGroup = &list;
     }
 }

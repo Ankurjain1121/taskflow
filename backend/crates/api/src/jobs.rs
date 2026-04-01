@@ -3,6 +3,7 @@ use std::time::Duration;
 use crate::config::Config;
 use crate::state::AppState;
 
+#[allow(clippy::unused_async)]
 pub async fn spawn_background_jobs(state: &AppState, config: &Config) {
     // Spawn background job: recurring task scheduler (every 10 minutes)
     let recurring_pool = state.db.clone();

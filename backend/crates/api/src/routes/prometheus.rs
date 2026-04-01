@@ -100,6 +100,7 @@ mod tests {
     use axum::http::HeaderValue;
 
     #[test]
+    #[allow(unsafe_code)]
     fn test_validate_cron_secret_empty_env() {
         // When CRON_SECRET is not set, validation should fail
         unsafe { std::env::remove_var("CRON_SECRET") };
@@ -109,6 +110,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(unsafe_code)]
     fn test_validate_cron_secret_mismatch() {
         unsafe { std::env::set_var("CRON_SECRET", "correct-secret") };
         let mut headers = HeaderMap::new();
@@ -119,6 +121,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(unsafe_code)]
     fn test_validate_cron_secret_matches() {
         unsafe { std::env::set_var("CRON_SECRET", "test-secret-123") };
         let mut headers = HeaderMap::new();

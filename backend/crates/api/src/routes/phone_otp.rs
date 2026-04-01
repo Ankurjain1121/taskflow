@@ -212,13 +212,10 @@ pub async fn verify_otp_handler(
         .await
         .unwrap_or(None);
 
-    let stored_hash = match stored_hash {
-        Some(h) => h,
-        None => {
-            return Err(AppError::Gone(
-                "OTP has expired. Please request a new one.".into(),
-            ));
-        }
+    let Some(stored_hash) = stored_hash else {
+        return Err(AppError::Gone(
+            "OTP has expired. Please request a new one.".into(),
+        ));
     };
 
     // Compare hashes

@@ -269,7 +269,7 @@ pub async fn access_shared_board(
     let view_tasks = share
         .permissions
         .get("view_tasks")
-        .and_then(|v| v.as_bool())
+        .and_then(serde_json::Value::as_bool)
         .unwrap_or(true);
 
     let tasks = if view_tasks {

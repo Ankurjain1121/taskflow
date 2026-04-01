@@ -25,8 +25,7 @@ fn determine_cache_type(method: &Method, path: &str) -> CacheType {
             }
         }
         Method::HEAD => CacheType::PublicRead,
-        // All mutations should not be cached
-        Method::POST | Method::PUT | Method::PATCH | Method::DELETE => CacheType::NoCache,
+        // All mutations and anything else should not be cached
         _ => CacheType::NoCache,
     }
 }

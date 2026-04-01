@@ -280,7 +280,7 @@ pub async fn save_board_as_template(
 
     for (idx, col) in board_columns.iter().enumerate() {
         let col_id = Uuid::new_v4();
-        let position = idx as i32;
+        let position = i32::try_from(idx).unwrap_or(i32::MAX);
         let color = col.color.clone().unwrap_or_else(|| "#6366f1".to_string());
 
         sqlx::query(
@@ -347,7 +347,7 @@ pub async fn save_board_as_template(
         .bind(&task.title)
         .bind(&task.description)
         .bind(&task.priority)
-        .bind(task_idx as i32)
+        .bind(i32::try_from(task_idx).unwrap_or(i32::MAX))
         .execute(&mut *tx)
         .await?;
     }

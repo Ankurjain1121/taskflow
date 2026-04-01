@@ -251,10 +251,7 @@ pub async fn get_task_by_id(
     .fetch_optional(pool)
     .await?;
 
-    let task = match task {
-        Some(t) => t,
-        None => return Ok(None),
-    };
+    let Some(task) = task else { return Ok(None) };
 
     // Verify user is a project member
     if !verify_project_membership(pool, task.project_id, user_id).await? {

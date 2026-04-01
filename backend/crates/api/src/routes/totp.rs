@@ -100,7 +100,7 @@ fn validate_totp_code(secret_base32: &str, code: &str) -> bool {
 
     // Check current period and +/- 1 period (30s each)
     for offset in [0i64, -1, 1] {
-        let adjusted = (now as i64 + offset * 30).max(0) as u64;
+        let adjusted = (i64::try_from(now).unwrap_or(i64::MAX) + offset * 30).max(0) as u64;
         let generated = totp_lite::totp_custom::<totp_lite::Sha1>(30, 6, &secret_bytes, adjusted);
         if generated == code {
             return true;
@@ -123,7 +123,7 @@ fn generate_recovery_codes() -> Vec<String> {
 /// We don't have a `hex` crate, so use a simple inline hex encoder.
 mod hex {
     pub fn encode(bytes: &[u8]) -> String {
-        bytes.iter().map(|b| format!("{b:02x}")).collect()
+        bytes.iter().fold(String::new(), |mut s, b| { use std::fmt::Write as _; let _ = write!(s, "{b:02x}"); s })
     }
 }
 
@@ -399,7 +399,7 @@ pub async fn challenge_handler(
             .ok_or_else(|| AppError::InternalError("Invalid user_id in temp token JSON".into()))?;
         let persist = val
             .get("persistent")
-            .and_then(|v| v.as_bool())
+            .and_then(serde_json::Value::as_bool)
             .unwrap_or(true);
         (uid, persist)
     } else {
@@ -520,10 +520,7 @@ async fn validate_and_consume_recovery_code(
     recovery_code: &str,
     recovery_codes_json: Option<&serde_json::Value>,
 ) -> Result<bool> {
-    let codes_value = match recovery_codes_json {
-        Some(v) => v,
-        None => return Ok(false),
-    };
+    let Some(codes_value) = recovery_codes_json else { return Ok(false) };
 
     let stored_hashes: Vec<String> =
         serde_json::from_value(codes_value.clone()).unwrap_or_default();

@@ -42,8 +42,8 @@ pub async fn generate_sample_board(
     tenant_id: Uuid,
     use_case: &str,
 ) -> Result<Uuid, SampleBoardError> {
-    // TODO: Rewrite for new schema (project_statuses, task_lists, status_id).
-    // board_columns and column_id were dropped in migration 20260316000001.
+    // Stub: board_columns and column_id were dropped in migration 20260316000001.
+    // Requires rewrite to use project_statuses, task_lists, and status_id.
     Err(SampleBoardError::NotImplemented(
         "Sample board generation needs migration to new schema (project_statuses, task_lists, status_id)".to_string(),
     ))

@@ -287,11 +287,9 @@ pub async fn create_handler(
     let workspace =
         workspaces::get_workspace_by_id(&state.db, payload.workspace_id, auth.0.tenant_id).await?;
     let inviter_name = inviter
-        .map(|u| u.name)
-        .unwrap_or_else(|| "A teammate".into());
+        .map_or_else(|| "A teammate".into(), |u| u.name);
     let workspace_name = workspace
-        .map(|w| w.workspace.name)
-        .unwrap_or_else(|| "your workspace".into());
+        .map_or_else(|| "your workspace".into(), |w| w.workspace.name);
 
     spawn_invitation_emails(
         vec![inv_response.clone()],
@@ -704,11 +702,9 @@ pub async fn bulk_create_handler(
             workspaces::get_workspace_by_id(&state.db, payload.workspace_id, auth.0.tenant_id)
                 .await?;
         let inviter_name = inviter
-            .map(|u| u.name)
-            .unwrap_or_else(|| "A teammate".into());
+            .map_or_else(|| "A teammate".into(), |u| u.name);
         let workspace_name = workspace
-            .map(|w| w.workspace.name)
-            .unwrap_or_else(|| "your workspace".into());
+            .map_or_else(|| "your workspace".into(), |w| w.workspace.name);
 
         spawn_invitation_emails(
             created.clone(),
@@ -831,11 +827,9 @@ pub async fn resend_handler(
     let workspace =
         workspaces::get_workspace_by_id(&state.db, inv.workspace_id, auth.0.tenant_id).await?;
     let inviter_name = inviter
-        .map(|u| u.name)
-        .unwrap_or_else(|| "A teammate".into());
+        .map_or_else(|| "A teammate".into(), |u| u.name);
     let workspace_name = workspace
-        .map(|w| w.workspace.name)
-        .unwrap_or_else(|| "your workspace".into());
+        .map_or_else(|| "your workspace".into(), |w| w.workspace.name);
 
     spawn_invitation_emails(
         vec![inv_response.clone()],

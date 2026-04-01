@@ -98,8 +98,7 @@ pub async fn list_positions(
             let recurring_task_count = counts
                 .iter()
                 .find(|c| c.position_id == p.id)
-                .map(|c| c.count)
-                .unwrap_or(0);
+                .map_or(0, |c| c.count);
 
             let fallback_position_name = p.fallback_position_id.and_then(|fid| {
                 fallback_names
