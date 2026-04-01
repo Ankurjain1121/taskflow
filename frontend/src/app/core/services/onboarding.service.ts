@@ -18,7 +18,7 @@ export interface InviteMembersResponse {
 }
 
 export interface GenerateSampleBoardResponse {
-  board_id: string;
+  project_id: string;
   workspace_id: string;
 }
 

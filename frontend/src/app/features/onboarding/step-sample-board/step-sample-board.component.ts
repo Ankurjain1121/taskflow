@@ -291,7 +291,7 @@ export class StepSampleBoardComponent {
         next: (response) => {
           this.isLoading.set(false);
           this.isGenerated.set(true);
-          this.generatedBoardId = response.board_id;
+          this.generatedBoardId = response.project_id;
           this.generatedWorkspaceId = response.workspace_id;
         },
         error: (err) => {

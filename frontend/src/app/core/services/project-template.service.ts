@@ -90,8 +90,8 @@ export class ProjectTemplateService {
   createBoardFromTemplate(
     templateId: string,
     request: CreateBoardFromTemplateRequest,
-  ): Observable<{ board_id: string }> {
-    return this.http.post<{ board_id: string }>(
+  ): Observable<{ project_id: string }> {
+    return this.http.post<{ project_id: string }>(
       `${this.apiUrl}/project-templates/${templateId}/create-board`,
       request,
     );

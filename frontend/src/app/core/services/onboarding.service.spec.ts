@@ -102,7 +102,7 @@ describe('OnboardingService', () => {
   describe('generateSampleBoard()', () => {
     it('should POST /api/onboarding/generate-sample-board with workspace_id', () => {
       const response: GenerateSampleBoardResponse = {
-        board_id: 'board-sample',
+        project_id: 'board-sample',
       };
 
       service.generateSampleBoard('ws-1').subscribe((result) => {

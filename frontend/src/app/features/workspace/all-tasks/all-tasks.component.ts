@@ -32,8 +32,8 @@ interface AllTask {
   status_name: string | null;
   status_color: string | null;
   due_date: string | null;
-  board_id: string;
-  board_name: string;
+  project_id: string;
+  project_name: string;
   assignee_name: string | null;
   task_number: number | null;
   child_count: number;
@@ -142,7 +142,7 @@ interface AllTasksResponse {
                 <td>
                   <span class="text-xs px-2 py-0.5 rounded-full"
                     style="background: var(--secondary); color: var(--secondary-foreground)">
-                    {{ task.board_name }}
+                    {{ task.project_name }}
                   </span>
                 </td>
                 <td>
@@ -279,7 +279,7 @@ export class AllTasksComponent implements OnInit {
     const wsId = this.wsContext.activeWorkspaceId();
     if (wsId) {
       this.router.navigate(
-        ['/workspace', wsId, 'project', task.board_id],
+        ['/workspace', wsId, 'project', task.project_id],
         { queryParams: { task: task.id } },
       );
     }
@@ -332,7 +332,7 @@ export class AllTasksComponent implements OnInit {
       status: task.status_name,
       status_color: task.status_color,
       due_date: task.due_date,
-      project_name: task.board_name,
+      project_name: task.project_name,
     };
   }
 
@@ -345,7 +345,7 @@ export class AllTasksComponent implements OnInit {
     if (cursor) params = params.set('cursor', cursor);
     if (this.statusFilter()) params = params.set('status', this.statusFilter()!);
     if (this.priorityFilter()) params = params.set('priority', this.priorityFilter()!);
-    if (this.projectFilter()) params = params.set('board_id', this.projectFilter()!);
+    if (this.projectFilter()) params = params.set('project_id', this.projectFilter()!);
 
     this.http
       .get<AllTasksResponse>(`/api/workspace/${wsId}/tasks`, { params })
