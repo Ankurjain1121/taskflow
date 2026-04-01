@@ -493,7 +493,7 @@ pub async fn delete_task_handler(
                 events::WORKLOAD_CHANGED,
                 json!({
                     "task_id": task_id,
-                    "board_id": board_id,
+                    "project_id": board_id,
                     "deleted": true
                 }),
             )

@@ -50,7 +50,7 @@ async fn search_handler(
         assignee: params.assignee.filter(|s| !s.is_empty()),
         label: params.label.filter(|s| !s.is_empty()),
         status: params.status.filter(|s| !s.is_empty()),
-        board_id,
+        project_id: board_id,
     };
 
     let limit = params.limit.clamp(1, 50);

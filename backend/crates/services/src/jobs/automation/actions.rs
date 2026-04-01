@@ -444,7 +444,7 @@ async fn execute_send_webhook(
 
     let payload = json!({
         "task_id": context.task_id,
-        "board_id": context.board_id,
+        "project_id": context.board_id,
         "tenant_id": context.tenant_id,
         "user_id": context.user_id,
         "timestamp": chrono::Utc::now().to_rfc3339(),

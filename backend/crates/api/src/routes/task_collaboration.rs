@@ -117,7 +117,7 @@ pub async fn assign_user_handler(
             events::TASK_ASSIGNED,
             json!({
                 "task_id": task_id,
-                "board_id": board_id,
+                "project_id": board_id,
                 "assigned_by": tenant.user_id
             }),
         )

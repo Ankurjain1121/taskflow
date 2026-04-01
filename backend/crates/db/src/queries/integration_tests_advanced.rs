@@ -728,7 +728,7 @@ async fn test_my_tasks_returns_assigned_tasks() {
     assert!(found.is_some(), "assigned task should appear in my_tasks");
     let item = found.expect("just checked");
     assert_eq!(item.title, title);
-    assert_eq!(item.board_id, board_id);
+    assert_eq!(item.project_id, board_id);
 }
 
 // ============================================================================
