@@ -5,18 +5,19 @@ import { AuthService } from '../../../core/services/auth.service';
 import { PresenceService } from '../../../core/services/presence.service';
 import { ConflictNotificationService } from '../../../core/services/conflict-notification.service';
 import { ProjectStateService } from './project-state.service';
+import type { WsBoardEvent } from '../../../shared/types/WsBoardEvent';
+import type { TaskBroadcast } from '../../../shared/types/TaskBroadcast';
+import type { ColumnBroadcast } from '../../../shared/types/ColumnBroadcast';
 
 /**
  * Handles incoming WebSocket board events from the backend.
  *
- * Backend sends events in two formats:
- * 1. Single event (backward compatible):
- *    { "type": "TaskCreated", "task": {...}, "origin_user_id": "..." }
- * 2. Batched events (optimized):
- *    { "events": [{...}, {...}], "timestamp": "2024-..." }
+ * Types are generated from Rust via ts-rs (see WsBoardEvent).
+ * Regenerate with: ./scripts/export-types.sh
  *
- * The RxJS webSocket operator JSON-parses the frame, so all fields
- * are at the message root (NOT nested in a "payload" wrapper).
+ * Backend sends events in two formats:
+ * 1. Single event: { "type": "TaskCreated", "task": {...}, ... }
+ * 2. Batched: { "events": [{...}, {...}], "timestamp": "..." }
  */
 @Injectable()
 export class ProjectWebsocketHandler {
@@ -26,116 +27,101 @@ export class ProjectWebsocketHandler {
   private state = inject(ProjectStateService);
 
   handleMessage(message: Record<string, unknown>): void {
-    // Check if this is a batched message
     if (Array.isArray(message['events'])) {
-      // Process batched events
-      const events = message['events'] as Record<string, unknown>[];
+      const events = message['events'] as WsBoardEvent[];
       for (const event of events) {
         this.processEvent(event);
       }
     } else {
-      // Process single event (backward compatible)
-      this.processEvent(message);
+      this.processEvent(message as WsBoardEvent);
     }
   }
 
-  private processEvent(message: Record<string, unknown>): void {
-    const originUserId = message['origin_user_id'] as string | undefined;
+  private processEvent(event: WsBoardEvent): void {
+    const originUserId = 'origin_user_id' in event ? event.origin_user_id : undefined;
     const currentUserId = this.authService.currentUser()?.id;
 
-    // Skip own actions — the local optimistic update already applied
     if (originUserId && originUserId === currentUserId) {
       return;
     }
 
-    switch (message['type']) {
+    switch (event.type) {
       case 'TaskCreated':
-        this.handleTaskCreated(message['task'] as Partial<Task>);
+        this.handleTaskCreated(event.task);
         break;
       case 'TaskUpdated': {
-        const task = message['task'] as Partial<Task>;
-        const changedFields = message['changed_fields'] as string[] | undefined;
-        const originUserName = message['origin_user_name'] as
-          | string
-          | undefined;
+        const { task } = event;
         this.handleTaskUpdated(task);
-        if (task?.id && changedFields && originUserName) {
+        if (task.id && task.changed_fields && task.origin_user_name) {
           this.conflictNotification.checkConflict(
             task.id,
-            changedFields,
-            originUserName,
+            task.changed_fields,
+            task.origin_user_name,
           );
         }
         break;
       }
       case 'TaskMoved':
         this.handleTaskMoved(
-          message['task_id'] as string,
-          message['column_id'] as string,
-          message['position'] as string,
+          event.task_id,
+          event.status_id,
+          event.position,
         );
         break;
       case 'TaskDeleted':
-        this.handleTaskDeleted(message['task_id'] as string);
+        this.handleTaskDeleted(event.task_id);
         break;
       case 'ColumnCreated':
-        this.handleColumnCreated(message['column'] as Column);
+        this.handleColumnCreated(event.column);
         break;
       case 'ColumnUpdated':
-        this.handleColumnUpdated(message['column'] as Partial<Column>);
+        this.handleColumnUpdated(event.column);
         break;
       case 'ColumnDeleted':
-        this.handleColumnDeleted(message['column_id'] as string);
+        this.handleColumnDeleted(event.column_id);
         break;
       case 'PresenceUpdate':
-        this.presenceService.updateViewers(
-          (message['user_ids'] as string[]) || [],
-        );
+        this.presenceService.updateViewers(event.user_ids || []);
         break;
       case 'TaskLocked':
-        this.presenceService.setTaskLock(message['task_id'] as string, {
-          user_id: message['user_id'] as string,
-          user_name: message['user_name'] as string,
+        this.presenceService.setTaskLock(event.task_id, {
+          user_id: event.user_id,
+          user_name: event.user_name,
         });
         this.presenceService.updateViewerName(
-          message['user_id'] as string,
-          message['user_name'] as string,
+          event.user_id,
+          event.user_name,
         );
         break;
       case 'TaskUnlocked':
-        this.presenceService.removeTaskLock(message['task_id'] as string);
+        this.presenceService.removeTaskLock(event.task_id);
         break;
     }
   }
 
-  private handleTaskCreated(broadcast: Partial<Task>): void {
-    if (!broadcast?.id || !(broadcast?.status_id ?? broadcast?.column_id)) return;
+  private handleTaskCreated(broadcast: TaskBroadcast): void {
+    if (!broadcast.id || !broadcast.status_id) return;
 
     this.state.boardState.update((state) => {
       const newState = { ...state };
-      const bucketKey = broadcast.status_id ?? broadcast.column_id ?? '';
+      const bucketKey = broadcast.status_id ?? '';
       const columnTasks = newState[bucketKey] || [];
 
-      // Avoid duplicates (e.g. if we already inserted optimistically)
       if (columnTasks.some((t) => t.id === broadcast.id)) return state;
 
-      // Build a minimal Task from the broadcast fields
       const task: Task = {
-        id: broadcast.id!,
-        project_id:
-          broadcast.project_id ??
-          (broadcast as Record<string, unknown>)['board_id'] as string ??
-          '',
-        status_id: broadcast.status_id ?? broadcast.column_id ?? null,
-        title: broadcast.title ?? '',
+        id: broadcast.id,
+        project_id: '',
+        status_id: broadcast.status_id,
+        title: broadcast.title,
         description: null,
-        priority: broadcast.priority ?? 'medium',
-        position: broadcast.position ?? 'zzzzzz',
+        priority: broadcast.priority,
+        position: broadcast.position,
         milestone_id: null,
         due_date: null,
         created_by: '',
         created_at: new Date().toISOString(),
-        updated_at: broadcast.updated_at ?? new Date().toISOString(),
+        updated_at: broadcast.updated_at,
         assignees: [],
         labels: [],
       };
@@ -147,16 +133,22 @@ export class ProjectWebsocketHandler {
     });
   }
 
-  private handleTaskUpdated(broadcast: Partial<Task>): void {
-    if (!broadcast?.id) return;
+  private handleTaskUpdated(broadcast: TaskBroadcast): void {
+    if (!broadcast.id) return;
 
     this.state.boardState.update((state) => {
       const newState: Record<string, Task[]> = {};
       for (const [columnId, tasks] of Object.entries(state)) {
         newState[columnId] = tasks.map((t) => {
           if (t.id !== broadcast.id) return t;
-          // MERGE: only overwrite fields present in the broadcast, preserve the rest
-          return { ...t, ...broadcast };
+          return {
+            ...t,
+            title: broadcast.title,
+            priority: broadcast.priority,
+            status_id: broadcast.status_id,
+            position: broadcast.position,
+            updated_at: broadcast.updated_at,
+          };
         });
       }
       return newState;
@@ -165,7 +157,7 @@ export class ProjectWebsocketHandler {
 
   private handleTaskMoved(
     taskId: string,
-    targetColumnId: string,
+    targetColumnId: string | null,
     position: string,
   ): void {
     if (!taskId || !targetColumnId) return;
@@ -206,10 +198,19 @@ export class ProjectWebsocketHandler {
     });
   }
 
-  private handleColumnCreated(column: Column): void {
-    if (!column?.id) return;
+  private handleColumnCreated(broadcast: ColumnBroadcast): void {
+    if (!broadcast.id) return;
 
-    // Add column if not already present
+    const column: Column = {
+      id: broadcast.id,
+      name: broadcast.name,
+      position: broadcast.position,
+      color: broadcast.color,
+      status_mapping: null,
+      wip_limit: null,
+      created_at: new Date().toISOString(),
+    };
+
     this.state.columns.update((cols) => {
       if (cols.some((c) => c.id === column.id)) return cols;
       return [...cols, column].sort((a, b) =>
@@ -222,12 +223,16 @@ export class ProjectWebsocketHandler {
     });
   }
 
-  private handleColumnUpdated(broadcast: Partial<Column>): void {
-    if (!broadcast?.id) return;
+  private handleColumnUpdated(broadcast: ColumnBroadcast): void {
+    if (!broadcast.id) return;
 
     this.state.columns.update((cols) =>
       cols
-        .map((c) => (c.id === broadcast.id ? { ...c, ...broadcast } : c))
+        .map((c) =>
+          c.id === broadcast.id
+            ? { ...c, name: broadcast.name, position: broadcast.position, color: broadcast.color }
+            : c,
+        )
         .sort((a, b) => a.position.localeCompare(b.position)),
     );
   }
