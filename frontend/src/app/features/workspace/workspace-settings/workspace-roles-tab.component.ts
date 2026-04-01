@@ -4,8 +4,10 @@ import {
   signal,
   inject,
   OnInit,
+  DestroyRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -340,6 +342,7 @@ const CAPABILITY_DEFINITIONS: CapabilityDef[] = [
 })
 export class WorkspaceRolesTabComponent implements OnInit {
   private roleService = inject(RoleService);
+  private destroyRef = inject(DestroyRef);
 
   workspaceId = input.required<string>();
 
@@ -398,6 +401,7 @@ export class WorkspaceRolesTabComponent implements OnInit {
         description: this.newRoleDescription.trim() || undefined,
         capabilities: this.newRoleCapabilities(),
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (role) => {
           this.roles.update((roles) => [...roles, role]);
@@ -445,6 +449,7 @@ export class WorkspaceRolesTabComponent implements OnInit {
         description: this.editRoleDescription.trim() || undefined,
         capabilities: this.editCapabilities(),
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
           this.roles.update((roles) =>
@@ -472,7 +477,7 @@ export class WorkspaceRolesTabComponent implements OnInit {
     }
 
     this.deletingRoleId.set(role.id);
-    this.roleService.deleteRole(this.workspaceId(), role.id).subscribe({
+    this.roleService.deleteRole(this.workspaceId(), role.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.roles.update((roles) => roles.filter((r) => r.id !== role.id));
         this.deletingRoleId.set(null);
@@ -486,7 +491,7 @@ export class WorkspaceRolesTabComponent implements OnInit {
 
   private loadRoles(): void {
     this.loading.set(true);
-    this.roleService.listRoles(this.workspaceId()).subscribe({
+    this.roleService.listRoles(this.workspaceId()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (roles) => {
         this.roles.set(roles);
         this.loading.set(false);

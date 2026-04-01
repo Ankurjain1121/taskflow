@@ -7,8 +7,10 @@ import {
   inject,
   effect,
   viewChild,
+  DestroyRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -412,6 +414,7 @@ export interface MemberWithDetails extends WorkspaceMember {
 export class MembersListComponent {
   private workspaceService = inject(WorkspaceService);
   private authService = inject(AuthService);
+  private destroyRef = inject(DestroyRef);
 
   members = input.required<MemberWithDetails[]>();
   workspaceId = input.required<string>();
@@ -464,7 +467,7 @@ export class MembersListComponent {
 
   loadInvitations(): void {
     this.loadingInvitations.set(true);
-    this.workspaceService.listAllInvitations(this.workspaceId()).subscribe({
+    this.workspaceService.listAllInvitations(this.workspaceId()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (invitations) => {
         this.allInvitations.set(invitations);
         this.loadingInvitations.set(false);
@@ -588,6 +591,7 @@ export class MembersListComponent {
         result.boardIds,
         result.jobTitle,
       )
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.loadInvitations();
@@ -608,7 +612,7 @@ export class MembersListComponent {
       ),
     );
 
-    this.workspaceService.resendInvitation(invitation.id).subscribe({
+    this.workspaceService.resendInvitation(invitation.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.loadInvitations();
       },
@@ -626,7 +630,7 @@ export class MembersListComponent {
 
     this.actionInProgress.set(invitation.id);
 
-    this.workspaceService.cancelInvitation(invitation.id).subscribe({
+    this.workspaceService.cancelInvitation(invitation.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.allInvitations.update((invitations) =>
           invitations.filter((inv) => inv.id !== invitation.id),
@@ -656,6 +660,7 @@ export class MembersListComponent {
         member.user_id,
         newRole as 'admin' | 'member' | 'viewer',
       )
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           // Update selectedMember so dialog sees the new role
@@ -689,6 +694,7 @@ export class MembersListComponent {
 
     this.workspaceService
       .removeMember(this.workspaceId(), member.user_id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.memberRemoved.emit(member.user_id);

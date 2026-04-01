@@ -5,8 +5,10 @@ import {
   signal,
   inject,
   OnInit,
+  DestroyRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { EmptyStateComponent } from '../../../shared/components/empty-state/empty-state.component';
 import {
@@ -205,6 +207,7 @@ import {
 })
 export class WorkspaceApiKeysTabComponent implements OnInit {
   private apiKeyService = inject(ApiKeyService);
+  private destroyRef = inject(DestroyRef);
 
   workspaceId = input.required<string>();
 
@@ -235,7 +238,7 @@ export class WorkspaceApiKeysTabComponent implements OnInit {
     if (!name) return;
 
     this.generatingKey.set(true);
-    this.apiKeyService.createKey(this.workspaceId(), name).subscribe({
+    this.apiKeyService.createKey(this.workspaceId(), name).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (response) => {
         this.newlyCreatedKey.set(response.full_key);
         this.loadApiKeys();
@@ -263,7 +266,7 @@ export class WorkspaceApiKeysTabComponent implements OnInit {
       return;
 
     this.revokingKey.set(key.id);
-    this.apiKeyService.revokeKey(this.workspaceId(), key.id).subscribe({
+    this.apiKeyService.revokeKey(this.workspaceId(), key.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.apiKeys.update((keys) => keys.filter((k) => k.id !== key.id));
         this.revokingKey.set(null);
@@ -284,7 +287,7 @@ export class WorkspaceApiKeysTabComponent implements OnInit {
   }
 
   loadApiKeys(): void {
-    this.apiKeyService.listKeys(this.workspaceId()).subscribe({
+    this.apiKeyService.listKeys(this.workspaceId()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (keys) => {
         this.apiKeys.set(keys);
       },
