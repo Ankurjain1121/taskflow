@@ -4,8 +4,10 @@ import {
   output,
   signal,
   inject,
+  DestroyRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import {
   Workspace,
@@ -84,6 +86,7 @@ import {
 })
 export class WorkspaceAdvancedTabComponent {
   private workspaceService = inject(WorkspaceService);
+  private destroyRef = inject(DestroyRef);
 
   workspace = input<Workspace | null>(null);
   workspaceId = input.required<string>();
@@ -115,6 +118,7 @@ export class WorkspaceAdvancedTabComponent {
 
     this.workspaceService
       .exportWorkspace(this.workspaceId(), format)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (blob) => {
           const url = URL.createObjectURL(blob);

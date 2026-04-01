@@ -4,8 +4,10 @@ import {
   signal,
   inject,
   OnInit,
+  DestroyRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -176,6 +178,7 @@ import { LABEL_PRESET_COLORS } from '../../../shared/utils/task-colors';
 })
 export class WorkspaceLabelsComponent implements OnInit {
   private workspaceService = inject(WorkspaceService);
+  private destroyRef = inject(DestroyRef);
 
   workspaceId = input.required<string>();
 
@@ -198,7 +201,7 @@ export class WorkspaceLabelsComponent implements OnInit {
 
   loadLabels(): void {
     this.loading.set(true);
-    this.workspaceService.listLabels(this.workspaceId()).subscribe({
+    this.workspaceService.listLabels(this.workspaceId()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (labels) => {
         this.labels.set(labels);
         this.loading.set(false);
@@ -232,6 +235,7 @@ export class WorkspaceLabelsComponent implements OnInit {
 
     this.workspaceService
       .createLabel(this.workspaceId(), name, savedColor)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (label) => {
           this.labels.update((list) =>
@@ -272,6 +276,7 @@ export class WorkspaceLabelsComponent implements OnInit {
 
     this.workspaceService
       .updateLabel(this.workspaceId(), labelId, name, this.editColor)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
           this.labels.update((list) =>
@@ -291,7 +296,7 @@ export class WorkspaceLabelsComponent implements OnInit {
     // Optimistic: remove immediately
     this.labels.update((list) => list.filter((l) => l.id !== labelId));
 
-    this.workspaceService.deleteLabel(this.workspaceId(), labelId).subscribe({
+    this.workspaceService.deleteLabel(this.workspaceId(), labelId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       error: () => {
         this.labels.set(snapshot);
         this.showError('Failed to delete label');

@@ -11,7 +11,7 @@ use crate::errors::{AppError, Result};
 use crate::state::AppState;
 
 use taskbolt_services::notifications::whatsapp::{
-    is_whatsapp_enabled, validate_e164_phone_number, WahaClient,
+    is_whatsapp_enabled, validate_e164_phone_number,
 };
 
 // ============================================================================

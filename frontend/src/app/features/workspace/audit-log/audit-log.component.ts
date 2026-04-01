@@ -4,8 +4,10 @@ import {
   signal,
   inject,
   OnInit,
+  DestroyRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -132,6 +134,7 @@ import {
 })
 export class AuditLogComponent implements OnInit {
   private workspaceService = inject(WorkspaceService);
+  private destroyRef = inject(DestroyRef);
 
   workspaceId = input.required<string>();
 
@@ -157,6 +160,7 @@ export class AuditLogComponent implements OnInit {
         action: this.actionFilter || undefined,
         entity_type: this.entityFilter || undefined,
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (result) => {
           this.entries.set(result.items);
@@ -181,6 +185,7 @@ export class AuditLogComponent implements OnInit {
         action: this.actionFilter || undefined,
         entity_type: this.entityFilter || undefined,
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (result) => {
           this.entries.update((prev) => [...prev, ...result.items]);
@@ -194,7 +199,7 @@ export class AuditLogComponent implements OnInit {
   }
 
   private loadActions(): void {
-    this.workspaceService.listAuditActions(this.workspaceId()).subscribe({
+    this.workspaceService.listAuditActions(this.workspaceId()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (result) => this.actions.set(result.actions),
     });
   }

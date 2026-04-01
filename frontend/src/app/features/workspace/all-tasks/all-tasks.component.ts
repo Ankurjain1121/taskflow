@@ -4,8 +4,10 @@ import {
   signal,
   computed,
   OnInit,
+  DestroyRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -227,6 +229,7 @@ export class AllTasksComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly wsContext = inject(WorkspaceContextService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly tasks = signal<AllTask[]>([]);
   readonly loading = signal(false);
@@ -346,6 +349,7 @@ export class AllTasksComponent implements OnInit {
 
     this.http
       .get<AllTasksResponse>(`/api/workspace/${wsId}/tasks`, { params })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
           this.tasks.update((prev) => (cursor ? [...prev, ...res.items] : res.items));

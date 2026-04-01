@@ -184,6 +184,7 @@ pub async fn list_all_invitations(
         FROM invitations
         WHERE workspace_id = $1
         ORDER BY created_at DESC
+        LIMIT 500
         "#,
     )
     .bind(workspace_id)

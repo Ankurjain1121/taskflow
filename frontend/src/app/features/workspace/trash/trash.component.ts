@@ -4,8 +4,10 @@ import {
   signal,
   inject,
   OnInit,
+  DestroyRef,
   ChangeDetectionStrategy,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WorkspaceService } from '../../../core/services/workspace.service';
@@ -148,6 +150,7 @@ interface TrashItem {
 })
 export class TrashComponent implements OnInit {
   private workspaceService = inject(WorkspaceService);
+  private destroyRef = inject(DestroyRef);
 
   workspaceId = input.required<string>();
 
@@ -171,6 +174,7 @@ export class TrashComponent implements OnInit {
         page_size: 20,
         entity_type: this.typeFilter || undefined,
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (result) => {
           this.items.set(result.items as unknown as TrashItem[]);
@@ -194,6 +198,7 @@ export class TrashComponent implements OnInit {
         page_size: 20,
         entity_type: this.typeFilter || undefined,
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (result) => {
           this.items.update((prev) => [
@@ -213,6 +218,7 @@ export class TrashComponent implements OnInit {
     this.restoring.set(true);
     this.workspaceService
       .restoreTrashItem(this.workspaceId(), item.entity_type, item.entity_id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.items.update((list) =>
@@ -230,6 +236,7 @@ export class TrashComponent implements OnInit {
     this.deleting.set(true);
     this.workspaceService
       .deleteTrashItem(this.workspaceId(), item.entity_type, item.entity_id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.items.update((list) =>
