@@ -64,7 +64,7 @@ import { PRIORITY_COLORS_HEX } from '../../../shared/utils/task-colors';
       <div class="flex items-center gap-1.5 pt-1" style="border-top: 1px solid var(--border)">
         <button
           class="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-colors btn-press"
-          style="background: var(--success); color: white"
+          style="background: var(--success); color: var(--primary-foreground)"
           title="Complete task"
           (click)="onComplete()"
           [disabled]="completing()"

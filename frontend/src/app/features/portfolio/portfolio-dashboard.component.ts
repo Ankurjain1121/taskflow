@@ -106,7 +106,7 @@ import {
           <button
             (click)="loadData()"
             class="mt-3 text-sm px-4 py-2 rounded-lg"
-            style="background: var(--primary); color: white"
+            style="background: var(--primary); color: var(--primary-foreground)"
           >
             Retry
           </button>

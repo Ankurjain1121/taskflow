@@ -151,9 +151,9 @@ interface NotificationGroup {
           <div class="flex flex-col items-center justify-center py-16 px-4">
             <div
               class="w-16 h-16 rounded-full flex items-center justify-center mb-4"
-              style="background: color-mix(in srgb, #22c55e 12%, var(--card))"
+              style="background: color-mix(in srgb, var(--success) 12%, var(--card))"
             >
-              <i class="pi pi-check-circle text-2xl" style="color: #22c55e"></i>
+              <i class="pi pi-check-circle text-2xl" style="color: var(--success)"></i>
             </div>
             <p class="text-xl font-semibold mb-1" style="color: var(--foreground)">
               All caught up!

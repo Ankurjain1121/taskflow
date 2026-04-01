@@ -45,7 +45,7 @@ const TAB_STORAGE_KEY = 'taskbolt_mywork_tab';
               <span style="color: var(--muted-foreground)">
                 <span class="font-semibold" style="color: var(--foreground)">{{ summary()!.due_soon }}</span> due soon
               </span>
-              <span style="color: var(--success, #22c55e)">
+              <span style="color: var(--success)">
                 <span class="font-semibold">{{ summary()!.completed_this_week }}</span> done this week
               </span>
             </div>

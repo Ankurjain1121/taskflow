@@ -21,7 +21,7 @@
         @if (twoFactorEnabled()) {
           <span
             class="text-xs px-2.5 py-1 rounded-full font-medium"
-            style="background: #22c55e20; color: #22c55e"
+            style="background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success)"
             >Enabled</span
           >
         }
@@ -491,7 +491,7 @@
                   @if (session.is_current) {
                     <span
                       class="text-xs px-2 py-0.5 rounded-full font-medium"
-                      style="background: #22c55e20; color: #22c55e"
+                      style="background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success)"
                       >Current</span
                     >
                   }

@@ -67,7 +67,7 @@ const PHONE_REGEX = /^\+[1-9]\d{1,14}$/;
             @if (avatarUploading()) {
               <div
                 class="absolute inset-0 flex items-center justify-center"
-                style="background: rgba(0,0,0,0.5)"
+                style="background: var(--overlay, rgba(0,0,0,0.5))"
                 role="status"
                 aria-live="polite"
               >
