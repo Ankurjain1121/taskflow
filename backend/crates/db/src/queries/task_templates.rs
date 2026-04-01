@@ -207,7 +207,7 @@ pub async fn create_task_template(
             .bind(Uuid::new_v4())
             .bind(id)
             .bind(title)
-            .bind(i as i32)
+            .bind(i32::try_from(i).unwrap_or(i32::MAX))
             .execute(&mut *tx)
             .await?;
         }

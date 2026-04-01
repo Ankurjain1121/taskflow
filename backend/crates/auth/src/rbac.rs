@@ -136,17 +136,13 @@ pub fn can_manage_workspace(global_role: &UserRole, ws_role: Option<&WorkspaceMe
 /// Check if a user has at least the specified role level
 pub fn has_role_level(actual: &UserRole, required: &UserRole) -> bool {
     match (actual, required) {
-        // SuperAdmin is the highest level
-        (UserRole::SuperAdmin, _) => true,
-        // Admin is second highest
-        (UserRole::Admin, UserRole::SuperAdmin) => false,
-        (UserRole::Admin, _) => true,
-        // Manager is mid-level
-        (UserRole::Manager, UserRole::Manager | UserRole::Member) => true,
-        (UserRole::Manager, _) => false,
-        // Member is lowest level
-        (UserRole::Member, UserRole::Member) => true,
-        (UserRole::Member, _) => false,
+        // These combinations grant access
+        (UserRole::SuperAdmin, _)
+        | (UserRole::Admin, UserRole::Admin | UserRole::Manager | UserRole::Member)
+        | (UserRole::Manager, UserRole::Manager | UserRole::Member)
+        | (UserRole::Member, UserRole::Member) => true,
+        // All other combinations deny access
+        _ => false,
     }
 }
 
@@ -324,7 +320,7 @@ mod tests {
                 assert_eq!(required, UserRole::Admin);
                 assert_eq!(actual, UserRole::Member);
             }
-            _ => panic!("Expected InsufficientRole error, got {:?}", err),
+            AuthError::PermissionDenied(_) => panic!("Expected InsufficientRole error, got {:?}", err),
         }
     }
 

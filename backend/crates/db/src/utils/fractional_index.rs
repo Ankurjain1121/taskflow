@@ -95,7 +95,7 @@ fn midpoint(lower: &str, upper: &str) -> String {
 
         if lc < uc - 1 {
             // There's room between these chars
-            let mid = (lc + uc) / 2;
+            let mid = u32::midpoint(lc, uc);
             result.push(val_to_char(mid));
             return result.into_iter().collect();
         }
@@ -133,18 +133,16 @@ fn val_to_char(v: u32) -> char {
 
 fn next_char(c: char) -> char {
     match c {
-        '0'..='8' => (c as u8 + 1) as char,
         '9' => 'a',
-        'a'..='y' => (c as u8 + 1) as char,
+        '0'..='8' | 'a'..='y' => (c as u8 + 1) as char,
         _ => 'z',
     }
 }
 
 fn prev_char(c: char) -> char {
     match c {
-        '1'..='9' => (c as u8 - 1) as char,
         'a' => '9',
-        'b'..='z' => (c as u8 - 1) as char,
+        '1'..='9' | 'b'..='z' => (c as u8 - 1) as char,
         _ => '0',
     }
 }

@@ -38,7 +38,7 @@ fn extract_user_agent(req: &Request<Body>) -> Option<String> {
     req.headers()
         .get("User-Agent")
         .and_then(|v| v.to_str().ok())
-        .map(|s| s.to_string())
+        .map(std::string::ToString::to_string)
 }
 
 /// Audit middleware that records events after successful mutations
@@ -84,10 +84,7 @@ pub async fn audit_middleware(
     }
 
     // Need auth user for audit
-    let auth_user = match auth_user {
-        Some(u) => u,
-        None => return response,
-    };
+    let Some(auth_user) = auth_user else { return response };
 
     // Get route identifier
     let route_id = match route_id {

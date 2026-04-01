@@ -179,9 +179,8 @@ pub async fn mark_read(
 
         if exists {
             return Err(NotificationQueryError::Unauthorized);
-        } else {
-            return Err(NotificationQueryError::NotFound);
         }
+        return Err(NotificationQueryError::NotFound);
     }
 
     Ok(())
@@ -200,7 +199,7 @@ pub async fn mark_all_read(pool: &PgPool, user_id: Uuid) -> Result<i64, Notifica
     .execute(pool)
     .await?;
 
-    Ok(result.rows_affected() as i64)
+    Ok(i64::try_from(result.rows_affected()).unwrap_or(0))
 }
 
 /// Delete old notifications in bounded batches (for cleanup job).
@@ -227,7 +226,7 @@ pub async fn delete_old_notifications(
     .execute(pool)
     .await?;
 
-    Ok(result.rows_affected() as i64)
+    Ok(i64::try_from(result.rows_affected()).unwrap_or(0))
 }
 
 /// Archive (soft-delete) a notification for a user
@@ -258,9 +257,8 @@ pub async fn archive_notification(
 
         if exists {
             return Err(NotificationQueryError::Unauthorized);
-        } else {
-            return Err(NotificationQueryError::NotFound);
         }
+        return Err(NotificationQueryError::NotFound);
     }
 
     Ok(())

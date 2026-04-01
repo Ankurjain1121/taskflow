@@ -109,11 +109,8 @@ pub async fn apply_template(
     .fetch_optional(pool)
     .await?;
 
-    let template = match template {
-        Some(t) => t,
-        None => {
-            return Err(sqlx::Error::RowNotFound);
-        }
+    let Some(template) = template else {
+        return Err(sqlx::Error::RowNotFound);
     };
 
     let now = Utc::now();

@@ -22,7 +22,7 @@ use taskbolt_services::novu::NovuClient;
 
 /// Validate the X-Cron-Secret header
 fn validate_cron_secret(headers: &HeaderMap) -> Result<()> {
-    let expected_secret = env::var("CRON_SECRET").unwrap_or_else(|_| "".to_string());
+    let expected_secret = env::var("CRON_SECRET").unwrap_or_default();
 
     if expected_secret.is_empty() {
         return Err(AppError::InternalError(
@@ -135,7 +135,7 @@ async fn weekly_digest_handler(
     // Create Postal client
     let postal_api_url =
         env::var("POSTAL_API_URL").unwrap_or_else(|_| "http://localhost:5000".to_string());
-    let postal_api_key = env::var("POSTAL_API_KEY").unwrap_or_else(|_| "".to_string());
+    let postal_api_key = env::var("POSTAL_API_KEY").unwrap_or_default();
     let postal_from_address =
         env::var("POSTAL_FROM_ADDRESS").unwrap_or_else(|_| "noreply@taskbolt.local".to_string());
     let postal_from_name = env::var("POSTAL_FROM_NAME").unwrap_or_else(|_| "TaskBolt".to_string());

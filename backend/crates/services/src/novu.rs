@@ -86,7 +86,13 @@ impl NovuClient {
             .await
         {
             Ok(response) => {
-                if !response.status().is_success() {
+                if response.status().is_success() {
+                    tracing::debug!(
+                        event = event_name,
+                        subscriber = subscriber_id,
+                        "Novu event triggered successfully"
+                    );
+                } else {
                     let status = response.status().as_u16();
                     let message = response
                         .text()
@@ -98,12 +104,6 @@ impl NovuClient {
                         status = status,
                         message = %message,
                         "Novu trigger_event failed"
-                    );
-                } else {
-                    tracing::debug!(
-                        event = event_name,
-                        subscriber = subscriber_id,
-                        "Novu event triggered successfully"
                     );
                 }
             }

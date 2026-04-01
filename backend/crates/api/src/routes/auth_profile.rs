@@ -124,7 +124,10 @@ pub async fn update_profile_handler(
 
     // Check OTP verification for phone number change
     let phone_verified = if let Some(ref phone) = payload.phone_number {
-        if !phone.is_empty() {
+        if phone.is_empty() {
+            // Clearing phone number — reset verified
+            Some(false)
+        } else {
             let otp_key = format!("otp_verified:{}", phone);
             let verified: Option<String> = redis::cmd("GET")
                 .arg(&otp_key)
@@ -141,9 +144,6 @@ pub async fn update_profile_handler(
             } else {
                 Some(false)
             }
-        } else {
-            // Clearing phone number — reset verified
-            Some(false)
         }
     } else {
         None // phone not being updated
@@ -164,7 +164,7 @@ pub async fn update_profile_handler(
         WHERE id = $8
         "#,
     )
-    .bind(payload.name.as_deref().map(|s| s.trim()))
+    .bind(payload.name.as_deref().map(str::trim))
     .bind(&payload.phone_number)
     .bind(&payload.avatar_url)
     .bind(&payload.job_title)

@@ -91,8 +91,8 @@ pub struct UserResponse {
 /// Validate password complexity: >= 8 chars, at least one uppercase, one lowercase, one digit.
 pub fn is_password_strong(password: &str) -> bool {
     password.len() >= 8
-        && password.chars().any(|c| c.is_uppercase())
-        && password.chars().any(|c| c.is_lowercase())
+        && password.chars().any(char::is_uppercase)
+        && password.chars().any(char::is_lowercase)
         && password.chars().any(|c| c.is_ascii_digit())
 }
 

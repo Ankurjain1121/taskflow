@@ -144,7 +144,7 @@ pub async fn get_transitions(pool: &PgPool, id: Uuid) -> Result<Option<Vec<Uuid>
     )
     .fetch_optional(pool)
     .await
-    .map(|opt| opt.flatten())
+    .map(Option::flatten)
 }
 
 /// Set allowed transitions for a status

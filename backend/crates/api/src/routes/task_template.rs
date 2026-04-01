@@ -112,7 +112,7 @@ async fn update_template(
             AppError::Forbidden("Not authorized to update this template".into())
         }
         TaskTemplateQueryError::Database(e) => AppError::SqlxError(e),
-        _ => AppError::InternalError(e.to_string()),
+        TaskTemplateQueryError::TaskNotFound => AppError::InternalError(e.to_string()),
     })?;
 
     Ok(Json(template))
@@ -132,7 +132,7 @@ async fn delete_template(
                 AppError::Forbidden("Not authorized to delete this template".into())
             }
             TaskTemplateQueryError::Database(e) => AppError::SqlxError(e),
-            _ => AppError::InternalError(e.to_string()),
+            TaskTemplateQueryError::TaskNotFound => AppError::InternalError(e.to_string()),
         })?;
 
     Ok(Json(serde_json::json!({ "success": true })))

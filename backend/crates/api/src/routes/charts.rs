@@ -121,7 +121,7 @@ async fn fetch_burndown_data(
     .map_err(AppError::SqlxError)?;
 
     let total_points = points.len();
-    let first_total = points.first().map(|p| p.total_created).unwrap_or(0);
+    let first_total = points.first().map_or(0, |p| p.total_created);
 
     let result: Vec<BurndownDataPoint> = points
         .into_iter()
@@ -191,11 +191,13 @@ async fn export_burndown_csv_handler(
     let mut csv = String::with_capacity(data.len() * 60);
     csv.push_str("date,created,completed,remaining,ideal\n");
 
+    use std::fmt::Write as _;
     for point in data {
-        csv.push_str(&format!(
-            "{},{},{},{},{}\n",
+        let _ = writeln!(
+            csv,
+            "{},{},{},{},{}",
             point.date, point.total_tasks, point.completed_tasks, point.remaining, point.ideal_line
-        ));
+        );
     }
 
     let headers = [

@@ -89,7 +89,7 @@ async fn list_children_handler(
     .await
     .unwrap_or(0);
 
-    let total = children.len() as i64;
+    let total = i64::try_from(children.len()).unwrap_or(i64::MAX);
 
     Ok(Json(ChildTaskListResponse {
         children,

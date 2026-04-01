@@ -158,8 +158,7 @@ pub async fn list_my_tasks(
             let is_done = row
                 .status_type
                 .as_deref()
-                .map(|t| t == "done")
-                .unwrap_or(false);
+                .is_some_and(|t| t == "done");
 
             MyTaskItem {
                 id: row.id,

@@ -146,8 +146,7 @@ async fn update_preset(
     let name = payload
         .name
         .as_deref()
-        .map(|n| n.trim())
-        .unwrap_or(&existing.name);
+        .map_or(existing.name.as_str(), str::trim);
     let filters = payload.filters.as_ref().unwrap_or(&existing.filters);
 
     let updated: FilterPresetResponse = sqlx::query_as(

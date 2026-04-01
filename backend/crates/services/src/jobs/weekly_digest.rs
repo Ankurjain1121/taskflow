@@ -29,6 +29,7 @@ pub struct WeeklyDigestResult {
 
 /// User stats for the weekly digest
 #[derive(Debug)]
+#[allow(clippy::struct_field_names)]
 struct UserDigestStats {
     tasks_completed: i64,
     tasks_created: i64,
@@ -139,7 +140,7 @@ pub async fn send_weekly_digests(
                 .send_email(&email, "[TaskBolt] Your Weekly Summary", &html)
                 .await
             {
-                Ok(_) => {
+                Ok(()) => {
                     result.emails_sent += 1;
                     tracing::debug!(
                         user_id = %user_id,

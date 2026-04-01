@@ -74,7 +74,6 @@ pub async fn get_personal_board(
 
     for item in items {
         match item.column_name.as_str() {
-            "backlog" => response.backlog.push(item),
             "today" => response.today.push(item),
             "in_progress" => response.in_progress.push(item),
             "done" => response.done.push(item),

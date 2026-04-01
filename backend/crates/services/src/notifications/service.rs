@@ -127,7 +127,7 @@ impl NotificationService {
             let event_type_owned = event_type_str.to_string();
             let title_owned = title.to_string();
             let body_owned = body.to_string();
-            let link_url_owned = link_url.map(|s| s.to_string());
+            let link_url_owned = link_url.map(std::string::ToString::to_string);
             let app_url = self.app_url.clone();
 
             tokio::spawn(async move {

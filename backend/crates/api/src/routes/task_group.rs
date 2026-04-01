@@ -204,7 +204,7 @@ async fn toggle_collapse(
 ) -> Result<Json<serde_json::Value>> {
     let collapsed = req
         .get("collapsed")
-        .and_then(|v| v.as_bool())
+        .and_then(serde_json::Value::as_bool)
         .ok_or(AppError::BadRequest(
             "Missing 'collapsed' field".to_string(),
         ))?;

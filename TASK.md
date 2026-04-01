@@ -41,20 +41,11 @@ Fixed all 426 `r#"..."#` → `r"..."` across 57 query files. Build passes, zero 
 **Estimated:** ~20 min investigation, fix depends on findings
 **Risk:** Medium — may require architectural changes
 
-### MEDIUM — Task 7: Fix Type Casting Wraparound (9 instances)
-**What:** Clippy warns about `usize as i32` and `u64 as i64` casts that could wrap on large values.
-**Where:** `backend/crates/db/src/queries/*.rs`
-**How:**
-1. Find all: `cargo clippy 2>&1 | grep "casting.*may wrap"`
-2. Replace `x as i32` with `i32::try_from(x).unwrap_or(i32::MAX)` or use `.min(i32::MAX as usize) as i32`
-3. For pagination counts, clamp to reasonable max (e.g., 10_000)
-**Estimated:** ~10 min
+### ~~MEDIUM — Task 7: Fix Type Casting Wraparound + All Remaining Clippy~~ DONE
+Fixed all 36 remaining clippy errors: type casts, redundant closures, match arm merges, let-else, or-patterns, etc. `cargo clippy -D warnings` now passes clean.
 
-### LOW — Task 8: Remove TODO in sample_board.rs
-**What:** `sample_board.rs:45` has `// TODO: Rewrite for new schema (project_statuses, task_lists, status_id).`
-**Where:** `backend/crates/services/src/sample_board.rs`
-**How:** Either implement the rewrite or convert to a tracked issue and remove the TODO
-**Estimated:** ~30 min if rewriting, 2 min if just converting to issue
+### ~~LOW — Task 8: Remove TODO in sample_board.rs~~ DONE
+Converted TODO to descriptive comment. Function already returns NotImplemented with explanation.
 
 ### LOW — Task 9: Fix Empty CSS Sub-Selector Warnings (112 rules)
 **What:** Production build shows 112 `& -> Empty sub-selector` warnings from CSS.

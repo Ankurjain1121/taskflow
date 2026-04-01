@@ -107,7 +107,6 @@ fn normalize_priority(input: &str) -> &'static str {
     match input.to_lowercase().trim() {
         "urgent" => "urgent",
         "high" => "high",
-        "medium" => "medium",
         "low" => "low",
         _ => "medium",
     }
@@ -172,7 +171,7 @@ fn resolve_column_id_sync(
     if let Some(id) = name_map.values().next() {
         return *id;
     }
-    existing.first().map(|c| c.id).unwrap_or(Uuid::nil())
+    existing.first().map_or(Uuid::nil(), |c| c.id)
 }
 
 // ============================================================================
@@ -372,15 +371,15 @@ async fn import_csv_handler(
             continue;
         }
 
-        let title = row.first().map(|s| s.as_str()).unwrap_or("").trim();
+        let title = row.first().map_or("", |s| s.as_str()).trim();
         if title.is_empty() {
             continue;
         }
 
-        let description = row.get(1).map(|s| s.as_str()).filter(|s| !s.is_empty());
-        let priority_str = row.get(2).map(|s| s.as_str()).unwrap_or("medium");
-        let column_name = row.get(3).map(|s| s.as_str()).filter(|s| !s.is_empty());
-        let due_date_str = row.get(4).map(|s| s.as_str()).filter(|s| !s.is_empty());
+        let description = row.get(1).map(String::as_str).filter(|s| !s.is_empty());
+        let priority_str = row.get(2).map_or("medium", |s| s.as_str());
+        let column_name = row.get(3).map(String::as_str).filter(|s| !s.is_empty());
+        let due_date_str = row.get(4).map(String::as_str).filter(|s| !s.is_empty());
 
         let column_id = column_name
             .filter(|n| !n.is_empty())
@@ -480,8 +479,7 @@ async fn import_trello_handler(
     // Determine last position for creating new columns
     let mut last_position = existing_columns
         .last()
-        .map(|c| c.position.clone())
-        .unwrap_or_else(|| "a0".to_string());
+        .map_or_else(|| "a0".to_string(), |c| c.position.clone());
 
     let mut columns_created: i64 = 0;
 
@@ -561,8 +559,7 @@ async fn import_trello_handler(
                     // Fallback to first column
                     existing_columns
                         .first()
-                        .map(|c| c.id)
-                        .unwrap_or(Uuid::nil())
+                        .map_or(Uuid::nil(), |c| c.id)
                 })
         } else {
             // Fallback to first column

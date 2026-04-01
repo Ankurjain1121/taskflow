@@ -278,7 +278,7 @@ async fn update_project(
         MAX_PROJECT_DESCRIPTION_LEN,
     )?;
 
-    let name = payload.name.as_deref().map(|n| n.trim());
+    let name = payload.name.as_deref().map(str::trim);
 
     let bg_color = payload.background_color.as_ref().map(|c| c.as_deref());
     let board = projects::update_project(

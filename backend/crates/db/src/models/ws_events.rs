@@ -86,7 +86,7 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore] // Run with: cargo test -p taskbolt-db -- export_types --ignored
+    #[ignore = "Run with: cargo test -p taskbolt-db -- export_types --ignored"]
     fn export_types() {
         WsBoardEvent::export_all().expect("Failed to export WsBoardEvent");
         TaskBroadcast::export_all().expect("Failed to export TaskBroadcast");

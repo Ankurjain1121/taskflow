@@ -159,7 +159,7 @@ pub async fn create_recurring_instance(
         // Subtasks from template (as child tasks)
         for (i, subtask) in template.subtasks.iter().enumerate() {
             let child_id = Uuid::new_v4();
-            let child_position = format!("a{}", now.timestamp_millis() + i as i64 + 1);
+            let child_position = format!("a{}", now.timestamp_millis() + i64::try_from(i).unwrap_or(i64::MAX) + 1);
             sqlx::query(
                 r"
                 INSERT INTO tasks (
@@ -314,9 +314,8 @@ pub async fn create_recurring_instance(
 
     let should_deactivate = config
         .max_occurrences
-        .map(|max| new_occurrences >= max)
-        .unwrap_or(false)
-        || config.end_date.map(|end| next_run > end).unwrap_or(false);
+        .is_some_and(|max| new_occurrences >= max)
+        || config.end_date.is_some_and(|end| next_run > end);
 
     sqlx::query(
         r"

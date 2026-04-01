@@ -172,9 +172,9 @@ pub async fn search_all(
     .await?;
 
     let counts = SearchResultCounts {
-        tasks: tasks.len() as i64,
-        boards: boards.len() as i64,
-        comments: comments.len() as i64,
+        tasks: i64::try_from(tasks.len()).unwrap_or(i64::MAX),
+        boards: i64::try_from(boards.len()).unwrap_or(i64::MAX),
+        comments: i64::try_from(comments.len()).unwrap_or(i64::MAX),
     };
 
     Ok(SearchResults {

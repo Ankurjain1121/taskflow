@@ -45,7 +45,7 @@ pub fn validate_e164_phone_number(phone: &str) -> Result<(), WhatsAppError> {
     let digits: String = phone
         .chars()
         .skip(1)
-        .filter(|c| c.is_ascii_digit())
+        .filter(char::is_ascii_digit)
         .collect();
 
     if digits.len() < 7 || digits.len() > 15 {
@@ -69,7 +69,7 @@ pub fn validate_e164_phone_number(phone: &str) -> Result<(), WhatsAppError> {
 ///
 /// WhatsApp uses the format: [country code][number]@c.us
 fn phone_to_chat_id(phone: &str) -> String {
-    let digits: String = phone.chars().filter(|c| c.is_ascii_digit()).collect();
+    let digits: String = phone.chars().filter(char::is_ascii_digit).collect();
     format!("{}@c.us", digits)
 }
 
@@ -197,7 +197,8 @@ pub async fn send_whatsapp_notification(
     let mut message = format!("{} *{}*\n\n{}", emoji, title, body);
 
     if let Some(url) = link_url {
-        message.push_str(&format!("\n\nView details: {}", url));
+        use std::fmt::Write as _;
+        let _ = write!(message, "\n\nView details: {}", url);
     }
 
     let client = WahaClient::new(waha_api_url.to_string(), waha_api_key.to_string(), None)?;

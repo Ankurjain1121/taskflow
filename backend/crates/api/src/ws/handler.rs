@@ -177,7 +177,7 @@ async fn handle_socket(socket: WebSocket, state: AppState, auth_info: Option<(Uu
                         None => break,
                     }
                 }
-                _ = tokio::time::sleep(std::time::Duration::from_millis(50)), if last_flush.elapsed() > std::time::Duration::from_millis(50) => {
+                () = tokio::time::sleep(std::time::Duration::from_millis(50)), if last_flush.elapsed() > std::time::Duration::from_millis(50) => {
                     // Periodic flush
                     if let Some(batch) = batch_handler.flush_if_ready() {
                         if !batch.is_empty() {
@@ -664,10 +664,7 @@ async fn validate_channel_access(
     }
 
     let channel_type = parts[0];
-    let channel_id = match Uuid::parse_str(parts[1]) {
-        Ok(id) => id,
-        Err(_) => return Ok(false),
-    };
+    let Ok(channel_id) = Uuid::parse_str(parts[1]) else { return Ok(false) };
 
     match channel_type {
         "project" | "board" => {
@@ -707,15 +704,12 @@ fn is_valid_channel(channel: &str, user_id: Uuid, _tenant_id: Uuid) -> bool {
     }
 
     let channel_type = parts[0];
-    let channel_id = match Uuid::parse_str(parts[1]) {
-        Ok(id) => id,
-        Err(_) => return false,
-    };
+    let Ok(channel_id) = Uuid::parse_str(parts[1]) else { return false };
 
     match channel_type {
-        "project" | "board" => true, // Format valid, actual auth done by validate_channel_access
+        // Format valid, actual auth done by validate_channel_access
+        "project" | "board" | "workspace" => true,
         "user" => channel_id == user_id,
-        "workspace" => true, // Format valid, actual auth done by validate_channel_access
         _ => false,
     }
 }

@@ -265,7 +265,8 @@ pub async fn notify(
                         } else {
                             format!("{}{}", ctx.app_url, url)
                         };
-                        message.push_str(&format!("\n\nView details: {}", full_url));
+                        use std::fmt::Write as _;
+                        let _ = write!(message, "\n\nView details: {}", full_url);
                     }
 
                     match waha_client.send_message(&phone_number, &message).await {

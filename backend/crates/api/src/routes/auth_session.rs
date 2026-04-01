@@ -139,6 +139,6 @@ pub fn extract_session_metadata(headers: &HeaderMap) -> (Option<String>, Option<
     let user_agent = headers
         .get("user-agent")
         .and_then(|v| v.to_str().ok())
-        .map(|s| s.to_string());
+        .map(std::string::ToString::to_string);
     (ip_address, user_agent)
 }
