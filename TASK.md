@@ -17,17 +17,8 @@ Fixed all 426 `r#"..."#` → `r"..."` across 57 query files. Build passes, zero 
 ### ~~MEDIUM — Task 5: Add aria-label to Icon-Only Buttons (20+ instances)~~ DONE
 Added aria-label to 40+ icon-only buttons across 21 component files. TypeScript passes clean.
 
-### MEDIUM — Task 6: Investigate Frontend Bundle Size (1.24 MB vs 800 KB budget)
-**What:** Production build reports bundle 1.24 MB, exceeding the 800 KB angular.json budget by 55%.
-**Where:** `frontend/angular.json` budget config, `frontend/src/app/app.routes.ts` lazy loading
-**How:**
-1. Run `npx ng build --configuration=production --stats-json` to get bundle analysis
-2. Run `npx webpack-bundle-analyzer dist/frontend/stats.json` or `source-map-explorer`
-3. Identify largest chunks — likely PrimeNG, Chart.js, or non-lazy-loaded feature modules
-4. Options: increase budget (if justified), add more lazy loading, tree-shake PrimeNG imports
-5. Check if all feature modules use `loadComponent` (lazy) in app.routes.ts
-**Estimated:** ~20 min investigation, fix depends on findings
-**Risk:** Medium — may require architectural changes
+### ~~MEDIUM — Task 6: Investigate Frontend Bundle Size (1.24 MB vs 800 KB budget)~~ DONE
+Investigated: all routes use `loadComponent` (lazy). 1.24 MB raw is ~300 KB gzipped — reasonable for a full-featured SaaS. Biggest initial chunks are PrimeNG core + shared Angular deps (can't be lazy). Raised budget to 1.5 MB warning / 2 MB error.
 
 ### ~~MEDIUM — Task 7: Fix Type Casting Wraparound + All Remaining Clippy~~ DONE
 Fixed all 36 remaining clippy errors: type casts, redundant closures, match arm merges, let-else, or-patterns, etc. `cargo clippy -D warnings` now passes clean.
