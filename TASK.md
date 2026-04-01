@@ -26,8 +26,8 @@ Fixed all 36 remaining clippy errors: type casts, redundant closures, match arm 
 ### ~~LOW — Task 8: Remove TODO in sample_board.rs~~ DONE
 Converted TODO to descriptive comment. Function already returns NotImplemented with explanation.
 
-### ~~LOW — Task 9: Fix Empty CSS Sub-Selector Warnings (112 rules)~~ WON'T FIX
-Investigated: no bare `&` selectors exist in source CSS. Warnings come from Tailwind CSS v4's generated output during lightningcss processing — not actionable at source level.
+### ~~LOW — Task 9: Fix Empty CSS Sub-Selector Warnings (112 rules)~~ DONE
+Root cause: beasties (critical CSS inliner) can't parse Tailwind v4 nesting `&`. Fix: disabled `inlineCritical` (no SSR, minimal benefit). Added `.browserslistrc` for modern browsers. 0 warnings now.
 
 ## Session Summary (2026-04-01)
 
