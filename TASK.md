@@ -14,20 +14,8 @@ Fix all issues found by the deep scan (2026-04-01). Priority order by user impac
 ### ~~HIGH — Task 2: Fix Clippy Raw String Hashes (426 instances)~~ DONE
 Fixed all 426 `r#"..."#` → `r"..."` across 57 query files. Build passes, zero hash warnings remain. ~36 non-hash clippy errors remain (Task 7+).
 
-### MEDIUM — Task 5: Add aria-label to Icon-Only Buttons (20+ instances)
-**What:** Buttons with only an `<i class="pi pi-*">` icon and no text label are missing `aria-label` for screen readers.
-**Where:** Scattered across feature components. Key files:
-- `features/task-detail/task-detail-sidebar.component.ts` — reminder buttons, action buttons
-- `features/settings/task-templates/task-templates.component.ts` — edit/delete buttons
-- `features/manage/manage.component.ts` — invite button
-- `features/dashboard/components/focus-task-card.component.ts` — done/snooze buttons (have `title` but not `aria-label`)
-- `features/project/` — various action buttons
-**How:**
-1. Grep for `<button` followed by `<i class="pi` without `aria-label` in between
-2. Add `aria-label="descriptive action"` to each button
-3. Where `pTooltip="X"` or `title="X"` exists, use same text for `aria-label`
-4. Verify with `npx tsc --noEmit`
-**Estimated:** ~15 min with agent
+### ~~MEDIUM — Task 5: Add aria-label to Icon-Only Buttons (20+ instances)~~ DONE
+Added aria-label to 40+ icon-only buttons across 21 component files. TypeScript passes clean.
 
 ### MEDIUM — Task 6: Investigate Frontend Bundle Size (1.24 MB vs 800 KB budget)
 **What:** Production build reports bundle 1.24 MB, exceeding the 800 KB angular.json budget by 55%.
